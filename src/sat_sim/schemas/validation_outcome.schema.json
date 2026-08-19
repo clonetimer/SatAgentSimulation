@@ -1,0 +1,210 @@
+{
+  "$defs": {
+    "ExecutionStatus": {
+      "enum": [
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "title": "ExecutionStatus",
+      "type": "string"
+    },
+    "InjectionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_kind": {
+          "title": "Event Kind",
+          "type": "string"
+        },
+        "requested_effect": {
+          "title": "Requested Effect",
+          "type": "string"
+        },
+        "delivery_result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "effect_result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "registered": {
+          "title": "Registered",
+          "type": "boolean"
+        },
+        "active_sample_count": {
+          "default": 0,
+          "title": "Active Sample Count",
+          "type": "integer"
+        },
+        "evidence_fields_present": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Fields Present",
+          "type": "array"
+        },
+        "evidence_fields_missing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Fields Missing",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_kind",
+        "requested_effect",
+        "delivery_result",
+        "effect_result",
+        "registered"
+      ],
+      "title": "InjectionEvidence",
+      "type": "object"
+    },
+    "ValidationCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "check_id": {
+          "title": "Check Id",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "reason_code": {
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "expected": {
+          "default": null,
+          "title": "Expected"
+        },
+        "observed": {
+          "default": null,
+          "title": "Observed"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        }
+      },
+      "required": [
+        "check_id",
+        "category",
+        "result",
+        "reason_code",
+        "message"
+      ],
+      "title": "ValidationCheck",
+      "type": "object"
+    },
+    "ValidationResult": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INCONCLUSIVE",
+        "NOT_EVALUATED"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v26.validation-outcome.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "execution_status": {
+      "$ref": "#/$defs/ExecutionStatus"
+    },
+    "result": {
+      "$ref": "#/$defs/ValidationResult"
+    },
+    "reason_code": {
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/ValidationCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "injection_evidence": {
+      "items": {
+        "$ref": "#/$defs/InjectionEvidence"
+      },
+      "title": "Injection Evidence",
+      "type": "array"
+    },
+    "physical_validation": {
+      "additionalProperties": true,
+      "title": "Physical Validation",
+      "type": "object"
+    },
+    "evidence_present": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Present",
+      "type": "array"
+    },
+    "evidence_missing": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Missing",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "execution_status",
+    "result",
+    "reason_code"
+  ],
+  "title": "Satellite Simulation ValidationOutcome V26",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/validation-outcome-v26.schema.json"
+}

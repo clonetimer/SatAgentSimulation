@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sat-sim.local/schemas/golden-eval-report-v27.schema.json",
+  "title": "V27 Agent Golden Evaluation Report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "golden_set_version",
+    "ok",
+    "manifest",
+    "output_dir",
+    "repeat_count",
+    "total",
+    "passed",
+    "failed",
+    "metrics",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "v27.agent-golden-eval.v1"
+    },
+    "golden_set_version": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "manifest": {
+      "type": "string"
+    },
+    "output_dir": {
+      "type": "string"
+    },
+    "repeat_count": {
+      "enum": [
+        1,
+        3,
+        5
+      ]
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,68 @@
+schema_version: sat-sim.fault-mechanism.v1
+mechanism_id: adcs.rw_jam.mechanism.v1
+fault_id: ADCS_RW_JAM
+subsystem: ADCS
+component: reaction_wheel
+status: active_provisional
+diagnostic_signature_id: adcs.rw_jam.diagnostic.v1
+causes:
+- cause_id: rotor_lock
+  kind: fault
+  description: Mechanical or electrical lock prevents commanded wheel acceleration.
+physical_effects:
+- effect_id: wheel_torque_path_lost
+  description: Wheel can no longer deliver commanded torque.
+  state_variable: rw.delivered_torque_nm
+  direction: decreasing
+- effect_id: momentum_management_degraded
+  description: Spacecraft loses one actuator degree of freedom.
+  state_variable: adcs.control_authority
+  direction: decreasing
+propagation_chain:
+- stage_id: p1
+  from: rotor_lock
+  to: wheel_torque_path_lost
+  relation: causes
+- stage_id: p2
+  from: wheel_torque_path_lost
+  to: momentum_management_degraded
+  relation: reduces
+- stage_id: p3
+  from: momentum_management_degraded
+  to: pointing_error_response
+  relation: can_increase
+observables:
+- channel: status.adcs.rw.available_0
+  evidence_role: simulator_truth
+  expected_relation: becomes false
+  model_input_eligible: false
+- channel: estimate.adcs.rw.effective_max_torque_nm_0
+  evidence_role: simulator_truth
+  expected_relation: collapses
+  model_input_eligible: false
+- channel: sensor.adcs.rw.speed_rad_s_0
+  evidence_role: observable_telemetry
+  expected_relation: paired trajectory diverges
+  model_input_eligible: true
+- channel: estimate.adcs.rw.actual_torque_nm_0
+  evidence_role: operational_estimate
+  expected_relation: paired residual increases
+  model_input_eligible: true
+- channel: estimate.adcs.pointing_error_deg
+  evidence_role: operational_estimate
+  expected_relation: may increase
+  model_input_eligible: true
+feature_contract_id: adcs.rw_jam.features.v1
+pipeline_id: adcs.rw_jam.pipeline.v1
+knowledge_graph_projection:
+  fault_node_id: ADCS_RW_JAM
+  mechanism_node_id: adcs.rw_jam.mechanism.v1
+  edge_types:
+  - HAS_CAUSE
+  - CAUSES_EFFECT
+  - PROPAGATES_TO
+  - OBSERVED_AS
+  - DIAGNOSED_BY
+claim_boundary:
+  mechanism_status: engineering_hypothesis_pending_basilisk_18_case_and_expert_review
+  flight_validated: false

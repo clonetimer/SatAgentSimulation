@@ -1,0 +1,34 @@
+name: Project script and dependency governance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/**"
+      - "pyproject.toml"
+      - "requirements*.txt"
+      - "constraints.txt"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Check script and dependency governance
+        run: >-
+          python scripts/check_script_dependency_governance.py
+          --strict
+          --output reports/security/project_governance_report.json
+      - name: Upload governance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-governance
+          path: reports/security/project_governance_report.json

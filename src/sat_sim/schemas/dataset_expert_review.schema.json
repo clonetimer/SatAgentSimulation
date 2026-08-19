@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.dataset-expert-review.v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "pair_id",
+    "decision",
+    "reviewer_id",
+    "reviewer_type",
+    "reviewed_at_utc",
+    "notes",
+    "evidence_refs",
+    "technical_qualification",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat-sim.dataset-expert-review.v1"
+    },
+    "pair_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision": {
+      "enum": [
+        "APPROVE",
+        "REJECT"
+      ]
+    },
+    "reviewer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewer_type": {
+      "enum": [
+        "human",
+        "llm_assisted_human"
+      ]
+    },
+    "reviewed_at_utc": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "technical_qualification": {
+      "type": "object"
+    },
+    "claim_boundary": {
+      "type": "object"
+    },
+    "diagnostic_qualification": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,20 @@
+schema_version: v34.calibration-dataset.v1
+dataset_id: ENGINEERING_ESTIMATE_RW_001
+title: Engineering-estimate documentation example
+component: reaction_wheel
+source_type: engineering_estimate
+source_ref: configs/parameters/engineering_estimate_registry_v1.json
+requested_claim_level: engineering_estimate
+status: draft
+files: []
+measurements: []
+sampling: {}
+uncertainty:
+  provided: false
+calibration:
+  target_parameters: []
+approval:
+  status: draft
+validity: {}
+limitations:
+  - This is not a calibration dataset and cannot qualify ground-calibrated claims.

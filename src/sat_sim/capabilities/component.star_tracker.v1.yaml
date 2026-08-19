@@ -1,0 +1,78 @@
+capability_id: component.star_tracker.v1
+schema_version: 0.1.0
+name: Star tracker component simulation
+level: component
+domain: adcs
+target: star_tracker
+trust_level: conformance_tested
+summary: Deterministic source-native star tracker attitude and drift model.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.StarTrackerAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.star_tracker.builder, components.star_tracker.schemas]
+  legacy_demo_runner: components.star_tracker.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [blinding, dropout, misalignment]
+  degradation:
+    supported: true
+    degradation_types: [centroid_noise_growth, boresight_drift]
+parameters:
+  true_sigma_bn: {type: "array[number]", unit: MRP, required: false, default: [0.1, 0.0, 0.0]}
+  drift_rate_mrp_s: {type: "array[number]", unit: MRP/s, required: false, default: [0.0, 0.0, 0.0]}
+  max_drift_norm: {type: number, unit: MRP, required: false, default: 1.0, min: 0.0}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: adcs.star_tracker.valid, unit: bool, dtype: bool}
+  - {name: adcs.star_tracker.sigma_x, unit: MRP, dtype: number}
+  - {name: adcs.star_tracker.drift_norm, unit: MRP, dtype: number}
+  summary:
+  - {name: adcs.star_tracker.valid_fraction, unit: ratio}
+operator:
+  owner: star_tracker
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: star_tracker
+    implementation: source_native
+    evidence_fields: [adcs.star_tracker.valid, adcs.star_tracker.sigma_x]
+    verification: declared
+  - {effect_id: blinding, kind: fault, owner: star_tracker, implementation: source_native, evidence_fields: [adcs.star_tracker.valid], verification: declared}
+  - {effect_id: dropout, kind: fault, owner: star_tracker, implementation: source_native, evidence_fields: [adcs.star_tracker.valid], verification: declared}
+  - {effect_id: misalignment, kind: fault, owner: star_tracker, implementation: source_native, evidence_fields: [adcs.star_tracker.sigma_x], verification: declared}
+  - {effect_id: centroid_noise_growth, kind: degradation, owner: star_tracker, implementation: source_native, evidence_fields: [adcs.star_tracker.sigma_x], verification: declared}
+  - {effect_id: boresight_drift, kind: degradation, owner: star_tracker, implementation: source_native, evidence_fields: [adcs.star_tracker.drift_norm], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.star_tracker.builder
+  source_modules: [components.star_tracker.builder, components.star_tracker.schemas]
+  public_api: [measure_star_tracker, StarTrackerConfig]
+  legacy_demo_runner: components.star_tracker.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Deterministic drift model; no optical scene or star-catalog simulation.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; closed-loop propagation requires an ADCS capability.]

@@ -1,0 +1,437 @@
+capability_id: subsystem.comm.basic_ground_pass.v1
+schema_version: 0.1.0
+name: Basic ground-pass communication and data-backlog simulation
+level: subsystem
+domain: communication
+target: comm_data
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Deterministic task-level communication/data capability that combines a simple LEO ground-station access profile,
+  compact link budget, transmitter power draw, and one-queue onboard data backlog. It is intended for Agent-facing script
+  generation and parameter-effect testing, not high-fidelity RF propagation, multi-station scheduling, antenna pointing, or
+  full EPS coupling.
+adapter:
+  class_path: sat_sim.adapters.subsystem_comm_basic_ground_pass.CommBasicGroundPassAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adapters.subsystem_comm_basic_ground_pass
+  - sat_sim.adapters.orbit_environment_leo_simple
+  - components.link_budget.builder
+  legacy_demo_runner: subsystems.comm_data.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  degradation:
+    supported: true
+    degradation_types:
+    - comm_tx_power_loss_pct
+    - comm_tx_gain_loss_db
+    - comm_misc_loss_increase_db
+    - comm_storage_capacity_loss_pct
+operator:
+  owner: comm_data
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: comm_data
+    implementation: source_native
+    evidence_fields:
+    - qoi.comm.final_backlog_bits
+    verification: declared
+  - effect_id: comm_tx_power_loss_pct
+    kind: degradation
+    owner: comm.transmitter
+    implementation: source_native
+    evidence_fields:
+    - comm.link.margin_db
+    - comm.link.data_rate_bps
+    verification: declared
+  - effect_id: comm_tx_gain_loss_db
+    kind: degradation
+    owner: comm.antenna
+    implementation: source_native
+    evidence_fields:
+    - comm.link.margin_db
+    verification: declared
+  - effect_id: comm_misc_loss_increase_db
+    kind: degradation
+    owner: comm.link
+    implementation: source_native
+    evidence_fields:
+    - comm.link.margin_db
+    verification: declared
+  - effect_id: comm_storage_capacity_loss_pct
+    kind: degradation
+    owner: comm.storage
+    implementation: source_native
+    evidence_fields:
+    - comm.data.storage_capacity_bits
+    - comm.data.cumulative_dropped_bits
+    verification: declared
+  observability:
+    qoi:
+    - qoi.comm.final_backlog_bits
+    trace:
+    - time_s
+    - comm.*
+    - label.*
+parameters:
+  generated_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 1500.0
+  initial_backlog_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 0.0
+    default: 0.0
+  storage_capacity_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 0.0
+    default: 12000000.0
+  raw_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 1.0
+    default: 2000000.0
+  max_downlink_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+  tx_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 1.0e-12
+    default: 5.0
+  tx_gain_dbi:
+    type: number
+    unit: dBi
+    required: false
+    default: 8.0
+  rx_gain_dbi:
+    type: number
+    unit: dBi
+    required: false
+    default: 18.0
+  misc_loss_db:
+    type: number
+    unit: dB
+    required: false
+    default: 2.0
+  freq_hz:
+    type: number
+    unit: Hz
+    required: false
+    min: 1.0
+    default: 2200000000.0
+  noise_temp_k:
+    type: number
+    unit: K
+    required: false
+    min: 1.0
+    default: 500.0
+  downlink_eff:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.9
+  required_ebn0_db:
+    type: number
+    unit: dB
+    required: false
+    min: 0.0
+    default: 3.0
+  transmitter_power_draw_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+  transmitter_standby_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 0.5
+  eps_allows_downlink_profile:
+    type: array[bool]
+    unit: bool
+    required: false
+  downlink_requested_profile:
+    type: array[bool]
+    unit: bool
+    required: false
+  ground_station:
+    type: object
+    required: false
+    fields:
+      latitude_deg:
+        type: number
+        unit: deg
+        default: 0.0
+      longitude_deg:
+        type: number
+        unit: deg
+        default: 0.0
+      altitude_m:
+        type: number
+        unit: m
+        default: 0.0
+      min_elevation_deg:
+        type: number
+        unit: deg
+        default: 10.0
+      max_range_m:
+        type: number
+        unit: m
+        default: 2500000.0
+  altitude_m:
+    type: number
+    unit: m
+    required: false
+    default: 500000.0
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 51.6
+  raan_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  arg_lat0_deg:
+    type: number
+    unit: deg
+    required: false
+    default: -110.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+dependencies:
+- capability_id: orbit_environment.leo_simple.v1
+  relation: consumes_ground_access_profile
+  required: true
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.ground_station
+- name: parameters.generated_bps
+  unit: bit/s
+- name: parameters.raw_rate_bps
+  unit: bit/s
+- name: parameters.tx_power_w
+  unit: W
+- name: parameters.storage_capacity_bits
+  unit: bit
+- name: parameters.required_ebn0_db
+  unit: dB
+produces:
+- name: comm.access.*
+- name: comm.link.*
+- name: comm.tx.*
+- name: comm.data.*
+- name: label.comm_state
+- name: label.comm_storage_full
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: comm.access.in_view_flag
+    unit: bool
+    dtype: bool
+    description: 通信可见视场内标志。运行器实际输出字段；技术字段为 comm.access.in_view_flag，单位 bool。
+  - name: comm.access.elevation_deg
+    unit: deg
+    dtype: number
+    description: 通信可见仰角度。运行器实际输出字段；技术字段为 comm.access.elevation_deg，单位 deg。
+  - name: comm.access.range_m
+    unit: m
+    dtype: number
+    description: 通信可见距离距离。运行器实际输出字段；技术字段为 comm.access.range_m，单位 m。
+  - name: comm.link.margin_db
+    unit: dB
+    dtype: number
+    description: 通信链路裕度。运行器实际输出字段；技术字段为 comm.link.margin_db，单位 dB。
+  - name: comm.link.ebn0_db
+    unit: dB
+    dtype: number
+    description: 通信链路每比特能量噪声比。运行器实际输出字段；技术字段为 comm.link.ebn0_db，单位 dB。
+  - name: comm.link.fspl_db
+    unit: dB
+    dtype: number
+    description: 通信链路。运行器实际输出字段；技术字段为 comm.link.fspl_db，单位 dB。
+  - name: comm.link.raw_rate_bps
+    unit: bit/s
+    dtype: number
+    description: 通信链路原始角速度比特率。运行器实际输出字段；技术字段为 comm.link.raw_rate_bps，单位 bit/s。
+  - name: comm.link.effective_rate_bps
+    unit: bit/s
+    dtype: number
+    description: 通信链路有效角速度比特率。运行器实际输出字段；技术字段为 comm.link.effective_rate_bps，单位 bit/s。
+  - name: comm.link.data_rate_bps
+    unit: bit/s
+    dtype: number
+    description: 通信链路数据角速度比特率。运行器实际输出字段；技术字段为 comm.link.data_rate_bps，单位 bit/s。
+  - name: comm.tx.downlink_active
+    unit: bool
+    dtype: bool
+    description: 通信发射机下行激活。运行器实际输出字段；技术字段为 comm.tx.downlink_active，单位 bool。
+  - name: comm.tx.power_draw_w
+    unit: W
+    dtype: number
+    description: 通信发射机功率功率。运行器实际输出字段；技术字段为 comm.tx.power_draw_w，单位 W。
+  - name: comm.tx.eps_allows_downlink
+    unit: mixed
+    dtype: number
+    description: 通信发射机能源允许下行。运行器实际输出字段；技术字段为 comm.tx.eps_allows_downlink。
+  - name: comm.tx.downlink_requested
+    unit: bool
+    dtype: number
+    description: 通信发射机下行请求。运行器实际输出字段；技术字段为 comm.tx.downlink_requested，单位 bool。
+  - name: comm.data.generation_rate_bps
+    unit: bit/s
+    dtype: number
+    description: 通信数据角速度比特率。运行器实际输出字段；技术字段为 comm.data.generation_rate_bps，单位 bit/s。
+  - name: comm.data.generated_bits
+    unit: bit
+    dtype: number
+    description: 通信数据已生成比特。运行器实际输出字段；技术字段为 comm.data.generated_bits，单位 bit。
+  - name: comm.data.downlinked_bits
+    unit: bit
+    dtype: number
+    description: 通信数据已下行比特。运行器实际输出字段；技术字段为 comm.data.downlinked_bits，单位 bit。
+  - name: comm.data.backlog_bits
+    unit: bit
+    dtype: number
+    description: 通信数据积压比特。运行器实际输出字段；技术字段为 comm.data.backlog_bits，单位 bit。
+  - name: comm.data.cumulative_generated_bits
+    unit: bit
+    dtype: number
+    description: 通信数据累计已生成比特。运行器实际输出字段；技术字段为 comm.data.cumulative_generated_bits，单位 bit。
+  - name: comm.data.cumulative_downlinked_bits
+    unit: bit
+    dtype: number
+    description: 通信数据累计已下行比特。运行器实际输出字段；技术字段为 comm.data.cumulative_downlinked_bits，单位 bit。
+  - name: comm.data.cumulative_dropped_bits
+    unit: bit
+    dtype: number
+    description: 通信数据累计已丢弃比特。运行器实际输出字段；技术字段为 comm.data.cumulative_dropped_bits，单位 bit。
+  - name: comm.data.storage_capacity_bits
+    unit: bit
+    dtype: number
+    description: 通信数据储能容量比特。运行器实际输出字段；技术字段为 comm.data.storage_capacity_bits，单位 bit。
+  summary:
+    qoi:
+    - qoi.comm.access_fraction
+    - qoi.comm.access_windows
+    - qoi.comm.downlink_fraction
+    - qoi.comm.max_downlink_rate_bps
+    - qoi.comm.generated_bits
+    - qoi.comm.downlinked_bits
+    - qoi.comm.final_backlog_bits
+    - qoi.comm.min_link_margin_db
+  labels:
+  - health_state
+  - comm_state
+  - access_available
+  - storage_full
+validation:
+  parameter_effect_tests:
+  - test_p10a_ground_station_parameters_change_access_windows
+  - test_p10a_tx_power_changes_link_margin_and_downlinked_bits
+  - test_p10a_generated_rate_changes_final_backlog
+  - test_p10a_storage_capacity_changes_drop_count
+  - test_p10a_exported_capability_python_runs
+  invariants:
+  - comm.data.backlog_bits >= 0
+  - comm.data.cumulative_downlinked_bits is monotonic
+  - comm.data.cumulative_dropped_bits is monotonic
+  - comm.link.data_rate_bps is zero outside access or negative-margin periods
+limitations:
+- no high-fidelity RF propagation, fading, weather loss, Doppler, coding/adaptive modulation, or antenna pointing
+- no multi-station scheduling or contact-plan optimization
+- no EPS coupling; transmitter power draw is reported but not fed into EPS in P10-A
+- no Basilisk message graph
+source_binding:
+  mode: source_native
+  status: adapter_composes_source_components
+  primary_module: components.link_budget.builder
+  source_modules:
+  - components.link_budget.builder
+  - integrated.orbit_environment.model
+  - integrated.orbit_environment.schemas
+  public_api:
+  - compute_link_budget
+  - generate_environment_profile
+  - summarize_profile
+  legacy_demo_runner: subsystems.comm_data.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- none
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/link_budget/builder.py
+  - src/integrated/orbit_environment/basilisk_impl.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

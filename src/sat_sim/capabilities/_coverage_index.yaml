@@ -1,0 +1,1579 @@
+schema_version: c1.coverage_index.v2
+source_inventory_schema_version: s1.source_inventory.v1
+summary:
+  source_module_count: 38
+  agent_capability_count: 42
+  source_native_capability_count: 26
+  synthetic_capability_count: 5
+  legacy_runner_capability_count: 0
+  demo_only_capability_count: 0
+  route_b_model_library_capability_count: 8
+  basilisk_native_capability_count: 3
+  candidate_source_module_count: 33
+  covered_candidate_source_module_count: 22
+  uncovered_candidate_source_module_count: 11
+source_modules:
+- path: src\components\antenna
+  module: components.antenna
+  layer: component
+  name: antenna
+  has_model: false
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\battery
+  module: components.battery
+  layer: component
+  name: battery
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\components\cmg
+  module: components.cmg
+  layer: component
+  name: cmg
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\data_queue
+  module: components.data_queue
+  layer: component
+  name: data_queue
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\degradation
+  module: components.degradation_base
+  layer: component
+  name: degradation
+  has_model: false
+  has_builder: false
+  has_runner: false
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: modifier_support
+  recommended_exposure: modifier_layer_only
+  notes: support package, not a direct Agent capability boundary; C1 treats faults/degradation
+    as TaskSpec modifiers, not runnable capabilities
+- path: src\components\faults
+  module: components.fault_spec
+  layer: component
+  name: faults
+  has_model: false
+  has_builder: false
+  has_runner: false
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: modifier_support
+  recommended_exposure: modifier_layer_only
+  notes: support package, not a direct Agent capability boundary; C1 treats faults/degradation
+    as TaskSpec modifiers, not runnable capabilities
+- path: src\components\fuel_tank
+  module: components.fuel_tank
+  layer: component
+  name: fuel_tank
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\components\ground_station
+  module: components.ground_station
+  layer: component
+  name: ground_station
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\heater
+  module: components.heater
+  layer: component
+  name: heater
+  has_model: false
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\imu
+  module: components.imu
+  layer: component
+  name: imu
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\link_budget
+  module: components.link_budget
+  layer: component
+  name: link_budget
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\magnetometer
+  module: components.magnetometer
+  layer: component
+  name: magnetometer
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\mtb
+  module: components.mtb
+  layer: component
+  name: mtb
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\onboard_storage
+  module: components.onboard_storage
+  layer: component
+  name: onboard_storage
+  has_model: false
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\payload
+  module: components.payload
+  layer: component
+  name: payload
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\components\payload_sensor
+  module: components.payload_sensor
+  layer: component
+  name: payload_sensor
+  has_model: false
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\pdu
+  module: components.pdu
+  layer: component
+  name: pdu
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\power_sink
+  module: components.power_sink
+  layer: component
+  name: power_sink
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\radiator
+  module: components.radiator
+  layer: component
+  name: radiator
+  has_model: false
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\reaction_wheel
+  module: components.reaction_wheel
+  layer: component
+  name: reaction_wheel
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\components\solar_panel
+  module: components.solar_panel
+  layer: component
+  name: solar_panel
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\star_tracker
+  module: components.star_tracker
+  layer: component
+  name: star_tracker
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\sun_sensor
+  module: components.sun_sensor
+  layer: component
+  name: sun_sensor
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\components\thermal_node
+  module: components.thermal_node
+  layer: component
+  name: thermal_node
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\components\thruster
+  module: components.thruster
+  layer: component
+  name: thruster
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\components\transmitter
+  module: components.transmitter
+  layer: component
+  name: transmitter
+  has_model: false
+  has_builder: true
+  has_runner: true
+  has_schemas: false
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\subsystems\adcs
+  module: subsystems.adcs
+  layer: subsystem
+  name: adcs
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: true
+  has_degradation: true
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files; C1 keeps this
+    ADCS module in focused coverage scope
+- path: src\subsystems\adcs_actuators
+  module: subsystems.adcs_actuators
+  layer: subsystem
+  name: adcs_actuators
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: excluded_by_policy
+  recommended_exposure: exclude_from_agent_coverage
+  notes: has source model/builder/schema and Basilisk-facing files; C1 excludes this
+    ADCS granular module from standalone Agent coverage
+- path: src\subsystems\adcs_closed_loop
+  module: subsystems.adcs_closed_loop
+  layer: subsystem
+  name: adcs_closed_loop
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files; C1 keeps this
+    ADCS module in focused coverage scope
+- path: src\subsystems\adcs_control
+  module: subsystems.adcs_control
+  layer: subsystem
+  name: adcs_control
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: excluded_by_policy
+  recommended_exposure: exclude_from_agent_coverage
+  notes: has source model/builder/schema and Basilisk-facing files; C1 excludes this
+    ADCS granular module from standalone Agent coverage
+- path: src\subsystems\adcs_sensors
+  module: subsystems.adcs_sensors
+  layer: subsystem
+  name: adcs_sensors
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: excluded_by_policy
+  recommended_exposure: exclude_from_agent_coverage
+  notes: has source model/builder/schema and Basilisk-facing files; C1 excludes this
+    ADCS granular module from standalone Agent coverage
+- path: src\subsystems\comm_data
+  module: subsystems.comm_data
+  layer: subsystem
+  name: comm_data
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\subsystems\eps
+  module: subsystems.eps
+  layer: subsystem
+  name: eps
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: true
+  has_degradation: true
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\subsystems\payload
+  module: subsystems.payload
+  layer: subsystem
+  name: payload
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: false
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+- path: src\subsystems\propulsion
+  module: subsystems.propulsion
+  layer: subsystem
+  name: propulsion
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: true
+  has_degradation: true
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\subsystems\thermal
+  module: subsystems.thermal
+  layer: subsystem
+  name: thermal
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: true
+  has_faults: true
+  has_degradation: true
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\integrated\orbit_environment
+  module: integrated.orbit_environment
+  layer: integrated
+  name: orbit_environment
+  has_model: true
+  has_builder: true
+  has_runner: false
+  has_schemas: true
+  has_basilisk: true
+  has_faults: false
+  has_degradation: false
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate_with_optional_basilisk
+  notes: has source model/builder/schema and Basilisk-facing files
+- path: src\whole_spacecraft
+  module: whole_spacecraft
+  layer: whole_spacecraft
+  name: whole_spacecraft
+  has_model: true
+  has_builder: true
+  has_runner: true
+  has_schemas: true
+  has_basilisk: false
+  has_faults: true
+  has_degradation: true
+  classification: source_native_candidate
+  recommended_exposure: adapter_candidate
+  notes: has source model/builder/schema
+capabilities:
+- capability_id: component.antenna.v1
+  level: component
+  target: antenna
+  domain: communication
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.AntennaAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.antenna.builder
+    source_modules:
+    - components.antenna.builder
+    public_api:
+    - build_nominal_antenna_config
+    - compute_antenna_gain
+    legacy_demo_runner: components.antenna.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.battery.v1
+  level: component
+  target: battery
+  domain: eps
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_battery.BatteryAdapter
+  source_binding:
+    mode: source_native
+    status: s3_verified_direct_public_api
+    primary_module: components.battery.model
+    source_modules:
+    - components.battery.model
+    - components.battery.schemas
+    - components.battery.degradation
+    - components.battery.faults
+    public_api:
+    - build_nominal_battery_config
+    - initialize_battery
+    - step_battery
+    legacy_demo_runner: components.battery.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: component.data_queue.v1
+  level: component
+  target: data_queue
+  domain: communication
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_data_queue.DataQueueAdapter
+  source_binding:
+    mode: source_native
+    status: s4_new_source_native_adapter
+    primary_module: components.data_queue.builder
+    source_modules:
+    - components.data_queue.builder
+    - components.data_queue.model
+    public_api:
+    - build_nominal_data_queue_config
+    - DataQueueState
+    - simulate_queue_profile
+    - step_data_queue
+    legacy_demo_runner: components.data_queue.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in S4 as a low-risk coverage expansion using existing pure-Python
+      builder functions.
+    schema_version: s2.source_binding.v1
+- capability_id: component.ground_station.v1
+  level: component
+  target: ground_station
+  domain: communication
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.GroundStationAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.ground_station.builder
+    source_modules:
+    - components.ground_station.builder
+    - components.ground_station.model
+    public_api:
+    - build_nominal_ground_station_config
+    - compute_ground_access
+    legacy_demo_runner: components.ground_station.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.heater.v1
+  level: component
+  target: heater
+  domain: thermal
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.HeaterAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.heater.builder
+    source_modules:
+    - components.heater.builder
+    - components.heater.degradation
+    - components.heater.faults
+    public_api:
+    - build_nominal_heater_config
+    - step_heater
+    legacy_demo_runner: components.heater.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.link_budget.v1
+  level: component
+  target: link_budget
+  domain: communication
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.LinkBudgetAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.link_budget.builder
+    source_modules:
+    - components.link_budget.builder
+    - components.link_budget.model
+    public_api:
+    - build_nominal_link_budget_config
+    - compute_link_budget
+    legacy_demo_runner: components.link_budget.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.onboard_storage.v1
+  level: component
+  target: onboard_storage
+  domain: communication
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_onboard_storage.OnboardStorageAdapter
+  source_binding:
+    mode: source_native
+    status: s4_new_source_native_adapter
+    primary_module: components.onboard_storage.builder
+    source_modules:
+    - components.onboard_storage.builder
+    public_api:
+    - build_nominal_onboard_storage_config
+    - OnboardStorageState
+    - step_onboard_storage
+    legacy_demo_runner: components.onboard_storage.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in S4 as a low-risk coverage expansion using existing pure-Python
+      builder functions.
+    schema_version: s2.source_binding.v1
+- capability_id: component.payload.v1
+  level: component
+  target: payload
+  domain: payload
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.PayloadAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.payload.builder
+    source_modules:
+    - components.payload.builder
+    - components.payload.model
+    public_api:
+    - build_nominal_payload_config
+    - PayloadInstrumentStepInput
+    - simulate_payload_profile
+    legacy_demo_runner: components.payload.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.payload_sensor.v1
+  level: component
+  target: payload_sensor
+  domain: payload
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.PayloadSensorAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.payload_sensor.builder
+    source_modules:
+    - components.payload_sensor.builder
+    public_api:
+    - build_nominal_payload_sensor_config
+    - compute_payload_sensor
+    legacy_demo_runner: components.payload_sensor.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.power_sink.v1
+  level: component
+  target: power_sink
+  domain: eps
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.PowerSinkAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.power_sink.builder
+    source_modules:
+    - components.power_sink.builder
+    - components.power_sink.model
+    public_api:
+    - build_nominal_power_sink_config
+    - PowerSinkState
+    - demand_w
+    legacy_demo_runner: components.power_sink.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.radiator.v1
+  level: component
+  target: radiator
+  domain: thermal
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.RadiatorAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.radiator.builder
+    source_modules:
+    - components.radiator.builder
+    - components.radiator.degradation
+    public_api:
+    - build_nominal_radiator_config
+    - compute_radiator_rejection
+    legacy_demo_runner: components.radiator.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.reaction_wheel.v1
+  level: component
+  target: reaction_wheel
+  domain: adcs
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter
+  source_binding:
+    mode: source_native
+    status: s3_verified_direct_public_api
+    primary_module: components.reaction_wheel.model
+    source_modules:
+    - components.reaction_wheel.model
+    - components.reaction_wheel.schemas
+    - components.reaction_wheel.degradation
+    - components.reaction_wheel.faults
+    public_api:
+    - clamp_motor_torque
+    - momentum_norm_nms
+    - rotational_energy_j
+    - step_wheel_speed
+    legacy_demo_runner: components.reaction_wheel.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: component.solar_panel.v1
+  level: component
+  target: solar_panel
+  domain: eps
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_solar_panel.SolarPanelAdapter
+  source_binding:
+    mode: source_native
+    status: s3_verified_direct_public_api
+    primary_module: components.solar_panel.builder
+    source_modules:
+    - components.solar_panel.builder
+    - components.solar_panel.model
+    - components.solar_panel.degradation
+    - components.solar_panel.faults
+    public_api:
+    - build_nominal_solar_panel_config
+    - SolarPanelState
+    - compute_solar_power
+    - step_solar_tracking
+    legacy_demo_runner: components.solar_panel.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: component.thermal_node.v1
+  level: component
+  target: thermal_node
+  domain: thermal
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.ThermalNodeAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.thermal_node.builder
+    source_modules:
+    - components.thermal_node.builder
+    - components.thermal_node.model
+    public_api:
+    - build_nominal_thermal_node_config
+    - ThermalNodeState
+    - simulate_thermal_power_profile
+    legacy_demo_runner: components.thermal_node.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: component.transmitter.v1
+  level: component
+  target: transmitter
+  domain: communication
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.component_source_native_misc.TransmitterAdapter
+  source_binding:
+    mode: source_native
+    status: c2c3_new_source_native_adapter
+    primary_module: components.transmitter.builder
+    source_modules:
+    - components.transmitter.builder
+    public_api:
+    - TransmitterConfig
+    - compute_transmitter
+    legacy_demo_runner: components.transmitter.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing
+      pure-Python component builder/model API.
+    schema_version: s2.source_binding.v1
+- capability_id: orbit_environment.basilisk_hf.v1
+  level: integrated
+  target: orbit_environment
+  domain: orbit_environment
+  trust_level: experimental
+  adapter: sat_sim.adapters.orbit_environment_basilisk_hf.OrbitEnvironmentBasiliskHfAdapter
+  source_binding:
+    mode: basilisk_native
+    status: bsk_run3_spice_third_body_runtime_prepared_explicit_basilisk_required
+    primary_module: sat_sim.orbit.basilisk_hf
+    source_modules:
+    - sat_sim.orbit.basilisk_hf
+    - sat_sim.adapters.orbit_environment_basilisk_hf
+    public_api:
+    - BasiliskOrbitHfConfig
+    - check_basilisk_availability
+    - build_basilisk_orbit_blueprint
+    - build_bsk_orb1_payload
+    - run_basilisk_orbit_hf_if_available
+    - run_basilisk_orbit_benchmark
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: true
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: orbit_environment.leo_simple.v1
+  level: integrated
+  target: orbit_environment
+  domain: orbit_environment
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.orbit_environment_leo_simple.OrbitEnvironmentLeoSimpleAdapter
+  source_binding:
+    mode: source_native
+    status: s3_verified_direct_public_api
+    primary_module: integrated.orbit_environment.model
+    source_modules:
+    - integrated.orbit_environment.model
+    - integrated.orbit_environment.schemas
+    public_api:
+    - generate_environment_profile
+    - summarize_profile
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: orbit_environment.medium_fidelity.v1
+  level: integrated
+  target: orbit_environment
+  domain: orbit_environment
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.orbit_environment_medium_fidelity.OrbitEnvironmentMediumFidelityAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: hf3_implemented_local_medium_fidelity
+    primary_module: sat_sim.orbit.medium
+    source_modules:
+    - sat_sim.orbit.medium
+    - sat_sim.time_systems
+    - sat_sim.frames
+    - sat_sim.state
+    - sat_sim.solvers
+    public_api:
+    - MediumOrbitConfig
+    - propagate_medium_orbit_environment
+    - summarize_medium_orbit_environment
+    - build_hf3_orbit_environment_payload
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: orbit_environment.orbit_fidelity.v1
+  level: integrated
+  target: orbit_environment
+  domain: orbit_environment
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.orbit_environment_orbit_fidelity.OrbitEnvironmentOrbitFidelityAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: orb1_implemented_local_orbit_fidelity_numerical_prototype
+    primary_module: sat_sim.orbit.numerical
+    source_modules:
+    - sat_sim.orbit.numerical
+    - sat_sim.orbit.force_models
+    - sat_sim.orbit.atmosphere
+    - sat_sim.time_systems
+    - sat_sim.frames
+    - sat_sim.state
+    - sat_sim.solvers
+    public_api:
+    - OrbitFidelityConfig
+    - propagate_orbit_fidelity
+    - summarize_orbit_fidelity
+    - build_orb1_orbit_fidelity_payload
+    - OrbitForceModelConfig
+    - build_orb1_force_model_payload
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: reference.public_satellite_case.v1
+  level: reference
+  target: public_satellite_case
+  domain: reference_data
+  trust_level: public_reference_informed
+  adapter: sat_sim.adapters.reference_public_satellite_case.PublicSatelliteReferenceCaseAdapter
+  source_binding:
+    mode: source_native
+    status: inferred_from_implementation_model_modules
+    primary_module: sat_sim.adapters.reference_public_satellite_case
+    source_modules:
+    - sat_sim.adapters.reference_public_satellite_case
+    public_api: []
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.adcs.basic_rw_pointing.v1
+  level: subsystem
+  target: adcs
+  domain: adcs
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_adcs_basic_rw_pointing.AdcsBasicRwPointingAdapter
+  source_binding:
+    mode: synthetic
+    status: deterministic_agent_boundary
+    primary_module: sat_sim.adapters.subsystem_adcs_basic_rw_pointing
+    source_modules:
+    - sat_sim.adapters.subsystem_adcs_basic_rw_pointing
+    public_api:
+    - AdcsBasicRwPointingAdapter.run
+    legacy_demo_runner: subsystems.adcs.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Low-order Agent-facing model; original src has richer ADCS modules
+      that require separate source-native migration.
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.adcs_basilisk_fsw.v1
+  level: subsystem
+  target: adcs_fsw
+  domain: adcs
+  trust_level: experimental
+  adapter: sat_sim.adapters.subsystem_adcs_basilisk_fsw.AdcsBasiliskFswAdapter
+  source_binding:
+    mode: basilisk_native
+    status: bsk_adcs1_adapter_prepared_explicit_basilisk_required
+    primary_module: sat_sim.adcs.basilisk_fsw
+    source_modules:
+    - sat_sim.adcs.basilisk_fsw
+    - sat_sim.adapters.subsystem_adcs_basilisk_fsw
+    public_api:
+    - BasiliskAdcsFswConfig
+    - check_basilisk_adcs_availability
+    - build_basilisk_adcs_fsw_blueprint
+    - build_bsk_adcs1_payload
+    - run_basilisk_adcs_fsw_if_available
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: true
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.adcs_closed_loop.basic.v1
+  level: subsystem
+  target: adcs_closed_loop
+  domain: adcs
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_adcs_closed_loop_basic.AdcsClosedLoopBasicAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: hf4_implemented_basic_closed_loop
+    primary_module: sat_sim.adcs.closed_loop
+    source_modules:
+    - sat_sim.adcs.closed_loop
+    - sat_sim.state
+    - sat_sim.time_systems
+    - sat_sim.solvers
+    - sat_sim.frames
+    public_api:
+    - ADCSClosedLoopConfig
+    - propagate_adcs_closed_loop
+    - summarize_adcs_closed_loop
+    - build_hf4_adcs_closed_loop_payload
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.adcs_fidelity.v1
+  level: subsystem
+  target: adcs
+  domain: adcs
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_adcs_fidelity.AdcsFidelityAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: adcs1_implemented_fidelity_proxy
+    primary_module: sat_sim.adcs.fidelity
+    source_modules:
+    - sat_sim.adcs.fidelity
+    - sat_sim.adcs.closed_loop
+    - sat_sim.state
+    - sat_sim.time_systems
+    - sat_sim.solvers
+    - sat_sim.frames
+    public_api:
+    - ADCSFidelityConfig
+    - propagate_adcs_fidelity
+    - summarize_adcs_fidelity
+    - build_adcs1_fidelity_payload
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.comm.basic_ground_pass.v1
+  level: subsystem
+  target: comm_data
+  domain: communication
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_comm_basic_ground_pass.CommBasicGroundPassAdapter
+  source_binding:
+    mode: source_native
+    status: adapter_composes_source_components
+    primary_module: components.link_budget.builder
+    source_modules:
+    - components.link_budget.builder
+    - integrated.orbit_environment.model
+    - integrated.orbit_environment.schemas
+    public_api:
+    - compute_link_budget
+    - generate_environment_profile
+    - summarize_profile
+    legacy_demo_runner: subsystems.comm_data.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.comm_data.source_native.v1
+  level: subsystem
+  target: comm_data
+  domain: comm_data
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_source_native.CommDataSourceNativeAdapter
+  source_binding:
+    mode: source_native
+    status: c4c6_new_source_native_subsystem_adapter
+    primary_module: subsystems.comm_data.builder
+    source_modules:
+    - subsystems.comm_data.builder
+    - subsystems.comm_data.model
+    - subsystems.comm_data.schemas
+    public_api:
+    - build_nominal_comm_data_config
+    - initialize_comm_data_state
+    - simulate_comm_data_profile
+    legacy_demo_runner: subsystems.comm_data.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around
+      existing pure-Python subsystem builder/model APIs.
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.eps.basic.v1
+  level: subsystem
+  target: eps
+  domain: eps
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_eps_basic.EpsBasicAdapter
+  source_binding:
+    mode: source_native
+    status: s3_verified_component_composition_public_api
+    primary_module: components.battery.model
+    source_modules:
+    - components.battery.model
+    - components.solar_panel.builder
+    - components.pdu.builder
+    - components.battery.degradation
+    - components.solar_panel.degradation
+    public_api:
+    - build_nominal_battery_config
+    - initialize_battery
+    - step_battery
+    - build_nominal_solar_panel_config
+    - SolarPanelState
+    - compute_solar_power
+    - step_solar_tracking
+    - apply_load_shedding
+    legacy_demo_runner: subsystems.eps.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.eps.source_native.v1
+  level: subsystem
+  target: eps
+  domain: eps
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_source_native.EpsSourceNativeAdapter
+  source_binding:
+    mode: source_native
+    status: c4c6_new_source_native_subsystem_adapter
+    primary_module: subsystems.eps.builder
+    source_modules:
+    - subsystems.eps.builder
+    - subsystems.eps.model
+    - subsystems.eps.schemas
+    public_api:
+    - build_nominal_eps_config
+    - initialize_eps_state
+    - simulate_eps_profile
+    legacy_demo_runner: subsystems.eps.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around
+      existing pure-Python subsystem builder/model APIs.
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.payload.source_native.v1
+  level: subsystem
+  target: payload
+  domain: payload
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_source_native.PayloadSourceNativeAdapter
+  source_binding:
+    mode: source_native
+    status: c4c6_new_source_native_subsystem_adapter
+    primary_module: subsystems.payload.builder
+    source_modules:
+    - subsystems.payload.builder
+    - subsystems.payload.model
+    - subsystems.payload.schemas
+    public_api:
+    - build_nominal_payload_subsystem_config
+    - initialize_payload_state
+    - simulate_payload_subsystem_profile
+    legacy_demo_runner: subsystems.payload.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around
+      existing pure-Python subsystem builder/model APIs.
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.propulsion.source_native.v1
+  level: subsystem
+  target: propulsion
+  domain: propulsion
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_source_native.PropulsionSourceNativeAdapter
+  source_binding:
+    mode: source_native
+    status: c4c6_new_source_native_subsystem_adapter
+    primary_module: subsystems.propulsion.builder
+    source_modules:
+    - subsystems.propulsion.builder
+    - subsystems.propulsion.model
+    - subsystems.propulsion.schemas
+    public_api:
+    - build_nominal_propulsion_config
+    - initialize_propulsion_state
+    - simulate_propulsion_profile
+    legacy_demo_runner: subsystems.propulsion.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around
+      existing pure-Python subsystem builder/model APIs.
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.thermal.basic_lumped.v1
+  level: subsystem
+  target: thermal
+  domain: thermal
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_thermal_basic_lumped.ThermalBasicLumpedAdapter
+  source_binding:
+    mode: synthetic
+    status: deterministic_agent_boundary
+    primary_module: sat_sim.adapters.subsystem_thermal_basic_lumped
+    source_modules:
+    - sat_sim.adapters.subsystem_thermal_basic_lumped
+    public_api:
+    - ThermalBasicLumpedAdapter.run
+    legacy_demo_runner: subsystems.thermal.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Two-node lumped Agent-facing model; original src has thermal network
+      modules that require separate source-native migration.
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.thermal.source_native.v1
+  level: subsystem
+  target: thermal
+  domain: thermal
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.subsystem_source_native.ThermalSourceNativeAdapter
+  source_binding:
+    mode: source_native
+    status: c4c6_new_source_native_subsystem_adapter
+    primary_module: subsystems.thermal.builder
+    source_modules:
+    - subsystems.thermal.builder
+    - subsystems.thermal.model
+    - subsystems.thermal.schemas
+    public_api:
+    - build_nominal_thermal_config
+    - initialize_thermal_state
+    - simulate_thermal_profile
+    legacy_demo_runner: subsystems.thermal.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around
+      existing pure-Python subsystem builder/model APIs.
+    schema_version: s2.source_binding.v1
+- capability_id: subsystem.thermal_reduced_order.v1
+  level: subsystem
+  target: thermal_reduced_order
+  domain: thermal
+  trust_level: benchmark_gated
+  adapter: sat_sim.adapters.subsystem_thermal_reduced_order.ThermalReducedOrderAdapter
+  source_binding:
+    mode: source_native
+    status: inferred_from_implementation_model_modules
+    primary_module: subsystems.thermal.network
+    source_modules:
+    - subsystems.thermal.network
+    - sat_sim.coupled.orbit_attitude_thermal
+    - sat_sim.adapters.subsystem_thermal_reduced_order
+    - subsystems.thermal.templates
+    public_api: []
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.basic_power_attitude_orbit.v1
+  level: whole_spacecraft
+  target: basic_power_attitude_orbit
+  domain: whole_spacecraft
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.whole_spacecraft_basic_power_attitude_orbit.WholeSpacecraftBasicPowerAttitudeOrbitAdapter
+  source_binding:
+    mode: synthetic
+    status: deterministic_composition
+    primary_module: sat_sim.adapters.whole_spacecraft_basic_power_attitude_orbit
+    source_modules:
+    - sat_sim.adapters.whole_spacecraft_basic_power_attitude_orbit
+    public_api:
+    - WholeSpacecraftBasicPowerAttitudeOrbitAdapter.run
+    legacy_demo_runner: whole_spacecraft.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Whole-spacecraft composition; ADCS child is synthetic until source-native
+      ADCS migration.
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.basic_power_orbit.v1
+  level: whole_spacecraft
+  target: basic_power_orbit
+  domain: integrated
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.whole_spacecraft_basic_power_orbit.WholeSpacecraftBasicPowerOrbitAdapter
+  source_binding:
+    mode: synthetic
+    status: deterministic_composition
+    primary_module: sat_sim.adapters.whole_spacecraft_basic_power_orbit
+    source_modules:
+    - sat_sim.adapters.whole_spacecraft_basic_power_orbit
+    public_api:
+    - WholeSpacecraftBasicPowerOrbitAdapter.run
+    legacy_demo_runner: whole_spacecraft.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Whole-spacecraft composition of child capabilities; not a direct wrapper
+      around whole_spacecraft.runner.
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.basic_power_thermal_orbit.v1
+  level: whole_spacecraft
+  target: basic_power_thermal_orbit
+  domain: whole_spacecraft
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.whole_spacecraft_basic_power_thermal_orbit.WholeSpacecraftBasicPowerThermalOrbitAdapter
+  source_binding:
+    mode: synthetic
+    status: deterministic_composition
+    primary_module: sat_sim.adapters.whole_spacecraft_basic_power_thermal_orbit
+    source_modules:
+    - sat_sim.adapters.whole_spacecraft_basic_power_thermal_orbit
+    public_api:
+    - WholeSpacecraftBasicPowerThermalOrbitAdapter.run
+    legacy_demo_runner: whole_spacecraft.runner
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Whole-spacecraft composition; thermal child is synthetic until source-native
+      thermal migration.
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.basilisk_6dof.v1
+  level: whole_spacecraft
+  target: basilisk_6dof
+  domain: whole_spacecraft
+  trust_level: experimental
+  adapter: sat_sim.adapters.whole_spacecraft_basilisk_6dof.SpacecraftBasilisk6DofAdapter
+  source_binding:
+    mode: basilisk_native
+    status: bsk_run6_partial_runtime_coverage_explicit_basilisk_required
+    primary_module: sat_sim.spacecraft.basilisk_6dof
+    source_modules:
+    - sat_sim.spacecraft.basilisk_6dof
+    - sat_sim.adapters.whole_spacecraft_basilisk_6dof
+    - sat_sim.orbit.basilisk_hf
+    - sat_sim.adcs.basilisk_fsw
+    - sat_sim.benchmarks.basilisk_6dof
+    public_api:
+    - Basilisk6DofConfig
+    - check_basilisk_6dof_availability
+    - build_basilisk_6dof_blueprint
+    - build_bsk_6dof1_payload
+    - run_basilisk_6dof_if_available
+    - basilisk_6dof_integration_cases
+    - run_basilisk_6dof_integration_benchmark
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: true
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.comm_payload_mission_coupled.v1
+  level: whole_spacecraft
+  target: comm_payload_mission_coupled
+  domain: whole_spacecraft
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.whole_spacecraft_comm_payload_mission_coupled.CommPayloadMissionCoupledAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: hf6_medium_mission_coupled_model_library
+    primary_module: sat_sim.coupled.comm_payload_mission
+    source_modules:
+    - sat_sim.coupled.comm_payload_mission
+    - sat_sim.orbit.medium
+    - sat_sim.time_systems
+    - sat_sim.frames
+    - sat_sim.state
+    public_api:
+    - CommPayloadMissionCoupledAdapter.run
+    - propagate_comm_payload_mission_coupled
+    - summarize_comm_payload_mission_coupled
+    - build_hf6_comm_payload_mission_payload
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Route-B HF-6 mission-coupled model library, not a legacy demo runner.
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.maneuver_orbit_attitude.v1
+  level: whole_spacecraft
+  target: maneuver_orbit_attitude
+  domain: whole_spacecraft
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.whole_spacecraft_maneuver_orbit_attitude.ManeuverOrbitAttitudeAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: hf7_medium_maneuver_coupled_model_library
+    primary_module: sat_sim.coupled.propulsion_orbit_attitude
+    source_modules:
+    - sat_sim.coupled.propulsion_orbit_attitude
+    - sat_sim.orbit.medium
+    - sat_sim.time_systems
+    - sat_sim.frames
+    - sat_sim.state
+    - sat_sim.validation.physical_checks
+    public_api:
+    - ManeuverOrbitAttitudeAdapter.run
+    - propagate_propulsion_orbit_attitude_coupled
+    - summarize_propulsion_orbit_attitude_coupled
+    - build_hf7_propulsion_orbit_attitude_payload
+    - evaluate_physical_validation
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Route-B HF-7 maneuver-coupled model library, not a legacy demo runner.
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.orbit_adcs_fidelity.v1
+  level: whole_spacecraft
+  target: orbit_adcs
+  domain: orbit_adcs
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.whole_spacecraft_orbit_adcs_fidelity.OrbitAdcsFidelityAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: int1_implemented_orbit_adcs_integration_gate
+    primary_module: sat_sim.coupled.orbit_adcs_fidelity
+    source_modules:
+    - sat_sim.coupled.orbit_adcs_fidelity
+    - sat_sim.orbit.numerical
+    - sat_sim.orbit.force_models
+    - sat_sim.adcs.fidelity
+    - sat_sim.adcs.closed_loop
+    - sat_sim.validation.physical_checks
+    public_api:
+    - OrbitAdcsIntegrationConfig
+    - propagate_orbit_adcs_fidelity
+    - summarize_orbit_adcs_fidelity
+    - build_int1_orbit_adcs_payload
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.orbit_attitude_thermal.v1
+  level: whole_spacecraft
+  target: orbit_attitude_thermal
+  domain: whole_spacecraft
+  trust_level: benchmark_gated
+  adapter: sat_sim.adapters.whole_spacecraft_orbit_attitude_thermal.WholeSpacecraftOrbitAttitudeThermalAdapter
+  source_binding:
+    mode: source_native
+    status: inferred_from_implementation_model_modules
+    primary_module: sat_sim.coupled.orbit_attitude_thermal
+    source_modules:
+    - sat_sim.coupled.orbit_attitude_thermal
+    - sat_sim.adapters.whole_spacecraft_orbit_attitude_thermal
+    - subsystems.thermal.templates
+    - subsystems.thermal.network
+    public_api: []
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: null
+    schema_version: s2.source_binding.v1
+- capability_id: whole_spacecraft.power_thermal_orbit_coupled.v1
+  level: whole_spacecraft
+  target: power_thermal_orbit_coupled
+  domain: whole_spacecraft
+  trust_level: conformance_tested
+  adapter: sat_sim.adapters.whole_spacecraft_power_thermal_orbit_coupled.PowerThermalOrbitCoupledAdapter
+  source_binding:
+    mode: route_b_model_library
+    status: hf5_medium_coupled_model_library
+    primary_module: sat_sim.coupled.power_thermal_orbit
+    source_modules:
+    - sat_sim.coupled.power_thermal_orbit
+    - sat_sim.orbit.medium
+    - sat_sim.time_systems
+    - sat_sim.frames
+    - sat_sim.state
+    public_api:
+    - PowerThermalOrbitCoupledAdapter.run
+    - propagate_power_thermal_orbit_coupled
+    - summarize_power_thermal_orbit_coupled
+    - build_hf5_power_thermal_orbit_payload
+    legacy_demo_runner: null
+    uses_legacy_runner: false
+    basilisk_required: false
+    rationale: Route-B HF-5 model library coupling, not a legacy demo runner.
+    schema_version: s2.source_binding.v1
+uncovered_source_candidates:
+- components.cmg
+- components.fuel_tank
+- components.imu
+- components.magnetometer
+- components.mtb
+- components.star_tracker
+- components.sun_sensor
+- components.thruster
+- subsystems.adcs
+- subsystems.adcs_closed_loop
+- whole_spacecraft
+coverage_policy:
+  schema_version: c1.source_coverage_policy.v2
+  focused_adcs_modules:
+  - subsystems.adcs
+  - subsystems.adcs_closed_loop
+  excluded_modules:
+  - subsystems.adcs_actuators
+  - subsystems.adcs_chain
+  - subsystems.adcs_cmg_steering
+  - subsystems.adcs_control
+  - subsystems.adcs_magnetic_detumble
+  - subsystems.adcs_mtb_detumble_closed_loop
+  - subsystems.adcs_sensors
+  modifier_modules:
+  - components.degradation_base
+  - components.fault_spec
+  fault_degradation_policy: TaskSpec modifiers, not standalone runnable capabilities
+
+subsystem.adcs_bsksim.v1:
+  adapter: sat_sim.adapters.subsystem_adcs_bsksim.AdcsBSKSimAdapter
+  status: agent_ready_candidate
+  runtime_run: true
+  migration_stage: adcs_bsksim_style_bridge

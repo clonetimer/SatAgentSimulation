@@ -1,0 +1,10 @@
+time_s,sensor.adcs.rw.speed_rad_s_0,estimate.adcs.rw.actual_torque_nm_0,estimate.adcs.pointing_error_deg,estimate.adcs.rw.effective_max_torque_nm_0,label.fault_active,label.degradation_active,label.constraint_active,estimate.adcs.rw.friction_torque_nm_0,status.adcs.rw.available_0,label.class_id,label.split,label.pair_id,label.case_role
+0.0,71.6856,-0.0007987048843478418,15.148732,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+1.0,71.69576378001855,-0.0008318417639449217,15.09757504477167,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+2.0,71.7062716095386,-0.0008511193237602787,14.82288001406485,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+3.0,71.71695472994138,-0.0008574546898302855,14.353359742102118,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+4.0,71.72765634014945,-0.0008518608881890888,13.717544202387163,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+5.0,71.73823272263395,-0.0008354319170683159,12.943364268051592,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+6.0,71.74855417372643,-0.0008093260574483124,12.057791371262686,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+7.0,71.75850571787329,-0.0007747477795740143,11.086532130544967,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal
+8.0,71.7679875905175,-0.0007329287090514615,10.053776538157159,0.05,False,False,False,0.0,True,NORMAL,train,train-adcs_rw_jam-000,nominal

@@ -1,0 +1,195 @@
+capability_id: subsystem.propulsion.unified_native.v1
+schema_version: 0.1.0
+name: Propulsion unified Basilisk runtime
+level: subsystem
+domain: propulsion
+target: propulsion
+trust_level: engineering_preview
+status: agent_ready_candidate
+summary: Focused propulsion subsystem executed with official Basilisk spacecraft, thrusterDynamicEffector and fuelTank modules
+  in one Process/Task. A project SysModel is used only when delayed burn scheduling is requested. No external solver or curve-only
+  proxy is used.
+adapter:
+  class_path: sat_sim.adapters.subsystem_propulsion_unified_native.PropulsionUnifiedNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - subsystems.propulsion.builder
+  - subsystems.propulsion.runner
+  - sat_sim.adapters.subsystem_propulsion_unified_native
+  uses_legacy_runner: false
+  basilisk_required: true
+  source_boundary: official_basilisk_spacecraft_thruster_and_fuel_tank_plus_optional_project_burn_scheduler
+  mode: basilisk_unified_native_propulsion
+  backend_type: basilisk_native_mixed
+  accepted_task_backends:
+  - basilisk
+  requires_allow_proxy: false
+  modifier_application: native_runtime_only
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [thrust_or_feed_failure]
+  degradation:
+    supported: true
+    degradation_types: [performance_degradation]
+parameters:
+  spacecraft_mass_kg:
+    type: number
+    unit: kg
+    required: false
+    default: 10.0
+    min: 0.1
+  initial_propellant_kg:
+    type: number
+    unit: kg
+    required: false
+    default: 1.0
+    min: 0.0
+  tank_capacity_kg:
+    type: number
+    unit: kg
+    required: false
+    default: 2.0
+    min: 0.001
+  burn_start_s:
+    type: number
+    unit: s
+    required: false
+    default: 0.0
+    min: 0.0
+  burn_on_time_s:
+    type: number
+    unit: s
+    required: false
+    default: 0.5
+    min: 0.0
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.step_s
+  unit: s
+- name: parameters.spacecraft_mass_kg
+  unit: kg
+- name: parameters.initial_propellant_kg
+  unit: kg
+- name: parameters.tank_capacity_kg
+  unit: kg
+- name: parameters.burn_start_s
+  unit: s
+- name: parameters.burn_on_time_s
+  unit: s
+produces:
+- name: propulsion.*
+- name: runtime_truth_status
+- name: propellant_used_kg
+- name: final_velocity_x_m_s
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace_fields:
+  - time_s
+  - propulsion.position_x_m
+  - propulsion.velocity_x_m_s
+  - propulsion.fuel_mass_kg
+  - propulsion.fuel_mass_dot_kg_s
+  - propulsion.thrust_force_n
+  - propulsion.thrust_force_b_x_n
+  - propulsion.thrust_factor
+  qoi:
+  - runtime_truth_status
+  - propellant_used_kg
+  - final_velocity_x_m_s
+  - official_module_count
+  - project_native_module_count
+  - external_or_proxy_module_count
+operator:
+  owner: unified_native_propulsion
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: unified_native_propulsion
+    implementation: basilisk_native
+    evidence_fields:
+    - propulsion.thrust_force_n
+    - propulsion.fuel_mass_kg
+    - propulsion.velocity_x_m_s
+    verification: declared
+  - effect_id: thrust_or_feed_failure
+    kind: fault
+    owner: unified_native_propulsion
+    implementation: basilisk_native
+    evidence_fields:
+    - propulsion.thrust_force_n
+    - propulsion.fuel_mass_kg
+    - propulsion.velocity_x_m_s
+    - label.fault_active
+    verification: declared
+  - effect_id: performance_degradation
+    kind: degradation
+    owner: unified_native_propulsion
+    implementation: basilisk_native
+    evidence_fields:
+    - propulsion.thrust_force_n
+    - propulsion.fuel_mass_dot_kg_s
+    - propulsion.velocity_x_m_s
+    - label.degradation_active
+    verification: declared
+  limitations:
+  - Focused subsystem burn; not yet coupled into the recommended whole-spacecraft unified runtime.
+  - Runtime effects are limited to governed aggregate thrust/feed failure and performance degradation scenarios.
+  - Parameters are engineering estimates and are not hardware calibrated.
+lifecycle:
+  status: active
+  product_tier: recommended
+  recommended: true
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+backend_type: basilisk_native_mixed
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: mixed_native_project
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations: []
+model_projection:
+  schema_version: sat-sim.capability-projection.v1
+  projection_id: propulsion-unified-native-projection-v1
+  model_ref: subsystem.propulsion_unified_native@1
+  graph_ref: subsystem.propulsion_unified_native@1
+  operations_object_ref: spacecraft.propulsion
+  parameter_set_id: propulsion-unified-native-demo-v1
+  implementation_id: subsystem.propulsion_unified_native.basilisk@1
+  binding_set_id: propulsion-unified-native-bindings-v1
+  generated_schemas: sat_sim.a5r.projection_api.projection_schema_bundle
+  exposed_properties:
+  - spacecraft.propulsion.fuel_mass_kg
+  - spacecraft.propulsion.velocity_x_m_s
+  - spacecraft.propulsion.thrust_active
+  exposed_actions: []
+  exposed_effects:
+  - spacecraft.propulsion.nominal
+  - spacecraft.propulsion.thrust_or_feed_failure
+  - spacecraft.propulsion.performance_degradation
+  evidence:
+  - spacecraft.propulsion.propellant_evidence
+execution:
+  schema_version: sat-sim.model-asset-execution-policy.v1
+  adapter_key: basilisk.propulsion_unified_graph
+  model_ref: subsystem.propulsion_unified_native@1
+  implementation_id: subsystem.propulsion_unified_native.basilisk@1
+  parameter_set_id: propulsion-unified-native-demo-v1
+  binding_set_id: propulsion-unified-native-bindings-v1
+  legacy_fallback_adapter_key: legacy.capability
+  legacy_fallback_enabled: false

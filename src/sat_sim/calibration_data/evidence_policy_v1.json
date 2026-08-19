@@ -1,0 +1,38 @@
+{
+  "schema_version": "v34.calibration-evidence-policy.v1",
+  "policy_id": "sat-sim-calibration-evidence-policy",
+  "current_data_status": "NO_REAL_CALIBRATION_DATA_AVAILABLE",
+  "maximum_current_claim": "engineering_estimate",
+  "source_claim_ceiling": {
+    "demo": "demo",
+    "synthetic": "demo",
+    "engineering_estimate": "engineering_estimate",
+    "manufacturer_datasheet": "engineering_estimate",
+    "public_literature": "engineering_estimate",
+    "ground_test": "ground_calibrated",
+    "flight_telemetry": "flight_correlated"
+  },
+  "ground_calibrated_requirements": [
+    "source_type=ground_test",
+    "verified raw files with SHA-256",
+    "explicit measurement variables and units",
+    "measurement uncertainty",
+    "calibration method and target parameters",
+    "independent validation split",
+    "approved evidence record",
+    "declared validity envelope"
+  ],
+  "flight_correlated_requirements": [
+    "source_type=flight_telemetry",
+    "all ground-calibrated requirements",
+    "flight correlation metrics",
+    "mission/configuration applicability envelope"
+  ],
+  "forbidden_promotions": [
+    "synthetic_to_ground_calibrated",
+    "demo_to_ground_calibrated",
+    "engineering_estimate_to_flight_correlated",
+    "literature_to_ground_calibrated",
+    "manufacturer_datasheet_to_ground_calibrated"
+  ]
+}

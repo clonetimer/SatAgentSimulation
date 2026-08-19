@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="卫星仿真工作台：能力选择、Schema 表单、TaskSpec 预览、Basilisk 运行和结果分析。">
+  <title>卫星仿真工作台</title>
+  <script>
+    (() => {
+      const saved = localStorage.getItem('sat-sim-theme') || 'system';
+      const resolved = saved === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : saved;
+      document.documentElement.dataset.themePreference = saved;
+      document.documentElement.dataset.theme = resolved;
+      const savedFontScale = localStorage.getItem('sat-sim-font-scale') || '100';
+      const fontScale = ['90', '100', '115', '130'].includes(savedFontScale) ? savedFontScale : '100';
+      document.documentElement.dataset.fontScale = fontScale;
+      document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
+    })();
+  </script>
+  <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">◉</div>
+        <div>
+          <div class="brand-title">卫星仿真工作台</div>
+          <div class="brand-subtitle">TaskSpec · Basilisk · Evidence</div>
+        </div>
+      </div>
+      <div class="topbar-tools">
+        <label class="theme-control font-scale-control" title="调节整个工作台的字体和控件显示大小">
+          <span aria-hidden="true">Aa</span>
+          <select id="fontScaleSelect" aria-label="界面字体大小">
+            <option value="90">小（90%）</option>
+            <option value="100">标准（100%）</option>
+            <option value="115">大（115%）</option>
+            <option value="130">特大（130%）</option>
+          </select>
+        </label>
+        <label class="theme-control" title="界面主题">
+          <span aria-hidden="true">◐</span>
+          <select id="themeSelect" aria-label="界面主题">
+            <option value="system">跟随系统</option>
+            <option value="light">浅色</option>
+            <option value="dark">暗色</option>
+          </select>
+        </label>
+        <label class="auth-control" title="Bearer API Token；仅保存在当前浏览器会话">
+          <span aria-hidden="true">⌁</span>
+          <input id="apiTokenInput" type="password" placeholder="API Token" autocomplete="off" aria-label="API Token">
+          <button id="saveApiTokenBtn" type="button">连接</button>
+        </label>
+        <div class="topbar-status" aria-live="polite">
+          <span id="releaseBadge" class="status-chip">版本读取中</span>
+          <span id="queueBadge" class="status-chip status-muted"><span class="status-dot"></span>队列检查中</span>
+          <span id="healthBadge" class="status-chip status-muted"><span class="status-dot"></span>服务检查中</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-frame">
+      <aside class="app-sidebar" aria-label="工作台目录">
+        <nav class="sidebar-nav" aria-label="主目录">
+          <div class="sidebar-section-title">工作台</div>
+          <button class="nav-button active" data-view="creator" type="button"><span>✦</span><b>仿真创建</b></button>
+          <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
+          <button class="nav-button" data-view="tasks" type="button"><span>▣</span><b>任务中心</b></button>
+          <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
+          <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
+          <button class="nav-button" data-view="diagnostics" type="button"><span>◉</span><b>系统诊断</b></button>
+          <button class="nav-button" data-view="logs" type="button"><span>≡</span><b>运行日志</b></button>
+          <button id="openModelSettingsBtn" class="nav-button" type="button"><span>◇</span><b>模型服务</b></button>
+        </nav>
+        <section class="sidebar-capabilities" aria-label="仿真对象目录">
+        <div class="panel-header">
+          <div>
+            <h1>仿真能力</h1>
+            <p id="capabilityCount">正在加载业务对象目录</p>
+          </div>
+        </div>
+        <div class="search-row">
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input id="capabilitySearch" type="search" placeholder="搜索整星、分系统、故障…" autocomplete="off">
+          </label>
+          <select id="levelFilter" aria-label="能力层级">
+            <option value="all">全部层级</option>
+            <option value="whole_spacecraft">整星</option>
+            <option value="orbit_environment">轨道环境</option>
+            <option value="subsystem">分系统</option>
+            <option value="component">部件</option>
+          </select>
+        </div>
+        <label class="catalog-visibility-toggle"><input id="showCompatibilityCapabilities" type="checkbox"><span>显示兼容、历史和显式能力</span></label>
+        <div id="capabilityList" class="capability-list" role="list"></div>
+        </section>
+
+      </aside>
+      <div class="app-content">
+
+
+    <main id="creatorView" class="workspace app-view">
+      <section class="panel editor-panel">
+        <div class="editor-toolbar">
+          <div>
+            <div class="eyebrow">当前能力</div>
+            <h2 id="selectedCapabilityName">请选择仿真能力</h2>
+            <p id="selectedCapabilitySummary">表单由 Capability Registry 自动生成。</p>
+          </div>
+          <div class="toolbar-actions">
+            <label class="variant-control">场景模板
+              <select id="scenarioTemplateSelect" aria-label="中文场景模板"><option value="">选择模板…</option></select>
+            </label>
+            <button id="applyScenarioTemplateBtn" class="button button-ghost" type="button">应用模板</button>
+            <label id="variantControl" class="variant-control hidden">模型/场景
+              <select id="variantSelect" aria-label="模型或场景变体"></select>
+            </label>
+            <button id="saveTaskBtn" class="button button-ghost" type="button">另存为新任务</button>
+            <button id="updateTaskBtn" class="button button-ghost hidden" type="button">更新已打开任务</button>
+            <button id="resetFormBtn" class="button button-ghost" type="button">恢复默认</button>
+            <button id="previewBtn" class="button button-secondary" type="button" title="只执行 Schema、语义、能力兼容和执行计划检查，不启动仿真">校验与预览</button>
+            <button id="runBtn" class="button button-primary" type="button">运行仿真</button>
+          </div>
+        </div>
+
+        <div class="tabbar" role="tablist" aria-label="任务创建方式">
+          <button class="tab active" data-tab="form" role="tab" aria-selected="true">Schema 表单</button>
+          <button class="tab" data-tab="agent" role="tab" aria-selected="false">自然语言</button>
+          <button class="tab" data-tab="taskspec" role="tab" aria-selected="false">TaskSpec</button>
+        </div>
+
+        <div id="notice" class="notice hidden" role="status"></div>
+        <section class="workflow-explainer" aria-label="页面功能说明">
+          <strong>本页可以直接运行仿真。</strong>
+          <span>“校验与预览”只检查配置并生成执行计划，不消耗一次仿真运行；“运行仿真”会创建不可变 Run Bundle 并提交执行。任务中心用于保存可复用配置，运行中心用于查看每次执行记录。</span>
+        </section>
+
+        <div id="formTab" class="tab-content active" data-panel="form">
+          <section id="agentChangePanel" class="agent-change-panel hidden" aria-live="polite">
+            <div><strong id="agentChangeTitle">Agent 已更新表单</strong><span id="agentChangeDetail"></span></div>
+            <div class="agent-change-actions">
+              <button id="undoAgentChangesBtn" class="button button-ghost" type="button">撤销变更</button>
+              <button id="acceptAgentChangesBtn" class="button button-secondary" type="button">接受变更</button>
+            </div>
+          </section>
+          <div class="form-toolbar">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="formFieldSearch" type="search" placeholder="搜索参数名称、含义或单位…"></label>
+            <label class="advanced-toggle"><input id="showAdvancedFields" type="checkbox"><span>显示专业参数</span></label>
+          </div>
+          <div id="formValidationSummary" class="inline-validation hidden" aria-live="polite"></div>
+          <form id="dynamicForm" class="dynamic-form" autocomplete="off"></form>
+          <section class="form-section">
+            <div class="section-heading">
+              <div><h3>故障、退化与运行约束</h3><p>故障表示异常失效，退化表示性能逐步下降，运行约束表示正常物理边界或状态事件。</p></div>
+            </div>
+            <div class="event-add-row">
+              <select id="effectKind"><option value="fault">故障</option><option value="degradation">退化</option><option value="constraint">运行约束</option></select>
+              <select id="effectSelect" aria-label="效果类型"></select>
+              <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
+            </div>
+            <div id="eventList" class="event-list"></div>
+          </section>
+          <section class="form-section">
+            <div class="section-heading">
+              <div><h3>输出与曲线</h3><p>选择需要写入结果摘要和纵轴曲线清单的可观测量。仿真时间（time_s）自动作为横轴，不需要勾选；sample_index、task_id、case_id 属于运行元数据，不作为物理曲线。</p></div>
+            </div>
+            <div class="output-grid">
+              <div><h4>QoI（摘要指标）</h4><div id="qoiOptions" class="check-grid"></div></div>
+              <div><h4>曲线（纵轴参量）</h4><p class="output-hierarchy-hint">按整星 / 分系统 / 部件逐层展开，或直接搜索输出量。</p><div id="plotOptions" class="check-grid output-hierarchy" aria-label="曲线输出层级选择"></div></div>
+            </div>
+            <div class="output-help"><strong>标识说明：</strong>task_id 标识可保存、可复用的任务配置；case_id 标识批量实验或参数扫描中的一个具体案例。同一 task_id 可生成多个 case_id，每个案例又可以产生一个或多个 run_id。</div>
+            <div class="advanced-output-grid">
+              <section class="advanced-output-card">
+                <div class="section-heading compact"><div><h4>多速率遥测</h4><p>配置 Basilisk 原生分组 Recorder。每个流的 sample_s 必须是基础采样周期的整数倍。</p></div><button id="addTelemetryStreamBtn" class="button button-secondary" type="button">添加遥测流</button></div>
+                <div id="telemetryStreamList" class="telemetry-stream-list"></div>
+              </section>
+              <section class="advanced-output-card">
+                <div class="section-heading compact"><div><h4>FMEA 输出</h4><p>风险评分只使用事件中显式提供的 S/O/D，不自动编造 RPN。</p></div></div>
+                <label class="advanced-toggle"><input id="fmeaEnabled" type="checkbox"><span>生成 FMEA 表</span></label>
+                <div class="inline-checks"><label><input id="fmeaFormatCsv" type="checkbox" value="csv"><span>CSV</span></label><label><input id="fmeaFormatJson" type="checkbox" value="json"><span>JSON</span></label></div>
+              </section>
+            </div>
+          </section>
+        </div>
+
+        <div id="agentTab" class="tab-content" data-panel="agent">
+          <section class="agent-compose">
+            <div class="section-heading">
+              <div><h3>自然语言创建 TaskSpec</h3><p>Agent 只能使用已注册能力，不生成任意 Python。</p></div>
+            </div>
+            <div id="agentConversation" class="agent-conversation" aria-live="polite"><div class="agent-conversation-empty">可连续补充条件；后续指令将基于当前 TaskSpec 修改，而不是重新开始。</div></div>
+            <textarea id="agentInput" rows="6" placeholder="例如：创建完整六分系统整星仿真，运行60秒，20秒载荷关机，30秒通信中断，输出姿态误差、电池SOC、温度和下行数据率。"></textarea>
+            <div class="agent-actions">
+              <label class="agent-refine-toggle"><input id="agentRefineCurrent" type="checkbox" checked><span>基于当前配置继续补充</span></label>
+              <select id="agentBackend" aria-label="模型 Provider"><option value="local-template">本地确定性模板</option></select>
+              <select id="agentRoutingMode" aria-label="模型路由策略"><option value="auto">自动路由</option><option value="local">仅本地</option><option value="remote">优先远程</option></select>
+              <button id="clearAgentConversationBtn" class="button button-ghost" type="button">清空对话</button>
+              <button id="agentParseBtn" class="button button-primary" type="button">生成并校验</button>
+            </div>
+          </section>
+        </div>
+
+        <div id="taskspecTab" class="tab-content" data-panel="taskspec">
+          <section class="json-workbench">
+            <div class="section-heading">
+              <div><h3>Canonical TaskSpec</h3><p>预览、校验或直接编辑结构化任务。</p></div>
+              <div class="toolbar-actions">
+                <button id="applyJsonToFormBtn" class="button button-ghost" type="button">同步到表单</button>
+                <button id="validateJsonBtn" class="button button-secondary" type="button">校验 JSON</button>
+              </div>
+            </div>
+            <textarea id="taskSpecEditor" class="code-editor" spellcheck="false" aria-label="TaskSpec JSON"></textarea>
+          </section>
+        </div>
+      </section>
+
+      <aside id="creatorRunPanel" class="panel run-panel" aria-label="运行与结果">
+        <div class="panel-header run-header">
+          <div><h2>运行与结果</h2><p>Run Bundle 全过程证据</p></div>
+          <div class="run-header-actions">
+            <button id="expandRunPanelBtn" class="icon-button" type="button" title="扩展结果栏" aria-label="扩展结果栏" aria-pressed="false">⇔</button>
+            <button id="fullscreenRunPanelBtn" class="icon-button" type="button" title="全屏显示运行结果" aria-label="全屏显示运行结果" aria-pressed="false">⛶</button>
+            <button id="openRunReportBtn" class="button button-ghost hidden" type="button">查看报告</button>
+            <button id="exportDatasetBtn" class="button button-primary hidden" type="button">导出数据集</button>
+            <button id="downloadRunDiagnosticBtn" class="button button-ghost hidden" type="button">诊断包</button>
+            <button id="cancelRunBtn" class="button button-danger hidden" type="button">取消运行</button>
+            <button id="refreshRunsBtn" class="icon-button" type="button" title="刷新运行列表" aria-label="刷新运行列表">↻</button>
+          </div>
+        </div>
+        <div id="activeRunCard" class="active-run empty-state">
+          <div class="empty-icon">◇</div>
+          <strong>尚未选择运行</strong>
+          <span>完成仿真后将在这里展示状态、指标和曲线。</span>
+        </div>
+        <div class="result-tabs" role="tablist" aria-label="运行结果">
+          <button class="result-tab active" data-result-tab="overview">概览</button>
+          <button class="result-tab" data-result-tab="charts">曲线</button>
+          <button class="result-tab" data-result-tab="events">事件</button>
+          <button class="result-tab" data-result-tab="traceability">FMEA/证据</button>
+          <button class="result-tab" data-result-tab="artifacts">制品</button>
+        </div>
+        <div id="resultOverview" class="result-content active" data-result-panel="overview">
+          <div id="metricGrid" class="metric-grid"></div>
+          <div id="validationCard" class="validation-card"></div>
+        </div>
+        <div id="resultCharts" class="result-content" data-result-panel="charts">
+          <div class="chart-axis-note">横轴固定为仿真时间（time_s）；曲线按整星 / 分系统 / 部件层次选择，最多同时显示 4 条。</div>
+          <div id="chartControls" class="chart-controls"></div>
+          <div class="chart-frame"><canvas id="telemetryChart" width="760" height="360"></canvas></div>
+          <div id="chartLegend" class="chart-legend"></div>
+        </div>
+        <div id="resultEvents" class="result-content" data-result-panel="events"><div id="resultEventList" class="timeline"></div></div>
+        <div id="resultTraceability" class="result-content" data-result-panel="traceability">
+          <div id="traceabilitySummary" class="task-summary"></div>
+          <div class="fmea-toolbar">
+            <input id="fmeaSearch" type="search" placeholder="搜索失效模式、目标、观测量…">
+            <select id="fmeaCategory"><option value="">全部类别</option><option value="fault">故障</option><option value="degradation">退化</option><option value="constraint">约束</option></select>
+            <select id="fmeaEvidenceStatus"><option value="">全部证据状态</option><option value="observed">已观测</option><option value="not_observed">未观测</option><option value="not_evaluated">未评估</option></select>
+            <select id="fmeaRatingStatus"><option value="">全部评分状态</option><option value="rated">已评分</option><option value="unrated_no_fabricated_score">未评分</option></select>
+            <label><input id="fmeaVerifiedOnly" type="checkbox"><span>仅物理效果已验证</span></label>
+            <button id="downloadFmeaCsvBtn" class="button button-ghost" type="button">下载 CSV</button>
+            <button id="downloadFmeaJsonBtn" class="button button-ghost" type="button">下载 JSON</button>
+          </div>
+          <div id="fmeaTable" class="fmea-table-wrap"></div>
+          <div id="traceabilityList" class="timeline"></div>
+          <div id="traceabilityEvidenceWindow" class="evidence-window hidden"></div>
+        </div>
+        <div id="resultArtifacts" class="result-content" data-result-panel="artifacts"><div id="artifactList" class="artifact-list"></div></div>
+        <section class="recent-runs">
+          <div class="section-heading compact"><h3>最近运行</h3></div>
+          <div id="runList" class="run-list"></div>
+        </section>
+      </aside>
+    </main>
+
+    <main id="experimentCenterView" class="task-center-view app-view hidden">
+      <section class="panel task-center-panel">
+        <div class="task-center-header">
+          <div><div class="eyebrow">批量仿真实验</div><h1>实验中心</h1><p>从当前编辑配置或任务中心已保存任务中选择基线，创建参数扫描、批量运行、自动验收并对比多个 Run。</p></div>
+          <div class="task-center-actions"><button id="newExperimentBtn" class="button button-primary" type="button">创建实验</button><button id="faultCatalogBtn" class="button button-secondary" type="button">故障/约束目录</button><button id="refreshExperimentsBtn" class="button button-secondary" type="button">刷新</button></div>
+        </div>
+        <div id="experimentSummary" class="task-summary">正在读取实验中心…</div>
+        <div id="experimentList" class="experiment-list"></div>
+        <section id="experimentComparisonPanel" class="experiment-comparison hidden" aria-live="polite">
+          <div class="section-heading compact"><h3 id="experimentComparisonTitle">运行对比</h3><button id="closeExperimentComparisonBtn" class="button button-ghost" type="button">关闭</button></div>
+          <div id="experimentComparisonSummary" class="task-summary"></div>
+          <div class="task-table-wrap"><table class="task-table"><thead id="experimentComparisonHead"></thead><tbody id="experimentComparisonBody"></tbody></table></div>
+        </section>
+      </section>
+    </main>
+
+    <main id="taskCenterView" class="task-center-view app-view hidden">
+      <section class="panel task-center-panel">
+        <div class="task-center-header">
+          <div>
+            <div class="eyebrow">持久化任务</div>
+            <h1>任务中心</h1>
+            <p>保存和复用仿真配置；同一任务可形成多个不可变版本，并可从任一版本再次运行。这里管理“要运行什么”，不代表某一次执行。</p>
+          </div>
+          <div class="task-center-actions">
+            <label class="search-box task-search"><span aria-hidden="true">⌕</span><input id="taskSearch" type="search" placeholder="搜索任务名称、ID、能力…"></label>
+            <select id="taskStatusFilter" aria-label="任务状态">
+              <option value="">全部状态</option><option value="READY">就绪</option><option value="QUEUED">排队</option><option value="RUNNING">运行中</option><option value="COMPLETED">已完成</option><option value="FAILED">失败</option><option value="CANCELLED">已取消</option>
+            </select>
+            <button id="refreshTasksBtn" class="button button-secondary" type="button">刷新</button>
+          </div>
+        </div>
+        <div class="task-summary" id="taskSummary">正在读取任务中心…</div>
+        <div class="task-table-wrap">
+          <table class="task-table">
+            <thead><tr><th>任务</th><th>仿真对象</th><th>状态</th><th>版本/运行</th><th>最近运行</th><th>更新时间</th><th>操作</th></tr></thead>
+            <tbody id="taskTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <main id="interactiveView" class="interactive-view app-view hidden">
+      <header class="interactive-header">
+        <div><div class="eyebrow">Whole-spacecraft Soft Real-time</div><h1>整星实时交互</h1><p>在同一仿真时钟中控制整星、分系统并观察耦合响应。</p></div>
+        <div class="interactive-header-status">
+          <span id="interactiveConnectionBadge" class="status-chip status-muted"><span class="status-dot"></span>未连接</span>
+          <button id="refreshInteractiveBtn" class="icon-button" type="button" title="刷新会话" aria-label="刷新会话">↻</button>
+        </div>
+      </header>
+      <div id="interactiveNotice" class="notice hidden" role="status"></div>
+      <div class="interactive-layout">
+        <aside class="interactive-rail">
+          <section class="interactive-section">
+            <div class="section-heading compact"><h2>会话</h2><span id="interactiveSessionCount">0</span></div>
+            <div id="interactiveSessionList" class="interactive-session-list"></div>
+          </section>
+          <section class="interactive-section interactive-create">
+            <div class="section-heading compact"><h2>新建</h2></div>
+            <label>会话范围<select id="interactiveCapability">
+              <option value="whole_spacecraft.unified_native.v1" selected>整星（推荐）</option>
+              <optgroup label="高级：分系统独立调试">
+                <option value="subsystem.adcs_unified_native.v1">仅姿轨控</option>
+                <option value="subsystem.eps.unified_native.v1">仅能源</option>
+                <option value="subsystem.comm_data.unified_native.v1">仅通信数传</option>
+              </optgroup>
+            </select></label>
+            <div id="interactiveCapabilityHint" class="interactive-scope-hint">整星会话共享同一时钟和状态，可控制姿轨控、能源与通信数传并观察跨系统影响。</div>
+            <div class="interactive-form-grid">
+              <label>时长 / s<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
+              <label>量子 / s<select id="interactiveQuantum"><option>0.1</option><option selected>0.5</option><option>1</option></select></label>
+              <label>初始倍速<select id="interactiveInitialRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
+              <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>
+            </div>
+            <button id="createInteractiveSessionBtn" class="button button-primary" type="button">创建会话</button>
+          </section>
+        </aside>
+
+        <section class="interactive-console">
+          <div class="interactive-status-strip">
+            <div><span>状态</span><strong id="interactiveState">未选择</strong></div>
+            <div><span>仿真时间</span><strong id="interactiveSimTime">0.000 s</strong></div>
+            <div><span>倍速</span><strong id="interactiveRateValue">1x</strong></div>
+            <div><span>漂移</span><strong id="interactiveDrift">0 ms</strong></div>
+          </div>
+          <div class="interactive-controls" role="toolbar" aria-label="会话控制">
+            <button id="interactiveStartBtn" class="icon-button" type="button" title="启动" aria-label="启动">▶</button>
+            <button id="interactivePauseBtn" class="icon-button" type="button" title="暂停" aria-label="暂停">Ⅱ</button>
+            <button id="interactiveResumeBtn" class="icon-button" type="button" title="继续" aria-label="继续">▷</button>
+            <button id="interactiveStepBtn" class="icon-button" type="button" title="单步" aria-label="单步">↦</button>
+            <label class="interactive-rate-control">倍速<select id="interactiveRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
+            <button id="interactiveStopBtn" class="icon-button danger-icon" type="button" title="停止并归档" aria-label="停止并归档">■</button>
+          </div>
+          <section class="interactive-section telemetry-section">
+            <div class="section-heading compact">
+              <h2>遥测</h2>
+              <div class="telemetry-toolbar">
+                <select id="interactiveTelemetryObject" aria-label="遥测对象"></select>
+                <select id="interactiveStream" aria-label="遥测速率"></select>
+                <span id="interactiveGapBadge" class="status-chip status-muted">无缺口</span>
+              </div>
+            </div>
+            <div class="interactive-chart"><canvas id="interactiveTelemetryChart" width="960" height="320"></canvas></div>
+            <div id="interactiveLatestValues" class="interactive-latest-values"></div>
+          </section>
+          <section class="interactive-section">
+            <div class="section-heading compact"><h2>状态事件</h2></div>
+            <div id="interactiveEventList" class="interactive-timeline"></div>
+          </section>
+        </section>
+
+        <aside class="interactive-command-panel">
+          <section class="interactive-section">
+            <div class="section-heading compact"><h2>遥控指令</h2></div>
+            <label>控制对象<select id="interactiveCommandTarget"></select></label>
+            <label>操作<select id="interactiveCommandOperation"></select></label>
+            <div id="interactiveCommandHelp" class="interactive-command-help"></div>
+            <div id="interactiveCommandForm" class="interactive-command-form"></div>
+            <label>执行时刻 / s<input id="interactiveCommandTime" type="number" min="0" step="0.1" value="0"></label>
+            <button id="interactiveSendCommandBtn" class="button button-primary" type="button">确认并发送</button>
+          </section>
+          <section class="interactive-section ack-section">
+            <div class="section-heading compact"><h2>指令回执</h2></div>
+            <div id="interactiveAckList" class="interactive-timeline"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <main id="runCenterView" class="task-center-view app-view hidden">
+      <section class="panel task-center-panel">
+        <div class="task-center-header">
+          <div><div class="eyebrow">Run Bundle</div><h1>运行中心</h1><p>查看每一次实际执行产生的 Run Bundle、状态、验收结果和证据制品。这里管理“某一次运行发生了什么”。</p></div>
+          <div class="task-center-actions"><button id="refreshRunCenterBtn" class="button button-secondary" type="button">刷新</button></div>
+        </div>
+        <div id="runCenterSummary" class="task-summary">正在读取运行记录…</div>
+        <div class="task-table-wrap"><table class="task-table"><thead><tr><th>任务 / Run ID</th><th>状态</th><th>验证</th><th>能力</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="runCenterTableBody"></tbody></table></div>
+      </section>
+    </main>
+
+    <main id="diagnosticView" class="task-center-view app-view hidden">
+      <section class="panel task-center-panel">
+        <div class="task-center-header">
+          <div><div class="eyebrow">Environment & Evidence</div><h1>系统诊断</h1><p>检查运行环境、队列、模型服务和发布资产，并生成脱敏诊断包。</p></div>
+          <div class="task-center-actions"><button id="downloadDiagnosticBtn" class="button button-primary" type="button">一键导出诊断包</button><button id="refreshDiagnosticsBtn" class="button button-secondary" type="button">重新检查</button></div>
+        </div>
+        <div id="diagnosticSummary" class="diagnostic-summary-grid"></div>
+        <section class="diagnostic-section"><div class="section-heading compact"><h3>环境 Doctor</h3></div><div id="doctorCheckList" class="doctor-check-list"></div></section>
+        <section class="diagnostic-section"><div class="section-heading compact"><h3>模型与队列</h3></div><pre id="diagnosticDetails" class="diagnostic-output"></pre></section>
+      </section>
+    </main>
+
+    <main id="logCenterView" class="task-center-view app-view hidden">
+      <section class="panel task-center-panel">
+        <div class="task-center-header">
+          <div><div class="eyebrow">Observability</div><h1>运行日志</h1><p>查看控制面结构化日志；日志不记录请求正文、Token 或模型密钥。</p></div>
+          <div class="task-center-actions"><select id="logLevelFilter"><option value="">全部级别</option><option>INFO</option><option>WARNING</option><option>ERROR</option></select><input id="logSearch" type="search" placeholder="搜索路径、事件、请求ID…"><button id="downloadLogsBtn" class="button button-ghost" type="button">下载 JSONL</button><button id="refreshLogsBtn" class="button button-secondary" type="button">刷新</button></div>
+        </div>
+        <div id="logSummary" class="task-summary">正在读取日志…</div>
+        <div class="task-table-wrap"><table class="task-table log-table"><thead><tr><th>时间</th><th>级别</th><th>类别</th><th>事件</th><th>消息</th><th>耗时/ms</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
+      </section>
+    </main>
+      </div>
+    </div>
+  </div>
+
+  <div id="experimentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="experimentModalTitle">
+    <section class="modal-card experiment-card">
+      <div class="modal-header"><div><div class="eyebrow">Experiment Design</div><h2 id="experimentModalTitle">创建实验</h2><p>支持枚举参数扫描和 Monte Carlo 随机采样；每个变体均生成独立 Run Bundle。</p></div><button id="closeExperimentBtn" class="icon-button" type="button">×</button></div>
+      <div class="experiment-base-help">“当前编辑配置”指仿真创建页面内存中的最新 TaskSpec；也可以直接选择任务中心已保存的任务，无需返回仿真创建页面重新配置。</div>
+      <div class="model-settings-grid">
+        <label class="wide-field"><span>基础任务</span><select id="experimentBaseTaskSelect"><option value="current">当前编辑配置</option></select></label>
+        <label><span>实验名称</span><input id="experimentName" type="text" value="参数扫描实验"></label>
+        <label><span>实验类型</span><select id="experimentType"><option value="sweep">枚举参数扫描</option><option value="monte_carlo">Monte Carlo随机采样</option></select></label>
+        <label><span>扫描/随机参数</span><select id="sweepPath"><option value="">请先选择基础任务</option></select></label>
+        <label class="sweep-only"><span>扫描值（逗号分隔）</span><input id="sweepValues" type="text" value="20,40" placeholder="例如：20,40,60"></label>
+        <label class="mc-only hidden"><span>随机分布</span><select id="mcDistribution"><option value="normal">正态分布</option><option value="uniform">均匀分布</option><option value="triangular">三角分布</option><option value="choice">离散选择</option></select></label>
+        <label class="mc-only hidden"><span>Monte Carlo参数</span><input id="mcDistributionValues" type="text" value="mean=20,std=2" placeholder="normal: mean=20,std=2；uniform: min=10,max=30；choice: 10,20,30"></label>
+        <label class="mc-only hidden"><span>样本数</span><input id="mcSampleCount" type="number" value="16" min="1" max="256"></label>
+        <label class="mc-only hidden"><span>随机种子</span><input id="mcSeed" type="number" value="1"></label><div id="sweepParameterHelp" class="sweep-parameter-help">选择基础任务后，这里会说明可扫描参数、当前值、单位和约束。</div>
+        <label><span>验收指标</span><input id="assertionMetric" type="text" value="status" placeholder="mission_success_score"></label>
+        <label><span>运算符</span><select id="assertionOperator"><option value="==">等于</option><option value=">=">大于等于</option><option value="<=">小于等于</option><option value="within">区间内</option></select></label>
+        <label><span>期望值</span><input id="assertionValue" type="text" value="PASS"></label>
+      </div>
+      <div class="model-settings-actions"><button id="previewExperimentPlanBtn" class="button button-secondary" type="button">预览实验计划</button><button id="createExperimentBtn" class="button button-primary" type="button">创建实验</button><span id="experimentModalStatus" class="model-status"></span></div><pre id="experimentPlanPreview" class="diagnostic-output hidden"></pre>
+    </section>
+  </div>
+
+  <div id="faultCatalogModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="faultCatalogTitle">
+    <section class="modal-card experiment-card">
+      <div class="modal-header"><div><div class="eyebrow">Fault Environment</div><h2 id="faultCatalogTitle">故障、退化与运行约束目录</h2><p>目录来自故障环境状态机与证据合同，供工作台和 Agent 共同使用。</p></div><button id="closeFaultCatalogBtn" class="icon-button" type="button">×</button></div>
+      <div id="faultCatalogList" class="experiment-list"></div>
+    </section>
+  </div>
+
+  <div id="modelSettingsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modelSettingsTitle">
+    <section class="modal-card model-settings-card">
+      <div class="modal-header">
+        <div><div class="eyebrow">LLM Provider</div><h2 id="modelSettingsTitle">大模型服务设置</h2><p>支持 Ollama、LM Studio、vLLM 和其他 OpenAI-compatible 本地服务。</p></div>
+        <button id="closeModelSettingsBtn" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="model-settings-grid">
+        <label><span>服务类型</span><select id="localModelType"><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option><option value="vllm">vLLM / Qwen</option><option value="openai_compatible">其他 OpenAI 兼容服务</option></select></label>
+        <label><span>服务地址</span><input id="localModelBaseUrl" type="text" value="http://127.0.0.1:11434/v1"></label>
+        <label><span>模型名称</span><input id="localModelName" type="text" placeholder="例如 qwen3:8b 或 Qwen/Qwen3-32B"></label>
+        <label><span>自动发现的模型</span><select id="localModelDiscovered"><option value="">点击“自动发现模型”</option></select></label>
+        <label><span>API Key（本地服务通常可空）</span><input id="localModelApiKey" type="password" autocomplete="off" placeholder="仅保存在当前服务进程内存"></label>
+      </div>
+      <div class="model-settings-actions">
+        <button id="discoverLocalModelBtn" class="button button-ghost" type="button">自动发现模型</button>
+        <button id="probeLocalModelBtn" class="button button-secondary" type="button">保存并完整测试</button>
+        <span id="localModelStatus" class="model-status">尚未检测</span>
+      </div>
+      <div id="activeModelProviderBanner" class="active-provider-banner">当前使用：读取中…</div>
+      <div class="section-heading compact"><h3>已保存的模型服务</h3><p>“服务可连接”只表示 /v1/models 可访问；只有“完整测试通过”才表示结构化推理和 TaskSpec 链路可用。</p></div>
+      <div id="modelProviderList" class="provider-list"></div>
+      <pre id="localModelDiagnostics" class="diagnostic-output hidden" aria-live="polite"></pre>
+    </section>
+  </div>
+
+  <div id="taskDetailsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="taskDetailsTitle">
+    <section class="modal-card task-details-card">
+      <div class="modal-header">
+        <div><div class="eyebrow">任务生命周期</div><h2 id="taskDetailsTitle">任务版本与运行历史</h2><p id="taskDetailsSummary">选择任务后查看。</p></div>
+        <button id="closeTaskDetailsBtn" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="task-detail-actions"><button id="cloneTaskBtn" class="button button-secondary" type="button">克隆为新任务</button></div>
+      <div class="section-heading compact"><h3>版本历史</h3></div>
+      <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>版本</th><th>摘要</th><th>时间</th><th>哈希</th><th>操作</th></tr></thead><tbody id="taskVersionTableBody"></tbody></table></div>
+      <div class="section-heading compact"><h3>运行历史</h3></div>
+      <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>Run ID</th><th>任务版本</th><th>状态</th><th>验证</th><th>时间</th></tr></thead><tbody id="taskRunTableBody"></tbody></table></div>
+    </section>
+  </div>
+
+  <div id="busyOverlay" class="busy-overlay hidden" aria-live="assertive" aria-busy="true">
+    <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
+  </div>
+
+  <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
+  <script src="/assets/app.js?v=0.7.8" defer></script>
+</body>
+</html>

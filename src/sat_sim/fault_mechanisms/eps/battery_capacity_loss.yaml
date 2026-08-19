@@ -1,0 +1,66 @@
+schema_version: sat-sim.fault-mechanism.v1
+mechanism_id: eps.battery_capacity_loss.mechanism.v1
+fault_id: EPS_BATTERY_CAPACITY_LOSS
+subsystem: EPS
+component: battery_pack
+status: blocked_pending_basilisk_fault_migration
+diagnostic_signature_id: null
+causes:
+- cause_id: active_material_loss
+  kind: degradation
+  description: Ageing or damage reduces usable electrochemical capacity.
+physical_effects:
+- effect_id: usable_capacity_reduced
+  description: Usable battery energy capacity decreases.
+  state_variable: eps.battery.usable_capacity_wh
+  direction: decreasing
+- effect_id: soc_dynamics_accelerated
+  description: State of charge falls faster under matched load and generation.
+  state_variable: eps.battery.soc_rate
+  direction: more_negative
+propagation_chain:
+- stage_id: p1
+  from: active_material_loss
+  to: usable_capacity_reduced
+  relation: causes
+- stage_id: p2
+  from: usable_capacity_reduced
+  to: soc_dynamics_accelerated
+  relation: increases_discharge_rate
+- stage_id: p3
+  from: soc_dynamics_accelerated
+  to: load_shed_response
+  relation: can_trigger
+observables:
+- channel: eps.battery_capacity_j
+  evidence_role: simulator_truth
+  expected_relation: decreases
+  model_input_eligible: false
+- channel: eps.battery_soc
+  evidence_role: observable_telemetry
+  expected_relation: paired discharge slope becomes more negative
+  model_input_eligible: true
+- channel: eps.net_power_w
+  evidence_role: operational_estimate
+  expected_relation: used as load-generation context
+  model_input_eligible: true
+- channel: eps.load_shed_active
+  evidence_role: observable_telemetry
+  expected_relation: may activate earlier
+  model_input_eligible: true
+feature_contract_id: eps.battery_capacity_loss.features.v1
+pipeline_id: eps.battery_capacity_loss.pipeline.v1
+knowledge_graph_projection:
+  fault_node_id: EPS_BATTERY_CAPACITY_LOSS
+  mechanism_node_id: eps.battery_capacity_loss.mechanism.v1
+  edge_types:
+  - HAS_CAUSE
+  - CAUSES_EFFECT
+  - PROPAGATES_TO
+  - OBSERVED_AS
+  - DIAGNOSED_BY
+claim_boundary:
+  simulation_gap: subsystem.eps.unified_native.v1 currently supports nominal mode
+    only; capacity-loss event is not yet migrated to Basilisk runtime
+  formal_training_allowed: false
+  flight_validated: false

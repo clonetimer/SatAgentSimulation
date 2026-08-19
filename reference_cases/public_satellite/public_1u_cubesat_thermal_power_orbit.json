@@ -1,0 +1,57 @@
+{
+  "schema_version": "sat-ref1.public_satellite_case.v1",
+  "case_id": "public_1u_cubesat_thermal_power_orbit",
+  "display_name": "1U CubeSat orbit-power-thermal engineering reference case",
+  "domain": "orbit_power_thermal",
+  "description": "Project-native engineering example for exercising orbit, power, and reduced-order thermal workflows.",
+  "validation_status": "engineering_example_sanity_checked",
+  "claim_level": "public_reference_informed_not_flight_validated",
+  "public_reference_informed": true,
+  "flight_validated": false,
+  "can_claim_high_fidelity": false,
+  "spacecraft": {
+    "form_factor": "1U CubeSat engineering example",
+    "mass_kg": 1.33,
+    "dimensions_m": [
+      0.1,
+      0.1,
+      0.1135
+    ],
+    "assumption": "Representative early-design values; not copied from a flight data package."
+  },
+  "orbit": {
+    "regime": "LEO circular engineering example",
+    "altitude_m": 520000.0,
+    "inclination_deg": 51.6,
+    "assumption": "Selected for deterministic workflow validation, not mission reconstruction."
+  },
+  "power": {
+    "initial_soc": 0.75,
+    "bus_load_power_w": 12.0,
+    "payload_load_power_w": 6.0,
+    "adcs_load_power_w": 3.0,
+    "comm_load_power_w": 2.0
+  },
+  "thermal": {
+    "template_id": "cubesat_7node_box_template",
+    "heater_power_w": 8.0,
+    "heater_setpoint_c": 2.0
+  },
+  "source_basis": [
+    {
+      "title": "NASA Small Spacecraft Technology State of the Art: Thermal Control",
+      "url": "https://www.nasa.gov/smallsat-institute/sst-soa/thermal-control/",
+      "usage": "General public thermal-modeling context only; numerical values remain project engineering assumptions."
+    },
+    {
+      "title": "Project THERM-1 reduced-order network defaults",
+      "path": "src/subsystems/thermal/network.py",
+      "usage": "Direct source for project-native seven-node engineering defaults."
+    }
+  ],
+  "limitations": [
+    "No flight telemetry or TVAC correlation.",
+    "No mission-grade digital-twin claim.",
+    "Not a Thermal Desktop or ESATAN model."
+  ]
+}

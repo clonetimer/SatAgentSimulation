@@ -1,0 +1,81 @@
+capability_id: component.sun_sensor.v1
+schema_version: 0.1.0
+name: Sun sensor component simulation
+level: component
+domain: adcs
+target: sun_sensor
+trust_level: conformance_tested
+summary: Deterministic source-native field-of-view and intensity sun sensor model.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.SunSensorAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.sun_sensor.builder, components.sun_sensor.schemas]
+  legacy_demo_runner: components.sun_sensor.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [false_eclipse, cell_failure, contamination]
+  degradation:
+    supported: true
+    degradation_types: [sensitivity_decay, bias_drift]
+parameters:
+  sun_direction_b: {type: "array[number]", unit: unit_vector, required: false, default: [1.0, 0.0, 0.0]}
+  shadow_factor: {type: number, unit: ratio, required: false, default: 1.0, min: 0.0, max: 1.0}
+  min_intensity: {type: number, unit: ratio, required: false, default: 0.000001, min: 0.0}
+  accuracy: {type: number, unit: ratio, required: false, default: 1.0, min: 0.0, max: 1.0}
+  n_hat_b: {type: "array[number]", unit: unit_vector, required: false, default: [1.0, 0.0, 0.0]}
+  fov_rad: {type: number, unit: rad, required: false, default: 1.5707963267948966, min: 0.0}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: adcs.sun_sensor.valid, unit: bool, dtype: bool}
+  - {name: adcs.sun_sensor.intensity, unit: ratio, dtype: number}
+  - {name: adcs.sun_sensor.direction_x, unit: unit_vector, dtype: number}
+  summary:
+  - {name: adcs.sun_sensor.valid_fraction, unit: ratio}
+operator:
+  owner: sun_sensor
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: sun_sensor
+    implementation: source_native
+    evidence_fields: [adcs.sun_sensor.valid, adcs.sun_sensor.intensity]
+    verification: declared
+  - {effect_id: false_eclipse, kind: fault, owner: sun_sensor, implementation: source_native, evidence_fields: [adcs.sun_sensor.intensity], verification: declared}
+  - {effect_id: cell_failure, kind: fault, owner: sun_sensor, implementation: source_native, evidence_fields: [adcs.sun_sensor.valid], verification: declared}
+  - {effect_id: contamination, kind: fault, owner: sun_sensor, implementation: source_native, evidence_fields: [adcs.sun_sensor.effective_shadow_factor], verification: declared}
+  - {effect_id: sensitivity_decay, kind: degradation, owner: sun_sensor, implementation: source_native, evidence_fields: [adcs.sun_sensor.intensity], verification: declared}
+  - {effect_id: bias_drift, kind: degradation, owner: sun_sensor, implementation: source_native, evidence_fields: [adcs.sun_sensor.direction_y], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.sun_sensor.builder
+  source_modules: [components.sun_sensor.builder, components.sun_sensor.schemas]
+  public_api: [measure_sun_sensor, SunSensorConfig]
+  legacy_demo_runner: components.sun_sensor.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Deterministic field-of-view model; no calibrated optical response.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; eclipse and attitude coupling require a subsystem capability.]

@@ -1,0 +1,183 @@
+capability_id: subsystem.payload.source_native.v1
+schema_version: 0.1.0
+name: Payload source-native subsystem simulation
+level: subsystem
+domain: payload
+target: payload
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native payload subsystem capability using existing src/subsystems builder/model APIs without demo runner execution.
+adapter:
+  class_path: sat_sim.adapters.subsystem_source_native.PayloadSourceNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - subsystems.payload.builder
+  - subsystems.payload.model
+  - subsystems.payload.schemas
+  legacy_demo_runner: subsystems.payload.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [instrument_failure]
+  degradation:
+    supported: true
+    degradation_types: [quality_or_rate_degradation]
+parameters:
+  observation_power_w:
+    type: number
+    required: false
+    default: 18.0
+  standby_power_w:
+    type: number
+    required: false
+    default: 3.0
+  data_rate_bps:
+    type: number
+    required: false
+    default: 250000.0
+  max_pointing_error_deg:
+    type: number
+    required: false
+    default: 0.25
+  pointing_error_deg:
+    type: number
+    required: false
+    default: 0.05
+  eps_allows_payload:
+    type: boolean
+    required: false
+    default: true
+  thermal_allows_payload:
+    type: boolean
+    required: false
+    default: true
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.observation_power_w
+  unit: mixed
+- name: parameters.standby_power_w
+  unit: mixed
+- name: parameters.data_rate_bps
+  unit: mixed
+- name: parameters.max_pointing_error_deg
+  unit: mixed
+- name: parameters.pointing_error_deg
+  unit: mixed
+- name: parameters.eps_allows_payload
+  unit: mixed
+- name: parameters.thermal_allows_payload
+  unit: mixed
+produces:
+- name: payload.source_native.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: payload.source_native.enabled
+    unit: bool
+    dtype: number
+    description: 载荷原生启用。运行器实际输出字段；技术字段为 payload.source_native.enabled，单位 bool。
+  - name: payload.source_native.power_w
+    unit: W
+    dtype: number
+    description: 载荷原生功率功率。运行器实际输出字段；技术字段为 payload.source_native.power_w，单位 W。
+  - name: payload.source_native.heat_w
+    unit: W
+    dtype: number
+    description: 载荷原生热量功率。运行器实际输出字段；技术字段为 payload.source_native.heat_w，单位 W。
+  - name: payload.source_native.generated_bps
+    unit: bit/s
+    dtype: number
+    description: 载荷原生已生成比特率。运行器实际输出字段；技术字段为 payload.source_native.generated_bps，单位 bit/s。
+  - name: payload.source_native.cumulative_data_bits
+    unit: bit
+    dtype: number
+    description: 载荷原生累计数据比特。运行器实际输出字段；技术字段为 payload.source_native.cumulative_data_bits，单位 bit。
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c5_payload_source_native_run_and_manifest
+  - test_c5_payload_capability_python_export_runs
+operator:
+  owner: payload
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: payload, implementation: source_native, evidence_fields: [payload.source_native.generated_bps], verification: declared}
+  - {effect_id: instrument_failure, kind: fault, owner: payload, implementation: source_native, evidence_fields: [payload.source_native.enabled, payload.source_native.generated_bps, label.fault_active], verification: declared}
+  - {effect_id: quality_or_rate_degradation, kind: degradation, owner: payload, implementation: source_native, evidence_fields: [payload.source_native.generated_bps, label.degradation_active], verification: declared}
+source_binding:
+  mode: source_native
+  status: c4c6_new_source_native_subsystem_adapter
+  primary_module: subsystems.payload.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_payload_subsystem_config
+  - initialize_payload_state
+  - simulate_payload_subsystem_profile
+  legacy_demo_runner: subsystems.payload.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around existing pure-Python subsystem builder/model
+    APIs.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: false
+  basilisk_candidate_files: []
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Current capability is a deterministic source/API wrapper or local model within documented package limits.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

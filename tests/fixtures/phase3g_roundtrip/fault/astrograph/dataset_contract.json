@@ -1,0 +1,209 @@
+{
+  "schema_version": "sat-sim.astrograph-dataset.v2",
+  "dataset_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+  "independent_run_id": "train-ADCS_RW_JAM-000",
+  "split": "train",
+  "status": "complete",
+  "pairing": {
+    "pair_id": "train-adcs_rw_jam-000",
+    "case_role": "fault",
+    "fault_case_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+    "nominal_case_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-nominal"
+  },
+  "ground_truth": {
+    "class_id": "ADCS_RW_JAM",
+    "case_role": "fault",
+    "pair_id": "train-adcs_rw_jam-000",
+    "fault_case_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+    "nominal_case_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-nominal",
+    "simulator_effect": "adcs_rw_jamming",
+    "simulator_event_kind": "fault",
+    "onset_time_s": 2.167059,
+    "end_time_s": null,
+    "severity": 1.0,
+    "severity_descriptor": {
+      "schema_version": "sat-sim.fault-severity-descriptor.v1",
+      "fault_id": "ADCS_RW_JAM",
+      "normalized_severity": 1.0,
+      "severity_level": "critical",
+      "mechanism_kind": "binary_failure",
+      "physically_applied": true,
+      "simulator_parameter": null,
+      "simulator_value": null,
+      "model": {
+        "schema_version": "sat-sim.fault-severity-model.v1",
+        "mechanism_kind": "binary_failure",
+        "fixed_normalized_severity": 1.0,
+        "bands": [
+          {
+            "level": "critical",
+            "min_inclusive": 1.0,
+            "max_inclusive": 1.0
+          }
+        ]
+      },
+      "claim_boundary": {
+        "severity_is_flight_calibrated": false,
+        "severity_is_valid_only_for_declared_simulator_parameter": true
+      }
+    },
+    "target": "adcs.reaction_wheel.1"
+  },
+  "simulation": {
+    "capability_id": "subsystem.adcs_fidelity.v1",
+    "platform_version": "0.1.0",
+    "bsk_version": "unavailable",
+    "seed": 20260726,
+    "duration_s": 8.0,
+    "sample_s": 1.0,
+    "spec_hash": "e03a6227b5b3588c7ec509d6d806ae0f3df43e398d6129d23c6f5f045cc38b6f",
+    "backend": "python",
+    "fidelity": {
+      "simulation_engine": "non_basilisk_test_runtime",
+      "fidelity_level": "C_TEST_PROXY_ONLY",
+      "formal_training_eligible": false,
+      "reason": "non_basilisk_execution",
+      "capability_id": "subsystem.adcs_fidelity.v1",
+      "backend": "python",
+      "bsk_version": "unavailable",
+      "bsk_version_accepted": false,
+      "runtime_truth_status": null,
+      "instantiated_module_count": 0,
+      "allowed_purposes": [
+        "unit_test",
+        "interface_test",
+        "agent_workflow_test"
+      ],
+      "flight_validated": false
+    }
+  },
+  "telemetry": {
+    "file": "astrograph/telemetry.csv",
+    "source_trace_file": "trace.csv",
+    "row_count": 9,
+    "time_field": "time_s",
+    "channel_contract": {
+      "profile_id": "astrograph-rw-temporal-basilisk-5ch.v1",
+      "required_channels": [
+        "sensor.adcs.rw.speed_rad_s_0",
+        "estimate.adcs.rw.friction_torque_nm_0",
+        "estimate.adcs.rw.actual_torque_nm_0",
+        "estimate.adcs.pointing_error_deg",
+        "status.adcs.rw.available_0"
+      ],
+      "available_required_channels": [
+        "sensor.adcs.rw.speed_rad_s_0",
+        "estimate.adcs.rw.friction_torque_nm_0",
+        "estimate.adcs.rw.actual_torque_nm_0",
+        "estimate.adcs.pointing_error_deg",
+        "status.adcs.rw.available_0"
+      ],
+      "missing_required_channels": [],
+      "optional_channels": [
+        "sensor.adcs.rw.motor_current_a_0",
+        "estimate.adcs.rw.effective_max_torque_nm_0"
+      ],
+      "available_optional_channels": [
+        "estimate.adcs.rw.effective_max_torque_nm_0"
+      ],
+      "coverage_ratio": 1.0,
+      "all_projected_channels": [
+        "estimate.adcs.pointing_error_deg",
+        "estimate.adcs.rw.actual_torque_nm_0",
+        "estimate.adcs.rw.effective_max_torque_nm_0",
+        "estimate.adcs.rw.friction_torque_nm_0",
+        "label.case_role",
+        "label.class_id",
+        "label.constraint_active",
+        "label.degradation_active",
+        "label.fault_active",
+        "label.pair_id",
+        "label.split",
+        "sensor.adcs.rw.speed_rad_s_0",
+        "status.adcs.rw.available_0",
+        "time_s"
+      ],
+      "derivations": [
+        {
+          "target": "estimate.adcs.rw.friction_torque_nm_0",
+          "formula": "abs(native friction torque) or abs(Basilisk damping coefficient * wheel speed)",
+          "provenance": "direct_or_physics_derived"
+        },
+        {
+          "target": "status.adcs.rw.available_0",
+          "formula": "estimate.adcs.rw.effective_max_torque_nm_0 > 1e-12",
+          "provenance": "engineering_derived"
+        }
+      ],
+      "training_feature_policy": {
+        "allowed_model_input_channels": [
+          "sensor.adcs.rw.speed_rad_s_0",
+          "estimate.adcs.rw.actual_torque_nm_0",
+          "estimate.adcs.pointing_error_deg"
+        ],
+        "available_model_input_channels": [
+          "sensor.adcs.rw.speed_rad_s_0",
+          "estimate.adcs.rw.actual_torque_nm_0",
+          "estimate.adcs.pointing_error_deg"
+        ],
+        "missing_model_input_channels": [],
+        "physics_validation_only_channels": [
+          "estimate.adcs.rw.friction_torque_nm_0",
+          "status.adcs.rw.available_0",
+          "estimate.adcs.rw.effective_max_torque_nm_0"
+        ],
+        "forbidden_label_prefixes": [
+          "label."
+        ],
+        "target_leakage_guard": true,
+        "policy_reason": "fault-injection truth and directly derived availability/authority channels cannot train AstroGraph models"
+      },
+      "profile_compatibility": {
+        "frozen_six_channel_lstm_candidate": false,
+        "reason": "motor current is optional until a validated electrical motor model is available"
+      },
+      "channel_ready": true,
+      "model_input_ready": true
+    }
+  },
+  "quality": {
+    "nonempty_trace": true,
+    "sat_sim_status_complete": true,
+    "channel_ready": true,
+    "model_input_ready": true,
+    "formal_training_eligible": false,
+    "physics_validation_status": "REVIEW",
+    "diagnostic_validation_status": "REVIEW",
+    "diagnostic_validation_passed": true,
+    "diagnostic_score": 1.0,
+    "basilisk_diagnostic_candidate": false,
+    "formal_diagnostic_qualified": false,
+    "signature_review_status": "PENDING",
+    "physics_validation_passed": true,
+    "formal_training_qualified": false,
+    "candidate_training_ready": false,
+    "expert_review_status": "PENDING",
+    "training_ready": false,
+    "expert_review_required": true
+  },
+  "claim_boundary": {
+    "level": "C_TEST_PROXY_ONLY",
+    "flight_validated": false,
+    "high_fidelity_equivalence_claimed": false,
+    "notes": [
+      "Formal AstroGraph training candidates require the unified Basilisk runtime and complete runtime evidence.",
+      "The five-channel profile includes signed motor current derived from native rwMotorTorqueOutMsg using the explicit actuator telemetry contract; it is not measured flight current.",
+      "Derived channels are explicitly identified and must not be presented as measured flight telemetry."
+    ]
+  },
+  "metadata": {
+    "source_task_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+    "experiment_id": "phase3d_proxy_diagnostic_smoke:train-adcs_rw_jam-000:fault",
+    "experiment_template_id": "adcs.rw_jam.basilisk.v1",
+    "canonical_target_wheel_index": 1
+  },
+  "simulation_report_file": "astrograph/simulation_report.json",
+  "experiment_record_file": "astrograph/experiment_record.json",
+  "simulation_validation_file": "validation/pairs/train-adcs_rw_jam-000.json",
+  "diagnostic_validation_file": "validation/diagnostics/train-adcs_rw_jam-000.json"
+}

@@ -1,0 +1,347 @@
+capability_id: whole_spacecraft.basic_power_thermal_orbit.v1
+schema_version: 0.1.0
+name: Basic whole-spacecraft power-thermal-orbit simulation
+level: whole_spacecraft
+domain: whole_spacecraft
+target: basic_power_thermal_orbit
+trust_level: conformance_tested
+status: deprecated_compatibility_only
+summary: Minimal whole-spacecraft composition of LEO orbit environment, basic EPS, and basic lumped thermal dynamics. Deterministic
+  couplings are orbit shadow into EPS/thermal, EPS electrical load into thermal internal heat, and thermal heater demand into
+  EPS heater load.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_basic_power_thermal_orbit.WholeSpacecraftBasicPowerThermalOrbitAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adapters.orbit_environment_leo_simple
+  - sat_sim.adapters.subsystem_eps_basic
+  - sat_sim.adapters.subsystem_thermal_basic_lumped
+  - sat_sim.adapters.whole_spacecraft_basic_power_thermal_orbit
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  mixed:
+    supported: true
+  degradation:
+    supported: true
+scope_exclusions:
+- full_adcs
+- communication
+- propulsion
+- high_fidelity_thermal_network
+- finite_element_thermal
+- basilisk_message_graph
+dependencies:
+- capability_id: orbit_environment.leo_simple.v1
+  role: child
+  alias: orbit_environment
+  required: true
+- capability_id: subsystem.eps.basic.v1
+  role: child
+  alias: eps
+  required: true
+- capability_id: subsystem.thermal.basic_lumped.v1
+  role: child
+  alias: thermal
+  required: true
+parameters:
+  battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: false
+    min: 1.0e-06
+    default: 160.0
+  initial_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.65
+  solar_array_max_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 120.0
+  bus_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 20.0
+  payload_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 30.0
+  electrical_load_heat_fraction:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    default: 0.9
+  initial_bus_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 20.0
+  initial_battery_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 18.0
+  solar_heat_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 45.0
+  radiator_area_m2:
+    type: number
+    unit: m^2
+    required: false
+    min: 1.0e-06
+    default: 0.35
+  heater_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 20.0
+  heater_setpoint_c:
+    type: number
+    unit: degC
+    required: false
+    default: 5.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: orbit_environment.altitude_m
+  unit: m
+- name: orbit_environment.enable_eclipse
+  unit: bool
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.battery_capacity_wh
+  unit: Wh
+- name: parameters.initial_soc
+  unit: ratio
+- name: parameters.solar_array_max_power_w
+  unit: W
+- name: parameters.payload_load_power_w
+  unit: W
+- name: parameters.solar_heat_w
+  unit: W
+- name: parameters.radiator_area_m2
+  unit: m^2
+- name: parameters.heater_setpoint_c
+  unit: degC
+produces:
+- name: spacecraft.time_s
+- name: spacecraft.power.thermal_heater_power_w
+- name: spacecraft.power.total_requested_power_w
+- name: spacecraft.thermal.bus_temp_c
+- name: spacecraft.thermal.battery_temp_c
+- name: orbit.*
+- name: environment.shadow_factor
+- name: environment.eclipse_flag
+- name: eps.*
+- name: thermal.*
+- name: label.thermal_state
+- name: label.health_state
+time_grid:
+  policy: shared_parent_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+  children:
+  - orbit_environment.leo_simple.v1
+  - subsystem.eps.basic.v1
+  - subsystem.thermal.basic_lumped.v1
+composition:
+  chain:
+  - capability_id: whole_spacecraft.basic_power_thermal_orbit.v1
+    role: parent
+  - capability_id: orbit_environment.leo_simple.v1
+    role: child
+    alias: orbit_environment
+  - capability_id: subsystem.thermal.basic_lumped.v1
+    role: child
+    alias: thermal
+  - capability_id: subsystem.eps.basic.v1
+    role: child
+    alias: eps
+  field_mappings:
+  - source: orbit_environment.trace.environment.shadow_factor
+    target: thermal.parameters.shadow_profile
+    description: LEO eclipse/shadow scales thermal solar heat input.
+  - source: orbit_environment.trace.environment.shadow_factor
+    target: eps.parameters.shadow_profile
+    description: LEO eclipse/shadow scales EPS solar array power.
+  - source: eps.nominal_load_estimate
+    target: thermal.parameters.internal_power_profile_w
+    description: Electrical load is converted into internal thermal dissipation using electrical_load_heat_fraction.
+  - source: thermal.trace.thermal.heater.power_w
+    target: eps.parameters.heater_dynamic_power_profile_w
+    description: Thermal heater demand is injected into EPS heater load.
+  required_trace_fields:
+  - spacecraft.time_s
+  - orbit.r_bn_n_m_x
+  - environment.shadow_factor
+  - environment.eclipse_flag
+  - eps.battery.soc
+  - eps.loads.requested.heater_w
+  - eps.power.margin_w
+  - thermal.node.bus_temp_c
+  - thermal.heater.power_w
+  - label.thermal_state
+  - label.health_state
+outputs:
+  trace:
+  - name: spacecraft.time_s
+    unit: s
+    dtype: number
+  - name: spacecraft.power.thermal_heater_power_w
+    unit: W
+    dtype: number
+  - name: spacecraft.power.total_requested_power_w
+    unit: W
+    dtype: number
+  - name: spacecraft.thermal.bus_temp_c
+    unit: degC
+    dtype: number
+  - name: spacecraft.thermal.battery_temp_c
+    unit: degC
+    dtype: number
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: bool
+  - name: eps.battery.soc
+    unit: ratio
+    dtype: number
+  - name: eps.solar.array_power_w
+    unit: W
+    dtype: number
+  - name: eps.loads.requested_power_w
+    unit: W
+    dtype: number
+  - name: eps.loads.requested.heater_w
+    unit: W
+    dtype: number
+  - name: eps.power.margin_w
+    unit: W
+    dtype: number
+  - name: eps.pdu.load_shed_active
+    unit: bool
+    dtype: bool
+  - name: thermal.node.bus_temp_c
+    unit: degC
+    dtype: number
+  - name: thermal.node.battery_temp_c
+    unit: degC
+    dtype: number
+  - name: thermal.heat.internal_power_w
+    unit: W
+    dtype: number
+  - name: thermal.heat.solar_input_w
+    unit: W
+    dtype: number
+  - name: thermal.heater.power_w
+    unit: W
+    dtype: number
+  - name: thermal.radiator.heat_reject_w
+    unit: W
+    dtype: number
+  - name: label.thermal_state
+    unit: enum
+    dtype: string
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.spacecraft.power.final_soc
+    unit: ratio
+  - name: qoi.spacecraft.power.min_soc
+    unit: ratio
+  - name: qoi.spacecraft.thermal.final_bus_temp_c
+    unit: degC
+  - name: qoi.spacecraft.thermal.max_bus_temp_c
+    unit: degC
+  - name: qoi.spacecraft.thermal.heater_energy_wh
+    unit: Wh
+  - name: qoi.spacecraft.environment.eclipse_fraction
+    unit: ratio
+source_binding:
+  mode: synthetic
+  status: deterministic_composition
+  primary_module: sat_sim.adapters.whole_spacecraft_basic_power_thermal_orbit
+  source_modules:
+  - sat_sim.adapters.whole_spacecraft_basic_power_thermal_orbit
+  public_api:
+  - WholeSpacecraftBasicPowerThermalOrbitAdapter.run
+  legacy_demo_runner: whole_spacecraft.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Whole-spacecraft composition; thermal child is synthetic until source-native thermal migration.
+fidelity_level: synthetic
+known_physics_limits:
+- agent-facing deterministic composition, not high-fidelity full-satellite validation
+- does not implement finite-element or high-fidelity thermal network validation
+lifecycle:
+  status: deprecated
+  replacement: whole_spacecraft.power_thermal_orbit_coupled.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Superseded by Route-B HF-5 power/thermal/orbit coupled model.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- none
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: false
+  basilisk_candidate_files: []
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Current capability is a deterministic source/API wrapper or local model within documented package limits.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - full_adcs
+  - communication
+  - propulsion
+  - high_fidelity_thermal_network
+  - finite_element_thermal
+  - basilisk_message_graph
+  - agent-facing deterministic composition, not high-fidelity full-satellite validation
+  - does not implement finite-element or high-fidelity thermal network validation

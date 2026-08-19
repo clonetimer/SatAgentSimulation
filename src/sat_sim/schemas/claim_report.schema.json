@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "ValidationResult": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INCONCLUSIVE",
+        "NOT_EVALUATED"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v26.claim-report.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "validation_result": {
+      "$ref": "#/$defs/ValidationResult"
+    },
+    "requested_claim_level": {
+      "title": "Requested Claim Level",
+      "type": "string"
+    },
+    "parameter_profile": {
+      "title": "Parameter Profile",
+      "type": "string"
+    },
+    "allowed_claims": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Claims",
+      "type": "array"
+    },
+    "forbidden_claims": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Forbidden Claims",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "evidence": {
+      "additionalProperties": true,
+      "title": "Evidence",
+      "type": "object"
+    }
+  },
+  "required": [
+    "validation_result",
+    "requested_claim_level",
+    "parameter_profile"
+  ],
+  "title": "Satellite Simulation ClaimReport V26",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/claim-report-v26.schema.json"
+}

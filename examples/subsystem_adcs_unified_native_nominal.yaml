@@ -1,0 +1,40 @@
+schema_version: 0.1.0
+task_id: subsystem_adcs_unified_native_nominal
+task_type: subsystem
+description: ADCS unified Basilisk Process/Task nominal run.
+capability_id: subsystem.adcs_unified_native.v1
+simulation:
+  duration_s: 60.0
+  step_s: 0.2
+  sample_s: 1.0
+  backend: basilisk
+target:
+  level: subsystem
+  name: adcs
+  mode: nominal
+parameters:
+  initial_pointing_error_deg: 8.0
+  orbit_radius_m: 7000000.0
+  inclination_deg: 35.0
+  controller_k: 3.5
+  controller_p: 30.0
+faults: []
+modifiers:
+  faults: []
+  degradations: []
+  constraints: []
+assurance:
+  allow_proxy: false
+outputs:
+  output_root: runs/subsystem_adcs_unified_native_nominal
+  trace_format: csv
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+  record_fields:
+    - adcs.pointing_error_deg
+    - adcs.body_rate_rad_s_*
+    - adcs.rw.speed_rad_s_*
+metadata:
+  template_source: v0.5.5.0_recommended_unified_runtime

@@ -1,0 +1,77 @@
+capability_id: component.magnetometer.v1
+schema_version: 0.1.0
+name: Magnetometer component simulation
+level: component
+domain: adcs
+target: magnetometer
+trust_level: conformance_tested
+summary: Deterministic source-native vector scale and bias magnetometer model.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.MagnetometerAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.magnetometer.builder, components.magnetometer.schemas]
+  legacy_demo_runner: components.magnetometer.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [axis_bias, axis_dropout, saturation]
+  degradation:
+    supported: true
+    degradation_types: [bias_drift, scale_factor_drift]
+parameters:
+  magnetic_field_t: {type: "array[number]", unit: T, required: false, default: [0.00002, 0.0, 0.00004]}
+  axis_scale: {type: "array[number]", unit: ratio, required: false, default: [1.0, 1.0, 1.0]}
+  bias_t: {type: "array[number]", unit: T, required: false, default: [0.0, 0.0, 0.0]}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: adcs.magnetometer.field_x_t, unit: T, dtype: number}
+  - {name: adcs.magnetometer.field_norm_t, unit: T, dtype: number}
+  summary:
+  - {name: adcs.magnetometer.error_norm_t, unit: T}
+operator:
+  owner: magnetometer
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: magnetometer
+    implementation: source_native
+    evidence_fields: [adcs.magnetometer.field_x_t, adcs.magnetometer.field_norm_t]
+    verification: declared
+  - {effect_id: axis_bias, kind: fault, owner: magnetometer, implementation: source_native, evidence_fields: [adcs.magnetometer.field_x_t], verification: declared}
+  - {effect_id: axis_dropout, kind: fault, owner: magnetometer, implementation: source_native, evidence_fields: [adcs.magnetometer.field_x_t], verification: declared}
+  - {effect_id: saturation, kind: fault, owner: magnetometer, implementation: source_native, evidence_fields: [adcs.magnetometer.field_norm_t], verification: declared}
+  - {effect_id: bias_drift, kind: degradation, owner: magnetometer, implementation: source_native, evidence_fields: [adcs.magnetometer.effective_bias_x_t], verification: declared}
+  - {effect_id: scale_factor_drift, kind: degradation, owner: magnetometer, implementation: source_native, evidence_fields: [adcs.magnetometer.field_x_t], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.magnetometer.builder
+  source_modules: [components.magnetometer.builder, components.magnetometer.schemas]
+  public_api: [measure_magnetic_field_sensor, MagnetometerConfig]
+  legacy_demo_runner: components.magnetometer.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Deterministic component measurement model; no hardware magnetic calibration.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; environment coupling requires an ADCS or whole-spacecraft capability.]

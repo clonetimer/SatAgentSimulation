@@ -1,0 +1,501 @@
+capability_id: whole_spacecraft.basic_power_orbit.v1
+schema_version: 0.1.0
+name: Basic whole-spacecraft power-orbit simulation
+level: whole_spacecraft
+domain: integrated
+target: basic_power_orbit
+trust_level: conformance_tested
+status: deprecated_compatibility_only
+summary: Minimal deterministic whole-spacecraft capability that composes the simple LEO orbit/environment capability with
+  the basic EPS capability. It provides a power-orbit trace for early Agent workflows without entering full ADCS, thermal,
+  comm, propulsion, or legacy demo runner paths.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_basic_power_orbit.WholeSpacecraftBasicPowerOrbitAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  composition:
+  - orbit_environment.leo_simple.v1
+  - subsystem.eps.basic.v1
+  model_modules:
+  - integrated.orbit_environment.model
+  - components.battery.model
+  - components.solar_panel.builder
+  - components.pdu.builder
+  legacy_demo_runner: whole_spacecraft.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  excludes:
+  - full_adcs
+  - thermal
+  - comm
+  - propulsion
+  - basilisk_message_graph
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types:
+      battery:
+      - open_circuit
+      - sudden_capacity_loss
+      solar_panel:
+      - solar_panel_failure
+      - solar_panel_degradation
+      - deployment_failure
+  degradation:
+    supported: true
+    degradation_types:
+      battery:
+      - capacity_loss_pct
+      - internal_resistance_increase_pct
+      - self_discharge_rate_increase_pct
+      solar_panel:
+      - efficiency_loss_pct
+      - radiation_damage_factor
+      pdu:
+      - pdu_efficiency_loss_pct
+  mixed:
+    supported: true
+spacecraft_inputs:
+  spacecraft.eps.battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: true
+    min: 1.0
+    default: 160.0
+  spacecraft.eps.initial_soc:
+    type: number
+    unit: ratio
+    required: true
+    min: 0.0
+    max: 1.0
+    default: 0.62
+  spacecraft.eps.solar_power_w:
+    type: number
+    unit: W
+    required: true
+    min: 0.0
+    default: 95.0
+    description: Mapped to EPS solar_array_max_power_w with default solar_panel_count=1.
+  spacecraft.eps.bus_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 20.0
+  spacecraft.eps.payload_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 30.0
+orbit_environment_inputs:
+  altitude_m:
+    type: number
+    unit: m
+    required: false
+    min: 100000.0
+    max: 2000000.0
+    default: 500000.0
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    max: 180.0
+    default: 51.6
+  raan_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  arg_lat0_deg:
+    type: number
+    unit: deg
+    required: false
+    default: -110.0
+  sun_vector_n:
+    type: vector3
+    unit: none
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+parameters:
+  solar_array_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  solar_panel_count:
+    type: integer
+    unit: count
+    required: false
+    min: 1
+    default: 1
+  solar_deployment_fraction:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  solar_incidence_cos:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+    description: Fixed attitude proxy; P7-A does not model ADCS pointing.
+  adcs_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 0.0
+    description: Static load proxy only; does not invoke ADCS simulation.
+  comm_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 0.0
+    description: Static load proxy only; does not invoke comm simulation.
+  heater_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 0.0
+    description: Static load proxy only; does not invoke thermal simulation.
+  pdu_bus_max_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 90.0
+  pdu_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.97
+  enable_load_shedding:
+    type: boolean
+    required: false
+    default: true
+  load_profile_w:
+    type: array[number]
+    unit: W
+    required: false
+    description: Optional per-step total load override passed to EPS.
+  ground_station:
+    type: object
+    required: false
+    description: Optional ground station object forwarded to the orbit environment child.
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 1.0
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: target_level
+    unit: none
+    dtype: string
+  - name: target_name
+    unit: none
+    dtype: string
+  - name: mode
+    unit: none
+    dtype: string
+  - name: spacecraft.time_s
+    unit: s
+    dtype: number
+  - name: orbit.r_bn_n_m_x
+    unit: m
+    dtype: number
+  - name: orbit.r_bn_n_m_y
+    unit: m
+    dtype: number
+  - name: orbit.r_bn_n_m_z
+    unit: m
+    dtype: number
+  - name: orbit.v_bn_n_m_s_x
+    unit: m/s
+    dtype: number
+  - name: orbit.v_bn_n_m_s_y
+    unit: m/s
+    dtype: number
+  - name: orbit.v_bn_n_m_s_z
+    unit: m/s
+    dtype: number
+  - name: orbit.radius_m
+    unit: m
+    dtype: number
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: bool
+  - name: eps.battery.soc
+    unit: ratio
+    dtype: number
+  - name: eps.solar.array_power_w
+    unit: W
+    dtype: number
+  - name: eps.power.margin_w
+    unit: W
+    dtype: number
+  - name: eps.pdu.load_shed_active
+    unit: bool
+    dtype: bool
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  - name: label.fault_active
+    unit: bool
+    dtype: bool
+  - name: label.eclipse_active
+    unit: bool
+    dtype: bool
+  summary:
+  - name: qoi.orbit.radius_mean_m
+    unit: m
+  - name: qoi.environment.eclipse_fraction
+    unit: ratio
+  - name: qoi.spacecraft.environment.eclipse_fraction
+    unit: ratio
+  - name: qoi.spacecraft.power.final_soc
+    unit: ratio
+  - name: qoi.spacecraft.power.min_soc
+    unit: ratio
+  - name: qoi.spacecraft.power.min_solar_array_power_w
+    unit: W
+  - name: qoi.spacecraft.power.max_solar_array_power_w
+    unit: W
+  - name: qoi.spacecraft.power.min_margin_w
+    unit: W
+  - name: qoi.eps.power.load_shed_fraction
+    unit: ratio
+validation:
+  conformance_tests:
+  - test_p7a_registry_resolves_whole_spacecraft_capability
+  - test_p7a_duration_and_sample_control_trace
+  - test_p7a_altitude_controls_orbit_radius
+  - test_p7a_orbit_shadow_controls_solar_power
+  - test_p7a_solar_power_and_load_affect_battery_soc
+  - test_p7a_validate_compile_run_writes_standard_dataset
+  - test_p7a_capability_python_export_executes
+  - test_p7a_campaign_runs_power_orbit_cases
+  - test_p7b_contract_declares_dependencies_and_interfaces
+  - test_p7b_manifest_records_composition_chain
+  - test_p7b_agent_eval_includes_whole_spacecraft_power_orbit
+dependencies:
+- capability_id: orbit_environment.leo_simple.v1
+  alias: orbit_environment
+  required: true
+  role: environment_provider
+  time_grid: shared_parent_time_grid
+- capability_id: subsystem.eps.basic.v1
+  alias: eps
+  required: true
+  role: power_subsystem
+  time_grid: shared_parent_time_grid
+consumes:
+- name: simulation.duration_s
+  unit: s
+  source: TaskSpec.simulation
+  required: true
+- name: simulation.sample_s
+  unit: s
+  source: TaskSpec.simulation
+  required: true
+- name: spacecraft.eps.*
+  source: TaskSpec.spacecraft.eps
+  required: true
+- name: orbit_environment.*
+  source: TaskSpec.orbit_environment
+  required: false
+- name: parameters.ground_station
+  source: TaskSpec.parameters
+  required: false
+- name: parameters.load_profile_w
+  unit: W
+  source: TaskSpec.parameters
+  required: false
+produces:
+- name: spacecraft.*
+  destination: trace
+  description: parent time and sample identity
+- name: orbit.*
+  destination: trace
+  from: orbit_environment.leo_simple.v1
+- name: environment.*
+  destination: trace
+  from: orbit_environment.leo_simple.v1
+- name: eps.*
+  destination: trace
+  from: subsystem.eps.basic.v1
+- name: label.*
+  destination: trace/labels
+  description: whole-spacecraft health labels
+- name: summary.qoi.*
+  destination: summary
+  description: merged orbit, environment, EPS, and spacecraft QoIs
+time_grid:
+  policy: single_parent_time_grid
+  time_field: spacecraft.time_s
+  sample_index_field: spacecraft.sample_index
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+  child_policy: children_receive_identical_duration_and_sample_s
+  alignment: inner_join_by_sample_index
+composition:
+  type: deterministic_sequential
+  description: Run orbit/environment first, pass its per-sample shadow factor into EPS, then merge rows by sample index.
+  steps:
+  - alias: orbit_environment
+    capability_id: orbit_environment.leo_simple.v1
+    adapter: sat_sim.adapters.orbit_environment_leo_simple.OrbitEnvironmentLeoSimpleAdapter
+    inputs:
+    - simulation
+    - orbit_environment
+    - parameters.ground_station
+    produces:
+    - orbit.*
+    - environment.shadow_factor
+    - environment.eclipse_flag
+    - ground.*
+  - alias: eps
+    capability_id: subsystem.eps.basic.v1
+    adapter: sat_sim.adapters.subsystem_eps_basic.EpsBasicAdapter
+    inputs:
+    - simulation
+    - spacecraft.eps
+    - parameters
+    - orbit_environment.trace.environment.shadow_factor
+    produces:
+    - eps.*
+    - label.health_state
+    - label.fault_active
+  - alias: merge
+    type: row_merge
+    inputs:
+    - orbit_environment.trace
+    - eps.trace
+    policy: inner_join_by_sample_index
+    produces:
+    - whole_spacecraft.trace
+    - whole_spacecraft.summary
+    - whole_spacecraft.labels
+  field_mappings:
+  - from: orbit_environment.trace.environment.shadow_factor
+    to: eps.parameters.shadow_profile
+    policy: per_sample_ratio_list
+    description: Eclipse/shadow profile reduces EPS solar array power.
+  - from: TaskSpec.spacecraft.eps.solar_power_w
+    to: eps.parameters.solar_array_max_power_w
+    policy: scalar_alias
+  - from: TaskSpec.spacecraft.eps.bus_power_w
+    to: eps.parameters.bus_load_power_w
+    policy: scalar_alias
+  - from: TaskSpec.spacecraft.eps.payload_power_w
+    to: eps.parameters.payload_load_power_w
+    policy: scalar_alias
+  required_trace_fields:
+  - spacecraft.time_s
+  - spacecraft.sample_index
+  - orbit.r_bn_n_m_x
+  - orbit.r_bn_n_m_y
+  - orbit.r_bn_n_m_z
+  - orbit.v_bn_n_m_s_x
+  - orbit.v_bn_n_m_s_y
+  - orbit.v_bn_n_m_s_z
+  - orbit.radius_m
+  - environment.shadow_factor
+  - environment.eclipse_flag
+  - eps.battery.soc
+  - eps.solar.array_power_w
+  - eps.power.margin_w
+  - eps.pdu.load_shed_active
+  - label.health_state
+  - label.fault_active
+  - label.eclipse_active
+source_binding:
+  mode: synthetic
+  status: deterministic_composition
+  primary_module: sat_sim.adapters.whole_spacecraft_basic_power_orbit
+  source_modules:
+  - sat_sim.adapters.whole_spacecraft_basic_power_orbit
+  public_api:
+  - WholeSpacecraftBasicPowerOrbitAdapter.run
+  legacy_demo_runner: whole_spacecraft.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Whole-spacecraft composition of child capabilities; not a direct wrapper around whole_spacecraft.runner.
+fidelity_level: synthetic
+known_physics_limits:
+- agent-facing deterministic composition, not high-fidelity full-satellite validation
+lifecycle:
+  status: deprecated
+  replacement: whole_spacecraft.power_thermal_orbit_coupled.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Superseded for product routing by Route-B HF-5 power/thermal/orbit coupled model.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/battery/builder.py
+  - src/components/pdu/builder.py
+  - src/components/solar_panel/builder.py
+  - src/integrated/orbit_environment/basilisk_impl.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - agent-facing deterministic composition, not high-fidelity full-satellite validation

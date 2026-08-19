@@ -1,0 +1,6 @@
+capability_id: component.solar_panel.v1
+task_type: component
+target:
+  level: component
+  name: solar_panel
+  mode: nominal

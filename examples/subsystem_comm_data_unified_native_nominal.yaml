@@ -1,0 +1,37 @@
+schema_version: '1.0.0'
+task:
+  id: subsystem_comm_data_unified_native_nominal
+  name: 通信数据统一运行图正常场景
+simulation:
+  level: subsystem
+  subsystem: comm_data
+  duration_s: 60.0
+  step_s: 1.0
+  sample_s: 1.0
+  backend: basilisk
+parameters:
+  profile: demo
+  values:
+    instrument_baud_bps: 2500000.0
+    transmitter_baud_bps: 1500000.0
+    storage_capacity_bits: 6000000000.0
+    native_storage_drain_enabled: true
+outputs:
+  output_root: datasets/subsystem_comm_data_unified_native_nominal
+  qoi: [comm_data.storage_level_bits, comm_data.instrument_baud_bps]
+  telemetry_streams:
+  - stream_id: data_fast
+    sample_s: 1.0
+    fields: [comm_data.storage_level_bits, comm_data.transmitter_storage_node_baud_bps]
+  - stream_id: data_summary
+    sample_s: 10.0
+    fields: [comm_data.storage_level_bits, comm_data.instrument_baud_bps, comm_data.transmitter_baud_bps]
+  fmea:
+    enabled: true
+    formats: [csv, json]
+assurance:
+  parameter_profile: demo
+  allow_proxy: false
+model:
+  capability_id: subsystem.comm_data.unified_native.v1
+  target: {level: subsystem, name: comm_data, mode: nominal}

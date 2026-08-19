@@ -1,0 +1,391 @@
+capability_id: subsystem.thermal.basic_lumped.v1
+schema_version: 0.1.0
+name: Basic lumped thermal subsystem simulation
+level: subsystem
+domain: thermal
+target: thermal
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Deterministic low-order bus/battery lumped thermal capability with solar heat, internal dissipation, radiator heat
+  rejection, and heater logic. It is intended for Agent-facing script generation and parameter-effect testing, not high-fidelity
+  thermal networks or finite-element thermal analysis.
+adapter:
+  class_path: sat_sim.adapters.subsystem_thermal_basic_lumped.ThermalBasicLumpedAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adapters.subsystem_thermal_basic_lumped
+  legacy_demo_runner: subsystems.thermal.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [heating_or_rejection_failure]
+  degradation:
+    supported: true
+    degradation_types:
+      radiator:
+      - radiator_degradation_factor
+operator:
+  owner: thermal
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: thermal
+    implementation: source_native
+    evidence_fields:
+    - qoi.thermal.final_bus_temp_c
+    verification: declared
+  - effect_id: radiator_degradation_factor
+    kind: degradation
+    owner: thermal.radiator
+    implementation: source_native
+    evidence_fields:
+    - thermal.radiator.degradation_factor
+    - thermal.radiator.rejected_heat_w
+    verification: declared
+  - effect_id: heating_or_rejection_failure
+    kind: fault
+    owner: thermal
+    implementation: source_native
+    evidence_fields:
+    - thermal.heater.power_w
+    - thermal.radiator.rejected_heat_w
+    - label.fault_active
+    verification: declared
+  observability:
+    qoi:
+    - qoi.thermal.final_bus_temp_c
+    trace:
+    - time_s
+    - thermal.*
+    - label.*
+parameters:
+  initial_bus_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 20.0
+  initial_battery_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 18.0
+  bus_thermal_capacity_j_k:
+    type: number
+    unit: J/K
+    required: false
+    min: 1.0e-06
+    default: 18000.0
+  battery_thermal_capacity_j_k:
+    type: number
+    unit: J/K
+    required: false
+    min: 1.0e-06
+    default: 9000.0
+  internal_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 28.0
+  internal_power_profile_w:
+    type: array[number]
+    unit: W
+    required: false
+  battery_internal_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 3.0
+  solar_heat_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 45.0
+  shadow_factor:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  shadow_profile:
+    type: array[number]
+    unit: ratio
+    required: false
+  eclipse_period_s:
+    type: number
+    unit: s
+    required: false
+    min: 1.0
+    default: 5400.0
+  eclipse_duration_s:
+    type: number
+    unit: s
+    required: false
+    min: 0.0
+    default: 0.0
+  eclipse_start_s:
+    type: number
+    unit: s
+    required: false
+    default: 0.0
+  sink_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: -35.0
+  radiator_area_m2:
+    type: number
+    unit: m^2
+    required: false
+    min: 1.0e-06
+    default: 0.35
+  radiator_emissivity:
+    type: number
+    unit: ratio
+    required: false
+    min: 1.0e-06
+    max: 1.0
+    default: 0.82
+  radiator_degradation_factor:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  thermal_conductance_bus_battery_w_k:
+    type: number
+    unit: W/K
+    required: false
+    min: 1.0e-06
+    default: 0.45
+  heater_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 20.0
+  heater_setpoint_c:
+    type: number
+    unit: degC
+    required: false
+    default: 5.0
+  heater_deadband_c:
+    type: number
+    unit: degC
+    required: false
+    min: 0.0
+    default: 2.0
+  bus_min_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: -10.0
+  bus_max_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 45.0
+  battery_min_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 0.0
+  battery_max_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 40.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.internal_power_w
+  unit: W
+- name: parameters.solar_heat_w
+  unit: W
+- name: parameters.shadow_factor
+  unit: ratio
+- name: parameters.radiator_area_m2
+  unit: m^2
+- name: parameters.heater_setpoint_c
+  unit: degC
+produces:
+- name: thermal.node.*
+- name: thermal.heat.*
+- name: thermal.heater.power_w
+- name: thermal.radiator.*
+- name: environment.shadow_factor
+- name: environment.eclipse_flag
+- name: label.thermal_state
+- name: label.thermal_hot_flag
+- name: label.thermal_cold_flag
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: thermal.node.bus_temp_c
+    unit: degC
+    dtype: number
+    description: 热控节点平台母线温度。运行器实际输出字段；技术字段为 thermal.node.bus_temp_c，单位 degC。
+  - name: thermal.node.battery_temp_c
+    unit: degC
+    dtype: number
+    description: 热控节点电池温度。运行器实际输出字段；技术字段为 thermal.node.battery_temp_c，单位 degC。
+  - name: thermal.heat.internal_power_w
+    unit: W
+    dtype: number
+    description: 热控热量内部功率功率。运行器实际输出字段；技术字段为 thermal.heat.internal_power_w，单位 W。
+  - name: thermal.heat.battery_internal_power_w
+    unit: W
+    dtype: number
+    description: 热控热量电池内部功率功率。运行器实际输出字段；技术字段为 thermal.heat.battery_internal_power_w，单位 W。
+  - name: thermal.heat.solar_input_w
+    unit: W
+    dtype: number
+    description: 热控热量太阳阵列功率。运行器实际输出字段；技术字段为 thermal.heat.solar_input_w，单位 W。
+  - name: thermal.heater.power_w
+    unit: W
+    dtype: number
+    description: 热控加热器功率功率。运行器实际输出字段；技术字段为 thermal.heater.power_w，单位 W。
+  - name: thermal.radiator.heat_reject_w
+    unit: W
+    dtype: number
+    description: 热控散热器热量散热功率。运行器实际输出字段；技术字段为 thermal.radiator.heat_reject_w，单位 W。
+  - name: thermal.radiator.area_m2
+    unit: m^2
+    dtype: number
+    description: 热控散热器面积面积。运行器实际输出字段；技术字段为 thermal.radiator.area_m2，单位 m^2。
+  - name: thermal.radiator.degradation_factor
+    unit: ratio
+    dtype: number
+    description: 热控散热器退化系数。运行器实际输出字段；技术字段为 thermal.radiator.degradation_factor，单位 ratio。
+  - name: thermal.coupling.bus_battery_heat_w
+    unit: W
+    dtype: number
+    description: 热控耦合平台母线电池热量功率。运行器实际输出字段；技术字段为 thermal.coupling.bus_battery_heat_w，单位 W。
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+    description: 环境阴影系数。运行器实际输出字段；技术字段为 environment.shadow_factor，单位 ratio。
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: bool
+    description: 环境食标志。运行器实际输出字段；技术字段为 environment.eclipse_flag，单位 bool。
+  - name: label.thermal_hot_flag
+    unit: bool
+    dtype: bool
+    description: 状态标签热控高温标志。运行器实际输出字段；技术字段为 label.thermal_hot_flag，单位 bool。
+  - name: label.thermal_cold_flag
+    unit: bool
+    dtype: bool
+    description: 状态标签热控低温标志。运行器实际输出字段；技术字段为 label.thermal_cold_flag，单位 bool。
+  summary:
+  - name: qoi.thermal.final_bus_temp_c
+    unit: degC
+  - name: qoi.thermal.max_bus_temp_c
+    unit: degC
+  - name: qoi.thermal.min_bus_temp_c
+    unit: degC
+  - name: qoi.thermal.final_battery_temp_c
+    unit: degC
+  - name: qoi.thermal.heater_energy_wh
+    unit: Wh
+  - name: qoi.thermal.max_radiator_heat_reject_w
+    unit: W
+  - name: qoi.thermal.hot_count
+    unit: count
+  - name: qoi.thermal.cold_count
+    unit: count
+validation:
+  conformance_tests:
+  - test_p9a_capability_contract_and_adapter_are_registered
+  - test_p9a_validate_compile_run_outputs_standard_dataset
+  - test_p9a_duration_and_sample_control_trace
+  - test_p9a_shadow_factor_affects_solar_heat_and_temperature
+  - test_p9a_internal_power_changes_temperature
+  - test_p9a_radiator_area_changes_temperature
+  - test_p9a_heater_setpoint_affects_heater_energy
+  - test_p9a_capability_python_script_export_runs
+  - test_p9a_agent_routes_thermal_request
+source_binding:
+  mode: synthetic
+  status: deterministic_agent_boundary
+  primary_module: sat_sim.adapters.subsystem_thermal_basic_lumped
+  source_modules:
+  - sat_sim.adapters.subsystem_thermal_basic_lumped
+  public_api:
+  - ThermalBasicLumpedAdapter.run
+  legacy_demo_runner: subsystems.thermal.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Two-node lumped Agent-facing model; original src has thermal network modules that require separate source-native
+    migration.
+fidelity_level: synthetic
+known_physics_limits:
+- agent-facing deterministic composition, not high-fidelity full-satellite validation
+- does not implement finite-element or high-fidelity thermal network validation
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- conformance_tests
+- planned_public_reference
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: false
+  basilisk_candidate_files: []
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Current thermal capability is source/local reduced lumping or component wrapper; general high-fidelity thermal
+    network is outside current claim and planned under THERM.
+  planned_upgrade_path:
+  - THERM-1
+  - THERM-0
+  - SAT-REF-1
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - agent-facing deterministic composition, not high-fidelity full-satellite validation
+  - does not implement finite-element or high-fidelity thermal network validation

@@ -1,0 +1,81 @@
+schema_version: sat-sim.diagnostic-pipeline.v1
+pipeline_id: adcs.rw_friction_increase.pipeline.v1
+fault_id: ADCS_RW_FRICTION_INCREASE
+mechanism_id: adcs.rw_friction_increase.mechanism.v1
+feature_contract_id: adcs.rw_friction_increase.features.v1
+diagnostic_signature_id: adcs.rw_friction_increase.diagnostic.v1
+status: active_provisional
+stages:
+- stage_id: quality_gate
+  kind: data_quality_gate
+  implementation_ref: sat_sim.dataset_qualification
+  required: true
+  input_refs:
+  - experiment_record
+  - dataset_contract
+  output_ref: qualified_pair
+- stage_id: signature_detector
+  kind: signature_detector
+  implementation_ref: adcs.rw_friction_increase.diagnostic.v1
+  required: true
+  input_refs:
+  - qualified_pair
+  output_ref: signature_evidence
+- stage_id: feature_extractor
+  kind: feature_extractor
+  implementation_ref: adcs.rw_friction_increase.features.v1
+  required: true
+  input_refs:
+  - qualified_pair
+  output_ref: feature_vector
+- stage_id: ml_model
+  kind: ml_model
+  implementation_ref: astrograph.model_registry:selected_after_benchmark
+  required: false
+  input_refs:
+  - feature_vector
+  output_ref: data_driven_prediction
+- stage_id: kg_reasoner
+  kind: kg_reasoner
+  implementation_ref: astrograph.neo4j:causal_reasoner
+  required: true
+  input_refs:
+  - signature_evidence
+  - data_driven_prediction
+  output_ref: kg_diagnosis
+- stage_id: simulation_evidence
+  kind: simulation_evidence
+  implementation_ref: adcs.rw_friction_increase.mechanism.v1
+  required: true
+  input_refs:
+  - qualified_pair
+  output_ref: simulation_evidence
+- stage_id: fusion
+  kind: fusion
+  implementation_ref: astrograph.fusion:birrf
+  required: true
+  input_refs:
+  - data_driven_prediction
+  - kg_diagnosis
+  - simulation_evidence
+  output_ref: fused_diagnosis
+- stage_id: expert_gate
+  kind: expert_review_gate
+  implementation_ref: astrograph.governance:named_expert
+  required: true
+  input_refs:
+  - fused_diagnosis
+  output_ref: publishable_diagnosis
+model_policy:
+  candidate_model_families:
+  - random_forest
+  - hist_gradient_boosting
+  - tcn
+  - lstm_autoencoder
+  binding_status: disabled_pending_benchmark
+  selection_gate: minimum 3 independent A-level test runs per fault plus release gate
+    and named expert approval
+expert_review_required: true
+claim_boundary:
+  pipeline_is_contract_not_accuracy_claim: true
+  formal_model_binding_enabled: false

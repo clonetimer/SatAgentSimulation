@@ -1,0 +1,354 @@
+{
+  "$defs": {
+    "CheckStatus": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "SKIP"
+      ],
+      "title": "CheckStatus",
+      "type": "string"
+    },
+    "EnvironmentDoctorReport": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "v34.environment-doctor.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "release_id": {
+          "default": "SAT-SIM-0.5.4.3",
+          "title": "Release Id",
+          "type": "string"
+        },
+        "release_version": {
+          "default": "0.5.4.3",
+          "title": "Release Version",
+          "type": "string"
+        },
+        "generated_at_utc": {
+          "title": "Generated At Utc",
+          "type": "string"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "strict_assets": {
+          "title": "Strict Assets",
+          "type": "boolean"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/ReleaseCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "summary": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Summary",
+          "type": "object"
+        },
+        "environment": {
+          "additionalProperties": true,
+          "title": "Environment",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generated_at_utc",
+        "ok",
+        "strict_assets",
+        "checks",
+        "summary",
+        "environment"
+      ],
+      "title": "EnvironmentDoctorReport",
+      "type": "object"
+    },
+    "ReleaseCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "check_id": {
+          "title": "Check Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/CheckStatus"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "check_id",
+        "title",
+        "status",
+        "summary"
+      ],
+      "title": "ReleaseCheck",
+      "type": "object"
+    },
+    "RepresentativeRunResult": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "capability_id": {
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "expected_validation": {
+          "title": "Expected Validation",
+          "type": "string"
+        },
+        "run_status": {
+          "title": "Run Status",
+          "type": "string"
+        },
+        "validation_result": {
+          "title": "Validation Result",
+          "type": "string"
+        },
+        "bundle_root": {
+          "title": "Bundle Root",
+          "type": "string"
+        },
+        "bundle_integrity_ok": {
+          "title": "Bundle Integrity Ok",
+          "type": "boolean"
+        },
+        "task_spec_sha256": {
+          "title": "Task Spec Sha256",
+          "type": "string"
+        },
+        "resolved_spec_sha256": {
+          "title": "Resolved Spec Sha256",
+          "type": "string"
+        },
+        "execution_plan_sha256": {
+          "title": "Execution Plan Sha256",
+          "type": "string"
+        },
+        "injection_delivery_results": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Injection Delivery Results",
+          "type": "array"
+        },
+        "injection_effect_results": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Injection Effect Results",
+          "type": "array"
+        },
+        "allowed_claims": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Claims",
+          "type": "array"
+        },
+        "forbidden_claims": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Claims",
+          "type": "array"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "category",
+        "capability_id",
+        "level",
+        "expected_validation",
+        "run_status",
+        "validation_result",
+        "bundle_root",
+        "bundle_integrity_ok",
+        "task_spec_sha256",
+        "resolved_spec_sha256",
+        "execution_plan_sha256",
+        "passed"
+      ],
+      "title": "RepresentativeRunResult",
+      "type": "object"
+    },
+    "RepresentativeSuiteReport": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "v28.representative-suite.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "generated_at_utc": {
+          "title": "Generated At Utc",
+          "type": "string"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "integer"
+        },
+        "failed": {
+          "title": "Failed",
+          "type": "integer"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/RepresentativeRunResult"
+          },
+          "title": "Cases",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generated_at_utc",
+        "ok",
+        "total",
+        "passed",
+        "failed",
+        "cases"
+      ],
+      "title": "RepresentativeSuiteReport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v34.release-closure-report.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "release_id": {
+      "default": "SAT-SIM-0.5.4.3",
+      "title": "Release Id",
+      "type": "string"
+    },
+    "release_version": {
+      "default": "0.5.4.3",
+      "title": "Release Version",
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "title": "Generated At Utc",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "environment_doctor": {
+      "$ref": "#/$defs/EnvironmentDoctorReport"
+    },
+    "golden_evidence": {
+      "additionalProperties": true,
+      "title": "Golden Evidence",
+      "type": "object"
+    },
+    "representative_suite": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RepresentativeSuiteReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "termination_conditions": {
+      "items": {
+        "$ref": "#/$defs/ReleaseCheck"
+      },
+      "title": "Termination Conditions",
+      "type": "array"
+    },
+    "summary": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Summary",
+      "type": "object"
+    },
+    "known_boundaries": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Boundaries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "generated_at_utc",
+    "ok",
+    "environment_doctor",
+    "golden_evidence",
+    "termination_conditions",
+    "summary",
+    "known_boundaries"
+  ],
+  "title": "Satellite Simulation Agent Release Closure Report",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/release-closure-v34.schema.json"
+}

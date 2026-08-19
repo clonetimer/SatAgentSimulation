@@ -1,0 +1,81 @@
+schema_version: 0.1.0
+task_id: whole_spacecraft_composite_digital_twin_fault
+task_type: whole_spacecraft
+description: V37-B unified Basilisk whole-spacecraft runtime fault example.
+capability_id: whole_spacecraft.composite_digital_twin.v1
+simulation:
+  duration_s: 40.0
+  sample_s: 10.0
+  backend: basilisk
+target:
+  level: whole_spacecraft
+  name: composite_digital_twin
+  mode: fault
+spacecraft:
+  mission:
+    template: whole_spacecraft.composite_digital_twin.v1
+  subsystems:
+    orbit_environment:
+      enabled: true
+    spacecraft_dynamics:
+      enabled: true
+    adcs:
+      enabled: true
+    eps:
+      enabled: true
+    thermal:
+      enabled: true
+    comm_data:
+      enabled: true
+    payload:
+      enabled: true
+    propulsion:
+      enabled: true
+parameters:
+  battery_capacity_wh: 160.0
+  initial_soc: 0.62
+  solar_power_w: 95.0
+  payload_power_w: 38.0
+  bus_power_w: 18.0
+  instrument_baud_bps: 2500000.0
+  storage_capacity_bits: 6000000000.0
+  transmitter_baud_bps: 1500000.0
+  thermal_step_s: 10.0
+  thermal_heat_power_w: 30.0
+  propulsion_enabled: true
+  access_window_s: 20.0
+  access_period_s: 60.0
+  max_pointing_error_deg: 0.25
+  parameter_profile: demo
+  parameter_minimum_confidence: demo
+  strict_parameter_provenance: true
+faults: []
+modifiers:
+  faults:
+  - modifier_id: payload_off_001
+    target: payload.instrument
+    fault_type: instrument_off
+    onset_time_s: 10.0
+    duration_s: -1.0
+    severity: 1.0
+    parameters:
+      scenario: payload_instrument_off
+  degradations: []
+outputs:
+  output_root: runs/whole_spacecraft_composite_digital_twin_fault
+  trace_format: csv
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+  record_fields:
+  - battery_soc
+  - thermal_temp_c
+  - attitude_error_deg
+  - payload_generated_bps
+  - downlink_delivered_bps
+  - data_storage_bits
+  - propellant_remaining_kg
+metadata:
+  template_source: explicit_fault_example
+  claim_guardrail: engineering prototype; runtime fault uses subsystem/component route

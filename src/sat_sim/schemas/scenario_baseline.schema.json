@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.scenario-baseline.v1",
+  "type": "object",
+  "required": ["schema_version", "baseline_id", "status", "approval", "claim_boundary", "basis_catalog", "performance_budget", "objects"],
+  "properties": {
+    "schema_version": {"const": "sat-sim.scenario-baseline.v1"},
+    "baseline_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["candidate", "approved", "revoked"]},
+    "approval": {
+      "type": "object",
+      "required": ["status", "reviewer", "reviewed_at_utc"],
+      "properties": {
+        "status": {"enum": ["PENDING_DOMAIN_REVIEW", "APPROVED", "REJECTED", "REVOKED"]},
+        "reviewer": {"type": ["string", "null"]},
+        "reviewed_at_utc": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "claim_boundary": {"type": "string", "minLength": 1},
+    "basis_catalog": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "performance_budget": {
+      "type": "object",
+      "required": ["pr_representative_max_s", "nightly_full_max_s", "case_timeout_s", "max_parallel_cases"],
+      "properties": {
+        "pr_representative_max_s": {"type": "integer", "minimum": 1},
+        "nightly_full_max_s": {"type": "integer", "minimum": 1},
+        "case_timeout_s": {"type": "integer", "minimum": 1},
+        "max_parallel_cases": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "objects": {
+      "type": "array",
+      "minItems": 31,
+      "maxItems": 31,
+      "items": {
+        "type": "object",
+        "required": ["object_id", "owner", "basis_refs", "scenarios"],
+        "properties": {
+          "object_id": {"type": "string", "minLength": 1},
+          "owner": {"type": "string", "minLength": 1},
+          "basis_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "scenarios": {
+            "type": "object",
+            "required": ["nominal", "fault", "degradation"],
+            "properties": {
+              "nominal": {"$ref": "#/$defs/scenarioList"},
+              "fault": {"$ref": "#/$defs/scenarioList"},
+              "degradation": {"$ref": "#/$defs/scenarioList"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "scenarioList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["scenario_id", "name_zh", "review_status"],
+        "properties": {
+          "scenario_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+          "name_zh": {"type": "string", "minLength": 1},
+          "review_status": {"enum": ["candidate", "approved", "rejected", "revoked"]}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

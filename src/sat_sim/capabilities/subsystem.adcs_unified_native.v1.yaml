@@ -1,0 +1,267 @@
+capability_id: subsystem.adcs_unified_native.v1
+schema_version: 0.1.0
+name: ADCS unified Basilisk runtime
+level: subsystem
+domain: adcs
+target: adcs
+trust_level: engineering_preview
+status: agent_ready_candidate
+summary: Unified ADCS closed loop and runtime fault/degradation chain executed in
+  one Basilisk Process/Task. Official sensors, guidance/control, reaction wheels and
+  spacecraft modules are connected through Basilisk messages; project SysModels perform
+  sensor fusion and pre-dynamics event injection. No external solver or curve-only
+  proxy is used.
+adapter:
+  class_path: sat_sim.adapters.subsystem_adcs_unified_native.AdcsUnifiedNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  native_multi_rate_telemetry: true
+  model_modules:
+  - sat_sim.bsk_engine.unified_native
+  - sat_sim.bsk_engine.project_native_modules
+  uses_legacy_runner: false
+  basilisk_required: true
+  source_boundary: official_basilisk_modules_plus_project_sysmodels_and_runtime_event_injection_in_one_process_task
+  mode: basilisk_unified_native_adcs
+  backend_type: basilisk_native_mixed
+  accepted_task_backends:
+  - basilisk
+  requires_allow_proxy: false
+  modifier_application: native_runtime_only
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - adcs_rw_jamming
+    - adcs_rw_motor_failure
+    - gyro_bias_step
+  degradation:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - gyro_noise_increase
+    - rw_friction_degradation
+    - adcs_rw_torque_authority_loss
+  constraint:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - adcs_reaction_wheel_speed_limit
+parameters:
+  initial_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 8.0
+    min: 0.0
+    max: 60.0
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 35.0
+    min: 0.0
+    max: 180.0
+  orbit_radius_m:
+    type: number
+    unit: m
+    required: false
+    default: 7000000.0
+    min: 6478000.0
+  controller_k:
+    type: number
+    required: false
+    default: 3.5
+    min: 0.0
+  controller_p:
+    type: number
+    required: false
+    default: 30.0
+    min: 0.0
+  rw_max_torque_nm:
+    type: number
+    unit: N*m
+    required: false
+    default: 0.2
+    min: 1.0e-06
+    max: 10.0
+  simulation_seed:
+    type: integer
+    required: false
+    default: 0
+    min: 0
+    description: Deterministic seed used by project-native sensor and event modules.
+  gyro_base_noise_std_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 1.0e-05
+    min: 0.0
+    description: Baseline gyro white-noise standard deviation used before runtime
+      degradations.
+  rw_wheel_inertia_kg_m2:
+    type: number
+    default: 0.015
+    minimum: 1.0e-09
+    description: Reaction-wheel spin-axis inertia used by the diagnostic actuator
+      contract.
+  rw_motor_torque_constant_nm_per_a:
+    type: number
+    default: 0.02
+    minimum: 1.0e-09
+    description: Explicit simulation torque constant Kt used to derive signed motor
+      current I=tau/Kt.
+  rw_motor_current_limit_a:
+    type: number
+    default: 10.0
+    minimum: 1.0e-09
+    description: Signed motor-current saturation magnitude after I=tau/Kt derivation.
+outputs:
+  trace_fields:
+  - time_s
+  - orbit.radius_m
+  - orbit.phase_rad
+  - orbit.eclipse_factor
+  - adcs.pointing_error_deg
+  - adcs.body_rate_rad_s_*
+  - adcs.rw.speed_rad_s_*
+  - adcs.star_tracker.q*
+  - adcs.magnetometer.tesla_*
+  - adcs.sensor.gyro_measured_rad_s_*
+  - adcs.sensor.gyro_bias_rad_s_*
+  - adcs.sensor.gyro_noise_rad_s_*
+  - adcs.sensor.gyro_bias_norm_rad_s
+  - adcs.sensor.gyro_noise_norm_rad_s
+  - adcs.rw.command_torque_nm_*
+  - adcs.control.applied_torque_nm_*
+  - adcs.rw.effective_drag_nms_*
+  - adcs.rw.effective_max_torque_nm_*
+  - adcs.rw.effective_torque_ratio_*
+  - adcs.rw.effective_max_speed_rad_s_*
+  - label.fault_active
+  - label.degradation_active
+  - label.constraint_active
+  - event.active_effects
+  qoi:
+  - runtime_truth_status
+  - official_module_count
+  - project_native_module_count
+  - external_or_proxy_module_count
+  - adcs_closed_loop_improved
+  - runtime_event_count
+  - fault_environment_episode_count
+  - physical_effect_verified_count
+operator:
+  owner: unified_native_adcs
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: unified_native_adcs
+    implementation: basilisk_native
+    evidence_fields:
+    - runtime_truth_status
+    - adcs.pointing_error_deg
+    - adcs.rw.speed_rad_s_0
+    verification: candidate
+  - effect_id: adcs_rw_jamming
+    kind: fault
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_torque_ratio_0
+    - adcs.control.applied_torque_nm_0
+    - adcs.rw.speed_rad_s_0
+    verification: declared
+  - effect_id: adcs_rw_motor_failure
+    kind: fault
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_torque_ratio_0
+    - adcs.rw.effective_max_torque_nm_0
+    - adcs.control.applied_torque_nm_0
+    verification: declared
+  - effect_id: gyro_bias_step
+    kind: fault
+    owner: project_imu_fault_injector
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.sensor.gyro_bias_norm_rad_s
+    - adcs.sensor.gyro_measured_rad_s_x
+    verification: declared
+  - effect_id: gyro_noise_increase
+    kind: degradation
+    owner: project_imu_fault_injector
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.sensor.gyro_noise_norm_rad_s
+    verification: declared
+  - effect_id: rw_friction_degradation
+    kind: degradation
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_drag_nms_0
+    - adcs.rw.speed_rad_s_0
+    verification: declared
+  - effect_id: adcs_rw_torque_authority_loss
+    kind: degradation
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_torque_ratio_0
+    - adcs.rw.effective_max_torque_nm_0
+    - adcs.control.applied_torque_nm_0
+    verification: candidate
+  - effect_id: adcs_reaction_wheel_speed_limit
+    kind: constraint
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_max_speed_rad_s_0
+    - adcs.rw.speed_rad_s_0
+    verification: declared
+  observability:
+    qoi:
+    - runtime_truth_status
+    - official_module_count
+    - project_native_module_count
+    - adcs_closed_loop_improved
+    trace:
+    - time_s
+    - orbit.*
+    - adcs.*
+    - label.*
+    - event.*
+  limitations:
+  - Project sensor fusion remains deterministic and is not yet flight-correlated.
+  - Wheel jamming is represented by a scheduled braking/locking torque in the command
+    path; bearing structural dynamics are not modelled.
+lifecycle:
+  status: active
+  product_tier: recommended
+  recommended: true
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: 'Recommended ADCS path: official Basilisk modules and project SysModels
+    share one Process/Task, message graph and recorder chain.'
+experiments:
+  official_monte_carlo:
+    supported: true
+    registry: sat_sim.experiments.native_controller_registry
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: mixed_native_project
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations: []
+telemetry:
+- adcs.rw.motor_current_a_*

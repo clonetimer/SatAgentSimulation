@@ -1,0 +1,64 @@
+schema_version: sat-sim.fault-mechanism.v1
+mechanism_id: adcs.rw_friction_increase.mechanism.v1
+fault_id: ADCS_RW_FRICTION_INCREASE
+subsystem: ADCS
+component: reaction_wheel
+status: active_provisional
+diagnostic_signature_id: adcs.rw_friction_increase.diagnostic.v1
+causes:
+- cause_id: bearing_drag_growth
+  kind: degradation
+  description: Bearing or lubrication degradation increases parasitic drag.
+physical_effects:
+- effect_id: friction_torque_increase
+  description: Parasitic wheel friction torque increases.
+  state_variable: rw.friction_torque_nm
+  direction: increasing
+- effect_id: control_margin_consumed
+  description: Available wheel authority is consumed by parasitic torque.
+  state_variable: adcs.control_margin
+  direction: decreasing
+propagation_chain:
+- stage_id: p1
+  from: bearing_drag_growth
+  to: friction_torque_increase
+  relation: causes
+- stage_id: p2
+  from: friction_torque_increase
+  to: control_margin_consumed
+  relation: reduces
+- stage_id: p3
+  from: control_margin_consumed
+  to: wheel_speed_response
+  relation: changes
+observables:
+- channel: estimate.adcs.rw.friction_torque_nm_0
+  evidence_role: simulator_truth
+  expected_relation: increases after onset
+  model_input_eligible: false
+- channel: sensor.adcs.rw.speed_rad_s_0
+  evidence_role: observable_telemetry
+  expected_relation: paired trajectory diverges
+  model_input_eligible: true
+- channel: estimate.adcs.rw.actual_torque_nm_0
+  evidence_role: operational_estimate
+  expected_relation: paired residual may increase
+  model_input_eligible: true
+- channel: estimate.adcs.pointing_error_deg
+  evidence_role: operational_estimate
+  expected_relation: may increase under loaded control
+  model_input_eligible: true
+feature_contract_id: adcs.rw_friction_increase.features.v1
+pipeline_id: adcs.rw_friction_increase.pipeline.v1
+knowledge_graph_projection:
+  fault_node_id: ADCS_RW_FRICTION_INCREASE
+  mechanism_node_id: adcs.rw_friction_increase.mechanism.v1
+  edge_types:
+  - HAS_CAUSE
+  - CAUSES_EFFECT
+  - PROPAGATES_TO
+  - OBSERVED_AS
+  - DIAGNOSED_BY
+claim_boundary:
+  mechanism_status: engineering_hypothesis_pending_basilisk_18_case_and_expert_review
+  flight_validated: false

@@ -1,0 +1,36 @@
+schema_version: sat-sim.fault-experiment-template.v1
+template_id: adcs.rw_torque_authority_loss.basilisk.v1
+fault_id: ADCS_RW_TORQUE_AUTHORITY_LOSS
+subsystem: ADCS
+component: reaction_wheel
+simulation:
+  capability_id: subsystem.adcs_unified_native.v1
+  backend: basilisk
+  telemetry_profile: astrograph-rw-temporal-basilisk-5ch.v1
+fault:
+  event_kind: degradation
+  simulator_effect: adcs_rw_torque_authority_loss
+  target_pattern: adcs.reaction_wheel.{wheel_index}
+  severity_range: [0.35, 1.0]
+expected_response:
+  pre_onset_pair_channels:
+    - sensor.adcs.rw.speed_rad_s_0
+    - estimate.adcs.rw.actual_torque_nm_0
+    - estimate.adcs.pointing_error_deg
+    - estimate.adcs.rw.effective_max_torque_nm_0
+  signatures:
+    - check_id: effective_torque_reduced
+      channel: estimate.adcs.rw.effective_max_torque_nm_0
+      comparison: post_fault_to_nominal_mean_ratio_lt
+      threshold: 0.9
+    - check_id: dynamic_response_present
+      required: false
+      channel: estimate.adcs.rw.actual_torque_nm_0
+      comparison: post_pair_max_abs_delta_gt
+      threshold: 1.0e-8
+qualification:
+  minimum_pre_onset_samples: 2
+  minimum_post_onset_samples: 2
+  pre_onset_absolute_tolerance: 1.0e-8
+  require_all_signatures: true
+  expert_review_required: true

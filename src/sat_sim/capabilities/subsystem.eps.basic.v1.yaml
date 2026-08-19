@@ -1,0 +1,597 @@
+capability_id: subsystem.eps.basic.v1
+schema_version: 0.1.0
+level: subsystem
+target: eps
+domain: eps
+trust_level: conformance_tested
+summary: Deterministic EPS energy-balance capability combining battery storage, solar generation, channel-level PDU/load shedding,
+  eclipse/shadow profiles, faults, and degradations without using demo runner functions.
+adapter:
+  class_path: sat_sim.adapters.subsystem_eps_basic.EpsBasicAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - components.battery.model
+  - components.battery.schemas
+  - components.solar_panel.builder
+  - components.pdu.builder
+  - components.battery.degradation
+  - components.solar_panel.degradation
+  - components.battery.faults
+  - components.solar_panel.faults
+  legacy_demo_runner: subsystems.eps.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types:
+      battery:
+      - open_circuit
+      - sudden_capacity_loss
+      solar_panel:
+      - solar_panel_failure
+      - solar_panel_degradation
+      - deployment_failure
+  degradation:
+    supported: true
+    degradation_types:
+      battery:
+      - capacity_loss_pct
+      - internal_resistance_increase_pct
+      solar_panel:
+      - efficiency_loss_pct
+      - radiation_damage_factor
+      pdu:
+      - pdu_efficiency_loss_pct
+  mixed:
+    supported: true
+operator:
+  owner: eps
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: eps
+    implementation: source_native
+    evidence_fields:
+    - qoi.eps.final_soc
+    verification: declared
+  - effect_id: open_circuit
+    kind: fault
+    owner: eps.battery
+    implementation: source_native
+    evidence_fields:
+    - eps.battery.applied_power_w
+    - label.fault_active
+    verification: declared
+  - effect_id: sudden_capacity_loss
+    kind: fault
+    owner: eps.battery
+    implementation: source_native
+    evidence_fields:
+    - eps.battery.effective_capacity_wh
+    - label.fault_active
+    verification: declared
+  - effect_id: solar_panel_failure
+    kind: fault
+    owner: eps.solar_panel
+    implementation: source_native
+    evidence_fields:
+    - eps.solar.effective_power_ratio
+    - label.fault_active
+    verification: declared
+  - effect_id: solar_panel_degradation
+    kind: fault
+    owner: eps.solar_panel
+    implementation: source_native
+    evidence_fields:
+    - eps.solar.effective_power_ratio
+    - label.fault_active
+    verification: declared
+  - effect_id: deployment_failure
+    kind: fault
+    owner: eps.solar_panel
+    implementation: source_native
+    evidence_fields:
+    - eps.solar.effective_power_ratio
+    - label.fault_active
+    verification: declared
+  - effect_id: capacity_loss_pct
+    kind: degradation
+    owner: eps.battery
+    implementation: source_native
+    evidence_fields:
+    - eps.battery.effective_capacity_wh
+    verification: declared
+  - effect_id: internal_resistance_increase_pct
+    kind: degradation
+    owner: eps.battery
+    implementation: source_native
+    evidence_fields:
+    - eps.battery.effective_discharge_efficiency
+    verification: declared
+  - effect_id: efficiency_loss_pct
+    kind: degradation
+    owner: eps.solar_panel
+    implementation: source_native
+    evidence_fields:
+    - eps.solar.generated_power_w
+    verification: declared
+  - effect_id: radiation_damage_factor
+    kind: degradation
+    owner: eps.solar_panel
+    implementation: source_native
+    evidence_fields:
+    - eps.solar.generated_power_w
+    verification: declared
+  - effect_id: pdu_efficiency_loss_pct
+    kind: degradation
+    owner: eps.pdu
+    implementation: source_native
+    evidence_fields:
+    - eps.pdu.effective_efficiency
+    verification: declared
+  observability:
+    qoi:
+    - qoi.eps.final_soc
+    - qoi.eps.battery.final_soc
+    - qoi.eps.power.min_margin_w
+    - qoi.eps.power.load_shed_fraction
+    - qoi.eps.solar.energy_generated_wh
+    - qoi.eps.loads.energy_served_wh
+    - qoi.eps.loads.energy_unserved_wh
+    - qoi.eps.loads.unserved_fraction
+    trace:
+    - time_s
+    - eps.*
+    - environment.*
+    - label.*
+parameters:
+  battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: true
+    min: 1.0
+    default: 160.0
+  initial_soc:
+    type: number
+    unit: ratio
+    required: true
+    min: 0.0
+    max: 1.0
+    default: 0.7
+  solar_array_max_power_w:
+    type: number
+    unit: W
+    required: true
+    min: 0.0
+    default: 120.0
+  solar_array_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  solar_panel_count:
+    type: integer
+    unit: count
+    required: false
+    min: 1
+    default: 1
+  solar_deployment_fraction:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  solar_incidence_cos:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  sun_vector_b:
+    type: array[number]
+    unit: unit-vector
+    required: false
+  sun_vector_profile_b:
+    type: array[array[number]]
+    unit: unit-vector
+    required: false
+  solar_initial_normal_b:
+    type: array[number]
+    unit: unit-vector
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+  enable_solar_tracking:
+    type: boolean
+    required: false
+    default: false
+  solar_tracking_max_slew_rate_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    min: 0.0
+    default: 0.0
+  shadow_profile:
+    type: array[number]
+    unit: ratio
+    required: false
+  eclipse_period_s:
+    type: number
+    unit: s
+    required: false
+    min: 1.0
+    default: 5400.0
+  eclipse_duration_s:
+    type: number
+    unit: s
+    required: false
+    min: 0.0
+    default: 0.0
+  eclipse_start_s:
+    type: number
+    unit: s
+    required: false
+    default: 0.0
+  bus_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 25.0
+  payload_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 30.0
+  adcs_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 8.0
+  comm_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 6.0
+  heater_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 0.0
+  load_profile_w:
+    type: array[number]
+    unit: W
+    required: false
+    description: Optional per-step total load override. Named channel requests are scaled proportionally for PDU channel reporting.
+  enable_load_shedding:
+    type: boolean
+    required: false
+    default: true
+  pdu_bus_max_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 90.0
+  pdu_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.97
+  shed_order:
+    type: array[string]
+    required: false
+    default:
+    - payload
+    - comm
+    - heater
+    - adcs
+  payload_min_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.15
+  comm_min_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.15
+  heater_min_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.15
+  adcs_min_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.15
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 1.0
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: eps.battery.soc
+    unit: ratio
+    dtype: number
+    description: 能源电池荷电状态。运行器实际输出字段；技术字段为 eps.battery.soc，单位 ratio。
+  - name: eps.battery.storage_wh
+    unit: Wh
+    dtype: number
+    description: 能源电池储能能量。运行器实际输出字段；技术字段为 eps.battery.storage_wh，单位 Wh。
+  - name: eps.battery.capacity_wh
+    unit: Wh
+    dtype: number
+    description: 能源电池容量能量。运行器实际输出字段；技术字段为 eps.battery.capacity_wh，单位 Wh。
+  - name: eps.battery.effective_capacity_wh
+    unit: Wh
+    dtype: number
+    description: 能源电池有效容量能量。运行器实际输出字段；技术字段为 eps.battery.effective_capacity_wh，单位 Wh。
+  - name: eps.battery.net_power_w
+    unit: W
+    dtype: number
+    description: 能源电池功率功率。运行器实际输出字段；技术字段为 eps.battery.net_power_w，单位 W。
+  - name: eps.solar.array_power_w
+    unit: W
+    dtype: number
+    description: 能源太阳阵列阵列功率功率。运行器实际输出字段；技术字段为 eps.solar.array_power_w，单位 W。
+  - name: eps.solar.panel_count
+    unit: count
+    dtype: integer
+    description: 能源太阳阵列帆板数量。运行器实际输出字段；技术字段为 eps.solar.panel_count，单位 count。
+  - name: eps.solar.incidence_cos
+    unit: ratio
+    dtype: number
+    description: 能源太阳阵列入射。运行器实际输出字段；技术字段为 eps.solar.incidence_cos，单位 ratio。
+  - name: eps.solar.shadow_factor
+    unit: ratio
+    dtype: number
+    description: 能源太阳阵列阴影系数。运行器实际输出字段；技术字段为 eps.solar.shadow_factor，单位 ratio。
+  - name: eps.solar.fault_multiplier
+    unit: ratio
+    dtype: number
+    description: 能源太阳阵列故障。运行器实际输出字段；技术字段为 eps.solar.fault_multiplier，单位 ratio。
+  - name: eps.solar.normal_b_x
+    unit: mixed
+    dtype: number
+    description: 能源太阳阵列法向机体系X轴。运行器实际输出字段；技术字段为 eps.solar.normal_b_x。
+  - name: eps.solar.normal_b_y
+    unit: mixed
+    dtype: number
+    description: 能源太阳阵列法向机体系Y轴。运行器实际输出字段；技术字段为 eps.solar.normal_b_y。
+  - name: eps.solar.normal_b_z
+    unit: mixed
+    dtype: number
+    description: 能源太阳阵列法向机体系Z轴。运行器实际输出字段；技术字段为 eps.solar.normal_b_z。
+  - name: eps.loads.requested_power_w
+    unit: W
+    dtype: number
+    description: 能源负载请求功率功率。运行器实际输出字段；技术字段为 eps.loads.requested_power_w，单位 W。
+  - name: eps.loads.served_power_w
+    unit: W
+    dtype: number
+    description: 能源负载已供给功率功率。运行器实际输出字段；技术字段为 eps.loads.served_power_w，单位 W。
+  - name: eps.loads.unserved_power_w
+    unit: W
+    dtype: number
+    description: 能源负载未供给功率功率。运行器实际输出字段；技术字段为 eps.loads.unserved_power_w，单位 W。
+  - name: eps.power.margin_w
+    unit: W
+    dtype: number
+    description: 能源功率裕度功率。运行器实际输出字段；技术字段为 eps.power.margin_w，单位 W。
+  - name: eps.pdu.efficiency
+    unit: ratio
+    dtype: number
+    description: 能源配电单元效率。运行器实际输出字段；技术字段为 eps.pdu.efficiency，单位 ratio。
+  - name: eps.pdu.bus_max_w
+    unit: W
+    dtype: number
+    description: 能源配电单元平台母线最大功率。运行器实际输出字段；技术字段为 eps.pdu.bus_max_w，单位 W。
+  - name: eps.pdu.load_shed_active
+    unit: bool
+    dtype: bool
+    description: 能源配电单元负载卸载激活。运行器实际输出字段；技术字段为 eps.pdu.load_shed_active，单位 bool。
+  - name: eps.pdu.overload_remaining
+    unit: bool
+    dtype: bool
+    description: 能源配电单元剩余。运行器实际输出字段；技术字段为 eps.pdu.overload_remaining，单位 bool。
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+    description: 环境阴影系数。运行器实际输出字段；技术字段为 environment.shadow_factor，单位 ratio。
+  - name: label.fault_active
+    unit: bool
+    dtype: bool
+    description: 状态标签故障激活。运行器实际输出字段；技术字段为 label.fault_active，单位 bool。
+  - name: eps.loads.requested.bus_w
+    unit: W
+    dtype: number
+    description: 能源负载请求平台母线功率。运行器实际输出字段；技术字段为 eps.loads.requested.bus_w，单位 W。
+  - name: eps.loads.served.bus_w
+    unit: W
+    dtype: number
+    description: 能源负载已供给平台母线功率。运行器实际输出字段；技术字段为 eps.loads.served.bus_w，单位 W。
+  - name: eps.loads.requested.payload_w
+    unit: W
+    dtype: number
+    description: 能源负载请求载荷功率。运行器实际输出字段；技术字段为 eps.loads.requested.payload_w，单位 W。
+  - name: eps.loads.served.payload_w
+    unit: W
+    dtype: number
+    description: 能源负载已供给载荷功率。运行器实际输出字段；技术字段为 eps.loads.served.payload_w，单位 W。
+  - name: eps.loads.requested.adcs_w
+    unit: W
+    dtype: number
+    description: 能源负载请求姿态控制功率。运行器实际输出字段；技术字段为 eps.loads.requested.adcs_w，单位 W。
+  - name: eps.loads.served.adcs_w
+    unit: W
+    dtype: number
+    description: 能源负载已供给姿态控制功率。运行器实际输出字段；技术字段为 eps.loads.served.adcs_w，单位 W。
+  - name: eps.loads.requested.comm_w
+    unit: W
+    dtype: number
+    description: 能源负载请求通信功率。运行器实际输出字段；技术字段为 eps.loads.requested.comm_w，单位 W。
+  - name: eps.loads.served.comm_w
+    unit: W
+    dtype: number
+    description: 能源负载已供给通信功率。运行器实际输出字段；技术字段为 eps.loads.served.comm_w，单位 W。
+  - name: eps.loads.requested.heater_w
+    unit: W
+    dtype: number
+    description: 能源负载请求加热器功率。运行器实际输出字段；技术字段为 eps.loads.requested.heater_w，单位 W。
+  - name: eps.loads.served.heater_w
+    unit: W
+    dtype: number
+    description: 能源负载已供给加热器功率。运行器实际输出字段；技术字段为 eps.loads.served.heater_w，单位 W。
+  summary:
+  - name: qoi.eps.battery.final_soc
+    unit: ratio
+  - name: qoi.eps.power.min_margin_w
+    unit: W
+  - name: qoi.eps.power.load_shed_fraction
+    unit: ratio
+  - name: qoi.eps.solar.energy_generated_wh
+    unit: Wh
+  - name: qoi.eps.loads.energy_served_wh
+    unit: Wh
+  - name: qoi.eps.loads.energy_unserved_wh
+    unit: Wh
+  - name: qoi.eps.loads.unserved_fraction
+    unit: ratio
+validation:
+  conformance_tests:
+  - test_eps_duration_and_sample_control_trace
+  - test_eps_initial_soc_controls_first_sample
+  - test_eps_eclipse_profile_reduces_solar_power
+  - test_eps_load_power_controls_soc_drop
+  - test_eps_battery_fault_onset_changes_behavior
+  - test_eps_solar_degradation_reduces_generation
+  - test_eps_load_shedding_controls_served_load
+  - test_eps_solar_panel_count_controls_generation
+  - test_eps_pdu_channel_outputs_are_standardized
+  - test_eps_load_profile_scales_channel_requests
+produces:
+- name: eps.*
+  destination: trace
+- name: label.health_state
+  destination: trace
+- name: summary.qoi.eps.*
+  destination: summary
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: parameters.battery_capacity_wh
+  unit: Wh
+  required: true
+- name: parameters.solar_array_max_power_w
+  unit: W
+  required: true
+- name: parameters.shadow_profile
+  unit: ratio
+  required: false
+time_grid:
+  policy: single_capability_time_grid
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+source_binding:
+  mode: source_native
+  status: s3_verified_component_composition_public_api
+  primary_module: components.battery.model
+  source_modules:
+  - components.battery.model
+  - components.solar_panel.builder
+  - components.pdu.builder
+  - components.battery.degradation
+  - components.solar_panel.degradation
+  public_api:
+  - build_nominal_battery_config
+  - initialize_battery
+  - step_battery
+  - build_nominal_solar_panel_config
+  - SolarPanelState
+  - compute_solar_power
+  - step_solar_tracking
+  - apply_load_shedding
+  legacy_demo_runner: subsystems.eps.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+status: agent_ready_candidate
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/battery/builder.py
+  - src/components/pdu/builder.py
+  - src/components/solar_panel/builder.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

@@ -1,0 +1,192 @@
+capability_id: whole_spacecraft.bsksim_foundation.v1
+schema_version: 0.1.0
+name: Basilisk-native orbit-attitude foundation
+level: whole_spacecraft
+domain: whole_spacecraft
+target: whole_spacecraft
+trust_level: engineering_preview
+status: agent_ready_candidate
+summary: v0.5.4.7 native Basilisk orbit-attitude foundation. It instantiates spacecraft, Earth gravity, reaction wheels, navigation,
+  guidance, tracking error, MRP feedback and wheel-torque allocation, then records native message outputs. The surrounding
+  scenario organization is project-owned BSKSim-style orchestration, not the complete official BSKSim template suite.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_bsksim_foundation.WholeSpacecraftBSKSimFoundationAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.bsk_engine.master
+  - sat_sim.bsk_engine.dynamics
+  - sat_sim.bsk_engine.fsw
+  - sat_sim.bsk_engine.scenario_factory
+  - sat_sim.bsk_engine.event_manager
+  - sat_sim.bsk_engine.recorder_registry
+  uses_legacy_runner: false
+  basilisk_required: true
+  optional_dependency: bsk==2.11.0+satfix1
+  source_boundary: native_basilisk_modules_project_bsksim_style_orchestration
+  mode: basilisk_native_foundation
+  backend_type: basilisk_native
+  accepted_task_backends:
+  - basilisk
+  requires_allow_proxy: false
+  modifier_application: adapter_runtime_or_timeline_marker
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    timed_events_supported: true
+  degradation:
+    supported: true
+    timed_events_supported: true
+  constraint:
+    supported: true
+    timed_events_supported: true
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+    default: 60.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+    default: 1.0
+  solver.step_s:
+    unit: s
+    required: false
+    min: 0.001
+    default: 0.1
+
+parameters:
+  initial_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 5.0
+    description: BSKSim-style foundation scenario 的初始姿态指向误差。
+  orbit_rate_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 0.0011
+    description: 基础轨道相位角推进速率，用于首版基础 trace 验证。
+  orbit_radius_m:
+    type: number
+    unit: m
+    required: false
+    default: 7000000.0
+    min: 6478000.0
+    description: Basilisk原生基础场景的初始轨道半径。
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 5.0
+    min: 0.0
+    max: 180.0
+    description: Basilisk原生基础场景的初始轨道倾角。
+outputs:
+  trace_fields:
+  - time_s
+  - orbit.theta_rad
+  - attitude.pointing_error_deg
+  - fsw.mode
+  - label.fault_active
+  - label.degradation_active
+  - label.constraint_active
+  qoi:
+  - status
+  - basilisk_timeline_executed
+  - process_count
+  - task_count
+  - module_count
+  - connection_count
+events:
+  faults:
+  - id: bsksim_fault_marker
+    label: BSKSim基础故障标记
+    description: 用于验证 EventManager 与 trace 标签链路；不声明具体部件物理失效。
+    parameters: []
+  degradations:
+  - id: bsksim_degradation_marker
+    label: BSKSim基础退化标记
+    description: 用于验证退化事件时间窗与证据链路。
+    parameters: []
+  constraints:
+  - id: bsksim_constraint_marker
+    label: BSKSim基础运行约束标记
+    description: 用于验证运行约束与故障分类分离。
+    parameters: []
+operator:
+  owner: bsksim_foundation
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: bsksim_foundation
+    implementation: basilisk_native
+    evidence_fields:
+    - basilisk_timeline_executed
+    - process_count
+    - task_count
+    verification: declared
+  - effect_id: bsksim_fault_marker
+    kind: fault
+    owner: bsksim_foundation
+    implementation: orchestration
+    evidence_fields:
+    - label.fault_active
+    verification: declared
+  - effect_id: bsksim_degradation_marker
+    kind: degradation
+    owner: bsksim_foundation
+    implementation: orchestration
+    evidence_fields:
+    - label.degradation_active
+    verification: declared
+  - effect_id: bsksim_constraint_marker
+    kind: constraint
+    owner: bsksim_foundation
+    implementation: orchestration
+    evidence_fields:
+    - label.constraint_active
+    verification: declared
+  observability:
+    qoi:
+    - status
+    - basilisk_timeline_executed
+    - process_count
+    - task_count
+    - module_count
+    trace:
+    - time_s
+    - orbit.theta_rad
+    - attitude.pointing_error_deg
+    - fsw.mode
+    - label.*
+  limitations:
+  - Establishes BSKSim-style process/task/scenario foundation only; full native module migration follows in later versions.
+lifecycle:
+  status: active
+  product_tier: explicit
+  recommended: false
+  replacement: null
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Verified official-native foundation and Monte Carlo reference case; explicit engineering/test use only, not the
+    default whole-spacecraft product path.
+experiments:
+  official_monte_carlo:
+    supported: true
+    registry: sat_sim.experiments.native_controller_registry
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: mixed_native_project
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations: []

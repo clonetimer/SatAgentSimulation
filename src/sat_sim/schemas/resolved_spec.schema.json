@@ -1,0 +1,480 @@
+{
+  "$defs": {
+    "CapabilityBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_id": {
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "primary",
+            "dependency"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "owner": {
+          "title": "Owner",
+          "type": "string"
+        },
+        "public_adapter": {
+          "title": "Public Adapter",
+          "type": "string"
+        },
+        "execution_mode": {
+          "enum": [
+            "primary_adapter",
+            "owned_by_primary"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "lifecycle_status": {
+          "default": "unknown",
+          "title": "Lifecycle Status",
+          "type": "string"
+        },
+        "dependency_alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dependency Alias"
+        },
+        "dependency_required": {
+          "default": true,
+          "title": "Dependency Required",
+          "type": "boolean"
+        },
+        "depth": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Depth",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "capability_id",
+        "role",
+        "level",
+        "owner",
+        "public_adapter",
+        "execution_mode"
+      ],
+      "title": "CapabilityBinding",
+      "type": "object"
+    },
+    "DependencyEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "parent_capability_id": {
+          "title": "Parent Capability Id",
+          "type": "string"
+        },
+        "child_capability_id": {
+          "title": "Child Capability Id",
+          "type": "string"
+        },
+        "alias": {
+          "title": "Alias",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "parent_capability_id",
+        "child_capability_id",
+        "alias"
+      ],
+      "title": "DependencyEdge",
+      "type": "object"
+    },
+    "DependencyGraph": {
+      "additionalProperties": false,
+      "properties": {
+        "primary_capability_id": {
+          "title": "Primary Capability Id",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/CapabilityBinding"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/DependencyEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "topological_order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Topological Order",
+          "type": "array"
+        },
+        "execution_owner_capability_id": {
+          "title": "Execution Owner Capability Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "primary_capability_id",
+        "nodes",
+        "topological_order",
+        "execution_owner_capability_id"
+      ],
+      "title": "DependencyGraph",
+      "type": "object"
+    },
+    "EffectBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_kind": {
+          "enum": [
+            "fault",
+            "degradation",
+            "constraint"
+          ],
+          "title": "Event Kind",
+          "type": "string"
+        },
+        "requested_effect": {
+          "title": "Requested Effect",
+          "type": "string"
+        },
+        "requested_target": {
+          "title": "Requested Target",
+          "type": "string"
+        },
+        "owner": {
+          "title": "Owner",
+          "type": "string"
+        },
+        "capability_id": {
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "implementation": {
+          "title": "Implementation",
+          "type": "string"
+        },
+        "adapter": {
+          "title": "Adapter",
+          "type": "string"
+        },
+        "verification": {
+          "enum": [
+            "declared",
+            "candidate",
+            "not_observable"
+          ],
+          "title": "Verification",
+          "type": "string"
+        },
+        "evidence_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Fields",
+          "type": "array"
+        },
+        "binding_status": {
+          "default": "resolved",
+          "enum": [
+            "resolved",
+            "unresolved",
+            "ambiguous"
+          ],
+          "title": "Binding Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_kind",
+        "requested_effect",
+        "requested_target",
+        "owner",
+        "capability_id",
+        "implementation",
+        "adapter",
+        "verification"
+      ],
+      "title": "EffectBinding",
+      "type": "object"
+    },
+    "OutputBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "requested_field": {
+          "title": "Requested Field",
+          "type": "string"
+        },
+        "bound_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bound Field"
+        },
+        "capability_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capability Id"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Owner"
+        },
+        "source_kind": {
+          "default": "unresolved",
+          "enum": [
+            "qoi",
+            "trace",
+            "produces",
+            "unresolved"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "explicitly_requested": {
+          "default": true,
+          "title": "Explicitly Requested",
+          "type": "boolean"
+        },
+        "binding_status": {
+          "default": "resolved",
+          "enum": [
+            "resolved",
+            "unresolved",
+            "ambiguous"
+          ],
+          "title": "Binding Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requested_field"
+      ],
+      "title": "OutputBinding",
+      "type": "object"
+    },
+    "ResolvedAssurance": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter_profile": {
+          "title": "Parameter Profile",
+          "type": "string"
+        },
+        "claim_level": {
+          "title": "Claim Level",
+          "type": "string"
+        },
+        "validation_profile": {
+          "title": "Validation Profile",
+          "type": "string"
+        },
+        "allow_proxy": {
+          "title": "Allow Proxy",
+          "type": "boolean"
+        },
+        "capability_trust_level": {
+          "title": "Capability Trust Level",
+          "type": "string"
+        },
+        "capability_fidelity_level": {
+          "title": "Capability Fidelity Level",
+          "type": "string"
+        },
+        "capability_can_claim_high_fidelity": {
+          "title": "Capability Can Claim High Fidelity",
+          "type": "boolean"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parameter_profile",
+        "claim_level",
+        "validation_profile",
+        "allow_proxy",
+        "capability_trust_level",
+        "capability_fidelity_level",
+        "capability_can_claim_high_fidelity"
+      ],
+      "title": "ResolvedAssurance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "v24.resolved-spec.v1",
+      "default": "v24.resolved-spec.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "canonical_task_spec_sha256": {
+      "title": "Canonical Task Spec Sha256",
+      "type": "string"
+    },
+    "requested_level": {
+      "title": "Requested Level",
+      "type": "string"
+    },
+    "resolved_level": {
+      "title": "Resolved Level",
+      "type": "string"
+    },
+    "primary_capability_id": {
+      "title": "Primary Capability Id",
+      "type": "string"
+    },
+    "primary_owner": {
+      "title": "Primary Owner",
+      "type": "string"
+    },
+    "primary_adapter": {
+      "title": "Primary Adapter",
+      "type": "string"
+    },
+    "required_couplings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Couplings",
+      "type": "array"
+    },
+    "supported_couplings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supported Couplings",
+      "type": "array"
+    },
+    "source_modules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Modules",
+      "type": "array"
+    },
+    "implementation_class": {
+      "default": "unknown",
+      "title": "Implementation Class",
+      "type": "string"
+    },
+    "capability_limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Capability Limitations",
+      "type": "array"
+    },
+    "dependency_graph": {
+      "$ref": "#/$defs/DependencyGraph"
+    },
+    "effect_bindings": {
+      "items": {
+        "$ref": "#/$defs/EffectBinding"
+      },
+      "title": "Effect Bindings",
+      "type": "array"
+    },
+    "output_bindings": {
+      "items": {
+        "$ref": "#/$defs/OutputBinding"
+      },
+      "title": "Output Bindings",
+      "type": "array"
+    },
+    "assurance": {
+      "$ref": "#/$defs/ResolvedAssurance"
+    },
+    "resource_locks": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Resource Locks",
+      "type": "array"
+    },
+    "runtime_timeout_s": {
+      "default": 300.0,
+      "exclusiveMinimum": 0,
+      "title": "Runtime Timeout S",
+      "type": "number"
+    },
+    "resolved_spec_sha256": {
+      "default": "",
+      "title": "Resolved Spec Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "canonical_task_spec_sha256",
+    "requested_level",
+    "resolved_level",
+    "primary_capability_id",
+    "primary_owner",
+    "primary_adapter",
+    "dependency_graph",
+    "assurance"
+  ],
+  "title": "Satellite Simulation ResolvedSpec V24",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/resolved-spec-v24.schema.json"
+}

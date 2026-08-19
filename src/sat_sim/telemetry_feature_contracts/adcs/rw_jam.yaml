@@ -1,0 +1,126 @@
+schema_version: sat-sim.telemetry-feature-contract.v1
+contract_id: adcs.rw_jam.features.v1
+fault_id: ADCS_RW_JAM
+mechanism_id: adcs.rw_jam.mechanism.v1
+status: active_provisional
+telemetry_profile: astrograph-rw-temporal-basilisk-5ch.v2
+raw_features:
+- feature_id: rw_speed
+  channel: sensor.adcs.rw.speed_rad_s_0
+  unit: rad/s
+  dtype: number
+  evidence_role: observable_telemetry
+  model_input_eligible: true
+  rationale: Direct wheel-speed telemetry.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: rw_actual_torque
+  channel: estimate.adcs.rw.actual_torque_nm_0
+  unit: N*m
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: true
+  rationale: Runtime torque estimate.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: rw_command_torque
+  channel: command.adcs.rw.motor_torque_nm_0
+  unit: N*m
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: true
+  rationale: Directly recorded from Basilisk rw_torque.rwMotorTorqueOutMsg on the
+    synchronized telemetry grid.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: pointing_error
+  channel: estimate.adcs.pointing_error_deg
+  unit: deg
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: true
+  rationale: Attitude-control response.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: rw_available_truth
+  channel: status.adcs.rw.available_0
+  unit: bool
+  dtype: number
+  evidence_role: simulator_truth
+  model_input_eligible: false
+  rationale: Injected availability state.
+  availability: available
+  required_for_formal_model_input: false
+- feature_id: max_torque_truth
+  channel: estimate.adcs.rw.effective_max_torque_nm_0
+  unit: N*m
+  dtype: number
+  evidence_role: simulator_truth
+  model_input_eligible: false
+  rationale: Injected authority truth.
+  availability: available
+  required_for_formal_model_input: false
+- feature_id: rw_motor_current
+  channel: sensor.adcs.rw.motor_current_a_0
+  unit: A
+  dtype: number
+  evidence_role: observable_telemetry
+  model_input_eligible: true
+  availability: available
+  required_for_formal_model_input: true
+  rationale: Signed current derived from the native command torque by I=tau/Kt under
+    the explicit actuator contract.
+- feature_id: rw_driver_code
+  channel: status.adcs.rw.driver_code_0
+  unit: code
+  dtype: string
+  evidence_role: operational_estimate
+  model_input_eligible: false
+  availability: missing_from_simulator
+  required_for_formal_model_input: false
+  rationale: Optional AstroGraph supporting channel.
+derived_features:
+- feature_id: rw_speed_decay_rate
+  inputs:
+  - rw_speed
+  transformation: post_fault_linear_slope
+  leakage_safe: true
+  model_input_eligible: true
+  status: provisional
+  unit: rad/s^2
+- feature_id: torque_speed_consistency_residual
+  inputs:
+  - rw_speed
+  - rw_command_torque
+  - rw_actual_torque
+  transformation: paired_dynamic_consistency_residual_with_frozen_actuator_contract
+  leakage_safe: true
+  model_input_eligible: true
+  status: provisional
+  unit: '1'
+label_policy:
+  label_source: experiment_record.ground_truth
+  onset_source: fault_injection.start_s
+  simulator_truth_excluded_from_model_inputs: true
+split_policy:
+  group_key: pair_id
+  independence_keys:
+  - random_seed
+  - initial_state_id
+  - severity_band
+  paired_fault_nominal_must_share_split: true
+missing_data_policy:
+  required_raw_feature_action: reject_case
+  optional_feature_action: mask_and_record
+  imputation_requires_training_only_fit: true
+claim_boundary:
+  thresholds_provisional: true
+  formal_training_requires_a_level_basilisk_and_named_expert_review: true
+  astrograph_interface_ready: true
+  missing_required_model_channels: []
+  actuator_contract_required:
+  - wheel_inertia_kg_m2
+  - motor_torque_constant_nm_per_a
+  - current_limit_a
+  - command_actual_time_alignment
+  - saturation_semantics

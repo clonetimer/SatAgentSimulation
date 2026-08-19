@@ -1,0 +1,34 @@
+schema_version: v34.calibration-dataset.v1
+dataset_id: SOLAR_PANEL_GROUND_TEST_REPLACE_ME
+title: Solar-panel I-V and temperature test dataset
+component: solar_panel
+source_type: ground_test
+source_ref: REPLACE_WITH_TEST_REPORT_OR_LAB_RECORD
+requested_claim_level: ground_calibrated
+status: draft
+files: []
+measurements:
+  - name: irradiance
+    unit: W/m^2
+    role: input
+  - name: voltage
+    unit: V
+    role: measured
+  - name: current
+    unit: A
+    role: measured
+  - name: temperature
+    unit: K
+    role: condition
+sampling: {}
+uncertainty:
+  provided: false
+calibration:
+  target_parameters:
+    - eps.solar.panel_area_m2
+    - whole.solar_power_w
+approval:
+  status: draft
+validity: {}
+limitations:
+  - Template only; no real measurement data is included.

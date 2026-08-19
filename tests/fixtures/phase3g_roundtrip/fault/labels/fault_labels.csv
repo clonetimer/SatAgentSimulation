@@ -1,0 +1,2 @@
+event_id,fault_id,task_id,case_id,target,target_type,event_type,fault_type,degradation_type,onset_time_s,end_time_s,duration_s,magnitude,label
+fault_0,,phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault,case_000,adcs.reaction_wheel.1,,fault,adcs_rw_jamming,,2.167059,,-1.0,,

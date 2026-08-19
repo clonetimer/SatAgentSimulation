@@ -1,0 +1,39 @@
+{
+  "schema_version": "sat-sim.reliability-soak-plan.v1",
+  "benchmark_id": "SAT-SIM-0.6.0.5-R1-DC1",
+  "worker_timeout_s": 1800,
+  "guardrails": {
+    "minimum_success_rate": 1.0,
+    "max_worker_rss_growth_mb": 96.0,
+    "max_fd_growth": 4,
+    "max_thread_growth": 2
+  },
+  "workloads": [
+    {
+      "workload_id": "thermal_long_lived_1000",
+      "description": "1000 real non-Legacy thermal TaskSpec executions in recycled long-lived workers",
+      "template": "examples/subsystem_thermal_source_native_nominal.yaml",
+      "worker_count": 10,
+      "cycles_per_worker": 100,
+      "concurrency": 4,
+      "duration_s": 10.0,
+      "sample_s": 1.0,
+      "resource_sample_interval": 10,
+      "cleanup_interval": 10,
+      "write_dataset": false
+    },
+    {
+      "workload_id": "eps_basilisk_recycled_100",
+      "description": "100 Basilisk EPS executions across periodically recycled workers",
+      "template": "examples/subsystem_eps_unified_native_nominal.yaml",
+      "worker_count": 10,
+      "cycles_per_worker": 10,
+      "concurrency": 2,
+      "duration_s": 10.0,
+      "sample_s": 1.0,
+      "resource_sample_interval": 2,
+      "cleanup_interval": 2,
+      "write_dataset": false
+    }
+  ]
+}

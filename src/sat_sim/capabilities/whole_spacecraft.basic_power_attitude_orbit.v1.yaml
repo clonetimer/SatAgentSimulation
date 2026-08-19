@@ -1,0 +1,306 @@
+capability_id: whole_spacecraft.basic_power_attitude_orbit.v1
+schema_version: 0.1.0
+name: Basic whole-spacecraft power-attitude-orbit simulation
+level: whole_spacecraft
+domain: whole_spacecraft
+target: basic_power_attitude_orbit
+trust_level: conformance_tested
+status: deprecated_compatibility_only
+summary: Minimal whole-spacecraft composition of LEO orbit environment, basic ADCS reaction-wheel pointing, and basic EPS.
+  The first deterministic coupling is ADCS reaction-wheel power demand into the EPS load profile.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_basic_power_attitude_orbit.WholeSpacecraftBasicPowerAttitudeOrbitAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adapters.orbit_environment_leo_simple
+  - sat_sim.adapters.subsystem_adcs_basic_rw_pointing
+  - sat_sim.adapters.subsystem_eps_basic
+  - sat_sim.adapters.whole_spacecraft_basic_power_attitude_orbit
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  mixed:
+    supported: true
+dependencies:
+- capability_id: orbit_environment.leo_simple.v1
+  role: child
+  alias: orbit_environment
+  required: true
+- capability_id: subsystem.adcs.basic_rw_pointing.v1
+  role: child
+  alias: adcs
+  required: true
+- capability_id: subsystem.eps.basic.v1
+  role: child
+  alias: eps
+  required: true
+parameters:
+  battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: false
+    min: 1.0e-06
+    default: 160.0
+  initial_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.62
+  solar_array_max_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 120.0
+  bus_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 20.0
+  payload_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 30.0
+  initial_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    default: 8.0
+  control_kp_nm_per_rad:
+    type: number
+    unit: N*m/rad
+    required: false
+    min: 0.0
+    default: 0.08
+  max_rw_torque_nm:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.0
+    default: 0.03
+  rw_power_per_torque_w:
+    type: number
+    unit: W/(N*m)
+    required: false
+    min: 0.0
+    default: 80.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: orbit_environment.altitude_m
+  unit: m
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.initial_pointing_error_deg
+  unit: deg
+- name: parameters.control_kp_nm_per_rad
+  unit: N*m/rad
+- name: parameters.max_rw_torque_nm
+  unit: N*m
+- name: parameters.rw_power_per_torque_w
+  unit: W/(N*m)
+- name: parameters.battery_capacity_wh
+  unit: Wh
+- name: parameters.initial_soc
+  unit: ratio
+- name: parameters.solar_array_max_power_w
+  unit: W
+- name: parameters.payload_load_power_w
+  unit: W
+produces:
+- name: spacecraft.time_s
+- name: spacecraft.attitude.pointing_error_deg
+- name: spacecraft.power.adcs_rw_power_w
+- name: spacecraft.power.total_requested_power_w
+- name: orbit.*
+- name: environment.shadow_factor
+- name: environment.eclipse_flag
+- name: adcs.*
+- name: eps.*
+- name: label.pointing_state
+- name: label.rw_saturation
+- name: label.health_state
+time_grid:
+  policy: shared_parent_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+  children:
+  - orbit_environment.leo_simple.v1
+  - subsystem.adcs.basic_rw_pointing.v1
+  - subsystem.eps.basic.v1
+composition:
+  chain:
+  - capability_id: whole_spacecraft.basic_power_attitude_orbit.v1
+    role: parent
+  - capability_id: orbit_environment.leo_simple.v1
+    role: child
+    alias: orbit_environment
+  - capability_id: subsystem.adcs.basic_rw_pointing.v1
+    role: child
+    alias: adcs
+  - capability_id: subsystem.eps.basic.v1
+    role: child
+    alias: eps
+  field_mappings:
+  - source: orbit_environment.trace.environment.shadow_factor
+    target: eps.parameters.shadow_profile
+    description: LEO eclipse/shadow scales EPS solar array power.
+  - source: adcs.trace.adcs.power.rw_power_w
+    target: eps.parameters.load_profile_w
+    description: Reaction-wheel power demand is added to the EPS load profile.
+  required_trace_fields:
+  - spacecraft.time_s
+  - orbit.r_bn_n_m_x
+  - environment.shadow_factor
+  - environment.eclipse_flag
+  - adcs.pointing.error_deg
+  - adcs.power.rw_power_w
+  - eps.battery.soc
+  - eps.power.margin_w
+  - eps.pdu.load_shed_active
+  - label.health_state
+outputs:
+  trace:
+  - name: spacecraft.time_s
+    unit: s
+    dtype: number
+  - name: spacecraft.attitude.pointing_error_deg
+    unit: deg
+    dtype: number
+  - name: spacecraft.power.adcs_rw_power_w
+    unit: W
+    dtype: number
+  - name: spacecraft.power.total_requested_power_w
+    unit: W
+    dtype: number
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: bool
+  - name: adcs.pointing.error_deg
+    unit: deg
+    dtype: number
+  - name: adcs.power.rw_power_w
+    unit: W
+    dtype: number
+  - name: adcs.rw.saturation_flag
+    unit: bool
+    dtype: bool
+  - name: eps.battery.soc
+    unit: ratio
+    dtype: number
+  - name: eps.solar.array_power_w
+    unit: W
+    dtype: number
+  - name: eps.loads.requested_power_w
+    unit: W
+    dtype: number
+  - name: eps.power.margin_w
+    unit: W
+    dtype: number
+  - name: eps.pdu.load_shed_active
+    unit: bool
+    dtype: bool
+  - name: label.pointing_state
+    unit: enum
+    dtype: string
+  - name: label.rw_saturation
+    unit: bool
+    dtype: bool
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.spacecraft.power.final_soc
+    unit: ratio
+  - name: qoi.spacecraft.power.min_soc
+    unit: ratio
+  - name: qoi.spacecraft.adcs.final_pointing_error_deg
+    unit: deg
+  - name: qoi.spacecraft.adcs.rw_energy_wh
+    unit: Wh
+  - name: qoi.spacecraft.adcs.saturation_count
+    unit: count
+  - name: qoi.spacecraft.environment.eclipse_fraction
+    unit: ratio
+validation:
+  conformance_tests:
+  - test_p8b_capability_contract_and_adapter_are_registered
+  - test_p8b_validate_compile_run_outputs_standard_dataset
+  - test_p8b_adcs_power_increases_eps_requested_load_and_reduces_soc
+  - test_p8b_pointing_error_parameter_affects_trace
+  - test_p8b_torque_limit_sets_rw_saturation_label
+  - test_p8b_capability_python_script_export_runs
+  - test_p8b_campaign_example_expands_and_runs_eight_cases
+  - test_p8b_agent_routes_power_attitude_orbit_request
+source_binding:
+  mode: synthetic
+  status: deterministic_composition
+  primary_module: sat_sim.adapters.whole_spacecraft_basic_power_attitude_orbit
+  source_modules:
+  - sat_sim.adapters.whole_spacecraft_basic_power_attitude_orbit
+  public_api:
+  - WholeSpacecraftBasicPowerAttitudeOrbitAdapter.run
+  legacy_demo_runner: whole_spacecraft.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Whole-spacecraft composition; ADCS child is synthetic until source-native ADCS migration.
+fidelity_level: synthetic
+known_physics_limits:
+- agent-facing deterministic composition, not high-fidelity full-satellite validation
+lifecycle:
+  status: deprecated
+  replacement: subsystem.adcs_closed_loop.basic.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Superseded for ADCS product routing by Route-B HF-4 closed-loop ADCS model; whole-spacecraft orbit+ADCS coupling
+    is planned for INT-1.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: false
+  basilisk_candidate_files: []
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Current capability is a deterministic source/API wrapper or local model within documented package limits.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - agent-facing deterministic composition, not high-fidelity full-satellite validation

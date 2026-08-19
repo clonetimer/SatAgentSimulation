@@ -1,0 +1,51 @@
+schema_version: v34.calibration-dataset.v1
+dataset_id: RW_GROUND_TEST_REPLACE_ME
+title: Reaction-wheel ground test dataset
+component: reaction_wheel
+source_type: ground_test
+source_ref: REPLACE_WITH_TEST_REPORT_OR_LAB_RECORD
+requested_claim_level: ground_calibrated
+status: draft
+collected_at_utc: null
+files: []
+measurements:
+  - name: wheel_speed
+    unit: rad/s
+    role: measured
+  - name: commanded_torque
+    unit: N*m
+    role: input
+  - name: measured_torque
+    unit: N*m
+    role: measured
+  - name: temperature
+    unit: K
+    role: condition
+sampling:
+  frequency_hz: null
+  sample_count: null
+uncertainty:
+  provided: false
+  method: null
+  confidence_level: null
+  measurement_uncertainty: {}
+calibration:
+  method: null
+  target_parameters:
+    - adcs.rw.u_max_nm
+    - adcs.rw.omega_max_rad_s
+    - adcs.rw.fCoulomb
+    - adcs.rw.cViscous
+  training_fraction: null
+  validation_fraction: null
+  residual_metrics: {}
+  correlation_metrics: {}
+approval:
+  status: draft
+  reviewed_by: null
+  approved_by: null
+  approved_at_utc: null
+validity: {}
+limitations:
+  - Template only; no real measurement data is included.
+notes: Replace all placeholders before validation and registration.

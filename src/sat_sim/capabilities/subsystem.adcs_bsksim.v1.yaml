@@ -1,0 +1,243 @@
+capability_id: subsystem.adcs_bsksim.v1
+schema_version: 0.1.0
+name: ADCS BSKSim-style fidelity bridge
+level: subsystem
+domain: adcs
+target: adcs
+trust_level: engineering_preview
+status: agent_ready_candidate
+summary: v0.5.4.1 staged ADCS migration capability. It exposes ADCS through the project-owned BSKSim-style scenario/dynamics/FSW/event/recorder
+  contract, while preserving the validated ADCS fidelity propagation as the physics bridge. It does not claim full official
+  BSKSim template integration or full native FSW module replacement.
+adapter:
+  class_path: sat_sim.adapters.subsystem_adcs_bsksim.AdcsBSKSimAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.bsk_engine.adcs_scenario
+  - sat_sim.bsk_engine.types
+  - sat_sim.bsk_engine.event_manager
+  - sat_sim.adapters.subsystem_adcs_fidelity
+  - sat_sim.adcs.fidelity
+  uses_legacy_runner: false
+  basilisk_required: false
+  source_boundary: project_bsksim_style_plan_with_adcs_fidelity_bridge
+  backend_type: local_physics_bridge
+  accepted_task_backends:
+  - python
+  requires_allow_proxy: true
+  modifier_application: adapter_runtime
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    timed_events_supported: true
+  degradation:
+    supported: true
+    timed_events_supported: true
+  constraint:
+    supported: true
+    timed_events_supported: true
+parameters:
+  initial_attitude_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 12.0
+    description: 初始姿态指向误差。
+  initial_rate_deg_s:
+    type: vector3_or_number
+    unit: deg/s
+    required: false
+    default:
+    - 0.1
+    - -0.05
+    - 0.02
+    description: 初始机体三轴角速度。
+  target_mode:
+    type: string
+    required: false
+    enum:
+    - inertial
+    - nadir
+    - sun
+    - detumble
+    default: nadir
+    description: BSKSim-style modeRequest 表面，对应 ADCS 目标模式。
+  wheel_configuration:
+    type: string
+    required: false
+    enum:
+    - orthogonal_3
+    - four_skew
+    - pyramid_4
+    default: orthogonal_3
+    description: 反作用轮构型，进入 ADCS BSKSim-style 分配合同。
+  gyro_noise_std_deg_s:
+    type: number
+    unit: deg/s
+    required: false
+    default: 0.001
+    description: 陀螺测量噪声标准差。
+  star_tracker_noise_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.002
+    description: 星敏感器姿态测量噪声。
+  environment_torques:
+    type: object
+    required: false
+    widget: environment_torque_editor
+    description: 环境扰动力矩结构化配置，沿用 ADCS fidelity 能力的环境力矩编辑器。
+outputs:
+  trace_fields:
+  - time_s
+  - adcs.attitude.pointing_error_deg
+  - adcs.rw.speed_rad_s_*
+  - adcs.control.applied_torque_nm_*
+  - adcs.sensor.gyro_measured_rad_s_*
+  - adcs.event.active_effects
+  - bsk.engine
+  - bsk.mode_request
+  qoi:
+  - status
+  - qoi.adcs.final_pointing_error_deg
+  - qoi.adcs.max_pointing_error_deg
+  - bsk_process_count
+  - bsk_module_count
+  - migration_stage
+events:
+  faults:
+  - id: adcs_rw_jamming
+    label: ADCS反作用轮卡滞
+    description: 在指定时间窗内锁止目标反作用轮；二值故障，不使用通用幅值。
+    parameters:
+    - id: wheel_index
+      label: 目标轮号
+      type: integer
+      default: 0
+      minimum: 0
+  - id: adcs_rw_motor_failure
+    label: ADCS反作用轮电机失效
+    description: 在指定时间窗内清零目标轮电机可用力矩；二值故障。
+    parameters:
+    - id: wheel_index
+      label: 目标轮号
+      type: integer
+      default: 0
+      minimum: 0
+  - id: adcs_gyro_bias_step
+    label: ADCS陀螺偏置突变
+    description: 向陀螺测量叠加偏置增量。
+    parameters:
+    - id: bias_deg_s
+      label: 偏置增量
+      type: vector3_or_number
+      unit: deg/s
+      default:
+      - 0.1
+      - 0.0
+      - 0.0
+  degradations:
+  - id: adcs_gyro_noise_increase
+    label: ADCS陀螺噪声增大
+    description: 按倍数提高陀螺噪声标准差。
+    parameters:
+    - id: noise_multiplier
+      label: 噪声放大倍数
+      type: number
+      default: 10.0
+      minimum: 1.0
+  - id: adcs_rw_friction_increase
+    label: ADCS反作用轮摩擦退化
+    description: 对目标轮叠加等效阻力矩。
+    parameters:
+    - id: wheel_index
+      label: 目标轮号
+      type: integer
+      default: 0
+      minimum: 0
+    - id: drag_torque_nm
+      label: 附加等效摩擦力矩
+      type: number
+      unit: N·m
+      default: 0.002
+      minimum: 0.0
+  constraints:
+  - id: adcs_reaction_wheel_speed_limit
+    label: ADCS反作用轮速度限制
+    description: 运行约束，不归类为故障；在指定时间窗降低目标轮有效最高转速。
+    parameters:
+    - id: wheel_index
+      label: 目标轮号
+      type: integer
+      default: 0
+      minimum: 0
+    - id: max_speed_rad_s
+      label: 约束后最高转速
+      type: number
+      unit: rad/s
+      default: 120.0
+      minimum: 0.0
+operator:
+  owner: adcs_bsksim
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: adcs_bsksim
+    implementation: orchestration
+    evidence_fields:
+    - engine
+    - bsk_module_count
+    - qoi.adcs.final_pointing_error_deg
+    verification: declared
+  - effect_id: adcs_rw_jamming
+    kind: fault
+    owner: adcs_bsksim
+    implementation: orchestration
+    evidence_fields:
+    - label.fault_active
+    - adcs.event.active_effects
+    - adcs.rw.effective_max_torque_nm_0
+    verification: declared
+  - effect_id: adcs_reaction_wheel_speed_limit
+    kind: constraint
+    owner: adcs_bsksim
+    implementation: orchestration
+    evidence_fields:
+    - label.constraint_active
+    - adcs.rw.effective_max_speed_rad_s_0
+    verification: declared
+  observability:
+    qoi:
+    - status
+    - qoi.adcs.final_pointing_error_deg
+    - bsk_module_count
+    - migration_stage
+    trace:
+    - time_s
+    - adcs.*
+    - bsk.*
+    - label.*
+  limitations:
+  - 本能力为 ADCS BSKSim-style 迁移桥接版；完整 Basilisk-native FSW 模块替换和官方 BSKSim模板结构对齐仍在后续版本。
+lifecycle:
+  status: deprecated
+  product_tier: compatibility
+  recommended: false
+  replacement: subsystem.adcs_unified_native.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: BSKSim-style bridge is retained for historical reproduction; the unified Basilisk runtime is the recommended path.
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: engineering_proxy
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations: []

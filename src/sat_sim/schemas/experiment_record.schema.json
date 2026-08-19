@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.experiment-record.v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "experiment_id",
+    "generated_at_utc",
+    "lineage",
+    "engine",
+    "execution",
+    "spacecraft_and_environment",
+    "fault_injection",
+    "source_control",
+    "host",
+    "artifacts",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat-sim.experiment-record.v1"
+    },
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "lineage": {
+      "type": "object"
+    },
+    "engine": {
+      "type": "object"
+    },
+    "execution": {
+      "type": "object"
+    },
+    "spacecraft_and_environment": {
+      "type": "object"
+    },
+    "fault_injection": {
+      "type": "object"
+    },
+    "runtime_summary": {
+      "type": "object"
+    },
+    "source_control": {
+      "type": "object"
+    },
+    "host": {
+      "type": "object"
+    },
+    "artifacts": {
+      "type": "object"
+    },
+    "claim_boundary": {
+      "type": "object"
+    },
+    "qualification": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

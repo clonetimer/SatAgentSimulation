@@ -1,0 +1,179 @@
+capability_id: component.thermal_node.v1
+schema_version: 0.1.0
+name: Thermal Node component simulation
+level: component
+domain: thermal
+target: thermal_node
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native thermal node first-order profile capability using components.thermal_node.builder simulate_thermal_power_profile.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.ThermalNodeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - components.thermal_node.builder
+  - components.thermal_node.model
+  legacy_demo_runner: components.thermal_node.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [thermal_runaway, sensor_bias, blocked_heat_path]
+  degradation:
+    supported: true
+    degradation_types: [thermal_resistance_growth, heat_capacity_drift]
+parameters:
+  ambient_k:
+    type: number
+    unit: K
+    required: false
+    default: 300.0
+    min: 0.0
+  tau_s:
+    type: number
+    unit: s
+    required: false
+    default: 10.0
+    min: 0.0
+  heat_gain_k_per_w:
+    type: number
+    unit: K/W
+    required: false
+    default: 1.0
+    min: 0.0
+  initial_temp_k:
+    type: number
+    unit: K
+    required: false
+    default: 300.0
+    min: 0.0
+  power_w:
+    type: number
+    unit: W
+    required: false
+    default: 10.0
+    min: 0.0
+  power_profile_w:
+    type: array[number]
+    unit: W
+    required: false
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.ambient_k
+  unit: K
+- name: parameters.tau_s
+  unit: s
+- name: parameters.heat_gain_k_per_w
+  unit: K/W
+- name: parameters.initial_temp_k
+  unit: K
+- name: parameters.power_w
+  unit: W
+produces:
+- name: thermal.thermal_node.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c2c3_thermal_node_parameter_effect_and_manifest
+  - test_c2c3_thermal_node_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c2c3_new_source_native_adapter
+  primary_module: components.thermal_node.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_thermal_node_config
+  - ThermalNodeState
+  - simulate_thermal_power_profile
+  legacy_demo_runner: components.thermal_node.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing pure-Python component builder/model
+    API.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+- does not implement finite-element or high-fidelity thermal network validation
+operator:
+  owner: thermal_node
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: thermal_node, implementation: source_native, evidence_fields: [thermal.node.temp_k], verification: declared}
+  - {effect_id: thermal_runaway, kind: fault, owner: thermal_node, implementation: source_native, evidence_fields: [thermal.node.power_w, thermal.node.temp_k, label.fault_active], verification: declared}
+  - {effect_id: sensor_bias, kind: fault, owner: thermal_node, implementation: source_native, evidence_fields: [thermal.node.measured_temp_k, label.fault_active], verification: declared}
+  - {effect_id: blocked_heat_path, kind: fault, owner: thermal_node, implementation: source_native, evidence_fields: [thermal.node.effective_tau_s, label.fault_active], verification: declared}
+  - {effect_id: thermal_resistance_growth, kind: degradation, owner: thermal_node, implementation: source_native, evidence_fields: [thermal.node.effective_heat_gain_k_per_w, label.degradation_active], verification: declared}
+  - {effect_id: heat_capacity_drift, kind: degradation, owner: thermal_node, implementation: source_native, evidence_fields: [thermal.node.effective_tau_s, label.degradation_active], verification: declared}
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/thermal_node/basilisk_scheduled.py
+  - src/components/thermal_node/builder.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Current thermal capability is source/local reduced lumping or component wrapper; general high-fidelity thermal
+    network is outside current claim and planned under THERM.
+  planned_upgrade_path:
+  - THERM-1 component-node baseline
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added
+  - does not implement finite-element or high-fidelity thermal network validation

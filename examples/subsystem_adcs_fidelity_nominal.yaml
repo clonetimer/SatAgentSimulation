@@ -1,0 +1,48 @@
+schema_version: 0.1.0
+task_id: subsystem_adcs_fidelity_nominal
+task_type: subsystem
+description: Registry-synthesized template for subsystem.adcs_fidelity.v1
+capability_id: subsystem.adcs_fidelity.v1
+simulation:
+  duration_s: 300.0
+  sample_s: 10.0
+  backend: selective_unified_basilisk_assembly
+target:
+  level: subsystem
+  name: adcs
+  mode: nominal
+parameters:
+  initial_attitude_error_deg: 12.0
+  initial_rate_deg_s:
+  - 0.1
+  - -0.05
+  - 0.02
+  target_mode: nadir
+  gyro_bias_deg_s:
+  - 0.005
+  - -0.002
+  - 0.001
+  gyro_noise_std_deg_s: 0.001
+  star_tracker_noise_deg: 0.002
+  sun_sensor_noise_deg: 0.2
+  wheel_allocation: three_axis_plus_null_space_proxy
+faults: []
+modifiers:
+  faults: []
+  degradations: []
+outputs:
+  output_root: runs
+  trace_format: csv
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+  record_fields:
+  - adcs.environment.*
+  - adcs.sensor.*
+  - adcs.rw.momentum_*
+  - adcs.pointing.error_deg
+metadata:
+  template_source: capability_registry_synthesized
+  template_file_requested: subsystem_adcs_fidelity_nominal.yaml
+  reason_code: TEMPLATE_SYNTHESIZED

@@ -1,0 +1,441 @@
+capability_id: whole_spacecraft.power_thermal_orbit_coupled.v1
+schema_version: 0.1.0
+name: Route-B power/thermal/orbit coupled spacecraft model
+level: whole_spacecraft
+domain: whole_spacecraft
+target: power_thermal_orbit_coupled
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: HF-5 medium-fidelity Route-B coupled model using HF-3 orbit shadow geometry to drive EPS solar generation, lumped
+  thermal heat input, heater feedback into EPS load, and battery-temperature derating. It is not a high-fidelity EPS or thermal
+  validation model.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_power_thermal_orbit_coupled.PowerThermalOrbitCoupledAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.coupled.power_thermal_orbit
+  - sat_sim.orbit.medium
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  mixed:
+    supported: true
+  degradation:
+    supported: true
+scope_exclusions:
+- finite_element_thermal
+- high_fidelity_battery_electrochemistry
+- pdu_switching_transients
+- full_spacecraft_thermal_network
+- high_fidelity_orbit_force_model
+dependencies:
+- capability_id: orbit_environment.medium_fidelity.v1
+  role: child
+  alias: orbit_environment
+  required: true
+parameters:
+  battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: false
+    min: 1.0e-06
+    default: 180.0
+  initial_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.72
+  solar_array_max_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 150.0
+  bus_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 24.0
+  payload_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 32.0
+  adcs_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 8.0
+  comm_load_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 6.0
+  heater_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 22.0
+  heater_setpoint_c:
+    type: number
+    unit: degC
+    required: false
+    default: 4.0
+  radiator_area_m2:
+    type: number
+    unit: m^2
+    required: false
+    min: 1.0e-06
+    default: 0.35
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: orbit_environment.*
+  unit: mixed
+- name: parameters.battery_capacity_wh
+  unit: Wh
+- name: parameters.initial_soc
+  unit: ratio
+- name: parameters.solar_array_max_power_w
+  unit: W
+- name: parameters.heater_power_w
+  unit: W
+produces:
+- name: orbit.*
+- name: environment.shadow_factor
+- name: eps.battery.soc
+- name: eps.solar.array_power_w
+- name: thermal.node.bus_temp_c
+- name: thermal.heater.power_w
+- name: coupled.energy.*
+time_grid:
+  policy: shared_hf1_time_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+composition:
+  chain:
+  - capability_id: whole_spacecraft.power_thermal_orbit_coupled.v1
+    role: parent
+  - capability_id: orbit_environment.medium_fidelity.v1
+    role: child
+    alias: orbit_environment
+  field_mappings:
+  - source: orbit_environment.trace.environment.shadow_factor
+    target: eps.solar.array_power_w
+    description: Shadow reduces solar generation.
+  - source: orbit_environment.trace.environment.shadow_factor
+    target: thermal.heat.solar_input_w
+    description: Shadow reduces solar thermal input.
+  - source: eps.loads.requested_power_w
+    target: thermal.heat.internal_power_w
+    description: Electrical loads become heat.
+  - source: thermal.heater.power_w
+    target: eps.loads.requested.heater_w
+    description: Heater power is fed back into EPS load.
+  - source: thermal.node.battery_temp_c
+    target: eps.battery.effective_capacity_wh
+    description: Battery temperature derates effective capacity.
+  required_trace_fields:
+  - spacecraft.time_s
+  - environment.shadow_factor
+  - eps.battery.soc
+  - eps.solar.array_power_w
+  - thermal.node.bus_temp_c
+  - thermal.heater.power_w
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+    description: 仿真时间轴。
+  - name: spacecraft.time_s
+    unit: s
+    dtype: number
+    description: 航天器时间时间。运行器实际输出字段；技术字段为 spacecraft.time_s，单位 s。
+  - name: orbit.r_bn_n_m_x
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离X轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_x。
+  - name: orbit.r_bn_n_m_y
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离Y轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_y。
+  - name: orbit.r_bn_n_m_z
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离Z轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_z。
+  - name: orbit.v_bn_n_m_s_x
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间X轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_x。
+  - name: orbit.v_bn_n_m_s_y
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间Y轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_y。
+  - name: orbit.v_bn_n_m_s_z
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间Z轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_z。
+  - name: orbit.radius_m
+    unit: m
+    dtype: number
+    description: 轨道轨道半径距离。运行器实际输出字段；技术字段为 orbit.radius_m，单位 m。
+  - name: orbit.altitude_m
+    unit: m
+    dtype: number
+    description: 轨道高度距离。运行器实际输出字段；技术字段为 orbit.altitude_m，单位 m。
+  - name: environment.sun_vector_n_x
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系X轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_x。
+  - name: environment.sun_vector_n_y
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系Y轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_y。
+  - name: environment.sun_vector_n_z
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系Z轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_z。
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+    description: 环境阴影系数。运行器实际输出字段；技术字段为 environment.shadow_factor，单位 ratio。
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: number
+    description: 环境食标志。运行器实际输出字段；技术字段为 environment.eclipse_flag，单位 bool。
+  - name: environment.umbra_flag
+    unit: bool
+    dtype: number
+    description: 环境本影标志。运行器实际输出字段；技术字段为 environment.umbra_flag，单位 bool。
+  - name: environment.penumbra_flag
+    unit: bool
+    dtype: number
+    description: 环境半影标志。运行器实际输出字段；技术字段为 environment.penumbra_flag，单位 bool。
+  - name: eps.solar.array_power_w
+    unit: W
+    dtype: number
+    description: 能源太阳阵列阵列功率功率。运行器实际输出字段；技术字段为 eps.solar.array_power_w，单位 W。
+  - name: eps.loads.requested.bus_w
+    unit: W
+    dtype: number
+    description: 能源负载请求平台母线功率。运行器实际输出字段；技术字段为 eps.loads.requested.bus_w，单位 W。
+  - name: eps.loads.requested.payload_w
+    unit: W
+    dtype: number
+    description: 能源负载请求载荷功率。运行器实际输出字段；技术字段为 eps.loads.requested.payload_w，单位 W。
+  - name: eps.loads.requested.adcs_w
+    unit: W
+    dtype: number
+    description: 能源负载请求姿态控制功率。运行器实际输出字段；技术字段为 eps.loads.requested.adcs_w，单位 W。
+  - name: eps.loads.requested.comm_w
+    unit: W
+    dtype: number
+    description: 能源负载请求通信功率。运行器实际输出字段；技术字段为 eps.loads.requested.comm_w，单位 W。
+  - name: eps.loads.requested.heater_w
+    unit: W
+    dtype: number
+    description: 能源负载请求加热器功率。运行器实际输出字段；技术字段为 eps.loads.requested.heater_w，单位 W。
+  - name: eps.loads.requested_power_w
+    unit: W
+    dtype: number
+    description: 能源负载请求功率功率。运行器实际输出字段；技术字段为 eps.loads.requested_power_w，单位 W。
+  - name: eps.battery.storage_wh
+    unit: Wh
+    dtype: number
+    description: 能源电池储能能量。运行器实际输出字段；技术字段为 eps.battery.storage_wh，单位 Wh。
+  - name: eps.battery.capacity_wh
+    unit: Wh
+    dtype: number
+    description: 能源电池容量能量。运行器实际输出字段；技术字段为 eps.battery.capacity_wh，单位 Wh。
+  - name: eps.battery.effective_capacity_wh
+    unit: Wh
+    dtype: number
+    description: 能源电池有效容量能量。运行器实际输出字段；技术字段为 eps.battery.effective_capacity_wh，单位 Wh。
+  - name: eps.battery.soc
+    unit: ratio
+    dtype: number
+    description: 能源电池荷电状态。运行器实际输出字段；技术字段为 eps.battery.soc，单位 ratio。
+  - name: eps.battery.net_power_w
+    unit: W
+    dtype: number
+    description: 能源电池功率功率。运行器实际输出字段；技术字段为 eps.battery.net_power_w，单位 W。
+  - name: eps.power.margin_w
+    unit: W
+    dtype: number
+    description: 能源功率裕度功率。运行器实际输出字段；技术字段为 eps.power.margin_w，单位 W。
+  - name: eps.derating.payload_fraction
+    unit: ratio
+    dtype: number
+    description: 能源载荷比例。运行器实际输出字段；技术字段为 eps.derating.payload_fraction，单位 ratio。
+  - name: thermal.node.bus_temp_c
+    unit: degC
+    dtype: number
+    description: 热控节点平台母线温度。运行器实际输出字段；技术字段为 thermal.node.bus_temp_c，单位 degC。
+  - name: thermal.node.battery_temp_c
+    unit: degC
+    dtype: number
+    description: 热控节点电池温度。运行器实际输出字段；技术字段为 thermal.node.battery_temp_c，单位 degC。
+  - name: thermal.heat.internal_power_w
+    unit: W
+    dtype: number
+    description: 热控热量内部功率功率。运行器实际输出字段；技术字段为 thermal.heat.internal_power_w，单位 W。
+  - name: thermal.heat.solar_input_w
+    unit: W
+    dtype: number
+    description: 热控热量太阳阵列功率。运行器实际输出字段；技术字段为 thermal.heat.solar_input_w，单位 W。
+  - name: thermal.heater.power_w
+    unit: W
+    dtype: number
+    description: 热控加热器功率功率。运行器实际输出字段；技术字段为 thermal.heater.power_w，单位 W。
+  - name: thermal.radiator.heat_reject_w
+    unit: W
+    dtype: number
+    description: 热控散热器热量散热功率。运行器实际输出字段；技术字段为 thermal.radiator.heat_reject_w，单位 W。
+  - name: thermal.coupling.bus_battery_heat_w
+    unit: W
+    dtype: number
+    description: 热控耦合平台母线电池热量功率。运行器实际输出字段；技术字段为 thermal.coupling.bus_battery_heat_w，单位 W。
+  - name: coupled.energy.solar_to_eps_w
+    unit: W
+    dtype: number
+    description: 能量太阳阵列能源功率。运行器实际输出字段；技术字段为 coupled.energy.solar_to_eps_w，单位 W。
+  - name: coupled.energy.eps_to_thermal_heat_w
+    unit: W
+    dtype: number
+    description: 能量能源热控热量功率。运行器实际输出字段；技术字段为 coupled.energy.eps_to_thermal_heat_w，单位 W。
+  - name: coupled.energy.heater_feedback_w
+    unit: W
+    dtype: number
+    description: 能量加热器功率。运行器实际输出字段；技术字段为 coupled.energy.heater_feedback_w，单位 W。
+  - name: coupled.derating.battery_capacity_ratio
+    unit: ratio
+    dtype: number
+    description: 电池容量。运行器实际输出字段；技术字段为 coupled.derating.battery_capacity_ratio，单位 ratio。
+  - name: label.eclipse_active
+    unit: bool
+    dtype: number
+    description: 状态标签食激活。运行器实际输出字段；技术字段为 label.eclipse_active，单位 bool。
+  - name: label.heater_active
+    unit: bool
+    dtype: number
+    description: 状态标签加热器激活。运行器实际输出字段；技术字段为 label.heater_active，单位 bool。
+  summary:
+  - name: qoi.spacecraft.power.final_soc
+    unit: ratio
+  - name: qoi.spacecraft.thermal.final_bus_temp_c
+    unit: degC
+  - name: qoi.spacecraft.environment.eclipse_fraction
+    unit: ratio
+source_binding:
+  mode: route_b_model_library
+  status: hf5_medium_coupled_model_library
+  primary_module: sat_sim.coupled.power_thermal_orbit
+  source_modules:
+  - sat_sim.coupled.power_thermal_orbit
+  - sat_sim.orbit.medium
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  public_api:
+  - PowerThermalOrbitCoupledAdapter.run
+  - propagate_power_thermal_orbit_coupled
+  - summarize_power_thermal_orbit_coupled
+  - build_hf5_power_thermal_orbit_payload
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Route-B HF-5 model library coupling, not a legacy demo runner.
+fidelity_level: medium
+known_physics_limits:
+- thermal model is two lumped nodes, not finite-element or multi-node network
+- battery derating is a deterministic envelope proxy, not electrochemical validation
+- EPS load feedback is simplified; no PDU switching transients are modeled
+- HF-8 validation gates and HF-9 benchmark envelopes are pending
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- parameters
+- spacecraft
+- orbit_environment
+- validation
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- internal_benchmark
+- planned_public_reference
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/sat_sim/orbit/basilisk_hf.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path:
+  - THERM-1
+  - SAT-REF-1
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - finite_element_thermal
+  - high_fidelity_battery_electrochemistry
+  - pdu_switching_transients
+  - full_spacecraft_thermal_network
+  - high_fidelity_orbit_force_model
+  - thermal model is two lumped nodes, not finite-element or multi-node network
+  - battery derating is a deterministic envelope proxy, not electrochemical validation
+  - EPS load feedback is simplified; no PDU switching transients are modeled
+  - HF-8 validation gates and HF-9 benchmark envelopes are pending

@@ -1,0 +1,460 @@
+capability_id: whole_spacecraft.maneuver_orbit_attitude.v1
+schema_version: 0.1.0
+name: Route-B propulsion/orbit/attitude maneuver-coupled spacecraft model
+level: whole_spacecraft
+domain: whole_spacecraft
+target: maneuver_orbit_attitude
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: HF-7 medium-fidelity Route-B coupling of a finite thruster burn event, propellant mass depletion, delta-v proxy applied
+  to an HF-3 orbit trace, and compact attitude disturbance/control damping. It is not a full high-fidelity 6-DOF maneuver
+  model.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_maneuver_orbit_attitude.ManeuverOrbitAttitudeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.coupled.propulsion_orbit_attitude
+  - sat_sim.orbit.medium
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  - sat_sim.validation.physical_checks
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  mixed:
+    supported: true
+  degradation:
+    supported: true
+  fault:
+    supported: true
+scope_exclusions:
+- full_6dof_force_torque_integration
+- high_fidelity_thruster_plume
+- propellant_slosh
+- tank_pressure_transients
+- valve_dynamics
+- flexible_body_attitude_dynamics
+dependencies:
+- capability_id: orbit_environment.medium_fidelity.v1
+  role: child
+  alias: orbit_environment
+  required: true
+- capability_id: subsystem.adcs_closed_loop.basic.v1
+  role: optional_reference
+  alias: adcs_disturbance_proxy
+  required: false
+parameters:
+  dry_mass_kg:
+    type: number
+    unit: kg
+    required: false
+    min: 1.0e-06
+    default: 120.0
+  initial_propellant_kg:
+    type: number
+    unit: kg
+    required: false
+    min: 0.0
+    default: 8.0
+  thrust_n:
+    type: number
+    unit: N
+    required: false
+    min: 0.0
+    default: 0.45
+  specific_impulse_s:
+    type: number
+    unit: s
+    required: false
+    min: 1.0e-06
+    default: 220.0
+  burn_start_s:
+    type: number
+    unit: s
+    required: false
+    min: 0.0
+    default: 600.0
+  burn_duration_s:
+    type: number
+    unit: s
+    required: false
+    min: 0.0
+    default: 180.0
+  burn_direction:
+    type: string
+    unit: enum
+    required: false
+    default: prograde
+  thrust_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.96
+  initial_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    default: 0.5
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+    default: 900.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+    default: 10.0
+  solver.step_s:
+    unit: s
+    required: false
+    min: 0.001
+    default: 10.0
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: orbit_environment.*
+  unit: mixed
+- name: parameters.thrust_n
+  unit: N
+- name: parameters.specific_impulse_s
+  unit: s
+- name: parameters.initial_propellant_kg
+  unit: kg
+- name: parameters.burn_start_s
+  unit: s
+- name: parameters.burn_duration_s
+  unit: s
+produces:
+- name: propulsion.propellant.remaining_kg
+- name: propulsion.delta_v.cumulative_m_s
+- name: orbit.speed_delta_proxy_m_s
+- name: adcs.pointing_error_deg
+- name: adcs.angular_rate_disturbance_rad_s
+- name: physical_validation.status
+time_grid:
+  policy: shared_hf1_time_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+composition:
+  chain:
+  - capability_id: whole_spacecraft.maneuver_orbit_attitude.v1
+    role: parent
+  - capability_id: orbit_environment.medium_fidelity.v1
+    role: child
+    alias: orbit_environment
+  - capability_id: subsystem.adcs_closed_loop.basic.v1
+    role: optional_reference
+    alias: adcs_disturbance_proxy
+  field_mappings:
+  - source: propulsion.thruster.fire_event
+    target: propulsion.delta_v.step_m_s
+    description: Finite burn event creates a delta-v proxy.
+  - source: propulsion.delta_v.cumulative_m_s
+    target: orbit.v_burn_adjusted_m_s
+    description: Delta-v proxy is applied to the HF-3 orbit velocity trace.
+  - source: propulsion.thrust_n
+    target: adcs.disturbance_torque_proxy_n_m
+    description: Off-axis thrust produces compact attitude disturbance proxy.
+  - source: propulsion.propellant.used_step_kg
+    target: propulsion.propellant.remaining_kg
+    description: Propellant mass is monotonically depleted.
+  - source: hf8.physical_validation
+    target: manifest.physical_validation
+    description: HF-8 gates check fuel
+    orbit: null
+    energy: null
+    and attitude sanity.: null
+  required_trace_fields:
+  - spacecraft.time_s
+  - propulsion.burn.active
+  - propulsion.propellant.remaining_kg
+  - propulsion.delta_v.cumulative_m_s
+  - orbit.speed_delta_proxy_m_s
+  - adcs.pointing_error_deg
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+    description: 仿真时间。运行器实际输出字段；技术字段为 time_s，单位 s。
+  - name: orbit.r_bn_n_m_x
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离X轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_x。
+  - name: orbit.r_bn_n_m_y
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离Y轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_y。
+  - name: orbit.r_bn_n_m_z
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离Z轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_z。
+  - name: orbit.v_bn_n_m_s_x
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间X轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_x。
+  - name: orbit.v_bn_n_m_s_y
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间Y轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_y。
+  - name: orbit.v_bn_n_m_s_z
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间Z轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_z。
+  - name: orbit.radius_m
+    unit: m
+    dtype: number
+    description: 轨道轨道半径距离。运行器实际输出字段；技术字段为 orbit.radius_m，单位 m。
+  - name: orbit.altitude_m
+    unit: m
+    dtype: number
+    description: 轨道高度距离。运行器实际输出字段；技术字段为 orbit.altitude_m，单位 m。
+  - name: orbit.speed_m_s
+    unit: m/s
+    dtype: number
+    description: 轨道速度距离时间。运行器实际输出字段；技术字段为 orbit.speed_m_s，单位 m/s。
+  - name: orbit.specific_energy_j_kg
+    unit: kg
+    dtype: number
+    description: 轨道比能量能量质量。运行器实际输出字段；技术字段为 orbit.specific_energy_j_kg，单位 kg。
+  - name: environment.sun_vector_n_x
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系X轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_x。
+  - name: environment.sun_vector_n_y
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系Y轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_y。
+  - name: environment.sun_vector_n_z
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系Z轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_z。
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+    description: 环境阴影系数。运行器实际输出字段；技术字段为 environment.shadow_factor，单位 ratio。
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: number
+    description: 环境食标志。运行器实际输出字段；技术字段为 environment.eclipse_flag，单位 bool。
+  - name: orbit.force.central_gravity_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力中心引力模距离。运行器实际输出字段；技术字段为 orbit.force.central_gravity_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.j2_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力J2项模距离。运行器实际输出字段；技术字段为 orbit.force.j2_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.drag_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力大气阻力模距离。运行器实际输出字段；技术字段为 orbit.force.drag_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.srp_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力太阳光压模距离。运行器实际输出字段；技术字段为 orbit.force.srp_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.total_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力总模距离。运行器实际输出字段；技术字段为 orbit.force.total_norm_m_s2，单位 m/s^2。
+  - name: propulsion.burn.active
+    unit: bool
+    dtype: number
+    description: 推进点火激活。运行器实际输出字段；技术字段为 propulsion.burn.active，单位 bool。
+  - name: propulsion.thrust_n
+    unit: mixed
+    dtype: number
+    description: 推进推力惯性系。运行器实际输出字段；技术字段为 propulsion.thrust_n。
+  - name: propulsion.specific_impulse_s
+    unit: s
+    dtype: number
+    description: 推进比冲量时间。运行器实际输出字段；技术字段为 propulsion.specific_impulse_s，单位 s。
+  - name: propulsion.propellant.remaining_kg
+    unit: kg
+    dtype: number
+    description: 推进推进剂剩余质量。运行器实际输出字段；技术字段为 propulsion.propellant.remaining_kg，单位 kg。
+  - name: propulsion.propellant.used_step_kg
+    unit: kg
+    dtype: number
+    description: 推进推进剂已用单步质量。运行器实际输出字段；技术字段为 propulsion.propellant.used_step_kg，单位 kg。
+  - name: propulsion.delta_v.step_m_s
+    unit: m/s
+    dtype: number
+    description: 推进变化量单步距离时间。运行器实际输出字段；技术字段为 propulsion.delta_v.step_m_s，单位 m/s。
+  - name: propulsion.delta_v.cumulative_m_s
+    unit: m/s
+    dtype: number
+    description: 推进变化量累计距离时间。运行器实际输出字段；技术字段为 propulsion.delta_v.cumulative_m_s，单位 m/s。
+  - name: propulsion.mass.total_kg
+    unit: kg
+    dtype: number
+    description: 推进质量总质量。运行器实际输出字段；技术字段为 propulsion.mass.total_kg，单位 kg。
+  - name: propulsion.burn.direction_x
+    unit: mixed
+    dtype: number
+    description: 推进点火X轴。运行器实际输出字段；技术字段为 propulsion.burn.direction_x。
+  - name: propulsion.burn.direction_y
+    unit: mixed
+    dtype: number
+    description: 推进点火Y轴。运行器实际输出字段；技术字段为 propulsion.burn.direction_y。
+  - name: propulsion.burn.direction_z
+    unit: mixed
+    dtype: number
+    description: 推进点火Z轴。运行器实际输出字段；技术字段为 propulsion.burn.direction_z。
+  - name: orbit.v_burn_adjusted_m_s_x
+    unit: mixed
+    dtype: number
+    description: 轨道点火距离时间X轴。运行器实际输出字段；技术字段为 orbit.v_burn_adjusted_m_s_x。
+  - name: orbit.v_burn_adjusted_m_s_y
+    unit: mixed
+    dtype: number
+    description: 轨道点火距离时间Y轴。运行器实际输出字段；技术字段为 orbit.v_burn_adjusted_m_s_y。
+  - name: orbit.v_burn_adjusted_m_s_z
+    unit: mixed
+    dtype: number
+    description: 轨道点火距离时间Z轴。运行器实际输出字段；技术字段为 orbit.v_burn_adjusted_m_s_z。
+  - name: orbit.speed_adjusted_m_s
+    unit: m/s
+    dtype: number
+    description: 轨道速度距离时间。运行器实际输出字段；技术字段为 orbit.speed_adjusted_m_s，单位 m/s。
+  - name: orbit.speed_delta_proxy_m_s
+    unit: m/s
+    dtype: number
+    description: 轨道速度变化量代理距离时间。运行器实际输出字段；技术字段为 orbit.speed_delta_proxy_m_s，单位 m/s。
+  - name: adcs.pointing_error_deg
+    unit: deg
+    dtype: number
+    description: 姿态控制指向误差度。运行器实际输出字段；技术字段为 adcs.pointing_error_deg，单位 deg。
+  - name: adcs.angular_rate_disturbance_rad_s
+    unit: rad/s
+    dtype: number
+    description: 姿态控制角角速度。运行器实际输出字段；技术字段为 adcs.angular_rate_disturbance_rad_s，单位 rad/s。
+  - name: adcs.disturbance_torque_proxy_n_m
+    unit: N*m
+    dtype: number
+    description: 姿态控制力矩代理惯性系距离。运行器实际输出字段；技术字段为 adcs.disturbance_torque_proxy_n_m，单位 N*m。
+  - name: label.burn_active
+    unit: bool
+    dtype: number
+    description: 状态标签点火激活。运行器实际输出字段；技术字段为 label.burn_active，单位 bool。
+  - name: label.attitude_control_available
+    unit: bool
+    dtype: number
+    description: 状态标签姿态控制。运行器实际输出字段；技术字段为 label.attitude_control_available，单位 bool。
+  summary:
+  - name: qoi.propulsion.total_delta_v_m_s
+    unit: m/s
+  - name: qoi.propulsion.propellant_used_kg
+    unit: kg
+  - name: qoi.propulsion.fuel_monotonic
+    unit: bool
+  - name: qoi.adcs.final_pointing_error_deg
+    unit: deg
+source_binding:
+  mode: route_b_model_library
+  status: hf7_medium_maneuver_coupled_model_library
+  primary_module: sat_sim.coupled.propulsion_orbit_attitude
+  source_modules:
+  - sat_sim.coupled.propulsion_orbit_attitude
+  - sat_sim.orbit.medium
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  - sat_sim.validation.physical_checks
+  public_api:
+  - ManeuverOrbitAttitudeAdapter.run
+  - propagate_propulsion_orbit_attitude_coupled
+  - summarize_propulsion_orbit_attitude_coupled
+  - build_hf7_propulsion_orbit_attitude_payload
+  - evaluate_physical_validation
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Route-B HF-7 maneuver-coupled model library, not a legacy demo runner.
+fidelity_level: medium
+validation_gates:
+  hf8_physical_validation: true
+  default_checks:
+  - fuel_monotonicity
+  - orbit_altitude_sanity
+  - energy_balance_proxy
+  - pointing_convergence
+  - soc_bounds
+known_physics_limits:
+- finite burn is a delta-v proxy, not full force/torque numerical integration
+- attitude disturbance is compact proxy, not full 6-DOF coupling
+- no thruster plume, slosh, valve transient, tank pressure transient, or flexible-body dynamics
+- HF-9 benchmark envelopes are pending
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- parameters
+- spacecraft
+- orbit_environment
+- validation
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- internal_benchmark
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/sat_sim/orbit/basilisk_hf.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path:
+  - BSK-6DOF-2 optional maneuver coupling baseline
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - full_6dof_force_torque_integration
+  - high_fidelity_thruster_plume
+  - propellant_slosh
+  - tank_pressure_transients
+  - valve_dynamics
+  - flexible_body_attitude_dynamics
+  - finite burn is a delta-v proxy, not full force/torque numerical integration
+  - attitude disturbance is compact proxy, not full 6-DOF coupling
+  - no thruster plume, slosh, valve transient, tank pressure transient, or flexible-body dynamics
+  - HF-9 benchmark envelopes are pending

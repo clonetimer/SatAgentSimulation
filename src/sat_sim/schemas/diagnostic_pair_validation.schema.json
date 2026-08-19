@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.diagnostic-pair-validation.v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "validation_agent",
+    "pair_id",
+    "fault_id",
+    "signature_id",
+    "signature_sha256",
+    "decision",
+    "diagnostic_validation_passed",
+    "diagnostic_score",
+    "basilisk_candidate_qualified",
+    "formal_diagnostic_qualified",
+    "criteria",
+    "claim_boundary",
+    "observable_criteria_passed",
+    "minimum_observable_criteria_passed",
+    "leakage_guard"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat-sim.diagnostic-pair-validation.v1"
+    },
+    "validation_agent": {
+      "const": "deterministic_diagnostic_validation_agent.v1"
+    },
+    "pair_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fault_id": {
+      "type": "string"
+    },
+    "signature_id": {
+      "type": "string"
+    },
+    "signature_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_experiment_template_id": {
+      "type": "string"
+    },
+    "fault_dataset_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "nominal_dataset_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "PASS",
+        "REVIEW",
+        "REJECT"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "diagnostic_validation_passed": {
+      "type": "boolean"
+    },
+    "diagnostic_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "minimum_diagnostic_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "missing_required_channels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "basilisk_candidate_qualified": {
+      "type": "boolean"
+    },
+    "signature_threshold_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "formal_diagnostic_qualified": {
+      "type": "boolean"
+    },
+    "signature_expert_freeze_required": {
+      "type": "boolean"
+    },
+    "signature_review_file": {
+      "type": "string"
+    },
+    "report_file": {
+      "type": "string"
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "criterion_id",
+          "status",
+          "required",
+          "weight",
+          "channel",
+          "metric",
+          "observed",
+          "expected",
+          "summary",
+          "evidence_role",
+          "contributes_to_diagnostic_score"
+        ],
+        "properties": {
+          "criterion_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "observed": {},
+          "expected": {},
+          "summary": {
+            "type": "string"
+          },
+          "evidence_role": {
+            "enum": [
+              "observable_telemetry",
+              "operational_estimate",
+              "simulator_truth"
+            ]
+          },
+          "contributes_to_diagnostic_score": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "claim_boundary": {
+      "type": "object"
+    },
+    "observable_criteria_passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "minimum_observable_criteria_passed": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "leakage_guard": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/sat-sim/dataset-manifest.schema.json",
+  "title": "SatSim DatasetManifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "dataset_id",
+    "created_at",
+    "platform",
+    "task",
+    "files",
+    "status"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "bsk_version",
+        "python_version"
+      ],
+      "properties": {
+        "platform_version": {
+          "type": "string"
+        },
+        "bsk_version": {
+          "type": "string"
+        },
+        "python_version": {
+          "type": "string"
+        },
+        "git_commit": {
+          "type": "string"
+        },
+        "source_zip_sha256": {
+          "type": "string"
+        },
+        "support_data_snapshot": {
+          "type": "string"
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "task_id",
+        "task_type",
+        "schema_version",
+        "spec_hash"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "task_type": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "spec_hash": {
+          "type": "string"
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "duration_s": {
+          "type": "number"
+        },
+        "sample_s": {
+          "type": "number"
+        },
+        "scenario_count": {
+          "type": "integer"
+        },
+        "success_count": {
+          "type": "integer"
+        },
+        "failure_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "array",
+          "object"
+        ]
+      },
+      "properties": {
+        "task_spec": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "trace": {
+          "type": "string"
+        },
+        "run_labels": {
+          "type": "string"
+        },
+        "event_labels": {
+          "type": "string"
+        },
+        "fault_labels": {
+          "type": "string"
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "trace_schema": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "unit",
+          "dtype"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "dtype": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "failed"
+      ]
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Capability contract and adapter metadata for capability-centric runs."
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "P7-B explicit capability composition chain, dependency, time-grid, and field-mapping metadata."
+    },
+    "repair_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "normalized_defaults": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "modifiers": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "C7 normalized TaskSpec scenario modifiers recorded on the dataset manifest."
+    },
+    "applied_modifiers": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "C7 modifier application summary actually applied to this run."
+    },
+    "hf_foundation": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Route-B HF-1/HF-2 foundation metadata: time, unit, frame, state, and solver contracts. This is not a high-fidelity physics claim."
+    },
+    "hf3_orbit_environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Route-B HF-3 medium-fidelity orbit/environment metadata. This is not a high-fidelity physics claim."
+    },
+    "hf4_adcs_closed_loop": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Route-B HF-4 basic closed-loop ADCS metadata. This is not a high-fidelity FSW/sensor claim."
+    },
+    "hf5_power_thermal_orbit": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Route-B HF-5 power/thermal/orbit coupled metadata. This is not a high-fidelity EPS or thermal claim."
+    },
+    "hf6_comm_payload_mission": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Route-B HF-6 comm/payload mission-coupled metadata. This is not a high-fidelity RF/contact-planning claim."
+    },
+    "hf7_propulsion_orbit_attitude": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "hf8_physical_validation": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "physical_validation": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "orb1_orbit_fidelity": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "orb1_force_models": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "adcs1_fidelity": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "ADCS-1 fidelity engineering-prototype metadata. This is not a complete FSW or calibrated high-fidelity sensor/actuator claim."
+    },
+    "int1_orbit_adcs_integration": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "INT-1 orbit+ADCS fidelity integration metadata. This is not a flight-grade 6-DOF high-fidelity claim."
+    }
+  }
+}

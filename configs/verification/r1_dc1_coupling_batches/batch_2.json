@@ -1,0 +1,242 @@
+{
+  "schema_version": "v0574.coupling-validation-matrix.experimental.v3",
+  "baseline_spec": "../whole_spacecraft_coupling_baseline.yaml",
+  "case_run_timeout_s": 120.0,
+  "cases": [
+    {
+      "case_id": "solar_generation_to_eps",
+      "description": "Increasing available solar generation must increase net bus power and battery state of charge.",
+      "patch": {
+        "path": "parameters.solar_power_w",
+        "value": 180.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "solar_generation_to_eps_storage",
+          "source_field": "net_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 50.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "orbit_sun_attitude_eclipse_to_eps_solar_power"
+      ]
+    },
+    {
+      "case_id": "native_downlink_to_storage_drain",
+      "description": "Increasing native downlink requested rate must increase delivered downlink and reduce onboard storage.",
+      "patch": {
+        "path": "parameters.native_downlink_bit_rate_request_bps",
+        "value": 4000000.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "comm_native_odh_to_storage_drain",
+          "source_field": "downlink_delivered_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 500000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "comm_native_odh_to_storage_drain"
+      ]
+    },
+    {
+      "case_id": "low_soc_to_payload_gate",
+      "description": "Low initial battery SOC must disable payload generation and reduce accumulated storage.",
+      "patch": {
+        "path": "parameters.initial_soc",
+        "value": 0.15
+      },
+      "expectations": [
+        {
+          "coupling_id": "eps_storage_to_payload_gate",
+          "source_field": "battery_soc",
+          "response_field": "payload_generated_bps",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.3,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "eps_storage_to_payload_data_storage",
+          "source_field": "battery_soc",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.3,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "eps_storage_to_comm_gate",
+          "source_field": "battery_soc",
+          "response_field": "downlink_requested_rate_bps",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.3,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "eps_pdu_to_payload_activity",
+        "eps_pdu_to_comm_activity"
+      ]
+    },
+    {
+      "case_id": "adcs_pointing_to_payload_and_downlink",
+      "description": "Large initial attitude error must gate payload generation and reduce cumulative delivered downlink until pointing recovers.",
+      "patch": {
+        "path": "parameters.mission_initial_sigma_bn",
+        "value": [
+          0.4,
+          0.0,
+          0.0
+        ]
+      },
+      "expectations": [
+        {
+          "coupling_id": "adcs_pointing_to_payload_gate",
+          "source_field": "attitude_error_deg",
+          "response_field": "payload_generated_bps",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "adcs_pointing_to_downlink_gate",
+          "source_field": "attitude_error_deg",
+          "response_field": "cumulative_delivered_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_eps",
+          "source_field": "adcs_control_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 60.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_thermal",
+          "source_field": "adcs_control_power_w",
+          "response_field": "thermal_adcs_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.5,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "adcs_pointing_to_payload_comm_gate",
+        "adcs_control_effort_to_eps_thermal"
+      ]
+    }
+  ],
+  "required_runtime_couplings": [
+    "orbit_sun_attitude_eclipse_to_eps_solar_power",
+    "comm_native_odh_to_storage_drain",
+    "eps_pdu_to_payload_activity",
+    "eps_pdu_to_comm_activity",
+    "adcs_pointing_to_payload_comm_gate",
+    "adcs_control_effort_to_eps_thermal"
+  ]
+}

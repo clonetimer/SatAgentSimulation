@@ -1,0 +1,364 @@
+capability_id: component.solar_panel.v1
+schema_version: 0.1.0
+level: component
+target: solar_panel
+domain: eps
+trust_level: conformance_tested
+summary: Explicit solar-panel component capability for deterministic power generation, shadow, tracking, degradation, and
+  fault injection.
+adapter:
+  class_path: sat_sim.adapters.component_solar_panel.SolarPanelAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - components.solar_panel.builder
+  - components.solar_panel.degradation
+  - components.solar_panel.faults
+  legacy_demo_runner: components.solar_panel.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types:
+    - solar_panel_failure
+    - solar_panel_degradation
+    - deployment_failure
+  degradation:
+    supported: true
+    degradation_types:
+    - efficiency_loss_pct
+    - radiation_damage_factor
+parameters:
+  max_power_w:
+    type: number
+    unit: W
+    required: true
+    min: 0.0
+    default: 120.0
+  efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  panel_count:
+    type: integer
+    unit: count
+    required: false
+    min: 1
+    default: 1
+  deployment_fraction:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  initial_normal_b:
+    type: array[number]
+    unit: unit-vector
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+  sun_vector_b:
+    type: array[number]
+    unit: unit-vector
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+  sun_vector_profile_b:
+    type: array[array[number]]
+    unit: unit-vector
+    required: false
+  shadow_factor:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+  shadow_profile:
+    type: array[number]
+    unit: ratio
+    required: false
+  enable_tracking:
+    type: boolean
+    required: false
+    default: false
+  max_slew_rate_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    min: 0.0
+    default: 0.0
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: target_level
+    unit: none
+    dtype: string
+  - name: target_name
+    unit: none
+    dtype: string
+  - name: mode
+    unit: none
+    dtype: string
+  - name: eps.solar.panel_power_w
+    unit: W
+    dtype: number
+  - name: eps.solar.array_power_w
+    unit: W
+    dtype: number
+  - name: eps.solar.max_power_w
+    unit: W
+    dtype: number
+  - name: eps.solar.efficiency
+    unit: ratio
+    dtype: number
+  - name: eps.solar.panel_count
+    unit: count
+    dtype: integer
+  - name: eps.solar.deployment_fraction
+    unit: ratio
+    dtype: number
+  - name: eps.solar.incidence_cos
+    unit: ratio
+    dtype: number
+  - name: eps.solar.shadow_factor
+    unit: ratio
+    dtype: number
+  - name: eps.solar.fault_multiplier
+    unit: ratio
+    dtype: number
+  - name: eps.solar.normal_b_x
+    unit: unit-vector
+    dtype: number
+  - name: eps.solar.normal_b_y
+    unit: unit-vector
+    dtype: number
+  - name: eps.solar.normal_b_z
+    unit: unit-vector
+    dtype: number
+  - name: eps.solar.sun_vector_b_x
+    unit: unit-vector
+    dtype: number
+  - name: eps.solar.sun_vector_b_y
+    unit: unit-vector
+    dtype: number
+  - name: eps.solar.sun_vector_b_z
+    unit: unit-vector
+    dtype: number
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  - name: label.fault_active
+    unit: bool
+    dtype: bool
+  - name: eps.solar.nominal_max_power_w
+    unit: W
+    dtype: number
+  - name: eps.solar.nominal_efficiency
+    unit: ratio
+    dtype: number
+  summary:
+  - name: eps.solar.energy_generated_wh
+    unit: Wh
+  - name: eps.solar.max_array_power_w
+    unit: W
+  - name: eps.solar.mean_incidence_cos
+    unit: ratio
+  - name: eps.solar.eclipse_fraction
+    unit: ratio
+  - name: eps.solar.nominal_max_power_w
+    unit: W
+  - name: eps.solar.effective_max_power_w
+    unit: W
+  - name: eps.solar.nominal_efficiency
+    unit: ratio
+  - name: eps.solar.effective_efficiency
+    unit: ratio
+conformance_tests:
+- test_solar_panel_duration_and_sample_control_trace
+- test_solar_panel_shadow_profile_controls_power
+- test_solar_panel_incidence_controls_power
+- test_solar_panel_fault_onset_reduces_power
+- test_solar_panel_degradation_reduces_power
+- test_solar_panel_tracking_changes_normal
+source_binding:
+  mode: source_native
+  status: s3_verified_direct_public_api
+  primary_module: components.solar_panel.builder
+  source_modules:
+  - components.solar_panel.builder
+  - components.solar_panel.model
+  - components.solar_panel.degradation
+  - components.solar_panel.faults
+  public_api:
+  - build_nominal_solar_panel_config
+  - SolarPanelState
+  - compute_solar_power
+  - step_solar_tracking
+  legacy_demo_runner: components.solar_panel.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+status: agent_ready_candidate
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- none
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/solar_panel/builder.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+operator:
+  owner: solar_panel
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: solar_panel
+    implementation: source_native
+    evidence_fields: &id002
+    - eps.solar.array_power_w
+    verification: declared
+  - effect_id: solar_panel_failure
+    kind: fault
+    owner: solar_panel
+    implementation: source_native
+    evidence_fields: &id003
+    - eps.solar.fault_multiplier
+    - eps.solar.array_power_w
+    - label.fault_active
+    verification: declared
+  - effect_id: solar_panel_degradation
+    kind: fault
+    owner: solar_panel
+    implementation: source_native
+    evidence_fields: &id004
+    - eps.solar.fault_multiplier
+    - eps.solar.array_power_w
+    - label.fault_active
+    verification: declared
+  - effect_id: deployment_failure
+    kind: fault
+    owner: solar_panel
+    implementation: proxy
+    evidence_fields: &id005
+    - eps.solar.fault_multiplier
+    - eps.solar.array_power_w
+    - label.fault_active
+    verification: declared
+  - effect_id: efficiency_loss_pct
+    kind: degradation
+    owner: solar_panel
+    implementation: source_native
+    evidence_fields: &id006
+    - eps.solar.nominal_efficiency
+    - eps.solar.efficiency
+    - eps.solar.array_power_w
+    verification: declared
+  - effect_id: radiation_damage_factor
+    kind: degradation
+    owner: solar_panel
+    implementation: source_native
+    evidence_fields: &id007
+    - eps.solar.nominal_max_power_w
+    - eps.solar.max_power_w
+    - eps.solar.array_power_w
+    verification: declared
+  observability:
+    qoi:
+    - eps.solar.energy_generated_wh
+    - eps.solar.max_array_power_w
+    - eps.solar.mean_incidence_cos
+    - eps.solar.eclipse_fraction
+    - eps.solar.nominal_max_power_w
+    - eps.solar.effective_max_power_w
+    - eps.solar.nominal_efficiency
+    - eps.solar.effective_efficiency
+    trace_fields:
+    - task_id
+    - case_id
+    - time_s
+    - sample_index
+    - target_level
+    - target_name
+    - mode
+    - eps.solar.panel_power_w
+    - eps.solar.array_power_w
+    - eps.solar.max_power_w
+    - eps.solar.efficiency
+    - eps.solar.panel_count
+    - eps.solar.deployment_fraction
+    - eps.solar.incidence_cos
+    - eps.solar.shadow_factor
+    - eps.solar.fault_multiplier
+    - eps.solar.normal_b_x
+    - eps.solar.normal_b_y
+    - eps.solar.normal_b_z
+    - eps.solar.sun_vector_b_x
+    - eps.solar.sun_vector_b_y
+    - eps.solar.sun_vector_b_z
+    - label.health_state
+    - label.fault_active
+    - eps.solar.nominal_max_power_w
+    - eps.solar.nominal_efficiency
+    effect_evidence:
+      nominal: *id002
+      solar_panel_failure: *id003
+      solar_panel_degradation: *id004
+      deployment_failure: *id005
+      efficiency_loss_pct: *id006
+      radiation_damage_factor: *id007
+  assurance:
+    delegated_to_parameter_guard: true
+    delegated_to_claim_guard: true
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

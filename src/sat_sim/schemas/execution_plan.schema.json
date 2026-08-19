@@ -1,0 +1,207 @@
+{
+  "$defs": {
+    "PlanEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "from_node": {
+          "title": "From Node",
+          "type": "string"
+        },
+        "to_node": {
+          "title": "To Node",
+          "type": "string"
+        },
+        "condition": {
+          "enum": [
+            "SUCCESS",
+            "FAILURE",
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "CANCELLED",
+            "ALWAYS"
+          ],
+          "title": "Condition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_node",
+        "to_node",
+        "condition"
+      ],
+      "title": "PlanEdge",
+      "type": "object"
+    },
+    "PlanNode": {
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "enum": [
+            "task_validation",
+            "guard_validation",
+            "dependency_resolution",
+            "causal_requirement_validation",
+            "effect_binding",
+            "output_binding",
+            "resource_acquire",
+            "execute_primary_adapter",
+            "evidence_collection",
+            "qoi_validation",
+            "claim_report",
+            "resource_release",
+            "terminal_success",
+            "terminal_execution_failure",
+            "terminal_mission_failure",
+            "terminal_inconclusive",
+            "terminal_cancelled"
+          ],
+          "title": "Node Type",
+          "type": "string"
+        },
+        "handler": {
+          "title": "Handler",
+          "type": "string"
+        },
+        "binding_status": {
+          "default": "available",
+          "enum": [
+            "available",
+            "runtime_contract",
+            "terminal"
+          ],
+          "title": "Binding Status",
+          "type": "string"
+        },
+        "capability_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capability Id"
+        },
+        "adapter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter"
+        },
+        "timeout_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout S"
+        },
+        "resource_locks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Resource Locks",
+          "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "node_id",
+        "node_type",
+        "handler"
+      ],
+      "title": "PlanNode",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "v24.execution-plan.v1",
+      "default": "v24.execution-plan.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "canonical_task_spec_sha256": {
+      "title": "Canonical Task Spec Sha256",
+      "type": "string"
+    },
+    "resolved_spec_sha256": {
+      "title": "Resolved Spec Sha256",
+      "type": "string"
+    },
+    "primary_capability_id": {
+      "title": "Primary Capability Id",
+      "type": "string"
+    },
+    "entry_node": {
+      "title": "Entry Node",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/PlanNode"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/PlanEdge"
+      },
+      "title": "Edges",
+      "type": "array"
+    },
+    "terminal_nodes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Terminal Nodes",
+      "type": "array"
+    },
+    "plan_sha256": {
+      "default": "",
+      "title": "Plan Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "canonical_task_spec_sha256",
+    "resolved_spec_sha256",
+    "primary_capability_id",
+    "entry_node",
+    "nodes",
+    "edges",
+    "terminal_nodes"
+  ],
+  "title": "Satellite Simulation ExecutionPlan V24",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/execution-plan-v24.schema.json"
+}

@@ -1,0 +1,33 @@
+schema_version: 0.1.0
+task_id: subsystem_propulsion_unified_native_nominal
+task_type: subsystem
+description: Propulsion focused native Basilisk burn.
+capability_id: subsystem.propulsion.unified_native.v1
+simulation:
+  duration_s: 3.0
+  step_s: 0.1
+  sample_s: 0.1
+  backend: basilisk
+target:
+  level: subsystem
+  name: propulsion
+  mode: nominal
+parameters:
+  spacecraft_mass_kg: 10.0
+  initial_propellant_kg: 1.0
+  tank_capacity_kg: 2.0
+  burn_start_s: 0.5
+  burn_on_time_s: 0.5
+faults: []
+modifiers: {faults: [], degradations: [], constraints: []}
+assurance: {allow_proxy: false}
+outputs:
+  output_root: runs/subsystem_propulsion_unified_native_nominal
+  trace_format: csv
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+  record_fields: [propulsion.thrust_force_n, propulsion.fuel_mass_kg, propulsion.velocity_x_m_s]
+metadata:
+  template_source: v0.5.5.1_target_acceptance_and_physical_migration

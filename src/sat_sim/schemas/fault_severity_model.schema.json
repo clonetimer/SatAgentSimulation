@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.fault-severity-model.v1",
+  "type": "object",
+  "required": ["schema_version", "mechanism_kind", "bands"],
+  "properties": {
+    "schema_version": {"const": "sat-sim.fault-severity-model.v1"},
+    "mechanism_kind": {"enum": ["continuous_degradation", "binary_failure"]},
+    "fixed_normalized_severity": {"type": "number", "minimum": 0, "maximum": 1},
+    "physical_parameter": {
+      "type": "object",
+      "required": ["name", "direction"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "direction": {"enum": ["increasing", "decreasing"]},
+        "unit": {"type": ["string", "null"]},
+        "mapping": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "bands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["level", "min_inclusive", "max_inclusive"],
+        "properties": {
+          "level": {"type": "string", "minLength": 1},
+          "min_inclusive": {"type": "number", "minimum": 0, "maximum": 1},
+          "max_inclusive": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mechanism_kind": {"const": "binary_failure"}}},
+      "then": {"required": ["fixed_normalized_severity"]},
+      "else": {"required": ["physical_parameter"]}
+    }
+  ],
+  "additionalProperties": false
+}

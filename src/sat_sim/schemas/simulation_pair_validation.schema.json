@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.simulation-pair-validation.v1",
+  "type": "object",
+  "required": ["schema_version", "pair_id", "decision", "physics_validation_passed", "formal_training_qualified", "expert_review_required", "checks"],
+  "properties": {
+    "schema_version": {"const": "sat-sim.simulation-pair-validation.v1"},
+    "validation_agent": {"type": "string"},
+    "pair_id": {"type": ["string", "null"]},
+    "fault_id": {"type": "string"},
+    "experiment_template_id": {"type": "string"},
+    "fault_dataset_id": {"type": "string"},
+    "nominal_dataset_id": {"type": "string"},
+    "decision": {"enum": ["PASS", "REVIEW", "REJECT"]},
+    "reason": {"type": "string"},
+    "physics_validation_passed": {"type": "boolean"},
+    "formal_training_qualified": {"type": "boolean"},
+    "expert_review_required": {"type": "boolean"},
+    "checks": {"type": "array"},
+    "claim_boundary": {"type": "object"},
+    "report_file": {"type": "string"}
+  },
+  "additionalProperties": true
+}

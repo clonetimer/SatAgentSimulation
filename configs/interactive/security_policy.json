@@ -1,0 +1,13 @@
+{
+  "schema_version": "interactive-security-policy.v1",
+  "default_action": "deny",
+  "roles": {
+    "viewer": ["session.read", "telemetry.subscribe"],
+    "operator": ["session.read", "telemetry.subscribe", "session.control", "command.nominal"],
+    "fault_operator": ["session.read", "telemetry.subscribe", "session.control", "command.nominal", "command.fault"],
+    "admin": ["session.read", "telemetry.subscribe", "session.control", "command.nominal", "command.fault", "session.abort"]
+  },
+  "prohibited": ["arbitrary_code", "arbitrary_attribute_write", "filesystem_path", "shell_command", "unregistered_operation"],
+  "limits": {"max_message_bytes": 65536, "max_commands_per_second": 20, "idle_timeout_s": 300, "heartbeat_s": 15},
+  "requirements": ["command_id_idempotency", "session_revision", "parameter_schema", "append_only_audit", "field_allowlist", "human_confirmation_for_llm_candidate"]
+}

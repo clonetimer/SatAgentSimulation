@@ -1,0 +1,1019 @@
+capability_id: subsystem.adcs_fidelity.v1
+schema_version: 0.1.0
+name: ADCS fidelity engineering simulation
+level: subsystem
+domain: adcs
+target: adcs
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: ADCS-1 medium-fidelity/proxy attitude-control capability. It builds on the HF-4 closed-loop ADCS model and adds environmental
+  torque proxies, sensor bias/noise/dropout metadata, reaction-wheel momentum/allocation trace, and controller-mode fidelity
+  metadata. It is not complete FSW or calibrated high-fidelity sensor/actuator physics.
+adapter:
+  class_path: sat_sim.adapters.subsystem_adcs_fidelity.AdcsFidelityAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adcs.fidelity
+  - sat_sim.adcs.closed_loop
+  - sat_sim.state
+  - sat_sim.time_systems
+  - sat_sim.solvers
+  - sat_sim.frames
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - adcs_rw_jamming
+    - adcs_rw_motor_failure
+    - adcs_gyro_bias_step
+  constraint:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - adcs_reaction_wheel_speed_limit
+  degradation:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - adcs_gyro_noise_increase
+    - adcs_rw_friction_increase
+    - adcs_rw_torque_authority_loss
+parameters:
+  initial_attitude_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 12.0
+    description: 仿真开始时航天器相对目标姿态的角度误差。
+  initial_rate_deg_s:
+    type: vector3_or_number
+    unit: deg/s
+    required: false
+    default:
+    - 0.1
+    - -0.05
+    - 0.02
+    description: 初始机体三轴角速度，可填写单值或 [x, y, z]。
+  target_mode:
+    type: string
+    required: false
+    enum:
+    - inertial
+    - nadir
+    - sun
+    - detumble
+    default: nadir
+    description: 姿态目标模式：inertial（惯性）、nadir（对地）、sun（对日）或 detumble（消旋）。
+  environment_torques:
+    type: object
+    required: false
+    description: 环境扰动力矩结构化配置。可分别启用重力梯度、剩磁矩、大气气动和太阳光压，并填写对应物理参数；无需手写 JSON。
+    widget: environment_torque_editor
+    default:
+      gravity_gradient: true
+      magnetic: true
+      aerodynamic: false
+      srp: false
+      residual_dipole_am2:
+      - 0.08
+      - 0.0
+      - 0.02
+      magnetic_field_t:
+      - 0.0
+      - 0.0
+      - 3.0e-05
+      aero_dynamic_pressure_pa: 2.0e-07
+      aero_area_m2: 0.8
+      aero_cp_offset_m:
+      - 0.02
+      - 0.0
+      - 0.01
+      srp_pressure_pa: 4.56e-06
+      srp_area_m2: 0.7
+      srp_cp_offset_m:
+      - 0.01
+      - 0.0
+      - 0.02
+    editor_schema:
+      groups:
+      - id: gravity_gradient
+        label: 重力梯度力矩
+        enabled_path: gravity_gradient
+        description: 由航天器惯量、轨道位置和姿态计算的重力梯度力矩，不需要填写固定力矩值。
+      - id: magnetic
+        label: 剩磁矩与地磁场
+        enabled_path: magnetic
+        description: 由航天器剩余磁偶极矩与地磁场叉乘产生。
+        fields:
+        - path: residual_dipole_am2
+          label: 剩余磁偶极矩
+          unit: A·m²
+          type: vector3
+          default:
+          - 0.08
+          - 0
+          - 0.02
+        - path: magnetic_field_t
+          label: 地磁场矢量
+          unit: T
+          type: vector3
+          default:
+          - 0
+          - 0
+          - 3.0e-05
+      - id: aerodynamic
+        label: 大气气动力矩
+        enabled_path: aerodynamic
+        description: 由动压、迎风面积和压心偏置形成的代理气动力矩。
+        fields:
+        - path: aero_dynamic_pressure_pa
+          label: 动压
+          unit: Pa
+          type: number
+          default: 2.0e-07
+          minimum: 0
+        - path: aero_area_m2
+          label: 迎风面积
+          unit: m²
+          type: number
+          default: 0.8
+          minimum: 0
+        - path: aero_cp_offset_m
+          label: 压心相对质心偏置
+          unit: m
+          type: vector3
+          default:
+          - 0.02
+          - 0
+          - 0.01
+      - id: srp
+        label: 太阳光压力矩
+        enabled_path: srp
+        description: 由太阳光压、受照面积和光压中心偏置形成的代理力矩。
+        fields:
+        - path: srp_pressure_pa
+          label: 太阳光压
+          unit: Pa
+          type: number
+          default: 4.56e-06
+          minimum: 0
+        - path: srp_area_m2
+          label: 受照面积
+          unit: m²
+          type: number
+          default: 0.7
+          minimum: 0
+        - path: srp_cp_offset_m
+          label: 光压中心相对质心偏置
+          unit: m
+          type: vector3
+          default:
+          - 0.01
+          - 0
+          - 0.02
+  gyro_bias_deg_s:
+    type: vector3_or_number
+    unit: deg/s
+    required: false
+    default:
+    - 0.005
+    - -0.002
+    - 0.001
+    description: 陀螺三轴固定偏置，可填写单值或 [x, y, z]。
+  gyro_noise_std_deg_s:
+    type: number
+    unit: deg/s
+    required: false
+    default: 0.001
+    description: 陀螺测量噪声标准差；噪声分量和测量残差会单独写入曲线。
+  star_tracker_noise_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.002
+    description: 星敏感器姿态测量噪声幅度。
+  sun_sensor_noise_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.2
+    description: 太阳敏感器角度测量噪声幅度。
+  sensor_dropout:
+    type: object
+    required: false
+    description: 可选的确定性传感器中断窗口，使用 start_s 和 duration_s 指定开始时间与持续时间。
+  inertia_kg_m2:
+    type: array[number]
+    unit: kg*m^2
+    required: false
+    default:
+    - 12.0
+    - 10.0
+    - 8.0
+    description: 航天器本体三轴主惯量 [Ix, Iy, Iz]。
+  target_quaternion_body_to_ref:
+    type: array[number]
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    description: 目标姿态四元数，采用标量在前 [w, x, y, z]。
+  target_reference_vector:
+    type: array[number]
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+    description: 对地或对日模式使用的目标参考矢量。
+  control_kp_nm_per_rad:
+    type: number
+    unit: N*m/rad
+    required: false
+    min: 0.0
+    default: 0.1
+    description: 姿态误差比例控制增益。
+  control_kd_nm_per_rad_s:
+    type: number
+    unit: N*m*s/rad
+    required: false
+    min: 0.0
+    default: 0.85
+    description: 角速度阻尼控制增益。
+  pointing_requirement_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 1.0e-06
+    default: 1.0
+    description: 判定姿态收敛的允许误差阈值。
+  disturbance_torque_nm:
+    type: vector3_or_number
+    unit: N*m
+    required: false
+    default:
+    - 0.0
+    - 0.0
+    - 0.0
+    description: 额外外部扰动力矩，可填写单值或三轴数组。
+  star_tracker_available:
+    type: boolean
+    required: false
+    default: true
+    description: 是否启用星敏感器测量代理。
+  sun_sensor_available:
+    type: boolean
+    required: false
+    default: true
+    description: 是否启用太阳敏感器测量代理。
+  wheel_configuration:
+    type: string
+    required: false
+    enum:
+    - orthogonal_3
+    - four_skew
+    - pyramid_4
+    enum_labels:
+      orthogonal_3: 三正交轮构型
+      four_skew: 四轮斜装构型（45°十字）
+      pyramid_4: 四轮金字塔构型（54.7356°）
+    default: orthogonal_3
+    description: 反作用轮安装构型。三正交轮为3轮；四轮斜装和四轮金字塔为4轮。构型决定轮轴矩阵并实际参与力矩分配。
+  wheel_allocation_method:
+    type: string
+    required: false
+    enum:
+    - weighted_pseudoinverse
+    enum_labels:
+      weighted_pseudoinverse: 加权伪逆最小范数分配
+    default: weighted_pseudoinverse
+    description: 根据构型轴矩阵，将本体三轴控制力矩分配到各反作用轮。
+  num_reaction_wheels:
+    type: integer
+    unit: count
+    required: false
+    min: 1
+    max: 8
+    default: 3
+    description: 反作用轮数量由所选构型确定：三正交轮为3，四轮斜装/四轮金字塔为4。旧任务中的该字段仅用于兼容。
+  wheel_inertia_kg_m2:
+    type: number
+    unit: kg*m^2
+    required: false
+    min: 1.0e-09
+    default: 0.08
+    description: 单个反作用轮转动惯量。
+  max_wheel_torque_nm:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.0
+    default: 0.05
+    description: 单个反作用轮最大输出力矩。
+  max_wheel_speed_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    min: 1.0e-09
+    default: 900.0
+    description: 反作用轮最大允许绝对转速。
+  initial_wheel_speed_rad_s:
+    type: number_or_array[number]
+    unit: rad/s
+    required: false
+    default:
+    - 60.0
+    - 60.0
+    - 60.0
+    description: 各反作用轮初始转速。可填单值，或填写与当前构型轮数一致的数组。旧三元素数组切换为四轮构型时，第4轮使用前三轮平均值。
+  rw_idle_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 2.0
+    description: 单个反作用轮的空载功耗。
+  rw_power_per_torque_w:
+    type: number
+    unit: W/(N*m)
+    required: false
+    min: 0.0
+    default: 80.0
+    description: 反作用轮力矩相关功耗系数。
+validation:
+  unit_tests:
+  - test_adcs1_environment_torque_and_sensor_metadata_are_traceable
+  - test_adcs1_capability_writes_manifest_metadata
+  - test_adcs2_benchmark_passes_tolerance_envelopes
+produces:
+- name: adcs.environment.*
+  destination: trace
+- name: adcs.sensor.*
+  destination: trace
+- name: adcs.control.*
+  destination: trace
+- name: adcs.rw.momentum_*
+  destination: trace
+- name: adcs.pointing.*
+  destination: trace
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+    description: 仿真时间轴。
+  - name: adcs.attitude.q_bn_0
+    unit: '1'
+    dtype: number
+    description: 本体系 B 相对惯性参考系 N 的姿态四元数标量分量 q₀；四元数采用标量在前 [q₀,q₁,q₂,q₃]。
+  - name: adcs.attitude.q_bn_1
+    unit: '1'
+    dtype: number
+    description: 本体系 B 相对惯性参考系 N 的姿态四元数第一矢量分量 q₁（X分量）。
+  - name: adcs.attitude.q_bn_2
+    unit: '1'
+    dtype: number
+    description: 本体系 B 相对惯性参考系 N 的姿态四元数第二矢量分量 q₂（Y分量）。
+  - name: adcs.attitude.q_bn_3
+    unit: '1'
+    dtype: number
+    description: 本体系 B 相对惯性参考系 N 的姿态四元数第三矢量分量 q₃（Z分量）。
+  - name: adcs.attitude.quaternion_norm
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态模。运行器实际输出字段；技术字段为 adcs.attitude.quaternion_norm。
+  - name: adcs.attitude.quaternion_norm_error
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态模误差。运行器实际输出字段；技术字段为 adcs.attitude.quaternion_norm_error。
+  - name: adcs.pointing.error_deg
+    unit: deg
+    dtype: number
+    description: 当前姿态相对目标姿态的最短旋转角误差。
+  - name: adcs.pointing.error_vector_rad_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制指向误差矢量弧度X轴。运行器实际输出字段；技术字段为 adcs.pointing.error_vector_rad_0。
+  - name: adcs.pointing.error_vector_rad_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制指向误差矢量弧度Y轴。运行器实际输出字段；技术字段为 adcs.pointing.error_vector_rad_1。
+  - name: adcs.pointing.error_vector_rad_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制指向误差矢量弧度Z轴。运行器实际输出字段；技术字段为 adcs.pointing.error_vector_rad_2。
+  - name: adcs.rate.omega_bn_b_rad_s_0
+    unit: rad/s
+    dtype: number
+    description: 机体 X 轴真实角速度。
+  - name: adcs.rate.omega_bn_b_rad_s_1
+    unit: rad/s
+    dtype: number
+    description: 机体 Y 轴真实角速度。
+  - name: adcs.rate.omega_bn_b_rad_s_2
+    unit: rad/s
+    dtype: number
+    description: 机体 Z 轴真实角速度。
+  - name: adcs.sensor.gyro_measured_rad_s_0
+    unit: rad/s
+    dtype: number
+    description: 陀螺 X 轴测量值，包含真实值、偏置和噪声。
+  - name: adcs.sensor.gyro_measured_rad_s_1
+    unit: rad/s
+    dtype: number
+    description: 陀螺 Y 轴测量值，包含真实值、偏置和噪声。
+  - name: adcs.sensor.gyro_measured_rad_s_2
+    unit: rad/s
+    dtype: number
+    description: 陀螺 Z 轴测量值，包含真实值、偏置和噪声。
+  - name: adcs.sensor.gyro_true_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺真X轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_true_rad_s_0，单位 mixed。
+  - name: adcs.sensor.gyro_true_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺真Y轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_true_rad_s_1，单位 mixed。
+  - name: adcs.sensor.gyro_true_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺真Z轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_true_rad_s_2，单位 mixed。
+  - name: adcs.sensor.gyro_bias_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺偏置X轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_bias_rad_s_0，单位 mixed。
+  - name: adcs.sensor.gyro_bias_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺偏置Y轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_bias_rad_s_1，单位 mixed。
+  - name: adcs.sensor.gyro_bias_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺偏置Z轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_bias_rad_s_2，单位 mixed。
+  - name: adcs.sensor.gyro_noise_rad_s_0
+    unit: rad/s
+    dtype: number
+    description: 陀螺 X 轴噪声分量。
+  - name: adcs.sensor.gyro_noise_rad_s_1
+    unit: rad/s
+    dtype: number
+    description: 陀螺 Y 轴噪声分量。
+  - name: adcs.sensor.gyro_noise_rad_s_2
+    unit: rad/s
+    dtype: number
+    description: 陀螺 Z 轴噪声分量。
+  - name: adcs.sensor.gyro_residual_rad_s_0
+    unit: rad/s
+    dtype: number
+    description: 陀螺 X 轴测量值与真实值之差。
+  - name: adcs.sensor.gyro_residual_rad_s_1
+    unit: rad/s
+    dtype: number
+    description: 陀螺 Y 轴测量值与真实值之差。
+  - name: adcs.sensor.gyro_residual_rad_s_2
+    unit: rad/s
+    dtype: number
+    description: 陀螺 Z 轴测量值与真实值之差。
+  - name: adcs.control.command_torque_nm_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制控制指令力矩力矩X轴。运行器实际输出字段；技术字段为 adcs.control.command_torque_nm_0。
+  - name: adcs.control.command_torque_nm_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制控制指令力矩力矩Y轴。运行器实际输出字段；技术字段为 adcs.control.command_torque_nm_1。
+  - name: adcs.control.command_torque_nm_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制控制指令力矩力矩Z轴。运行器实际输出字段；技术字段为 adcs.control.command_torque_nm_2。
+  - name: adcs.control.applied_torque_nm_0
+    unit: N*m
+    dtype: number
+    description: X 轴实际施加控制力矩。
+  - name: adcs.control.applied_torque_nm_1
+    unit: N*m
+    dtype: number
+    description: Y 轴实际施加控制力矩。
+  - name: adcs.control.applied_torque_nm_2
+    unit: N*m
+    dtype: number
+    description: Z 轴实际施加控制力矩。
+  - name: adcs.control.torque_saturation_flag
+    unit: bool
+    dtype: number
+    description: 姿态控制控制力矩饱和标志。运行器实际输出字段；技术字段为 adcs.control.torque_saturation_flag，单位 bool。
+  - name: adcs.rw.speed_rad_s_0
+    unit: rad/s
+    dtype: number
+    description: 反作用轮 1 转速。
+  - name: adcs.rw.speed_rad_s_1
+    unit: rad/s
+    dtype: number
+    description: 反作用轮 2 转速。
+  - name: adcs.rw.speed_rad_s_2
+    unit: rad/s
+    dtype: number
+    description: 反作用轮 3 转速。
+  - name: adcs.rw.max_abs_speed_rad_s
+    unit: rad/s
+    dtype: number
+    description: 姿态控制反作用轮最大绝对值速度。运行器实际输出字段；技术字段为 adcs.rw.max_abs_speed_rad_s，单位 rad/s。
+  - name: adcs.rw.speed_saturation_flag
+    unit: bool
+    dtype: number
+    description: 姿态控制反作用轮速度饱和标志。运行器实际输出字段；技术字段为 adcs.rw.speed_saturation_flag，单位 bool。
+  - name: adcs.rw.saturation_flag
+    unit: bool
+    dtype: number
+    description: 姿态控制反作用轮饱和标志。运行器实际输出字段；技术字段为 adcs.rw.saturation_flag，单位 bool。
+  - name: adcs.power.rw_power_w
+    unit: W
+    dtype: number
+    description: 姿态控制功率反作用轮功率功率。运行器实际输出字段；技术字段为 adcs.power.rw_power_w，单位 W。
+  - name: adcs.environment.total_torque_norm_nm
+    unit: N*m
+    dtype: number
+    description: 环境扰动力矩合力矩模。
+  - name: adcs.environment.gravity_gradient_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境引力启用。运行器实际输出字段；技术字段为 adcs.environment.gravity_gradient_enabled，单位 bool。
+  - name: adcs.environment.magnetic_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境磁场启用。运行器实际输出字段；技术字段为 adcs.environment.magnetic_enabled，单位 bool。
+  - name: adcs.environment.aerodynamic_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境启用。运行器实际输出字段；技术字段为 adcs.environment.aerodynamic_enabled，单位 bool。
+  - name: adcs.environment.srp_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境太阳光压启用。运行器实际输出字段；技术字段为 adcs.environment.srp_enabled，单位 bool。
+  - name: adcs.sensor.star_tracker_noise_rad
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器星敏感器噪声弧度。运行器实际输出字段；技术字段为 adcs.sensor.star_tracker_noise_rad。
+  - name: adcs.sensor.sun_sensor_noise_rad
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器太阳传感器噪声弧度。运行器实际输出字段；技术字段为 adcs.sensor.sun_sensor_noise_rad。
+  - name: adcs.sensor.dropout_flag
+    unit: bool
+    dtype: bool
+    description: 传感器中断窗口标志。
+  - name: adcs.rw.momentum_nms_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制反作用轮动量矩动量矩X轴。运行器实际输出字段；技术字段为 adcs.rw.momentum_nms_0。
+  - name: adcs.rw.momentum_nms_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制反作用轮动量矩动量矩Y轴。运行器实际输出字段；技术字段为 adcs.rw.momentum_nms_1。
+  - name: adcs.rw.momentum_nms_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制反作用轮动量矩动量矩Z轴。运行器实际输出字段；技术字段为 adcs.rw.momentum_nms_2。
+  - name: adcs.rw.max_abs_momentum_nms
+    unit: N*m*s
+    dtype: number
+    description: 反作用轮最大绝对角动量。
+  - name: label.fault_active
+    unit: boolean
+    dtype: boolean
+    description: 故障或退化事件的运行时生效证据。
+  - name: label.degradation_active
+    unit: boolean
+    dtype: boolean
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.event.active_count
+    unit: count
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.event.active_effects
+    unit: text
+    dtype: string
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_max_torque_nm_0
+    unit: N*m
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_max_torque_nm_1
+    unit: N*m
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_max_torque_nm_2
+    unit: N*m
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_max_speed_rad_s_0
+    unit: rad/s
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_max_speed_rad_s_1
+    unit: rad/s
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_max_speed_rad_s_2
+    unit: rad/s
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_drag_nms_0
+    unit: N*m*s
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_drag_nms_1
+    unit: N*m*s
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.effective_drag_nms_2
+    unit: N*m*s
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.sensor.effective_gyro_noise_scale
+    unit: ratio
+    dtype: number
+    description: 故障或退化事件的运行时生效证据。
+  - name: adcs.rw.speed_rad_s_3
+    unit: rad/s
+    dtype: number
+    description: 4号反作用轮转速；仅四轮构型产生。
+  - name: adcs.rw.momentum_nms_3
+    unit: N*m*s
+    dtype: number
+    description: 4号反作用轮角动量；仅四轮构型产生。
+  - name: adcs.rw.command_torque_nm_0
+    unit: N*m
+    dtype: number
+    description: 1号反作用轮电机力矩指令。
+  - name: adcs.rw.command_torque_nm_1
+    unit: N*m
+    dtype: number
+    description: 2号反作用轮电机力矩指令。
+  - name: adcs.rw.command_torque_nm_2
+    unit: N*m
+    dtype: number
+    description: 3号反作用轮电机力矩指令。
+  - name: adcs.rw.command_torque_nm_3
+    unit: N*m
+    dtype: number
+    description: 4号反作用轮电机力矩指令；仅四轮构型产生。
+  summary:
+  - name: qoi.adcs.initial_pointing_error_deg
+    unit: deg
+    dtype: number
+    description: 初始姿态误差。
+  - name: qoi.adcs.final_pointing_error_deg
+    unit: deg
+    dtype: number
+    description: 最终姿态误差。
+  - name: qoi.adcs.max_pointing_error_deg
+    unit: deg
+    dtype: number
+    description: 仿真期间最大姿态误差。
+  - name: qoi.adcs.min_pointing_error_deg
+    unit: deg
+    dtype: number
+    description: 仿真期间最小姿态误差。
+  - name: qoi.adcs.settled_time_s
+    unit: s
+    dtype: number
+    description: 首次满足指向精度要求的时间；未收敛时为空。
+  - name: qoi.adcs.convergence_ratio
+    unit: ratio
+    dtype: number
+    description: 最终误差与初始误差之比。
+  - name: qoi.adcs.quaternion_norm_max_error
+    unit: ratio
+    dtype: number
+    description: 四元数范数相对 1 的最大误差。
+  - name: qoi.adcs.saturation_count
+    unit: count
+    dtype: number
+    description: 反作用轮或控制力矩发生饱和的采样次数。
+  - name: qoi.adcs.max_abs_rate_rad_s
+    unit: rad/s
+    dtype: number
+    description: 最大机体角速度模。
+  - name: qoi.adcs.max_abs_wheel_speed_rad_s
+    unit: rad/s
+    dtype: number
+    description: 最大反作用轮绝对转速。
+  - name: qoi.adcs.max_rw_power_w
+    unit: W
+    dtype: number
+    description: 反作用轮最大功耗。
+  - name: qoi.adcs.environment.total_torque_norm_nm
+    unit: N*m
+    dtype: number
+    description: 环境扰动力矩模。
+  - name: qoi.adcs.sensor.dropout_count
+    unit: count
+    dtype: number
+    description: 传感器中断采样次数。
+  - name: qoi.adcs.rw.max_abs_momentum_nms
+    unit: N*m*s
+    dtype: number
+    description: 反作用轮最大绝对角动量。
+  - name: qoi.adcs.control.mode_trace_available
+    unit: bool
+    dtype: number
+    description: 控制模式时序是否可用。
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: simulation.solver.step_s
+  unit: s
+  required: false
+- name: parameters.environment_torques
+  unit: configuration
+  required: false
+- name: parameters.sensor_dropout
+  unit: configuration
+  required: false
+time_grid:
+  policy: hf1_output_grid_with_hf2_internal_fixed_step
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+  internal_step_source: simulation.solver.step_s
+source_binding:
+  mode: route_b_model_library
+  status: adcs1_implemented_fidelity_proxy
+  primary_module: sat_sim.adcs.fidelity
+  source_modules:
+  - sat_sim.adcs.fidelity
+  - sat_sim.adcs.closed_loop
+  - sat_sim.state
+  - sat_sim.time_systems
+  - sat_sim.solvers
+  - sat_sim.frames
+  public_api:
+  - ADCSFidelityConfig
+  - propagate_adcs_fidelity
+  - summarize_adcs_fidelity
+  - build_adcs1_fidelity_payload
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: medium
+known_physics_limits:
+- Environmental torques are deterministic proxies, not a calibrated orbital disturbance model.
+- Star tracker, sun sensor, and gyro are measurement proxies; no hardware calibration or detailed failure dynamics are modeled.
+- Reaction-wheel allocation supports orthogonal-three, four-skew and symmetric four-wheel-pyramid geometry with a deterministic
+  weighted-pseudoinverse allocator; motor electronics remain proxy-only.
+- Controller is deterministic PD/controller-mode proxy, not flight software.
+- ADCS-2 benchmark envelopes are internal regression tolerances, not flight-data validation.
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- parameters
+- outputs
+- metadata
+- tags
+- faults
+- degradations
+- modifiers
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active ADCS product capability after ADCS-1/ADCS-2.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- internal_benchmark
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/sat_sim/adcs/basilisk_fsw.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Current ADCS fidelity capability is deterministic local ADCS proxy; Basilisk FSW/guidance/estimator path remains
+    planned for BSK-ADCS.
+  planned_upgrade_path:
+  - BSK-ADCS-1
+  - BSK-ADCS-2
+operator:
+  owner: adcs
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: adcs
+    implementation: source_native
+    evidence_fields: &id002
+    - qoi.adcs.final_pointing_error_deg
+    verification: declared
+  - effect_id: adcs_rw_jamming
+    kind: fault
+    owner: adcs.reaction_wheel
+    implementation: source_native
+    evidence_fields: &id003
+    - adcs.rw.speed_rad_s_0
+    - adcs.control.applied_torque_nm_0
+    - label.fault_active
+    verification: declared
+  - effect_id: adcs_reaction_wheel_speed_limit
+    kind: constraint
+    owner: adcs.reaction_wheel
+    implementation: source_native
+    evidence_fields: &id004
+    - adcs.rw.effective_max_speed_rad_s_0
+    - adcs.rw.speed_saturation_flag
+    - label.constraint_active
+    verification: declared
+  - effect_id: adcs_rw_motor_failure
+    kind: fault
+    owner: adcs.reaction_wheel
+    implementation: source_native
+    evidence_fields: &id005
+    - adcs.rw.effective_max_torque_nm_0
+    - adcs.control.applied_torque_nm_0
+    - label.fault_active
+    verification: declared
+  - effect_id: adcs_gyro_bias_step
+    kind: fault
+    owner: adcs.sensor.gyro
+    implementation: source_native
+    evidence_fields: &id006
+    - adcs.sensor.gyro_bias_rad_s_0
+    - adcs.sensor.gyro_residual_rad_s_0
+    - label.fault_active
+    verification: declared
+  - effect_id: adcs_gyro_noise_increase
+    kind: degradation
+    owner: adcs.sensor.gyro
+    implementation: source_native
+    evidence_fields: &id007
+    - adcs.sensor.effective_gyro_noise_scale
+    - adcs.sensor.gyro_noise_rad_s_0
+    - label.degradation_active
+    verification: declared
+  - effect_id: adcs_rw_friction_increase
+    kind: degradation
+    owner: adcs.reaction_wheel
+    implementation: source_native
+    evidence_fields: &id008
+    - adcs.rw.effective_friction_torque_nm_0
+    - adcs.rw.effective_drag_nms_0
+    - adcs.rw.speed_rad_s_0
+    - label.degradation_active
+    verification: declared
+  - effect_id: adcs_rw_torque_authority_loss
+    kind: degradation
+    owner: adcs.reaction_wheel
+    implementation: source_native
+    evidence_fields: &id009
+    - adcs.rw.effective_max_torque_nm_0
+    - adcs.control.applied_torque_nm_0
+    - label.degradation_active
+    verification: declared
+  observability:
+    qoi:
+    - qoi.adcs.initial_pointing_error_deg
+    - qoi.adcs.final_pointing_error_deg
+    - qoi.adcs.max_pointing_error_deg
+    - qoi.adcs.min_pointing_error_deg
+    - qoi.adcs.settled_time_s
+    - qoi.adcs.convergence_ratio
+    - qoi.adcs.quaternion_norm_max_error
+    - qoi.adcs.saturation_count
+    - qoi.adcs.max_abs_rate_rad_s
+    - qoi.adcs.max_abs_wheel_speed_rad_s
+    - qoi.adcs.max_rw_power_w
+    - qoi.adcs.environment.total_torque_norm_nm
+    - qoi.adcs.sensor.dropout_count
+    - qoi.adcs.rw.max_abs_momentum_nms
+    - qoi.adcs.control.mode_trace_available
+    trace_fields:
+    - time_s
+    - adcs.attitude.q_bn_0
+    - adcs.attitude.q_bn_1
+    - adcs.attitude.q_bn_2
+    - adcs.attitude.q_bn_3
+    - adcs.attitude.quaternion_norm
+    - adcs.attitude.quaternion_norm_error
+    - adcs.pointing.error_deg
+    - adcs.pointing.error_vector_rad_0
+    - adcs.pointing.error_vector_rad_1
+    - adcs.pointing.error_vector_rad_2
+    - adcs.rate.omega_bn_b_rad_s_0
+    - adcs.rate.omega_bn_b_rad_s_1
+    - adcs.rate.omega_bn_b_rad_s_2
+    - adcs.sensor.gyro_measured_rad_s_0
+    - adcs.sensor.gyro_measured_rad_s_1
+    - adcs.sensor.gyro_measured_rad_s_2
+    - adcs.sensor.gyro_true_rad_s_0
+    - adcs.sensor.gyro_true_rad_s_1
+    - adcs.sensor.gyro_true_rad_s_2
+    - adcs.sensor.gyro_bias_rad_s_0
+    - adcs.sensor.gyro_bias_rad_s_1
+    - adcs.sensor.gyro_bias_rad_s_2
+    - adcs.sensor.gyro_noise_rad_s_0
+    - adcs.sensor.gyro_noise_rad_s_1
+    - adcs.sensor.gyro_noise_rad_s_2
+    - adcs.sensor.gyro_residual_rad_s_0
+    - adcs.sensor.gyro_residual_rad_s_1
+    - adcs.sensor.gyro_residual_rad_s_2
+    - adcs.control.command_torque_nm_0
+    - adcs.control.command_torque_nm_1
+    - adcs.control.command_torque_nm_2
+    - adcs.control.applied_torque_nm_0
+    - adcs.control.applied_torque_nm_1
+    - adcs.control.applied_torque_nm_2
+    - adcs.control.torque_saturation_flag
+    - adcs.rw.speed_rad_s_0
+    - adcs.rw.speed_rad_s_1
+    - adcs.rw.speed_rad_s_2
+    - adcs.rw.max_abs_speed_rad_s
+    - adcs.rw.speed_saturation_flag
+    - adcs.rw.saturation_flag
+    - adcs.power.rw_power_w
+    - adcs.environment.total_torque_norm_nm
+    - adcs.environment.gravity_gradient_enabled
+    - adcs.environment.magnetic_enabled
+    - adcs.environment.aerodynamic_enabled
+    - adcs.environment.srp_enabled
+    - adcs.sensor.star_tracker_noise_rad
+    - adcs.sensor.sun_sensor_noise_rad
+    - adcs.sensor.dropout_flag
+    - adcs.rw.momentum_nms_0
+    - adcs.rw.momentum_nms_1
+    - adcs.rw.momentum_nms_2
+    - adcs.rw.max_abs_momentum_nms
+    - label.fault_active
+    - label.degradation_active
+    - label.constraint_active
+    - adcs.event.active_count
+    - adcs.event.active_effects
+    - adcs.rw.effective_max_torque_nm_0
+    - adcs.rw.effective_max_torque_nm_1
+    - adcs.rw.effective_max_torque_nm_2
+    - adcs.rw.effective_max_speed_rad_s_0
+    - adcs.rw.effective_max_speed_rad_s_1
+    - adcs.rw.effective_max_speed_rad_s_2
+    - adcs.rw.effective_friction_torque_nm_0
+    - adcs.rw.effective_friction_torque_nm_1
+    - adcs.rw.effective_friction_torque_nm_2
+    - adcs.rw.effective_drag_nms_0
+    - adcs.rw.effective_drag_nms_1
+    - adcs.rw.effective_drag_nms_2
+    - adcs.sensor.effective_gyro_noise_scale
+    - adcs.rw.speed_rad_s_3
+    - adcs.rw.momentum_nms_3
+    - adcs.rw.command_torque_nm_0
+    - adcs.rw.command_torque_nm_1
+    - adcs.rw.command_torque_nm_2
+    - adcs.rw.command_torque_nm_3
+    effect_evidence:
+      nominal: *id002
+      adcs_rw_jamming: *id003
+      adcs_reaction_wheel_speed_limit: *id004
+      adcs_rw_motor_failure: *id005
+      adcs_gyro_bias_step: *id006
+      adcs_gyro_noise_increase: *id007
+      adcs_rw_friction_increase: *id008
+      adcs_rw_torque_authority_loss: *id009
+  assurance:
+    delegated_to_parameter_guard: true
+    delegated_to_claim_guard: true
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - Environmental torques are deterministic proxies, not a calibrated orbital disturbance model.
+  - Star tracker, sun sensor, and gyro are measurement proxies; no hardware calibration or detailed failure dynamics are modeled.
+  - Reaction-wheel allocation supports orthogonal-three, four-skew and symmetric four-wheel-pyramid geometry with a deterministic
+    weighted-pseudoinverse allocator; motor electronics remain proxy-only.
+  - Controller is deterministic PD/controller-mode proxy, not flight software.
+  - ADCS-2 benchmark envelopes are internal regression tolerances, not flight-data validation.

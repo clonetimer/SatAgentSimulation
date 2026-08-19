@@ -1,0 +1,51 @@
+schema_version: 0.1.0
+task_id: whole_spacecraft_unified_native_nominal
+task_type: whole_spacecraft
+description: Whole-spacecraft unified Basilisk Process/Task nominal run.
+capability_id: whole_spacecraft.unified_native.v1
+simulation:
+  duration_s: 120.0
+  step_s: 0.2
+  sample_s: 2.0
+  backend: basilisk
+target:
+  level: whole_spacecraft
+  name: whole_spacecraft
+  mode: nominal
+spacecraft:
+  mission:
+    template: whole_spacecraft.unified_native.v1
+    configuration_source: target_acceptance_template
+parameters:
+  initial_pointing_error_deg: 8.0
+  orbit_radius_m: 7000000.0
+  inclination_deg: 35.0
+  initial_soc: 0.62
+  battery_capacity_wh: 160.0
+  solar_panel_area_m2: 2.5
+  solar_efficiency: 0.28
+  payload_power_w: 38.0
+  payload_data_rate_bps: 2500000.0
+  downlink_rate_bps: 1500000.0
+  storage_capacity_bits: 6000000000.0
+faults: []
+modifiers:
+  faults: []
+  degradations: []
+  constraints: []
+assurance:
+  allow_proxy: false
+outputs:
+  output_root: runs/whole_spacecraft_unified_native_nominal
+  trace_format: csv
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+  record_fields:
+    - adcs.pointing_error_deg
+    - eps.battery_soc
+    - data.storage_bits
+    - thermal.payload_temp_k
+metadata:
+  template_source: v0.5.5.0_recommended_unified_runtime

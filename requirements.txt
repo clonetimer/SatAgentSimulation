@@ -1,0 +1,10 @@
+bsk==2.11.0+satfix1
+colorama==0.4.6
+sgp4==2.25
+numpy==2.2.6; python_version < "3.11"
+numpy==2.3.5; python_version >= "3.11"
+joblib==1.5.3
+scikit-learn==1.9.0
+pydantic==2.13.4
+PyYAML==6.0.3
+jsonschema==4.26.0

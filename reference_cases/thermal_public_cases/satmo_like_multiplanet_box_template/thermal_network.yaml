@@ -1,0 +1,185 @@
+schema_version: therm1b.thermal_network_template.v1
+template_id: satmo_like_multiplanet_box_template
+display_name: Multi-planet box-model engineering template (Mars-like default flux)
+node_topology:
+  type: six_face_internal
+  description: Seven-node box topology with lower default solar and planetary fluxes
+    for multi-planet scaling studies.
+nodes:
+  internal:
+    heat_capacity_j_k: 6200.0
+    initial_temp_c: 10.0
+    area_m2: 0.0
+    external: false
+    absorptivity: 0.6
+    emissivity: 0.82
+    radiator_multiplier: 1.0
+  +X:
+    heat_capacity_j_k: 1100.0
+    initial_temp_c: 5.0
+    area_m2: 0.015
+    external: true
+    absorptivity: 0.58
+    emissivity: 0.84
+    radiator_multiplier: 1.0
+  -X:
+    heat_capacity_j_k: 1100.0
+    initial_temp_c: 5.0
+    area_m2: 0.015
+    external: true
+    absorptivity: 0.58
+    emissivity: 0.84
+    radiator_multiplier: 2.0
+  +Y:
+    heat_capacity_j_k: 1100.0
+    initial_temp_c: 5.0
+    area_m2: 0.015
+    external: true
+    absorptivity: 0.58
+    emissivity: 0.84
+    radiator_multiplier: 1.0
+  -Y:
+    heat_capacity_j_k: 1100.0
+    initial_temp_c: 5.0
+    area_m2: 0.015
+    external: true
+    absorptivity: 0.58
+    emissivity: 0.84
+    radiator_multiplier: 1.0
+  +Z:
+    heat_capacity_j_k: 1100.0
+    initial_temp_c: 5.0
+    area_m2: 0.015
+    external: true
+    absorptivity: 0.58
+    emissivity: 0.84
+    radiator_multiplier: 1.0
+  -Z:
+    heat_capacity_j_k: 1100.0
+    initial_temp_c: 5.0
+    area_m2: 0.015
+    external: true
+    absorptivity: 0.58
+    emissivity: 0.84
+    radiator_multiplier: 1.0
+conductive_links:
+- from: internal
+  to: +X
+  conductance_w_k: 0.38
+- from: internal
+  to: -X
+  conductance_w_k: 0.38
+- from: internal
+  to: +Y
+  conductance_w_k: 0.38
+- from: internal
+  to: -Y
+  conductance_w_k: 0.38
+- from: internal
+  to: +Z
+  conductance_w_k: 0.38
+- from: internal
+  to: -Z
+  conductance_w_k: 0.38
+radiative_links:
+- from: internal
+  to: +X
+  area_m2: 0.0045
+  emissivity: 0.72
+  view_factor: 0.2
+- from: internal
+  to: -X
+  area_m2: 0.0045
+  emissivity: 0.72
+  view_factor: 0.2
+- from: internal
+  to: +Y
+  area_m2: 0.0045
+  emissivity: 0.72
+  view_factor: 0.2
+- from: internal
+  to: -Y
+  area_m2: 0.0045
+  emissivity: 0.72
+  view_factor: 0.2
+- from: internal
+  to: +Z
+  area_m2: 0.0045
+  emissivity: 0.72
+  view_factor: 0.2
+- from: internal
+  to: -Z
+  area_m2: 0.0045
+  emissivity: 0.72
+  view_factor: 0.2
+environment:
+  solar_flux_w_m2: 586.0
+  albedo_flux_w_m2: 35.0
+  earth_ir_flux_w_m2: 110.0
+  deep_space_temp_k: 3.0
+  shadow_factor: 1.0
+  eclipse_period_s: 7200.0
+  eclipse_duration_s: 1200.0
+  eclipse_start_s: 0.0
+  face_solar_exposure:
+    +X: 1.0
+    +Y: 0.2
+    -Y: 0.2
+  face_albedo_exposure:
+    -Z: 0.65
+    +X: 0.05
+  face_earth_ir_exposure:
+    -Z: 0.75
+    +X: 0.1
+    -X: 0.1
+    +Y: 0.1
+    -Y: 0.1
+attitude:
+  mode: sun_pointing
+internal_power_by_node_w:
+  internal: 10.0
+heater:
+  node: internal
+  power_w: 10.0
+  setpoint_c: 0.0
+  deadband_c: 3.0
+  control:
+    mode: threshold
+    node: internal
+    max_power_w: 10.0
+    setpoint_c: 0.0
+    deadband_c: 3.0
+limits:
+  min_temp_c_by_node:
+    internal: -80.0
+    +X: -80.0
+    -X: -80.0
+    +Y: -80.0
+    -Y: -80.0
+    +Z: -80.0
+    -Z: -80.0
+  max_temp_c_by_node:
+    internal: 90.0
+    +X: 90.0
+    -X: 90.0
+    +Y: 90.0
+    -Y: 90.0
+    +Z: 90.0
+    -Z: 90.0
+source_case:
+  claim_level: public_reference_informed_not_flight_validated
+  source_urls:
+  - https://www.nasa.gov/smallsat-institute/sst-soa/thermal-control/
+  project_sources:
+  - src/subsystems/thermal/network.py
+  - src/subsystems/thermal/templates.py
+  notes: The SATMO-like label denotes a project test pattern only; it is not a copied
+    SATMO model or validated planetary mission case.
+  flight_validated: false
+  case_name: Project-native multi-planet flux-scaling engineering example
+validation_limits:
+  node_count: 7
+  temperature_sanity_c:
+  - -150.0
+  - 160.0
+  purpose: broad numerical sanity gate only

@@ -1,0 +1,270 @@
+{
+  "$defs": {
+    "AttemptStatus": {
+      "enum": [
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+        "TIMED_OUT"
+      ],
+      "title": "AttemptStatus",
+      "type": "string"
+    },
+    "ExecutionAttempt": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "v25.execution-attempt.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "attempt_id": {
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/AttemptStatus"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finished At"
+        },
+        "elapsed_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Elapsed Seconds"
+        },
+        "plan_sha256": {
+          "title": "Plan Sha256",
+          "type": "string"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionFailure"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "artifacts": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Artifacts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "sequence",
+        "status",
+        "started_at",
+        "plan_sha256"
+      ],
+      "title": "ExecutionAttempt",
+      "type": "object"
+    },
+    "ExecutionFailure": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "failure_class": {
+          "title": "Failure Class",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "exception_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exception Type"
+        },
+        "traceback_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Traceback File"
+        }
+      },
+      "required": [
+        "reason_code",
+        "failure_class",
+        "message",
+        "retryable"
+      ],
+      "title": "ExecutionFailure",
+      "type": "object"
+    },
+    "RunStatus": {
+      "enum": [
+        "PREPARED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    },
+    "ValidationResult": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INCONCLUSIVE",
+        "NOT_EVALUATED"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v25.run-record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "title": "Updated At",
+      "type": "string"
+    },
+    "canonical_task_spec_sha256": {
+      "title": "Canonical Task Spec Sha256",
+      "type": "string"
+    },
+    "resolved_spec_sha256": {
+      "title": "Resolved Spec Sha256",
+      "type": "string"
+    },
+    "execution_plan_sha256": {
+      "title": "Execution Plan Sha256",
+      "type": "string"
+    },
+    "attempts": {
+      "items": {
+        "$ref": "#/$defs/ExecutionAttempt"
+      },
+      "title": "Attempts",
+      "type": "array"
+    },
+    "validation_result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "terminal_reason_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Terminal Reason Code"
+    },
+    "supersedes_run_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes Run Id"
+    },
+    "sealed": {
+      "default": false,
+      "title": "Sealed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "run_id",
+    "task_id",
+    "status",
+    "created_at",
+    "updated_at",
+    "canonical_task_spec_sha256",
+    "resolved_spec_sha256",
+    "execution_plan_sha256"
+  ],
+  "title": "Satellite Simulation RunRecord V25",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/run-record-v25.schema.json"
+}

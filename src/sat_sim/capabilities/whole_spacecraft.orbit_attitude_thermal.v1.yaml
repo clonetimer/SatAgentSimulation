@@ -1,0 +1,200 @@
+capability_id: whole_spacecraft.orbit_attitude_thermal.v1
+schema_version: 0.1.0
+name: Whole-spacecraft orbit-attitude-thermal reduced-order coupling
+level: whole_spacecraft
+domain: whole_spacecraft
+target: orbit_attitude_thermal
+trust_level: benchmark_gated
+status: therm1c_control_policy_coupled_candidate
+summary: Integration-layer capability that converts orbit, attitude, eclipse, power, mission-mode, and optional heater-control
+  policy inputs into thermal boundary conditions before delegating to subsystem.thermal_reduced_order.v1.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_orbit_attitude_thermal.WholeSpacecraftOrbitAttitudeThermalAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.coupled.orbit_attitude_thermal
+  - sat_sim.adapters.whole_spacecraft_orbit_attitude_thermal
+  - subsystems.thermal.templates
+  - subsystems.thermal.network
+  basilisk_required: false
+  thermal_desktop_required: false
+  uses_legacy_runner: false
+backend_type: orchestration_wrapper
+fidelity_level: reduced_order_coupled
+can_claim_high_fidelity: false
+validation_basis:
+- conformance_tests
+- internal_benchmark
+- public_reference_informed_templates
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+dependencies:
+- capability_id: subsystem.thermal_reduced_order.v1
+  role: child
+  alias: thermal_network
+  required: true
+parameters:
+  thermal.template_id:
+    type: string
+    required: false
+    default: cubesat_7node_box_template
+    allowed:
+    - nasa_single_node_leo_baseline
+    - cubesat_7node_box_template
+    - satmo_like_multiplanet_box_template
+  attitude.mode:
+    type: string
+    required: false
+    default: sun_pointing
+  power.bus_load_power_w:
+    type: number
+    unit: W
+    required: false
+  power.payload_load_power_w:
+    type: number
+    unit: W
+    required: false
+  power.adcs_load_power_w:
+    type: number
+    unit: W
+    required: false
+  power.comm_load_power_w:
+    type: number
+    unit: W
+    required: false
+  thermal.heater_control.mode:
+    type: string
+    required: false
+    default: threshold
+    allowed:
+    - threshold
+    - hysteresis
+    - pid
+  thermal.heater_control.kp_w_per_c:
+    type: number
+    required: false
+    min: 0.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: orbit_environment.altitude_m
+  unit: m
+- name: orbit_environment.eclipse_duration_s
+  unit: s
+- name: parameters.attitude.mode
+  unit: none
+- name: parameters.power.*
+  unit: W
+- name: parameters.thermal.template_id
+  unit: none
+produces:
+- name: thermal.node.*.temp_c
+- name: thermal.heater.power_w
+- name: thermal.radiator.total_reject_w
+- name: qoi.spacecraft.thermal.*
+composition:
+  chain:
+  - capability_id: whole_spacecraft.orbit_attitude_thermal.v1
+    role: parent
+  - capability_id: subsystem.thermal_reduced_order.v1
+    role: child
+    alias: thermal_network
+  field_mappings:
+  - source: orbit_environment.eclipse_duration_s
+    target: thermal.parameters.environment.eclipse_duration_s
+    description: Orbit/eclipse context defines solar shadowing for the thermal network.
+  - source: parameters.attitude.mode
+    target: thermal.parameters.environment.face_*_exposure
+    description: Attitude mode defines reduced-order face exposure maps.
+  - source: parameters.power.*
+    target: thermal.parameters.internal_power_by_node_w
+    description: Electrical loads are converted into thermal internal heat sources.
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: thermal.node.internal.temp_c
+    unit: degC
+    dtype: number
+  - name: thermal.heater.power_w
+    unit: W
+    dtype: number
+  - name: thermal.radiator.total_reject_w
+    unit: W
+    dtype: number
+  summary:
+  - name: qoi.spacecraft.thermal.final_internal_temp_c
+    unit: degC
+  - name: qoi.spacecraft.thermal.heater_energy_wh
+    unit: Wh
+  - name: qoi.spacecraft.thermal.max_internal_temp_c
+    unit: degC
+  - name: qoi.spacecraft.thermal.control_mode
+    unit: none
+  - name: qoi.spacecraft.thermal.heater_duty_cycle
+    unit: ratio
+  - name: qoi.spacecraft.thermal.heater_saturation_count
+    unit: count
+validation:
+  conformance_tests:
+  - tests.test_thermal_template_cases_therm1b
+  - tests.test_whole_spacecraft_orbit_attitude_thermal_therm1b
+  - tests.test_thermal_control_policy_therm1c
+  benchmark:
+    runner: scripts/run_thermal_template_benchmark.py
+    report_dir: reports/thermal_template_benchmark
+    control_runner: scripts/run_thermal_control_benchmark.py
+    control_report_dir: reports/thermal_control_benchmark
+claim_guardrail: Integration-layer reduced-order thermal coupling only. The thermal model is public-reference-informed and
+  must not be claimed as flight validated, Thermal Desktop/ESATAN equivalent, or high-fidelity package readiness.
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  validation_basis:
+  - conformance_tests
+  - internal_benchmark
+  - public_reference_informed_templates
+  can_claim_high_fidelity: false
+  claim_guardrail: Keep thermal model in subsystem layer and cross-subsystem coupling in integration layer; do not claim flight
+    validation without correlated data.
+  planned_upgrade_path:
+  - THERM-1B public-case-compatible thermal templates
+  - THERM-1C thermal control policy upgrade
+  bsk0_notes: THERM-1B integration wrapper; it composes orbit/attitude/power inputs and delegates thermal solving to subsystem.thermal_reduced_order.v1.
+    It is not Basilisk-native and not flight validated.
+known_physics_limits:
+- Reduced-order thermal boundary-condition coupling, not high-fidelity orbital heat-flux geometry.
+- Delegates to a local thermal-network proxy rather than a finite-element or commercial thermal solver.
+- Public templates contain assumptions and broad sanity envelopes only.
+- Whole-spacecraft wrapper passes heater-control policy to the reduced-order thermal child; it does not implement flight FSW
+  thermal control.
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - Reduced-order thermal boundary-condition coupling, not high-fidelity orbital heat-flux geometry.
+  - Delegates to a local thermal-network proxy rather than a finite-element or commercial thermal solver.
+  - Public templates contain assumptions and broad sanity envelopes only.
+  - Whole-spacecraft wrapper passes heater-control policy to the reduced-order thermal child; it does not implement flight
+    FSW thermal control.

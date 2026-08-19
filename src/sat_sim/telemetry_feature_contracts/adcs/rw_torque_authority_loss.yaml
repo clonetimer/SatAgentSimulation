@@ -1,0 +1,100 @@
+schema_version: sat-sim.telemetry-feature-contract.v1
+contract_id: adcs.rw_torque_authority_loss.features.v1
+fault_id: ADCS_RW_TORQUE_AUTHORITY_LOSS
+mechanism_id: adcs.rw_torque_authority_loss.mechanism.v1
+status: active_provisional
+telemetry_profile: astrograph-rw-temporal-basilisk-5ch.v2
+raw_features:
+- feature_id: rw_speed
+  channel: sensor.adcs.rw.speed_rad_s_0
+  unit: rad/s
+  dtype: number
+  evidence_role: observable_telemetry
+  model_input_eligible: true
+  rationale: Direct wheel-speed telemetry.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: rw_actual_torque
+  channel: estimate.adcs.rw.actual_torque_nm_0
+  unit: N*m
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: true
+  rationale: Delivered torque estimate.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: pointing_error
+  channel: estimate.adcs.pointing_error_deg
+  unit: deg
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: true
+  rationale: Attitude-control response.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: max_torque_truth
+  channel: estimate.adcs.rw.effective_max_torque_nm_0
+  unit: N*m
+  dtype: number
+  evidence_role: simulator_truth
+  model_input_eligible: false
+  rationale: Injected authority truth only.
+  availability: available
+  required_for_formal_model_input: false
+- feature_id: rw_command_torque
+  channel: command.adcs.rw.motor_torque_nm_0
+  unit: N*m
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: true
+  availability: available
+  required_for_formal_model_input: true
+  rationale: Native Basilisk FSW reaction-wheel motor torque command from rwMotorTorqueOutMsg;
+    used for command-versus-delivered residuals.
+- feature_id: rw_motor_current
+  channel: sensor.adcs.rw.motor_current_a_0
+  unit: A
+  dtype: number
+  evidence_role: observable_telemetry
+  model_input_eligible: true
+  availability: available
+  required_for_formal_model_input: true
+  rationale: Signed motor current derived from native command torque by I=tau/Kt under
+    the explicit actuator contract.
+derived_features:
+- feature_id: actual_torque_paired_rms
+  inputs:
+  - rw_actual_torque
+  transformation: paired_rms_residual_over_post_fault_window
+  leakage_safe: true
+  model_input_eligible: true
+  status: provisional
+  unit: N*m
+- feature_id: rw_speed_paired_rms
+  inputs:
+  - rw_speed
+  transformation: paired_rms_residual_over_post_fault_window
+  leakage_safe: true
+  model_input_eligible: true
+  status: provisional
+  unit: rad/s
+label_policy:
+  label_source: experiment_record.ground_truth
+  onset_source: fault_injection.start_s
+  simulator_truth_excluded_from_model_inputs: true
+split_policy:
+  group_key: pair_id
+  independence_keys:
+  - random_seed
+  - initial_state_id
+  - severity_band
+  paired_fault_nominal_must_share_split: true
+missing_data_policy:
+  required_raw_feature_action: reject_case
+  optional_feature_action: mask_and_record
+  imputation_requires_training_only_fit: true
+claim_boundary:
+  thresholds_provisional: true
+  formal_training_requires_a_level_basilisk_and_named_expert_review: true
+  astrograph_interface_ready: true
+  missing_required_model_channels: []

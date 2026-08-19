@@ -1,0 +1,48 @@
+task:
+  id: whole_spacecraft_unified_native_propulsion
+  name: 整星统一运行图推进耦合示例
+  description: 在推荐整星统一运行图中执行受电量和安全模式约束的推进点火。
+task_type: whole_spacecraft
+capability_id: whole_spacecraft.unified_native.v1
+model:
+  capability_id: whole_spacecraft.unified_native.v1
+  target:
+    level: whole_spacecraft
+    name: whole_spacecraft
+simulation:
+  level: whole_spacecraft
+  backend: basilisk
+  duration_s: 120.0
+  step_s: 0.2
+  sample_s: 2.0
+spacecraft:
+  mission:
+    template: whole_spacecraft.unified_native.v1
+parameters:
+  values:
+    initial_pointing_error_deg: 8.0
+    initial_soc: 0.62
+    propulsion_enabled: true
+    propulsion_burn_start_s: 20.0
+    propulsion_burn_on_time_s: 4.0
+    propulsion_thrust_n: 1.0
+    propulsion_isp_s: 200.0
+    propulsion_initial_propellant_kg: 1.0
+    propulsion_tank_capacity_kg: 2.0
+    propulsion_min_burn_soc: 0.3
+outputs:
+  qoi:
+    - adcs.pointing_error_deg
+    - eps.battery_soc
+    - propulsion.fuel_mass_kg
+    - propulsion.total_thrust_n
+    - orbit.radius_m
+  plots:
+    - adcs.pointing_error_deg
+    - eps.battery_soc
+    - propulsion.fuel_mass_kg
+    - propulsion.total_thrust_n
+    - orbit.radius_m
+assurance:
+  allow_proxy: false
+  requested_claim_level: analysis_only

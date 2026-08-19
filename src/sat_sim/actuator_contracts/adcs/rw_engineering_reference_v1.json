@@ -1,0 +1,35 @@
+{
+  "schema_version": "sat-sim.rw-actuator-telemetry-contract.v1",
+  "contract_id": "adcs.rw.engineering_reference.v1",
+  "status": "frozen_engineering_simulation_baseline",
+  "command_torque": {
+    "source_module": "Basilisk.fswAlgorithms.rwMotorTorque",
+    "source_message": "rwMotorTorqueOutMsg",
+    "target_channel": "command.adcs.rw.motor_torque_nm_0",
+    "unit": "N*m",
+    "sampling_semantics": "recorded on the same telemetry sampling grid as applied torque and wheel speed"
+  },
+  "motor_current": {
+    "target_channel": "sensor.adcs.rw.motor_current_a_0",
+    "formula": "I_A = tau_command_Nm / Kt_Nm_per_A",
+    "sign_semantics": "signed current follows signed wheel torque command",
+    "saturation_semantics": "clip to [-current_limit_a, +current_limit_a] after division",
+    "bias_a": 0.0,
+    "noise_std_a": 0.0
+  },
+  "parameters": {
+    "wheel_inertia_kg_m2": 0.015,
+    "motor_torque_constant_nm_per_a": 0.02,
+    "current_limit_a": 10.0,
+    "parameter_status": "project engineering reference; not flight hardware truth"
+  },
+  "formal_use": {
+    "named_expert_freeze_required": false,
+    "approval_scope": "engineering_simulation_only",
+    "approval_reference": "project_user_instruction_2026-07-29",
+    "approved_by_id": "project_user",
+    "flight_validated": false,
+    "hardware_representative": false,
+    "note": "Approved as an engineering simulation baseline only. These values are not real-wheel, flight-hardware or hardware-calibrated truth."
+  }
+}

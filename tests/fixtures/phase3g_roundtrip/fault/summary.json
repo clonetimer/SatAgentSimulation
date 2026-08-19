@@ -1,0 +1,499 @@
+{
+  "schema_version": "adcs1.adcs_fidelity.v1",
+  "fidelity_level": "medium",
+  "model_family": "orbit_adcs_fidelity_candidate_adcs_proxy",
+  "can_claim_high_fidelity": false,
+  "reason_high_fidelity_still_blocked": "ADCS-1 adds environmental torque, sensor, actuator, and controller-mode proxies plus ADCS-2 benchmark envelopes, but it is not calibrated FSW or sensor/actuator hardware physics.",
+  "qoi": {
+    "adcs.initial_pointing_error_deg": 15.148732,
+    "adcs.final_pointing_error_deg": 10.056129354476013,
+    "adcs.max_pointing_error_deg": 15.148732,
+    "adcs.min_pointing_error_deg": 10.056129354476013,
+    "adcs.settled_time_s": null,
+    "adcs.convergence_ratio": 0.6638264743528378,
+    "adcs.quaternion_norm_max_error": 1.1102230246251565e-16,
+    "adcs.saturation_count": 6,
+    "adcs.max_abs_rate_rad_s": 0.01838323193077122,
+    "adcs.max_abs_wheel_speed_rad_s": 110.49098763496315,
+    "adcs.max_rw_power_w": 8.915915380532459,
+    "adcs.environment.total_torque_norm_nm": 2.4400204917172318e-06,
+    "adcs.sensor.dropout_count": 0,
+    "adcs.rw.max_abs_momentum_nms": 8.839279010797052,
+    "adcs.control.mode_trace_available": 1.0
+  },
+  "validation_preview": {
+    "quaternion_norm_within_1e-9": true,
+    "pointing_error_reduced": true,
+    "wheel_speed_within_limit": true,
+    "validation_gate_status": "preview_only_pending_HF8_physical_validation_gates"
+  },
+  "known_physics_limits": [
+    "Environmental torques are deterministic proxies, not a calibrated orbital disturbance model.",
+    "Star tracker, sun sensor, and gyro are measurement proxies; no hardware calibration or detailed failure dynamics are modeled.",
+    "Reaction-wheel allocation is a proxy and does not model motor electronics or a full wheel geometry matrix.",
+    "Controller is still a deterministic PD/controller-mode proxy, not flight software.",
+    "ADCS-2 benchmark envelopes are internal regression tolerances, not flight-data validation."
+  ],
+  "config": {
+    "schema_version": "hf4.adcs_closed_loop.basic.v1",
+    "epoch_utc": "2000-01-01T12:00:00Z",
+    "duration_s": 8.0,
+    "sample_s": 1.0,
+    "integration_step_s": 0.2,
+    "solver_method": "euler",
+    "inertia_kg_m2": [
+      12.0,
+      10.0,
+      8.0
+    ],
+    "initial_quaternion_body_to_ref": [
+      0.9912746122512593,
+      0.0,
+      0.0,
+      0.1318129094820216
+    ],
+    "target_quaternion_body_to_ref": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "initial_rate_rad_s": [
+      0.0004709280548986888,
+      0.0008377700837291169,
+      0.0016675975230982581
+    ],
+    "target_mode": "inertial",
+    "target_reference_vector": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "control_kp_nm_per_rad": 0.12736152,
+    "control_kd_nm_per_rad_s": 0.91881453,
+    "pointing_requirement_deg": 1.0,
+    "disturbance_torque_nm": [
+      0.0,
+      -2.4400000000000004e-06,
+      -1e-08
+    ],
+    "gyro_bias_rad_s": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "gyro_noise_std_rad_s": 3.215353758437577e-05,
+    "sun_sensor_noise_rad": 0.0,
+    "star_tracker_available": true,
+    "sun_sensor_available": true,
+    "reaction_wheels": {
+      "num_wheels": 3,
+      "configuration": "orthogonal_3",
+      "allocation_method": "weighted_pseudoinverse",
+      "wheel_inertia_kg_m2": 0.08,
+      "max_torque_nm": 0.05,
+      "max_speed_rad_s": 900.0,
+      "idle_power_w": 2.0,
+      "power_per_torque_w": 80.0,
+      "axes_body": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "axis_mapping": "explicit_body_frame_spin_axis_matrix"
+    },
+    "initial_wheel_speed_rad_s": [
+      88.861444,
+      71.6856,
+      108.48713
+    ]
+  },
+  "adcs1_fidelity": {
+    "schema_version": "adcs1.adcs_fidelity.v1",
+    "closed_loop": {
+      "schema_version": "hf4.adcs_closed_loop.basic.v1",
+      "epoch_utc": "2000-01-01T12:00:00Z",
+      "duration_s": 8.0,
+      "sample_s": 1.0,
+      "integration_step_s": 0.2,
+      "solver_method": "euler",
+      "inertia_kg_m2": [
+        12.0,
+        10.0,
+        8.0
+      ],
+      "initial_quaternion_body_to_ref": [
+        0.9912746122512593,
+        0.0,
+        0.0,
+        0.1318129094820216
+      ],
+      "target_quaternion_body_to_ref": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "initial_rate_rad_s": [
+        0.0004709280548986888,
+        0.0008377700837291169,
+        0.0016675975230982581
+      ],
+      "target_mode": "inertial",
+      "target_reference_vector": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "control_kp_nm_per_rad": 0.12736152,
+      "control_kd_nm_per_rad_s": 0.91881453,
+      "pointing_requirement_deg": 1.0,
+      "disturbance_torque_nm": [
+        0.0,
+        -2.4400000000000004e-06,
+        -1e-08
+      ],
+      "gyro_bias_rad_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "gyro_noise_std_rad_s": 3.215353758437577e-05,
+      "sun_sensor_noise_rad": 0.0,
+      "star_tracker_available": true,
+      "sun_sensor_available": true,
+      "reaction_wheels": {
+        "num_wheels": 3,
+        "configuration": "orthogonal_3",
+        "allocation_method": "weighted_pseudoinverse",
+        "wheel_inertia_kg_m2": 0.08,
+        "max_torque_nm": 0.05,
+        "max_speed_rad_s": 900.0,
+        "idle_power_w": 2.0,
+        "power_per_torque_w": 80.0,
+        "axes_body": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "axis_mapping": "explicit_body_frame_spin_axis_matrix"
+      },
+      "initial_wheel_speed_rad_s": [
+        88.861444,
+        71.6856,
+        108.48713
+      ]
+    },
+    "environment_torques": {
+      "enabled": {
+        "gravity_gradient": true,
+        "magnetic": true,
+        "aerodynamic": false,
+        "srp": false
+      },
+      "components_nm": {
+        "gravity_gradient": [
+          0.0,
+          -4e-08,
+          -1e-08
+        ],
+        "magnetic": [
+          0.0,
+          -2.4000000000000003e-06,
+          0.0
+        ],
+        "aerodynamic": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "srp": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "total_nm": [
+        0.0,
+        -2.4400000000000004e-06,
+        -1e-08
+      ],
+      "total_norm_nm": 2.4400204917172318e-06,
+      "proxy_model": "constant_body_disturbance_torque_from_environment_terms"
+    },
+    "sensors": {
+      "gyro_bias_rad_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "gyro_noise_std_rad_s": 3.215353758437577e-05,
+      "star_tracker_noise_rad": 3.490658503988659e-05,
+      "sun_sensor_noise_rad": 0.003490658503988659,
+      "dropout_start_s": null,
+      "dropout_duration_s": 0.0
+    },
+    "wheel_configuration": "orthogonal_3",
+    "wheel_allocation_method": "weighted_pseudoinverse"
+  },
+  "task_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+  "case_id": "case_000",
+  "capability_id": "subsystem.adcs_fidelity.v1",
+  "target_level": "subsystem",
+  "target_name": "adcs_fidelity",
+  "status": "complete",
+  "trace_rows": 9,
+  "events": {
+    "fault_count": 1,
+    "degradation_count": 0,
+    "constraint_count": 0,
+    "active_sample_count": 6,
+    "applied_by_adapter": true,
+    "applied_modifiers": {
+      "schema_version": "c7.scenario_modifiers.v1",
+      "count": 1,
+      "fault_count": 1,
+      "degradation_count": 0,
+      "constraint_count": 0,
+      "modifiers": [
+        {
+          "modifier_id": "adcs_rw_jam_1",
+          "kind": "fault",
+          "target": "adcs.reaction_wheel.1",
+          "modifier_type": "adcs_rw_jamming",
+          "onset_time_s": 2.167059,
+          "duration_s": -1.0,
+          "severity": 1.0,
+          "scale": null,
+          "parameters": {
+            "wheel_index": 1
+          },
+          "schema_version": "c7.scenario_modifiers.v1",
+          "end_time_s": null
+        }
+      ],
+      "runnable_capability": false,
+      "active_sample_count": 6
+    }
+  },
+  "modifier_count": 1,
+  "fault_modifier_count": 1,
+  "degradation_modifier_count": 0,
+  "constraint_modifier_count": 0,
+  "adapter_labels": {
+    "run_labels": [
+      {
+        "task_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+        "capability_id": "subsystem.adcs_fidelity.v1",
+        "fidelity_level": "medium",
+        "mode": "fault"
+      }
+    ],
+    "event_labels": [
+      {
+        "effect": "adcs_rw_jamming",
+        "event_type": "fault",
+        "target": "adcs.reaction_wheel.1",
+        "start_s": 2.167059
+      }
+    ]
+  },
+  "adapter_metadata": {
+    "capability_id": "subsystem.adcs_fidelity.v1",
+    "adcs1_fidelity": {
+      "schema_version": "adcs1.adcs_fidelity.v1",
+      "route_version": "ADCS-1",
+      "capability_id": "subsystem.adcs_fidelity.v1",
+      "status": "implemented_adcs_fidelity_proxy_not_high_fidelity",
+      "fidelity_level": "medium",
+      "can_claim_high_fidelity": false,
+      "implemented_model_features": [
+        "environmental torque proxies: gravity-gradient, magnetic, aerodynamic, SRP",
+        "gyro bias/noise and sensor dropout metadata",
+        "star-tracker and sun-sensor measurement proxy metadata",
+        "reaction-wheel momentum and allocation proxy trace",
+        "controller mode trace and pointing target frame contract"
+      ],
+      "foundation_dependencies": [
+        "HF-1 time grid",
+        "HF-2 attitude state/frame/solver",
+        "HF-4 closed-loop propagation",
+        "HF-8 physical validation gates",
+        "HF-9 benchmark reporting pattern"
+      ],
+      "known_physics_limits": [
+        "Environmental torques are deterministic proxies, not a calibrated orbital disturbance model.",
+        "Star tracker, sun sensor, and gyro are measurement proxies; no hardware calibration or detailed failure dynamics are modeled.",
+        "Reaction-wheel allocation is a proxy and does not model motor electronics or a full wheel geometry matrix.",
+        "Controller is still a deterministic PD/controller-mode proxy, not flight software.",
+        "ADCS-2 benchmark envelopes are internal regression tolerances, not flight-data validation."
+      ],
+      "config": {
+        "schema_version": "adcs1.adcs_fidelity.v1",
+        "closed_loop": {
+          "schema_version": "hf4.adcs_closed_loop.basic.v1",
+          "epoch_utc": "2000-01-01T12:00:00Z",
+          "duration_s": 8.0,
+          "sample_s": 1.0,
+          "integration_step_s": 0.2,
+          "solver_method": "euler",
+          "inertia_kg_m2": [
+            12.0,
+            10.0,
+            8.0
+          ],
+          "initial_quaternion_body_to_ref": [
+            0.9912746122512593,
+            0.0,
+            0.0,
+            0.1318129094820216
+          ],
+          "target_quaternion_body_to_ref": [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "initial_rate_rad_s": [
+            0.0004709280548986888,
+            0.0008377700837291169,
+            0.0016675975230982581
+          ],
+          "target_mode": "inertial",
+          "target_reference_vector": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "control_kp_nm_per_rad": 0.12736152,
+          "control_kd_nm_per_rad_s": 0.91881453,
+          "pointing_requirement_deg": 1.0,
+          "disturbance_torque_nm": [
+            0.0,
+            -2.4400000000000004e-06,
+            -1e-08
+          ],
+          "gyro_bias_rad_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "gyro_noise_std_rad_s": 3.215353758437577e-05,
+          "sun_sensor_noise_rad": 0.0,
+          "star_tracker_available": true,
+          "sun_sensor_available": true,
+          "reaction_wheels": {
+            "num_wheels": 3,
+            "configuration": "orthogonal_3",
+            "allocation_method": "weighted_pseudoinverse",
+            "wheel_inertia_kg_m2": 0.08,
+            "max_torque_nm": 0.05,
+            "max_speed_rad_s": 900.0,
+            "idle_power_w": 2.0,
+            "power_per_torque_w": 80.0,
+            "axes_body": [
+              [
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "axis_mapping": "explicit_body_frame_spin_axis_matrix"
+          },
+          "initial_wheel_speed_rad_s": [
+            88.861444,
+            71.6856,
+            108.48713
+          ]
+        },
+        "environment_torques": {
+          "enabled": {
+            "gravity_gradient": true,
+            "magnetic": true,
+            "aerodynamic": false,
+            "srp": false
+          },
+          "components_nm": {
+            "gravity_gradient": [
+              0.0,
+              -4e-08,
+              -1e-08
+            ],
+            "magnetic": [
+              0.0,
+              -2.4000000000000003e-06,
+              0.0
+            ],
+            "aerodynamic": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "srp": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "total_nm": [
+            0.0,
+            -2.4400000000000004e-06,
+            -1e-08
+          ],
+          "total_norm_nm": 2.4400204917172318e-06,
+          "proxy_model": "constant_body_disturbance_torque_from_environment_terms"
+        },
+        "sensors": {
+          "gyro_bias_rad_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "gyro_noise_std_rad_s": 3.215353758437577e-05,
+          "star_tracker_noise_rad": 3.490658503988659e-05,
+          "sun_sensor_noise_rad": 0.003490658503988659,
+          "dropout_start_s": null,
+          "dropout_duration_s": 0.0
+        },
+        "wheel_configuration": "orthogonal_3",
+        "wheel_allocation_method": "weighted_pseudoinverse"
+      }
+    },
+    "schema_version": "adcs1.adcs_fidelity.v1",
+    "modifiers_applied_by_adapter": true
+  }
+}

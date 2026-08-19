@@ -1,0 +1,203 @@
+capability_id: component.link_budget.v1
+schema_version: 0.1.0
+name: Link Budget component simulation
+level: component
+domain: communication
+target: link_budget
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native link budget capability using components.link_budget.builder compute_link_budget.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.LinkBudgetAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - components.link_budget.builder
+  - components.link_budget.model
+  legacy_demo_runner: components.link_budget.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [jamming, fade, antenna_mispointing]
+  degradation:
+    supported: true
+    degradation_types: [margin_erosion, noise_figure_growth]
+parameters:
+  raw_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 1000.0
+    min: 0.0
+  tx_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 1.0
+    min: 0.0
+  tx_gain_dbi:
+    type: number
+    unit: dBi
+    required: false
+    default: 0.0
+  rx_gain_dbi:
+    type: number
+    unit: dBi
+    required: false
+    default: 0.0
+  misc_loss_db:
+    type: number
+    unit: dB
+    required: false
+    default: 0.0
+  freq_hz:
+    type: number
+    unit: Hz
+    required: false
+    default: 2200000000.0
+    min: 0.0
+  noise_temp_k:
+    type: number
+    unit: K
+    required: false
+    default: 500.0
+    min: 0.0
+  downlink_eff:
+    type: number
+    unit: ratio
+    required: false
+    default: 1.0
+    min: 0.0
+  slant_range_m:
+    type: number
+    unit: m
+    required: false
+    default: 1000000.0
+    min: 0.0
+  slant_range_profile_m:
+    type: array[number]
+    unit: m
+    required: false
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.raw_rate_bps
+  unit: bit/s
+- name: parameters.tx_power_w
+  unit: W
+- name: parameters.tx_gain_dbi
+  unit: dBi
+- name: parameters.rx_gain_dbi
+  unit: dBi
+- name: parameters.misc_loss_db
+  unit: dB
+- name: parameters.freq_hz
+  unit: Hz
+- name: parameters.noise_temp_k
+  unit: K
+- name: parameters.downlink_eff
+  unit: ratio
+- name: parameters.slant_range_m
+  unit: m
+produces:
+- name: communication.link_budget.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c2c3_link_budget_parameter_effect_and_manifest
+  - test_c2c3_link_budget_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c2c3_new_source_native_adapter
+  primary_module: components.link_budget.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_link_budget_config
+  - compute_link_budget
+  legacy_demo_runner: components.link_budget.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing pure-Python component builder/model
+    API.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+operator:
+  owner: link_budget
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: link_budget, implementation: source_native, evidence_fields: [comm.link_budget.effective_rate_bps], verification: declared}
+  - {effect_id: jamming, kind: fault, owner: link_budget, implementation: source_native, evidence_fields: [comm.link_budget.effective_misc_loss_db, label.fault_active], verification: declared}
+  - {effect_id: fade, kind: fault, owner: link_budget, implementation: source_native, evidence_fields: [comm.link_budget.ebn0_db, label.fault_active], verification: declared}
+  - {effect_id: antenna_mispointing, kind: fault, owner: link_budget, implementation: source_native, evidence_fields: [comm.link_budget.effective_misc_loss_db, label.fault_active], verification: declared}
+  - {effect_id: margin_erosion, kind: degradation, owner: link_budget, implementation: source_native, evidence_fields: [comm.link_budget.effective_misc_loss_db, label.degradation_active], verification: declared}
+  - {effect_id: noise_figure_growth, kind: degradation, owner: link_budget, implementation: source_native, evidence_fields: [comm.link_budget.effective_noise_temp_k, label.degradation_active], verification: declared}
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/link_budget/builder.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

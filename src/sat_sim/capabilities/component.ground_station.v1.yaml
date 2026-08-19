@@ -1,0 +1,183 @@
+capability_id: component.ground_station.v1
+schema_version: 0.1.0
+name: Ground Station component simulation
+level: component
+domain: communication
+target: ground_station
+trust_level: conformance_tested
+status: agent_ready
+summary: Source-native ground station access capability using components.ground_station.builder compute_ground_access.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.GroundStationAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - components.ground_station.builder
+  - components.ground_station.model
+  legacy_demo_runner: components.ground_station.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [tracking_loss, weather_fade, receiver_outage]
+  degradation:
+    supported: true
+    degradation_types: [gover_tdrift, pointing_accuracy_drift]
+parameters:
+  min_elevation_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 5.0
+    min: 0.0
+  max_range_m:
+    type: number
+    unit: m
+    required: false
+    default: 2000000.0
+    min: 0.0
+  ground_lat_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  ground_lon_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  ground_alt_m:
+    type: number
+    unit: m
+    required: false
+    default: 0.0
+    min: 0.0
+  spacecraft_radius_m:
+    type: number
+    unit: m
+    required: false
+    default: 6871000.0
+    min: 0.0
+  phase0_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.min_elevation_deg
+  unit: deg
+- name: parameters.max_range_m
+  unit: m
+- name: parameters.ground_lat_deg
+  unit: deg
+- name: parameters.ground_lon_deg
+  unit: deg
+- name: parameters.ground_alt_m
+  unit: m
+- name: parameters.spacecraft_radius_m
+  unit: m
+- name: parameters.phase0_deg
+  unit: deg
+produces:
+- name: communication.ground_station.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c2c3_ground_station_parameter_effect_and_manifest
+  - test_c2c3_ground_station_capability_python_export_runs
+operator:
+  owner: ground_station
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: ground_station, implementation: source_native, evidence_fields: [ground_station.has_access], verification: declared}
+  - {effect_id: tracking_loss, kind: fault, owner: ground_station, implementation: source_native, evidence_fields: [ground_station.has_access], verification: declared}
+  - {effect_id: weather_fade, kind: fault, owner: ground_station, implementation: source_native, evidence_fields: [ground_station.max_range_m], verification: declared}
+  - {effect_id: receiver_outage, kind: fault, owner: ground_station, implementation: source_native, evidence_fields: [ground_station.has_access], verification: declared}
+  - {effect_id: gover_tdrift, kind: degradation, owner: ground_station, implementation: source_native, evidence_fields: [ground_station.max_range_m], verification: declared}
+  - {effect_id: pointing_accuracy_drift, kind: degradation, owner: ground_station, implementation: source_native, evidence_fields: [ground_station.min_elevation_deg], verification: declared}
+source_binding:
+  mode: source_native
+  status: c2c3_new_source_native_adapter
+  primary_module: components.ground_station.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_ground_station_config
+  - compute_ground_access
+  legacy_demo_runner: components.ground_station.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing pure-Python component builder/model
+    API.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability; coupled pass analysis still uses orbit and communication capabilities.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/ground_station/builder.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

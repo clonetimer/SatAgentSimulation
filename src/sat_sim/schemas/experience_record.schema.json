@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sat-sim.local/schemas/experience_record.schema.json",
+  "title": "Satellite Simulation Experience Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "experience_id", "created_at", "scope",
+    "request_sha256", "validation_result", "initial_trust_level", "record_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "sat-sim.experience-record.v1"},
+    "experience_id": {"type": "string", "pattern": "^exp_[0-9a-f]{24}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "observed_at_start": {"type": ["string", "null"], "format": "date-time"},
+    "observed_at_end": {"type": ["string", "null"], "format": "date-time"},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenant_id", "project_id"],
+      "properties": {
+        "tenant_id": {"type": "string", "minLength": 1},
+        "project_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "request_sha256": {"$ref": "#/$defs/sha256"},
+    "artifact_hashes": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sha256"}},
+    "task_spec_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "dag_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "execution_plan_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "script_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "run_bundle_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "model_identity": {"type": "object"},
+    "tool_calls": {"type": "array", "items": {"type": "object"}},
+    "retry_count": {"type": "integer", "minimum": 0},
+    "errors": {"type": "array", "items": {"type": "object"}},
+    "capability_ids": {"type": "array", "items": {"type": "string"}},
+    "modes": {"type": "array", "items": {"type": "string"}},
+    "effects": {"type": "array", "items": {"type": "string"}},
+    "parameter_ranges": {"type": "object"},
+    "environment_tags": {"type": "array", "items": {"type": "string"}},
+    "validation_result": {"type": "string"},
+    "feedback": {"type": "object"},
+    "attribution": {"type": "object"},
+    "source_experience_ids": {"type": "array", "items": {"type": "string"}},
+    "security_labels": {"type": "array", "items": {"type": "string"}},
+    "sensitive_digest": {"$ref": "#/$defs/nullable_sha256"},
+    "retention_until": {"type": ["string", "null"], "format": "date-time"},
+    "initial_trust_level": {"const": "raw"},
+    "record_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullable_sha256": {
+      "anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    }
+  }
+}

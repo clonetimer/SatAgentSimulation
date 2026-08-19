@@ -1,0 +1,25 @@
+{
+  "schema_version": "sat-ref1.public_satellite_inventory.v1",
+  "inventory_status": "engineering_reference_pack",
+  "public_reference_informed": true,
+  "flight_validated": false,
+  "can_claim_high_fidelity": false,
+  "cases": [
+    {
+      "case_id": "public_1u_cubesat_thermal_power_orbit",
+      "display_name": "1U CubeSat orbit-power-thermal engineering reference case",
+      "domain": "orbit_power_thermal",
+      "validation_status": "engineering_example_sanity_checked",
+      "claim_level": "public_reference_informed_not_flight_validated",
+      "asset_path": "public_1u_cubesat_thermal_power_orbit.json",
+      "public_reference_informed": true,
+      "flight_validated": false,
+      "can_claim_high_fidelity": false
+    }
+  ],
+  "limitations": [
+    "No flight telemetry or TVAC correlation.",
+    "No mission-grade digital-twin claim.",
+    "Not a Thermal Desktop or ESATAN model."
+  ]
+}

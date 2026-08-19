@@ -1,0 +1,66 @@
+schema_version: sat-sim.diagnostic-pipeline.v1
+pipeline_id: eps.battery_capacity_loss.pipeline.v1
+fault_id: EPS_BATTERY_CAPACITY_LOSS
+mechanism_id: eps.battery_capacity_loss.mechanism.v1
+feature_contract_id: eps.battery_capacity_loss.features.v1
+diagnostic_signature_id: null
+status: blocked_pending_basilisk_fault_migration
+stages:
+- stage_id: quality_gate
+  kind: data_quality_gate
+  implementation_ref: sat_sim.dataset_qualification
+  required: true
+  input_refs:
+  - future_experiment_record
+  - future_dataset_contract
+  output_ref: qualified_pair
+- stage_id: feature_extractor
+  kind: feature_extractor
+  implementation_ref: eps.battery_capacity_loss.features.v1
+  required: true
+  input_refs:
+  - qualified_pair
+  output_ref: feature_vector
+- stage_id: ml_model
+  kind: ml_model
+  implementation_ref: astrograph.model_registry:selected_after_benchmark
+  required: false
+  input_refs:
+  - feature_vector
+  output_ref: data_driven_prediction
+- stage_id: kg_reasoner
+  kind: kg_reasoner
+  implementation_ref: astrograph.neo4j:causal_reasoner
+  required: true
+  input_refs:
+  - feature_vector
+  - data_driven_prediction
+  output_ref: kg_diagnosis
+- stage_id: fusion
+  kind: fusion
+  implementation_ref: astrograph.fusion:birrf
+  required: true
+  input_refs:
+  - data_driven_prediction
+  - kg_diagnosis
+  output_ref: fused_diagnosis
+- stage_id: expert_gate
+  kind: expert_review_gate
+  implementation_ref: astrograph.governance:named_expert
+  required: true
+  input_refs:
+  - fused_diagnosis
+  output_ref: publishable_diagnosis
+model_policy:
+  candidate_model_families:
+  - hist_gradient_boosting
+  - random_forest
+  - tcn
+  binding_status: blocked_by_simulation_capability
+  selection_gate: requires migrated Basilisk fault event, qualified paired dataset,
+    independent benchmark and named expert approval
+expert_review_required: true
+claim_boundary:
+  pipeline_is_contract_not_accuracy_claim: true
+  formal_model_binding_enabled: false
+  blocking_reason: no Basilisk-native EPS capacity-loss fault experiment

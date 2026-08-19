@@ -1,0 +1,813 @@
+{
+  "schema_version": "v32.effect-evidence.v1",
+  "review_scope": {
+    "capabilities": [
+      "component.battery.v1",
+      "component.reaction_wheel.v1",
+      "component.solar_panel.v1",
+      "subsystem.adcs_unified_native.v1",
+      "whole_spacecraft.unified_native.v1"
+    ],
+    "effect_count": 27
+  },
+  "classification_semantics": {
+    "VERIFIED_NATIVE_EFFECT": "Direct effect-specific evidence is verified for the registered implementation. implementation distinguishes source_native from basilisk_native; this is not hardware or flight validation.",
+    "DELIVERY_ONLY_INCONCLUSIVE": "Event delivery is auditable but current outputs do not establish the requested effect.",
+    "PROJECT_PROXY": "A project proxy behavior is verified; native physical-equivalence claims are forbidden.",
+    "OUT_OF_SCOPE": "The effect is not executable and must be rejected before execution."
+  },
+  "effects": [
+    {
+      "capability_id": "component.battery.v1",
+      "effect_id": "open_circuit",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.battery.net_power_w",
+        "eps.battery.applied_power_w",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "open_circuit_blocks_power",
+          "field": "eps.battery.applied_power_w",
+          "operator": "eq",
+          "value": 0.0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "open_circuit_changes_requested_flow",
+          "field": "eps.battery.applied_power_w",
+          "operator": "ne",
+          "right_field": "eps.battery.net_power_w",
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified only for the registered source-native battery reference model; not Basilisk-native or hardware-calibrated evidence."
+      ],
+      "rationale": "The active fault directly zeros applied battery power while preserving requested net power as an audit field."
+    },
+    {
+      "capability_id": "component.battery.v1",
+      "effect_id": "sudden_capacity_loss",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.battery.capacity_wh",
+        "eps.battery.effective_capacity_wh",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "capacity_loss_reduces_effective_capacity",
+          "field": "eps.battery.effective_capacity_wh",
+          "operator": "lt",
+          "right_field": "eps.battery.capacity_wh",
+          "scope": "any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified only for the registered source-native battery reference model; not Basilisk-native or hardware-calibrated evidence."
+      ],
+      "rationale": "The state capacity is reduced once after event activation and remains directly observable."
+    },
+    {
+      "capability_id": "component.battery.v1",
+      "effect_id": "capacity_loss_pct",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.battery.capacity_wh",
+        "eps.battery.effective_capacity_wh"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "capacity_degradation_reduces_effective_capacity",
+          "field": "eps.battery.effective_capacity_wh",
+          "operator": "lt",
+          "right_field": "eps.battery.capacity_wh",
+          "scope": "all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified only for the registered source-native battery reference model; not Basilisk-native or hardware-calibrated evidence."
+      ],
+      "rationale": "The configured degradation directly reduces effective capacity relative to the nominal capacity audit field."
+    },
+    {
+      "capability_id": "component.battery.v1",
+      "effect_id": "internal_resistance_increase_pct",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.battery.nominal_discharge_efficiency",
+        "eps.battery.effective_discharge_efficiency"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "resistance_growth_reduces_discharge_efficiency",
+          "field": "eps.battery.effective_discharge_efficiency",
+          "operator": "lt",
+          "right_field": "eps.battery.nominal_discharge_efficiency",
+          "scope": "all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "The source-native model represents resistance growth through an efficiency derating, not an electrical equivalent-circuit resistance state."
+      ],
+      "rationale": "The registered model maps resistance increase to reduced charge/discharge efficiency and exposes both nominal and effective values."
+    },
+    {
+      "capability_id": "component.battery.v1",
+      "effect_id": "self_discharge_rate_increase_pct",
+      "kind": "degradation",
+      "classification": "OUT_OF_SCOPE",
+      "implementation": "unknown",
+      "executable": false,
+      "evidence_fields": [],
+      "runtime_assertions": [],
+      "claim_limitations": [
+        "The current battery reference model has no self-discharge state or calibrated leakage law; requests must be rejected as MODEL_EXTENSION_REQUIRED."
+      ],
+      "rationale": "The legacy dataclass field was accepted but never consumed by battery dynamics. V32 removes it from executable degradation support."
+    },
+    {
+      "capability_id": "component.reaction_wheel.v1",
+      "effect_id": "rw_jamming",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.reaction_wheel.speed_rad_s_0",
+        "adcs.reaction_wheel.applied_torque_nm_0",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "jam_zeros_applied_torque",
+          "field": "adcs.reaction_wheel.applied_torque_nm_0",
+          "operator": "eq",
+          "value": 0.0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "jam_clamps_speed",
+          "field": "adcs.reaction_wheel.speed_rad_s_0",
+          "operator": "eq",
+          "value": 0.0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified only for the registered source-native wheel reference model; component-level evidence is not a closed-loop ADCS mission claim."
+      ],
+      "rationale": "The active fault clamps the target wheel speed and removes applied motor torque."
+    },
+    {
+      "capability_id": "component.reaction_wheel.v1",
+      "effect_id": "reaction_wheel_speed_limit",
+      "kind": "constraint",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.reaction_wheel.nominal_max_speed_rad_s_0",
+        "adcs.reaction_wheel.effective_max_speed_rad_s_0",
+        "label.constraint_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "saturation_reduces_speed_limit",
+          "field": "adcs.reaction_wheel.effective_max_speed_rad_s_0",
+          "operator": "lt",
+          "right_field": "adcs.reaction_wheel.nominal_max_speed_rad_s_0",
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified only for the registered source-native wheel reference model; component-level evidence is not a closed-loop ADCS mission claim."
+      ],
+      "rationale": "The active operational constraint lowers the effective speed ceiling and the integrator clamps wheel speed without changing the component health state."
+    },
+    {
+      "capability_id": "component.reaction_wheel.v1",
+      "effect_id": "rw_motor_failure",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.reaction_wheel.nominal_max_torque_nm_0",
+        "adcs.reaction_wheel.effective_max_torque_nm_0",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "motor_failure_reduces_torque_limit",
+          "field": "adcs.reaction_wheel.effective_max_torque_nm_0",
+          "operator": "lt",
+          "right_field": "adcs.reaction_wheel.nominal_max_torque_nm_0",
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified only for the registered source-native wheel reference model; component-level evidence is not a closed-loop ADCS mission claim."
+      ],
+      "rationale": "The active fault directly reduces effective motor torque authority."
+    },
+    {
+      "capability_id": "component.reaction_wheel.v1",
+      "effect_id": "friction_increase_pct",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.reaction_wheel.nominal_damping_nms_0",
+        "adcs.reaction_wheel.damping_nms_0"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "friction_increases_damping",
+          "field": "adcs.reaction_wheel.damping_nms_0",
+          "operator": "gt",
+          "right_field": "adcs.reaction_wheel.nominal_damping_nms_0",
+          "scope": "all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "The source-native model represents friction increase through viscous damping. Basilisk Coulomb/static friction verification belongs to a Basilisk-native capability."
+      ],
+      "rationale": "The configured degradation directly increases the effective damping coefficient."
+    },
+    {
+      "capability_id": "component.reaction_wheel.v1",
+      "effect_id": "bearing_wear_factor",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.reaction_wheel.nominal_max_speed_rad_s_0",
+        "adcs.reaction_wheel.effective_max_speed_rad_s_0",
+        "adcs.reaction_wheel.nominal_max_torque_nm_0",
+        "adcs.reaction_wheel.effective_max_torque_nm_0"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "bearing_wear_reduces_speed_limit",
+          "field": "adcs.reaction_wheel.effective_max_speed_rad_s_0",
+          "operator": "lt",
+          "right_field": "adcs.reaction_wheel.nominal_max_speed_rad_s_0",
+          "scope": "all",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "bearing_wear_reduces_torque_limit",
+          "field": "adcs.reaction_wheel.effective_max_torque_nm_0",
+          "operator": "lt",
+          "right_field": "adcs.reaction_wheel.nominal_max_torque_nm_0",
+          "scope": "all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Bearing wear is represented by deterministic authority derating in the source-native model; it is not a tribology or thermal-bearing model."
+      ],
+      "rationale": "The degradation directly lowers both effective speed and motor-torque limits."
+    },
+    {
+      "capability_id": "component.solar_panel.v1",
+      "effect_id": "solar_panel_failure",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.solar.fault_multiplier",
+        "eps.solar.array_power_w",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "panel_failure_reduces_multiplier",
+          "field": "eps.solar.fault_multiplier",
+          "operator": "lt",
+          "value": 1.0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified for the registered source-native cosine-law power model; no cell-string electrical network or hardware fault calibration is implied."
+      ],
+      "rationale": "The active fault directly derates array output through an explicit auditable multiplier."
+    },
+    {
+      "capability_id": "component.solar_panel.v1",
+      "effect_id": "solar_panel_degradation",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.solar.fault_multiplier",
+        "eps.solar.array_power_w",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "panel_fault_degradation_reduces_multiplier",
+          "field": "eps.solar.fault_multiplier",
+          "operator": "lt",
+          "value": 1.0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified for the registered source-native cosine-law power model; no cell-string electrical network or hardware fault calibration is implied."
+      ],
+      "rationale": "The active fault directly derates output through an explicit auditable multiplier."
+    },
+    {
+      "capability_id": "component.solar_panel.v1",
+      "effect_id": "deployment_failure",
+      "kind": "fault",
+      "classification": "PROJECT_PROXY",
+      "implementation": "proxy",
+      "executable": true,
+      "evidence_fields": [
+        "eps.solar.fault_multiplier",
+        "eps.solar.array_power_w",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "deployment_proxy_reduces_multiplier",
+          "field": "eps.solar.fault_multiplier",
+          "operator": "lt",
+          "value": 1.0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Deployment failure is a project power-output proxy; it does not model hinge kinematics, latch dynamics, geometry change, or Basilisk-native deployment physics."
+      ],
+      "rationale": "The current implementation only applies a generic output multiplier and therefore cannot be labeled native deployment physics."
+    },
+    {
+      "capability_id": "component.solar_panel.v1",
+      "effect_id": "efficiency_loss_pct",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.solar.nominal_efficiency",
+        "eps.solar.efficiency",
+        "eps.solar.array_power_w"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "efficiency_loss_reduces_efficiency",
+          "field": "eps.solar.efficiency",
+          "operator": "lt",
+          "right_field": "eps.solar.nominal_efficiency",
+          "scope": "all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Verified for the registered source-native cosine-law power model; no hardware-calibrated cell degradation is implied."
+      ],
+      "rationale": "The configured degradation directly lowers effective conversion efficiency and array output."
+    },
+    {
+      "capability_id": "component.solar_panel.v1",
+      "effect_id": "radiation_damage_factor",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "source_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.solar.nominal_max_power_w",
+        "eps.solar.max_power_w",
+        "eps.solar.array_power_w"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "radiation_damage_reduces_power_ceiling",
+          "field": "eps.solar.max_power_w",
+          "operator": "lt",
+          "right_field": "eps.solar.nominal_max_power_w",
+          "scope": "all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Radiation damage is represented as a deterministic power-capacity derating; no dose transport or calibrated cell response is implied."
+      ],
+      "rationale": "The configured damage factor directly reduces the effective maximum power ceiling."
+    },
+    {
+      "capability_id": "subsystem.adcs_unified_native.v1",
+      "effect_id": "adcs_rw_jamming",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_torque_ratio_{wheel_index}",
+        "adcs.control.applied_torque_nm_{wheel_index}"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "jam_disables_normal_wheel_torque_authority",
+          "field": "adcs.rw.effective_torque_ratio_{wheel_index}",
+          "operator": "eq",
+          "value": 0.0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task reaction-wheel fault manager sets the selected wheel torque-authority ratio to zero and applies braking/locking torque before wheel dynamics."
+    },
+    {
+      "capability_id": "subsystem.adcs_unified_native.v1",
+      "effect_id": "adcs_rw_motor_failure",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_torque_ratio_{wheel_index}",
+        "adcs.rw.effective_max_torque_nm_{wheel_index}"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "motor_failure_applies_requested_torque_ratio",
+          "field": "adcs.rw.effective_torque_ratio_{wheel_index}",
+          "operator": "eq",
+          "value_parameter": "torque_scale",
+          "default_value": 0.0,
+          "scope": "active_all",
+          "tolerance": 1e-09
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The selected wheel command is scaled before reaching Basilisk wheel dynamics, with the effective torque ratio recorded."
+    },
+    {
+      "capability_id": "subsystem.adcs_unified_native.v1",
+      "effect_id": "gyro_bias_step",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.sensor.gyro_bias_norm_rad_s",
+        "adcs.sensor.gyro_measured_rad_s_x"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "gyro_bias_is_nonzero",
+          "field": "adcs.sensor.gyro_bias_norm_rad_s",
+          "operator": "gt",
+          "value": 0.0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task IMU injector writes a non-zero bias vector before sensor fusion consumes the measurement."
+    },
+    {
+      "capability_id": "subsystem.adcs_unified_native.v1",
+      "effect_id": "gyro_noise_increase",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.sensor.gyro_noise_norm_rad_s"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "gyro_noise_sample_is_nonzero",
+          "field": "adcs.sensor.gyro_noise_norm_rad_s",
+          "operator": "gt",
+          "value": 0.0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task IMU injector records the added noise vector before the estimator consumes the measurement."
+    },
+    {
+      "capability_id": "subsystem.adcs_unified_native.v1",
+      "effect_id": "rw_friction_degradation",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_drag_nms_{wheel_index}",
+        "adcs.rw.speed_rad_s_{wheel_index}"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "friction_drag_matches_requested_value",
+          "field": "adcs.rw.effective_drag_nms_{wheel_index}",
+          "operator": "eq",
+          "value_parameter": "drag_nms",
+          "default_value": 0.01,
+          "scope": "active_all",
+          "tolerance": 1e-09
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The selected wheel command path applies and records the configured viscous drag coefficient before wheel dynamics."
+    },
+    {
+      "capability_id": "subsystem.adcs_unified_native.v1",
+      "effect_id": "adcs_reaction_wheel_speed_limit",
+      "kind": "constraint",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_max_speed_rad_s_{wheel_index}",
+        "adcs.rw.speed_rad_s_{wheel_index}"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "speed_limit_matches_requested_value",
+          "field": "adcs.rw.effective_max_speed_rad_s_{wheel_index}",
+          "operator": "eq",
+          "value_parameter": "max_speed_rad_s",
+          "default_value": 50.0,
+          "scope": "active_all",
+          "tolerance": 1e-09
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The selected wheel command path records the active speed limit and suppresses accelerating torque at the limit."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "payload_instrument_off",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "payload.active",
+        "payload.generated_bps",
+        "data.storage_bits"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "payload_is_disabled",
+          "field": "payload.active",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 0
+        },
+        {
+          "id": "payload_generation_is_zero",
+          "field": "payload.generated_bps",
+          "operator": "eq",
+          "value": 0.0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task power/data gate disables the payload command before the official instrument module updates."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "comm_data_downlink_link_loss",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "comm.active",
+        "comm.downlink_bps",
+        "comm.downlinked_bits"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "downlink_is_disabled",
+          "field": "comm.active",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 0
+        },
+        {
+          "id": "downlink_rate_is_zero",
+          "field": "comm.downlink_bps",
+          "operator": "eq",
+          "value": 0.0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task power/data gate disables the transmitter before the official data module updates."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "eps_battery_capacity_loss",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.battery_capacity_ratio",
+        "eps.battery_capacity_j",
+        "eps.battery_soc"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "capacity_ratio_matches_requested_value",
+          "field": "eps.battery_capacity_ratio",
+          "operator": "eq",
+          "value_parameter": "remaining_capacity_ratio",
+          "default_value": 0.5,
+          "scope": "active_all",
+          "tolerance": 1e-09
+        },
+        {
+          "id": "capacity_ratio_is_reduced",
+          "field": "eps.battery_capacity_ratio",
+          "operator": "lt",
+          "value": 1.0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task parameter controller changes the official battery storage capacity before battery integration; the applied ratio and capacity are recorded."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "solar_panel_efficiency_loss",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.solar_array_efficiency_ratio",
+        "eps.solar_array_power_w"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "solar_efficiency_ratio_matches_requested_value",
+          "field": "eps.solar_array_efficiency_ratio",
+          "operator": "eq",
+          "value_parameter": "remaining_efficiency_ratio",
+          "default_value": 0.5,
+          "scope": "active_all",
+          "tolerance": 1e-09
+        },
+        {
+          "id": "solar_efficiency_ratio_is_reduced",
+          "field": "eps.solar_array_efficiency_ratio",
+          "operator": "lt",
+          "value": 1.0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task parameter controller changes the official solar-panel efficiency before power generation; the applied ratio and resulting power are recorded."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "thermal_radiator_rejection_loss",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "thermal.radiator_rejection_ratio",
+        "thermal.payload_temp_k"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "radiator_ratio_matches_requested_value",
+          "field": "thermal.radiator_rejection_ratio",
+          "operator": "eq",
+          "value_parameter": "remaining_rejection_ratio",
+          "default_value": 0.5,
+          "scope": "active_all",
+          "tolerance": 1e-09
+        },
+        {
+          "id": "radiator_ratio_is_reduced",
+          "field": "thermal.radiator_rejection_ratio",
+          "operator": "lt",
+          "value": 1.0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task parameter controller reduces the official thermal sensor emissivity before thermal propagation; the applied ratio and temperature are recorded."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "power_safe_mode_threshold",
+      "kind": "constraint",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "label.power_safe_mode_engaged",
+        "payload.active",
+        "comm.active",
+        "eps.battery_soc"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "safe_mode_is_engaged",
+          "field": "label.power_safe_mode_engaged",
+          "operator": "eq",
+          "value": true,
+          "scope": "active_all",
+          "tolerance": 0
+        },
+        {
+          "id": "safe_mode_disables_payload",
+          "field": "payload.active",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 0
+        },
+        {
+          "id": "safe_mode_disables_downlink",
+          "field": "comm.active",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 0
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task mode gate compares recorded SOC with the requested threshold and disables payload/downlink before official modules update."
+    }
+  ]
+}

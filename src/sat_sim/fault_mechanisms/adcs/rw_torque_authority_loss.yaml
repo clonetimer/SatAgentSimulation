@@ -1,0 +1,65 @@
+schema_version: sat-sim.fault-mechanism.v1
+mechanism_id: adcs.rw_torque_authority_loss.mechanism.v1
+fault_id: ADCS_RW_TORQUE_AUTHORITY_LOSS
+subsystem: ADCS
+component: reaction_wheel
+status: active_provisional
+diagnostic_signature_id: adcs.rw_torque_authority_loss.diagnostic.v1
+causes:
+- cause_id: drive_derating
+  kind: degradation
+  description: Motor drive, current limit or thermal protection reduces available
+    wheel torque.
+physical_effects:
+- effect_id: torque_limit_reduced
+  description: Maximum deliverable torque is reduced.
+  state_variable: rw.max_torque_nm
+  direction: decreasing
+- effect_id: command_tracking_residual
+  description: Commanded and delivered torque can diverge under load.
+  state_variable: rw.torque_residual_nm
+  direction: increasing
+propagation_chain:
+- stage_id: p1
+  from: drive_derating
+  to: torque_limit_reduced
+  relation: causes
+- stage_id: p2
+  from: torque_limit_reduced
+  to: command_tracking_residual
+  relation: creates_when_loaded
+- stage_id: p3
+  from: command_tracking_residual
+  to: pointing_error_response
+  relation: can_increase
+observables:
+- channel: estimate.adcs.rw.effective_max_torque_nm_0
+  evidence_role: simulator_truth
+  expected_relation: decreases
+  model_input_eligible: false
+- channel: estimate.adcs.rw.actual_torque_nm_0
+  evidence_role: operational_estimate
+  expected_relation: paired response diverges when authority binds
+  model_input_eligible: true
+- channel: sensor.adcs.rw.speed_rad_s_0
+  evidence_role: observable_telemetry
+  expected_relation: may diverge under loaded maneuver
+  model_input_eligible: true
+- channel: estimate.adcs.pointing_error_deg
+  evidence_role: operational_estimate
+  expected_relation: may increase
+  model_input_eligible: true
+feature_contract_id: adcs.rw_torque_authority_loss.features.v1
+pipeline_id: adcs.rw_torque_authority_loss.pipeline.v1
+knowledge_graph_projection:
+  fault_node_id: ADCS_RW_TORQUE_AUTHORITY_LOSS
+  mechanism_node_id: adcs.rw_torque_authority_loss.mechanism.v1
+  edge_types:
+  - HAS_CAUSE
+  - CAUSES_EFFECT
+  - PROPAGATES_TO
+  - OBSERVED_AS
+  - DIAGNOSED_BY
+claim_boundary:
+  mechanism_status: engineering_hypothesis_pending_basilisk_18_case_and_expert_review
+  flight_validated: false

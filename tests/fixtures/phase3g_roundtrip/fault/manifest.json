@@ -1,0 +1,903 @@
+{
+  "manifest_version": "0.1.0",
+  "dataset_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+  "created_at": "2026-07-25T18:50:32.502198Z",
+  "platform": {
+    "platform_version": "0.1.0",
+    "bsk_version": "unavailable",
+    "python_version": "3.13.5"
+  },
+  "task": {
+    "task_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+    "task_type": "subsystem",
+    "schema_version": "0.1.0",
+    "spec_hash": "e03a6227b5b3588c7ec509d6d806ae0f3df43e398d6129d23c6f5f045cc38b6f",
+    "seed": 20260726,
+    "capability_id": "subsystem.adcs_fidelity.v1"
+  },
+  "run": {
+    "duration_s": 8.0,
+    "sample_s": 1.0,
+    "scenario_count": 1,
+    "success_count": 1,
+    "failure_count": 0
+  },
+  "files": {
+    "task_spec": "task_spec.json",
+    "compiled_task": "compiled_task.json",
+    "summary": "summary.json",
+    "trace": "trace.csv",
+    "traceability:fault_traceability_json": "traceability/fault_traceability.json",
+    "traceability:fault_traceability_csv": "traceability/fault_traceability.csv",
+    "traceability:fault_episodes_json": "traceability/fault_episodes.json",
+    "run_labels": "labels/run_labels.csv",
+    "fault_labels": "labels/fault_labels.csv",
+    "manifest": "manifest.json"
+  },
+  "trace_schema": [
+    {
+      "name": "time_s",
+      "unit": "s",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.pointing.error_deg",
+      "unit": "deg",
+      "dtype": "number"
+    },
+    {
+      "name": "label.fault_active",
+      "unit": "bool",
+      "dtype": "bool"
+    },
+    {
+      "name": "label.degradation_active",
+      "unit": "unknown",
+      "dtype": "bool"
+    },
+    {
+      "name": "label.constraint_active",
+      "unit": "unknown",
+      "dtype": "bool"
+    },
+    {
+      "name": "adcs.event.active_effects",
+      "unit": "unknown",
+      "dtype": "string"
+    },
+    {
+      "name": "adcs.control.command_torque_nm_0",
+      "unit": "N*m",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.control.command_torque_nm_1",
+      "unit": "N*m",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.control.command_torque_nm_2",
+      "unit": "N*m",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.control.applied_torque_nm_0",
+      "unit": "N*m",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.control.applied_torque_nm_1",
+      "unit": "N*m",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.control.applied_torque_nm_2",
+      "unit": "N*m",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.speed_rad_s_0",
+      "unit": "rad/s",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.speed_rad_s_1",
+      "unit": "rad/s",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.speed_rad_s_2",
+      "unit": "rad/s",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.command_torque_nm_0",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.command_torque_nm_1",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.command_torque_nm_2",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_max_torque_nm_0",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_max_torque_nm_1",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_max_torque_nm_2",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_friction_torque_nm_0",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_friction_torque_nm_1",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_friction_torque_nm_2",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_drag_nms_0",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_drag_nms_1",
+      "unit": "unknown",
+      "dtype": "number"
+    },
+    {
+      "name": "adcs.rw.effective_drag_nms_2",
+      "unit": "unknown",
+      "dtype": "number"
+    }
+  ],
+  "labels": {
+    "mode": "fault",
+    "target_level": "subsystem",
+    "target_name": "adcs",
+    "capability_id": "subsystem.adcs_fidelity.v1",
+    "fault_labels": [
+      null
+    ],
+    "degradation_present": false,
+    "constraint_present": false,
+    "modifier_present": true
+  },
+  "quality": {
+    "trace_rows": 9,
+    "summary_status": "complete",
+    "spec_canonical_sha256": "e03a6227b5b3588c7ec509d6d806ae0f3df43e398d6129d23c6f5f045cc38b6f"
+  },
+  "status": "complete",
+  "capability": {
+    "capability_id": "subsystem.adcs_fidelity.v1",
+    "trust_level": "conformance_tested",
+    "adapter": "sat_sim.adapters.subsystem_adcs_fidelity.AdcsFidelityAdapter",
+    "contract": {
+      "capability_id": "subsystem.adcs_fidelity.v1",
+      "level": "subsystem",
+      "target": "adcs",
+      "trust_level": "conformance_tested",
+      "dependencies": [],
+      "consumes": [
+        {
+          "name": "simulation.duration_s",
+          "unit": "s",
+          "required": true
+        },
+        {
+          "name": "simulation.sample_s",
+          "unit": "s",
+          "required": true
+        },
+        {
+          "name": "simulation.solver.step_s",
+          "unit": "s",
+          "required": false
+        },
+        {
+          "name": "parameters.environment_torques",
+          "unit": "configuration",
+          "required": false
+        },
+        {
+          "name": "parameters.sensor_dropout",
+          "unit": "configuration",
+          "required": false
+        }
+      ],
+      "produces": [
+        {
+          "name": "adcs.environment.*",
+          "destination": "trace"
+        },
+        {
+          "name": "adcs.sensor.*",
+          "destination": "trace"
+        },
+        {
+          "name": "adcs.control.*",
+          "destination": "trace"
+        },
+        {
+          "name": "adcs.rw.momentum_*",
+          "destination": "trace"
+        },
+        {
+          "name": "adcs.pointing.*",
+          "destination": "trace"
+        }
+      ],
+      "time_grid": {
+        "policy": "hf1_output_grid_with_hf2_internal_fixed_step",
+        "time_field": "time_s",
+        "duration_source": "simulation.duration_s",
+        "sample_source": "simulation.sample_s",
+        "internal_step_source": "simulation.solver.step_s"
+      },
+      "source_binding": {
+        "mode": "route_b_model_library",
+        "status": "adcs1_implemented_fidelity_proxy",
+        "primary_module": "sat_sim.adcs.fidelity",
+        "source_modules": [
+          "sat_sim.adcs.fidelity",
+          "sat_sim.adcs.closed_loop",
+          "sat_sim.state",
+          "sat_sim.time_systems",
+          "sat_sim.solvers",
+          "sat_sim.frames"
+        ],
+        "public_api": [
+          "ADCSFidelityConfig",
+          "propagate_adcs_fidelity",
+          "summarize_adcs_fidelity",
+          "build_adcs1_fidelity_payload"
+        ],
+        "legacy_demo_runner": null,
+        "uses_legacy_runner": false,
+        "basilisk_required": false,
+        "rationale": null,
+        "schema_version": "s2.source_binding.v1"
+      }
+    },
+    "source_binding": {
+      "mode": "route_b_model_library",
+      "status": "adcs1_implemented_fidelity_proxy",
+      "primary_module": "sat_sim.adcs.fidelity",
+      "source_modules": [
+        "sat_sim.adcs.fidelity",
+        "sat_sim.adcs.closed_loop",
+        "sat_sim.state",
+        "sat_sim.time_systems",
+        "sat_sim.solvers",
+        "sat_sim.frames"
+      ],
+      "public_api": [
+        "ADCSFidelityConfig",
+        "propagate_adcs_fidelity",
+        "summarize_adcs_fidelity",
+        "build_adcs1_fidelity_payload"
+      ],
+      "legacy_demo_runner": null,
+      "uses_legacy_runner": false,
+      "basilisk_required": false,
+      "rationale": null,
+      "schema_version": "s2.source_binding.v1"
+    }
+  },
+  "composition": {
+    "capability_id": "subsystem.adcs_fidelity.v1",
+    "schema_version": "p7b.composition.v1",
+    "composition_type": "single_capability",
+    "dependencies": [],
+    "composition_chain": [
+      {
+        "capability_id": "subsystem.adcs_fidelity.v1",
+        "role": "parent"
+      }
+    ],
+    "time_grid": {
+      "policy": "hf1_output_grid_with_hf2_internal_fixed_step",
+      "time_field": "time_s",
+      "duration_source": "simulation.duration_s",
+      "sample_source": "simulation.sample_s",
+      "internal_step_source": "simulation.solver.step_s"
+    },
+    "resolved_time_grid": {
+      "duration_s": 8.0,
+      "sample_s": 1.0,
+      "policy": "hf1_output_grid_with_hf2_internal_fixed_step"
+    },
+    "consumes": [
+      {
+        "name": "simulation.duration_s",
+        "unit": "s",
+        "required": true
+      },
+      {
+        "name": "simulation.sample_s",
+        "unit": "s",
+        "required": true
+      },
+      {
+        "name": "simulation.solver.step_s",
+        "unit": "s",
+        "required": false
+      },
+      {
+        "name": "parameters.environment_torques",
+        "unit": "configuration",
+        "required": false
+      },
+      {
+        "name": "parameters.sensor_dropout",
+        "unit": "configuration",
+        "required": false
+      }
+    ],
+    "produces": [
+      {
+        "name": "adcs.environment.*",
+        "destination": "trace"
+      },
+      {
+        "name": "adcs.sensor.*",
+        "destination": "trace"
+      },
+      {
+        "name": "adcs.control.*",
+        "destination": "trace"
+      },
+      {
+        "name": "adcs.rw.momentum_*",
+        "destination": "trace"
+      },
+      {
+        "name": "adcs.pointing.*",
+        "destination": "trace"
+      }
+    ],
+    "field_mappings": [],
+    "steps": []
+  },
+  "modifiers": {
+    "schema_version": "c7.scenario_modifiers.v1",
+    "count": 1,
+    "fault_count": 1,
+    "degradation_count": 0,
+    "constraint_count": 0,
+    "modifiers": [
+      {
+        "modifier_id": "adcs_rw_jam_1",
+        "kind": "fault",
+        "target": "adcs.reaction_wheel.1",
+        "modifier_type": "adcs_rw_jamming",
+        "onset_time_s": 2.167059,
+        "duration_s": -1.0,
+        "severity": 1.0,
+        "scale": null,
+        "parameters": {
+          "wheel_index": 1
+        },
+        "schema_version": "c7.scenario_modifiers.v1",
+        "end_time_s": null
+      }
+    ],
+    "runnable_capability": false
+  },
+  "applied_modifiers": {
+    "schema_version": "c7.scenario_modifiers.v1",
+    "count": 1,
+    "fault_count": 1,
+    "degradation_count": 0,
+    "constraint_count": 0,
+    "modifiers": [
+      {
+        "modifier_id": "adcs_rw_jam_1",
+        "kind": "fault",
+        "target": "adcs.reaction_wheel.1",
+        "modifier_type": "adcs_rw_jamming",
+        "onset_time_s": 2.167059,
+        "duration_s": -1.0,
+        "severity": 1.0,
+        "scale": null,
+        "parameters": {
+          "wheel_index": 1
+        },
+        "schema_version": "c7.scenario_modifiers.v1",
+        "end_time_s": null
+      }
+    ],
+    "runnable_capability": false
+  },
+  "hf_foundation": {
+    "schema_version": "hf1_hf2.foundation.v1",
+    "route_b_version": "B-1/HF-1+HF-2",
+    "status": "foundation_implemented_not_physics_validated",
+    "can_claim_high_fidelity": false,
+    "reason_high_fidelity_still_blocked": "HF-1/HF-2 foundations are implemented, but capability-specific physics models, validation gates, and benchmark envelopes are still pending.",
+    "implemented_foundations": [
+      {
+        "foundation_id": "hf1.time_systems",
+        "status": "implemented",
+        "evidence": [
+          "UTC/JD/MJD conversion",
+          "monotonic time grid"
+        ],
+        "blocking_for_high_fidelity_claim": true
+      },
+      {
+        "foundation_id": "hf1.units",
+        "status": "implemented",
+        "evidence": [
+          "distance/angle/energy/temperature/data conversions",
+          "unknown-unit rejection"
+        ],
+        "blocking_for_high_fidelity_claim": true
+      },
+      {
+        "foundation_id": "hf2.frames",
+        "status": "implemented_foundation",
+        "evidence": [
+          "ECI/ECEF round-trip",
+          "ECI/LVLH vector round-trip",
+          "frame metadata"
+        ],
+        "blocking_for_high_fidelity_claim": true
+      },
+      {
+        "foundation_id": "hf2.state",
+        "status": "implemented_foundation",
+        "evidence": [
+          "CartesianState",
+          "AttitudeState",
+          "SpacecraftState",
+          "quaternion normalization"
+        ],
+        "blocking_for_high_fidelity_claim": true
+      },
+      {
+        "foundation_id": "hf2.solvers",
+        "status": "implemented_foundation",
+        "evidence": [
+          "deterministic fixed-step config",
+          "Euler/RK4 propagation trace"
+        ],
+        "blocking_for_high_fidelity_claim": true
+      }
+    ],
+    "time_contract": {
+      "schema_version": "hf1.time_systems.v1",
+      "time_system": "UTC",
+      "epoch_utc": "2000-01-01T12:00:00Z",
+      "epoch_jd": 2451545.0,
+      "epoch_mjd": 51544.5,
+      "duration_s": 8.0,
+      "sample_s": 1.0,
+      "sample_count": 9,
+      "times_s": [
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0
+      ],
+      "monotonic": true,
+      "include_endpoint": true,
+      "contract_status": "implemented_hf1",
+      "round_trip_evidence": {
+        "utc_jd_mjd": "implemented",
+        "monotonic_grid": true
+      }
+    },
+    "unit_contract": {
+      "schema_version": "hf1.units.v1",
+      "contract_status": "implemented_hf1",
+      "canonical_units": {
+        "time": "s",
+        "distance": "m",
+        "mass": "kg",
+        "angle": "rad",
+        "temperature": "K",
+        "power": "W",
+        "energy": "J",
+        "torque": "N*m",
+        "data": "bit",
+        "data_rate": "bit/s",
+        "pressure": "Pa",
+        "angular_rate": "rad/s",
+        "velocity": "m/s"
+      },
+      "accepted_input_units": [
+        "B",
+        "C",
+        "Gbit",
+        "J",
+        "K",
+        "Mbit",
+        "Mbit/s",
+        "Mbps",
+        "N",
+        "N*m",
+        "Nm",
+        "Pa",
+        "W",
+        "Wh",
+        "bit",
+        "bit/s",
+        "bps",
+        "byte",
+        "cm",
+        "deg",
+        "deg/s",
+        "degC",
+        "g",
+        "h",
+        "hr",
+        "kPa",
+        "kW",
+        "kWh",
+        "kbit",
+        "kbit/s",
+        "kbps",
+        "kg",
+        "km",
+        "km/s",
+        "m",
+        "m/s",
+        "min",
+        "mm",
+        "rad",
+        "rad/s",
+        "s",
+        "sec"
+      ],
+      "normalization_policy": "normalize_at_task_boundary_and_record_source_unit",
+      "strict_unknown_unit_policy": "reject_unknown_unit_in_high_fidelity_mode",
+      "round_trip_evidence": {
+        "distance_angle_energy_temperature": "implemented",
+        "unknown_unit_rejection": "implemented"
+      }
+    },
+    "frame_contract": {
+      "schema_version": "hf2.frames.v1",
+      "contract_status": "implemented_hf2_foundation",
+      "supported_frames": [
+        "ECI",
+        "ECEF",
+        "LVLH",
+        "BODY"
+      ],
+      "implemented_transforms": [
+        "ECI<->ECEF vector rotation",
+        "ECI<->LVLH vector projection"
+      ],
+      "metadata_only_frames": [
+        "BODY"
+      ],
+      "default_inertial_frame": "ECI",
+      "default_body_frame": "BODY",
+      "lvlh_convention": "x_radial_y_along_track_z_cross_track",
+      "required_state_metadata": [
+        "frame_id",
+        "frame_origin",
+        "frame_orientation",
+        "epoch_utc",
+        "units"
+      ],
+      "known_limits": [
+        "ECEF transform uses deterministic Earth-rate rotation, not full IAU precession/nutation/polar motion.",
+        "BODY frame transforms require HF-4 attitude state/controller implementation."
+      ]
+    },
+    "state_contract": {
+      "schema_version": "hf2.state.v1",
+      "contract_status": "implemented_hf2_foundation",
+      "state_containers": [
+        "CartesianState",
+        "AttitudeState",
+        "SpacecraftState"
+      ],
+      "required_fields": {
+        "cartesian": [
+          "position_m",
+          "velocity_m_s",
+          "frame",
+          "epoch_utc"
+        ],
+        "attitude": [
+          "quaternion_body_to_ref",
+          "angular_rate_rad_s",
+          "reference_frame_id",
+          "body_frame_id",
+          "epoch_utc"
+        ]
+      },
+      "unit_policy": {
+        "position": "m",
+        "velocity": "m/s",
+        "quaternion": "unit_norm",
+        "angular_rate": "rad/s",
+        "mass": "kg"
+      },
+      "validation_evidence": {
+        "finite_vector_checks": "implemented",
+        "quaternion_normalization": "implemented",
+        "frame_metadata_required": "implemented"
+      }
+    },
+    "solver_config": {
+      "schema_version": "hf2.solvers.v1",
+      "solver_family": "deterministic_fixed_step",
+      "method": "euler",
+      "step_s": 0.2,
+      "duration_s": 8.0,
+      "rtol": 1e-09,
+      "atol": 1e-12,
+      "deterministic_seed": 20260726,
+      "include_endpoint": true,
+      "adaptive_step_allowed": false,
+      "benchmark_status": "pending_HF9_benchmark_scenarios",
+      "contract_status": "implemented_hf2_foundation",
+      "allowed_methods": [
+        "euler",
+        "rk4"
+      ],
+      "determinism_policy": "fixed_step_no_randomness_except_recorded_seed",
+      "known_limits": [
+        "Adaptive solvers and stiffness handling are not enabled until model-specific benchmarks exist.",
+        "Solver accuracy is not a high-fidelity claim without HF9 tolerance-envelope benchmarks."
+      ]
+    },
+    "remaining_route_b_dependencies": [
+      "HF-9 benchmark scenarios and tolerance envelopes"
+    ],
+    "implemented_route_b_models": [
+      "HF-3 orbit/environment medium-fidelity model is available when using orbit_environment.medium_fidelity.v1",
+      "HF-4 basic closed-loop ADCS model is available when using subsystem.adcs_closed_loop.basic.v1",
+      "HF-5 power/thermal/orbit coupled model is available when using whole_spacecraft.power_thermal_orbit_coupled.v1",
+      "HF-6 comm/payload mission-coupled model is available when using whole_spacecraft.comm_payload_mission_coupled.v1",
+      "HF-7 propulsion/orbit/attitude maneuver-coupled model is available when using whole_spacecraft.maneuver_orbit_attitude.v1",
+      "HF-8 physical validation gates are available for Route-B coupled model traces"
+    ]
+  },
+  "adcs1_fidelity": {
+    "schema_version": "adcs1.adcs_fidelity.v1",
+    "route_version": "ADCS-1",
+    "capability_id": "subsystem.adcs_fidelity.v1",
+    "status": "implemented_adcs_fidelity_proxy_not_high_fidelity",
+    "fidelity_level": "medium",
+    "can_claim_high_fidelity": false,
+    "implemented_model_features": [
+      "environmental torque proxies: gravity-gradient, magnetic, aerodynamic, SRP",
+      "gyro bias/noise and sensor dropout metadata",
+      "star-tracker and sun-sensor measurement proxy metadata",
+      "reaction-wheel momentum and allocation proxy trace",
+      "controller mode trace and pointing target frame contract"
+    ],
+    "foundation_dependencies": [
+      "HF-1 time grid",
+      "HF-2 attitude state/frame/solver",
+      "HF-4 closed-loop propagation",
+      "HF-8 physical validation gates",
+      "HF-9 benchmark reporting pattern"
+    ],
+    "known_physics_limits": [
+      "Environmental torques are deterministic proxies, not a calibrated orbital disturbance model.",
+      "Star tracker, sun sensor, and gyro are measurement proxies; no hardware calibration or detailed failure dynamics are modeled.",
+      "Reaction-wheel allocation is a proxy and does not model motor electronics or a full wheel geometry matrix.",
+      "Controller is still a deterministic PD/controller-mode proxy, not flight software.",
+      "ADCS-2 benchmark envelopes are internal regression tolerances, not flight-data validation."
+    ],
+    "config": {
+      "schema_version": "adcs1.adcs_fidelity.v1",
+      "closed_loop": {
+        "schema_version": "hf4.adcs_closed_loop.basic.v1",
+        "epoch_utc": "2000-01-01T12:00:00Z",
+        "duration_s": 8.0,
+        "sample_s": 1.0,
+        "integration_step_s": 0.2,
+        "solver_method": "euler",
+        "inertia_kg_m2": [
+          12.0,
+          10.0,
+          8.0
+        ],
+        "initial_quaternion_body_to_ref": [
+          0.9912746122512593,
+          0.0,
+          0.0,
+          0.1318129094820216
+        ],
+        "target_quaternion_body_to_ref": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initial_rate_rad_s": [
+          0.0004709280548986888,
+          0.0008377700837291169,
+          0.0016675975230982581
+        ],
+        "target_mode": "inertial",
+        "target_reference_vector": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "control_kp_nm_per_rad": 0.12736152,
+        "control_kd_nm_per_rad_s": 0.91881453,
+        "pointing_requirement_deg": 1.0,
+        "disturbance_torque_nm": [
+          0.0,
+          -2.4400000000000004e-06,
+          -1e-08
+        ],
+        "gyro_bias_rad_s": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gyro_noise_std_rad_s": 3.215353758437577e-05,
+        "sun_sensor_noise_rad": 0.0,
+        "star_tracker_available": true,
+        "sun_sensor_available": true,
+        "reaction_wheels": {
+          "num_wheels": 3,
+          "configuration": "orthogonal_3",
+          "allocation_method": "weighted_pseudoinverse",
+          "wheel_inertia_kg_m2": 0.08,
+          "max_torque_nm": 0.05,
+          "max_speed_rad_s": 900.0,
+          "idle_power_w": 2.0,
+          "power_per_torque_w": 80.0,
+          "axes_body": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "axis_mapping": "explicit_body_frame_spin_axis_matrix"
+        },
+        "initial_wheel_speed_rad_s": [
+          88.861444,
+          71.6856,
+          108.48713
+        ]
+      },
+      "environment_torques": {
+        "enabled": {
+          "gravity_gradient": true,
+          "magnetic": true,
+          "aerodynamic": false,
+          "srp": false
+        },
+        "components_nm": {
+          "gravity_gradient": [
+            0.0,
+            -4e-08,
+            -1e-08
+          ],
+          "magnetic": [
+            0.0,
+            -2.4000000000000003e-06,
+            0.0
+          ],
+          "aerodynamic": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "srp": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "total_nm": [
+          0.0,
+          -2.4400000000000004e-06,
+          -1e-08
+        ],
+        "total_norm_nm": 2.4400204917172318e-06,
+        "proxy_model": "constant_body_disturbance_torque_from_environment_terms"
+      },
+      "sensors": {
+        "gyro_bias_rad_s": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gyro_noise_std_rad_s": 3.215353758437577e-05,
+        "star_tracker_noise_rad": 3.490658503988659e-05,
+        "sun_sensor_noise_rad": 0.003490658503988659,
+        "dropout_start_s": null,
+        "dropout_duration_s": 0.0
+      },
+      "wheel_configuration": "orthogonal_3",
+      "wheel_allocation_method": "weighted_pseudoinverse"
+    }
+  },
+  "hf8_physical_validation": {
+    "schema_version": "hf8.physical_validation.v1",
+    "route_b_version": "B-5/HF-8",
+    "status": "implemented_validation_gates_not_benchmark_envelopes",
+    "default_checks": [
+      "soc_bounds",
+      "thermal_bounds",
+      "orbit_altitude_sanity",
+      "fuel_monotonicity",
+      "data_conservation",
+      "quaternion_norm",
+      "pointing_convergence",
+      "energy_balance_proxy"
+    ],
+    "requested_checks": [
+      "soc_bounds",
+      "thermal_bounds",
+      "orbit_altitude_sanity",
+      "fuel_monotonicity",
+      "data_conservation",
+      "quaternion_norm",
+      "pointing_convergence",
+      "energy_balance_proxy"
+    ],
+    "strict": false,
+    "can_claim_high_fidelity": false,
+    "remaining_route_b_dependencies": [
+      "HF-9 benchmark scenarios and tolerance envelopes"
+    ]
+  },
+  "execution_traceability": {
+    "unified_execution": {
+      "schema_version": "sat-sim.execution-evidence.v2",
+      "request_id": "exec_55d29a69f5a0a4f4",
+      "request_sha256": "f8097d875f3508ad93b3d5d7e2e29f975756b87d180880630ef93c66a22f92b8",
+      "execution_plan_sha256": "55d29a69f5a0a4f4ab7a26f87fb49c5c42e99d9fe443036020def52986abb6c9",
+      "adapter_key": "capability.registered_adapter",
+      "route": "registered_capability_adapter",
+      "legacy_mode": false,
+      "legacy_bridge_called": false,
+      "capability_id": "subsystem.adcs_fidelity.v1",
+      "capability_adapter": "sat_sim.adapters.subsystem_adcs_fidelity.AdcsFidelityAdapter",
+      "task_type": "subsystem",
+      "runner": "sat_sim.adapters.subsystem_adcs_fidelity.AdcsFidelityAdapter"
+    }
+  }
+}

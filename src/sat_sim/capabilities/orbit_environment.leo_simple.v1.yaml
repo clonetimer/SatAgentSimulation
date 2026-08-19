@@ -1,0 +1,215 @@
+capability_id: orbit_environment.leo_simple.v1
+schema_version: 0.1.0
+name: Simple LEO orbit environment simulation
+level: integrated
+domain: orbit_environment
+target: orbit_environment
+trust_level: conformance_tested
+status: deprecated_compatibility_only
+summary: Deterministic support-data-free LEO orbit/environment capability. It maps TaskSpec parameters to integrated.orbit_environment
+  model classes.
+adapter:
+  class_path: sat_sim.adapters.orbit_environment_leo_simple.OrbitEnvironmentLeoSimpleAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - integrated.orbit_environment.model
+  - integrated.orbit_environment.schemas
+  legacy_demo_runner: integrated.orbit_environment.harness
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: false
+  degradation:
+    supported: false
+parameters:
+  altitude_m:
+    type: number
+    unit: m
+    required: false
+    min: 100000.0
+    max: 2000000.0
+    default: 500000.0
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    max: 180.0
+    default: 51.6
+  raan_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  arg_lat0_deg:
+    type: number
+    unit: deg
+    required: false
+    default: -110.0
+  sun_vector_n:
+    type: vector3
+    unit: none
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+  magnetic_dipole_axis_n:
+    type: vector3
+    unit: none
+    required: false
+    default:
+    - 0.0
+    - 0.0
+    - 1.0
+  magnetic_equator_strength_t:
+    type: number
+    unit: T
+    required: false
+    min: 0.0
+    default: 3.12e-05
+  ground_station:
+    type: object
+    required: false
+    description: latitude_deg, longitude_deg, altitude_m, min_elevation_deg, max_range_m.
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: orbit.r_bn_n_m_x
+    unit: m
+    dtype: number
+  - name: orbit.v_bn_n_m_s_x
+    unit: m/s
+    dtype: number
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: bool
+  - name: environment.magnetic_field_norm_t
+    unit: T
+    dtype: number
+  - name: ground.has_access
+    unit: bool
+    dtype: bool
+  summary:
+  - name: qoi.orbit.radius_mean_m
+    unit: m
+  - name: qoi.environment.eclipse_fraction
+    unit: ratio
+  - name: qoi.environment.magnetic_field_norm_min_t
+    unit: T
+  - name: qoi.environment.magnetic_field_norm_max_t
+    unit: T
+  - name: qoi.ground.access_fraction
+    unit: ratio
+validation:
+  conformance_tests:
+  - test_orbit_environment_duration_and_sample_control_trace
+  - test_orbit_environment_altitude_controls_orbit_radius
+  - test_orbit_environment_sun_vector_changes_eclipse_profile
+  - test_orbit_environment_ground_station_changes_access
+produces:
+- name: orbit.*
+  destination: trace
+- name: environment.shadow_factor
+  unit: ratio
+  destination: trace
+- name: environment.eclipse_flag
+  unit: bool
+  destination: trace
+- name: ground.*
+  destination: trace
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: orbit_environment.*
+  required: false
+- name: parameters.ground_station
+  required: false
+time_grid:
+  policy: single_capability_time_grid
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+source_binding:
+  mode: source_native
+  status: s3_verified_direct_public_api
+  primary_module: integrated.orbit_environment.model
+  source_modules:
+  - integrated.orbit_environment.model
+  - integrated.orbit_environment.schemas
+  public_api:
+  - generate_environment_profile
+  - summarize_profile
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: deprecated
+  replacement: orbit_environment.orbit_fidelity.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Superseded by Route-B HF-3 medium-fidelity orbit/environment model.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/integrated/orbit_environment/basilisk_impl.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

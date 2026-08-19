@@ -1,0 +1,59 @@
+schema_version: sat-sim.diagnostic-signature.v1
+signature_id: adcs.rw_jam.diagnostic.v1
+fault_id: ADCS_RW_JAM
+source_experiment_template_id: adcs.rw_jam.basilisk.v1
+required_channels:
+- status.adcs.rw.available_0
+- estimate.adcs.rw.effective_max_torque_nm_0
+- sensor.adcs.rw.speed_rad_s_0
+criteria:
+- criterion_id: wheel_unavailable_persistent
+  channel: status.adcs.rw.available_0
+  metric: post_fault_fraction_le_gte
+  threshold: 0.9
+  value_threshold: 0.0
+  weight: 0.0
+  required: true
+  evidence_role: simulator_truth
+  contributes_to_diagnostic_score: false
+- criterion_id: torque_authority_collapsed
+  channel: estimate.adcs.rw.effective_max_torque_nm_0
+  metric: post_fault_max_le
+  threshold: 1.0e-12
+  weight: 0.0
+  required: true
+  evidence_role: simulator_truth
+  contributes_to_diagnostic_score: false
+- criterion_id: wheel_speed_divergence
+  channel: sensor.adcs.rw.speed_rad_s_0
+  metric: post_pair_rms_delta_gt
+  threshold: 1.0e-07
+  weight: 0.5
+  required: true
+  evidence_role: observable_telemetry
+  contributes_to_diagnostic_score: true
+- criterion_id: applied_torque_response
+  channel: estimate.adcs.rw.actual_torque_nm_0
+  metric: post_pair_rms_delta_gt
+  threshold: 1.0e-08
+  weight: 0.25
+  required: false
+  evidence_role: operational_estimate
+  contributes_to_diagnostic_score: true
+- criterion_id: pointing_response
+  channel: estimate.adcs.pointing_error_deg
+  metric: post_pair_max_abs_delta_gt
+  threshold: 1.0e-07
+  weight: 0.25
+  required: false
+  evidence_role: operational_estimate
+  contributes_to_diagnostic_score: true
+qualification:
+  minimum_diagnostic_score: 0.7
+  require_all_required_criteria: true
+  minimum_observable_criteria_passed: 1
+  threshold_status: provisional_until_basilisk_18_case
+  minimum_independent_basilisk_pairs_for_freeze: 3
+claim_boundary:
+  flight_calibrated: false
+  threshold_freeze_requires_basilisk_18_case: true

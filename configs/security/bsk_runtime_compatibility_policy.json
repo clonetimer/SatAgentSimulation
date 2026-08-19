@@ -1,0 +1,24 @@
+{
+  "schema_version": "sat-sim.bsk-runtime-compatibility-policy.v1",
+  "status": "PASS",
+  "upstream_distribution": "bsk",
+  "upstream_version": "2.11.0",
+  "accepted_runtime_versions": [
+    "2.11.0",
+    "2.11.0+satfix1"
+  ],
+  "project_lock_requirement": "bsk==2.11.0+satfix1",
+  "audit_requirement": "bsk==2.11.0",
+  "runtime_verification": {
+    "mode": "import_and_distribution_identity",
+    "required_import_root": "Basilisk",
+    "offline_wheel_bundle_required": false,
+    "offline_wheel_bundle_role": "optional_reproducibility_artifact"
+  },
+  "satfix1": {
+    "kind": "metadata_only_compatibility_variant",
+    "purpose": "permit the project security-pinned Pillow version while preserving the approved upstream Basilisk payload",
+    "payload_byte_identity_requires_build_report_when_satfix1_wheels_are distributed": true
+  },
+  "claim_boundary": "This policy proves accepted runtime identity, not flight validation or physical-model accuracy."
+}

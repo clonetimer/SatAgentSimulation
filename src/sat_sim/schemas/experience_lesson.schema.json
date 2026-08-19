@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sat-sim.local/schemas/experience_lesson.schema.json",
+  "title": "Controlled Satellite Simulation Experience Lesson",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "lesson_id", "created_at", "scope", "kind", "state",
+    "title", "advisory", "source_experience_ids", "evidence_hashes",
+    "capability_ids", "lesson_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "sat-sim.experience-lesson.v1"},
+    "lesson_id": {"type": "string", "pattern": "^lesson_[0-9a-f]{24}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenant_id", "project_id"],
+      "properties": {
+        "tenant_id": {"type": "string", "minLength": 1},
+        "project_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "kind": {
+      "enum": [
+        "parameter_output_explanation",
+        "failure_recovery_advice",
+        "taskspec_dag_example"
+      ]
+    },
+    "state": {
+      "enum": ["candidate", "evaluated", "approved", "rejected", "revoked"]
+    },
+    "title": {"type": "string", "minLength": 1},
+    "advisory": {"type": "object"},
+    "source_experience_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "pattern": "^exp_[0-9a-f]{24}$"}
+    },
+    "evidence_hashes": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
+    },
+    "capability_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "modes": {"type": "array", "items": {"type": "string"}},
+    "effects": {"type": "array", "items": {"type": "string"}},
+    "compatible_task_spec_versions": {"type": "array", "items": {"type": "string"}},
+    "safety_labels": {"type": "array", "items": {"type": "string"}},
+    "lesson_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

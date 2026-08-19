@@ -1,0 +1,28 @@
+{
+  "schema_version": "interactive-performance-budget.v1",
+  "claim": "soft_realtime",
+  "rates": [0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0],
+  "mvp": {
+    "single_session_drift_p95_ms_at_1x_30min": 200,
+    "command_receive_to_queue_p95_ms": 100,
+    "command_effect_max_quanta": 2,
+    "telemetry_delivery_p95_ms_at_10hz": 200,
+    "telemetry_aggregate_min_frames_per_second": 100,
+    "silent_command_drops": 0,
+    "silent_telemetry_drops": 0,
+    "quantum_compute_p95_max_utilization_at_1x": 1.0,
+    "rate_min_attainment_ratio": 0.85,
+    "max_concurrent_sessions": 4,
+    "max_process_rss_bytes_at_concurrency_4": 2147483648,
+    "max_rss_growth_bytes_at_4h_sim": 1073741824,
+    "max_terminal_thread_growth": 0,
+    "max_terminal_fd_growth": 0,
+    "formal_drift_wall_duration_s": 1800,
+    "formal_long_sim_duration_s": 14400,
+    "default_quantum_s": 0.5,
+    "max_session_sim_time_s": 86400,
+    "telemetry_ring_frames_per_stream": 10000,
+    "command_mailbox_depth": 1024
+  },
+  "overload_policy": "Expose drift and gaps, reduce effective pace when required, and never skip a physical integration step."
+}

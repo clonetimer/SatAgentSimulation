@@ -1,0 +1,196 @@
+{
+  "schema_version": "v0574.coupling-validation-matrix.experimental.v3",
+  "baseline_spec": "../whole_spacecraft_coupling_baseline.yaml",
+  "case_run_timeout_s": 120.0,
+  "cases": [
+    {
+      "case_id": "ground_access_geometry_to_rf_link_budget",
+      "description": "Increasing only circular-orbit radius must increase native ground-access slant range and RF link-budget distance.",
+      "patch": {
+        "path": "parameters.initial_orbit_radius_m",
+        "value": 8000000.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "ground_access_to_rf_link_distance",
+          "source_field": "ground_slant_range_m",
+          "response_field": "rf_link_distance_m",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 500000.0,
+          "min_response_delta": 500000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 3,
+          "min_response_fraction": 0.8
+        }
+      ],
+      "covers_runtime_couplings": [
+        "ground_access_rf_link_budget"
+      ]
+    },
+    {
+      "case_id": "gravity_to_spacecraft_orbit_dynamics",
+      "description": "Disabling only the gravity-to-spacecraft coupling must produce measurable radial drift versus the gravity-coupled circular orbit.",
+      "patch": {
+        "path": "parameters.coupling.enable_gravity_to_spacecraft",
+        "value": false
+      },
+      "expectations": [
+        {
+          "coupling_id": "gravity_to_spacecraft_orbit_radius",
+          "source_field": "gravity_coupling_enabled",
+          "response_field": "orbit_radius_m",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 0.5,
+          "min_response_delta": 1000.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "gravity_to_spacecraft"
+      ]
+    },
+    {
+      "case_id": "propulsion_activity_to_power_heat_and_orbit",
+      "description": "Increasing only thruster commanded on-time must increase propulsion energy and propellant use, reduce battery SOC, heat the structure, and perturb orbit radius.",
+      "patch": {
+        "path": "parameters.propulsion_on_time_s",
+        "value": [
+          20.0,
+          20.0
+        ]
+      },
+      "expectations": [
+        {
+          "coupling_id": "propulsion_activity_to_eps",
+          "source_field": "propulsion_cumulative_energy_j",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 500.0,
+          "min_response_delta": 0.0005,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "propulsion_activity_to_thermal",
+          "source_field": "propulsion_cumulative_energy_j",
+          "response_field": "thermal_structure_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 500.0,
+          "min_response_delta": 0.02,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "propulsion_effector_to_spacecraft_orbit",
+          "source_field": "propellant_used_kg",
+          "response_field": "orbit_radius_m",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 0.01,
+          "min_response_delta": 1.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        }
+      ],
+      "covers_runtime_couplings": [
+        "propulsion_activity_to_eps_thermal",
+        "propulsion_effector_to_spacecraft"
+      ]
+    },
+    {
+      "case_id": "eps_pdu_to_thermal_heaters",
+      "description": "With a heater demanded on in both paired runs, low SOC must remove the EPS heater permit and stop thermal heater activity.",
+      "setup_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        },
+        {
+          "path": "modifiers.faults",
+          "value": [
+            {
+              "modifier_id": "heater_on_causal_001",
+              "target": "thermal.heater",
+              "fault_type": "heater_stuck_on",
+              "onset_time_s": 0.0,
+              "duration_s": -1.0,
+              "severity": 1.0,
+              "parameters": {
+                "scenario": "thermal_heater_stuck_on"
+              }
+            }
+          ]
+        }
+      ],
+      "patch": {
+        "path": "parameters.initial_soc",
+        "value": 0.15
+      },
+      "expectations": [
+        {
+          "coupling_id": "eps_pdu_to_heater_enable",
+          "source_field": "pdu_heater_enabled",
+          "response_field": "heater_active_count",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.5,
+          "min_response_delta": 0.5,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.8
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "eps_pdu_to_thermal_heaters"
+      ]
+    }
+  ],
+  "required_runtime_couplings": [
+    "ground_access_rf_link_budget",
+    "gravity_to_spacecraft",
+    "propulsion_activity_to_eps_thermal",
+    "propulsion_effector_to_spacecraft",
+    "eps_pdu_to_thermal_heaters"
+  ]
+}

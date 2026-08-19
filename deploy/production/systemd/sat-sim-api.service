@@ -1,0 +1,23 @@
+[Unit]
+Description=Satellite Simulation 既有版本 control plane
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sat-sim
+Group=sat-sim
+WorkingDirectory=/opt/sat-sim
+EnvironmentFile=/etc/sat-sim/sat-sim.env
+ExecStart=/opt/sat-sim/.venv/bin/uvicorn sat_sim.api:create_app --factory --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/sat-sim
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

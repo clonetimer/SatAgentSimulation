@@ -1,0 +1,61 @@
+schema_version: 0.1.0
+task_id: component_battery_capability_fault
+task_type: component
+description: Registry-synthesized template for component.battery.v1
+capability_id: component.battery.v1
+simulation:
+  duration_s: 300.0
+  sample_s: 10.0
+  backend: selective_unified_basilisk_assembly
+target:
+  level: component
+  name: battery
+  mode: fault
+parameters:
+  capacity_wh: 160.0
+  initial_soc: 0.62
+  net_power_w: -20.0
+  charge_efficiency: 0.98
+  discharge_efficiency: 0.97
+  min_soc: 0.0
+  max_soc: 1.0
+faults:
+- fault_id: fault_001
+  target: battery
+  target_type: battery
+  fault_type: open_circuit
+  onset_time_s: 0.0
+  duration_s: -1.0
+  magnitude: 1.0
+  parameters: {}
+modifiers:
+  faults: []
+  degradations: []
+outputs:
+  output_root: runs
+  trace_format: csv
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+  record_fields:
+  - task_id
+  - case_id
+  - time_s
+  - sample_index
+  - target_level
+  - target_name
+  - mode
+  - eps.battery.soc
+  - eps.battery.storage_wh
+  - eps.battery.capacity_wh
+  - eps.battery.effective_capacity_wh
+  - eps.battery.net_power_w
+  - eps.battery.applied_power_w
+  - eps.battery.shunt_dissipated_wh
+  - label.health_state
+  - label.fault_active
+metadata:
+  template_source: capability_registry_synthesized
+  template_file_requested: component_battery_capability_fault.yaml
+  reason_code: TEMPLATE_SYNTHESIZED

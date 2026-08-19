@@ -1,0 +1,41 @@
+"""HF-2 reference-frame foundation utilities."""
+
+from .core import (
+    BODY,
+    ECEF,
+    ECI,
+    LVLH,
+    FrameError,
+    FrameMetadata,
+    FrameTransformRecord,
+    build_frame_contract,
+    build_lvlh_basis,
+    cross,
+    dot,
+    ecef_to_eci,
+    eci_to_ecef,
+    eci_vector_to_lvlh,
+    lvlh_vector_to_eci,
+    normalize_vector,
+    vector_norm,
+)
+
+__all__ = [
+    "BODY",
+    "ECEF",
+    "ECI",
+    "LVLH",
+    "FrameError",
+    "FrameMetadata",
+    "FrameTransformRecord",
+    "build_frame_contract",
+    "build_lvlh_basis",
+    "cross",
+    "dot",
+    "ecef_to_eci",
+    "eci_to_ecef",
+    "eci_vector_to_lvlh",
+    "lvlh_vector_to_eci",
+    "normalize_vector",
+    "vector_norm",
+]

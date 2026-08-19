@@ -1,0 +1,102 @@
+schema_version: 1.0.0
+task:
+  id: component_battery_capability_nominal
+  name: component_battery_capability_nominal
+  description: Registry-synthesized template for component.battery.v1
+  tags: []
+simulation:
+  level: component
+  duration_s: 300.0
+  step_s: 10.0
+  sample_s: 10.0
+  backend: selective_unified_basilisk_assembly
+  time_base: simulation_seconds
+  time_system: UTC
+mission: {}
+parameters:
+  profile: demo
+  values:
+    capacity_wh: 160.0
+    initial_soc: 0.62
+    net_power_w: -20.0
+    charge_efficiency: 0.98
+    discharge_efficiency: 0.97
+    min_soc: 0.0
+    max_soc: 1.0
+  overrides: []
+events:
+  faults: []
+  degradations: []
+outputs:
+  output_root: runs
+  trace_format: csv
+  qoi:
+  - task_id
+  - case_id
+  - time_s
+  - sample_index
+  - target_level
+  - target_name
+  - mode
+  - eps.battery.soc
+  - eps.battery.storage_wh
+  - eps.battery.capacity_wh
+  - eps.battery.effective_capacity_wh
+  - eps.battery.net_power_w
+  - eps.battery.applied_power_w
+  - eps.battery.shunt_dissipated_wh
+  - label.health_state
+  - label.fault_active
+  files: []
+  plots: []
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+assurance:
+  fidelity_level: declared_by_capability
+  claim_level: analysis_only
+  validation_profile: default
+  parameter_profile: demo
+  allow_proxy: false
+model:
+  capability_id: component.battery.v1
+  target:
+    level: component
+    name: battery
+    mode: nominal
+  spacecraft: {}
+  orbit_environment: {}
+  config:
+    capacity_wh: 160.0
+    initial_soc: 0.62
+    net_power_w: -20.0
+    charge_efficiency: 0.98
+    discharge_efficiency: 0.97
+    min_soc: 0.0
+    max_soc: 1.0
+  legacy_degradations: {}
+  campaign: {}
+  simulation_extra: {}
+  validation: {}
+provenance:
+  fields:
+    task.id:
+      source: legacy_migration
+      evidence: $.task_id
+    simulation.duration_s:
+      source: legacy_migration
+      evidence: $.simulation.duration_s
+    simulation.sample_s:
+      source: legacy_migration
+      evidence: $.simulation.sample_s
+    model.capability_id:
+      source: legacy_migration
+      evidence: $.capability_id
+  assumptions: []
+  pending_confirmations: []
+  migrated_from_version: 0.1.0
+metadata:
+  template_source: capability_registry_synthesized
+  template_file_requested: component_battery_capability_nominal.yaml
+  reason_code: TEMPLATE_SYNTHESIZED

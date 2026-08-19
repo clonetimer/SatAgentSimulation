@@ -1,0 +1,215 @@
+{
+  "$defs": {
+    "CalibrationClaimLevel": {
+      "enum": [
+        "demo",
+        "engineering_estimate",
+        "ground_calibrated",
+        "flight_correlated"
+      ],
+      "title": "CalibrationClaimLevel",
+      "type": "string"
+    },
+    "CalibrationIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "evidence": {
+          "default": null,
+          "title": "Evidence"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "CalibrationIssue",
+      "type": "object"
+    },
+    "CalibrationValidationReport": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "v34.calibration-readiness.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Id"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "qualification_level": {
+          "$ref": "#/$defs/CalibrationClaimLevel"
+        },
+        "requested_claim_level": {
+          "$ref": "#/$defs/CalibrationClaimLevel"
+        },
+        "claim_allowed": {
+          "title": "Claim Allowed",
+          "type": "boolean"
+        },
+        "file_count": {
+          "title": "File Count",
+          "type": "integer"
+        },
+        "verified_file_count": {
+          "title": "Verified File Count",
+          "type": "integer"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/CalibrationIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        }
+      },
+      "required": [
+        "status",
+        "qualification_level",
+        "requested_claim_level",
+        "claim_allowed",
+        "file_count",
+        "verified_file_count"
+      ],
+      "title": "CalibrationValidationReport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v34.calibration-readiness.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "batch": {
+      "default": "CALIBRATION-EVIDENCE-FRAMEWORK-AND-DATA-READY-1",
+      "title": "Batch",
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "title": "Generated At Utc",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "dataset_available": {
+      "title": "Dataset Available",
+      "type": "boolean"
+    },
+    "dataset_count": {
+      "title": "Dataset Count",
+      "type": "integer"
+    },
+    "validated_dataset_count": {
+      "title": "Validated Dataset Count",
+      "type": "integer"
+    },
+    "ground_calibrated_dataset_count": {
+      "title": "Ground Calibrated Dataset Count",
+      "type": "integer"
+    },
+    "flight_correlated_dataset_count": {
+      "title": "Flight Correlated Dataset Count",
+      "type": "integer"
+    },
+    "calibration_claim_allowed": {
+      "title": "Calibration Claim Allowed",
+      "type": "boolean"
+    },
+    "maximum_claim_level": {
+      "$ref": "#/$defs/CalibrationClaimLevel"
+    },
+    "parameter_calibrated_record_count": {
+      "title": "Parameter Calibrated Record Count",
+      "type": "integer"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/CalibrationIssue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "datasets": {
+      "items": {
+        "$ref": "#/$defs/CalibrationValidationReport"
+      },
+      "title": "Datasets",
+      "type": "array"
+    },
+    "reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "boundaries": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Boundaries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "generated_at_utc",
+    "status",
+    "dataset_available",
+    "dataset_count",
+    "validated_dataset_count",
+    "ground_calibrated_dataset_count",
+    "flight_correlated_dataset_count",
+    "calibration_claim_allowed",
+    "maximum_claim_level",
+    "parameter_calibrated_record_count"
+  ],
+  "title": "Calibration Readiness Report V34",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/calibration-readiness-v34.schema.json"
+}

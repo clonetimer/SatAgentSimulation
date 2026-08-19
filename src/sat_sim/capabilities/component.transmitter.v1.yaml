@@ -1,0 +1,184 @@
+capability_id: component.transmitter.v1
+schema_version: 0.1.0
+name: Transmitter component simulation
+level: component
+domain: communication
+target: transmitter
+trust_level: conformance_tested
+status: agent_ready
+summary: Source-native transmitter amplifier/rate capability using components.transmitter.builder compute_transmitter.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.TransmitterAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - components.transmitter.builder
+  legacy_demo_runner: components.transmitter.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [power_amplifier_fault, frequency_drift_fault, signal_loss]
+  degradation:
+    supported: true
+    degradation_types: [output_power_decay, frequency_stability_drift]
+parameters:
+  max_tx_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 12.0
+    min: 0.0
+  standby_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 1.5
+    min: 0.0
+  efficiency:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.55
+    min: 0.0
+  max_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 1000000.0
+    min: 0.0
+  requested_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 500000.0
+    min: 0.0
+  available_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 20.0
+    min: 0.0
+  commanded_on:
+    type: bool
+    unit: bool
+    required: false
+    default: true
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.max_tx_power_w
+  unit: W
+- name: parameters.standby_power_w
+  unit: W
+- name: parameters.efficiency
+  unit: ratio
+- name: parameters.max_rate_bps
+  unit: bit/s
+- name: parameters.requested_rate_bps
+  unit: bit/s
+- name: parameters.available_power_w
+  unit: W
+- name: parameters.commanded_on
+  unit: bool
+produces:
+- name: communication.transmitter.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c2c3_transmitter_parameter_effect_and_manifest
+  - test_c2c3_transmitter_capability_python_export_runs
+operator:
+  owner: transmitter
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: transmitter, implementation: source_native, evidence_fields: [comm.transmitter.effective_rate_bps], verification: declared}
+  - {effect_id: power_amplifier_fault, kind: fault, owner: transmitter, implementation: source_native, evidence_fields: [comm.transmitter.tx_power_w], verification: declared}
+  - {effect_id: frequency_drift_fault, kind: fault, owner: transmitter, implementation: source_native, evidence_fields: [comm.transmitter.effective_rate_bps], verification: declared}
+  - {effect_id: signal_loss, kind: fault, owner: transmitter, implementation: source_native, evidence_fields: [comm.transmitter.enabled], verification: declared}
+  - {effect_id: output_power_decay, kind: degradation, owner: transmitter, implementation: source_native, evidence_fields: [comm.transmitter.effective_max_tx_power_w], verification: declared}
+  - {effect_id: frequency_stability_drift, kind: degradation, owner: transmitter, implementation: source_native, evidence_fields: [comm.transmitter.effective_max_rate_bps], verification: declared}
+source_binding:
+  mode: source_native
+  status: c2c3_new_source_native_adapter
+  primary_module: components.transmitter.builder
+  source_modules: *id001
+  public_api:
+  - TransmitterConfig
+  - compute_transmitter
+  legacy_demo_runner: components.transmitter.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing pure-Python component builder/model
+    API.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability; coupled downlink analysis still uses the communication subsystem.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/transmitter/builder.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

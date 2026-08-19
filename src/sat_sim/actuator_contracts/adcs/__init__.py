@@ -1,0 +1,1 @@
+"""ADCS actuator contracts."""

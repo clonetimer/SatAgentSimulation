@@ -1,0 +1,49 @@
+schema_version: 0.1.0
+task_id: whole_spacecraft_attitude_control_a3r_object_calls
+task_type: whole_spacecraft
+description: A3R O-Binding-M vertical slice with safe-mode action and reaction-wheel jamming.
+capability_id: whole_spacecraft.unified_native.v1
+simulation:
+  duration_s: 30.0
+  step_s: 0.2
+  sample_s: 1.0
+  backend: basilisk
+target:
+  level: whole_spacecraft
+  name: whole_spacecraft
+  mode: mixed
+spacecraft:
+  mission:
+    template: whole_spacecraft.unified_native.v1
+parameters:
+  initial_pointing_error_deg: 8.0
+  initial_soc: 0.62
+  controller_k: 3.5
+  controller_p: 30.0
+faults: []
+modifiers:
+  faults: []
+  degradations: []
+  constraints: []
+assurance:
+  allow_proxy: false
+outputs:
+  output_root: runs/whole_spacecraft_attitude_control_a3r_object_calls
+  trace_format: csv
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+  record_fields:
+  - adcs.pointing_error_deg
+  - adcs.rw.speed_rad_s_0
+  - eps.battery_soc
+  - label.power_safe_mode_engaged
+metadata:
+  object_calls:
+  - id: safe_mode_action
+    ref: spacecraft.attitude_control.enter_safe_mode
+    parameters: {start_s: 8.0, end_s: 16.0}
+  - id: rw0_jamming
+    ref: spacecraft.attitude_control.inject_rw_jamming
+    parameters: {wheel_index: 0, start_s: 12.0, end_s: 24.0}

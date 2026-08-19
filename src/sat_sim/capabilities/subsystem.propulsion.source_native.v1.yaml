@@ -1,0 +1,182 @@
+capability_id: subsystem.propulsion.source_native.v1
+schema_version: 0.1.0
+name: Propulsion source-native subsystem simulation
+level: subsystem
+domain: propulsion
+target: propulsion
+trust_level: conformance_tested
+status: compatibility_only
+summary: Source-native propulsion subsystem capability using existing src/subsystems builder/model APIs without demo runner
+  execution. Retained only for historical pure-Python TaskSpec reproduction.
+adapter:
+  class_path: sat_sim.adapters.subsystem_source_native.PropulsionSourceNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - subsystems.propulsion.builder
+  - subsystems.propulsion.model
+  - subsystems.propulsion.schemas
+  legacy_demo_runner: subsystems.propulsion.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+parameters:
+  fuel_capacity_kg:
+    type: number
+    required: false
+    default: 2.0
+  initial_fuel_kg:
+    type: number
+    required: false
+    default: 1.0
+  min_soc_for_burn:
+    type: number
+    required: false
+    default: 0.3
+  burn_requested:
+    type: boolean
+    required: false
+    default: true
+  battery_soc:
+    type: number
+    required: false
+    default: 1.0
+  eps_allows_burn:
+    type: boolean
+    required: false
+    default: true
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.fuel_capacity_kg
+  unit: mixed
+- name: parameters.initial_fuel_kg
+  unit: mixed
+- name: parameters.min_soc_for_burn
+  unit: mixed
+- name: parameters.burn_requested
+  unit: mixed
+- name: parameters.battery_soc
+  unit: mixed
+- name: parameters.eps_allows_burn
+  unit: mixed
+produces:
+- name: propulsion.source_native.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: propulsion.source_native.burn_requested
+    unit: bool
+    dtype: number
+    description: 推进原生点火请求。运行器实际输出字段；技术字段为 propulsion.source_native.burn_requested，单位 bool。
+  - name: propulsion.source_native.burn_allowed
+    unit: bool
+    dtype: number
+    description: 推进原生点火。运行器实际输出字段；技术字段为 propulsion.source_native.burn_allowed，单位 bool。
+  - name: propulsion.source_native.total_impulse_ns
+    unit: mixed
+    dtype: number
+    description: 推进原生总冲量。运行器实际输出字段；技术字段为 propulsion.source_native.total_impulse_ns。
+  - name: propulsion.source_native.cumulative_impulse_ns
+    unit: mixed
+    dtype: number
+    description: 推进原生累计冲量。运行器实际输出字段；技术字段为 propulsion.source_native.cumulative_impulse_ns。
+  - name: propulsion.source_native.propellant_used_kg
+    unit: kg
+    dtype: number
+    description: 推进原生推进剂已用质量。运行器实际输出字段；技术字段为 propulsion.source_native.propellant_used_kg，单位 kg。
+  - name: propulsion.source_native.propellant_remaining_kg
+    unit: kg
+    dtype: number
+    description: 推进原生推进剂剩余质量。运行器实际输出字段；技术字段为 propulsion.source_native.propellant_remaining_kg，单位 kg。
+  - name: propulsion.source_native.tank_pressure_pa
+    unit: Pa
+    dtype: number
+    description: 推进原生压力。运行器实际输出字段；技术字段为 propulsion.source_native.tank_pressure_pa，单位 Pa。
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c5_propulsion_source_native_run_and_manifest
+  - test_c5_propulsion_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c4c6_new_source_native_subsystem_adapter
+  primary_module: subsystems.propulsion.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_propulsion_config
+  - initialize_propulsion_state
+  - simulate_propulsion_profile
+  legacy_demo_runner: subsystems.propulsion.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around existing pure-Python subsystem builder/model
+    APIs.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+- does not implement force-coupled delta-v maneuver propagation
+lifecycle:
+  status: deprecated
+  product_tier: compatibility
+  recommended: false
+  replacement: subsystem.propulsion.unified_native.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Replaced by the focused Basilisk-native propulsion capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/subsystems/propulsion/basilisk_impl.py
+  - src/subsystems/propulsion/builder.py
+  - src/subsystems/propulsion/runner.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added
+  - does not implement force-coupled delta-v maneuver propagation

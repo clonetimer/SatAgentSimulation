@@ -1,0 +1,227 @@
+capability_id: component.onboard_storage.v1
+schema_version: 0.1.0
+name: Onboard storage component simulation
+level: component
+domain: communication
+target: onboard_storage
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native onboard storage accounting capability backed by components.onboard_storage.builder without using demo
+  runner functions.
+adapter:
+  class_path: sat_sim.adapters.component_onboard_storage.OnboardStorageAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - components.onboard_storage.builder
+  legacy_demo_runner: components.onboard_storage.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [bad_block, read_only, corruption]
+  degradation:
+    supported: true
+    degradation_types: [capacity_loss, bit_error_growth]
+parameters:
+  capacity_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 0.0
+    default: 20000000.0
+  high_watermark:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.9
+  initial_stored_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 0.0
+    default: 0.0
+  generated_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 1000.0
+  downlink_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 0.0
+  generated_profile_bps:
+    type: array[number]
+    unit: bit/s
+    required: false
+  downlink_profile_bps:
+    type: array[number]
+    unit: bit/s
+    required: false
+operator:
+  owner: onboard_storage
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: onboard_storage, implementation: source_native, evidence_fields: [comm.storage.stored_bits], verification: declared}
+  - {effect_id: bad_block, kind: fault, owner: onboard_storage, implementation: source_native, evidence_fields: [comm.storage.effective_capacity_bits, label.fault_active], verification: declared}
+  - {effect_id: read_only, kind: fault, owner: onboard_storage, implementation: source_native, evidence_fields: [comm.storage.generated_bps, label.fault_active], verification: declared}
+  - {effect_id: corruption, kind: fault, owner: onboard_storage, implementation: source_native, evidence_fields: [comm.storage.generated_bps, label.fault_active], verification: declared}
+  - {effect_id: capacity_loss, kind: degradation, owner: onboard_storage, implementation: source_native, evidence_fields: [comm.storage.effective_capacity_bits, label.degradation_active], verification: declared}
+  - {effect_id: bit_error_growth, kind: degradation, owner: onboard_storage, implementation: source_native, evidence_fields: [comm.storage.generated_bps, label.degradation_active], verification: declared}
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.capacity_bits
+  unit: bit
+- name: parameters.generated_bps
+  unit: bit/s
+- name: parameters.downlink_bps
+  unit: bit/s
+produces:
+- name: comm.storage.*
+- name: label.storage_high_watermark
+- name: label.storage_full
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: target_level
+    unit: none
+    dtype: string
+  - name: target_name
+    unit: none
+    dtype: string
+  - name: mode
+    unit: none
+    dtype: string
+  - name: comm.storage.stored_bits
+    unit: bit
+    dtype: number
+  - name: comm.storage.capacity_bits
+    unit: bit
+    dtype: number
+  - name: comm.storage.fill_ratio
+    unit: ratio
+    dtype: number
+  - name: comm.storage.overflow_bits
+    unit: bit
+    dtype: number
+  - name: comm.storage.downlinked_bits
+    unit: bit
+    dtype: number
+  - name: comm.storage.generated_bps
+    unit: bit/s
+    dtype: number
+  - name: comm.storage.downlink_bps
+    unit: bit/s
+    dtype: number
+  - name: comm.storage.high_watermark
+    unit: ratio
+    dtype: number
+  - name: label.storage_high_watermark
+    unit: bool
+    dtype: bool
+  - name: label.storage_full
+    unit: bool
+    dtype: bool
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.comm.storage.final_stored_bits
+    unit: bit
+  - name: qoi.comm.storage.cumulative_overflow_bits
+    unit: bit
+  - name: qoi.comm.storage.cumulative_downlinked_bits
+    unit: bit
+validation:
+  conformance_tests:
+  - test_s4_onboard_storage_parameter_effect_and_manifest
+  - test_s4_onboard_storage_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: s4_new_source_native_adapter
+  primary_module: components.onboard_storage.builder
+  source_modules:
+  - components.onboard_storage.builder
+  public_api:
+  - build_nominal_onboard_storage_config
+  - OnboardStorageState
+  - step_onboard_storage
+  legacy_demo_runner: components.onboard_storage.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in S4 as a low-risk coverage expansion using existing pure-Python builder functions.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/onboard_storage/builder.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

@@ -1,0 +1,296 @@
+capability_id: subsystem.adcs_basilisk_fsw.v1
+schema_version: 0.1.0
+name: Basilisk-native ADCS/FSW adapter
+level: subsystem
+domain: adcs
+target: adcs_fsw
+trust_level: experimental
+status: bsk_run5_partial_runtime_coverage
+summary: BSK-RUN-5 adds a minimal Basilisk-native ADCS/FSW runtime smoke for inertial/detumble + simpleNav + MRP feedback
+  + reaction-wheel torque interface. Advanced FSW modes remain configured-only until later runtime benchmarks.
+adapter:
+  class_path: sat_sim.adapters.subsystem_adcs_basilisk_fsw.AdcsBasiliskFswAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adcs.basilisk_fsw
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: true
+  accepted_task_backends:
+  - basilisk
+  optional_dependency: bsk==2.11.0+satfix1
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: false
+  degradation:
+    supported: false
+modifier_policy:
+  faults: not_supported_for_bsk_adcs1_fdir_out_of_scope
+  degradations: not_supported_for_bsk_adcs1
+parameters:
+  target_mode:
+    type: string
+    required: false
+    enum:
+    - inertial
+    - inertial3d
+    - sun_pointing
+    - sun_safe
+    - nadir
+    - hill
+    - velocity
+    - detumble
+    default: inertial
+  mode_manager:
+    type: object
+    required: false
+    description: Basilisk BSKSim-style modeRequest/event-gate configuration surface. Full fault management/FDIR is not implemented
+      in BSK-ADCS-1.
+  controller:
+    type: object
+    required: false
+    description: Attitude-control selector and gains for Basilisk MRP feedback, MRP PD, MRP steering, or rate damping surfaces.
+  reaction_wheels:
+    type: object
+    required: false
+    description: Reaction-wheel geometry and limits for Basilisk reactionWheelStateEffector / rwMotorTorque / rwConfigData
+      surfaces.
+  estimator:
+    type: object
+    required: false
+    description: Estimator selector such as simple_nav, css_est, inertial_ukf, sunline_ekf, sunline_ukf, or sunline_sukf.
+  sensors:
+    type: object
+    required: false
+    description: Sensor interface selector for IMU/gyro, star tracker, CSS/sun sensor, and TAM configuration surfaces.
+  inertia_kg_m2:
+    type: vector3_or_number
+    unit: kg*m^2
+    required: false
+    default:
+    - 12.0
+    - 10.0
+    - 8.0
+  initial_attitude_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 12.0
+  initial_rate_deg_s:
+    type: vector3_or_number
+    unit: deg/s
+    required: false
+    default:
+    - 0.1
+    - -0.05
+    - 0.02
+  fsw_step_s:
+    type: number
+    unit: s
+    required: false
+    default: 0.5
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+    default: 60.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+    default: 1.0
+  solver.step_s:
+    unit: s
+    required: false
+    min: 0.001
+    default: 0.1
+outputs:
+  trace:
+  - {name: attitude.sigma_bn_x, unit: MRP, dtype: number}
+  - {name: attitude.sigma_bn_y, unit: MRP, dtype: number}
+  - {name: attitude.sigma_bn_z, unit: MRP, dtype: number}
+  - {name: attitude.sigma_bn_norm, unit: MRP, dtype: number}
+  - {name: attitude.omega_bn_b_rad_s_x, unit: rad/s, dtype: number}
+  - {name: attitude.omega_bn_b_rad_s_y, unit: rad/s, dtype: number}
+  - {name: attitude.omega_bn_b_rad_s_z, unit: rad/s, dtype: number}
+  - {name: attitude.omega_bn_b_norm_rad_s, unit: rad/s, dtype: number}
+  - {name: control.sigma_br_x, unit: MRP, dtype: number}
+  - {name: control.sigma_br_y, unit: MRP, dtype: number}
+  - {name: control.sigma_br_z, unit: MRP, dtype: number}
+  - {name: control.sigma_br_norm, unit: MRP, dtype: number}
+  - {name: control.omega_br_b_norm_rad_s, unit: rad/s, dtype: number}
+  - {name: control.cmd_torque_b_nm_x, unit: N*m, dtype: number}
+  - {name: control.cmd_torque_b_nm_y, unit: N*m, dtype: number}
+  - {name: control.cmd_torque_b_nm_z, unit: N*m, dtype: number}
+  - {name: control.cmd_torque_b_norm_nm, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_nm_x, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_nm_y, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_nm_z, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_norm_nm, unit: N*m, dtype: number}
+  - {name: rw.speed_rad_s_max_abs, unit: rad/s, dtype: number}
+  summary:
+  - name: basilisk_status
+    unit: none
+  - name: physical_validation_status
+    unit: none
+  - name: bsk_adcs1.blueprint
+    unit: metadata
+validation:
+  conformance_tests:
+  - test_basilisk_adcs_fsw_capability_metadata_is_native
+  - test_basilisk_adcs_fsw_blueprint_covers_guidance_control_estimator_rw_surfaces
+  - test_basilisk_adcs_fsw_validation_reports_missing_dependency_without_fallback
+  - test_basilisk_adcs_fsw_rejects_fault_management_claim
+  - test_basilisk_adcs_fsw_script_generation_mentions_no_implicit_fallback
+  - test_basilisk_adcs_fsw_docs_record_boundaries
+  - test_basilisk_adcs_benchmark_cases_cover_required_fsw_surfaces
+  - test_basilisk_adcs_benchmark_report_is_honest_without_basilisk
+  - test_local_adcs_proxy_comparison_is_explicit_not_fallback
+  - test_bsk_adcs2_manifest_exists_and_matches_cases
+  - test_capability_metadata_references_bsk_adcs2_benchmark_artifacts
+  - test_bsk_adcs2_docs_record_runtime_and_claim_boundaries
+produces:
+- name: bsk_adcs1.blueprint
+  destination: metadata
+- name: adcs.fsw.*
+  destination: metadata
+- name: adcs.control.*
+  destination: trace
+- name: adcs.rw.*
+  destination: trace
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: parameters.target_mode
+  unit: configuration
+  required: false
+- name: parameters.controller
+  unit: configuration
+  required: false
+- name: parameters.reaction_wheels
+  unit: configuration
+  required: false
+- name: parameters.estimator
+  unit: configuration
+  required: false
+- name: parameters.sensors
+  unit: configuration
+  required: false
+time_grid:
+  policy: basilisk_fsw_task_step_from_parameters_fsw_step_s
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+  internal_step_source: simulation.solver.step_s
+source_binding:
+  mode: basilisk_native
+  status: bsk_adcs1_adapter_prepared_explicit_basilisk_required
+  primary_module: sat_sim.adcs.basilisk_fsw
+  source_modules:
+  - sat_sim.adcs.basilisk_fsw
+  - sat_sim.adapters.subsystem_adcs_basilisk_fsw
+  public_api:
+  - BasiliskAdcsFswConfig
+  - check_basilisk_adcs_availability
+  - build_basilisk_adcs_fsw_blueprint
+  - build_bsk_adcs1_payload
+  - run_basilisk_adcs_fsw_if_available
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: true
+fidelity_level: high_fidelity_candidate
+known_physics_limits:
+- This capability requires Basilisk/bsk at runtime. Without Basilisk, BSK-ADCS-1 artifacts are configuration/readiness evidence
+  only, not a Basilisk runtime pass.
+- BSK-ADCS-1 does not implement full FSW, complete FDIR/fault management, calibrated sensor hardware, or mission-specific
+  flight code.
+- Estimator and sensor selections are Basilisk configuration surfaces; runtime validation and benchmark envelopes are BSK-ADCS-2
+  scope.
+- Local ADCS proxy comparisons are explicit baselines and are never implicit fallback for subsystem.adcs_basilisk_fsw.v1.
+- No flight-data validation, hardware-in-the-loop result, or mission-calibrated tolerance evidence is included.
+- BSK-RUN-5 adds a minimal inertial/detumble runtime smoke, but this is not full FSW, FDIR, HIL, or flight validation.
+- BSK-ADCS-2 benchmark cases now distinguish executed minimal runtime cases from configured-only advanced FSW cases.
+- Local ADCS proxy benchmark comparisons are explicit baselines only and do not validate the Basilisk-native FSW path.
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- parameters
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Explicit-only Basilisk-native ADCS/FSW candidate until actual Basilisk runtime benchmark artifacts and later 6-DOF
+    integration gates are available.
+backend_type: basilisk_native
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: basilisk_native
+  basilisk_required: true
+  current_agent_path_uses_basilisk: true
+  source_has_basilisk_facing_candidates: true
+  bsk_run5_minimal_runtime_smoke: true
+  basilisk_candidate_files:
+  - src/sat_sim/adcs/basilisk_fsw.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Current Agent path requires Basilisk-native execution; validate with Basilisk-installed environment before claiming
+    benchmark pass.
+  planned_upgrade_path: []
+comparison_baseline:
+  local_proxy_capability_id: subsystem.adcs_fidelity.v1
+  policy: explicit_only_no_implicit_fallback
+  planned_benchmark: BSK-ADCS-2
+benchmarking:
+  route_version: BSK-ADCS-2
+  scenario_manifest: evals/basilisk_adcs_benchmark/bsk_adcs2_scenarios.json
+  report_dir: reports/basilisk_adcs_benchmark_bsk_adcs2
+  benchmark_status_policy: benchmark_config_prepared is not basilisk_adcs_benchmark_passed; a runtime pass requires installed
+    Basilisk artifacts and benchmark reports
+  local_proxy_comparison: subsystem.adcs_fidelity.v1 is used only as an explicit comparison baseline
+  claim_guardrail: No high-fidelity, full-FSW, FDIR, HIL, or flight-validation claim is allowed from BSK-ADCS-2 readiness
+    artifacts alone.
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: mixed_native_project
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - This capability requires Basilisk/bsk at runtime. Without Basilisk, BSK-ADCS-1 artifacts are configuration/readiness evidence
+    only, not a Basilisk runtime pass.
+  - BSK-ADCS-1 does not implement full FSW, complete FDIR/fault management, calibrated sensor hardware, or mission-specific
+    flight code.
+  - Estimator and sensor selections are Basilisk configuration surfaces; runtime validation and benchmark envelopes are BSK-ADCS-2
+    scope.
+  - Local ADCS proxy comparisons are explicit baselines and are never implicit fallback for subsystem.adcs_basilisk_fsw.v1.
+  - No flight-data validation, hardware-in-the-loop result, or mission-calibrated tolerance evidence is included.
+  - BSK-RUN-5 adds a minimal inertial/detumble runtime smoke, but this is not full FSW, FDIR, HIL, or flight validation.
+  - BSK-ADCS-2 benchmark cases now distinguish executed minimal runtime cases from configured-only advanced FSW cases.
+  - Local ADCS proxy benchmark comparisons are explicit baselines only and do not validate the Basilisk-native FSW path.

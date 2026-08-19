@@ -1,0 +1,266 @@
+capability_id: component.radiator.v1
+schema_version: 0.1.0
+name: Radiator component simulation
+level: component
+domain: thermal
+target: radiator
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native radiator heat rejection capability using components.radiator.builder compute_radiator_rejection.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.RadiatorAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - components.radiator.builder
+  - components.radiator.degradation
+  legacy_demo_runner: components.radiator.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types:
+    - radiator_rejection_loss
+    - radiator_surface_contamination
+  degradation:
+    supported: true
+    degradation_types:
+    - radiator_emissivity_decay
+    - radiator_area_degradation
+parameters:
+  area_m2:
+    type: number
+    unit: m^2
+    required: false
+    default: 0.35
+    min: 0.0
+  emissivity:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.82
+    min: 0.0
+  effective_sink_temp_k:
+    type: number
+    unit: K
+    required: false
+    default: 250.0
+    min: 0.0
+  max_rejection_w:
+    type: number
+    unit: W
+    required: false
+    default: 180.0
+    min: 0.0
+  node_temp_k:
+    type: number
+    unit: K
+    required: false
+    default: 300.0
+    min: 0.0
+  heat_load_w:
+    type: number
+    unit: W
+    required: false
+    default: 25.0
+    min: 0.0
+  node_temp_profile_k:
+    type: array[number]
+    unit: K
+    required: false
+    widget: sample_profile_editor
+    profile_kind: temperature
+    fallback_path: parameters.values.node_temp_k
+    description: 可选的节点温度采样序列。留空时使用“节点温度”固定值；填写后按输出采样点依次使用，序列不足时保持最后一个值。
+  heat_load_profile_w:
+    type: array[number]
+    unit: W
+    required: false
+    widget: sample_profile_editor
+    profile_kind: power
+    fallback_path: parameters.values.heat_load_w
+    description: 可选的热负载功率采样序列。留空时使用“热负载功率”固定值；填写后按输出采样点依次使用，序列不足时保持最后一个值。
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.area_m2
+  unit: m^2
+- name: parameters.emissivity
+  unit: ratio
+- name: parameters.effective_sink_temp_k
+  unit: K
+- name: parameters.max_rejection_w
+  unit: W
+- name: parameters.node_temp_k
+  unit: K
+- name: parameters.heat_load_w
+  unit: W
+produces:
+- name: thermal.radiator.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  - name: thermal.radiator.node_temp_k
+    unit: K
+    dtype: number
+  - name: thermal.radiator.heat_load_w
+    unit: W
+    dtype: number
+  - name: thermal.radiator.rejected_heat_w
+    unit: W
+    dtype: number
+  - name: thermal.radiator.margin_w
+    unit: W
+    dtype: number
+  - name: thermal.radiator.effective_emissivity
+    unit: ratio
+    dtype: number
+  - name: thermal.radiator.effective_area_m2
+    unit: m^2
+    dtype: number
+  - name: thermal.radiator.effective_max_rejection_w
+    unit: W
+    dtype: number
+  - name: label.fault_active
+    unit: bool
+    dtype: bool
+  - name: label.degradation_active
+    unit: bool
+    dtype: bool
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c2c3_radiator_parameter_effect_and_manifest
+  - test_c2c3_radiator_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c2c3_new_source_native_adapter
+  primary_module: components.radiator.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_radiator_config
+  - compute_radiator_rejection
+  legacy_demo_runner: components.radiator.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing pure-Python component builder/model
+    API.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/radiator/builder.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Current thermal capability is source/local reduced lumping or component wrapper; general high-fidelity thermal
+    network is outside current claim and planned under THERM.
+  planned_upgrade_path: []
+operator:
+  owner: radiator
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: radiator
+    implementation: source_native
+    evidence_fields:
+    - thermal.radiator.rejected_heat_w
+    verification: declared
+  - effect_id: radiator_rejection_loss
+    kind: fault
+    owner: radiator
+    implementation: source_native
+    evidence_fields:
+    - thermal.radiator.effective_max_rejection_w
+    - label.fault_active
+    verification: declared
+  - effect_id: radiator_surface_contamination
+    kind: fault
+    owner: radiator
+    implementation: source_native
+    evidence_fields:
+    - thermal.radiator.effective_emissivity
+    - label.fault_active
+    verification: declared
+  - effect_id: radiator_emissivity_decay
+    kind: degradation
+    owner: radiator
+    implementation: source_native
+    evidence_fields:
+    - thermal.radiator.effective_emissivity
+    - label.degradation_active
+    verification: declared
+  - effect_id: radiator_area_degradation
+    kind: degradation
+    owner: radiator
+    implementation: source_native
+    evidence_fields:
+    - thermal.radiator.effective_area_m2
+    - label.degradation_active
+    verification: declared
+  observability:
+    qoi:
+    - qoi.*
+    - thermal.radiator.max_rejected_heat_w
+    - thermal.radiator.min_margin_w
+    trace:
+    - thermal.radiator.*
+    - label.*
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

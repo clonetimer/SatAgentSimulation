@@ -1,0 +1,1295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/sat-sim/task-spec.schema.json",
+  "title": "SatSim TaskSpec v0.1 P5-A",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "task_type",
+    "simulation",
+    "outputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,127}$"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "component",
+        "subsystem",
+        "orbit_environment",
+        "whole_spacecraft",
+        "campaign",
+        "reference"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "template": {
+      "type": "string",
+      "description": "Template identifier, for example whole_spacecraft.nominal.v0."
+    },
+    "simulation": {
+      "$ref": "#/$defs/simulation"
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "spacecraft": {
+      "$ref": "#/$defs/spacecraft"
+    },
+    "orbit_environment": {
+      "$ref": "#/$defs/orbit_environment"
+    },
+    "degradations": {
+      "$ref": "#/$defs/degradations"
+    },
+    "faults": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fault"
+      },
+      "default": []
+    },
+    "campaign": {
+      "$ref": "#/$defs/campaign"
+    },
+    "outputs": {
+      "$ref": "#/$defs/outputs"
+    },
+    "validation": {
+      "$ref": "#/$defs/validation"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional target-specific parameters reserved for future runner adapters."
+    },
+    "capability_id": {
+      "type": "string",
+      "description": "Optional machine-readable capability contract ID. When present, compile/run uses an explicit capability adapter instead of a legacy demo runner."
+    },
+    "modifiers": {
+      "$ref": "#/$defs/modifiers"
+    }
+  },
+  "$defs": {
+    "positive_number": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "nonnegative_number": {
+      "type": "number",
+      "minimum": 0
+    },
+    "unit_vector3": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_s",
+        "sample_s"
+      ],
+      "properties": {
+        "duration_s": {
+          "$ref": "#/$defs/positive_number",
+          "default": 300.0
+        },
+        "sample_s": {
+          "$ref": "#/$defs/positive_number",
+          "default": 10.0
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "backend": {
+          "type": "string",
+          "enum": [
+            "python",
+            "basilisk",
+            "selective_unified_basilisk_assembly"
+          ],
+          "default": "selective_unified_basilisk_assembly"
+        },
+        "time_base": {
+          "type": "string",
+          "enum": [
+            "simulation_seconds",
+            "relative_seconds",
+            "UTC",
+            "JulianDate"
+          ],
+          "default": "simulation_seconds"
+        },
+        "epoch_utc": {
+          "type": "string",
+          "format": "date-time",
+          "description": "HF-1 UTC epoch for time/JD/MJD metadata."
+        },
+        "time_system": {
+          "type": "string",
+          "enum": [
+            "simulation_seconds",
+            "relative_seconds",
+            "UTC",
+            "JulianDate"
+          ],
+          "default": "UTC"
+        },
+        "solver": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "HF-2 deterministic fixed-step solver metadata.",
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "euler",
+                "rk4"
+              ],
+              "default": "euler"
+            },
+            "step_s": {
+              "$ref": "#/$defs/positive_number"
+            },
+            "rtol": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 1e-09
+            },
+            "atol": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 1e-12
+            },
+            "deterministic_seed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "include_endpoint": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "component",
+            "subsystem",
+            "whole_spacecraft",
+            "integrated",
+            "reference"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "nominal",
+            "degradation",
+            "fault",
+            "mixed",
+            "monte_carlo",
+            "constraint"
+          ]
+        }
+      }
+    },
+    "spacecraft": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "adcs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dyn_step_s": {
+              "$ref": "#/$defs/positive_number",
+              "default": 0.2
+            },
+            "fsw_step_s": {
+              "$ref": "#/$defs/positive_number",
+              "default": 0.2
+            }
+          }
+        },
+        "eps": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "battery_capacity_wh": {
+              "$ref": "#/$defs/positive_number",
+              "default": 160.0
+            },
+            "initial_soc": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.62
+            },
+            "solar_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 95.0
+            },
+            "payload_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 38.0
+            },
+            "bus_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 18.0
+            },
+            "solar_array_max_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "description": "HF-5/HF-6 solar array maximum generation proxy."
+            },
+            "bus_load_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "description": "HF-5 bus load power."
+            },
+            "payload_load_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "description": "HF-5 payload load power."
+            },
+            "adcs_load_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "description": "HF-5 ADCS load power."
+            },
+            "comm_load_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "description": "HF-5 communication load power."
+            },
+            "eps_efficiency": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "HF-5/HF-6 compact EPS efficiency."
+            }
+          }
+        },
+        "comm_data": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "instrument_baud_bps": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 2500000.0
+            },
+            "storage_capacity_bits": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 6000000000.0
+            },
+            "storage_initial_bits": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 0.0
+            },
+            "transmitter_baud_bps": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 1500000.0
+            },
+            "initial_stored_bits": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "downlink_rate_bps": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "raw_rate_bps": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "transmitter_power_w": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "tx_power_w": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "comm_idle_power_w": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "payload_data_rate_bps": {
+              "$ref": "#/$defs/nonnegative_number"
+            }
+          }
+        },
+        "thermal": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "step_s": {
+              "$ref": "#/$defs/positive_number",
+              "default": 10.0
+            },
+            "heat_power_w": {
+              "$ref": "#/$defs/nonnegative_number",
+              "default": 30.0
+            },
+            "use_network": {
+              "type": "boolean",
+              "default": true
+            },
+            "initial_bus_temp_c": {
+              "type": "number"
+            },
+            "initial_battery_temp_c": {
+              "type": "number"
+            },
+            "solar_heat_w": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "radiator_area_m2": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "radiator_emissivity": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            },
+            "sink_temp_c": {
+              "type": "number"
+            },
+            "thermal_conductance_bus_battery_w_k": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "heater_power_w": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "heater_setpoint_c": {
+              "type": "number"
+            },
+            "heater_deadband_c": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "battery_derate_low_c": {
+              "type": "number"
+            },
+            "battery_derate_high_c": {
+              "type": "number"
+            },
+            "min_effective_capacity_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "electrical_load_heat_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "propulsion": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "mission": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "access_window_s": {
+              "$ref": "#/$defs/positive_number"
+            },
+            "access_period_s": {
+              "$ref": "#/$defs/positive_number"
+            },
+            "max_pointing_error_deg": {
+              "type": "number",
+              "minimum": 0
+            },
+            "min_soc_for_payload": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "min_soc_for_downlink": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "pointing_required": {
+              "type": "boolean"
+            },
+            "pointing_available": {
+              "type": "boolean"
+            }
+          }
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "payload_data_rate_bps": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "generated_bps": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "payload_power_w": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "pointing_required": {
+              "type": "boolean"
+            },
+            "pointing_available": {
+              "type": "boolean"
+            }
+          }
+        },
+        "mass_kg": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "dry_mass_kg": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "drag_area_m2": {
+          "$ref": "#/$defs/nonnegative_number"
+        },
+        "drag_coefficient": {
+          "$ref": "#/$defs/nonnegative_number"
+        },
+        "srp_area_m2": {
+          "$ref": "#/$defs/nonnegative_number"
+        },
+        "reflectivity_coefficient": {
+          "$ref": "#/$defs/nonnegative_number"
+        }
+      }
+    },
+    "orbit_environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "step_s": {
+          "$ref": "#/$defs/positive_number",
+          "default": 1.0
+        },
+        "sun_model": {
+          "type": "string",
+          "enum": [
+            "spice",
+            "constant",
+            "analytic"
+          ],
+          "default": "spice"
+        },
+        "sun_vector_n": {
+          "$ref": "#/$defs/unit_vector3",
+          "default": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        "magnetic_field_model": {
+          "type": "string",
+          "enum": [
+            "dipole",
+            "wmm",
+            "none"
+          ],
+          "default": "dipole"
+        },
+        "use_j2_gravity": {
+          "type": "boolean",
+          "default": true
+        },
+        "enable_eclipse": {
+          "type": "boolean",
+          "default": false
+        },
+        "spice_data_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "wmm_data_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "earth_radius_m": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "earth_mu_m3_s2": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "earth_rotation_rad_s": {
+          "type": "number"
+        },
+        "altitude_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "inclination_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 180
+        },
+        "raan_deg": {
+          "type": "number"
+        },
+        "arg_lat0_deg": {
+          "type": "number"
+        },
+        "magnetic_dipole_axis_n": {
+          "$ref": "#/$defs/unit_vector3"
+        },
+        "magnetic_equator_strength_t": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "semi_major_axis_m": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "eccentricity": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 0.2,
+          "default": 0.0
+        },
+        "arg_perigee_deg": {
+          "type": "number"
+        },
+        "argument_of_perigee_deg": {
+          "type": "number"
+        },
+        "true_anomaly_deg": {
+          "type": "number"
+        },
+        "mean_anomaly_deg": {
+          "type": "number"
+        },
+        "j2": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "eclipse_penumbra_band_m": {
+          "$ref": "#/$defs/positive_number"
+        },
+        "ground_station": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "sun_vector_eci": {
+          "$ref": "#/$defs/unit_vector3"
+        },
+        "force_models": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "j2": {
+              "type": "boolean",
+              "default": true
+            },
+            "drag": {
+              "type": "boolean",
+              "default": true
+            },
+            "srp": {
+              "type": "boolean",
+              "default": false
+            },
+            "third_body": {
+              "type": "boolean",
+              "default": false
+            },
+            "spice_ephemeris": {
+              "type": "boolean",
+              "default": false
+            },
+            "truth_ephemeris": {
+              "type": "boolean",
+              "default": false
+            },
+            "calibrated_tolerances": {
+              "type": "boolean",
+              "default": false
+            },
+            "nrlmsise00": {
+              "type": "boolean",
+              "default": false
+            },
+            "solar_pressure_n_m2": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "earth_rotation_rad_s": {
+              "type": "number"
+            }
+          },
+          "description": "ORB-1 force model toggles. Third-body/SPICE/truth/calibrated options are schema-visible for boundary rejection, not supported execution."
+        },
+        "atmosphere": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "reference_altitude_m": {
+              "type": "number"
+            },
+            "reference_density_kg_m3": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "scale_height_m": {
+              "$ref": "#/$defs/positive_number"
+            },
+            "min_density_kg_m3": {
+              "$ref": "#/$defs/nonnegative_number"
+            },
+            "max_density_kg_m3": {
+              "$ref": "#/$defs/positive_number"
+            }
+          },
+          "description": "ORB-1 exponential atmosphere proxy."
+        }
+      }
+    },
+    "percent_field": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "degradations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "description": "Optional whole-spacecraft degradation scenario id D0-D8."
+        },
+        "eps": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "battery": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "capacity_loss_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "internal_resistance_increase_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "self_discharge_rate_increase_pct": {
+                  "$ref": "#/$defs/percent_field"
+                }
+              }
+            },
+            "solar_panel": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "efficiency_loss_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "radiation_damage_factor": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "pdu_efficiency_loss_pct": {
+              "$ref": "#/$defs/percent_field"
+            }
+          }
+        },
+        "adcs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reaction_wheel": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "friction_increase_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "bearing_wear_factor": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "sensor": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "noise_increase_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "bias_drift_factor": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "propulsion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "thruster": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "thrust_loss_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "isp_loss_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "fuel_leak_rate": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "fuel_tank": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "fuel_leak_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "pressure_loss_pct": {
+                  "$ref": "#/$defs/percent_field"
+                }
+              }
+            }
+          }
+        },
+        "thermal": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "heater": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "efficiency_loss_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "response_time_increase_pct": {
+                  "$ref": "#/$defs/percent_field"
+                }
+              }
+            },
+            "radiator": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "efficiency_loss_pct": {
+                  "$ref": "#/$defs/percent_field"
+                },
+                "emissivity_degradation_pct": {
+                  "$ref": "#/$defs/percent_field"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_id",
+        "target",
+        "fault_type",
+        "onset_time_s",
+        "duration_s",
+        "magnitude"
+      ],
+      "properties": {
+        "fault_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "target": {
+          "type": "string",
+          "description": "Component id, e.g. battery, rw_0, thruster_1."
+        },
+        "target_type": {
+          "type": "string",
+          "enum": [
+            "battery",
+            "solar_panel",
+            "reaction_wheel",
+            "thruster",
+            "fuel_tank",
+            "heater",
+            "radiator",
+            "sensor",
+            "imu",
+            "star_tracker",
+            "sun_sensor",
+            "magnetometer",
+            "comm",
+            "antenna",
+            "unknown"
+          ],
+          "default": "unknown"
+        },
+        "fault_type": {
+          "type": "string",
+          "enum": [
+            "accel_bias_drift",
+            "accel_noise_increase",
+            "accuracy_loss",
+            "bias_drift",
+            "data_corruption",
+            "deployment_failure",
+            "eclipse_blindness",
+            "fov_obstruction",
+            "fuel_leak",
+            "gyro_bias_drift",
+            "gyro_noise_increase",
+            "heater_failure",
+            "heater_overheating",
+            "heater_stuck",
+            "hysteresis",
+            "ignition_failure",
+            "intermittent",
+            "link_loss",
+            "noise_increase",
+            "nozzle_blockage",
+            "open_circuit",
+            "overpressure",
+            "pressure_loss",
+            "rapid_leak",
+            "rw_jamming",
+            "rw_motor_failure",
+            "rw_speed_saturation",
+            "saturation",
+            "scale_factor_error",
+            "signal_loss",
+            "solar_panel_degradation",
+            "solar_panel_failure",
+            "stuck_at_last",
+            "stuck_at_zero",
+            "sudden_capacity_loss",
+            "thermal_runaway",
+            "valve_stuck"
+          ]
+        },
+        "onset_time_s": {
+          "$ref": "#/$defs/nonnegative_number"
+        },
+        "duration_s": {
+          "type": "number",
+          "description": "Use -1 for persistent fault."
+        },
+        "magnitude": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "campaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "child_task_type": {
+          "type": "string",
+          "enum": [
+            "component",
+            "subsystem",
+            "orbit_environment",
+            "whole_spacecraft"
+          ]
+        },
+        "base_spec": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Full child TaskSpec used as the campaign template. Nested campaigns are not supported."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_cases": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parallelism": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "sampling": {
+          "type": "string",
+          "enum": [
+            "grid",
+            "random",
+            "lhs",
+            "manual"
+          ],
+          "default": "manual"
+        },
+        "case_id_format": {
+          "type": "string",
+          "default": "{campaign_id}_case_{index:04d}"
+        },
+        "parameter_sweeps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "values"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "values": {
+                "type": "array",
+                "minItems": 1,
+                "items": {}
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "default": []
+        },
+        "randomizations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "distribution"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "distribution": {
+                "type": "string",
+                "enum": [
+                  "uniform",
+                  "normal",
+                  "choice",
+                  "randint"
+                ]
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "mean": {
+                "type": "number"
+              },
+              "std": {
+                "type": "number",
+                "minimum": 0
+              },
+              "choices": {
+                "type": "array",
+                "minItems": 1,
+                "items": {}
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "default": []
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": {
+                "type": "string"
+              },
+              "overrides": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "patch": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          },
+          "default": []
+        }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_root",
+        "trace_format",
+        "include_summary",
+        "include_trace",
+        "include_manifest"
+      ],
+      "properties": {
+        "output_root": {
+          "type": "string"
+        },
+        "trace_format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "parquet",
+            "jsonl"
+          ],
+          "default": "csv"
+        },
+        "include_summary": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_trace": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_labels": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_manifest": {
+          "type": "boolean",
+          "default": true
+        },
+        "record_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strict": {
+          "type": "boolean",
+          "default": true
+        },
+        "allow_unknown_physics": {
+          "type": "boolean",
+          "default": false
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "unit",
+            "range",
+            "time",
+            "fault_window",
+            "dataset_reproducibility"
+          ]
+        }
+      }
+    },
+    "modifier_fault": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "target",
+        "fault_type"
+      ],
+      "properties": {
+        "modifier_id": {
+          "type": "string"
+        },
+        "fault_id": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "target_path": {
+          "type": "string"
+        },
+        "fault_type": {
+          "type": "string"
+        },
+        "onset_time_s": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "start_time_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "duration_s": {
+          "type": "number",
+          "default": -1
+        },
+        "severity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "magnitude": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "modifier_degradation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "target",
+        "degradation_type"
+      ],
+      "properties": {
+        "modifier_id": {
+          "type": "string"
+        },
+        "degradation_id": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "target_path": {
+          "type": "string"
+        },
+        "degradation_type": {
+          "type": "string"
+        },
+        "onset_time_s": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "start_time_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "duration_s": {
+          "type": "number",
+          "default": -1
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0
+        },
+        "severity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "modifiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "faults": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modifier_fault"
+          },
+          "default": []
+        },
+        "degradations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modifier_degradation"
+          },
+          "default": []
+        }
+      },
+      "default": {}
+    }
+  }
+}

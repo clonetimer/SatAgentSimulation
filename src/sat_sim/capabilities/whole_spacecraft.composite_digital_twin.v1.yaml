@@ -1,0 +1,1078 @@
+capability_id: whole_spacecraft.composite_digital_twin.v1
+schema_version: 0.1.0
+name: Composite whole-spacecraft engineering model
+level: whole_spacecraft
+domain: whole_spacecraft
+target: composite_digital_twin
+trust_level: conformance_tested
+status: agent_ready
+summary: V37-B Agent-callable wrapper around the existing unified Basilisk whole-spacecraft graph. It assembles orbit/environment,
+  spacecraft dynamics, closed-loop ADCS, EPS, thermal, communication/data, payload, and optional propulsion in one SimBaseClass.
+  Runtime faults are routed through whole_spacecraft -> subsystem -> component handlers; degradations are mapped to subsystem-owned
+  build-time configurations. This remains an engineering prototype, not a flight-data-calibrated or certification-grade digital
+  twin.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_composite_digital_twin.WholeSpacecraftCompositeDigitalTwinAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - whole_spacecraft.builder
+  - whole_spacecraft.runner
+  - whole_spacecraft._mission_gate
+  - subsystems.adcs_closed_loop
+  - subsystems.eps
+  - subsystems.thermal
+  - subsystems.comm_data
+  - subsystems.payload
+  - subsystems.propulsion
+  - whole_spacecraft.faults
+  - whole_spacecraft.degradation
+  - whole_spacecraft._runtime_fault_injector
+  - sat_sim.whole_spacecraft_effects
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: true
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    execution: runtime_basilisk_event_subsystem_component_route
+    fault_types:
+    - eps_battery_capacity_loss
+    - eps_battery_open_circuit
+    - adcs_rw_jamming
+    - adcs_rw_bearing_seizure
+    - propulsion_thruster_ignition_failure
+    - payload_instrument_off
+    - comm_data_downlink_link_loss
+    - comm_data_storage_capacity_loss
+    - thermal_heater_stuck_off
+    - thermal_heater_stuck_on
+    - thermal_radiator_rejection_loss
+  degradation:
+    supported: true
+    execution: build_time_subsystem_configuration
+    timed_events_supported: false
+    degradation_types:
+    - battery_capacity_loss_30pct
+    - solar_panel_efficiency_loss_20pct
+    - thruster_thrust_loss_15pct
+    - combined_degradation
+    - adcs_rw_friction_and_sensor_noise
+    - thermal_heater_and_radiator_degradation
+    - fuel_leak_and_pressure_loss
+    - multi_subsystem_end_of_life
+  mixed:
+    supported: true
+    execution: build_time_degradation_plus_runtime_fault_events
+scope_exclusions:
+- flight_data_calibration
+- certification_grade_digital_twin
+- full_fsw_in_the_loop
+- detailed_multi_station_contact_scheduler
+- calibrated_rf_propagation
+- finite_element_thermal
+- high_fidelity_battery_electrochemistry
+- detailed_payload_mission_planning
+- calibrated_mission_success_probability
+parameters:
+  adcs_dyn_step_s:
+    type: number
+    unit: s
+    required: false
+    min: 1.0e-06
+    default: 0.2
+  adcs_fsw_step_s:
+    type: number
+    unit: s
+    required: false
+    min: 1.0e-06
+    default: 0.2
+  thermal_step_s:
+    type: number
+    unit: s
+    required: false
+    min: 1.0e-06
+    default: 10.0
+  battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: false
+    min: 1.0e-06
+    default: 160.0
+  initial_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.62
+  solar_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 95.0
+  payload_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 38.0
+  bus_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 18.0
+  instrument_baud_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 2500000.0
+  storage_capacity_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 1.0e-06
+    default: 6000000000.0
+  storage_initial_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 0.0
+    default: 0.0
+  transmitter_baud_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 1500000.0
+  native_downlink_bit_rate_request_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 1500000.0
+  comm_power_reference_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 1.0e-06
+    default: 1500000.0
+    description: Fixed reference throughput for communication activity-to-power scaling; independent from requested downlink rate.
+  native_downlink_packet_size_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 1.0
+    default: 1000.0
+  native_downlink_max_retransmissions:
+    type: integer
+    required: false
+    min: 0
+    default: 1
+  native_downlink_cnr_linear:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    default: 1000000000.0
+  native_downlink_distance_m:
+    type: number
+    unit: m
+    required: false
+    min: 0.0
+    default: 500000.0
+  native_downlink_bandwidth_hz:
+    type: number
+    unit: Hz
+    required: false
+    min: 1.0e-06
+    default: 1000000.0
+  native_downlink_frequency_hz:
+    type: number
+    unit: Hz
+    required: false
+    min: 1.0e-06
+    default: 2200000000.0
+  thermal_heat_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 30.0
+  thermal_use_network:
+    type: boolean
+    required: false
+    default: true
+  propulsion_enabled:
+    type: boolean
+    required: false
+    default: true
+  propulsion_on_time_s:
+    type: array
+    unit: s
+    required: false
+    description: Per-thruster commanded on-time for paired propulsion causal validation.
+  access_window_s:
+    type: number
+    unit: s
+    required: false
+    min: 0.0
+    default: 20.0
+  access_period_s:
+    type: number
+    unit: s
+    required: false
+    min: 1.0e-06
+    default: 60.0
+  max_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    default: 0.25
+  mission_initial_sigma_bn:
+    type: array
+    required: false
+    default:
+    - 0.0
+    - 0.0
+    - 0.0
+  mission_initial_omega_bn_b_rad_s:
+    type: array
+    unit: rad/s
+    required: false
+    default:
+    - 0.0
+    - 0.0
+    - 0.0
+  initial_orbit_radius_m:
+    type: number
+    unit: m
+    required: false
+    min: 1.0
+    default: 7000000.0
+    description: Initial circular-orbit radius used by the whole-spacecraft bus.
+  initial_orbit_phase_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+    description: Initial circular-orbit phase in the inertial XY plane.
+  orbit_environment:
+    type: object
+    required: false
+    description: Orbit/environment builder settings such as step_s, J2, eclipse, sun vector, SPICE/WMM resource paths.
+  coupling:
+    type: object
+    required: false
+    description: Optional expert/test switches for genuinely optional links only; required spacecraft-state-to-environment
+      coupling is always enabled.
+  parameter_profile:
+    type: string
+    required: false
+    default: demo
+  parameter_registry_path:
+    type: string
+    required: false
+  parameter_minimum_confidence:
+    type: string
+    required: false
+    default: demo
+  strict_parameter_provenance:
+    type: boolean
+    required: false
+    default: true
+validation:
+  conformance_tests:
+  - test_v37_composite_adapter_executes_short_native_case
+  - test_v37_compile_and_run_uses_registered_composite_adapter
+  - test_default_whole_spacecraft_graph_executes_short_case
+  - test_v37b_payload_fault_propagates_through_runtime_route
+  - test_v37b_comm_link_fault_stops_and_recovers_native_downlink
+  - test_v37b_degradation_changes_subsystem_owned_runtime_parameters
+  - test_v37b_mixed_mode_compiles_and_runs_once
+  - test_v37c_default_graph_has_runtime_conservation_and_rf_evidence
+  - test_v37c_eps_load_heat_bridge_changes_thermal_state
+  - test_v37c_heater_heat_and_eps_load_are_separately_audited
+  - test_v37c_thermal_degradation_is_applied_to_default_network
+  - test_v37c_long_multifault_propagation_preserves_balances
+produces:
+- name: spacecraft.attitude_error_deg
+  destination: trace
+- name: eps.battery_soc
+  destination: trace
+- name: thermal.temperature_c
+  destination: trace
+- name: payload.generated_bps
+  destination: trace
+- name: comm.downlink_delivered_bps
+  destination: trace
+- name: propulsion.propellant_remaining_kg
+  destination: trace
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+    description: 仿真时间。运行器实际输出字段；技术字段为 time_s，单位 s。
+  - name: battery_storage_j
+    unit: J
+    dtype: number
+    description: 电池储能能量。运行器实际输出字段；技术字段为 battery_storage_j，单位 J。
+  - name: battery_soc
+    unit: ratio
+    dtype: number
+    description: 电池荷电状态。运行器实际输出字段；技术字段为 battery_soc，单位 ratio。
+  - name: net_power_w
+    unit: W
+    dtype: number
+    description: 功率功率。运行器实际输出字段；技术字段为 net_power_w，单位 W。
+  - name: battery_temp_c
+    unit: degC
+    dtype: number
+    description: 电池温度。运行器实际输出字段；技术字段为 battery_temp_c，单位 degC。
+  - name: shunt_dissipated_w
+    unit: W
+    dtype: number
+    description: 分流耗散功率。运行器实际输出字段；技术字段为 shunt_dissipated_w，单位 W。
+  - name: data_storage_bits
+    unit: bit
+    dtype: number
+    description: 数据储能比特。运行器实际输出字段；技术字段为 data_storage_bits，单位 bit。
+  - name: instrument_baud_bps
+    unit: bit/s
+    dtype: number
+    description: 比特率。运行器实际输出字段；技术字段为 instrument_baud_bps，单位 bit/s。
+  - name: transmitter_baud_bps
+    unit: bit/s
+    dtype: number
+    description: 比特率。运行器实际输出字段；技术字段为 transmitter_baud_bps，单位 bit/s。
+  - name: thermal_temp_c
+    unit: degC
+    dtype: number
+    description: 热控温度。运行器实际输出字段；技术字段为 thermal_temp_c，单位 degC。
+  - name: thermal_margin_c
+    unit: degC
+    dtype: number
+    description: 热控裕度。运行器实际输出字段；技术字段为 thermal_margin_c，单位 degC。
+  - name: thermal_safe
+    unit: bool
+    dtype: number
+    description: 热控。运行器实际输出字段；技术字段为 thermal_safe，单位 bool。
+  - name: attitude_error_norm
+    unit: mixed
+    dtype: number
+    description: 姿态误差模。运行器实际输出字段；技术字段为 attitude_error_norm。
+  - name: attitude_error_deg
+    unit: deg
+    dtype: number
+    description: 姿态误差度。运行器实际输出字段；技术字段为 attitude_error_deg，单位 deg。
+  - name: rate_error_norm_rad_s
+    unit: rad/s
+    dtype: number
+    description: 角速度误差模。运行器实际输出字段；技术字段为 rate_error_norm_rad_s，单位 rad/s。
+  - name: payload_enabled
+    unit: bool
+    dtype: number
+    description: 载荷启用。运行器实际输出字段；技术字段为 payload_enabled，单位 bool。
+  - name: payload_generated_bps
+    unit: bit/s
+    dtype: number
+    description: 载荷已生成比特率。运行器实际输出字段；技术字段为 payload_generated_bps，单位 bit/s。
+  - name: downlink_requested_rate_bps
+    unit: bit/s
+    dtype: number
+    description: 下行请求角速度比特率。运行器实际输出字段；技术字段为 downlink_requested_rate_bps，单位 bit/s。
+  - name: downlink_rate_bps
+    unit: bit/s
+    dtype: number
+    description: 下行角速度比特率。运行器实际输出字段；技术字段为 downlink_rate_bps，单位 bit/s。
+  - name: downlink_attempted_bps
+    unit: bit/s
+    dtype: number
+    description: 下行比特率。运行器实际输出字段；技术字段为 downlink_attempted_bps，单位 bit/s。
+  - name: downlink_delivered_bps
+    unit: bit/s
+    dtype: number
+    description: 下行比特率。运行器实际输出字段；技术字段为 downlink_delivered_bps，单位 bit/s。
+  - name: downlink_dropped_bps
+    unit: bit/s
+    dtype: number
+    description: 下行已丢弃比特率。运行器实际输出字段；技术字段为 downlink_dropped_bps，单位 bit/s。
+  - name: downlink_storage_removal_bps
+    unit: bit/s
+    dtype: number
+    description: 下行储能比特率。运行器实际输出字段；技术字段为 downlink_storage_removal_bps，单位 bit/s。
+  - name: downlink_ber
+    unit: ratio
+    dtype: number
+    description: 下行。运行器实际输出字段；技术字段为 downlink_ber，单位 ratio。
+  - name: downlink_per
+    unit: ratio
+    dtype: number
+    description: 下行。运行器实际输出字段；技术字段为 downlink_per，单位 ratio。
+  - name: cumulative_delivered_bits
+    unit: bit
+    dtype: number
+    description: 累计比特。运行器实际输出字段；技术字段为 cumulative_delivered_bits，单位 bit。
+  - name: cumulative_dropped_bits
+    unit: bit
+    dtype: number
+    description: 累计已丢弃比特。运行器实际输出字段；技术字段为 cumulative_dropped_bits，单位 bit。
+  - name: cumulative_removed_bits
+    unit: bit
+    dtype: number
+    description: 累计移除比特。运行器实际输出字段；技术字段为 cumulative_removed_bits，单位 bit。
+  - name: power_bus_available
+    unit: bool
+    dtype: number
+    description: 功率平台母线。运行器实际输出字段；技术字段为 power_bus_available，单位 bool。
+  - name: propellant_remaining_kg
+    unit: kg
+    dtype: number
+    description: 推进剂剩余质量。运行器实际输出字段；技术字段为 propellant_remaining_kg，单位 kg。
+  - name: adcs_control_power_w
+    unit: W
+    dtype: number
+    description: ADCS control-effort electrical load observed from the runtime bridge.
+  - name: propulsion_power_w
+    unit: W
+    dtype: number
+    description: Propulsion electrical power observed from the runtime activity bridge.
+  - name: propulsion_cumulative_energy_j
+    unit: J
+    dtype: number
+    description: Cumulative propulsion electrical energy derived from native bridge activity.
+  - name: eclipse_shadow_factor
+    unit: ratio
+    dtype: number
+    description: Native eclipse shadow factor.
+  - name: ground_slant_range_m
+    unit: m
+    dtype: number
+    description: Native ground-access slant range.
+  - name: rf_link_distance_m
+    unit: m
+    dtype: number
+    description: Native RF link-budget distance input/output.
+  - name: orbit_radius_m
+    unit: m
+    dtype: number
+    description: Spacecraft inertial position norm.
+  - name: orbit_speed_m_s
+    unit: m/s
+    dtype: number
+    description: Spacecraft inertial velocity norm.
+  - name: thermal_adcs_temp_c
+    unit: degC
+    dtype: number
+    description: ADCS thermal-network node temperature.
+  - name: thermal_structure_temp_c
+    unit: degC
+    dtype: number
+    description: Structure thermal-network node temperature.
+  - name: thermal_solar_panel_temp_c
+    unit: degC
+    dtype: number
+    description: Solar-panel thermal-network node temperature.
+  - name: heater_eps_load_w
+    unit: W
+    dtype: number
+    description: Heater electrical load fed back into EPS.
+  - name: heater_active_count
+    unit: count
+    dtype: number
+    description: Number of active thermal heaters.
+  - name: pdu_heater_enabled
+    unit: boolean_ratio
+    dtype: number
+    description: EPS PDU heater permit encoded as 0 or 1.
+
+  - name: fuel_mass_flow_kg_s
+    unit: s
+    dtype: number
+    description: 推进剂质量质量时间。运行器实际输出字段；技术字段为 fuel_mass_flow_kg_s，单位 s。
+  - name: tank_pressure_pa
+    unit: Pa
+    dtype: number
+    description: 压力。运行器实际输出字段；技术字段为 tank_pressure_pa，单位 Pa。
+  - name: tank_pressure_available
+    unit: bool
+    dtype: number
+    description: 压力。运行器实际输出字段；技术字段为 tank_pressure_available，单位 bool。
+  summary:
+  - name: status
+    unit: label
+  - name: structural_status
+    unit: label
+  - name: numerical_status
+    unit: label
+  - name: physics_status
+    unit: label
+  - name: mission_status
+    unit: label
+  - name: coupling_count
+    unit: count
+  - name: active_coupling_count
+    unit: count
+  - name: native_coupling_count
+    unit: count
+  - name: proxy_coupling_count
+    unit: count
+  - name: mission_success_score
+    unit: deterministic_ratio
+  - name: mission_success_score_basis
+    unit: label
+  - name: mode
+    unit: label
+  - name: effect_execution_status
+    unit: label
+  - name: requested_effect_count
+    unit: count
+  - name: fault_effect_count
+    unit: count
+  - name: degradation_effect_count
+    unit: count
+  - name: runtime_fault_event_status
+    unit: label
+  - name: runtime_fault_triggered_count
+    unit: count
+  - name: runtime_fault_mutation_target_count
+    unit: count
+  - name: runtime_fault_recovery_triggered_count
+    unit: count
+  - name: degradation_execution
+    unit: label
+  - name: energy_conservation_status
+    unit: label
+  - name: energy_balance_residual_j
+    unit: J
+  - name: energy_balance_relative_error
+    unit: ratio
+  - name: data_conservation_status
+    unit: label
+  - name: data_balance_residual_bits
+    unit: bit
+  - name: data_balance_relative_error
+    unit: ratio
+  - name: integrated_payload_generated_bits
+    unit: bit
+  - name: data_balance_removed_bits
+    unit: bit
+  - name: eps_to_thermal_electrical_energy_j
+    unit: J
+  - name: eps_to_thermal_heat_energy_j
+    unit: J
+  - name: heater_electrical_energy_j
+    unit: J
+  - name: heater_thermal_energy_j
+    unit: J
+  - name: thermal_power_bridge_count
+    unit: count
+  - name: thermal_power_bridge_exercised_count
+    unit: count
+  - name: proxy_coupling_runtime_status
+    unit: label
+  - name: rf_environment_wiring_count
+    unit: count
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: parameters
+  required: false
+time_grid:
+  policy: unified_basilisk_simbase_with_subsystem_task_steps
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+  validation_basis:
+  - energy_balance_runtime_audit
+  - data_balance_runtime_audit
+  - proxy_coupling_runtime_exercise
+  - long_multifault_propagation
+source_binding:
+  mode: basilisk_native
+  status: v37b_composite_effect_routes_agent_ready
+  primary_module: whole_spacecraft.runner
+  source_modules:
+  - whole_spacecraft.builder
+  - whole_spacecraft.runner
+  - whole_spacecraft.schemas
+  - whole_spacecraft.faults
+  - whole_spacecraft.degradation
+  - whole_spacecraft._runtime_fault_injector
+  - sat_sim.whole_spacecraft_effects
+  public_api:
+  - WholeSpacecraftConfig
+  - WholeSpacecraftRunConfig
+  - build_whole_spacecraft_graph
+  - run_whole_spacecraft_native_case
+  - run_whole_spacecraft_effect_case
+  - resolve_whole_spacecraft_effects
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: true
+fidelity_level: engineering_prototype
+known_physics_limits:
+- Several cross-subsystem links are deliberate engineering proxies rather than calibrated native physical interfaces.
+- The thermal model is a lumped/network engineering model, not finite-element thermal analysis.
+- Communication uses a compact native/proxy link and mission gate, not full RF propagation and multi-station scheduling.
+- Payload operation is gate-based and does not include detailed mission planning or sensor phenomenology.
+- mission_success_score is an arithmetic deterministic gate fraction and must not be described as a probability.
+- Default parameter_profile=demo is unqualified until a suitable provenance registry is supplied.
+- Runtime fault support is limited to the explicitly registered subsystem/component routes listed in modes.fault.fault_types.
+- Whole-spacecraft degradation is build-time only in V37-B; nonzero degradation onset or finite duration is rejected.
+- Fault and degradation labels report requested event windows; physical effects may appear on the next scheduled subsystem
+  sample at an exact onset boundary.
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- spacecraft
+- parameters
+- faults
+- degradations
+- modifiers
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: V37-B activates TaskSpec-driven runtime faults, build-time degradations, and mixed execution on the existing unified
+    whole-spacecraft graph.
+backend_type: basilisk_native_engineering_prototype
+validation_basis:
+- conformance_tests
+- native_short_run
+- coupling_matrix_runtime_evidence
+- runtime_fault_event_audit
+- subsystem_owned_degradation_configuration
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: basilisk_native_engineering_prototype
+  basilisk_required: true
+  current_agent_path_uses_basilisk: true
+  source_has_basilisk_facing_candidates: true
+  validation_basis:
+  - conformance_tests
+  - native_short_run
+  - coupling_matrix_runtime_evidence
+  - runtime_fault_event_audit
+  - subsystem_owned_degradation_configuration
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight-grade, certification-grade, externally validated, or flight-data-correlated digital-twin
+    fidelity. Treat mission_success_score as a deterministic gate fraction, not probability.
+event_target_prefixes:
+- whole_spacecraft
+- orbit
+- adcs
+- eps
+- thermal
+- comm
+- communication
+- data
+- payload
+- propulsion
+operator:
+  owner: whole_spacecraft
+  implementation: basilisk_native
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id001
+    - status
+    - mission_success_score
+    - energy_conservation_status
+    - data_conservation_status
+    - proxy_coupling_runtime_status
+    verification: declared
+  - effect_id: eps_battery_capacity_loss
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id002
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - battery_soc
+    - label.fault_active
+    verification: declared
+  - effect_id: eps_battery_open_circuit
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id003
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - battery_soc
+    - label.fault_active
+    verification: declared
+  - effect_id: adcs_rw_jamming
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id004
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - attitude_error_deg
+    - label.fault_active
+    verification: declared
+  - effect_id: adcs_rw_bearing_seizure
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id005
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - attitude_error_deg
+    - label.fault_active
+    verification: declared
+  - effect_id: propulsion_thruster_ignition_failure
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id006
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - propellant_remaining_kg
+    - label.fault_active
+    verification: declared
+  - effect_id: payload_instrument_off
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id007
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - payload_generated_bps
+    - label.fault_active
+    verification: declared
+  - effect_id: comm_data_downlink_link_loss
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id008
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - downlink_delivered_bps
+    - label.fault_active
+    verification: declared
+  - effect_id: comm_data_storage_capacity_loss
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id009
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - data_storage_bits
+    - label.fault_active
+    verification: declared
+  - effect_id: thermal_heater_stuck_off
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id010
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - thermal_temp_c
+    - label.fault_active
+    verification: declared
+  - effect_id: thermal_heater_stuck_on
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id011
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - thermal_temp_c
+    - label.fault_active
+    verification: declared
+  - effect_id: thermal_radiator_rejection_loss
+    kind: fault
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id012
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - thermal_temp_c
+    - label.fault_active
+    verification: declared
+  - effect_id: battery_capacity_loss_30pct
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id013
+    - degradation_execution
+    - battery_soc
+    - label.degradation_active
+    verification: declared
+  - effect_id: solar_panel_efficiency_loss_20pct
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id014
+    - degradation_execution
+    - battery_soc
+    - label.degradation_active
+    verification: declared
+  - effect_id: thruster_thrust_loss_15pct
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id015
+    - degradation_execution
+    - propellant_remaining_kg
+    - label.degradation_active
+    verification: declared
+  - effect_id: combined_degradation
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id016
+    - degradation_execution
+    - battery_soc
+    - propellant_remaining_kg
+    - label.degradation_active
+    verification: declared
+  - effect_id: adcs_rw_friction_and_sensor_noise
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id017
+    - degradation_execution
+    - attitude_error_deg
+    - label.degradation_active
+    verification: declared
+  - effect_id: thermal_heater_and_radiator_degradation
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id018
+    - degradation_execution
+    - thermal_temp_c
+    - label.degradation_active
+    verification: declared
+  - effect_id: fuel_leak_and_pressure_loss
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id019
+    - degradation_execution
+    - propellant_remaining_kg
+    - label.degradation_active
+    verification: declared
+  - effect_id: multi_subsystem_end_of_life
+    kind: degradation
+    owner: whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields: &id020
+    - degradation_execution
+    - battery_soc
+    - thermal_temp_c
+    - payload_generated_bps
+    - propellant_remaining_kg
+    - label.degradation_active
+    verification: declared
+  observability:
+    qoi:
+    - status
+    - structural_status
+    - numerical_status
+    - physics_status
+    - mission_status
+    - coupling_count
+    - active_coupling_count
+    - native_coupling_count
+    - proxy_coupling_count
+    - mission_success_score
+    - mission_success_score_basis
+    - mode
+    - effect_execution_status
+    - requested_effect_count
+    - fault_effect_count
+    - degradation_effect_count
+    - runtime_fault_event_status
+    - runtime_fault_triggered_count
+    - runtime_fault_mutation_target_count
+    - runtime_fault_recovery_triggered_count
+    - degradation_execution
+    - energy_conservation_status
+    - energy_balance_residual_j
+    - energy_balance_relative_error
+    - data_conservation_status
+    - data_balance_residual_bits
+    - data_balance_relative_error
+    - integrated_payload_generated_bits
+    - data_balance_removed_bits
+    - eps_to_thermal_electrical_energy_j
+    - eps_to_thermal_heat_energy_j
+    - heater_electrical_energy_j
+    - heater_thermal_energy_j
+    - thermal_power_bridge_count
+    - thermal_power_bridge_exercised_count
+    - proxy_coupling_runtime_status
+    - rf_environment_wiring_count
+    trace_fields:
+    - time_s
+    - battery_soc
+    - thermal_temp_c
+    - attitude_error_deg
+    - payload_enabled
+    - payload_generated_bps
+    - downlink_delivered_bps
+    - data_storage_bits
+    - propellant_remaining_kg
+    - label.fault_active
+    - label.degradation_active
+    - effect.active_count
+    - effect.active_ids
+    produces:
+    - spacecraft.attitude_error_deg
+    - eps.battery_soc
+    - thermal.temperature_c
+    - payload.generated_bps
+    - comm.downlink_delivered_bps
+    - propulsion.propellant_remaining_kg
+    effect_evidence:
+      nominal: *id001
+      eps_battery_capacity_loss: *id002
+      eps_battery_open_circuit: *id003
+      adcs_rw_jamming: *id004
+      adcs_rw_bearing_seizure: *id005
+      propulsion_thruster_ignition_failure: *id006
+      payload_instrument_off: *id007
+      comm_data_downlink_link_loss: *id008
+      comm_data_storage_capacity_loss: *id009
+      thermal_heater_stuck_off: *id010
+      thermal_heater_stuck_on: *id011
+      thermal_radiator_rejection_loss: *id012
+      battery_capacity_loss_30pct: *id013
+      solar_panel_efficiency_loss_20pct: *id014
+      thruster_thrust_loss_15pct: *id015
+      combined_degradation: *id016
+      adcs_rw_friction_and_sensor_noise: *id017
+      thermal_heater_and_radiator_degradation: *id018
+      fuel_leak_and_pressure_loss: *id019
+      multi_subsystem_end_of_life: *id020
+  execution:
+    runtime_run: true
+    script_export: true
+    idempotent: true
+    timeout_s: 300.0
+    retryable_failures:
+    - worker_unavailable
+    - transient_output_io_failure
+    non_retryable_failures:
+    - unsupported_effect
+    - capability_validation_failed
+    - runtime_injection_unverified
+    resource_locks:
+    - run_output_directory
+  assurance:
+    delegated_to_parameter_guard: true
+    delegated_to_claim_guard: true
+    parameter_profile_ceiling: qualified
+    claim_level_ceiling: engineering_prototype
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: mixed_native_project
+  couplings:
+    supported:
+    - orbit_sun_attitude_eclipse_to_eps_solar_power
+    - eps_pdu_to_payload_activity
+    - eps_pdu_to_comm_activity
+    - eps_pdu_to_thermal_heaters
+    - payload_activity_to_eps_thermal
+    - adcs_control_effort_to_eps_thermal
+    - propulsion_activity_to_eps_thermal
+    - propulsion_effector_to_spacecraft
+    - adcs_pointing_to_payload_gate
+    - adcs_pointing_to_comm_gate
+    unsupported:
+    - '*'
+  limitations:
+  - flight_data_calibration
+  - certification_grade_digital_twin
+  - full_fsw_in_the_loop
+  - detailed_multi_station_contact_scheduler
+  - calibrated_rf_propagation
+  - finite_element_thermal
+  - high_fidelity_battery_electrochemistry
+  - detailed_payload_mission_planning
+  - calibrated_mission_success_probability
+  - Several cross-subsystem links are deliberate engineering proxies rather than calibrated native physical interfaces.
+  - The thermal model is a lumped/network engineering model, not finite-element thermal analysis.
+  - Communication uses a compact native/proxy link and mission gate, not full RF propagation and multi-station scheduling.
+  - Payload operation is gate-based and does not include detailed mission planning or sensor phenomenology.
+  - mission_success_score is an arithmetic deterministic gate fraction and must not be described as a probability.
+  - Default parameter_profile=demo is unqualified until a suitable provenance registry is supplied.
+  - Runtime fault support is limited to the explicitly registered subsystem/component routes listed in modes.fault.fault_types.
+  - Whole-spacecraft degradation is build-time only in V37-B; nonzero degradation onset or finite duration is rejected.
+  - Fault and degradation labels report requested event windows; physical effects may appear on the next scheduled subsystem
+    sample at an exact onset boundary.
+model_projection:
+  schema_version: sat-sim.capability-projection.v1
+  projection_id: composite-digital-twin-projection-v1
+  model_ref: spacecraft.composite_digital_twin@1
+  graph_ref: spacecraft.composite_digital_twin@1
+  operations_object_ref: spacecraft.composite_digital_twin
+  parameter_set_id: composite-digital-twin-demo-v1
+  implementation_id: spacecraft.composite_digital_twin.basilisk@1
+  binding_set_id: composite-digital-twin-bindings-v1
+  generated_schemas: sat_sim.a4r.projection_api.projection_schema_bundle
+  exposed_properties:
+  - spacecraft.composite_digital_twin.health_state
+  - spacecraft.composite_digital_twin.coupling_status
+  exposed_actions: []
+  exposed_effects:
+  - spacecraft.composite_digital_twin.nominal
+  - spacecraft.composite_digital_twin.eps_battery_capacity_loss
+  - spacecraft.composite_digital_twin.eps_battery_open_circuit
+  - spacecraft.composite_digital_twin.adcs_rw_jamming
+  - spacecraft.composite_digital_twin.adcs_rw_bearing_seizure
+  - spacecraft.composite_digital_twin.propulsion_thruster_ignition_failure
+  - spacecraft.composite_digital_twin.payload_instrument_off
+  - spacecraft.composite_digital_twin.comm_data_downlink_link_loss
+  - spacecraft.composite_digital_twin.comm_data_storage_capacity_loss
+  - spacecraft.composite_digital_twin.thermal_heater_stuck_off
+  - spacecraft.composite_digital_twin.thermal_heater_stuck_on
+  - spacecraft.composite_digital_twin.thermal_radiator_rejection_loss
+  - spacecraft.composite_digital_twin.battery_capacity_loss_30pct
+  - spacecraft.composite_digital_twin.solar_panel_efficiency_loss_20pct
+  - spacecraft.composite_digital_twin.thruster_thrust_loss_15pct
+  - spacecraft.composite_digital_twin.combined_degradation
+  - spacecraft.composite_digital_twin.adcs_rw_friction_and_sensor_noise
+  - spacecraft.composite_digital_twin.thermal_heater_and_radiator_degradation
+  - spacecraft.composite_digital_twin.fuel_leak_and_pressure_loss
+  - spacecraft.composite_digital_twin.multi_subsystem_end_of_life
+  evidence:
+  - spacecraft.composite_digital_twin.effect_evidence
+  - spacecraft.composite_digital_twin.coupling_evidence
+execution:
+  schema_version: sat-sim.model-asset-execution-policy.v1
+  adapter_key: basilisk.composite_digital_twin_graph
+  model_ref: spacecraft.composite_digital_twin@1
+  implementation_id: spacecraft.composite_digital_twin.basilisk@1
+  parameter_set_id: composite-digital-twin-demo-v1
+  binding_set_id: composite-digital-twin-bindings-v1
+  legacy_fallback_adapter_key: legacy.capability
+  legacy_fallback_enabled: false

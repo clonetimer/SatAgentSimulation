@@ -1,0 +1,137 @@
+{
+  "schema_version": "v0574.coupling-validation-matrix.experimental.v3",
+  "baseline_spec": "../whole_spacecraft_coupling_baseline.yaml",
+  "case_run_timeout_s": 120.0,
+  "cases": [
+    {
+      "case_id": "payload_generation_to_storage",
+      "description": "Increasing instrument data generation must increase actual payload telemetry and accumulated onboard storage.",
+      "patch": {
+        "path": "parameters.instrument_baud_bps",
+        "value": 4000000.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_activity_to_comm_storage",
+          "source_field": "payload_generated_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_to_comm_storage"
+      ]
+    },
+    {
+      "case_id": "payload_power_to_eps",
+      "description": "Increasing payload electrical power must reduce net power and battery state of charge.",
+      "patch": {
+        "path": "parameters.payload_power_w",
+        "value": 70.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_activity_to_eps",
+          "source_field": "net_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 10.0,
+          "min_response_delta": 0.0001,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_activity_to_eps_thermal"
+      ]
+    },
+    {
+      "case_id": "payload_power_to_thermal",
+      "description": "Increasing actual payload power must increase the payload/aggregate thermal response.",
+      "patch": {
+        "path": "parameters.payload_power_w",
+        "value": 200.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_activity_to_thermal",
+          "source_field": "net_power_w",
+          "response_field": "thermal_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 100.0,
+          "min_response_delta": 0.002,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_activity_to_eps_thermal"
+      ]
+    },
+    {
+      "case_id": "payload_fault_to_storage",
+      "description": "A runtime payload-off fault must stop generated data and reduce accumulated storage versus the nominal counterfactual.",
+      "patch": {
+        "path": "modifiers.faults",
+        "value": [
+          {
+            "modifier_id": "payload_off_causal_001",
+            "target": "payload.instrument",
+            "fault_type": "instrument_off",
+            "onset_time_s": 20.0,
+            "duration_s": -1.0,
+            "severity": 1.0,
+            "parameters": {
+              "scenario": "payload_instrument_off"
+            }
+          }
+        ]
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_fault_to_data_storage",
+          "source_field": "payload_generated_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 20.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 0.001,
+          "pre_response_tolerance": 1.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "companion_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_to_comm_storage"
+      ]
+    }
+  ],
+  "required_runtime_couplings": [
+    "payload_to_comm_storage",
+    "payload_activity_to_eps_thermal"
+  ]
+}

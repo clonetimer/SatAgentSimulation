@@ -1,0 +1,331 @@
+capability_id: component.reaction_wheel.v1
+schema_version: 0.1.0
+name: Reaction wheel component simulation
+level: component
+domain: adcs
+target: reaction_wheel
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Pure-Python reaction wheel capability that maps TaskSpec parameters to components.reaction_wheel model classes without
+  using demo runner functions.
+adapter:
+  class_path: sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - components.reaction_wheel.model
+  - components.reaction_wheel.schemas
+  - components.reaction_wheel.degradation
+  - components.reaction_wheel.faults
+  legacy_demo_runner: components.reaction_wheel.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types:
+    - rw_jamming
+    - rw_motor_failure
+  constraint:
+    supported: true
+    timed_events_supported: true
+    constraint_types:
+    - reaction_wheel_speed_limit
+  degradation:
+    supported: true
+    degradation_types:
+    - friction_increase_pct
+    - bearing_wear_factor
+parameters:
+  num_wheels:
+    type: integer
+    unit: count
+    required: false
+    min: 1
+    max: 8
+    default: 1
+  wheel_inertia_kg_m2:
+    type: number_or_array[number]
+    unit: kg*m^2
+    required: false
+    min: 1.0e-06
+    default: 0.1
+  max_motor_torque_nm:
+    type: number_or_array[number]
+    unit: N*m
+    required: false
+    min: 0.0
+    default: 0.02
+  max_speed_rad_s:
+    type: number_or_array[number]
+    unit: rad/s
+    required: false
+    min: 0.0
+    default: 1000.0
+  damping_nms:
+    type: number_or_array[number]
+    unit: N*m*s
+    required: false
+    min: 0.0
+    default: 1.0e-05
+  initial_wheel_speeds_rad_s:
+    type: number_or_array[number]
+    unit: rad/s
+    required: false
+    default: 100.0
+  command_torque_nm:
+    type: number_or_array[number]
+    unit: N*m
+    required: false
+    default: 0.01
+  torque_profile_nm:
+    type: array[number_or_array[number]]
+    unit: N*m
+    required: false
+    description: Per-step command torque profile. If shorter than the run, the final command is held.
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: adcs.reaction_wheel.speed_rad_s_0
+    unit: rad/s
+    dtype: number
+  - name: adcs.reaction_wheel.applied_torque_nm_0
+    unit: N*m
+    dtype: number
+  - name: adcs.reaction_wheel.momentum_norm_nms
+    unit: N*m*s
+    dtype: number
+  - name: adcs.reaction_wheel.rotational_energy_j
+    unit: J
+    dtype: number
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  - name: label.fault_active
+    unit: bool
+    dtype: bool
+  - name: label.constraint_active
+    unit: bool
+    dtype: bool
+  - name: adcs.reaction_wheel.nominal_max_speed_rad_s_0
+    unit: rad/s
+    dtype: number
+  - name: adcs.reaction_wheel.effective_max_speed_rad_s_0
+    unit: rad/s
+    dtype: number
+  - name: adcs.reaction_wheel.nominal_max_torque_nm_0
+    unit: N*m
+    dtype: number
+  - name: adcs.reaction_wheel.effective_max_torque_nm_0
+    unit: N*m
+    dtype: number
+  - name: adcs.reaction_wheel.nominal_damping_nms_0
+    unit: N*m*s
+    dtype: number
+  - name: adcs.reaction_wheel.damping_nms_0
+    unit: N*m*s
+    dtype: number
+  summary:
+  - name: qoi.adcs.reaction_wheel.initial_speed_rad_s_0
+    unit: rad/s
+  - name: qoi.adcs.reaction_wheel.final_speed_rad_s_0
+    unit: rad/s
+  - name: qoi.adcs.reaction_wheel.max_abs_speed_rad_s
+    unit: rad/s
+  - name: qoi.adcs.reaction_wheel.final_momentum_norm_nms
+    unit: N*m*s
+  - name: qoi.adcs.reaction_wheel.final_rotational_energy_j
+    unit: J
+  - name: qoi.adcs.reaction_wheel.nominal_max_speed_rad_s_0
+    unit: rad/s
+  - name: qoi.adcs.reaction_wheel.effective_max_speed_rad_s_0
+    unit: rad/s
+  - name: qoi.adcs.reaction_wheel.nominal_max_torque_nm_0
+    unit: N*m
+  - name: qoi.adcs.reaction_wheel.effective_max_torque_nm_0
+    unit: N*m
+  - name: qoi.adcs.reaction_wheel.nominal_damping_nms_0
+    unit: N*m*s
+  - name: qoi.adcs.reaction_wheel.effective_damping_nms_0
+    unit: N*m*s
+validation:
+  conformance_tests:
+  - test_reaction_wheel_duration_and_sample_control_trace
+  - test_reaction_wheel_initial_speed_controls_first_sample
+  - test_reaction_wheel_command_torque_controls_speed_change
+  - test_reaction_wheel_fault_onset_changes_behavior
+  - test_reaction_wheel_degradation_changes_effective_config
+source_binding:
+  mode: source_native
+  status: s3_verified_direct_public_api
+  primary_module: components.reaction_wheel.model
+  source_modules:
+  - components.reaction_wheel.model
+  - components.reaction_wheel.schemas
+  - components.reaction_wheel.degradation
+  - components.reaction_wheel.faults
+  public_api:
+  - clamp_motor_torque
+  - momentum_norm_nms
+  - rotational_energy_j
+  - step_wheel_speed
+  legacy_demo_runner: components.reaction_wheel.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/reaction_wheel/builder.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+operator:
+  owner: reaction_wheel
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: reaction_wheel
+    implementation: source_native
+    evidence_fields: &id002
+    - qoi.adcs.reaction_wheel.final_speed_rad_s_0
+    verification: declared
+  - effect_id: rw_jamming
+    kind: fault
+    owner: reaction_wheel
+    implementation: source_native
+    evidence_fields: &id003
+    - adcs.reaction_wheel.speed_rad_s_0
+    - adcs.reaction_wheel.applied_torque_nm_0
+    - label.fault_active
+    verification: declared
+  - effect_id: reaction_wheel_speed_limit
+    kind: constraint
+    owner: reaction_wheel
+    implementation: source_native
+    evidence_fields: &id004
+    - adcs.reaction_wheel.nominal_max_speed_rad_s_0
+    - adcs.reaction_wheel.effective_max_speed_rad_s_0
+    - label.constraint_active
+    verification: declared
+  - effect_id: rw_motor_failure
+    kind: fault
+    owner: reaction_wheel
+    implementation: source_native
+    evidence_fields: &id005
+    - adcs.reaction_wheel.nominal_max_torque_nm_0
+    - adcs.reaction_wheel.effective_max_torque_nm_0
+    - label.fault_active
+    verification: declared
+  - effect_id: friction_increase_pct
+    kind: degradation
+    owner: reaction_wheel
+    implementation: source_native
+    evidence_fields: &id006
+    - adcs.reaction_wheel.nominal_damping_nms_0
+    - adcs.reaction_wheel.damping_nms_0
+    verification: declared
+  - effect_id: bearing_wear_factor
+    kind: degradation
+    owner: reaction_wheel
+    implementation: source_native
+    evidence_fields: &id007
+    - adcs.reaction_wheel.nominal_max_speed_rad_s_0
+    - adcs.reaction_wheel.effective_max_speed_rad_s_0
+    - adcs.reaction_wheel.nominal_max_torque_nm_0
+    - adcs.reaction_wheel.effective_max_torque_nm_0
+    verification: declared
+  observability:
+    qoi:
+    - qoi.adcs.reaction_wheel.initial_speed_rad_s_0
+    - qoi.adcs.reaction_wheel.final_speed_rad_s_0
+    - qoi.adcs.reaction_wheel.max_abs_speed_rad_s
+    - qoi.adcs.reaction_wheel.final_momentum_norm_nms
+    - qoi.adcs.reaction_wheel.final_rotational_energy_j
+    - qoi.adcs.reaction_wheel.nominal_max_speed_rad_s_0
+    - qoi.adcs.reaction_wheel.effective_max_speed_rad_s_0
+    - qoi.adcs.reaction_wheel.nominal_max_torque_nm_0
+    - qoi.adcs.reaction_wheel.effective_max_torque_nm_0
+    - qoi.adcs.reaction_wheel.nominal_damping_nms_0
+    - qoi.adcs.reaction_wheel.effective_damping_nms_0
+    trace_fields:
+    - task_id
+    - case_id
+    - time_s
+    - sample_index
+    - adcs.reaction_wheel.speed_rad_s_0
+    - adcs.reaction_wheel.applied_torque_nm_0
+    - adcs.reaction_wheel.momentum_norm_nms
+    - adcs.reaction_wheel.rotational_energy_j
+    - label.health_state
+    - label.fault_active
+    - label.constraint_active
+    - adcs.reaction_wheel.nominal_max_speed_rad_s_0
+    - adcs.reaction_wheel.effective_max_speed_rad_s_0
+    - adcs.reaction_wheel.nominal_max_torque_nm_0
+    - adcs.reaction_wheel.effective_max_torque_nm_0
+    - adcs.reaction_wheel.nominal_damping_nms_0
+    - adcs.reaction_wheel.damping_nms_0
+    effect_evidence:
+      nominal: *id002
+      rw_jamming: *id003
+      reaction_wheel_speed_limit: *id004
+      rw_motor_failure: *id005
+      friction_increase_pct: *id006
+      bearing_wear_factor: *id007
+  assurance:
+    delegated_to_parameter_guard: true
+    delegated_to_claim_guard: true
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

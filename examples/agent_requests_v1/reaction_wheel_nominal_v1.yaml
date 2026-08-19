@@ -1,0 +1,96 @@
+schema_version: 1.0.0
+task:
+  id: component_reaction_wheel_capability_nominal
+  name: component_reaction_wheel_capability_nominal
+  description: Registry-synthesized template for component.reaction_wheel.v1
+  tags: []
+simulation:
+  level: component
+  duration_s: 300.0
+  step_s: 10.0
+  sample_s: 10.0
+  backend: selective_unified_basilisk_assembly
+  time_base: simulation_seconds
+  time_system: UTC
+mission: {}
+parameters:
+  profile: demo
+  values:
+    num_wheels: 1
+    wheel_inertia_kg_m2: 0.1
+    max_motor_torque_nm: 0.02
+    max_speed_rad_s: 1000.0
+    damping_nms: 1.0e-05
+    initial_wheel_speeds_rad_s: 100.0
+    command_torque_nm: 0.01
+  overrides: []
+events:
+  faults: []
+  degradations: []
+outputs:
+  output_root: runs
+  trace_format: csv
+  qoi:
+  - task_id
+  - case_id
+  - time_s
+  - sample_index
+  - adcs.reaction_wheel.speed_rad_s_0
+  - adcs.reaction_wheel.applied_torque_nm_0
+  - adcs.reaction_wheel.momentum_norm_nms
+  - adcs.reaction_wheel.rotational_energy_j
+  - label.health_state
+  - label.fault_active
+  files: []
+  plots: []
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true
+assurance:
+  fidelity_level: declared_by_capability
+  claim_level: analysis_only
+  validation_profile: default
+  parameter_profile: demo
+  allow_proxy: false
+model:
+  capability_id: component.reaction_wheel.v1
+  target:
+    level: component
+    name: reaction_wheel
+    mode: nominal
+  spacecraft: {}
+  orbit_environment: {}
+  config:
+    num_wheels: 1
+    wheel_inertia_kg_m2: 0.1
+    max_motor_torque_nm: 0.02
+    max_speed_rad_s: 1000.0
+    damping_nms: 1.0e-05
+    initial_wheel_speeds_rad_s: 100.0
+    command_torque_nm: 0.01
+  legacy_degradations: {}
+  campaign: {}
+  simulation_extra: {}
+  validation: {}
+provenance:
+  fields:
+    task.id:
+      source: legacy_migration
+      evidence: $.task_id
+    simulation.duration_s:
+      source: legacy_migration
+      evidence: $.simulation.duration_s
+    simulation.sample_s:
+      source: legacy_migration
+      evidence: $.simulation.sample_s
+    model.capability_id:
+      source: legacy_migration
+      evidence: $.capability_id
+  assumptions: []
+  pending_confirmations: []
+  migrated_from_version: 0.1.0
+metadata:
+  template_source: capability_registry_synthesized
+  template_file_requested: component_reaction_wheel_capability_nominal.yaml
+  reason_code: TEMPLATE_SYNTHESIZED

@@ -1,0 +1,6 @@
+capability_id: component.reaction_wheel.v1
+task_type: component
+target:
+  level: component
+  name: reaction_wheel
+  mode: degradation

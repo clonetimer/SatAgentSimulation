@@ -1,0 +1,331 @@
+capability_id: component.battery.v1
+schema_version: 0.1.0
+name: Battery component simulation
+level: component
+domain: eps
+target: battery
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Pure-Python battery capability that maps TaskSpec parameters to the components.battery model classes without using
+  demo runner functions.
+adapter:
+  class_path: sat_sim.adapters.component_battery.BatteryAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - components.battery.model
+  - components.battery.schemas
+  - components.battery.degradation
+  - components.battery.faults
+  legacy_demo_runner: components.battery.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types:
+    - open_circuit
+    - sudden_capacity_loss
+  degradation:
+    supported: true
+    degradation_types:
+    - capacity_loss_pct
+    - internal_resistance_increase_pct
+parameters:
+  capacity_wh:
+    type: number
+    unit: Wh
+    required: true
+    min: 1.0
+    max: 100000.0
+    default: 160.0
+    description: Nominal battery energy capacity before degradation.
+  initial_soc:
+    type: number
+    unit: ratio
+    required: true
+    min: 0.0
+    max: 1.0
+    default: 0.62
+    description: Initial state of charge.
+  net_power_w:
+    type: number
+    unit: W
+    required: false
+    default: -20.0
+    description: Constant net battery power. Positive charges, negative discharges.
+  power_profile_w:
+    type: array[number]
+    unit: W
+    required: false
+    description: Per-step net power profile. If shorter than the run, the final value is held.
+  charge_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.98
+  discharge_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.97
+  min_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 0.0
+  max_soc:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    max: 1.0
+    default: 1.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 1.0
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: target_level
+    unit: none
+    dtype: string
+  - name: target_name
+    unit: none
+    dtype: string
+  - name: mode
+    unit: none
+    dtype: string
+  - name: eps.battery.soc
+    unit: ratio
+    dtype: number
+  - name: eps.battery.storage_wh
+    unit: Wh
+    dtype: number
+  - name: eps.battery.capacity_wh
+    unit: Wh
+    dtype: number
+  - name: eps.battery.effective_capacity_wh
+    unit: Wh
+    dtype: number
+  - name: eps.battery.net_power_w
+    unit: W
+    dtype: number
+  - name: eps.battery.applied_power_w
+    unit: W
+    dtype: number
+  - name: eps.battery.shunt_dissipated_wh
+    unit: Wh
+    dtype: number
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  - name: label.fault_active
+    unit: bool
+    dtype: bool
+  - name: eps.battery.nominal_charge_efficiency
+    unit: ratio
+    dtype: number
+  - name: eps.battery.effective_charge_efficiency
+    unit: ratio
+    dtype: number
+  - name: eps.battery.nominal_discharge_efficiency
+    unit: ratio
+    dtype: number
+  - name: eps.battery.effective_discharge_efficiency
+    unit: ratio
+    dtype: number
+  summary:
+  - name: qoi.eps.battery.initial_soc
+    unit: ratio
+  - name: qoi.eps.battery.final_soc
+    unit: ratio
+  - name: qoi.eps.battery.min_soc
+    unit: ratio
+  - name: qoi.eps.battery.max_soc
+    unit: ratio
+  - name: qoi.eps.battery.final_storage_wh
+    unit: Wh
+  - name: qoi.eps.battery.energy_throughput_wh
+    unit: Wh
+  - name: qoi.eps.battery.nominal_charge_efficiency
+    unit: ratio
+  - name: qoi.eps.battery.effective_charge_efficiency
+    unit: ratio
+  - name: qoi.eps.battery.nominal_discharge_efficiency
+    unit: ratio
+  - name: qoi.eps.battery.effective_discharge_efficiency
+    unit: ratio
+validation:
+  conformance_tests:
+  - test_battery_duration_and_sample_control_trace
+  - test_battery_initial_soc_controls_first_sample
+  - test_battery_capacity_controls_storage
+  - test_battery_fault_onset_changes_behavior
+  - test_battery_degradation_changes_effective_capacity
+source_binding:
+  mode: source_native
+  status: s3_verified_direct_public_api
+  primary_module: components.battery.model
+  source_modules:
+  - components.battery.model
+  - components.battery.schemas
+  - components.battery.degradation
+  - components.battery.faults
+  public_api:
+  - build_nominal_battery_config
+  - initialize_battery
+  - step_battery
+  legacy_demo_runner: components.battery.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/battery/builder.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+operator:
+  owner: battery
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: battery
+    implementation: source_native
+    evidence_fields: &id002
+    - qoi.eps.battery.final_soc
+    verification: declared
+  - effect_id: open_circuit
+    kind: fault
+    owner: battery
+    implementation: source_native
+    evidence_fields: &id003
+    - eps.battery.net_power_w
+    - eps.battery.applied_power_w
+    - label.fault_active
+    verification: declared
+  - effect_id: sudden_capacity_loss
+    kind: fault
+    owner: battery
+    implementation: source_native
+    evidence_fields: &id004
+    - eps.battery.capacity_wh
+    - eps.battery.effective_capacity_wh
+    - label.fault_active
+    verification: declared
+  - effect_id: capacity_loss_pct
+    kind: degradation
+    owner: battery
+    implementation: source_native
+    evidence_fields: &id005
+    - eps.battery.capacity_wh
+    - eps.battery.effective_capacity_wh
+    verification: declared
+  - effect_id: internal_resistance_increase_pct
+    kind: degradation
+    owner: battery
+    implementation: source_native
+    evidence_fields: &id006
+    - eps.battery.nominal_discharge_efficiency
+    - eps.battery.effective_discharge_efficiency
+    verification: declared
+  observability:
+    qoi:
+    - qoi.eps.battery.initial_soc
+    - qoi.eps.battery.final_soc
+    - qoi.eps.battery.min_soc
+    - qoi.eps.battery.max_soc
+    - qoi.eps.battery.final_storage_wh
+    - qoi.eps.battery.energy_throughput_wh
+    - qoi.eps.battery.nominal_charge_efficiency
+    - qoi.eps.battery.effective_charge_efficiency
+    - qoi.eps.battery.nominal_discharge_efficiency
+    - qoi.eps.battery.effective_discharge_efficiency
+    trace_fields:
+    - task_id
+    - case_id
+    - time_s
+    - sample_index
+    - target_level
+    - target_name
+    - mode
+    - eps.battery.soc
+    - eps.battery.storage_wh
+    - eps.battery.capacity_wh
+    - eps.battery.effective_capacity_wh
+    - eps.battery.net_power_w
+    - eps.battery.applied_power_w
+    - eps.battery.shunt_dissipated_wh
+    - label.health_state
+    - label.fault_active
+    - eps.battery.nominal_charge_efficiency
+    - eps.battery.effective_charge_efficiency
+    - eps.battery.nominal_discharge_efficiency
+    - eps.battery.effective_discharge_efficiency
+    effect_evidence:
+      nominal: *id002
+      open_circuit: *id003
+      sudden_capacity_loss: *id004
+      capacity_loss_pct: *id005
+      internal_resistance_increase_pct: *id006
+  assurance:
+    delegated_to_parameter_guard: true
+    delegated_to_claim_guard: true
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

@@ -1,0 +1,81 @@
+capability_id: component.cmg.v1
+schema_version: 0.1.0
+name: Control moment gyroscope component simulation
+level: component
+domain: adcs
+target: cmg
+trust_level: conformance_tested
+summary: Deterministic source-native single-gimbal CMG model using the project component public API.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.CmgAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.cmg.builder, components.cmg.schemas]
+  legacy_demo_runner: components.cmg.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [gimbal_stuck, wheel_drive_fault, rate_limit_fault]
+  degradation:
+    supported: true
+    degradation_types: [gimbal_friction_growth, momentum_loss]
+parameters:
+  wheel_inertia_kg_m2: {type: number, unit: "kg*m^2", required: false, default: 1.0, min: 0.000001}
+  initial_wheel_speed_rad_s: {type: number, unit: rad/s, required: false, default: 10.0}
+  initial_gimbal_angle_rad: {type: number, unit: rad, required: false, default: 0.0}
+  gimbal_rate_cmd_rad_s: {type: number, unit: rad/s, required: false, default: 0.1}
+  wheel_torque_nm: {type: number, unit: "N*m", required: false, default: 0.01}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: adcs.cmg.wheel_speed_rad_s, unit: rad/s, dtype: number}
+  - {name: adcs.cmg.gimbal_angle_rad, unit: rad, dtype: number}
+  - {name: adcs.cmg.wheel_momentum_nms, unit: "N*m*s", dtype: number}
+  summary:
+  - {name: adcs.cmg.final_wheel_speed_rad_s, unit: rad/s}
+  - {name: adcs.cmg.max_abs_momentum_nms, unit: "N*m*s"}
+operator:
+  owner: cmg
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: cmg
+    implementation: source_native
+    evidence_fields: [adcs.cmg.wheel_speed_rad_s, adcs.cmg.gimbal_angle_rad]
+    verification: declared
+  - {effect_id: gimbal_stuck, kind: fault, owner: cmg, implementation: source_native, evidence_fields: [adcs.cmg.commanded_gimbal_rate_rad_s], verification: declared}
+  - {effect_id: wheel_drive_fault, kind: fault, owner: cmg, implementation: source_native, evidence_fields: [adcs.cmg.commanded_wheel_torque_nm], verification: declared}
+  - {effect_id: rate_limit_fault, kind: fault, owner: cmg, implementation: source_native, evidence_fields: [adcs.cmg.commanded_gimbal_rate_rad_s], verification: declared}
+  - {effect_id: gimbal_friction_growth, kind: degradation, owner: cmg, implementation: source_native, evidence_fields: [adcs.cmg.commanded_gimbal_rate_rad_s], verification: declared}
+  - {effect_id: momentum_loss, kind: degradation, owner: cmg, implementation: source_native, evidence_fields: [adcs.cmg.wheel_momentum_nms], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.cmg.builder
+  source_modules: [components.cmg.builder, components.cmg.schemas]
+  public_api: [propagate_single_cmg_state, SingleGimbalCmgConfig]
+  legacy_demo_runner: components.cmg.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Single-gimbal deterministic engineering model; no hardware calibration.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; system coupling requires a subsystem or whole-spacecraft capability.]

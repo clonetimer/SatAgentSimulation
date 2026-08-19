@@ -1,0 +1,308 @@
+capability_id: whole_spacecraft.bsksim_coupled.v1
+schema_version: 0.1.0
+name: Whole-spacecraft project coupled-equation engine (legacy BSKSim ID)
+level: whole_spacecraft
+domain: whole_spacecraft
+target: bsksim_coupled
+trust_level: engineering_preview
+status: agent_ready_candidate
+summary: v0.5.4.7 project-owned whole-spacecraft coupled-equation capability. It propagates orbit/attitude, EPS, thermal,
+  communication/data, payload and propulsion states in one deterministic equation engine. The legacy capability ID is retained
+  for compatibility, but this runtime is not Basilisk-native and is not an official BSKSim template integration.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_bsksim_coupled.WholeSpacecraftBSKSimCoupledAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.bsk_engine.whole_spacecraft_coupled
+  - sat_sim.bsk_engine.types
+  - sat_sim.bsk_engine.event_manager
+  - sat_sim.fault_environment
+  uses_legacy_runner: false
+  basilisk_required: false
+  source_boundary: project_owned_coupled_equation_engine_legacy_bsksim_id
+  backend_type: project_coupled_equation_engine
+  accepted_task_backends:
+  - python
+  requires_allow_proxy: true
+  modifier_application: adapter_runtime_state_equations
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    timed_events_supported: true
+  degradation:
+    supported: true
+    timed_events_supported: true
+  constraint:
+    supported: true
+    timed_events_supported: true
+parameters:
+  orbit_rate_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 0.0011
+    description: 轨道相位推进速率。
+  eclipse_fraction:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.35
+    min: 0.0
+    max: 0.9
+    description: 轨道周期中的食段比例。
+  initial_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 8.0
+    description: 初始姿态指向误差，用于姿态到电源/通信/载荷耦合。
+  adcs_time_constant_s:
+    type: number
+    unit: s
+    required: false
+    default: 75.0
+    description: 姿态误差收敛时间常数。
+  battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: false
+    default: 160.0
+    min: 1.0e-06
+    description: 电池额定容量。
+  initial_soc:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.62
+    min: 0.0
+    max: 1.0
+    description: 初始荷电状态。
+  solar_power_max_w:
+    type: number
+    unit: W
+    required: false
+    default: 95.0
+    description: 满照和最佳入射时太阳阵列最大发电功率。
+  bus_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 18.0
+    description: 平台常开负载功率。
+  payload_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 38.0
+    description: 载荷工作功率。
+  downlink_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 16.0
+    description: 通信下行工作功率。
+  adcs_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 12.0
+    description: 姿态控制平均功率。
+  thermal_capacity_j_per_k:
+    type: number
+    unit: J/K
+    required: false
+    default: 5200.0
+    description: 整星简化热容。
+  radiator_coeff_w_per_k:
+    type: number
+    unit: W/K
+    required: false
+    default: 1.8
+    description: 简化散热系数。
+  payload_data_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 2500000.0
+    description: 载荷原始数据生成速率。
+  downlink_rate_max_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 1500000.0
+    description: 最大下行速率。
+  storage_capacity_bits:
+    type: number
+    unit: bit
+    required: false
+    default: 6000000000.0
+    description: 星上存储容量。
+  propulsion_enabled:
+    type: boolean
+    required: false
+    default: true
+    description: 是否启用推进耦合。
+  burn_start_s:
+    type: number
+    unit: s
+    required: false
+    default: 160.0
+    description: 推进工作开始时间。
+  burn_duration_s:
+    type: number
+    unit: s
+    required: false
+    default: 10.0
+    description: 推进工作持续时间。
+  burn_delta_v_m_s:
+    type: number
+    unit: m/s
+    required: false
+    default: 0.02
+    description: 本次推进累计速度增量。
+outputs:
+  trace_fields:
+  - time_s
+  - orbit.phase_rad
+  - orbit.eclipse_flag
+  - orbit.sun_incidence_cos
+  - adcs.pointing_error_deg
+  - adcs.pointing_quality
+  - adcs.power_w
+  - eps.solar_array_power_w
+  - eps.load_power_w
+  - eps.net_power_w
+  - eps.battery_soc
+  - thermal.heat_input_w
+  - thermal.bus_temp_c
+  - payload.active
+  - payload.generated_data_bits
+  - comm.visible
+  - comm.downlink_rate_bps
+  - comm.downlinked_bits
+  - data.storage_bits
+  - propulsion.burn_active
+  - propulsion.delta_v_m_s
+  - label.fault_active
+  - label.degradation_active
+  - label.constraint_active
+  qoi:
+  - status
+  - strong_coupling_chain_count
+  - coupling_integrity_pass
+  - min_battery_soc
+  - max_bus_temp_c
+  - final_storage_bits
+events:
+  faults:
+  - id: payload_instrument_off
+    label: 载荷关机
+    description: 事件活动期间载荷停止产生数据。
+    parameters: []
+  - id: comm_data_downlink_link_loss
+    label: 下行链路中断
+    description: 事件活动期间下行速率清零。
+    parameters: []
+  - id: adcs_rw_jamming
+    label: ADCS反作用轮卡滞
+    description: 事件活动期间姿态指向误差恶化，并影响载荷/通信耦合。
+    parameters: []
+  - id: eps_battery_capacity_loss
+    label: 电池容量损失
+    description: 事件活动期间记录有效容量下降证据。
+    parameters:
+    - id: remaining_capacity_ratio
+      label: 剩余容量比例
+      type: number
+      default: 0.7
+      minimum: 0.0
+      maximum: 1.0
+  degradations:
+  - id: thermal_radiator_rejection_loss
+    label: 散热能力退化
+    description: 记录热控退化事件窗口，用于整星耦合证据。
+    parameters: []
+  - id: solar_panel_efficiency_loss
+    label: 太阳阵列效率下降
+    description: 用于后续太阳阵列效率退化扩展的整星事件合同。
+    parameters: []
+  constraints:
+  - id: power_safe_mode_threshold
+    label: 低电量安全阈值
+    description: 当电量低于阈值时可用于约束载荷和通信工作。
+    parameters:
+    - id: soc_threshold
+      label: SOC阈值
+      type: number
+      default: 0.25
+      minimum: 0.0
+      maximum: 1.0
+operator:
+  owner: whole_spacecraft_bsksim_coupled
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: whole_spacecraft_bsksim_coupled
+    implementation: orchestration
+    evidence_fields:
+    - coupling_integrity_pass
+    - strong_coupling_chain_count
+    verification: candidate
+  - effect_id: payload_instrument_off
+    kind: fault
+    owner: whole_spacecraft_bsksim_coupled
+    implementation: orchestration
+    evidence_fields:
+    - label.fault_active
+    - payload.active
+    verification: candidate
+  - effect_id: comm_data_downlink_link_loss
+    kind: fault
+    owner: whole_spacecraft_bsksim_coupled
+    implementation: orchestration
+    evidence_fields:
+    - label.fault_active
+    - comm.downlink_rate_bps
+    verification: candidate
+  observability:
+    qoi:
+    - status
+    - coupling_integrity_pass
+    - min_battery_soc
+    - max_bus_temp_c
+    - final_storage_bits
+    trace:
+    - time_s
+    - orbit.*
+    - adcs.*
+    - eps.*
+    - thermal.*
+    - comm.*
+    - payload.*
+    - propulsion.*
+    - label.*
+  limitations:
+  - Strong-coupling bridge uses project-owned engineering subsystem equations, not full Basilisk-native SysModel migration.
+  - This capability must not be described as a complete official BSKSim template integration.
+lifecycle:
+  status: deprecated
+  product_tier: compatibility
+  recommended: false
+  replacement: whole_spacecraft.unified_native.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Project coupled-equation BSKSim-style path is retained for historical reproduction; the unified Basilisk runtime
+    is recommended.
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: engineering_proxy
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations: []

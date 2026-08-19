@@ -1,0 +1,31 @@
+{
+  "schema_version": "既有版本.model-provider-config.v1",
+  "providers": [
+    {
+      "provider_id": "local-qwen-vllm",
+      "label": "本地 Qwen vLLM",
+      "backend": "vllm",
+      "location": "local",
+      "tier": "L2",
+      "model": "Qwen/Qwen3-32B",
+      "base_url": "http://127.0.0.1:8000/v1",
+      "api_key_env": "SAT_SIM_LOCAL_VLLM_API_KEY",
+      "priority": 25,
+      "enabled": true,
+      "description": "示例配置；模型名称和地址必须与实际 vLLM 服务一致。"
+    },
+    {
+      "provider_id": "night-server-qwen",
+      "label": "夜间服务器 Qwen",
+      "backend": "openai_compatible",
+      "location": "remote",
+      "tier": "L2",
+      "model": "Qwen/Qwen3-70B",
+      "base_url": "http://server.example.internal:8000/v1",
+      "api_key_env": "SAT_SIM_REMOTE_MODEL_API_KEY",
+      "priority": 35,
+      "enabled": false,
+      "description": "占位示例；不要直接使用示例域名。"
+    }
+  ]
+}

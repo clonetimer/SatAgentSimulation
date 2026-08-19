@@ -1,0 +1,175 @@
+{
+  "schema_version": "uq-mission-validation-v1.0",
+  "batch": "UQ-MISSION-VALIDATION-1",
+  "design_id": "mission_uq_demo_v1",
+  "purpose": "demo uncertainty propagation harness for the V15 whole-mission closure path",
+  "qualification_level": "demo_uq_only",
+  "sample_method": "latin_hypercube",
+  "seed": 17017,
+  "sample_count": 6,
+  "duration_s": 80.0,
+  "sample_s": 20.0,
+  "not_claimed": [
+    "engineering_uncertainty_bounds",
+    "ground_calibrated_parameter_distributions",
+    "flight_correlated_mission_probability",
+    "validated_rf_link_margin_statistics"
+  ],
+  "parameters": [
+    {
+      "parameter_id": "whole.battery_capacity_wh",
+      "fields": [
+        "battery_capacity_wh"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.9,
+      "upper": 1.1,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.initial_soc",
+      "fields": [
+        "initial_soc"
+      ],
+      "distribution": "uniform_absolute",
+      "lower": 0.56,
+      "upper": 0.68,
+      "unit": "dimensionless",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.solar_power_w",
+      "fields": [
+        "solar_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.85,
+      "upper": 1.15,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.payload_power_w",
+      "fields": [
+        "payload_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.bus_power_w",
+      "fields": [
+        "bus_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.instrument_baud_bps",
+      "fields": [
+        "instrument_baud_bps"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.downlink_rate_family",
+      "fields": [
+        "transmitter_baud_bps",
+        "native_downlink_bit_rate_request_bps"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_cnr_linear",
+      "fields": [
+        "native_downlink_cnr_linear"
+      ],
+      "distribution": "log_uniform_factor",
+      "lower": 0.3,
+      "upper": 3.0,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_distance_m",
+      "fields": [
+        "native_downlink_distance_m"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.storage_capacity_bits",
+      "fields": [
+        "storage_capacity_bits"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.thermal_heat_power_w",
+      "fields": [
+        "thermal_heat_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "demo_uq_assumption",
+      "source": "configs/uq/mission_uq_demo_v1.json",
+      "notes": "Demo uncertainty range; not ground calibrated."
+    }
+  ]
+}

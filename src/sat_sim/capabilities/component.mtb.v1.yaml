@@ -1,0 +1,319 @@
+capability_id: component.mtb.v1
+schema_version: 0.1.0
+name: Magnetic torque bar component simulation
+level: component
+domain: adcs
+target: mtb
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native magnetic torque bar model covering dipole command shaping, first-order response and m×B torque generation.
+adapter:
+  class_path: sat_sim.adapters.component_mtb.MtbAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - components.mtb.builder
+  - components.mtb.schemas
+  - components.mtb.faults
+  - components.mtb.degradation
+  legacy_demo_runner: components.mtb.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types:
+    - mtb_coil_open
+    - mtb_communication_loss
+    - mtb_coil_short
+  degradation:
+    supported: true
+    degradation_types:
+    - mtb_dipole_capacity_loss
+    - mtb_response_lag_increase
+parameters:
+  command_mode:
+    type: string
+    required: false
+    enum:
+    - direct_dipole
+    - requested_torque
+    enum_labels:
+      direct_dipole: 直接磁矩指令
+      requested_torque: 期望控制力矩映射
+    default: direct_dipole
+    description: 直接设置三轴磁偶极矩，或根据期望力矩和地磁场求可实现的磁矩指令。
+  dipole_limit_am2:
+    type: vector3_or_number
+    unit: A*m^2
+    required: false
+    default:
+    - 0.2
+    - 0.2
+    - 0.2
+    min: 0.0
+    description: 三轴磁力矩器最大磁偶极矩；可填单值或三轴数组。
+  lag_tau_s:
+    type: number
+    unit: s
+    required: false
+    default: 0.2
+    min: 0.0
+    description: 磁矩输出一阶响应时间常数；0表示立即跟随指令。
+  magnetic_field_t:
+    type: vector3_or_number
+    unit: T
+    required: false
+    default:
+    - 2.0e-05
+    - -1.0e-05
+    - 3.0e-05
+    description: 本体系下用于计算 m×B 力矩的地磁场矢量。
+  command_dipole_am2:
+    type: vector3_or_number
+    unit: A*m^2
+    required: false
+    default:
+    - 0.1
+    - 0.0
+    - 0.0
+    description: 直接磁矩模式下的三轴磁偶极矩指令。
+  requested_torque_nm:
+    type: vector3_or_number
+    unit: N*m
+    required: false
+    default:
+    - 0.0
+    - 3.0e-06
+    - 0.0
+    description: 期望力矩映射模式下的三轴控制力矩请求；平行于地磁场的分量不可由磁力矩器实现。
+  initial_dipole_am2:
+    type: vector3_or_number
+    unit: A*m^2
+    required: false
+    default:
+    - 0.0
+    - 0.0
+    - 0.0
+    description: 仿真开始时的三轴实际磁偶极矩。
+  command_profile_am2:
+    type: array[array[number]]
+    unit: A*m^2
+    required: false
+    description: 可选的逐采样点三轴磁矩指令序列；留空时使用固定磁矩指令。
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: adcs.mtb.command_dipole_am2_0
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.command_dipole_am2_1
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.command_dipole_am2_2
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.actual_dipole_am2_0
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.actual_dipole_am2_1
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.actual_dipole_am2_2
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.torque_nm_0
+    unit: N*m
+    dtype: number
+  - name: adcs.mtb.torque_nm_1
+    unit: N*m
+    dtype: number
+  - name: adcs.mtb.torque_nm_2
+    unit: N*m
+    dtype: number
+  - name: adcs.mtb.torque_norm_nm
+    unit: N*m
+    dtype: number
+  - name: adcs.mtb.magnetic_field_t_0
+    unit: T
+    dtype: number
+  - name: adcs.mtb.magnetic_field_t_1
+    unit: T
+    dtype: number
+  - name: adcs.mtb.magnetic_field_t_2
+    unit: T
+    dtype: number
+  - name: adcs.mtb.effective_dipole_limit_am2_0
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.effective_dipole_limit_am2_1
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.effective_dipole_limit_am2_2
+    unit: A*m^2
+    dtype: number
+  - name: adcs.mtb.saturation_flag
+    unit: bool
+    dtype: bool
+  - name: label.fault_active
+    unit: bool
+    dtype: bool
+  - name: label.degradation_active
+    unit: bool
+    dtype: bool
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.adcs.mtb.max_torque_norm_nm
+    unit: N*m
+  - name: qoi.adcs.mtb.final_dipole_norm_am2
+    unit: A*m^2
+  - name: qoi.adcs.mtb.saturation_count
+    unit: count
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.magnetic_field_t
+  unit: T
+- name: parameters.command_dipole_am2
+  unit: A*m^2
+produces:
+- name: adcs.mtb.*
+  unit: mixed
+- name: label.health_state
+  unit: enum
+validation:
+  conformance_tests:
+  - test_mtb_component_nominal_and_fault_effects
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.mtb.builder
+  source_modules:
+  - components.mtb.builder
+  - components.mtb.schemas
+  - components.mtb.faults
+  - components.mtb.degradation
+  public_api:
+  - update_mtb_dipole
+  - compute_mtb_torque_nm
+  - map_torque_to_dipole
+  legacy_demo_runner: components.mtb.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits:
+- Independent component model only; it does not claim full spacecraft detumbling or closed-loop ADCS behavior.
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis:
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/mtb/builder.py
+  validation_basis:
+  - conformance_tests
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim full spacecraft detumbling, flight validation or hardware calibration.
+  bsk0_notes: The component capability uses the existing source-native reduced model; Basilisk MTB effector integration remains
+    a separate integration path.
+  planned_upgrade_path: []
+operator:
+  owner: mtb
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: mtb
+    implementation: source_native
+    evidence_fields:
+    - adcs.mtb.torque_norm_nm
+    verification: declared
+  - effect_id: mtb_coil_open
+    kind: fault
+    owner: mtb
+    implementation: source_native
+    evidence_fields:
+    - adcs.mtb.effective_dipole_limit_am2_0
+    - label.fault_active
+    verification: declared
+  - effect_id: mtb_communication_loss
+    kind: fault
+    owner: mtb
+    implementation: source_native
+    evidence_fields:
+    - adcs.mtb.command_dipole_am2_0
+    - label.fault_active
+    verification: declared
+  - effect_id: mtb_coil_short
+    kind: fault
+    owner: mtb
+    implementation: source_native
+    evidence_fields:
+    - adcs.mtb.effective_dipole_limit_am2_0
+    - label.fault_active
+    verification: declared
+  - effect_id: mtb_dipole_capacity_loss
+    kind: degradation
+    owner: mtb
+    implementation: source_native
+    evidence_fields:
+    - adcs.mtb.effective_dipole_limit_am2_0
+    - label.degradation_active
+    verification: declared
+  - effect_id: mtb_response_lag_increase
+    kind: degradation
+    owner: mtb
+    implementation: source_native
+    evidence_fields:
+    - adcs.mtb.actual_dipole_am2_0
+    - label.degradation_active
+    verification: declared
+  observability:
+    qoi:
+    - adcs.mtb.max_torque_norm_nm
+    - adcs.mtb.final_dipole_norm_am2
+    - adcs.mtb.saturation_count
+    trace:
+    - adcs.mtb.*
+    - label.*
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - Independent component model only; it does not claim full spacecraft detumbling or closed-loop ADCS behavior.

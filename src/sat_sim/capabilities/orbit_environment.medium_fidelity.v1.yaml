@@ -1,0 +1,329 @@
+capability_id: orbit_environment.medium_fidelity.v1
+schema_version: 0.1.0
+name: Medium-fidelity LEO orbit environment simulation
+level: integrated
+domain: orbit_environment
+target: orbit_environment
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Route-B HF-3 medium-fidelity orbit/environment capability using HF-1/HF-2 foundations, Keplerian propagation with
+  optional J2 secular precession, analytic Sun vector, eclipse approximation, dipole magnetic field proxy, and geometric ground-station
+  access.
+adapter:
+  class_path: sat_sim.adapters.orbit_environment_medium_fidelity.OrbitEnvironmentMediumFidelityAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.orbit.medium
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  - sat_sim.solvers
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: false
+  degradation:
+    supported: false
+parameters:
+  altitude_m:
+    type: number
+    unit: m
+    required: false
+    min: 100000.0
+    max: 3000000.0
+    default: 500000.0
+  semi_major_axis_m:
+    type: number
+    unit: m
+    required: false
+    description: Optional direct semi-major axis. If omitted, earth_radius_m + altitude_m is used.
+  eccentricity:
+    type: number
+    unit: none
+    required: false
+    min: 0.0
+    max: 0.2
+    default: 0.0
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    max: 180.0
+    default: 51.6
+  raan_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  arg_perigee_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  true_anomaly_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  mean_anomaly_deg:
+    type: number
+    unit: deg
+    required: false
+  use_j2_gravity:
+    type: boolean
+    required: false
+    default: true
+  sun_model:
+    type: string
+    required: false
+    enum:
+    - analytic
+    - constant
+    default: analytic
+  sun_vector_n:
+    type: vector3
+    unit: none
+    required: false
+    default:
+    - 1.0
+    - 0.0
+    - 0.0
+  enable_eclipse:
+    type: boolean
+    required: false
+    default: true
+  magnetic_field_model:
+    type: string
+    required: false
+    enum:
+    - dipole
+    - none
+    default: dipole
+  magnetic_dipole_axis_n:
+    type: vector3
+    unit: none
+    required: false
+    default:
+    - 0.0
+    - 0.0
+    - 1.0
+  magnetic_equator_strength_t:
+    type: number
+    unit: T
+    required: false
+    min: 0.0
+    default: 3.12e-05
+  ground_station:
+    type: object
+    required: false
+    description: Put under parameters.ground_station. Fields include latitude_deg, longitude_deg, altitude_m, min_elevation_deg,
+      max_range_m.
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+  epoch_utc:
+    unit: UTC
+    required: false
+  solver:
+    required: false
+    description: HF-2 fixed-step solver metadata. The HF-3 orbit state is analytic per output sample; solver config is recorded
+      for deterministic coupling.
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: utc
+    unit: UTC
+    dtype: string
+  - name: orbit.r_bn_n_m_x
+    unit: m
+    dtype: number
+  - name: orbit.v_bn_n_m_s_x
+    unit: m/s
+    dtype: number
+  - name: orbit.radius_m
+    unit: m
+    dtype: number
+  - name: orbit.altitude_m
+    unit: m
+    dtype: number
+  - name: orbit.raan_deg
+    unit: deg
+    dtype: number
+  - name: environment.sun_vector_n_x
+    unit: unit
+    dtype: number
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: bool
+  - name: environment.umbra_flag
+    unit: bool
+    dtype: bool
+  - name: environment.penumbra_flag
+    unit: bool
+    dtype: bool
+  - name: environment.magnetic_field_norm_t
+    unit: T
+    dtype: number
+  - name: ground.range_m
+    unit: m
+    dtype: number
+  - name: ground.elevation_deg
+    unit: deg
+    dtype: number
+  - name: ground.has_access
+    unit: bool
+    dtype: bool
+  summary:
+  - name: qoi.orbit.radius_mean_m
+    unit: m
+  - name: qoi.orbit.altitude_min_m
+    unit: m
+  - name: qoi.environment.eclipse_fraction
+    unit: ratio
+  - name: qoi.environment.umbra_fraction
+    unit: ratio
+  - name: qoi.environment.magnetic_field_norm_min_t
+    unit: T
+  - name: qoi.ground.access_fraction
+    unit: ratio
+validation:
+  conformance_tests:
+  - test_medium_orbit_keeps_radius_in_leo_envelope
+  - test_j2_enabled_changes_raan_over_time
+  - test_eclipse_and_ground_access_are_traceable
+  - test_medium_capability_writes_hf3_manifest_metadata
+produces:
+- name: orbit.*
+  destination: trace
+- name: environment.sun_vector_n_*
+  unit: unit
+  destination: trace
+- name: environment.shadow_factor
+  unit: ratio
+  destination: trace
+- name: environment.eclipse_flag
+  unit: bool
+  destination: trace
+- name: environment.magnetic_field_*
+  unit: T
+  destination: trace
+- name: ground.*
+  destination: trace
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: simulation.epoch_utc
+  unit: UTC
+  required: false
+- name: simulation.solver
+  required: false
+- name: orbit_environment.*
+  required: false
+- name: parameters.ground_station
+  required: false
+time_grid:
+  policy: hf1_time_grid_output_samples
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+source_binding:
+  mode: route_b_model_library
+  status: hf3_implemented_local_medium_fidelity
+  primary_module: sat_sim.orbit.medium
+  source_modules:
+  - sat_sim.orbit.medium
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  - sat_sim.solvers
+  public_api:
+  - MediumOrbitConfig
+  - propagate_medium_orbit_environment
+  - summarize_medium_orbit_environment
+  - build_hf3_orbit_environment_payload
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: medium
+known_physics_limits:
+- J2 is secular element precession, not full osculating-state acceleration integration.
+- Atmospheric drag, SRP, third-body gravity, finite gravity fields, and SPICE ephemerides are not included.
+- Eclipse uses a cylindrical/linear-band approximation rather than full conical umbra/penumbra geometry.
+- Magnetic field is a dipole proxy unless disabled; WMM/IGRF is not included.
+- This capability is medium-fidelity and must not be advertised as high-fidelity engineering validation.
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- orbit_environment
+- parameters
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: deprecated
+  replacement: orbit_environment.orbit_fidelity.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Superseded as the default orbit product path by ORB-1 orbit_environment.orbit_fidelity.v1; retained for HF-3 benchmark
+    and legacy compatibility.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- conformance_tests
+- internal_benchmark
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/sat_sim/orbit/basilisk_hf.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path:
+  - BSK-ORB-1 comparison baseline
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - J2 is secular element precession, not full osculating-state acceleration integration.
+  - Atmospheric drag, SRP, third-body gravity, finite gravity fields, and SPICE ephemerides are not included.
+  - Eclipse uses a cylindrical/linear-band approximation rather than full conical umbra/penumbra geometry.
+  - Magnetic field is a dipole proxy unless disabled; WMM/IGRF is not included.
+  - This capability is medium-fidelity and must not be advertised as high-fidelity engineering validation.

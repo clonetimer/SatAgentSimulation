@@ -1,0 +1,58 @@
+{
+  "schema_version": "v0574.coupling-validation-matrix.experimental.v3",
+  "baseline_spec": "../whole_spacecraft_coupling_baseline.yaml",
+  "case_run_timeout_s": 120.0,
+  "cases": [
+    {
+      "case_id": "thermal_heaters_to_eps_load",
+      "description": "With a heater demanded on in both paired runs, disabling only the heater-to-EPS feedback must remove heater electrical load and preserve battery SOC.",
+      "setup_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        },
+        {
+          "path": "modifiers.faults",
+          "value": [
+            {
+              "modifier_id": "heater_on_causal_001",
+              "target": "thermal.heater",
+              "fault_type": "heater_stuck_on",
+              "onset_time_s": 0.0,
+              "duration_s": -1.0,
+              "severity": 1.0,
+              "parameters": {
+                "scenario": "thermal_heater_stuck_on"
+              }
+            }
+          ]
+        }
+      ],
+      "patch": {
+        "path": "parameters.coupling.enable_thermal_heaters_to_eps_load",
+        "value": false
+      },
+      "expectations": [
+        {
+          "coupling_id": "thermal_heater_feedback_to_eps",
+          "source_field": "heater_eps_load_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 10.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 60.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "thermal_heaters_to_eps_load"
+      ]
+    }
+  ],
+  "required_runtime_couplings": [
+    "thermal_heaters_to_eps_load"
+  ]
+}

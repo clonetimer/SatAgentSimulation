@@ -1,0 +1,11 @@
+{
+  "schema_version": "sat-sim.dependency-audit-aliases.v1",
+  "aliases": [
+    {
+      "installed_requirement": "bsk==2.11.0+satfix1",
+      "audit_requirement": "bsk==2.11.0",
+      "reason": "The project lock uses a metadata-only satfix1 variant for dependency compatibility; runtime acceptance also permits the byte-equivalent official bsk 2.11.0 installation.",
+      "evidence": "configs/security/bsk_runtime_compatibility_policy.json"
+    }
+  ]
+}

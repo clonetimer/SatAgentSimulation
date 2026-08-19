@@ -1,0 +1,32 @@
+schema_version: '1.0.0'
+task:
+  id: subsystem_thermal_source_native_nominal
+  name: 热控分系统源码原生正常场景
+simulation:
+  level: subsystem
+  subsystem: thermal
+  duration_s: 60.0
+  step_s: 1.0
+  sample_s: 1.0
+  backend: python
+parameters:
+  profile: demo
+  values:
+    initial_battery_temp_k: 290.0
+    payload_power_w: 20.0
+    eps_power_w: 5.0
+    shadow_factor: 1.0
+    heater_enabled: true
+outputs:
+  output_root: datasets/subsystem_thermal_source_native_nominal
+  qoi:
+    - thermal.source_native.battery_temp_k
+    - thermal.source_native.electronics_temp_k
+    - thermal.source_native.payload_temp_k
+    - thermal.source_native.heater_power_w
+assurance:
+  parameter_profile: demo
+  allow_proxy: false
+model:
+  capability_id: subsystem.thermal.source_native.v1
+  target: {level: subsystem, name: thermal, mode: nominal}

@@ -1,0 +1,57 @@
+{
+  "schema_version": "calibration-evidence-surrogate-v1.0",
+  "batch": "CALIBRATION-EVIDENCE-SURROGATE-1",
+  "purpose": "Approved evidence source taxonomy for parameter profiles when real calibration data are unavailable.",
+  "source_types": {
+    "demo_default": {
+      "max_confidence": "demo",
+      "description": "Code/default demonstration value; no engineering claim."
+    },
+    "synthetic_only": {
+      "max_confidence": "demo",
+      "description": "Generated data used for CI or examples; cannot support engineering claims."
+    },
+    "bounded_assumption": {
+      "max_confidence": "engineering_estimate",
+      "description": "Reviewed bounded engineering assumption with explicit uncertainty range."
+    },
+    "engineering_assumption": {
+      "max_confidence": "engineering_estimate",
+      "description": "Reviewed engineering assumption with explicit owner and validity limits."
+    },
+    "public_literature": {
+      "max_confidence": "engineering_estimate",
+      "description": "Public literature or standard model used as prior, not project calibration."
+    },
+    "vendor_datasheet": {
+      "max_confidence": "engineering_estimate",
+      "description": "Vendor data sheet or family-level specification, not serial-number calibration."
+    },
+    "design_derived": {
+      "max_confidence": "engineering_estimate",
+      "description": "CAD, mission design, geometry or configuration-derived value."
+    },
+    "low_cost_bench": {
+      "max_confidence": "ground_calibrated",
+      "description": "Local bench measurement; may support ground_calibrated for measured parameter only if dataset is registered."
+    },
+    "formal_ground_test": {
+      "max_confidence": "ground_calibrated",
+      "description": "Formal test or calibration report with dataset manifest."
+    },
+    "flight_telemetry": {
+      "max_confidence": "flight_correlated",
+      "description": "In-flight telemetry correlation with dataset manifest."
+    },
+    "ground_test": {
+      "max_confidence": "ground_calibrated",
+      "description": "Backward-compatible formal ground-test source type used by V16 synthetic gate tests; requires dataset_id for real claims."
+    }
+  },
+  "rules": [
+    "synthetic_only and demo_default cannot support engineering_estimate or higher",
+    "engineering_estimate requires explicit uncertainty and reviewed/approved status",
+    "ground_calibrated and flight_correlated require calibration.dataset_id in registered manifest",
+    "surrogate engineering_estimate profiles must keep not_ground_calibrated status"
+  ]
+}

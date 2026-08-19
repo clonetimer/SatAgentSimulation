@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.fault-experiment-template.v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "template_id",
+    "fault_id",
+    "subsystem",
+    "component",
+    "simulation",
+    "fault",
+    "expected_response",
+    "qualification",
+    "severity_model"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat-sim.fault-experiment-template.v1"
+    },
+    "template_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fault_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subsystem": {
+      "type": "string",
+      "minLength": 1
+    },
+    "component": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulation": {
+      "type": "object",
+      "required": [
+        "capability_id",
+        "backend",
+        "telemetry_profile"
+      ],
+      "properties": {
+        "capability_id": {
+          "const": "subsystem.adcs_unified_native.v1"
+        },
+        "backend": {
+          "const": "basilisk"
+        },
+        "telemetry_profile": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "fault": {
+      "type": "object",
+      "required": [
+        "event_kind",
+        "simulator_effect",
+        "target_pattern",
+        "severity_range"
+      ],
+      "properties": {
+        "event_kind": {
+          "enum": [
+            "fault",
+            "degradation"
+          ]
+        },
+        "simulator_effect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_pattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity_range": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "additionalProperties": true
+    },
+    "expected_response": {
+      "type": "object",
+      "required": [
+        "pre_onset_pair_channels",
+        "signatures"
+      ],
+      "properties": {
+        "pre_onset_pair_channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "signatures": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "check_id",
+              "channel",
+              "comparison",
+              "threshold"
+            ],
+            "properties": {
+              "check_id": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              },
+              "comparison": {
+                "type": "string"
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "qualification": {
+      "type": "object"
+    },
+    "severity_model": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "mechanism_kind",
+        "bands"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "sat-sim.fault-severity-model.v1"
+        },
+        "mechanism_kind": {
+          "enum": [
+            "continuous_degradation",
+            "binary_failure"
+          ]
+        },
+        "fixed_normalized_severity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "physical_parameter": {
+          "type": "object",
+          "required": [
+            "name",
+            "direction"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "direction": {
+              "enum": [
+                "increasing",
+                "decreasing"
+              ]
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "mapping": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "bands": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "level",
+              "min_inclusive",
+              "max_inclusive"
+            ],
+            "properties": {
+              "level": {
+                "type": "string",
+                "minLength": 1
+              },
+              "min_inclusive": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "max_inclusive": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mechanism_kind": {
+                "const": "binary_failure"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "fixed_normalized_severity"
+            ]
+          },
+          "else": {
+            "required": [
+              "physical_parameter"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

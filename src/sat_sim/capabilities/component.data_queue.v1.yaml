@@ -1,0 +1,216 @@
+capability_id: component.data_queue.v1
+schema_version: 0.1.0
+name: Data queue component simulation
+level: component
+domain: communication
+target: data_queue
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native data queue capability that maps TaskSpec parameters to components.data_queue.builder without using
+  demo runner functions.
+adapter:
+  class_path: sat_sim.adapters.component_data_queue.DataQueueAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - components.data_queue.builder
+  - components.data_queue.model
+  legacy_demo_runner: components.data_queue.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [overflow, read_stall, priority_inversion]
+  degradation:
+    supported: true
+    degradation_types: [throughput_decay, packet_error_growth]
+parameters:
+  capacity_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 0.0
+    default: 1000000.0
+  initial_queue_bits:
+    type: number
+    unit: bit
+    required: false
+    min: 0.0
+    default: 0.0
+  generated_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 1000.0
+  downlink_bps:
+    type: number
+    unit: bit/s
+    required: false
+    min: 0.0
+    default: 0.0
+  generated_profile_bps:
+    type: array[number]
+    unit: bit/s
+    required: false
+  downlink_profile_bps:
+    type: array[number]
+    unit: bit/s
+    required: false
+operator:
+  owner: data_queue
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: data_queue, implementation: source_native, evidence_fields: [comm.data_queue.queue_bits], verification: declared}
+  - {effect_id: overflow, kind: fault, owner: data_queue, implementation: source_native, evidence_fields: [comm.data_queue.effective_capacity_bits, label.fault_active], verification: declared}
+  - {effect_id: read_stall, kind: fault, owner: data_queue, implementation: source_native, evidence_fields: [comm.data_queue.downlink_bps, label.fault_active], verification: declared}
+  - {effect_id: priority_inversion, kind: fault, owner: data_queue, implementation: source_native, evidence_fields: [comm.data_queue.downlink_bps, label.fault_active], verification: declared}
+  - {effect_id: throughput_decay, kind: degradation, owner: data_queue, implementation: source_native, evidence_fields: [comm.data_queue.downlink_bps, label.degradation_active], verification: declared}
+  - {effect_id: packet_error_growth, kind: degradation, owner: data_queue, implementation: source_native, evidence_fields: [comm.data_queue.effective_capacity_bits, label.degradation_active], verification: declared}
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.capacity_bits
+  unit: bit
+- name: parameters.generated_bps
+  unit: bit/s
+- name: parameters.downlink_bps
+  unit: bit/s
+produces:
+- name: comm.data_queue.*
+- name: label.data_queue_full
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: target_level
+    unit: none
+    dtype: string
+  - name: target_name
+    unit: none
+    dtype: string
+  - name: mode
+    unit: none
+    dtype: string
+  - name: comm.data_queue.queue_bits
+    unit: bit
+    dtype: number
+  - name: comm.data_queue.capacity_bits
+    unit: bit
+    dtype: number
+  - name: comm.data_queue.fill_ratio
+    unit: ratio
+    dtype: number
+  - name: comm.data_queue.dropped_bits
+    unit: bit
+    dtype: number
+  - name: comm.data_queue.downlinked_bits
+    unit: bit
+    dtype: number
+  - name: comm.data_queue.generated_bps
+    unit: bit/s
+    dtype: number
+  - name: comm.data_queue.downlink_bps
+    unit: bit/s
+    dtype: number
+  - name: label.data_queue_full
+    unit: bool
+    dtype: bool
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.comm.data_queue.final_queue_bits
+    unit: bit
+  - name: qoi.comm.data_queue.cumulative_dropped_bits
+    unit: bit
+  - name: qoi.comm.data_queue.cumulative_downlinked_bits
+    unit: bit
+validation:
+  conformance_tests:
+  - test_s4_data_queue_parameter_effect_and_manifest
+  - test_s4_data_queue_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: s4_new_source_native_adapter
+  primary_module: components.data_queue.builder
+  source_modules:
+  - components.data_queue.builder
+  - components.data_queue.model
+  public_api:
+  - build_nominal_data_queue_config
+  - DataQueueState
+  - simulate_queue_profile
+  - step_data_queue
+  legacy_demo_runner: components.data_queue.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in S4 as a low-risk coverage expansion using existing pure-Python builder functions.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/data_queue/builder.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

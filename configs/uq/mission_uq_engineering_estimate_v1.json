@@ -1,0 +1,178 @@
+{
+  "schema_version": "uq-mission-validation-v1.0",
+  "batch": "CALIBRATION-EVIDENCE-SURROGATE-1",
+  "design_id": "mission_uq_engineering_estimate_v1",
+  "purpose": "surrogate engineering-estimate prior propagation for whole-mission path when no ground calibration data are available",
+  "qualification_level": "engineering_estimate_prior_uq",
+  "sample_method": "latin_hypercube",
+  "seed": 17017,
+  "sample_count": 4,
+  "duration_s": 80.0,
+  "sample_s": 20.0,
+  "not_claimed": [
+    "ground_calibrated_parameter_distributions",
+    "flight_correlated_mission_probability",
+    "validated_rf_link_margin_statistics",
+    "formal_calibration_or_validation_dataset"
+  ],
+  "parameters": [
+    {
+      "parameter_id": "whole.battery_capacity_wh",
+      "fields": [
+        "battery_capacity_wh"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.9,
+      "upper": 1.1,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.battery_capacity_wh",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.initial_soc",
+      "fields": [
+        "initial_soc"
+      ],
+      "distribution": "uniform_absolute",
+      "lower": 0.56,
+      "upper": 0.68,
+      "unit": "dimensionless",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.initial_soc",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.solar_power_w",
+      "fields": [
+        "solar_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.85,
+      "upper": 1.15,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.solar_power_w",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.payload_power_w",
+      "fields": [
+        "payload_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.payload_power_w",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.bus_power_w",
+      "fields": [
+        "bus_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.bus_power_w",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.instrument_baud_bps",
+      "fields": [
+        "instrument_baud_bps"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.instrument_baud_bps",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.transmitter_baud_bps",
+      "fields": [
+        "transmitter_baud_bps",
+        "native_downlink_bit_rate_request_bps"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.transmitter_baud_bps",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_cnr_linear",
+      "fields": [
+        "native_downlink_cnr_linear"
+      ],
+      "distribution": "log_uniform_factor",
+      "lower": 0.3,
+      "upper": 3.0,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.native_downlink_cnr_linear",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_distance_m",
+      "fields": [
+        "native_downlink_distance_m"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.native_downlink_distance_m",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.storage_capacity_bits",
+      "fields": [
+        "storage_capacity_bits"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.storage_capacity_bits",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    },
+    {
+      "parameter_id": "whole.thermal_heat_power_w",
+      "fields": [
+        "thermal_heat_power_w"
+      ],
+      "distribution": "uniform_factor",
+      "lower": 0.8,
+      "upper": 1.2,
+      "unit": "factor",
+      "transform": "linear",
+      "confidence": "engineering_estimate",
+      "source": "configs/parameters/engineering_estimate_registry_v1.json#whole.thermal_heat_power_w",
+      "notes": "Surrogate engineering-estimate UQ prior; not ground calibrated."
+    }
+  ],
+  "parameter_profile": "engineering_estimate",
+  "parameter_registry_path": "configs/parameters/engineering_estimate_registry_v1.json",
+  "strict_parameter_provenance": true
+}

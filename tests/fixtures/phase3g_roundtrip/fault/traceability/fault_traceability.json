@@ -1,0 +1,48 @@
+{
+  "schema_version": "sat-sim.fault-traceability.v1",
+  "run_id": "phase3d_proxy_diagnostic_smoke-train-adcs_rw_jam-000-fault",
+  "link_count": 1,
+  "episode_linked_count": 0,
+  "telemetry_covered_count": 0,
+  "physical_effect_verified_count": 0,
+  "validation_result": null,
+  "links": [
+    {
+      "link_id": "trace::event",
+      "event_id": "event",
+      "fmea_row_id": "fmea::event",
+      "episode_id": "episode::event",
+      "category": "fault",
+      "effect": "adcs_rw_jamming",
+      "target": "adcs.reaction_wheel.1",
+      "start_s": 0.0,
+      "end_s": null,
+      "evidence_status": "episode_not_available",
+      "physical_effect_verified": false,
+      "expected_observables": [
+        "label.fault_active",
+        "adcs.event.active_effects",
+        "event.active_effects",
+        "adcs.rw.speed_rad_s_*",
+        "adcs.control.applied_torque_nm_*",
+        "adcs.pointing_error_deg",
+        "adcs.pointing_quality",
+        "adcs.power_w",
+        "comm.downlink_rate_bps"
+      ],
+      "physical_observable_fields": [],
+      "changed_physical_fields": [],
+      "telemetry_evidence": [],
+      "telemetry_coverage_status": "no_matching_multi_rate_stream",
+      "validation_result": null,
+      "artifacts": {
+        "fmea": "results/dataset/fmea/fmea.json",
+        "fault_episodes": "results/dataset/traceability/fault_episodes.json",
+        "multi_rate_manifest": "results/dataset/telemetry/multi_rate_manifest.json",
+        "validation_outcome": "validation/validation_outcome.json",
+        "events": "results/events.json",
+        "bundle_manifest": "bundle_manifest.json"
+      }
+    }
+  ]
+}

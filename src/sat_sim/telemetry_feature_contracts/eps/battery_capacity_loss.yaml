@@ -1,0 +1,114 @@
+schema_version: sat-sim.telemetry-feature-contract.v1
+contract_id: eps.battery_capacity_loss.features.v1
+fault_id: EPS_BATTERY_CAPACITY_LOSS
+mechanism_id: eps.battery_capacity_loss.mechanism.v1
+status: blocked_pending_basilisk_fault_migration
+telemetry_profile: astrograph-eps-battery-capacity-basilisk-pending.v1
+raw_features:
+- feature_id: battery_soc
+  channel: eps.battery_soc
+  unit: '1'
+  dtype: number
+  evidence_role: observable_telemetry
+  model_input_eligible: true
+  rationale: Primary observable for matched-load discharge dynamics.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: net_power
+  channel: eps.net_power_w
+  unit: W
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: true
+  rationale: Required context to distinguish load changes from capacity loss.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: load_shed
+  channel: eps.load_shed_active
+  unit: bool
+  dtype: number
+  evidence_role: observable_telemetry
+  model_input_eligible: true
+  rationale: Operational consequence; not sufficient alone.
+  availability: available
+  required_for_formal_model_input: true
+- feature_id: capacity_truth
+  channel: eps.battery_capacity_j
+  unit: J
+  dtype: number
+  evidence_role: simulator_truth
+  model_input_eligible: false
+  rationale: Injected capacity truth for physics validation only.
+  availability: available
+  required_for_formal_model_input: false
+- feature_id: battery_capacity_estimate
+  channel: estimate.eps.battery_capacity_wh
+  unit: Wh
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: false
+  availability: missing_from_simulator
+  required_for_formal_model_input: true
+  rationale: AstroGraph primary capacity estimate; no Basilisk observer is implemented.
+- feature_id: battery_soh_estimate
+  channel: estimate.eps.battery_soh
+  unit: '1'
+  dtype: number
+  evidence_role: operational_estimate
+  model_input_eligible: false
+  availability: missing_from_simulator
+  required_for_formal_model_input: true
+  rationale: AstroGraph primary SOH estimate; no Basilisk observer is implemented.
+- feature_id: battery_voltage
+  channel: sensor.eps.battery_voltage_v
+  unit: V
+  dtype: number
+  evidence_role: observable_telemetry
+  model_input_eligible: false
+  availability: missing_from_simulator
+  required_for_formal_model_input: false
+  rationale: AstroGraph supporting channel; current unified EPS profile does not record
+    voltage.
+derived_features:
+- feature_id: soc_paired_slope_delta
+  inputs:
+  - battery_soc
+  - net_power
+  transformation: load_conditioned_paired_soc_slope_delta
+  leakage_safe: true
+  model_input_eligible: true
+  status: blocked_missing_channel
+  unit: 1/s
+- feature_id: capacity_estimate_ratio
+  inputs:
+  - battery_soc
+  - net_power
+  transformation: observer_estimated_capacity_ratio
+  leakage_safe: true
+  model_input_eligible: false
+  status: blocked_missing_channel
+  unit: '1'
+label_policy:
+  label_source: future_basilisk_capacity_loss_event_record
+  simulator_truth_excluded_from_model_inputs: true
+  current_status: no_native_fault_event
+split_policy:
+  group_key: pair_id
+  independence_keys:
+  - random_seed
+  - load_profile_id
+  - initial_soc
+  - severity_band
+  paired_fault_nominal_must_share_split: true
+missing_data_policy:
+  required_raw_feature_action: reject_case
+  optional_feature_action: mask_and_record
+  imputation_requires_training_only_fit: true
+claim_boundary:
+  formal_training_allowed: false
+  blocking_reason: Basilisk EPS capacity-loss event and observable voltage/current
+    profile are not yet implemented
+  astrograph_interface_ready: false
+  missing_required_model_channels:
+  - estimate.eps.battery_capacity_wh
+  - estimate.eps.battery_soh

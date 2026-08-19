@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.diagnostic-pipeline-runtime.v1",
+  "type": "object",
+  "required": ["schema_version", "pipeline_id", "fault_id", "execution_status", "stage_results", "formal_diagnosis_publishable", "training_ready", "claim_boundary", "runtime_sha256"],
+  "properties": {
+    "schema_version": {"const": "sat-sim.diagnostic-pipeline-runtime.v1"},
+    "runtime_engine": {"type": "string"},
+    "pipeline_id": {"type": "string"},
+    "fault_id": {"type": "string"},
+    "pair_id": {"type": ["string", "null"]},
+    "fault_dataset_id": {"type": ["string", "null"]},
+    "execution_status": {
+      "enum": [
+        "BLOCKED_PIPELINE_STATUS", "REJECTED_LOCAL_EVIDENCE",
+        "LOCAL_RUNTIME_COMPLETE_INTERFACE_BLOCKED", "READY_FOR_ASTROGRAPH_REVIEW",
+        "READY_FOR_ASTROGRAPH_HANDOFF", "COMPLETE_REVIEW_REQUIRED", "COMPLETE"
+      ]
+    },
+    "reason": {"type": "string"},
+    "stage_results": {"type": "array", "items": {"type": "object"}},
+    "local_outputs": {"type": "object"},
+    "astrograph_handoff": {"type": "object"},
+    "formal_diagnosis_publishable": {"type": "boolean"},
+    "formal_model_binding_enabled": {"type": "boolean"},
+    "training_ready": {"const": false},
+    "claim_boundary": {"type": "object"},
+    "runtime_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

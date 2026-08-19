@@ -1,0 +1,169 @@
+capability_id: component.payload_sensor.v1
+schema_version: 0.1.0
+name: Payload Sensor component simulation
+level: component
+domain: payload
+target: payload_sensor
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native payload sensor quality/data capability using components.payload_sensor.builder compute_payload_sensor.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.PayloadSensorAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - components.payload_sensor.builder
+  legacy_demo_runner: components.payload_sensor.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [pixel_dropout, blur, radiation_hit]
+  degradation:
+    supported: true
+    degradation_types: [responsivity_decay, noise_growth]
+parameters:
+  nominal_data_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 250000.0
+    min: 0.0
+  max_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.25
+    min: 0.0
+  min_quality_score:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.5
+    min: 0.0
+  pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.05
+    min: 0.0
+  cloud_fraction:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.0
+    min: 0.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.nominal_data_rate_bps
+  unit: bit/s
+- name: parameters.max_pointing_error_deg
+  unit: deg
+- name: parameters.min_quality_score
+  unit: ratio
+- name: parameters.pointing_error_deg
+  unit: deg
+- name: parameters.cloud_fraction
+  unit: ratio
+produces:
+- name: payload.payload_sensor.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c2c3_payload_sensor_parameter_effect_and_manifest
+  - test_c2c3_payload_sensor_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c2c3_new_source_native_adapter
+  primary_module: components.payload_sensor.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_payload_sensor_config
+  - compute_payload_sensor
+  legacy_demo_runner: components.payload_sensor.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing pure-Python component builder/model
+    API.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+operator:
+  owner: payload_sensor
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: payload_sensor, implementation: source_native, evidence_fields: [payload.sensor.generated_bits], verification: declared}
+  - {effect_id: pixel_dropout, kind: fault, owner: payload_sensor, implementation: source_native, evidence_fields: [payload.sensor.effective_data_rate_bps, label.fault_active], verification: declared}
+  - {effect_id: blur, kind: fault, owner: payload_sensor, implementation: source_native, evidence_fields: [payload.sensor.quality_score, label.fault_active], verification: declared}
+  - {effect_id: radiation_hit, kind: fault, owner: payload_sensor, implementation: source_native, evidence_fields: [payload.sensor.valid_observation, label.fault_active], verification: declared}
+  - {effect_id: responsivity_decay, kind: degradation, owner: payload_sensor, implementation: source_native, evidence_fields: [payload.sensor.effective_data_rate_bps, label.degradation_active], verification: declared}
+  - {effect_id: noise_growth, kind: degradation, owner: payload_sensor, implementation: source_native, evidence_fields: [payload.sensor.quality_score, label.degradation_active], verification: declared}
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/payload_sensor/builder.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

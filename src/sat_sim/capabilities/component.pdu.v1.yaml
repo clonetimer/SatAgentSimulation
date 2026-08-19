@@ -1,0 +1,78 @@
+capability_id: component.pdu.v1
+schema_version: 0.1.0
+name: Power distribution unit component simulation
+level: component
+domain: eps
+target: pdu
+trust_level: conformance_tested
+summary: Deterministic source-native PDU load-shedding model.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.PduAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.pdu.builder, components.pdu.schemas]
+  legacy_demo_runner: components.pdu.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [channel_trip, over_current, switch_stuck]
+  degradation:
+    supported: true
+    degradation_types: [contact_resistance_growth, voltage_regulation_drift]
+parameters:
+  bus_max_w: {type: number, unit: W, required: false, default: 100.0, min: 0.0}
+  loads_w: {type: object, unit: W, required: false, default: {adcs: 35.0, payload: 55.0, comm: 25.0}}
+  shed_order: {type: "array[string]", unit: none, required: false, default: [payload, comm, adcs]}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: eps.pdu.requested_power_w, unit: W, dtype: number}
+  - {name: eps.pdu.delivered_power_w, unit: W, dtype: number}
+  - {name: eps.pdu.shed_count, unit: count, dtype: integer}
+  summary:
+  - {name: eps.pdu.delivered_power_w, unit: W}
+operator:
+  owner: pdu
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: pdu
+    implementation: source_native
+    evidence_fields: [eps.pdu.requested_power_w, eps.pdu.delivered_power_w]
+    verification: declared
+  - {effect_id: channel_trip, kind: fault, owner: pdu, implementation: source_native, evidence_fields: [eps.pdu.delivered_power_w], verification: declared}
+  - {effect_id: over_current, kind: fault, owner: pdu, implementation: source_native, evidence_fields: [eps.pdu.requested_power_w], verification: declared}
+  - {effect_id: switch_stuck, kind: fault, owner: pdu, implementation: source_native, evidence_fields: [eps.pdu.effective_bus_max_w], verification: declared}
+  - {effect_id: contact_resistance_growth, kind: degradation, owner: pdu, implementation: source_native, evidence_fields: [eps.pdu.delivered_power_w], verification: declared}
+  - {effect_id: voltage_regulation_drift, kind: degradation, owner: pdu, implementation: source_native, evidence_fields: [eps.pdu.effective_bus_max_w], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.pdu.builder
+  source_modules: [components.pdu.builder, components.pdu.schemas]
+  public_api: [apply_load_shedding, PduConfig]
+  legacy_demo_runner: components.pdu.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Logical power allocation model; no electrical switching transient model.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; bus dynamics require an EPS capability.]

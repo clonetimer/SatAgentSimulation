@@ -1,0 +1,275 @@
+capability_id: orbit_environment.orbit_fidelity.v1
+schema_version: 0.1.0
+name: Orbit-fidelity numerical LEO environment simulation
+level: integrated
+domain: orbit_environment
+target: orbit_environment
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: ORB-1 route-B orbit-fidelity capability using numerical Cartesian propagation with central gravity, J2 acceleration,
+  exponential drag proxy, optional SRP proxy, force contribution traces, and ORB-2 benchmark envelopes. It is not flight-grade
+  high fidelity.
+adapter:
+  class_path: sat_sim.adapters.orbit_environment_orbit_fidelity.OrbitEnvironmentOrbitFidelityAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.orbit.numerical
+  - sat_sim.orbit.force_models
+  - sat_sim.orbit.atmosphere
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  - sat_sim.solvers
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: false
+  degradation:
+    supported: false
+modifier_policy:
+  faults: not_supported_for_orbit_fidelity_v1
+  degradations: not_supported_for_orbit_fidelity_v1
+parameters:
+  altitude_m:
+    type: number
+    unit: m
+    required: false
+    min: 120000.0
+    max: 2500000.0
+    default: 500000.0
+  semi_major_axis_m:
+    type: number
+    unit: m
+    required: false
+  eccentricity:
+    type: number
+    unit: none
+    required: false
+    min: 0.0
+    max: 0.2
+    default: 0.0
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    max: 180.0
+    default: 51.6
+  raan_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  arg_perigee_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  true_anomaly_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  force_models:
+    type: object
+    required: false
+    description: ORB-1 force model toggles under orbit_environment.force_models.
+  atmosphere:
+    type: object
+    required: false
+    description: Exponential atmosphere proxy config under orbit_environment.atmosphere.
+  spacecraft:
+    type: object
+    required: false
+    description: Drag/SRP properties under parameters.spacecraft.
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+  epoch_utc:
+    unit: UTC
+    required: false
+  solver:
+    required: false
+    description: HF-2 fixed-step solver config; ORB-1 supports euler and rk4.
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: utc
+    unit: UTC
+    dtype: string
+  - name: orbit.r_bn_n_m_x
+    unit: m
+    dtype: number
+  - name: orbit.v_bn_n_m_s_x
+    unit: m/s
+    dtype: number
+  - name: orbit.altitude_m
+    unit: m
+    dtype: number
+  - name: orbit.speed_m_s
+    unit: m/s
+    dtype: number
+  - name: orbit.specific_energy_j_kg
+    unit: J/kg
+    dtype: number
+  - name: orbit.force.central_gravity_norm_m_s2
+    unit: m/s^2
+    dtype: number
+  - name: orbit.force.j2_norm_m_s2
+    unit: m/s^2
+    dtype: number
+  - name: orbit.force.drag_norm_m_s2
+    unit: m/s^2
+    dtype: number
+  - name: orbit.force.srp_norm_m_s2
+    unit: m/s^2
+    dtype: number
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+  summary:
+  - name: qoi.orbit.altitude_min_m
+    unit: m
+  - name: qoi.orbit.altitude_delta_m
+    unit: m
+  - name: qoi.orbit.specific_energy_delta_j_kg
+    unit: J/kg
+  - name: qoi.orbit.force.j2_norm_mean_m_s2
+    unit: m/s^2
+  - name: qoi.orbit.force.drag_norm_mean_m_s2
+    unit: m/s^2
+  - name: qoi.orbit.force.srp_norm_mean_m_s2
+    unit: m/s^2
+validation:
+  conformance_tests:
+  - test_orbit_force_models_are_traceable
+  - test_drag_decay_benchmark_has_negative_altitude_delta
+  - test_orbit_fidelity_capability_writes_orb1_manifest_metadata
+  - test_orbit_fidelity_benchmarks_pass
+produces:
+- name: orbit.*
+  destination: trace
+- name: orbit.force.*
+  unit: m/s^2
+  destination: trace
+- name: environment.*
+  destination: trace
+- name: ground.*
+  destination: trace
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: simulation.solver
+  required: false
+- name: orbit_environment.force_models
+  required: false
+- name: orbit_environment.atmosphere
+  required: false
+- name: parameters.spacecraft
+  required: false
+time_grid:
+  policy: hf1_time_grid_fixed_step_numerical_propagation
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+source_binding:
+  mode: route_b_model_library
+  status: orb1_implemented_local_orbit_fidelity_numerical_prototype
+  primary_module: sat_sim.orbit.numerical
+  source_modules:
+  - sat_sim.orbit.numerical
+  - sat_sim.orbit.force_models
+  - sat_sim.orbit.atmosphere
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  - sat_sim.solvers
+  public_api:
+  - OrbitFidelityConfig
+  - propagate_orbit_fidelity
+  - summarize_orbit_fidelity
+  - build_orb1_orbit_fidelity_payload
+  - OrbitForceModelConfig
+  - build_orb1_force_model_payload
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: medium
+known_physics_limits:
+- Drag uses a deterministic exponential atmosphere proxy; NRLMSISE-00, density assimilation, and calibrated atmosphere products
+  are not included.
+- SRP is a compact cannonball proxy, not a detailed optical surface model.
+- Third-body gravity, SPICE/truth ephemerides, finite gravity fields, and flight-data calibrated tolerances are not implemented.
+- ORB-2 benchmarks are internal regression envelopes, not external tool or flight-data validation.
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- orbit_environment
+- parameters
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active orbit-fidelity product capability for ORB-1/ORB-2.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- conformance_tests
+- internal_benchmark
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/sat_sim/orbit/basilisk_hf.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Current ORB capability is a deterministic local numerical force-model prototype; Basilisk high-order gravity/SPICE/third-body
+    path remains planned for BSK-ORB.
+  planned_upgrade_path:
+  - BSK-ORB-1
+  - BSK-ORB-2
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - Drag uses a deterministic exponential atmosphere proxy; NRLMSISE-00, density assimilation, and calibrated atmosphere products
+    are not included.
+  - SRP is a compact cannonball proxy, not a detailed optical surface model.
+  - Third-body gravity, SPICE/truth ephemerides, finite gravity fields, and flight-data calibrated tolerances are not implemented.
+  - ORB-2 benchmarks are internal regression envelopes, not external tool or flight-data validation.

@@ -1,0 +1,36 @@
+schema_version: '1.0.0'
+task:
+  id: subsystem_eps_unified_native_nominal
+  name: EPS统一运行图正常场景
+simulation:
+  level: subsystem
+  subsystem: eps
+  duration_s: 60.0
+  step_s: 1.0
+  sample_s: 1.0
+  backend: basilisk
+parameters:
+  profile: demo
+  values:
+    initial_soc: 0.62
+    battery_capacity_wh: 160.0
+    solar_power_w: 95.0
+outputs:
+  output_root: datasets/subsystem_eps_unified_native_nominal
+  qoi: [eps.battery_soc, eps.solar_power_w, eps.net_power_w]
+  telemetry_streams:
+  - stream_id: eps_fast
+    sample_s: 1.0
+    fields: [eps.battery_soc, eps.net_power_w]
+  - stream_id: eps_housekeeping
+    sample_s: 10.0
+    fields: [eps.battery_soc, eps.solar_power_w, eps.load_shed_active]
+  fmea:
+    enabled: true
+    formats: [csv, json]
+assurance:
+  parameter_profile: demo
+  allow_proxy: false
+model:
+  capability_id: subsystem.eps.unified_native.v1
+  target: {level: subsystem, name: eps, mode: nominal}

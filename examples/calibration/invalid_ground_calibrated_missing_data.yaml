@@ -1,0 +1,21 @@
+schema_version: v34.calibration-dataset.v1
+dataset_id: INVALID_GROUND_CAL_001
+title: Invalid example proving the evidence gate
+component: reaction_wheel
+source_type: ground_test
+source_ref: no-real-test-report
+requested_claim_level: ground_calibrated
+status: draft
+files: []
+measurements: []
+sampling: {}
+uncertainty:
+  provided: false
+calibration:
+  target_parameters:
+    - adcs.rw.fCoulomb
+approval:
+  status: draft
+validity: {}
+limitations:
+  - This example must fail with CALIBRATION_EVIDENCE_MISSING.

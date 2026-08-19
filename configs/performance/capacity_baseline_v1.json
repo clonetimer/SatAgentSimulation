@@ -1,0 +1,143 @@
+{
+  "schema_version": "sat-sim.capacity.v1",
+  "benchmark_id": "SAT-SIM-0.6.0.4-A5R-DC1-single-node-capacity-v1",
+  "worker_timeout_s": 60,
+  "guardrails": {
+    "minimum_success_rate": 1.0,
+    "require_non_legacy": true,
+    "max_peak_rss_mb": 4096,
+    "max_worker_wall_time_s": 300
+  },
+  "workloads": [
+    {
+      "workload_id": "thermal-duration-30",
+      "dimension": "duration",
+      "description": "Pure-Python thermal short baseline",
+      "template": "examples/subsystem_thermal_source_native_nominal.yaml",
+      "duration_s": 30,
+      "sample_s": 5,
+      "concurrency": 1,
+      "waves": 3
+    },
+    {
+      "workload_id": "thermal-duration-3600",
+      "dimension": "duration",
+      "description": "Longest simulated duration in the first formal envelope",
+      "template": "examples/subsystem_thermal_source_native_nominal.yaml",
+      "duration_s": 3600,
+      "sample_s": 1,
+      "concurrency": 1,
+      "waves": 2
+    },
+    {
+      "workload_id": "thermal-high-rate-600",
+      "dimension": "telemetry_rate",
+      "description": "High-rate telemetry envelope",
+      "template": "examples/subsystem_thermal_source_native_nominal.yaml",
+      "duration_s": 600,
+      "sample_s": 0.1,
+      "concurrency": 1,
+      "waves": 2,
+      "step_s": 0.1
+    },
+    {
+      "workload_id": "eps-basilisk-600",
+      "dimension": "engine_duration",
+      "description": "Basilisk EPS medium-duration workload",
+      "template": "examples/subsystem_eps_unified_native_nominal.yaml",
+      "duration_s": 600,
+      "sample_s": 1,
+      "concurrency": 1,
+      "waves": 2
+    },
+    {
+      "workload_id": "comm-basilisk-600",
+      "dimension": "engine_duration",
+      "description": "Basilisk communication/data medium-duration workload",
+      "template": "examples/subsystem_comm_data_unified_native_nominal.yaml",
+      "duration_s": 600,
+      "sample_s": 1,
+      "concurrency": 1,
+      "waves": 2
+    },
+    {
+      "workload_id": "propulsion-basilisk-30",
+      "dimension": "engine_duration",
+      "description": "Basilisk propulsion high-rate workload",
+      "template": "examples/subsystem_propulsion_unified_native_nominal.yaml",
+      "duration_s": 30,
+      "sample_s": 0.1,
+      "concurrency": 1,
+      "waves": 2
+    },
+    {
+      "workload_id": "whole-spacecraft-unified-120",
+      "dimension": "model_scale",
+      "description": "A3R whole-spacecraft graph workload",
+      "template": "examples/whole_spacecraft_unified_native_nominal.yaml",
+      "duration_s": 120,
+      "sample_s": 2,
+      "concurrency": 1,
+      "waves": 2
+    },
+    {
+      "workload_id": "battery-fault-density-8",
+      "dimension": "event_density",
+      "description": "Eight governed open-circuit windows in one component run",
+      "template": "examples/component_battery_capability_fault.yaml",
+      "duration_s": 120,
+      "sample_s": 1,
+      "event_repetitions": 8,
+      "concurrency": 1,
+      "waves": 2
+    },
+    {
+      "workload_id": "composite-graph-120",
+      "dimension": "model_scale",
+      "description": "Nine-node composite digital twin graph workload",
+      "template": "examples/whole_spacecraft_composite_digital_twin_nominal.yaml",
+      "duration_s": 120,
+      "sample_s": 10,
+      "concurrency": 1,
+      "waves": 2
+    },
+    {
+      "workload_id": "thermal-concurrency-2",
+      "dimension": "concurrency",
+      "description": "Two simultaneous isolated workers",
+      "template": "examples/subsystem_thermal_source_native_nominal.yaml",
+      "duration_s": 600,
+      "sample_s": 1,
+      "concurrency": 2,
+      "waves": 2
+    },
+    {
+      "workload_id": "thermal-concurrency-4",
+      "dimension": "concurrency",
+      "description": "Four simultaneous isolated workers",
+      "template": "examples/subsystem_thermal_source_native_nominal.yaml",
+      "duration_s": 600,
+      "sample_s": 1,
+      "concurrency": 4,
+      "waves": 2
+    },
+    {
+      "workload_id": "thermal-batch-16",
+      "dimension": "batch_throughput",
+      "description": "Sixteen jobs in four waves at concurrency four",
+      "template": "examples/subsystem_thermal_source_native_nominal.yaml",
+      "duration_s": 120,
+      "sample_s": 1,
+      "concurrency": 4,
+      "waves": 4
+    }
+  ],
+  "not_validated": [
+    "24/48/72-hour control-plane soak operation",
+    "more than four simultaneous workers on one host",
+    "more than 6000 telemetry rows per run",
+    "distributed multi-host scheduling and database high availability",
+    "maximum safe parameter-sweep and Monte-Carlo throughput",
+    "hardware-in-the-loop deterministic real-time deadlines"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": "sat-sim.astrograph-fault-dataset-factory.v1",
+  "campaign_id": "astrograph_rw_fault_dataset_v1",
+  "base_seed": 20260725,
+  "counts": {
+    "train": 9,
+    "validation": 3,
+    "test": 3
+  },
+  "fault_ids": [
+    "ADCS_RW_FRICTION_INCREASE",
+    "ADCS_RW_JAM",
+    "ADCS_RW_TORQUE_AUTHORITY_LOSS"
+  ],
+  "duration_s": 60.0,
+  "sample_s": 1.0,
+  "solver_step_s": 0.2,
+  "capability_id": "subsystem.adcs_fidelity.v1",
+  "output_root": "datasets/astrograph_rw_fault_dataset_v1"
+}

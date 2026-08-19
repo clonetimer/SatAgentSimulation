@@ -1,0 +1,81 @@
+capability_id: component.imu.v1
+schema_version: 0.1.0
+name: Inertial measurement unit component simulation
+level: component
+domain: adcs
+target: imu
+trust_level: conformance_tested
+summary: Deterministic source-native gyro and accelerometer scale and bias model.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.ImuAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.imu.builder, components.imu.schemas]
+  legacy_demo_runner: components.imu.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [bias_step, axis_dropout, noise_burst]
+  degradation:
+    supported: true
+    degradation_types: [bias_drift, noise_density_growth]
+parameters:
+  true_gyro_rad_s: {type: "array[number]", unit: rad/s, required: false, default: [0.1, 0.2, 0.3]}
+  true_accel_m_s2: {type: "array[number]", unit: "m/s^2", required: false, default: [0.0, 0.0, 0.0]}
+  gyro_scale: {type: "array[number]", unit: ratio, required: false, default: [1.0, 1.0, 1.0]}
+  accel_scale: {type: "array[number]", unit: ratio, required: false, default: [1.0, 1.0, 1.0]}
+  gyro_bias_rad_s: {type: "array[number]", unit: rad/s, required: false, default: [0.0, 0.0, 0.0]}
+  accel_bias_m_s2: {type: "array[number]", unit: "m/s^2", required: false, default: [0.0, 0.0, 0.0]}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: adcs.imu.gyro_x_rad_s, unit: rad/s, dtype: number}
+  - {name: adcs.imu.accel_x_m_s2, unit: "m/s^2", dtype: number}
+  summary:
+  - {name: adcs.imu.gyro_error_norm_rad_s, unit: rad/s}
+  - {name: adcs.imu.accel_error_norm_m_s2, unit: "m/s^2"}
+operator:
+  owner: imu
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: imu
+    implementation: source_native
+    evidence_fields: [adcs.imu.gyro_x_rad_s, adcs.imu.accel_x_m_s2]
+    verification: declared
+  - {effect_id: bias_step, kind: fault, owner: imu, implementation: source_native, evidence_fields: [adcs.imu.gyro_x_rad_s], verification: declared}
+  - {effect_id: axis_dropout, kind: fault, owner: imu, implementation: source_native, evidence_fields: [adcs.imu.gyro_x_rad_s], verification: declared}
+  - {effect_id: noise_burst, kind: fault, owner: imu, implementation: source_native, evidence_fields: [adcs.imu.effective_gyro_bias_x_rad_s], verification: declared}
+  - {effect_id: bias_drift, kind: degradation, owner: imu, implementation: source_native, evidence_fields: [adcs.imu.effective_gyro_bias_x_rad_s], verification: declared}
+  - {effect_id: noise_density_growth, kind: degradation, owner: imu, implementation: source_native, evidence_fields: [adcs.imu.gyro_x_rad_s], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.imu.builder
+  source_modules: [components.imu.builder, components.imu.schemas]
+  public_api: [measure_imu, ImuConfig]
+  legacy_demo_runner: components.imu.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Deterministic scale and bias model; no calibrated noise spectrum.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; closed-loop propagation requires an ADCS capability.]

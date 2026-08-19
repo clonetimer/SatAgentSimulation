@@ -1,0 +1,164 @@
+capability_id: component.antenna.v1
+schema_version: 0.1.0
+name: Antenna component simulation
+level: component
+domain: communication
+target: antenna
+trust_level: conformance_tested
+status: agent_ready
+summary: Source-native antenna gain capability using components.antenna.builder compute_antenna_gain.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.AntennaAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - components.antenna.builder
+  legacy_demo_runner: components.antenna.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [pointing_loss, feed_open, gain_drop]
+  degradation:
+    supported: true
+    degradation_types: [surface_contamination, pointing_bias_drift]
+parameters:
+  peak_gain_dbi:
+    type: number
+    unit: dBi
+    required: false
+    default: 8.0
+    min: 0.0
+  half_power_beamwidth_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 30.0
+    min: 0.0
+  max_pointing_loss_db:
+    type: number
+    unit: dB
+    required: false
+    default: 18.0
+    min: 0.0
+  off_boresight_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0.0
+  off_boresight_profile_deg:
+    type: array[number]
+    unit: deg
+    required: false
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.peak_gain_dbi
+  unit: dBi
+- name: parameters.half_power_beamwidth_deg
+  unit: deg
+- name: parameters.max_pointing_loss_db
+  unit: dB
+- name: parameters.off_boresight_deg
+  unit: deg
+produces:
+- name: communication.antenna.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c2c3_antenna_parameter_effect_and_manifest
+  - test_c2c3_antenna_capability_python_export_runs
+operator:
+  owner: antenna
+  effects:
+  - {effect_id: nominal, kind: nominal, owner: antenna, implementation: source_native, evidence_fields: [comm.antenna.gain_dbi], verification: declared}
+  - {effect_id: pointing_loss, kind: fault, owner: antenna, implementation: source_native, evidence_fields: [comm.antenna.off_boresight_deg, comm.antenna.gain_dbi], verification: declared}
+  - {effect_id: feed_open, kind: fault, owner: antenna, implementation: source_native, evidence_fields: [comm.antenna.effective_peak_gain_dbi], verification: declared}
+  - {effect_id: gain_drop, kind: fault, owner: antenna, implementation: source_native, evidence_fields: [comm.antenna.gain_dbi], verification: declared}
+  - {effect_id: surface_contamination, kind: degradation, owner: antenna, implementation: source_native, evidence_fields: [comm.antenna.effective_peak_gain_dbi], verification: declared}
+  - {effect_id: pointing_bias_drift, kind: degradation, owner: antenna, implementation: source_native, evidence_fields: [comm.antenna.off_boresight_deg], verification: declared}
+source_binding:
+  mode: source_native
+  status: c2c3_new_source_native_adapter
+  primary_module: components.antenna.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_antenna_config
+  - compute_antenna_gain
+  legacy_demo_runner: components.antenna.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C2/C3 coverage completion as a low-risk wrapper around existing pure-Python component builder/model
+    API.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability; coupled link analysis still uses the communication subsystem.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/components/antenna/builder.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

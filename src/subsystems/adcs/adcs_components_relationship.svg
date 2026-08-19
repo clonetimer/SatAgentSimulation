@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity="0.1"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+      <polygon points="0 0, 6 2, 0 4" fill="#999999"/>
+    </marker>
+  </defs>
+  
+  <rect width="1000" height="700" fill="#f8f9fa"/>
+  <text x="500" y="35" text-anchor="middle" font-size="22" font-weight="bold" fill="#333333">ADCS Subsystem ↔ Components 调用关系图</text>
+  
+  <text x="500" y="65" text-anchor="middle" font-size="12" fill="#999">箭头方向：adcs → components（adcs 调用 components）</text>
+  
+  <rect x="100" y="90" width="300" height="480" rx="12" fill="#ffffff" stroke="#3498db" stroke-width="3" filter="url(#shadow)"/>
+  <text x="250" y="118" text-anchor="middle" font-size="16" font-weight="bold" fill="#3498db">ADCS Subsystem</text>
+  
+  <rect x="600" y="90" width="300" height="480" rx="12" fill="#ffffff" stroke="#2ecc71" stroke-width="3" filter="url(#shadow)"/>
+  <text x="750" y="118" text-anchor="middle" font-size="16" font-weight="bold" fill="#2ecc71">Components</text>
+  
+  <g transform="translate(130, 145)">
+    <rect width="240" height="55" rx="6" fill="#e8f4fc" stroke="#3498db" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="bold" fill="#3498db">builder.py</text>
+    <text x="120" y="42" text-anchor="middle" font-size="10" fill="#666">构建函数、配置组装</text>
+  </g>
+  
+  <g transform="translate(130, 210)">
+    <rect width="240" height="55" rx="6" fill="#e8f4fc" stroke="#3498db" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="bold" fill="#3498db">schemas.py</text>
+    <text x="120" y="42" text-anchor="middle" font-size="10" fill="#666">数据类定义、配置结构</text>
+  </g>
+  
+  <g transform="translate(130, 275)">
+    <rect width="240" height="55" rx="6" fill="#e8f4fc" stroke="#3498db" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="bold" fill="#3498db">model.py</text>
+    <text x="120" y="42" text-anchor="middle" font-size="10" fill="#666">核心算法、状态更新</text>
+  </g>
+  
+  <g transform="translate(130, 340)">
+    <rect width="240" height="55" rx="6" fill="#e8f4fc" stroke="#3498db" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="bold" fill="#3498db">faults.py</text>
+    <text x="120" y="42" text-anchor="middle" font-size="10" fill="#666">故障模型、故障注入</text>
+  </g>
+  
+  <g transform="translate(130, 405)">
+    <rect width="240" height="55" rx="6" fill="#e8f4fc" stroke="#3498db" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="bold" fill="#3498db">degradation.py</text>
+    <text x="120" y="42" text-anchor="middle" font-size="10" fill="#666">退化模型、性能衰减</text>
+  </g>
+  
+  <g transform="translate(130, 470)">
+    <rect width="240" height="55" rx="6" fill="#e8f4fc" stroke="#3498db" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="bold" fill="#3498db">sensor_estimate.py</text>
+    <text x="120" y="42" text-anchor="middle" font-size="10" fill="#666">传感器融合估计器</text>
+  </g>
+  
+  <g transform="translate(630, 145)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">reaction_wheel</text>
+  </g>
+  
+  <g transform="translate(630, 200)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">mtb（磁力矩器）</text>
+  </g>
+  
+  <g transform="translate(630, 255)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">cmg（控制力矩陀螺）</text>
+  </g>
+  
+  <g transform="translate(630, 310)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">imu（惯性测量单元）</text>
+  </g>
+  
+  <g transform="translate(630, 365)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">star_tracker（星敏感器）</text>
+  </g>
+  
+  <g transform="translate(630, 420)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">sun_sensor（太阳敏感器）</text>
+  </g>
+  
+  <g transform="translate(630, 475)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">magnetometer（磁强计）</text>
+  </g>
+  
+  <g transform="translate(630, 530)">
+    <rect width="240" height="45" rx="6" fill="#d4edda" stroke="#2ecc71" stroke-width="1.5"/>
+    <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#2ecc71">faults / degradation</text>
+  </g>
+  
+  <!-- builder.py → reaction_wheel -->
+  <line x1="370" y1="172" x2="600" y2="167" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- builder.py → mtb -->
+  <line x1="370" y1="172" x2="600" y2="222" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  
+  <!-- schemas.py → reaction_wheel -->
+  <line x1="370" y1="237" x2="600" y2="167" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- schemas.py → mtb -->
+  <line x1="370" y1="237" x2="600" y2="222" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- schemas.py → cmg -->
+  <line x1="370" y1="237" x2="600" y2="277" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- schemas.py → imu -->
+  <line x1="370" y1="237" x2="600" y2="332" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- schemas.py → star_tracker -->
+  <line x1="370" y1="237" x2="600" y2="387" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- schemas.py → sun_sensor -->
+  <line x1="370" y1="237" x2="600" y2="442" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- schemas.py → magnetometer -->
+  <line x1="370" y1="237" x2="600" y2="497" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  
+  <!-- model.py → reaction_wheel -->
+  <line x1="370" y1="302" x2="600" y2="167" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- model.py → mtb -->
+  <line x1="370" y1="302" x2="600" y2="222" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- model.py → cmg -->
+  <line x1="370" y1="302" x2="600" y2="277" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- model.py → imu -->
+  <line x1="370" y1="302" x2="600" y2="332" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- model.py → star_tracker -->
+  <line x1="370" y1="302" x2="600" y2="387" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- model.py → sun_sensor -->
+  <line x1="370" y1="302" x2="600" y2="442" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- model.py → magnetometer -->
+  <line x1="370" y1="302" x2="600" y2="497" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  
+  <!-- faults.py → faults -->
+  <line x1="370" y1="367" x2="600" y2="552" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  
+  <!-- degradation.py → degradation -->
+  <line x1="370" y1="432" x2="600" y2="552" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  
+  <!-- sensor_estimate.py → reaction_wheel -->
+  <line x1="370" y1="497" x2="600" y2="167" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  
+  <text x="500" y="620" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">详细调用关系说明</text>
+  
+  <g transform="translate(80, 640)">
+    <rect width="840" height="45" rx="6" fill="#fff" stroke="#e0e0e0" stroke-width="1"/>
+    <text x="60" y="18" font-size="10" fill="#666">builder.py:</text>
+    <text x="140" y="18" font-size="10" fill="#3498db">build_reaction_wheel_bundle</text>
+    <text x="290" y="18" font-size="10" fill="#999">/</text>
+    <text x="310" y="18" font-size="10" fill="#2ecc71">attach_reaction_wheels_to_spacecraft</text>
+    <text x="500" y="18" font-size="10" fill="#999">/</text>
+    <text x="520" y="18" font-size="10" fill="#27ae60">build_mtb_effector_bundle</text>
+    <text x="670" y="18" font-size="10" fill="#999">/</text>
+    <text x="690" y="18" font-size="10" fill="#16a085">attach_mtb_to_spacecraft</text>
+  </g>
+  
+  <g transform="translate(80, 660)">
+    <text x="60" y="20" font-size="10" fill="#666">model.py:</text>
+    <text x="140" y="20" font-size="10" fill="#3498db">measure_imu</text>
+    <text x="220" y="20" font-size="10" fill="#999">/</text>
+    <text x="240" y="20" font-size="10" fill="#2ecc71">measure_star_tracker</text>
+    <text x="360" y="20" font-size="10" fill="#999">/</text>
+    <text x="380" y="20" font-size="10" fill="#27ae60">measure_sun_sensor</text>
+    <text x="500" y="20" font-size="10" fill="#999">/</text>
+    <text x="520" y="20" font-size="10" fill="#16a085">measure_magnetic_field_body</text>
+    <text x="680" y="20" font-size="10" fill="#999">/</text>
+    <text x="700" y="20" font-size="10" fill="#8e44ad">step_wheel_speed</text>
+    <text x="800" y="20" font-size="10" fill="#999">/</text>
+    <text x="820" y="20" font-size="10" fill="#e67e22">compute_mtb_torque_nm</text>
+  </g>
+</svg>

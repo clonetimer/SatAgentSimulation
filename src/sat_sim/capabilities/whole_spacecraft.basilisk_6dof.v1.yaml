@@ -1,0 +1,315 @@
+capability_id: whole_spacecraft.basilisk_6dof.v1
+schema_version: 0.1.0
+name: Basilisk-native 6-DOF spacecraft graph adapter
+level: whole_spacecraft
+domain: whole_spacecraft
+target: basilisk_6dof
+trust_level: experimental
+status: bsk_run6_partial_runtime_coverage
+summary: BSK-RUN-6 explicit Basilisk-native whole-spacecraft 6-DOF capability tying orbit_environment.basilisk_hf.v1 and subsystem.adcs_basilisk_fsw.v1
+  through one spacecraft hub. The minimal detumble/inertial orbit-attitude-RW smoke can execute when Basilisk is installed;
+  broader nadir/sun/drag/SRP/SPICE cases remain configured-only gates.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_basilisk_6dof.SpacecraftBasilisk6DofAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.spacecraft.basilisk_6dof
+  - sat_sim.orbit.basilisk_hf
+  - sat_sim.adcs.basilisk_fsw
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.state
+  - sat_sim.benchmarks.basilisk_6dof
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: true
+  accepted_task_backends:
+  - basilisk
+  optional_dependency: bsk==2.11.0+satfix1
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: false
+  degradation:
+    supported: false
+modifier_policy:
+  faults: not_supported_for_bsk_6dof1
+  degradations: not_supported_for_bsk_6dof1
+parameters:
+  spacecraft:
+    type: object
+    required: false
+    description: Spacecraft hub mass, inertia, center of mass, initial attitude/rate, drag area, and SRP/drag coefficients.
+  orbit_environment:
+    type: object
+    required: false
+    description: Basilisk-native orbit environment configuration forwarded to orbit_environment.basilisk_hf.v1.
+  adcs:
+    type: object
+    required: false
+    description: Basilisk-native ADCS/FSW configuration forwarded to subsystem.adcs_basilisk_fsw.v1.
+  coupling:
+    type: object
+    required: false
+    description: Native spacecraft graph coupling options for target frame, frame/time/unit metadata, reaction wheels, external
+      torque, drag, SRP, and third-body/SPICE surfaces.
+  target_mode:
+    type: string
+    required: false
+    enum:
+    - inertial
+    - inertial3d
+    - nadir
+    - hill
+    - velocity
+    - sun_pointing
+    - sun_safe
+    - detumble
+    default: inertial
+    description: Default selects the currently implemented inertial3D native runtime; other modes remain configuration-only unless their native guidance module is added.
+  fsw_step_s:
+    type: number
+    unit: s
+    required: false
+    default: 0.5
+  dynamics_step_s:
+    type: number
+    unit: s
+    required: false
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+    default: 60.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+    default: 1.0
+  solver.step_s:
+    unit: s
+    required: false
+    min: 0.001
+    default: 0.1
+outputs:
+  trace:
+  - {name: orbit.r_bn_n_m_x, unit: m, dtype: number}
+  - {name: orbit.r_bn_n_m_y, unit: m, dtype: number}
+  - {name: orbit.r_bn_n_m_z, unit: m, dtype: number}
+  - {name: orbit.v_bn_n_m_s_x, unit: m/s, dtype: number}
+  - {name: orbit.v_bn_n_m_s_y, unit: m/s, dtype: number}
+  - {name: orbit.v_bn_n_m_s_z, unit: m/s, dtype: number}
+  - {name: orbit.radius_m, unit: m, dtype: number}
+  - {name: orbit.altitude_m, unit: m, dtype: number}
+  - {name: orbit.speed_m_s, unit: m/s, dtype: number}
+  - {name: attitude.sigma_bn_x, unit: MRP, dtype: number}
+  - {name: attitude.sigma_bn_y, unit: MRP, dtype: number}
+  - {name: attitude.sigma_bn_z, unit: MRP, dtype: number}
+  - {name: attitude.sigma_bn_norm, unit: MRP, dtype: number}
+  - {name: attitude.omega_bn_b_rad_s_x, unit: rad/s, dtype: number}
+  - {name: attitude.omega_bn_b_rad_s_y, unit: rad/s, dtype: number}
+  - {name: attitude.omega_bn_b_rad_s_z, unit: rad/s, dtype: number}
+  - {name: attitude.omega_bn_b_norm_rad_s, unit: rad/s, dtype: number}
+  - {name: control.sigma_br_x, unit: MRP, dtype: number}
+  - {name: control.sigma_br_y, unit: MRP, dtype: number}
+  - {name: control.sigma_br_z, unit: MRP, dtype: number}
+  - {name: control.sigma_br_norm, unit: MRP, dtype: number}
+  - {name: control.omega_br_b_norm_rad_s, unit: rad/s, dtype: number}
+  - {name: control.cmd_torque_b_nm_x, unit: N*m, dtype: number}
+  - {name: control.cmd_torque_b_nm_y, unit: N*m, dtype: number}
+  - {name: control.cmd_torque_b_nm_z, unit: N*m, dtype: number}
+  - {name: control.cmd_torque_b_norm_nm, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_nm_x, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_nm_y, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_nm_z, unit: N*m, dtype: number}
+  - {name: rw.motor_torque_norm_nm, unit: N*m, dtype: number}
+  - {name: rw.speed_rad_s_max_abs, unit: rad/s, dtype: number}
+  summary:
+  - name: basilisk_status
+    unit: none
+  - name: physical_validation_status
+    unit: none
+  - name: bsk_6dof1.blueprint
+    unit: metadata
+  - name: bsk_6dof2.benchmark_status
+    unit: none
+  - name: bsk_6dof2.metadata_gate
+    unit: metadata
+  - name: bsk_6dof2.graph_gate
+    unit: metadata
+validation:
+  conformance_tests:
+  - test_basilisk_6dof_capability_metadata_is_native_and_hidden
+  - test_root_and_package_6dof_capability_files_are_in_sync
+  - test_basilisk_6dof_blueprint_covers_spacecraft_effectors_and_child_caps
+  - test_basilisk_6dof_validation_reports_missing_dependency_without_fallback
+  - test_basilisk_6dof_script_generation_mentions_int1_no_implicit_fallback
+  - test_basilisk_6dof_docs_record_runtime_and_claim_boundaries
+  - test_basilisk_6dof_matrix_group_registered
+  - test_basilisk_6dof2_benchmark_runner_prepares_cases_without_runtime_claim
+  - test_basilisk_6dof2_metadata_and_graph_gates_pass
+  - test_basilisk_6dof2_local_int1_comparison_is_explicit
+  - test_basilisk_6dof2_docs_manifest_and_matrix_are_registered
+produces:
+- name: bsk_6dof1.blueprint
+  destination: metadata
+- name: spacecraft.scStateOutMsg.*
+  destination: trace
+- name: adcs.fsw.*
+  destination: trace
+- name: reactionWheelStateEffector.*
+  destination: trace
+- name: bsk_6dof2.integration_benchmark_report
+  destination: reports/basilisk_6dof_integration_benchmark_bsk_6dof2
+- name: bsk_6dof2.metadata_gate
+  destination: reports
+- name: bsk_6dof2.graph_gate
+  destination: reports
+consumes:
+- name: orbit_environment.basilisk_hf.v1
+  unit: child_capability
+  required: true
+- name: subsystem.adcs_basilisk_fsw.v1
+  unit: child_capability
+  required: true
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: parameters.spacecraft
+  unit: configuration
+  required: false
+- name: parameters.coupling
+  unit: configuration
+  required: false
+time_grid:
+  policy: basilisk_dynamics_and_fsw_process_steps
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+  internal_step_source: simulation.solver.step_s
+source_binding:
+  mode: basilisk_native
+  status: bsk_run6_partial_runtime_coverage_explicit_basilisk_required
+  primary_module: sat_sim.spacecraft.basilisk_6dof
+  source_modules:
+  - sat_sim.spacecraft.basilisk_6dof
+  - sat_sim.adapters.whole_spacecraft_basilisk_6dof
+  - sat_sim.orbit.basilisk_hf
+  - sat_sim.adcs.basilisk_fsw
+  - sat_sim.benchmarks.basilisk_6dof
+  public_api:
+  - Basilisk6DofConfig
+  - check_basilisk_6dof_availability
+  - build_basilisk_6dof_blueprint
+  - build_bsk_6dof1_payload
+  - run_basilisk_6dof_if_available
+  - basilisk_6dof_integration_cases
+  - run_basilisk_6dof_integration_benchmark
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: true
+fidelity_level: high_fidelity_candidate
+known_physics_limits:
+- This capability requires Basilisk/bsk at runtime. Without Basilisk, artifacts are graph/readiness evidence only, not a Basilisk
+  6-DOF runtime pass.
+- BSK-RUN-6 executes only a minimal Earth gravity/J2 + attitude + reaction-wheel detumble/inertial smoke; broader native orbit+ADCS
+  runtime modes remain configured-only.
+- No HIL, full FDIR, hardware-calibrated actuator/sensor model, external truth correlation, or flight-data validation is included.
+- whole_spacecraft.orbit_adcs_fidelity.v1 remains an explicit local comparison baseline and is never an implicit fallback
+  for this capability.
+- BSK-RUN-6 provides partial Basilisk 6-DOF runtime coverage; without installed Basilisk, it records benchmark_config_prepared
+  rather than basilisk_6dof_runtime_passed.
+- INT-1 local orbit+ADCS results are explicit comparison baselines only and cannot satisfy Basilisk-native runtime validation.
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- orbit_environment
+- parameters
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Explicit-only Basilisk-native 6-DOF candidate with partial BSK-RUN-6 runtime coverage; broader modes and validation
+    remain gated.
+backend_type: basilisk_native
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: basilisk_native
+  basilisk_required: true
+  current_agent_path_uses_basilisk: true
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/sat_sim/adcs/basilisk_fsw.py
+  - src/sat_sim/orbit/basilisk_hf.py
+  - src/sat_sim/spacecraft/basilisk_6dof.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Current Agent path requires Basilisk-native execution; validate with Basilisk-installed environment before claiming
+    benchmark pass.
+  planned_upgrade_path: []
+comparison_baseline:
+  local_proxy_capability_id: whole_spacecraft.orbit_adcs_fidelity.v1
+  policy: explicit_only_no_implicit_fallback
+  planned_benchmark: BSK-6DOF-2 implemented as explicit integration harness
+child_capabilities:
+  orbit_primary: orbit_environment.basilisk_hf.v1
+  adcs_primary: subsystem.adcs_basilisk_fsw.v1
+  local_comparison_baseline: whole_spacecraft.orbit_adcs_fidelity.v1
+bsk_6dof1:
+  graph_status: configuration_blueprint_prepared
+  runtime_status_policy: configuration_blueprint_prepared is not basilisk_6dof_runtime_passed; a runtime pass requires installed
+    Basilisk artifacts and BSK-6DOF-2 benchmark reports
+  frame_time_unit_gate: prepared_metadata_contract_not_runtime_verified
+  claim_guardrail: No high-fidelity, full-FSW, FDIR, HIL, or flight-validation claim is allowed from BSK-6DOF-1 readiness
+    artifacts alone.
+bsk_6dof2:
+  integration_benchmark_status: benchmark_config_prepared_when_basilisk_missing
+  benchmark_harness: src/sat_sim/benchmarks/basilisk_6dof.py
+  runner: scripts/run_basilisk_6dof_integration_benchmark.py
+  manifest: evals/basilisk_6dof_integration_benchmark/bsk_6dof2_scenarios.json
+  report: reports/basilisk_6dof_integration_benchmark_bsk_6dof2/basilisk_6dof_integration_benchmark_report.json
+  runtime_status_policy: benchmark_config_prepared is not basilisk_6dof_runtime_passed; a runtime pass requires installed
+    Basilisk artifacts and tolerance-envelope execution.
+  metadata_gate: frame_time_unit_child_capability_and_fallback_policy_checked
+  claim_guardrail: No high-fidelity, HIL, FDIR, or flight-validation claim is allowed from BSK-6DOF-2 configuration-gate artifacts
+    alone.
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: mixed_native_project
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - This capability requires Basilisk/bsk at runtime. Without Basilisk, artifacts are graph/readiness evidence only, not a
+    Basilisk 6-DOF runtime pass.
+  - BSK-RUN-6 executes only a minimal Earth gravity/J2 + attitude + reaction-wheel detumble/inertial smoke; broader native
+    orbit+ADCS runtime modes remain configured-only.
+  - No HIL, full FDIR, hardware-calibrated actuator/sensor model, external truth correlation, or flight-data validation is
+    included.
+  - whole_spacecraft.orbit_adcs_fidelity.v1 remains an explicit local comparison baseline and is never an implicit fallback
+    for this capability.
+  - BSK-RUN-6 provides partial Basilisk 6-DOF runtime coverage; without installed Basilisk, it records benchmark_config_prepared
+    rather than basilisk_6dof_runtime_passed.
+  - INT-1 local orbit+ADCS results are explicit comparison baselines only and cannot satisfy Basilisk-native runtime validation.

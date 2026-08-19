@@ -1,0 +1,851 @@
+{
+  "schema_version": "v0574.coupling-validation-matrix.experimental.v3",
+  "baseline_spec": "whole_spacecraft_coupling_baseline.yaml",
+  "cases": [
+    {
+      "case_id": "payload_generation_to_storage",
+      "description": "Increasing instrument data generation must increase actual payload telemetry and accumulated onboard storage.",
+      "patch": {
+        "path": "parameters.instrument_baud_bps",
+        "value": 4000000.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_activity_to_comm_storage",
+          "source_field": "payload_generated_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_to_comm_storage"
+      ]
+    },
+    {
+      "case_id": "payload_power_to_eps",
+      "description": "Increasing payload electrical power must reduce net power and battery state of charge.",
+      "patch": {
+        "path": "parameters.payload_power_w",
+        "value": 70.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_activity_to_eps",
+          "source_field": "net_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 10.0,
+          "min_response_delta": 0.0001,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_activity_to_eps_thermal"
+      ]
+    },
+    {
+      "case_id": "payload_power_to_thermal",
+      "description": "Increasing actual payload power must increase the payload/aggregate thermal response.",
+      "patch": {
+        "path": "parameters.payload_power_w",
+        "value": 200.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_activity_to_thermal",
+          "source_field": "net_power_w",
+          "response_field": "thermal_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 100.0,
+          "min_response_delta": 0.002,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_activity_to_eps_thermal"
+      ]
+    },
+    {
+      "case_id": "payload_fault_to_storage",
+      "description": "A runtime payload-off fault must stop generated data and reduce accumulated storage versus the nominal counterfactual.",
+      "patch": {
+        "path": "modifiers.faults",
+        "value": [
+          {
+            "modifier_id": "payload_off_causal_001",
+            "target": "payload.instrument",
+            "fault_type": "instrument_off",
+            "onset_time_s": 20.0,
+            "duration_s": -1.0,
+            "severity": 1.0,
+            "parameters": {
+              "scenario": "payload_instrument_off"
+            }
+          }
+        ]
+      },
+      "expectations": [
+        {
+          "coupling_id": "payload_fault_to_data_storage",
+          "source_field": "payload_generated_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 20.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 0.001,
+          "pre_response_tolerance": 1.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "companion_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        }
+      ],
+      "covers_runtime_couplings": [
+        "payload_to_comm_storage"
+      ]
+    },
+    {
+      "case_id": "solar_generation_to_eps",
+      "description": "Increasing available solar generation must increase net bus power and battery state of charge.",
+      "patch": {
+        "path": "parameters.solar_power_w",
+        "value": 180.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "solar_generation_to_eps_storage",
+          "source_field": "net_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 50.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "orbit_sun_attitude_eclipse_to_eps_solar_power"
+      ]
+    },
+    {
+      "case_id": "native_downlink_to_storage_drain",
+      "description": "Increasing native downlink requested rate must increase delivered downlink and reduce onboard storage.",
+      "patch": {
+        "path": "parameters.native_downlink_bit_rate_request_bps",
+        "value": 4000000.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "comm_native_odh_to_storage_drain",
+          "source_field": "downlink_delivered_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 500000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "comm_native_odh_to_storage_drain"
+      ]
+    },
+    {
+      "case_id": "low_soc_to_payload_gate",
+      "description": "Low initial battery SOC must disable payload generation and reduce accumulated storage.",
+      "patch": {
+        "path": "parameters.initial_soc",
+        "value": 0.15
+      },
+      "expectations": [
+        {
+          "coupling_id": "eps_storage_to_payload_gate",
+          "source_field": "battery_soc",
+          "response_field": "payload_generated_bps",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.3,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "eps_storage_to_payload_data_storage",
+          "source_field": "battery_soc",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.3,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 20.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "eps_storage_to_comm_gate",
+          "source_field": "battery_soc",
+          "response_field": "downlink_requested_rate_bps",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.3,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "eps_pdu_to_payload_activity",
+        "eps_pdu_to_comm_activity"
+      ]
+    },
+    {
+      "case_id": "adcs_pointing_to_payload_and_downlink",
+      "description": "Large initial attitude error must gate payload generation and reduce cumulative delivered downlink until pointing recovers.",
+      "patch": {
+        "path": "parameters.mission_initial_sigma_bn",
+        "value": [
+          0.4,
+          0.0,
+          0.0
+        ]
+      },
+      "expectations": [
+        {
+          "coupling_id": "adcs_pointing_to_payload_gate",
+          "source_field": "attitude_error_deg",
+          "response_field": "payload_generated_bps",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "adcs_pointing_to_downlink_gate",
+          "source_field": "attitude_error_deg",
+          "response_field": "cumulative_delivered_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_eps",
+          "source_field": "adcs_control_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 60.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_thermal",
+          "source_field": "adcs_control_power_w",
+          "response_field": "thermal_adcs_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.5,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "adcs_pointing_to_payload_comm_gate",
+        "adcs_control_effort_to_eps_thermal"
+      ]
+    },
+    {
+      "case_id": "comm_link_loss_to_eps_thermal_storage",
+      "description": "A permanent runtime downlink link-loss fault must reduce delivered data, reduce communication power/heat, preserve battery SOC, and increase onboard storage.",
+      "patch": {
+        "path": "modifiers.faults",
+        "value": [
+          {
+            "modifier_id": "comm_link_loss_causal_001",
+            "target": "comm.transmitter",
+            "fault_type": "transmitter_outage",
+            "onset_time_s": 20.0,
+            "duration_s": -1.0,
+            "severity": 1.0,
+            "parameters": {
+              "scenario": "comm_data_downlink_link_loss"
+            }
+          }
+        ]
+      },
+      "companion_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        }
+      ],
+      "covers_runtime_couplings": [
+        "comm_activity_to_eps_thermal",
+        "comm_native_odh_to_storage_drain"
+      ],
+      "expectations": [
+        {
+          "coupling_id": "comm_activity_to_eps_storage",
+          "source_field": "cumulative_delivered_bits",
+          "response_field": "battery_soc",
+          "intervention_time_s": 20.0,
+          "expected_direction": "increase",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 0.0001,
+          "max_lag_s": 30.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 1.0,
+          "pre_response_tolerance": 1e-09,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        },
+        {
+          "coupling_id": "comm_activity_to_thermal",
+          "source_field": "cumulative_delivered_bits",
+          "response_field": "thermal_temp_c",
+          "intervention_time_s": 20.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 0.002,
+          "max_lag_s": 40.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 1.0,
+          "pre_response_tolerance": 1e-09,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        },
+        {
+          "coupling_id": "comm_link_to_storage_drain",
+          "source_field": "cumulative_delivered_bits",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 20.0,
+          "expected_direction": "increase",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 20.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 1.0,
+          "pre_response_tolerance": 1.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        }
+      ]
+    },
+    {
+      "case_id": "eps_bus_load_to_thermal_heat",
+      "description": "Increasing EPS bus electrical load must reduce net battery power and increase electronics temperature.",
+      "patch": {
+        "path": "parameters.bus_power_w",
+        "value": 55.0
+      },
+      "covers_runtime_couplings": [
+        "eps_loads_to_thermal_heat"
+      ],
+      "expectations": [
+        {
+          "coupling_id": "eps_bus_load_to_battery",
+          "source_field": "net_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "eps_bus_load_to_thermal",
+          "source_field": "net_power_w",
+          "response_field": "thermal_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.02,
+          "max_lag_s": 40.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ]
+    },
+    {
+      "case_id": "legacy_transmitter_to_storage_drain",
+      "description": "Disabling native ODH downlink must activate the deterministic transmitter drain path and reduce onboard storage.",
+      "patch": {
+        "path": "parameters.coupling.enable_comm_native_odh_downlink",
+        "value": false
+      },
+      "covers_runtime_couplings": [
+        "comm_transmitter_to_storage_drain"
+      ],
+      "expectations": [
+        {
+          "coupling_id": "legacy_transmitter_activity",
+          "source_field": "transmitter_baud_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 40.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      }
+    },
+    {
+      "case_id": "spacecraft_state_to_eclipse_and_thermal_shadow",
+      "description": "Changing only initial orbit phase must change native eclipse state and reduce solar-panel thermal response in continuous shadow.",
+      "patch": {
+        "path": "parameters.initial_orbit_phase_deg",
+        "value": 180.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "spacecraft_state_to_orbit_eclipse",
+          "source_field": "spacecraft_position_x_m",
+          "response_field": "eclipse_shadow_factor",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 0.5,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.8
+        },
+        {
+          "coupling_id": "orbit_eclipse_to_thermal_shadow",
+          "source_field": "eclipse_shadow_factor",
+          "response_field": "thermal_solar_panel_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.5,
+          "min_response_delta": 5.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "adcs_spacecraft_to_orbit_environment",
+        "orbit_eclipse_to_thermal_shadow"
+      ]
+    },
+    {
+      "case_id": "ground_access_geometry_to_rf_link_budget",
+      "description": "Increasing only circular-orbit radius must increase native ground-access slant range and RF link-budget distance.",
+      "patch": {
+        "path": "parameters.initial_orbit_radius_m",
+        "value": 8000000.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "ground_access_to_rf_link_distance",
+          "source_field": "ground_slant_range_m",
+          "response_field": "rf_link_distance_m",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 500000.0,
+          "min_response_delta": 500000.0,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 3,
+          "min_response_fraction": 0.8
+        }
+      ],
+      "covers_runtime_couplings": [
+        "ground_access_rf_link_budget"
+      ]
+    },
+    {
+      "case_id": "gravity_to_spacecraft_orbit_dynamics",
+      "description": "Disabling only the gravity-to-spacecraft coupling must produce measurable radial drift versus the gravity-coupled circular orbit.",
+      "patch": {
+        "path": "parameters.coupling.enable_gravity_to_spacecraft",
+        "value": false
+      },
+      "expectations": [
+        {
+          "coupling_id": "gravity_to_spacecraft_orbit_radius",
+          "source_field": "gravity_coupling_enabled",
+          "response_field": "orbit_radius_m",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 0.5,
+          "min_response_delta": 1000.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "gravity_to_spacecraft"
+      ]
+    },
+    {
+      "case_id": "propulsion_activity_to_power_heat_and_orbit",
+      "description": "Increasing only thruster commanded on-time must increase propulsion energy and propellant use, reduce battery SOC, heat the structure, and perturb orbit radius.",
+      "patch": {
+        "path": "parameters.propulsion_on_time_s",
+        "value": [
+          20.0,
+          20.0
+        ]
+      },
+      "expectations": [
+        {
+          "coupling_id": "propulsion_activity_to_eps",
+          "source_field": "propulsion_cumulative_energy_j",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 500.0,
+          "min_response_delta": 0.0005,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "propulsion_activity_to_thermal",
+          "source_field": "propulsion_cumulative_energy_j",
+          "response_field": "thermal_structure_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 500.0,
+          "min_response_delta": 0.02,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "propulsion_effector_to_spacecraft_orbit",
+          "source_field": "propellant_used_kg",
+          "response_field": "orbit_radius_m",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 0.01,
+          "min_response_delta": 1.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        }
+      ],
+      "covers_runtime_couplings": [
+        "propulsion_activity_to_eps_thermal",
+        "propulsion_effector_to_spacecraft"
+      ]
+    },
+    {
+      "case_id": "eps_pdu_to_thermal_heaters",
+      "description": "With a heater demanded on in both paired runs, low SOC must remove the EPS heater permit and stop thermal heater activity.",
+      "setup_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        },
+        {
+          "path": "modifiers.faults",
+          "value": [
+            {
+              "modifier_id": "heater_on_causal_001",
+              "target": "thermal.heater",
+              "fault_type": "heater_stuck_on",
+              "onset_time_s": 0.0,
+              "duration_s": -1.0,
+              "severity": 1.0,
+              "parameters": {
+                "scenario": "thermal_heater_stuck_on"
+              }
+            }
+          ]
+        }
+      ],
+      "patch": {
+        "path": "parameters.initial_soc",
+        "value": 0.15
+      },
+      "expectations": [
+        {
+          "coupling_id": "eps_pdu_to_heater_enable",
+          "source_field": "pdu_heater_enabled",
+          "response_field": "heater_active_count",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.5,
+          "min_response_delta": 0.5,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.8
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "eps_pdu_to_thermal_heaters"
+      ]
+    },
+    {
+      "case_id": "thermal_heaters_to_eps_load",
+      "description": "With a heater demanded on in both paired runs, disabling only the heater-to-EPS feedback must remove heater electrical load and preserve battery SOC.",
+      "setup_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        },
+        {
+          "path": "modifiers.faults",
+          "value": [
+            {
+              "modifier_id": "heater_on_causal_001",
+              "target": "thermal.heater",
+              "fault_type": "heater_stuck_on",
+              "onset_time_s": 0.0,
+              "duration_s": -1.0,
+              "severity": 1.0,
+              "parameters": {
+                "scenario": "thermal_heater_stuck_on"
+              }
+            }
+          ]
+        }
+      ],
+      "patch": {
+        "path": "parameters.coupling.enable_thermal_heaters_to_eps_load",
+        "value": false
+      },
+      "expectations": [
+        {
+          "coupling_id": "thermal_heater_feedback_to_eps",
+          "source_field": "heater_eps_load_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 10.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 60.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "covers_runtime_couplings": [
+        "thermal_heaters_to_eps_load"
+      ]
+    }
+  ],
+  "case_run_timeout_s": 120.0,
+  "required_runtime_couplings": [
+    "payload_to_comm_storage",
+    "payload_activity_to_eps_thermal",
+    "orbit_sun_attitude_eclipse_to_eps_solar_power",
+    "comm_native_odh_to_storage_drain",
+    "eps_pdu_to_payload_activity",
+    "adcs_pointing_to_payload_comm_gate",
+    "comm_activity_to_eps_thermal",
+    "eps_pdu_to_comm_activity",
+    "eps_loads_to_thermal_heat",
+    "comm_transmitter_to_storage_drain",
+    "adcs_control_effort_to_eps_thermal",
+    "adcs_spacecraft_to_orbit_environment",
+    "eps_pdu_to_thermal_heaters",
+    "gravity_to_spacecraft",
+    "ground_access_rf_link_budget",
+    "orbit_eclipse_to_thermal_shadow",
+    "propulsion_activity_to_eps_thermal",
+    "propulsion_effector_to_spacecraft",
+    "thermal_heaters_to_eps_load"
+  ]
+}

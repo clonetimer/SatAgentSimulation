@@ -1,0 +1,201 @@
+capability_id: subsystem.eps.source_native.v1
+schema_version: 0.1.0
+name: EPS source-native subsystem simulation
+level: subsystem
+domain: eps
+target: eps
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native eps subsystem capability using existing src/subsystems builder/model APIs without demo runner execution.
+adapter:
+  class_path: sat_sim.adapters.subsystem_source_native.EpsSourceNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - subsystems.eps.builder
+  - subsystems.eps.model
+  - subsystems.eps.schemas
+  legacy_demo_runner: subsystems.eps.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+parameters:
+  battery_capacity_wh:
+    type: number
+    required: false
+    default: 160.0
+  initial_soc:
+    type: number
+    required: false
+    default: 0.7
+  solar_power_w:
+    type: number
+    required: false
+    default: 120.0
+  bus_power_w:
+    type: number
+    required: false
+    default: 10.0
+  payload_power_w:
+    type: number
+    required: false
+    default: 30.0
+  comm_power_w:
+    type: number
+    required: false
+    default: 5.0
+  adcs_power_w:
+    type: number
+    required: false
+    default: 10.0
+  thermal_power_w:
+    type: number
+    required: false
+    default: 5.0
+  pdu_bus_max_w:
+    type: number
+    required: false
+    default: 70.0
+  shadow_factor:
+    type: number
+    required: false
+    default: 1.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.battery_capacity_wh
+  unit: mixed
+- name: parameters.initial_soc
+  unit: mixed
+- name: parameters.solar_power_w
+  unit: mixed
+- name: parameters.bus_power_w
+  unit: mixed
+- name: parameters.payload_power_w
+  unit: mixed
+- name: parameters.comm_power_w
+  unit: mixed
+- name: parameters.adcs_power_w
+  unit: mixed
+- name: parameters.thermal_power_w
+  unit: mixed
+- name: parameters.pdu_bus_max_w
+  unit: mixed
+- name: parameters.shadow_factor
+  unit: mixed
+produces:
+- name: eps.source_native.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: eps.source_native.solar_power_w
+    unit: W
+    dtype: number
+    description: 能源原生太阳阵列功率功率。运行器实际输出字段；技术字段为 eps.source_native.solar_power_w，单位 W。
+  - name: eps.source_native.load_requested_w
+    unit: W
+    dtype: number
+    description: 能源原生负载请求功率。运行器实际输出字段；技术字段为 eps.source_native.load_requested_w，单位 W。
+  - name: eps.source_native.load_served_w
+    unit: W
+    dtype: number
+    description: 能源原生负载已供给功率。运行器实际输出字段；技术字段为 eps.source_native.load_served_w，单位 W。
+  - name: eps.source_native.net_power_w
+    unit: W
+    dtype: number
+    description: 能源原生功率功率。运行器实际输出字段；技术字段为 eps.source_native.net_power_w，单位 W。
+  - name: eps.source_native.battery_soc
+    unit: ratio
+    dtype: number
+    description: 能源原生电池荷电状态。运行器实际输出字段；技术字段为 eps.source_native.battery_soc，单位 ratio。
+  - name: eps.source_native.battery_storage_wh
+    unit: Wh
+    dtype: number
+    description: 能源原生电池储能能量。运行器实际输出字段；技术字段为 eps.source_native.battery_storage_wh，单位 Wh。
+  - name: label.load_shed_active
+    unit: bool
+    dtype: number
+    description: 状态标签负载卸载激活。运行器实际输出字段；技术字段为 label.load_shed_active，单位 bool。
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c5_eps_source_native_run_and_manifest
+  - test_c5_eps_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c4c6_new_source_native_subsystem_adapter
+  primary_module: subsystems.eps.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_eps_config
+  - initialize_eps_state
+  - simulate_eps_profile
+  legacy_demo_runner: subsystems.eps.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around existing pure-Python subsystem builder/model
+    APIs.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/subsystems/eps/basilisk_impl.py
+  - src/subsystems/eps/builder.py
+  - src/subsystems/eps/runner.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

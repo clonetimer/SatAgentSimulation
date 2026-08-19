@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.simulation-evidence-graph.v1",
+  "type": "object",
+  "required": ["schema_version", "graph_id", "fault_id", "pair_id", "nodes", "edges", "neo4j_projection", "leakage_guard", "graph_sha256"],
+  "properties": {
+    "schema_version": {"const": "sat-sim.simulation-evidence-graph.v1"},
+    "graph_id": {"type": "string"},
+    "fault_id": {"type": "string"},
+    "pair_id": {"type": "string"},
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["node_id", "kind", "properties"],
+        "properties": {
+          "node_id": {"type": "string"},
+          "kind": {"type": "string"},
+          "properties": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "relation", "target", "properties"],
+        "properties": {
+          "source": {"type": "string"},
+          "relation": {"type": "string"},
+          "target": {"type": "string"},
+          "properties": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "neo4j_projection": {"type": "object"},
+    "leakage_guard": {"type": "object"},
+    "graph_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,119 @@
+{
+  "$defs": {
+    "CheckStatus": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "SKIP"
+      ],
+      "title": "CheckStatus",
+      "type": "string"
+    },
+    "ReleaseCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "check_id": {
+          "title": "Check Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/CheckStatus"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "check_id",
+        "title",
+        "status",
+        "summary"
+      ],
+      "title": "ReleaseCheck",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v33.environment-doctor.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "release_id": {
+      "default": "V33-RELEASE-REFREEZE-DOC-PACKAGING-CLOSURE-1",
+      "title": "Release Id",
+      "type": "string"
+    },
+    "release_version": {
+      "default": "0.3.3",
+      "title": "Release Version",
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "title": "Generated At Utc",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "strict_assets": {
+      "title": "Strict Assets",
+      "type": "boolean"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/ReleaseCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "summary": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Summary",
+      "type": "object"
+    },
+    "environment": {
+      "additionalProperties": true,
+      "title": "Environment",
+      "type": "object"
+    }
+  },
+  "required": [
+    "generated_at_utc",
+    "ok",
+    "strict_assets",
+    "checks",
+    "summary",
+    "environment"
+  ],
+  "title": "Satellite Simulation Agent Environment Doctor V33",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/environment-doctor-v33.schema.json"
+}

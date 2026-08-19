@@ -1,0 +1,318 @@
+capability_id: subsystem.thermal_reduced_order.v1
+schema_version: 0.1.0
+name: Reduced-order spacecraft thermal network
+level: subsystem
+domain: thermal
+target: thermal_reduced_order
+trust_level: benchmark_gated
+status: therm1c_control_policy_upgraded_candidate
+summary: 'Reduced-order spacecraft thermal network with public-case-compatible templates and deterministic heater control
+  policies: threshold, stateful hysteresis thermostat, and bounded PID candidate. Not flight validated.'
+adapter:
+  class_path: sat_sim.adapters.subsystem_thermal_reduced_order.ThermalReducedOrderAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - subsystems.thermal.network
+  - sat_sim.coupled.orbit_attitude_thermal
+  - sat_sim.adapters.subsystem_thermal_reduced_order
+  - subsystems.thermal.templates
+  basilisk_required: false
+  thermal_desktop_required: false
+  uses_legacy_runner: false
+backend_type: local_physics_proxy
+fidelity_level: reduced_order
+can_claim_high_fidelity: false
+validation_basis: &id001
+- conformance_tests
+- internal_benchmark
+- public_reference_informed
+- planned_public_reference
+- public_case_compatible_templates
+- template_benchmark
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+modes:
+  nominal:
+    supported: true
+  eclipse:
+    supported: true
+  sensitivity:
+    supported: true
+parameters:
+  initial_temp_c:
+    type: number
+    unit: degC
+    required: false
+    default: 20.0
+  internal_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 12.0
+  face_area_m2:
+    type: number
+    unit: m^2
+    required: false
+    min: 0.0
+    default: 0.01
+  face_heat_capacity_j_k:
+    type: number
+    unit: J/K
+    required: false
+    min: 1.0e-09
+    default: 900.0
+  internal_heat_capacity_j_k:
+    type: number
+    unit: J/K
+    required: false
+    min: 1.0e-09
+    default: 5000.0
+  conductance_internal_face_w_k:
+    type: number
+    unit: W/K
+    required: false
+    min: 0.0
+    default: 0.45
+  radiator_multiplier:
+    type: number
+    unit: ratio
+    required: false
+    min: 0.0
+    default: 1.8
+  heater_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 8.0
+  heater_setpoint_c:
+    type: number
+    unit: degC
+    required: false
+    default: 2.0
+  environment:
+    type: object
+    required: false
+  network:
+    type: object
+    required: false
+  template_id:
+    type: string
+    required: false
+    default: cubesat_7node_box_template
+    allowed:
+    - nasa_single_node_leo_baseline
+    - cubesat_7node_box_template
+    - satmo_like_multiplanet_box_template
+  template_overrides:
+    type: object
+    required: false
+  heater_control.mode:
+    type: string
+    required: false
+    default: threshold
+    allowed:
+    - threshold
+    - hysteresis
+    - pid
+  heater_control.node:
+    type: string
+    required: false
+    default: internal
+  heater_control.max_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+  heater_control.setpoint_c:
+    type: number
+    unit: degC
+    required: false
+  heater_control.deadband_c:
+    type: number
+    unit: degC
+    required: false
+    min: 0.0
+  heater_control.on_below_c:
+    type: number
+    unit: degC
+    required: false
+    description: Explicit hysteresis turn-on threshold.
+  heater_control.off_above_c:
+    type: number
+    unit: degC
+    required: false
+    description: Explicit hysteresis turn-off threshold.
+  heater_control.kp_w_per_c:
+    type: number
+    required: false
+    min: 0.0
+    description: PID proportional heater gain.
+  heater_control.ki_w_per_c_s:
+    type: number
+    required: false
+    min: 0.0
+    description: PID integral heater gain.
+  heater_control.kd_w_s_per_c:
+    type: number
+    required: false
+    min: 0.0
+    description: PID derivative heater gain.
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.network.nodes
+  unit: none
+- name: parameters.internal_power_w
+  unit: W
+- name: parameters.environment.solar_flux_w_m2
+  unit: W/m^2
+- name: parameters.environment.albedo_flux_w_m2
+  unit: W/m^2
+- name: parameters.environment.earth_ir_flux_w_m2
+  unit: W/m^2
+- name: parameters.attitude.mode
+  unit: none
+produces:
+- name: thermal.node.*.temp_c
+- name: thermal.node.*.net_heat_w
+- name: thermal.heat.solar_w
+- name: thermal.heat.albedo_w
+- name: thermal.heat.earth_ir_w
+- name: thermal.radiator.total_reject_w
+- name: thermal.heater.power_w
+- name: thermal.energy_balance.net_heat_w
+- name: label.thermal_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: thermal.node.internal.temp_c
+    unit: degC
+    dtype: number
+  - name: thermal.radiator.total_reject_w
+    unit: W
+    dtype: number
+  - name: thermal.energy_balance.net_heat_w
+    unit: W
+    dtype: number
+  - name: thermal.control.mode
+    unit: none
+    dtype: string
+  - name: thermal.control.heater_on
+    unit: bool
+    dtype: boolean
+  - name: thermal.control.error_c
+    unit: degC
+    dtype: number
+  - name: thermal.control.integral_error_c_s
+    unit: degC*s
+    dtype: number
+  - name: thermal.control.pid.p_w
+    unit: W
+    dtype: number
+  - name: thermal.control.pid.i_w
+    unit: W
+    dtype: number
+  - name: thermal.control.pid.d_w
+    unit: W
+    dtype: number
+  summary:
+  - name: qoi.thermal.final_internal_temp_c
+    unit: degC
+  - name: qoi.thermal.heater_energy_wh
+    unit: Wh
+  - name: qoi.thermal.radiator_energy_wh
+    unit: Wh
+  - name: qoi.thermal.max_energy_balance_residual_w
+    unit: W
+  - name: qoi.thermal.control_mode
+    unit: none
+  - name: qoi.thermal.heater_duty_cycle
+    unit: ratio
+  - name: qoi.thermal.heater_transition_count
+    unit: count
+  - name: qoi.thermal.heater_saturation_count
+    unit: count
+validation:
+  conformance_tests:
+  - tests.test_thermal_network_therm1
+  - tests.test_thermal_control_policy_therm1c
+  benchmark:
+    runner: scripts/run_thermal_network_benchmark.py
+    report_dir: reports/thermal_network_benchmark
+    template_runner: scripts/run_thermal_template_benchmark.py
+    template_report_dir: reports/thermal_template_benchmark
+    control_runner: scripts/run_thermal_control_benchmark.py
+    control_report_dir: reports/thermal_control_benchmark
+claim_guardrail: Reduced-order thermal network with deterministic threshold/hysteresis/PID heater policy candidates only.
+  Do not claim flight software, flight tuning, TVAC correlation, Thermal Desktop/ESATAN equivalence, or high-fidelity readiness.
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/subsystems/thermal/basilisk_scheduled.py
+  - src/subsystems/thermal/thermal_network.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: THERM-1C keeps thermal solving local/reduced-order and adds deterministic heater control policies; these are
+    early-design controls, not flight software.
+  planned_upgrade_path:
+  - THERM-1 implemented reduced-order network
+  - THERM-0
+  - THERM-1
+  - SAT-REF-1
+  - THERM-1B public-case-compatible thermal templates
+  - THERM-1C thermal control policy upgrade
+known_physics_limits:
+- Reduced-order lumped network, not finite-element thermal analysis
+- Public-reference-informed defaults, not flight-correlated parameters
+- No Thermal Desktop/ESATAN equivalence claim
+- Template parameters are public-reference-informed defaults or explicit assumptions, not copied flight-correlated data
+- Template benchmark envelopes are broad sanity gates, not TVAC correlation
+- Threshold/hysteresis/PID control policies are deterministic early-design heater command models, not flight software.
+- PID gains are user-supplied or conservative defaults and are not flight tuned.
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - Reduced-order lumped network, not finite-element thermal analysis
+  - Public-reference-informed defaults, not flight-correlated parameters
+  - No Thermal Desktop/ESATAN equivalence claim
+  - Template parameters are public-reference-informed defaults or explicit assumptions, not copied flight-correlated data
+  - Template benchmark envelopes are broad sanity gates, not TVAC correlation
+  - Threshold/hysteresis/PID control policies are deterministic early-design heater command models, not flight software.
+  - PID gains are user-supplied or conservative defaults and are not flight tuned.

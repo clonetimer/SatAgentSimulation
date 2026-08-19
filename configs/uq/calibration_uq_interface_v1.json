@@ -1,0 +1,28 @@
+{
+  "schema_version": "既有工程版本.calibration-uq-interface.v1",
+  "status": "data_ready_no_real_dataset",
+  "supported_parameter_confidence": [
+    "demo",
+    "engineering_estimate",
+    "ground_calibrated",
+    "flight_correlated"
+  ],
+  "required_uncertainty_fields": [
+    "distribution",
+    "parameters",
+    "unit",
+    "source",
+    "validity"
+  ],
+  "calibration_dataset_binding": {
+    "dataset_id": null,
+    "target_parameter": null,
+    "residual_metric": null,
+    "validation_metric": null
+  },
+  "current_behavior": {
+    "engineering_estimate": "surrogate UQ allowed with explicit Claim ceiling",
+    "ground_calibrated": "blocked until qualified dataset is registered",
+    "flight_correlated": "blocked until qualified flight dataset is registered"
+  }
+}

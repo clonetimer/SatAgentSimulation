@@ -1,0 +1,176 @@
+capability_id: subsystem.comm_data.unified_native.v1
+schema_version: 0.1.0
+name: Comm/Data unified Basilisk runtime
+level: subsystem
+domain: comm_data
+target: comm_data
+trust_level: engineering_preview
+status: agent_ready_candidate
+summary: Focused communication/data subsystem executed with Basilisk simpleInstrument, simpleStorageUnit and simpleTransmitter
+  modules in one Process/Task with recorder-derived storage and baud telemetry. No external solver or curve-only proxy is
+  used.
+adapter:
+  class_path: sat_sim.adapters.subsystem_comm_data_unified_native.CommDataUnifiedNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  native_multi_rate_telemetry: true
+  model_modules:
+  - subsystems.comm_data.builder
+  - subsystems.comm_data.runner
+  - sat_sim.adapters.subsystem_comm_data_unified_native
+  uses_legacy_runner: false
+  basilisk_required: true
+  source_boundary: official_basilisk_instrument_storage_transmitter
+  mode: basilisk_unified_native_comm_data
+  backend_type: basilisk_official_native
+  accepted_task_backends:
+  - basilisk
+  requires_allow_proxy: false
+  modifier_application: native_runtime_only
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    fault_types: [link_or_storage_failure]
+  degradation:
+    supported: true
+    degradation_types: [margin_or_throughput_degradation]
+parameters:
+  instrument_baud_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 2500000.0
+    min: 0.0
+  storage_capacity_bits:
+    type: number
+    unit: bit
+    required: false
+    default: 6000000000.0
+    min: 1.0
+  transmitter_baud_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 1500000.0
+    min: 0.0
+  initial_storage_bits:
+    type: number
+    unit: bit
+    required: false
+    default: 0.0
+    min: 0.0
+  native_storage_drain_enabled:
+    type: boolean
+    required: false
+    default: true
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.step_s
+  unit: s
+produces:
+- name: comm_data.*
+- name: runtime_truth_status
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace_fields:
+  - time_s
+  - comm_data.instrument_baud_bps
+  - comm_data.storage_level_bits
+  - comm_data.storage_capacity_bits
+  - comm_data.transmitter_baud_bps
+  - comm_data.native_storage_drain_enabled
+  - comm_data.transmitter_storage_node_baud_bps
+  qoi:
+  - runtime_truth_status
+  - final_storage_bits
+  - estimated_native_downlinked_bits
+  - official_module_count
+operator:
+  owner: unified_native_comm_data
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: unified_native_comm_data
+    implementation: basilisk_native
+    evidence_fields:
+    - comm_data.storage_level_bits
+    - comm_data.instrument_baud_bps
+    - comm_data.transmitter_storage_node_baud_bps
+    verification: declared
+  - effect_id: link_or_storage_failure
+    kind: fault
+    owner: unified_native_comm_data
+    implementation: basilisk_native
+    evidence_fields:
+    - comm_data.transmitter_baud_bps
+    - comm_data.transmitter_storage_node_baud_bps
+    - label.fault_active
+    verification: declared
+  - effect_id: margin_or_throughput_degradation
+    kind: degradation
+    owner: unified_native_comm_data
+    implementation: basilisk_native
+    evidence_fields:
+    - comm_data.transmitter_baud_bps
+    - comm_data.transmitter_storage_node_baud_bps
+    - label.degradation_active
+    verification: declared
+  limitations:
+  - Independent data path effects are limited to native transmitter loss and throughput degradation; ground-access and RF geometry remain outside this focused graph.
+  - Parameters are engineering estimates and are not flight calibrated.
+lifecycle:
+  status: active
+  product_tier: recommended
+  recommended: true
+  replacement: subsystem.comm_data.source_native.v1
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+backend_type: basilisk_official_native
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: official_basilisk_native
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations: []
+model_projection:
+  schema_version: sat-sim.capability-projection.v1
+  projection_id: comm-data-unified-native-projection-v1
+  model_ref: subsystem.comm_data_unified_native@1
+  graph_ref: subsystem.comm_data_unified_native@1
+  operations_object_ref: spacecraft.comm_data
+  parameter_set_id: comm-data-unified-native-demo-v1
+  implementation_id: subsystem.comm_data_unified_native.basilisk@1
+  binding_set_id: comm-data-unified-native-bindings-v1
+  generated_schemas: sat_sim.a5r.projection_api.projection_schema_bundle
+  exposed_properties:
+  - spacecraft.comm_data.storage_bits
+  - spacecraft.comm_data.downlink_baud_bps
+  - spacecraft.comm_data.storage_drain_enabled
+  exposed_actions: []
+  exposed_effects:
+  - spacecraft.comm_data.nominal
+  - spacecraft.comm_data.link_or_storage_failure
+  - spacecraft.comm_data.margin_or_throughput_degradation
+  evidence:
+  - spacecraft.comm_data.storage_evidence
+execution:
+  schema_version: sat-sim.model-asset-execution-policy.v1
+  adapter_key: basilisk.comm_data_unified_graph
+  model_ref: subsystem.comm_data_unified_native@1
+  implementation_id: subsystem.comm_data_unified_native.basilisk@1
+  parameter_set_id: comm-data-unified-native-demo-v1
+  binding_set_id: comm-data-unified-native-bindings-v1
+  legacy_fallback_adapter_key: legacy.capability
+  legacy_fallback_enabled: false

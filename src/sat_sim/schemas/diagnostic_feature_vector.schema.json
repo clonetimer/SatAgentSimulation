@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.diagnostic-feature-vector.v1",
+  "type": "object",
+  "required": [
+    "schema_version", "fault_id", "pair_id", "feature_contract_id",
+    "status", "raw_feature_results", "derived_feature_results",
+    "feature_vector", "missing_required_model_channels",
+    "blocked_derived_features", "leakage_guard", "claim_boundary",
+    "feature_vector_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "sat-sim.diagnostic-feature-vector.v1"},
+    "fault_id": {"type": "string"},
+    "pair_id": {"type": ["string", "null"]},
+    "feature_contract_id": {"type": "string"},
+    "fault_dataset_id": {"type": ["string", "null"]},
+    "nominal_dataset_id": {"type": ["string", "null"]},
+    "onset_time_s": {"type": "number"},
+    "status": {"enum": ["COMPLETED", "PARTIAL"]},
+    "raw_feature_results": {"type": "array", "items": {"type": "object"}},
+    "derived_feature_results": {"type": "array", "items": {"type": "object"}},
+    "feature_vector": {"type": "object", "additionalProperties": {"type": "number"}},
+    "feature_channels": {"type": "object", "additionalProperties": {"type": "string"}},
+    "missing_required_model_channels": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "blocked_derived_features": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "leakage_guard": {"type": "object"},
+    "claim_boundary": {"type": "object"},
+    "feature_vector_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

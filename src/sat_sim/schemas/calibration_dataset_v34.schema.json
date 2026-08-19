@@ -1,0 +1,433 @@
+{
+  "$defs": {
+    "ApprovalSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/ApprovalStatus",
+          "default": "draft"
+        },
+        "reviewed_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewed By"
+        },
+        "approved_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved By"
+        },
+        "approved_at_utc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved At Utc"
+        }
+      },
+      "title": "ApprovalSpec",
+      "type": "object"
+    },
+    "ApprovalStatus": {
+      "enum": [
+        "draft",
+        "reviewed",
+        "approved",
+        "rejected"
+      ],
+      "title": "ApprovalStatus",
+      "type": "string"
+    },
+    "CalibrationClaimLevel": {
+      "enum": [
+        "demo",
+        "engineering_estimate",
+        "ground_calibrated",
+        "flight_correlated"
+      ],
+      "title": "CalibrationClaimLevel",
+      "type": "string"
+    },
+    "CalibrationMethodSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method"
+        },
+        "target_parameters": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Parameters",
+          "type": "array"
+        },
+        "training_fraction": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1,
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Training Fraction"
+        },
+        "validation_fraction": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1,
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Validation Fraction"
+        },
+        "residual_metrics": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Residual Metrics",
+          "type": "object"
+        },
+        "correlation_metrics": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Correlation Metrics",
+          "type": "object"
+        }
+      },
+      "title": "CalibrationMethodSpec",
+      "type": "object"
+    },
+    "CalibrationSourceType": {
+      "enum": [
+        "ground_test",
+        "flight_telemetry",
+        "manufacturer_datasheet",
+        "public_literature",
+        "engineering_estimate",
+        "synthetic",
+        "demo"
+      ],
+      "title": "CalibrationSourceType",
+      "type": "string"
+    },
+    "DatasetFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "media_type": {
+          "default": "text/csv",
+          "title": "Media Type",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        },
+        "role": {
+          "default": "raw_measurement",
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "DatasetFile",
+      "type": "object"
+    },
+    "DatasetStatus": {
+      "enum": [
+        "draft",
+        "received",
+        "verified",
+        "rejected"
+      ],
+      "title": "DatasetStatus",
+      "type": "string"
+    },
+    "MeasurementVariable": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "role": {
+          "default": "measured",
+          "title": "Role",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "unit"
+      ],
+      "title": "MeasurementVariable",
+      "type": "object"
+    },
+    "SamplingSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "frequency_hz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frequency Hz"
+        },
+        "sample_count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sample Count"
+        },
+        "start_time_utc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Time Utc"
+        },
+        "end_time_utc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Time Utc"
+        }
+      },
+      "title": "SamplingSpec",
+      "type": "object"
+    },
+    "UncertaintySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "provided": {
+          "default": false,
+          "title": "Provided",
+          "type": "boolean"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method"
+        },
+        "confidence_level": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Level"
+        },
+        "measurement_uncertainty": {
+          "additionalProperties": true,
+          "title": "Measurement Uncertainty",
+          "type": "object"
+        }
+      },
+      "title": "UncertaintySpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v34.calibration-dataset.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "component": {
+      "title": "Component",
+      "type": "string"
+    },
+    "source_type": {
+      "$ref": "#/$defs/CalibrationSourceType"
+    },
+    "source_ref": {
+      "title": "Source Ref",
+      "type": "string"
+    },
+    "requested_claim_level": {
+      "$ref": "#/$defs/CalibrationClaimLevel",
+      "default": "engineering_estimate"
+    },
+    "status": {
+      "$ref": "#/$defs/DatasetStatus",
+      "default": "draft"
+    },
+    "collected_at_utc": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Collected At Utc"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/DatasetFile"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "measurements": {
+      "items": {
+        "$ref": "#/$defs/MeasurementVariable"
+      },
+      "title": "Measurements",
+      "type": "array"
+    },
+    "sampling": {
+      "$ref": "#/$defs/SamplingSpec"
+    },
+    "uncertainty": {
+      "$ref": "#/$defs/UncertaintySpec"
+    },
+    "calibration": {
+      "$ref": "#/$defs/CalibrationMethodSpec"
+    },
+    "approval": {
+      "$ref": "#/$defs/ApprovalSpec"
+    },
+    "validity": {
+      "additionalProperties": true,
+      "title": "Validity",
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "notes": {
+      "default": "",
+      "title": "Notes",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dataset_id",
+    "title",
+    "component",
+    "source_type",
+    "source_ref"
+  ],
+  "title": "Calibration Dataset Manifest V34",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/calibration-dataset-v34.schema.json"
+}

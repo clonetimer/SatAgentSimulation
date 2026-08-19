@@ -1,0 +1,3673 @@
+{
+  "schema_version": "v27.agent-golden-set.v1",
+  "description": "Formal V27 Golden Set for TaskSpec, routing, ownership, rejection and claim safety.",
+  "case_count": 140,
+  "category_counts": {
+    "component_scenarios": 25,
+    "subsystem_scenarios": 30,
+    "whole_spacecraft_scenarios": 30,
+    "coupled_multi_output": 15,
+    "invalid_boundary": 20,
+    "ambiguous_conflict_missing": 10,
+    "adversarial_claim": 10
+  },
+  "cases": [
+    {
+      "case_id": "component_01",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_001_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.battery.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.eps.battery.initial_soc"
+        ],
+        "validation_result": "PASS",
+        "run_bundle_integrity_ok": true
+      },
+      "execute": true
+    },
+    {
+      "case_id": "component_02",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_002_component_data_queue_v1",
+          "capability_id": "component.data_queue.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.comm.data_queue.final_queue_bits"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.data_queue.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.comm.data_queue.final_queue_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "component_03",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_003_component_heater_v1",
+          "capability_id": "component.heater.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.heater.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_04",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_004_component_link_budget_v1",
+          "capability_id": "component.link_budget.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.link_budget.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_05",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_005_component_onboard_storage_v1",
+          "capability_id": "component.onboard_storage.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.comm.storage.final_stored_bits"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.onboard_storage.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.comm.storage.final_stored_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "component_06",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_006_component_payload_v1",
+          "capability_id": "component.payload.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.payload.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_07",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_007_component_payload_sensor_v1",
+          "capability_id": "component.payload_sensor.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.payload_sensor.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_08",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_008_component_power_sink_v1",
+          "capability_id": "component.power_sink.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.power_sink.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_09",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_009_component_radiator_v1",
+          "capability_id": "component.radiator.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.radiator.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_10",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_010_component_reaction_wheel_v1",
+          "capability_id": "component.reaction_wheel.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.adcs.reaction_wheel.initial_speed_rad_s_0"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.reaction_wheel.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.adcs.reaction_wheel.initial_speed_rad_s_0"
+        ]
+      }
+    },
+    {
+      "case_id": "component_11",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_011_component_solar_panel_v1",
+          "capability_id": "component.solar_panel.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "eps.solar.energy_generated_wh"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.solar_panel.v1",
+        "level": "component",
+        "qoi": [
+          "eps.solar.energy_generated_wh"
+        ]
+      }
+    },
+    {
+      "case_id": "component_12",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_012_component_thermal_node_v1",
+          "capability_id": "component.thermal_node.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.thermal_node.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_13",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_013_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.battery.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.eps.battery.initial_soc"
+        ]
+      }
+    },
+    {
+      "case_id": "component_14",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_014_component_data_queue_v1",
+          "capability_id": "component.data_queue.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.comm.data_queue.final_queue_bits"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.data_queue.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.comm.data_queue.final_queue_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "component_15",
+      "category": "component_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_015_component_heater_v1",
+          "capability_id": "component.heater.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.heater.v1",
+        "level": "component",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "component_nl_01",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建电池部件开路故障仿真，运行120秒"
+      },
+      "execute": true,
+      "expected": {
+        "accept": true,
+        "capability_id": "component.battery.v1",
+        "level": "component",
+        "effects": [
+          {
+            "effect": "open_circuit",
+            "owner": "battery",
+            "capability_id": "component.battery.v1"
+          }
+        ],
+        "validation_result": "PASS",
+        "injection_delivery_result": "PASS",
+        "injection_effect_result": "PASS",
+        "run_bundle_integrity_ok": true
+      }
+    },
+    {
+      "case_id": "component_nl_02",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建电池部件容量退化仿真，运行120秒"
+      },
+      "execute": true,
+      "expected": {
+        "accept": true,
+        "capability_id": "component.battery.v1",
+        "level": "component",
+        "effects": [
+          {
+            "effect": "capacity_loss_pct",
+            "owner": "battery",
+            "capability_id": "component.battery.v1"
+          }
+        ],
+        "validation_result": "PASS",
+        "injection_delivery_result": "PASS",
+        "injection_effect_result": "PASS",
+        "run_bundle_integrity_ok": true
+      }
+    },
+    {
+      "case_id": "component_nl_03",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建反作用轮卡滞故障仿真，运行120秒"
+      },
+      "execute": true,
+      "expected": {
+        "accept": true,
+        "capability_id": "component.reaction_wheel.v1",
+        "level": "component",
+        "effects": [
+          {
+            "effect": "rw_jamming",
+            "owner": "reaction_wheel",
+            "capability_id": "component.reaction_wheel.v1"
+          }
+        ],
+        "validation_result": "PASS",
+        "injection_delivery_result": "PASS",
+        "injection_effect_result": "PASS",
+        "run_bundle_integrity_ok": true
+      }
+    },
+    {
+      "case_id": "component_nl_04",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建反作用轮摩擦退化仿真，运行120秒"
+      },
+      "execute": true,
+      "expected": {
+        "accept": true,
+        "capability_id": "component.reaction_wheel.v1",
+        "level": "component",
+        "effects": [
+          {
+            "effect": "friction_increase_pct",
+            "owner": "reaction_wheel",
+            "capability_id": "component.reaction_wheel.v1"
+          }
+        ],
+        "validation_result": "PASS",
+        "injection_delivery_result": "PASS",
+        "injection_effect_result": "PASS",
+        "run_bundle_integrity_ok": true
+      }
+    },
+    {
+      "case_id": "component_nl_05",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建太阳帆板失效故障仿真，运行120秒"
+      },
+      "execute": true,
+      "expected": {
+        "accept": true,
+        "capability_id": "component.solar_panel.v1",
+        "level": "component",
+        "effects": [
+          {
+            "effect": "solar_panel_failure",
+            "owner": "solar_panel",
+            "capability_id": "component.solar_panel.v1"
+          }
+        ],
+        "validation_result": "PASS",
+        "injection_delivery_result": "PASS",
+        "injection_effect_result": "PASS",
+        "run_bundle_integrity_ok": true
+      }
+    },
+    {
+      "case_id": "component_nl_06",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建太阳帆板效率退化仿真，运行120秒"
+      },
+      "execute": true,
+      "expected": {
+        "accept": true,
+        "capability_id": "component.solar_panel.v1",
+        "level": "component",
+        "effects": [
+          {
+            "effect": "efficiency_loss_pct",
+            "owner": "solar_panel",
+            "capability_id": "component.solar_panel.v1"
+          }
+        ],
+        "validation_result": "PASS",
+        "injection_delivery_result": "PASS",
+        "injection_effect_result": "PASS",
+        "run_bundle_integrity_ok": true
+      }
+    },
+    {
+      "case_id": "component_nl_07",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建数据队列部件仿真，运行300秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.data_queue.v1",
+        "level": "component"
+      }
+    },
+    {
+      "case_id": "component_nl_08",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建星上存储部件仿真，运行300秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.onboard_storage.v1",
+        "level": "component"
+      }
+    },
+    {
+      "case_id": "component_nl_09",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建链路预算部件仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.link_budget.v1",
+        "level": "component"
+      }
+    },
+    {
+      "case_id": "component_nl_10",
+      "category": "component_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建热节点部件仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "component.thermal_node.v1",
+        "level": "component"
+      }
+    },
+    {
+      "case_id": "subsystem_01",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_016_subsystem_adcs_fidelity_v1",
+          "capability_id": "subsystem.adcs_fidelity.v1",
+          "level": "subsystem",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.adcs_fidelity.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_02",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_017_subsystem_comm_basic_ground_pass_v1",
+          "capability_id": "subsystem.comm.basic_ground_pass.v1",
+          "level": "subsystem",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "task_id",
+              "case_id"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.comm.basic_ground_pass.v1",
+        "level": "subsystem",
+        "qoi": [
+          "task_id",
+          "case_id"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_03",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_018_subsystem_comm_data_source_native_v1",
+          "capability_id": "subsystem.comm_data.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.comm_data.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_04",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_019_subsystem_eps_basic_v1",
+          "capability_id": "subsystem.eps.basic.v1",
+          "level": "subsystem",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.final_soc",
+              "qoi.eps.power.min_margin_w"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.eps.basic.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.eps.battery.final_soc",
+          "qoi.eps.power.min_margin_w"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_05",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_020_subsystem_eps_source_native_v1",
+          "capability_id": "subsystem.eps.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.eps.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_06",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_021_subsystem_payload_source_native_v1",
+          "capability_id": "subsystem.payload.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.payload.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_07",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_022_subsystem_propulsion_source_native_v1",
+          "capability_id": "subsystem.propulsion.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.propulsion.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_08",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_023_subsystem_thermal_basic_lumped_v1",
+          "capability_id": "subsystem.thermal.basic_lumped.v1",
+          "level": "subsystem",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.thermal.final_bus_temp_c",
+              "qoi.thermal.max_bus_temp_c"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.thermal.basic_lumped.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.thermal.final_bus_temp_c",
+          "qoi.thermal.max_bus_temp_c"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_09",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_024_subsystem_thermal_source_native_v1",
+          "capability_id": "subsystem.thermal.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.thermal.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_10",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_025_subsystem_adcs_fidelity_v1",
+          "capability_id": "subsystem.adcs_fidelity.v1",
+          "level": "subsystem",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.adcs_fidelity.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_11",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_026_subsystem_comm_basic_ground_pass_v1",
+          "capability_id": "subsystem.comm.basic_ground_pass.v1",
+          "level": "subsystem",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "task_id",
+              "case_id"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.comm.basic_ground_pass.v1",
+        "level": "subsystem",
+        "qoi": [
+          "task_id",
+          "case_id"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_12",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_027_subsystem_comm_data_source_native_v1",
+          "capability_id": "subsystem.comm_data.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.comm_data.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_13",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_028_subsystem_eps_basic_v1",
+          "capability_id": "subsystem.eps.basic.v1",
+          "level": "subsystem",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.final_soc",
+              "qoi.eps.power.min_margin_w"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.eps.basic.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.eps.battery.final_soc",
+          "qoi.eps.power.min_margin_w"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_14",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_029_subsystem_eps_source_native_v1",
+          "capability_id": "subsystem.eps.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.eps.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_15",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_030_subsystem_payload_source_native_v1",
+          "capability_id": "subsystem.payload.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.payload.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_16",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_031_subsystem_propulsion_source_native_v1",
+          "capability_id": "subsystem.propulsion.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.propulsion.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_17",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_032_subsystem_thermal_basic_lumped_v1",
+          "capability_id": "subsystem.thermal.basic_lumped.v1",
+          "level": "subsystem",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.thermal.final_bus_temp_c",
+              "qoi.thermal.max_bus_temp_c"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.thermal.basic_lumped.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.thermal.final_bus_temp_c",
+          "qoi.thermal.max_bus_temp_c"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_18",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_033_subsystem_thermal_source_native_v1",
+          "capability_id": "subsystem.thermal.source_native.v1",
+          "level": "subsystem",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.thermal.source_native.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_19",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_034_subsystem_adcs_fidelity_v1",
+          "capability_id": "subsystem.adcs_fidelity.v1",
+          "level": "subsystem",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.*"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.adcs_fidelity.v1",
+        "level": "subsystem",
+        "qoi": [
+          "qoi.*"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_20",
+      "category": "subsystem_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_035_subsystem_comm_basic_ground_pass_v1",
+          "capability_id": "subsystem.comm.basic_ground_pass.v1",
+          "level": "subsystem",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "task_id",
+              "case_id"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.comm.basic_ground_pass.v1",
+        "level": "subsystem",
+        "qoi": [
+          "task_id",
+          "case_id"
+        ]
+      }
+    },
+    {
+      "case_id": "subsystem_nl_01",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建ADCS分系统高保真仿真，运行300秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.adcs_fidelity.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_02",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立姿态控制分系统仿真，运行360秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.adcs_fidelity.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_03",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建EPS分系统仿真，运行300秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.eps.basic.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_04",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立电源分系统日照与负载仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.eps.basic.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_05",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建热控分系统集总参数仿真，运行300秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.thermal.basic_lumped.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_06",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立热控分系统温度仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.thermal.basic_lumped.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_07",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建通信地面站过站分系统仿真，运行300秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.comm.basic_ground_pass.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_08",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立通信数据分系统源原生仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.comm_data.source_native.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_09",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立载荷分系统源原生仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.payload.source_native.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "subsystem_nl_10",
+      "category": "subsystem_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立推进分系统源原生仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "subsystem.propulsion.source_native.v1",
+        "level": "subsystem"
+      }
+    },
+    {
+      "case_id": "whole_01",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_036_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_02",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_037_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_03",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_038_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_04",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_039_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_05",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_040_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_06",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_041_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_07",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_042_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_08",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_043_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_09",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_044_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_10",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_045_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_11",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_046_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_12",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_047_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_13",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_048_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_14",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_049_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_15",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_050_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_16",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_051_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_17",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_052_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_18",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_053_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_19",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_054_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_20",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_055_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c"
+        ]
+      }
+    },
+    {
+      "case_id": "whole_nl_01",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星功率热控轨道耦合仿真，运行600秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_02",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立整星电源热控轨道耦合仿真，运行720秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_03",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星通信载荷任务耦合仿真，运行600秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_04",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立整星通信载荷任务耦合仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_05",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星推进轨道姿态机动仿真，运行900秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_06",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立全星推进机动与姿态轨道联合仿真，运行1000秒"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_07",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星功率热控轨道耦合任务"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_08",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星通信载荷任务耦合仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_09",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星推进轨道姿态机动任务"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "whole_nl_10",
+      "category": "whole_spacecraft_scenarios",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "建立整星功率热控轨道耦合仿真"
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft"
+      }
+    },
+    {
+      "case_id": "coupled_01",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_056_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits",
+              "qoi.mission.data.conservation_error_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits",
+          "qoi.mission.data.conservation_error_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_02",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_057_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg",
+              "qoi.propulsion.fuel_monotonic"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg",
+          "qoi.propulsion.fuel_monotonic"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_03",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_058_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass",
+              "qoi.adcs.final_pointing_error_deg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass",
+          "qoi.adcs.final_pointing_error_deg"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_04",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_059_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c",
+              "qoi.spacecraft.environment.eclipse_fraction"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c",
+          "qoi.spacecraft.environment.eclipse_fraction"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_05",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_060_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits",
+              "qoi.mission.data.conservation_error_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits",
+          "qoi.mission.data.conservation_error_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_06",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_061_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg",
+              "qoi.propulsion.fuel_monotonic"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg",
+          "qoi.propulsion.fuel_monotonic"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_07",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_062_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass",
+              "qoi.adcs.final_pointing_error_deg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass",
+          "qoi.adcs.final_pointing_error_deg"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_08",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_063_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c",
+              "qoi.spacecraft.environment.eclipse_fraction"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c",
+          "qoi.spacecraft.environment.eclipse_fraction"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_09",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_064_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits",
+              "qoi.mission.data.conservation_error_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits",
+          "qoi.mission.data.conservation_error_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_10",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_065_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg",
+              "qoi.propulsion.fuel_monotonic"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg",
+          "qoi.propulsion.fuel_monotonic"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_11",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_066_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass",
+              "qoi.adcs.final_pointing_error_deg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass",
+          "qoi.adcs.final_pointing_error_deg"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_12",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_067_whole_spacecraft_power_thermal_orbit_coupled_v1",
+          "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.spacecraft.power.final_soc",
+              "qoi.spacecraft.thermal.final_bus_temp_c",
+              "qoi.spacecraft.environment.eclipse_fraction"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.power_thermal_orbit_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.spacecraft.power.final_soc",
+          "qoi.spacecraft.thermal.final_bus_temp_c",
+          "qoi.spacecraft.environment.eclipse_fraction"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_13",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_068_whole_spacecraft_comm_payload_mission_coupled_v1",
+          "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.mission.data.generated_bits",
+              "qoi.mission.data.downlinked_bits",
+              "qoi.mission.data.conservation_error_bits"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.comm_payload_mission_coupled.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.mission.data.generated_bits",
+          "qoi.mission.data.downlinked_bits",
+          "qoi.mission.data.conservation_error_bits"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_14",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_069_whole_spacecraft_maneuver_orbit_attitude_v1",
+          "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 900.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.propulsion.total_delta_v_m_s",
+              "qoi.propulsion.propellant_used_kg",
+              "qoi.propulsion.fuel_monotonic"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.maneuver_orbit_attitude.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.propulsion.total_delta_v_m_s",
+          "qoi.propulsion.propellant_used_kg",
+          "qoi.propulsion.fuel_monotonic"
+        ]
+      }
+    },
+    {
+      "case_id": "coupled_15",
+      "category": "coupled_multi_output",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_070_whole_spacecraft_orbit_adcs_fidelity_v1",
+          "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.integration.time_alignment_max_error_s",
+              "qoi.integration.frame_consistency_pass",
+              "qoi.adcs.final_pointing_error_deg"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": true,
+        "capability_id": "whole_spacecraft.orbit_adcs_fidelity.v1",
+        "level": "whole_spacecraft",
+        "qoi": [
+          "qoi.integration.time_alignment_max_error_s",
+          "qoi.integration.frame_consistency_pass",
+          "qoi.adcs.final_pointing_error_deg"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_unknown_capability_01",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "invalid_unknown_0",
+          "capability_id": "component.unknown_0.v1"
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "invalid_unknown_capability_02",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "invalid_unknown_1",
+          "capability_id": "component.unknown_1.v1"
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "invalid_unknown_capability_03",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "invalid_unknown_2",
+          "capability_id": "component.unknown_2.v1"
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "invalid_unknown_capability_04",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "invalid_unknown_3",
+          "capability_id": "component.unknown_3.v1"
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "invalid_unknown_capability_05",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "invalid_unknown_4",
+          "capability_id": "component.unknown_4.v1"
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "invalid_missing_qoi_01",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_071_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.unsupported.field_0"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUIRED_QOI_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_missing_qoi_02",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_072_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.unsupported.field_1"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUIRED_QOI_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_missing_qoi_03",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_073_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.unsupported.field_2"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUIRED_QOI_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_missing_qoi_04",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_074_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.unsupported.field_3"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUIRED_QOI_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_missing_qoi_05",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_075_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.unsupported.field_4"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUIRED_QOI_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_unsupported_effect_01",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_076_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "bad_fault_0",
+                "target": "battery",
+                "effect": "unsupported_effect_0",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "UNSUPPORTED_EFFECT"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_unsupported_effect_02",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_077_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "bad_fault_1",
+                "target": "battery",
+                "effect": "unsupported_effect_1",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "UNSUPPORTED_EFFECT"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_unsupported_effect_03",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_078_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "bad_fault_2",
+                "target": "battery",
+                "effect": "unsupported_effect_2",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "UNSUPPORTED_EFFECT"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_unsupported_effect_04",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_079_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "bad_fault_3",
+                "target": "battery",
+                "effect": "unsupported_effect_3",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "UNSUPPORTED_EFFECT"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_unsupported_effect_05",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_080_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "bad_fault_4",
+                "target": "battery",
+                "effect": "unsupported_effect_4",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "UNSUPPORTED_EFFECT"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_owner_mismatch_01",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_081_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "mismatch_fault_0",
+                "target": "reaction_wheel",
+                "effect": "open_circuit",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "EFFECT_TARGET_OWNER_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_owner_mismatch_02",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_082_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "mismatch_fault_1",
+                "target": "reaction_wheel",
+                "effect": "open_circuit",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "EFFECT_TARGET_OWNER_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_owner_mismatch_03",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_083_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "mismatch_fault_2",
+                "target": "reaction_wheel",
+                "effect": "open_circuit",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "EFFECT_TARGET_OWNER_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_owner_mismatch_04",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_084_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "mismatch_fault_3",
+                "target": "reaction_wheel",
+                "effect": "open_circuit",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "EFFECT_TARGET_OWNER_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_owner_mismatch_05",
+      "category": "invalid_boundary",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_085_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "mismatch_fault_4",
+                "target": "reaction_wheel",
+                "effect": "open_circuit",
+                "start_s": 10.0
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "EFFECT_TARGET_OWNER_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "ambiguous_missing_capability_01",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "ambiguous_missing_0",
+          "duration_s": 300
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "ambiguous_missing_capability_02",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "ambiguous_missing_1",
+          "duration_s": 300
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "ambiguous_missing_capability_03",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "ambiguous_missing_2",
+          "duration_s": 300
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "ambiguous_missing_capability_04",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "ambiguous_missing_3",
+          "duration_s": 300
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "ambiguous_level_conflict_01",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_086_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "ambiguous_level_conflict_02",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_087_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "ambiguous_level_conflict_03",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_088_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "whole_spacecraft",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "spacecraft": {
+            "registry_owned": true
+          }
+        }
+      },
+      "expected": {
+        "accept": false
+      }
+    },
+    {
+      "case_id": "ambiguous_nl_level_01",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星轨道ADCS联合仿真，运行600秒"
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUEST_LEVEL_CONFLICT"
+        ]
+      }
+    },
+    {
+      "case_id": "ambiguous_nl_level_02",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星轨道ADCS联合仿真，运行600秒"
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUEST_LEVEL_CONFLICT"
+        ]
+      }
+    },
+    {
+      "case_id": "ambiguous_nl_level_03",
+      "category": "ambiguous_conflict_missing",
+      "input_kind": "natural_language",
+      "input": {
+        "request_text": "创建整星轨道ADCS联合仿真，运行600秒"
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "REQUEST_LEVEL_CONFLICT"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_overclaim_01",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_089_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "assurance": {
+            "parameter_profile": "demo",
+            "claim_level": "ground_calibrated"
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "CLAIM_EXCEEDS_PARAMETER_PROFILE"
+        ],
+        "forbidden_claims": [
+          "flight_validated",
+          "hardware_calibrated",
+          "certified_high_fidelity"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_overclaim_02",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_090_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "assurance": {
+            "parameter_profile": "demo",
+            "claim_level": "ground_calibrated"
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "CLAIM_EXCEEDS_PARAMETER_PROFILE"
+        ],
+        "forbidden_claims": [
+          "flight_validated",
+          "hardware_calibrated",
+          "certified_high_fidelity"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_overclaim_03",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_091_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "assurance": {
+            "parameter_profile": "demo",
+            "claim_level": "ground_calibrated"
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "CLAIM_EXCEEDS_PARAMETER_PROFILE"
+        ],
+        "forbidden_claims": [
+          "flight_validated",
+          "hardware_calibrated",
+          "certified_high_fidelity"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_overclaim_04",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_092_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "assurance": {
+            "parameter_profile": "demo",
+            "claim_level": "ground_calibrated"
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "CLAIM_EXCEEDS_PARAMETER_PROFILE"
+        ],
+        "forbidden_claims": [
+          "flight_validated",
+          "hardware_calibrated",
+          "certified_high_fidelity"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_overclaim_05",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_093_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "assurance": {
+            "parameter_profile": "demo",
+            "claim_level": "ground_calibrated"
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "CLAIM_EXCEEDS_PARAMETER_PROFILE"
+        ],
+        "forbidden_claims": [
+          "flight_validated",
+          "hardware_calibrated",
+          "certified_high_fidelity"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_proxy_01",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_094_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "proxy_fault_0",
+                "target": "battery",
+                "effect": "open_circuit",
+                "start_s": 10.0,
+                "implementation": "proxy"
+              }
+            ]
+          },
+          "assurance": {
+            "allow_proxy": false
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "PROXY_NOT_ALLOWED"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_proxy_02",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_095_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 480.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "proxy_fault_1",
+                "target": "battery",
+                "effect": "open_circuit",
+                "start_s": 10.0,
+                "implementation": "proxy"
+              }
+            ]
+          },
+          "assurance": {
+            "allow_proxy": false
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "PROXY_NOT_ALLOWED"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_proxy_03",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_096_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 300.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "proxy_fault_2",
+                "target": "battery",
+                "effect": "open_circuit",
+                "start_s": 10.0,
+                "implementation": "proxy"
+              }
+            ]
+          },
+          "assurance": {
+            "allow_proxy": false
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "PROXY_NOT_ALLOWED"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_proxy_04",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_097_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 360.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "proxy_fault_3",
+                "target": "battery",
+                "effect": "open_circuit",
+                "start_s": 10.0,
+                "implementation": "proxy"
+              }
+            ]
+          },
+          "assurance": {
+            "allow_proxy": false
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "PROXY_NOT_ALLOWED"
+        ]
+      }
+    },
+    {
+      "case_id": "adversarial_proxy_05",
+      "category": "adversarial_claim",
+      "input_kind": "form",
+      "input": {
+        "form": {
+          "task_id": "golden_098_component_battery_v1",
+          "capability_id": "component.battery.v1",
+          "level": "component",
+          "duration_s": 420.0,
+          "sample_s": 30.0,
+          "outputs": {
+            "qoi": [
+              "qoi.eps.battery.initial_soc"
+            ]
+          },
+          "events": {
+            "faults": [
+              {
+                "id": "proxy_fault_4",
+                "target": "battery",
+                "effect": "open_circuit",
+                "start_s": 10.0,
+                "implementation": "proxy"
+              }
+            ]
+          },
+          "assurance": {
+            "allow_proxy": false
+          }
+        }
+      },
+      "expected": {
+        "accept": false,
+        "reason_codes_any": [
+          "PROXY_NOT_ALLOWED"
+        ]
+      }
+    }
+  ]
+}

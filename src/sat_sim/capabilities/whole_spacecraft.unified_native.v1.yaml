@@ -1,0 +1,559 @@
+capability_id: whole_spacecraft.unified_native.v1
+schema_version: 0.1.0
+name: Whole-spacecraft unified Basilisk runtime
+level: whole_spacecraft
+domain: whole_spacecraft
+target: whole_spacecraft
+trust_level: engineering_preview
+status: agent_ready_candidate
+summary: Orbit, ADCS, eclipse, solar generation, electrical storage, runtime event control, payload data, downlink, storage,
+  thermal response and optional propulsion execute in one Basilisk Process/Task. Faults and degradations are applied before
+  official module updates through messages or owned model state. External solvers and curve-only proxies are excluded.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_unified_native.WholeSpacecraftUnifiedNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  native_multi_rate_telemetry: true
+  model_modules:
+  - sat_sim.bsk_engine.unified_native
+  - sat_sim.bsk_engine.project_native_modules
+  - subsystems.comm_data.builder
+  - subsystems.thermal.thermal_network
+  - integration.resource_feedback
+  uses_legacy_runner: false
+  basilisk_required: true
+  source_boundary: official_basilisk_modules_plus_project_sysmodels_and_runtime_event_injection_in_one_process_task
+  mode: basilisk_unified_native_whole_spacecraft
+  backend_type: basilisk_native_mixed
+  accepted_task_backends:
+  - basilisk
+  requires_allow_proxy: false
+  modifier_application: native_runtime_only
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - adcs_rw_jamming
+    - adcs_rw_motor_failure
+    - gyro_bias_step
+    - payload_instrument_off
+    - comm_data_downlink_link_loss
+    - eps_battery_capacity_loss
+    - propulsion_thruster_ignition_failure
+  degradation:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - gyro_noise_increase
+    - rw_friction_degradation
+    - solar_panel_efficiency_loss
+    - thermal_radiator_rejection_loss
+    - propulsion_burn_impulse_loss
+  constraint:
+    supported: true
+    timed_events_supported: true
+    effects:
+    - adcs_reaction_wheel_speed_limit
+    - power_safe_mode_threshold
+parameters:
+  initial_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 8.0
+    min: 0.0
+    max: 60.0
+  inclination_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 35.0
+    min: 0.0
+    max: 180.0
+  orbit_radius_m:
+    type: number
+    unit: m
+    required: false
+    default: 7000000.0
+    min: 6478000.0
+  controller_k:
+    type: number
+    required: false
+    default: 3.5
+    min: 0.0
+  controller_p:
+    type: number
+    required: false
+    default: 30.0
+    min: 0.0
+  initial_soc:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.62
+    min: 0.0
+    max: 1.0
+  battery_capacity_wh:
+    type: number
+    unit: Wh
+    required: false
+    default: 160.0
+    min: 0.001
+  solar_panel_area_m2:
+    type: number
+    unit: m2
+    required: false
+    default: 2.5
+    min: 0.001
+  solar_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.28
+    min: 0.0
+    max: 1.0
+  bus_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 18.0
+    min: 0.0
+  adcs_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 12.0
+    min: 0.0
+  payload_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 38.0
+    min: 0.0
+  downlink_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 16.0
+    min: 0.0
+  min_operational_soc:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.2
+    min: 0.0
+    max: 1.0
+  payload_max_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 20.0
+    min: 0.0
+  payload_data_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 2500000.0
+    min: 0.0
+  downlink_rate_bps:
+    type: number
+    unit: bit/s
+    required: false
+    default: 1500000.0
+    min: 0.0
+  storage_capacity_bits:
+    type: number
+    unit: bit
+    required: false
+    default: 6000000000.0
+    min: 1.0
+  initial_payload_temp_k:
+    type: number
+    unit: K
+    required: false
+    default: 295.0
+    min: 1.0
+  propulsion_enabled:
+    type: boolean
+    required: false
+    default: false
+  propulsion_burn_start_s:
+    type: number
+    unit: s
+    required: false
+    default: 30.0
+    min: 0.0
+  propulsion_burn_on_time_s:
+    type: number
+    unit: s
+    required: false
+    default: 4.0
+    min: 0.0
+  propulsion_thrust_n:
+    type: number
+    unit: N
+    required: false
+    default: 1.0
+    min: 0.0
+  propulsion_isp_s:
+    type: number
+    unit: s
+    required: false
+    default: 200.0
+    min: 0.001
+  propulsion_initial_propellant_kg:
+    type: number
+    unit: kg
+    required: false
+    default: 1.0
+    min: 0.0
+  propulsion_tank_capacity_kg:
+    type: number
+    unit: kg
+    required: false
+    default: 2.0
+    min: 0.001
+  propulsion_min_burn_soc:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.3
+    min: 0.0
+    max: 1.0
+  comm_max_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 20.0
+    min: 0.0
+    max: 180.0
+  spacecraft_antenna_orientation_b:
+    type: array[number]
+    required: false
+    default:
+    - 0.0
+    - -0.41421356237309503
+    - 0.0
+  downlink_frequency_hz:
+    type: number
+    unit: Hz
+    required: false
+    default: 2200000000.0
+    min: 30000000.0
+    max: 60000000000.0
+  downlink_bandwidth_hz:
+    type: number
+    unit: Hz
+    required: false
+    default: 1000000.0
+    min: 1.0
+  downlink_packet_size_bits:
+    type: number
+    unit: bit
+    required: false
+    default: 256.0
+    min: 1.0
+  downlink_max_retransmissions:
+    type: integer
+    required: false
+    default: 10
+    min: 1
+outputs:
+  trace_fields:
+  - time_s
+  - orbit.radius_m
+  - orbit.phase_rad
+  - orbit.eclipse_factor
+  - adcs.pointing_error_deg
+  - adcs.body_rate_rad_s_*
+  - adcs.rw.speed_rad_s_*
+  - eps.solar_array_power_w
+  - eps.solar_array_efficiency_ratio
+  - eps.battery_energy_j
+  - eps.battery_soc
+  - eps.net_power_w
+  - payload.active
+  - payload.generated_bps
+  - comm.active
+  - comm.downlink_bps
+  - data.storage_bits
+  - data.net_baud_bps
+  - thermal.payload_temp_k
+  - thermal.radiator_rejection_ratio
+  - adcs.sensor.gyro_measured_rad_s_*
+  - adcs.sensor.gyro_bias_rad_s_*
+  - adcs.sensor.gyro_noise_rad_s_*
+  - adcs.rw.command_torque_nm_*
+  - adcs.control.applied_torque_nm_*
+  - adcs.rw.effective_drag_nms_*
+  - adcs.rw.effective_max_torque_nm_*
+  - adcs.rw.effective_max_speed_rad_s_*
+  - eps.battery_capacity_j
+  - eps.effective_battery_capacity_wh
+  - eps.battery_capacity_ratio
+  - eps.battery_energy_wh
+  - payload.generated_data_bits
+  - comm.downlink_rate_bps
+  - comm.downlinked_bits
+  - label.fault_active
+  - label.degradation_active
+  - label.constraint_active
+  - label.power_safe_mode_engaged
+  - event.active_effects
+  - propulsion.enabled
+  - propulsion.burn_active
+  - propulsion.burn_permitted
+  - propulsion.fuel_mass_kg
+  - propulsion.fuel_mass_dot_kg_s
+  - propulsion.total_thrust_n
+  - propulsion.max_thrust_factor
+  - propulsion.electrical_power_w
+  - propulsion.thrust_force_n_*
+  - comm.geometric_access
+  - comm.native_cnr
+  - comm.gated_cnr
+  - comm.ber
+  - comm.per
+  - thermal.*_temp_k
+  - thermal.*_safe
+  - thermal.*_heat_input_w
+  qoi:
+  - runtime_truth_status
+  - official_module_count
+  - project_native_module_count
+  - external_or_proxy_module_count
+  - coupling_integrity_pass
+  - energy_bounds_pass
+  - data_bounds_pass
+  - runtime_event_count
+  - fault_environment_episode_count
+  - physical_effect_verified_count
+  - propulsion_enabled
+  - propellant_used_kg
+  - max_total_thrust_n
+  - propulsion_burn_observed
+operator:
+  owner: unified_native_whole_spacecraft
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: unified_native_whole_spacecraft
+    implementation: basilisk_native
+    evidence_fields:
+    - runtime_truth_status
+    - eps.battery_soc
+    - data.storage_bits
+    - thermal.payload_temp_k
+    verification: candidate
+  - effect_id: payload_instrument_off
+    kind: fault
+    owner: project_power_data_mode_gate
+    implementation: basilisk_native
+    evidence_fields:
+    - payload.active
+    - payload.generated_bps
+    - data.storage_bits
+    verification: declared
+  - effect_id: adcs_rw_jamming
+    kind: fault
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_torque_ratio_0
+    - adcs.control.applied_torque_nm_0
+    verification: declared
+  - effect_id: adcs_rw_motor_failure
+    kind: fault
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_max_torque_nm_0
+    - adcs.control.applied_torque_nm_0
+    verification: declared
+  - effect_id: gyro_bias_step
+    kind: fault
+    owner: project_imu_fault_injector
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.sensor.gyro_bias_norm_rad_s
+    verification: declared
+  - effect_id: comm_data_downlink_link_loss
+    kind: fault
+    owner: project_power_data_mode_gate
+    implementation: basilisk_native
+    evidence_fields:
+    - comm.active
+    - comm.downlink_bps
+    - data.storage_bits
+    verification: declared
+  - effect_id: eps_battery_capacity_loss
+    kind: fault
+    owner: project_whole_parameter_event_controller
+    implementation: basilisk_native
+    evidence_fields:
+    - eps.battery_capacity_ratio
+    - eps.battery_capacity_j
+    - eps.battery_soc
+    verification: declared
+  - effect_id: propulsion_thruster_ignition_failure
+    kind: fault
+    owner: project_propulsion_burn_controller
+    implementation: basilisk_native
+    evidence_fields:
+    - propulsion.burn_active
+    - propulsion.total_thrust_n
+    - propulsion.fuel_mass_kg
+    - orbit.radius_m
+    verification: declared
+  - effect_id: solar_panel_efficiency_loss
+    kind: degradation
+    owner: project_whole_parameter_event_controller
+    implementation: basilisk_native
+    evidence_fields:
+    - eps.solar_array_efficiency_ratio
+    - eps.solar_array_power_w
+    - eps.battery_soc
+    verification: declared
+  - effect_id: gyro_noise_increase
+    kind: degradation
+    owner: project_imu_fault_injector
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.sensor.gyro_noise_norm_rad_s
+    verification: declared
+  - effect_id: rw_friction_degradation
+    kind: degradation
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_drag_nms_0
+    verification: declared
+  - effect_id: thermal_radiator_rejection_loss
+    kind: degradation
+    owner: project_whole_parameter_event_controller
+    implementation: basilisk_native
+    evidence_fields:
+    - thermal.radiator_rejection_ratio
+    - thermal.payload_temp_k
+    verification: declared
+  - effect_id: propulsion_burn_impulse_loss
+    kind: degradation
+    owner: project_propulsion_burn_controller
+    implementation: basilisk_native
+    evidence_fields:
+    - propulsion.total_thrust_n
+    - propulsion.fuel_mass_kg
+    - propulsion.electrical_power_w
+    - orbit.radius_m
+    verification: declared
+  - effect_id: power_safe_mode_threshold
+    kind: constraint
+    owner: project_power_data_mode_gate
+    implementation: basilisk_native
+    evidence_fields:
+    - label.power_safe_mode_engaged
+    - payload.active
+    - comm.active
+    - eps.battery_soc
+    verification: declared
+  - effect_id: adcs_reaction_wheel_speed_limit
+    kind: constraint
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_max_speed_rad_s_0
+    - adcs.rw.speed_rad_s_0
+    verification: declared
+  observability:
+    qoi:
+    - runtime_truth_status
+    - coupling_integrity_pass
+    - energy_bounds_pass
+    - data_bounds_pass
+    trace:
+    - time_s
+    - orbit.*
+    - adcs.*
+    - eps.*
+    - payload.*
+    - comm.*
+    - data.*
+    - thermal.*
+    - propulsion.*
+    - label.*
+    - event.*
+  limitations:
+  - Current Sun/Earth ephemeris messages use a deterministic analytical setup rather than SPICE kernels.
+  - Project sensor fusion, event managers and mode gate are native SysModels but not official Basilisk modules.
+  - Only effects listed in modes.*.effects are accepted by the unified runtime.
+  - Propulsion is opt-in and currently supports one scheduled burn gated by battery SOC, safe mode and timed ignition/impulse events.
+lifecycle:
+  status: active
+  product_tier: recommended
+  recommended: true
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Recommended whole-spacecraft path for the currently supported orbit, ADCS, EPS, payload/data, communication, thermal
+    and optional propulsion chain.
+experiments:
+  official_monte_carlo:
+    supported: true
+    registry: sat_sim.experiments.native_controller_registry
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: mixed_native_project
+  couplings:
+    supported:
+    - orbit_sun_attitude_eclipse_to_eps_solar_power
+    - eps_pdu_to_payload_activity
+    - eps_pdu_to_comm_activity
+    - eps_pdu_to_thermal_heaters
+    - payload_activity_to_eps_thermal
+    - adcs_control_effort_to_eps_thermal
+    - propulsion_activity_to_eps_thermal
+    - propulsion_effector_to_spacecraft
+    - adcs_pointing_to_payload_gate
+    - ground_access_to_comm_downlink
+    - native_rf_quality_to_comm_downlink
+    - thermal_safety_to_payload_comm_gate
+    unsupported:
+    - '*'
+  limitations:
+  - Communication uses native GroundLocation, SimpleAntenna, LinkBudget and DownlinkHandling; antenna and ground-station parameters
+    remain engineering estimates until calibrated.
+  - Thermal response uses an eight-node project deterministic network and is not a detailed finite-element thermal model.
+  - Resource activity-to-power and power-to-heat bridges are engineering proxies with explicit provenance.
+model_projection:
+  schema_version: sat-sim.capability-projection.v1
+  projection_id: whole-spacecraft-attitude-projection-v1
+  model_ref: spacecraft.demo_satellite@1
+  graph_ref: spacecraft.demo_satellite@1
+  operations_object_ref: spacecraft.attitude_control
+  parameter_set_id: demo-satellite-attitude-v1
+  implementation_id: spacecraft.demo_satellite.basilisk_unified@1
+  binding_set_id: attitude-control-bindings-v1
+  generated_schemas: sat_sim.a3r.projection_api.projection_schema_bundle
+  exposed_properties:
+  - spacecraft.attitude_control.pointing_status
+  - spacecraft.attitude_control.rw_speed
+  exposed_actions:
+  - spacecraft.attitude_control.enter_safe_mode
+  exposed_effects:
+  - spacecraft.attitude_control.inject_rw_jamming
+  evidence:
+  - spacecraft.attitude_control.pointing_evidence
+execution:
+  schema_version: sat-sim.model-asset-execution-policy.v1
+  adapter_key: basilisk.attitude_control_graph
+  model_ref: spacecraft.demo_satellite@1
+  implementation_id: spacecraft.demo_satellite.basilisk_unified@1
+  parameter_set_id: demo-satellite-attitude-v1
+  binding_set_id: attitude-control-bindings-v1
+  legacy_fallback_adapter_key: legacy.capability
+  legacy_fallback_enabled: false

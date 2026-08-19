@@ -1,0 +1,1265 @@
+{
+  "$defs": {
+    "Assumption": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "value": {
+          "default": null,
+          "title": "Value"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "default": "accepted",
+          "enum": [
+            "accepted",
+            "pending_confirmation",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "title": "Assumption",
+      "type": "object"
+    },
+    "AssuranceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "fidelity_level": {
+          "default": "declared_by_capability",
+          "title": "Fidelity Level",
+          "type": "string"
+        },
+        "claim_level": {
+          "default": "analysis_only",
+          "enum": [
+            "analysis_only",
+            "engineering_estimate",
+            "ground_calibrated",
+            "flight_correlated"
+          ],
+          "title": "Claim Level",
+          "type": "string"
+        },
+        "validation_profile": {
+          "default": "default",
+          "title": "Validation Profile",
+          "type": "string"
+        },
+        "parameter_profile": {
+          "default": "demo",
+          "enum": [
+            "demo",
+            "engineering_estimate",
+            "ground_calibrated",
+            "flight_correlated"
+          ],
+          "title": "Parameter Profile",
+          "type": "string"
+        },
+        "allow_proxy": {
+          "default": false,
+          "title": "Allow Proxy",
+          "type": "boolean"
+        }
+      },
+      "title": "AssuranceSpec",
+      "type": "object"
+    },
+    "ConstraintEvent": {
+      "additionalProperties": false,
+      "description": "Operational state/constraint event, not a hardware fault.\n\nExamples include reaction-wheel speed saturation, actuator command\nsaturation, eclipse entry and resource-limit activation.  These events may\nalter runtime limits or expose state transitions while leaving health-state\nclassification unchanged.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "target": {
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "effect": {
+          "minLength": 1,
+          "title": "Effect",
+          "type": "string"
+        },
+        "start_s": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Start S",
+          "type": "number"
+        },
+        "end_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End S"
+        },
+        "magnitude": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Magnitude"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "implementation": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "native",
+            "proxy"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "delivery": {
+          "default": "modifier",
+          "enum": [
+            "modifier",
+            "legacy_fault",
+            "legacy_degradation",
+            "runtime_parameter",
+            "runtime_constraint"
+          ],
+          "title": "Delivery",
+          "type": "string"
+        },
+        "target_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Type"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "event_type": {
+          "const": "constraint",
+          "default": "constraint",
+          "title": "Event Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "target",
+        "effect"
+      ],
+      "title": "ConstraintEvent",
+      "type": "object"
+    },
+    "DegradationEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "target": {
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "effect": {
+          "minLength": 1,
+          "title": "Effect",
+          "type": "string"
+        },
+        "start_s": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Start S",
+          "type": "number"
+        },
+        "end_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End S"
+        },
+        "magnitude": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Magnitude"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "implementation": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "native",
+            "proxy"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "delivery": {
+          "default": "modifier",
+          "enum": [
+            "modifier",
+            "legacy_fault",
+            "legacy_degradation",
+            "runtime_parameter",
+            "runtime_constraint"
+          ],
+          "title": "Delivery",
+          "type": "string"
+        },
+        "target_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Type"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "event_type": {
+          "const": "degradation",
+          "default": "degradation",
+          "title": "Event Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "target",
+        "effect"
+      ],
+      "title": "DegradationEvent",
+      "type": "object"
+    },
+    "EventsSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "faults": {
+          "items": {
+            "$ref": "#/$defs/FaultEvent"
+          },
+          "title": "Faults",
+          "type": "array"
+        },
+        "degradations": {
+          "items": {
+            "$ref": "#/$defs/DegradationEvent"
+          },
+          "title": "Degradations",
+          "type": "array"
+        },
+        "constraints": {
+          "items": {
+            "$ref": "#/$defs/ConstraintEvent"
+          },
+          "title": "Constraints",
+          "type": "array"
+        }
+      },
+      "title": "EventsSpec",
+      "type": "object"
+    },
+    "FaultEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "target": {
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "effect": {
+          "minLength": 1,
+          "title": "Effect",
+          "type": "string"
+        },
+        "start_s": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Start S",
+          "type": "number"
+        },
+        "end_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End S"
+        },
+        "magnitude": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Magnitude"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "implementation": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "native",
+            "proxy"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "delivery": {
+          "default": "modifier",
+          "enum": [
+            "modifier",
+            "legacy_fault",
+            "legacy_degradation",
+            "runtime_parameter",
+            "runtime_constraint"
+          ],
+          "title": "Delivery",
+          "type": "string"
+        },
+        "target_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Type"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "event_type": {
+          "const": "fault",
+          "default": "fault",
+          "title": "Event Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "target",
+        "effect"
+      ],
+      "title": "FaultEvent",
+      "type": "object"
+    },
+    "FieldProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "user_provided",
+            "user_explicit",
+            "form_default",
+            "template_default",
+            "agent_inferred",
+            "resolver_derived",
+            "legacy_migration"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "FieldProvenance",
+      "type": "object"
+    },
+    "FmeaOutputSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "formats": {
+          "items": {
+            "enum": [
+              "csv",
+              "json"
+            ],
+            "type": "string"
+          },
+          "title": "Formats",
+          "type": "array"
+        }
+      },
+      "title": "FmeaOutputSpec",
+      "type": "object"
+    },
+    "MissionSpec": {
+      "additionalProperties": true,
+      "description": "Mission intent retained across Agent, resolver, plan and Run Bundle.\n\nExtra mission fields remain allowed for backward compatibility, while\n``required_couplings`` is a first-class validated causal contract.",
+      "properties": {
+        "template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Template"
+        },
+        "configuration_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Configuration Source"
+        },
+        "required_couplings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Couplings",
+          "type": "array"
+        }
+      },
+      "title": "MissionSpec",
+      "type": "object"
+    },
+    "ModelBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capability Id"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "spacecraft": {
+          "additionalProperties": true,
+          "title": "Spacecraft",
+          "type": "object"
+        },
+        "orbit_environment": {
+          "additionalProperties": true,
+          "title": "Orbit Environment",
+          "type": "object"
+        },
+        "config": {
+          "additionalProperties": true,
+          "title": "Config",
+          "type": "object"
+        },
+        "legacy_degradations": {
+          "additionalProperties": true,
+          "title": "Legacy Degradations",
+          "type": "object"
+        },
+        "campaign": {
+          "additionalProperties": true,
+          "title": "Campaign",
+          "type": "object"
+        },
+        "simulation_extra": {
+          "additionalProperties": true,
+          "title": "Simulation Extra",
+          "type": "object"
+        },
+        "validation": {
+          "additionalProperties": true,
+          "title": "Validation",
+          "type": "object"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Template"
+        }
+      },
+      "title": "ModelBinding",
+      "type": "object"
+    },
+    "OutputSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "output_root": {
+          "minLength": 1,
+          "title": "Output Root",
+          "type": "string"
+        },
+        "trace_format": {
+          "default": "csv",
+          "enum": [
+            "csv",
+            "parquet",
+            "jsonl"
+          ],
+          "title": "Trace Format",
+          "type": "string"
+        },
+        "qoi": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Qoi",
+          "type": "array"
+        },
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "plots": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Plots",
+          "type": "array"
+        },
+        "telemetry_streams": {
+          "items": {
+            "$ref": "#/$defs/TelemetryStreamSpec"
+          },
+          "title": "Telemetry Streams",
+          "type": "array"
+        },
+        "fmea": {
+          "$ref": "#/$defs/FmeaOutputSpec"
+        },
+        "include_summary": {
+          "default": true,
+          "title": "Include Summary",
+          "type": "boolean"
+        },
+        "include_trace": {
+          "default": true,
+          "title": "Include Trace",
+          "type": "boolean"
+        },
+        "include_labels": {
+          "default": true,
+          "title": "Include Labels",
+          "type": "boolean"
+        },
+        "include_manifest": {
+          "default": true,
+          "title": "Include Manifest",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "output_root"
+      ],
+      "title": "OutputSpec",
+      "type": "object"
+    },
+    "ParameterOverride": {
+      "additionalProperties": true,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "source": {
+          "default": "user_provided",
+          "enum": [
+            "user_provided",
+            "user_explicit",
+            "form_default",
+            "template_default",
+            "agent_inferred",
+            "resolver_derived",
+            "legacy_migration"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "value"
+      ],
+      "title": "ParameterOverride",
+      "type": "object"
+    },
+    "ParameterSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "default": "demo",
+          "enum": [
+            "demo",
+            "engineering_estimate",
+            "ground_calibrated",
+            "flight_correlated"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "values": {
+          "additionalProperties": true,
+          "title": "Values",
+          "type": "object"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/ParameterOverride"
+          },
+          "title": "Overrides",
+          "type": "array"
+        },
+        "registry_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Registry Id"
+        },
+        "registry_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Registry Hash"
+        }
+      },
+      "title": "ParameterSpec",
+      "type": "object"
+    },
+    "ProvenanceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FieldProvenance"
+          },
+          "title": "Fields",
+          "type": "object"
+        },
+        "assumptions": {
+          "items": {
+            "$ref": "#/$defs/Assumption"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "pending_confirmations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pending Confirmations",
+          "type": "array"
+        },
+        "migrated_from_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Migrated From Version"
+        }
+      },
+      "title": "ProvenanceSpec",
+      "type": "object"
+    },
+    "SimulationSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "component",
+            "subsystem",
+            "orbit_environment",
+            "whole_spacecraft",
+            "campaign",
+            "reference"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "subsystem": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subsystem"
+        },
+        "duration_s": {
+          "exclusiveMinimum": 0,
+          "title": "Duration S",
+          "type": "number"
+        },
+        "step_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Step S"
+        },
+        "sample_s": {
+          "exclusiveMinimum": 0,
+          "title": "Sample S",
+          "type": "number"
+        },
+        "random_seed": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Random Seed"
+        },
+        "backend": {
+          "default": "selective_unified_basilisk_assembly",
+          "enum": [
+            "python",
+            "basilisk",
+            "selective_unified_basilisk_assembly"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
+        "time_base": {
+          "default": "simulation_seconds",
+          "enum": [
+            "simulation_seconds",
+            "relative_seconds",
+            "UTC",
+            "JulianDate"
+          ],
+          "title": "Time Base",
+          "type": "string"
+        },
+        "epoch_utc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Epoch Utc"
+        },
+        "time_system": {
+          "default": "UTC",
+          "enum": [
+            "simulation_seconds",
+            "relative_seconds",
+            "UTC",
+            "JulianDate"
+          ],
+          "title": "Time System",
+          "type": "string"
+        },
+        "solver": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolverSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "level",
+        "duration_s",
+        "sample_s"
+      ],
+      "title": "SimulationSpec",
+      "type": "object"
+    },
+    "SolverSpec": {
+      "additionalProperties": true,
+      "properties": {
+        "method": {
+          "default": "euler",
+          "enum": [
+            "euler",
+            "rk4"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "step_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Step S"
+        },
+        "rtol": {
+          "default": 1e-09,
+          "minimum": 0,
+          "title": "Rtol",
+          "type": "number"
+        },
+        "atol": {
+          "default": 1e-12,
+          "minimum": 0,
+          "title": "Atol",
+          "type": "number"
+        },
+        "deterministic_seed": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deterministic Seed"
+        },
+        "include_endpoint": {
+          "default": true,
+          "title": "Include Endpoint",
+          "type": "boolean"
+        }
+      },
+      "title": "SolverSpec",
+      "type": "object"
+    },
+    "TargetBinding": {
+      "additionalProperties": true,
+      "properties": {
+        "level": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "mode": {
+          "default": "nominal",
+          "enum": [
+            "nominal",
+            "fault",
+            "degradation",
+            "mixed",
+            "monte_carlo",
+            "constraint"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "title": "TargetBinding",
+      "type": "object"
+    },
+    "TaskIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "TaskIdentity",
+      "type": "object"
+    },
+    "TelemetryStreamSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "stream_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Stream Id",
+          "type": "string"
+        },
+        "sample_s": {
+          "exclusiveMinimum": 0,
+          "title": "Sample S",
+          "type": "number"
+        },
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        },
+        "format": {
+          "default": "csv",
+          "enum": [
+            "csv",
+            "jsonl"
+          ],
+          "title": "Format",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stream_id",
+        "sample_s",
+        "fields"
+      ],
+      "title": "TelemetryStreamSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "task": {
+      "$ref": "#/$defs/TaskIdentity"
+    },
+    "simulation": {
+      "$ref": "#/$defs/SimulationSpec"
+    },
+    "mission": {
+      "$ref": "#/$defs/MissionSpec"
+    },
+    "parameters": {
+      "$ref": "#/$defs/ParameterSpec"
+    },
+    "events": {
+      "$ref": "#/$defs/EventsSpec"
+    },
+    "outputs": {
+      "$ref": "#/$defs/OutputSpec"
+    },
+    "assurance": {
+      "$ref": "#/$defs/AssuranceSpec"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelBinding"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ProvenanceSpec"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "task",
+    "simulation",
+    "outputs"
+  ],
+  "title": "Satellite Simulation Canonical TaskSpec v1.0",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/task-spec-v1.schema.json"
+}

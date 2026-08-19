@@ -1,0 +1,79 @@
+capability_id: component.thruster.v1
+schema_version: 0.1.0
+name: Thruster component simulation
+level: component
+domain: propulsion
+target: thruster
+trust_level: conformance_tested
+summary: Deterministic source-native thrust impulse and propellant-use model.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.ThrusterAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.thruster.model, components.thruster.schemas]
+  legacy_demo_runner: components.thruster.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [valve_stuck_closed, valve_stuck_open, nozzle_blockage]
+  degradation:
+    supported: true
+    degradation_types: [isp_decay, thrust_coefficient_drift]
+parameters:
+  thrust_n: {type: number, unit: N, required: false, default: 1.0, min: 0.0}
+  isp_s: {type: number, unit: s, required: false, default: 280.0, min: 0.000001}
+  on_time_s: {type: number, unit: s, required: false, default: 0.1, min: 0.0}
+  on_time_profile_s: {type: "array[number]", unit: s, required: false}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: propulsion.thruster.cumulative_impulse_ns, unit: "N*s", dtype: number}
+  - {name: propulsion.thruster.cumulative_propellant_kg, unit: kg, dtype: number}
+  summary:
+  - {name: propulsion.thruster.total_impulse_ns, unit: "N*s"}
+  - {name: propulsion.thruster.propellant_used_kg, unit: kg}
+operator:
+  owner: thruster
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: thruster
+    implementation: source_native
+    evidence_fields: [propulsion.thruster.cumulative_impulse_ns, propulsion.thruster.cumulative_propellant_kg]
+    verification: declared
+  - {effect_id: valve_stuck_closed, kind: fault, owner: thruster, implementation: source_native, evidence_fields: [propulsion.thruster.on_time_s], verification: declared}
+  - {effect_id: valve_stuck_open, kind: fault, owner: thruster, implementation: source_native, evidence_fields: [propulsion.thruster.on_time_s], verification: declared}
+  - {effect_id: nozzle_blockage, kind: fault, owner: thruster, implementation: source_native, evidence_fields: [propulsion.thruster.effective_thrust_n], verification: declared}
+  - {effect_id: isp_decay, kind: degradation, owner: thruster, implementation: source_native, evidence_fields: [propulsion.thruster.effective_isp_s], verification: declared}
+  - {effect_id: thrust_coefficient_drift, kind: degradation, owner: thruster, implementation: source_native, evidence_fields: [propulsion.thruster.effective_thrust_n], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.thruster.model
+  source_modules: [components.thruster.model, components.thruster.schemas]
+  public_api: [compute_thruster_pulse, ThrusterPhysicalConfig]
+  legacy_demo_runner: components.thruster.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Ideal constant-thrust pulse model; no plume or valve transient dynamics.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; orbit and fuel coupling require the propulsion capability.]

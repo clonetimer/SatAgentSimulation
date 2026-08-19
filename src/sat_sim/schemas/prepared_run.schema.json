@@ -1,0 +1,77 @@
+{
+  "$defs": {
+    "RunStatus": {
+      "enum": [
+        "PREPARED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v25.run-bundle.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "bundle_root": {
+      "title": "Bundle Root",
+      "type": "string"
+    },
+    "canonical_task_spec_sha256": {
+      "title": "Canonical Task Spec Sha256",
+      "type": "string"
+    },
+    "resolved_spec_sha256": {
+      "title": "Resolved Spec Sha256",
+      "type": "string"
+    },
+    "execution_plan_sha256": {
+      "title": "Execution Plan Sha256",
+      "type": "string"
+    },
+    "primary_capability_id": {
+      "title": "Primary Capability Id",
+      "type": "string"
+    },
+    "prepared_at": {
+      "title": "Prepared At",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus",
+      "default": "PREPARED"
+    },
+    "commit_required": {
+      "default": true,
+      "title": "Commit Required",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "run_id",
+    "task_id",
+    "bundle_root",
+    "canonical_task_spec_sha256",
+    "resolved_spec_sha256",
+    "execution_plan_sha256",
+    "primary_capability_id",
+    "prepared_at"
+  ],
+  "title": "Satellite Simulation PreparedRun V25",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/prepared-run-v25.schema.json"
+}

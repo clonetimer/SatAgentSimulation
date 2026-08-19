@@ -1,0 +1,195 @@
+capability_id: subsystem.thermal.source_native.v1
+schema_version: 0.1.0
+name: Thermal source-native subsystem simulation
+level: subsystem
+domain: thermal
+target: thermal
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native thermal subsystem capability using existing src/subsystems builder/model APIs without demo runner execution.
+adapter:
+  class_path: sat_sim.adapters.subsystem_source_native.ThermalSourceNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - subsystems.thermal.builder
+  - subsystems.thermal.model
+  - subsystems.thermal.schemas
+  legacy_demo_runner: subsystems.thermal.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+parameters:
+  initial_battery_temp_k:
+    type: number
+    required: false
+    default: 290.0
+  payload_power_w:
+    type: number
+    required: false
+    default: 20.0
+  eps_power_w:
+    type: number
+    required: false
+    default: 5.0
+  shadow_factor:
+    type: number
+    required: false
+    default: 1.0
+  heater_enabled:
+    type: boolean
+    required: false
+    default: true
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.initial_battery_temp_k
+  unit: mixed
+- name: parameters.payload_power_w
+  unit: mixed
+- name: parameters.eps_power_w
+  unit: mixed
+- name: parameters.shadow_factor
+  unit: mixed
+- name: parameters.heater_enabled
+  unit: mixed
+produces:
+- name: thermal.source_native.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: thermal.source_native.battery_temp_k
+    unit: K
+    dtype: number
+    description: 热控原生电池温度。运行器实际输出字段；技术字段为 thermal.source_native.battery_temp_k，单位 K。
+  - name: thermal.source_native.electronics_temp_k
+    unit: K
+    dtype: number
+    description: 热控原生温度。运行器实际输出字段；技术字段为 thermal.source_native.electronics_temp_k，单位 K。
+  - name: thermal.source_native.payload_temp_k
+    unit: K
+    dtype: number
+    description: 热控原生载荷温度。运行器实际输出字段；技术字段为 thermal.source_native.payload_temp_k，单位 K。
+  - name: thermal.source_native.heater_power_w
+    unit: W
+    dtype: number
+    description: 热控原生加热器功率功率。运行器实际输出字段；技术字段为 thermal.source_native.heater_power_w，单位 W。
+  - name: thermal.source_native.thermal_safe_request
+    unit: bool
+    dtype: number
+    description: 热控原生热控。运行器实际输出字段；技术字段为 thermal.source_native.thermal_safe_request，单位 bool。
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c5_thermal_source_native_run_and_manifest
+  - test_c5_thermal_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c4c6_new_source_native_subsystem_adapter
+  primary_module: subsystems.thermal.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_thermal_config
+  - initialize_thermal_state
+  - simulate_thermal_profile
+  legacy_demo_runner: subsystems.thermal.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around existing pure-Python subsystem builder/model
+    APIs.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+- does not implement finite-element or high-fidelity thermal network validation
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+- planned_public_reference
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/subsystems/thermal/basilisk_scheduled.py
+  - src/subsystems/thermal/thermal_network.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Current thermal capability is source/local reduced lumping or component wrapper; general high-fidelity thermal
+    network is outside current claim and planned under THERM.
+  planned_upgrade_path:
+  - THERM-1
+  - THERM-0
+  - SAT-REF-1
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added
+  - does not implement finite-element or high-fidelity thermal network validation
+model_projection:
+  schema_version: sat-sim.capability-projection.v1
+  projection_id: thermal-source-native-projection-v1
+  model_ref: subsystem.thermal_source_native@1
+  graph_ref: subsystem.thermal_source_native@1
+  operations_object_ref: spacecraft.thermal
+  parameter_set_id: thermal-source-native-demo-v1
+  implementation_id: subsystem.thermal_source_native.python@1
+  binding_set_id: thermal-source-native-bindings-v1
+  generated_schemas: sat_sim.a5r.projection_api.projection_schema_bundle
+  exposed_properties:
+  - spacecraft.thermal.battery_temp_k
+  - spacecraft.thermal.electronics_temp_k
+  - spacecraft.thermal.safe_request
+  exposed_actions: []
+  exposed_effects: []
+  evidence:
+  - spacecraft.thermal.safety_evidence
+execution:
+  schema_version: sat-sim.model-asset-execution-policy.v1
+  adapter_key: python.thermal_source_native_graph
+  model_ref: subsystem.thermal_source_native@1
+  implementation_id: subsystem.thermal_source_native.python@1
+  parameter_set_id: thermal-source-native-demo-v1
+  binding_set_id: thermal-source-native-bindings-v1
+  legacy_fallback_adapter_key: legacy.capability
+  legacy_fallback_enabled: false

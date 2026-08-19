@@ -1,0 +1,1538 @@
+{
+  "schema_version": "parameter-provenance-calibration-v1.1",
+  "registry_id": "engineering_estimate_registry_v1",
+  "profile": "engineering_estimate",
+  "minimum_confidence": "engineering_estimate",
+  "created_for_batch": "CALIBRATION-EVIDENCE-SURROGATE-1",
+  "scope": "Surrogate engineering-estimate profile for whole-spacecraft mission closure when no real calibration datasets are available.",
+  "calibration_dataset_manifest": "data/calibration/manifest_v1.json",
+  "evidence_sources": "configs/parameters/evidence_sources_v1.json",
+  "disclaimer": "This registry supports engineering-estimate analysis only. It must not be reported as ground_calibrated or flight_correlated.",
+  "parameters": [
+    {
+      "parameter_id": "whole.adcs_dyn_step_s",
+      "owner": "whole",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.adcs_dyn_step_s",
+      "native_target": "Basilisk task cadence",
+      "value": 0.2,
+      "unit": "s",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.18000000000000002,
+        "upper": 0.22000000000000003,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.adcs_fsw_step_s",
+      "owner": "whole",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.adcs_fsw_step_s",
+      "native_target": "Basilisk FSW task cadence",
+      "value": 0.2,
+      "unit": "s",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.18000000000000002,
+        "upper": 0.22000000000000003,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.mission_initial_sigma_bn",
+      "owner": "whole",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.mission_initial_sigma_bn",
+      "native_target": "spacecraft.hub.sigma_BNInit",
+      "value": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "unit": "MRP",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded_vector",
+        "lower": [
+          -0.001,
+          -0.001,
+          -0.001
+        ],
+        "upper": [
+          0.001,
+          0.001,
+          0.001
+        ],
+        "rationale": "Surrogate bounded engineering estimate; replace with CAD/test covariance when available."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.mission_initial_omega_bn_b_rad_s",
+      "owner": "whole",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.mission_initial_omega_bn_b_rad_s",
+      "native_target": "spacecraft.hub.omega_BN_BInit",
+      "value": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "unit": "rad/s",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded_vector",
+        "lower": [
+          -0.001,
+          -0.001,
+          -0.001
+        ],
+        "upper": [
+          0.001,
+          0.001,
+          0.001
+        ],
+        "rationale": "Surrogate bounded engineering estimate; replace with CAD/test covariance when available."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.battery_capacity_wh",
+      "owner": "eps",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.battery_capacity_wh",
+      "native_target": "simpleBattery.storageCapacity",
+      "value": 160.0,
+      "unit": "Wh",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 144.0,
+        "upper": 176.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.initial_soc",
+      "owner": "whole",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.initial_soc",
+      "native_target": "simpleBattery.storedCharge_Init/storageCapacity",
+      "value": 0.62,
+      "unit": "dimensionless",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.57,
+        "upper": 0.67,
+        "rationale": "Initial SOC pre-mission preparation estimate."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.solar_power_w",
+      "owner": "eps",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.solar_power_w",
+      "native_target": "simpleSolarPanel/equivalent power source",
+      "value": 95.0,
+      "unit": "W",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 85.5,
+        "upper": 104.50000000000001,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.payload_power_w",
+      "owner": "eps",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.payload_power_w",
+      "native_target": "simplePowerSink payload node",
+      "value": 38.0,
+      "unit": "W",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 34.2,
+        "upper": 41.800000000000004,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.bus_power_w",
+      "owner": "eps",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.bus_power_w",
+      "native_target": "simplePowerSink bus node",
+      "value": 18.0,
+      "unit": "W",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 16.2,
+        "upper": 19.8,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.instrument_baud_bps",
+      "owner": "payload_comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.instrument_baud_bps",
+      "native_target": "simpleInstrument.nodeDataOutMsg",
+      "value": 2500000.0,
+      "unit": "bit/s",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 2250000.0,
+        "upper": 2750000.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.storage_capacity_bits",
+      "owner": "payload_comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.storage_capacity_bits",
+      "native_target": "simpleStorageUnit.storageCapacity",
+      "value": 6000000000.0,
+      "unit": "bit",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 5400000000.0,
+        "upper": 6600000000.000001,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.storage_initial_bits",
+      "owner": "payload_comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.storage_initial_bits",
+      "native_target": "simpleStorageUnit.setDataBuffer",
+      "value": 0.0,
+      "unit": "bit",
+      "confidence": "engineering_estimate",
+      "source_type": "bounded_assumption",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#bounded_assumption",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": -1e-09,
+        "upper": 1e-09,
+        "rationale": "Zero nominal bounded for numeric stability; replace with measured tolerance."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.transmitter_baud_bps",
+      "owner": "whole",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.transmitter_baud_bps",
+      "native_target": "simpleTransmitter.nodeBaudRate compatibility path",
+      "value": 1500000.0,
+      "unit": "bit/s",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 1350000.0,
+        "upper": 1650000.0000000002,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_bit_rate_request_bps",
+      "owner": "comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.native_downlink_bit_rate_request_bps",
+      "native_target": "downlinkHandling.bitRateRequest",
+      "value": 1500000.0,
+      "unit": "bit/s",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 1350000.0,
+        "upper": 1650000.0000000002,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_packet_size_bits",
+      "owner": "comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.native_downlink_packet_size_bits",
+      "native_target": "downlinkHandling.packetSize",
+      "value": 1000.0,
+      "unit": "bit",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 900.0,
+        "upper": 1100.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_max_retransmissions",
+      "owner": "comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.native_downlink_max_retransmissions",
+      "native_target": "downlinkHandling.maxRetransmissions",
+      "value": 1,
+      "unit": "count",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "integer_range",
+        "lower": 0,
+        "upper": 2,
+        "rationale": "Integer setting surrogate range."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_cnr_linear",
+      "owner": "comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.native_downlink_cnr_linear",
+      "native_target": "MissionGate LinkBudget CNR floor for demo",
+      "value": 1000000000.0,
+      "unit": "dimensionless",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "log_uniform",
+        "lower": 300000000.0,
+        "upper": 3000000000.0,
+        "rationale": "Surrogate RF link-quality prior; not BER test calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_distance_m",
+      "owner": "comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.native_downlink_distance_m",
+      "native_target": "LinkBudgetMsg.distance demo fallback",
+      "value": 500000.0,
+      "unit": "m",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 450000.0,
+        "upper": 550000.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_bandwidth_hz",
+      "owner": "comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.native_downlink_bandwidth_hz",
+      "native_target": "LinkBudgetMsg.bandwidth",
+      "value": 1000000.0,
+      "unit": "Hz",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 900000.0,
+        "upper": 1100000.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.native_downlink_frequency_hz",
+      "owner": "comm_data",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.native_downlink_frequency_hz",
+      "native_target": "SimpleAntenna/linkBudget frequency",
+      "value": 2200000000.0,
+      "unit": "Hz",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 1980000000.0,
+        "upper": 2420000000.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.thermal_step_s",
+      "owner": "thermal",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.thermal_step_s",
+      "native_target": "thermal network/update cadence",
+      "value": 10.0,
+      "unit": "s",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 9.0,
+        "upper": 11.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.thermal_heat_power_w",
+      "owner": "thermal",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.thermal_heat_power_w",
+      "native_target": "thermal heat input",
+      "value": 30.0,
+      "unit": "W",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 27.0,
+        "upper": 33.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.orb_env_step_s",
+      "owner": "environment",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.orb_env_step_s",
+      "native_target": "environment task cadence",
+      "value": 1.0,
+      "unit": "s",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.9,
+        "upper": 1.1,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.orb_env_sun_model",
+      "owner": "environment",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.orb_env_sun_model",
+      "native_target": "orbit_environment sun model selector",
+      "value": "fixed",
+      "unit": "enum",
+      "confidence": "engineering_estimate",
+      "source_type": "public_literature",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#public_literature",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "categorical_fixed",
+        "options": [
+          "fixed"
+        ],
+        "rationale": "Categorical model choice fixed by current engineering-estimate surrogate profile."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.orb_env_magnetic_field_model",
+      "owner": "environment",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.orb_env_magnetic_field_model",
+      "native_target": "orbit_environment magnetic model selector",
+      "value": "dipole",
+      "unit": "enum",
+      "confidence": "engineering_estimate",
+      "source_type": "public_literature",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#public_literature",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "categorical_fixed",
+        "options": [
+          "dipole"
+        ],
+        "rationale": "Categorical model choice fixed by current engineering-estimate surrogate profile."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.orb_env_spice_epoch_utc",
+      "owner": "environment",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.orb_env_spice_epoch_utc",
+      "native_target": "spiceInterface.epochInMsg",
+      "value": "2025 JAN 01 00:00:00.000",
+      "unit": "UTC",
+      "confidence": "engineering_estimate",
+      "source_type": "public_literature",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#public_literature",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "categorical_fixed",
+        "options": [
+          "2025 JAN 01 00:00:00.000"
+        ],
+        "rationale": "Categorical model choice fixed by current engineering-estimate surrogate profile."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "whole.orb_env_enable_eclipse",
+      "owner": "environment",
+      "config_path": "whole_spacecraft.WholeSpacecraftConfig.orb_env_enable_eclipse",
+      "native_target": "eclipse module enable",
+      "value": true,
+      "unit": "bool",
+      "confidence": "engineering_estimate",
+      "source_type": "public_literature",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#public_literature",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "fixed_by_design",
+        "rationale": "Boolean mission-model switch fixed for engineering-estimate surrogate profile."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.spacecraft_mass_kg",
+      "owner": "adcs",
+      "config_path": "subsystems.adcs.RwOnlyClosedLoopConfig.spacecraft_mass_kg",
+      "native_target": "spacecraft.hub.mHub",
+      "value": 120.0,
+      "unit": "kg",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 108.0,
+        "upper": 132.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.spacecraft_inertia_kg_m2",
+      "owner": "adcs",
+      "config_path": "subsystems.adcs.RwOnlyClosedLoopConfig.spacecraft_inertia_kg_m2",
+      "native_target": "spacecraft.hub.IHubPntBc_B",
+      "value": [
+        12.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        0.0,
+        0.0,
+        0.0,
+        8.0
+      ],
+      "unit": "kg*m^2",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded_vector",
+        "lower": [
+          10.8,
+          -0.1,
+          -0.1,
+          -0.1,
+          9.0,
+          -0.1,
+          -0.1,
+          -0.1,
+          7.2
+        ],
+        "upper": [
+          13.2,
+          0.1,
+          0.1,
+          0.1,
+          11.0,
+          0.1,
+          0.1,
+          0.1,
+          8.8
+        ],
+        "rationale": "Surrogate bounded engineering estimate; replace with CAD/test covariance when available."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.rw.wheel_js",
+      "owner": "adcs",
+      "config_path": "components.reaction_wheel.ReactionWheelSpec.wheel_js",
+      "native_target": "rwFactory.create.Js",
+      "value": 0.015,
+      "unit": "kg*m^2",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.0135,
+        "upper": 0.0165,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.rw.u_max_nm",
+      "owner": "adcs",
+      "config_path": "components.reaction_wheel.ReactionWheelSpec.u_max_nm",
+      "native_target": "rwFactory.create.u_max",
+      "value": 0.25,
+      "unit": "N*m",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.225,
+        "upper": 0.275,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.rw.omega_max_rad_s",
+      "owner": "adcs",
+      "config_path": "components.reaction_wheel.ReactionWheelSpec.omega_max_rad_s",
+      "native_target": "rwFactory.create.Omega_max",
+      "value": 1047.2,
+      "unit": "rad/s",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 942.48,
+        "upper": 1151.92,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.rw.fCoulomb",
+      "owner": "adcs",
+      "config_path": "components.reaction_wheel.ReactionWheelSpec.fCoulomb",
+      "native_target": "rwFactory.create.fCoulomb",
+      "value": 0.0,
+      "unit": "N*m",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": -1e-09,
+        "upper": 1e-09,
+        "rationale": "Zero nominal bounded for numeric stability; replace with measured tolerance."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.rw.cViscous",
+      "owner": "adcs",
+      "config_path": "components.reaction_wheel.ReactionWheelSpec.cViscous",
+      "native_target": "rwFactory.create.cViscous",
+      "value": 0.0,
+      "unit": "N*m*s/rad",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": -1e-09,
+        "upper": 1e-09,
+        "rationale": "Zero nominal bounded for numeric stability; replace with measured tolerance."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.imu.gyro_scale",
+      "owner": "adcs",
+      "config_path": "components.imu.ImuConfig.gyro_scale",
+      "native_target": "imuSensor.gyroScale",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.9,
+        "upper": 1.1,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.magnetometer.scale_factor",
+      "owner": "adcs",
+      "config_path": "components.magnetometer.MagnetometerConfig.scale_factor",
+      "native_target": "magnetometer.scaleFactor",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.9,
+        "upper": 1.1,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "adcs.css.scale_factor",
+      "owner": "adcs",
+      "config_path": "components.sun_sensor.CoarseSunSensorConfig.scale_factor",
+      "native_target": "coarseSunSensor.scaleFactor",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.9,
+        "upper": 1.1,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "comm.rf.spacecraft_antenna_tx_power_w",
+      "owner": "comm_data",
+      "config_path": "components.antenna.AntennaConfig.transmit_power_w",
+      "native_target": "simpleAntenna.P_Tx",
+      "value": 5.0,
+      "unit": "W",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 4.5,
+        "upper": 5.5,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "comm.rf.frequency_hz",
+      "owner": "comm_data",
+      "config_path": "components.antenna.AntennaConfig.frequency_hz",
+      "native_target": "simpleAntenna.frequency/linkBudget.frequency",
+      "value": 2200000000.0,
+      "unit": "Hz",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 1980000000.0,
+        "upper": 2420000000.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "comm.rf.bandwidth_hz",
+      "owner": "comm_data",
+      "config_path": "components.antenna.AntennaConfig.bandwidth_hz",
+      "native_target": "simpleAntenna.B/linkBudget.bandwidth",
+      "value": 1000000.0,
+      "unit": "Hz",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 900000.0,
+        "upper": 1100000.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "eps.battery.fault_capacity_ratio_nominal",
+      "owner": "eps",
+      "config_path": "components.battery.BatteryNativeConfig.fault_capacity_ratio",
+      "native_target": "PowerStorageFaultMsgPayload.faultCapacityRatio",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.9,
+        "upper": 1.1,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "eps.solar.panel_area_m2",
+      "owner": "eps",
+      "config_path": "components.solar_panel.SolarPanelConfig.panel_area_m2",
+      "native_target": "simpleSolarPanel.panelArea",
+      "value": 0.65,
+      "unit": "m^2",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.5850000000000001,
+        "upper": 0.7150000000000001,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "thermal.node.initial_temp_k",
+      "owner": "thermal",
+      "config_path": "components.thermal_node.ThermalNodeConfig.initial_temp_k",
+      "native_target": "project thermal network initial temp",
+      "value": 298.15,
+      "unit": "K",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 268.335,
+        "upper": 327.965,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "thermal.node.heat_capacity_j_k",
+      "owner": "thermal",
+      "config_path": "components.thermal_node.ThermalNodeConfig.heat_capacity_j_k",
+      "native_target": "project thermal network heat capacity",
+      "value": 1200.0,
+      "unit": "J/K",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 1080.0,
+        "upper": 1320.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "propulsion.thruster.max_thrust_n",
+      "owner": "propulsion",
+      "config_path": "components.thruster.ThrusterPhysicalConfig.thrust_n",
+      "native_target": "thrusterFactory.create.MaxThrust",
+      "value": 1.0,
+      "unit": "N",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.9,
+        "upper": 1.1,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "propulsion.thruster.steady_isp_s",
+      "owner": "propulsion",
+      "config_path": "components.thruster.ThrusterPhysicalConfig.isp_s",
+      "native_target": "thrusterFactory.create.steadyIsp",
+      "value": 280.0,
+      "unit": "s",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 252.0,
+        "upper": 308.0,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "propulsion.thruster.min_on_time_s",
+      "owner": "propulsion",
+      "config_path": "components.thruster.ThrusterCommandConfig.min_pulse_s",
+      "native_target": "thrusterFactory.create.MinOnTime",
+      "value": 0.02,
+      "unit": "s",
+      "confidence": "engineering_estimate",
+      "source_type": "vendor_datasheet",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#vendor_datasheet",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.018000000000000002,
+        "upper": 0.022000000000000002,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "propulsion.fuel_tank.initial_mass_kg",
+      "owner": "propulsion",
+      "config_path": "components.fuel_tank.FuelTankConfig.initial_mass_kg",
+      "native_target": "fuelTank.propMassInit",
+      "value": 2.0,
+      "unit": "kg",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 1.8,
+        "upper": 2.2,
+        "rationale": "Default ±10% engineering-estimate surrogate range; not calibrated."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    },
+    {
+      "parameter_id": "propulsion.fuel_tank.leak_rate_kg_s",
+      "owner": "propulsion",
+      "config_path": "components.fuel_tank.FuelTankConfig.leak_rate_kg_s",
+      "native_target": "MassFlowRateMsgPayload.massFlowRate -> FuelTank.fuelLeakRateInMsg",
+      "value": 0.0,
+      "unit": "kg/s",
+      "confidence": "engineering_estimate",
+      "source_type": "design_derived",
+      "source_ref": "configs/parameters/evidence_sources_v1.json#design_derived",
+      "approval_status": "reviewed_assumption",
+      "uncertainty": {
+        "distribution": "bounded",
+        "lower": 0.0,
+        "upper": 1e-07,
+        "rationale": "No-leak nominal with small surrogate upper-bound for sensitivity."
+      },
+      "validity": {
+        "extrapolation_allowed": false,
+        "temperature_c": null,
+        "operating_range": "V19 surrogate engineering-estimate profile; valid only for demo mission envelope until replaced by test/vendor evidence."
+      },
+      "calibration": {
+        "method": "surrogate_evidence_prior",
+        "dataset_id": null,
+        "validation_rmse": null,
+        "validation_status": "not_ground_calibrated"
+      },
+      "notes": "Engineering-estimate surrogate record created for V19 when real calibration data are unavailable. It is not ground calibrated or flight correlated."
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+capability_id: component.battery.v1
+task_type: component
+target:
+  level: component
+  name: battery
+  mode: nominal

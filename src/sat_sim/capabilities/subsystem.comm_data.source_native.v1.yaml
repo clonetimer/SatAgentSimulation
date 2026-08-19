@@ -1,0 +1,177 @@
+capability_id: subsystem.comm_data.source_native.v1
+schema_version: 0.1.0
+name: Comm/Data source-native subsystem simulation
+level: subsystem
+domain: comm_data
+target: comm_data
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: Source-native comm_data subsystem capability using existing src/subsystems builder/model APIs without demo runner
+  execution.
+adapter:
+  class_path: sat_sim.adapters.subsystem_source_native.CommDataSourceNativeAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: &id001
+  - subsystems.comm_data.builder
+  - subsystems.comm_data.model
+  - subsystems.comm_data.schemas
+  legacy_demo_runner: subsystems.comm_data.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+parameters:
+  queue_capacity_bits:
+    type: number
+    required: false
+    default: 10000.0
+  initial_queue_bits:
+    type: number
+    required: false
+    default: 0.0
+  generated_bps:
+    type: number
+    required: false
+    default: 500.0
+  max_downlink_bps:
+    type: number
+    required: false
+    default: 800.0
+  access_override:
+    type: boolean
+    required: false
+    default: true
+  eps_allows_downlink:
+    type: boolean
+    required: false
+    default: true
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.queue_capacity_bits
+  unit: mixed
+- name: parameters.initial_queue_bits
+  unit: mixed
+- name: parameters.generated_bps
+  unit: mixed
+- name: parameters.max_downlink_bps
+  unit: mixed
+- name: parameters.access_override
+  unit: mixed
+- name: parameters.eps_allows_downlink
+  unit: mixed
+produces:
+- name: comm_data.source_native.*
+- name: label.health_state
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: comm_data.source_native.queue_bits
+    unit: bit
+    dtype: number
+    description: 通信数据原生队列比特。运行器实际输出字段；技术字段为 comm_data.source_native.queue_bits，单位 bit。
+  - name: comm_data.source_native.generated_bps
+    unit: bit/s
+    dtype: number
+    description: 通信数据原生已生成比特率。运行器实际输出字段；技术字段为 comm_data.source_native.generated_bps，单位 bit/s。
+  - name: comm_data.source_native.downlink_rate_bps
+    unit: bit/s
+    dtype: number
+    description: 通信数据原生下行角速度比特率。运行器实际输出字段；技术字段为 comm_data.source_native.downlink_rate_bps，单位 bit/s。
+  - name: comm_data.source_native.has_access
+    unit: bool
+    dtype: number
+    description: 通信数据原生可见。运行器实际输出字段；技术字段为 comm_data.source_native.has_access，单位 bool。
+  - name: comm_data.source_native.eps_allows_downlink
+    unit: mixed
+    dtype: number
+    description: 通信数据原生能源允许下行。运行器实际输出字段；技术字段为 comm_data.source_native.eps_allows_downlink。
+  - name: comm_data.source_native.cumulative_downlinked_bits
+    unit: bit
+    dtype: number
+    description: 通信数据原生累计已下行比特。运行器实际输出字段；技术字段为 comm_data.source_native.cumulative_downlinked_bits，单位 bit。
+  - name: comm_data.source_native.cumulative_dropped_bits
+    unit: bit
+    dtype: number
+    description: 通信数据原生累计已丢弃比特。运行器实际输出字段；技术字段为 comm_data.source_native.cumulative_dropped_bits，单位 bit。
+  summary:
+  - name: qoi.*
+    unit: mixed
+validation:
+  conformance_tests:
+  - test_c5_comm_data_source_native_run_and_manifest
+  - test_c5_comm_data_capability_python_export_runs
+source_binding:
+  mode: source_native
+  status: c4c6_new_source_native_subsystem_adapter
+  primary_module: subsystems.comm_data.builder
+  source_modules: *id001
+  public_api:
+  - build_nominal_comm_data_config
+  - initialize_comm_data_state
+  - simulate_comm_data_profile
+  legacy_demo_runner: subsystems.comm_data.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Added in C4/C5/C6 coverage completion as a source-native wrapper around existing pure-Python subsystem builder/model
+    APIs.
+fidelity_level: basic
+known_physics_limits:
+- source-native wrapper of existing src public API; no additional high-fidelity physics added
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active product capability.
+backend_type: orchestration_wrapper
+validation_basis: &id002
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: orchestration_wrapper
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/subsystems/comm_data/builder.py
+  - src/subsystems/comm_data/runner.py
+  validation_basis: *id002
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Source tree contains Basilisk-facing candidate modules, but this Agent capability does not currently require
+    or guarantee Basilisk-native execution.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - source-native wrapper of existing src public API; no additional high-fidelity physics added

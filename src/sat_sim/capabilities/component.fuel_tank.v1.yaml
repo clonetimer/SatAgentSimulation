@@ -1,0 +1,80 @@
+capability_id: component.fuel_tank.v1
+schema_version: 0.1.0
+name: Fuel tank component simulation
+level: component
+domain: propulsion
+target: fuel_tank
+trust_level: conformance_tested
+summary: Deterministic source-native propellant mass and engineering pressure model.
+adapter:
+  class_path: sat_sim.adapters.component_source_native_misc.FuelTankAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules: [components.fuel_tank.model, components.fuel_tank.schemas]
+  legacy_demo_runner: components.fuel_tank.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal: {supported: true}
+  fault:
+    supported: true
+    fault_types: [leak, outlet_blockage, pressure_sensor_fault]
+  degradation:
+    supported: true
+    degradation_types: [pressure_decay, outlet_aging]
+parameters:
+  capacity_kg: {type: number, unit: kg, required: false, default: 3.0, min: 0.000001}
+  initial_mass_kg: {type: number, unit: kg, required: false, default: 2.0, min: 0.0}
+  full_pressure_pa: {type: number, unit: Pa, required: false, default: 2500000.0, min: 0.0}
+  dry_pressure_pa: {type: number, unit: Pa, required: false, default: 150000.0, min: 0.0}
+  mass_flow_kg_s: {type: number, unit: kg/s, required: false, default: 0.001, min: 0.0}
+simulation_parameters:
+  duration_s: {unit: s, required: true, min: 1.0}
+  sample_s: {unit: s, required: true, min: 0.001}
+outputs:
+  trace:
+  - {name: propulsion.fuel_tank.propellant_mass_kg, unit: kg, dtype: number}
+  - {name: propulsion.fuel_tank.pressure_pa, unit: Pa, dtype: number}
+  summary:
+  - {name: propulsion.fuel_tank.final_mass_kg, unit: kg}
+  - {name: propulsion.fuel_tank.consumed_mass_kg, unit: kg}
+operator:
+  owner: fuel_tank
+  effects:
+  - effect_id: nominal
+    kind: nominal
+    owner: fuel_tank
+    implementation: source_native
+    evidence_fields: [propulsion.fuel_tank.propellant_mass_kg, propulsion.fuel_tank.pressure_pa]
+    verification: declared
+  - {effect_id: leak, kind: fault, owner: fuel_tank, implementation: source_native, evidence_fields: [propulsion.fuel_tank.propellant_mass_kg], verification: declared}
+  - {effect_id: outlet_blockage, kind: fault, owner: fuel_tank, implementation: source_native, evidence_fields: [propulsion.fuel_tank.commanded_mass_flow_kg_s], verification: declared}
+  - {effect_id: pressure_sensor_fault, kind: fault, owner: fuel_tank, implementation: source_native, evidence_fields: [propulsion.fuel_tank.pressure_pa], verification: declared}
+  - {effect_id: pressure_decay, kind: degradation, owner: fuel_tank, implementation: source_native, evidence_fields: [propulsion.fuel_tank.pressure_pa], verification: declared}
+  - {effect_id: outlet_aging, kind: degradation, owner: fuel_tank, implementation: source_native, evidence_fields: [propulsion.fuel_tank.commanded_mass_flow_kg_s], verification: declared}
+source_binding:
+  mode: source_native
+  status: direct_public_api
+  primary_module: components.fuel_tank.model
+  source_modules: [components.fuel_tank.model, components.fuel_tank.schemas]
+  public_api: [initialize_fuel_tank, simulate_mass_flow_profile]
+  legacy_demo_runner: components.fuel_tank.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: basic
+known_physics_limits: [Pressure is an engineering proxy and is not a calibrated tank thermodynamic model.]
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Independent product component capability.
+backend_type: orchestration_wrapper
+can_claim_high_fidelity: false
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings: {supported: [], unsupported: ["*"]}
+  limitations: [Independent component model; system coupling requires the propulsion capability.]

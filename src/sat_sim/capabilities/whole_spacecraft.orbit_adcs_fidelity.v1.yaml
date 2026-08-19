@@ -1,0 +1,499 @@
+capability_id: whole_spacecraft.orbit_adcs_fidelity.v1
+schema_version: 0.1.0
+name: Orbit + ADCS fidelity integration gate
+level: whole_spacecraft
+domain: orbit_adcs
+target: orbit_adcs
+trust_level: conformance_tested
+status: agent_ready_candidate
+summary: INT-1 Route-B integration capability that aligns the active ORB-1 orbit-fidelity model and ADCS-1 fidelity model
+  on one time grid with explicit ECI/LVLH/sun pointing target metadata, HF-8 physical validation summary, and internal INT-1
+  benchmark envelopes. It is not a full 6-DOF flight-grade orbit-attitude simulation.
+adapter:
+  class_path: sat_sim.adapters.whole_spacecraft_orbit_adcs_fidelity.OrbitAdcsFidelityAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.coupled.orbit_adcs_fidelity
+  - sat_sim.orbit.numerical
+  - sat_sim.orbit.force_models
+  - sat_sim.adcs.fidelity
+  - sat_sim.adcs.closed_loop
+  - sat_sim.validation.physical_checks
+  - sat_sim.time_systems
+  - sat_sim.frames
+  - sat_sim.solvers
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+  fault:
+    supported: false
+  degradation:
+    supported: false
+parameters:
+  orbit_environment:
+    type: object
+    required: false
+    description: ORB-1 orbit-fidelity configuration section.
+  adcs:
+    type: object
+    required: false
+    description: ADCS-1 fidelity parameters nested under parameters.adcs.
+  integration:
+    type: object
+    required: false
+    description: INT-1 frame/coupling policy such as pointing_target, frame_contract, and coupling_policy.
+  target_mode:
+    type: string
+    required: false
+    enum:
+    - nadir
+    - sun
+    - detumble
+    - inertial
+    default: nadir
+validation:
+  conformance_tests:
+  - test_int1_orbit_adcs_integration_trace_is_time_aligned
+  - test_int1_capability_writes_manifest_metadata
+  - test_int1_benchmark_passes_tolerance_envelopes
+produces:
+- name: int1.*
+  destination: trace
+- name: orbit.*
+  destination: trace
+- name: environment.*
+  destination: trace
+- name: adcs.*
+  destination: trace
+outputs:
+  trace:
+  - name: time_s
+    unit: s
+    dtype: number
+    description: 仿真时间轴。
+  - name: orbit.r_bn_n_m_x
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离X轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_x。
+  - name: orbit.r_bn_n_m_y
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离Y轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_y。
+  - name: orbit.r_bn_n_m_z
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离Z轴。运行器实际输出字段；技术字段为 orbit.r_bn_n_m_z。
+  - name: orbit.v_bn_n_m_s_x
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间X轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_x。
+  - name: orbit.v_bn_n_m_s_y
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间Y轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_y。
+  - name: orbit.v_bn_n_m_s_z
+    unit: mixed
+    dtype: number
+    description: 轨道机体相对惯性参考系 N惯性系距离时间Z轴。运行器实际输出字段；技术字段为 orbit.v_bn_n_m_s_z。
+  - name: orbit.radius_m
+    unit: m
+    dtype: number
+    description: 轨道轨道半径距离。运行器实际输出字段；技术字段为 orbit.radius_m，单位 m。
+  - name: orbit.altitude_m
+    unit: m
+    dtype: number
+    description: 轨道高度距离。运行器实际输出字段；技术字段为 orbit.altitude_m，单位 m。
+  - name: orbit.speed_m_s
+    unit: m/s
+    dtype: number
+    description: 轨道速度距离时间。运行器实际输出字段；技术字段为 orbit.speed_m_s，单位 m/s。
+  - name: orbit.specific_energy_j_kg
+    unit: kg
+    dtype: number
+    description: 轨道比能量能量质量。运行器实际输出字段；技术字段为 orbit.specific_energy_j_kg，单位 kg。
+  - name: environment.sun_vector_n_x
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系X轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_x。
+  - name: environment.sun_vector_n_y
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系Y轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_y。
+  - name: environment.sun_vector_n_z
+    unit: mixed
+    dtype: number
+    description: 环境太阳矢量惯性系Z轴。运行器实际输出字段；技术字段为 environment.sun_vector_n_z。
+  - name: environment.shadow_factor
+    unit: ratio
+    dtype: number
+    description: 环境阴影系数。运行器实际输出字段；技术字段为 environment.shadow_factor，单位 ratio。
+  - name: environment.eclipse_flag
+    unit: bool
+    dtype: number
+    description: 环境食标志。运行器实际输出字段；技术字段为 environment.eclipse_flag，单位 bool。
+  - name: orbit.force.central_gravity_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力中心引力模距离。运行器实际输出字段；技术字段为 orbit.force.central_gravity_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.j2_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力J2项模距离。运行器实际输出字段；技术字段为 orbit.force.j2_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.drag_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力大气阻力模距离。运行器实际输出字段；技术字段为 orbit.force.drag_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.srp_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力太阳光压模距离。运行器实际输出字段；技术字段为 orbit.force.srp_norm_m_s2，单位 m/s^2。
+  - name: orbit.force.total_norm_m_s2
+    unit: m/s^2
+    dtype: number
+    description: 轨道力总模距离。运行器实际输出字段；技术字段为 orbit.force.total_norm_m_s2，单位 m/s^2。
+  - name: adcs.attitude.q_bn_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态机体相对惯性参考系 NX轴。运行器实际输出字段；技术字段为 adcs.attitude.q_bn_0。
+  - name: adcs.attitude.q_bn_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态机体相对惯性参考系 NY轴。运行器实际输出字段；技术字段为 adcs.attitude.q_bn_1。
+  - name: adcs.attitude.q_bn_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态机体相对惯性参考系 NZ轴。运行器实际输出字段；技术字段为 adcs.attitude.q_bn_2。
+  - name: adcs.attitude.q_bn_3
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态机体相对惯性参考系 N。运行器实际输出字段；技术字段为 adcs.attitude.q_bn_3。
+  - name: adcs.attitude.quaternion_norm
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态模。运行器实际输出字段；技术字段为 adcs.attitude.quaternion_norm。
+  - name: adcs.attitude.quaternion_norm_error
+    unit: mixed
+    dtype: number
+    description: 姿态控制姿态模误差。运行器实际输出字段；技术字段为 adcs.attitude.quaternion_norm_error。
+  - name: adcs.pointing.error_deg
+    unit: deg
+    dtype: number
+    description: 姿态指向误差。运行器实际输出字段；技术字段为 adcs.pointing.error_deg，单位 deg。
+  - name: adcs.pointing.error_vector_rad_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制指向误差矢量弧度X轴。运行器实际输出字段；技术字段为 adcs.pointing.error_vector_rad_0。
+  - name: adcs.pointing.error_vector_rad_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制指向误差矢量弧度Y轴。运行器实际输出字段；技术字段为 adcs.pointing.error_vector_rad_1。
+  - name: adcs.pointing.error_vector_rad_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制指向误差矢量弧度Z轴。运行器实际输出字段；技术字段为 adcs.pointing.error_vector_rad_2。
+  - name: adcs.rate.omega_bn_b_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 机体X轴真实角速度。运行器实际输出字段；技术字段为 adcs.rate.omega_bn_b_rad_s_0。
+  - name: adcs.rate.omega_bn_b_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 机体Y轴真实角速度。运行器实际输出字段；技术字段为 adcs.rate.omega_bn_b_rad_s_1。
+  - name: adcs.rate.omega_bn_b_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 机体Z轴真实角速度。运行器实际输出字段；技术字段为 adcs.rate.omega_bn_b_rad_s_2。
+  - name: adcs.sensor.gyro_measured_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 陀螺X轴测量角速度。运行器实际输出字段；技术字段为 adcs.sensor.gyro_measured_rad_s_0。
+  - name: adcs.sensor.gyro_measured_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 陀螺Y轴测量角速度。运行器实际输出字段；技术字段为 adcs.sensor.gyro_measured_rad_s_1。
+  - name: adcs.sensor.gyro_measured_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 陀螺Z轴测量角速度。运行器实际输出字段；技术字段为 adcs.sensor.gyro_measured_rad_s_2。
+  - name: adcs.sensor.gyro_true_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺真X轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_true_rad_s_0，单位 mixed。
+  - name: adcs.sensor.gyro_true_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺真Y轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_true_rad_s_1，单位 mixed。
+  - name: adcs.sensor.gyro_true_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺真Z轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_true_rad_s_2，单位 mixed。
+  - name: adcs.sensor.gyro_bias_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺偏置X轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_bias_rad_s_0，单位 mixed。
+  - name: adcs.sensor.gyro_bias_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺偏置Y轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_bias_rad_s_1，单位 mixed。
+  - name: adcs.sensor.gyro_bias_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器陀螺偏置Z轴。运行器实际输出字段；技术字段为 adcs.sensor.gyro_bias_rad_s_2，单位 mixed。
+  - name: adcs.sensor.gyro_noise_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 陀螺X轴随机噪声。运行器实际输出字段；技术字段为 adcs.sensor.gyro_noise_rad_s_0。
+  - name: adcs.sensor.gyro_noise_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 陀螺Y轴随机噪声。运行器实际输出字段；技术字段为 adcs.sensor.gyro_noise_rad_s_1。
+  - name: adcs.sensor.gyro_noise_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 陀螺Z轴随机噪声。运行器实际输出字段；技术字段为 adcs.sensor.gyro_noise_rad_s_2。
+  - name: adcs.sensor.gyro_residual_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 陀螺X轴测量残差。运行器实际输出字段；技术字段为 adcs.sensor.gyro_residual_rad_s_0。
+  - name: adcs.sensor.gyro_residual_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 陀螺Y轴测量残差。运行器实际输出字段；技术字段为 adcs.sensor.gyro_residual_rad_s_1。
+  - name: adcs.sensor.gyro_residual_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 陀螺Z轴测量残差。运行器实际输出字段；技术字段为 adcs.sensor.gyro_residual_rad_s_2。
+  - name: adcs.control.command_torque_nm_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制控制指令力矩力矩X轴。运行器实际输出字段；技术字段为 adcs.control.command_torque_nm_0。
+  - name: adcs.control.command_torque_nm_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制控制指令力矩力矩Y轴。运行器实际输出字段；技术字段为 adcs.control.command_torque_nm_1。
+  - name: adcs.control.command_torque_nm_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制控制指令力矩力矩Z轴。运行器实际输出字段；技术字段为 adcs.control.command_torque_nm_2。
+  - name: adcs.control.applied_torque_nm_0
+    unit: mixed
+    dtype: number
+    description: X轴实际控制力矩。运行器实际输出字段；技术字段为 adcs.control.applied_torque_nm_0。
+  - name: adcs.control.applied_torque_nm_1
+    unit: mixed
+    dtype: number
+    description: Y轴实际控制力矩。运行器实际输出字段；技术字段为 adcs.control.applied_torque_nm_1。
+  - name: adcs.control.applied_torque_nm_2
+    unit: mixed
+    dtype: number
+    description: Z轴实际控制力矩。运行器实际输出字段；技术字段为 adcs.control.applied_torque_nm_2。
+  - name: adcs.control.torque_saturation_flag
+    unit: bool
+    dtype: number
+    description: 姿态控制控制力矩饱和标志。运行器实际输出字段；技术字段为 adcs.control.torque_saturation_flag，单位 bool。
+  - name: adcs.rw.speed_rad_s_0
+    unit: mixed
+    dtype: number
+    description: 1号反作用轮转速。运行器实际输出字段；技术字段为 adcs.rw.speed_rad_s_0。
+  - name: adcs.rw.speed_rad_s_1
+    unit: mixed
+    dtype: number
+    description: 2号反作用轮转速。运行器实际输出字段；技术字段为 adcs.rw.speed_rad_s_1。
+  - name: adcs.rw.speed_rad_s_2
+    unit: mixed
+    dtype: number
+    description: 3号反作用轮转速。运行器实际输出字段；技术字段为 adcs.rw.speed_rad_s_2。
+  - name: adcs.rw.max_abs_speed_rad_s
+    unit: rad/s
+    dtype: number
+    description: 姿态控制反作用轮最大绝对值速度。运行器实际输出字段；技术字段为 adcs.rw.max_abs_speed_rad_s，单位 rad/s。
+  - name: adcs.rw.speed_saturation_flag
+    unit: bool
+    dtype: number
+    description: 姿态控制反作用轮速度饱和标志。运行器实际输出字段；技术字段为 adcs.rw.speed_saturation_flag，单位 bool。
+  - name: adcs.rw.saturation_flag
+    unit: bool
+    dtype: number
+    description: 姿态控制反作用轮饱和标志。运行器实际输出字段；技术字段为 adcs.rw.saturation_flag，单位 bool。
+  - name: adcs.power.rw_power_w
+    unit: W
+    dtype: number
+    description: 姿态控制功率反作用轮功率功率。运行器实际输出字段；技术字段为 adcs.power.rw_power_w，单位 W。
+  - name: adcs.environment.total_torque_norm_nm
+    unit: N*m
+    dtype: number
+    description: 环境扰动力矩合量。运行器实际输出字段；技术字段为 adcs.environment.total_torque_norm_nm，单位 N*m。
+  - name: adcs.environment.gravity_gradient_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境引力启用。运行器实际输出字段；技术字段为 adcs.environment.gravity_gradient_enabled，单位 bool。
+  - name: adcs.environment.magnetic_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境磁场启用。运行器实际输出字段；技术字段为 adcs.environment.magnetic_enabled，单位 bool。
+  - name: adcs.environment.aerodynamic_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境启用。运行器实际输出字段；技术字段为 adcs.environment.aerodynamic_enabled，单位 bool。
+  - name: adcs.environment.srp_enabled
+    unit: bool
+    dtype: number
+    description: 姿态控制环境太阳光压启用。运行器实际输出字段；技术字段为 adcs.environment.srp_enabled，单位 bool。
+  - name: adcs.sensor.star_tracker_noise_rad
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器星敏感器噪声弧度。运行器实际输出字段；技术字段为 adcs.sensor.star_tracker_noise_rad。
+  - name: adcs.sensor.sun_sensor_noise_rad
+    unit: mixed
+    dtype: number
+    description: 姿态控制传感器太阳传感器噪声弧度。运行器实际输出字段；技术字段为 adcs.sensor.sun_sensor_noise_rad。
+  - name: adcs.sensor.dropout_flag
+    unit: bool
+    dtype: number
+    description: 姿态控制传感器中断标志。运行器实际输出字段；技术字段为 adcs.sensor.dropout_flag，单位 bool。
+  - name: adcs.rw.momentum_nms_0
+    unit: mixed
+    dtype: number
+    description: 姿态控制反作用轮动量矩动量矩X轴。运行器实际输出字段；技术字段为 adcs.rw.momentum_nms_0。
+  - name: adcs.rw.momentum_nms_1
+    unit: mixed
+    dtype: number
+    description: 姿态控制反作用轮动量矩动量矩Y轴。运行器实际输出字段；技术字段为 adcs.rw.momentum_nms_1。
+  - name: adcs.rw.momentum_nms_2
+    unit: mixed
+    dtype: number
+    description: 姿态控制反作用轮动量矩动量矩Z轴。运行器实际输出字段；技术字段为 adcs.rw.momentum_nms_2。
+  - name: adcs.rw.max_abs_momentum_nms
+    unit: N*m*s
+    dtype: number
+    description: 反作用轮最大角动量。运行器实际输出字段；技术字段为 adcs.rw.max_abs_momentum_nms，单位 N*m*s。
+  - name: int1.time_grid.aligned
+    unit: boolean
+    dtype: boolean
+    description: 时间已对齐。运行器实际输出字段；技术字段为 int1.time_grid.aligned，单位 boolean。
+  - name: int1.time_grid.error_s
+    unit: s
+    dtype: number
+    description: 时间误差时间。运行器实际输出字段；技术字段为 int1.time_grid.error_s，单位 s。
+  - name: int1.shadow_factor_for_adcs_context
+    unit: ratio
+    dtype: number
+    description: 阴影系数姿态控制。运行器实际输出字段；技术字段为 int1.shadow_factor_for_adcs_context，单位 ratio。
+  - name: int1.eclipse_flag_for_adcs_context
+    unit: bool
+    dtype: number
+    description: 食标志姿态控制。运行器实际输出字段；技术字段为 int1.eclipse_flag_for_adcs_context，单位 bool。
+  summary:
+  - name: qoi.integration.time_alignment_max_error_s
+    unit: s
+  - name: qoi.integration.frame_consistency_pass
+    unit: boolean
+  - name: qoi.adcs.final_pointing_error_deg
+    unit: deg
+consumes:
+- name: simulation.duration_s
+  unit: s
+  required: true
+- name: simulation.sample_s
+  unit: s
+  required: true
+- name: simulation.epoch_utc
+  unit: UTC
+  required: false
+- name: simulation.solver
+  required: false
+- name: orbit_environment
+  required: false
+- name: parameters.adcs
+  required: false
+- name: parameters.integration
+  required: false
+time_grid:
+  policy: int1_shared_hf1_output_grid_with_child_internal_steps
+  time_field: time_s
+  duration_source: simulation.duration_s
+  sample_source: simulation.sample_s
+source_binding:
+  mode: route_b_model_library
+  status: int1_implemented_orbit_adcs_integration_gate
+  primary_module: sat_sim.coupled.orbit_adcs_fidelity
+  source_modules:
+  - sat_sim.coupled.orbit_adcs_fidelity
+  - sat_sim.orbit.numerical
+  - sat_sim.orbit.force_models
+  - sat_sim.adcs.fidelity
+  - sat_sim.adcs.closed_loop
+  - sat_sim.validation.physical_checks
+  public_api:
+  - OrbitAdcsIntegrationConfig
+  - propagate_orbit_adcs_fidelity
+  - summarize_orbit_adcs_fidelity
+  - build_int1_orbit_adcs_payload
+  legacy_demo_runner: null
+  uses_legacy_runner: false
+  basilisk_required: false
+fidelity_level: medium
+known_physics_limits:
+- INT-1 aligns ORB-1 and ADCS-1 traces and metadata but does not solve fully coupled 6-DOF orbit-attitude dynamics.
+- Nadir/sun target coupling is a frame/target metadata bridge, not a calibrated FSW target generator.
+- Environmental torques and orbit forces remain deterministic proxies with internal regression envelopes only.
+- External truth ephemeris, flight data, STK/GMAT comparison, and FSW-in-the-loop validation are not included.
+allowed_task_spec_sections:
+- schema_version
+- task_id
+- task_type
+- capability_id
+- target
+- simulation
+- orbit_environment
+- parameters
+- outputs
+- metadata
+- tags
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: true
+  exposed_to_real_llm_eval: true
+  reason: Active INT-1 product capability for orbit + ADCS fidelity integration gate.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- conformance_tests
+- internal_benchmark
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: true
+  basilisk_candidate_files:
+  - src/sat_sim/adcs/basilisk_fsw.py
+  - src/sat_sim/orbit/basilisk_hf.py
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Current integration is trace/metadata coupling, not Basilisk-native spacecraft hub 6-DOF graph; native graph
+    remains planned for BSK-6DOF.
+  planned_upgrade_path:
+  - BSK-6DOF-1
+  - BSK-6DOF-2
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - INT-1 aligns ORB-1 and ADCS-1 traces and metadata but does not solve fully coupled 6-DOF orbit-attitude dynamics.
+  - Nadir/sun target coupling is a frame/target metadata bridge, not a calibrated FSW target generator.
+  - Environmental torques and orbit forces remain deterministic proxies with internal regression envelopes only.
+  - External truth ephemeris, flight data, STK/GMAT comparison, and FSW-in-the-loop validation are not included.

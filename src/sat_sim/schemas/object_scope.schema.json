@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sat-sim.object-scope.v1",
+  "type": "object",
+  "required": ["schema_version", "catalog_version", "scope_status", "claim_boundary", "expected_counts", "objects"],
+  "properties": {
+    "schema_version": {"const": "sat-sim.object-scope.v1"},
+    "catalog_version": {"type": "string", "minLength": 1},
+    "scope_status": {"enum": ["frozen_engineering_scope", "draft"]},
+    "claim_boundary": {"type": "string", "minLength": 1},
+    "expected_counts": {
+      "type": "object",
+      "required": ["component", "subsystem", "whole_spacecraft", "total"],
+      "properties": {
+        "component": {"const": 24},
+        "subsystem": {"const": 6},
+        "whole_spacecraft": {"const": 1},
+        "total": {"const": 31}
+      },
+      "additionalProperties": false
+    },
+    "objects": {
+      "type": "array",
+      "minItems": 31,
+      "maxItems": 31,
+      "items": {
+        "type": "object",
+        "required": ["object_id", "level", "domain", "name_zh", "primary_capability_id"],
+        "properties": {
+          "object_id": {"type": "string", "minLength": 1},
+          "level": {"enum": ["component", "subsystem", "whole_spacecraft"]},
+          "domain": {"enum": ["adcs", "propulsion", "eps", "thermal", "payload", "comm_data", "whole_spacecraft"]},
+          "name_zh": {"type": "string", "minLength": 1},
+          "primary_capability_id": {"type": ["string", "null"]},
+          "candidate_capability_ids": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

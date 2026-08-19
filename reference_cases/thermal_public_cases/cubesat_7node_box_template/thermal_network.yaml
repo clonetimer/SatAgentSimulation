@@ -1,0 +1,186 @@
+schema_version: therm1b.thermal_network_template.v1
+template_id: cubesat_7node_box_template
+display_name: CubeSat six-face plus internal seven-node engineering template
+node_topology:
+  type: six_face_internal
+  description: Six external faces conductively and radiatively coupled to one internal
+    node.
+nodes:
+  internal:
+    heat_capacity_j_k: 5000.0
+    initial_temp_c: 20.0
+    area_m2: 0.0
+    external: false
+    absorptivity: 0.6
+    emissivity: 0.82
+    radiator_multiplier: 1.0
+  +X:
+    heat_capacity_j_k: 900.0
+    initial_temp_c: 20.0
+    area_m2: 0.01
+    external: true
+    absorptivity: 0.62
+    emissivity: 0.82
+    radiator_multiplier: 1.0
+  -X:
+    heat_capacity_j_k: 900.0
+    initial_temp_c: 20.0
+    area_m2: 0.01
+    external: true
+    absorptivity: 0.62
+    emissivity: 0.82
+    radiator_multiplier: 1.8
+  +Y:
+    heat_capacity_j_k: 900.0
+    initial_temp_c: 20.0
+    area_m2: 0.01
+    external: true
+    absorptivity: 0.62
+    emissivity: 0.82
+    radiator_multiplier: 1.0
+  -Y:
+    heat_capacity_j_k: 900.0
+    initial_temp_c: 20.0
+    area_m2: 0.01
+    external: true
+    absorptivity: 0.62
+    emissivity: 0.82
+    radiator_multiplier: 1.0
+  +Z:
+    heat_capacity_j_k: 900.0
+    initial_temp_c: 20.0
+    area_m2: 0.01
+    external: true
+    absorptivity: 0.62
+    emissivity: 0.82
+    radiator_multiplier: 1.0
+  -Z:
+    heat_capacity_j_k: 900.0
+    initial_temp_c: 20.0
+    area_m2: 0.01
+    external: true
+    absorptivity: 0.62
+    emissivity: 0.82
+    radiator_multiplier: 1.0
+conductive_links:
+- from: internal
+  to: +X
+  conductance_w_k: 0.45
+- from: internal
+  to: -X
+  conductance_w_k: 0.45
+- from: internal
+  to: +Y
+  conductance_w_k: 0.45
+- from: internal
+  to: -Y
+  conductance_w_k: 0.45
+- from: internal
+  to: +Z
+  conductance_w_k: 0.45
+- from: internal
+  to: -Z
+  conductance_w_k: 0.45
+radiative_links:
+- from: internal
+  to: +X
+  area_m2: 0.0035
+  emissivity: 0.7
+  view_factor: 0.2
+- from: internal
+  to: -X
+  area_m2: 0.0035
+  emissivity: 0.7
+  view_factor: 0.2
+- from: internal
+  to: +Y
+  area_m2: 0.0035
+  emissivity: 0.7
+  view_factor: 0.2
+- from: internal
+  to: -Y
+  area_m2: 0.0035
+  emissivity: 0.7
+  view_factor: 0.2
+- from: internal
+  to: +Z
+  area_m2: 0.0035
+  emissivity: 0.7
+  view_factor: 0.2
+- from: internal
+  to: -Z
+  area_m2: 0.0035
+  emissivity: 0.7
+  view_factor: 0.2
+environment:
+  solar_flux_w_m2: 1361.0
+  albedo_flux_w_m2: 120.0
+  earth_ir_flux_w_m2: 237.0
+  deep_space_temp_k: 3.0
+  shadow_factor: 1.0
+  eclipse_period_s: 5400.0
+  eclipse_duration_s: 1800.0
+  eclipse_start_s: 0.0
+  face_solar_exposure:
+    +X: 1.0
+    +Y: 0.2
+    -Y: 0.2
+  face_albedo_exposure:
+    -Z: 1.0
+    +X: 0.1
+  face_earth_ir_exposure:
+    -Z: 1.0
+    +X: 0.15
+    -X: 0.15
+    +Y: 0.15
+    -Y: 0.15
+attitude:
+  mode: sun_pointing
+internal_power_by_node_w:
+  internal: 12.0
+heater:
+  node: internal
+  power_w: 8.0
+  setpoint_c: 2.0
+  deadband_c: 2.0
+  control:
+    mode: threshold
+    node: internal
+    max_power_w: 8.0
+    setpoint_c: 2.0
+    deadband_c: 2.0
+limits:
+  min_temp_c_by_node:
+    internal: -40.0
+    +X: -40.0
+    -X: -40.0
+    +Y: -40.0
+    -Y: -40.0
+    +Z: -40.0
+    -Z: -40.0
+  max_temp_c_by_node:
+    internal: 85.0
+    +X: 85.0
+    -X: 85.0
+    +Y: 85.0
+    -Y: 85.0
+    +Z: 85.0
+    -Z: 85.0
+source_case:
+  claim_level: public_reference_informed_not_flight_validated
+  source_urls:
+  - https://www.nasa.gov/smallsat-institute/sst-soa/thermal-control/
+  project_sources:
+  - src/subsystems/thermal/network.py
+  - src/subsystems/thermal/templates.py
+  notes: Topology and numerical values are conservative project engineering assumptions
+    informed by public thermal-control guidance; not copied flight-correlated data.
+  flight_validated: false
+  case_name: Project-native CubeSat seven-node engineering example
+validation_limits:
+  node_count: 7
+  temperature_sanity_c:
+  - -120.0
+  - 180.0
+  energy_balance_residual_w_max: 1.0e-08
+  purpose: broad numerical sanity gate only

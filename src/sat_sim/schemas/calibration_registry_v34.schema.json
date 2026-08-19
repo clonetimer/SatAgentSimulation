@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "CalibrationClaimLevel": {
+      "enum": [
+        "demo",
+        "engineering_estimate",
+        "ground_calibrated",
+        "flight_correlated"
+      ],
+      "title": "CalibrationClaimLevel",
+      "type": "string"
+    },
+    "CalibrationRegistryEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "dataset_id": {
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "manifest_path": {
+          "title": "Manifest Path",
+          "type": "string"
+        },
+        "manifest_sha256": {
+          "title": "Manifest Sha256",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/DatasetStatus"
+        },
+        "qualification_level": {
+          "$ref": "#/$defs/CalibrationClaimLevel"
+        },
+        "registered_at_utc": {
+          "title": "Registered At Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_id",
+        "manifest_path",
+        "manifest_sha256",
+        "status",
+        "qualification_level",
+        "registered_at_utc"
+      ],
+      "title": "CalibrationRegistryEntry",
+      "type": "object"
+    },
+    "DatasetStatus": {
+      "enum": [
+        "draft",
+        "received",
+        "verified",
+        "rejected"
+      ],
+      "title": "DatasetStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "v34.calibration-registry.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "registry_id": {
+      "default": "sat-sim-calibration-datasets",
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "datasets": {
+      "items": {
+        "$ref": "#/$defs/CalibrationRegistryEntry"
+      },
+      "title": "Datasets",
+      "type": "array"
+    }
+  },
+  "title": "Calibration Dataset Registry V34",
+  "type": "object",
+  "$id": "https://example.local/sat-sim/calibration-registry-v34.schema.json"
+}

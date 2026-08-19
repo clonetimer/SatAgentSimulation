@@ -1,0 +1,266 @@
+capability_id: subsystem.adcs.basic_rw_pointing.v1
+schema_version: 0.1.0
+name: Basic ADCS reaction-wheel pointing simulation
+level: subsystem
+domain: adcs
+target: adcs
+trust_level: conformance_tested
+status: deprecated_compatibility_only
+summary: Deterministic low-order ADCS capability for single-axis pointing-error convergence using reaction-wheel actuation.
+  It is intended for Agent-facing script generation and parameter-effect testing, not high-fidelity FSW or a Basilisk message
+  graph.
+adapter:
+  class_path: sat_sim.adapters.subsystem_adcs_basic_rw_pointing.AdcsBasicRwPointingAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adapters.subsystem_adcs_basic_rw_pointing
+  legacy_demo_runner: subsystems.adcs.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+modes:
+  nominal:
+    supported: true
+parameters:
+  spacecraft_inertia_kg_m2:
+    type: number
+    unit: kg*m^2
+    required: false
+    min: 1.0e-06
+    default: 12.0
+  num_reaction_wheels:
+    type: integer
+    unit: count
+    required: false
+    min: 1
+    max: 8
+    default: 3
+  wheel_inertia_kg_m2:
+    type: number
+    unit: kg*m^2
+    required: false
+    min: 1.0e-06
+    default: 0.08
+  max_rw_torque_nm:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.0
+    default: 0.03
+  max_wheel_speed_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    min: 0.0
+    default: 900.0
+  initial_wheel_speed_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 80.0
+  initial_pointing_error_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    default: 8.0
+  initial_rate_deg_s:
+    type: number
+    unit: deg/s
+    required: false
+    min: 0.0
+    default: 0.0
+  control_kp_nm_per_rad:
+    type: number
+    unit: N*m/rad
+    required: false
+    min: 0.0
+    default: 0.08
+  control_kd_nm_per_rad_s:
+    type: number
+    unit: N*m/(rad/s)
+    required: false
+    min: 0.0
+    default: 0.55
+  disturbance_torque_nm:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.0
+    default: 0.0
+  pointing_requirement_deg:
+    type: number
+    unit: deg
+    required: false
+    min: 0.0
+    default: 1.0
+  rw_idle_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    default: 2.0
+  rw_power_per_torque_w:
+    type: number
+    unit: W/(N*m)
+    required: false
+    min: 0.0
+    default: 80.0
+simulation_parameters:
+  duration_s:
+    unit: s
+    required: true
+    min: 1.0
+  sample_s:
+    unit: s
+    required: true
+    min: 0.001
+consumes:
+- name: simulation.duration_s
+  unit: s
+- name: simulation.sample_s
+  unit: s
+- name: parameters.initial_pointing_error_deg
+  unit: deg
+- name: parameters.control_kp_nm_per_rad
+  unit: N*m/rad
+- name: parameters.max_rw_torque_nm
+  unit: N*m
+produces:
+- name: adcs.attitude.*
+- name: adcs.pointing.*
+- name: adcs.rate.*
+- name: adcs.control.*
+- name: adcs.rw.*
+- name: adcs.power.rw_power_w
+- name: label.pointing_state
+- name: label.rw_saturation
+time_grid:
+  policy: task_spec_simulation_grid
+  source: simulation
+  duration_field: simulation.duration_s
+  sample_field: simulation.sample_s
+outputs:
+  trace:
+  - name: task_id
+    unit: none
+    dtype: string
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: time_s
+    unit: s
+    dtype: number
+  - name: sample_index
+    unit: count
+    dtype: integer
+  - name: adcs.attitude.error_deg
+    unit: deg
+    dtype: number
+  - name: adcs.pointing.error_deg
+    unit: deg
+    dtype: number
+  - name: adcs.rate.omega_bn_b_rad_s_0
+    unit: rad/s
+    dtype: number
+  - name: adcs.control.command_torque_nm
+    unit: N*m
+    dtype: number
+  - name: adcs.control.applied_torque_nm
+    unit: N*m
+    dtype: number
+  - name: adcs.rw.speed_rad_s_0
+    unit: rad/s
+    dtype: number
+  - name: adcs.rw.speed_rpm_0
+    unit: rpm
+    dtype: number
+  - name: adcs.rw.saturation_flag
+    unit: bool
+    dtype: bool
+  - name: adcs.power.rw_power_w
+    unit: W
+    dtype: number
+  - name: label.pointing_state
+    unit: enum
+    dtype: string
+  - name: label.health_state
+    unit: enum
+    dtype: string
+  - name: label.rw_saturation
+    unit: bool
+    dtype: bool
+  summary:
+  - name: qoi.adcs.initial_pointing_error_deg
+    unit: deg
+  - name: qoi.adcs.final_pointing_error_deg
+    unit: deg
+  - name: qoi.adcs.max_pointing_error_deg
+    unit: deg
+  - name: qoi.adcs.settled_time_s
+    unit: s
+  - name: qoi.adcs.final_wheel_speed_rad_s_0
+    unit: rad/s
+  - name: qoi.adcs.saturation_count
+    unit: count
+validation:
+  conformance_tests:
+  - test_p8a_capability_contract_and_adapter_are_registered
+  - test_p8a_validate_compile_run_outputs_standard_dataset
+  - test_p8a_duration_and_sample_control_trace
+  - test_p8a_initial_error_affects_trace
+  - test_p8a_control_gain_changes_convergence
+  - test_p8a_torque_limit_sets_saturation_label
+  - test_p8a_capability_python_script_export_runs
+  - test_p8a_agent_routes_adcs_request
+source_binding:
+  mode: synthetic
+  status: deterministic_agent_boundary
+  primary_module: sat_sim.adapters.subsystem_adcs_basic_rw_pointing
+  source_modules:
+  - sat_sim.adapters.subsystem_adcs_basic_rw_pointing
+  public_api:
+  - AdcsBasicRwPointingAdapter.run
+  legacy_demo_runner: subsystems.adcs.runner
+  uses_legacy_runner: false
+  basilisk_required: false
+  rationale: Low-order Agent-facing model; original src has richer ADCS modules that require separate source-native migration.
+fidelity_level: synthetic
+known_physics_limits:
+- agent-facing deterministic composition, not high-fidelity full-satellite validation
+- does not implement full high-fidelity ADCS/FSW
+lifecycle:
+  status: deprecated
+  replacement: subsystem.adcs_fidelity.v1
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+  reason: Superseded by ADCS-1/ADCS-2 fidelity capability; retained for explicit legacy compatibility.
+backend_type: local_physics_proxy
+validation_basis: &id001
+- conformance_tests
+can_claim_high_fidelity: false
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: local_physics_proxy
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: false
+  basilisk_candidate_files: []
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim flight validation, hardware calibration, or high-fidelity equivalence without external validation
+    evidence.
+  bsk0_notes: Current capability is a deterministic source/API wrapper or local model within documented package limits.
+  planned_upgrade_path: []
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - agent-facing deterministic composition, not high-fidelity full-satellite validation
+  - does not implement full high-fidelity ADCS/FSW

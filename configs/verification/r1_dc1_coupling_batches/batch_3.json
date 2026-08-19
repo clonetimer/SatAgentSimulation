@@ -1,0 +1,255 @@
+{
+  "schema_version": "v0574.coupling-validation-matrix.experimental.v3",
+  "baseline_spec": "../whole_spacecraft_coupling_baseline.yaml",
+  "case_run_timeout_s": 120.0,
+  "cases": [
+    {
+      "case_id": "comm_link_loss_to_eps_thermal_storage",
+      "description": "A permanent runtime downlink link-loss fault must reduce delivered data, reduce communication power/heat, preserve battery SOC, and increase onboard storage.",
+      "patch": {
+        "path": "modifiers.faults",
+        "value": [
+          {
+            "modifier_id": "comm_link_loss_causal_001",
+            "target": "comm.transmitter",
+            "fault_type": "transmitter_outage",
+            "onset_time_s": 20.0,
+            "duration_s": -1.0,
+            "severity": 1.0,
+            "parameters": {
+              "scenario": "comm_data_downlink_link_loss"
+            }
+          }
+        ]
+      },
+      "companion_patches": [
+        {
+          "path": "target.mode",
+          "value": "fault"
+        }
+      ],
+      "covers_runtime_couplings": [
+        "comm_activity_to_eps_thermal",
+        "comm_native_odh_to_storage_drain"
+      ],
+      "expectations": [
+        {
+          "coupling_id": "comm_activity_to_eps_storage",
+          "source_field": "cumulative_delivered_bits",
+          "response_field": "battery_soc",
+          "intervention_time_s": 20.0,
+          "expected_direction": "increase",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 0.0001,
+          "max_lag_s": 30.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 1.0,
+          "pre_response_tolerance": 1e-09,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        },
+        {
+          "coupling_id": "comm_activity_to_thermal",
+          "source_field": "cumulative_delivered_bits",
+          "response_field": "thermal_temp_c",
+          "intervention_time_s": 20.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 0.002,
+          "max_lag_s": 40.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 1.0,
+          "pre_response_tolerance": 1e-09,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        },
+        {
+          "coupling_id": "comm_link_to_storage_drain",
+          "source_field": "cumulative_delivered_bits",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 20.0,
+          "expected_direction": "increase",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 20.0,
+          "alignment_tolerance_s": 1e-06,
+          "min_pre_samples": 2,
+          "pre_source_tolerance": 1.0,
+          "pre_response_tolerance": 1.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        }
+      ]
+    },
+    {
+      "case_id": "eps_bus_load_to_thermal_heat",
+      "description": "Increasing EPS bus electrical load must reduce net battery power and increase electronics temperature.",
+      "patch": {
+        "path": "parameters.bus_power_w",
+        "value": 55.0
+      },
+      "covers_runtime_couplings": [
+        "eps_loads_to_thermal_heat"
+      ],
+      "expectations": [
+        {
+          "coupling_id": "eps_bus_load_to_battery",
+          "source_field": "net_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        },
+        {
+          "coupling_id": "eps_bus_load_to_thermal",
+          "source_field": "net_power_w",
+          "response_field": "thermal_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.02,
+          "max_lag_s": 40.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ]
+    },
+    {
+      "case_id": "legacy_transmitter_to_storage_drain",
+      "description": "Disabling native ODH downlink must activate the deterministic transmitter drain path and reduce onboard storage.",
+      "patch": {
+        "path": "parameters.coupling.enable_comm_native_odh_downlink",
+        "value": false
+      },
+      "covers_runtime_couplings": [
+        "comm_transmitter_to_storage_drain"
+      ],
+      "expectations": [
+        {
+          "coupling_id": "legacy_transmitter_activity",
+          "source_field": "transmitter_baud_bps",
+          "response_field": "data_storage_bits",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 1000000.0,
+          "max_lag_s": 40.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.4
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      }
+    },
+    {
+      "case_id": "spacecraft_state_to_eclipse_and_thermal_shadow",
+      "description": "Changing only initial orbit phase must change native eclipse state and reduce solar-panel thermal response in continuous shadow.",
+      "patch": {
+        "path": "parameters.initial_orbit_phase_deg",
+        "value": 180.0
+      },
+      "expectations": [
+        {
+          "coupling_id": "spacecraft_state_to_orbit_eclipse",
+          "source_field": "spacecraft_position_x_m",
+          "response_field": "eclipse_shadow_factor",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 1000000.0,
+          "min_response_delta": 0.5,
+          "max_lag_s": 10.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.8
+        },
+        {
+          "coupling_id": "orbit_eclipse_to_thermal_shadow",
+          "source_field": "eclipse_shadow_factor",
+          "response_field": "thermal_solar_panel_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 0.5,
+          "min_response_delta": 5.0,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.5
+        }
+      ],
+      "perturbed_run_acceptance": {
+        "accepted_return_codes": [
+          1
+        ],
+        "accepted_validation_results": [
+          "FAIL"
+        ],
+        "accepted_summary_statuses": [
+          "FAIL"
+        ],
+        "accepted_run_record_statuses": [
+          "SUCCEEDED"
+        ],
+        "accepted_execution_statuses": [
+          "PASS"
+        ],
+        "accepted_structural_statuses": [
+          "PASS"
+        ],
+        "accepted_numerical_statuses": [
+          "PASS"
+        ],
+        "accepted_runtime_task_cadence_statuses": [
+          "PASS"
+        ]
+      },
+      "covers_runtime_couplings": [
+        "adcs_spacecraft_to_orbit_environment",
+        "orbit_eclipse_to_thermal_shadow"
+      ]
+    }
+  ],
+  "required_runtime_couplings": [
+    "comm_activity_to_eps_thermal",
+    "comm_native_odh_to_storage_drain",
+    "eps_loads_to_thermal_heat",
+    "comm_transmitter_to_storage_drain",
+    "adcs_spacecraft_to_orbit_environment",
+    "orbit_eclipse_to_thermal_shadow"
+  ]
+}

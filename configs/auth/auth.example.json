@@ -1,0 +1,34 @@
+{
+  "schema_version": "既有版本.auth-config.v1",
+  "tokens": [
+    {
+      "token_id": "admin",
+      "principal_id": "platform-admin",
+      "token_env": "SAT_SIM_ADMIN_TOKEN",
+      "roles": ["admin"],
+      "metadata": {"purpose": "platform administration"}
+    },
+    {
+      "token_id": "operator",
+      "principal_id": "simulation-operator",
+      "token_env": "SAT_SIM_OPERATOR_TOKEN",
+      "roles": ["operator"],
+      "metadata": {"purpose": "TaskSpec creation and simulation execution"}
+    },
+    {
+      "token_id": "viewer",
+      "principal_id": "simulation-viewer",
+      "token_env": "SAT_SIM_VIEWER_TOKEN",
+      "roles": ["viewer"],
+      "metadata": {"purpose": "read-only results access"}
+    },
+    {
+      "token_id": "worker-01",
+      "principal_id": "worker-01",
+      "worker_id": "worker-01",
+      "token_env": "SAT_SIM_WORKER_01_TOKEN",
+      "roles": ["worker"],
+      "metadata": {"purpose": "bound remote execution worker"}
+    }
+  ]
+}

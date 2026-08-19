@@ -1,0 +1,23 @@
+[Unit]
+Description=Satellite Simulation 既有版本 remote Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sat-worker
+Group=sat-worker
+WorkingDirectory=/opt/sat-sim
+EnvironmentFile=/etc/sat-sim/worker.env
+ExecStart=/opt/sat-sim/.venv/bin/python -m sat_sim.cli remote-worker --control-plane-url ${SAT_SIM_CONTROL_PLANE_URL} --worker-id ${SAT_SIM_WORKER_ID} --token-env SAT_SIM_WORKER_TOKEN --work-root /var/lib/sat-sim-worker --poll-seconds 2 --heartbeat-seconds 10 --lease-seconds 60
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/sat-sim-worker
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

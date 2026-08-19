@@ -1,0 +1,91 @@
+capability_id: reference.public_satellite_case.v1
+schema_version: 0.1.0
+name: Public satellite reference case pack
+level: reference
+domain: reference_data
+target: public_satellite_case
+trust_level: public_reference_informed
+status: sat_ref1_reference_pack_candidate
+summary: Curated public-reference-informed satellite case metadata for script generation, parameter-source tracing, and validation-limit
+  documentation. This capability returns reference metadata and does not run a physics simulation.
+adapter:
+  class_path: sat_sim.adapters.reference_public_satellite_case.PublicSatelliteReferenceCaseAdapter
+  script_export: true
+  runtime_run: true
+implementation:
+  model_modules:
+  - sat_sim.adapters.reference_public_satellite_case
+  basilisk_required: false
+  uses_legacy_runner: false
+backend_type: report_only
+can_claim_high_fidelity: false
+validation_basis: &id001
+- conformance_tests
+- public_reference_inventory
+- planned_public_reference
+lifecycle:
+  status: active
+  replacement: null
+  exposed_to_agent: false
+  exposed_to_real_llm_eval: false
+parameters:
+  case_id:
+    type: string
+    required: false
+    default: public_1u_cubesat_thermal_power_orbit
+simulation_parameters: {}
+consumes:
+- name: parameters.case_id
+  unit: none
+produces:
+- name: reference.case_id
+- name: reference.parameter_sources
+- name: reference.validation_limits
+outputs:
+  trace:
+  - name: case_id
+    unit: none
+    dtype: string
+  - name: domain
+    unit: none
+    dtype: string
+  summary:
+  - name: reference_case_count
+    unit: count
+validation:
+  conformance_tests:
+  - tests.test_public_satellite_reference_sat_ref1
+claim_guardrail: Public reference cases are source-traced examples and assumptions. Do not claim flight validation or mission-grade
+  digital twin status from this pack alone.
+backend_boundary:
+  schema_version: bsk0.native_proxy_boundary.v1
+  backend_type: report_only
+  basilisk_required: false
+  current_agent_path_uses_basilisk: false
+  source_has_basilisk_facing_candidates: false
+  basilisk_candidate_files: []
+  validation_basis: *id001
+  can_claim_high_fidelity: false
+  claim_guardrail: Do not claim high-fidelity or flight validation until the planned Basilisk-native/public-reference upgrade
+    path is implemented and benchmarked.
+  bsk0_notes: Current capability is a deterministic source/API wrapper or local model within documented package limits.
+  planned_upgrade_path:
+  - SAT-REF-1 implemented public reference pack
+  - SAT-REF-1
+fidelity_level: not_applicable_report_only
+known_physics_limits:
+- Report-only reference metadata capability; no physics propagation
+- Public-reference-informed assumptions, not flight-validated satellite data
+- No mission-grade digital twin claim
+integration_contract:
+  schema_version: sat-sim.capability-integration.v1
+  source_modules_ref: implementation.model_modules
+  implementation_class: project_deterministic_model
+  couplings:
+    supported: []
+    unsupported:
+    - '*'
+  limitations:
+  - Report-only reference metadata capability; no physics propagation
+  - Public-reference-informed assumptions, not flight-validated satellite data
+  - No mission-grade digital twin claim

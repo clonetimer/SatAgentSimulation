@@ -1,0 +1,49 @@
+schema_version: sat-sim.fault-experiment-template.v1
+template_id: adcs.rw_jam.basilisk.v1
+fault_id: ADCS_RW_JAM
+subsystem: ADCS
+component: reaction_wheel
+simulation:
+  capability_id: subsystem.adcs_unified_native.v1
+  backend: basilisk
+  telemetry_profile: astrograph-rw-temporal-basilisk-5ch.v1
+fault:
+  event_kind: fault
+  simulator_effect: adcs_rw_jamming
+  target_pattern: adcs.reaction_wheel.{wheel_index}
+  severity_range:
+  - 0.35
+  - 1.0
+expected_response:
+  pre_onset_pair_channels:
+  - sensor.adcs.rw.speed_rad_s_0
+  - estimate.adcs.rw.actual_torque_nm_0
+  - estimate.adcs.pointing_error_deg
+  - estimate.adcs.rw.effective_max_torque_nm_0
+  signatures:
+  - check_id: wheel_unavailable
+    channel: status.adcs.rw.available_0
+    comparison: post_fault_max_le
+    threshold: 0.0
+  - check_id: effective_torque_collapses
+    channel: estimate.adcs.rw.effective_max_torque_nm_0
+    comparison: post_fault_max_le
+    threshold: 1.0e-12
+  - check_id: dynamic_response_present
+    channel: sensor.adcs.rw.speed_rad_s_0
+    comparison: post_pair_max_abs_delta_gt
+    threshold: 1.0e-07
+qualification:
+  minimum_pre_onset_samples: 2
+  minimum_post_onset_samples: 2
+  pre_onset_absolute_tolerance: 1.0e-08
+  require_all_signatures: true
+  expert_review_required: true
+severity_model:
+  schema_version: sat-sim.fault-severity-model.v1
+  mechanism_kind: binary_failure
+  fixed_normalized_severity: 1.0
+  bands:
+  - level: critical
+    min_inclusive: 1.0
+    max_inclusive: 1.0

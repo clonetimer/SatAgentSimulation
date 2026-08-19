@@ -1,0 +1,2 @@
+﻿link_id,event_id,fmea_row_id,episode_id,category,effect,target,start_s,end_s,evidence_status,physical_effect_verified,telemetry_coverage_status,telemetry_stream_ids,changed_physical_fields,validation_result
+trace::event,event,fmea::event,episode::event,fault,adcs_rw_jamming,adcs.reaction_wheel.1,0.0,,episode_not_available,False,no_matching_multi_rate_stream,,,
