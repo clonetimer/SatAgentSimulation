@@ -50,6 +50,7 @@ def test_vulnerable_versions_are_absent_from_current_dependency_inputs() -> None
         "fastapi==0.128.2",
         "starlette==0.50.0",
         "pillow==12.2.0",
+        "pip==26.1.2",
         "pip==25.2",
         "pytest==9.0.2",
         "setuptools==82.0.1",
@@ -65,13 +66,17 @@ def test_safe_versions_are_locked_and_constraints_cover_transitive_pillow() -> N
         "fastapi==0.139.2",
         "starlette==1.3.1",
         "pillow==12.3.0",
-        "pip==26.1.2",
+        "pip==26.2.1",
         "pytest==9.0.3",
         "setuptools==83.0.0",
         "wheel==0.46.2",
     ):
         assert pin in lock
     assert "pillow==12.3.0" in constraints
+    assert "tornado==6.5.10" in lock
+    assert "tornado==6.5.10" in constraints
+    assert "urllib3==2.8.0" in lock
+    assert "urllib3==2.8.0" in constraints
 
 
 def test_dependency_audit_alias_preserves_upstream_bsk_identity() -> None:

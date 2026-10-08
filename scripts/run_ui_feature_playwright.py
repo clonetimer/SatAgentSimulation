@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run browser-level acceptance checks for the satellite simulation workbench UI."""
+"""Run browser-level acceptance checks for the satellite simulation workbench UI.
+
+用途：验证卫星仿真工作台 UI 的关键浏览器交互与导出流程。
+参数：通过命令行参数选择输出目录、浏览器和验收运行配置。
+输出：生成浏览器验收报告、截图及相关运行证据。
+"""
 
 from __future__ import annotations
 

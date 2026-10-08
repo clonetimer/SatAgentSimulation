@@ -46,7 +46,7 @@ BAD_NAME_PATTERNS = (
 )
 REQUIRED_HEADER_MARKERS = ("用途", "参数", "输出")
 PINNED_BOOTSTRAP_TOOLS = {
-    "pip": "26.1.2",
+    "pip": "26.2.1",
     "setuptools": "83.0.0",
     "wheel": "0.46.2",
 }

@@ -25,6 +25,7 @@
 | `export_astrograph_diagnostic_mapping.py` | 诊断映射导出 | active | 导出故障机理、遥测特征和诊断 Pipeline 的受控互操作包 |
 | `generate_astrograph_rw_fault_dataset.py` | 数据集生成 | active | 生成反作用轮故障/名义配对数据和受控 sidecar 契约 |
 | `generate_taskspec_schema.py` | 构建生成 | active | 保留并统一文件头与入口 |
+| `generate_whole_spacecraft_adcs_eps_dataset.py` | 数据集生成 | active | 生成整星 ADCS/EPS 正常与单故障成对时序数据、清单和校准证据 |
 | `ensure_basilisk_runtime.py` | Basilisk运行时引导 | active | 默认正式仿真前置：验证现有 bsk，或下载官方固定 Wheel、校验哈希、构建 metadata-only satfix1 后安装；不修改仿真二进制载荷。 |
 | `fetch_official_bsk_and_build_offline_bundle.py` | 可选离线依赖构建 | active | 固定官方来源与哈希，生成 metadata-only satfix1；不作为默认运行时前置 |
 | `install_offline_bsk.py` | 可选离线依赖安装 | active | 仅安装构建报告为 PASS 的平台匹配 Wheel |
@@ -62,6 +63,7 @@
 | `run_reliability_soak.py` | 可靠性耐久 | active | 运行长生命周期 Worker 与周期回收的真实 TaskSpec 耐久矩阵，记录资源增长并支持断点续跑 |
 | `run_rw_fault_scientific_closure.py` | RW 科学验证 | active | 执行配对数据可分性、规则基线和 ML 基准 |
 | `run_task_center_browser_e2e.py` | 浏览器测试 | active | 保留并统一文件头与入口 |
+| `run_ui_feature_playwright.py` | 浏览器测试 | active | 验证工作台关键 UI 交互、结果展示与导出流程 |
 | `scan_dependencies.py` | 安全审计 | active | 保留并统一文件头与入口 |
 | `start_local.sh` | 服务启动 | active | 保留并统一文件头与入口 |
 | `start_local_windows.ps1` | 服务启动 | active | 保留并统一文件头与入口 |
@@ -69,6 +71,7 @@
 | `status_windows.ps1` | 服务管理 | active | 保留并统一文件头与入口 |
 | `stop_windows.ps1` | 服务管理 | active | 保留并统一文件头与入口 |
 | `upgrade_windows.ps1` | 升级 | active | 保留并统一文件头与入口 |
+| `validate_adcs_fault_injection_effects.py` | 故障注入验证 | active | 对每类 ADCS 故障生成成对样本并量化注入效应 |
 | `validate_coupling_causality.py` | 耦合验证 | active | 基线—单因素扰动配对验证源变化、响应方向和时延 |
 | `verify_dependency_remediation.py` | 安全修复核验 | active | 将历史联网漏洞基线与当前锁文件逐项比较，不替代新一轮联网扫描 |
 | `verify_recovery_third_party.py` | 恢复依赖核验 | active | 默认校验强制 WMM/SPICE；Basilisk 采用运行时身份门禁，离线 Wheel 为可选增强 |

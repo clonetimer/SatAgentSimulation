@@ -59,9 +59,9 @@ def test_dependencies_are_separated_and_exactly_pinned() -> None:
 
 def test_bootstrap_and_weekly_audit_tools_are_exactly_pinned() -> None:
     expected = {
-        "scripts/bootstrap_local.sh": ("pip==26.1.2", "setuptools==83.0.0", "wheel==0.46.2"),
-        "scripts/bootstrap_windows.ps1": ("pip==26.1.2", "setuptools==83.0.0", "wheel==0.46.2"),
-        ".github/workflows/dependency-audit.yml": ("pip==26.1.2", "pip-audit==2.10.1"),
+        "scripts/bootstrap_local.sh": ("pip==26.2.1", "setuptools==83.0.0", "wheel==0.46.2"),
+        "scripts/bootstrap_windows.ps1": ("pip==26.2.1", "setuptools==83.0.0", "wheel==0.46.2"),
+        ".github/workflows/dependency-audit.yml": ("pip==26.2.1", "pip-audit==2.10.1"),
     }
     for relative, pins in expected.items():
         text = (ROOT / relative).read_text(encoding="utf-8")

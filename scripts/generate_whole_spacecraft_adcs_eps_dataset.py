@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Generate paired whole-spacecraft nominal/ADCS-fault time-series data.
 
+用途：生成整星 ADCS/EPS 正常与单故障成对时序数据集。
+参数：通过命令行参数配置任务、样本数、时间基准、随机种子与输出目录。
+输出：生成数据集清单、时序样本、元数据及校准依据报告。
+
 Design: mission x condition x Monte-Carlo sample.  A nominal run and every
 single-anomaly run in the same ``pair_id`` share the identical spacecraft and
 mission parameters.  Every native trace field is exported.

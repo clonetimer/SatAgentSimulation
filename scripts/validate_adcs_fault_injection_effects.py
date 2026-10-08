@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Generate one paired sample per ADCS condition and quantify injection effects."""
+"""Generate one paired sample per ADCS condition and quantify injection effects.
+
+用途：逐项验证 ADCS 故障注入是否产生可观测且可量化的物理影响。
+参数：通过命令行参数配置输出目录、仿真时长、步长与随机种子。
+输出：生成成对样本、故障效应指标和机器可读验证报告。
+"""
 from __future__ import annotations
 
 import argparse

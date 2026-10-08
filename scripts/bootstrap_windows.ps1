@@ -65,7 +65,7 @@ try {
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
         "-m", "pip", "install", "--upgrade",
-        "pip==26.1.2", "setuptools==83.0.0", "wheel==0.46.2"
+        "pip==26.2.1", "setuptools==83.0.0", "wheel==0.46.2"
     ) -Step "更新 Python 构建工具"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
