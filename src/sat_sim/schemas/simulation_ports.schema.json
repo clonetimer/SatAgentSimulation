@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "simulation_ports.schema.json",
+  "title": "SatSim Simulation Ports Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "clock",
+    "ports",
+    "bindings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat-sim.simulation-ports.v1"
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "policy",
+        "sample_period_source"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "policy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "sample_period_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        }
+      }
+    },
+    "ports": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "port_id",
+          "module_alias",
+          "direction",
+          "path",
+          "payload",
+          "timing",
+          "state_owner"
+        ],
+        "properties": {
+          "port_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "module_alias": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "direction": {
+            "enum": [
+              "input",
+              "output"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schema_id",
+              "dtype",
+              "shape",
+              "unit"
+            ],
+            "properties": {
+              "schema_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "dtype": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "shape": {
+                "enum": [
+                  "scalar",
+                  "timeseries",
+                  "scalar_or_series",
+                  "boolean",
+                  "object",
+                  "event"
+                ]
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            }
+          },
+          "timing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "rate_policy",
+              "sample_period_source"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "rate_policy": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "sample_period_source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              }
+            }
+          },
+          "direct_feedthrough": {
+            "type": "boolean"
+          },
+          "state_owner": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "fan_in": {
+            "enum": [
+              "one",
+              "many"
+            ]
+          },
+          "fan_out": {
+            "enum": [
+              "one",
+              "many"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "direction": {
+                  "const": "output"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "direct_feedthrough",
+                "fan_out"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "direction": {
+                  "const": "input"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "fan_in"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "binding_id",
+          "source_port",
+          "target_port",
+          "transform",
+          "solver"
+        ],
+        "properties": {
+          "binding_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "source_port": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "target_port": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "transform": {
+            "type": "object",
+            "required": [
+              "policy"
+            ],
+            "properties": {
+              "policy": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "resampling": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            }
+          },
+          "solver": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "policy",
+              "delay_steps"
+            ],
+            "properties": {
+              "policy": {
+                "enum": [
+                  "feed_forward",
+                  "parent_managed_feedback",
+                  "parent_managed_stateful_feedback",
+                  "delayed_feedback",
+                  "configuration_mapping",
+                  "accounting",
+                  "parent_owned"
+                ]
+              },
+              "delay_steps": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "module_slots": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "module_alias",
+          "interface_id",
+          "replacement_policy",
+          "allowed_capability_ids",
+          "runtime_selector",
+          "port_map"
+        ],
+        "properties": {
+          "module_alias": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "interface_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "slot_kind": {
+            "enum": [
+              "dependency",
+              "parent_managed_internal"
+            ]
+          },
+          "baseline_capability_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "replacement_policy": {
+            "const": "allowlist-compatible"
+          },
+          "allowed_capability_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            }
+          },
+          "runtime_selector": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "port_map": {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 64,
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            }
+          }
+        },
+        "anyOf": [
+          {
+            "properties": {
+              "slot_kind": {
+                "const": "parent_managed_internal"
+              }
+            },
+            "required": [
+              "slot_kind"
+            ],
+            "not": {
+              "required": [
+                "baseline_capability_id"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "slot_kind": {
+                "const": "dependency"
+              }
+            },
+            "required": [
+              "baseline_capability_id"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

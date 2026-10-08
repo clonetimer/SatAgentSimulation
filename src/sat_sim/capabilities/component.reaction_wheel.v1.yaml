@@ -171,6 +171,23 @@ outputs:
     unit: N*m*s
   - name: qoi.adcs.reaction_wheel.effective_damping_nms_0
     unit: N*m*s
+simulation_module_interface:
+  schema_version: sat-sim.module-interface.v1
+  interface_id: sat-sim.interface.reaction-wheel-dynamics.v1
+  ports:
+  - port_id: in.motor_torque_nm
+    direction: input
+    payload: {schema_id: sat-sim.signal.vector.number.v1, dtype: object, shape: object, unit: N*m}
+    timing: {domain: sampled, rate_policy: parent_internal_step, sample_period_source: simulation.solver.step_s}
+    fan_in: one
+    description: Per-wheel motor torque vector supplied by the parent ADCS allocator.
+  - port_id: out.wheel_speed_rad_s
+    direction: output
+    payload: {schema_id: sat-sim.signal.vector.number.v1, dtype: object, shape: object, unit: rad/s}
+    timing: {domain: sampled, rate_policy: parent_internal_step, sample_period_source: simulation.solver.step_s}
+    direct_feedthrough: false
+    fan_out: many
+    description: Stateful reaction-wheel speed vector produced by the registered step_wheel_speed dynamics API.
 validation:
   conformance_tests:
   - test_reaction_wheel_duration_and_sample_control_trace

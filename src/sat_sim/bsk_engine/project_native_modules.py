@@ -13,6 +13,8 @@ import random
 from collections.abc import Sequence
 from typing import Any
 
+import numpy as np
+
 from Basilisk.architecture import messaging, sysModel  # type: ignore
 from Basilisk.utilities import RigidBodyKinematics, macros  # type: ignore
 
@@ -53,6 +55,29 @@ def _write_status(msg: Any, enabled: int, nanos: int, module_id: int) -> None:
     msg.write(payload, nanos, module_id)
 
 
+def _unit3(values: Sequence[float]) -> list[float]:
+    vector = [float(value) for value in list(values)[:3]]
+    magnitude = math.sqrt(sum(value * value for value in vector))
+    return [value / magnitude for value in vector] if magnitude > 1.0e-12 else [0.0, 0.0, 0.0]
+
+
+def _cross3(left: Sequence[float], right: Sequence[float]) -> list[float]:
+    return [
+        float(left[1]) * float(right[2]) - float(left[2]) * float(right[1]),
+        float(left[2]) * float(right[0]) - float(left[0]) * float(right[2]),
+        float(left[0]) * float(right[1]) - float(left[1]) * float(right[0]),
+    ]
+
+
+def _triad_dcm(body_1: Sequence[float], body_2: Sequence[float], ref_1: Sequence[float], ref_2: Sequence[float]) -> list[list[float]] | None:
+    b1 = _unit3(body_1); b2 = _unit3(_cross3(b1, body_2)); b3 = _cross3(b1, b2)
+    n1 = _unit3(ref_1); n2 = _unit3(_cross3(n1, ref_2)); n3 = _cross3(n1, n2)
+    if min(sum(value * value for value in b2), sum(value * value for value in n2)) < 0.5:
+        return None
+    body = (b1, b2, b3); reference = (n1, n2, n3)
+    return [[sum(body[column][row] * reference[column][axis] for column in range(3)) for axis in range(3)] for row in range(3)]
+
+
 class NativeEventStatus(sysModel.SysModel):
     """Publish recorder-grounded event-category activity messages."""
 
@@ -75,7 +100,7 @@ class NativeEventStatus(sysModel.SysModel):
 
 
 class AdcsSensorFusion(sysModel.SysModel):
-    """Convert official star-tracker and IMU messages to a NavAtt message."""
+    """Fuse star/IMU fine attitude with independent Sun/Earth-vector attitude."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -83,7 +108,14 @@ class AdcsSensorFusion(sysModel.SysModel):
         self.starInMsg = messaging.STSensorMsgReader()
         self.imuInMsg = messaging.IMUSensorMsgReader()
         self.magInMsg = messaging.TAMSensorMsgReader()
+        self.sunBodyInMsg = messaging.TAMSensorMsgReader()
+        self.sunReferenceInMsg = messaging.TAMSensorMsgReader()
+        self.earthBodyInMsg = messaging.TAMSensorMsgReader()
+        self.earthReferenceInMsg = messaging.TAMSensorMsgReader()
+        self.starValidInMsg = messaging.DeviceStatusMsgReader()
+        self.sunValidInMsg = messaging.DeviceStatusMsgReader()
         self.attOutMsg = messaging.NavAttMsg()
+        self.sourceModeOutMsg = messaging.DeviceStatusMsg()
 
     def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
         self.UpdateState(current_sim_nanos)
@@ -92,24 +124,200 @@ class AdcsSensorFusion(sysModel.SysModel):
         star = self.starInMsg()
         imu = self.imuInMsg()
         _ = self.magInMsg()
+        star_valid = bool(self.starValidInMsg().deviceStatus)
+        sun_valid = bool(self.sunValidInMsg().deviceStatus)
         quaternion = [float(x) for x in star.qInrtl2Case]
-        sigma = (
+        star_sigma = (
             list(RigidBodyKinematics.EP2MRP(quaternion))
-            if any(abs(value) > 0.0 for value in quaternion)
+            if star_valid and any(abs(value) > 0.0 for value in quaternion)
             else [0.0, 0.0, 0.0]
         )
+        coarse_dcm = _triad_dcm(
+            self.sunBodyInMsg().tam_S, self.earthBodyInMsg().tam_S,
+            self.sunReferenceInMsg().tam_S, self.earthReferenceInMsg().tam_S,
+        ) if sun_valid else None
+        coarse_sigma = list(RigidBodyKinematics.EP2MRP(RigidBodyKinematics.C2EP(np.asarray(coarse_dcm)))) if coarse_dcm is not None else None
+        if star_valid and coarse_sigma is not None:
+            # Star tracker remains the fine solution; Sun/Earth TRIAD contributes
+            # a bounded coarse correction and supplies an autonomous fallback.
+            sigma = [0.9 * star_sigma[i] + 0.1 * coarse_sigma[i] for i in range(3)]
+            source_mode = 3
+        elif star_valid:
+            sigma = star_sigma; source_mode = 2
+        elif coarse_sigma is not None:
+            sigma = coarse_sigma; source_mode = 1
+        else:
+            sigma = [0.0, 0.0, 0.0]; source_mode = 0
         payload = messaging.NavAttMsgPayload()
         payload.sigma_BN = sigma
         payload.omega_BN_B = [float(x) for x in imu.AngVelPlatform]
-        payload.vehSunPntBdy = [0.0, 0.0, 0.0]
+        payload.vehSunPntBdy = [float(value) for value in self.sunBodyInMsg().tam_S]
         payload.timeTag = _seconds(current_sim_nanos)
         self.attOutMsg.write(payload, current_sim_nanos, self.moduleID)
+        _write_status(self.sourceModeOutMsg, source_mode, current_sim_nanos, self.moduleID)
+
+
+class EarthHorizonSensor(sysModel.SysModel):
+    """Publish the nadir/earth-centre direction in the spacecraft body frame.
+
+    The project has no stock earth-sensor component.  This scheduled,
+    message-driven module provides the ideal geometric measurement used by the
+    dataset architecture; it is supplementary telemetry and is not fed into
+    the star-tracker/IMU control loop.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.ModelTag = "project_earth_horizon_sensor"
+        self.stateInMsg = messaging.SCStatesMsgReader()
+        self.directionOutMsg = messaging.TAMSensorMsg()
+        self.referenceOutMsg = messaging.TAMSensorMsg()
+
+    def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self.UpdateState(current_sim_nanos)
+
+    def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
+        state = self.stateInMsg()
+        position = [float(value) for value in state.r_BN_N]
+        radius = math.sqrt(sum(value * value for value in position))
+        direction_n = [-value / radius for value in position] if radius > 0.0 else [0.0, 0.0, 0.0]
+        dcm_bn = RigidBodyKinematics.MRP2C([float(value) for value in state.sigma_BN])
+        direction_b = [
+            sum(float(dcm_bn[row][column]) * direction_n[column] for column in range(3))
+            for row in range(3)
+        ]
+        payload = messaging.TAMSensorMsgPayload()
+        payload.tam_S = direction_b
+        self.directionOutMsg.write(payload, current_sim_nanos, self.moduleID)
+        reference = messaging.TAMSensorMsgPayload(); reference.tam_S = direction_n
+        self.referenceOutMsg.write(reference, current_sim_nanos, self.moduleID)
+
+
+class SunDirectionSensor(sysModel.SysModel):
+    """Publish simulated Sun direction in body and inertial frames."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.ModelTag = "project_sun_direction_sensor"
+        self.stateInMsg = messaging.SCStatesMsgReader()
+        self.sunInMsg = messaging.SpicePlanetStateMsgReader()
+        self.bodyOutMsg = messaging.TAMSensorMsg()
+        self.referenceOutMsg = messaging.TAMSensorMsg()
+
+    def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self.UpdateState(current_sim_nanos)
+
+    def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
+        state = self.stateInMsg(); sun = self.sunInMsg()
+        direction_n = _unit3([float(sun.PositionVector[i]) - float(state.r_BN_N[i]) for i in range(3)])
+        dcm_bn = RigidBodyKinematics.MRP2C([float(value) for value in state.sigma_BN])
+        direction_b = [sum(float(dcm_bn[row][column]) * direction_n[column] for column in range(3)) for row in range(3)]
+        body = messaging.TAMSensorMsgPayload(); body.tam_S = direction_b
+        reference = messaging.TAMSensorMsgPayload(); reference.tam_S = direction_n
+        self.bodyOutMsg.write(body, current_sim_nanos, self.moduleID)
+        self.referenceOutMsg.write(reference, current_sim_nanos, self.moduleID)
+
+
+class StarTrackerFaultInjector(sysModel.SysModel):
+    """Apply catalogued star-tracker failure signatures at the message boundary."""
+
+    EFFECTS = {
+        "adcs_star_tracker_signal_loss", "adcs_star_tracker_bias_drift",
+        "adcs_star_tracker_accuracy_loss", "adcs_star_tracker_fov_obstruction",
+        "adcs_star_tracker_stuck_at_last", "adcs_star_tracker_blinding",
+        "adcs_star_tracker_dropout", "adcs_star_tracker_misalignment",
+        "adcs_sensor_failure",
+    }
+
+    def __init__(self, events: Sequence[BSKEventSpec], *, seed: int = 0) -> None:
+        super().__init__(); self.ModelTag = "project_star_tracker_fault_injector"
+        self.events = tuple(event for event in events if event.effect in self.EFFECTS)
+        self.starInMsg = messaging.STSensorMsgReader(); self.starOutMsg = messaging.STSensorMsg()
+        self.validOutMsg = messaging.DeviceStatusMsg(); self._last = [1.0, 0.0, 0.0, 0.0]
+        self._rng = random.Random(int(seed) + 701)
+
+    def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self.UpdateState(current_sim_nanos)
+
+    def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
+        source = self.starInMsg(); quaternion = [float(value) for value in source.qInrtl2Case]
+        active = _active(self.events, current_sim_nanos); valid = True; stuck = False
+        sigma = list(RigidBodyKinematics.EP2MRP(quaternion)) if any(abs(value) > 0.0 for value in quaternion) else [0.0, 0.0, 0.0]
+        for event in active:
+            effect = event.effect
+            if effect in {"adcs_star_tracker_signal_loss", "adcs_star_tracker_blinding", "adcs_star_tracker_dropout", "adcs_star_tracker_fov_obstruction", "adcs_sensor_failure"}:
+                valid = False
+            elif effect == "adcs_star_tracker_stuck_at_last":
+                stuck = True
+            elif effect in {"adcs_star_tracker_bias_drift", "adcs_star_tracker_misalignment"}:
+                bias_deg = _event_number(event, ("bias_deg", "misalignment_deg"), 0.05)
+                axis = int(_event_number(event, ("axis",), 0.0)) % 3
+                sigma[axis] += math.tan(math.radians(bias_deg) / 4.0)
+            elif effect == "adcs_star_tracker_accuracy_loss":
+                noise_arcsec = _event_number(event, ("noise_arcsec",), 30.0)
+                sigma = [value + math.tan(math.radians(self._rng.gauss(0.0, noise_arcsec / 3600.0)) / 4.0) for value in sigma]
+        if stuck:
+            quaternion = list(self._last)
+        elif valid:
+            quaternion = list(RigidBodyKinematics.MRP2EP(sigma)); self._last = list(quaternion)
+        else:
+            quaternion = [0.0, 0.0, 0.0, 0.0]
+        payload = messaging.STSensorMsgPayload(); payload.qInrtl2Case = quaternion
+        self.starOutMsg.write(payload, current_sim_nanos, self.moduleID)
+        _write_status(self.validOutMsg, int(valid or stuck), current_sim_nanos, self.moduleID)
+
+
+class SunVectorFaultInjector(sysModel.SysModel):
+    """Apply coarse Sun-sensor catalog signatures to the vector measurement."""
+
+    EFFECTS = {
+        "adcs_sun_sensor_signal_loss", "adcs_sun_sensor_bias_drift",
+        "adcs_sun_sensor_noise_increase", "adcs_sun_sensor_saturation",
+        "adcs_sun_sensor_eclipse_blindness", "adcs_sun_sensor_false_eclipse",
+        "adcs_sun_sensor_cell_failure", "adcs_sun_sensor_contamination",
+    }
+
+    def __init__(self, events: Sequence[BSKEventSpec], *, seed: int = 0) -> None:
+        super().__init__(); self.ModelTag = "project_sun_vector_fault_injector"
+        self.events = tuple(event for event in events if event.effect in self.EFFECTS)
+        self.vectorInMsg = messaging.TAMSensorMsgReader(); self.vectorOutMsg = messaging.TAMSensorMsg()
+        self.validOutMsg = messaging.DeviceStatusMsg(); self._rng = random.Random(int(seed) + 1701)
+
+    def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self.UpdateState(current_sim_nanos)
+
+    def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
+        vector = [float(value) for value in self.vectorInMsg().tam_S]; valid = True
+        for event in _active(self.events, current_sim_nanos):
+            effect = event.effect
+            if effect in {"adcs_sun_sensor_signal_loss", "adcs_sun_sensor_eclipse_blindness", "adcs_sun_sensor_false_eclipse"}:
+                valid = False; vector = [0.0, 0.0, 0.0]
+            elif effect == "adcs_sun_sensor_cell_failure":
+                vector = [0.45 * value for value in vector]
+            elif effect == "adcs_sun_sensor_contamination":
+                vector = [0.60 * value for value in vector]; vector[0] += math.sin(math.radians(0.5))
+            elif effect == "adcs_sun_sensor_bias_drift":
+                vector[0] += math.sin(math.radians(_event_number(event, ("bias_deg",), 0.5)))
+            elif effect == "adcs_sun_sensor_noise_increase":
+                sigma_deg = _event_number(event, ("noise_deg",), 0.5)
+                vector = [value + self._rng.gauss(0.0, math.sin(math.radians(sigma_deg))) for value in vector]
+            elif effect == "adcs_sun_sensor_saturation":
+                level = _event_number(event, ("saturation_level",), 0.35)
+                vector = [max(-level, min(level, value)) for value in vector]
+        payload = messaging.TAMSensorMsgPayload(); payload.tam_S = vector
+        self.vectorOutMsg.write(payload, current_sim_nanos, self.moduleID)
+        _write_status(self.validOutMsg, int(valid), current_sim_nanos, self.moduleID)
 
 
 class ImuFaultInjector(sysModel.SysModel):
     """Apply gyro bias/noise events before the estimator consumes the IMU message."""
 
-    EFFECTS = {"gyro_bias_step", "gyro_noise_increase"}
+    EFFECTS = {
+        "gyro_bias_step", "gyro_noise_increase", "adcs_imu_signal_loss",
+        "adcs_imu_gyro_bias_drift", "adcs_imu_accel_bias_drift",
+        "adcs_imu_gyro_noise_increase", "adcs_imu_accel_noise_increase",
+        "adcs_imu_stuck_at_zero", "adcs_imu_axis_dropout", "adcs_imu_noise_burst",
+    }
 
     def __init__(self, events: Sequence[BSKEventSpec], *, seed: int = 0, base_noise_std_rad_s: float = 1.0e-5) -> None:
         super().__init__()
@@ -139,30 +347,77 @@ class ImuFaultInjector(sysModel.SysModel):
     def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
         source = self.imuInMsg()
         bias = [0.0, 0.0, 0.0]
+        accel_bias = [0.0, 0.0, 0.0]
         noise_scale = 1.0
+        accel_noise_scale = 1.0
+        zero_all = False; dropout_axis: int | None = None
+        now_s = _seconds(current_sim_nanos)
         for event in _active(self.events, current_sim_nanos):
             if event.effect == "gyro_bias_step":
                 step = self._vector_deg_s(event.parameters.get("bias_step_deg_s", 0.05))
                 bias = [left + right for left, right in zip(bias, step)]
-            elif event.effect == "gyro_noise_increase":
+            elif event.effect in {"gyro_noise_increase", "adcs_imu_gyro_noise_increase", "adcs_imu_noise_burst"}:
                 noise_scale = max(noise_scale, _event_number(event, ("noise_scale",), 5.0))
+            elif event.effect == "adcs_imu_gyro_bias_drift":
+                axis = int(_event_number(event, ("axis",), 0.0)) % 3
+                bias[axis] += math.radians(_event_number(event, ("drift_deg_s2",), 0.001)) * max(0.0, now_s - event.start_s)
+            elif event.effect == "adcs_imu_accel_bias_drift":
+                axis = int(_event_number(event, ("axis",), 0.0)) % 3
+                accel_bias[axis] += _event_number(event, ("bias_m_s2",), 0.02)
+            elif event.effect == "adcs_imu_accel_noise_increase":
+                accel_noise_scale = max(accel_noise_scale, _event_number(event, ("noise_scale",), 8.0))
+            elif event.effect in {"adcs_imu_signal_loss", "adcs_imu_stuck_at_zero"}:
+                zero_all = True
+            elif event.effect == "adcs_imu_axis_dropout":
+                dropout_axis = int(_event_number(event, ("axis",), 0.0)) % 3
         noise_std = self.base_noise_std_rad_s * noise_scale if noise_scale > 1.0 else 0.0
         noise = [self._rng.gauss(0.0, noise_std) for _ in range(3)] if noise_std > 0.0 else [0.0, 0.0, 0.0]
         measured = [float(source.AngVelPlatform[i]) + bias[i] + noise[i] for i in range(3)]
+        accel_noise_std = 1.0e-3 * accel_noise_scale if accel_noise_scale > 1.0 else 0.0
+        accel_noise = [self._rng.gauss(0.0, accel_noise_std) for _ in range(3)] if accel_noise_std > 0.0 else [0.0, 0.0, 0.0]
+        measured_accel = [float(source.AccelPlatform[i]) + accel_bias[i] + accel_noise[i] for i in range(3)]
+        if zero_all:
+            measured = [0.0, 0.0, 0.0]; measured_accel = [0.0, 0.0, 0.0]
+        if dropout_axis is not None:
+            measured[dropout_axis] = 0.0; measured_accel[dropout_axis] = 0.0
 
         output = messaging.IMUSensorMsgPayload()
         output.AngVelPlatform = measured
-        output.AccelPlatform = [float(x) for x in source.AccelPlatform]
+        output.AccelPlatform = measured_accel
         output.DRFramePlatform = [float(x) for x in source.DRFramePlatform]
         output.DVFramePlatform = [float(x) for x in source.DVFramePlatform]
         self.imuOutMsg.write(output, current_sim_nanos, self.moduleID)
 
         bias_payload = messaging.IMUSensorMsgPayload()
         bias_payload.AngVelPlatform = bias
+        bias_payload.AccelPlatform = accel_bias
         self.biasOutMsg.write(bias_payload, current_sim_nanos, self.moduleID)
         noise_payload = messaging.IMUSensorMsgPayload()
         noise_payload.AngVelPlatform = noise
+        noise_payload.AccelPlatform = accel_noise
         self.noiseOutMsg.write(noise_payload, current_sim_nanos, self.moduleID)
+
+
+class ReactionWheelSpeedFaultInjector(sysModel.SysModel):
+    """Inject tachometer bias without changing physical wheel speed."""
+
+    EFFECTS = {"adcs_rw_speed_sensor_fault"}
+
+    def __init__(self, events: Sequence[BSKEventSpec], *, wheel_count: int) -> None:
+        super().__init__(); self.ModelTag = "project_rw_speed_fault_injector"
+        self.events = tuple(event for event in events if event.effect in self.EFFECTS)
+        self.wheel_count = int(wheel_count); self.speedInMsg = messaging.RWSpeedMsgReader(); self.speedOutMsg = messaging.RWSpeedMsg()
+
+    def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self.UpdateState(current_sim_nanos)
+
+    def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
+        source = self.speedInMsg(); speeds = list(source.wheelSpeeds)
+        for event in _active(self.events, current_sim_nanos):
+            index = _wheel_index(event, self.wheel_count)
+            speeds[index] += _event_number(event, ("speed_bias_rad_s",), 25.0)
+        payload = messaging.RWSpeedMsgPayload(); payload.wheelSpeeds = speeds
+        self.speedOutMsg.write(payload, current_sim_nanos, self.moduleID)
 
 
 class ReactionWheelCommandFaultManager(sysModel.SysModel):
@@ -171,6 +426,7 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
     EFFECTS = {
         "rw_jamming", "adcs_rw_jamming", "rw_motor_failure", "adcs_rw_motor_failure",
         "rw_friction_degradation", "adcs_rw_torque_authority_loss", "reaction_wheel_speed_limit", "adcs_reaction_wheel_speed_limit",
+        "adcs_actuator_failure", "adcs_control_loop_failure",
     }
 
     def __init__(self, events: Sequence[BSKEventSpec], *, wheel_count: int = 3, max_torque_nm: float = 0.2) -> None:
@@ -205,6 +461,12 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.0), 1.0))
                 output[index] *= scale
                 torque_limits[index] = self.max_torque_nm * scale
+            elif event.effect == "adcs_actuator_failure":
+                output[index] = 0.0; torque_limits[index] = 0.0
+            elif event.effect == "adcs_control_loop_failure":
+                scale = max(0.0, min(_event_number(event, ("command_scale",), 0.0), 1.0))
+                for wheel_index in range(self.wheel_count):
+                    output[wheel_index] *= scale
             elif event.effect == "adcs_rw_torque_authority_loss":
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.5), 1.0))
                 output[index] *= scale
@@ -216,8 +478,11 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
             elif event.effect in {"reaction_wheel_speed_limit", "adcs_reaction_wheel_speed_limit"}:
                 limit = max(_event_number(event, ("max_speed_rad_s",), 50.0), 0.0)
                 speed_limits[index] = limit
-                if abs(float(speeds[index])) >= limit and float(speeds[index]) * float(output[index]) > 0.0:
-                    output[index] = 0.0
+                speed = float(speeds[index])
+                if abs(speed) >= limit:
+                    gain = max(_event_number(event, ("overspeed_brake_gain_nms",), 0.02), 0.0)
+                    brake = min(self.max_torque_nm, gain * max(0.0, abs(speed) - limit))
+                    output[index] = -math.copysign(brake, speed)
             elif event.effect in {"rw_jamming", "adcs_rw_jamming"}:
                 brake = min(max(_event_number(event, ("brake_torque_nm",), self.max_torque_nm), 0.0), self.max_torque_nm)
                 tolerance = max(_event_number(event, ("lock_tolerance_rad_s",), 0.25), 0.0)
@@ -575,11 +840,16 @@ class WholeSpacecraftParameterEventController(sysModel.SysModel):
 
 __all__ = [
     "AdcsSensorFusion",
+    "EarthHorizonSensor",
+    "StarTrackerFaultInjector",
+    "SunDirectionSensor",
+    "SunVectorFaultInjector",
     "ImuFaultInjector",
     "NativeEventStatus",
     "NativeRfDownlinkGate",
     "PowerDataModeGate",
     "PropulsionBurnController",
     "ReactionWheelCommandFaultManager",
+    "ReactionWheelSpeedFaultInjector",
     "WholeSpacecraftParameterEventController",
 ]

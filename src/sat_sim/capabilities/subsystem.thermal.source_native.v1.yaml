@@ -193,3 +193,34 @@ execution:
   binding_set_id: thermal-source-native-bindings-v1
   legacy_fallback_adapter_key: legacy.capability
   legacy_fallback_enabled: false
+
+simulation_module_interface:
+  schema_version: sat-sim.module-interface.v1
+  interface_id: sat-sim.interface.thermal-coupled-lumped.v1
+  ports:
+  - port_id: in.solar_heat_w
+    direction: input
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    fan_in: one
+    description: Parent-transformed solar heat input on the shared grid.
+  - port_id: in.internal_power_w
+    direction: input
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    fan_in: one
+    description: Dissipative internal electrical heat from EPS.
+  - port_id: out.heater_power_w
+    direction: output
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    direct_feedthrough: false
+    fan_out: many
+    description: Stateful thermostat heater demand.
+  - port_id: out.battery_temp_c
+    direction: output
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: degC}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    direct_feedthrough: false
+    fan_out: many
+    description: Stateful battery-node temperature exposed to EPS derating.

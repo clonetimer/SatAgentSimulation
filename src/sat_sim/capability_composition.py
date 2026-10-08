@@ -108,12 +108,14 @@ def contract_interface_summary(contract_data: Mapping[str, Any]) -> dict[str, An
 
     time_grid = contract_data.get("time_grid") if isinstance(contract_data.get("time_grid"), Mapping) else {}
     composition = contract_data.get("composition") if isinstance(contract_data.get("composition"), Mapping) else {}
+    simulation_ports = contract_data.get("simulation_ports") if isinstance(contract_data.get("simulation_ports"), Mapping) else {}
     return {
         "dependencies": normalize_dependencies(contract_data),
         "consumes": _interface_block(contract_data, "consumes"),
         "produces": _interface_block(contract_data, "produces"),
         "time_grid": dict(time_grid),
         "composition": dict(composition),
+        "simulation_ports": dict(simulation_ports),
         "trace_fields": trace_field_names(contract_data),
     }
 
@@ -126,6 +128,7 @@ def composition_metadata(capability_id: str, contract_data: Mapping[str, Any], *
     time_grid = dict(_mapping(contract_data.get("time_grid")))
     consumes = _interface_block(contract_data, "consumes")
     produces = _interface_block(contract_data, "produces")
+    simulation_ports = dict(_mapping(contract_data.get("simulation_ports")))
     simulation = _mapping((task_spec or {}).get("simulation"))
     resolved_time_grid = {
         "duration_s": simulation.get("duration_s"),
@@ -145,6 +148,7 @@ def composition_metadata(capability_id: str, contract_data: Mapping[str, Any], *
         "consumes": consumes,
         "produces": produces,
         "field_mappings": list(composition.get("field_mappings", [])) if isinstance(composition.get("field_mappings"), list) else [],
+        "simulation_ports": simulation_ports,
         "steps": list(composition.get("steps", [])) if isinstance(composition.get("steps"), list) else [],
     }
 

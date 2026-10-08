@@ -16,6 +16,7 @@ from sat_sim.adcs import (
     summarize_adcs_fidelity,
     augment_trace_rows,
 )
+from sat_sim.adcs.closed_loop import REACTION_WHEEL_PROVIDER_COMPONENT, REACTION_WHEEL_PROVIDER_INTERNAL
 from sat_sim.task_validator import ValidationIssue
 
 
@@ -42,16 +43,36 @@ class AdcsFidelityAdapter:
             ADCSFidelityConfig.from_task_spec(spec)
         except Exception as exc:
             issues.append(ValidationIssue("error", "$.parameters", str(exc), "capability"))
+        metadata = spec.get("metadata") if isinstance(spec.get("metadata"), Mapping) else {}
+        visual = metadata.get("visual_assembly") if isinstance(metadata.get("visual_assembly"), Mapping) else {}
+        if visual and str(visual.get("parent_capability_id") or self.capability_id) == self.capability_id:
+            selections = visual.get("module_selections") if isinstance(visual.get("module_selections"), Mapping) else {}
+            selected = selections.get("reaction_wheel")
+            if selected not in (None, "", REACTION_WHEEL_PROVIDER_COMPONENT):
+                issues.append(ValidationIssue(
+                    "error",
+                    "$.metadata.visual_assembly.module_selections.reaction_wheel",
+                    f"unsupported reaction-wheel provider {selected!r}",
+                    "assembly_module_selection",
+                ))
         return tuple(issues)
 
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
         config = ADCSFidelityConfig.from_task_spec(spec)
         faults, degradations, constraints = self._normalized_events(spec)
         effect_resolver = self._effect_resolver(faults, degradations, constraints, config)
-        samples = propagate_adcs_fidelity(config, effect_resolver=effect_resolver)
+        metadata = spec.get("metadata") if isinstance(spec.get("metadata"), Mapping) else {}
+        visual = metadata.get("visual_assembly") if isinstance(metadata.get("visual_assembly"), Mapping) else {}
+        selections = visual.get("module_selections") if isinstance(visual.get("module_selections"), Mapping) else {}
+        selected_rw = selections.get("reaction_wheel") if str(visual.get("parent_capability_id") or self.capability_id) == self.capability_id else None
+        reaction_wheel_provider = REACTION_WHEEL_PROVIDER_COMPONENT if selected_rw == REACTION_WHEEL_PROVIDER_COMPONENT else REACTION_WHEEL_PROVIDER_INTERNAL
+        samples = propagate_adcs_fidelity(
+            config,
+            effect_resolver=effect_resolver,
+            reaction_wheel_provider=reaction_wheel_provider,
+        )
         summary = summarize_adcs_fidelity(samples, config)
         task_id = str(spec.get("task_id", "adcs_fidelity_task"))
-        metadata = spec.get("metadata") if isinstance(spec.get("metadata"), Mapping) else {}
         case_id = str(metadata.get("case_id", "case_000"))
         rows_basic = tuple(
             sample.to_trace_row(
@@ -63,7 +84,14 @@ class AdcsFidelityAdapter:
             for sample in samples
         )
         rows_augmented = augment_trace_rows(rows_basic, config)
-        rows = tuple(self._augment_event_evidence(row, config, effect_resolver(float(row.get("time_s", 0.0)))) for row in rows_augmented)
+        rows = tuple(
+            self._augment_event_evidence(
+                {**row, "adcs.rw.provider_capability_id": reaction_wheel_provider},
+                config,
+                effect_resolver(float(row.get("time_s", 0.0))),
+            )
+            for row in rows_augmented
+        )
         active_sample_count = sum(1 for row in rows if row.get("label.fault_active") or row.get("label.degradation_active") or row.get("label.constraint_active"))
         summary.update({
             "task_id": task_id,
@@ -80,11 +108,15 @@ class AdcsFidelityAdapter:
                 "active_sample_count": active_sample_count,
                 "applied_by_adapter": True,
             },
+            "reaction_wheel_provider_capability_id": reaction_wheel_provider,
+            "assembly_replacement_active": reaction_wheel_provider != REACTION_WHEEL_PROVIDER_INTERNAL,
         })
         adapter_metadata = {
             "capability_id": self.capability_id,
             "adcs1_fidelity": build_adcs1_fidelity_payload(spec),
             "schema_version": ADCS_FIDELITY_SCHEMA_VERSION,
+            "reaction_wheel_provider_capability_id": reaction_wheel_provider,
+            "assembly_replacement_active": reaction_wheel_provider != REACTION_WHEEL_PROVIDER_INTERNAL,
         }
         mode = "mixed" if faults and degradations else "fault" if faults else "degradation" if degradations else "nominal"
         labels = {

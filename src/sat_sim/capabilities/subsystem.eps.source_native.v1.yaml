@@ -199,3 +199,33 @@ integration_contract:
     - '*'
   limitations:
   - source-native wrapper of existing src public API; no additional high-fidelity physics added
+
+simulation_module_interface:
+  schema_version: sat-sim.module-interface.v1
+  interface_id: sat-sim.interface.eps-coupled-power.v1
+  ports:
+  - port_id: in.solar_generation_w
+    direction: input
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    fan_in: one
+    description: Parent-transformed available solar generation on the shared time grid.
+  - port_id: out.requested_power_w
+    direction: output
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    direct_feedthrough: true
+    fan_out: many
+    description: Aggregate electrical demand presented to the coupled parent scheduler.
+  - port_id: in.heater_power_w
+    direction: input
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    fan_in: one
+    description: Thermal heater electrical request.
+  - port_id: in.effective_capacity_wh
+    direction: input
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: Wh}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    fan_in: one
+    description: Parent-owned temperature derating capacity signal.

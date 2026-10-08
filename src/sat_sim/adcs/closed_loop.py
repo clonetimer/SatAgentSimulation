@@ -497,6 +497,93 @@ class ADCSRuntimeEffects:
 
 
 RuntimeEffectResolver = Callable[[float], ADCSRuntimeEffects]
+REACTION_WHEEL_PROVIDER_INTERNAL = "parent_internal"
+REACTION_WHEEL_PROVIDER_COMPONENT = "component.reaction_wheel.v1"
+
+
+def _step_reaction_wheel_state(
+    wheel: tuple[float, ...],
+    wheel_torque: tuple[float, ...],
+    config: ADCSClosedLoopConfig,
+    dt: float,
+    effects: ADCSRuntimeEffects,
+    *,
+    provider: str,
+) -> tuple[tuple[float, ...], bool]:
+    """Advance wheel state through the selected registered actuator provider.
+
+    ``parent_internal`` preserves the historical HF-4 implementation.  The
+    registered component provider intentionally delegates wheel-speed dynamics
+    to ``components.reaction_wheel.model.step_wheel_speed`` while the ADCS
+    parent retains controller/allocation and rigid-body scheduling ownership.
+    """
+
+    n = config.reaction_wheels.num_wheels
+    max_speed = tuple(
+        config.reaction_wheels.max_speed_rad_s
+        * (effects.max_speed_scale[i] if i < len(effects.max_speed_scale) else 1.0)
+        for i in range(n)
+    )
+    drag = tuple(
+        effects.wheel_drag_nms[i] if i < len(effects.wheel_drag_nms) else 0.0
+        for i in range(n)
+    )
+
+    if provider == REACTION_WHEEL_PROVIDER_COMPONENT:
+        from components.reaction_wheel.model import step_wheel_speed
+        from components.reaction_wheel.schemas import ReactionWheelDynamicsConfig, ReactionWheelState
+
+        effective_torque = tuple(
+            0.0
+            if i in effects.jammed_axes
+            else wheel_torque[i] - drag[i] * (1.0 if wheel[i] > 0 else -1.0 if wheel[i] < 0 else 0.0)
+            for i in range(n)
+        )
+        rw_config = ReactionWheelDynamicsConfig(
+            num_wheels=n,
+            wheel_inertia_kg_m2=tuple(config.reaction_wheels.wheel_inertia_kg_m2 for _ in range(n)),
+            max_motor_torque_nm=tuple(
+                config.reaction_wheels.max_torque_nm
+                * (effects.axis_torque_scale[i] if i < len(effects.axis_torque_scale) else 1.0)
+                for i in range(n)
+            ),
+            max_speed_rad_s=max_speed,
+            damping_nms=tuple(0.0 for _ in range(n)),
+            wheel_axes_B=config.reaction_wheels.axes_body,
+        )
+        state = step_wheel_speed(ReactionWheelState(tuple(wheel)), effective_torque, rw_config, dt)
+        next_wheel = tuple(
+            0.0 if i in effects.jammed_axes else float(state.wheel_speeds_rad_s[i])
+            for i in range(n)
+        )
+        raw_without_limits = tuple(
+            0.0
+            if i in effects.jammed_axes
+            else wheel[i] + dt * effective_torque[i] / config.reaction_wheels.wheel_inertia_kg_m2
+            for i in range(n)
+        )
+        wheel_sat = any(
+            abs(next_wheel[i] - raw_without_limits[i]) > 1.0e-12
+            or abs(next_wheel[i]) >= max_speed[i] - 1.0e-9
+            for i in range(n)
+        )
+        return next_wheel, wheel_sat
+
+    if provider != REACTION_WHEEL_PROVIDER_INTERNAL:
+        raise ADCSClosedLoopError(f"unsupported reaction-wheel provider: {provider!r}")
+
+    wheel_next_raw = tuple(
+        0.0 if i in effects.jammed_axes else wheel[i] + (wheel_torque[i] / config.reaction_wheels.wheel_inertia_kg_m2) * dt
+        - (drag[i] * (1.0 if wheel[i] > 0 else -1.0 if wheel[i] < 0 else 0.0) / config.reaction_wheels.wheel_inertia_kg_m2) * dt
+        for i in range(n)
+    )
+    wheel_next = tuple(max(-max_speed[i], min(max_speed[i], x)) for i, x in enumerate(wheel_next_raw))
+    wheel_sat = any(
+        abs(wheel_next[i] - wheel_next_raw[i]) > 1.0e-12
+        or abs(wheel_next[i]) >= max_speed[i] - 1.0e-9
+        for i in range(n)
+    )
+    return wheel_next, wheel_sat
 
 
 @dataclass(frozen=True)
@@ -671,7 +758,17 @@ def _control_law(q: Sequence[float], w: Sequence[float], config: ADCSClosedLoopC
     return command, applied, wheel_torque, saturated
 
 
-def _dynamics_step(q: tuple[float, float, float, float], w: tuple[float, float, float], wheel: tuple[float, ...], config: ADCSClosedLoopConfig, dt: float, time_s: float, effects: ADCSRuntimeEffects | None = None) -> tuple[tuple[float, float, float, float], tuple[float, float, float], tuple[float, ...], bool, bool]:
+def _dynamics_step(
+    q: tuple[float, float, float, float],
+    w: tuple[float, float, float],
+    wheel: tuple[float, ...],
+    config: ADCSClosedLoopConfig,
+    dt: float,
+    time_s: float,
+    effects: ADCSRuntimeEffects | None = None,
+    *,
+    reaction_wheel_provider: str = REACTION_WHEEL_PROVIDER_INTERNAL,
+) -> tuple[tuple[float, float, float, float], tuple[float, float, float], tuple[float, ...], bool, bool]:
     effects = effects or ADCSRuntimeEffects()
     _cmd, applied, wheel_torque, torque_sat = _control_law(q, w, config, time_s, effects)
     iw = tuple(config.inertia_kg_m2[i] * w[i] for i in range(3))
@@ -679,15 +776,14 @@ def _dynamics_step(q: tuple[float, float, float, float], w: tuple[float, float, 
     wdot = tuple((applied[i] + config.disturbance_torque_nm[i] - gyroscopic[i]) / config.inertia_kg_m2[i] for i in range(3))
     w_next = tuple(w[i] + wdot[i] * dt for i in range(3))
     q_next = integrate_quaternion(q, w_next, dt)
-    n = config.reaction_wheels.num_wheels
-    wheel_next_raw = tuple(
-        0.0 if i in effects.jammed_axes else wheel[i] + (wheel_torque[i] / config.reaction_wheels.wheel_inertia_kg_m2) * dt
-        - ((effects.wheel_drag_nms[i] if i < len(effects.wheel_drag_nms) else 0.0) * (1.0 if wheel[i] > 0 else -1.0 if wheel[i] < 0 else 0.0) / config.reaction_wheels.wheel_inertia_kg_m2) * dt
-        for i in range(n)
+    wheel_next, wheel_sat = _step_reaction_wheel_state(
+        wheel,
+        wheel_torque,
+        config,
+        dt,
+        effects,
+        provider=reaction_wheel_provider,
     )
-    max_speed = tuple(config.reaction_wheels.max_speed_rad_s * (effects.max_speed_scale[i] if i < len(effects.max_speed_scale) else 1.0) for i in range(n))
-    wheel_next = tuple(max(-max_speed[i], min(max_speed[i], x)) for i, x in enumerate(wheel_next_raw))
-    wheel_sat = any(abs(wheel_next[i] - wheel_next_raw[i]) > 1.0e-12 or abs(wheel_next[i]) >= max_speed[i] - 1.0e-9 for i in range(n))
     return q_next, w_next, wheel_next, torque_sat, wheel_sat
 
 
@@ -737,6 +833,8 @@ def propagate_adcs_closed_loop(
     config: ADCSClosedLoopConfig,
     grid: TimeGrid | None = None,
     effect_resolver: RuntimeEffectResolver | None = None,
+    *,
+    reaction_wheel_provider: str = REACTION_WHEEL_PROVIDER_INTERNAL,
 ) -> tuple[ADCSClosedLoopSample, ...]:
     """Propagate the closed-loop model with optional time-window runtime effects."""
 
@@ -754,7 +852,16 @@ def propagate_adcs_closed_loop(
         while current_t < next_t - 1.0e-12:
             dt = min(config.integration_step_s, next_t - current_t)
             effects = resolver(current_t)
-            q, w, wheel, _torque_sat, _wheel_sat = _dynamics_step(q, w, wheel, config, dt, current_t, effects)
+            q, w, wheel, _torque_sat, _wheel_sat = _dynamics_step(
+                q,
+                w,
+                wheel,
+                config,
+                dt,
+                current_t,
+                effects,
+                reaction_wheel_provider=reaction_wheel_provider,
+            )
             current_t = min(next_t, current_t + dt)
         samples.append(_sample_from_state(next_t, q, w, wheel, config, out_grid, resolver(next_t)))
     return tuple(samples)
@@ -856,6 +963,8 @@ __all__ = [
     "ADCSClosedLoopSample",
     "ADCSRuntimeEffects",
     "RuntimeEffectResolver",
+    "REACTION_WHEEL_PROVIDER_INTERNAL",
+    "REACTION_WHEEL_PROVIDER_COMPONENT",
     "ReactionWheelAssemblyConfig",
     "axis_angle_to_quaternion",
     "build_hf4_adcs_closed_loop_payload",

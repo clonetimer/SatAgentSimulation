@@ -34,6 +34,16 @@ ADCS_NATIVE_EVENT_EFFECTS = {
     "rw_jamming", "adcs_rw_jamming", "rw_motor_failure", "adcs_rw_motor_failure",
     "gyro_bias_step", "gyro_noise_increase", "rw_friction_degradation", "adcs_rw_torque_authority_loss",
     "reaction_wheel_speed_limit", "adcs_reaction_wheel_speed_limit",
+    "adcs_star_tracker_signal_loss", "adcs_star_tracker_bias_drift", "adcs_star_tracker_accuracy_loss",
+    "adcs_star_tracker_fov_obstruction", "adcs_star_tracker_stuck_at_last", "adcs_star_tracker_blinding",
+    "adcs_star_tracker_dropout", "adcs_star_tracker_misalignment",
+    "adcs_sun_sensor_signal_loss", "adcs_sun_sensor_bias_drift", "adcs_sun_sensor_noise_increase",
+    "adcs_sun_sensor_saturation", "adcs_sun_sensor_eclipse_blindness", "adcs_sun_sensor_false_eclipse",
+    "adcs_sun_sensor_cell_failure", "adcs_sun_sensor_contamination",
+    "adcs_imu_signal_loss", "adcs_imu_gyro_bias_drift", "adcs_imu_accel_bias_drift",
+    "adcs_imu_gyro_noise_increase", "adcs_imu_accel_noise_increase", "adcs_imu_stuck_at_zero",
+    "adcs_imu_axis_dropout", "adcs_imu_noise_burst", "adcs_rw_speed_sensor_fault",
+    "adcs_sensor_failure", "adcs_control_loop_failure", "adcs_actuator_failure",
 }
 WHOLE_NATIVE_EVENT_EFFECTS = ADCS_NATIVE_EVENT_EFFECTS | {
     "payload_instrument_off", "comm_data_downlink_link_loss",
@@ -49,6 +59,7 @@ RW_COMMAND_EVENT_EFFECTS = {
     "rw_jamming", "adcs_rw_jamming", "rw_motor_failure", "adcs_rw_motor_failure",
     "rw_friction_degradation", "adcs_rw_torque_authority_loss", "reaction_wheel_speed_limit",
     "adcs_reaction_wheel_speed_limit",
+    "adcs_actuator_failure", "adcs_control_loop_failure",
 }
 
 
@@ -86,6 +97,19 @@ def _pointing_error_deg(sigma: Any) -> float:
 
 def _norm3(values: Any) -> float:
     return math.sqrt(sum(float(x) ** 2 for x in list(values)[:3]))
+
+
+def _reaction_wheel_axes(configuration: str) -> tuple[tuple[float, float, float], ...]:
+    """Return the selected, non-duplicated actuator architecture."""
+    if configuration == "pyramid_4":
+        scale = 1.0 / math.sqrt(3.0)
+        return tuple(
+            tuple(scale * value for value in axis)
+            for axis in ((1.0, 1.0, 1.0), (1.0, -1.0, -1.0), (-1.0, 1.0, -1.0), (-1.0, -1.0, 1.0))
+        )
+    if configuration == "orthogonal_3":
+        return ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
+    raise ValueError(f"unsupported rw_configuration: {configuration!r}")
 
 
 
@@ -327,11 +351,23 @@ def _build_unified_rows(
             "adcs.sensor.gyro_noise_rad_s_x": float(recorder_map["imu_noise"].AngVelPlatform[index][0]),
             "adcs.sensor.gyro_noise_rad_s_y": float(recorder_map["imu_noise"].AngVelPlatform[index][1]),
             "adcs.sensor.gyro_noise_rad_s_z": float(recorder_map["imu_noise"].AngVelPlatform[index][2]),
+            "adcs.sensor.accel_measured_m_s2_x": float(recorder_map["imu"].AccelPlatform[index][0]),
+            "adcs.sensor.accel_measured_m_s2_y": float(recorder_map["imu"].AccelPlatform[index][1]),
+            "adcs.sensor.accel_measured_m_s2_z": float(recorder_map["imu"].AccelPlatform[index][2]),
+            "adcs.sensor.accel_bias_m_s2_x": float(recorder_map["imu_bias"].AccelPlatform[index][0]),
+            "adcs.sensor.accel_bias_m_s2_y": float(recorder_map["imu_bias"].AccelPlatform[index][1]),
+            "adcs.sensor.accel_bias_m_s2_z": float(recorder_map["imu_bias"].AccelPlatform[index][2]),
+            "adcs.sensor.accel_noise_m_s2_x": float(recorder_map["imu_noise"].AccelPlatform[index][0]),
+            "adcs.sensor.accel_noise_m_s2_y": float(recorder_map["imu_noise"].AccelPlatform[index][1]),
+            "adcs.sensor.accel_noise_m_s2_z": float(recorder_map["imu_noise"].AccelPlatform[index][2]),
             "adcs.sensor.gyro_bias_norm_rad_s": _norm3(recorder_map["imu_bias"].AngVelPlatform[index]),
             "adcs.sensor.gyro_noise_norm_rad_s": _norm3(recorder_map["imu_noise"].AngVelPlatform[index]),
             "adcs.rw.speed_rad_s_0": float(rw_rec.wheelSpeeds[index][0]),
             "adcs.rw.speed_rad_s_1": float(rw_rec.wheelSpeeds[index][1]),
             "adcs.rw.speed_rad_s_2": float(rw_rec.wheelSpeeds[index][2]),
+            "adcs.rw.measured_speed_rad_s_0": float(recorder_map["rw_measured"].wheelSpeeds[index][0]),
+            "adcs.rw.measured_speed_rad_s_1": float(recorder_map["rw_measured"].wheelSpeeds[index][1]),
+            "adcs.rw.measured_speed_rad_s_2": float(recorder_map["rw_measured"].wheelSpeeds[index][2]),
             "adcs.rw.command_torque_nm_0": float(recorder_map["rw_command_raw"].motorTorque[index][0]),
             "adcs.rw.command_torque_nm_1": float(recorder_map["rw_command_raw"].motorTorque[index][1]),
             "adcs.rw.command_torque_nm_2": float(recorder_map["rw_command_raw"].motorTorque[index][2]),
@@ -357,10 +393,44 @@ def _build_unified_rows(
             "adcs.star_tracker.q1": float(recorder_map["star"].qInrtl2Case[index][1]),
             "adcs.star_tracker.q2": float(recorder_map["star"].qInrtl2Case[index][2]),
             "adcs.star_tracker.q3": float(recorder_map["star"].qInrtl2Case[index][3]),
+            "adcs.star_tracker.raw_q0": float(recorder_map["star_raw"].qInrtl2Case[index][0]),
+            "adcs.star_tracker.raw_q1": float(recorder_map["star_raw"].qInrtl2Case[index][1]),
+            "adcs.star_tracker.raw_q2": float(recorder_map["star_raw"].qInrtl2Case[index][2]),
+            "adcs.star_tracker.raw_q3": float(recorder_map["star_raw"].qInrtl2Case[index][3]),
+            "adcs.star_tracker.valid": int(recorder_map["star_valid"].deviceStatus[index]),
             "adcs.magnetometer.tesla_x": float(recorder_map["mag"].tam_S[index][0]),
             "adcs.magnetometer.tesla_y": float(recorder_map["mag"].tam_S[index][1]),
             "adcs.magnetometer.tesla_z": float(recorder_map["mag"].tam_S[index][2]),
+            "adcs.sun_sensor.cosine_output": float(recorder_map["sun_sensor"].OutputData[index]),
+            "adcs.sun_sensor.direction_b_x": float(recorder_map["sun_vector"].tam_S[index][0]),
+            "adcs.sun_sensor.direction_b_y": float(recorder_map["sun_vector"].tam_S[index][1]),
+            "adcs.sun_sensor.direction_b_z": float(recorder_map["sun_vector"].tam_S[index][2]),
+            "adcs.sun_sensor.raw_direction_b_x": float(recorder_map["sun_vector_raw"].tam_S[index][0]),
+            "adcs.sun_sensor.raw_direction_b_y": float(recorder_map["sun_vector_raw"].tam_S[index][1]),
+            "adcs.sun_sensor.raw_direction_b_z": float(recorder_map["sun_vector_raw"].tam_S[index][2]),
+            "adcs.sun_sensor.valid": int(recorder_map["sun_valid"].deviceStatus[index]),
+            "adcs.earth_sensor.direction_b_x": float(recorder_map["earth_sensor"].tam_S[index][0]),
+            "adcs.earth_sensor.direction_b_y": float(recorder_map["earth_sensor"].tam_S[index][1]),
+            "adcs.earth_sensor.direction_b_z": float(recorder_map["earth_sensor"].tam_S[index][2]),
+            "adcs.fusion.source_mode": int(recorder_map["fusion_source_mode"].deviceStatus[index]),
         }
+        wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
+        torque_constant = max(float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)), 1.0e-12)
+        current_limit = float(cfg.values.get("rw_motor_current_limit_a", 10.0))
+        nominal_torque = max(abs(float(cfg.values.get("rw_max_torque_nm", 0.2))), 1.0e-12)
+        for wheel_index in range(3, wheel_count):
+            raw_torque = float(recorder_map["rw_command_raw"].motorTorque[index][wheel_index])
+            row.update({
+                f"adcs.rw.speed_rad_s_{wheel_index}": float(rw_rec.wheelSpeeds[index][wheel_index]),
+                f"adcs.rw.measured_speed_rad_s_{wheel_index}": float(recorder_map["rw_measured"].wheelSpeeds[index][wheel_index]),
+                f"adcs.rw.command_torque_nm_{wheel_index}": raw_torque,
+                f"adcs.rw.motor_current_a_{wheel_index}": max(-current_limit, min(current_limit, raw_torque / torque_constant)),
+                f"adcs.control.applied_torque_nm_{wheel_index}": float(recorder_map["rw_command_applied"].motorTorque[index][wheel_index]),
+                f"adcs.rw.effective_drag_nms_{wheel_index}": float(recorder_map["rw_effective_drag"].motorTorque[index][wheel_index]),
+                f"adcs.rw.effective_max_torque_nm_{wheel_index}": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][wheel_index]),
+                f"adcs.rw.effective_torque_ratio_{wheel_index}": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][wheel_index]) / nominal_torque,
+                f"adcs.rw.effective_max_speed_rad_s_{wheel_index}": float(recorder_map["rw_effective_speed_limit"].wheelSpeeds[index][wheel_index]),
+            })
         row["label.fault_active"] = bool(recorder_map["event_fault"].deviceStatus[index])
         row["label.degradation_active"] = bool(recorder_map["event_degradation"].deviceStatus[index])
         row["label.constraint_active"] = bool(recorder_map["event_constraint"].deviceStatus[index])
@@ -475,7 +545,7 @@ class UnifiedNativeRuntime:
     """Build and execute the native mixed-origin Basilisk model graph."""
 
     OFFICIAL_MODULES = (
-        "spacecraft", "reaction_wheels", "eclipse", "star_tracker", "imu",
+        "spacecraft", "reaction_wheels", "eclipse", "star_tracker", "imu", "coarse_sun_sensor",
         "magnetic_field", "magnetometer", "inertial_guidance", "attitude_error",
         "mrp_feedback", "rw_motor_torque",
     )
@@ -486,6 +556,7 @@ class UnifiedNativeRuntime:
     PROJECT_MODULES = (
         "project_native_event_status", "project_imu_fault_injector",
         "project_adcs_sensor_fusion", "project_rw_command_fault_manager",
+        "project_star_tracker_fault_injector", "project_sun_vector_fault_injector",
         "project_power_data_mode_gate", "project_whole_parameter_event_controller",
     )
 
@@ -496,16 +567,22 @@ class UnifiedNativeRuntime:
         from Basilisk.architecture import messaging  # type: ignore
         from .project_native_modules import (
             AdcsSensorFusion,
+            EarthHorizonSensor,
             ImuFaultInjector,
             NativeEventStatus,
             NativeRfDownlinkGate,
             PowerDataModeGate,
             PropulsionBurnController,
             ReactionWheelCommandFaultManager,
+            ReactionWheelSpeedFaultInjector,
+            StarTrackerFaultInjector,
+            SunDirectionSensor,
+            SunVectorFaultInjector,
             WholeSpacecraftParameterEventController,
         )
         from Basilisk.fswAlgorithms import attTrackingError, inertial3D, mrpFeedback, rwMotorTorque  # type: ignore
         from Basilisk.simulation import (  # type: ignore
+            coarseSunSensor,
             eclipse,
             imuSensor,
             magneticFieldCenteredDipole,
@@ -569,7 +646,8 @@ class UnifiedNativeRuntime:
 
         rw = reactionWheelStateEffector.ReactionWheelStateEffector()
         rw_factory = simIncludeRW.rwFactory()
-        for index, axis in enumerate(([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0])):
+        rw_axes = _reaction_wheel_axes(str(values.get("rw_configuration", "orthogonal_3")))
+        for index, axis in enumerate(rw_axes):
             rw_factory.create(
                 "Honeywell_HR16", list(axis), maxMomentum=50.0,
                 Omega=float(100.0 * (index + 1)), u_max=0.2, label=f"RW{index + 1}",
@@ -610,6 +688,28 @@ class UnifiedNativeRuntime:
         add(imu, "imu", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "imu")
 
+        sun_sensor = coarseSunSensor.CoarseSunSensor()
+        sun_sensor.nHat_B = [0.0, 0.0, -1.0]
+        sun_sensor.fov = math.radians(float(values.get("sun_sensor_fov_deg", 80.0)))
+        sun_sensor.stateInMsg.subscribeTo(sc.scStateOutMsg)
+        sun_sensor.sunInMsg.subscribeTo(sun_msg)
+        sun_sensor.sunEclipseInMsg.subscribeTo(eclipse_model.eclipseOutMsgs[0])
+        add(sun_sensor, "coarse_sun_sensor", "basilisk_official_native", 89)
+        connected("spacecraft.scStateOutMsg", "coarse_sun_sensor")
+        connected("eclipse.eclipseOutMsgs[0]", "coarse_sun_sensor")
+
+        earth_sensor = EarthHorizonSensor()
+        earth_sensor.stateInMsg.subscribeTo(sc.scStateOutMsg)
+        add(earth_sensor, "project_earth_horizon_sensor", "basilisk_project_native", 89)
+        connected("spacecraft.scStateOutMsg", "project_earth_horizon_sensor")
+
+        sun_direction = SunDirectionSensor()
+        sun_direction.stateInMsg.subscribeTo(sc.scStateOutMsg)
+        sun_direction.sunInMsg.subscribeTo(sun_msg)
+        add(sun_direction, "project_sun_direction_sensor", "basilisk_project_native", 89)
+        connected("spacecraft.scStateOutMsg", "project_sun_direction_sensor")
+        connected("sun_ephemeris", "project_sun_direction_sensor")
+
         magnetic = magneticFieldCenteredDipole.MagneticFieldCenteredDipole()
         magnetic.planetRadius = 6_371_200.0
         magnetic.g10 = -30_926e-9
@@ -635,14 +735,37 @@ class UnifiedNativeRuntime:
         add(imu_fault, "project_imu_fault_injector", "basilisk_project_native", 84)
         connected("imu.sensorOutMsg", "project_imu_fault_injector")
 
+        star_fault = StarTrackerFaultInjector(cfg.events, seed=int(values.get("simulation_seed", 0)))
+        star_fault.starInMsg.subscribeTo(tracker.sensorOutMsg)
+        add(star_fault, "project_star_tracker_fault_injector", "basilisk_project_native", 84)
+        connected("star_tracker.sensorOutMsg", "project_star_tracker_fault_injector")
+
+        sun_fault = SunVectorFaultInjector(cfg.events, seed=int(values.get("simulation_seed", 0)))
+        sun_fault.vectorInMsg.subscribeTo(sun_direction.bodyOutMsg)
+        add(sun_fault, "project_sun_vector_fault_injector", "basilisk_project_native", 84)
+        connected("project_sun_direction_sensor.bodyOutMsg", "project_sun_vector_fault_injector")
+
         fusion = AdcsSensorFusion()
-        fusion.starInMsg.subscribeTo(tracker.sensorOutMsg)
+        fusion.starInMsg.subscribeTo(star_fault.starOutMsg)
         fusion.imuInMsg.subscribeTo(imu_fault.imuOutMsg)
         fusion.magInMsg.subscribeTo(magnetometer_model.tamDataOutMsg)
+        fusion.sunBodyInMsg.subscribeTo(sun_fault.vectorOutMsg)
+        fusion.sunReferenceInMsg.subscribeTo(sun_direction.referenceOutMsg)
+        fusion.earthBodyInMsg.subscribeTo(earth_sensor.directionOutMsg)
+        fusion.earthReferenceInMsg.subscribeTo(earth_sensor.referenceOutMsg)
+        fusion.starValidInMsg.subscribeTo(star_fault.validOutMsg)
+        fusion.sunValidInMsg.subscribeTo(sun_fault.validOutMsg)
         add(fusion, "project_adcs_sensor_fusion", "basilisk_project_native", 80)
-        connected("star_tracker.sensorOutMsg", "project_adcs_sensor_fusion")
+        connected("project_star_tracker_fault_injector.starOutMsg", "project_adcs_sensor_fusion")
         connected("project_imu_fault_injector.imuOutMsg", "project_adcs_sensor_fusion")
         connected("magnetometer.tamDataOutMsg", "project_adcs_sensor_fusion")
+        connected("project_sun_vector_fault_injector.vectorOutMsg", "project_adcs_sensor_fusion")
+        connected("project_earth_horizon_sensor.directionOutMsg", "project_adcs_sensor_fusion")
+
+        rw_speed_fault = ReactionWheelSpeedFaultInjector(cfg.events, wheel_count=len(rw_axes))
+        rw_speed_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)
+        add(rw_speed_fault, "project_rw_speed_fault_injector", "basilisk_project_native", 79)
+        connected("reaction_wheels.rwSpeedOutMsg", "project_rw_speed_fault_injector")
 
         reference = inertial3D.inertial3D()
         reference.sigma_R0N = [0.0, 0.0, 0.0]
@@ -665,9 +788,10 @@ class UnifiedNativeRuntime:
         vehicle_msg = messaging.VehicleConfigMsg().write(vehicle)
         controller.vehConfigInMsg.subscribeTo(vehicle_msg)
         controller.rwParamsInMsg.subscribeTo(rw_config)
-        controller.rwSpeedsInMsg.subscribeTo(rw.rwSpeedOutMsg)
+        controller.rwSpeedsInMsg.subscribeTo(rw_speed_fault.speedOutMsg)
         add(controller, "mrp_feedback", "basilisk_official_native", 65)
         connected("attitude_error.attGuidOutMsg", "mrp_feedback")
+        connected("project_rw_speed_fault_injector.speedOutMsg", "mrp_feedback")
 
         motor = rwMotorTorque.rwMotorTorque()
         motor.controlAxes_B = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
@@ -677,7 +801,7 @@ class UnifiedNativeRuntime:
         connected("mrp_feedback.cmdTorqueOutMsg", "rw_motor_torque")
 
         rw_fault = ReactionWheelCommandFaultManager(
-            cfg.events, wheel_count=3, max_torque_nm=float(values.get("rw_max_torque_nm", 0.2))
+            cfg.events, wheel_count=len(rw_axes), max_torque_nm=float(values.get("rw_max_torque_nm", 0.2))
         )
         rw_fault.commandInMsg.subscribeTo(motor.rwMotorTorqueOutMsg)
         rw_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)
@@ -1062,17 +1186,27 @@ class UnifiedNativeRuntime:
             "state": sc.scStateOutMsg,
             "guid": tracking.attGuidOutMsg,
             "rw": rw.rwSpeedOutMsg,
+            "rw_measured": rw_speed_fault.speedOutMsg,
             "rw_command_raw": motor.rwMotorTorqueOutMsg,
             "rw_command_applied": rw_fault.commandOutMsg,
             "rw_effective_drag": rw_fault.dragOutMsg,
             "rw_effective_torque_limit": rw_fault.torqueLimitOutMsg,
             "rw_effective_speed_limit": rw_fault.speedLimitOutMsg,
-            "star": tracker.sensorOutMsg,
+            "star_raw": tracker.sensorOutMsg,
+            "star": star_fault.starOutMsg,
+            "star_valid": star_fault.validOutMsg,
             "imu_raw": imu.sensorOutMsg,
             "imu": imu_fault.imuOutMsg,
             "imu_bias": imu_fault.biasOutMsg,
             "imu_noise": imu_fault.noiseOutMsg,
             "mag": magnetometer_model.tamDataOutMsg,
+            "sun_sensor": sun_sensor.cssDataOutMsg,
+            "sun_vector_raw": sun_direction.bodyOutMsg,
+            "sun_vector": sun_fault.vectorOutMsg,
+            "sun_valid": sun_fault.validOutMsg,
+            "fusion_source_mode": fusion.sourceModeOutMsg,
+            "earth_sensor": earth_sensor.directionOutMsg,
+            "earth_reference": earth_sensor.referenceOutMsg,
             "eclipse": eclipse_model.eclipseOutMsgs[0],
             "event_fault": event_status.faultOutMsg,
             "event_degradation": event_status.degradationOutMsg,
@@ -1576,8 +1710,9 @@ class _BaseUnifiedAdapter:
                     wheel_index = int(event.parameters.get("wheel_index", 0))
                 except (TypeError, ValueError):
                     wheel_index = -1
-                if not 0 <= wheel_index < 3:
-                    issues.append(ValidationIssue("error", f"$.events[{index}].parameters.wheel_index", "must be 0, 1 or 2", "range"))
+                wheel_count = len(_reaction_wheel_axes(str(_parameter_values(spec).get("rw_configuration", "orthogonal_3"))))
+                if not 0 <= wheel_index < wheel_count:
+                    issues.append(ValidationIssue("error", f"$.events[{index}].parameters.wheel_index", f"must be between 0 and {wheel_count - 1}", "range"))
         return tuple(issues)
 
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:

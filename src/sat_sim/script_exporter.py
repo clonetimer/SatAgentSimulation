@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Literal, Mapping
 
 
-ScriptKind = Literal["python", "shell", "capability-python"]
+ScriptKind = Literal["python", "shell", "capability-python", "assembly-python"]
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,12 @@ def _source_binding_comment(source_binding: Mapping[str, Any]) -> str:
     return f"# Source binding: mode={mode}; primary_module={primary}; public_api={public_api_text}"
 
 
-def _generate_capability_python_script(payload: Mapping[str, Any], contract_data: Mapping[str, Any]) -> str:
+def _generate_capability_python_script(
+    payload: Mapping[str, Any],
+    contract_data: Mapping[str, Any],
+    *,
+    assembly_graph: Mapping[str, Any] | None = None,
+) -> str:
     from .source_native import public_source_binding_payload
 
     capability_id = str(contract_data.get("capability_id", payload.get("capability_id", "")))
@@ -130,6 +135,23 @@ def _generate_capability_python_script(payload: Mapping[str, Any], contract_data
     task_spec_literal = pprint.pformat(dict(payload), width=100, sort_dicts=False)
     source_binding_literal = pprint.pformat(dict(source_binding), width=100, sort_dicts=False)
     source_comment = _source_binding_comment(source_binding)
+    assembly_literal = pprint.pformat(dict(assembly_graph), width=100, sort_dicts=False) if assembly_graph is not None else "None"
+    assembly_import = (
+        "from sat_sim.assembly_graph import validate_assembly_graph, validate_assembly_task_spec_binding\n"
+        if assembly_graph is not None else ""
+    )
+    assembly_validation = (
+        "    assembly_validation = validate_assembly_graph(ASSEMBLY_GRAPH, expected_parent_capability_id=CAPABILITY_ID)\n"
+        "    if not assembly_validation.ok:\n"
+        "        raise SystemExit(json.dumps({\"ok\": False, \"assembly_validation\": assembly_validation.to_dict()}, indent=2, ensure_ascii=False))\n"
+        if assembly_graph is not None else ""
+    )
+    assembly_task_binding = (
+        "    assembly_task_binding = validate_assembly_task_spec_binding(task_spec, ASSEMBLY_GRAPH, validation=assembly_validation)\n"
+        "    if not assembly_task_binding.get(\"ok\"):\n"
+        "        raise SystemExit(json.dumps({\"ok\": False, \"assembly_task_binding\": assembly_task_binding}, indent=2, ensure_ascii=False))\n"
+        if assembly_graph is not None else ""
+    )
     default_output = str((payload.get("outputs") if isinstance(payload.get("outputs"), Mapping) else {}).get("output_root") or payload.get("task_id") or "capability_output")
     return f'''#!/usr/bin/env python3
 """Generated capability-python simulation script.
@@ -147,9 +169,10 @@ from typing import Any
 from sat_sim.task_compiler import compile_task_spec
 from sat_sim.taskspec_alignment import align_task_spec_to_source
 from sat_sim.unified_execution import execute_compiled_task
-
+{assembly_import}
 CAPABILITY_ID = {capability_id!r}
 SOURCE_BINDING = {source_binding_literal}
+ASSEMBLY_GRAPH = {assembly_literal}
 {source_comment}
 
 # ---------------------------------------------------------------------------
@@ -216,9 +239,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    args = parse_args()
+{assembly_validation}    args = parse_args()
     task_spec = build_task_spec(args)
-    if args.show_task_spec:
+{assembly_task_binding}    if args.show_task_spec:
         print(json.dumps(task_spec, indent=2, ensure_ascii=False))
     compiled = compile_task_spec(task_spec, validate=True)
     output_root = task_spec.get("outputs", {{}}).get("output_root") or args.output_root or {default_output!r}
@@ -301,6 +324,88 @@ def export_capability_python_runner(spec_path: str | Path, output_path: str | Pa
     return ScriptExportResult(kind="capability-python", output_path=out, spec_path=spec, output_root=str(output_root) if output_root is not None else None)
 
 
+def export_assembly_python_runner(
+    spec_path: str | Path,
+    output_path: str | Path,
+    *,
+    assembly_graph: Mapping[str, Any],
+    output_root: str | Path | None = None,
+) -> ScriptExportResult:
+    """Export deterministic executable code with a registered module assembly.
+
+    The assembly is embedded as data and revalidated at runtime.  Execution is
+    still owned by the registered parent Capability adapter; no arbitrary class
+    path or Python source is accepted from the graph.
+    """
+    from .assembly_graph import validate_assembly_graph, validate_assembly_task_spec_binding
+    from .capability_registry import get_capability
+    from .task_spec import load_task_spec
+    from .task_models import to_runtime_task_spec
+    from .taskspec_alignment import align_task_spec_to_source
+
+    spec = Path(spec_path)
+    out = Path(output_path)
+    doc = load_task_spec(spec)
+    payload = to_runtime_task_spec(doc.data)
+    capability_id = payload.get("capability_id")
+    if not isinstance(capability_id, str) or not capability_id.strip():
+        raise ValueError("assembly-python export requires TaskSpec capability_id")
+    assembly_validation = validate_assembly_graph(
+        assembly_graph,
+        expected_parent_capability_id=capability_id,
+        require_all_bindings=True,
+    )
+    if not assembly_validation.ok:
+        messages = "; ".join(item.message for item in assembly_validation.errors[:8])
+        raise ValueError(f"assembly graph validation failed: {messages}")
+    assembly_task_binding = validate_assembly_task_spec_binding(
+        doc.data,
+        assembly_graph,
+        validation=assembly_validation,
+    )
+    if not assembly_task_binding.get("ok"):
+        messages = "; ".join(str(item.get("message") or item.get("code")) for item in assembly_task_binding.get("errors", [])[:8])
+        raise ValueError(f"assembly TaskSpec binding validation failed: {messages}")
+    contract = get_capability(capability_id)
+    payload = dict(payload)
+    if output_root is not None:
+        outputs = dict(payload.get("outputs") or {})
+        outputs["output_root"] = str(output_root)
+        payload["outputs"] = outputs
+    payload = align_task_spec_to_source(payload, capability=contract.data, fill_defaults=True).task_spec
+    try:
+        from .taskspec_pruning import prune_task_spec_for_capability
+        payload = prune_task_spec_for_capability(payload).task_spec
+    except Exception as exc:
+        record_runtime_diagnostic(
+            code="ASSEMBLY_SCRIPT_EXPORT_PRUNING_FALLBACK",
+            category=DiagnosticCategory.AGENT_NORMALIZATION_FALLBACK,
+            location="src/sat_sim/script_exporter.py:export_assembly_python_runner:01",
+            exception=exc,
+            strict=False,
+        )
+    # Visual observer annotations (for example Scope probes) are project/UI data,
+    # not part of the physical assembly runtime.  Validate the submitted graph
+    # above, but deliberately omit observers from the generated runner so adding
+    # or moving a Scope cannot change executable simulation code.
+    runtime_assembly_graph = dict(assembly_graph)
+    runtime_assembly_graph.pop("scopes", None)
+    content = _generate_capability_python_script(payload, contract.data, assembly_graph=runtime_assembly_graph)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(content, encoding="utf-8")
+    try:
+        out.chmod(out.stat().st_mode | 0o111)
+    except Exception as exc:
+        record_runtime_diagnostic(
+            code="SCRIPT_EXECUTABLE_PERMISSION_UPDATE_FAILED",
+            category=DiagnosticCategory.BEST_EFFORT_CLEANUP,
+            location="src/sat_sim/script_exporter.py:export_assembly_python_runner:02",
+            exception=exc,
+            strict=False,
+        )
+    return ScriptExportResult(kind="assembly-python", output_path=out, spec_path=spec, output_root=str(output_root) if output_root is not None else None)
+
+
 def export_runner_script(spec_path: str | Path, output_path: str | Path, *, kind: ScriptKind = "python", output_root: str | Path | None = None) -> ScriptExportResult:
     if kind == "python":
         return export_python_runner(spec_path, output_path, output_root=output_root)
@@ -308,7 +413,17 @@ def export_runner_script(spec_path: str | Path, output_path: str | Path, *, kind
         return export_shell_runner(spec_path, output_path, output_root=output_root)
     if kind == "capability-python":
         return export_capability_python_runner(spec_path, output_path, output_root=output_root)
+    if kind == "assembly-python":
+        raise ValueError("assembly-python export requires export_assembly_python_runner(..., assembly_graph=...)")
     raise ValueError(f"unsupported script kind: {kind!r}")
 
 
-__all__ = ["ScriptExportResult", "ScriptKind", "export_python_runner", "export_shell_runner", "export_capability_python_runner", "export_runner_script"]
+__all__ = [
+    "ScriptExportResult",
+    "ScriptKind",
+    "export_python_runner",
+    "export_shell_runner",
+    "export_capability_python_runner",
+    "export_assembly_python_runner",
+    "export_runner_script",
+]

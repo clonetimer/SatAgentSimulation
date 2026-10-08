@@ -62,6 +62,54 @@
     interactiveAcks: [],
     interactiveCommandCatalog: [],
     runResultsExpanded: false,
+    graphNodes: [],
+    graphEdges: [],
+    graphSelectedNodeId: null,
+    graphSelectedEdgeId: null,
+    graphPendingConnection: null,
+    graphCode: '',
+    graphCodeFilename: 'simulation.py',
+    graphGeneratedSnapshot: '',
+    graphHistory: [],
+    graphHistoryIndex: -1,
+    graphHistoryApplying: false,
+    graphComposerMode: 'flow',
+    assemblyCatalog: [],
+    moduleLibrary: [],
+    assemblyLibrarySearch: '',
+    assemblyCompatibleOnly: true,
+    assemblyContract: null,
+    assemblyGraph: null,
+    assemblySelectedNodeId: null,
+    assemblySelectedEdgeId: null,
+    assemblySelectedScopeId: null,
+    assemblySelectedScopeProbeId: null,
+    assemblySelection: [],
+    assemblyClipboard: [],
+    assemblySuppressCanvasClick: false,
+    assemblyPendingConnection: null,
+    assemblyDragModuleCapabilityId: null,
+    assemblyCode: '',
+    assemblyCodeFilename: 'assembly.py',
+    assemblyGeneratedSnapshot: '',
+    graphCodeDiff: null,
+    assemblyCodeDiff: null,
+    visualDiagnostics: null,
+    activeVisualRunContext: null,
+    assemblyComparison: null,
+    assemblyComparisonRunning: false,
+    visualRunOverlay: null,
+    visualRunOverlaySnapshot: '',
+    visualNodeSeriesField: {},
+    visualOverlayTelemetry: [],
+    visualTuningOptions: null,
+    visualTuningMode: null,
+    visualTuningSelections: [],
+    visualTuningExperimentId: null,
+    visualTuningResult: null,
+    visualTuningRunning: false,
+    visualTuningContext: null,
+    visualTuningBestRunId: null,
   };
 
   const el = (id) => document.getElementById(id);
@@ -93,6 +141,391 @@
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function codeDiffSummary(before, after) {
+    if (!before || before === after) return before === after ? { changed: false, beforeLines: 0, afterLines: 0, startLine: 0, beforePreview: [], afterPreview: [] } : null;
+    const left = String(before).split('\n');
+    const right = String(after).split('\n');
+    let prefix = 0;
+    while (prefix < left.length && prefix < right.length && left[prefix] === right[prefix]) prefix += 1;
+    let suffix = 0;
+    while (suffix < left.length - prefix && suffix < right.length - prefix && left[left.length - 1 - suffix] === right[right.length - 1 - suffix]) suffix += 1;
+    const leftChanged = left.slice(prefix, left.length - suffix);
+    const rightChanged = right.slice(prefix, right.length - suffix);
+    return {
+      changed: true,
+      beforeLines: leftChanged.length,
+      afterLines: rightChanged.length,
+      startLine: prefix + 1,
+      beforePreview: leftChanged.slice(0, 4),
+      afterPreview: rightChanged.slice(0, 4),
+    };
+  }
+
+  function changedSnapshotPaths(previousSnapshot, currentSnapshot, limit = 8) {
+    if (!previousSnapshot || !currentSnapshot || previousSnapshot === currentSnapshot) return [];
+    let previous; let current;
+    try { previous = JSON.parse(previousSnapshot); current = JSON.parse(currentSnapshot); } catch (_) { return ['graph / parameters']; }
+    const paths = [];
+    const walk = (left, right, path) => {
+      if (paths.length >= limit) return;
+      if (deepEqual(left, right)) return;
+      const leftObject = left && typeof left === 'object';
+      const rightObject = right && typeof right === 'object';
+      if (!leftObject || !rightObject || Array.isArray(left) !== Array.isArray(right)) { paths.push(path || 'root'); return; }
+      if (Array.isArray(left)) {
+        const size = Math.max(left.length, right.length);
+        for (let index = 0; index < size && paths.length < limit; index += 1) walk(left[index], right[index], `${path}[${index}]`);
+        return;
+      }
+      const keys = [...new Set([...Object.keys(left), ...Object.keys(right)])].sort();
+      keys.forEach((key) => { if (paths.length < limit) walk(left[key], right[key], path ? `${path}.${key}` : key); });
+    };
+    walk(previous, current, '');
+    return paths;
+  }
+
+  function visualDiagnosticTargets(mode = null) {
+    const diagnostics = state.visualDiagnostics;
+    if (!diagnostics || (mode && diagnostics.mode !== mode)) return [];
+    return diagnostics.targets || [];
+  }
+
+  function visualNodeDiagnostic(mode, nodeId) {
+    return visualDiagnosticTargets(mode).find((item) => item.node_id === nodeId && ['node', 'port'].includes(item.kind)) || null;
+  }
+
+  function visualPortDiagnostic(mode, nodeId, portId) {
+    return visualDiagnosticTargets(mode).find((item) => item.node_id === nodeId && item.port_id === portId) || null;
+  }
+
+  function visualEdgeDiagnostic(mode, edgeId) {
+    return visualDiagnosticTargets(mode).find((item) => item.edge_id === edgeId) || null;
+  }
+
+  function clearVisualDiagnostics(mode = null) {
+    if (!state.visualDiagnostics || (mode && state.visualDiagnostics.mode !== mode)) return;
+    state.visualDiagnostics = null;
+  }
+
+  function applyVisualDiagnostics(diagnostics) {
+    if (!diagnostics) return;
+    state.visualDiagnostics = diagnostics;
+    const first = (diagnostics.targets || [])[0] || null;
+    if (diagnostics.mode === 'assembly') {
+      if (first?.node_id) state.assemblySelectedNodeId = first.node_id;
+      if (first?.edge_id) state.assemblySelectedEdgeId = first.edge_id;
+      assemblyRender();
+      assemblySetStatus(`${diagnostics.summary || '运行错误已映射到装配图'}${diagnostics.reason_code ? ` · ${diagnostics.reason_code}` : ''}`, 'error');
+    } else if (diagnostics.mode === 'flow') {
+      if (first?.node_id) state.graphSelectedNodeId = first.node_id;
+      if (first?.edge_id) state.graphSelectedEdgeId = first.edge_id;
+      renderGraph();
+      graphSetStatus(`${diagnostics.summary || '运行错误已映射到流程图'}${diagnostics.reason_code ? ` · ${diagnostics.reason_code}` : ''}`, 'error');
+    }
+  }
+
+  async function requestVisualDiagnostics(errorText, context = null, reasonCode = null) {
+    const visual = context || state.activeVisualRunContext;
+    if (!visual || !errorText) return null;
+    try {
+      const payload = await api('/visual-composer/diagnose', {
+        method: 'POST',
+        body: JSON.stringify({
+          error_text: String(errorText),
+          reason_code: reasonCode || null,
+          task_spec: visual.taskSpec || null,
+          visual_graph: visual.mode === 'flow' ? visual.graph : null,
+          assembly_graph: visual.mode === 'assembly' ? visual.assemblyGraph : null,
+        }),
+      });
+      const diagnostics = payload.diagnostics || null;
+      if (diagnostics?.targets?.length) applyVisualDiagnostics(diagnostics);
+      return diagnostics;
+    } catch (_) { return null; }
+  }
+
+  function currentVisualSnapshot(mode) {
+    return mode === 'assembly' ? assemblySnapshot() : graphFormSnapshot();
+  }
+
+  function visualOverlayForMode(mode) {
+    const overlay = state.visualRunOverlay;
+    if (!overlay || overlay.mode !== mode) return null;
+    return overlay;
+  }
+
+  function formatOverlayValue(value, unit = null) {
+    if (value == null) return '—';
+    if (unit === 'bool') return Number(value) ? 'ON' : 'OFF';
+    const numeric = typeof value === 'number' ? value : Number(value);
+    let rendered = String(value);
+    if (Number.isFinite(numeric)) {
+      const magnitude = Math.abs(numeric);
+      rendered = magnitude >= 10000 || (magnitude > 0 && magnitude < 0.001) ? numeric.toExponential(2) : Number(numeric.toPrecision(5)).toString();
+    }
+    return unit && unit !== 'none' ? `${rendered} ${unit}` : rendered;
+  }
+
+  function updateVisualOverlayControls() {
+    const overlay = state.visualRunOverlay;
+    [['graphResultOverlayBtn', 'flow'], ['assemblyResultOverlayBtn', 'assembly']].forEach(([id, mode]) => {
+      const button = el(id); if (!button) return;
+      const available = Boolean(overlay && overlay.mode === mode);
+      button.disabled = !available;
+      button.classList.remove('active');
+      button.removeAttribute('aria-pressed');
+      button.textContent = '查看运行结果';
+      button.title = available ? `打开 Run ${overlay.run_id} 的独立结果界面 · ${overlay.numeric_series_count || 0} 条数值序列` : '完成一次图形运行后可打开独立结果界面';
+    });
+  }
+
+  async function loadVisualRunOverlay(runId, context = null) {
+    const visual = context || state.activeVisualRunContext;
+    if (!visual || !runId) return null;
+    try {
+      const payload = await api('/visual-composer/run-overlay', {
+        method: 'POST',
+        body: JSON.stringify({
+          run_id: runId,
+          visual_graph: visual.mode === 'flow' ? visual.graph : null,
+          assembly_graph: visual.mode === 'assembly' ? visual.assemblyGraph : null,
+          telemetry_limit: 2000,
+        }),
+      });
+      state.visualRunOverlay = payload.overlay || null;
+      state.visualRunOverlaySnapshot = visual.snapshot || currentVisualSnapshot(visual.mode);
+      state.visualNodeSeriesField = {};
+      if (state.activeRunId === runId && state.telemetry?.length) state.visualOverlayTelemetry = state.telemetry;
+      else { const telemetry = await api(`/runs/${encodeURIComponent(runId)}/telemetry?limit=2000`).catch(() => ({ rows: [] })); state.visualOverlayTelemetry = telemetry.rows || []; }
+      updateVisualOverlayControls();
+      if (visual.mode === 'assembly') assemblyRender();
+      return state.visualRunOverlay;
+    } catch (error) {
+      updateVisualOverlayControls();
+      return null;
+    }
+  }
+
+  async function openVisualRunResults(mode) {
+    const overlay = visualOverlayForMode(mode);
+    if (!overlay?.run_id) return;
+    if (state.activeRunId !== overlay.run_id) await loadRun(overlay.run_id, { quiet: true });
+    switchResultTab('charts');
+    renderChartControls();
+    drawChart();
+    state.runResultsExpanded = true;
+    syncRunPanelControls();
+    el('creatorRunPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function clearVisualRunOverlay() {
+    state.visualRunOverlay = null;
+    state.visualRunOverlaySnapshot = '';
+    state.visualOverlayTelemetry = [];
+    state.visualNodeSeriesField = {};
+    updateVisualOverlayControls();
+  }
+
+  function parseVisualTuningValues(text) {
+    return [...new Set(String(text || '').split(/[,，;；\s]+/).map((item) => Number(item)).filter((value) => Number.isFinite(value)))];
+  }
+
+  function visualTuningParameterByPath(path) {
+    return (state.visualTuningOptions?.parameters || []).find((item) => item.path === path) || null;
+  }
+
+  function visualTuningObjectiveByMetric(metric) {
+    return (state.visualTuningOptions?.objectives || []).find((item) => item.metric === metric) || null;
+  }
+
+  function visualTuningVariantCount() {
+    if (!state.visualTuningSelections.length) return 0;
+    return state.visualTuningSelections.reduce((count, item) => count * Math.max(0, parseVisualTuningValues(item.values).length), 1);
+  }
+
+  function renderVisualTuning() {
+    const panel = el('visualTuningPanel');
+    if (!panel) return;
+    panel.classList.toggle('hidden', !state.visualTuningOptions);
+    if (!state.visualTuningOptions) return;
+    const objective = el('visualTuningObjective');
+    const currentMetric = objective.value;
+    objective.replaceChildren();
+    (state.visualTuningOptions.objectives || []).forEach((item) => {
+      const option = document.createElement('option'); option.value = item.metric; option.textContent = `${item.label || item.metric}${item.unit ? ` · ${item.unit}` : ''}`; objective.appendChild(option);
+    });
+    if ([...objective.options].some((item) => item.value === currentMetric)) objective.value = currentMetric;
+    if (!objective.value && objective.options.length) objective.value = objective.options[0].value;
+    const selectedObjective = visualTuningObjectiveByMetric(objective.value);
+    if (!el('visualTuningDirection').dataset.userSet && selectedObjective?.suggested_direction) el('visualTuningDirection').value = selectedObjective.suggested_direction;
+
+    const rows = el('visualTuningParameters'); rows.replaceChildren();
+    state.visualTuningSelections.forEach((selection, index) => {
+      const row = document.createElement('div'); row.className = 'visual-tuning-parameter-row';
+      const parameterLabel = document.createElement('label'); const parameterTitle = document.createElement('span'); parameterTitle.textContent = `参数 ${index + 1}`;
+      const select = document.createElement('select');
+      (state.visualTuningOptions.parameters || []).forEach((item) => { const option = document.createElement('option'); option.value = item.path; option.textContent = `${item.label || item.path}${item.unit ? ` · ${item.unit}` : ''}`; select.appendChild(option); });
+      select.value = selection.path;
+      const param = visualTuningParameterByPath(selection.path);
+      const meta = document.createElement('small'); meta.className = 'visual-tuning-parameter-meta'; meta.textContent = param ? `当前 ${param.current}${param.unit ? ` ${param.unit}` : ''}${param.minimum != null ? ` · min ${param.minimum}` : ''}${param.maximum != null ? ` · max ${param.maximum}` : ''}` : '';
+      select.addEventListener('change', () => { const next = visualTuningParameterByPath(select.value); state.visualTuningSelections[index] = { path: select.value, values: (next?.suggested_values || []).join(', ') }; renderVisualTuning(); });
+      parameterLabel.append(parameterTitle, select, meta);
+      const valuesLabel = document.createElement('label'); const valuesTitle = document.createElement('span'); valuesTitle.textContent = '候选值（逗号分隔）';
+      const input = document.createElement('input'); input.type = 'text'; input.value = selection.values; input.placeholder = '例如 0.08, 0.10, 0.12';
+      input.addEventListener('input', () => { state.visualTuningSelections[index].values = input.value; const count = visualTuningVariantCount(); el('visualTuningLimit').textContent = `${state.visualTuningSelections.length}/3 参数 · ${count || 0}/12 组合`; });
+      valuesLabel.append(valuesTitle, input);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'button button-ghost'; remove.textContent = '移除'; remove.disabled = state.visualTuningSelections.length <= 1;
+      remove.addEventListener('click', () => { state.visualTuningSelections.splice(index, 1); renderVisualTuning(); });
+      row.append(parameterLabel, valuesLabel, remove); rows.appendChild(row);
+    });
+    const count = visualTuningVariantCount();
+    el('visualTuningLimit').textContent = `${state.visualTuningSelections.length}/3 参数 · ${count || 0}/12 组合`;
+    el('visualTuningAddParameterBtn').disabled = state.visualTuningSelections.length >= 3 || !(state.visualTuningOptions.parameters || []).length;
+    el('visualTuningStartBtn').disabled = state.visualTuningRunning;
+    el('visualTuningStartBtn').textContent = state.visualTuningRunning ? '扫描运行中…' : '开始扫描';
+    const status = el('visualTuningStatus');
+    const result = state.visualTuningResult;
+    if (state.visualTuningRunning) status.textContent = result?.message || `正在运行 ${result?.completed || 0}/${result?.variantCount || count} 个候选…`;
+    else if (result?.best) status.textContent = `扫描完成 · 最优 ${result.objectiveMetric} = ${formatComparisonValue(result.best.objective_value)} · Run ${result.best.run_id}`;
+    else status.textContent = result?.message || '尚未开始。';
+    const applyBest = el('visualTuningApplyBestBtn');
+    applyBest.classList.toggle('hidden', !result?.best);
+    applyBest.disabled = Boolean(result?.bestApplied);
+    applyBest.textContent = result?.bestApplied ? '已应用最优参数' : '应用最优参数';
+    const results = el('visualTuningResults'); results.replaceChildren();
+    if (result?.ranked?.length) {
+      const header = document.createElement('div'); header.className = 'visual-tuning-result-row header'; header.innerHTML = '<span>排名</span><span>参数</span><span>目标值</span><span>Run</span>'; results.appendChild(header);
+      result.ranked.slice(0, 12).forEach((item) => {
+        const row = document.createElement('div'); row.className = `visual-tuning-result-row${item.is_best ? ' best' : ''}`;
+        const rank = document.createElement('span'); rank.textContent = `#${item.rank}`;
+        const params = document.createElement('code'); params.textContent = Object.entries(item.parameters || {}).map(([path, value]) => `${path.split('.').pop()}=${value}`).join(' · ');
+        const value = document.createElement('strong'); value.textContent = formatComparisonValue(item.objective_value);
+        const run = document.createElement('span'); run.textContent = item.run_id || '—';
+        row.append(rank, params, value, run); results.appendChild(row);
+      });
+    }
+  }
+
+  async function prepareVisualTuning(mode) {
+    if (mode === 'assembly') {
+      const ok = await assemblyCompile({ announce: false }); if (!ok) throw new Error('当前装配未通过编译，无法开始调参。');
+      return { mode, taskSpec: clone(state.taskSpec), assemblyGraph: clone(state.assemblyGraph), snapshot: assemblySnapshot() };
+    }
+    const ok = await graphCompile({ requireCode: true, requireRun: true, announce: false }); if (!ok) throw new Error('当前流程未通过编译，无法开始调参。');
+    return { mode, taskSpec: clone(state.taskSpec), graph: graphSerialize(), snapshot: graphFormSnapshot() };
+  }
+
+  async function openVisualTuning(mode) {
+    const context = await prepareVisualTuning(mode);
+    const payload = await api('/visual-composer/tuning-options', { method: 'POST', body: JSON.stringify({ task_spec: context.taskSpec }) });
+    const tuning = payload.tuning || {};
+    if (!(tuning.parameters || []).length) throw new Error('当前 Capability 没有可用于快速调参的注册数值参数。');
+    if (!(tuning.objectives || []).length) throw new Error('当前 Capability 没有可用于排序的注册 QoI。');
+    state.visualTuningOptions = tuning;
+    state.visualTuningMode = mode;
+    state.visualTuningContext = context;
+    state.visualTuningExperimentId = null;
+    state.visualTuningResult = null;
+    state.visualTuningBestRunId = null;
+    const first = tuning.parameters[0];
+    state.visualTuningSelections = [{ path: first.path, values: (first.suggested_values || []).join(', ') }];
+    el('visualTuningDirection').dataset.userSet = '';
+    renderVisualTuning();
+    el('visualTuningPanel').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function closeVisualTuning() {
+    if (state.visualTuningRunning) return;
+    state.visualTuningOptions = null; state.visualTuningSelections = []; state.visualTuningMode = null; renderVisualTuning();
+  }
+
+  async function waitForVisualTuningExperiment(experimentId) {
+    for (let attempt = 0; attempt < 1600; attempt += 1) {
+      const payload = await api(`/experiments/${encodeURIComponent(experimentId)}`);
+      const members = payload.members || [];
+      const completed = members.filter((item) => ['SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT'].includes(item.state)).length;
+      state.visualTuningResult = { ...(state.visualTuningResult || {}), variantCount: members.length, completed, message: `正在运行 ${completed}/${members.length} 个候选…` };
+      renderVisualTuning();
+      if (members.length && completed === members.length) return payload;
+      await waitMs(750);
+    }
+    throw new Error('快速调参等待运行完成超限。');
+  }
+
+  async function startVisualTuning() {
+    if (state.visualTuningRunning || !state.visualTuningOptions) return false;
+    const mode = state.visualTuningMode || state.graphComposerMode;
+    const context = await prepareVisualTuning(mode);
+    const parameters = {};
+    state.visualTuningSelections.forEach((item) => { parameters[item.path] = parseVisualTuningValues(item.values); });
+    const objectiveMetric = el('visualTuningObjective').value;
+    const direction = el('visualTuningDirection').value;
+    const planPayload = await api('/visual-composer/tuning-plan', { method: 'POST', body: JSON.stringify({ task_spec: context.taskSpec, parameters, objective_metric: objectiveMetric, direction }) });
+    const plan = planPayload.plan;
+    state.visualTuningRunning = true;
+    state.visualTuningContext = context;
+    state.visualTuningResult = { variantCount: plan.variant_count, completed: 0, objectiveMetric, direction, message: `正在创建 ${plan.variant_count} 个受约束候选…` };
+    renderVisualTuning();
+    try {
+      const created = await api('/experiments', { method: 'POST', body: JSON.stringify({ name: `Visual tuning · ${context.taskSpec?.task?.name || context.taskSpec?.task?.id || 'simulation'}`, base_task_spec: context.taskSpec, sweep: plan.sweep, assertions: [], experiment_type: 'sweep' }) });
+      const experimentId = created.experiment?.experiment_id; if (!experimentId) throw new Error('调参实验未返回 experiment_id');
+      state.visualTuningExperimentId = experimentId;
+      await api(`/experiments/${encodeURIComponent(experimentId)}/launch`, { method: 'POST', body: JSON.stringify({ max_attempts: 2, hard_timeout: true }) });
+      await waitForVisualTuningExperiment(experimentId);
+      const ranking = await api('/visual-composer/tuning-rank', { method: 'POST', body: JSON.stringify({ experiment_id: experimentId, objective_metric: objectiveMetric, direction }) });
+      state.visualTuningResult = { ...ranking, objectiveMetric, direction, bestApplied: false, message: ranking.best ? '扫描完成，最优候选已叠加；应用参数后即可作为当前模型继续生成/运行。' : '扫描完成，但没有可排序的成功 Run。' };
+      state.visualTuningBestRunId = ranking.best?.run_id || null;
+      if (ranking.best?.run_id) {
+        const bestContext = { ...context, runId: ranking.best.run_id };
+        state.activeRunId = ranking.best.run_id; state.activeRunDisplayName = `快速调参最优 · ${context.taskSpec?.task?.name || 'simulation'}`; state.activeVisualRunContext = bestContext;
+        await loadRun(ranking.best.run_id, { quiet: true }).catch(() => null);
+        await loadVisualRunOverlay(ranking.best.run_id, bestContext);
+      }
+      renderVisualTuning();
+      return true;
+    } finally {
+      state.visualTuningRunning = false; renderVisualTuning();
+    }
+  }
+
+  function applyVisualTuningBest() {
+    const best = state.visualTuningResult?.best;
+    if (!best || !state.formData) return;
+    Object.entries(best.parameters || {}).forEach(([path, value]) => setPath(state.formData, path, value));
+    renderForm();
+    if (state.visualTuningMode === 'assembly') { assemblyInvalidateCompiledState(); state.visualRunOverlaySnapshot = assemblySnapshot(); assemblyRender(); assemblySetStatus('已把最优参数写回当前装配；代码/TaskSpec 已标记需要重新编译。最佳 Run 仍可在结果界面或显式观察器中查看。', 'success'); }
+    else { graphInvalidateCompiledState(); graphHistoryCommit(); state.visualRunOverlaySnapshot = graphFormSnapshot(); renderGraph(); graphSetStatus('已把最优参数写回当前流程；代码/TaskSpec 已标记需要重新编译。最佳 Run 请在独立结果界面查看。', 'success'); }
+    state.visualTuningResult = { ...(state.visualTuningResult || {}), bestApplied: true };
+    renderVisualTuning();
+  }
+
+  function drawVisualMiniSeries(canvas, field) {
+    if (!canvas || !field) return;
+    const rows = state.visualOverlayTelemetry?.length ? state.visualOverlayTelemetry : state.telemetry;
+    const points = rows.map((row, index) => ({ t: Number(row.time_s ?? row['spacecraft.time_s'] ?? row.t_s ?? index), y: Number(row[field]) }))
+      .filter((item) => Number.isFinite(item.t) && Number.isFinite(item.y));
+    const rect = canvas.getBoundingClientRect(); const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(250, rect.width || 320); const height = Math.max(105, rect.height || 120);
+    canvas.width = Math.round(width * ratio); canvas.height = Math.round(height * ratio);
+    const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio); ctx.clearRect(0, 0, width, height);
+    const theme = getComputedStyle(document.documentElement);
+    const color = (name, fallback) => theme.getPropertyValue(name).trim() || fallback;
+    ctx.fillStyle = color('--panel', '#0c1720'); ctx.fillRect(0, 0, width, height);
+    if (!points.length) { ctx.fillStyle = color('--muted', '#7890a1'); ctx.font = '10px system-ui'; ctx.textAlign = 'center'; ctx.fillText('该节点没有可绘制的数值序列', width / 2, height / 2); return; }
+    const minX = Math.min(...points.map((item) => item.t)); const maxX = Math.max(...points.map((item) => item.t));
+    let minY = Math.min(...points.map((item) => item.y)); let maxY = Math.max(...points.map((item) => item.y));
+    if (minY === maxY) { minY -= 1; maxY += 1; }
+    const pad = { left: 42, right: 8, top: 8, bottom: 22 }; const plotW = width - pad.left - pad.right; const plotH = height - pad.top - pad.bottom;
+    const x = (value) => pad.left + ((value - minX) / (maxX - minX || 1)) * plotW;
+    const y = (value) => pad.top + (1 - (value - minY) / (maxY - minY || 1)) * plotH;
+    ctx.strokeStyle = color('--line', 'rgba(170,199,221,.16)'); ctx.lineWidth = 1;
+    for (let i = 0; i <= 3; i += 1) { const yy = pad.top + (i / 3) * plotH; ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(width - pad.right, yy); ctx.stroke(); }
+    ctx.strokeStyle = color('--accent-2', '#64a9ff'); ctx.lineWidth = 1.8; ctx.beginPath();
+    points.forEach((item, index) => { if (index === 0) ctx.moveTo(x(item.t), y(item.y)); else ctx.lineTo(x(item.t), y(item.y)); }); ctx.stroke();
+    ctx.fillStyle = color('--muted', '#7890a1'); ctx.font = '9px system-ui'; ctx.textAlign = 'right'; ctx.fillText(formatOverlayValue(maxY), pad.left - 5, pad.top + 7); ctx.fillText(formatOverlayValue(minY), pad.left - 5, height - pad.bottom);
+    ctx.textAlign = 'left'; ctx.fillText(`${formatOverlayValue(minX)}s`, pad.left, height - 7); ctx.textAlign = 'right'; ctx.fillText(`${formatOverlayValue(maxX)}s`, width - pad.right, height - 7);
   }
 
   const THEME_STORAGE_KEY = 'sat-sim-theme';
@@ -228,6 +661,2747 @@
       if (!cursor || typeof cursor !== 'object') return;
     }
     if (cursor && typeof cursor === 'object') delete cursor[parts[parts.length - 1]];
+  }
+
+  const GRAPH_SCHEMA_VERSION = 'sat-sim.visual-graph.v1';
+  const GRAPH_PROJECT_SCHEMA_VERSION = 'sat-sim.visual-composer.project.v1';
+  const GRAPH_DRAFT_STORAGE_KEY = 'sat-sim-visual-composer-draft-v1';
+  const GRAPH_HISTORY_LIMIT = 60;
+  const GRAPH_FLOW_ORDER = ['model', 'config', 'effects', 'outputs', 'code', 'run'];
+  const GRAPH_PORT_TYPE_LABELS = {
+    capability_ref: 'Capability',
+    task_draft: 'Task Draft',
+    task_spec: 'TaskSpec',
+    python_script: 'Python',
+  };
+  const GRAPH_BLOCK_META = {
+    model: {
+      title: '执行能力', icon: '◇', hint: '已注册 Capability',
+      inputs: [], outputs: [{ id: 'capability', type: 'capability_ref', label: 'Capability' }],
+    },
+    config: {
+      title: '参数配置', icon: '⚙', hint: '时间与模型参数',
+      inputs: [{ id: 'capability', type: 'capability_ref', label: 'Capability', required: true }],
+      outputs: [{ id: 'task', type: 'task_draft', label: 'Task Draft' }],
+    },
+    effects: {
+      title: '事件注入', icon: '⚡', hint: '故障 / 退化 / 约束',
+      inputs: [{ id: 'task', type: 'task_draft', label: 'Task Draft', required: true }],
+      outputs: [{ id: 'task', type: 'task_draft', label: 'Task Draft' }],
+    },
+    outputs: {
+      title: '输出选择', icon: '◫', hint: 'QoI / 曲线 / 遥测',
+      inputs: [{ id: 'task', type: 'task_draft', label: 'Task Draft', required: true }],
+      outputs: [{ id: 'spec', type: 'task_spec', label: 'TaskSpec' }],
+    },
+    code: {
+      title: 'Python 代码', icon: '</>', hint: '确定性脚本导出',
+      inputs: [{ id: 'spec', type: 'task_spec', label: 'TaskSpec', required: true }],
+      outputs: [{ id: 'script', type: 'python_script', label: 'Python' }],
+    },
+    run: {
+      title: '运行器', icon: '▶', hint: 'Run Bundle',
+      inputs: [
+        { id: 'spec', type: 'task_spec', label: 'TaskSpec', required: true },
+        { id: 'script', type: 'python_script', label: 'Python', required: false },
+      ],
+      outputs: [],
+    },
+  };
+
+  function graphTopologySnapshot() {
+    return {
+      nodes: state.graphNodes.map((node) => ({ id: node.id, type: node.type, capabilityId: node.capabilityId || null })),
+      edges: state.graphEdges.map((edge) => ({
+        source: edge.source,
+        sourcePort: edge.sourcePort,
+        target: edge.target,
+        targetPort: edge.targetPort,
+      })),
+    };
+  }
+
+  function graphFormSnapshot() {
+    return JSON.stringify({ form: state.formData || {}, topology: graphTopologySnapshot() });
+  }
+
+  function graphEditorSnapshot() {
+    return {
+      nodes: clone(state.graphNodes),
+      edges: clone(state.graphEdges),
+    };
+  }
+
+  function graphHistorySignature(snapshot) {
+    return JSON.stringify(snapshot || graphEditorSnapshot());
+  }
+
+  function graphUpdateHistoryControls() {
+    const undo = el('graphUndoBtn');
+    const redo = el('graphRedoBtn');
+    if (undo) undo.disabled = state.graphHistoryIndex <= 0;
+    if (redo) redo.disabled = state.graphHistoryIndex < 0 || state.graphHistoryIndex >= state.graphHistory.length - 1;
+  }
+
+  function graphHistoryReset() {
+    state.graphHistory = [graphEditorSnapshot()];
+    state.graphHistoryIndex = 0;
+    graphUpdateHistoryControls();
+  }
+
+  function graphHistoryCommit() {
+    if (state.graphHistoryApplying) return;
+    const snapshot = graphEditorSnapshot();
+    const current = state.graphHistory[state.graphHistoryIndex];
+    if (current && graphHistorySignature(current) === graphHistorySignature(snapshot)) {
+      graphUpdateHistoryControls();
+      return;
+    }
+    state.graphHistory = state.graphHistory.slice(0, state.graphHistoryIndex + 1);
+    state.graphHistory.push(snapshot);
+    if (state.graphHistory.length > GRAPH_HISTORY_LIMIT) state.graphHistory.shift();
+    state.graphHistoryIndex = state.graphHistory.length - 1;
+    graphUpdateHistoryControls();
+  }
+
+  function graphInvalidateCompiledState() {
+    state.taskSpec = null;
+    state.planning = null;
+    state.graphPendingConnection = null;
+    clearVisualDiagnostics('flow');
+  }
+
+  function graphApplyHistorySnapshot(snapshot, message) {
+    if (!snapshot) return;
+    state.graphHistoryApplying = true;
+    try {
+      state.graphNodes = clone(snapshot.nodes || []);
+      state.graphEdges = clone(snapshot.edges || []);
+      state.graphSelectedNodeId = null;
+      state.graphSelectedEdgeId = null;
+      graphInvalidateCompiledState();
+      renderGraph();
+      graphUpdateHistoryControls();
+      if (message) graphSetStatus(message, 'warning');
+    } finally {
+      state.graphHistoryApplying = false;
+    }
+  }
+
+  function graphUndo() {
+    if (state.graphHistoryIndex <= 0) return;
+    state.graphHistoryIndex -= 1;
+    graphApplyHistorySnapshot(state.graphHistory[state.graphHistoryIndex], '已撤销上一步图编辑。');
+  }
+
+  function graphRedo() {
+    if (state.graphHistoryIndex < 0 || state.graphHistoryIndex >= state.graphHistory.length - 1) return;
+    state.graphHistoryIndex += 1;
+    graphApplyHistorySnapshot(state.graphHistory[state.graphHistoryIndex], '已重做图编辑。');
+  }
+
+  function graphProjectBundle() {
+    return {
+      schema_version: GRAPH_PROJECT_SCHEMA_VERSION,
+      capability_id: state.selectedCapabilityId || null,
+      graph: graphSerialize(),
+      form_data: clone(state.formData || {}),
+    };
+  }
+
+  function graphValidateProjectBundle(bundle) {
+    if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) throw new Error('工程文件必须是 JSON 对象');
+    if (bundle.schema_version !== GRAPH_PROJECT_SCHEMA_VERSION) throw new Error(`不支持的工程版本：${bundle.schema_version || '未声明'}`);
+    const capabilityId = String(bundle.capability_id || '').trim();
+    if (!capabilityId) throw new Error('工程文件缺少 capability_id');
+    if (!bundle.graph || typeof bundle.graph !== 'object' || Array.isArray(bundle.graph)) throw new Error('工程文件缺少 graph 对象');
+    if (bundle.graph.schema_version !== GRAPH_SCHEMA_VERSION) throw new Error(`不支持的图版本：${bundle.graph.schema_version || '未声明'}`);
+    if (!Array.isArray(bundle.graph.nodes) || !Array.isArray(bundle.graph.edges)) throw new Error('graph.nodes 和 graph.edges 必须是数组');
+    if (bundle.graph.nodes.length > 32 || bundle.graph.edges.length > 96) throw new Error('工程图规模超出当前编辑器限制');
+    if (!bundle.form_data || typeof bundle.form_data !== 'object' || Array.isArray(bundle.form_data)) throw new Error('工程文件缺少 form_data 对象');
+    return capabilityId;
+  }
+
+  function graphSafeCoordinate(value, fallback, max) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    return Math.max(0, Math.min(max, numeric));
+  }
+
+  function graphLoadTopology(graph, capabilityId) {
+    state.graphNodes = graph.nodes.map((raw, index) => ({
+      id: String(raw?.id || `imported-${index}`),
+      type: String(raw?.type || ''),
+      x: graphSafeCoordinate(raw?.x, 28 + index * 28, 1100),
+      y: graphSafeCoordinate(raw?.y, 80 + index * 24, 520),
+      capabilityId: String(raw?.type || '') === 'model' ? capabilityId : null,
+    }));
+    state.graphEdges = graph.edges.map((raw, index) => ({
+      id: String(raw?.id || `imported-edge-${index}`),
+      source: String(raw?.source || ''),
+      sourcePort: String(raw?.sourcePort || raw?.source_port || ''),
+      target: String(raw?.target || ''),
+      targetPort: String(raw?.targetPort || raw?.target_port || ''),
+    }));
+    state.graphSelectedNodeId = state.graphNodes.find((node) => node.type === 'model')?.id || null;
+    state.graphSelectedEdgeId = null;
+    state.graphPendingConnection = null;
+    state.graphCode = '';
+    state.graphCodeFilename = 'simulation.py';
+    state.graphGeneratedSnapshot = '';
+    graphInvalidateCompiledState();
+  }
+
+  async function graphLoadProjectBundle(bundle, sourceLabel = '工程') {
+    const capabilityId = graphValidateProjectBundle(bundle);
+    await selectCapability(capabilityId);
+    if (state.selectedCapabilityId !== capabilityId || !state.schema) throw new Error(`无法加载 Capability：${capabilityId}`);
+    state.formData = clone(bundle.form_data);
+    state.changedPaths = new Set();
+    graphLoadTopology(bundle.graph, capabilityId);
+    renderForm();
+    renderEffectSelect();
+    renderEvents();
+    renderOutputs();
+    syncTaskSpecEditor();
+    graphHistoryReset();
+    renderGraphPalette();
+    renderGraph();
+    const structural = graphValidateStructure({ requireCode: true, requireRun: true });
+    if (!structural.ok) {
+      graphSetStatus(`${sourceLabel}已载入，但图结构需修复：${structural.errors.join('；')}`, 'warning');
+      return false;
+    }
+    try {
+      const compiled = await graphCompile({ requireCode: true, requireRun: true, announce: false });
+      if (!compiled) return false;
+    } catch (error) {
+      graphSetStatus(`${sourceLabel}已载入，但后端一致性校验失败：${error.message}`, 'warning');
+      return false;
+    }
+    graphSetStatus(`${sourceLabel}已载入并通过后端端口、拓扑与 TaskSpec 一致性校验：${capabilityId}。`, 'success');
+    return true;
+  }
+
+  function graphSaveDraft() {
+    if (!state.selectedCapabilityId || !state.formData) throw new Error('请先选择可执行 Capability');
+    localStorage.setItem(GRAPH_DRAFT_STORAGE_KEY, JSON.stringify(graphProjectBundle()));
+    graphSetStatus('图形工程草稿已保存在当前浏览器。', 'success');
+  }
+
+  async function graphLoadDraft() {
+    const raw = localStorage.getItem(GRAPH_DRAFT_STORAGE_KEY);
+    if (!raw) throw new Error('当前浏览器没有已保存的图形工程草稿');
+    await graphLoadProjectBundle(JSON.parse(raw), '浏览器草稿');
+  }
+
+  function graphExportProject() {
+    if (!state.selectedCapabilityId || !state.formData) throw new Error('请先选择可执行 Capability');
+    const bundle = graphProjectBundle();
+    const safeCapability = String(state.selectedCapabilityId).replace(/[^A-Za-z0-9_.-]/g, '_');
+    const blob = new Blob([`${JSON.stringify(bundle, null, 2)}\n`], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${safeCapability || 'simulation'}.satgraph.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    graphSetStatus(`已导出工程文件 ${anchor.download}；其中不包含任意 Python 源码。`, 'success');
+  }
+
+  async function graphImportProjectFile(file) {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) throw new Error('工程文件过大，当前限制为 2 MiB');
+    const raw = await file.text();
+    const bundle = JSON.parse(raw);
+    await graphLoadProjectBundle(bundle, `工程文件 ${file.name}`);
+  }
+
+  function graphCodeIsFresh() {
+    return Boolean(state.graphCode && state.graphGeneratedSnapshot === graphFormSnapshot());
+  }
+
+  function graphSetStatus(message, type = '') {
+    const node = el('graphStatus');
+    if (!node) return;
+    node.textContent = message;
+    node.className = `graph-status${type ? ` ${type}` : ''}`;
+  }
+
+  function graphDefaultNodes() {
+    const positions = {
+      model: [28, 180], config: [220, 180], effects: [412, 180], outputs: [604, 180], code: [796, 92], run: [982, 180],
+    };
+    return GRAPH_FLOW_ORDER.map((type) => ({
+      id: `graph-${type}`,
+      type,
+      x: positions[type][0],
+      y: positions[type][1],
+      capabilityId: type === 'model' ? state.selectedCapabilityId : null,
+    }));
+  }
+
+  function graphEdgeId(source, sourcePort, target, targetPort) {
+    return `${source}.${sourcePort}__${target}.${targetPort}`.replace(/[^A-Za-z0-9_.-]/g, '_');
+  }
+
+  function graphDefaultEdges() {
+    const present = new Set(state.graphNodes.map((node) => node.type));
+    const edges = [];
+    const add = (sourceType, sourcePort, targetType, targetPort) => {
+      if (!present.has(sourceType) || !present.has(targetType)) return;
+      const source = state.graphNodes.find((node) => node.type === sourceType);
+      const target = state.graphNodes.find((node) => node.type === targetType);
+      edges.push({
+        id: graphEdgeId(source.id, sourcePort, target.id, targetPort),
+        source: source.id,
+        sourcePort,
+        target: target.id,
+        targetPort,
+      });
+    };
+    add('model', 'capability', 'config', 'capability');
+    if (present.has('effects')) {
+      add('config', 'task', 'effects', 'task');
+      add('effects', 'task', 'outputs', 'task');
+    } else {
+      add('config', 'task', 'outputs', 'task');
+    }
+    add('outputs', 'spec', 'code', 'spec');
+    add('outputs', 'spec', 'run', 'spec');
+    add('code', 'script', 'run', 'script');
+    return edges;
+  }
+
+  function graphAutoWire({ announce = true } = {}) {
+    state.graphEdges = graphDefaultEdges();
+    state.graphSelectedEdgeId = null;
+    graphInvalidateCompiledState();
+    graphHistoryCommit();
+    renderGraph();
+    if (announce) graphSetStatus('已按受约束端口自动布线。你仍可删除连线并手工重新连接。', 'success');
+  }
+
+  function graphAutoLayout() {
+    const ordered = GRAPH_FLOW_ORDER.map((type) => state.graphNodes.find((node) => node.type === type)).filter(Boolean);
+    if (!ordered.length) { graphSetStatus('当前没有可布局的流程块。', 'warning'); return; }
+    const left = 24; const right = 970; const span = ordered.length > 1 ? (right - left) / (ordered.length - 1) : 0;
+    ordered.forEach((node, index) => { node.x = Math.round((left + span * index) / 20) * 20; node.y = node.type === 'code' ? 100 : 200; });
+    graphHistoryCommit();
+    renderGraph();
+    graphSetStatus('已按流程顺序自动布局并吸附到 20px 网格；仅修改画布坐标，不会使已生成代码过期。', 'success');
+  }
+
+  function graphInitialize(reset = false) {
+    if (!el('graphCanvas')) return;
+    if (reset || !state.graphNodes.length) {
+      state.graphNodes = graphDefaultNodes();
+      state.graphSelectedNodeId = 'graph-model';
+      state.graphSelectedEdgeId = null;
+      state.graphEdges = graphDefaultEdges();
+    } else {
+      const model = state.graphNodes.find((node) => node.type === 'model');
+      if (model) model.capabilityId = state.selectedCapabilityId;
+    }
+    state.graphPendingConnection = null;
+    if (reset || !state.graphHistory.length) graphHistoryReset();
+    else graphHistoryCommit();
+    renderGraphPalette();
+    renderGraph();
+  }
+
+  function graphClear() {
+    state.graphNodes = [];
+    state.graphEdges = [];
+    state.graphSelectedNodeId = null;
+    state.graphSelectedEdgeId = null;
+    state.graphPendingConnection = null;
+    state.graphCode = '';
+    state.graphCodeFilename = 'simulation.py';
+    state.graphGeneratedSnapshot = '';
+    graphInvalidateCompiledState();
+    graphHistoryCommit();
+    renderGraph();
+    graphSetStatus('画布已清空。从左侧拖入模块，然后从输出端口拖线到输入端口。', 'warning');
+  }
+
+  function graphNodeSummary(node) {
+    if (node.type === 'model') {
+      const object = presentationObjectForCapability(state.selectedCapabilityId);
+      return {
+        title: object?.name_zh || state.schema?.capability?.name || state.selectedCapabilityId || '未选择能力',
+        detail: state.selectedCapabilityId || '拖入一个执行能力',
+      };
+    }
+    if (node.type === 'config') {
+      const duration = getPath(state.formData || {}, 'simulation.duration_s');
+      const sample = getPath(state.formData || {}, 'simulation.sample_s');
+      return { title: `${state.schema?.fields?.length || 0} 个可配置字段`, detail: `duration=${duration ?? '—'}s · sample=${sample ?? '—'}s` };
+    }
+    if (node.type === 'effects') {
+      const events = state.formData?.events || {};
+      const count = ['faults', 'degradations', 'constraints'].reduce((sum, key) => sum + (events[key]?.length || 0), 0);
+      return { title: `${count} 个已配置事件`, detail: '从能力事件目录受约束添加' };
+    }
+    if (node.type === 'outputs') {
+      const outputs = state.formData?.outputs || {};
+      return { title: `${outputs.qoi?.length || 0} QoI · ${outputs.plots?.length || 0} 曲线`, detail: `${outputs.telemetry_streams?.length || 0} 个多速率遥测流` };
+    }
+    if (node.type === 'code') {
+      return { title: graphCodeIsFresh() ? state.graphCodeFilename : '等待生成 Python', detail: graphCodeIsFresh() ? '代码与当前图和参数一致' : '使用受约束 deterministic exporter' };
+    }
+    const planNodes = state.planning?.execution_plan?.nodes?.length || state.planning?.plan?.nodes?.length || 0;
+    return { title: state.activeRunId ? `最近：${state.activeRunId}` : '提交 Run Bundle', detail: planNodes ? `执行计划 ${planNodes} 节点` : '校验后异步执行' };
+  }
+
+  function graphTransfer(event, payload) {
+    const text = JSON.stringify(payload);
+    event.dataTransfer.effectAllowed = payload.kind === 'move-node' ? 'move' : 'copy';
+    event.dataTransfer.setData('application/x-sat-graph', text);
+    event.dataTransfer.setData('text/plain', text);
+  }
+
+  function graphReadTransfer(event) {
+    const raw = event.dataTransfer.getData('application/x-sat-graph') || event.dataTransfer.getData('text/plain');
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (_) { return null; }
+  }
+
+  function graphDropPosition(event) {
+    const canvas = el('graphCanvas');
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: Math.round(Math.max(10, Math.min(1010, event.clientX - rect.left - 90)) / 20) * 20,
+      y: Math.round(Math.max(46, Math.min(430, event.clientY - rect.top - 55)) / 20) * 20,
+    };
+  }
+
+  function graphAddOrMoveBlock(type, x, y) {
+    let node = state.graphNodes.find((item) => item.type === type);
+    const isNew = !node;
+    if (!node) {
+      node = { id: `graph-${type}`, type, x, y, capabilityId: type === 'model' ? state.selectedCapabilityId : null };
+      state.graphNodes.push(node);
+    } else {
+      node.x = x;
+      node.y = y;
+      if (type === 'model') node.capabilityId = state.selectedCapabilityId;
+    }
+    state.graphSelectedNodeId = node.id;
+    state.graphSelectedEdgeId = null;
+    if (isNew) graphInvalidateCompiledState();
+    graphHistoryCommit();
+    renderGraph();
+    if (isNew) graphSetStatus(`已添加“${GRAPH_BLOCK_META[type]?.title || type}”。请连接其类型化端口，或点击“自动布线”。`, 'success');
+    else graphSetStatus('已移动流程块并吸附到 20px 网格；仅修改布局，不会使 TaskSpec / Python 过期。', 'success');
+  }
+
+  function graphRemoveNode(nodeId) {
+    state.graphNodes = state.graphNodes.filter((node) => node.id !== nodeId);
+    state.graphEdges = state.graphEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
+    if (state.graphSelectedNodeId === nodeId) state.graphSelectedNodeId = null;
+    state.graphSelectedEdgeId = null;
+    graphInvalidateCompiledState();
+    graphHistoryCommit();
+    renderGraph();
+  }
+
+  function graphRemoveEdge(edgeId) {
+    const edge = state.graphEdges.find((item) => item.id === edgeId);
+    state.graphEdges = state.graphEdges.filter((item) => item.id !== edgeId);
+    state.graphSelectedEdgeId = null;
+    graphInvalidateCompiledState();
+    graphHistoryCommit();
+    renderGraph();
+    if (edge) graphSetStatus('连线已删除。重新连接后再编译。', 'warning');
+  }
+
+  function graphPortDefinition(nodeId, direction, portId) {
+    const node = state.graphNodes.find((item) => item.id === nodeId);
+    const ports = node ? GRAPH_BLOCK_META[node.type]?.[direction === 'input' ? 'inputs' : 'outputs'] : null;
+    return ports?.find((port) => port.id === portId) || null;
+  }
+
+  function graphConnectionWouldCycle(sourceId, targetId, ignoreEdgeId = null) {
+    if (sourceId === targetId) return true;
+    const adjacency = new Map();
+    state.graphEdges.forEach((edge) => {
+      if (ignoreEdgeId && edge.id === ignoreEdgeId) return;
+      if (!adjacency.has(edge.source)) adjacency.set(edge.source, []);
+      adjacency.get(edge.source).push(edge.target);
+    });
+    if (!adjacency.has(sourceId)) adjacency.set(sourceId, []);
+    adjacency.get(sourceId).push(targetId);
+    const stack = [targetId];
+    const seen = new Set();
+    while (stack.length) {
+      const current = stack.pop();
+      if (current === sourceId) return true;
+      if (seen.has(current)) continue;
+      seen.add(current);
+      (adjacency.get(current) || []).forEach((next) => stack.push(next));
+    }
+    return false;
+  }
+
+  function graphCreateEdge(sourceId, sourcePort, targetId, targetPort) {
+    const sourceDef = graphPortDefinition(sourceId, 'output', sourcePort);
+    const targetDef = graphPortDefinition(targetId, 'input', targetPort);
+    const rewireEdgeId = state.graphPendingConnection?.rewireEdgeId || null;
+    if (!sourceDef || !targetDef) throw new Error('端口不存在或方向不正确');
+    if (sourceDef.type !== targetDef.type) throw new Error(`端口类型不兼容：${GRAPH_PORT_TYPE_LABELS[sourceDef.type] || sourceDef.type} → ${GRAPH_PORT_TYPE_LABELS[targetDef.type] || targetDef.type}`);
+    if (sourceId === targetId) throw new Error('节点不能连接到自身');
+    if (state.graphEdges.some((edge) => edge.id !== rewireEdgeId && edge.target === targetId && edge.targetPort === targetPort)) throw new Error('该输入端口已经有驱动源；请选择其他输入端口');
+    if (state.graphEdges.some((edge) => edge.id !== rewireEdgeId && edge.source === sourceId && edge.sourcePort === sourcePort && edge.target === targetId && edge.targetPort === targetPort)) throw new Error('该连线已经存在');
+    if (graphConnectionWouldCycle(sourceId, targetId, rewireEdgeId)) throw new Error('该连接会形成环路，已拒绝');
+    const edge = {
+      id: graphEdgeId(sourceId, sourcePort, targetId, targetPort),
+      source: sourceId,
+      sourcePort,
+      target: targetId,
+      targetPort,
+    };
+    if (rewireEdgeId) state.graphEdges = state.graphEdges.filter((item) => item.id !== rewireEdgeId);
+    state.graphEdges.push(edge);
+    state.graphSelectedEdgeId = edge.id;
+    state.graphSelectedNodeId = null;
+    graphInvalidateCompiledState();
+    graphHistoryCommit();
+    renderGraph();
+    graphSetStatus(`${rewireEdgeId ? '已重连' : '已连接'} ${GRAPH_PORT_TYPE_LABELS[sourceDef.type] || sourceDef.type} 端口。`, 'success');
+    return edge;
+  }
+
+  function graphBeginRewireEdge(edgeId) {
+    const edge = state.graphEdges.find((item) => item.id === edgeId);
+    if (!edge) return;
+    const source = graphPortCenter(edge.source, 'output', edge.sourcePort);
+    const target = graphPortCenter(edge.target, 'input', edge.targetPort);
+    state.graphPendingConnection = {
+      source: edge.source,
+      sourcePort: edge.sourcePort,
+      x: target?.x ?? source?.x ?? 0,
+      y: target?.y ?? source?.y ?? 0,
+      drag: false,
+      rewireEdgeId: edge.id,
+    };
+    state.graphSelectedEdgeId = null;
+    state.graphSelectedNodeId = edge.source;
+    renderGraph();
+    graphSetStatus('重连模式：原连线会保留，直到你选择一个新的兼容输入端口。按 Esc 可取消。', 'warning');
+  }
+
+  function graphCancelConnection() {
+    if (!state.graphPendingConnection) return;
+    state.graphPendingConnection = null;
+    graphDrawEdges();
+    $all('.graph-port-button.pending').forEach((node) => node.classList.remove('pending'));
+  }
+
+  function graphCanvasPoint(clientX, clientY) {
+    const rect = el('graphCanvas').getBoundingClientRect();
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function graphBeginConnection(event, nodeId, portId) {
+    event.preventDefault();
+    event.stopPropagation();
+    const start = graphCanvasPoint(event.clientX, event.clientY);
+    state.graphPendingConnection = { source: nodeId, sourcePort: portId, x: start.x, y: start.y, drag: false, startClientX: event.clientX, startClientY: event.clientY };
+    state.graphSelectedEdgeId = null;
+    state.graphSelectedNodeId = nodeId;
+    const move = (moveEvent) => {
+      if (!state.graphPendingConnection) return;
+      const point = graphCanvasPoint(moveEvent.clientX, moveEvent.clientY);
+      state.graphPendingConnection.x = point.x;
+      state.graphPendingConnection.y = point.y;
+      if (Math.hypot(moveEvent.clientX - state.graphPendingConnection.startClientX, moveEvent.clientY - state.graphPendingConnection.startClientY) > 5) state.graphPendingConnection.drag = true;
+      graphDrawEdges();
+    };
+    const up = (upEvent) => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      if (!state.graphPendingConnection) return;
+      const target = document.elementFromPoint(upEvent.clientX, upEvent.clientY)?.closest?.('.graph-port-button.input');
+      if (target) {
+        try { graphCreateEdge(nodeId, portId, target.dataset.nodeId, target.dataset.portId); }
+        catch (error) { graphCancelConnection(); graphSetStatus(error.message, 'error'); }
+        return;
+      }
+      if (state.graphPendingConnection.drag) {
+        graphCancelConnection();
+        graphSetStatus('连线已取消：请拖到兼容的输入端口。', 'warning');
+      } else {
+        renderGraph();
+        graphSetStatus('已选择输出端口；点击一个兼容的输入端口完成连接。', 'warning');
+      }
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+    graphDrawEdges();
+  }
+
+  function graphHandleInputPortClick(event, nodeId, portId) {
+    event.preventDefault();
+    event.stopPropagation();
+    const pending = state.graphPendingConnection;
+    if (!pending) {
+      if (state.graphEdges.some((edge) => edge.target === nodeId && edge.targetPort === portId)) return;
+      graphSetStatus('先从一个输出端口拖线，或点击输出端口后再点击此输入端口。', 'warning');
+      return;
+    }
+    try { graphCreateEdge(pending.source, pending.sourcePort, nodeId, portId); }
+    catch (error) { graphCancelConnection(); graphSetStatus(error.message, 'error'); }
+  }
+
+  async function graphHandleDrop(event) {
+    event.preventDefault();
+    el('graphCanvas')?.classList.remove('drag-over');
+    const payload = graphReadTransfer(event);
+    if (!payload) return;
+    const pos = graphDropPosition(event);
+    if (payload.kind === 'move-node') {
+      const node = state.graphNodes.find((item) => item.id === payload.nodeId);
+      if (node) {
+        node.x = pos.x;
+        node.y = pos.y;
+        state.graphSelectedNodeId = node.id;
+        state.graphSelectedEdgeId = null;
+        graphInvalidateCompiledState();
+        graphHistoryCommit();
+        renderGraph();
+      }
+      return;
+    }
+    if (payload.kind === 'block') {
+      graphAddOrMoveBlock(payload.type, pos.x, pos.y);
+      return;
+    }
+    if (payload.kind === 'capability') {
+      try {
+        showBusy('切换图形执行能力', payload.capabilityId);
+        const object = state.presentationObjects.find((item) => item.object_id === payload.objectId) || null;
+        await selectCapability(payload.capabilityId, object);
+        graphAddOrMoveBlock('model', pos.x, pos.y);
+        graphSetStatus(`已装入执行能力 ${payload.capabilityId}。端口拓扑仍需通过后端图编译器校验。`, 'success');
+      } catch (error) {
+        graphSetStatus(`能力装入失败：${error.message}`, 'error');
+      } finally {
+        hideBusy();
+      }
+    }
+  }
+
+  function renderGraphPalette() {
+    const host = el('graphCapabilityPalette');
+    if (!host) return;
+    const query = (el('graphCapabilitySearch')?.value || '').trim().toLowerCase();
+    host.replaceChildren();
+    let rows;
+    if (state.presentationObjects.length) {
+      rows = state.presentationObjects.map((object) => ({
+        objectId: object.object_id,
+        capabilityId: object.primary_capability_id || object.configuration_capability_id,
+        label: object.name_zh || object.name_en || object.object_id,
+        detail: `${levelLabel(object.level)}${(object.variants || []).length > 1 ? ` · ${(object.variants || []).length} 个变体` : ''}`,
+      })).filter((item) => item.capabilityId);
+    } else {
+      rows = state.catalog.map((item) => ({
+        objectId: item.capability_id,
+        capabilityId: item.capability_id,
+        label: item.name || item.capability_id,
+        detail: levelLabel(item.level),
+      }));
+    }
+    rows = rows.filter((item) => `${item.label} ${item.capabilityId} ${item.detail}`.toLowerCase().includes(query));
+    rows.slice(0, 80).forEach((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.draggable = true;
+      button.className = `graph-palette-item${item.capabilityId === state.selectedCapabilityId ? ' active' : ''}`;
+      const icon = document.createElement('span'); icon.className = 'graph-palette-icon'; icon.textContent = '◇';
+      const text = document.createElement('span');
+      const strong = document.createElement('strong'); strong.textContent = item.label;
+      const small = document.createElement('small'); small.textContent = `${item.detail} · ${item.capabilityId}`;
+      text.append(strong, small); button.append(icon, text);
+      button.addEventListener('dragstart', (event) => graphTransfer(event, { kind: 'capability', ...item }));
+      button.addEventListener('dblclick', async () => {
+        try {
+          showBusy('切换图形执行能力', item.capabilityId);
+          const object = state.presentationObjects.find((entry) => entry.object_id === item.objectId) || null;
+          await selectCapability(item.capabilityId, object);
+          graphAddOrMoveBlock('model', 28, 180);
+          graphSetStatus(`已装入执行能力 ${item.capabilityId}。`, 'success');
+        } catch (error) { graphSetStatus(error.message, 'error'); } finally { hideBusy(); }
+      });
+      host.appendChild(button);
+    });
+    if (!rows.length) {
+      const empty = document.createElement('div'); empty.className = 'graph-inspector-empty'; empty.textContent = '没有匹配的可执行能力。'; host.appendChild(empty);
+    }
+  }
+
+  function graphPortCenter(nodeId, direction, portId) {
+    const selector = `.graph-port-button.${direction}[data-node-id="${CSS.escape(nodeId)}"][data-port-id="${CSS.escape(portId)}"]`;
+    const port = document.querySelector(selector);
+    const canvas = el('graphCanvas');
+    if (!port || !canvas) return null;
+    const rect = port.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2 - canvasRect.left, y: rect.top + rect.height / 2 - canvasRect.top };
+  }
+
+  function graphPathData(sx, sy, tx, ty) {
+    const bend = Math.max(42, Math.abs(tx - sx) * 0.45);
+    return `M ${sx} ${sy} C ${sx + bend} ${sy}, ${tx - bend} ${ty}, ${tx} ${ty}`;
+  }
+
+  function graphDrawEdges() {
+    const svg = el('graphEdges');
+    if (!svg) return;
+    svg.replaceChildren();
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', 'graphArrow'); marker.setAttribute('viewBox', '0 0 10 10'); marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5'); marker.setAttribute('markerWidth', '5'); marker.setAttribute('markerHeight', '5'); marker.setAttribute('orient', 'auto-start-reverse');
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path'); arrow.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z'); arrow.setAttribute('class', 'graph-edge-arrow'); marker.appendChild(arrow); defs.appendChild(marker); svg.appendChild(defs);
+    state.graphEdges.forEach((edge) => {
+      const source = graphPortCenter(edge.source, 'output', edge.sourcePort);
+      const target = graphPortCenter(edge.target, 'input', edge.targetPort);
+      if (!source || !target) return;
+      const d = graphPathData(source.x, source.y, target.x, target.y);
+      const selected = edge.id === state.graphSelectedEdgeId;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const diagnostic = visualEdgeDiagnostic('flow', edge.id);
+      path.setAttribute('class', `graph-edge${selected ? ' selected' : ''}${diagnostic ? ' diagnostic-error' : ''}`); path.setAttribute('marker-end', 'url(#graphArrow)'); path.setAttribute('d', d); svg.appendChild(path);
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      hit.setAttribute('class', 'graph-edge-hit'); hit.setAttribute('d', d); hit.setAttribute('tabindex', '0');
+      hit.addEventListener('click', (event) => { event.stopPropagation(); state.graphSelectedEdgeId = edge.id; state.graphSelectedNodeId = null; renderGraph(); });
+      hit.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); state.graphSelectedEdgeId = edge.id; state.graphSelectedNodeId = null; renderGraph(); } });
+      svg.appendChild(hit);
+      const sourceDef = graphPortDefinition(edge.source, 'output', edge.sourcePort);
+      if (sourceDef) {
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('class', `graph-edge-label${selected ? ' selected' : ''}`);
+        label.setAttribute('x', String((source.x + target.x) / 2));
+        label.setAttribute('y', String((source.y + target.y) / 2 - 7));
+        label.textContent = GRAPH_PORT_TYPE_LABELS[sourceDef.type] || sourceDef.type;
+        svg.appendChild(label);
+      }
+    });
+    const pending = state.graphPendingConnection;
+    if (pending) {
+      const source = graphPortCenter(pending.source, 'output', pending.sourcePort);
+      if (source) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('class', 'graph-edge pending');
+        path.setAttribute('d', graphPathData(source.x, source.y, pending.x ?? source.x + 80, pending.y ?? source.y));
+        svg.appendChild(path);
+      }
+    }
+  }
+
+  function graphRenderPort(node, port, direction) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `graph-port-button ${direction}`;
+    const diagnostic = visualPortDiagnostic('flow', node.id, port.id);
+    if (diagnostic) { button.classList.add('diagnostic-error'); button.title = diagnostic.reason || '运行错误定位到该端口'; }
+    button.dataset.nodeId = node.id;
+    button.dataset.portId = port.id;
+    button.dataset.portType = port.type;
+    const dot = document.createElement('span'); dot.className = 'graph-port-dot';
+    const text = document.createElement('span'); text.className = 'graph-port-label'; text.textContent = port.label || port.id;
+    const type = document.createElement('small'); type.textContent = GRAPH_PORT_TYPE_LABELS[port.type] || port.type;
+    if (direction === 'input') button.append(dot, text, type); else button.append(type, text, dot);
+    const occupied = direction === 'input' && state.graphEdges.some((edge) => edge.target === node.id && edge.targetPort === port.id);
+    if (occupied) button.classList.add('connected');
+    if (port.required) button.classList.add('required');
+    const pending = state.graphPendingConnection;
+    if (pending && direction === 'output' && pending.source === node.id && pending.sourcePort === port.id) button.classList.add('pending');
+    if (pending && direction === 'input') {
+      const sourceDef = graphPortDefinition(pending.source, 'output', pending.sourcePort);
+      button.classList.toggle('compatible', Boolean(sourceDef && sourceDef.type === port.type && !occupied));
+      button.classList.toggle('incompatible', Boolean(sourceDef && sourceDef.type !== port.type));
+    }
+    const baseTitle = `${direction === 'input' ? '输入' : '输出'} · ${port.label || port.id} · ${GRAPH_PORT_TYPE_LABELS[port.type] || port.type}${port.required ? ' · 必需' : ''}`;
+    button.title = diagnostic ? `${baseTitle}\n运行诊断：${diagnostic.reason || diagnostic.label || '错误定位到该端口'}` : baseTitle;
+    if (direction === 'output') {
+      button.addEventListener('pointerdown', (event) => graphBeginConnection(event, node.id, port.id));
+      button.addEventListener('click', (event) => event.stopPropagation());
+    } else {
+      button.addEventListener('pointerdown', (event) => event.stopPropagation());
+      button.addEventListener('click', (event) => graphHandleInputPortClick(event, node.id, port.id));
+    }
+    return button;
+  }
+
+  function renderGraph() {
+    const host = el('graphNodes');
+    if (!host) return;
+    host.replaceChildren();
+    state.graphNodes.forEach((node) => {
+      const meta = GRAPH_BLOCK_META[node.type] || { title: node.type, icon: '□', hint: '', inputs: [], outputs: [] };
+      const summary = graphNodeSummary(node);
+      const card = document.createElement('section');
+      const diagnostic = visualNodeDiagnostic('flow', node.id);
+      card.className = `graph-node${node.id === state.graphSelectedNodeId ? ' selected' : ''}${diagnostic ? ' diagnostic-error' : ''}`;
+      if (diagnostic) card.title = `运行诊断：${diagnostic.reason || diagnostic.label || '错误定位到该节点'}`;
+      card.style.left = `${node.x}px`; card.style.top = `${node.y}px`; card.dataset.nodeId = node.id;
+      const head = document.createElement('div'); head.className = 'graph-node-head'; head.draggable = true;
+      const title = document.createElement('div'); title.className = 'graph-node-title';
+      const icon = document.createElement('span'); icon.textContent = meta.icon;
+      const strong = document.createElement('strong'); strong.textContent = meta.title;
+      title.append(icon, strong);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'graph-node-remove'; remove.title = '移除节点'; remove.textContent = '×';
+      remove.addEventListener('click', (event) => { event.stopPropagation(); graphRemoveNode(node.id); });
+      head.append(title, remove);
+      head.addEventListener('dragstart', (event) => graphTransfer(event, { kind: 'move-node', nodeId: node.id }));
+      const body = document.createElement('div'); body.className = 'graph-node-body';
+      const main = document.createElement('strong'); main.textContent = summary.title;
+      const detail = document.createElement(node.type === 'model' ? 'code' : 'span'); detail.textContent = summary.detail;
+      body.append(main, detail);
+      const ports = document.createElement('div'); ports.className = 'graph-node-ports';
+      const inputs = document.createElement('div'); inputs.className = 'graph-port-column inputs';
+      const outputs = document.createElement('div'); outputs.className = 'graph-port-column outputs';
+      (meta.inputs || []).forEach((port) => inputs.appendChild(graphRenderPort(node, port, 'input')));
+      (meta.outputs || []).forEach((port) => outputs.appendChild(graphRenderPort(node, port, 'output')));
+      ports.append(inputs, outputs);
+      card.append(head, body, ports);
+      card.addEventListener('click', () => { state.graphSelectedNodeId = node.id; state.graphSelectedEdgeId = null; renderGraph(); });
+      host.appendChild(card);
+    });
+    el('graphEmptyHint')?.classList.toggle('hidden', state.graphNodes.length > 0);
+    requestAnimationFrame(graphDrawEdges);
+    renderGraphInspector();
+  }
+
+  function graphInspectorMetaRow(label, value) {
+    const row = document.createElement('div'); const left = document.createElement('span'); const right = document.createElement('strong'); left.textContent = label; right.textContent = String(value ?? '—'); row.append(left, right); return row;
+  }
+
+  function graphAppendField(host, field) {
+    const label = document.createElement('label'); label.className = 'graph-inspector-field';
+    const caption = document.createElement('span'); caption.textContent = `${field.label || field.path}${field.unit ? ` · ${field.unit}` : ''}`; label.appendChild(caption);
+    let input;
+    if (field.widget === 'select') {
+      input = document.createElement('select');
+      (field.enum || []).forEach((value) => { const option = document.createElement('option'); option.value = String(value); option.textContent = field.enum_labels?.[String(value)] || String(value); input.appendChild(option); });
+    } else if (field.widget === 'checkbox') {
+      input = document.createElement('input'); input.type = 'checkbox';
+    } else {
+      input = document.createElement('input'); input.type = ['number', 'integer'].includes(field.type) ? 'number' : 'text';
+      if (field.minimum != null) input.min = String(field.minimum); if (field.maximum != null) input.max = String(field.maximum); input.step = field.type === 'integer' ? '1' : 'any';
+    }
+    const current = getPath(state.formData || {}, field.path);
+    if (input.type === 'checkbox') input.checked = Boolean(current); else input.value = String(current ?? field.default ?? '');
+    input.addEventListener('change', () => {
+      try {
+        let value;
+        if (input.type === 'checkbox') value = input.checked;
+        else if (['number', 'integer'].includes(field.type)) {
+          value = Number(input.value); if (!Number.isFinite(value)) throw new Error('必须是数值'); if (field.type === 'integer' && !Number.isInteger(value)) throw new Error('必须是整数');
+        } else value = input.value;
+        setPath(state.formData, field.path, value);
+        state.taskSpec = null; state.planning = null; syncTaskSpecEditor(); validateClientForm({ show: false }); renderForm(); renderGraph();
+        graphSetStatus(`已更新 ${field.label || field.path}；重新生成 Python 后代码会同步。`, 'success');
+      } catch (error) { graphSetStatus(`${field.label || field.path}：${error.message}`, 'error'); }
+    });
+    label.appendChild(input); host.appendChild(label);
+  }
+
+  function graphInspectorActions(host, actions) {
+    const row = document.createElement('div'); row.className = 'graph-inspector-actions';
+    actions.forEach(({ label, style = 'button-ghost', action }) => { const button = document.createElement('button'); button.type = 'button'; button.className = `button ${style}`; button.textContent = label; button.addEventListener('click', action); row.appendChild(button); });
+    host.appendChild(row);
+  }
+
+  function appendCodeChangeInsight(host, mode) {
+    const isAssembly = mode === 'assembly';
+    const generatedSnapshot = isAssembly ? state.assemblyGeneratedSnapshot : state.graphGeneratedSnapshot;
+    const currentSnapshot = isAssembly ? assemblySnapshot() : graphFormSnapshot();
+    const codeDiff = isAssembly ? state.assemblyCodeDiff : state.graphCodeDiff;
+    const pendingPaths = changedSnapshotPaths(generatedSnapshot, currentSnapshot);
+    if (!pendingPaths.length && !codeDiff?.changed) return;
+    const card = document.createElement('div'); card.className = 'code-change-card';
+    if (pendingPaths.length) {
+      const title = document.createElement('strong'); title.textContent = '当前图/参数已变化，下一次生成会更新代码';
+      const list = document.createElement('div'); list.className = 'code-change-paths';
+      pendingPaths.forEach((path) => { const code = document.createElement('code'); code.textContent = path; list.appendChild(code); });
+      card.append(title, list);
+    }
+    if (codeDiff?.changed) {
+      const summary = document.createElement('small');
+      summary.textContent = `上一次重新生成：从第 ${codeDiff.startLine} 行附近开始变化，旧 ${codeDiff.beforeLines} 行 / 新 ${codeDiff.afterLines} 行。`;
+      card.appendChild(summary);
+    }
+    host.appendChild(card);
+  }
+
+  function graphAddDefaultEffect(kind, effectId) {
+    const bucket = ({ fault: 'faults', degradation: 'degradations', constraint: 'constraints' })[kind];
+    const catalog = state.schema?.event_catalog?.[bucket] || [];
+    const entry = catalog.find((item) => item.effect === effectId);
+    if (!bucket || !entry) throw new Error('当前能力没有该事件');
+    if (!state.formData.events) state.formData.events = { faults: [], degradations: [], constraints: [] };
+    if (!Array.isArray(state.formData.events[bucket])) state.formData.events[bucket] = [];
+    const event = clone(entry.default_event || {});
+    event.id = `${effectId}_${Date.now().toString(36)}`;
+    event.event_type = kind;
+    state.formData.events[bucket].push(event);
+    state.taskSpec = null; state.planning = null; syncTaskSpecEditor(); renderEvents(); renderGraph();
+    graphSetStatus(`已添加事件“${entry.label || effectId}”；可在 Schema 表单中继续精调时间窗和参数。`, 'success');
+  }
+
+  function renderGraphInspector() {
+    const host = el('graphInspector'); const badge = el('graphInspectorBadge'); if (!host || !badge) return;
+    host.replaceChildren();
+    const edge = state.graphEdges.find((item) => item.id === state.graphSelectedEdgeId);
+    if (edge) {
+      badge.textContent = '连线';
+      const section = document.createElement('section'); section.className = 'graph-inspector-section';
+      const heading = document.createElement('h4'); heading.textContent = '类型化连接'; section.appendChild(heading);
+      const sourceNode = state.graphNodes.find((item) => item.id === edge.source);
+      const targetNode = state.graphNodes.find((item) => item.id === edge.target);
+      const sourceDef = graphPortDefinition(edge.source, 'output', edge.sourcePort);
+      const meta = document.createElement('div'); meta.className = 'graph-inspector-meta';
+      meta.append(
+        graphInspectorMetaRow('源', `${GRAPH_BLOCK_META[sourceNode?.type]?.title || edge.source}.${edge.sourcePort}`),
+        graphInspectorMetaRow('目标', `${GRAPH_BLOCK_META[targetNode?.type]?.title || edge.target}.${edge.targetPort}`),
+        graphInspectorMetaRow('类型', GRAPH_PORT_TYPE_LABELS[sourceDef?.type] || sourceDef?.type || '—'),
+      );
+      section.appendChild(meta);
+      graphInspectorActions(section, [
+        { label: '重连目标', style: 'button-secondary', action: () => graphBeginRewireEdge(edge.id) },
+        { label: '删除连线', action: () => graphRemoveEdge(edge.id) },
+      ]);
+      host.appendChild(section);
+      return;
+    }
+    const node = state.graphNodes.find((item) => item.id === state.graphSelectedNodeId);
+    if (!node) { badge.textContent = '未选择'; const empty = document.createElement('div'); empty.className = 'graph-inspector-empty'; empty.textContent = '选择节点或连线。输出端口可拖到兼容输入端口；选中连线后可在这里删除。'; host.appendChild(empty); return; }
+    badge.textContent = GRAPH_BLOCK_META[node.type]?.title || node.type;
+    const section = document.createElement('section'); section.className = 'graph-inspector-section';
+    const heading = document.createElement('h4'); heading.textContent = GRAPH_BLOCK_META[node.type]?.title || node.type; section.appendChild(heading);
+    const portsMeta = document.createElement('div'); portsMeta.className = 'graph-port-contract';
+    [...(GRAPH_BLOCK_META[node.type]?.inputs || []).map((port) => `IN ${port.label}: ${GRAPH_PORT_TYPE_LABELS[port.type] || port.type}${port.required ? ' *' : ''}`), ...(GRAPH_BLOCK_META[node.type]?.outputs || []).map((port) => `OUT ${port.label}: ${GRAPH_PORT_TYPE_LABELS[port.type] || port.type}`)].forEach((text) => { const row = document.createElement('code'); row.textContent = text; portsMeta.appendChild(row); });
+    if (portsMeta.childElementCount) section.appendChild(portsMeta);
+    if (node.type === 'model') {
+      const meta = document.createElement('div'); meta.className = 'graph-inspector-meta';
+      meta.append(graphInspectorMetaRow('Capability', state.selectedCapabilityId), graphInspectorMetaRow('层级', levelLabel(state.schema?.capability?.level)), graphInspectorMetaRow('可信等级', state.schema?.capability?.trust_level || '—'));
+      section.appendChild(meta);
+      const note = document.createElement('p'); note.textContent = '端口是编排数据类型，不虚构 Basilisk 内部消息连接。多分系统物理耦合仍由整星 Capability 后端负责。'; section.appendChild(note);
+      graphInspectorActions(section, [{ label: '打开 Schema 表单', style: 'button-secondary', action: () => switchTab('form') }]);
+    } else if (node.type === 'config') {
+      const fields = state.schema?.fields || [];
+      const preferred = ['simulation.duration_s', 'simulation.sample_s', 'simulation.step_s'];
+      const selected = preferred.map((path) => fields.find((field) => field.path === path)).filter(Boolean);
+      fields.filter((field) => field.importance === 'common' && field.path.startsWith('parameters.') && ['number', 'integer', 'string', 'boolean'].includes(field.type) && !['array', 'object', 'object_editor'].includes(field.widget)).slice(0, 3).forEach((field) => selected.push(field));
+      selected.forEach((field) => graphAppendField(section, field));
+      graphInspectorActions(section, [{ label: '全部参数', action: () => switchTab('form') }]);
+    } else if (node.type === 'effects') {
+      const events = state.formData?.events || {}; const stats = document.createElement('div'); stats.className = 'graph-stat-grid';
+      [['故障', events.faults?.length || 0], ['退化', events.degradations?.length || 0], ['约束', events.constraints?.length || 0]].forEach(([label, value]) => { const card = document.createElement('div'); card.className = 'graph-stat'; const a = document.createElement('span'); a.textContent = label; const b = document.createElement('strong'); b.textContent = value; card.append(a, b); stats.appendChild(card); }); section.appendChild(stats);
+      const kindLabel = document.createElement('label'); kindLabel.className = 'graph-inspector-field'; const kindText = document.createElement('span'); kindText.textContent = '快速添加事件'; const kind = document.createElement('select'); [['fault','故障'],['degradation','退化'],['constraint','运行约束']].forEach(([value,label])=>{const o=document.createElement('option');o.value=value;o.textContent=label;kind.appendChild(o);}); kindLabel.append(kindText, kind); section.appendChild(kindLabel);
+      const effectLabel = document.createElement('label'); effectLabel.className = 'graph-inspector-field'; const effectText = document.createElement('span'); effectText.textContent = '事件类型'; const effect = document.createElement('select'); effectLabel.append(effectText, effect); section.appendChild(effectLabel);
+      const fill = () => { effect.replaceChildren(); const bucket=({fault:'faults',degradation:'degradations',constraint:'constraints'})[kind.value]; (state.schema?.event_catalog?.[bucket] || []).forEach((item)=>{const o=document.createElement('option');o.value=item.effect;o.textContent=item.label || item.effect;effect.appendChild(o);}); };
+      kind.addEventListener('change', fill); fill();
+      graphInspectorActions(section, [{ label: '添加默认事件', style: 'button-secondary', action: () => { if (!effect.value) return graphSetStatus('当前能力没有该类事件。', 'warning'); try { graphAddDefaultEffect(kind.value, effect.value); } catch (error) { graphSetStatus(error.message, 'error'); } } }, { label: '精调事件', action: () => switchTab('form') }]);
+    } else if (node.type === 'outputs') {
+      const outputs = state.formData?.outputs || {}; const stats = document.createElement('div'); stats.className = 'graph-stat-grid';
+      [['QoI', outputs.qoi?.length || 0], ['曲线', outputs.plots?.length || 0], ['遥测流', outputs.telemetry_streams?.length || 0], ['FMEA', outputs.fmea?.enabled ? '开' : '关']].forEach(([label,value])=>{const card=document.createElement('div');card.className='graph-stat';const a=document.createElement('span');a.textContent=label;const b=document.createElement('strong');b.textContent=value;card.append(a,b);stats.appendChild(card);}); section.appendChild(stats);
+      graphInspectorActions(section, [{ label: '编辑输出', style: 'button-secondary', action: () => switchTab('form') }]);
+    } else if (node.type === 'code') {
+      const stale = document.createElement('div'); stale.className = graphCodeIsFresh() ? 'graph-status success' : 'graph-code-stale'; stale.textContent = graphCodeIsFresh() ? `已生成 ${state.graphCodeFilename}` : '尚未生成，或图拓扑 / 参数已发生变化。'; section.appendChild(stale);
+      appendCodeChangeInsight(section, 'flow');
+      const preview = document.createElement('textarea'); preview.className = 'graph-code-preview'; preview.readOnly = true; preview.spellcheck = false; preview.value = state.graphCode || '# 点击“生成 Python”后，这里显示可执行脚本。'; section.appendChild(preview);
+      graphInspectorActions(section, [
+        { label: '生成 Python', style: 'button-secondary', action: () => graphGeneratePython().catch((error) => graphSetStatus(error.message, 'error')) },
+        { label: '复制', action: () => graphCopyCode().catch((error) => graphSetStatus(error.message, 'error')) },
+        { label: '下载 .py', action: () => graphDownloadCode().catch((error) => graphSetStatus(error.message, 'error')) },
+      ]);
+    } else if (node.type === 'run') {
+      const meta = document.createElement('div'); meta.className = 'graph-inspector-meta'; meta.append(graphInspectorMetaRow('TaskSpec', state.taskSpec ? '已编译' : '待编译'), graphInspectorMetaRow('Python', graphCodeIsFresh() ? '已同步' : '待生成'), graphInspectorMetaRow('最近 Run', state.activeRunId || '—')); section.appendChild(meta);
+      graphInspectorActions(section, [{ label: '运行当前图', style: 'button-primary', action: () => runSimulation().catch((error) => graphSetStatus(error.message, 'error')) }]);
+    }
+    host.appendChild(section);
+  }
+
+  function graphSerialize() {
+    return {
+      schema_version: GRAPH_SCHEMA_VERSION,
+      nodes: state.graphNodes.map((node) => ({ id: node.id, type: node.type, x: node.x, y: node.y, capabilityId: node.capabilityId || null })),
+      edges: state.graphEdges.map((edge) => ({ id: edge.id, source: edge.source, sourcePort: edge.sourcePort, target: edge.target, targetPort: edge.targetPort })),
+    };
+  }
+
+  function graphValidateStructure({ requireCode = true, requireRun = true } = {}) {
+    const errors = [];
+    const warnings = [];
+    const byId = new Map(state.graphNodes.map((node) => [node.id, node]));
+    const typeCounts = new Map();
+    state.graphNodes.forEach((node) => typeCounts.set(node.type, (typeCounts.get(node.type) || 0) + 1));
+    ['model', 'config', 'outputs'].forEach((type) => { if (!typeCounts.get(type)) errors.push(`缺少${GRAPH_BLOCK_META[type].title}节点`); });
+    if (requireCode && !typeCounts.get('code')) errors.push('缺少 Python 代码节点');
+    if (requireRun && !typeCounts.get('run')) errors.push('缺少运行器节点');
+    for (const [type, count] of typeCounts) if (count > 1) errors.push(`${GRAPH_BLOCK_META[type]?.title || type}节点重复`);
+    if (!state.selectedCapabilityId || !state.formData) errors.push('尚未选择可执行 Capability');
+    const model = state.graphNodes.find((node) => node.type === 'model');
+    if (model?.capabilityId && model.capabilityId !== state.selectedCapabilityId) errors.push('画布执行能力与当前 Schema 不一致');
+    const incoming = new Map();
+    const adjacency = new Map();
+    state.graphEdges.forEach((edge) => {
+      const source = byId.get(edge.source); const target = byId.get(edge.target);
+      if (!source || !target) { errors.push(`连线 ${edge.id} 引用了不存在的节点`); return; }
+      const sourceDef = graphPortDefinition(edge.source, 'output', edge.sourcePort);
+      const targetDef = graphPortDefinition(edge.target, 'input', edge.targetPort);
+      if (!sourceDef || !targetDef) { errors.push(`连线 ${edge.id} 端口不存在`); return; }
+      if (sourceDef.type !== targetDef.type) errors.push(`连线 ${edge.id} 类型不兼容`);
+      const key = `${edge.target}.${edge.targetPort}`;
+      incoming.set(key, (incoming.get(key) || 0) + 1);
+      if (incoming.get(key) > 1) errors.push(`输入端口 ${key} 有多个驱动源`);
+      if (!adjacency.has(edge.source)) adjacency.set(edge.source, []);
+      adjacency.get(edge.source).push(edge.target);
+    });
+    state.graphNodes.forEach((node) => {
+      (GRAPH_BLOCK_META[node.type]?.inputs || []).filter((port) => port.required).forEach((port) => {
+        if ((incoming.get(`${node.id}.${port.id}`) || 0) !== 1) errors.push(`${GRAPH_BLOCK_META[node.type]?.title || node.type}.${port.label} 必须连接`);
+      });
+    });
+    const indegree = new Map(state.graphNodes.map((node) => [node.id, 0]));
+    state.graphEdges.forEach((edge) => { if (indegree.has(edge.target) && byId.has(edge.source)) indegree.set(edge.target, indegree.get(edge.target) + 1); });
+    const queue = [...indegree].filter(([, value]) => value === 0).map(([id]) => id);
+    const topo = [];
+    while (queue.length) {
+      const current = queue.shift(); topo.push(current);
+      (adjacency.get(current) || []).forEach((target) => { indegree.set(target, indegree.get(target) - 1); if (indegree.get(target) === 0) queue.push(target); });
+    }
+    if (topo.length !== state.graphNodes.length) errors.push('图中存在环路');
+    if (!state.graphEdges.length && state.graphNodes.length > 1) warnings.push('当前没有连线');
+    return { ok: errors.length === 0, errors: [...new Set(errors)], warnings, topologicalOrder: topo };
+  }
+
+  async function graphCompile({ requireCode = true, requireRun = true, announce = true } = {}) {
+    const structural = graphValidateStructure({ requireCode, requireRun });
+    if (!structural.ok) { graphSetStatus(`图校验失败：${structural.errors.join('；')}`, 'error'); return false; }
+    if (!validateClientForm({ show: false })) { graphSetStatus('参数校验失败；请检查时间步长和必填参数。', 'error'); return false; }
+    const payload = await api('/tasks/compile-graph', {
+      method: 'POST',
+      body: JSON.stringify({ graph: graphSerialize(), form_data: state.formData, require_code: requireCode, require_run: requireRun }),
+    });
+    if (!payload.graph_validation?.ok) {
+      const issues = payload.graph_validation?.errors || payload.graph_validation?.issues || [];
+      graphSetStatus(`后端拓扑校验失败：${issues.map((item) => item.message || item.code).join('；') || '未知拓扑错误'}`, 'error');
+      return false;
+    }
+    const result = payload.result || {};
+    state.taskSpec = result.task_spec || null; state.planning = result.planning || null; syncTaskSpecEditor();
+    if (!payload.ok) {
+      const issues = [...(result.validation?.errors || []), ...(result.guards?.issues || []), ...(result.planning?.validation?.errors || [])];
+      graphSetStatus(`TaskSpec 编译失败：${issues.map(formatValidationIssue).join('；') || '未通过能力边界校验'}`, 'error'); return false;
+    }
+    const nodes = result.planning?.execution_plan?.nodes?.length || result.planning?.plan?.nodes?.length || 0;
+    const topo = (payload.graph_validation?.topological_order || []).map((id) => GRAPH_BLOCK_META[state.graphNodes.find((node) => node.id === id)?.type]?.title || id).join(' → ');
+    if (announce) graphSetStatus(`端口类型与拓扑已通过后端校验；${topo || '图已编译'}${nodes ? `；执行计划 ${nodes} 节点` : ''}。`, 'success');
+    renderGraph(); return true;
+  }
+
+  async function graphGenerateCodeFromTaskSpec() {
+    if (!state.taskSpec) throw new Error('请先编译 TaskSpec');
+    const payload = await api('/tasks/export-script', { method: 'POST', body: JSON.stringify({ task_spec: state.taskSpec }) });
+    const nextCode = payload.code || '';
+    state.graphCodeDiff = codeDiffSummary(state.graphCode, nextCode);
+    state.graphCode = nextCode; state.graphCodeFilename = payload.filename || 'simulation.py'; state.graphGeneratedSnapshot = graphFormSnapshot(); renderGraph();
+    graphSetStatus(`已生成可执行 Python：${state.graphCodeFilename}。拓扑已校验，代码仍走现有 sat_sim 编译与执行链。`, 'success');
+    return payload;
+  }
+
+  async function graphGeneratePython() {
+    const ok = await graphCompile({ requireCode: true, requireRun: false, announce: false }); if (!ok) return false;
+    await graphGenerateCodeFromTaskSpec(); return true;
+  }
+
+  async function graphCopyCode() {
+    if (!graphCodeIsFresh()) { const ok = await graphGeneratePython(); if (!ok) return; }
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(state.graphCode);
+    else { const preview = el('graphInspector')?.querySelector('.graph-code-preview'); if (!preview) throw new Error('没有可复制的代码'); preview.focus(); preview.select(); document.execCommand('copy'); }
+    graphSetStatus('Python 代码已复制到剪贴板。', 'success');
+  }
+
+  async function graphDownloadCode() {
+    if (!graphCodeIsFresh()) { const ok = await graphGeneratePython(); if (!ok) return; }
+    const blob = new Blob([state.graphCode], { type: 'text/x-python;charset=utf-8' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = state.graphCodeFilename || 'simulation.py'; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    graphSetStatus(`已下载 ${anchor.download}。`, 'success');
+  }
+
+
+  // -------------------------------------------------------------------------
+  // Visual Composer V14: clean modeling canvas, separate results, explicit Scope/Display/To Workspace observers
+  // -------------------------------------------------------------------------
+  function assemblySetStatus(message, type = '') {
+    const node = el('assemblyStatus');
+    if (!node) return;
+    node.textContent = message;
+    node.className = `graph-status${type ? ` ${type}` : ''}`;
+  }
+
+  function assemblySnapshot() {
+    return JSON.stringify({
+      form: state.formData || {},
+      graph: state.assemblyGraph ? {
+        parent_capability_id: state.assemblyGraph.parent_capability_id,
+        nodes: (state.assemblyGraph.nodes || []).map((node) => ({ id: node.id, moduleAlias: node.moduleAlias, capabilityId: node.capabilityId || null })),
+        edges: (state.assemblyGraph.edges || []).map((edge) => ({
+          bindingId: edge.bindingId,
+          source: edge.source,
+          sourcePort: edge.sourcePort,
+          target: edge.target,
+          targetPort: edge.targetPort,
+          dataType: edge.dataType,
+        })),
+      } : null,
+    });
+  }
+
+  function assemblyCodeIsFresh() {
+    return Boolean(state.assemblyCode && state.assemblyGeneratedSnapshot === assemblySnapshot());
+  }
+
+  function assemblyInvalidateCompiledState({ clearCode = false } = {}) {
+    state.taskSpec = null;
+    state.planning = null;
+    clearVisualDiagnostics('assembly');
+    if (state.assemblyComparisonRunning && state.assemblyComparison) state.assemblyComparison = { ...state.assemblyComparison, stale: true };
+    else state.assemblyComparison = null;
+    if (clearCode) {
+      state.assemblyCode = '';
+      state.assemblyCodeFilename = 'assembly.py';
+      state.assemblyGeneratedSnapshot = '';
+      state.assemblyCodeDiff = null;
+    }
+  }
+
+  async function switchGraphComposerMode(mode) {
+    const next = mode === 'assembly' ? 'assembly' : 'flow';
+    state.graphComposerMode = next;
+    el('graphFlowComposer')?.classList.toggle('hidden', next !== 'flow');
+    el('graphAssemblyComposer')?.classList.toggle('hidden', next !== 'assembly');
+    el('graphFlowToolbarActions')?.classList.toggle('hidden', next !== 'flow');
+    const flowButton = el('graphFlowModeBtn');
+    const assemblyButton = el('graphAssemblyModeBtn');
+    flowButton?.classList.toggle('active', next === 'flow');
+    assemblyButton?.classList.toggle('active', next === 'assembly');
+    flowButton?.setAttribute('aria-pressed', String(next === 'flow'));
+    assemblyButton?.setAttribute('aria-pressed', String(next === 'assembly'));
+    if (next === 'flow') {
+      requestAnimationFrame(() => graphInitialize(false));
+      return;
+    }
+    if (!state.assemblyCatalog.length) await loadAssemblyCatalog();
+    if (!state.assemblyContract) {
+      const capabilityId = el('assemblyCapabilitySelect')?.value || state.assemblyCatalog[0]?.parent_capability_id;
+      if (capabilityId) await assemblyLoadContract(capabilityId);
+    } else {
+      requestAnimationFrame(assemblyRender);
+    }
+  }
+
+  async function loadAssemblyCatalog() {
+    const payload = await api('/visual-composer/assemblies');
+    state.assemblyCatalog = payload.assemblies || [];
+    const select = el('assemblyCapabilitySelect');
+    if (!select) return state.assemblyCatalog;
+    const previous = select.value;
+    select.replaceChildren();
+    state.assemblyCatalog.forEach((item) => {
+      const option = document.createElement('option');
+      option.value = item.parent_capability_id;
+      const contractTag = item.port_contract_source === 'explicit-v5' ? 'V5显式端口' : 'V4兼容推断';
+      const replaceableTag = Number(item.replaceable_module_count || 0) ? ` · ${item.replaceable_module_count} 可替换槽位` : '';
+      option.textContent = `${item.name || item.parent_capability_id} · ${item.module_count} 模块 / ${item.port_count || 0} 端口 / ${item.binding_count} 连线 · ${contractTag}${replaceableTag}`;
+      select.appendChild(option);
+    });
+    const preferred = state.assemblyCatalog.find((item) => item.parent_capability_id === previous)
+      || state.assemblyCatalog.find((item) => item.parent_capability_id === 'whole_spacecraft.power_thermal_orbit_coupled.v1')
+      || state.assemblyCatalog[0];
+    if (preferred) select.value = preferred.parent_capability_id;
+    assemblyRenderQuickTemplates();
+    return state.assemblyCatalog;
+  }
+
+  function assemblyQuickTemplateDefinitions() {
+    const catalogIds = new Set((state.assemblyCatalog || []).map((item) => item.parent_capability_id));
+    return [
+      {
+        id: 'power-thermal-orbit-ready',
+        title: '整星电源 / 热控 / 轨道 · 可运行组合',
+        description: '自动装入高保真轨道 + source-native EPS/Thermal；适合直接运行并查看耦合结果。',
+        parentCapabilityId: 'whole_spacecraft.power_thermal_orbit_coupled.v1',
+        selections: {
+          orbit_environment: 'orbit_environment.orbit_fidelity.v1',
+          eps: 'subsystem.eps.source_native.v1',
+          thermal: 'subsystem.thermal.source_native.v1',
+        },
+      },
+      {
+        id: 'adcs-rw-ready',
+        title: 'ADCS + Reaction Wheel · 可运行组合',
+        description: '加载 ADCS fidelity，并插入注册 Reaction Wheel 轮速推进模块。',
+        parentCapabilityId: 'subsystem.adcs_fidelity.v1',
+        selections: { reaction_wheel: 'component.reaction_wheel.v1' },
+      },
+      {
+        id: 'power-thermal-orbit-baseline',
+        title: '整星耦合 · 基线',
+        description: '保持父模型注册基线，不启用模块替换；用于快速对照。',
+        parentCapabilityId: 'whole_spacecraft.power_thermal_orbit_coupled.v1',
+        selections: {},
+      },
+      {
+        id: 'adcs-baseline',
+        title: 'ADCS fidelity · 基线',
+        description: '使用父 ADCS 内部轮模型，适合与 Reaction Wheel 插拔结果比较。',
+        parentCapabilityId: 'subsystem.adcs_fidelity.v1',
+        selections: {},
+      },
+    ].filter((item) => catalogIds.has(item.parentCapabilityId));
+  }
+
+  function assemblyRenderQuickTemplates() {
+    const container = el('assemblyQuickTemplates');
+    if (!container) return;
+    container.replaceChildren();
+    const templates = assemblyQuickTemplateDefinitions();
+    templates.forEach((template) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'assembly-quick-template';
+      button.dataset.templateId = template.id;
+      const title = document.createElement('strong'); title.textContent = template.title;
+      const description = document.createElement('small'); description.textContent = template.description;
+      const parent = document.createElement('code'); parent.textContent = template.parentCapabilityId;
+      button.append(title, description, parent);
+      button.addEventListener('click', () => assemblyApplyQuickTemplate(template).catch((error) => { assemblySetStatus(`模板加载失败：${error.message}`, 'error'); hideBusy(); }));
+      container.appendChild(button);
+    });
+    if (!templates.length) {
+      const empty = document.createElement('span'); empty.className = 'graph-inspector-empty'; empty.textContent = '当前没有可用的快速模板；仍可从“注册装配”下拉框加载。'; container.appendChild(empty);
+    }
+  }
+
+  async function assemblyApplyQuickTemplate(template) {
+    showBusy('加载快速装配模板', template.title);
+    try {
+      await assemblyLoadContract(template.parentCapabilityId);
+      for (const [alias, capabilityId] of Object.entries(template.selections || {})) {
+        const node = (state.assemblyGraph?.nodes || []).find((item) => item.moduleAlias === alias);
+        const module = assemblyModuleByAlias(alias);
+        if (!node || !module || !assemblyCompatibleOption(module, capabilityId)) {
+          throw new Error(`${alias} 当前不能使用模板候选 ${capabilityId}`);
+        }
+        node.capabilityId = capabilityId;
+      }
+      state.assemblySelectedNodeId = state.assemblyGraph?.nodes?.[0]?.id || null;
+      state.assemblySelectedEdgeId = null;
+      state.assemblyPendingConnection = null;
+      assemblyInvalidateCompiledState();
+      assemblyRender();
+      const ok = await assemblyCompile({ announce: false });
+      if (!ok) return false;
+      const replacementCount = Object.keys(template.selections || {}).length;
+      assemblySetStatus(`快速模板“${template.title}”已就绪${replacementCount ? `，已自动匹配 ${replacementCount} 个注册模块` : ''}。现在可直接“构建并运行”或“导出可运行程序包”。`, 'success');
+      return true;
+    } finally {
+      hideBusy();
+    }
+  }
+
+  async function loadModuleLibrary() {
+    const payload = await api('/visual-composer/module-library');
+    state.moduleLibrary = payload.module_library?.modules || [];
+    assemblyRenderModuleLibrary();
+    assemblyRenderQuickTemplates();
+    return state.moduleLibrary;
+  }
+
+  async function assemblyLoadContract(capabilityId) {
+    if (!capabilityId) throw new Error('没有可加载的注册装配');
+    if (state.selectedCapabilityId !== capabilityId) await selectCapability(capabilityId);
+    const payload = await api(`/visual-composer/assemblies/${encodeURIComponent(capabilityId)}`);
+    clearVisualRunOverlay();
+    state.assemblyContract = payload.assembly || null;
+    if (!state.assemblyContract) throw new Error('后端没有返回装配合同');
+    state.assemblyGraph = clone(state.assemblyContract.default_graph);
+    state.assemblyGraph.scopes = Array.isArray(state.assemblyGraph.scopes) ? state.assemblyGraph.scopes : [];
+    state.assemblySelectedNodeId = state.assemblyGraph.nodes?.[0]?.id || null;
+    state.assemblySelectedEdgeId = null;
+    state.assemblySelectedScopeId = null;
+    state.assemblySelectedScopeProbeId = null;
+    state.assemblySelection = state.assemblySelectedNodeId ? [assemblySelectionKey('node', state.assemblySelectedNodeId)] : [];
+    state.assemblyPendingConnection = null;
+    assemblyInvalidateCompiledState({ clearCode: true });
+    if (!state.moduleLibrary.length) await loadModuleLibrary();
+    const select = el('assemblyCapabilitySelect');
+    if (select) select.value = capabilityId;
+    assemblyRender();
+    const portContract = state.assemblyContract.simulation_ports || {};
+    const contractLabel = portContract.source === 'explicit-v5' ? '显式 V5 simulation_ports' : 'V4 field_mappings 兼容推断';
+    const contractWarnings = portContract.validation?.warnings?.length || 0;
+    const replaceableCount = Number(state.assemblyContract.replaceable_module_count || 0);
+    assemblySetStatus(
+      `已加载 ${state.assemblyContract.name || capabilityId}：${state.assemblyContract.modules.length} 模块 / ${(portContract.ports || []).length} 端口 / ${state.assemblyContract.bindings.filter((item) => item.wireable).length} binding；${contractLabel}；可替换槽位 ${replaceableCount}${contractWarnings ? `，${contractWarnings} 个合同提示` : ''}。`,
+      portContract.validation?.ok === false ? 'error' : 'success',
+    );
+  }
+
+  function assemblyBindingById(bindingId) {
+    return (state.assemblyContract?.bindings || []).find((item) => item.binding_id === bindingId) || null;
+  }
+
+  function assemblyNodeById(nodeId) {
+    return (state.assemblyGraph?.nodes || []).find((item) => item.id === nodeId) || null;
+  }
+
+  function assemblyScopes() {
+    if (!state.assemblyGraph) return [];
+    if (!Array.isArray(state.assemblyGraph.scopes)) state.assemblyGraph.scopes = [];
+    return state.assemblyGraph.scopes;
+  }
+
+  function assemblyObserverKind(observer) {
+    const kind = String(observer?.kind || 'scope').toLowerCase();
+    return ['scope', 'display', 'workspace'].includes(kind) ? kind : 'scope';
+  }
+
+  function assemblyObserverMeta(observerOrKind) {
+    const kind = typeof observerOrKind === 'string' ? observerOrKind : assemblyObserverKind(observerOrKind);
+    return {
+      scope: { kind: 'scope', title: 'Scope', icon: '▱', role: 'Waveform observer', maxProbes: 16, hint: '波形示波器 · 可接多路信号' },
+      display: { kind: 'display', title: 'Display', icon: '▣', role: 'Value observer', maxProbes: 1, hint: '末值显示 · 单路信号' },
+      workspace: { kind: 'workspace', title: 'To Workspace', icon: '⇩', role: 'Data export observer', maxProbes: 1, hint: 'CSV / JSON 导出 · 单路信号' },
+    }[kind] || { kind: 'scope', title: 'Scope', icon: '▱', role: 'Waveform observer', maxProbes: 16, hint: '波形示波器 · 可接多路信号' };
+  }
+
+  function assemblyScopeById(scopeId) {
+    return assemblyScopes().find((item) => item.id === scopeId) || null;
+  }
+
+  function assemblySelectionKey(kind, id) {
+    return `${kind}:${id}`;
+  }
+
+  function assemblySelectionHas(kind, id) {
+    return state.assemblySelection.includes(assemblySelectionKey(kind, id));
+  }
+
+  function assemblySelectionItems() {
+    return state.assemblySelection.map((key) => {
+      const split = key.indexOf(':');
+      const kind = split > 0 ? key.slice(0, split) : '';
+      const id = split > 0 ? key.slice(split + 1) : key;
+      const item = kind === 'observer' ? assemblyScopeById(id) : assemblyNodeById(id);
+      return item ? { kind, id, item } : null;
+    }).filter(Boolean);
+  }
+
+  function assemblySyncPrimarySelection(kind = null, id = null) {
+    state.assemblySelectedEdgeId = null;
+    state.assemblySelectedScopeProbeId = null;
+    if (kind === 'observer') {
+      state.assemblySelectedScopeId = id;
+      state.assemblySelectedNodeId = null;
+    } else if (kind === 'node') {
+      state.assemblySelectedNodeId = id;
+      state.assemblySelectedScopeId = null;
+    } else {
+      state.assemblySelectedNodeId = null;
+      state.assemblySelectedScopeId = null;
+    }
+  }
+
+  function assemblySelectItem(kind, id, { additive = false, toggle = false, render = true } = {}) {
+    const key = assemblySelectionKey(kind, id);
+    let next = additive ? [...state.assemblySelection] : [];
+    const index = next.indexOf(key);
+    if (toggle && index >= 0) next.splice(index, 1);
+    else if (index < 0) next.push(key);
+    state.assemblySelection = next;
+    if (state.assemblySelection.includes(key)) assemblySyncPrimarySelection(kind, id);
+    else {
+      const last = assemblySelectionItems().slice(-1)[0] || null;
+      assemblySyncPrimarySelection(last?.kind || null, last?.id || null);
+    }
+    if (render) assemblyRender();
+  }
+
+  function assemblyClearSelection({ render = true } = {}) {
+    state.assemblySelection = [];
+    assemblySyncPrimarySelection();
+    if (render) assemblyRender();
+  }
+
+  function assemblySelectAll() {
+    if (!state.assemblyGraph) return;
+    state.assemblySelection = [
+      ...(state.assemblyGraph.nodes || []).map((item) => assemblySelectionKey('node', item.id)),
+      ...assemblyScopes().map((item) => assemblySelectionKey('observer', item.id)),
+    ];
+    const first = assemblySelectionItems()[0] || null;
+    assemblySyncPrimarySelection(first?.kind || null, first?.id || null);
+    assemblyRender();
+    assemblySetStatus(`已选择 ${state.assemblySelection.length} 个画布对象；可整体拖动、对齐或等间距排列。`);
+  }
+
+  function assemblySelectionLabel() {
+    const total = state.assemblySelection.length;
+    const observers = assemblySelectionItems().filter((item) => item.kind === 'observer').length;
+    return total ? `已选 ${total}${observers ? ` · 观察器 ${observers}` : ''}` : '未选择';
+  }
+
+  function assemblyScopeOverlay(scopeId) {
+    const overlay = visualOverlayForMode('assembly') || {};
+    const rows = overlay.observer_overlays || overlay.scope_overlays || [];
+    return rows.find((item) => item.scope_id === scopeId || item.observer_id === scopeId) || null;
+  }
+
+  function assemblyScopeProbeOverlay(scopeId, probeId) {
+    return (assemblyScopeOverlay(scopeId)?.probes || []).find((item) => item.probe_id === probeId) || null;
+  }
+
+  function assemblyAddObserver(kind = 'scope') {
+    if (!state.assemblyGraph || !state.assemblyContract) {
+      assemblySetStatus('请先加载一个多模块装配，再添加观察器。', 'warning');
+      return;
+    }
+    const observers = assemblyScopes();
+    const meta = assemblyObserverMeta(kind);
+    const index = observers.filter((item) => assemblyObserverKind(item) === meta.kind).length + 1;
+    const id = `${meta.kind}-${Date.now().toString(36)}-${index}`;
+    observers.push({ kind: meta.kind, id, name: `${meta.title} ${index}`, x: 850, y: Math.min(440, 70 + observers.length * 120), probes: [] });
+    state.assemblySelectedScopeId = id;
+    state.assemblySelectedScopeProbeId = null;
+    state.assemblySelectedNodeId = null;
+    state.assemblySelectedEdgeId = null;
+    state.assemblySelection = [assemblySelectionKey('observer', id)];
+    state.assemblyPendingConnection = null;
+    assemblyRender();
+    assemblySetStatus(`已添加 ${meta.title} 只读观察器。先点击模块输出端口，再点击观察器的 signal 输入；它不改变物理拓扑、TaskSpec 或生成代码。`, 'success');
+  }
+
+  function assemblyAddScope() { assemblyAddObserver('scope'); }
+  function assemblyAddDisplay() { assemblyAddObserver('display'); }
+  function assemblyAddWorkspace() { assemblyAddObserver('workspace'); }
+
+  function assemblyRemoveScope(scopeId) {
+    if (!state.assemblyGraph) return;
+    const observer = assemblyScopeById(scopeId);
+    const meta = assemblyObserverMeta(observer);
+    state.assemblyGraph.scopes = assemblyScopes().filter((item) => item.id !== scopeId);
+    state.assemblySelection = state.assemblySelection.filter((key) => key !== assemblySelectionKey('observer', scopeId));
+    state.assemblySelectedScopeId = null;
+    state.assemblySelectedScopeProbeId = null;
+    state.assemblyPendingConnection = null;
+    assemblyRender();
+    assemblySetStatus(`已移除 ${meta.title}；物理装配与生成代码未改变。`, 'success');
+  }
+
+  function assemblyRemoveScopeProbe(scopeId, probeId) {
+    const scope = assemblyScopeById(scopeId);
+    if (!scope) return;
+    scope.probes = (scope.probes || []).filter((item) => item.id !== probeId);
+    state.assemblySelectedScopeProbeId = null;
+    assemblyRender();
+  }
+
+  function assemblyModuleByAlias(alias) {
+    return (state.assemblyContract?.modules || []).find((item) => item.alias === alias) || null;
+  }
+
+  function assemblyBaselineCapability(module) {
+    if (!module) return null;
+    return module.replacement_baseline_capability_id ?? module.capability_id ?? null;
+  }
+
+  function assemblyCompatibleOption(module, capabilityId) {
+    if (!module?.replaceable || !capabilityId) return null;
+    return (module.replacement_options || []).find((item) => item.capability_id === capabilityId && item.compatible) || null;
+  }
+
+  function assemblyCompatibleAliasesForCapability(capabilityId) {
+    return (state.assemblyContract?.modules || [])
+      .filter((module) => assemblyCompatibleOption(module, capabilityId))
+      .map((module) => module.alias);
+  }
+
+  function assemblyRenderModuleLibrary() {
+    const container = el('assemblyModuleLibrary');
+    const summary = el('assemblyLibrarySummary');
+    if (!container || !summary) return;
+    container.replaceChildren();
+    const allModules = state.moduleLibrary || [];
+    const query = String(state.assemblyLibrarySearch || '').trim().toLowerCase();
+    const selectedNode = assemblyNodeById(state.assemblySelectedNodeId);
+    const selectedModule = selectedNode ? assemblyModuleByAlias(selectedNode.moduleAlias) : null;
+    const aliasesByCapability = new Map(allModules.map((item) => [item.capability_id, assemblyCompatibleAliasesForCapability(item.capability_id)]));
+    const compatibleCount = [...aliasesByCapability.values()].filter((aliases) => aliases.length).length;
+    const modules = allModules.filter((libraryModule) => {
+      const aliases = aliasesByCapability.get(libraryModule.capability_id) || [];
+      if (state.assemblyCompatibleOnly && !aliases.length) return false;
+      if (!query) return true;
+      const haystack = [libraryModule.name, libraryModule.capability_id, libraryModule.interface_id, libraryModule.domain, ...(aliases || [])].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(query);
+    });
+    modules.forEach((libraryModule) => {
+      const aliases = aliasesByCapability.get(libraryModule.capability_id) || [];
+      const selectedCompatible = Boolean(selectedModule && assemblyCompatibleOption(selectedModule, libraryModule.capability_id));
+      const card = document.createElement('article');
+      card.className = `assembly-library-card${selectedCompatible ? ' compatible-selected' : ''}`;
+      card.setAttribute('role', 'listitem');
+      card.draggable = aliases.length > 0;
+      card.dataset.capabilityId = libraryModule.capability_id;
+      const title = document.createElement('strong'); title.textContent = libraryModule.name || libraryModule.capability_id;
+      const capability = document.createElement('code'); capability.textContent = libraryModule.capability_id;
+      const meta = document.createElement('small'); meta.textContent = `${libraryModule.interface_id || '无接口'} · ${(libraryModule.ports || []).length} ports · ${libraryModule.domain || 'module'}`;
+      const match = document.createElement('small');
+      match.textContent = aliases.length ? `当前装配可匹配：${aliases.join('、')}` : '当前装配没有兼容槽位';
+      const action = document.createElement('button'); action.type = 'button'; action.className = 'button button-ghost'; action.textContent = '替换当前';
+      action.disabled = !selectedCompatible;
+      action.title = selectedCompatible ? `替换 ${selectedNode.moduleAlias}` : '先选择一个与该模块接口兼容的画布节点';
+      action.addEventListener('click', () => {
+        if (!selectedNode || !selectedCompatible) return;
+        try { assemblyReplaceModule(selectedNode.id, libraryModule.capability_id); } catch (error) { assemblySetStatus(error.message, 'error'); }
+      });
+      if (aliases.length) {
+        card.addEventListener('dragstart', (event) => {
+          state.assemblyDragModuleCapabilityId = libraryModule.capability_id;
+          event.dataTransfer?.setData('text/plain', libraryModule.capability_id);
+          if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
+        });
+        card.addEventListener('dragend', () => {
+          state.assemblyDragModuleCapabilityId = null;
+          $all('.assembly-node.drop-compatible, .assembly-node.drop-incompatible').forEach((item) => item.classList.remove('drop-compatible', 'drop-incompatible'));
+        });
+      }
+      card.append(title, capability, meta, match, action);
+      container.appendChild(card);
+    });
+    if (!modules.length) {
+      const empty = document.createElement('span'); empty.className = 'graph-inspector-empty'; empty.textContent = allModules.length ? '没有匹配当前搜索/兼容筛选的模块。' : '模块库为空；只有具有正式 simulation_module_interface 的可运行 Capability 才会出现。'; container.appendChild(empty);
+    }
+    summary.textContent = `${modules.length}/${allModules.length} 显示 · ${compatibleCount} 当前可用`;
+  }
+
+  function assemblyReplaceModule(nodeId, capabilityId) {
+    const node = assemblyNodeById(nodeId);
+    if (!node) throw new Error('找不到待替换模块节点');
+    const module = assemblyModuleByAlias(node.moduleAlias) || {};
+    if (!module.replaceable) throw new Error(`模块 ${node.moduleAlias} 未声明 replacement slot`);
+    const baseline = assemblyBaselineCapability(module);
+    const restoring = capabilityId === null || capabilityId === undefined || capabilityId === '' || capabilityId === '__baseline__';
+    const selected = restoring ? baseline : capabilityId;
+    if (!restoring && !assemblyCompatibleOption(module, selected)) throw new Error(`Capability ${selected} 不满足该 replacement slot 的正式接口合同`);
+    node.capabilityId = selected;
+    state.assemblySelectedNodeId = node.id;
+    state.assemblySelectedEdgeId = null;
+    state.assemblySelectedScopeId = null;
+    state.assemblySelectedScopeProbeId = null;
+    state.assemblyPendingConnection = null;
+    assemblyInvalidateCompiledState();
+    assemblyRender();
+    if (selected === baseline) {
+      assemblySetStatus(`已恢复 ${node.moduleAlias} 的基线实现 ${baseline || '父适配器内部模块'}；运行前仍会由后端校验 module fingerprint。`, 'success');
+    } else {
+      assemblySetStatus(`已选择受约束模块 ${selected} → ${node.moduleAlias}。只有接口/单位/时序/求解语义兼容的 allow-list 候选可进入后端编译。`, 'success');
+    }
+  }
+
+  function assemblyPortsFor(node, direction) {
+    const alias = node?.moduleAlias;
+    if (!alias) return [];
+    const ports = state.assemblyContract?.simulation_ports?.ports || [];
+    return ports.filter((port) => port.module_alias === alias && port.direction === direction);
+  }
+
+  function assemblyBindingsForPort(portId, direction) {
+    const key = direction === 'input' ? 'target_port' : 'source_port';
+    return (state.assemblyContract?.bindings || []).filter((binding) => binding.wireable && binding[key] === portId);
+  }
+
+  function assemblyEdgeForBinding(bindingId) {
+    return (state.assemblyGraph?.edges || []).find((edge) => edge.bindingId === bindingId) || null;
+  }
+
+  function assemblyPortEdges(portId, direction) {
+    const key = direction === 'input' ? 'targetPort' : 'sourcePort';
+    return (state.assemblyGraph?.edges || []).filter((edge) => edge[key] === portId);
+  }
+
+  function assemblyPayloadType(payload = {}) {
+    const shape = payload.shape || 'scalar';
+    const unit = payload.unit || '1';
+    if (shape === 'boolean' || payload.dtype === 'bool') return shape === 'timeseries' ? 'timeseries[bool]' : 'bool';
+    if (shape === 'object') return 'object';
+    if (shape === 'event') return `event[${unit}]`;
+    if (shape === 'timeseries') return `timeseries[${unit}]`;
+    if (shape === 'scalar_or_series') return `scalar_or_series[${unit}]`;
+    return `scalar[${unit}]`;
+  }
+
+  function assemblyPortButton(node, port, direction) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `graph-port-button ${direction === 'input' ? 'input' : 'output'}`;
+    button.dataset.assemblyNode = node.id;
+    button.dataset.assemblyPort = port.port_id;
+    const diagnostic = visualPortDiagnostic('assembly', node.id, port.port_id);
+    if (diagnostic) button.classList.add('diagnostic-error');
+    const connectedEdges = assemblyPortEdges(port.port_id, direction);
+    if (connectedEdges.length) button.classList.add('connected');
+    const pending = state.assemblyPendingConnection;
+    if (pending?.sourcePort === port.port_id && direction === 'output') button.classList.add('pending');
+    if (pending && direction === 'input') {
+      const compatible = (state.assemblyContract?.bindings || []).some((binding) => (
+        binding.wireable
+        && binding.source_port === pending.sourcePort
+        && binding.target_port === port.port_id
+        && !assemblyEdgeForBinding(binding.binding_id)
+      ));
+      button.classList.add(compatible ? 'compatible' : 'incompatible');
+    }
+    const dot = document.createElement('span'); dot.className = 'graph-port-dot';
+    const label = document.createElement('span'); label.className = 'graph-port-label';
+    const localName = String(port.port_id || '').split('.').slice(-2).join('.');
+    const bindingCount = assemblyBindingsForPort(port.port_id, direction).length;
+    label.textContent = direction === 'output' ? `${localName} → ${bindingCount}` : `${bindingCount} ← ${localName}`;
+    const detail = document.createElement('small'); detail.className = 'assembly-port-path';
+    detail.textContent = port.path || port.port_id;
+    const type = document.createElement('small');
+    type.textContent = `${assemblyPayloadType(port.payload)} · ${port.timing?.rate_policy || 'parent-owned'}`;
+    if (direction === 'input') button.append(dot, label, detail, type);
+    else button.append(label, detail, type, dot);
+    button.title = [
+      port.port_id,
+      port.path || '',
+      assemblyPayloadType(port.payload),
+      `timing: ${port.timing?.rate_policy || 'parent-owned'}`,
+      `state owner: ${port.state_owner || node.moduleAlias}`,
+      direction === 'output' ? `fan-out: ${port.fan_out || 'many'}` : `fan-in: ${port.fan_in || 'one'}`,
+      direction === 'output' ? `direct feedthrough: ${Boolean(port.direct_feedthrough)}` : '',
+      diagnostic ? `运行诊断：${diagnostic.reason || diagnostic.label || '错误定位到该端口'}` : '',
+    ].filter(Boolean).join('\n');
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      assemblySelectItem('node', node.id, { render: false });
+      if (direction === 'output') assemblyBeginConnection(node.id, port);
+      else assemblyCompleteConnection(node.id, port);
+    });
+    return button;
+  }
+
+  function assemblyNodeElement(node) {
+    const module = assemblyModuleByAlias(node.moduleAlias) || {};
+    const card = document.createElement('article');
+    const baselineCapability = assemblyBaselineCapability(module);
+    const selectedCapability = node.capabilityId ?? module.capability_id ?? null;
+    const isReplacement = Boolean(module.replaceable && selectedCapability !== baselineCapability);
+    const diagnostic = visualNodeDiagnostic('assembly', node.id);
+    card.className = `graph-node assembly-node${state.assemblySelectedNodeId === node.id ? ' selected' : ''}${assemblySelectionHas('node', node.id) ? ' layout-selected' : ''}${isReplacement ? ' replaced' : ''}${diagnostic ? ' diagnostic-error' : ''}`;
+    if (diagnostic) card.title = `运行诊断：${diagnostic.reason || diagnostic.label || '错误定位到该模块'}`;
+    card.dataset.assemblyNodeId = node.id;
+    card.style.left = `${Number(node.x) || 0}px`;
+    card.style.top = `${Number(node.y) || 0}px`;
+
+    const head = document.createElement('div'); head.className = 'graph-node-head';
+    const title = document.createElement('div'); title.className = 'graph-node-title';
+    const icon = document.createElement('span'); icon.textContent = module.role === 'parent' ? '◆' : module.role === 'dependency' ? '◇' : '○';
+    const strong = document.createElement('strong'); strong.textContent = module.name || node.moduleAlias;
+    title.append(icon, strong); head.appendChild(title);
+    head.addEventListener('pointerdown', (event) => assemblyStartNodeDrag(event, node));
+
+    const body = document.createElement('div'); body.className = 'graph-node-body';
+    const role = document.createElement('span'); role.className = `assembly-node-role ${module.role || 'internal'}`;
+    role.textContent = module.role === 'parent' ? 'Runtime owner' : module.role === 'dependency' ? 'Registered dependency' : 'Parent-owned internal';
+    const alias = document.createElement('strong'); alias.textContent = node.moduleAlias;
+    const capability = document.createElement('code'); capability.textContent = selectedCapability || (module.replaceable ? '父适配器内部基线 · 可插拔' : '父适配器内部模块 · 不可替换');
+    body.append(role, alias, capability);
+    if (isReplacement) { const marker = document.createElement('small'); marker.className = 'assembly-replacement-marker'; marker.textContent = `替代基线 ${baselineCapability || 'parent-managed internal'}`; body.appendChild(marker); }
+
+    const ports = document.createElement('div'); ports.className = 'graph-node-ports';
+    const inputs = document.createElement('div'); inputs.className = 'graph-port-column inputs';
+    const outputs = document.createElement('div'); outputs.className = 'graph-port-column outputs';
+    assemblyPortsFor(node, 'input').forEach((port) => inputs.appendChild(assemblyPortButton(node, port, 'input')));
+    assemblyPortsFor(node, 'output').forEach((port) => outputs.appendChild(assemblyPortButton(node, port, 'output')));
+    if (!inputs.children.length) { const empty = document.createElement('small'); empty.textContent = '无注册输入'; inputs.appendChild(empty); }
+    if (!outputs.children.length) { const empty = document.createElement('small'); empty.textContent = '无注册输出'; outputs.appendChild(empty); }
+    ports.append(inputs, outputs);
+    card.append(head, body, ports);
+    card.addEventListener('click', (event) => {
+      if (event.target.closest('.graph-port-button')) return;
+      const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+      if (additive) assemblySelectItem('node', node.id, { additive: true, toggle: true });
+      else if (!assemblySelectionHas('node', node.id) || state.assemblySelection.length <= 1) assemblySelectItem('node', node.id);
+      else { assemblySyncPrimarySelection('node', node.id); assemblyRender(); }
+    });
+    card.addEventListener('dragover', (event) => {
+      const dragged = state.assemblyDragModuleCapabilityId || '';
+      const compatible = Boolean(dragged && assemblyCompatibleOption(module, dragged));
+      if (!dragged) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = compatible ? 'copy' : 'none';
+      card.classList.toggle('drop-compatible', compatible);
+      card.classList.toggle('drop-incompatible', !compatible);
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('drop-compatible', 'drop-incompatible'));
+    card.addEventListener('drop', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      card.classList.remove('drop-compatible', 'drop-incompatible');
+      const capabilityId = event.dataTransfer?.getData('text/plain') || state.assemblyDragModuleCapabilityId || '';
+      state.assemblyDragModuleCapabilityId = null;
+      if (!assemblyCompatibleOption(module, capabilityId)) {
+        assemblySetStatus(`${capabilityId || '该模块'} 与槽位 ${node.moduleAlias} 的正式接口不兼容，未执行替换。`, 'error');
+        return;
+      }
+      try { assemblyReplaceModule(node.id, capabilityId); } catch (error) { assemblySetStatus(error.message, 'error'); }
+    });
+    return card;
+  }
+
+  function assemblyScopeInputButton(scope) {
+    const meta = assemblyObserverMeta(scope);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'graph-port-button input assembly-scope-input';
+    button.dataset.scopeId = scope.id;
+    const dot = document.createElement('span'); dot.className = 'graph-port-dot';
+    const label = document.createElement('span'); label.className = 'graph-port-label'; label.textContent = 'signal';
+    const detail = document.createElement('small'); detail.textContent = `${(scope.probes || []).length}/${meta.maxProbes === 16 ? 'multi' : meta.maxProbes}`;
+    button.append(dot, label, detail);
+    if (state.assemblyPendingConnection) button.classList.add('compatible');
+    button.title = `${meta.title} 观察输入：只读探针，不占用物理 fan-out，不参与求解`;
+    button.addEventListener('pointerdown', (event) => event.stopPropagation());
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      assemblyCompleteScopeProbe(scope.id);
+    });
+    return button;
+  }
+
+  function assemblyScopeElement(scope) {
+    const meta = assemblyObserverMeta(scope);
+    const overlay = assemblyScopeOverlay(scope.id);
+    const card = document.createElement('article');
+    card.className = `graph-node assembly-node assembly-scope-node assembly-observer-${meta.kind}${state.assemblySelectedScopeId === scope.id ? ' selected' : ''}${assemblySelectionHas('observer', scope.id) ? ' layout-selected' : ''}`;
+    card.dataset.scopeId = scope.id;
+    card.dataset.observerKind = meta.kind;
+    card.style.left = `${Number(scope.x) || 0}px`;
+    card.style.top = `${Number(scope.y) || 0}px`;
+
+    const head = document.createElement('div'); head.className = 'graph-node-head';
+    const title = document.createElement('div'); title.className = 'graph-node-title';
+    const icon = document.createElement('span'); icon.textContent = meta.icon;
+    const strong = document.createElement('strong'); strong.textContent = scope.name || meta.title;
+    title.append(icon, strong); head.appendChild(title);
+    head.addEventListener('pointerdown', (event) => assemblyStartScopeDrag(event, scope));
+
+    const body = document.createElement('div'); body.className = 'graph-node-body';
+    const role = document.createElement('span'); role.className = 'assembly-node-role observer'; role.textContent = meta.role;
+    const hint = document.createElement('small');
+    if (meta.kind === 'display') {
+      const primary = overlay?.probes?.[0]?.primary;
+      hint.className = 'assembly-display-value';
+      hint.textContent = primary ? formatOverlayValue(primary.last, primary.unit) : '运行后显示末值';
+    } else if (meta.kind === 'workspace') {
+      const resolved = overlay?.resolved_probe_count || 0;
+      hint.textContent = resolved ? `${resolved} 路已解析 · 可导出` : '运行后导出 CSV / JSON';
+    } else {
+      hint.textContent = `${(scope.probes || []).length} 路信号 · 不参与物理求解`;
+    }
+    body.append(role, hint);
+
+    const ports = document.createElement('div'); ports.className = 'graph-node-ports';
+    const inputs = document.createElement('div'); inputs.className = 'graph-port-column inputs';
+    inputs.appendChild(assemblyScopeInputButton(scope));
+    const outputs = document.createElement('div'); outputs.className = 'graph-port-column outputs';
+    const noOutput = document.createElement('small'); noOutput.textContent = '无输出'; outputs.appendChild(noOutput);
+    ports.append(inputs, outputs);
+    card.append(head, body, ports);
+    card.addEventListener('click', (event) => {
+      if (event.target.closest('.graph-port-button')) return;
+      const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+      if (additive) assemblySelectItem('observer', scope.id, { additive: true, toggle: true });
+      else if (!assemblySelectionHas('observer', scope.id) || state.assemblySelection.length <= 1) assemblySelectItem('observer', scope.id);
+      else { assemblySyncPrimarySelection('observer', scope.id); assemblyRender(); }
+    });
+    return card;
+  }
+
+  function assemblyItemElement(kind, id) {
+    if (kind === 'observer') return document.querySelector(`.assembly-scope-node[data-scope-id="${CSS.escape(id)}"]`);
+    return document.querySelector(`.assembly-node[data-assembly-node-id="${CSS.escape(id)}"]`);
+  }
+
+  function assemblySnap(value, grid = 20) {
+    return Math.round((Number(value) || 0) / grid) * grid;
+  }
+
+  function assemblyStartItemDrag(event, kind, id) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    el('assemblyCanvas')?.focus({ preventScroll: true });
+    event.stopPropagation();
+    if (event.shiftKey || event.metaKey || event.ctrlKey) {
+      assemblySelectItem(kind, id, { additive: true, toggle: true });
+      return;
+    }
+    if (!assemblySelectionHas(kind, id)) assemblySelectItem(kind, id, { render: false });
+    else assemblySyncPrimarySelection(kind, id);
+    const selected = assemblySelectionItems();
+    if (!selected.length) return;
+    const canvas = el('assemblyCanvas');
+    const startX = event.clientX; const startY = event.clientY;
+    const origins = selected.map((entry) => {
+      const element = assemblyItemElement(entry.kind, entry.id);
+      return {
+        ...entry,
+        x: Number(entry.item.x) || 0,
+        y: Number(entry.item.y) || 0,
+        width: element?.offsetWidth || (entry.kind === 'observer' ? 205 : 228),
+        height: element?.offsetHeight || 150,
+      };
+    });
+    const maxCanvasX = canvas?.clientWidth || 1160;
+    const maxCanvasY = canvas?.clientHeight || 620;
+    const minDx = Math.max(...origins.map((item) => -item.x));
+    const maxDx = Math.min(...origins.map((item) => maxCanvasX - item.width - 8 - item.x));
+    const minDy = Math.max(...origins.map((item) => -item.y));
+    const maxDy = Math.min(...origins.map((item) => maxCanvasY - item.height - 8 - item.y));
+    let moved = false;
+    const move = (moveEvent) => {
+      let dx = moveEvent.clientX - startX; let dy = moveEvent.clientY - startY;
+      if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+      dx = Math.max(minDx, Math.min(maxDx, dx));
+      dy = Math.max(minDy, Math.min(maxDy, dy));
+      origins.forEach((origin) => {
+        origin.item.x = origin.x + dx;
+        origin.item.y = origin.y + dy;
+        const element = assemblyItemElement(origin.kind, origin.id);
+        if (element) { element.style.left = `${origin.item.x}px`; element.style.top = `${origin.item.y}px`; }
+      });
+      assemblyDrawEdges();
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      if (moved) origins.forEach((origin) => { origin.item.x = assemblySnap(origin.item.x); origin.item.y = assemblySnap(origin.item.y); });
+      assemblyRender();
+      if (moved) assemblySetStatus(`已整体移动 ${origins.length} 个对象并吸附到 20px 网格；仅修改工程布局，不影响 TaskSpec 或生成代码。`, 'success');
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  }
+
+  function assemblyStartScopeDrag(event, scope) {
+    assemblyStartItemDrag(event, 'observer', scope.id);
+  }
+
+  function assemblyCompleteScopeProbe(scopeId) {
+    const pending = state.assemblyPendingConnection;
+    const scope = assemblyScopeById(scopeId);
+    if (!scope) return;
+    const meta = assemblyObserverMeta(scope);
+    if (!pending) {
+      assemblySetStatus(`请先点击一个模块输出端口，再点击 ${meta.title} 的 signal 输入。`, 'warning');
+      return;
+    }
+    const sourceNode = assemblyNodeById(pending.sourceId);
+    const sourcePort = sourceNode ? assemblyPortsFor(sourceNode, 'output').find((item) => item.port_id === pending.sourcePort) : null;
+    if (!sourceNode || !sourcePort) {
+      state.assemblyPendingConnection = null;
+      assemblySetStatus(`${meta.title} 只能观察正式 simulation_ports 输出端口。`, 'error');
+      assemblyRender();
+      return;
+    }
+    scope.probes = Array.isArray(scope.probes) ? scope.probes : [];
+    const duplicate = scope.probes.find((item) => item.sourceNode === sourceNode.id && item.sourcePort === sourcePort.port_id);
+    if (duplicate) {
+      state.assemblyPendingConnection = null;
+      state.assemblySelection = [assemblySelectionKey('observer', scope.id)];
+      state.assemblySelectedScopeId = scope.id;
+      state.assemblySelectedScopeProbeId = duplicate.id;
+      assemblySetStatus(`该信号已经接入当前 ${meta.title}。`, 'warning');
+      assemblyRender();
+      return;
+    }
+    const probe = {
+      id: `probe-${Date.now().toString(36)}-${scope.probes.length + 1}`,
+      sourceNode: sourceNode.id,
+      sourcePort: sourcePort.port_id,
+    };
+    if (scope.probes.length >= meta.maxProbes) scope.probes = [probe];
+    else scope.probes.push(probe);
+    state.assemblyPendingConnection = null;
+    state.assemblySelection = [assemblySelectionKey('observer', scope.id)];
+    state.assemblySelectedScopeId = scope.id;
+    state.assemblySelectedScopeProbeId = probe.id;
+    state.assemblySelectedNodeId = null;
+    state.assemblySelectedEdgeId = null;
+    assemblyRender();
+    assemblySetStatus(`${meta.title} 已接入 ${sourceNode.moduleAlias}:${sourcePort.port_id}。这是只读观察连接，不改变物理 binding、TaskSpec 或生成代码。`, 'success');
+    const existingRunId = visualOverlayForMode('assembly')?.run_id;
+    if (existingRunId) loadVisualRunOverlay(existingRunId, { mode: 'assembly', assemblyGraph: clone(state.assemblyGraph), taskSpec: state.taskSpec ? clone(state.taskSpec) : null, snapshot: assemblySnapshot() }).catch(() => null);
+  }
+
+  function assemblyStartNodeDrag(event, node) {
+    assemblyStartItemDrag(event, 'node', node.id);
+  }
+
+  function assemblyBeginMarquee(event) {
+    if (event.button !== 0 || !state.assemblyGraph) return;
+    el('assemblyCanvas')?.focus({ preventScroll: true });
+    if (event.target.closest('.assembly-node, .graph-port-button, button, input, select')) return;
+    const canvas = el('assemblyCanvas'); const box = el('assemblySelectionBox');
+    if (!canvas || !box) return;
+    const rect = canvas.getBoundingClientRect();
+    const startX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    const startY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+    const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+    let moved = false;
+    box.classList.remove('hidden');
+    box.style.left = `${startX}px`; box.style.top = `${startY}px`; box.style.width = '0px'; box.style.height = '0px';
+    const move = (moveEvent) => {
+      const x = Math.max(0, Math.min(rect.width, moveEvent.clientX - rect.left));
+      const y = Math.max(0, Math.min(rect.height, moveEvent.clientY - rect.top));
+      const left = Math.min(startX, x); const top = Math.min(startY, y);
+      const width = Math.abs(x - startX); const height = Math.abs(y - startY);
+      moved = moved || width > 5 || height > 5;
+      box.style.left = `${left}px`; box.style.top = `${top}px`; box.style.width = `${width}px`; box.style.height = `${height}px`;
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      const br = box.getBoundingClientRect();
+      box.classList.add('hidden');
+      if (!moved) { if (!additive) assemblyClearSelection(); return; }
+      const selected = additive ? [...state.assemblySelection] : [];
+      document.querySelectorAll('#assemblyNodes > .assembly-node').forEach((card) => {
+        const cr = card.getBoundingClientRect();
+        const intersects = !(cr.right < br.left || cr.left > br.right || cr.bottom < br.top || cr.top > br.bottom);
+        if (!intersects) return;
+        const kind = card.dataset.scopeId ? 'observer' : 'node';
+        const id = card.dataset.scopeId || card.dataset.assemblyNodeId;
+        const key = assemblySelectionKey(kind, id);
+        if (id && !selected.includes(key)) selected.push(key);
+      });
+      state.assemblySelection = selected;
+      const last = assemblySelectionItems().slice(-1)[0] || null;
+      assemblySyncPrimarySelection(last?.kind || null, last?.id || null);
+      state.assemblySuppressCanvasClick = true;
+      assemblyRender();
+      assemblySetStatus(selected.length ? `框选 ${selected.length} 个对象；可整体拖动或使用布局工具。` : '框选范围内没有对象。');
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  }
+
+  function assemblyClampLayoutItem(entry) {
+    const canvas = el('assemblyCanvas'); const element = assemblyItemElement(entry.kind, entry.id);
+    const width = element?.offsetWidth || (entry.kind === 'observer' ? 205 : 228);
+    const height = element?.offsetHeight || 150;
+    const maxX = Math.max(0, (canvas?.clientWidth || 1160) - width - 8);
+    const maxY = Math.max(0, (canvas?.clientHeight || 620) - height - 8);
+    entry.item.x = assemblySnap(Math.max(0, Math.min(maxX, Number(entry.item.x) || 0)));
+    entry.item.y = assemblySnap(Math.max(0, Math.min(maxY, Number(entry.item.y) || 0)));
+  }
+
+  function assemblyAlignSelection(axis) {
+    const items = assemblySelectionItems();
+    if (items.length < 2) { assemblySetStatus('至少选择 2 个对象才能对齐。', 'warning'); return; }
+    if (axis === 'left') { const value = Math.min(...items.map((entry) => Number(entry.item.x) || 0)); items.forEach((entry) => { entry.item.x = value; assemblyClampLayoutItem(entry); }); }
+    else if (axis === 'top') { const value = Math.min(...items.map((entry) => Number(entry.item.y) || 0)); items.forEach((entry) => { entry.item.y = value; assemblyClampLayoutItem(entry); }); }
+    else if (axis === 'center-y') { const value = items.reduce((sum, entry) => sum + (Number(entry.item.y) || 0), 0) / items.length; items.forEach((entry) => { entry.item.y = value; assemblyClampLayoutItem(entry); }); }
+    assemblyRender();
+    assemblySetStatus(`已${axis === 'left' ? '左对齐' : axis === 'top' ? '顶对齐' : '水平中线对齐'} ${items.length} 个对象；只修改布局。`, 'success');
+  }
+
+  function assemblyDistributeSelection(axis) {
+    const items = assemblySelectionItems();
+    if (items.length < 3) { assemblySetStatus('至少选择 3 个对象才能等间距排列。', 'warning'); return; }
+    const key = axis === 'x' ? 'x' : 'y';
+    items.sort((a, b) => (Number(a.item[key]) || 0) - (Number(b.item[key]) || 0));
+    const first = Number(items[0].item[key]) || 0; const last = Number(items[items.length - 1].item[key]) || 0;
+    const step = (last - first) / (items.length - 1);
+    items.forEach((entry, index) => { entry.item[key] = first + step * index; assemblyClampLayoutItem(entry); });
+    assemblyRender();
+    assemblySetStatus(`已按${axis === 'x' ? '水平方向' : '垂直方向'}等间距排列 ${items.length} 个对象；只修改布局。`, 'success');
+  }
+
+  function assemblyStronglyConnectedLevels() {
+    const nodes = state.assemblyGraph?.nodes || []; const edges = state.assemblyGraph?.edges || [];
+    const ids = nodes.map((node) => node.id); const adjacency = new Map(ids.map((id) => [id, []]));
+    edges.forEach((edge) => { if (adjacency.has(edge.source) && adjacency.has(edge.target)) adjacency.get(edge.source).push(edge.target); });
+    let index = 0; const stack = []; const onStack = new Set(); const indexes = new Map(); const low = new Map(); const components = [];
+    const visit = (id) => {
+      indexes.set(id, index); low.set(id, index); index += 1; stack.push(id); onStack.add(id);
+      (adjacency.get(id) || []).forEach((next) => {
+        if (!indexes.has(next)) { visit(next); low.set(id, Math.min(low.get(id), low.get(next))); }
+        else if (onStack.has(next)) low.set(id, Math.min(low.get(id), indexes.get(next)));
+      });
+      if (low.get(id) === indexes.get(id)) {
+        const component = []; let current; do { current = stack.pop(); onStack.delete(current); component.push(current); } while (current !== id); components.push(component);
+      }
+    };
+    ids.forEach((id) => { if (!indexes.has(id)) visit(id); });
+    const componentByNode = new Map(); components.forEach((component, ci) => component.forEach((id) => componentByNode.set(id, ci)));
+    const dag = new Map(components.map((_, ci) => [ci, new Set()])); const indegree = new Map(components.map((_, ci) => [ci, 0]));
+    edges.forEach((edge) => {
+      const a = componentByNode.get(edge.source); const b = componentByNode.get(edge.target);
+      if (a === undefined || b === undefined || a === b || dag.get(a).has(b)) return;
+      dag.get(a).add(b); indegree.set(b, indegree.get(b) + 1);
+    });
+    const queue = [...indegree.entries()].filter(([, degree]) => degree === 0).map(([ci]) => ci); const levels = new Map(queue.map((ci) => [ci, 0]));
+    while (queue.length) {
+      const ci = queue.shift();
+      dag.get(ci).forEach((next) => { levels.set(next, Math.max(levels.get(next) || 0, (levels.get(ci) || 0) + 1)); indegree.set(next, indegree.get(next) - 1); if (indegree.get(next) === 0) queue.push(next); });
+    }
+    return { components, levels };
+  }
+
+  function assemblyAutoLayout() {
+    if (!state.assemblyGraph?.nodes?.length) { assemblySetStatus('当前没有可布局的装配模块。', 'warning'); return; }
+    const { components, levels } = assemblyStronglyConnectedLevels();
+    const byLevel = new Map(); components.forEach((component, ci) => { const level = levels.get(ci) || 0; if (!byLevel.has(level)) byLevel.set(level, []); byLevel.get(level).push(component); });
+    [...byLevel.entries()].sort((a, b) => a[0] - b[0]).forEach(([level, groups]) => {
+      let row = 0;
+      groups.sort((a, b) => Math.min(...a.map((id) => Number(assemblyNodeById(id)?.y) || 0)) - Math.min(...b.map((id) => Number(assemblyNodeById(id)?.y) || 0)));
+      groups.forEach((group) => {
+        group.sort((a, b) => (Number(assemblyNodeById(a)?.y) || 0) - (Number(assemblyNodeById(b)?.y) || 0)).forEach((id) => {
+          const node = assemblyNodeById(id); if (!node) return; node.x = 30 + level * 270; node.y = 45 + row * 175; row += 1;
+        });
+      });
+    });
+    const maxLevel = Math.max(0, ...[...levels.values()]);
+    assemblyScopes().forEach((scope, index) => { scope.x = Math.min(930, 40 + (maxLevel + 1) * 270); scope.y = 45 + index * 155; });
+    [...state.assemblyGraph.nodes.map((node) => ({ kind: 'node', id: node.id, item: node })), ...assemblyScopes().map((scope) => ({ kind: 'observer', id: scope.id, item: scope }))].forEach(assemblyClampLayoutItem);
+    assemblyRender();
+    assemblySetStatus('已按注册信号拓扑自动布局；反馈环作为同一拓扑组排列，观察器放在右侧。仅修改工程坐标。', 'success');
+  }
+
+  function assemblyCopySelectedObservers() {
+    const observers = assemblySelectionItems().filter((entry) => entry.kind === 'observer').map((entry) => clone(entry.item));
+    if (!observers.length) { assemblySetStatus('物理模块由注册合同唯一约束，不能复制；请选择 Scope / Display / To Workspace 后再复制。', 'warning'); return false; }
+    state.assemblyClipboard = observers;
+    assemblySetStatus(`已复制 ${observers.length} 个观察器；物理模块不会进入剪贴板。`, 'success');
+    return true;
+  }
+
+  function assemblyPasteObservers() {
+    if (!state.assemblyGraph || !state.assemblyClipboard.length) { assemblySetStatus('观察器剪贴板为空。', 'warning'); return; }
+    const added = [];
+    state.assemblyClipboard.forEach((source, index) => {
+      const meta = assemblyObserverMeta(source); const id = `${meta.kind}-${Date.now().toString(36)}-${index + 1}`;
+      const observer = { ...clone(source), id, name: `${source.name || meta.title} 副本`, x: assemblySnap((Number(source.x) || 0) + 40), y: assemblySnap((Number(source.y) || 0) + 40), probes: clone(source.probes || []) };
+      assemblyScopes().push(observer); added.push(observer);
+    });
+    state.assemblySelection = added.map((item) => assemblySelectionKey('observer', item.id));
+    const last = added.slice(-1)[0]; assemblySyncPrimarySelection(last ? 'observer' : null, last?.id || null);
+    state.assemblyClipboard = added.map((item) => clone(item));
+    assemblyRender();
+    assemblySetStatus(`已粘贴 ${added.length} 个观察器并保留其探针连接；不改变物理装配。`, 'success');
+  }
+
+  function assemblyDuplicateSelectedObservers() {
+    if (assemblyCopySelectedObservers()) assemblyPasteObservers();
+  }
+
+  function assemblyBeginConnection(sourceId, port) {
+    const candidates = assemblyBindingsForPort(port.port_id, 'output');
+    const available = candidates.filter((binding) => !assemblyEdgeForBinding(binding.binding_id));
+    state.assemblyPendingConnection = { sourceId, sourcePort: port.port_id };
+    const targets = available.map((binding) => `${binding.target_alias}:${binding.target_port}`);
+    const targetText = targets.length ? `可连接注册目标：${targets.join('、')}；也可接 Scope / Display / To Workspace。` : '物理 binding 已全部建立；仍可接入显式只读观察器。';
+    assemblySetStatus(`正在从 ${port.port_id} 接线。${targetText}`);
+    assemblyRender();
+  }
+
+  function assemblyCompleteConnection(targetId, port) {
+    const pending = state.assemblyPendingConnection;
+    if (!pending) {
+      assemblySetStatus('请先点击一个还有可用 fan-out 的输出端口。', 'warning');
+      return;
+    }
+    const sourceNode = assemblyNodeById(pending.sourceId);
+    const targetNode = assemblyNodeById(targetId);
+    const binding = (state.assemblyContract?.bindings || []).find((item) => (
+      item.wireable
+      && item.source_port === pending.sourcePort
+      && item.target_port === port.port_id
+      && !assemblyEdgeForBinding(item.binding_id)
+    ));
+    if (!binding || !sourceNode || !targetNode || sourceNode.moduleAlias !== binding.source_alias || targetNode.moduleAlias !== binding.target_alias) {
+      assemblySetStatus('该输入端口与当前输出端口之间没有注册 binding；不允许绕过 simulation_ports contract。', 'error');
+      return;
+    }
+    state.assemblyGraph.edges.push({
+      id: `edge-${binding.binding_id}`,
+      bindingId: binding.binding_id,
+      source: sourceNode.id,
+      sourcePort: binding.source_port,
+      target: targetNode.id,
+      targetPort: binding.target_port,
+      dataType: binding.data_type,
+    });
+    state.assemblyPendingConnection = null;
+    state.assemblySelectedEdgeId = `edge-${binding.binding_id}`;
+    state.assemblySelectedNodeId = null;
+    state.assemblySelectedScopeId = null;
+    state.assemblySelectedScopeProbeId = null;
+    assemblyInvalidateCompiledState();
+    assemblySetStatus(`已恢复注册 coupling：${binding.source_path} → ${binding.target_path}`, 'success');
+    assemblyRender();
+  }
+
+  function assemblyRemoveEdge(edgeId) {
+    if (!state.assemblyGraph) return;
+    const edge = state.assemblyGraph.edges.find((item) => item.id === edgeId);
+    state.assemblyGraph.edges = state.assemblyGraph.edges.filter((item) => item.id !== edgeId);
+    state.assemblySelectedEdgeId = null;
+    state.assemblyPendingConnection = null;
+    assemblyInvalidateCompiledState();
+    const binding = edge ? assemblyBindingById(edge.bindingId) : null;
+    assemblySetStatus(binding ? `已断开 ${binding.source_path} → ${binding.target_path}；后端校验会阻止缺失 required binding 的装配运行。` : '已断开信号。', 'warning');
+    assemblyRender();
+  }
+
+  function assemblyRestoreBindings() {
+    if (!state.assemblyContract || !state.assemblyGraph) return;
+    state.assemblyGraph.edges = clone(state.assemblyContract.default_graph.edges || []);
+    state.assemblyPendingConnection = null;
+    state.assemblySelectedEdgeId = null;
+    assemblyInvalidateCompiledState();
+    assemblySetStatus('已恢复当前 simulation_ports contract 声明的全部注册连线。', 'success');
+    assemblyRender();
+  }
+
+  function assemblyPortElement(nodeId, portId) {
+    return $all('.graph-port-button', el('assemblyNodes')).find((item) => item.dataset.assemblyNode === nodeId && item.dataset.assemblyPort === portId) || null;
+  }
+
+  function assemblyScopeInputElement(scopeId) {
+    return $all('.assembly-scope-input', el('assemblyNodes')).find((item) => item.dataset.scopeId === scopeId) || null;
+  }
+
+  function assemblyFeedbackPairs() {
+    const edges = state.assemblyGraph?.edges || [];
+    const pairs = new Set();
+    edges.forEach((edge) => {
+      if (edges.some((other) => other.source === edge.target && other.target === edge.source)) pairs.add(`${edge.source}->${edge.target}`);
+    });
+    return pairs;
+  }
+
+  function assemblyDrawEdges() {
+    const svg = el('assemblyEdges'); const canvas = el('assemblyCanvas');
+    if (!svg || !canvas || !state.assemblyGraph) return;
+    svg.replaceChildren();
+    svg.setAttribute('viewBox', `0 0 ${canvas.clientWidth || 1160} ${canvas.clientHeight || 620}`);
+    const rect = canvas.getBoundingClientRect();
+    const feedbackPairs = assemblyFeedbackPairs();
+    (state.assemblyGraph.edges || []).forEach((edge) => {
+      const source = assemblyPortElement(edge.source, edge.sourcePort);
+      const target = assemblyPortElement(edge.target, edge.targetPort);
+      if (!source || !target) return;
+      const sr = source.getBoundingClientRect(); const tr = target.getBoundingClientRect();
+      const sx = sr.right - rect.left; const sy = sr.top + sr.height / 2 - rect.top;
+      const tx = tr.left - rect.left; const ty = tr.top + tr.height / 2 - rect.top;
+      const bend = Math.max(55, Math.min(180, Math.abs(tx - sx) * 0.45));
+      const d = `M ${sx} ${sy} C ${sx + bend} ${sy}, ${tx - bend} ${ty}, ${tx} ${ty}`;
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      hit.setAttribute('d', d); hit.setAttribute('class', 'graph-edge-hit'); hit.setAttribute('tabindex', '0');
+      hit.addEventListener('click', () => { state.assemblySelection = []; state.assemblySelectedEdgeId = edge.id; state.assemblySelectedNodeId = null; state.assemblySelectedScopeId = null; state.assemblySelectedScopeProbeId = null; state.assemblyPendingConnection = null; assemblyRender(); });
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const binding = assemblyBindingById(edge.bindingId);
+      const solverPolicy = binding?.solver?.policy || 'parent_owned';
+      const feedback = feedbackPairs.has(`${edge.source}->${edge.target}`) || ['parent_managed_feedback', 'parent_managed_stateful_feedback', 'delayed_feedback'].includes(solverPolicy);
+      path.setAttribute('d', d);
+      const diagnostic = visualEdgeDiagnostic('assembly', edge.id);
+      path.setAttribute('class', `assembly-edge${state.assemblySelectedEdgeId === edge.id ? ' selected' : ''}${feedback ? ' assembly-edge-feedback' : ''}${diagnostic ? ' diagnostic-error' : ''}`);
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', String((sx + tx) / 2)); label.setAttribute('y', String((sy + ty) / 2 - 5));
+      label.setAttribute('class', `graph-edge-label${state.assemblySelectedEdgeId === edge.id ? ' selected' : ''}`);
+      label.textContent = `${feedback ? '↻ ' : ''}${binding?.data_type || edge.dataType || 'signal'}`;
+      svg.append(path, hit, label);
+    });
+    assemblyScopes().forEach((scope) => {
+      const target = assemblyScopeInputElement(scope.id);
+      if (!target) return;
+      const tr = target.getBoundingClientRect();
+      const tx = tr.left - rect.left; const tyBase = tr.top + tr.height / 2 - rect.top;
+      (scope.probes || []).forEach((probe, index) => {
+        const source = assemblyPortElement(probe.sourceNode, probe.sourcePort);
+        if (!source) return;
+        const sr = source.getBoundingClientRect();
+        const sx = sr.right - rect.left; const sy = sr.top + sr.height / 2 - rect.top;
+        const ty = tyBase + (index - ((scope.probes || []).length - 1) / 2) * 7;
+        const bend = Math.max(55, Math.min(180, Math.abs(tx - sx) * 0.45));
+        const d = `M ${sx} ${sy} C ${sx + bend} ${sy}, ${tx - bend} ${ty}, ${tx} ${ty}`;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d); path.setAttribute('class', 'assembly-scope-probe');
+        const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        hit.setAttribute('d', d); hit.setAttribute('class', 'graph-edge-hit'); hit.setAttribute('tabindex', '0');
+        hit.addEventListener('click', () => {
+          state.assemblySelection = [assemblySelectionKey('observer', scope.id)];
+          state.assemblySelectedScopeId = scope.id;
+          state.assemblySelectedScopeProbeId = probe.id;
+          state.assemblySelectedNodeId = null;
+          state.assemblySelectedEdgeId = null;
+          assemblyRender();
+        });
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', String((sx + tx) / 2)); label.setAttribute('y', String((sy + ty) / 2 - 5));
+        label.setAttribute('class', 'assembly-scope-probe-label'); label.textContent = assemblyObserverMeta(scope).title;
+        svg.append(path, hit, label);
+      });
+    });
+  }
+
+  function assemblyRenderRuntimeParameters(container) {
+    if (!container || !state.formData) return;
+    const simulation = state.formData.simulation || (state.formData.simulation = {});
+    const section = document.createElement('section'); section.className = 'graph-inspector-section assembly-runtime-parameters';
+    const title = document.createElement('h4'); title.textContent = '运行参数';
+    const hint = document.createElement('p'); hint.textContent = '像属性面板一样直接修改常用仿真参数；修改后重新“构建并运行”即可。';
+    const grid = document.createElement('div'); grid.className = 'assembly-runtime-grid';
+    [
+      ['duration_s', '仿真时长 (s)', 0.001],
+      ['step_s', '积分步长 (s)', 0.000001],
+      ['sample_s', '输出采样 (s)', 0.000001],
+    ].forEach(([key, labelText, min]) => {
+      const label = document.createElement('label');
+      const text = document.createElement('span'); text.textContent = labelText;
+      const input = document.createElement('input'); input.type = 'number'; input.step = 'any'; input.min = String(min); input.value = simulation[key] ?? '';
+      input.addEventListener('change', () => {
+        const value = Number(input.value);
+        if (!Number.isFinite(value) || value <= 0) { input.value = simulation[key] ?? ''; assemblySetStatus(`${labelText} 必须为正数。`, 'error'); return; }
+        simulation[key] = value;
+        assemblyInvalidateCompiledState();
+        assemblySetStatus(`已更新 ${labelText}=${value}；点击“构建并运行”会重新编译。`, 'success');
+        assemblyRenderInspector();
+      });
+      label.append(text, input); grid.appendChild(label);
+    });
+    section.append(title, hint, grid); container.appendChild(section);
+  }
+
+  function assemblyObserverResolvedSignals(scope) {
+    const overlay = assemblyScopeOverlay(scope.id);
+    const fields = [];
+    (overlay?.probes || []).forEach((probe) => (probe.signals || []).forEach((signal) => {
+      if (signal?.field && !fields.some((item) => item.field === signal.field)) fields.push(signal);
+    }));
+    return fields;
+  }
+
+  async function assemblyExportWorkspace(scope, format = 'csv') {
+    const overlay = visualOverlayForMode('assembly');
+    if (!overlay?.run_id) throw new Error('当前没有可导出的 Run；请先构建并运行模型。');
+    if (assemblyObserverKind(scope) !== 'workspace') throw new Error('只有 To Workspace 观察器可以导出数据。');
+    if (!assemblyObserverResolvedSignals(scope).length) throw new Error('当前 To Workspace 没有已解析的运行信号；请先运行模型并确认端口已记录 telemetry。');
+    const fallback = `${String(scope.name || 'workspace').replace(/[^A-Za-z0-9_.-]+/g, '_') || 'workspace'}_${overlay.run_id}.${format}`;
+    const result = await postDownloadEndpoint('/visual-composer/export-observer-data', {
+      run_id: overlay.run_id,
+      assembly_graph: clone(state.assemblyGraph),
+      observer_id: scope.id,
+      format,
+    }, fallback);
+    assemblySetStatus(`已导出 ${result.filename}；数据来自 Run Bundle 已记录 telemetry，未改变物理模型或 recorder。`, 'success');
+  }
+
+  function assemblyRenderScopeInspector(container, scope) {
+    const meta = assemblyObserverMeta(scope);
+    const section = document.createElement('section'); section.className = `graph-inspector-section assembly-scope-inspector assembly-observer-inspector ${meta.kind}`;
+    const title = document.createElement('h4'); title.textContent = meta.kind === 'scope' ? 'Scope 示波器' : meta.kind === 'display' ? 'Display 数值显示' : 'To Workspace 数据导出';
+    const descriptions = {
+      scope: 'Scope 是只读波形观察器：只读取 Run telemetry，不参与物理求解，不占用 simulation_ports 的 fan-out。',
+      display: 'Display 是只读数值观察器：只显示所接信号在最近一次 Run 的末值；普通物理模块仍不承担结果展示。',
+      workspace: 'To Workspace 是只读数据导出观察器：从 Run Bundle 已记录 telemetry 中导出所接信号，不改变 recorder、TaskSpec 或求解器。',
+    };
+    const note = document.createElement('p'); note.textContent = descriptions[meta.kind];
+    const nameLabel = document.createElement('label'); nameLabel.className = 'assembly-scope-name';
+    const nameText = document.createElement('span'); nameText.textContent = '名称';
+    const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = scope.name || meta.title; nameInput.maxLength = 80;
+    nameInput.addEventListener('change', () => { scope.name = nameInput.value.trim() || meta.title; assemblyRender(); });
+    nameLabel.append(nameText, nameInput);
+    section.append(title, note, nameLabel);
+
+    const probes = document.createElement('div'); probes.className = 'assembly-scope-probes';
+    const overlay = assemblyScopeOverlay(scope.id);
+    (scope.probes || []).forEach((probe, index) => {
+      const sourceNode = assemblyNodeById(probe.sourceNode);
+      const sourcePort = sourceNode ? assemblyPortsFor(sourceNode, 'output').find((item) => item.port_id === probe.sourcePort) : null;
+      const probeOverlay = (overlay?.probes || []).find((item) => item.probe_id === probe.id) || null;
+      const card = document.createElement('div'); card.className = `assembly-scope-probe-card${state.assemblySelectedScopeProbeId === probe.id ? ' selected' : ''}`;
+      const heading = document.createElement('div'); heading.className = 'assembly-scope-probe-heading';
+      const label = document.createElement('strong'); label.textContent = `${index + 1}. ${sourceNode?.moduleAlias || probe.sourceNode}`;
+      const port = document.createElement('code'); port.textContent = sourcePort?.port_id || probe.sourcePort;
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'button button-ghost'; remove.textContent = '移除'; remove.addEventListener('click', () => assemblyRemoveScopeProbe(scope.id, probe.id));
+      heading.append(label, remove); card.append(heading, port);
+      const signals = probeOverlay?.signals || [];
+      if (signals.length) {
+        if (meta.kind === 'scope') {
+          const key = `scope:${scope.id}:${probe.id}`;
+          const selectedField = state.visualNodeSeriesField[key] && signals.some((item) => item.field === state.visualNodeSeriesField[key]) ? state.visualNodeSeriesField[key] : signals[0].field;
+          state.visualNodeSeriesField[key] = selectedField;
+          const chips = document.createElement('div'); chips.className = 'visual-series-selector';
+          signals.forEach((item) => {
+            const button = document.createElement('button'); button.type = 'button'; button.className = `visual-series-chip${item.field === selectedField ? ' active' : ''}`; button.textContent = item.field.split('.').slice(-2).join('.');
+            button.addEventListener('click', () => { state.visualNodeSeriesField[key] = item.field; state.assemblySelectedScopeProbeId = probe.id; assemblyRenderInspector(); }); chips.appendChild(button);
+          });
+          card.appendChild(chips);
+          const selected = signals.find((item) => item.field === selectedField) || signals[0];
+          const summary = document.createElement('div'); summary.className = 'visual-series-summary'; summary.textContent = `${selected.field} · last ${formatOverlayValue(selected.last, selected.unit)} · min ${formatOverlayValue(selected.min, selected.unit)} · max ${formatOverlayValue(selected.max, selected.unit)} · samples ${selected.count}`; card.appendChild(summary);
+          const canvas = document.createElement('canvas'); canvas.className = 'visual-mini-chart assembly-scope-chart'; canvas.setAttribute('aria-label', `${selected.field} Scope 时间序列`); card.appendChild(canvas); requestAnimationFrame(() => drawVisualMiniSeries(canvas, selected.field));
+          const open = document.createElement('button'); open.type = 'button'; open.className = 'button button-ghost'; open.textContent = '在结果界面打开'; open.addEventListener('click', async () => { state.selectedSeries = [selected.field]; await openVisualRunResults('assembly'); renderChartControls(); drawChart(); }); card.appendChild(open);
+        } else if (meta.kind === 'display') {
+          const values = document.createElement('div'); values.className = 'assembly-display-values';
+          signals.forEach((item) => {
+            const row = document.createElement('div'); row.className = 'assembly-display-row';
+            const field = document.createElement('code'); field.textContent = item.field;
+            const value = document.createElement('strong'); value.textContent = formatOverlayValue(item.last, item.unit);
+            row.append(field, value); values.appendChild(row);
+          });
+          card.appendChild(values);
+        } else {
+          const summary = document.createElement('div'); summary.className = 'visual-series-summary';
+          summary.textContent = `${signals.map((item) => item.field).join(' · ')} · ${(signals[0]?.count || 0)} samples 可导出`;
+          card.appendChild(summary);
+        }
+      } else {
+        const empty = document.createElement('small'); empty.className = 'assembly-scope-unresolved';
+        if (probeOverlay?.unresolved_reason === 'scope_endpoint_mismatch') empty.textContent = `${meta.title} 工程端点不一致：sourceNode 与 sourcePort 不属于同一注册模块。请移除此 probe 后重新连接。`;
+        else empty.textContent = overlay ? '本次 Run telemetry 中没有解析到该端口对应的数值序列。' : `运行后在此解析信号；${meta.title} 不会改变仿真输出。`;
+        card.appendChild(empty);
+      }
+      card.addEventListener('click', (event) => { if (event.target.closest('button')) return; state.assemblySelectedScopeProbeId = probe.id; });
+      probes.appendChild(card);
+    });
+    if (!(scope.probes || []).length) {
+      const empty = document.createElement('div'); empty.className = 'graph-inspector-empty'; empty.textContent = `尚未接入信号。点击模块输出端口，再点击 ${meta.title} 的 signal 输入。`; probes.appendChild(empty);
+    }
+    section.appendChild(probes);
+    const actions = document.createElement('div'); actions.className = 'graph-inspector-actions';
+    const results = document.createElement('button'); results.type = 'button'; results.className = 'button button-secondary'; results.textContent = '打开运行结果'; results.disabled = !visualOverlayForMode('assembly')?.run_id; results.addEventListener('click', () => openVisualRunResults('assembly'));
+    actions.appendChild(results);
+    if (meta.kind === 'workspace') {
+      const csv = document.createElement('button'); csv.type = 'button'; csv.className = 'button button-secondary'; csv.textContent = '导出 CSV'; csv.disabled = !assemblyObserverResolvedSignals(scope).length; csv.addEventListener('click', async () => { try { await assemblyExportWorkspace(scope, 'csv'); } catch (error) { assemblySetStatus(error.message, 'error'); } });
+      const json = document.createElement('button'); json.type = 'button'; json.className = 'button button-ghost'; json.textContent = '导出 JSON'; json.disabled = !assemblyObserverResolvedSignals(scope).length; json.addEventListener('click', async () => { try { await assemblyExportWorkspace(scope, 'json'); } catch (error) { assemblySetStatus(error.message, 'error'); } });
+      actions.append(csv, json);
+    }
+    const removeScope = document.createElement('button'); removeScope.type = 'button'; removeScope.className = 'button button-danger'; removeScope.textContent = `删除 ${meta.title}`; removeScope.addEventListener('click', () => assemblyRemoveScope(scope.id));
+    actions.appendChild(removeScope); section.appendChild(actions);
+    container.appendChild(section);
+  }
+
+  function assemblyRenderInspector() {
+    const container = el('assemblyInspector'); const badge = el('assemblyInspectorBadge');
+    if (!container || !badge) return;
+    container.replaceChildren();
+    if (!state.assemblyContract || !state.assemblyGraph) {
+      badge.textContent = '未加载';
+      const empty = document.createElement('div'); empty.className = 'graph-inspector-empty'; empty.textContent = '请选择一个注册装配。'; container.appendChild(empty); return;
+    }
+    assemblyRenderRuntimeParameters(container);
+    if (state.assemblySelection.length > 1) {
+      const section = document.createElement('section'); section.className = 'graph-inspector-section assembly-multiselect-summary';
+      const title = document.createElement('h4'); title.textContent = assemblySelectionLabel();
+      const note = document.createElement('p'); note.textContent = '多选仅用于布局与观察器复制，不改变注册物理模块数量。拖动任一已选对象可整体移动。';
+      section.append(title, note); container.appendChild(section);
+    }
+    const edge = state.assemblyGraph.edges.find((item) => item.id === state.assemblySelectedEdgeId);
+    const node = assemblyNodeById(state.assemblySelectedNodeId);
+    const scope = assemblyScopeById(state.assemblySelectedScopeId);
+    if (scope) {
+      badge.textContent = assemblyObserverMeta(scope).title;
+      assemblyRenderScopeInspector(container, scope);
+    } else if (edge) {
+      const binding = assemblyBindingById(edge.bindingId) || {};
+      badge.textContent = 'Signal binding';
+      const section = document.createElement('section'); section.className = 'graph-inspector-section';
+      const title = document.createElement('h4'); title.textContent = `${binding.source_alias || '?'} → ${binding.target_alias || '?'}`;
+      const card = document.createElement('div'); card.className = 'assembly-binding-card';
+      const source = document.createElement('code'); source.textContent = `${binding.source_port || edge.sourcePort} · ${binding.source_path || ''}`;
+      const arrow = document.createElement('span'); arrow.textContent = '↓ registered transform / coupling';
+      const target = document.createElement('code'); target.textContent = `${binding.target_port || edge.targetPort} · ${binding.target_path || ''}`;
+      const type = document.createElement('strong'); type.textContent = binding.data_type || edge.dataType || 'signal';
+      const transform = document.createElement('span'); transform.textContent = `transform: ${binding.transform?.policy || binding.policy || 'registered_mapping'}`;
+      const solver = document.createElement('span'); solver.textContent = `solver: ${binding.solver?.policy || 'parent_owned'} · delay=${binding.solver?.delay_steps || 0}`;
+      const timing = document.createElement('span'); timing.textContent = `timing: ${binding.source_timing?.rate_policy || 'parent_owned'} → ${binding.target_timing?.rate_policy || 'parent_owned'}`;
+      const ownership = document.createElement('span'); ownership.textContent = `state: ${binding.source_state_owner || binding.source_alias || '?'} → ${binding.target_state_owner || binding.target_alias || '?'} · direct-feedthrough=${Boolean(binding.source_direct_feedthrough)}`;
+      const desc = document.createElement('p'); desc.textContent = binding.description || '该耦合来自父 Capability contract。';
+      card.append(source, arrow, target, type, transform, solver, timing, ownership, desc);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'button button-danger'; remove.textContent = '断开此注册连线'; remove.addEventListener('click', () => assemblyRemoveEdge(edge.id));
+      section.append(title, card, remove); container.appendChild(section);
+    } else if (node) {
+      const module = assemblyModuleByAlias(node.moduleAlias) || {};
+      badge.textContent = module.role || 'module';
+      const section = document.createElement('section'); section.className = 'graph-inspector-section';
+      const title = document.createElement('h4'); title.textContent = module.name || node.moduleAlias;
+      const meta = document.createElement('div'); meta.className = 'graph-inspector-meta';
+      const baselineCapability = assemblyBaselineCapability(module);
+      const selectedCapability = node.capabilityId ?? module.capability_id ?? null;
+      const rows = [
+        ['alias', node.moduleAlias], ['role', module.role || 'internal'], ['当前 Capability', selectedCapability || '父适配器内部模块'],
+        ['基线 Capability', baselineCapability || '父适配器内部模块'],
+        ['输入端口', String(assemblyPortsFor(node, 'input').length)], ['输出端口', String(assemblyPortsFor(node, 'output').length)],
+        ['槽位类型', module.replacement_slot_kind || (module.role === 'dependency' ? 'dependency' : 'parent-owned')],
+        ['替换策略', module.replaceable ? 'module library + interface contract' : '禁止任意替换'],
+      ];
+      rows.forEach(([key, value]) => { const row = document.createElement('div'); const k = document.createElement('span'); k.textContent = key; const v = document.createElement('strong'); v.textContent = value; row.append(k, v); meta.appendChild(row); });
+      section.append(title, meta);
+      if (module.replaceable) {
+        const replacement = document.createElement('div'); replacement.className = 'assembly-replacement-card';
+        const label = document.createElement('label'); label.textContent = '兼容替代模块';
+        const select = document.createElement('select'); select.className = 'assembly-replacement-select'; select.setAttribute('aria-label', `${node.moduleAlias} 替代模块`);
+        const baselineOption = document.createElement('option'); baselineOption.value = '__baseline__'; baselineOption.textContent = baselineCapability ? `${baselineCapability} · baseline` : '父适配器内部实现 · baseline'; select.appendChild(baselineOption);
+        (module.replacement_options || []).filter((item) => item.compatible).forEach((item) => {
+          if (item.capability_id === baselineCapability) return;
+          const option = document.createElement('option'); option.value = item.capability_id; option.textContent = `${item.name || item.capability_id}${item.is_baseline ? ' · baseline' : ' · compatible'}`; select.appendChild(option);
+        });
+        select.value = selectedCapability === baselineCapability ? '__baseline__' : (selectedCapability || '__baseline__');
+        select.addEventListener('change', () => { try { assemblyReplaceModule(node.id, select.value === '__baseline__' ? null : select.value); } catch (error) { assemblySetStatus(error.message, 'error'); assemblyRender(); } });
+        const hint = document.createElement('small'); hint.textContent = `interface ${module.replacement_interface_id || '未声明'} · 注册候选 ${(module.replacement_options || []).filter((item) => item.compatible).length} · 可从上方模块库拖入`;
+        replacement.append(label, select, hint); section.appendChild(replacement);
+      }
+      const note = document.createElement('p'); note.textContent = module.role === 'parent'
+        ? '该节点拥有实际 runtime；装配图最终由此注册 Capability adapter 执行。'
+        : module.role === 'dependency'
+          ? (module.replaceable ? '该依赖开放 受约束替换。选择会进入 TaskSpec runtime selector，并由父 adapter 实际采用；不兼容候选不会出现在选择器中。' : '这是父合同声明的依赖 Capability，但没有开放替换槽位。')
+          : (module.replaceable ? '这是 parent-managed internal slot：基线仍由父 adapter 内部实现；拖入兼容注册模块后，父调度器会真实调用该模块的 source-native step API。' : '这是父 adapter 内部架构模块，未开放替换槽位。');
+      section.appendChild(note); container.appendChild(section);
+    } else {
+      badge.textContent = '装配';
+      const section = document.createElement('section'); section.className = 'graph-inspector-section';
+      const title = document.createElement('h4'); title.textContent = state.assemblyContract.name || state.assemblyContract.parent_capability_id;
+      const stats = document.createElement('div'); stats.className = 'graph-stat-grid';
+      const portContract = state.assemblyContract.simulation_ports || {};
+      const replacementContract = state.assemblyContract.module_replacements || {};
+      const baselineByAlias = Object.fromEntries((state.assemblyContract.modules || []).map((item) => [item.alias, assemblyBaselineCapability(item)]));
+      const replacementCount = (state.assemblyGraph.nodes || []).filter((item) => {
+        const baseline = baselineByAlias[item.moduleAlias] ?? null;
+        const selected = item.capabilityId ?? baseline;
+        return selected !== baseline;
+      }).length;
+      [['模块', state.assemblyGraph.nodes.length], ['正式端口', (portContract.ports || []).length], ['已连接', state.assemblyGraph.edges.length], ['注册 binding', state.assemblyContract.bindings.filter((item) => item.wireable).length], ['可替换槽位', state.assemblyContract.replaceable_module_count || 0], ['当前替换', replacementCount], ['端口合同', portContract.validation?.ok === false ? '失败' : '通过'], ['替换合同', replacementContract.validation?.ok === false ? '失败' : '通过']].forEach(([label, value]) => {
+        const card = document.createElement('div'); card.className = 'graph-stat'; const span = document.createElement('span'); span.textContent = label; const strong = document.createElement('strong'); strong.textContent = String(value); card.append(span, strong); stats.appendChild(card);
+      });
+      const fingerprint = document.createElement('code'); fingerprint.className = 'assembly-contract-fingerprint'; fingerprint.textContent = `ports ${String(portContract.fingerprint || '').slice(0, 16)}… · modules ${String(replacementContract.fingerprint || '').slice(0, 16)}…`;
+      const note = document.createElement('p'); note.textContent = portContract.source === 'explicit-v5'
+        ? '正式端口合同与模块库支持 source-native 模块真实插入：候选必须满足 allow-list、payload/unit、timing、direct-feedthrough 与 fan-in/fan-out 兼容性；实际选择被绑定进 TaskSpec 并在运行前复核。'
+        : '该能力仍使用 V4 field_mappings 兼容推断；可运行，但 不会据此开放内部模块插拔。';
+      section.append(title, stats, fingerprint, note); container.appendChild(section);
+    }
+    if (state.assemblyCode) {
+      const section = document.createElement('section'); section.className = 'graph-inspector-section';
+      const title = document.createElement('h4'); title.textContent = assemblyCodeIsFresh() ? state.assemblyCodeFilename : `${state.assemblyCodeFilename}（已过期）`;
+      section.appendChild(title);
+      appendCodeChangeInsight(section, 'assembly');
+      const preview = document.createElement('textarea'); preview.className = 'assembly-code-preview'; preview.readOnly = true; preview.value = state.assemblyCode;
+      const actions = document.createElement('div'); actions.className = 'graph-inspector-actions';
+      const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'button button-ghost'; copy.textContent = '复制'; copy.addEventListener('click', () => assemblyCopyCode().catch((error) => assemblySetStatus(error.message, 'error')));
+      const download = document.createElement('button'); download.type = 'button'; download.className = 'button button-secondary'; download.textContent = '下载 .py'; download.addEventListener('click', () => assemblyDownloadCode().catch((error) => assemblySetStatus(error.message, 'error')));
+      actions.append(copy, download); section.append(preview, actions); container.appendChild(section);
+    }
+  }
+
+  function assemblyRender() {
+    const nodes = el('assemblyNodes'); const empty = el('assemblyEmptyHint');
+    if (!nodes || !empty) return;
+    state.assemblySelection = assemblySelectionItems().map((entry) => assemblySelectionKey(entry.kind, entry.id));
+    const selectionSummary = el('assemblySelectionSummary');
+    if (selectionSummary) selectionSummary.textContent = `${assemblySelectionLabel()} · Shift/Ctrl 多选 · 空白处拖框选择`;
+    nodes.replaceChildren();
+    if (!state.assemblyGraph || !state.assemblyContract) {
+      empty.classList.remove('hidden'); assemblyRenderModuleLibrary(); assemblyRenderInspector(); el('assemblyEdges')?.replaceChildren(); return;
+    }
+    empty.classList.toggle('hidden', Boolean(state.assemblyGraph.nodes?.length));
+    (state.assemblyGraph.nodes || []).forEach((node) => nodes.appendChild(assemblyNodeElement(node)));
+    assemblyScopes().forEach((scope) => nodes.appendChild(assemblyScopeElement(scope)));
+    assemblyRenderModuleLibrary();
+    assemblyRenderInspector();
+    assemblyRenderComparison();
+    requestAnimationFrame(assemblyDrawEdges);
+  }
+
+  async function assemblyCompile({ announce = true } = {}) {
+    if (!state.assemblyGraph || !state.assemblyContract) {
+      assemblySetStatus('请先加载一个注册装配。', 'error'); return false;
+    }
+    const parentId = state.assemblyContract.parent_capability_id;
+    if (state.selectedCapabilityId !== parentId || !state.formData) await selectCapability(parentId);
+    if (!validateClientForm({ show: false })) { assemblySetStatus('参数校验失败；请检查当前父 Capability 表单。', 'error'); return false; }
+    const payload = await api('/tasks/compile-assembly', {
+      method: 'POST',
+      body: JSON.stringify({ assembly_graph: state.assemblyGraph, form_data: state.formData, require_all_bindings: true }),
+    });
+    if (!payload.assembly_validation?.ok) {
+      const issues = payload.assembly_validation?.errors || payload.assembly_validation?.issues || [];
+      assemblySetStatus(`装配校验失败：${issues.map((item) => item.message || item.code).join('；') || '未知装配错误'}`, 'error');
+      return false;
+    }
+    const result = payload.result || {};
+    state.taskSpec = result.task_spec || null; state.planning = result.planning || null; syncTaskSpecEditor();
+    if (!payload.ok) {
+      const issues = [...(result.validation?.errors || []), ...(result.guards?.issues || []), ...(result.planning?.validation?.errors || [])];
+      assemblySetStatus(`父 Capability TaskSpec 编译失败：${issues.map(formatValidationIssue).join('；') || '未通过能力边界校验'}`, 'error');
+      return false;
+    }
+    const validation = payload.assembly_validation || {};
+    const feedback = validation.feedback_groups?.length ? `；识别 ${validation.feedback_groups.length} 个注册反馈组` : '';
+    if (announce) {
+      const source = validation.port_contract_source === 'explicit-v5' ? '显式 V5 端口合同' : 'legacy-inferred 兼容合同';
+      const solver = (validation.solver_policies || []).join(', ') || 'parent-owned';
+      const replacements = Number(validation.replacement_count || 0);
+      assemblySetStatus(`装配已通过后端校验：${validation.node_count} 模块 / ${validation.edge_count} bindings${feedback}；${source}；replacements=${replacements}；solver=${solver}；runtime owner=${parentId}`, 'success');
+    }
+    assemblyRender();
+    return true;
+  }
+
+  async function assemblyGenerateCodeFromTaskSpec() {
+    if (!state.taskSpec || !state.assemblyGraph) throw new Error('请先编译装配 TaskSpec');
+    const payload = await api('/tasks/export-assembly-script', {
+      method: 'POST',
+      body: JSON.stringify({ assembly_graph: state.assemblyGraph, task_spec: state.taskSpec, require_all_bindings: true }),
+    });
+    if (!payload.ok) {
+      const issues = [...(payload.assembly_validation?.errors || []), ...(payload.assembly_task_binding?.errors || [])];
+      throw new Error(issues.map((item) => item.message || item.code).join('；') || '装配脚本导出失败');
+    }
+    const nextCode = payload.code || '';
+    state.assemblyCodeDiff = codeDiffSummary(state.assemblyCode, nextCode);
+    state.assemblyCode = nextCode;
+    state.assemblyCodeFilename = payload.filename || 'assembly.py';
+    state.assemblyGeneratedSnapshot = assemblySnapshot();
+    assemblyRender();
+    const replacementCount = Number(payload.provenance?.replacement_count || 0);
+    assemblySetStatus(`已生成 ${state.assemblyCodeFilename}。运行前会重新校验装配图、端口/模块合同 fingerprint 与 TaskSpec 模块选择；当前 replacements=${replacementCount}。`, 'success');
+    return payload;
+  }
+
+  async function assemblyGeneratePython() {
+    const ok = await assemblyCompile({ announce: false });
+    if (!ok) return false;
+    await assemblyGenerateCodeFromTaskSpec();
+    return true;
+  }
+
+  async function assemblyCopyCode() {
+    if (!assemblyCodeIsFresh()) { const ok = await assemblyGeneratePython(); if (!ok) return; }
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(state.assemblyCode);
+    else {
+      const preview = el('assemblyInspector')?.querySelector('.assembly-code-preview');
+      if (!preview) throw new Error('没有可复制的装配代码');
+      preview.focus(); preview.select(); document.execCommand('copy');
+    }
+    assemblySetStatus('装配 Python 已复制到剪贴板。', 'success');
+  }
+
+  async function assemblyDownloadCode() {
+    if (!assemblyCodeIsFresh()) { const ok = await assemblyGeneratePython(); if (!ok) return; }
+    const blob = new Blob([state.assemblyCode], { type: 'text/x-python;charset=utf-8' });
+    const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+    anchor.href = url; anchor.download = state.assemblyCodeFilename || 'assembly.py'; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    assemblySetStatus(`已下载 ${anchor.download}。`, 'success');
+  }
+
+  function visualProgramFallbackFilename() {
+    const raw = state.taskSpec?.task?.id || state.selectedCapabilityId || 'simulation';
+    const safe = String(raw).replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^[_\.-]+|[_\.-]+$/g, '') || 'simulation';
+    return `${safe.slice(0, 96)}_visual_program.zip`;
+  }
+
+  async function graphExportProgram() {
+    const ok = await graphCompile({ requireCode: true, requireRun: true, announce: false });
+    if (!ok) return false;
+    await postDownloadEndpoint('/tasks/export-program', { task_spec: state.taskSpec, visual_graph: graphSerialize() }, visualProgramFallbackFilename());
+    graphSetStatus('已导出可运行程序包：包含 Python 入口、TaskSpec、manifest、README 与 Windows/Linux 启动脚本。', 'success');
+    return true;
+  }
+
+  async function assemblyExportProgram() {
+    const ok = await assemblyCompile({ announce: false });
+    if (!ok) return false;
+    await postDownloadEndpoint(
+      '/tasks/export-program',
+      { task_spec: state.taskSpec, assembly_graph: state.assemblyGraph, require_all_bindings: true },
+      visualProgramFallbackFilename(),
+    );
+    assemblySetStatus('已导出可运行装配程序包：包含生成 Python、TaskSpec、assembly_graph、合同指纹 manifest 与启动脚本。', 'success');
+    return true;
+  }
+
+  function assemblyBaselineGraph() {
+    if (!state.assemblyGraph || !state.assemblyContract) return null;
+    const graph = clone(state.assemblyGraph);
+    (graph.nodes || []).forEach((node) => {
+      const module = assemblyModuleByAlias(node.moduleAlias);
+      if (!module?.replaceable) return;
+      node.capabilityId = assemblyBaselineCapability(module);
+    });
+    return graph;
+  }
+
+  async function compileAssemblyGraph(graph) {
+    const payload = await api('/tasks/compile-assembly', {
+      method: 'POST',
+      body: JSON.stringify({ assembly_graph: graph, form_data: state.formData, require_all_bindings: true }),
+    });
+    if (!payload.ok || !payload.assembly_validation?.ok || !payload.result?.task_spec) {
+      const issues = [
+        ...(payload.assembly_validation?.errors || []),
+        ...(payload.result?.validation?.errors || []),
+        ...(payload.result?.guards?.issues || []),
+      ];
+      throw new Error(issues.map((item) => item.message || item.code).join('；') || '装配编译失败');
+    }
+    return payload;
+  }
+
+  async function submitComparisonRun(taskSpec, role) {
+    const raw = String(taskSpec?.task?.id || 'visual_compare').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 90);
+    const runId = `${raw}_${role}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const payload = await api('/runs', {
+      method: 'POST',
+      body: JSON.stringify({ task_spec: taskSpec, run_id: runId, execute: true, execution_mode: 'async', max_attempts: 2 }),
+    });
+    return payload.prepared_run?.run_id || payload.execution_state?.run_id || runId;
+  }
+
+  function waitMs(ms) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
+
+  async function waitForComparisonRun(runId, role) {
+    for (let attempt = 0; attempt < 1600; attempt += 1) {
+      const payload = await api(`/runs/${encodeURIComponent(runId)}/execution`);
+      const execution = payload.execution_state || {};
+      const terminal = ['SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT'].includes(execution.state);
+      state.assemblyComparison = { ...(state.assemblyComparison || {}), [`${role}State`]: execution.state || 'QUEUED' };
+      assemblyRenderComparison();
+      if (terminal) return execution;
+      await waitMs(750);
+    }
+    throw new Error(`${role === 'baseline' ? '基线' : '当前装配'}对比运行等待超限`);
+  }
+
+  function comparisonNumber(value) {
+    const number = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function formatComparisonValue(value) {
+    const number = comparisonNumber(value);
+    if (number == null) return value == null ? '—' : String(value);
+    const magnitude = Math.abs(number);
+    if (magnitude >= 10000 || (magnitude > 0 && magnitude < 0.001)) return number.toExponential(3);
+    return Number(number.toPrecision(6)).toString();
+  }
+
+  function assemblyRenderComparison() {
+    const panel = el('assemblyComparePanel'); const summary = el('assemblyCompareSummary'); const table = el('assemblyCompareTable');
+    if (!panel || !summary || !table) return;
+    const comparisonState = state.assemblyComparison;
+    panel.classList.toggle('hidden', !comparisonState);
+    table.replaceChildren();
+    if (!comparisonState) return;
+    if (comparisonState.status === 'running') {
+      summary.textContent = `基线 ${comparisonState.baselineState || 'QUEUED'} · 当前 ${comparisonState.currentState || 'QUEUED'}；完成后自动计算指标差异。`;
+      return;
+    }
+    if (comparisonState.status === 'error') { summary.textContent = comparisonState.message || '基线对比失败。'; return; }
+    const comparison = comparisonState.comparison || {};
+    summary.textContent = `基线 ${comparisonState.baselineRunId} ↔ 当前 ${comparisonState.currentRunId}；共 ${comparison.metrics?.length || 0} 个指标${comparisonState.stale ? '；画布在运行期间已修改，本结果对应提交时快照' : ''}。`;
+    const baseline = (comparison.rows || []).find((row) => row.run_id === comparisonState.baselineRunId) || comparison.rows?.[0] || null;
+    const current = (comparison.rows || []).find((row) => row.run_id === comparisonState.currentRunId) || comparison.rows?.[1] || null;
+    const header = document.createElement('div'); header.className = 'assembly-compare-row header';
+    ['指标', '基线', '当前', 'Δ 当前-基线'].forEach((label, index) => { const cell = document.createElement(index === 0 ? 'code' : 'strong'); cell.textContent = label; header.appendChild(cell); });
+    table.appendChild(header);
+    const numeric = (comparison.metrics || []).map((metric) => {
+      const before = comparisonNumber(baseline?.values?.[metric]);
+      const after = comparisonNumber(current?.values?.[metric]);
+      return { metric, before, after, delta: before != null && after != null ? after - before : null };
+    }).filter((item) => item.before != null || item.after != null).slice(0, 16);
+    if (!numeric.length) {
+      const empty = document.createElement('div'); empty.className = 'graph-inspector-empty'; empty.textContent = '运行已完成，但没有共同的数值指标可直接比较。可在运行结果中查看详细输出。'; table.appendChild(empty); return;
+    }
+    numeric.forEach((item) => {
+      const row = document.createElement('div'); row.className = 'assembly-compare-row';
+      const name = document.createElement('code'); name.textContent = item.metric;
+      const baselineValue = document.createElement('span'); baselineValue.textContent = formatComparisonValue(item.before);
+      const currentValue = document.createElement('span'); currentValue.textContent = formatComparisonValue(item.after);
+      const delta = document.createElement('strong'); delta.textContent = item.delta == null ? '—' : `${item.delta > 0 ? '+' : ''}${formatComparisonValue(item.delta)}`;
+      row.append(name, baselineValue, currentValue, delta); table.appendChild(row);
+    });
+  }
+
+  async function comparisonMetricSelection(baselineRunId, currentRunId) {
+    try {
+      const [baselinePayload, currentPayload] = await Promise.all([
+        api(`/runs/${encodeURIComponent(baselineRunId)}/metrics`),
+        api(`/runs/${encodeURIComponent(currentRunId)}/metrics`),
+      ]);
+      const baseline = baselinePayload.metrics?.metrics || baselinePayload.metrics || {};
+      const current = currentPayload.metrics?.metrics || currentPayload.metrics || {};
+      return Object.keys(baseline).filter((key) => Object.prototype.hasOwnProperty.call(current, key))
+        .filter((key) => comparisonNumber(baseline[key]) != null && comparisonNumber(current[key]) != null)
+        .sort((left, right) => {
+          const rank = (key) => key.startsWith('qoi.') ? 0 : key.startsWith('metrics.') ? 1 : key.startsWith('adapter_metadata.') ? 3 : 2;
+          return rank(left) - rank(right) || left.localeCompare(right);
+        })
+        .slice(0, 64);
+    } catch (_) { return []; }
+  }
+
+  async function assemblyCompareBaseline() {
+    if (state.assemblyComparisonRunning) return false;
+    const ok = await assemblyCompile({ announce: false });
+    if (!ok) return false;
+    const currentGraph = clone(state.assemblyGraph);
+    const currentTaskSpec = clone(state.taskSpec);
+    const submittedSnapshot = assemblySnapshot();
+    const baselineGraph = assemblyBaselineGraph();
+    if (!baselineGraph) throw new Error('当前没有可比较的装配图');
+    const baselineCompiled = await compileAssemblyGraph(baselineGraph);
+    const baselineTaskSpec = baselineCompiled.result.task_spec;
+    const currentReplacements = Number((currentTaskSpec.metadata?.visual_assembly || {}).replacement_count || 0);
+    if (!currentReplacements) assemblySetStatus('当前装配已经是基线；仍会执行双运行，用于验证参数/结果一致性。', 'warning');
+    state.assemblyComparisonRunning = true;
+    state.assemblyComparison = { status: 'running', baselineState: 'SUBMITTING', currentState: 'SUBMITTING' };
+    assemblyRenderComparison();
+    try {
+      const [baselineRunId, currentRunId] = await Promise.all([submitComparisonRun(baselineTaskSpec, 'baseline'), submitComparisonRun(currentTaskSpec, 'current')]);
+      state.assemblyComparison = { ...state.assemblyComparison, baselineRunId, currentRunId, baselineState: 'QUEUED', currentState: 'QUEUED' };
+      assemblyRenderComparison();
+      const [baselineExecution, currentExecution] = await Promise.all([waitForComparisonRun(baselineRunId, 'baseline'), waitForComparisonRun(currentRunId, 'current')]);
+      const metrics = await comparisonMetricSelection(baselineRunId, currentRunId);
+      const compared = await api('/runs/compare', { method: 'POST', body: JSON.stringify({ run_ids: [baselineRunId, currentRunId], metrics }) });
+      state.assemblyComparison = {
+        status: 'done', baselineRunId, currentRunId, baselineState: baselineExecution.state, currentState: currentExecution.state, comparison: compared.comparison || {}, stale: assemblySnapshot() !== submittedSnapshot,
+      };
+      assemblyRenderComparison();
+      state.activeRunId = currentRunId; state.activeRunDisplayName = `${currentTaskSpec.task?.name || '当前装配'} · baseline compare`;
+      await Promise.all([loadRun(currentRunId, { quiet: true }), loadRuns()]);
+      if (currentExecution.error || ['FAILED', 'TIMED_OUT'].includes(currentExecution.state)) {
+        await requestVisualDiagnostics(currentExecution.error || `Run ${currentExecution.state}`, { mode: 'assembly', taskSpec: currentTaskSpec, assemblyGraph: currentGraph });
+      } else {
+        assemblySetStatus(`基线对比完成：${baselineRunId} ↔ ${currentRunId}。指标差异已显示在画布上方。`, 'success');
+      }
+      return true;
+    } catch (error) {
+      state.assemblyComparison = { ...(state.assemblyComparison || {}), status: 'error', message: `基线对比失败：${error.message}` };
+      assemblyRenderComparison();
+      assemblySetStatus(`基线对比失败：${error.message}`, 'error');
+      return false;
+    } finally { state.assemblyComparisonRunning = false; }
   }
 
   function fieldByPath(path) {
@@ -492,6 +3666,10 @@
       button.setAttribute('aria-selected', String(active));
     });
     $all('.tab-content').forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === name));
+    if (name === 'graph') requestAnimationFrame(() => {
+      if (state.graphComposerMode === 'assembly') assemblyRender();
+      else graphInitialize(false);
+    });
   }
 
   function switchResultTab(name) {
@@ -918,6 +4096,7 @@
 
   async function selectCapability(capabilityId, objectOverride = null) {
     if (capabilityId === state.selectedCapabilityId && state.schema && !objectOverride) return;
+    const capabilityChanged = capabilityId !== state.selectedCapabilityId;
     clearNotice();
     showBusy('读取能力 Schema', capabilityId);
     try {
@@ -925,6 +4104,7 @@
       const object = objectOverride || presentationObjectForCapability(capabilityId);
       state.selectedObjectId = object?.object_id || state.selectedObjectId || capabilityId;
       state.selectedCapabilityId = capabilityId;
+      if (capabilityChanged) clearVisualRunOverlay();
       state.schema = payload.form_schema;
       state.formData = clone(state.schema.default_form);
       state.outputPlotQuery = '';
@@ -956,6 +4136,14 @@
       renderOutputs();
       renderScenarioTemplateOptions();
       syncTaskSpecEditor();
+      const graphModel = state.graphNodes.find((node) => node.type === 'model');
+      if (graphModel && graphModel.capabilityId !== capabilityId) {
+        graphModel.capabilityId = capabilityId;
+        graphInvalidateCompiledState();
+        graphHistoryReset();
+      }
+      renderGraphPalette();
+      if (document.querySelector('.tab.active')?.dataset.tab === 'graph') renderGraph();
     } catch (error) {
       showNotice(`读取能力失败：${error.message}`, 'error');
     } finally {
@@ -1743,12 +4931,17 @@
         }
         el('cancelRunBtn').classList.add('hidden');
         await Promise.all([loadRun(runId, { quiet: true }), loadRuns()]);
+        if (state.activeVisualRunContext?.runId === runId) await loadVisualRunOverlay(runId, state.activeVisualRunContext);
         const passed = execution.state === 'SUCCEEDED' && execution.validation_result === 'PASS';
         const displayName = state.activeRunDisplayName || state.activeRun?.task_spec?.task?.name || runId;
         const message = execution.error
           ? `仿真“${displayName}”失败（Run ID：${runId}）：${execution.error}`
           : `仿真“${displayName}”已结束：${execution.state}${execution.validation_result ? ` / ${execution.validation_result}` : ''}（Run ID：${runId}）`;
-        showNotice(message, passed ? 'success' : (execution.state === 'CANCELLED' ? 'warning' : 'error'));
+        const noticeType = passed ? 'success' : (execution.state === 'SUCCEEDED' || execution.state === 'CANCELLED' ? 'warning' : 'error');
+        showNotice(message, noticeType);
+        if ((execution.error || ['FAILED', 'TIMED_OUT'].includes(execution.state)) && state.activeVisualRunContext?.runId === runId) {
+          await requestVisualDiagnostics(execution.error || message, state.activeVisualRunContext);
+        }
       } catch (error) {
         showNotice(`运行状态查询失败：${error.message}`, 'error');
         state.pollTimer = window.setTimeout(tick, 1500);
@@ -1771,12 +4964,27 @@
   async function runSimulation() {
     clearNotice();
     showBusy('正在准备仿真', '校验 TaskSpec 与生成执行计划');
+    let visualRunContext = null;
     try {
-      if (document.querySelector('.tab.active')?.dataset.tab === 'agent' && !state.taskSpec) await parseNaturalLanguage();
-      else if (document.querySelector('.tab.active')?.dataset.tab === 'taskspec') {
+      const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+      if (activeTab === 'agent' && !state.taskSpec) await parseNaturalLanguage();
+      else if (activeTab === 'taskspec') {
         state.taskSpec = taskSpecFromEditor();
         const valid = await validateEditor();
         if (!valid) return;
+      } else if (activeTab === 'graph') {
+        clearVisualDiagnostics();
+        if (state.graphComposerMode === 'assembly') {
+          const valid = await assemblyCompile({ announce: false });
+          if (!valid) return;
+          if (!assemblyCodeIsFresh()) await assemblyGenerateCodeFromTaskSpec();
+          visualRunContext = { mode: 'assembly', taskSpec: clone(state.taskSpec), assemblyGraph: clone(state.assemblyGraph), snapshot: assemblySnapshot() };
+        } else {
+          const valid = await graphCompile({ requireCode: true, requireRun: true, announce: false });
+          if (!valid) return;
+          if (!graphCodeIsFresh()) await graphGenerateCodeFromTaskSpec();
+          visualRunContext = { mode: 'flow', taskSpec: clone(state.taskSpec), graph: graphSerialize(), snapshot: graphFormSnapshot() };
+        }
       } else if (!state.taskSpec) {
         const valid = await previewForm();
         if (!valid) return;
@@ -1801,6 +5009,8 @@
       state.activeRun = null;
       state.dataset = null;
       state.artifacts = [];
+      if (visualRunContext) { state.activeVisualRunContext = { ...visualRunContext, runId }; clearVisualRunOverlay(); }
+      else state.activeVisualRunContext = null;
       el('exportDatasetBtn').classList.add('hidden');
       state.executionState = payload.execution_state || { run_id: runId, state: 'QUEUED' };
       renderExecutionProgress(state.executionState);
@@ -1808,6 +5018,9 @@
       await loadRuns();
       hideBusy();
       await pollRunExecution(runId);
+    } catch (error) {
+      if (visualRunContext) await requestVisualDiagnostics(error.message, visualRunContext, error.payload?.detail?.reason_code || error.payload?.reason_code || null);
+      throw error;
     } finally {
       hideBusy();
     }
@@ -2387,6 +5600,37 @@
     anchor.click();
     anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function postDownloadEndpoint(path, body, fallbackFilename = 'download.zip') {
+    const authHeaders = state.apiToken ? { Authorization: `Bearer ${state.apiToken}` } : {};
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(body || {}),
+    });
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      let detail = null;
+      try { detail = contentType.includes('application/json') ? await response.json() : await response.text(); } catch (_) { detail = null; }
+      const payload = detail?.detail || detail;
+      const message = typeof payload === 'string' ? payload : (payload?.message || payload?.reason_code || `HTTP ${response.status}`);
+      throw new Error(message);
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get('content-disposition') || '';
+    const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+    const basicMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
+    let filename = fallbackFilename;
+    try {
+      if (utf8Match?.[1]) filename = decodeURIComponent(utf8Match[1]);
+      else if (basicMatch?.[1]) filename = basicMatch[1];
+    } catch (_) { /* keep fallback */ }
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return { filename, blob };
   }
 
   async function exportActiveDataset() {
@@ -3613,6 +6857,157 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('downloadFmeaCsvBtn').addEventListener('click', () => state.activeRunId && downloadEndpoint(`/runs/${encodeURIComponent(state.activeRunId)}/fmea/download?${fmeaDownloadQuery('csv')}`, `${state.activeRunId}_fmea.csv`).catch((error) => showNotice(error.message, 'error')));
     el('downloadFmeaJsonBtn').addEventListener('click', () => state.activeRunId && downloadEndpoint(`/runs/${encodeURIComponent(state.activeRunId)}/fmea/download?${fmeaDownloadQuery('json')}`, `${state.activeRunId}_fmea.json`).catch((error) => showNotice(error.message, 'error')));
+    el('graphFlowModeBtn').addEventListener('click', () => switchGraphComposerMode('flow').catch((error) => graphSetStatus(error.message, 'error')));
+    el('graphAssemblyModeBtn').addEventListener('click', () => switchGraphComposerMode('assembly').catch((error) => assemblySetStatus(error.message, 'error')));
+    el('graphTuneBtn').addEventListener('click', async () => { showBusy('打开快速调参', '读取 Schema 注册参数与 QoI'); try { await openVisualTuning('flow'); } catch (error) { graphSetStatus(`快速调参不可用：${error.message}`, 'error'); } finally { hideBusy(); } });
+    el('assemblyTuneBtn').addEventListener('click', async () => { showBusy('打开快速调参', '读取 Schema 注册参数与 QoI'); try { await openVisualTuning('assembly'); } catch (error) { assemblySetStatus(`快速调参不可用：${error.message}`, 'error'); } finally { hideBusy(); } });
+    el('visualTuningCloseBtn').addEventListener('click', closeVisualTuning);
+    el('visualTuningAddParameterBtn').addEventListener('click', () => {
+      if (!state.visualTuningOptions || state.visualTuningSelections.length >= 3) return;
+      const used = new Set(state.visualTuningSelections.map((item) => item.path));
+      const next = (state.visualTuningOptions.parameters || []).find((item) => !used.has(item.path));
+      if (!next) return;
+      state.visualTuningSelections.push({ path: next.path, values: (next.suggested_values || []).join(', ') }); renderVisualTuning();
+    });
+    el('visualTuningObjective').addEventListener('change', (event) => { const target = visualTuningObjectiveByMetric(event.target.value); if (!el('visualTuningDirection').dataset.userSet && target?.suggested_direction) el('visualTuningDirection').value = target.suggested_direction; renderVisualTuning(); });
+    el('visualTuningDirection').addEventListener('change', () => { el('visualTuningDirection').dataset.userSet = 'true'; });
+    el('visualTuningStartBtn').addEventListener('click', async () => { try { await startVisualTuning(); } catch (error) { state.visualTuningResult = { ...(state.visualTuningResult || {}), message: `扫描失败：${error.message}` }; renderVisualTuning(); showNotice(`快速调参失败：${error.message}`, 'error'); } });
+    el('visualTuningApplyBestBtn').addEventListener('click', applyVisualTuningBest);
+    el('assemblyLoadBtn').addEventListener('click', () => {
+      const capabilityId = el('assemblyCapabilitySelect').value;
+      showBusy('加载注册装配', capabilityId);
+      assemblyLoadContract(capabilityId).catch((error) => assemblySetStatus(`加载失败：${error.message}`, 'error')).finally(hideBusy);
+    });
+    el('assemblyRestoreBtn').addEventListener('click', assemblyRestoreBindings);
+    el('assemblyValidateBtn').addEventListener('click', async () => {
+      showBusy('校验多模块装配', '注册模块 → signal binding → 父 Capability TaskSpec');
+      try { await assemblyCompile(); } catch (error) { assemblySetStatus(error.message, 'error'); } finally { hideBusy(); }
+    });
+    el('assemblyGenerateCodeBtn').addEventListener('click', async () => {
+      showBusy('生成装配 Python', '内嵌装配图并绑定受信任 runtime owner');
+      try { await assemblyGeneratePython(); } catch (error) { assemblySetStatus(error.message, 'error'); } finally { hideBusy(); }
+    });
+    el('assemblyResultOverlayBtn').addEventListener('click', () => openVisualRunResults('assembly').catch((error) => assemblySetStatus(`打开结果失败：${error.message}`, 'error')));
+    el('assemblyAddScopeBtn').addEventListener('click', assemblyAddScope);
+    el('assemblyAddDisplayBtn').addEventListener('click', assemblyAddDisplay);
+    el('assemblyAddWorkspaceBtn').addEventListener('click', assemblyAddWorkspace);
+    el('assemblyAutoLayoutBtn').addEventListener('click', assemblyAutoLayout);
+    el('assemblyAlignLeftBtn').addEventListener('click', () => assemblyAlignSelection('left'));
+    el('assemblyAlignTopBtn').addEventListener('click', () => assemblyAlignSelection('top'));
+    el('assemblyDistributeHBtn').addEventListener('click', () => assemblyDistributeSelection('x'));
+    el('assemblyDistributeVBtn').addEventListener('click', () => assemblyDistributeSelection('y'));
+    el('assemblyCopyObserversBtn').addEventListener('click', assemblyCopySelectedObservers);
+    el('assemblyPasteObserversBtn').addEventListener('click', assemblyPasteObservers);
+    el('assemblyCompareBtn').addEventListener('click', async () => {
+      if (state.assemblyComparisonRunning) return;
+      assemblySetStatus('正在提交基线与当前装配对比运行；完成后自动汇总共同指标。', 'warning');
+      try { await assemblyCompareBaseline(); } catch (error) { assemblySetStatus(`基线对比失败：${error.message}`, 'error'); }
+    });
+    el('assemblyCompareCloseBtn').addEventListener('click', () => { state.assemblyComparison = null; assemblyRenderComparison(); });
+    el('assemblyExportProgramBtn').addEventListener('click', async () => {
+      showBusy('导出可运行程序包', 'TaskSpec + 装配图 + Python + 启动脚本');
+      try { await assemblyExportProgram(); } catch (error) { assemblySetStatus(`程序包导出失败：${error.message}`, 'error'); } finally { hideBusy(); }
+    });
+    el('assemblyRunBtn').addEventListener('click', () => runSimulation().catch((error) => { assemblySetStatus(`运行失败：${error.message}`, 'error'); showNotice(`仿真失败：${error.message}`, 'error'); hideBusy(); }));
+    el('assemblyModuleSearch').addEventListener('input', (event) => { state.assemblyLibrarySearch = event.target.value || ''; assemblyRenderModuleLibrary(); });
+    el('assemblyCompatibleOnly').addEventListener('change', (event) => { state.assemblyCompatibleOnly = Boolean(event.target.checked); assemblyRenderModuleLibrary(); });
+    el('assemblyCanvas').addEventListener('dragover', (event) => {
+      const capabilityId = state.assemblyDragModuleCapabilityId || '';
+      if (!capabilityId || event.target.closest('.assembly-node')) return;
+      const aliases = assemblyCompatibleAliasesForCapability(capabilityId);
+      if (!aliases.length) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+      el('assemblyCanvas').classList.add('drop-module-target');
+    });
+    el('assemblyCanvas').addEventListener('dragleave', (event) => {
+      if (!el('assemblyCanvas').contains(event.relatedTarget)) el('assemblyCanvas').classList.remove('drop-module-target');
+    });
+    el('assemblyCanvas').addEventListener('drop', (event) => {
+      if (event.target.closest('.assembly-node')) return;
+      event.preventDefault();
+      el('assemblyCanvas').classList.remove('drop-module-target');
+      const capabilityId = event.dataTransfer?.getData('text/plain') || state.assemblyDragModuleCapabilityId || '';
+      state.assemblyDragModuleCapabilityId = null;
+      const aliases = assemblyCompatibleAliasesForCapability(capabilityId);
+      if (!aliases.length) { assemblySetStatus(`${capabilityId || '该模块'} 在当前装配中没有兼容槽位。`, 'error'); return; }
+      const canvas = el('assemblyCanvas');
+      const rect = canvas.getBoundingClientRect();
+      const dropX = event.clientX - rect.left;
+      const dropY = event.clientY - rect.top;
+      const candidates = aliases.map((alias) => {
+        const node = (state.assemblyGraph?.nodes || []).find((item) => item.moduleAlias === alias);
+        const dx = (Number(node?.x) || 0) + 114 - dropX;
+        const dy = (Number(node?.y) || 0) + 71 - dropY;
+        return { alias, node, distance: dx * dx + dy * dy };
+      }).filter((item) => item.node).sort((a, b) => a.distance - b.distance);
+      const target = candidates[0];
+      if (!target) { assemblySetStatus('没有找到可插入目标节点。', 'error'); return; }
+      try {
+        assemblyReplaceModule(target.node.id, capabilityId);
+        assemblySetStatus(`已将 ${capabilityId} 自动匹配到 ${target.alias}；无需手工重接端口。`, 'success');
+      } catch (error) { assemblySetStatus(error.message, 'error'); }
+    });
+    el('assemblyCanvas').addEventListener('pointerdown', assemblyBeginMarquee);
+    el('assemblyCanvas').addEventListener('click', (event) => {
+      if (state.assemblySuppressCanvasClick) { state.assemblySuppressCanvasClick = false; return; }
+      if (event.target === el('assemblyCanvas') || event.target === el('assemblyNodes')) { state.assemblyPendingConnection = null; assemblyClearSelection(); }
+    });
+    el('assemblyCanvas').addEventListener('keydown', (event) => {
+      const modifier = event.ctrlKey || event.metaKey;
+      if (event.key === 'Escape') { event.preventDefault(); state.assemblyPendingConnection = null; assemblyClearSelection({ render: false }); assemblySetStatus('已取消当前 signal 接线并清除选择。'); assemblyRender(); }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && state.assemblySelectedEdgeId) { event.preventDefault(); assemblyRemoveEdge(state.assemblySelectedEdgeId); return; }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && state.assemblySelection.some((key) => key.startsWith('observer:'))) {
+        event.preventDefault(); const ids = assemblySelectionItems().filter((item) => item.kind === 'observer').map((item) => item.id);
+        ids.forEach((id) => { state.assemblyGraph.scopes = assemblyScopes().filter((item) => item.id !== id); });
+        state.assemblySelection = state.assemblySelection.filter((key) => !key.startsWith('observer:'));
+        const last = assemblySelectionItems().slice(-1)[0] || null; assemblySyncPrimarySelection(last?.kind || null, last?.id || null); assemblyRender();
+        assemblySetStatus(`已删除 ${ids.length} 个观察器；物理模块受注册合同保护，未删除。`, 'success'); return;
+      }
+      if (modifier && event.key.toLowerCase() === 'a') { event.preventDefault(); assemblySelectAll(); }
+      if (modifier && event.key.toLowerCase() === 'c') { event.preventDefault(); assemblyCopySelectedObservers(); }
+      if (modifier && event.key.toLowerCase() === 'v') { event.preventDefault(); assemblyPasteObservers(); }
+      if (modifier && event.key.toLowerCase() === 'd') { event.preventDefault(); assemblyDuplicateSelectedObservers(); }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) && state.assemblySelection.length) {
+        event.preventDefault(); const step = event.shiftKey ? 5 : 20;
+        const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+        const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+        assemblySelectionItems().forEach((entry) => { entry.item.x = (Number(entry.item.x) || 0) + dx; entry.item.y = (Number(entry.item.y) || 0) + dy; assemblyClampLayoutItem(entry); });
+        assemblyRender();
+      }
+    });
+    el('graphCapabilitySearch').addEventListener('input', renderGraphPalette);
+    $all('[data-graph-block]').forEach((button) => button.addEventListener('dragstart', (event) => graphTransfer(event, { kind: 'block', type: button.dataset.graphBlock })));
+    el('graphCanvas').addEventListener('dragover', (event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; el('graphCanvas').classList.add('drag-over'); });
+    el('graphCanvas').addEventListener('dragleave', (event) => { if (!el('graphCanvas').contains(event.relatedTarget)) el('graphCanvas').classList.remove('drag-over'); });
+    el('graphCanvas').addEventListener('drop', (event) => graphHandleDrop(event).catch((error) => graphSetStatus(error.message, 'error')));
+    el('graphCanvas').addEventListener('click', (event) => { if (event.target === el('graphCanvas') || event.target === el('graphNodes')) { graphCancelConnection(); state.graphSelectedNodeId = null; state.graphSelectedEdgeId = null; renderGraph(); } });
+    el('graphCanvas').addEventListener('keydown', (event) => {
+      const modifier = event.ctrlKey || event.metaKey;
+      if (event.key === 'Escape') { event.preventDefault(); graphCancelConnection(); graphSetStatus('已取消当前接线。'); }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && state.graphSelectedEdgeId) { event.preventDefault(); graphRemoveEdge(state.graphSelectedEdgeId); }
+      if (modifier && event.key.toLowerCase() === 'z' && !event.shiftKey) { event.preventDefault(); graphUndo(); }
+      if (modifier && ((event.key.toLowerCase() === 'z' && event.shiftKey) || event.key.toLowerCase() === 'y')) { event.preventDefault(); graphRedo(); }
+    });
+    el('graphUndoBtn').addEventListener('click', graphUndo);
+    el('graphRedoBtn').addEventListener('click', graphRedo);
+    el('graphSaveDraftBtn').addEventListener('click', () => { try { graphSaveDraft(); } catch (error) { graphSetStatus(`保存草稿失败：${error.message}`, 'error'); } });
+    el('graphLoadDraftBtn').addEventListener('click', () => graphLoadDraft().catch((error) => graphSetStatus(`加载草稿失败：${error.message}`, 'error')));
+    el('graphExportProjectBtn').addEventListener('click', () => { try { graphExportProject(); } catch (error) { graphSetStatus(`导出工程失败：${error.message}`, 'error'); } });
+    el('graphImportProjectBtn').addEventListener('click', () => el('graphImportProjectInput').click());
+    el('graphImportProjectInput').addEventListener('change', (event) => {
+      const file = event.target.files?.[0] || null;
+      graphImportProjectFile(file).catch((error) => graphSetStatus(`导入工程失败：${error.message}`, 'error')).finally(() => { event.target.value = ''; });
+    });
+    el('graphClearBtn').addEventListener('click', graphClear);
+    el('graphResetBtn').addEventListener('click', () => { graphInitialize(true); graphSetStatus('已恢复带类型端口的基础 DAG；可直接校验，也可手工重新接线。', 'success'); });
+    el('graphAutoWireBtn').addEventListener('click', () => graphAutoWire());
+    el('graphAutoLayoutBtn').addEventListener('click', graphAutoLayout);
+    el('graphValidateBtn').addEventListener('click', async () => { showBusy('校验图形流程', '节点结构 → TaskSpec → 执行计划'); try { await graphCompile({ requireCode: true, requireRun: true }); } catch (error) { graphSetStatus(error.message, 'error'); } finally { hideBusy(); } });
+    el('graphResultOverlayBtn').addEventListener('click', () => openVisualRunResults('flow').catch((error) => graphSetStatus(`打开结果失败：${error.message}`, 'error')));
+    el('graphGenerateCodeBtn').addEventListener('click', async () => { showBusy('生成可执行 Python', '使用受约束 deterministic script exporter'); try { await graphGeneratePython(); } catch (error) { graphSetStatus(error.message, 'error'); } finally { hideBusy(); } });
+    el('graphExportProgramBtn').addEventListener('click', async () => { showBusy('导出可运行程序包', 'TaskSpec + Python + 启动脚本'); try { await graphExportProgram(); } catch (error) { graphSetStatus(`程序包导出失败：${error.message}`, 'error'); } finally { hideBusy(); } });
+    el('graphRunBtn').addEventListener('click', () => runSimulation().catch((error) => { graphSetStatus(`运行失败：${error.message}`, 'error'); showNotice(`仿真失败：${error.message}`, 'error'); hideBusy(); }));
     el('effectKind').addEventListener('change', renderEffectSelect);
     el('addEffectBtn').addEventListener('click', addEffect);
     el('resetFormBtn').addEventListener('click', resetForm);
@@ -3626,8 +7021,13 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('acceptAgentChangesBtn').addEventListener('click', clearAgentChanges);
     el('undoAgentChangesBtn').addEventListener('click', undoAgentChanges);
     el('previewBtn').addEventListener('click', async () => {
-      showBusy('校验并编译 TaskSpec', '解析 Schema 表单与能力约束');
-      try { await previewForm(); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
+      const graphMode = document.querySelector('.tab.active')?.dataset.tab === 'graph';
+      showBusy(graphMode ? '校验图形流程' : '校验并编译 TaskSpec', graphMode ? '检查节点结构并编译 Canonical TaskSpec' : '解析 Schema 表单与能力约束');
+      try {
+        if (graphMode && state.graphComposerMode === 'assembly') await assemblyCompile();
+        else if (graphMode) await graphCompile({ requireCode: true, requireRun: true });
+        else await previewForm();
+      } catch (error) { showNotice(error.message, 'error'); graphSetStatus(error.message, 'error'); } finally { hideBusy(); }
     });
     el('runBtn').addEventListener('click', async () => {
       try { await runSimulation(); } catch (error) { showNotice(`仿真失败：${error.message}`, 'error'); hideBusy(); }
@@ -3712,6 +7112,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     window.addEventListener('resize', () => {
       if (document.querySelector('.result-tab.active')?.dataset.resultTab === 'charts') drawChart();
       if (state.activeView === 'interactive') renderInteractiveTelemetry();
+      if (state.graphComposerMode === 'assembly') assemblyDrawEdges();
     });
   }
 
@@ -3723,6 +7124,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     await Promise.allSettled([loadHeader(), loadRuns(), loadModelProviders(), loadTasks(), loadScenarioTemplates(), loadExperiments(), loadInteractiveAvailability()]);
     try {
       await loadCapabilities();
+      await loadAssemblyCatalog();
+      await loadModuleLibrary();
     } catch (error) {
       showNotice(`工作台初始化失败：${error.message}`, 'error');
     }

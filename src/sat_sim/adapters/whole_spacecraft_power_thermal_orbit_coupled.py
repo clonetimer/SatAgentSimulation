@@ -84,6 +84,14 @@ class PowerThermalOrbitCoupledAdapter:
             "physical_validation_status": physical_validation["status"],
             "physical_validation_issue_count": physical_validation["issue_count"],
             "physical_validation": physical_validation,
+            "orbit_provider_capability_id": config.orbit_provider_capability_id,
+            "eps_provider_capability_id": config.eps_provider_capability_id or "parent_internal",
+            "thermal_provider_capability_id": config.thermal_provider_capability_id or "parent_internal",
+            "assembly_replacement_active": bool(
+                config.orbit_provider_capability_id != "orbit_environment.medium_fidelity.v1"
+                or config.eps_provider_capability_id
+                or config.thermal_provider_capability_id
+            ),
         })
         metadata = {
             "capability_id": self.capability_id,
@@ -91,8 +99,9 @@ class PowerThermalOrbitCoupledAdapter:
             "hf8_physical_validation": build_hf8_physical_validation_payload(spec),
             "physical_validation": physical_validation,
             "schema_version": HF5_POWER_THERMAL_ORBIT_SCHEMA_VERSION,
+            "visual_assembly": dict(spec.get("metadata", {}).get("visual_assembly", {})) if isinstance(spec.get("metadata"), Mapping) else {},
         }
-        labels = {"run_labels": [{"task_id": task_id, "mode": mode, "capability_id": self.capability_id, "fidelity_level": "medium"}]}
+        labels = {"run_labels": [{"task_id": task_id, "mode": mode, "capability_id": self.capability_id, "fidelity_level": "orbit_fidelity" if config.orbit_provider_capability_id.endswith("orbit_fidelity.v1") else "medium"}]}
         return SimulationResult(summary=summary, trace_rows=tuple(rows), labels=labels, metadata=metadata)
 
     def generate_python(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> str:

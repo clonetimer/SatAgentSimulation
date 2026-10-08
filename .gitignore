@@ -15,11 +15,6 @@ generated/
 generated_tasks/
 .sat_sim_api/
 reports/local_*/
-# Third-party binaries / external data (Basilisk wheels, SPICE ephemeris, WMM) — fetched separately
-third_party/
-# Auto-generated evaluation reports (keep only reports/README.md)
-reports/*
-!reports/README.md
 *.log
 .DS_Store
 Thumbs.db

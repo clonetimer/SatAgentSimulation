@@ -185,6 +185,24 @@ consumes:
   required: false
 - name: parameters.spacecraft
   required: false
+simulation_module_interface:
+  schema_version: sat-sim.module-interface.v1
+  interface_id: sat-sim.interface.orbit-shadow-source.v1
+  ports:
+  - port_id: out.shadow_factor
+    direction: output
+    payload:
+      schema_id: sat-sim.signal.timeseries.number.v1
+      dtype: number
+      shape: timeseries
+      unit: ratio
+    timing:
+      domain: sampled
+      rate_policy: parent_aligned
+      sample_period_source: simulation.sample_s
+    direct_feedthrough: false
+    fan_out: many
+    description: Eclipse shadow factor sampled on the parent simulation grid.
 time_grid:
   policy: hf1_time_grid_fixed_step_numerical_propagation
   time_field: time_s

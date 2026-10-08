@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import csv
+import io
 import json
 import os
 import sqlite3
@@ -65,6 +66,18 @@ from .release_closure import release_manifest, run_environment_doctor
 from .run_bundle import execute_prepared_run, prepare_run, request_cancel, verify_run_bundle
 from .task_models import CanonicalTaskSpec, canonicalize_task_spec
 from .task_validator import validate_task_spec
+from .visual_graph import validate_visual_graph
+from .assembly_graph import (
+    assembly_catalog,
+    assembly_contract,
+    assembly_runtime_metadata,
+    validate_assembly_graph,
+    validate_assembly_task_spec_binding,
+)
+from .module_replacements import module_library_catalog
+from .visual_diagnostics import diagnose_visual_failure
+from .visual_results import build_visual_run_overlay, resolve_observer_signal_fields
+from .visual_tuning import build_tuning_plan, rank_tuning_rows, tuning_options
 from .unified_agent import UnifiedAgentRequest, run_unified_agent
 
 API_VERSION = "workbench-api.v1"
@@ -103,6 +116,75 @@ class TaskCreateBody(_Strict):
 
 class TaskBody(_Strict):
     task_spec: dict[str, Any]
+
+
+class ScriptExportBody(_Strict):
+    task_spec: dict[str, Any]
+
+
+class GraphCompileBody(_Strict):
+    graph: dict[str, Any]
+    form_data: dict[str, Any]
+    require_code: bool = True
+    require_run: bool = True
+
+
+class AssemblyCompileBody(_Strict):
+    assembly_graph: dict[str, Any]
+    form_data: dict[str, Any]
+    require_all_bindings: bool = True
+
+
+class AssemblyScriptExportBody(_Strict):
+    assembly_graph: dict[str, Any]
+    task_spec: dict[str, Any]
+    require_all_bindings: bool = True
+
+
+class ProgramExportBody(_Strict):
+    task_spec: dict[str, Any]
+    visual_graph: dict[str, Any] | None = None
+    assembly_graph: dict[str, Any] | None = None
+    require_all_bindings: bool = True
+
+
+class VisualDiagnoseBody(_Strict):
+    error_text: str = Field(default="", max_length=20_000)
+    reason_code: str | None = Field(default=None, max_length=200)
+    task_spec: dict[str, Any] | None = None
+    visual_graph: dict[str, Any] | None = None
+    assembly_graph: dict[str, Any] | None = None
+
+
+class VisualRunOverlayBody(_Strict):
+    run_id: str = Field(min_length=1, max_length=200)
+    visual_graph: dict[str, Any] | None = None
+    assembly_graph: dict[str, Any] | None = None
+    telemetry_limit: int = Field(default=2000, ge=1, le=_MAX_TELEMETRY_ROWS)
+
+
+class VisualObserverExportBody(_Strict):
+    run_id: str = Field(min_length=1, max_length=200)
+    assembly_graph: dict[str, Any]
+    observer_id: str = Field(min_length=1, max_length=200)
+    format: Literal["csv", "json"] = "csv"
+
+
+class VisualTuningOptionsBody(_Strict):
+    task_spec: dict[str, Any]
+
+
+class VisualTuningPlanBody(_Strict):
+    task_spec: dict[str, Any]
+    parameters: dict[str, list[float | int]]
+    objective_metric: str = Field(min_length=1, max_length=300)
+    direction: Literal["minimize", "maximize"] = "minimize"
+
+
+class VisualTuningRankBody(_Strict):
+    experiment_id: str = Field(min_length=1, max_length=200)
+    objective_metric: str = Field(min_length=1, max_length=300)
+    direction: Literal["minimize", "maximize"] = "minimize"
 
 
 class RunCreateBody(_Strict):
@@ -586,7 +668,7 @@ def create_app(
 ):
     try:
         from fastapi import FastAPI, HTTPException, Query, Request
-        from fastapi.responses import FileResponse, JSONResponse
+        from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
         from starlette.background import BackgroundTask
         from starlette.middleware.trustedhost import TrustedHostMiddleware
         from fastapi.staticfiles import StaticFiles
@@ -876,7 +958,10 @@ def create_app(
                 "assertion_status": assertions.get("status"),
                 "metrics": metrics,
             })
-        selected = sorted(metric_names)[:64]
+        if requested_metrics:
+            selected = list(dict.fromkeys(str(name) for name in requested_metrics if str(name).strip()))[:64]
+        else:
+            selected = sorted(metric_names)[:64]
         table = [{
             "run_id": row["run_id"], "status": row["status"],
             "validation_result": row["validation_result"], "assertion_status": row["assertion_status"],
@@ -953,6 +1038,315 @@ def create_app(
     @app.get("/capabilities")
     def capabilities() -> dict[str, Any]:
         return {"ok": True, "capabilities": capability_summary_payload()}
+
+    @app.get("/visual-composer/assemblies")
+    def visual_assembly_catalog() -> dict[str, Any]:
+        return {"ok": True, "assemblies": assembly_catalog()}
+
+    @app.get("/visual-composer/assemblies/{capability_id}")
+    def visual_assembly_contract(capability_id: str) -> dict[str, Any]:
+        try:
+            return {"ok": True, "assembly": assembly_contract(capability_id)}
+        except Exception as exc:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "ASSEMBLY_CONTRACT_NOT_FOUND", "message": str(exc)},
+            ) from exc
+
+    @app.get("/visual-composer/simulation-ports/{capability_id}")
+    def visual_simulation_port_contract(capability_id: str) -> dict[str, Any]:
+        """Return the normalized V5 simulation-port contract for one assembly."""
+        try:
+            payload = assembly_contract(capability_id)
+            return {
+                "ok": bool(payload.get("port_contract_valid")),
+                "parent_capability_id": capability_id,
+                "simulation_ports": payload.get("simulation_ports") or {},
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "SIMULATION_PORT_CONTRACT_NOT_FOUND", "message": str(exc)},
+            ) from exc
+
+    @app.get("/visual-composer/module-replacements/{capability_id}")
+    def visual_module_replacement_contract(capability_id: str) -> dict[str, Any]:
+        """Return V7 constrained module slots and compatibility results."""
+        try:
+            payload = assembly_contract(capability_id)
+            return {
+                "ok": bool(payload.get("module_contract_valid")),
+                "parent_capability_id": capability_id,
+                "module_replacements": payload.get("module_replacements") or {},
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "MODULE_REPLACEMENT_CONTRACT_NOT_FOUND", "message": str(exc)},
+            ) from exc
+
+    @app.get("/visual-composer/module-library")
+    def visual_module_library() -> dict[str, Any]:
+        """Return the V7 interface-centric module library.
+
+        Library membership is informational; a parent assembly slot remains the
+        authority for insertion/replacement compatibility.
+        """
+        payload = module_library_catalog()
+        return {"ok": True, "module_library": payload}
+
+    @app.post("/visual-composer/diagnose")
+    def visual_composer_diagnose(body: VisualDiagnoseBody) -> dict[str, Any]:
+        if body.visual_graph is not None and body.assembly_graph is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason_code": "VISUAL_DIAGNOSE_MULTIPLE_GRAPH_SOURCES",
+                    "message": "Provide either visual_graph or assembly_graph, not both.",
+                },
+            )
+        return {
+            "ok": True,
+            "diagnostics": diagnose_visual_failure(
+                error_text=body.error_text,
+                reason_code=body.reason_code,
+                task_spec=body.task_spec,
+                visual_graph=body.visual_graph,
+                assembly_graph=body.assembly_graph,
+            ),
+        }
+
+    @app.post("/visual-composer/run-overlay")
+    def visual_composer_run_overlay(body: VisualRunOverlayBody) -> dict[str, Any]:
+        if body.visual_graph is not None and body.assembly_graph is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason_code": "VISUAL_RUN_OVERLAY_MULTIPLE_GRAPH_SOURCES",
+                    "message": "Provide either visual_graph or assembly_graph, not both.",
+                },
+            )
+        if body.visual_graph is None and body.assembly_graph is None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason_code": "VISUAL_RUN_OVERLAY_GRAPH_REQUIRED",
+                    "message": "A visual_graph or assembly_graph snapshot is required for result projection.",
+                },
+            )
+        try:
+            root = _safe_bundle(run_root, body.run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not root.exists():
+            raise HTTPException(status_code=404, detail="run not found")
+        telemetry = _read_telemetry(root, offset=0, limit=body.telemetry_limit)
+        overlay = build_visual_run_overlay(
+            run_id=body.run_id,
+            run_record=_json(root / "run_record.json") or {},
+            validation_outcome=_json(root / "validation" / "validation_outcome.json") or {},
+            metrics_payload=_json(root / "results" / "metrics.json") or {},
+            telemetry_rows=telemetry.get("rows") or [],
+            visual_graph=body.visual_graph,
+            assembly_graph=body.assembly_graph,
+        )
+        overlay["telemetry_total_rows"] = telemetry.get("total", overlay.get("telemetry_row_count", 0))
+        overlay["telemetry_truncated"] = bool(telemetry.get("truncated", False))
+        return {"ok": True, "overlay": overlay}
+
+    @app.post("/visual-composer/export-observer-data")
+    def visual_composer_export_observer_data(body: VisualObserverExportBody):
+        """Stream selected To Workspace telemetry from a sealed Run Bundle.
+
+        The observer stays non-physical: this endpoint only filters already-recorded
+        telemetry using registered simulation-port ownership.  It never changes
+        TaskSpec, recorder configuration, solver state, or generated Python.
+        """
+
+        try:
+            root = _safe_bundle(run_root, body.run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        source = root / "results" / "telemetry.jsonl"
+        if not root.exists():
+            raise HTTPException(status_code=404, detail="run not found")
+        if not source.exists():
+            raise HTTPException(status_code=404, detail="telemetry not found")
+
+        available_fields: set[str] = set()
+        with source.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(row, dict):
+                    available_fields.update(str(key) for key in row)
+
+        resolved = resolve_observer_signal_fields(
+            assembly_graph=body.assembly_graph,
+            observer_id=body.observer_id,
+            available_fields=sorted(available_fields),
+        )
+        if not resolved.get("ok"):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason_code": resolved.get("reason_code") or "OBSERVER_FIELDS_UNRESOLVED",
+                    "message": "Observer telemetry fields could not be resolved from the registered source port.",
+                    "observer": resolved,
+                },
+            )
+        if resolved.get("observer_kind") != "workspace":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason_code": "OBSERVER_EXPORT_REQUIRES_WORKSPACE_SINK",
+                    "message": "Only a To Workspace observer may export telemetry data.",
+                },
+            )
+
+        time_candidates = ["time_s", "sim_time_s", "t_s", "time", "timestamp_s"]
+        time_field = next((field for field in time_candidates if field in available_fields), None)
+        fields = ([time_field] if time_field else []) + [str(field) for field in resolved.get("fields") or []]
+        safe_name = "".join(ch if (ch.isalnum() or ch in "-_.") else "_" for ch in str(resolved.get("name") or "workspace")).strip("._") or "workspace"
+        filename = f"{safe_name}_{body.run_id}.{body.format}"
+
+        def iter_rows():
+            with source.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(row, dict):
+                        yield {field: row.get(field) for field in fields}
+
+        if body.format == "json":
+            def json_stream():
+                prefix = {
+                    "schema_version": "sat-sim.observer-export.v1",
+                    "run_id": body.run_id,
+                    "observer_id": body.observer_id,
+                    "observer_kind": "workspace",
+                    "fields": fields,
+                    "runtime_effect": "none",
+                }
+                head = json.dumps(prefix, ensure_ascii=False)[:-1]
+                yield head + ',"rows":['
+                first = True
+                for row in iter_rows():
+                    if not first:
+                        yield ","
+                    first = False
+                    yield json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+                yield "]}\n"
+            response = StreamingResponse(json_stream(), media_type="application/json; charset=utf-8")
+        else:
+            def csv_stream():
+                buffer = io.StringIO()
+                writer = csv.writer(buffer, lineterminator="\n")
+                writer.writerow(fields)
+                yield buffer.getvalue()
+                for row in iter_rows():
+                    buffer.seek(0); buffer.truncate(0)
+                    writer.writerow([row.get(field) for field in fields])
+                    yield buffer.getvalue()
+            response = StreamingResponse(csv_stream(), media_type="text/csv; charset=utf-8")
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response.headers["X-Sat-Sim-Observer-Runtime-Effect"] = "none"
+        return response
+
+    @app.post("/visual-composer/tuning-options")
+    def visual_composer_tuning_options(body: VisualTuningOptionsBody) -> dict[str, Any]:
+        try:
+            return {"ok": True, "tuning": tuning_options(body.task_spec)}
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "VISUAL_TUNING_OPTIONS_FAILED", "message": str(exc)},
+            ) from exc
+
+    @app.post("/visual-composer/tuning-plan")
+    def visual_composer_tuning_plan(body: VisualTuningPlanBody) -> dict[str, Any]:
+        try:
+            return {
+                "ok": True,
+                "plan": build_tuning_plan(
+                    body.task_spec,
+                    body.parameters,
+                    objective_metric=body.objective_metric,
+                    direction=body.direction,
+                ),
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "VISUAL_TUNING_PLAN_INVALID", "message": str(exc)},
+            ) from exc
+
+    @app.post("/visual-composer/tuning-rank")
+    def visual_composer_tuning_rank(body: VisualTuningRankBody) -> dict[str, Any]:
+        record = experiment_store.get(body.experiment_id)
+        if record is None:
+            raise HTTPException(status_code=404, detail={"reason_code": "VISUAL_TUNING_EXPERIMENT_NOT_FOUND"})
+        try:
+            option_payload = tuning_options(record.base_task_spec)
+            allowed_metrics = {str(item.get("metric") or "") for item in option_payload.get("objectives", [])}
+            if body.objective_metric not in allowed_metrics:
+                raise ValueError(f"unsupported tuning objective: {body.objective_metric}")
+            members = reconcile_experiment(body.experiment_id)
+            rows: list[dict[str, Any]] = []
+            pending_count = 0
+            failed_count = 0
+            for member in members:
+                run_id = member.get("run_id")
+                state = str(member.get("state") or "UNKNOWN")
+                if state not in TERMINAL_STATES:
+                    pending_count += 1
+                    continue
+                if state != "SUCCEEDED" or not run_id:
+                    failed_count += 1
+                    continue
+                root = _safe_bundle(run_root, str(run_id))
+                metrics_payload = _json(root / "results" / "metrics.json") or {}
+                metrics = metrics_payload.get("metrics") if isinstance(metrics_payload.get("metrics"), dict) else {}
+                rows.append({
+                    "variant_index": int(member.get("variant_index") or 0),
+                    "run_id": str(run_id),
+                    "state": state,
+                    "validation_result": member.get("validation_result"),
+                    "parameters": dict(member.get("parameters") or {}),
+                    "objective_value": metrics.get(body.objective_metric),
+                })
+            ranked = rank_tuning_rows(rows, objective_metric=body.objective_metric, direction=body.direction)
+            return {
+                "ok": True,
+                "schema_version": "sat-sim.visual-tuning.v1",
+                "experiment_id": body.experiment_id,
+                "objective_metric": body.objective_metric,
+                "direction": body.direction,
+                "variant_count": len(members),
+                "ranked_count": len(ranked),
+                "pending_count": pending_count,
+                "failed_count": failed_count,
+                "complete": pending_count == 0,
+                "best": ranked[0] if ranked else None,
+                "ranked": ranked,
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "VISUAL_TUNING_RANK_FAILED", "message": str(exc)},
+            ) from exc
 
     @app.get("/capabilities/product-closure")
     def capability_product_closure() -> dict[str, Any]:
@@ -1497,6 +1891,102 @@ def create_app(
         except Exception as exc:
             raise HTTPException(status_code=422, detail={"reason_code": "TASK_PARSE_FAILED", "message": str(exc)}) from exc
 
+    @app.post("/tasks/compile-graph")
+    def compile_visual_task(body: GraphCompileBody) -> dict[str, Any]:
+        """Validate typed visual topology, then compile through the existing TaskSpec path.
+
+        The visual graph is orchestration metadata only.  It cannot introduce
+        arbitrary Python or bypass Capability/TaskSpec validation.
+        """
+        request_id = uuid4().hex
+        form_capability_id = str(
+            body.form_data.get("capability_id")
+            or ((body.form_data.get("model") or {}).get("capability_id"))
+            or ""
+        ).strip()
+        graph_validation = validate_visual_graph(
+            body.graph,
+            expected_capability_id=form_capability_id or None,
+            require_code=body.require_code,
+            require_run=body.require_run,
+        )
+        if not graph_validation.ok:
+            return {
+                "ok": False,
+                "request_id": request_id,
+                "graph_validation": graph_validation.to_dict(),
+                "result": None,
+            }
+        try:
+            result = run_unified_agent(UnifiedAgentRequest(
+                input_kind="form",
+                form_data=body.form_data,
+                output_dir=artifact_root / "tasks" / request_id,
+                compile_if_valid=True,
+            ))
+            return {
+                "ok": result.ok,
+                "request_id": request_id,
+                "graph_validation": graph_validation.to_dict(),
+                "result": result.to_dict(),
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "GRAPH_TASK_COMPILE_FAILED", "message": str(exc)},
+            ) from exc
+
+    @app.post("/tasks/compile-assembly")
+    def compile_assembly_task(body: AssemblyCompileBody) -> dict[str, Any]:
+        """Validate a registered multi-module assembly, then compile its parent TaskSpec.
+
+        Signal edges may only reproduce bindings declared by the parent Capability
+        contract. V7 permits only allow-listed, interface-compatible dependency
+        substitutions or parent-managed internal insertions; the registered parent
+        adapter remains the runtime owner and arbitrary module/class substitution is
+        rejected.
+        """
+        request_id = uuid4().hex
+        form_capability_id = str(
+            body.form_data.get("capability_id")
+            or ((body.form_data.get("model") or {}).get("capability_id"))
+            or ""
+        ).strip()
+        validation = validate_assembly_graph(
+            body.assembly_graph,
+            expected_parent_capability_id=form_capability_id or None,
+            require_all_bindings=body.require_all_bindings,
+        )
+        if not validation.ok:
+            return {
+                "ok": False,
+                "request_id": request_id,
+                "assembly_validation": validation.to_dict(),
+                "result": None,
+            }
+        try:
+            bound_form = copy.deepcopy(dict(body.form_data))
+            metadata = dict(bound_form.get("metadata") or {})
+            metadata["visual_assembly"] = assembly_runtime_metadata(body.assembly_graph, validation)
+            bound_form["metadata"] = metadata
+            result = run_unified_agent(UnifiedAgentRequest(
+                input_kind="form",
+                form_data=bound_form,
+                output_dir=artifact_root / "tasks" / request_id,
+                compile_if_valid=True,
+            ))
+            return {
+                "ok": result.ok,
+                "request_id": request_id,
+                "assembly_validation": validation.to_dict(),
+                "result": result.to_dict(),
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "ASSEMBLY_TASK_COMPILE_FAILED", "message": str(exc)},
+            ) from exc
+
     @app.post("/tasks/validate")
     def validate_task(body: TaskBody) -> dict[str, Any]:
         try:
@@ -1511,6 +2001,402 @@ def create_app(
             }
         except Exception as exc:
             raise HTTPException(status_code=422, detail={"reason_code": "TASK_VALIDATION_FAILED", "message": str(exc)}) from exc
+
+    @app.post("/tasks/export-assembly-script")
+    def export_assembly_script(body: AssemblyScriptExportBody) -> dict[str, Any]:
+        """Export executable Python with the validated assembly graph embedded.
+
+        The generated script re-validates the registered assembly before using
+        the same trusted TaskSpec compiler/executor as ordinary capability code.
+        """
+        try:
+            canonical = canonicalize_task_spec(body.task_spec)
+            validation = validate_task_spec(canonical)
+            guards = evaluate_agent_guards(canonical)
+            if not validation.ok or not guards.ok:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "ASSEMBLY_SCRIPT_TASKSPEC_INVALID",
+                        "message": "TaskSpec must pass validation and guard checks before assembly script export.",
+                        "validation": validation.to_dict(),
+                        "guards": guards.to_dict(),
+                    },
+                )
+            capability_id = str(
+                canonical.get("capability_id")
+                or ((canonical.get("model") or {}).get("capability_id"))
+                or ""
+            ).strip()
+            assembly_validation = validate_assembly_graph(
+                body.assembly_graph,
+                expected_parent_capability_id=capability_id or None,
+                require_all_bindings=body.require_all_bindings,
+            )
+            if not assembly_validation.ok:
+                return {
+                    "ok": False,
+                    "assembly_validation": assembly_validation.to_dict(),
+                    "assembly_task_binding": None,
+                    "code": None,
+                }
+            task_binding = validate_assembly_task_spec_binding(canonical, body.assembly_graph, validation=assembly_validation)
+            if not task_binding.get("ok"):
+                return {
+                    "ok": False,
+                    "assembly_validation": assembly_validation.to_dict(),
+                    "assembly_task_binding": task_binding,
+                    "code": None,
+                }
+
+            from .script_exporter import export_assembly_python_runner
+
+            request_id = uuid4().hex
+            export_dir = artifact_root / "codegen" / request_id
+            export_dir.mkdir(parents=True, exist_ok=True)
+            spec_path = export_dir / "task_spec.json"
+            assembly_path = export_dir / "assembly_graph.json"
+            raw_task_id = str((canonical.get("task") or {}).get("id") or "assembly")
+            safe_task_id = "".join(ch if (ch.isalnum() or ch in "-_.") else "_" for ch in raw_task_id).strip("._") or "assembly"
+            safe_task_id = safe_task_id[:120]
+            script_path = export_dir / f"{safe_task_id}_assembly.py"
+            spec_path.write_text(json.dumps(canonical, indent=2, ensure_ascii=False), encoding="utf-8")
+            assembly_path.write_text(json.dumps(body.assembly_graph, indent=2, ensure_ascii=False), encoding="utf-8")
+            exported = export_assembly_python_runner(spec_path, script_path, assembly_graph=body.assembly_graph)
+            code = exported.output_path.read_text(encoding="utf-8")
+            return {
+                "ok": True,
+                "kind": "assembly-python",
+                "filename": exported.output_path.name,
+                "code": code,
+                "assembly_validation": assembly_validation.to_dict(),
+                "assembly_task_binding": task_binding,
+                "provenance": {
+                    "generator": "sat_sim.script_exporter",
+                    "assembly_validator": "sat_sim.assembly_graph.validate_assembly_graph",
+                    "simulation_port_schema": "sat-sim.simulation-ports.v1",
+                    "port_contract_source": assembly_validation.port_contract_source,
+                    "port_contract_fingerprint": assembly_validation.port_contract_fingerprint,
+                    "solver_policies": list(assembly_validation.solver_policies),
+                    "timing_policies": list(assembly_validation.timing_policies),
+                    "module_replacement_schema": "sat-sim.module-replacements.v1",
+                    "module_contract_fingerprint": assembly_validation.module_contract_fingerprint,
+                    "replacement_count": assembly_validation.replacement_count,
+                    "selected_modules": dict(assembly_validation.selected_modules or {}),
+                    "arbitrary_python_accepted": False,
+                    "arbitrary_module_substitution": False,
+                    "constrained_module_substitution": True,
+                    "runtime_owner": capability_id,
+                },
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "ASSEMBLY_SCRIPT_EXPORT_FAILED", "message": str(exc)},
+            ) from exc
+
+    @app.post("/tasks/export-script")
+    def export_task_script(body: ScriptExportBody) -> dict[str, Any]:
+        """Export deterministic, executable capability Python for a validated TaskSpec.
+
+        The returned source is generated by the trusted script exporter.  This
+        endpoint never accepts arbitrary Python source from the client.
+        """
+        try:
+            canonical = canonicalize_task_spec(body.task_spec)
+            validation = validate_task_spec(canonical)
+            guards = evaluate_agent_guards(canonical)
+            if not validation.ok or not guards.ok:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "TASK_SCRIPT_EXPORT_VALIDATION_FAILED",
+                        "message": "TaskSpec must pass validation and guard checks before script export.",
+                        "validation": validation.to_dict(),
+                        "guards": guards.to_dict(),
+                    },
+                )
+
+            from .script_exporter import export_runner_script
+
+            request_id = uuid4().hex
+            export_dir = artifact_root / "codegen" / request_id
+            export_dir.mkdir(parents=True, exist_ok=True)
+            spec_path = export_dir / "task_spec.json"
+            raw_task_id = str((canonical.get("task") or {}).get("id") or "simulation")
+            safe_task_id = "".join(ch if (ch.isalnum() or ch in "-_.") else "_" for ch in raw_task_id).strip("._") or "simulation"
+            safe_task_id = safe_task_id[:120]
+            script_path = export_dir / f"{safe_task_id}.py"
+            spec_path.write_text(json.dumps(canonical, indent=2, ensure_ascii=False), encoding="utf-8")
+            exported = export_runner_script(spec_path, script_path, kind="capability-python")
+            code = exported.output_path.read_text(encoding="utf-8")
+            return {
+                "ok": True,
+                "request_id": request_id,
+                "kind": exported.kind,
+                "filename": exported.output_path.name,
+                "code": code,
+                "provenance": {
+                    "generator": "sat_sim.script_exporter",
+                    "arbitrary_python_accepted": False,
+                    "task_spec_validated": True,
+                },
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "TASK_SCRIPT_EXPORT_FAILED", "message": str(exc)},
+            ) from exc
+
+    @app.post("/tasks/export-program")
+    def export_visual_program(body: ProgramExportBody):
+        """Export a runnable Visual Composer project bundle.
+
+        The bundle contains only deterministic generated runner code plus the
+        validated TaskSpec/assembly data and small launch helpers. It never
+        accepts arbitrary Python source or unregistered module construction.
+        The generated program expects the matching ``sat_sim`` runtime to be
+        installed (normally the source environment that produced the bundle).
+        """
+        try:
+            canonical = canonicalize_task_spec(body.task_spec)
+            validation = validate_task_spec(canonical)
+            guards = evaluate_agent_guards(canonical)
+            if not validation.ok or not guards.ok:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "PROGRAM_EXPORT_TASKSPEC_INVALID",
+                        "message": "TaskSpec must pass validation and guard checks before program export.",
+                        "validation": validation.to_dict(),
+                        "guards": guards.to_dict(),
+                    },
+                )
+
+            capability_id = str(
+                canonical.get("capability_id")
+                or ((canonical.get("model") or {}).get("capability_id"))
+                or ""
+            ).strip()
+            if body.visual_graph is not None and body.assembly_graph is not None:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "PROGRAM_EXPORT_MULTIPLE_GRAPH_SOURCES",
+                        "message": "A program bundle may contain either visual_graph or assembly_graph, not both.",
+                    },
+                )
+            visual_graph_validation = None
+            if body.visual_graph is not None:
+                visual_graph_validation = validate_visual_graph(
+                    body.visual_graph,
+                    expected_capability_id=capability_id or None,
+                    require_code=True,
+                    require_run=True,
+                )
+                if not visual_graph_validation.ok:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "reason_code": "PROGRAM_EXPORT_VISUAL_GRAPH_INVALID",
+                            "message": "Visual graph must pass typed-port and topology validation before program export.",
+                            "graph_validation": visual_graph_validation.to_dict(),
+                        },
+                    )
+
+            assembly_validation = None
+            assembly_task_binding = None
+            if body.assembly_graph is not None:
+                assembly_validation = validate_assembly_graph(
+                    body.assembly_graph,
+                    expected_parent_capability_id=capability_id or None,
+                    require_all_bindings=body.require_all_bindings,
+                )
+                if not assembly_validation.ok:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "reason_code": "PROGRAM_EXPORT_ASSEMBLY_INVALID",
+                            "message": "Assembly graph must pass validation before program export.",
+                            "assembly_validation": assembly_validation.to_dict(),
+                        },
+                    )
+                assembly_task_binding = validate_assembly_task_spec_binding(
+                    canonical,
+                    body.assembly_graph,
+                    validation=assembly_validation,
+                )
+                if not assembly_task_binding.get("ok"):
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "reason_code": "PROGRAM_EXPORT_ASSEMBLY_TASK_MISMATCH",
+                            "message": "Assembly graph and TaskSpec module selections do not match.",
+                            "assembly_task_binding": assembly_task_binding,
+                        },
+                    )
+
+            from .script_exporter import export_assembly_python_runner, export_runner_script
+
+            request_id = uuid4().hex
+            export_dir = artifact_root / "programs" / request_id
+            export_dir.mkdir(parents=True, exist_ok=True)
+            raw_task_id = str((canonical.get("task") or {}).get("id") or "simulation")
+            safe_task_id = "".join(ch if (ch.isalnum() or ch in "-_.") else "_" for ch in raw_task_id).strip("._") or "simulation"
+            safe_task_id = safe_task_id[:96]
+            bundle_name = f"{safe_task_id}_visual_program"
+            bundle_root = export_dir / bundle_name
+            bundle_root.mkdir(parents=True, exist_ok=True)
+
+            spec_path = bundle_root / "task_spec.json"
+            spec_path.write_text(json.dumps(canonical, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            if body.visual_graph is not None:
+                (bundle_root / "visual_graph.json").write_text(
+                    json.dumps(body.visual_graph, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+            runner_path = bundle_root / "run_simulation.py"
+            if body.assembly_graph is not None:
+                assembly_path = bundle_root / "assembly_graph.json"
+                assembly_path.write_text(json.dumps(body.assembly_graph, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                exported = export_assembly_python_runner(
+                    spec_path,
+                    runner_path,
+                    assembly_graph=body.assembly_graph,
+                )
+                program_kind = "assembly-program"
+            else:
+                exported = export_runner_script(spec_path, runner_path, kind="capability-python")
+                program_kind = "visual-flow-program" if body.visual_graph is not None else "capability-program"
+
+            manifest = {
+                "schema_version": "sat-sim.visual-program.v1",
+                "kind": program_kind,
+                "task_id": str((canonical.get("task") or {}).get("id") or ""),
+                "capability_id": capability_id,
+                "runner": exported.output_path.name,
+                "task_spec": "task_spec.json",
+                "visual_graph": "visual_graph.json" if body.visual_graph is not None else None,
+                "assembly_graph": "assembly_graph.json" if body.assembly_graph is not None else None,
+                "runtime_requirement": "matching satellite-simulation-platform / sat_sim environment",
+                "arbitrary_python_accepted": False,
+                "arbitrary_module_substitution": False,
+            }
+            if visual_graph_validation is not None:
+                manifest["visual_graph_schema_version"] = str(body.visual_graph.get("schema_version") or "")
+                manifest["visual_graph_node_count"] = visual_graph_validation.node_count
+                manifest["visual_graph_edge_count"] = visual_graph_validation.edge_count
+            if assembly_validation is not None:
+                manifest["port_contract_fingerprint"] = assembly_validation.port_contract_fingerprint
+                manifest["module_contract_fingerprint"] = assembly_validation.module_contract_fingerprint
+                manifest["replacement_count"] = assembly_validation.replacement_count
+                manifest["selected_modules"] = dict(assembly_validation.selected_modules or {})
+                scopes = body.assembly_graph.get("scopes") if isinstance(body.assembly_graph, dict) else None
+                scope_rows = [row for row in scopes if isinstance(row, dict)] if isinstance(scopes, list) else []
+                observer_kinds = {"scope": 0, "display": 0, "workspace": 0}
+                for observer in scope_rows:
+                    kind = str(observer.get("kind") or "scope").lower()
+                    if kind not in observer_kinds:
+                        kind = "scope"
+                    observer_kinds[kind] += 1
+                manifest["observer_count"] = len(scope_rows)
+                manifest["observer_scope_count"] = observer_kinds["scope"]
+                manifest["observer_display_count"] = observer_kinds["display"]
+                manifest["observer_workspace_count"] = observer_kinds["workspace"]
+                manifest["observer_probe_count"] = sum(
+                    len(scope.get("probes") or [])
+                    for scope in scope_rows
+                    if isinstance(scope.get("probes") or [], list)
+                )
+                manifest["observer_runtime_effect"] = "none"
+            (bundle_root / "program_manifest.json").write_text(
+                json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+
+            readme = f"""# Visual Composer 可运行程序包
+
+该目录由卫星仿真工作台确定性生成，入口为 `{exported.output_path.name}`。
+
+## 运行
+
+前提：当前 Python 环境已安装与导出端一致的 `sat_sim` / satellite-simulation-platform 运行时及其依赖。
+
+Linux / macOS：
+
+```bash
+bash run.sh
+```
+
+Windows：
+
+```bat
+run.bat
+```
+
+或直接：
+
+```bash
+python {exported.output_path.name}
+```
+
+可以把运行参数直接透传给生成脚本，例如：
+
+```bash
+python {exported.output_path.name} --duration-s 600 --sample-s 10 --show-task-spec
+```
+
+## 文件
+
+- `{exported.output_path.name}`：确定性生成的可执行 Python 入口；
+- `task_spec.json`：生成时已校验的 Canonical TaskSpec；
+- `program_manifest.json`：程序包来源、Capability 与合同指纹；
+- `visual_graph.json`：任务流程模式程序包包含，保留类型化节点/连线工程源；
+- `assembly_graph.json`：仅多模块装配程序包包含，保存物理装配以及 Scope / Display / To Workspace 等只读工程观察信息；运行前只对物理装配和模块选择执行可信校验；
+- `run.sh` / `run.bat`：快捷启动脚本。
+
+Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner，也不会改变 TaskSpec、求解器或模块选择；它们只在工作台读取 Run Bundle telemetry。程序包不会包含用户提供的任意 Python，也不会允许绕过注册 Capability / module contract 动态导入任意类。
+"""
+            (bundle_root / "README.md").write_text(readme, encoding="utf-8")
+            run_sh = bundle_root / "run.sh"
+            run_sh.write_text(
+                '#!/usr/bin/env bash\nset -euo pipefail\ncd "$(dirname "$0")"\nexec python3 run_simulation.py "$@"\n',
+                encoding="utf-8",
+            )
+            try:
+                run_sh.chmod(run_sh.stat().st_mode | 0o111)
+            except OSError:
+                pass
+            (bundle_root / "run.bat").write_text(
+                "@echo off\r\ncd /d %~dp0\r\npython run_simulation.py %*\r\n",
+                encoding="utf-8",
+            )
+
+            archive_path = export_dir / f"{bundle_name}.zip"
+            with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                for path in sorted(bundle_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, arcname=str(Path(bundle_name) / path.relative_to(bundle_root)))
+            return FileResponse(
+                archive_path,
+                filename=archive_path.name,
+                media_type="application/zip",
+                headers={
+                    "X-Sat-Sim-Program-Kind": program_kind,
+                    "X-Sat-Sim-Capability-Id": capability_id,
+                },
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "PROGRAM_EXPORT_FAILED", "message": str(exc)},
+            ) from exc
 
     @app.post("/tasks/resolve")
     def resolve_task(body: TaskBody) -> dict[str, Any]:

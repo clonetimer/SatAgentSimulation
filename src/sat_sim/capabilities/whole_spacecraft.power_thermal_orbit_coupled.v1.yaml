@@ -139,6 +139,159 @@ time_grid:
   source: simulation
   duration_field: simulation.duration_s
   sample_field: simulation.sample_s
+simulation_ports:
+  schema_version: sat-sim.simulation-ports.v1
+  clock:
+    owner: whole_spacecraft.power_thermal_orbit_coupled.v1
+    policy: parent_runtime
+    sample_period_source: simulation.sample_s
+  module_slots:
+  - module_alias: orbit_environment
+    interface_id: sat-sim.interface.orbit-shadow-source.v1
+    baseline_capability_id: orbit_environment.medium_fidelity.v1
+    replacement_policy: allowlist-compatible
+    allowed_capability_ids:
+    - orbit_environment.medium_fidelity.v1
+    - orbit_environment.orbit_fidelity.v1
+    runtime_selector: orbit_environment
+    port_map:
+      out.shadow_factor: orbit_environment.out.shadow_factor
+  - module_alias: eps
+    slot_kind: parent_managed_internal
+    interface_id: sat-sim.interface.eps-coupled-power.v1
+    replacement_policy: allowlist-compatible
+    allowed_capability_ids:
+    - subsystem.eps.source_native.v1
+    runtime_selector: eps
+    port_map:
+      in.solar_generation_w: eps.in.shadow_factor_for_generation
+      out.requested_power_w: eps.out.requested_power_w
+      in.heater_power_w: eps.in.heater_power_w
+      in.effective_capacity_wh: eps.in.effective_capacity_wh
+  - module_alias: thermal
+    slot_kind: parent_managed_internal
+    interface_id: sat-sim.interface.thermal-coupled-lumped.v1
+    replacement_policy: allowlist-compatible
+    allowed_capability_ids:
+    - subsystem.thermal.source_native.v1
+    runtime_selector: thermal
+    port_map:
+      in.solar_heat_w: thermal.in.shadow_factor_for_solar_heat
+      in.internal_power_w: thermal.in.internal_power_w
+      out.heater_power_w: thermal.out.heater_power_w
+      out.battery_temp_c: thermal.out.battery_temp_c
+  ports:
+  - port_id: orbit_environment.out.shadow_factor
+    module_alias: orbit_environment
+    direction: output
+    path: orbit_environment.trace.environment.shadow_factor
+    payload: {schema_id: sat-sim.signal.timeseries.number.v1, dtype: number, shape: timeseries, unit: ratio}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    direct_feedthrough: false
+    state_owner: orbit_environment
+    fan_out: many
+    description: Medium-fidelity orbit/environment eclipse shadow factor.
+  - port_id: eps.in.shadow_factor_for_generation
+    module_alias: eps
+    direction: input
+    path: eps.solar.array_power_w
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    state_owner: eps
+    fan_in: one
+    description: Effective solar generation after parent-owned shadow scaling.
+  - port_id: thermal.in.shadow_factor_for_solar_heat
+    module_alias: thermal
+    direction: input
+    path: thermal.heat.solar_input_w
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    state_owner: thermal
+    fan_in: one
+    description: Solar thermal input after parent-owned shadow scaling.
+  - port_id: eps.out.requested_power_w
+    module_alias: eps
+    direction: output
+    path: eps.loads.requested_power_w
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    direct_feedthrough: true
+    state_owner: eps
+    fan_out: many
+    description: Aggregate requested electrical load before thermal dissipation mapping.
+  - port_id: thermal.in.internal_power_w
+    module_alias: thermal
+    direction: input
+    path: thermal.heat.internal_power_w
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    state_owner: thermal
+    fan_in: one
+    description: Internal dissipative heat derived from electrical load.
+  - port_id: thermal.out.heater_power_w
+    module_alias: thermal
+    direction: output
+    path: thermal.heater.power_w
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    direct_feedthrough: false
+    state_owner: thermal
+    fan_out: many
+    description: Thermostat-controlled heater electrical demand.
+  - port_id: eps.in.heater_power_w
+    module_alias: eps
+    direction: input
+    path: eps.loads.requested.heater_w
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: W}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    state_owner: eps
+    fan_in: one
+    description: Heater electrical load fed back into EPS.
+  - port_id: thermal.out.battery_temp_c
+    module_alias: thermal
+    direction: output
+    path: thermal.node.battery_temp_c
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: degC}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    direct_feedthrough: false
+    state_owner: thermal
+    fan_out: many
+    description: Stateful battery-node temperature.
+  - port_id: eps.in.effective_capacity_wh
+    module_alias: eps
+    direction: input
+    path: eps.battery.effective_capacity_wh
+    payload: {schema_id: sat-sim.signal.scalar.number.v1, dtype: number, shape: scalar, unit: Wh}
+    timing: {domain: sampled, rate_policy: parent_aligned, sample_period_source: simulation.sample_s}
+    state_owner: eps
+    fan_in: one
+    description: Temperature-derated effective battery capacity.
+  bindings:
+  - binding_id: shadow_to_eps_solar
+    source_port: orbit_environment.out.shadow_factor
+    target_port: eps.in.shadow_factor_for_generation
+    transform: {policy: scale_nominal_solar_power, resampling: parent_aligned}
+    solver: {policy: feed_forward, delay_steps: 0}
+  - binding_id: shadow_to_thermal_solar
+    source_port: orbit_environment.out.shadow_factor
+    target_port: thermal.in.shadow_factor_for_solar_heat
+    transform: {policy: scale_solar_heat_input, resampling: parent_aligned}
+    solver: {policy: feed_forward, delay_steps: 0}
+  - binding_id: eps_load_to_thermal_heat
+    source_port: eps.out.requested_power_w
+    target_port: thermal.in.internal_power_w
+    transform: {policy: electrical_load_heat_fraction, resampling: parent_aligned}
+    solver: {policy: parent_managed_stateful_feedback, delay_steps: 0}
+  - binding_id: thermal_heater_to_eps_load
+    source_port: thermal.out.heater_power_w
+    target_port: eps.in.heater_power_w
+    transform: {policy: identity, resampling: parent_aligned}
+    solver: {policy: parent_managed_stateful_feedback, delay_steps: 0}
+  - binding_id: battery_temp_to_eps_capacity
+    source_port: thermal.out.battery_temp_c
+    target_port: eps.in.effective_capacity_wh
+    transform: {policy: battery_capacity_derating_curve, resampling: parent_aligned}
+    solver: {policy: parent_managed_stateful_feedback, delay_steps: 0}
 composition:
   chain:
   - capability_id: whole_spacecraft.power_thermal_orbit_coupled.v1

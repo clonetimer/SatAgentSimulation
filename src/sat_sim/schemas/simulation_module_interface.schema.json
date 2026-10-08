@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "simulation_module_interface.schema.json",
+  "title": "SatSim Simulation Module Interface",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "interface_id",
+    "ports"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat-sim.module-interface.v1"
+    },
+    "interface_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180
+    },
+    "ports": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "port_id",
+          "direction",
+          "payload",
+          "timing"
+        ],
+        "properties": {
+          "port_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "direction": {
+            "enum": [
+              "input",
+              "output"
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schema_id",
+              "dtype",
+              "shape",
+              "unit"
+            ],
+            "properties": {
+              "schema_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "dtype": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "shape": {
+                "enum": [
+                  "scalar",
+                  "timeseries",
+                  "scalar_or_series",
+                  "boolean",
+                  "object",
+                  "event"
+                ]
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            }
+          },
+          "timing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "rate_policy",
+              "sample_period_source"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "rate_policy": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "sample_period_source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              }
+            }
+          },
+          "direct_feedthrough": {
+            "type": "boolean"
+          },
+          "fan_in": {
+            "enum": [
+              "one",
+              "many"
+            ]
+          },
+          "fan_out": {
+            "enum": [
+              "one",
+              "many"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "direction": {
+                  "const": "output"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "direct_feedthrough",
+                "fan_out"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "direction": {
+                  "const": "input"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "fan_in"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

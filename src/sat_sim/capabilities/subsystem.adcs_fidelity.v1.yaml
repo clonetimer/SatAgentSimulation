@@ -536,6 +536,10 @@ outputs:
     unit: bool
     dtype: number
     description: 姿态控制反作用轮饱和标志。运行器实际输出字段；技术字段为 adcs.rw.saturation_flag，单位 bool。
+  - name: adcs.rw.provider_capability_id
+    unit: none
+    dtype: string
+    description: V8 图形装配实际采用的反作用轮运行时 provider；parent_internal 表示父 ADCS 内部基线实现。
   - name: adcs.power.rw_power_w
     unit: W
     dtype: number
@@ -725,6 +729,14 @@ outputs:
     unit: N*m*s
     dtype: number
     description: 反作用轮最大绝对角动量。
+  - name: reaction_wheel_provider_capability_id
+    unit: none
+    dtype: string
+    description: 当前 ADCS 运行实际使用的反作用轮 provider。
+  - name: assembly_replacement_active
+    unit: bool
+    dtype: bool
+    description: 是否启用了 V8 Reaction Wheel 注册模块插入。
   - name: qoi.adcs.control.mode_trace_available
     unit: bool
     dtype: number
@@ -751,6 +763,96 @@ time_grid:
   duration_source: simulation.duration_s
   sample_source: simulation.sample_s
   internal_step_source: simulation.solver.step_s
+simulation_ports:
+  schema_version: sat-sim.simulation-ports.v1
+  clock:
+    owner: subsystem.adcs_fidelity.v1
+    policy: parent_runtime
+    sample_period_source: simulation.solver.step_s
+  module_slots:
+  - module_alias: reaction_wheel
+    slot_kind: parent_managed_internal
+    interface_id: sat-sim.interface.reaction-wheel-dynamics.v1
+    replacement_policy: allowlist-compatible
+    allowed_capability_ids:
+    - component.reaction_wheel.v1
+    runtime_selector: reaction_wheel
+    port_map:
+      in.motor_torque_nm: reaction_wheel.in.motor_torque_nm
+      out.wheel_speed_rad_s: reaction_wheel.out.wheel_speed_rad_s
+  ports:
+  - port_id: wheel_allocator.out.motor_torque_nm
+    module_alias: wheel_allocator
+    direction: output
+    path: wheel_allocator.motor_torque_nm
+    payload: {schema_id: sat-sim.signal.vector.number.v1, dtype: object, shape: object, unit: N*m}
+    timing: {domain: sampled, rate_policy: parent_internal_step, sample_period_source: simulation.solver.step_s}
+    direct_feedthrough: true
+    state_owner: wheel_allocator
+    fan_out: many
+  - port_id: reaction_wheel.in.motor_torque_nm
+    module_alias: reaction_wheel
+    direction: input
+    path: reaction_wheel.motor_torque_nm
+    payload: {schema_id: sat-sim.signal.vector.number.v1, dtype: object, shape: object, unit: N*m}
+    timing: {domain: sampled, rate_policy: parent_internal_step, sample_period_source: simulation.solver.step_s}
+    state_owner: reaction_wheel
+    fan_in: one
+  - port_id: rigid_body.in.applied_motor_torque_nm
+    module_alias: rigid_body
+    direction: input
+    path: rigid_body.applied_motor_torque_nm
+    payload: {schema_id: sat-sim.signal.vector.number.v1, dtype: object, shape: object, unit: N*m}
+    timing: {domain: sampled, rate_policy: parent_internal_step, sample_period_source: simulation.solver.step_s}
+    state_owner: rigid_body
+    fan_in: one
+  - port_id: reaction_wheel.out.wheel_speed_rad_s
+    module_alias: reaction_wheel
+    direction: output
+    path: reaction_wheel.wheel_speed_rad_s
+    payload: {schema_id: sat-sim.signal.vector.number.v1, dtype: object, shape: object, unit: rad/s}
+    timing: {domain: sampled, rate_policy: parent_internal_step, sample_period_source: simulation.solver.step_s}
+    direct_feedthrough: false
+    state_owner: reaction_wheel
+    fan_out: one
+  - port_id: saturation_monitor.in.wheel_speed_rad_s
+    module_alias: saturation_monitor
+    direction: input
+    path: saturation_monitor.wheel_speed_rad_s
+    payload: {schema_id: sat-sim.signal.vector.number.v1, dtype: object, shape: object, unit: rad/s}
+    timing: {domain: sampled, rate_policy: parent_internal_step, sample_period_source: simulation.solver.step_s}
+    state_owner: saturation_monitor
+    fan_in: one
+  bindings:
+  - binding_id: allocator_to_reaction_wheel
+    source_port: wheel_allocator.out.motor_torque_nm
+    target_port: reaction_wheel.in.motor_torque_nm
+    transform: {policy: identity, resampling: parent_internal_step}
+    solver: {policy: feed_forward, delay_steps: 0}
+  - binding_id: allocator_to_rigid_body
+    source_port: wheel_allocator.out.motor_torque_nm
+    target_port: rigid_body.in.applied_motor_torque_nm
+    transform: {policy: wheel_axis_projection, resampling: parent_internal_step}
+    solver: {policy: feed_forward, delay_steps: 0}
+  - binding_id: reaction_wheel_speed_to_saturation_monitor
+    source_port: reaction_wheel.out.wheel_speed_rad_s
+    target_port: saturation_monitor.in.wheel_speed_rad_s
+    transform: {policy: identity, resampling: parent_internal_step}
+    solver: {policy: feed_forward, delay_steps: 0}
+composition:
+  chain:
+  - capability_id: subsystem.adcs_fidelity.v1
+    role: parent
+  field_mappings:
+  - source: wheel_allocator.motor_torque_nm
+    target: reaction_wheel.motor_torque_nm
+    description: ADCS wheel allocator commands the reaction-wheel dynamics provider.
+  - source: wheel_allocator.motor_torque_nm
+    target: rigid_body.applied_motor_torque_nm
+    description: Parent-owned allocator projects the already-limited wheel motor torque into rigid-body control torque.
+  - source: reaction_wheel.wheel_speed_rad_s
+    target: saturation_monitor.wheel_speed_rad_s
+    description: Stateful wheel speed drives speed-limit and saturation evidence.
 source_binding:
   mode: route_b_model_library
   status: adcs1_implemented_fidelity_proxy

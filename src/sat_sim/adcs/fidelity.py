@@ -16,6 +16,7 @@ from sat_sim.adcs.closed_loop import (
     ADCSClosedLoopConfig,
     ADCSClosedLoopError,
     ADCSClosedLoopSample,
+    REACTION_WHEEL_PROVIDER_INTERNAL,
     RuntimeEffectResolver,
     propagate_adcs_closed_loop,
     summarize_adcs_closed_loop,
@@ -195,8 +196,17 @@ class ADCSFidelityConfig:
         return {"schema_version": ADCS_FIDELITY_SCHEMA_VERSION, "closed_loop": self.closed_loop.to_dict(), "environment_torques": self.environment_torques.to_dict(self.closed_loop.inertia_kg_m2), "sensors": self.sensors.to_dict(), "wheel_configuration": self.wheel_configuration, "wheel_allocation_method": self.wheel_allocation_method}
 
 
-def propagate_adcs_fidelity(config: ADCSFidelityConfig, effect_resolver: RuntimeEffectResolver | None = None) -> tuple[ADCSClosedLoopSample, ...]:
-    return propagate_adcs_closed_loop(config.closed_loop, effect_resolver=effect_resolver)
+def propagate_adcs_fidelity(
+    config: ADCSFidelityConfig,
+    effect_resolver: RuntimeEffectResolver | None = None,
+    *,
+    reaction_wheel_provider: str = REACTION_WHEEL_PROVIDER_INTERNAL,
+) -> tuple[ADCSClosedLoopSample, ...]:
+    return propagate_adcs_closed_loop(
+        config.closed_loop,
+        effect_resolver=effect_resolver,
+        reaction_wheel_provider=reaction_wheel_provider,
+    )
 
 
 def _dropout_count(samples: Sequence[ADCSClosedLoopSample], sensors: ADCSSensorFidelityConfig) -> int:

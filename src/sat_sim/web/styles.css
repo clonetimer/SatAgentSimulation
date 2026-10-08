@@ -984,3 +984,358 @@ html[data-theme="dark"] .run-panel.run-panel-fullscreen-fallback {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Visual graph composer MVP: capability -> configuration -> effects -> outputs -> code -> run. */
+.graph-workbench { display: grid; gap: 12px; min-width: 0; }
+.graph-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.graph-toolbar h3 { margin-top: 3px; font-size: 15px; }
+.graph-toolbar p { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.graph-toolbar-actions { flex-wrap: wrap; justify-content: flex-end; }
+.graph-status { min-height: 34px; display: flex; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--muted); font-size: 10.5px; line-height: 1.5; }
+.graph-status.success { color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, var(--line)); }
+.graph-status.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+.graph-status.warning { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, var(--line)); }
+.graph-layout { min-height: 560px; display: grid; grid-template-columns: 188px minmax(520px, 1fr) 250px; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: var(--panel-2); }
+.graph-palette, .graph-inspector { min-width: 0; background: color-mix(in srgb, var(--panel) 94%, transparent); }
+.graph-palette { border-right: 1px solid var(--line); }
+.graph-inspector { border-left: 1px solid var(--line); }
+.graph-panel-title { height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 11px; border-bottom: 1px solid var(--line); }
+.graph-panel-title strong { font-size: 11px; }
+.graph-panel-title span { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 9px; }
+.graph-search { margin: 10px; }
+.graph-palette-section { padding: 0 8px 10px; }
+.graph-palette-heading { padding: 8px 4px 5px; color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.graph-capability-palette { display: grid; gap: 4px; max-height: 246px; overflow: auto; padding-right: 2px; }
+.graph-palette-item { width: 100%; min-width: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--panel-2); text-align: left; cursor: grab; }
+.graph-palette-item:hover { border-color: var(--line-strong); background: color-mix(in srgb, var(--accent-2) 7%, var(--panel-2)); }
+.graph-palette-item:active { cursor: grabbing; }
+.graph-palette-item.active { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 9%, var(--panel-2)); }
+.graph-palette-item strong, .graph-palette-item small { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.graph-palette-item strong { font-size: 10px; }
+.graph-palette-item small { margin-top: 2px; color: var(--muted); font-size: 8.5px; }
+.graph-palette-icon { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; color: var(--accent-2); font-size: 10px; background: var(--panel); }
+.graph-stage { min-width: 0; overflow: auto; background: var(--bg); }
+.graph-canvas { position: relative; width: 1160px; min-width: 1160px; min-height: 560px; overflow: hidden; outline: none; background-image: radial-gradient(circle, color-mix(in srgb, var(--muted) 22%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
+.graph-canvas.drag-over { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.graph-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.graph-edge { fill: none; stroke: color-mix(in srgb, var(--accent-2) 68%, var(--muted)); stroke-width: 2; pointer-events: none; }
+.graph-edge.selected { stroke: var(--accent); stroke-width: 2.6; }
+.graph-edge.pending { stroke: color-mix(in srgb, var(--warning) 74%, var(--muted)); stroke-dasharray: 6 5; marker-end: none; }
+.graph-edge-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+.graph-edge-hit:focus-visible { stroke: color-mix(in srgb, var(--accent) 20%, transparent); outline: none; }
+.graph-edge-label { fill: var(--muted); font-size: 8px; text-anchor: middle; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+.graph-edge-label.selected { fill: var(--accent); font-weight: 700; }
+.graph-edge-arrow { fill: color-mix(in srgb, var(--accent-2) 75%, var(--muted)); }
+.graph-nodes { position: absolute; inset: 0; pointer-events: none; }
+.graph-node { position: absolute; width: 176px; min-height: 124px; display: flex; flex-direction: column; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); box-shadow: 0 10px 28px rgba(0,0,0,.24); pointer-events: auto; user-select: none; }
+.graph-node:hover { border-color: color-mix(in srgb, var(--accent-2) 42%, var(--line)); }
+.graph-node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 13%, transparent), 0 12px 30px rgba(0,0,0,.28); }
+.graph-node-head { min-height: 35px; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 8px; border-bottom: 1px solid var(--line); cursor: grab; }
+.graph-node-head:active { cursor: grabbing; }
+.graph-node-title { min-width: 0; display: flex; align-items: center; gap: 6px; }
+.graph-node-title span { flex: 0 0 auto; color: var(--accent-2); font-size: 10px; }
+.graph-node-title strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; }
+.graph-node-remove { flex: 0 0 auto; width: 22px; height: 22px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 14px; }
+.graph-node-remove:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.graph-node-body { min-height: 56px; display: grid; align-content: start; gap: 5px; padding: 8px; }
+.graph-node-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+.graph-node-body span, .graph-node-body code { color: var(--muted); font-size: 8.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.graph-node-body code { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-family: "SFMono-Regular", Consolas, monospace; }
+.graph-node-ports { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 5px 6px 7px; border-top: 1px solid var(--line); }
+.graph-port-column { min-width: 0; display: grid; align-content: start; gap: 3px; }
+.graph-port-column.outputs { justify-items: stretch; }
+.graph-port-button { min-width: 0; min-height: 35px; display: grid; align-items: center; column-gap: 4px; padding: 3px 2px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); background: transparent; cursor: crosshair; }
+.graph-port-button.input { grid-template-columns: 10px minmax(0, 1fr); text-align: left; }
+.graph-port-button.output { grid-template-columns: minmax(0, 1fr) 10px; text-align: right; }
+.graph-port-button.input .graph-port-dot { grid-column: 1; grid-row: 1 / span 2; justify-self: start; margin-left: -10px; }
+.graph-port-button.input .graph-port-label, .graph-port-button.input small { grid-column: 2; }
+.graph-port-button.output .graph-port-dot { grid-column: 2; grid-row: 1 / span 2; justify-self: end; margin-right: -10px; }
+.graph-port-button.output .graph-port-label, .graph-port-button.output small { grid-column: 1; }
+.graph-port-button:hover, .graph-port-button:focus-visible { border-color: color-mix(in srgb, var(--accent-2) 36%, var(--line)); background: color-mix(in srgb, var(--accent-2) 6%, transparent); }
+.graph-port-dot { width: 10px; height: 10px; border: 2px solid var(--panel); border-radius: 50%; background: var(--panel-2); box-shadow: 0 0 0 1px var(--line-strong); }
+.graph-port-button.connected .graph-port-dot, .graph-port-button.pending .graph-port-dot { background: var(--accent-2); }
+.graph-port-button.compatible { border-color: color-mix(in srgb, var(--success) 42%, var(--line)); background: color-mix(in srgb, var(--success) 7%, transparent); }
+.graph-port-button.compatible .graph-port-dot { background: var(--success); }
+.graph-port-button.incompatible { opacity: .46; }
+.graph-port-button.required .graph-port-label::after { content: " *"; color: var(--warning); }
+.graph-port-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 8px; font-weight: 650; }
+.graph-port-button small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 7px; }
+.graph-empty-hint { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; color: var(--muted); pointer-events: none; text-align: center; }
+.graph-empty-hint strong { color: var(--text); font-size: 13px; }
+.graph-empty-hint span { max-width: 340px; font-size: 10px; line-height: 1.6; }
+.graph-inspector-body { display: grid; gap: 10px; padding: 11px; overflow: auto; max-height: 512px; }
+.graph-inspector-empty { padding: 16px 8px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.graph-inspector-section { display: grid; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.graph-inspector-section:last-child { border-bottom: 0; }
+.graph-inspector-section h4 { font-size: 11px; }
+.graph-inspector-section p { color: var(--muted); font-size: 9px; line-height: 1.55; }
+.graph-inspector-field { display: grid; gap: 4px; color: var(--muted); font-size: 9px; }
+.graph-inspector-field input, .graph-inspector-field select { width: 100%; min-width: 0; padding: 7px 8px; font-size: 10px; }
+.graph-inspector-meta { display: grid; gap: 5px; }
+.graph-inspector-meta > div { display: flex; justify-content: space-between; gap: 8px; font-size: 9px; }
+.graph-inspector-meta span { color: var(--muted); }
+.graph-inspector-meta strong { max-width: 145px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+.graph-port-contract { display: grid; gap: 4px; padding: 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
+.graph-port-contract code { color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: 8px; overflow-wrap: anywhere; }
+.graph-inspector-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.graph-inspector-actions .button { flex: 1 1 auto; padding: 7px 8px; font-size: 9px; }
+.graph-code-preview { width: 100%; min-height: 180px; resize: vertical; padding: 8px; font-family: "SFMono-Regular", Consolas, monospace; font-size: 8.5px; line-height: 1.55; white-space: pre; }
+.graph-code-stale { color: var(--warning); font-size: 9px; }
+.graph-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.graph-stat { padding: 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
+.graph-stat span, .graph-stat strong { display: block; }
+.graph-stat span { color: var(--muted); font-size: 8px; }
+.graph-stat strong { margin-top: 3px; font-size: 11px; }
+html[data-theme="light"] .graph-stage { background: #eef4f7; }
+html[data-theme="light"] .graph-canvas { background-color: #f8fbfc; }
+html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14); }
+@media (max-width: 1380px) {
+  .graph-layout { grid-template-columns: 170px minmax(460px, 1fr); }
+  .graph-inspector { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+  .graph-inspector-body { max-height: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .graph-toolbar { display: grid; }
+  .graph-toolbar-actions { justify-content: flex-start; }
+  .graph-layout { display: block; }
+  .graph-palette { border-right: 0; border-bottom: 1px solid var(--line); }
+  .graph-capability-palette { max-height: 180px; }
+  .graph-inspector { border-top: 1px solid var(--line); }
+  .graph-inspector-body { grid-template-columns: 1fr; }
+}
+
+/* Visual Composer V8: formal ports + registered module library/insertion */
+.graph-mode-switch { display: inline-flex; gap: 4px; margin-top: 8px; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.graph-mode-button { min-height: 28px; padding: 4px 9px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; font-size: 9px; font-weight: 650; cursor: pointer; }
+.graph-mode-button.active { color: var(--text); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 34%, var(--line)); }
+.assembly-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 7px; padding: 9px 10px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.assembly-select-field { min-width: 310px; flex: 1 1 360px; display: grid; gap: 4px; color: var(--muted); font-size: 8px; }
+.assembly-select-field select { min-width: 0; width: 100%; padding: 7px 8px; font-size: 9px; }
+.assembly-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; min-height: 600px; }
+.assembly-stage { min-width: 0; overflow: auto; background: var(--bg); }
+.assembly-canvas { position: relative; width: 1160px; min-width: 1160px; min-height: 620px; overflow: hidden; outline: none; background-image: radial-gradient(circle, color-mix(in srgb, var(--muted) 22%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
+.assembly-inspector { min-width: 0; border-left: 1px solid var(--line); background: var(--panel); }
+.assembly-node { width: 228px; min-height: 142px; }
+.assembly-node .graph-node-body { min-height: 62px; }
+.assembly-node-role { display: inline-flex; width: max-content; max-width: 100%; padding: 2px 5px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 7px; line-height: 1.2; }
+.assembly-node-role.parent { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 40%, var(--line)); }
+.assembly-node-role.dependency { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, var(--line)); }
+.assembly-node-role.internal { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, var(--line)); }
+.assembly-port-path { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 6.8px; }
+.assembly-edge { fill: none; stroke: color-mix(in srgb, var(--accent-2) 68%, var(--muted)); stroke-width: 2; pointer-events: none; }
+.assembly-edge.selected { stroke: var(--accent); stroke-width: 2.8; }
+.assembly-edge-feedback { stroke-dasharray: 7 4; }
+.assembly-binding-card { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.assembly-binding-card code { color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: 7.5px; overflow-wrap: anywhere; }
+.assembly-code-preview { width: 100%; min-height: 220px; resize: vertical; padding: 8px; font-family: "SFMono-Regular", Consolas, monospace; font-size: 8px; line-height: 1.5; white-space: pre; }
+.assembly-library-panel { display: grid; gap: 7px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.assembly-library-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.assembly-library-heading > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.assembly-library-heading strong { font-size: 9px; }
+.assembly-library-heading span { color: var(--muted); font-size: 7.5px; }
+.assembly-library-summary { flex: 0 0 auto; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; }
+.assembly-module-library { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 2px; }
+.assembly-library-card { flex: 0 0 240px; display: grid; gap: 5px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); cursor: grab; }
+.assembly-library-card:active { cursor: grabbing; }
+.assembly-library-card.compatible-selected { border-color: color-mix(in srgb, var(--success) 55%, var(--line)); }
+.assembly-library-card strong { font-size: 8.5px; line-height: 1.25; }
+.assembly-library-card code { color: var(--muted); font-size: 7px; overflow-wrap: anywhere; }
+.assembly-library-card small { color: var(--muted); font-size: 7px; line-height: 1.35; }
+.assembly-library-card .button { justify-self: start; padding: 4px 7px; min-height: 28px; font-size: 7.5px; }
+.assembly-node.drop-compatible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--success) 72%, var(--line)); }
+.assembly-node.drop-incompatible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--danger) 72%, var(--line)); }
+@media (max-width: 1120px) { .assembly-layout { grid-template-columns: 1fr; } .assembly-inspector { border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 760px) { .assembly-select-field { min-width: 100%; flex-basis: 100%; } }
+
+.assembly-contract-fingerprint { display: block; padding: 6px 7px; border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); font-size: 7px; overflow-wrap: anywhere; }
+
+.assembly-node.replaced { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--success) 58%, var(--line)); }
+.assembly-replacement-marker { color: var(--success); font-size: 7px; line-height: 1.25; overflow-wrap: anywhere; }
+.assembly-replacement-card { display: grid; gap: 5px; padding: 8px; border: 1px solid color-mix(in srgb, var(--success) 38%, var(--line)); border-radius: 8px; background: color-mix(in srgb, var(--success) 5%, var(--panel-2)); }
+.assembly-replacement-card label { color: var(--muted); font-size: 8px; font-weight: 650; }
+.assembly-replacement-select { width: 100%; min-width: 0; padding: 7px 8px; font-size: 9px; }
+.assembly-replacement-card small { color: var(--muted); font-size: 7px; overflow-wrap: anywhere; }
+
+/* Visual Composer V9: rapid graphical programming product loop. */
+.assembly-quickstart { display: grid; gap: 8px; padding: 9px 10px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--accent-bg) 34%, var(--panel)); }
+.assembly-quickstart-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.assembly-quickstart-heading > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.assembly-quickstart-heading strong { font-size: 9px; }
+.assembly-quickstart-heading span { color: var(--muted); font-size: 7.5px; }
+.assembly-quick-template-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.assembly-quick-template { min-width: 210px; flex: 1 1 230px; display: grid; gap: 3px; align-content: start; text-align: left; padding: 8px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); cursor: pointer; }
+.assembly-quick-template:hover { border-color: color-mix(in srgb, var(--accent) 48%, var(--line)); }
+.assembly-quick-template strong { font-size: 8.5px; }
+.assembly-quick-template small { color: var(--muted); font-size: 7.3px; line-height: 1.35; }
+.assembly-quick-template code { color: var(--muted); font-size: 6.8px; overflow-wrap: anywhere; }
+.assembly-library-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.assembly-library-controls .search-box { flex: 1 1 260px; min-width: 180px; }
+.assembly-observer-tools { display: flex; flex-wrap: wrap; align-items: stretch; gap: 7px; }
+.assembly-scope-library-card { width: min(310px, 100%); flex: 1 1 220px; min-height: 46px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 7px 9px; border: 1px dashed color-mix(in srgb, var(--accent-2) 54%, var(--line)); border-radius: 8px; background: color-mix(in srgb, var(--accent-2) 4%, var(--panel-2)); color: var(--text); text-align: left; cursor: pointer; }
+.assembly-scope-library-card:hover { border-style: solid; background: color-mix(in srgb, var(--accent-2) 8%, var(--panel-2)); }
+.assembly-scope-library-card > span:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
+.assembly-scope-library-card strong { font-size: 8.5px; }
+.assembly-scope-library-card small { color: var(--muted); font-size: 7px; line-height: 1.3; }
+.assembly-scope-icon, .assembly-scope-add { color: var(--accent-2); font-size: 15px; }
+.assembly-compatible-toggle { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; color: var(--muted); font-size: 8px; white-space: nowrap; }
+.assembly-compatible-toggle input { margin: 0; }
+.assembly-canvas.drop-module-target { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 62%, var(--line)); }
+@media (max-width: 760px) {
+  .assembly-quick-template { min-width: 100%; flex-basis: 100%; }
+  .assembly-library-controls { align-items: stretch; }
+  .assembly-compatible-toggle { width: 100%; }
+}
+.assembly-runtime-parameters { border-bottom: 1px solid var(--line); padding-bottom: 9px; }
+.assembly-runtime-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.assembly-runtime-grid label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 7.5px; }
+.assembly-runtime-grid input { min-width: 0; width: 100%; padding: 6px 7px; font-size: 9px; }
+@media (max-width: 1120px) { .assembly-runtime-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); } }
+@media (max-width: 520px) { .assembly-runtime-grid { grid-template-columns: 1fr; } }
+
+/* V14: clean modeling canvas + explicit Simulink-style observer sinks. */
+.assembly-scope-node { width: 205px; border-style: dashed; border-color: color-mix(in srgb, var(--accent-2) 52%, var(--line)); background: color-mix(in srgb, var(--accent-2) 3%, var(--panel)); }
+.assembly-scope-node .graph-node-head { background: color-mix(in srgb, var(--accent-2) 7%, var(--panel)); }
+.assembly-node-role.observer { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 42%, var(--line)); }
+.assembly-scope-input.compatible { border-color: color-mix(in srgb, var(--accent-2) 72%, var(--line)); background: color-mix(in srgb, var(--accent-2) 10%, transparent); }
+.assembly-scope-probe { fill: none; stroke: color-mix(in srgb, var(--accent-2) 68%, var(--line)); stroke-width: 1.8; stroke-dasharray: 5 4; pointer-events: none; }
+.assembly-scope-probe-label { fill: var(--accent-2); font-size: 7px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; pointer-events: none; }
+.assembly-scope-inspector { display: grid; gap: 8px; }
+.assembly-scope-name { display: grid; gap: 4px; color: var(--muted); font-size: 7.5px; }
+.assembly-scope-name input { width: 100%; min-width: 0; }
+.assembly-scope-probes { display: grid; gap: 7px; }
+.assembly-scope-probe-card { display: grid; gap: 6px; padding: 7px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); min-width: 0; }
+.assembly-scope-probe-card.selected { border-color: color-mix(in srgb, var(--accent-2) 55%, var(--line)); }
+.assembly-scope-probe-heading { display: flex; align-items: center; justify-content: space-between; gap: 7px; }
+.assembly-scope-probe-heading strong { font-size: 8px; }
+.assembly-scope-probe-card code { color: var(--muted); font-size: 6.8px; overflow-wrap: anywhere; }
+.assembly-scope-unresolved { color: var(--muted); font-size: 7px; line-height: 1.4; }
+.assembly-scope-chart { height: 135px; }
+
+.assembly-observer-display { border-style: solid; }
+.assembly-observer-workspace { border-style: dotted; }
+.assembly-display-value { font: 700 13px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent-2); overflow-wrap: anywhere; }
+.assembly-display-values { display: grid; gap: 5px; }
+.assembly-display-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); }
+.assembly-display-row code { min-width: 0; overflow-wrap: anywhere; color: var(--muted); font-size: 6.8px; }
+.assembly-display-row strong { font: 700 9px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent-2); text-align: right; }
+
+/* Visual Composer V10/V11: debug-in-place, baseline comparison and code-change feedback. */
+.graph-node.diagnostic-error,
+.assembly-node.diagnostic-error {
+  border-color: color-mix(in srgb, var(--danger) 78%, var(--line));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 18%, transparent), 0 12px 30px rgba(0,0,0,.28);
+}
+.graph-node.diagnostic-error .graph-node-head,
+.assembly-node.diagnostic-error .graph-node-head {
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel));
+}
+.graph-port-button.diagnostic-error {
+  border-color: color-mix(in srgb, var(--danger) 70%, var(--line));
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+}
+.graph-port-button.diagnostic-error .graph-port-dot { background: var(--danger); }
+.graph-edge.diagnostic-error,
+.assembly-edge.diagnostic-error { stroke: var(--danger); stroke-width: 3; }
+
+.code-change-card {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--warning) 36%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 5%, var(--panel-2));
+}
+.code-change-card strong { font-size: 8.5px; }
+.code-change-card small { color: var(--muted); font-size: 7.5px; line-height: 1.4; }
+.code-change-paths { display: flex; flex-wrap: wrap; gap: 4px; }
+.code-change-paths code {
+  padding: 2px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 6.8px;
+}
+
+.assembly-compare-panel {
+  display: grid;
+  gap: 8px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent-bg) 24%, var(--panel));
+}
+.assembly-compare-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.assembly-compare-heading > div { min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; }
+.assembly-compare-heading strong { font-size: 9px; }
+.assembly-compare-heading span { min-width: 0; color: var(--muted); font-size: 7.5px; overflow-wrap: anywhere; }
+.assembly-compare-table { display: grid; gap: 4px; }
+.assembly-compare-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(72px, .6fr) minmax(72px, .6fr) minmax(72px, .6fr);
+  gap: 6px;
+  align-items: center;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+}
+.assembly-compare-row::before {
+  content: "metric";
+  display: none;
+}
+.assembly-compare-row code { min-width: 0; color: var(--muted); font-size: 7px; overflow-wrap: anywhere; }
+.assembly-compare-row span, .assembly-compare-row strong { font-size: 8px; text-align: right; }
+.assembly-compare-row strong { color: var(--accent-2); }
+@media (max-width: 760px) {
+  .assembly-compare-row { grid-template-columns: minmax(120px, 1fr) repeat(3, minmax(60px, .5fr)); overflow-x: auto; }
+}
+
+/* V14 observer signal selector/chart. Ordinary model nodes intentionally do not render run curves. */
+.visual-series-selector { display: flex; flex-wrap: wrap; gap: 4px; }
+.visual-series-chip { min-height: 26px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 6.8px; cursor: pointer; }
+.visual-series-chip.active { border-color: color-mix(in srgb, var(--accent-2) 60%, var(--line)); color: var(--text); background: color-mix(in srgb, var(--accent-2) 10%, var(--panel)); }
+.visual-series-summary { color: var(--muted); font: 6.8px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.visual-mini-chart { display: block; width: 100%; height: 120px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+
+/* V12 constrained visual tuning: schema parameters -> existing Experiment/Run Bundles -> best overlay. */
+.visual-tuning-panel {
+  margin: 8px 0 10px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 4%, var(--panel));
+  display: grid;
+  gap: 8px;
+}
+.visual-tuning-heading, .visual-tuning-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.visual-tuning-heading > div { min-width: 0; display: grid; gap: 2px; }
+.visual-tuning-heading strong { font-size: 9px; }
+.visual-tuning-heading span, .visual-tuning-actions > span { color: var(--muted); font-size: 7.4px; overflow-wrap: anywhere; }
+.visual-tuning-objective { display: grid; grid-template-columns: minmax(190px, 1.5fr) minmax(120px, .65fr) auto; gap: 7px; align-items: end; }
+.visual-tuning-objective label, .visual-tuning-parameter-row label { min-width: 0; display: grid; gap: 3px; color: var(--muted); font-size: 7px; }
+.visual-tuning-objective select, .visual-tuning-parameter-row select, .visual-tuning-parameter-row input { width: 100%; min-width: 0; }
+.visual-tuning-limit { align-self: center; color: var(--muted); font-size: 7px; white-space: nowrap; }
+.visual-tuning-parameters { display: grid; gap: 5px; }
+.visual-tuning-parameter-row { display: grid; grid-template-columns: minmax(210px, 1.25fr) minmax(190px, 1fr) auto; gap: 6px; align-items: end; }
+.visual-tuning-parameter-meta { display: block; margin-top: 2px; color: var(--muted); font-size: 6.4px; }
+.visual-tuning-results { display: grid; gap: 4px; }
+.visual-tuning-result-row { display: grid; grid-template-columns: 34px minmax(170px, 1fr) minmax(90px, .45fr) minmax(90px, .55fr); gap: 7px; align-items: center; padding: 5px 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
+.visual-tuning-result-row.best { border-color: color-mix(in srgb, var(--accent-2) 52%, var(--line)); background: color-mix(in srgb, var(--accent-2) 6%, var(--panel-2)); }
+.visual-tuning-result-row span, .visual-tuning-result-row code { min-width: 0; font-size: 7px; overflow-wrap: anywhere; }
+.visual-tuning-result-row strong { text-align: right; font-size: 8px; color: var(--accent-2); }
+.visual-tuning-result-row.header { background: transparent; color: var(--muted); }
+@media (max-width: 760px) {
+  .visual-tuning-objective, .visual-tuning-parameter-row { grid-template-columns: 1fr; }
+  .visual-tuning-limit { white-space: normal; }
+  .visual-tuning-result-row { grid-template-columns: 30px minmax(130px, 1fr) minmax(72px, .5fr); }
+  .visual-tuning-result-row > :last-child { grid-column: 2 / -1; text-align: left; }
+}
+
+/* Visual Composer V15: fast modeling selection + layout tools. */
+.assembly-edit-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 78%, var(--bg)); }
+.assembly-selection-summary { margin-right: auto; color: var(--muted); font-size: 7.5px; }
+.assembly-node.layout-selected { outline: 1px dashed color-mix(in srgb, var(--accent-2) 76%, var(--line)); outline-offset: 3px; }
+.assembly-node.selected.layout-selected { outline-style: solid; }
+.assembly-selection-box { position: absolute; z-index: 12; border: 1px solid color-mix(in srgb, var(--accent) 82%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, transparent); pointer-events: none; }
+.assembly-selection-box.hidden { display: none; }
+@media (max-width: 760px) { .assembly-edit-toolbar .button { flex: 1 1 auto; } .assembly-selection-summary { width: 100%; margin-right: 0; } }
