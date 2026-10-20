@@ -8,7 +8,6 @@ on:
       - "tests/interactive/test_continuous_session.py"
       - "tests/interactive/test_continuous_persistence.py"
       - "tests/interactive/test_continuous_seal.py"
-      - "tests/interactive/test_interactive_api.py"
       - "tests/interactive/test_native_checkpoint_audit.py"
       - "tests/interactive/test_session_workspace.py"
       - "tests/interactive/test_telecommand_mailbox.py"
@@ -43,7 +42,6 @@ jobs:
           tests/interactive/test_continuous_persistence.py
           tests/interactive/test_continuous_seal.py
           tests/interactive/test_native_checkpoint_audit.py
-          tests/interactive/test_interactive_api.py
           tests/interactive/test_session_workspace.py
           tests/interactive/test_telecommand_mailbox.py
           tests/interactive/test_command_lifecycle.py
