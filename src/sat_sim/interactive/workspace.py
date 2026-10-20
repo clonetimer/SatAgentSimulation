@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import CommandAck, InteractiveSessionSpec, SessionState, Telecommand, TelemetryFrame
+from . import telemetry_segments
 
 
 def _canonical(payload: dict[str, Any]) -> bytes:
@@ -46,6 +47,7 @@ class SessionWorkspace:
         self._lock = threading.Lock()
         self._continuous_storage_guard = bool(spec.continuous)
         self._telemetry_log_max_bytes = int(spec.telemetry_log_max_bytes)
+        self._telemetry_segment_max_bytes = int(spec.telemetry_segment_max_bytes) if spec.continuous else 0
         self._telemetry_min_free_disk_bytes = int(spec.telemetry_min_free_disk_bytes)
         # Amortize disk usage checks; the safety reserve greatly exceeds the
         # maximum size of a normal 128-frame batch.
@@ -66,6 +68,7 @@ class SessionWorkspace:
             self._command_last_hash = "0" * 64
             self._telemetry_sequence = 0
             self._telemetry_last_hash = "0" * 64
+            self._telemetry_total_bytes = 0
         else:
             inspection, rows = self.inspect(self.path, include_rows=True)
             if not inspection.valid:
@@ -73,7 +76,8 @@ class SessionWorkspace:
             self._sequence = inspection.sequence + 1
             self._last_hash = str(rows[-1]["entry_hash"]) if rows else "0" * 64
             self._command_sequence, self._command_last_hash = self.hash_chain_tail(self.commands_path)
-            self._telemetry_sequence, self._telemetry_last_hash = self.hash_chain_tail(self.telemetry_path)
+            self._telemetry_sequence, self._telemetry_last_hash = self.telemetry_chain_tail(self.path)
+            self._telemetry_total_bytes = telemetry_segments.total_bytes(self.path)
 
     def append_state(self, state: SessionState, revision: int, sim_time_s: float, reason_code: str) -> dict[str, Any]:
         with self._lock:
@@ -139,18 +143,24 @@ class SessionWorkspace:
                 # Reject before appending: never truncate, silently drop data,
                 # or create a broken hash-chain on capacity exhaustion.
                 if self._telemetry_log_max_bytes:
-                    used = self.telemetry_path.stat().st_size if self.telemetry_path.exists() else 0
-                    if used + len(encoded) > self._telemetry_log_max_bytes:
+                    if self._telemetry_total_bytes + len(encoded) > self._telemetry_log_max_bytes:
                         raise RuntimeError("TELEMETRY_LOG_BUDGET_EXCEEDED")
+                if self._telemetry_segment_max_bytes and len(encoded) > self._telemetry_segment_max_bytes:
+                    raise RuntimeError("TELEMETRY_FRAME_EXCEEDS_SEGMENT_CAP")
                 if self._telemetry_min_free_disk_bytes and self._telemetry_disk_check_count == 0:
                     if shutil.disk_usage(self.path).free <= (
                         self._telemetry_min_free_disk_bytes + len(encoded)
                     ):
                         raise RuntimeError("TELEMETRY_DISK_RESERVE_EXHAUSTED")
+            if self._telemetry_segment_max_bytes:
+                used = self.telemetry_path.stat().st_size if self.telemetry_path.exists() else 0
+                if used and used + len(encoded) > self._telemetry_segment_max_bytes:
+                    telemetry_segments.roll_active(self.path)
             with self.telemetry_path.open("ab") as handle:
                 handle.write(encoded)
                 handle.flush()
                 os.fsync(handle.fileno())
+            self._telemetry_total_bytes += len(encoded)
             self._telemetry_last_hash = payload["entry_hash"]
             self._telemetry_sequence += 1
             if self._continuous_storage_guard:
@@ -172,7 +182,7 @@ class SessionWorkspace:
             frame_count = 0
             with ExitStack() as stack:
                 writers: dict[str, Any] = {}
-                for row in self.iter_hash_chain(self.telemetry_path):
+                for row in self.iter_telemetry(self.path):
                     frame = row["frame"]
                     stream = str(frame["stream"])
                     if stream not in writers:
@@ -190,11 +200,6 @@ class SessionWorkspace:
             for stream, artifact in artifacts.items():
                 artifact["row_count"] = counts[stream]
                 artifact["sha256"] = hashes[stream].hexdigest()
-            telemetry_hash = hashlib.sha256()
-            if self.telemetry_path.exists():
-                with self.telemetry_path.open("rb") as handle:
-                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                        telemetry_hash.update(chunk)
             result = {
                 "schema_version": "interactive-telemetry-manifest.v1",
                 "session_id": self.path.name,
@@ -202,14 +207,30 @@ class SessionWorkspace:
                 "streams": counts,
                 "latest_sequences": latest_sequences,
                 "artifacts": dict(sorted(artifacts.items())),
-                "telemetry_sha256": telemetry_hash.hexdigest(),
+                "telemetry_sha256": telemetry_segments.logical_sha256(self.path),
                 "final_entry_hash": last_hash,
             }
+            segments = telemetry_segments.segments_metadata(self.path)
+            if segments:
+                result["source_segments"] = segments
             self.telemetry_manifest_path.write_text(
                 json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
             return result
+
+    @staticmethod
+    def iter_telemetry(root: Path):
+        """Walk rotated and legacy telemetry with a shared global hash chain."""
+        yield from telemetry_segments.iter_entries(root)
+
+    @classmethod
+    def telemetry_chain_tail(cls, root: Path) -> tuple[int, str]:
+        count, last = 0, "0" * 64
+        for row in cls.iter_telemetry(root):
+            count += 1
+            last = row["entry_hash"]
+        return count, last
 
     @staticmethod
     def iter_hash_chain(path: Path):
@@ -258,7 +279,7 @@ class SessionWorkspace:
             except ValueError as exc:
                 raise ValueError("COMMAND_HASH_CHAIN_INVALID") from exc
             try:
-                cls.hash_chain_tail(path / "telemetry.jsonl")
+                cls.telemetry_chain_tail(path)
             except ValueError as exc:
                 raise ValueError("TELEMETRY_HASH_CHAIN_INVALID") from exc
             state = SessionState(rows[-1]["state"]) if rows else SessionState.CREATED
