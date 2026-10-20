@@ -74,8 +74,15 @@ def _read_bundle(ws: SessionWorkspace) -> dict:
 
 
 def test_continuous_seal_matches_legacy_evidence_semantics(tmp_path) -> None:
+    from sat_sim.interactive.telemetry_segments import roll_active
     finite = _build_workspace(tmp_path, continuous=False)
     continuous = _build_workspace(tmp_path, continuous=True)
+    # Compare v1 compatibility after the full original journal was rotated
+    # out of the active telemetry.jsonl file, then append a new active frame
+    # without changing the physical trace/effect content.
+    roll_active(continuous.path)
+    assert not (continuous.path / "telemetry.jsonl").exists()
+    continuous.finalize_telemetry()
     assert seal_interactive_workspace(finite.path)["ok"] is True
     assert seal_interactive_workspace(continuous.path)["ok"] is True
     assert not (continuous.path / ".run_bundle.pending").exists()
@@ -142,3 +149,23 @@ def test_failed_continuous_seal_keeps_unpublished_staging_for_recovery(
     with pytest.raises(ValueError, match="INTERACTIVE_PARTIAL_STAGING_EXISTS"):
         seal_interactive_workspace(ws.path)
     assert SessionWorkspace.inspect(ws.path).valid
+
+
+
+def test_rotated_trace_has_continuous_hash_and_bundle_copy(tmp_path) -> None:
+    from sat_sim.interactive import telemetry_segments
+    ws = _build_workspace(tmp_path, continuous=True)
+    original = ws.telemetry_path.read_bytes()
+    rotated = telemetry_segments.roll_active(ws.path)
+    assert rotated.exists()
+    ws.append_telemetry(TelemetryFrame(
+        session_id=ws.path.name, stream="runtime.trace", sequence=21,
+        sim_time_s=11.0,
+        values={"time_s": 11.0, "battery_soc": 0.7, "adcs.pointing_error_deg": 1.0},
+    ))
+    ws.finalize_telemetry()
+    assert SessionWorkspace.inspect(ws.path).valid
+    assert seal_interactive_workspace(ws.path)["ok"]
+    bundle_source = ws.path / "run_bundle" / "interactive" / "telemetry.jsonl"
+    assert bundle_source.read_bytes() == original + ws.telemetry_path.read_bytes()
+    assert len(list(SessionWorkspace.iter_telemetry(ws.path))) == 33
