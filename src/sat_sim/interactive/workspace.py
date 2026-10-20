@@ -77,7 +77,7 @@ class SessionWorkspace:
             self._last_hash = str(rows[-1]["entry_hash"]) if rows else "0" * 64
             self._command_sequence, self._command_last_hash = self.hash_chain_tail(self.commands_path)
             self._telemetry_sequence, self._telemetry_last_hash = self.telemetry_chain_tail(self.path)
-            self._telemetry_total_bytes = telemetry_segments.total_bytes(self.path)
+            self._telemetry_total_bytes = telemetry_segments.total_logical_bytes(self.path)
 
     def append_state(self, state: SessionState, revision: int, sim_time_s: float, reason_code: str) -> dict[str, Any]:
         with self._lock:
