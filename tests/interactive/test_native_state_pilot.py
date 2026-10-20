@@ -9,9 +9,9 @@ from sat_sim.interactive.native_state_pilot import (
 )
 
 
-def _make_native_graph(*, earth_gravity: bool = False):
+def _make_native_graph(*, earth_gravity: bool = False, scripted_torque: bool = False):
     pytest.importorskip("Basilisk")
-    from Basilisk.simulation import spacecraft, reactionWheelStateEffector
+    from Basilisk.simulation import spacecraft, reactionWheelStateEffector, extForceTorque
     from Basilisk.utilities import SimulationBaseClass, simIncludeRW, macros
 
     sim = SimulationBaseClass.SimBaseClass()
@@ -42,7 +42,15 @@ def _make_native_graph(*, earth_gravity: bool = False):
         )
     wheel_factory.addToSpacecraft("reaction_wheels", wheels, sc)
     sim.AddModelToTask("t", wheels, None, 99)
+    torque_effector = None
+    if scripted_torque:
+        torque_effector = extForceTorque.ExtForceTorque()
+        torque_effector.extTorquePntB_B = [0.0, 0.0, 0.0]
+        sc.addDynamicEffector(torque_effector)
+        sim.AddModelToTask("t", torque_effector, None, 98)
     sim.InitializeSimulation()
+    if scripted_torque:
+        return sim, sc, torque_effector
     return sim, sc
 
 
@@ -220,9 +228,137 @@ def test_autonomous_rebase_rejects_unapproved_profile_and_absolute_time_inputs(t
     assert "NATIVE_REBASE_PROFILE_UNSUPPORTED" in proc.stderr
 
 
+def _advance_with_torque_events(sim, torque_effector, schedule, stop_s: float) -> None:
+    """Schedule a controlled external-torque change *after* each stop boundary."""
+    from Basilisk.utilities import macros
+
+    for at_s, torque_nm in schedule:
+        assert at_s <= stop_s
+        sim.ConfigureStopTime(macros.sec2nano(at_s))
+        sim.ExecuteSimulation()
+        torque_effector.extTorquePntB_B = [0.0, 0.0, torque_nm]
+    sim.ConfigureStopTime(macros.sec2nano(stop_s))
+    sim.ExecuteSimulation()
+
+
+def _timed_graph_rebase_worker(path: str, delta_s: float, mode: str) -> None:
+    import json
+    import os
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_time_rebase_pilot import (
+        PILOT_PROFILE, rebase_future_torque_events,
+    )
+
+    obj = json.loads(Path(path).read_text(encoding="utf-8"))
+    if obj.get("profile") != PILOT_PROFILE:
+        raise ValueError("NATIVE_REBASE_PROFILE_UNSUPPORTED")
+    if mode not in ("mapped_absolute_events", "naive_unrebased_events"):
+        raise ValueError("NATIVE_REBASE_MODE_UNSUPPORTED")
+    step_s = float(obj["step_s"])
+    checkpoint_s = float(obj["checkpoint_sim_time_s"])
+    future = [tuple(event) for event in obj["future_torque_events"]]
+    rebased = rebase_future_torque_events(
+        profile=obj["profile"], checkpoint_s=checkpoint_s,
+        step_s=step_s, absolute_events=future,
+    )
+    sim, sc, torque = _make_native_graph(earth_gravity=True, scripted_torque=True)
+    initial_clock = int(sim.TotalSim.CurrentNanos)
+    assert initial_clock == 0
+    restore_state_subset_in_place(sc, obj["native_state_subset"], expected_rw_count=3)
+    if mode == "mapped_absolute_events":
+        local_events = rebased
+    else:
+        # This is a deliberately invalid recovery strategy: original absolute
+        # times are applied against the fresh scheduler starting at t=0.
+        # Only the event at local t <= delta can fire.
+        local_events = tuple((at, force) for at, force in future if at <= delta_s)
+    _advance_with_torque_events(sim, torque, local_events, delta_s)
+    result = capture_state_subset(sc, expected_rw_count=3)
+    print("TIMED_REBASE_RESULT_JSON:" + json.dumps({
+        "pid": os.getpid(), "mode": mode,
+        "original_checkpoint_s": checkpoint_s,
+        "fresh_initial_scheduler_ns": initial_clock,
+        "fresh_final_scheduler_ns": int(sim.TotalSim.CurrentNanos),
+        "absolute_clock_restored": False,
+        "event_mapping_applied": mode == "mapped_absolute_events",
+        "full_spacecraft_resume_supported": False,
+        "native_state_subset": result,
+    }, sort_keys=True), flush=True)
+
+
+def test_new_process_epoch_mapping_restores_deterministic_future_torque_timeline(tmp_path) -> None:
+    """A scripted clock-dependent torque demonstrates why time rebasing matters.
+
+    This does not replay Basilisk FSW/events/TC or restore native scheduler time.
+    """
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_time_rebase_pilot import PILOT_PROFILE
+
+    checkpoint_s, end_s, step_s = 2.0, 5.0, 0.2
+    torque_events = ((3.0, 0.1), (4.0, 0.0))
+    sim, sc, torque = _make_native_graph(earth_gravity=True, scripted_torque=True)
+    sim.ConfigureStopTime(macros.sec2nano(checkpoint_s))
+    sim.ExecuteSimulation()
+    snapshot = capture_state_subset(sc, expected_rw_count=3)
+    document = {
+        "profile": PILOT_PROFILE,
+        "checkpoint_sim_time_s": checkpoint_s,
+        "step_s": step_s,
+        "future_torque_events": torque_events,
+        "native_state_subset": snapshot,
+    }
+    path = tmp_path / "time-rebase-proof.json"
+    path.write_text(json.dumps(document, sort_keys=True), encoding="utf-8")
+    _advance_with_torque_events(sim, torque, torque_events, end_s)
+    expected = capture_state_subset(sc, expected_rw_count=3)
+    assert int(sim.TotalSim.CurrentNanos) == macros.sec2nano(end_s)
+
+    reports = {}
+    for mode in ("mapped_absolute_events", "naive_unrebased_events"):
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--timed-worker",
+             str(path), str(end_s - checkpoint_s), mode],
+            capture_output=True, text=True, timeout=50, check=False,
+        )
+        assert proc.returncode == 0, proc.stdout + "\n" + proc.stderr
+        obj = json.loads(next(
+            line[len("TIMED_REBASE_RESULT_JSON:"):] for line in proc.stdout.splitlines()
+            if line.startswith("TIMED_REBASE_RESULT_JSON:")
+        ))
+        assert obj["pid"] != os.getpid()
+        assert obj["fresh_initial_scheduler_ns"] == 0
+        assert obj["fresh_final_scheduler_ns"] == macros.sec2nano(end_s - checkpoint_s)
+        assert obj["absolute_clock_restored"] is False
+        assert obj["full_spacecraft_resume_supported"] is False
+        validate_state_subset(obj["native_state_subset"], expected_rw_count=3)
+        reports[mode] = obj
+
+    corrected = reports["mapped_absolute_events"]["native_state_subset"]
+    for key, baseline_values in expected["vectors"].items():
+        assert corrected["vectors"][key] == pytest.approx(
+            baseline_values, rel=1e-11, abs=1e-8
+        )
+
+    # Misinterpreting absolute event time as fresh-local time must NOT be
+    # silently accepted; this case applies no torque during most of the run.
+    naive = reports["naive_unrebased_events"]["native_state_subset"]
+    assert abs(
+        naive["vectors"]["hub_angular_rate_rad_s"][2]
+        - expected["vectors"]["hub_angular_rate_rad_s"][2]
+    ) > 1e-6
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 4 and sys.argv[1] == "--rebase-worker":
         _fresh_process_rebase_worker(sys.argv[2], float(sys.argv[3]))
+    elif len(sys.argv) == 5 and sys.argv[1] == "--timed-worker":
+        _timed_graph_rebase_worker(sys.argv[2], float(sys.argv[3]), sys.argv[4])
     else:
-        raise SystemExit("test module only permits --rebase-worker")
+        raise SystemExit("test module only permits --rebase-worker or --timed-worker")
