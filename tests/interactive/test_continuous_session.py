@@ -106,6 +106,31 @@ def test_continuous_session_crosses_bounded_deadlines_and_only_stops_explicitly(
         session.wait(2.0)
 
 
+def test_empty_native_telemetry_quantum_does_not_terminate_continuous_simulation() -> None:
+    class SparseTelemetryRuntime(_RecordingContinuousRuntime):
+        def advance_to(self, stop_time_s: float) -> tuple[dict, ...]:
+            rows = super().advance_to(stop_time_s)
+            return () if round(stop_time_s * 10) % 2 == 0 else rows
+
+    runtime = SparseTelemetryRuntime()
+    session = InteractiveSession(_spec(), runtime, end_time_s=None)
+    try:
+        session.prepare()
+        session.start()
+        deadline = time.monotonic() + 3.0
+        while session.current_time_s < 0.4 and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert session.current_time_s >= 0.4
+        assert session.state is SessionState.RUNNING
+        assert session.telemetry.read_after("runtime.trace").frames
+        session.stop()
+        assert session.state is SessionState.COMPLETED
+    finally:
+        if session.state not in {SessionState.COMPLETED, SessionState.ABORTED, SessionState.FAILED}:
+            session.abort()
+        session.wait(2.0)
+
+
 def test_bounded_session_is_not_silently_converted_to_continuous() -> None:
     runtime = _RecordingContinuousRuntime()
     session = InteractiveSession(_spec(continuous=False), runtime, end_time_s=0.2)
