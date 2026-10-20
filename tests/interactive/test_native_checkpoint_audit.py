@@ -6,8 +6,8 @@ import json
 import pytest
 
 from sat_sim.interactive.native_checkpoint_audit import (
-    MANDATORY_STATE_OWNERS, capture_observations, create_coverage_report,
-    verify_coverage_report,
+    MANDATORY_STATE_OWNERS, capture_observations, capture_scheduler_phase,
+    create_coverage_report, verify_coverage_report,
 )
 from sat_sim.interactive.native_state_pilot import validate_state_subset
 
@@ -107,6 +107,11 @@ def test_live_whole_spacecraft_native_audit_tracks_real_dynamic_state() -> None:
         before = runtime.audit_native_checkpoint_coverage()
         assert before["sim_time_s"] == pytest.approx(0.8)
         assert before["native_worker_ident"] == runtime.worker_ident
+        scheduler = before["native_scheduler_phase"]
+        assert scheduler["current_nanos"] == 800_000_000
+        assert scheduler["next_task_time_nanos"] >= scheduler["current_nanos"]
+        assert scheduler["native_clock_restore_proven"] is False
+        assert scheduler["task_queue_restore_proven"] is False
         assert before["capture_source"] == "LIVE_BASILISK_WORKER_THREAD"
         assert runtime.current_time_s == pytest.approx(0.8)
         assert not before["resume_supported"]
@@ -135,6 +140,8 @@ def test_live_whole_spacecraft_native_audit_tracks_real_dynamic_state() -> None:
         verify_coverage_report(after)
         assert runtime.current_time_s == pytest.approx(1.6)
         assert after["sim_time_s"] == pytest.approx(1.6)
+        assert after["native_scheduler_phase"]["current_nanos"] == 1_600_000_000
+        assert after["native_scheduler_phase"]["native_clock_restore_proven"] is False
         assert after["native_worker_ident"] == before["native_worker_ident"]
         assert after["observations"]["spacecraft"]["position_m"] != before["observations"]["spacecraft"]["position_m"]
         assert after["observations"]["adcs_reference"]["sigma_R0N"][0] == pytest.approx(0.4)
@@ -218,3 +225,34 @@ def test_checkpoint_audit_control_is_paused_only_and_preserves_session_time() ->
         if session.state not in {SessionState.COMPLETED, SessionState.ABORTED, SessionState.FAILED}:
             session.abort()
         session.wait(2.0)
+
+
+
+def test_scheduler_phase_capture_is_read_only_and_rejects_impossible_counters() -> None:
+    class Scheduler:
+        CurrentNanos = 1_000_000_000
+        NextTaskTime = 1_200_000_000
+
+    class Sim:
+        TotalSim = Scheduler()
+
+    start = (Sim.TotalSim.CurrentNanos, Sim.TotalSim.NextTaskTime)
+    phase = capture_scheduler_phase(Sim())
+    assert phase["current_nanos"] == start[0]
+    assert phase["next_task_time_nanos"] == start[1]
+    assert phase["until_next_task_nanos"] == 200_000_000
+    assert (Sim.TotalSim.CurrentNanos, Sim.TotalSim.NextTaskTime) == start
+    report = create_coverage_report(
+        sim_time_s=1.0, observations={}, unavailable={},
+        native_worker_ident=123, scheduler_phase=phase,
+    )
+    verify_coverage_report(report)
+    forged = dict(phase, native_clock_restore_proven=True)
+    with pytest.raises(ValueError, match="NATIVE_SCHEDULER_UNPROVEN_RESTORE_CLAIM"):
+        create_coverage_report(
+            sim_time_s=1.0, observations={}, unavailable={},
+            native_worker_ident=123, scheduler_phase=forged,
+        )
+    Sim.TotalSim.NextTaskTime = 900_000_000
+    with pytest.raises(ValueError, match="NATIVE_SCHEDULER_COUNTERS_INVALID"):
+        capture_scheduler_phase(Sim())
