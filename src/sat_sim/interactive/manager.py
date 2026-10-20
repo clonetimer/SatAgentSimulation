@@ -54,11 +54,20 @@ class InteractiveSession:
         self._clock = SoftRealtimeClock(spec.rate)
         self._workspace = workspace
         self._command_catalog = command_catalog or CommandCatalog.default()
-        self._command_mailbox = DeterministicCommandMailbox(spec.command_queue_capacity)
-        self._acks: list[CommandAck] = []
+        ledger_path = workspace.path / "command_ids.sqlite" if workspace is not None else None
+        self._command_mailbox = DeterministicCommandMailbox(
+            spec.command_queue_capacity, persistent_ledger=spec.continuous,
+            ledger_path=ledger_path,
+        )
+        self._acks: list[CommandAck] | deque[CommandAck] = (
+            deque(maxlen=4096) if spec.continuous else []
+        )
         self._ack_sequence = 0
         self._ack_lock = threading.Lock()
-        self._events: list[SessionEvent] = []
+        self._events: list[SessionEvent] | deque[SessionEvent] = (
+            deque(maxlen=4096) if spec.continuous else []
+        )
+        self._event_sequence = 0
         self._event_lock = threading.Lock()
         self._created_monotonic = time.monotonic()
         self._last_activity_monotonic = self._created_monotonic
@@ -208,13 +217,20 @@ class InteractiveSession:
                 sim_time_s=sim_time_s,
                 sequence=self._ack_sequence,
             )
-            self._ack_sequence += 1
-            self._acks.append(ack)
             if self._workspace is not None:
                 self._workspace.append_command_ack(command, ack)
+            self._ack_sequence += 1
+            self._acks.append(ack)
             return ack
 
     def command_acks(self, command_id: str | None = None) -> tuple[CommandAck, ...]:
+        # Full targeted history remains readable after bounded-memory eviction.
+        if self.spec.continuous and command_id is not None and self._workspace is not None:
+            return tuple(
+                CommandAck.model_validate(row["ack"])
+                for row in SessionWorkspace.iter_hash_chain(self._workspace.commands_path)
+                if row["command_id"] == command_id
+            )
         with self._ack_lock:
             rows = tuple(self._acks)
         return tuple(row for row in rows if command_id is None or row.command_id == command_id)
@@ -259,7 +275,7 @@ class InteractiveSession:
         with self._event_lock:
             self._events.append(SessionEvent(
                 session_id=self.spec.session_id,
-                sequence=len(self._events),
+                sequence=self._event_sequence,
                 previous_state=event.previous,
                 state=event.current,
                 revision=event.revision,
@@ -267,6 +283,7 @@ class InteractiveSession:
                 reason_code=event.reason_code,
                 wall_time=event.wall_time_iso,
             ))
+            self._event_sequence += 1
         if self._workspace is not None:
             self._workspace.append_state(event.current, event.revision, self.current_time_s, reason_code)
 
@@ -479,6 +496,7 @@ class InteractiveSession:
                     seal_interactive_workspace(self._workspace.path)
         finally:
             self._close_request_queue()
+            self._command_mailbox.close()
 
 
 class InteractiveFeatureDisabled(RuntimeError):

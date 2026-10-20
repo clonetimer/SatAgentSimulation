@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import threading
+from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -63,12 +64,8 @@ class SessionWorkspace:
                 raise ValueError(f"invalid session workspace: {inspection.reason_code}")
             self._sequence = inspection.sequence + 1
             self._last_hash = str(rows[-1]["entry_hash"]) if rows else "0" * 64
-            command_rows = self.inspect_hash_chain(self.commands_path)
-            self._command_sequence = len(command_rows)
-            self._command_last_hash = str(command_rows[-1]["entry_hash"]) if command_rows else "0" * 64
-            telemetry_rows = self.inspect_hash_chain(self.telemetry_path)
-            self._telemetry_sequence = len(telemetry_rows)
-            self._telemetry_last_hash = str(telemetry_rows[-1]["entry_hash"]) if telemetry_rows else "0" * 64
+            self._command_sequence, self._command_last_hash = self.hash_chain_tail(self.commands_path)
+            self._telemetry_sequence, self._telemetry_last_hash = self.hash_chain_tail(self.telemetry_path)
 
     def append_state(self, state: SessionState, revision: int, sim_time_s: float, reason_code: str) -> dict[str, Any]:
         with self._lock:
@@ -138,64 +135,85 @@ class SessionWorkspace:
             return payload
 
     def finalize_telemetry(self) -> dict[str, Any]:
+        """Archive verified telemetry with memory O(number of streams)."""
         with self._lock:
-            rows = self.inspect_hash_chain(self.telemetry_path)
             counts: dict[str, int] = {}
             latest_sequences: dict[str, int] = {}
-            frames_by_stream: dict[str, list[dict[str, Any]]] = {}
-            for row in rows:
-                frame = row["frame"]
-                stream = str(frame["stream"])
-                counts[stream] = counts.get(stream, 0) + 1
-                latest_sequences[stream] = int(frame["sequence"])
-                frames_by_stream.setdefault(stream, []).append(frame)
+            hashes: dict[str, Any] = {}
             artifact_root = self.path / "telemetry_streams"
             artifact_root.mkdir(parents=True, exist_ok=True)
             artifacts: dict[str, dict[str, Any]] = {}
-            for stream, frames in sorted(frames_by_stream.items()):
-                filename = f"stream-{hashlib.sha256(stream.encode('utf-8')).hexdigest()[:16]}.jsonl"
-                artifact_path = artifact_root / filename
-                content = "".join(
-                    json.dumps(frame, ensure_ascii=False, sort_keys=True) + "\n"
-                    for frame in frames
-                ).encode("utf-8")
-                artifact_path.write_bytes(content)
-                artifacts[stream] = {
-                    "path": f"telemetry_streams/{filename}",
-                    "row_count": len(frames),
-                    "sha256": _sha256_bytes(content),
-                }
-            payload = {
+            last_hash = "0" * 64
+            frame_count = 0
+            with ExitStack() as stack:
+                writers: dict[str, Any] = {}
+                for row in self.iter_hash_chain(self.telemetry_path):
+                    frame = row["frame"]
+                    stream = str(frame["stream"])
+                    if stream not in writers:
+                        filename = f"stream-{hashlib.sha256(stream.encode('utf-8')).hexdigest()[:16]}.jsonl"
+                        writers[stream] = stack.enter_context((artifact_root / filename).open("wb"))
+                        hashes[stream] = hashlib.sha256()
+                        artifacts[stream] = {"path": f"telemetry_streams/{filename}"}
+                    data = (json.dumps(frame, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+                    writers[stream].write(data)
+                    hashes[stream].update(data)
+                    counts[stream] = counts.get(stream, 0) + 1
+                    latest_sequences[stream] = int(frame["sequence"])
+                    last_hash = str(row["entry_hash"])
+                    frame_count += 1
+            for stream, artifact in artifacts.items():
+                artifact["row_count"] = counts[stream]
+                artifact["sha256"] = hashes[stream].hexdigest()
+            telemetry_hash = hashlib.sha256()
+            if self.telemetry_path.exists():
+                with self.telemetry_path.open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        telemetry_hash.update(chunk)
+            result = {
                 "schema_version": "interactive-telemetry-manifest.v1",
                 "session_id": self.path.name,
-                "frame_count": len(rows),
+                "frame_count": frame_count,
                 "streams": counts,
                 "latest_sequences": latest_sequences,
-                "artifacts": artifacts,
-                "telemetry_sha256": _sha256_bytes(self.telemetry_path.read_bytes()) if self.telemetry_path.exists() else _sha256_bytes(b""),
-                "final_entry_hash": rows[-1]["entry_hash"] if rows else "0" * 64,
+                "artifacts": dict(sorted(artifacts.items())),
+                "telemetry_sha256": telemetry_hash.hexdigest(),
+                "final_entry_hash": last_hash,
             }
             self.telemetry_manifest_path.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
-            return payload
+            return result
 
     @staticmethod
-    def inspect_hash_chain(path: Path) -> list[dict[str, Any]]:
-        rows: list[dict[str, Any]] = []
-        expected_previous = "0" * 64
+    def iter_hash_chain(path: Path):
+        """Verify each hash-chained JSONL entry without retaining prior rows."""
+        previous_hash = "0" * 64
         if not path.exists():
-            return rows
-        for raw_line in path.read_text(encoding="utf-8").splitlines():
-            row = json.loads(raw_line)
-            entry_hash = str(row.pop("entry_hash"))
-            if row.get("previous_hash") != expected_previous or _sha256_bytes(_canonical(row)) != entry_hash:
-                raise ValueError("HASH_CHAIN_INVALID")
-            row["entry_hash"] = entry_hash
-            rows.append(row)
-            expected_previous = entry_hash
-        return rows
+            return
+        with path.open("r", encoding="utf-8") as handle:
+            for raw_line in handle:
+                row = json.loads(raw_line)
+                entry_hash = str(row.pop("entry_hash"))
+                if row.get("previous_hash") != previous_hash or _sha256_bytes(_canonical(row)) != entry_hash:
+                    raise ValueError("HASH_CHAIN_INVALID")
+                row["entry_hash"] = entry_hash
+                previous_hash = entry_hash
+                yield row
+
+    @classmethod
+    def hash_chain_tail(cls, path: Path) -> tuple[int, str]:
+        count, last_hash = 0, "0" * 64
+        for row in cls.iter_hash_chain(path):
+            count += 1
+            last_hash = str(row["entry_hash"])
+        return count, last_hash
+
+    @classmethod
+    def inspect_hash_chain(cls, path: Path) -> list[dict[str, Any]]:
+        """Legacy full-materialization helper for finite session diagnostics."""
+        return list(cls.iter_hash_chain(path))
 
     @classmethod
     def inspect(cls, path: Path, *, include_rows: bool = False) -> WorkspaceInspection | tuple[WorkspaceInspection, list[dict[str, Any]]]:
@@ -211,11 +229,11 @@ class SessionWorkspace:
             except ValueError as exc:
                 raise ValueError("STATE_HASH_CHAIN_INVALID") from exc
             try:
-                cls.inspect_hash_chain(path / "command_events.jsonl")
+                cls.hash_chain_tail(path / "command_events.jsonl")
             except ValueError as exc:
                 raise ValueError("COMMAND_HASH_CHAIN_INVALID") from exc
             try:
-                cls.inspect_hash_chain(path / "telemetry.jsonl")
+                cls.hash_chain_tail(path / "telemetry.jsonl")
             except ValueError as exc:
                 raise ValueError("TELEMETRY_HASH_CHAIN_INVALID") from exc
             state = SessionState(rows[-1]["state"]) if rows else SessionState.CREATED
