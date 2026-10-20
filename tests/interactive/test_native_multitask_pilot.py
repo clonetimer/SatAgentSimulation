@@ -87,14 +87,17 @@ def _worker(filepath: str, stop_s: float, *, mode: str) -> None:
     sim, process, fast, slow, sc, nav, recorder = _build()
     restore_state_subset_in_place(sc, item["native_state_subset"], expected_rw_count=3)
     restore_two_task_clock_fresh(sim, process, fast, slow, sc, phase)
-    if mode == "pickup_reanchored":
-        # Candidate reconstruction: a new TaskData object still carries an
-        # initial pickup cursor even when NextStartTime is restored. Try
-        # anchoring pickup to the first eligible post-checkpoint slow task.
-        slow.TaskData.NextPickupTime = slow.TaskData.NextStartTime
+    if mode == "omit_process_schedule":
+        # Fault injection: SysModelTask.NextStartTime is restored, but the
+        # separate process ModelScheduleEntry.NextTaskStart cursor is stale.
+        for entry in process.processData.processTasks:
+            if int(entry.TaskUpdatePeriod) == 600_000_000:
+                entry.NextTaskStart = 0
     elif mode == "wrong_phase":
-        slow.TaskData.NextStartTime += slow.TaskData.TaskPeriod
-    elif mode != "raw_copy":
+        for entry in process.processData.processTasks:
+            if int(entry.TaskUpdatePeriod) == 600_000_000:
+                entry.NextTaskStart += 600_000_000
+    elif mode != "full_schedule_restore":
         raise ValueError("NATIVE_MULTITASK_TEST_MODE_INVALID")
     sim.ConfigureStopTime(macros.sec2nano(stop_s))
     sim.ExecuteSimulation()
@@ -103,7 +106,7 @@ def _worker(filepath: str, stop_s: float, *, mode: str) -> None:
         "checkpoint_ns": fields["sim_current_ns"],
         "last_native_time_ns": int(sim.TotalSim.CurrentNanos),
         "test_mode": mode,
-        "clock_phase_restored": mode == "pickup_reanchored",
+        "clock_phase_restored": mode == "full_schedule_restore",
         "native_state_subset": capture_state_subset(sc, expected_rw_count=3),
         "observer_rows": _observed(
             recorder, after_ns=fields["sim_current_ns"],
@@ -135,7 +138,7 @@ def test_native_cross_process_two_rate_scheduler_phase_and_nav_observations(tmp_
     assert len(expected_nav) >= 3
 
     outputs = {}
-    for mode in ("raw_copy", "pickup_reanchored", "wrong_phase"):
+    for mode in ("omit_process_schedule", "full_schedule_restore", "wrong_phase"):
         cmd = [sys.executable, str(Path(__file__).resolve()),
                "--two-task-worker", str(doc), str(finish_s), mode]
         proc = subprocess.run(
@@ -154,7 +157,7 @@ def test_native_cross_process_two_rate_scheduler_phase_and_nav_observations(tmp_
         validate_state_subset(result["native_state_subset"], expected_rw_count=3)
         outputs[mode] = result
 
-    correct = outputs["pickup_reanchored"]
+    correct = outputs["full_schedule_restore"]
     for key, values in baseline["vectors"].items():
         assert correct["native_state_subset"]["vectors"][key] == pytest.approx(
             values, abs=1e-9, rel=1e-12,
@@ -165,7 +168,7 @@ def test_native_cross_process_two_rate_scheduler_phase_and_nav_observations(tmp_
 
     # The misplaced slower task cannot reproduce the original observer
     # timestamps, even though fast dynamics might remain numerically equal.
-    for mode in ("raw_copy", "wrong_phase"):
+    for mode in ("omit_process_schedule", "wrong_phase"):
         wrong = outputs[mode]
         assert [row[0] for row in wrong["observer_rows"]] != [
             row[0] for row in expected_nav
