@@ -119,6 +119,17 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
             assert assembled.exists()
             import hashlib
             assert hashlib.sha256(assembled.read_bytes()).hexdigest() == manifest["telemetry_sha256"]
+            # Compression is offline, after final seal: it must not alter the
+            # immutable Run Bundle nor any logical native telemetry bytes.
+            from sat_sim.run_bundle import verify_run_bundle
+            before_logical_bytes = telemetry_segments.total_logical_bytes(workspace.path)
+            archived = telemetry_segments.compress_closed(workspace.path)
+            assert archived["compressed"] >= 1
+            assert archived["bytes_after"] < archived["bytes_before"]
+            assert telemetry_segments.total_logical_bytes(workspace.path) == before_logical_bytes
+            assert telemetry_segments.logical_sha256(workspace.path) == manifest["telemetry_sha256"]
+            assert SessionWorkspace.inspect(workspace.path).valid
+            assert verify_run_bundle(workspace.path / "run_bundle")["ok"]
         after_archive_rss = _current_rss_kib()
         peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # Linux ru_maxrss is KiB, and the allowed extra 1 GiB is deliberately lenient.
