@@ -78,6 +78,7 @@ def test_continuous_seal_matches_legacy_evidence_semantics(tmp_path) -> None:
     continuous = _build_workspace(tmp_path, continuous=True)
     assert seal_interactive_workspace(finite.path)["ok"] is True
     assert seal_interactive_workspace(continuous.path)["ok"] is True
+    assert not (continuous.path / ".run_bundle.pending").exists()
     a = _read_bundle(finite)
     b = _read_bundle(continuous)
     assert a["trace"] == b["trace"]
@@ -119,3 +120,25 @@ def test_continuous_streaming_seal_uses_no_legacy_bulk_loader(monkeypatch, tmp_p
         lambda path: (_ for _ in ()).throw(AssertionError("bulk loader invoked")),
     )
     assert seal_interactive_workspace(ws.path)["ok"]
+
+
+
+def test_failed_continuous_seal_keeps_unpublished_staging_for_recovery(
+    monkeypatch, tmp_path,
+) -> None:
+    ws = _build_workspace(tmp_path, continuous=True)
+    import sat_sim.interactive.evidence as evidence
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            evidence, "_validation",
+            lambda *args, **kwargs: (_ for _ in ()).throw(
+                RuntimeError("injected-validation-error")
+            ),
+        )
+        with pytest.raises(RuntimeError, match="injected-validation-error"):
+            seal_interactive_workspace(ws.path)
+    assert not (ws.path / "run_bundle").exists()
+    assert (ws.path / ".run_bundle.pending" / "results" / "semantic_trace.json").exists()
+    with pytest.raises(ValueError, match="INTERACTIVE_PARTIAL_STAGING_EXISTS"):
+        seal_interactive_workspace(ws.path)
+    assert SessionWorkspace.inspect(ws.path).valid
