@@ -211,11 +211,21 @@ def restore_two_task_clock_fresh(
     # SysProcess holds its own ModelScheduleEntry.NextTaskStart values.
     # Editing only SysModelTask.NextStartTime does NOT repair this list:
     # the process uses its per-entry cursor to select which task runs next.
-    for entry in pd.processTasks:
+    # SWIG std::vector element iteration often yields value copies. Put each
+    # modified ModelScheduleEntry back into the vector by index, otherwise
+    # the native SysProcess keeps an old NextTaskStart despite Python edits.
+    for index in range(len(pd.processTasks)):
+        entry = pd.processTasks[index]
         name = "dynamics" if int(entry.TaskUpdatePeriod) == _FAST_NS else "observer"
         entry.NextTaskStart = fields["process_schedule"][name]["next_start_ns"]
+        pd.processTasks[index] = entry
     spacecraft.timeBefore = fields["hub_time_before_s"]
     spacecraft.timeBeforeNanos = fields["hub_time_before_ns"]
     spacecraft.timeStep = fields["hub_time_step_s"]
-    if _read(sim, process, fast, slow, spacecraft) != fields:
-        raise ValueError("NATIVE_MULTITASK_READBACK_FAILED")
+    observed = _read(sim, process, fast, slow, spacecraft)
+    if observed != fields:
+        changed_keys = {
+            key: {"expected": fields[key], "observed": observed[key]}
+            for key in fields if fields[key] != observed[key]
+        }
+        raise ValueError(f"NATIVE_MULTITASK_READBACK_FAILED:{changed_keys}")
