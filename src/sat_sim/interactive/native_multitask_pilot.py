@@ -18,7 +18,7 @@ _SLOW_NS = 600_000_000
 _KEYS = (
     "sim_current_ns", "sim_next_task_ns", "process_next_task_ns",
     "process_prev_route_ns", "hub_time_before_s", "hub_time_before_ns",
-    "hub_time_step_s", "tasks",
+    "hub_time_step_s", "tasks", "process_schedule",
 )
 _TASK_KEYS = (
     "first_ns", "pickup_ns", "next_start_ns", "period_ns",
@@ -39,6 +39,19 @@ def _read(sim: Any, process: Any, fast: Any, slow: Any, spacecraft: Any) -> dict
         raise ValueError("NATIVE_MULTITASK_GRAPH_MISMATCH")
     t = sim.TotalSim
     p = process.processData
+    native_entries = list(p.processTasks)
+    if len(native_entries) != 2 or {
+        int(x.TaskUpdatePeriod) for x in native_entries
+    } != {_FAST_NS, _SLOW_NS}:
+        raise ValueError("NATIVE_MULTITASK_PROCESS_SCHEDULE_MISMATCH")
+    schedule = {}
+    for entry in native_entries:
+        role = "dynamics" if int(entry.TaskUpdatePeriod) == _FAST_NS else "observer"
+        schedule[role] = {
+            "next_start_ns": int(entry.NextTaskStart),
+            "period_ns": int(entry.TaskUpdatePeriod),
+            "priority": int(entry.taskPriority),
+        }
     return {
         "sim_current_ns": int(t.CurrentNanos),
         "sim_next_task_ns": int(t.NextTaskTime),
@@ -47,6 +60,7 @@ def _read(sim: Any, process: Any, fast: Any, slow: Any, spacecraft: Any) -> dict
         "hub_time_before_s": float(spacecraft.timeBefore),
         "hub_time_before_ns": int(spacecraft.timeBeforeNanos),
         "hub_time_step_s": float(spacecraft.timeStep),
+        "process_schedule": schedule,
         "tasks": {
             "dynamics": {
                 "first_ns": int(fast.TaskData.FirstTaskTime),
@@ -88,6 +102,18 @@ def _validate(fields: dict[str, Any]) -> None:
         next_expected = (now // period + 1) * period
         if row["next_start_ns"] != next_expected:
             raise ValueError("NATIVE_MULTITASK_PHASE_MISMATCH")
+    records = fields["process_schedule"]
+    if not isinstance(records, dict) or set(records) != set(expected):
+        raise ValueError("NATIVE_MULTITASK_PROCESS_SCHEDULE_MISMATCH")
+    for name, period in expected.items():
+        entry = records[name]
+        if not isinstance(entry, dict) or set(entry) != {
+            "next_start_ns", "period_ns", "priority",
+        } or any(type(value) is not int for value in entry.values()):
+            raise ValueError("NATIVE_MULTITASK_PROCESS_SCHEDULE_MISMATCH")
+        if (entry["period_ns"] != period
+                or entry["next_start_ns"] != fields["tasks"][name]["next_start_ns"]):
+            raise ValueError("NATIVE_MULTITASK_PROCESS_PHASE_MISMATCH")
     next_fast = fields["tasks"]["dynamics"]["next_start_ns"]
     next_slow = fields["tasks"]["observer"]["next_start_ns"]
     next_due = min(next_fast, next_slow)
@@ -163,6 +189,12 @@ def restore_two_task_clock_fresh(
         or initial["tasks"]["dynamics"]["period_ns"] != _FAST_NS
         or initial["tasks"]["observer"]["period_ns"] != _SLOW_NS
         or any(row["next_start_ns"] != 0 for row in initial["tasks"].values())
+        or any(row["next_start_ns"] != 0 for row in initial["process_schedule"].values())
+        or any(
+            initial["process_schedule"][name]["priority"] !=
+            fields["process_schedule"][name]["priority"]
+            for name in ("dynamics", "observer")
+        )
     ):
         raise ValueError("NATIVE_MULTITASK_FRESH_GRAPH_REQUIRED")
     native = sim.TotalSim
@@ -176,6 +208,12 @@ def restore_two_task_clock_fresh(
         obj.FirstTaskTime = row["first_ns"]
         obj.NextPickupTime = row["pickup_ns"]
         obj.NextStartTime = row["next_start_ns"]
+    # SysProcess holds its own ModelScheduleEntry.NextTaskStart values.
+    # Editing only SysModelTask.NextStartTime does NOT repair this list:
+    # the process uses its per-entry cursor to select which task runs next.
+    for entry in pd.processTasks:
+        name = "dynamics" if int(entry.TaskUpdatePeriod) == _FAST_NS else "observer"
+        entry.NextTaskStart = fields["process_schedule"][name]["next_start_ns"]
     spacecraft.timeBefore = fields["hub_time_before_s"]
     spacecraft.timeBeforeNanos = fields["hub_time_before_ns"]
     spacecraft.timeStep = fields["hub_time_step_s"]
