@@ -214,6 +214,10 @@ class InteractiveSession:
     def heartbeat(self) -> SessionSnapshot:
         return self._request("heartbeat")
 
+    def checkpoint_coverage(self) -> dict[str, Any]:
+        """Audit a paused native session; never a resumable checkpoint."""
+        return self._request("checkpoint_audit")
+
     def _emit_ack(
         self,
         command: Telecommand,
@@ -404,6 +408,13 @@ class InteractiveSession:
         elif action == "heartbeat":
             self._write_heartbeat("CLIENT_HEARTBEAT")
             request.result = self.snapshot()
+        elif action == "checkpoint_audit":
+            if not self.spec.continuous or self.state is not SessionState.PAUSED or self.current_time_s <= 0.0:
+                raise ValueError("NATIVE_CHECKPOINT_AUDIT_REQUIRES_ADVANCED_PAUSED_CONTINUOUS_SESSION")
+            audit = getattr(self.runtime, "audit_native_checkpoint_coverage", None)
+            if not callable(audit):
+                raise ValueError("NATIVE_CHECKPOINT_AUDIT_UNSUPPORTED_RUNTIME")
+            request.result = audit()
         else:
             raise ValueError(f"unknown control action: {action}")
         return True

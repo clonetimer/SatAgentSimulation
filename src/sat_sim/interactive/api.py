@@ -145,6 +145,25 @@ def create_interactive_router(
         )
         return session.snapshot()
 
+    @router.get("/sessions/{session_id}/checkpoint/coverage")
+    def checkpoint_coverage(session_id: str, request: Request):
+        """Read native module audit at a paused boundary; never promise restore."""
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "NATIVE_CHECKPOINT_AUDIT_ROLE_DENIED"})
+        session = get_session(session_id)
+        try:
+            report = session.checkpoint_coverage()
+        except (RuntimeError, ValueError, TimeoutError) as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(
+            audit_logger, "interactive_native_checkpoint_coverage_read", principal,
+            session_id=session_id,
+            sim_time_s=report["sim_time_s"],
+            resume_supported=False,
+        )
+        return report
+
     @router.post("/sessions/{session_id}/commands", status_code=202)
     def submit_command(session_id: str, command: Telecommand, request: Request):
         session = get_session(session_id)
