@@ -63,7 +63,7 @@ def _load_workspace(path: str | Path) -> tuple[Path, InteractiveSessionSpec, lis
     envelope = json.loads((root / "session_spec.json").read_text(encoding="utf-8"))
     spec = InteractiveSessionSpec.model_validate(envelope["session_spec"])
     commands = SessionWorkspace.inspect_hash_chain(root / "command_events.jsonl")
-    telemetry = SessionWorkspace.inspect_hash_chain(root / "telemetry.jsonl")
+    telemetry = list(SessionWorkspace.iter_telemetry(root))
     return root, spec, states, commands, telemetry
 
 

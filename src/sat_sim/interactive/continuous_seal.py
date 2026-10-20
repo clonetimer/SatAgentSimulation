@@ -28,6 +28,7 @@ from sat_sim.validation_outcome import ValidationResult
 
 from .models import InteractiveSessionSpec, SessionState
 from .workspace import SessionWorkspace
+from . import telemetry_segments
 
 _MAX_PHYSICAL_ISSUES = 2048
 
@@ -156,7 +157,7 @@ def _write_semantic_trace_and_effects(
     trace_path.parent.mkdir(parents=True, exist_ok=True)
     with trace_path.open("wb") as handle:
         handle.write(b'{"rows":[')
-        for event in SessionWorkspace.iter_hash_chain(telemetry_path):
+        for event in SessionWorkspace.iter_telemetry(telemetry_path.parent):
             frame = event["frame"]
             at = float(frame["sim_time_s"])
             if at < last_time:
@@ -278,10 +279,13 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
         "telemetry.jsonl", "telemetry_manifest.json",
     ):
         source = root / name
-        if source.exists():
+        if source.exists() or (name == "telemetry.jsonl" and telemetry_segments.files(root)):
             target = staging / "interactive" / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
+            if name == "telemetry.jsonl":
+                telemetry_segments.copy_logical(root, target)
+            else:
+                shutil.copy2(source, target)
     files = {
         str(item.relative_to(staging)).replace(os.sep, "/"): {
             "sha256": _sha256_file(item), "size_bytes": item.stat().st_size,
