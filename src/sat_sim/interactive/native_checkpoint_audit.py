@@ -83,10 +83,26 @@ def capture_observations(*, spacecraft: Any, reference: Any, controller: Any, ba
     return observations, unavailable
 
 
+def capture_scheduler_phase(sim: Any) -> dict[str, Any]:
+    """Read native scheduler counters without mutating its state."""
+    now = int(sim.TotalSim.CurrentNanos)
+    next_task = int(sim.TotalSim.NextTaskTime)
+    if now < 0 or next_task < now:
+        raise ValueError("NATIVE_SCHEDULER_COUNTERS_INVALID")
+    return {
+        "current_nanos": now, "next_task_time_nanos": next_task,
+        "until_next_task_nanos": next_task - now,
+        "native_clock_restore_proven": False,
+        "task_queue_restore_proven": False,
+        "event_queue_restore_proven": False,
+    }
+
+
 def create_coverage_report(
     *, sim_time_s: float, observations: dict[str, Any],
     unavailable: dict[str, str], native_worker_ident: int,
     state_subset_pilot: dict[str, Any] | None = None,
+    scheduler_phase: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not math.isfinite(sim_time_s) or sim_time_s <= 0:
         raise ValueError("NATIVE_CHECKPOINT_REQUIRES_ADVANCED_SIMULATION")
@@ -102,6 +118,14 @@ def create_coverage_report(
     if state_subset_pilot is not None:
         from .native_state_pilot import validate_state_subset
         validate_state_subset(state_subset_pilot)
+    if scheduler_phase is not None and any(
+        scheduler_phase.get(k) is not False for k in (
+            "native_clock_restore_proven",
+            "task_queue_restore_proven",
+            "event_queue_restore_proven",
+        )
+    ):
+        raise ValueError("NATIVE_SCHEDULER_UNPROVEN_RESTORE_CLAIM")
     payload: dict[str, Any] = {
         "schema_version": SCHEMA,
         "sim_time_s": sim_time_s,
@@ -117,6 +141,7 @@ def create_coverage_report(
         "reason_code": "NATIVE_FULL_PHYSICAL_STATE_SNAPSHOT_NOT_AVAILABLE",
         "telemetry_is_not_checkpoint": True,
         "native_state_subset_pilot": state_subset_pilot,
+        "native_scheduler_phase": scheduler_phase,
     }
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
     payload["report_sha256"] = hashlib.sha256(raw).hexdigest()
@@ -133,6 +158,16 @@ def verify_coverage_report(report: dict[str, Any]) -> None:
     if content.get("native_state_subset_pilot") is not None:
         from .native_state_pilot import validate_state_subset
         validate_state_subset(content["native_state_subset_pilot"])
+    phase = content.get("native_scheduler_phase")
+    if phase is not None and (
+        any(phase.get(k) is not False for k in (
+            "native_clock_restore_proven",
+            "task_queue_restore_proven",
+            "event_queue_restore_proven",
+        ))
+        or phase.get("next_task_time_nanos", -1) < phase.get("current_nanos", 0)
+    ):
+        raise ValueError("NATIVE_SCHEDULER_UNPROVEN_RESTORE_CLAIM")
     names = [r["owner"] for r in content["required_state_owners"]]
     if names != list(MANDATORY_STATE_OWNERS) or content.get("native_checkpoint_complete") is not False or content.get("resume_supported") is not False:
         raise ValueError("NATIVE_CHECKPOINT_AUDIT_UNSUPPORTED_RESUME_CLAIM")
