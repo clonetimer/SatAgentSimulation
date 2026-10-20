@@ -224,3 +224,95 @@ def test_continuous_session_reports_storage_budget_exhaustion_to_client(tmp_path
     assert "TELEMETRY_LOG_BUDGET_EXCEEDED" in (snapshot.terminal_error or "")
     assert SessionWorkspace.inspect(workspace.path).valid is True
     assert not (workspace.path / "run_bundle" / "SEALED.json").exists()
+
+
+
+def test_rotated_telemetry_retains_global_hash_chain_and_reopens(tmp_path) -> None:
+    import hashlib
+    from sat_sim.interactive import telemetry_segments
+
+    spec = _spec("segmented-reopen").model_copy(update={
+        "telemetry_segment_max_bytes": 1024,
+        "telemetry_min_free_disk_bytes": 0,
+    })
+    workspace = SessionWorkspace(tmp_path, spec)
+
+    def frame(number: int) -> TelemetryFrame:
+        return TelemetryFrame(
+            session_id=spec.session_id, stream="fast", sequence=number,
+            sim_time_s=float(number), values={"value": number},
+        )
+
+    for index in range(30):
+        workspace.append_telemetry(frame(index))
+    closed = telemetry_segments.segments_metadata(workspace.path)
+    assert len(closed) > 1
+    assert all(item["bytes"] <= 1024 for item in closed)
+    assert len(list(SessionWorkspace.iter_telemetry(workspace.path))) == 30
+    assert SessionWorkspace.telemetry_chain_tail(workspace.path)[0] == 30
+    assert SessionWorkspace.inspect(workspace.path).valid is True
+
+    restarted = SessionWorkspace(tmp_path, spec, create=False)
+    restarted.append_telemetry(frame(30))
+    assert SessionWorkspace.telemetry_chain_tail(workspace.path)[0] == 31
+    manifest = restarted.finalize_telemetry()
+    assert manifest["frame_count"] == 31
+    assert len(manifest["source_segments"]) >= 2
+    logical = b"".join(path.read_bytes() for path in telemetry_segments.files(workspace.path))
+    assert manifest["telemetry_sha256"] == hashlib.sha256(logical).hexdigest()
+    assert SessionWorkspace.inspect(workspace.path).valid
+
+
+def test_rotated_telemetry_detects_missing_or_corrupted_segments(tmp_path) -> None:
+    from sat_sim.interactive import telemetry_segments
+
+    spec = _spec("tampered-segments").model_copy(update={
+        "telemetry_segment_max_bytes": 1024,
+        "telemetry_min_free_disk_bytes": 0,
+    })
+    workspace = SessionWorkspace(tmp_path, spec)
+    for number in range(12):
+        workspace.append_telemetry(TelemetryFrame(
+            session_id=spec.session_id, stream="fast", sequence=number,
+            sim_time_s=float(number), values={"value": number},
+        ))
+    closed = telemetry_segments.segments_metadata(workspace.path)
+    assert len(closed) >= 2
+    first = workspace.path / "telemetry_segments" / closed[0]["filename"]
+    original = first.read_bytes()
+    first.write_bytes(original.replace(b'"value": 0', b'"value": 9', 1))
+    inspection = SessionWorkspace.inspect(workspace.path)
+    assert not inspection.valid
+    assert "TELEMETRY_HASH_CHAIN_INVALID" in inspection.reason_code
+    first.write_bytes(original)
+    assert SessionWorkspace.inspect(workspace.path).valid
+    first.unlink()
+    inspection = SessionWorkspace.inspect(workspace.path)
+    assert not inspection.valid
+    assert "TELEMETRY_SEGMENT_SET_MISMATCH" in inspection.reason_code
+
+
+def test_total_telemetry_budget_counts_closed_segments_and_active_file(tmp_path) -> None:
+    from sat_sim.interactive import telemetry_segments
+
+    spec = _spec("total-budget").model_copy(update={
+        "telemetry_segment_max_bytes": 1024,
+        "telemetry_log_max_bytes": 0,
+        "telemetry_min_free_disk_bytes": 0,
+    })
+    workspace = SessionWorkspace(tmp_path, spec)
+    for number in range(8):
+        workspace.append_telemetry(TelemetryFrame(
+            session_id=spec.session_id, stream="fast", sequence=number,
+            sim_time_s=float(number), values={"value": number},
+        ))
+    assert telemetry_segments.segments_metadata(workspace.path)
+    before = telemetry_segments.total_bytes(workspace.path)
+    workspace._telemetry_log_max_bytes = before + 1
+    with pytest.raises(RuntimeError, match="TELEMETRY_LOG_BUDGET_EXCEEDED"):
+        workspace.append_telemetry(TelemetryFrame(
+            session_id=spec.session_id, stream="fast", sequence=8,
+            sim_time_s=8.0, values={"value": 8},
+        ))
+    assert telemetry_segments.total_bytes(workspace.path) == before
+    assert SessionWorkspace.inspect(workspace.path).valid
