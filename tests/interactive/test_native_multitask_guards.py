@@ -33,6 +33,14 @@ def _fake(*, advanced=False, slow_next=2_400_000_000):
     process = Obj(processData=Obj(
         nextTaskTime=ns + 200_000_000 if advanced else 0,
         prevRouteTime=0,
+        processTasks=[
+            Obj(TaskUpdatePeriod=200_000_000,
+                NextTaskStart=ns + 200_000_000 if advanced else 0,
+                taskPriority=-1),
+            Obj(TaskUpdatePeriod=600_000_000,
+                NextTaskStart=slow_next if advanced else 0,
+                taskPriority=-1),
+        ],
     ))
     sim = Obj(TaskList=[fast, slow], TotalSim=Obj(
         CurrentNanos=ns, NextTaskTime=ns + 200_000_000 if advanced else 0,
@@ -100,3 +108,22 @@ def test_multitask_pilot_refuses_wrong_graph_period_and_slow_boundary() -> None:
     args[4].timeBeforeNanos = 0
     with pytest.raises(ValueError, match="NATIVE_MULTITASK_HUB_PHASE_MISMATCH"):
         capture_two_task_clock(*args)
+
+
+
+def test_process_task_scheduler_entries_are_not_aliases_of_task_next_start() -> None:
+    args = _fake(advanced=True)
+    _, process, fast, slow, _ = args
+    process.processData.processTasks[1].NextTaskStart = 2_200_000_000
+    assert slow.TaskData.NextStartTime == 2_400_000_000
+    with pytest.raises(ValueError, match="NATIVE_MULTITASK_PROCESS_PHASE_MISMATCH"):
+        capture_two_task_clock(*args)
+
+
+def test_restore_rejects_mismatched_process_priority_before_writing() -> None:
+    doc = capture_two_task_clock(*_fake(advanced=True))
+    fresh = _fake()
+    fresh[1].processData.processTasks[1].taskPriority = 8
+    with pytest.raises(ValueError, match="NATIVE_MULTITASK_FRESH_GRAPH_REQUIRED"):
+        restore_two_task_clock_fresh(*fresh, doc)
+    assert fresh[0].TotalSim.CurrentNanos == 0
