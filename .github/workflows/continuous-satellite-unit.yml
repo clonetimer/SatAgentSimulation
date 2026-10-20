@@ -12,6 +12,7 @@ on:
       - "tests/interactive/test_native_time_rebase.py"
       - "tests/interactive/test_native_scheduler_pilot.py"
       - "tests/interactive/test_native_multitask_guards.py"
+      - "tests/interactive/test_native_multiprocess_guards.py"
       - "tests/interactive/test_session_workspace.py"
       - "tests/interactive/test_telecommand_mailbox.py"
       - "tests/interactive/test_telemetry_bus.py"
@@ -48,6 +49,7 @@ jobs:
           tests/interactive/test_native_time_rebase.py
           tests/interactive/test_native_scheduler_pilot.py
           tests/interactive/test_native_multitask_guards.py
+          tests/interactive/test_native_multiprocess_guards.py
           tests/interactive/test_session_workspace.py
           tests/interactive/test_telecommand_mailbox.py
           tests/interactive/test_command_lifecycle.py
