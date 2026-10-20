@@ -1384,10 +1384,17 @@ class UnifiedNativeRuntime:
                         battery=battery if not cfg.adcs_only else None,
                         storage=storage if not cfg.adcs_only else None,
                     )
+                    from sat_sim.interactive.native_state_pilot import capture_state_subset
+                    pilot_subset = None
+                    try:
+                        pilot_subset = capture_state_subset(sc, expected_rw_count=len(rw_axes))
+                    except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                        unavailable["native_state_subset_pilot"] = f"{type(exc).__name__}: {exc}"
                     report = create_coverage_report(
                         sim_time_s=previous_stop_s,
                         observations=observations, unavailable=unavailable,
                         native_worker_ident=threading.get_ident(),
+                        state_subset_pilot=pilot_subset,
                     )
                     cfg.execution_controller.runtime_audited(report)
                     continue

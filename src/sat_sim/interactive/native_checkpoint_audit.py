@@ -86,6 +86,7 @@ def capture_observations(*, spacecraft: Any, reference: Any, controller: Any, ba
 def create_coverage_report(
     *, sim_time_s: float, observations: dict[str, Any],
     unavailable: dict[str, str], native_worker_ident: int,
+    state_subset_pilot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not math.isfinite(sim_time_s) or sim_time_s <= 0:
         raise ValueError("NATIVE_CHECKPOINT_REQUIRES_ADVANCED_SIMULATION")
@@ -98,6 +99,9 @@ def create_coverage_report(
         }
         for owner in MANDATORY_STATE_OWNERS
     ]
+    if state_subset_pilot is not None:
+        from .native_state_pilot import validate_state_subset
+        validate_state_subset(state_subset_pilot)
     payload: dict[str, Any] = {
         "schema_version": SCHEMA,
         "sim_time_s": sim_time_s,
@@ -112,6 +116,7 @@ def create_coverage_report(
         "resume_supported": False,
         "reason_code": "NATIVE_FULL_PHYSICAL_STATE_SNAPSHOT_NOT_AVAILABLE",
         "telemetry_is_not_checkpoint": True,
+        "native_state_subset_pilot": state_subset_pilot,
     }
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
     payload["report_sha256"] = hashlib.sha256(raw).hexdigest()
@@ -125,6 +130,9 @@ def verify_coverage_report(report: dict[str, Any]) -> None:
     raw = json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
     if hashlib.sha256(raw).hexdigest() != expected:
         raise ValueError("NATIVE_CHECKPOINT_AUDIT_DIGEST_MISMATCH")
+    if content.get("native_state_subset_pilot") is not None:
+        from .native_state_pilot import validate_state_subset
+        validate_state_subset(content["native_state_subset_pilot"])
     names = [r["owner"] for r in content["required_state_owners"]]
     if names != list(MANDATORY_STATE_OWNERS) or content.get("native_checkpoint_complete") is not False or content.get("resume_supported") is not False:
         raise ValueError("NATIVE_CHECKPOINT_AUDIT_UNSUPPORTED_RESUME_CLAIM")

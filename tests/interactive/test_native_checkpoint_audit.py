@@ -113,6 +113,11 @@ def test_live_whole_spacecraft_native_audit_tracks_real_dynamic_state() -> None:
         assert len(before["required_state_owners"]) >= 10
         assert "spacecraft" in before["observations"], before["unavailable_observations"]
         assert len(before["observations"]["spacecraft"]["position_m"]) == 3
+        subset = before["native_state_subset_pilot"]
+        assert subset is not None, before["unavailable_observations"]
+        validate_state_subset(subset, expected_rw_count=3)
+        assert len(subset["vectors"]["reaction_wheel_speed_rad_s"]) == 3
+        assert subset["resume_supported"] is False
 
         runtime.apply_command(Telecommand(
             command_id="native-state-audit-target",
@@ -132,6 +137,9 @@ def test_live_whole_spacecraft_native_audit_tracks_real_dynamic_state() -> None:
         assert after["native_worker_ident"] == before["native_worker_ident"]
         assert after["observations"]["spacecraft"]["position_m"] != before["observations"]["spacecraft"]["position_m"]
         assert after["observations"]["adcs_reference"]["sigma_R0N"][0] == pytest.approx(0.4)
+        assert after["native_state_subset_pilot"]["vectors"]["hub_position_m"] != (
+            before["native_state_subset_pilot"]["vectors"]["hub_position_m"]
+        )
         assert not after["resume_supported"]
         summary = runtime.finalize()
         assert summary["persistent_instance"]
