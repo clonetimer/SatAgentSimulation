@@ -131,6 +131,40 @@ def test_empty_native_telemetry_quantum_does_not_terminate_continuous_simulation
         session.wait(2.0)
 
 
+def test_continuous_telemetry_uses_real_off_grid_native_samples() -> None:
+    class OffGridRuntime(_RecordingContinuousRuntime):
+        def advance_to(self, stop_time_s: float) -> tuple[dict, ...]:
+            super().advance_to(stop_time_s)
+            return ({"time_s": round(stop_time_s + 0.1, 9), "value": stop_time_s},)
+
+    spec = _spec().model_copy(update={
+        "quantum_s": 0.5,
+        "rate": 10.0,
+        "task_spec": {"outputs": {"telemetry_streams": [
+            {"stream_id": "whole.offgrid", "sample_s": 1.0, "fields": ["value"]},
+        ]}},
+    })
+    runtime = OffGridRuntime()
+    session = InteractiveSession(spec, runtime, end_time_s=None)
+    try:
+        session.prepare()
+        session.start()
+        deadline = time.monotonic() + 3.0
+        while session.current_time_s < 2.0 and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert session.current_time_s >= 2.0
+        session.pause()
+        frames = session.telemetry.read_after("whole.offgrid").frames
+        assert len(frames) >= 2
+        assert [frame.sim_time_s for frame in frames[:2]] == pytest.approx([1.1, 2.1])
+        assert all(frame.quality == "GOOD" for frame in frames)
+        session.stop()
+    finally:
+        if session.state not in {SessionState.COMPLETED, SessionState.ABORTED, SessionState.FAILED}:
+            session.abort()
+        session.wait(2.0)
+
+
 def test_bounded_session_is_not_silently_converted_to_continuous() -> None:
     runtime = _RecordingContinuousRuntime()
     session = InteractiveSession(_spec(continuous=False), runtime, end_time_s=0.2)
