@@ -412,6 +412,7 @@ class InteractiveSession:
                     self._write_heartbeat()
                 continue
             try:
+                previous_time_s = self.current_time_s
                 rows = self._advance()
                 if self.spec.paced:
                     observation = self._clock.pace_to(self.current_time_s)
@@ -427,7 +428,11 @@ class InteractiveSession:
                     self._runtime_summary = self.runtime.finalize()
                     self._transition(SessionState.COMPLETED)
                     keep_running = False
-                elif not rows:
+                elif self.current_time_s <= previous_time_s:
+                    # Native recorders can legitimately emit no samples during an
+                    # integration quantum (for example when step and recorder
+                    # periods do not align).  Physical time advancement, rather
+                    # than non-empty telemetry, determines forward progress.
                     raise RuntimeError("runtime made no progress")
             except BaseException as exc:
                 self._terminal_error = f"{type(exc).__name__}: {exc}"
