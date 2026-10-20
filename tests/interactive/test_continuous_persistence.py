@@ -548,3 +548,41 @@ def test_recovery_handoff_cli_is_read_only_and_reports_no_native_resume(tmp_path
     assert output["evidence"]["last_durable_telemetry_sim_time_s"] == 5.0
     assert output["physical_recovery"]["resume_supported"] is False
     assert workspace.events_path.read_bytes() == before
+
+
+
+def test_manual_handoff_rebuild_requires_existing_verified_interruption(tmp_path, monkeypatch, capsys) -> None:
+    import sys
+    from scripts.inspect_continuous_recovery import main
+    from sat_sim.interactive.recovery_handoff import HANDOFF_FILENAME
+
+    spec = _spec("missing-handoff")
+    workspace = SessionWorkspace(tmp_path, spec)
+    workspace.append_state(SessionState.CREATED, 0, 0.0, "SESSION_CREATED")
+    workspace.append_state(SessionState.INTERRUPTED, 1, 0.0, "PROCESS_RESTART")
+    target = workspace.path / HANDOFF_FILENAME
+    assert not target.exists()
+    monkeypatch.setattr(sys, "argv", [
+        "inspect_continuous_recovery.py", "--workspace", str(workspace.path),
+    ])
+    with pytest.raises(FileNotFoundError):
+        main()
+    monkeypatch.setattr(sys, "argv", [
+        "inspect_continuous_recovery.py", "--workspace", str(workspace.path),
+        "--create-missing",
+    ])
+    assert main() == 0
+    assert json.loads(capsys.readouterr().out)["physical_recovery"]["resume_supported"] is False
+    original = target.read_bytes()
+    assert main() == 0
+    capsys.readouterr()
+    assert target.read_bytes() == original
+
+    healthy = SessionWorkspace(tmp_path, _spec("healthy-no-handoff"))
+    healthy.append_state(SessionState.CREATED, 0, 0.0, "SESSION_CREATED")
+    monkeypatch.setattr(sys, "argv", [
+        "inspect_continuous_recovery.py", "--workspace", str(healthy.path),
+        "--create-missing",
+    ])
+    with pytest.raises(ValueError, match="RECOVERY_REQUIRES_INTERRUPTED_SESSION"):
+        main()
