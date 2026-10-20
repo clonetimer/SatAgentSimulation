@@ -522,3 +522,29 @@ def test_restart_handoff_refuses_finite_mode_and_healthy_workspace(tmp_path) -> 
     finite.append_state(SessionState.INTERRUPTED, 1, 2.0, "PROCESS_RESTART")
     with pytest.raises(ValueError, match="RECOVERY_REQUIRES_CONTINUOUS_SESSION"):
         write_interrupted_handoff(finite.path)
+
+
+
+def test_recovery_handoff_cli_is_read_only_and_reports_no_native_resume(tmp_path, monkeypatch, capsys) -> None:
+    import sys
+    from scripts.inspect_continuous_recovery import main
+    from sat_sim.interactive.manager import InteractiveSessionManager
+
+    spec = _spec("restart-cli")
+    workspace = SessionWorkspace(tmp_path, spec)
+    workspace.append_state(SessionState.CREATED, 0, 0.0, "SESSION_CREATED")
+    workspace.append_telemetry(TelemetryFrame(
+        session_id=spec.session_id, stream="runtime.trace", sequence=0,
+        sim_time_s=5.0, values={"time_s": 5.0},
+    ))
+    InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    before = workspace.events_path.read_bytes()
+    monkeypatch.setattr(sys, "argv", [
+        "inspect_continuous_recovery.py", "--workspace", str(workspace.path),
+    ])
+    assert main() == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "VERIFIED_SOURCE_EVIDENCE"
+    assert output["evidence"]["last_durable_telemetry_sim_time_s"] == 5.0
+    assert output["physical_recovery"]["resume_supported"] is False
+    assert workspace.events_path.read_bytes() == before
