@@ -9,6 +9,7 @@ from sat_sim.interactive.native_checkpoint_audit import (
     MANDATORY_STATE_OWNERS, capture_observations, create_coverage_report,
     verify_coverage_report,
 )
+from sat_sim.interactive.native_state_pilot import validate_state_subset
 
 
 class _Message:
