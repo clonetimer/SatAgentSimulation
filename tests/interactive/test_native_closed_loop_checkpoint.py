@@ -180,3 +180,28 @@ def test_live_closed_loop_joint_checkpoint_fails_closed_until_rw_and_messages_co
         capture_mrp_feedback_memory(controller, checkpoint_ns=macros.sec2nano(2.0))
     assert state["resume_supported"] is False
     assert clock["complete_satellite_resume"] is False
+
+    from sat_sim.interactive.native_closed_loop_evidence import (
+        MISSING_RESTORE_OWNERS, capture_closed_loop_evidence,
+        verify_closed_loop_evidence,
+    )
+    import copy
+    report = capture_closed_loop_evidence(
+        sim=graph["sim"], processes=graph["processes"],
+        tasks=graph["tasks"], spacecraft=graph["sc"],
+        controller=graph["controller"], allocator=graph["allocator"],
+    )
+    verify_closed_loop_evidence(report)
+    assert report["checkpoint_sim_time_ns"] == macros.sec2nano(2.0)
+    assert report["fsw_integrator"]["cached_rw_count"] == 3
+    assert report["fsw_integrator"]["prior_time_ns"] == macros.sec2nano(1.8)
+    assert len(report["spacecraft_rw_state"]["vectors"]["reaction_wheel_speed_rad_s"]) == 3
+    assert len(report["last_rw_motor_command_nm"]) == 3
+    assert "rw_command_message_history" in report["restore_gaps"]
+    assert report["restore_gaps"] == list(MISSING_RESTORE_OWNERS)
+    assert report["resume_supported"] is False
+    corrupted = copy.deepcopy(report)
+    corrupted["resume_supported"] = True
+    with pytest.raises(ValueError, match="ADCS_EVIDENCE_DIGEST_INVALID"):
+        verify_closed_loop_evidence(corrupted)
+
