@@ -4,6 +4,7 @@ This is a regression gate, NOT evidence of 24-hour wall-clock reliability.
 """
 from __future__ import annotations
 
+import json
 import resource
 import time
 
@@ -15,9 +16,10 @@ from sat_sim.interactive.models import (
     ActorRole, CommandState, InteractiveSessionSpec, SessionState, Telecommand,
 )
 from sat_sim.interactive.runtime_factory import build_persistent_runtime
+from sat_sim.interactive.workspace import SessionWorkspace
 
 
-def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon() -> None:
+def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_path) -> None:
     pytest.importorskip("Basilisk")
     spec = InteractiveSessionSpec(
         session_id="native-continuous-180s-soak",
@@ -46,7 +48,8 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon() -> No
     )
     runtime, end_time = build_persistent_runtime(spec)
     assert end_time is None
-    session = InteractiveSession(spec, runtime, end_time_s=end_time)
+    workspace = SessionWorkspace(tmp_path, spec)
+    session = InteractiveSession(spec, runtime, end_time_s=end_time, workspace=workspace)
     initial_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     try:
         session.prepare()
@@ -84,6 +87,11 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon() -> No
         assert summary["summary"]["execution_segment_count"] >= 360
         assert len(summary["summary"]["execution_stops_s"]) == 1
         assert session.state is SessionState.COMPLETED
+        assert session.wait(15.0)
+        manifest = json.loads(workspace.telemetry_manifest_path.read_text(encoding="utf-8"))
+        assert manifest["frame_count"] >= len(frames)
+        assert manifest["streams"]["whole.soak"] == len(frames)
+        assert SessionWorkspace.inspect(workspace.path).valid is True
         peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # Linux ru_maxrss is KiB, and the allowed extra 1 GiB is deliberately lenient.
         assert peak_rss - initial_rss < 1024 * 1024
