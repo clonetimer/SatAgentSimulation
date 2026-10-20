@@ -69,6 +69,9 @@ class InteractiveSessionSpec(FrozenModel):
     control_queue_capacity: int = Field(default=128, ge=1, le=4096)
     command_queue_capacity: int = Field(default=1024, ge=1, le=10000)
     telemetry_buffer_frames: int = Field(default=10000, ge=1, le=1000000)
+    # Opt-in guard only for continuous sessions. Zero disables this particular cap.
+    telemetry_log_max_bytes: int = Field(default=0, ge=0)
+    telemetry_min_free_disk_bytes: int = Field(default=64 * 1024 * 1024, ge=0)
     drift_tolerance_s: float = Field(default=0.2, gt=0.0, le=10.0)
     created_at: datetime = Field(default_factory=utc_now)
 
@@ -93,6 +96,7 @@ class SessionSnapshot(FrozenModel):
     worker_alive: bool
     archive_status: Literal["NOT_CONFIGURED", "NOT_READY", "SEALING", "SEALED", "FAILED", "NOT_APPLICABLE"] = "NOT_CONFIGURED"
     archive_error: str | None = None
+    terminal_error: str | None = None
     pace_observation_count: int = Field(default=0, ge=0)
     last_drift_s: float = 0.0
     max_abs_drift_s: float = Field(default=0.0, ge=0.0)

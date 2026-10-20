@@ -158,3 +158,51 @@ def test_archive_failure_is_visible_after_simulation_stops(tmp_path) -> None:
     assert snapshot.archive_status == "FAILED"
     assert "archive write unavailable" in (snapshot.archive_error or "")
     assert not (workspace.path / "run_bundle" / "SEALED.json").exists()
+
+
+
+def test_continuous_telemetry_budget_fails_before_corrupting_hash_chain(tmp_path) -> None:
+    spec = _spec("bounded-storage").model_copy(update={
+        "telemetry_log_max_bytes": 100000,
+        "telemetry_min_free_disk_bytes": 0,
+    })
+    workspace = SessionWorkspace(tmp_path, spec)
+    def frame(index: int) -> TelemetryFrame:
+        return TelemetryFrame(
+            session_id=spec.session_id, stream="fast", sequence=index,
+            sim_time_s=float(index), values={"value": index},
+        )
+    workspace.append_telemetry(frame(0))
+    data_before = workspace.telemetry_path.read_bytes()
+    workspace._telemetry_log_max_bytes = len(data_before) + 1
+    with pytest.raises(RuntimeError, match="TELEMETRY_LOG_BUDGET_EXCEEDED"):
+        workspace.append_telemetry(frame(1))
+    assert workspace.telemetry_path.read_bytes() == data_before
+    assert SessionWorkspace.inspect(workspace.path).valid is True
+    assert workspace._telemetry_sequence == 1
+
+
+def test_continuous_disk_reserve_fail_closed_without_dropping_previous_evidence(
+    tmp_path, monkeypatch
+) -> None:
+    from types import SimpleNamespace
+    import sat_sim.interactive.workspace as workspace_module
+
+    spec = _spec("low-disk").model_copy(update={
+        "telemetry_min_free_disk_bytes": 1000,
+        "telemetry_log_max_bytes": 0,
+    })
+    workspace = SessionWorkspace(tmp_path, spec)
+    monkeypatch.setattr(
+        workspace_module.shutil,
+        "disk_usage",
+        lambda path: SimpleNamespace(free=800),
+    )
+    frame = TelemetryFrame(
+        session_id=spec.session_id, stream="fast", sequence=0,
+        sim_time_s=0.0, values={"value": 123},
+    )
+    with pytest.raises(RuntimeError, match="TELEMETRY_DISK_RESERVE_EXHAUSTED"):
+        workspace.append_telemetry(frame)
+    assert not workspace.telemetry_path.exists()
+    assert SessionWorkspace.inspect(workspace.path).valid

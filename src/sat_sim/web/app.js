@@ -5869,6 +5869,7 @@
   function renderInteractiveSnapshot() {
     const snapshot = state.interactiveSession;
     el('interactiveState').textContent = snapshot?.state || '未选择';
+    el('interactiveState').title = snapshot?.terminal_error || '';
     const archiveLabels = {
       NOT_CONFIGURED: '未配置', NOT_READY: '未开始', SEALING: '封存中',
       SEALED: '已验证封存', FAILED: '封存失败', NOT_APPLICABLE: '无需封存',

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import threading
 from contextlib import ExitStack
 from dataclasses import dataclass
@@ -43,6 +44,13 @@ class SessionWorkspace:
         self.telemetry_path = self.path / "telemetry.jsonl"
         self.telemetry_manifest_path = self.path / "telemetry_manifest.json"
         self._lock = threading.Lock()
+        self._continuous_storage_guard = bool(spec.continuous)
+        self._telemetry_log_max_bytes = int(spec.telemetry_log_max_bytes)
+        self._telemetry_min_free_disk_bytes = int(spec.telemetry_min_free_disk_bytes)
+        # Amortize disk usage checks; the safety reserve greatly exceeds the
+        # maximum size of a normal 128-frame batch.
+        self._telemetry_disk_check_interval = 128
+        self._telemetry_disk_check_count = 0
         if create:
             self.path.mkdir(parents=True, exist_ok=False)
             spec_payload = spec.model_dump(mode="json")
@@ -126,12 +134,29 @@ class SessionWorkspace:
                 "previous_hash": self._telemetry_last_hash,
             }
             payload["entry_hash"] = _sha256_bytes(_canonical(payload))
-            with self.telemetry_path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+            encoded = (json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+            if self._continuous_storage_guard:
+                # Reject before appending: never truncate, silently drop data,
+                # or create a broken hash-chain on capacity exhaustion.
+                if self._telemetry_log_max_bytes:
+                    used = self.telemetry_path.stat().st_size if self.telemetry_path.exists() else 0
+                    if used + len(encoded) > self._telemetry_log_max_bytes:
+                        raise RuntimeError("TELEMETRY_LOG_BUDGET_EXCEEDED")
+                if self._telemetry_min_free_disk_bytes and self._telemetry_disk_check_count == 0:
+                    if shutil.disk_usage(self.path).free <= (
+                        self._telemetry_min_free_disk_bytes + len(encoded)
+                    ):
+                        raise RuntimeError("TELEMETRY_DISK_RESERVE_EXHAUSTED")
+            with self.telemetry_path.open("ab") as handle:
+                handle.write(encoded)
                 handle.flush()
                 os.fsync(handle.fileno())
             self._telemetry_last_hash = payload["entry_hash"]
             self._telemetry_sequence += 1
+            if self._continuous_storage_guard:
+                self._telemetry_disk_check_count = (
+                    self._telemetry_disk_check_count + 1
+                ) % self._telemetry_disk_check_interval
             return payload
 
     def finalize_telemetry(self) -> dict[str, Any]:

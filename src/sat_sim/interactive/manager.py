@@ -146,6 +146,7 @@ class InteractiveSession:
             worker_alive=self._thread.is_alive(),
             archive_status=self._archive_status,
             archive_error=self._archive_error,
+            terminal_error=self._terminal_error,
             pace_observation_count=self._pace_observation_count,
             last_drift_s=self._last_drift_s,
             max_abs_drift_s=self._max_abs_drift_s,
