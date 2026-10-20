@@ -206,3 +206,21 @@ def test_continuous_disk_reserve_fail_closed_without_dropping_previous_evidence(
         workspace.append_telemetry(frame)
     assert not workspace.telemetry_path.exists()
     assert SessionWorkspace.inspect(workspace.path).valid
+
+
+
+def test_continuous_session_reports_storage_budget_exhaustion_to_client(tmp_path) -> None:
+    spec = _spec("budget-failed-session").model_copy(update={
+        "telemetry_log_max_bytes": 1,
+        "telemetry_min_free_disk_bytes": 0,
+    })
+    workspace = SessionWorkspace(tmp_path, spec)
+    session = InteractiveSession(spec, _StubRuntime(), end_time_s=None, workspace=workspace)
+    session.prepare()
+    session.start()
+    assert session.wait(3.0)
+    snapshot = session.snapshot()
+    assert snapshot.state.value == "FAILED"
+    assert "TELEMETRY_LOG_BUDGET_EXCEEDED" in (snapshot.terminal_error or "")
+    assert SessionWorkspace.inspect(workspace.path).valid is True
+    assert not (workspace.path / "run_bundle" / "SEALED.json").exists()
