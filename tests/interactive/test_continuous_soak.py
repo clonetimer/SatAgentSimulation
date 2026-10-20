@@ -19,6 +19,7 @@ from sat_sim.interactive.models import (
 )
 from sat_sim.interactive.runtime_factory import build_persistent_runtime
 from sat_sim.interactive.workspace import SessionWorkspace
+from sat_sim.interactive import telemetry_segments
 
 
 def _current_rss_kib() -> int:
@@ -41,6 +42,9 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
         max_sim_time_s=1.0,  # Deliberately far shorter than target.
         max_wall_time_s=1.0,
         idle_timeout_s=0.5,
+        telemetry_segment_max_bytes=int(
+            os.environ.get("SAT_SIM_CONTINUOUS_SEGMENT_BYTES", "67108864")
+        ),
         task_spec={
             "simulation": {
                 "duration_s": 1.0,
@@ -107,6 +111,14 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
         assert manifest["frame_count"] >= len(frames)
         assert manifest["streams"]["whole.soak"] == len(frames)
         assert SessionWorkspace.inspect(workspace.path).valid is True
+        if os.environ.get("SAT_SIM_CONTINUOUS_SEGMENT_BYTES"):
+            assert telemetry_segments.segments_metadata(workspace.path)
+            assert len(telemetry_segments.files(workspace.path)) > 1
+            assert manifest["source_segments"]
+            assembled = workspace.path / "run_bundle" / "interactive" / "telemetry.jsonl"
+            assert assembled.exists()
+            import hashlib
+            assert hashlib.sha256(assembled.read_bytes()).hexdigest() == manifest["telemetry_sha256"]
         after_archive_rss = _current_rss_kib()
         peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # Linux ru_maxrss is KiB, and the allowed extra 1 GiB is deliberately lenient.

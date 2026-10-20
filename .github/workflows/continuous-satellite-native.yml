@@ -53,6 +53,7 @@ jobs:
       - name: Run accelerated continuous full-spacecraft TC/TM soak (180 simulated seconds)
         env:
           PYTHONPATH: "src:."
+          SAT_SIM_CONTINUOUS_SEGMENT_BYTES: "65536"
         run: |
           python -m pytest -q -s tests/interactive/test_continuous_soak.py --disable-warnings
       - name: Run long-horizon continuous TC/TM soak (3600 simulated seconds)
