@@ -323,6 +323,18 @@ def repair_interrupted_compression(root: Path) -> int:
             raise ValueError("TELEMETRY_SEGMENT_INDEX_INVALID")
         raw = folder / _filename(number, False)
         packed = folder / _filename(number, True)
+        staged = folder / (".compress-" + raw.name + ".tmp")
+        if staged.exists():
+            # Interrupted before staging was published. Accept deletion only
+            # after both raw and gzip staging copies independently agree with
+            # the unchanged authoritative plaintext index.
+            if not raw.exists() or packed.exists() or entry["filename"] != raw.name:
+                raise ValueError("TELEMETRY_COMPRESSION_STAGING_CONFLICT")
+            raw_len, raw_hash, _, _ = _verify_raw_and_compressed(raw, staged)
+            if raw_len != entry["bytes"] or raw_hash != entry["sha256"]:
+                raise ValueError("TELEMETRY_COMPRESSION_INDEX_CONFLICT")
+            staged.unlink()
+            repaired += 1
         if not raw.exists() or not packed.exists():
             continue
         raw_len, raw_hash, zipped_len, zipped_hash = _verify_raw_and_compressed(raw, packed)
