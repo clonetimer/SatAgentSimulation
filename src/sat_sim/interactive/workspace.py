@@ -307,6 +307,12 @@ class SessionWorkspace:
             last_revision = int(rows[-1].get("revision", 0)) if rows else 0
             last_sim_time_s = float(rows[-1].get("sim_time_s", 0.0)) if rows else 0.0
             workspace.append_state(SessionState.INTERRUPTED, last_revision + 1, last_sim_time_s, "PROCESS_RESTART")
+            if spec.continuous:
+                # A restart cannot restore the original Basilisk native graph.
+                # Persist validated source evidence and the explicit reason for
+                # requiring a new, separately named simulation epoch.
+                from .recovery_handoff import write_interrupted_handoff
+                write_interrupted_handoff(path)
             updated = cls.inspect(path)
             assert isinstance(updated, WorkspaceInspection)
             results.append(updated)
