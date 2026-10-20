@@ -427,3 +427,26 @@ def test_compression_interruption_requires_verified_explicit_repair(tmp_path) ->
     assert telemetry_segments.repair_interrupted_compression(workspace.path) == 1
     assert compressed.exists() and not source.exists()
     assert SessionWorkspace.inspect(workspace.path).valid
+
+
+
+def test_explicit_repair_of_verified_incomplete_compression_stage(tmp_path) -> None:
+    import gzip
+    from sat_sim.interactive import telemetry_segments
+
+    _, workspace = _compressed_fixture(tmp_path, name="gzip-temporary")
+    folder = workspace.path / "telemetry_segments"
+    entry = telemetry_segments.segments_metadata(workspace.path)[0]
+    original = folder / entry["filename"]
+    temporary = folder / (".compress-" + original.name + ".tmp")
+    temporary.write_bytes(gzip.compress(original.read_bytes(), mtime=0))
+    assert telemetry_segments.repair_interrupted_compression(workspace.path) == 1
+    assert not temporary.exists()
+    assert original.exists()
+    assert SessionWorkspace.inspect(workspace.path).valid
+
+    temporary.write_bytes(b"invalid gzip staging")
+    with pytest.raises(ValueError, match="TELEMETRY_SEGMENT_DECOMPRESSION_FAILED"):
+        telemetry_segments.repair_interrupted_compression(workspace.path)
+    assert temporary.exists() and original.exists()
+    assert SessionWorkspace.inspect(workspace.path).valid
