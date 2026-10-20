@@ -168,6 +168,20 @@ def test_websocket_auth_and_http_roles_are_enforced(monkeypatch, tmp_path) -> No
         assert client.get(
             "/interactive/sessions/rbac-session", headers=viewer_headers,
         ).json()["state"] == "READY"
+        # Checkpoint coverage reveals native internal state and is therefore
+        # operator-only. Even an operator cannot audit a finite/READY session.
+        assert client.get(
+            "/interactive/sessions/rbac-session/checkpoint/coverage",
+            headers=viewer_headers,
+        ).status_code == 403
+        denied = client.get(
+            "/interactive/sessions/rbac-session/checkpoint/coverage",
+            headers=operator_headers,
+        )
+        assert denied.status_code == 409
+        assert denied.json()["detail"]["reason_code"] == (
+            "NATIVE_CHECKPOINT_AUDIT_REQUIRES_ADVANCED_PAUSED_CONTINUOUS_SESSION"
+        )
 
         monkeypatch.setenv("SAT_SIM_INTERACTIVE_ALLOWED_ORIGINS", "https://trusted.example")
         try:
