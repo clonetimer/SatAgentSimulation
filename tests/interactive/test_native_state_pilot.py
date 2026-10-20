@@ -9,14 +9,18 @@ from sat_sim.interactive.native_state_pilot import (
 )
 
 
-def _make_native_graph(*, earth_gravity: bool = False, scripted_torque: bool = False):
+def _make_native_graph(
+    *, earth_gravity: bool = False, scripted_torque: bool = False,
+    expose_scheduler: bool = False,
+):
     pytest.importorskip("Basilisk")
     from Basilisk.simulation import spacecraft, reactionWheelStateEffector, extForceTorque
     from Basilisk.utilities import SimulationBaseClass, simIncludeRW, macros
 
     sim = SimulationBaseClass.SimBaseClass()
     process = sim.CreateNewProcess("p")
-    process.addTask(sim.CreateNewTask("t", macros.sec2nano(0.2)))
+    task = sim.CreateNewTask("t", macros.sec2nano(0.2))
+    process.addTask(task)
     sc = spacecraft.Spacecraft()
     sc.hub.mHub = 100.0
     sc.hub.IHubPntBc_B = [[100., 0., 0.], [0., 80., 0.], [0., 0., 60.]]
@@ -50,8 +54,8 @@ def _make_native_graph(*, earth_gravity: bool = False, scripted_torque: bool = F
         sim.AddModelToTask("t", torque_effector, None, 98)
     sim.InitializeSimulation()
     if scripted_torque:
-        return sim, sc, torque_effector
-    return sim, sc
+        return (sim, sc, torque_effector, process, task) if expose_scheduler else (sim, sc, torque_effector)
+    return (sim, sc, process, task) if expose_scheduler else (sim, sc)
 
 
 def test_basilisk_in_place_state_subset_roundtrip_matches_uninterrupted_graph() -> None:
@@ -354,11 +358,118 @@ def test_new_process_epoch_mapping_restores_deterministic_future_torque_timeline
     ) > 1e-6
 
 
+
+
+
+def _absolute_clock_restore_worker(path: str, end_s: float, mode: str) -> None:
+    """Recreate the entire isolated graph in a separate OS Python process."""
+    import json
+    import os
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_scheduler_pilot import (
+        restore_single_task_clock_on_fresh_graph, validate_single_task_clock,
+    )
+
+    document = json.loads(Path(path).read_text(encoding="utf-8"))
+    if document.get("profile") != "isolated-earth-hub-rw-absolute-clock-v1":
+        raise ValueError("NATIVE_ABSOLUTE_CLOCK_UNSUPPORTED_GRAPH")
+    if mode not in {"with_spacecraft_time", "without_spacecraft_time"}:
+        raise ValueError("NATIVE_ABSOLUTE_CLOCK_UNSUPPORTED_MODE")
+    clock = document["clock"]
+    source_clock = validate_single_task_clock(clock)
+    sim, sc, process, task = _make_native_graph(earth_gravity=True, expose_scheduler=True)
+    assert int(sim.TotalSim.CurrentNanos) == 0
+    restore_state_subset_in_place(sc, document["native_state_subset"], expected_rw_count=3)
+    restore_single_task_clock_on_fresh_graph(sim, process, task, sc, clock)
+    if mode == "without_spacecraft_time":
+        # Deliberate counterexample: setting native scheduler fields alone
+        # loses the spacecraft's last-integration-time state.
+        sc.timeBefore = 0.0
+        sc.timeBeforeNanos = 0
+        sc.timeStep = 0.0
+    assert sim.TotalSim.CurrentNanos == source_clock["sim_current_ns"]
+    sim.ConfigureStopTime(macros.sec2nano(end_s))
+    sim.ExecuteSimulation()
+    print("ABSOLUTE_CLOCK_RESULT_JSON:" + json.dumps({
+        "pid": os.getpid(),
+        "mode": mode,
+        "source_checkpoint_ns": source_clock["sim_current_ns"],
+        "fresh_final_scheduler_ns": int(sim.TotalSim.CurrentNanos),
+        "absolute_native_clock_fields_written": True,
+        "spacecraft_integrator_time_fields_written": mode == "with_spacecraft_time",
+        "full_spacecraft_resume_supported": False,
+        "native_state_subset": capture_state_subset(sc, expected_rw_count=3),
+    }, sort_keys=True), flush=True)
+
+
+def test_fresh_process_absolute_native_scheduler_and_hub_time_parity(tmp_path) -> None:
+    """Absolute time reconstruction for ONE task+hub+Earth+three-RW only.
+
+    Proves why both native scheduler task/process counters AND sc.timeBefore*
+    are necessary. It does not serialize any other integrator or subsystem.
+    """
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_scheduler_pilot import capture_single_task_clock
+
+    checkpoint_s, stop_s = 2.0, 5.0
+    sim, sc, process, task = _make_native_graph(earth_gravity=True, expose_scheduler=True)
+    sim.ConfigureStopTime(macros.sec2nano(checkpoint_s))
+    sim.ExecuteSimulation()
+    snapshot = capture_state_subset(sc, expected_rw_count=3)
+    phase = capture_single_task_clock(sim, process, task, sc)
+    assert phase["fields"]["sim_current_ns"] == macros.sec2nano(checkpoint_s)
+    assert phase["fields"]["spacecraft_time_before_ns"] == macros.sec2nano(checkpoint_s)
+    path = tmp_path / "single-task-clock.json"
+    path.write_text(json.dumps({
+        "profile": "isolated-earth-hub-rw-absolute-clock-v1",
+        "native_state_subset": snapshot,
+        "clock": phase,
+    }, sort_keys=True), encoding="utf-8")
+    sim.ConfigureStopTime(macros.sec2nano(stop_s))
+    sim.ExecuteSimulation()
+    baseline = capture_state_subset(sc, expected_rw_count=3)
+
+    outcomes = {}
+    for mode in ("with_spacecraft_time", "without_spacecraft_time"):
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--absolute-clock-worker",
+             str(path), str(stop_s), mode],
+            capture_output=True, text=True, timeout=40, check=False,
+        )
+        assert proc.returncode == 0, proc.stdout + "\n" + proc.stderr
+        msg = json.loads(next(
+            line[len("ABSOLUTE_CLOCK_RESULT_JSON:"):] for line in proc.stdout.splitlines()
+            if line.startswith("ABSOLUTE_CLOCK_RESULT_JSON:")
+        ))
+        assert msg["pid"] != os.getpid()
+        assert msg["source_checkpoint_ns"] == macros.sec2nano(checkpoint_s)
+        assert msg["fresh_final_scheduler_ns"] == macros.sec2nano(stop_s)
+        assert msg["full_spacecraft_resume_supported"] is False
+        validate_state_subset(msg["native_state_subset"], expected_rw_count=3)
+        outcomes[mode] = msg
+
+    good = outcomes["with_spacecraft_time"]["native_state_subset"]
+    for name, values in baseline["vectors"].items():
+        assert good["vectors"][name] == pytest.approx(values, abs=1e-9, rel=1e-12)
+    bad = outcomes["without_spacecraft_time"]["native_state_subset"]
+    assert abs(
+        bad["vectors"]["hub_position_m"][0] - baseline["vectors"]["hub_position_m"][0]
+    ) > 100.0
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 4 and sys.argv[1] == "--rebase-worker":
         _fresh_process_rebase_worker(sys.argv[2], float(sys.argv[3]))
     elif len(sys.argv) == 5 and sys.argv[1] == "--timed-worker":
         _timed_graph_rebase_worker(sys.argv[2], float(sys.argv[3]), sys.argv[4])
+    elif len(sys.argv) == 5 and sys.argv[1] == "--absolute-clock-worker":
+        _absolute_clock_restore_worker(sys.argv[2], float(sys.argv[3]), sys.argv[4])
     else:
-        raise SystemExit("test module only permits --rebase-worker or --timed-worker")
+        raise SystemExit("test module only permits explicitly named native trial worker modes")
