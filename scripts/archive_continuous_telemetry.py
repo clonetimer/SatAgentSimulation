@@ -16,12 +16,7 @@ from pathlib import Path
 from sat_sim.interactive.models import SessionState
 from sat_sim.interactive.workspace import SessionWorkspace
 from sat_sim.interactive import telemetry_segments
-
-
-_TERMINAL = {
-    SessionState.COMPLETED, SessionState.FAILED,
-    SessionState.ABORTED, SessionState.INTERRUPTED,
-}
+from sat_sim.run_bundle import verify_run_bundle
 
 
 def main() -> int:
@@ -43,8 +38,13 @@ def main() -> int:
     inspection = SessionWorkspace.inspect(workspace)
     if not inspection.valid:
         raise ValueError(f"INTERACTIVE_WORKSPACE_INTEGRITY_FAILED:{inspection.reason_code}")
-    if inspection.state not in _TERMINAL:
-        raise ValueError("TELEMETRY_ARCHIVE_REQUIRES_TERMINAL_SESSION")
+    if inspection.state is not SessionState.COMPLETED:
+        raise ValueError("TELEMETRY_ARCHIVE_REQUIRES_COMPLETED_SESSION")
+    bundle = workspace / "run_bundle"
+    if not (bundle / "SEALED.json").exists():
+        raise ValueError("TELEMETRY_ARCHIVE_REQUIRES_VERIFIED_SEAL")
+    if not verify_run_bundle(bundle).get("ok"):
+        raise ValueError("TELEMETRY_ARCHIVE_RUN_BUNDLE_INVALID")
 
     before_hash = telemetry_segments.logical_sha256(workspace)
     # This reads the full history, but never materializes it in RAM.

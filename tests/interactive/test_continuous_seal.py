@@ -192,3 +192,23 @@ def test_gzip_closed_segment_seals_to_legacy_v1_bundle(tmp_path) -> None:
     legacy_log = continuous.path / "run_bundle" / "interactive" / "telemetry.jsonl"
     assert hashlib.sha256(legacy_log.read_bytes()).hexdigest() == original_logical_hash
     assert SessionWorkspace.inspect(continuous.path).valid
+
+
+
+def test_offline_compression_cli_requires_verified_seal(monkeypatch, tmp_path) -> None:
+    import sys
+    import scripts.archive_continuous_telemetry as archive_cli
+    from sat_sim.interactive import telemetry_segments
+
+    ws = _build_workspace(tmp_path, continuous=True)
+    telemetry_segments.roll_active(ws.path)
+    monkeypatch.setattr(sys, "argv", [
+        "archive_continuous_telemetry.py", "--workspace", str(ws.path),
+    ])
+    with pytest.raises(ValueError, match="TELEMETRY_ARCHIVE_REQUIRES_VERIFIED_SEAL"):
+        archive_cli.main()
+
+    assert seal_interactive_workspace(ws.path)["ok"]
+    assert archive_cli.main() == 0
+    assert telemetry_segments.segments_metadata(ws.path)[0]["filename"].endswith(".gz")
+    assert SessionWorkspace.inspect(ws.path).valid
