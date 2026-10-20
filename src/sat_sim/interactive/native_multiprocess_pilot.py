@@ -115,7 +115,12 @@ def _validate(state: dict[str, Any]) -> None:
     if (type(state["next_ns"]) is not int or state["next_ns"] != earliest
             or type(state["next_process_priority"]) is not int
             or state["next_process_priority"] != winner_priority):
-        raise ValueError("NATIVE_MULTIPROCESS_GLOBAL_SCHEDULE_INVALID")
+        raise ValueError(
+            "NATIVE_MULTIPROCESS_GLOBAL_SCHEDULE_INVALID:"
+            f"actual_next={state['next_ns']}, expected_next={earliest}, "
+            f"actual_priority={state['next_process_priority']}, expected_priority={winner_priority}, "
+            f"processes={state['processes']}"
+        )
     if (type(state["hub_before_ns"]) is not int
             or state["hub_before_ns"] != now):
         raise ValueError("NATIVE_MULTIPROCESS_HUB_PHASE_INVALID")
