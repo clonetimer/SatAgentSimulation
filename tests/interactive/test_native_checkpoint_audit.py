@@ -139,3 +139,73 @@ def test_live_whole_spacecraft_native_audit_tracks_real_dynamic_state() -> None:
     finally:
         if runtime._thread is not None and runtime._thread.is_alive():
             runtime.abort()
+
+
+
+def test_checkpoint_audit_control_is_paused_only_and_preserves_session_time() -> None:
+    from sat_sim.interactive.manager import InteractiveSession
+    from sat_sim.interactive.models import InteractiveSessionSpec, SessionState
+
+    class AuditRuntime:
+        def __init__(self):
+            self._time = 0.0
+            self.audit_count = 0
+
+        @property
+        def current_time_s(self):
+            return self._time
+
+        def prepare(self):
+            pass
+
+        def advance_to(self, target):
+            self._time = target
+            return ({"time_s": target},)
+
+        def read_delta(self):
+            return ()
+
+        def apply_command(self, command):
+            pass
+
+        def audit_native_checkpoint_coverage(self):
+            self.audit_count += 1
+            return {"sim_time_s": self._time, "resume_supported": False}
+
+        def finalize(self):
+            return {"final_sim_time_s": self._time}
+
+        def abort(self):
+            pass
+
+    runtime = AuditRuntime()
+    spec = InteractiveSessionSpec(
+        session_id="checkpoint-audit-only", capability_id="whole_spacecraft.unified_native.v1",
+        task_spec={}, continuous=True, paced=False, quantum_s=0.1,
+    )
+    session = InteractiveSession(spec, runtime, end_time_s=None)
+    try:
+        session.prepare()
+        with pytest.raises(ValueError, match="REQUIRES_ADVANCED_PAUSED"):
+            session.checkpoint_coverage()
+        session.start()
+        session.pause()
+        if session.current_time_s <= 0.0:
+            session.step()
+        before = session.current_time_s
+        report = session.checkpoint_coverage()
+        assert report["sim_time_s"] == pytest.approx(before)
+        assert report["resume_supported"] is False
+        assert session.current_time_s == pytest.approx(before)
+        assert session.state is SessionState.PAUSED
+        assert runtime.audit_count == 1
+        session.resume()
+        with pytest.raises(ValueError, match="REQUIRES_ADVANCED_PAUSED"):
+            session.checkpoint_coverage()
+        session.pause()
+        session.stop()
+        assert session.wait(2.0)
+    finally:
+        if session.state not in {SessionState.COMPLETED, SessionState.ABORTED, SessionState.FAILED}:
+            session.abort()
+        session.wait(2.0)
