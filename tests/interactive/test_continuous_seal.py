@@ -169,3 +169,26 @@ def test_rotated_trace_has_continuous_hash_and_bundle_copy(tmp_path) -> None:
     bundle_source = ws.path / "run_bundle" / "interactive" / "telemetry.jsonl"
     assert bundle_source.read_bytes() == original + ws.telemetry_path.read_bytes()
     assert len(list(SessionWorkspace.iter_telemetry(ws.path))) == 33
+
+
+
+def test_gzip_closed_segment_seals_to_legacy_v1_bundle(tmp_path) -> None:
+    import hashlib
+    from sat_sim.interactive import telemetry_segments
+
+    finite = _build_workspace(tmp_path, continuous=False)
+    continuous = _build_workspace(tmp_path, continuous=True)
+    telemetry_segments.roll_active(continuous.path)
+    outcome = telemetry_segments.compress_closed(continuous.path)
+    assert outcome["compressed"] == 1
+    original_logical_hash = telemetry_segments.logical_sha256(continuous.path)
+    continuous.finalize_telemetry()
+    assert seal_interactive_workspace(finite.path)["ok"]
+    assert seal_interactive_workspace(continuous.path)["ok"]
+    a, b = _read_bundle(finite), _read_bundle(continuous)
+    assert a["trace"] == b["trace"]
+    assert a["effects"] == b["effects"]
+    assert a["validation"]["physical_validation"] == b["validation"]["physical_validation"]
+    legacy_log = continuous.path / "run_bundle" / "interactive" / "telemetry.jsonl"
+    assert hashlib.sha256(legacy_log.read_bytes()).hexdigest() == original_logical_hash
+    assert SessionWorkspace.inspect(continuous.path).valid
