@@ -1,4 +1,7 @@
-"""Offline, lossless and fail-closed compression of closed telemetry segments.
+"""用途：对已经终止的交互仿真工作区执行可验证的遥测分段无损压缩，拒绝在线压缩。
+参数：--workspace 必填路径；--max-segments 可选；--repair-interrupted-compression 显式修复双份暂存。
+输出：包含归档数量、压缩前后字节数与不变的逻辑遥测 SHA-256 的 JSON；失败时非零退出。
+Offline, lossless and fail-closed compression of closed telemetry segments.
 
 Never operate on a running simulator. Does not delete the active journal, the
 verified Run Bundle, or any unverified old segment. Compression is optional and

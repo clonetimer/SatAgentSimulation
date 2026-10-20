@@ -235,9 +235,12 @@ def _verify_raw_and_compressed(raw: Path, packed: Path) -> tuple[int, str, int, 
     checksum = hashlib.sha256()
     size = 0
     try:
-        for chunk in _raw_chunks(packed):
-            checksum.update(chunk)
-            size += len(chunk)
+        # The initial verified copy uses a .tmp staging name: its content is
+        # already gzip, even though the filename does not end in .gz.
+        with gzip.open(packed, "rb") as compressed_source:
+            for chunk in iter(lambda: compressed_source.read(_CHUNK), b""):
+                checksum.update(chunk)
+                size += len(chunk)
     except (OSError, EOFError) as exc:
         raise ValueError("TELEMETRY_SEGMENT_DECOMPRESSION_FAILED") from exc
     if size != raw_bytes or checksum.hexdigest() != raw_hash:
