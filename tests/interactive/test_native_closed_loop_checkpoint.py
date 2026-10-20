@@ -190,10 +190,13 @@ def test_live_closed_loop_joint_checkpoint_fails_closed_until_rw_and_messages_co
         sim=graph["sim"], processes=graph["processes"],
         tasks=graph["tasks"], spacecraft=graph["sc"],
         controller=graph["controller"], allocator=graph["allocator"],
+        rw_effector=graph["rw"],
     )
     verify_closed_loop_evidence(report)
     assert report["checkpoint_sim_time_ns"] == macros.sec2nano(2.0)
     assert report["fsw_integrator"]["cached_rw_count"] == 3
+    assert len(report["rw_effector_memory"]) == 3
+    assert any(abs(w["u_current"]) > 0 for w in report["rw_effector_memory"])
     assert report["fsw_integrator"]["prior_time_ns"] == macros.sec2nano(1.8)
     assert len(report["spacecraft_rw_state"]["vectors"]["reaction_wheel_speed_rad_s"]) == 3
     assert len(report["last_rw_motor_command_nm"]) == 3
@@ -241,9 +244,14 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
     from Basilisk.utilities import macros
     from sat_sim.interactive.native_state_pilot import restore_state_subset_in_place
     from sat_sim.interactive.native_multiprocess_pilot import restore_two_process_clock_fresh
-    from sat_sim.interactive.native_closed_loop_evidence import verify_closed_loop_evidence
+    from sat_sim.interactive.native_closed_loop_evidence import (
+        verify_closed_loop_evidence, restore_rw_effector_memory_fresh,
+    )
 
-    if mode not in ("complete_pilot", "no_held_rw_command", "no_fsw_memory"):
+    if mode not in (
+        "complete_pilot", "no_held_rw_command", "no_fsw_memory",
+        "no_rw_effector_memory",
+    ):
         raise ValueError("ADCS_CLOSED_LOOP_UNSUPPORTED_TEST_MODE")
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     evidence = data["evidence"]
@@ -252,6 +260,10 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
     restore_state_subset_in_place(
         graph["sc"], evidence["spacecraft_rw_state"], expected_rw_count=3,
     )
+    if mode != "no_rw_effector_memory":
+        restore_rw_effector_memory_fresh(
+            graph["rw"], evidence["rw_effector_memory"],
+        )
     restore_two_process_clock_fresh(
         graph["sim"], graph["processes"], graph["tasks"],
         graph["sc"], evidence["native_scheduler"],
@@ -315,6 +327,7 @@ def test_native_full_loop_joint_checkpoint_cross_process_parity(tmp_path) -> Non
         sim=source["sim"], processes=source["processes"],
         tasks=source["tasks"], spacecraft=source["sc"],
         controller=source["controller"], allocator=source["allocator"],
+        rw_effector=source["rw"],
     )
     verify_closed_loop_evidence(evidence)
     # The complete MAX_EFF_CNT payload is saved verbatim, so zero-padded
@@ -335,7 +348,10 @@ def test_native_full_loop_joint_checkpoint_cross_process_parity(tmp_path) -> Non
     assert len(expected["rw_speeds"]) >= 10
 
     results = {}
-    for mode in ("complete_pilot", "no_held_rw_command", "no_fsw_memory"):
+    for mode in (
+        "complete_pilot", "no_held_rw_command", "no_fsw_memory",
+        "no_rw_effector_memory",
+    ):
         proc = subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--adcs-worker",
              str(path), "5.0", mode],
@@ -373,7 +389,9 @@ def test_native_full_loop_joint_checkpoint_cross_process_parity(tmp_path) -> Non
             values, abs=1e-8, rel=1e-11,
         ), key
 
-    for mode in ("no_held_rw_command", "no_fsw_memory"):
+    for mode in (
+        "no_held_rw_command", "no_fsw_memory", "no_rw_effector_memory",
+    ):
         wrong = results[mode]
         delta = max(
             abs(a - b)
