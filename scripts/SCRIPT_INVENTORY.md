@@ -6,6 +6,7 @@
 
 | 脚本 | 类别 | 状态 | 处理结论 |
 |---|---|---|---|
+| `inspect_continuous_recovery.py` | 持续仿真恢复证据审计 | active | 验证中断会话来源哈希、最后持久化遥测时刻并显式标注不支持原生物理状态无损续跑；只读检查 |
 | `archive_continuous_telemetry.py` | 持续遥测离线归档 | active | 对已结束会话执行压缩前后 SHA-256 校验的离线 gzip 归档、跨段完整性检查与显式失败恢复；不处理在线状态 |
 | `audit_a4r_dc2_run_bundles.py` | A4R-DC2 evidence audit | active | Audits Composite Digital Twin Run Bundle adapter, legacy flags, manifests, and SHA-256 evidence |
 | `audit_campaign_dataset.py` | Campaign 数据审计 | active | 校验数据集完整性、失败可见性和跨运行稳定输出 |
