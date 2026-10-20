@@ -20,6 +20,8 @@ class _UnifiedExecutionController:
         self._delta: tuple[dict[str, Any], ...] = ()
         self._completed_stop: float | None = None
         self._commands: list[Any] = []
+        self._audit_pending = False
+        self._audit_report: dict[str, Any] | None = None
 
     def runtime_prepared(self) -> None:
         with self._condition:
@@ -35,18 +37,21 @@ class _UnifiedExecutionController:
 
     def wait_for_advance(self) -> float | None:
         with self._condition:
-            self._condition.wait_for(lambda: self._advance_pending or self._finalize or self._abort)
+            self._condition.wait_for(lambda: self._advance_pending or self._audit_pending or self._finalize or self._abort)
             if self._abort:
                 raise RuntimeError("unified runtime aborted")
             if self._finalize:
                 return None
+            if self._audit_pending:
+                self._audit_pending = False
+                return "__NATIVE_CHECKPOINT_AUDIT__"
             self._advance_pending = False
             return self._requested_stop
 
     def request_advance(self, stop_time_s: float, timeout_s: float) -> tuple[dict[str, Any], ...]:
         with self._condition:
-            if self._advance_pending:
-                raise RuntimeError("an advance request is already pending")
+            if self._advance_pending or self._audit_pending:
+                raise RuntimeError("a native runtime operation is already pending")
             self._requested_stop = stop_time_s
             self._completed_stop = None
             self._advance_pending = True
@@ -61,6 +66,25 @@ class _UnifiedExecutionController:
         with self._condition:
             self._delta = delta
             self._completed_stop = stop_time_s
+            self._condition.notify_all()
+
+    def request_checkpoint_audit(self, timeout_s: float) -> dict[str, Any]:
+        with self._condition:
+            if self._audit_pending or self._advance_pending or self._abort or self._finalize:
+                raise RuntimeError("native checkpoint audit cannot run during another operation")
+            self._audit_report = None
+            self._audit_pending = True
+            self._condition.notify_all()
+            if not self._condition.wait_for(lambda: self._audit_report is not None or self._abort, timeout_s):
+                raise TimeoutError("native checkpoint audit timed out")
+            if self._abort:
+                raise RuntimeError("native runtime aborted during checkpoint audit")
+            assert self._audit_report is not None
+            return self._audit_report
+
+    def runtime_audited(self, report: dict[str, Any]) -> None:
+        with self._condition:
+            self._audit_report = report
             self._condition.notify_all()
 
     def request_finalize(self) -> None:
@@ -96,6 +120,7 @@ class UnifiedPersistentRuntime:
         self._continuous = continuous
         self._timeout_s = timeout_s
         self._controller = _UnifiedExecutionController()
+        self._operation_lock = threading.Lock()
         self._thread: threading.Thread | None = None
         self._current_time_s = 0.0
         self._pending_delta: tuple[dict[str, Any], ...] = ()
@@ -136,10 +161,26 @@ class UnifiedPersistentRuntime:
             raise RuntimeError("runtime is not prepared")
         if stop_time_s <= self._current_time_s or (not self._continuous and stop_time_s > self.config.duration_s):
             raise ValueError("stop time must increase and remain within configured duration")
-        self._pending_delta = self._controller.request_advance(stop_time_s, self._timeout_s)
-        self._raise_worker_error()
-        self._current_time_s = stop_time_s
-        return self._pending_delta
+        with self._operation_lock:
+            self._pending_delta = self._controller.request_advance(stop_time_s, self._timeout_s)
+            self._raise_worker_error()
+            self._current_time_s = stop_time_s
+            return self._pending_delta
+
+    def audit_native_checkpoint_coverage(self) -> dict[str, Any]:
+        """Read current live native observations; never a restorable snapshot."""
+        if not self._continuous:
+            raise ValueError("checkpoint coverage audit requires a continuous native runtime")
+        if self._thread is None or self._current_time_s <= 0.0:
+            raise RuntimeError("native checkpoint audit requires a prepared and advanced simulation")
+        with self._operation_lock:
+            report = self._controller.request_checkpoint_audit(self._timeout_s)
+            self._raise_worker_error()
+            from .native_checkpoint_audit import verify_coverage_report
+            verify_coverage_report(report)
+            if abs(float(report["sim_time_s"]) - self._current_time_s) > 1.0e-9:
+                raise RuntimeError("native checkpoint audit time mismatch")
+            return report
 
     def read_delta(self) -> tuple[dict[str, Any], ...]:
         delta, self._pending_delta = self._pending_delta, ()
