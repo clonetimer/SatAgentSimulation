@@ -319,3 +319,111 @@ def test_total_telemetry_budget_counts_closed_segments_and_active_file(tmp_path)
         ))
     assert telemetry_segments.total_bytes(workspace.path) == before
     assert SessionWorkspace.inspect(workspace.path).valid
+
+
+
+def _compressed_fixture(tmp_path, name="gzip-evidence"):
+    from sat_sim.interactive import telemetry_segments
+
+    spec = _spec(name).model_copy(update={
+        "telemetry_segment_max_bytes": 1024,
+        "telemetry_min_free_disk_bytes": 0,
+    })
+    workspace = SessionWorkspace(tmp_path, spec)
+    for index in range(35):
+        workspace.append_telemetry(TelemetryFrame(
+            session_id=spec.session_id, stream="fast", sequence=index,
+            sim_time_s=float(index) / 2,
+            values={"value": index, "payload": "x" * 40},
+        ))
+    assert len(telemetry_segments.segments_metadata(workspace.path)) >= 2
+    return spec, workspace
+
+
+def test_offline_compression_preserves_global_hash_and_legacy_manifest(tmp_path) -> None:
+    from sat_sim.interactive import telemetry_segments
+
+    spec, workspace = _compressed_fixture(tmp_path)
+    initial = workspace.finalize_telemetry()
+    initial_hash = telemetry_segments.logical_sha256(workspace.path)
+    physical_before = telemetry_segments.total_bytes(workspace.path)
+    logical_before = telemetry_segments.total_logical_bytes(workspace.path)
+    outcome = telemetry_segments.compress_closed(workspace.path)
+    assert outcome["compressed"] >= 2
+    assert outcome["bytes_after"] < physical_before
+    assert telemetry_segments.total_logical_bytes(workspace.path) == logical_before
+    assert telemetry_segments.logical_sha256(workspace.path) == initial_hash
+    assert len(list(SessionWorkspace.iter_telemetry(workspace.path))) == 35
+    assert SessionWorkspace.inspect(workspace.path).valid
+    updated = workspace.finalize_telemetry()
+    assert updated["telemetry_sha256"] == initial["telemetry_sha256"]
+    assert all(entry["filename"].endswith(".gz") for entry in updated["source_segments"])
+    reopened = SessionWorkspace(tmp_path, spec, create=False)
+    reopened.append_telemetry(TelemetryFrame(
+        session_id=spec.session_id, stream="fast", sequence=35,
+        sim_time_s=18.0, values={"value": 35, "payload": "x" * 40},
+    ))
+    assert len(list(SessionWorkspace.iter_telemetry(workspace.path))) == 36
+
+
+def test_compression_does_not_reset_total_logical_budget(tmp_path) -> None:
+    from sat_sim.interactive import telemetry_segments
+
+    spec, workspace = _compressed_fixture(tmp_path, name="gzip-quota")
+    before = telemetry_segments.total_logical_bytes(workspace.path)
+    telemetry_segments.compress_closed(workspace.path)
+    workspace = SessionWorkspace(tmp_path, spec, create=False)
+    workspace._telemetry_log_max_bytes = before + 1
+    with pytest.raises(RuntimeError, match="TELEMETRY_LOG_BUDGET_EXCEEDED"):
+        workspace.append_telemetry(TelemetryFrame(
+            session_id=spec.session_id, stream="fast", sequence=35,
+            sim_time_s=18, values={"value": 35},
+        ))
+    assert telemetry_segments.total_logical_bytes(workspace.path) == before
+    assert SessionWorkspace.inspect(workspace.path).valid
+
+
+def test_compression_detects_corrupt_gzip_and_missing_archive(tmp_path) -> None:
+    from sat_sim.interactive import telemetry_segments
+
+    _, workspace = _compressed_fixture(tmp_path, name="gzip-corrupt")
+    telemetry_segments.compress_closed(workspace.path, max_segments=1)
+    info = telemetry_segments.segments_metadata(workspace.path)[0]
+    path = workspace.path / "telemetry_segments" / info["filename"]
+    original = path.read_bytes()
+    path.write_bytes(original[:-5] + b"xxxxx")
+    assert not SessionWorkspace.inspect(workspace.path).valid
+    path.write_bytes(original)
+    assert SessionWorkspace.inspect(workspace.path).valid
+    path.unlink()
+    assert not SessionWorkspace.inspect(workspace.path).valid
+
+
+def test_compression_interruption_requires_verified_explicit_repair(tmp_path) -> None:
+    import gzip
+    from sat_sim.interactive import telemetry_segments
+
+    _, workspace = _compressed_fixture(tmp_path, name="gzip-repair")
+    folder = workspace.path / "telemetry_segments"
+    record = telemetry_segments.segments_metadata(workspace.path)[0]
+    source = folder / record["filename"]
+    duplicate = folder / (record["filename"] + ".gz")
+
+    # Crash before index publication: verified compressed duplicate is discarded.
+    duplicate.write_bytes(gzip.compress(source.read_bytes(), mtime=0))
+    with pytest.raises(ValueError, match="TELEMETRY_SEGMENT_SET_MISMATCH"):
+        telemetry_segments.segments_metadata(workspace.path)
+    assert telemetry_segments.repair_interrupted_compression(workspace.path) == 1
+    assert source.exists() and not duplicate.exists()
+    assert SessionWorkspace.inspect(workspace.path).valid
+
+    # Crash after index publication but before removing old plaintext.
+    telemetry_segments.compress_closed(workspace.path, max_segments=1)
+    compressed_record = telemetry_segments.segments_metadata(workspace.path)[0]
+    compressed = folder / compressed_record["filename"]
+    source.write_bytes(gzip.decompress(compressed.read_bytes()))
+    with pytest.raises(ValueError, match="TELEMETRY_SEGMENT_SET_MISMATCH"):
+        telemetry_segments.segments_metadata(workspace.path)
+    assert telemetry_segments.repair_interrupted_compression(workspace.path) == 1
+    assert compressed.exists() and not source.exists()
+    assert SessionWorkspace.inspect(workspace.path).valid
