@@ -10,7 +10,7 @@ import pytest
 from sat_sim.interactive.command_mailbox import DeterministicCommandMailbox
 from sat_sim.interactive.manager import InteractiveSession
 from sat_sim.interactive.models import (
-    ActorRole, CommandState, InteractiveSessionSpec, Telecommand, TelemetryFrame,
+    ActorRole, CommandState, InteractiveSessionSpec, SessionState, Telecommand, TelemetryFrame,
 )
 from sat_sim.interactive.workspace import SessionWorkspace
 
@@ -504,8 +504,8 @@ def test_restart_handoff_rejects_modified_record_or_source_evidence(tmp_path) ->
     # specification must not be accepted as a valid checkpoint.
     spec_path = workspace.spec_path
     content = spec_path.read_text(encoding="utf-8")
-    spec_path.write_text(content.replace('"created_at"', '"altered_created_at"', 1), encoding="utf-8")
-    with pytest.raises((ValueError, KeyError), match="RECOVERY_SOURCE_CHANGED|RECOVERY_SOURCE_INVALID|RECOVERY_SOURCE_SESSION_ID_MISMATCH"):
+    spec_path.write_text(content + " \n", encoding="utf-8")
+    with pytest.raises(ValueError, match="RECOVERY_SOURCE_CHANGED"):
         verify_interrupted_handoff(workspace.path)
 
 
