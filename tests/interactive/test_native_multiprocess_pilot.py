@@ -226,7 +226,10 @@ def _fsw_worker(checkpoint_file: str, end_s: float, mode: str) -> None:
     from sat_sim.interactive.native_fsw_memory_pilot import (
         restore_mrp_feedback_memory_fresh, validate_mrp_feedback_memory,
     )
-    if mode not in ("restore_fsw_memory", "omit_fsw_memory"):
+    if mode not in (
+        "restore_fsw_memory", "omit_fsw_memory",
+        "omit_prior_time", "omit_integral_state",
+    ):
         raise ValueError("NATIVE_FSW_WORKER_MODE_INVALID")
     payload = json.loads(Path(checkpoint_file).read_text(encoding="utf-8"))
     assert payload["profile"] == PROFILE
@@ -240,8 +243,12 @@ def _fsw_worker(checkpoint_file: str, end_s: float, mode: str) -> None:
     assert len(msg_owners) == 2
     restore_state_subset_in_place(sc, payload["native_state_subset"], expected_rw_count=3)
     restore_two_process_clock_fresh(sim, processes, tasks, sc, payload["clock"])
-    if mode == "restore_fsw_memory":
+    if mode != "omit_fsw_memory":
         restore_mrp_feedback_memory_fresh(controller, payload["fsw_memory"])
+        if mode == "omit_prior_time":
+            controller.priorTime = 0
+        elif mode == "omit_integral_state":
+            controller.int_sigma = [0.0, 0.0, 0.0]
     sim.ConfigureStopTime(macros.sec2nano(end_s))
     sim.ExecuteSimulation()
     print("FSW_MEMORY_RESULT:" + json.dumps({
@@ -288,7 +295,10 @@ def test_cross_process_native_mrp_feedback_integral_memory_parity(tmp_path) -> N
     original_torques = _feedback_rows(torque_rec, after_ns=checkpoint_ns)
     assert len(original_torques) >= 3
     comparison = {}
-    for mode in ("restore_fsw_memory", "omit_fsw_memory"):
+    for mode in (
+        "restore_fsw_memory", "omit_fsw_memory",
+        "omit_prior_time", "omit_integral_state",
+    ):
         proc = subprocess.run(
             [sys.executable, str(Path(__file__).resolve()),
              "--fsw-worker", str(path), "5.0", mode],
@@ -310,13 +320,14 @@ def test_cross_process_native_mrp_feedback_integral_memory_parity(tmp_path) -> N
     for (_, actual), (_, expected) in zip(restored, original_torques):
         assert actual == pytest.approx(expected, abs=1e-10, rel=1e-12)
 
-    missed = comparison["omit_fsw_memory"]
-    assert [ns for ns, _ in missed] == [ns for ns, _ in original_torques]
-    assert max(
-        abs(a - b)
-        for (_, candidate), (_, expected) in zip(missed, original_torques)
-        for a, b in zip(candidate, expected)
-    ) > 1e-4
+    for negative_case in ("omit_fsw_memory", "omit_prior_time", "omit_integral_state"):
+        missed = comparison[negative_case]
+        assert [ns for ns, _ in missed] == [ns for ns, _ in original_torques]
+        assert max(
+            abs(a - b)
+            for (_, candidate), (_, expected) in zip(missed, original_torques)
+            for a, b in zip(candidate, expected)
+        ) > 1e-4, negative_case
 
 
 if __name__ == "__main__":
