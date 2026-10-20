@@ -1,0 +1,48 @@
+name: Continuous satellite native Basilisk tests
+
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/interactive/**"
+      - "tests/interactive/test_continuous_session.py"
+      - "tests/interactive/test_unified_segmented_execution.py"
+      - ".github/workflows/continuous-satellite-native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-whole-spacecraft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install public upstream Basilisk and test requirements
+        run: |
+          python -m pip install \
+            "bsk==2.11.0" "sgp4==2.25" "colorama==0.4.6" \
+            "numpy==2.3.5" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "PyYAML==6.0.3" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "pytest==9.0.3" "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+      - name: Report installed Basilisk provenance
+        run: |
+          python - <<'PY'
+          import Basilisk
+          from importlib.metadata import version
+          print("Basilisk:", Basilisk.__version__)
+          print("bsk distribution:", version("bsk"))
+          PY
+      - name: Run native continuous and segmented execution regression tests
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q \
+            tests/interactive/test_continuous_session.py \
+            tests/interactive/test_unified_segmented_execution.py \
+            tests/interactive/test_subsystem_persistent_runtimes.py \
+            --disable-warnings
