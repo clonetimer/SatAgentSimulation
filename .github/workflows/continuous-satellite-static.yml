@@ -1,0 +1,49 @@
+name: Continuous satellite static checks
+
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/interactive/**"
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/web/**"
+      - "src/sat_sim/schemas/interactive_session.schema.json"
+      - "tests/interactive/test_continuous_session.py"
+      - ".github/workflows/continuous-satellite-static.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-and-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Compile modified Python sources and tests
+        run: |
+          python -m py_compile src/sat_sim/interactive/models.py \
+            src/sat_sim/interactive/runtime_factory.py \
+            src/sat_sim/interactive/unified_runtime.py \
+            src/sat_sim/interactive/manager.py \
+            src/sat_sim/bsk_engine/unified_native.py \
+            tests/interactive/test_continuous_session.py
+      - name: Validate frontend JavaScript
+        run: node --check src/sat_sim/web/app.js
+      - name: Parse interactive session schema
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          schema = json.loads(Path("src/sat_sim/schemas/interactive_session.schema.json").read_text(encoding="utf-8"))
+          assert schema["properties"]["continuous"] == {
+              "type": "boolean",
+              "default": False,
+              "description": "Opt-in whole-spacecraft continuously advancing interactive session.",
+          }
+          PY
