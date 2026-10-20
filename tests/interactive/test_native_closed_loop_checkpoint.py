@@ -354,15 +354,24 @@ def test_native_full_loop_joint_checkpoint_cross_process_parity(tmp_path) -> Non
         results[mode] = output
 
     restored = results["complete_pilot"]
+    # Report the FIRST mismatched native record rather than hiding a missing
+    # state behind a final attitude-only assertion.
+    for name in ("fsw_torque", "motor_torque", "rw_speeds"):
+        actual_rows, expected_rows = restored["telemetry"][name], expected[name]
+        assert [ns for ns, _ in actual_rows] == [ns for ns, _ in expected_rows], name
+        for row_idx, ((actual_t, actual), (expected_t, target)) in enumerate(
+            zip(actual_rows, expected_rows)
+        ):
+            max_error = max(abs(a - b) for a, b in zip(actual, target))
+            assert actual == pytest.approx(target, abs=1e-8, rel=1e-11), (
+                f"FIRST_NATIVE_MISMATCH channel={name} row={row_idx} "
+                f"time_ns={actual_t} max_error={max_error} "
+                f"observed={actual[:5]} expected={target[:5]}"
+            )
     for key, values in baseline["vectors"].items():
         assert restored["final_state"]["vectors"][key] == pytest.approx(
             values, abs=1e-8, rel=1e-11,
         ), key
-    for name in ("fsw_torque", "motor_torque", "rw_speeds"):
-        actual_rows, expected_rows = restored["telemetry"][name], expected[name]
-        assert [ns for ns, _ in actual_rows] == [ns for ns, _ in expected_rows], name
-        for (_, actual), (_, target) in zip(actual_rows, expected_rows):
-            assert actual == pytest.approx(target, abs=1e-8, rel=1e-11), name
 
     for mode in ("no_held_rw_command", "no_fsw_memory"):
         wrong = results[mode]
