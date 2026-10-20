@@ -450,3 +450,75 @@ def test_explicit_repair_of_verified_incomplete_compression_stage(tmp_path) -> N
         telemetry_segments.repair_interrupted_compression(workspace.path)
     assert temporary.exists() and original.exists()
     assert SessionWorkspace.inspect(workspace.path).valid
+
+
+
+def test_restart_handoff_attests_last_durable_data_not_physical_state(tmp_path) -> None:
+    from sat_sim.interactive.manager import InteractiveSessionManager
+    from sat_sim.interactive.recovery_handoff import verify_interrupted_handoff
+    from sat_sim.interactive import telemetry_segments
+
+    spec, workspace = _compressed_fixture(tmp_path, name="restart-evidence")
+    workspace.append_state(SessionState.CREATED, 0, 0.0, "SESSION_CREATED")
+    workspace.append_state(SessionState.RUNNING, 3, 1.0, "OK")
+    # The durable sensor history has progressed well beyond the most recent
+    # state event: it is still not a restorable native-state checkpoint.
+    telemetry_segments.compress_closed(workspace.path)
+    manager = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    assert manager.interrupted_workspaces[0].state is SessionState.INTERRUPTED
+    handoff = verify_interrupted_handoff(workspace.path)
+    assert handoff["evidence"]["last_state_event_sim_time_s"] == pytest.approx(1.0)
+    assert handoff["evidence"]["last_durable_telemetry_sim_time_s"] == pytest.approx(17.0)
+    assert handoff["evidence"]["telemetry_event_count"] == 35
+    assert handoff["physical_recovery"]["resume_supported"] is False
+    assert handoff["physical_recovery"]["state_equivalence_proven"] is False
+    assert handoff["physical_recovery"]["required_action"] == "NEW_EPOCH_WITH_NEW_SESSION_ID"
+    assert handoff["source_sha256"]["telemetry_logical"] == telemetry_segments.logical_sha256(workspace.path)
+    # Subsequent app startup must not manufacture a second interruption.
+    restarted = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    assert restarted.interrupted_workspaces[0].state is SessionState.INTERRUPTED
+    assert verify_interrupted_handoff(workspace.path) == handoff
+
+
+def test_restart_handoff_rejects_modified_record_or_source_evidence(tmp_path) -> None:
+    from sat_sim.interactive.manager import InteractiveSessionManager
+    from sat_sim.interactive.recovery_handoff import verify_interrupted_handoff
+
+    spec = _spec("restart-tampering")
+    workspace = SessionWorkspace(tmp_path, spec)
+    workspace.append_state(SessionState.CREATED, 0, 0.0, "SESSION_CREATED")
+    workspace.append_telemetry(TelemetryFrame(
+        session_id=spec.session_id, stream="runtime.trace", sequence=0,
+        sim_time_s=3.0, values={"time_s": 3.0},
+    ))
+    InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    assert verify_interrupted_handoff(workspace.path)["evidence"]["last_durable_native_trace_sim_time_s"] == 3.0
+    handoff_path = workspace.path / "recovery_handoff.json"
+    original = handoff_path.read_text(encoding="utf-8")
+    handoff_path.write_text(original.replace("NEW_EPOCH_WITH_NEW_SESSION_ID", "RESUME_IN_PLACE"), encoding="utf-8")
+    with pytest.raises(ValueError, match="RECOVERY_HANDOFF_DIGEST_MISMATCH"):
+        verify_interrupted_handoff(workspace.path)
+    handoff_path.write_text(original, encoding="utf-8")
+    assert verify_interrupted_handoff(workspace.path)["physical_recovery"]["resume_supported"] is False
+    # Even if an attacker kept the report byte-identical, a modified original
+    # specification must not be accepted as a valid checkpoint.
+    spec_path = workspace.spec_path
+    content = spec_path.read_text(encoding="utf-8")
+    spec_path.write_text(content.replace('"created_at"', '"altered_created_at"', 1), encoding="utf-8")
+    with pytest.raises((ValueError, KeyError), match="RECOVERY_SOURCE_CHANGED|RECOVERY_SOURCE_INVALID|RECOVERY_SOURCE_SESSION_ID_MISMATCH"):
+        verify_interrupted_handoff(workspace.path)
+
+
+def test_restart_handoff_refuses_finite_mode_and_healthy_workspace(tmp_path) -> None:
+    from sat_sim.interactive.recovery_handoff import write_interrupted_handoff
+
+    continuous = _spec("healthy-continuous")
+    healthy = SessionWorkspace(tmp_path, continuous)
+    healthy.append_state(SessionState.RUNNING, 1, 2.0, "OK")
+    with pytest.raises(ValueError, match="RECOVERY_REQUIRES_INTERRUPTED_SESSION"):
+        write_interrupted_handoff(healthy.path)
+    finite_spec = continuous.model_copy(update={"session_id": "finite-handoff", "continuous": False})
+    finite = SessionWorkspace(tmp_path, finite_spec)
+    finite.append_state(SessionState.INTERRUPTED, 1, 2.0, "PROCESS_RESTART")
+    with pytest.raises(ValueError, match="RECOVERY_REQUIRES_CONTINUOUS_SESSION"):
+        write_interrupted_handoff(finite.path)
