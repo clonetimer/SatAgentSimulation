@@ -10,6 +10,7 @@ on:
       - "tests/interactive/test_continuous_seal.py"
       - "tests/interactive/test_native_checkpoint_audit.py"
       - "tests/interactive/test_native_state_pilot.py"
+      - "tests/interactive/test_native_scheduler_pilot.py"
       - "tests/interactive/test_interactive_api.py"
       - "tests/interactive/test_continuous_soak.py"
       - "tests/interactive/test_unified_segmented_execution.py"
