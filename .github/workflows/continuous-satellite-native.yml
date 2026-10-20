@@ -7,6 +7,7 @@ on:
       - "src/sat_sim/interactive/**"
       - "tests/interactive/test_continuous_session.py"
       - "tests/interactive/test_continuous_persistence.py"
+      - "tests/interactive/test_continuous_seal.py"
       - "tests/interactive/test_continuous_soak.py"
       - "tests/interactive/test_unified_segmented_execution.py"
       - ".github/workflows/continuous-satellite-native.yml"
@@ -45,6 +46,7 @@ jobs:
         run: |
           python -m pytest -q \
             tests/interactive/test_continuous_session.py \
+            tests/interactive/test_continuous_seal.py \
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
             --disable-warnings

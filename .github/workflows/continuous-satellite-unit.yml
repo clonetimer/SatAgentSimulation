@@ -7,6 +7,7 @@ on:
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "tests/interactive/test_continuous_session.py"
       - "tests/interactive/test_continuous_persistence.py"
+      - "tests/interactive/test_continuous_seal.py"
       - "tests/interactive/test_session_workspace.py"
       - "tests/interactive/test_telecommand_mailbox.py"
       - "tests/interactive/test_telemetry_bus.py"
@@ -38,6 +39,7 @@ jobs:
           python -m pytest -q
           tests/interactive/test_continuous_session.py
           tests/interactive/test_continuous_persistence.py
+          tests/interactive/test_continuous_seal.py
           tests/interactive/test_session_workspace.py
           tests/interactive/test_telecommand_mailbox.py
           tests/interactive/test_command_lifecycle.py
