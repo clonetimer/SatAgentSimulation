@@ -218,6 +218,10 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
     if not spec.continuous:
         raise ValueError("CONTINUOUS_SEAL_REQUIRES_CONTINUOUS_SPEC")
     bundle = root / "run_bundle"
+    # Never expose an unverified bundle at its published path.
+    # A crashed/failed staging tree stays in place for forensic inspection;
+    # do not silently overwrite it or accept it as a seal.
+    staging = root / ".run_bundle.pending"
     if (bundle / "SEALED.json").exists():
         result = verify_run_bundle(bundle)
         if not result.get("ok"):
@@ -225,11 +229,13 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
         return result
     if bundle.exists():
         raise ValueError("INTERACTIVE_PARTIAL_BUNDLE_EXISTS")
+    if staging.exists():
+        raise ValueError("INTERACTIVE_PARTIAL_STAGING_EXISTS")
     state = SessionState(states[-1]["state"]) if states else SessionState.CREATED
     if state is not SessionState.COMPLETED:
         raise ValueError("INTERACTIVE_SESSION_NOT_COMPLETED")
     commands = SessionWorkspace.inspect_hash_chain(root / "command_events.jsonl")
-    trace_path = bundle / "results" / "semantic_trace.json"
+    trace_path = staging / "results" / "semantic_trace.json"
     trace_hash, physical, effects = _write_semantic_trace_and_effects(
         root / "telemetry.jsonl", trace_path, commands, spec.quantum_s
     )
@@ -258,13 +264,13 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
         "terminal_reason_code": validation.reason_code, "supersedes_run_id": None,
         "sealed": True,
     }
-    _write_json(bundle / "input" / "task_spec.json", spec.task_spec)
-    _write_json(bundle / "input" / "execution_plan.json", plan)
-    _write_json(bundle / "input" / "interactive_session_spec.json", spec.model_dump(mode="json"))
-    _write_json(bundle / "run_record.json", run_record)
-    _write_json(bundle / "validation" / "validation_outcome.json", validation.model_dump(mode="json"))
-    _write_json(bundle / "validation" / "claim_report.json", claims.model_dump(mode="json"))
-    _write_json(bundle / "results" / "command_effect_windows.json", {
+    _write_json(staging / "input" / "task_spec.json", spec.task_spec)
+    _write_json(staging / "input" / "execution_plan.json", plan)
+    _write_json(staging / "input" / "interactive_session_spec.json", spec.model_dump(mode="json"))
+    _write_json(staging / "run_record.json", run_record)
+    _write_json(staging / "validation" / "validation_outcome.json", validation.model_dump(mode="json"))
+    _write_json(staging / "validation" / "claim_report.json", claims.model_dump(mode="json"))
+    _write_json(staging / "results" / "command_effect_windows.json", {
         "schema_version": "interactive-command-effects.v1", "commands": effects,
     })
     for name in (
@@ -273,14 +279,14 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
     ):
         source = root / name
         if source.exists():
-            target = bundle / "interactive" / name
+            target = staging / "interactive" / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
     files = {
-        str(item.relative_to(bundle)).replace(os.sep, "/"): {
+        str(item.relative_to(staging)).replace(os.sep, "/"): {
             "sha256": _sha256_file(item), "size_bytes": item.stat().st_size,
         }
-        for item in sorted(bundle.rglob("*")) if item.is_file()
+        for item in sorted(staging.rglob("*")) if item.is_file()
     }
     manifest = {
         "schema_version": INTERACTIVE_BUNDLE_VERSION, "run_id": spec.session_id,
@@ -290,14 +296,17 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
         "validation_result": "PASS", "execution_plan_sha256": plan_hash,
         "sealed_at": _now(), "files": files,
     }
-    _write_json(bundle / "bundle_manifest.json", manifest)
-    _write_json(bundle / "SEALED.json", {
+    _write_json(staging / "bundle_manifest.json", manifest)
+    _write_json(staging / "SEALED.json", {
         "schema_version": INTERACTIVE_BUNDLE_VERSION, "run_id": spec.session_id,
         "sealed_at": manifest["sealed_at"],
-        "bundle_manifest_sha256": _sha256_file(bundle / "bundle_manifest.json"),
+        "bundle_manifest_sha256": _sha256_file(staging / "bundle_manifest.json"),
         "immutability_policy": "sealed interactive evidence is immutable; recovery creates a new epoch",
     })
-    result = verify_run_bundle(bundle)
+    result = verify_run_bundle(staging)
     if not result.get("ok"):
         raise ValueError("INTERACTIVE_RUN_BUNDLE_INTEGRITY_FAILED")
+    if bundle.exists():
+        raise ValueError("INTERACTIVE_PARTIAL_BUNDLE_EXISTS")
+    staging.rename(bundle)
     return result
