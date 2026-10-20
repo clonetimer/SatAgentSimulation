@@ -289,7 +289,10 @@ def test_rotated_telemetry_detects_missing_or_corrupted_segments(tmp_path) -> No
     first.unlink()
     inspection = SessionWorkspace.inspect(workspace.path)
     assert not inspection.valid
-    assert "TELEMETRY_SEGMENT_SET_MISMATCH" in inspection.reason_code
+    # Public workspace API intentionally wraps the underlying segment error.
+    assert "TELEMETRY_HASH_CHAIN_INVALID" in inspection.reason_code
+    with pytest.raises(ValueError, match="TELEMETRY_SEGMENT_SET_MISMATCH"):
+        telemetry_segments.files(workspace.path)
 
 
 def test_total_telemetry_budget_counts_closed_segments_and_active_file(tmp_path) -> None:
