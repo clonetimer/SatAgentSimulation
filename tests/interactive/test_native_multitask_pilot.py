@@ -87,16 +87,18 @@ def _worker(filepath: str, stop_s: float, *, mode: str) -> None:
     sim, process, fast, slow, sc, nav, recorder = _build()
     restore_state_subset_in_place(sc, item["native_state_subset"], expected_rw_count=3)
     restore_two_task_clock_fresh(sim, process, fast, slow, sc, phase)
-    if mode == "omit_process_schedule":
-        # Fault injection: SysModelTask.NextStartTime is restored, but the
-        # separate process ModelScheduleEntry.NextTaskStart cursor is stale.
-        for entry in process.processData.processTasks:
+    if mode in ("omit_process_schedule", "wrong_phase"):
+        # Deliberately corrupt the *native process schedule vector*. SWIG
+        # vector iteration may return copies, so use indexed replacement.
+        schedule = process.processData.processTasks
+        for index in range(len(schedule)):
+            entry = schedule[index]
             if int(entry.TaskUpdatePeriod) == 600_000_000:
-                entry.NextTaskStart = 0
-    elif mode == "wrong_phase":
-        for entry in process.processData.processTasks:
-            if int(entry.TaskUpdatePeriod) == 600_000_000:
-                entry.NextTaskStart += 600_000_000
+                if mode == "omit_process_schedule":
+                    entry.NextTaskStart = 0
+                else:
+                    entry.NextTaskStart += 600_000_000
+                schedule[index] = entry
     elif mode != "full_schedule_restore":
         raise ValueError("NATIVE_MULTITASK_TEST_MODE_INVALID")
     sim.ConfigureStopTime(macros.sec2nano(stop_s))
