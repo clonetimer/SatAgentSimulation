@@ -77,7 +77,7 @@ def _observed(recorder, *, after_ns: int):
     return out
 
 
-def _worker(filepath: str, stop_s: float, *, corrupt_slow_phase: bool) -> None:
+def _worker(filepath: str, stop_s: float, *, mode: str) -> None:
     from Basilisk.utilities import macros
     item = json.loads(Path(filepath).read_text(encoding="utf-8"))
     if item["profile"] != PROFILE:
@@ -87,17 +87,23 @@ def _worker(filepath: str, stop_s: float, *, corrupt_slow_phase: bool) -> None:
     sim, process, fast, slow, sc, nav, recorder = _build()
     restore_state_subset_in_place(sc, item["native_state_subset"], expected_rw_count=3)
     restore_two_task_clock_fresh(sim, process, fast, slow, sc, phase)
-    if corrupt_slow_phase:
-        # Deliberately shift the observer task by one full 600ms period.
-        # This must change which observer timestamps exist downstream.
+    if mode == "pickup_reanchored":
+        # Candidate reconstruction: a new TaskData object still carries an
+        # initial pickup cursor even when NextStartTime is restored. Try
+        # anchoring pickup to the first eligible post-checkpoint slow task.
+        slow.TaskData.NextPickupTime = slow.TaskData.NextStartTime
+    elif mode == "wrong_phase":
         slow.TaskData.NextStartTime += slow.TaskData.TaskPeriod
+    elif mode != "raw_copy":
+        raise ValueError("NATIVE_MULTITASK_TEST_MODE_INVALID")
     sim.ConfigureStopTime(macros.sec2nano(stop_s))
     sim.ExecuteSimulation()
     print("MULTITASK_RESULT_JSON:" + json.dumps({
         "pid": os.getpid(),
         "checkpoint_ns": fields["sim_current_ns"],
         "last_native_time_ns": int(sim.TotalSim.CurrentNanos),
-        "clock_phase_restored": not corrupt_slow_phase,
+        "test_mode": mode,
+        "clock_phase_restored": mode == "pickup_reanchored",
         "native_state_subset": capture_state_subset(sc, expected_rw_count=3),
         "observer_rows": _observed(
             recorder, after_ns=fields["sim_current_ns"],
@@ -129,9 +135,9 @@ def test_native_cross_process_two_rate_scheduler_phase_and_nav_observations(tmp_
     assert len(expected_nav) >= 3
 
     outputs = {}
-    for bad in (False, True):
+    for mode in ("raw_copy", "pickup_reanchored", "wrong_phase"):
         cmd = [sys.executable, str(Path(__file__).resolve()),
-               "--two-task-worker", str(doc), str(finish_s), "bad" if bad else "good"]
+               "--two-task-worker", str(doc), str(finish_s), mode]
         proc = subprocess.run(
             cmd, capture_output=True, text=True, timeout=45, check=False,
         )
@@ -146,9 +152,9 @@ def test_native_cross_process_two_rate_scheduler_phase_and_nav_observations(tmp_
         assert result["last_native_time_ns"] == macros.sec2nano(finish_s)
         assert result["full_spacecraft_resume_supported"] is False
         validate_state_subset(result["native_state_subset"], expected_rw_count=3)
-        outputs[bad] = result
+        outputs[mode] = result
 
-    correct = outputs[False]
+    correct = outputs["pickup_reanchored"]
     for key, values in baseline["vectors"].items():
         assert correct["native_state_subset"]["vectors"][key] == pytest.approx(
             values, abs=1e-9, rel=1e-12,
@@ -159,14 +165,15 @@ def test_native_cross_process_two_rate_scheduler_phase_and_nav_observations(tmp_
 
     # The misplaced slower task cannot reproduce the original observer
     # timestamps, even though fast dynamics might remain numerically equal.
-    wrong = outputs[True]
-    assert [row[0] for row in wrong["observer_rows"]] != [
-        row[0] for row in expected_nav
-    ]
+    for mode in ("raw_copy", "wrong_phase"):
+        wrong = outputs[mode]
+        assert [row[0] for row in wrong["observer_rows"]] != [
+            row[0] for row in expected_nav
+        ]
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 5 and sys.argv[1] == "--two-task-worker":
-        _worker(sys.argv[2], float(sys.argv[3]), corrupt_slow_phase=sys.argv[4] == "bad")
+        _worker(sys.argv[2], float(sys.argv[3]), mode=sys.argv[4])
     else:
         raise SystemExit("native two-task checkpoint test subprocess only")
