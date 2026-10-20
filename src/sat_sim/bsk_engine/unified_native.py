@@ -1369,6 +1369,28 @@ class UnifiedNativeRuntime:
                 stop_time_s = cfg.execution_controller.wait_for_advance()
                 if stop_time_s is None:
                     break
+                if stop_time_s == "__NATIVE_CHECKPOINT_AUDIT__":
+                    # Capture directly from the *current native model graph*
+                    # while its worker owns the paused simulation state.
+                    # Observed output messages do not include integrator,
+                    # controller-memory or subsystem private state: this is a
+                    # fail-closed capability audit, not a resume checkpoint.
+                    from sat_sim.interactive.native_checkpoint_audit import (
+                        capture_observations, create_coverage_report,
+                    )
+                    import threading
+                    observations, unavailable = capture_observations(
+                        spacecraft=sc, reference=reference, controller=controller,
+                        battery=battery if not cfg.adcs_only else None,
+                        storage=storage if not cfg.adcs_only else None,
+                    )
+                    report = create_coverage_report(
+                        sim_time_s=previous_stop_s,
+                        observations=observations, unavailable=unavailable,
+                        native_worker_ident=threading.get_ident(),
+                    )
+                    cfg.execution_controller.runtime_audited(report)
+                    continue
                 # Interactive telemetry has already copied the preceding
                 # delta into its bounded bus/workspace.  Keeping every native
                 # recorder sample as well makes long sessions progressively
