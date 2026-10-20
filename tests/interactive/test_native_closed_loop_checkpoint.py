@@ -205,3 +205,180 @@ def test_live_closed_loop_joint_checkpoint_fails_closed_until_rw_and_messages_co
     with pytest.raises(ValueError, match="ADCS_EVIDENCE_DIGEST_INVALID"):
         verify_closed_loop_evidence(corrupted)
 
+
+
+
+def _closed_loop_rows(graph, *, after_ns: int):
+    """Capture only native telemetry after the agreed physical checkpoint."""
+    return {
+        "fsw_torque": [
+            (int(t), [float(v) for v in torque])
+            for t, torque in zip(graph["control_log"].times(),
+                                 graph["control_log"].torqueRequestBody)
+            if int(t) > after_ns
+        ],
+        "motor_torque": [
+            (int(t), [float(v) for v in torque[:3]])
+            for t, torque in zip(graph["motor_log"].times(),
+                                 graph["motor_log"].motorTorque)
+            if int(t) > after_ns
+        ],
+        "rw_speeds": [
+            (int(t), [float(v) for v in speeds[:3]])
+            for t, speeds in zip(graph["wheel_log"].times(),
+                                 graph["wheel_log"].wheelSpeeds)
+            if int(t) > after_ns
+        ],
+    }
+
+
+def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
+    """New OS process with the same native ADCS graph and optional missing state."""
+    import json
+    import os
+    from pathlib import Path
+    from Basilisk.architecture import messaging
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_state_pilot import restore_state_subset_in_place
+    from sat_sim.interactive.native_multiprocess_pilot import restore_two_process_clock_fresh
+    from sat_sim.interactive.native_closed_loop_evidence import verify_closed_loop_evidence
+
+    if mode not in ("complete_pilot", "no_held_rw_command", "no_fsw_memory"):
+        raise ValueError("ADCS_CLOSED_LOOP_UNSUPPORTED_TEST_MODE")
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    evidence = data["evidence"]
+    verify_closed_loop_evidence(evidence)
+    graph = _build(closed_loop=True)
+    restore_state_subset_in_place(
+        graph["sc"], evidence["spacecraft_rw_state"], expected_rw_count=3,
+    )
+    restore_two_process_clock_fresh(
+        graph["sim"], graph["processes"], graph["tasks"],
+        graph["sc"], evidence["native_scheduler"],
+    )
+    fsw = evidence["fsw_integrator"]
+    if mode != "no_fsw_memory":
+        assert graph["controller"].rwConfigParams.numRW == fsw["cached_rw_count"]
+        for name in ("K", "P", "Ki"):
+            assert float(getattr(graph["controller"], name)) == fsw[name]
+        graph["controller"].priorTime = fsw["prior_time_ns"]
+        graph["controller"].int_sigma = fsw["int_sigma"]
+        graph["controller"].z = fsw["z"]
+
+    if mode != "no_held_rw_command":
+        # The wheels have a zero/default command in a fresh Basilisk process.
+        # Restore the *actual source module's last C output message* before
+        # the first 0.2-second dynamics tick (the slow FSW next runs at 2.4s).
+        # No synthetic motor calculation is involved.
+        payload = messaging.ArrayMotorTorqueMsgPayload()
+        payload.motorTorque = data["last_rw_motor_payload"]
+        graph["allocator"].rwMotorTorqueOutMsg.write(
+            payload, int(fsw["prior_time_ns"]),
+        )
+
+    checkpoint_ns = evidence["checkpoint_sim_time_ns"]
+    graph["sim"].ConfigureStopTime(macros.sec2nano(end_s))
+    graph["sim"].ExecuteSimulation()
+    print("CLOSED_LOOP_RESTART_JSON:" + json.dumps({
+        "pid": os.getpid(),
+        "mode": mode,
+        "checkpoint_ns": checkpoint_ns,
+        "end_ns": int(graph["sim"].TotalSim.CurrentNanos),
+        "resume_supported": False,  # Full spacecraft recovery still unproven
+        "final_state": capture_state_subset(graph["sc"], expected_rw_count=3),
+        "telemetry": _closed_loop_rows(graph, after_ns=checkpoint_ns),
+    }, sort_keys=True), flush=True)
+
+
+def test_native_full_loop_joint_checkpoint_cross_process_parity(tmp_path) -> None:
+    """Strictly compare native spacecraft, wheels, FSW and motor-torque outputs.
+
+    This isolated graph has no faults, TC, mode switches or stochastic noise.
+    Proof of parity here must NEVER turn on production satellite resume.
+    """
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_closed_loop_evidence import (
+        capture_closed_loop_evidence, verify_closed_loop_evidence,
+    )
+
+    source = _build(closed_loop=True)
+    checkpoint_ns = macros.sec2nano(2.0)
+    stop_ns = macros.sec2nano(5.0)
+    source["sim"].ConfigureStopTime(checkpoint_ns)
+    source["sim"].ExecuteSimulation()
+    evidence = capture_closed_loop_evidence(
+        sim=source["sim"], processes=source["processes"],
+        tasks=source["tasks"], spacecraft=source["sc"],
+        controller=source["controller"], allocator=source["allocator"],
+    )
+    verify_closed_loop_evidence(evidence)
+    # The complete MAX_EFF_CNT payload is saved verbatim, so zero-padded
+    # motor torques remain byte-for-byte representable across SWIG bindings.
+    native_motor_payload = [
+        float(x) for x in source["allocator"].rwMotorTorqueOutMsg.read().motorTorque
+    ]
+    path = tmp_path / "closed-loop-native-evidence.json"
+    path.write_text(json.dumps({
+        "evidence": evidence,
+        "last_rw_motor_payload": native_motor_payload,
+    }, sort_keys=True), encoding="utf-8")
+    source["sim"].ConfigureStopTime(stop_ns)
+    source["sim"].ExecuteSimulation()
+    baseline = capture_state_subset(source["sc"], expected_rw_count=3)
+    expected = _closed_loop_rows(source, after_ns=checkpoint_ns)
+    assert len(expected["fsw_torque"]) >= 3
+    assert len(expected["rw_speeds"]) >= 10
+
+    results = {}
+    for mode in ("complete_pilot", "no_held_rw_command", "no_fsw_memory"):
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--adcs-worker",
+             str(path), "5.0", mode],
+            capture_output=True, text=True, timeout=45, check=False,
+        )
+        assert proc.returncode == 0, proc.stdout + "\n" + proc.stderr
+        output = json.loads(next(
+            row.removeprefix("CLOSED_LOOP_RESTART_JSON:")
+            for row in proc.stdout.splitlines()
+            if row.startswith("CLOSED_LOOP_RESTART_JSON:")
+        ))
+        assert output["pid"] != os.getpid()
+        assert output["checkpoint_ns"] == checkpoint_ns
+        assert output["end_ns"] == stop_ns
+        assert output["resume_supported"] is False
+        results[mode] = output
+
+    restored = results["complete_pilot"]
+    for key, values in baseline["vectors"].items():
+        assert restored["final_state"]["vectors"][key] == pytest.approx(
+            values, abs=1e-8, rel=1e-11,
+        ), key
+    for name in ("fsw_torque", "motor_torque", "rw_speeds"):
+        actual_rows, expected_rows = restored["telemetry"][name], expected[name]
+        assert [ns for ns, _ in actual_rows] == [ns for ns, _ in expected_rows], name
+        for (_, actual), (_, target) in zip(actual_rows, expected_rows):
+            assert actual == pytest.approx(target, abs=1e-8, rel=1e-11), name
+
+    for mode in ("no_held_rw_command", "no_fsw_memory"):
+        wrong = results[mode]
+        delta = max(
+            abs(a - b)
+            for a, b in zip(
+                wrong["final_state"]["vectors"]["reaction_wheel_speed_rad_s"],
+                baseline["vectors"]["reaction_wheel_speed_rad_s"],
+            )
+        )
+        assert delta > 1e-7, mode
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) == 5 and sys.argv[1] == "--adcs-worker":
+        _closed_loop_worker(sys.argv[2], float(sys.argv[3]), sys.argv[4])
+    else:
+        raise SystemExit("native ADCS test-only worker")
