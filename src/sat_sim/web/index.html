@@ -514,7 +514,8 @@
             </select></label>
             <div id="interactiveCapabilityHint" class="interactive-scope-hint">整星会话共享同一时钟和状态，可控制姿轨控、能源与通信数传并观察跨系统影响。</div>
             <div class="interactive-form-grid">
-              <label>时长 / s<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
+              <label>时长 / s（限时模式；持续模式用于初始化）<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
+              <label class="toggle-label"><input id="interactiveContinuous" type="checkbox"><span>持续运行（手动停止）</span></label>
               <label>量子 / s<select id="interactiveQuantum"><option>0.1</option><option selected>0.5</option><option>1</option></select></label>
               <label>初始倍速<select id="interactiveInitialRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
               <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>

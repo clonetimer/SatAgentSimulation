@@ -59,6 +59,9 @@ class InteractiveSessionSpec(FrozenModel):
     quantum_s: float = Field(default=0.5, gt=0.0, le=10.0)
     rate: float = 1.0
     paced: bool = True
+    # When enabled, a whole-spacecraft session advances until an explicit stop/abort.
+    # The finite duration fields remain as setup/legacy defaults, not session deadlines.
+    continuous: bool = False
     max_sim_time_s: float = Field(default=3600.0, gt=0.0, le=86400.0)
     max_wall_time_s: float = Field(default=14400.0, gt=0.0, le=86400.0)
     idle_timeout_s: float = Field(default=300.0, gt=0.0, le=3600.0)

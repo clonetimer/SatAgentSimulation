@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import queue
+from collections import deque
 import threading
 import time
 from dataclasses import dataclass, field
@@ -36,13 +37,15 @@ class InteractiveSession:
         spec: InteractiveSessionSpec,
         runtime: PersistentSimulationRuntime,
         *,
-        end_time_s: float,
+        end_time_s: float | None,
         workspace: SessionWorkspace | None = None,
         command_catalog: CommandCatalog | None = None,
     ) -> None:
         self.spec = spec
         self.runtime = runtime
-        self.end_time_s = min(float(end_time_s), spec.max_sim_time_s)
+        if spec.continuous != (end_time_s is None):
+            raise ValueError("continuous sessions require no finite end_time_s; bounded sessions require an end_time_s")
+        self.end_time_s = None if end_time_s is None else min(float(end_time_s), spec.max_sim_time_s)
         self.telemetry = TelemetryBus(spec.session_id, spec.telemetry_buffer_frames)
         self._state = SessionStateMachine()
         self._requests: queue.Queue[_ControlRequest] = queue.Queue(maxsize=spec.control_queue_capacity)
@@ -61,7 +64,10 @@ class InteractiveSession:
         self._last_activity_monotonic = self._created_monotonic
         self._last_heartbeat_monotonic = self._created_monotonic
         self._pace_observation_count = 0
-        self._pace_observations: list[PaceObservation] = []
+        # Continuous sessions must not retain one pacing object per quantum forever.
+        self._pace_observations: list[PaceObservation] | deque[PaceObservation] = (
+            deque(maxlen=4096) if spec.continuous else []
+        )
         self._pace_lock = threading.Lock()
         self._last_drift_s = 0.0
         self._max_abs_drift_s = 0.0
@@ -121,6 +127,9 @@ class InteractiveSession:
         if after_index < 0:
             raise ValueError("after_index must be non-negative")
         with self._pace_lock:
+            if self.spec.continuous:
+                oldest_index = max(0, self._pace_observation_count - len(self._pace_observations))
+                return tuple(list(self._pace_observations)[max(0, after_index - oldest_index):])
             return tuple(self._pace_observations[after_index:])
 
     @property
@@ -265,8 +274,9 @@ class InteractiveSession:
         # boundary (observed at 1754.4 s for a 0.1 s quantum), making a valid
         # physical advance look like a no-progress segment.
         target_ns = round((self.current_time_s + self.spec.quantum_s * quanta) * 1.0e9)
-        end_ns = round(self.end_time_s * 1.0e9)
-        target = min(target_ns, end_ns) / 1_000_000_000
+        if self.end_time_s is not None:
+            target_ns = min(target_ns, round(self.end_time_s * 1.0e9))
+        target = target_ns / 1_000_000_000
         if target <= self.current_time_s:
             return ()
         commands, expired = self._command_mailbox.pop_due_partitioned(target)
@@ -339,9 +349,9 @@ class InteractiveSession:
 
     def _automatic_limit_reason(self) -> str | None:
         now = time.monotonic()
-        if now - self._created_monotonic >= self.spec.max_wall_time_s:
+        if not self.spec.continuous and now - self._created_monotonic >= self.spec.max_wall_time_s:
             return "MAX_WALL_TIME_EXCEEDED"
-        if self.state in {SessionState.CREATED, SessionState.READY, SessionState.PAUSED} and now - self._last_activity_monotonic >= self.spec.idle_timeout_s:
+        if not self.spec.continuous and self.state in {SessionState.CREATED, SessionState.READY, SessionState.PAUSED} and now - self._last_activity_monotonic >= self.spec.idle_timeout_s:
             return "IDLE_TIMEOUT"
         return None
 
@@ -412,7 +422,7 @@ class InteractiveSession:
                         self._max_abs_drift_s = max(self._max_abs_drift_s, abs(observation.drift_s))
                 if time.monotonic() - self._last_heartbeat_monotonic >= self.spec.heartbeat_interval_s:
                     self._write_heartbeat()
-                if self.current_time_s >= self.end_time_s:
+                if self.end_time_s is not None and self.current_time_s >= self.end_time_s:
                     self._transition(SessionState.STOPPING)
                     self._runtime_summary = self.runtime.finalize()
                     self._transition(SessionState.COMPLETED)
@@ -463,7 +473,7 @@ class InteractiveSessionManager:
             self.workspace_root.mkdir(parents=True, exist_ok=True)
             self.interrupted_workspaces = SessionWorkspace.mark_unfinished_interrupted(self.workspace_root)
 
-    def create(self, spec: InteractiveSessionSpec, runtime: PersistentSimulationRuntime, *, end_time_s: float) -> InteractiveSession:
+    def create(self, spec: InteractiveSessionSpec, runtime: PersistentSimulationRuntime, *, end_time_s: float | None) -> InteractiveSession:
         if not self.enabled:
             raise InteractiveFeatureDisabled("interactive simulation is disabled")
         with self._lock:

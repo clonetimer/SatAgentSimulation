@@ -89,8 +89,11 @@ class _UnifiedExecutionController:
 class UnifiedPersistentRuntime:
     """Keep the main unified model graph alive between explicit advances."""
 
-    def __init__(self, config: UnifiedRuntimeConfig, *, timeout_s: float = 60.0) -> None:
+    def __init__(self, config: UnifiedRuntimeConfig, *, timeout_s: float = 60.0, continuous: bool = False) -> None:
+        if continuous and not config.interactive_unbounded:
+            raise ValueError("continuous runtime requires an explicitly unbounded interactive configuration")
         self.config = config
+        self._continuous = continuous
         self._timeout_s = timeout_s
         self._controller = _UnifiedExecutionController()
         self._thread: threading.Thread | None = None
@@ -131,7 +134,7 @@ class UnifiedPersistentRuntime:
         stop_time_s = float(stop_time_s)
         if self._thread is None:
             raise RuntimeError("runtime is not prepared")
-        if stop_time_s <= self._current_time_s or stop_time_s > self.config.duration_s:
+        if stop_time_s <= self._current_time_s or (not self._continuous and stop_time_s > self.config.duration_s):
             raise ValueError("stop time must increase and remain within configured duration")
         self._pending_delta = self._controller.request_advance(stop_time_s, self._timeout_s)
         self._raise_worker_error()

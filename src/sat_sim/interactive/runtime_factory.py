@@ -58,6 +58,8 @@ def build_persistent_runtime(spec: InteractiveSessionSpec):
 
     if spec.capability_id not in APPROVED_CAPABILITY_IDS:
         raise ValueError("INTERACTIVE_CAPABILITY_NOT_APPROVED")
+    if spec.continuous and spec.capability_id != WHOLE_UNIFIED_CAPABILITY_ID:
+        raise ValueError("CONTINUOUS_MODE_REQUIRES_WHOLE_UNIFIED_RUNTIME")
     task_spec = spec.task_spec
     duration_s = min(
         max(_simulation_number(task_spec, "duration_s", spec.max_sim_time_s), spec.quantum_s),
@@ -84,8 +86,9 @@ def build_persistent_runtime(spec: InteractiveSessionSpec):
                 dict(item) for item in (_mapping(task_spec.get("outputs")).get("telemetry_streams") or ())
                 if isinstance(item, Mapping)
             ),
+            interactive_unbounded=spec.continuous,
         )
-        return UnifiedPersistentRuntime(config), duration_s
+        return UnifiedPersistentRuntime(config, continuous=spec.continuous), None if spec.continuous else duration_s
 
     if _has_preplanned_events(task_spec):
         raise ValueError("SUBSYSTEM_PREPLANNED_EVENTS_NOT_SUPPORTED_INTERACTIVELY")

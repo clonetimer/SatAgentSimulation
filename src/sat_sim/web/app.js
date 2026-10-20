@@ -5857,6 +5857,7 @@
       quantum_s: quantum,
       rate,
       paced: el('interactivePaced').checked,
+      continuous: Boolean(el('interactiveContinuous')?.checked),
       max_sim_time_s: duration,
     };
     const created = await api('/interactive/sessions', { method: 'POST', body: JSON.stringify(spec) });

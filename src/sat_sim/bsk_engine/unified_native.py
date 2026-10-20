@@ -539,6 +539,8 @@ class UnifiedRuntimeConfig:
     telemetry_streams: tuple[dict[str, Any], ...] = ()
     execution_stops_s: tuple[float, ...] = ()
     execution_controller: Any = None
+    # Only opt-in persistent interactive sessions may extend beyond setup duration.
+    interactive_unbounded: bool = False
 
 
 class UnifiedNativeRuntime:
@@ -1357,6 +1359,8 @@ class UnifiedNativeRuntime:
 
         sim.InitializeSimulation()
         execution_stops: list[float] = []
+        segment_count = 0
+        previous_stop_s = 0.0
         last_live_rows: list[dict[str, Any]] = []
         if cfg.execution_controller is not None:
             cfg.execution_controller.runtime_prepared()
@@ -1383,9 +1387,8 @@ class UnifiedNativeRuntime:
                         if isinstance(trace, list):
                             trace.clear()
                     emitted_count = 0
-                if stop_time_s <= (execution_stops[-1] if execution_stops else 0.0) or stop_time_s > cfg.duration_s:
+                if stop_time_s <= previous_stop_s or (not cfg.interactive_unbounded and stop_time_s > cfg.duration_s):
                     raise ValueError("controlled execution stop must increase and remain within duration_s")
-                previous_stop_s = execution_stops[-1] if execution_stops else 0.0
                 for command in cfg.execution_controller.take_commands():
                     apply_interactive_command(command, previous_stop_s, stop_time_s - previous_stop_s)
                 sim.ConfigureStopTime(macros.sec2nano(stop_time_s))
@@ -1393,7 +1396,10 @@ class UnifiedNativeRuntime:
                 if interactive_one_shot["reset_instrument_rate"]:
                     whole_modules["instrument"].nodeBaudRate = nominal_instrument_rate
                     interactive_one_shot["reset_instrument_rate"] = False
-                execution_stops.append(stop_time_s)
+                segment_count += 1
+                previous_stop_s = stop_time_s
+                if not cfg.interactive_unbounded:
+                    execution_stops.append(stop_time_s)
                 live_cfg = replace(cfg, events=(*cfg.events, *interactive_events))
                 live_rows = _build_unified_rows(
                     recorder_map,
@@ -1407,6 +1413,9 @@ class UnifiedNativeRuntime:
                     last_live_rows = live_rows
                 cfg.execution_controller.runtime_advanced(stop_time_s, tuple(live_rows))
                 emitted_count = len(recorder_map["state"].times())
+            if cfg.interactive_unbounded and segment_count:
+                # Keep the terminal stop only: unbounded sessions must not store all quanta.
+                execution_stops = [previous_stop_s]
         else:
             requested_stops = tuple(float(value) for value in cfg.execution_stops_s)
             if requested_stops:
@@ -1420,6 +1429,7 @@ class UnifiedNativeRuntime:
             for stop_time_s in execution_stops:
                 sim.ConfigureStopTime(macros.sec2nano(stop_time_s))
                 sim.ExecuteSimulation()
+            segment_count = len(execution_stops)
 
         if interactive_events:
             cfg = replace(cfg, events=(*cfg.events, *interactive_events), execution_controller=None)
@@ -1532,7 +1542,7 @@ class UnifiedNativeRuntime:
             "external_or_proxy_module_count": engineering_proxy_count,
             "connected_message_count": len(connections),
             "recorder_count": len(recorder_map),
-            "execution_segment_count": len(execution_stops),
+            "execution_segment_count": segment_count,
             "execution_stops_s": list(execution_stops),
             "trace_rows": len(rows),
             "initial_pointing_error_deg": rows[0]["adcs.pointing_error_deg"],
