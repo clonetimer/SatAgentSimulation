@@ -48,8 +48,14 @@ jobs:
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
             --disable-warnings
-      - name: Run accelerated continuous full-spacecraft TC/TM soak
+      - name: Run accelerated continuous full-spacecraft TC/TM soak (180 simulated seconds)
         env:
           PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q -s tests/interactive/test_continuous_soak.py --disable-warnings
+      - name: Run long-horizon continuous TC/TM soak (3600 simulated seconds)
+        env:
+          PYTHONPATH: "src:."
+          SAT_SIM_CONTINUOUS_SOAK_TARGET_S: "3600"
         run: |
           python -m pytest -q -s tests/interactive/test_continuous_soak.py --disable-warnings
