@@ -122,7 +122,7 @@ def test_native_two_process_priority_and_phase_parity_across_new_python_process(
     source.ConfigureStopTime(macros.sec2nano(checkpoint_s))
     source.ExecuteSimulation()
     clock = capture_two_process_clock(source, proc, tasks, sc)
-    assert clock["state"]["next_process_priority"] == 20
+    assert clock["thread_scheduler_priority_restored"] is False
     assert clock["state"]["processes"]["observer"]["priority"] == 5
     assert clock["state"]["processes"]["observer"]["scheduled_ns"] == 2_400_000_000
     native_states = capture_state_subset(sc, expected_rw_count=3)

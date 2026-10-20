@@ -60,7 +60,7 @@ def test_two_process_priority_and_phase_export_restore_roundtrip() -> None:
     assert source["profile"] == PROFILE
     assert source["complete_satellite_resume"] is False
     assert source["module_memory_restored"] is False
-    assert source["state"]["next_process_priority"] == 20
+    assert source["thread_scheduler_priority_restored"] is False
     assert source["state"]["processes"]["observer"]["scheduled_ns"] == 2_400_000_000
     fresh = _graph()
     restore_two_process_clock_fresh(*fresh, source)

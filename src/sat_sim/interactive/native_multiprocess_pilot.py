@@ -64,7 +64,6 @@ def _read(sim: Any, processes: dict[str, Any], tasks: dict[str, Any], sc: Any) -
     return {
         "current_ns": int(native.CurrentNanos),
         "next_ns": int(native.NextTaskTime),
-        "next_process_priority": int(native.nextProcPriority),
         "processes": out_procs,
         "tasks": out_tasks,
         "hub_before_s": float(sc.timeBefore),
@@ -75,7 +74,7 @@ def _read(sim: Any, processes: dict[str, Any], tasks: dict[str, Any], sc: Any) -
 
 def _validate(state: dict[str, Any]) -> None:
     if not isinstance(state, dict) or set(state) != {
-        "current_ns", "next_ns", "next_process_priority", "processes",
+        "current_ns", "next_ns", "processes",
         "tasks", "hub_before_s", "hub_before_ns", "hub_step_s",
     }:
         raise ValueError("NATIVE_MULTIPROCESS_FIELDS_INVALID")
@@ -111,16 +110,8 @@ def _validate(state: dict[str, Any]) -> None:
             raise ValueError("NATIVE_MULTIPROCESS_PROCESS_PHASE_OR_PRIORITY_INVALID")
         due.append((next_tick, priority))
     earliest = min(t for t, _ in due)
-    winner_priority = max(p for t, p in due if t == earliest)
-    if (type(state["next_ns"]) is not int or state["next_ns"] != earliest
-            or type(state["next_process_priority"]) is not int
-            or state["next_process_priority"] != winner_priority):
-        raise ValueError(
-            "NATIVE_MULTIPROCESS_GLOBAL_SCHEDULE_INVALID:"
-            f"actual_next={state['next_ns']}, expected_next={earliest}, "
-            f"actual_priority={state['next_process_priority']}, expected_priority={winner_priority}, "
-            f"processes={state['processes']}"
-        )
+    if type(state["next_ns"]) is not int or state["next_ns"] != earliest:
+        raise ValueError("NATIVE_MULTIPROCESS_GLOBAL_SCHEDULE_INVALID")
     if (type(state["hub_before_ns"]) is not int
             or state["hub_before_ns"] != now):
         raise ValueError("NATIVE_MULTIPROCESS_HUB_PHASE_INVALID")
@@ -139,7 +130,9 @@ def capture_two_process_clock(
     _validate(state)
     document = {
         "schema_version": SCHEMA, "profile": PROFILE, "state": state,
-        "experimental_only": True, "integrator_history_restored": False,
+        "experimental_only": True,
+        "thread_scheduler_priority_restored": False,
+        "integrator_history_restored": False,
         "module_memory_restored": False, "complete_satellite_resume": False,
     }
     document["digest_sha256"] = _checksum(document)
@@ -156,6 +149,7 @@ def validate_two_process_clock(doc: dict[str, Any]) -> dict[str, Any]:
     if clean.get("schema_version") != SCHEMA or clean.get("profile") != PROFILE:
         raise ValueError("NATIVE_MULTIPROCESS_PROFILE_INVALID")
     if (clean.get("experimental_only") is not True
+            or clean.get("thread_scheduler_priority_restored") is not False
             or clean.get("integrator_history_restored") is not False
             or clean.get("module_memory_restored") is not False
             or clean.get("complete_satellite_resume") is not False):
@@ -185,7 +179,6 @@ def restore_two_process_clock_fresh(
     native = sim.TotalSim
     native.CurrentNanos = target["current_ns"]
     native.NextTaskTime = target["next_ns"]
-    native.nextProcPriority = target["next_process_priority"]
     for role in GRAPH:
         obj = processes[role].processData
         proc = target["processes"][role]
