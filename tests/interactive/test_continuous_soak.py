@@ -17,7 +17,6 @@ from sat_sim.interactive.models import (
 from sat_sim.interactive.runtime_factory import build_persistent_runtime
 
 
-@pytest.mark.timeout(120) if hasattr(pytest, "timeout") else pytest.mark.filterwarnings("ignore::pytest.PytestUnknownMarkWarning")
 def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon() -> None:
     pytest.importorskip("Basilisk")
     spec = InteractiveSessionSpec(
