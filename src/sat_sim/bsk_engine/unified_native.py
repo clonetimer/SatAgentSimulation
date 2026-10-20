@@ -1376,7 +1376,8 @@ class UnifiedNativeRuntime:
                     # controller-memory or subsystem private state: this is a
                     # fail-closed capability audit, not a resume checkpoint.
                     from sat_sim.interactive.native_checkpoint_audit import (
-                        capture_observations, create_coverage_report,
+                        capture_observations, capture_scheduler_phase,
+                        create_coverage_report,
                     )
                     import threading
                     observations, unavailable = capture_observations(
@@ -1395,6 +1396,7 @@ class UnifiedNativeRuntime:
                         observations=observations, unavailable=unavailable,
                         native_worker_ident=threading.get_ident(),
                         state_subset_pilot=pilot_subset,
+                        scheduler_phase=capture_scheduler_phase(sim),
                     )
                     cfg.execution_controller.runtime_audited(report)
                     continue
