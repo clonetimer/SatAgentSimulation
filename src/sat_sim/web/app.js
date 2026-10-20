@@ -5869,6 +5869,13 @@
   function renderInteractiveSnapshot() {
     const snapshot = state.interactiveSession;
     el('interactiveState').textContent = snapshot?.state || '未选择';
+    const archiveLabels = {
+      NOT_CONFIGURED: '未配置', NOT_READY: '未开始', SEALING: '封存中',
+      SEALED: '已验证封存', FAILED: '封存失败', NOT_APPLICABLE: '无需封存',
+    };
+    const archiveNode = el('interactiveArchiveStatus');
+    archiveNode.textContent = archiveLabels[snapshot?.archive_status] || '—';
+    archiveNode.title = snapshot?.archive_error || '';
     el('interactiveSimTime').textContent = `${Number(snapshot?.sim_time_s || 0).toFixed(3)} s`;
     el('interactiveRateValue').textContent = `${snapshot?.rate || 1}x`;
     el('interactiveDrift').textContent = `${Math.round(Number(snapshot?.last_drift_s || 0) * 1000)} ms`;

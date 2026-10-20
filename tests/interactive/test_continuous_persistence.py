@@ -137,3 +137,24 @@ def test_streaming_archive_preserves_v1_manifest_and_hash_integrity(tmp_path) ->
     assert SessionWorkspace.inspect(workspace.path).valid is False
     with pytest.raises(ValueError, match="HASH_CHAIN_INVALID"):
         workspace.finalize_telemetry()
+
+
+
+def test_archive_failure_is_visible_after_simulation_stops(tmp_path) -> None:
+    class FailingWorkspace(SessionWorkspace):
+        def finalize_telemetry(self) -> dict:
+            raise OSError("archive write unavailable")
+
+    spec = _spec("failed-archive")
+    workspace = FailingWorkspace(tmp_path, spec)
+    session = InteractiveSession(spec, _StubRuntime(), end_time_s=None, workspace=workspace)
+    session.prepare()
+    session.start()
+    session.stop()
+    assert session.wait(2.0)
+    snapshot = session.snapshot()
+    # Simulation completion must not imply a validated Run Bundle.
+    assert snapshot.state.value == "COMPLETED"
+    assert snapshot.archive_status == "FAILED"
+    assert "archive write unavailable" in (snapshot.archive_error or "")
+    assert not (workspace.path / "run_bundle" / "SEALED.json").exists()

@@ -91,6 +91,8 @@ class SessionSnapshot(FrozenModel):
     rate: float
     paced: bool
     worker_alive: bool
+    archive_status: Literal["NOT_CONFIGURED", "NOT_READY", "SEALING", "SEALED", "FAILED", "NOT_APPLICABLE"] = "NOT_CONFIGURED"
+    archive_error: str | None = None
     pace_observation_count: int = Field(default=0, ge=0)
     last_drift_s: float = 0.0
     max_abs_drift_s: float = Field(default=0.0, ge=0.0)

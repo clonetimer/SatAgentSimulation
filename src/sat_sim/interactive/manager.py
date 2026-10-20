@@ -82,6 +82,8 @@ class InteractiveSession:
         self._max_abs_drift_s = 0.0
         self._runtime_summary: dict[str, Any] = {}
         self._terminal_error: str | None = None
+        self._archive_status = "NOT_READY" if workspace is not None else "NOT_CONFIGURED"
+        self._archive_error: str | None = None
         outputs = spec.task_spec.get("outputs") if isinstance(spec.task_spec, dict) else None
         raw_streams = outputs.get("telemetry_streams", ()) if isinstance(outputs, dict) else ()
         self._telemetry_stream_specs: tuple[tuple[str, float, tuple[str, ...]], ...] = tuple(
@@ -132,6 +134,8 @@ class InteractiveSession:
             rate=self._clock.rate,
             paced=self.spec.paced,
             worker_alive=self._thread.is_alive(),
+            archive_status=self._archive_status,
+            archive_error=self._archive_error,
             pace_observation_count=self._pace_observation_count,
             last_drift_s=self._last_drift_s,
             max_abs_drift_s=self._max_abs_drift_s,
@@ -490,10 +494,21 @@ class InteractiveSession:
                 keep_running = False
         try:
             if self._workspace is not None:
+                self._archive_status = "SEALING"
                 self._workspace.finalize_telemetry()
                 if self.state is SessionState.COMPLETED:
                     from .evidence import seal_interactive_workspace
                     seal_interactive_workspace(self._workspace.path)
+                    self._archive_status = "SEALED"
+                else:
+                    self._archive_status = "NOT_APPLICABLE"
+        except BaseException as exc:
+            # A physics run may have completed while archival verification
+            # failed. Never leave this as an unreported worker exception or
+            # present its Run Bundle as successfully sealed.
+            self._archive_status = "FAILED"
+            self._archive_error = f"{type(exc).__name__}: {exc}"
+            self._terminal_error = self._archive_error
         finally:
             self._close_request_queue()
             self._command_mailbox.close()
