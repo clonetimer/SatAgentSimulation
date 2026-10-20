@@ -6,6 +6,9 @@ on:
       - "src/sat_sim/interactive/**"
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "tests/interactive/test_continuous_session.py"
+      - "tests/interactive/test_continuous_persistence.py"
+      - "tests/interactive/test_session_workspace.py"
+      - "tests/interactive/test_telecommand_mailbox.py"
       - ".github/workflows/continuous-satellite-unit.yml"
   workflow_dispatch:
 
@@ -31,5 +34,10 @@ jobs:
         env:
           PYTHONPATH: "src:."
         run: >-
-          python -m pytest -q tests/interactive/test_continuous_session.py
+          python -m pytest -q
+          tests/interactive/test_continuous_session.py
+          tests/interactive/test_continuous_persistence.py
+          tests/interactive/test_session_workspace.py
+          tests/interactive/test_telecommand_mailbox.py
+          tests/interactive/test_command_lifecycle.py
           -k "not native_basilisk"

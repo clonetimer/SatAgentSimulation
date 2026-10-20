@@ -6,6 +6,7 @@ on:
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "src/sat_sim/interactive/**"
       - "tests/interactive/test_continuous_session.py"
+      - "tests/interactive/test_continuous_persistence.py"
       - "tests/interactive/test_continuous_soak.py"
       - "tests/interactive/test_unified_segmented_execution.py"
       - ".github/workflows/continuous-satellite-native.yml"
