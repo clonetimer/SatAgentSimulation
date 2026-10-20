@@ -8,6 +8,7 @@ import json
 import os
 import resource
 import time
+from pathlib import Path
 
 import pytest
 
@@ -18,6 +19,13 @@ from sat_sim.interactive.models import (
 )
 from sat_sim.interactive.runtime_factory import build_persistent_runtime
 from sat_sim.interactive.workspace import SessionWorkspace
+
+
+def _current_rss_kib() -> int:
+    for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
+        if line.startswith("VmRSS:"):
+            return int(line.split()[1])
+    raise RuntimeError("VmRSS unavailable on Linux")
 
 
 def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_path) -> None:
@@ -54,6 +62,7 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
     workspace = SessionWorkspace(tmp_path, spec)
     session = InteractiveSession(spec, runtime, end_time_s=end_time, workspace=workspace)
     initial_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    initial_current_rss = _current_rss_kib()
     try:
         session.prepare()
         command = Telecommand(
@@ -86,6 +95,8 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
         assert all(set(frame.values) == {"orbit.radius_m", "adcs.pointing_error_deg", "eps.battery_soc"} for frame in frames)
         assert session.command_acks(command.command_id)[-1].state is CommandState.ACKED
         assert frames[-1].sim_time_s >= target_s
+        before_archive_rss = _current_rss_kib()
+        before_archive_peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         summary = session.stop()
         assert summary["summary"]["execution_segment_count"] >= int(2 * target_s)
         assert len(summary["summary"]["execution_stops_s"]) == 1
@@ -96,13 +107,18 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
         assert manifest["frame_count"] >= len(frames)
         assert manifest["streams"]["whole.soak"] == len(frames)
         assert SessionWorkspace.inspect(workspace.path).valid is True
+        after_archive_rss = _current_rss_kib()
         peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # Linux ru_maxrss is KiB, and the allowed extra 1 GiB is deliberately lenient.
         assert peak_rss - initial_rss < 1024 * 1024
         print(
             f"CONTINUOUS_SOAK_OK sim_time_s={session.current_time_s:.1f} "
             f"tm_frames={len(frames)} native_segments={summary['summary']['execution_segment_count']} "
-            f"rss_growth_kib={peak_rss-initial_rss}"
+            f"rss_growth_kib={peak_rss-initial_rss} "
+            f"rss_live_growth_kib={before_archive_rss-initial_current_rss} "
+            f"rss_before_archive_kib={before_archive_rss} "
+            f"rss_after_archive_kib={after_archive_rss} "
+            f"peak_before_archive_kib={before_archive_peak}"
         )
     finally:
         if session.state not in {SessionState.COMPLETED, SessionState.ABORTED, SessionState.FAILED}:
