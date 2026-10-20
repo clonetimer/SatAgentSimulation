@@ -15,11 +15,11 @@ from typing import Any
 from .native_state_pilot import capture_state_subset, validate_state_subset
 from .native_multiprocess_pilot import capture_two_process_clock, validate_two_process_clock
 
-SCHEMA = "basilisk-closed-loop-adcs-evidence.v1"
+SCHEMA = "basilisk-closed-loop-adcs-evidence.v2"
 MISSING_RESTORE_OWNERS = (
     "rw_command_message_history",
     "attitude_nav_guidance_message_history",
-    "reaction_wheel_private_motor_state",
+    "reaction_wheel_unexposed_private_state",
     "fsw_module_full_cached_rw_config",
     "closed_loop_cross_process_parity",
     "fault_mode_and_pending_telecommands",
@@ -65,9 +65,56 @@ def _native_memory(controller: Any, checkpoint_ns: int) -> dict[str, Any]:
     }
 
 
+RW_EXPOSED_FIELDS = ("Omega", "omegaBefore", "u_current", "frictionTorque")
+
+
+def capture_rw_effector_memory(rw_effector: Any) -> list[dict[str, float]]:
+    """Capture C++ RWConfig state that exists outside the StateData vectors.
+
+    BalancedWheel pilot only. No blanket claim about RW friction/jitter
+    models, pending commands, thermal or reaction wheel module state.
+    """
+    wheels = list(rw_effector.ReactionWheelData)
+    if len(wheels) != 3:
+        raise ValueError("ADCS_RW_MEMORY_COUNT_MISMATCH")
+    result = []
+    for i, wheel in enumerate(wheels):
+        values = {key: float(getattr(wheel, key)) for key in RW_EXPOSED_FIELDS}
+        if any(not math.isfinite(x) for x in values.values()):
+            raise ValueError(f"ADCS_RW_MEMORY_NONFINITE:{i}")
+        result.append(values)
+    return result
+
+
+def validate_rw_effector_memory(data: Any) -> None:
+    if not isinstance(data, list) or len(data) != 3:
+        raise ValueError("ADCS_RW_MEMORY_COUNT_MISMATCH")
+    for wheel in data:
+        if not isinstance(wheel, dict) or set(wheel) != set(RW_EXPOSED_FIELDS):
+            raise ValueError("ADCS_RW_MEMORY_FIELDS_INVALID")
+        if any(
+            isinstance(v, bool) or not isinstance(v, (float, int))
+            or not math.isfinite(v) for v in wheel.values()
+        ):
+            raise ValueError("ADCS_RW_MEMORY_NONFINITE")
+
+
+def restore_rw_effector_memory_fresh(rw_effector: Any, saved: Any) -> None:
+    """TEST-ONLY native pointer writeback on a fresh, unadvanced RW graph."""
+    validate_rw_effector_memory(saved)
+    original = capture_rw_effector_memory(rw_effector)
+    if any(abs(w["u_current"]) > 1e-14 for w in original):
+        raise ValueError("ADCS_RW_MEMORY_REQUIRES_FRESH_EFFECTOR")
+    for wheel, fields in zip(rw_effector.ReactionWheelData, saved):
+        for name in RW_EXPOSED_FIELDS:
+            setattr(wheel, name, fields[name])
+    if capture_rw_effector_memory(rw_effector) != saved:
+        raise ValueError("ADCS_RW_MEMORY_NATIVE_WRITEBACK_FAILED")
+
+
 def capture_closed_loop_evidence(
     *, sim: Any, processes: dict[str, Any], tasks: dict[str, Any],
-    spacecraft: Any, controller: Any, allocator: Any,
+    spacecraft: Any, controller: Any, allocator: Any, rw_effector: Any,
 ) -> dict[str, Any]:
     native = capture_state_subset(spacecraft, expected_rw_count=3)
     clock = capture_two_process_clock(sim, processes, tasks, spacecraft)
@@ -88,6 +135,7 @@ def capture_closed_loop_evidence(
         "spacecraft_rw_state": native,
         "native_scheduler": clock,
         "fsw_integrator": memory,
+        "rw_effector_memory": capture_rw_effector_memory(rw_effector),
         "last_rw_motor_command_nm": held,
         "restore_gaps": list(MISSING_RESTORE_OWNERS),
         "actuator_command_message_restored": False,
@@ -119,6 +167,7 @@ def verify_closed_loop_evidence(document: dict[str, Any]) -> None:
     ):
         raise ValueError("ADCS_EVIDENCE_FALSE_RESTORE_CLAIM")
     validate_state_subset(data["spacecraft_rw_state"], expected_rw_count=3)
+    validate_rw_effector_memory(data["rw_effector_memory"])
     phase = validate_two_process_clock(data["native_scheduler"])
     if data["checkpoint_sim_time_ns"] != phase["current_ns"]:
         raise ValueError("ADCS_EVIDENCE_TIME_MISMATCH")
