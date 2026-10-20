@@ -84,6 +84,14 @@ class InteractiveSession:
             for item in raw_streams
             if isinstance(item, dict) and item.get("stream_id") and float(item.get("sample_s", 0.0)) > 0.0 and item.get("fields")
         )
+        # Native recorder timestamps can fall between requested stream
+        # boundaries.  Continuous streams publish the first real sample at
+        # or after each due time, never synthetic/interpolated values.
+        self._continuous_stream_due_s = {
+            stream_id: sample_s
+            for stream_id, sample_s, _ in self._telemetry_stream_specs
+        }
+        self._continuous_initial_streams: set[str] = set()
         if self._workspace is not None:
             self._workspace.append_state(SessionState.CREATED, 0, 0.0, "SESSION_CREATED")
         self._thread = threading.Thread(target=self._worker, name=f"sat-interactive-{spec.session_id}", daemon=True)
@@ -297,13 +305,34 @@ class InteractiveSession:
             if self._workspace is not None:
                 self._workspace.append_telemetry(frame)
             for stream_id, sample_s, fields in self._telemetry_stream_specs:
-                sample_index = round(sim_time_s / sample_s)
-                if abs(sim_time_s - sample_index * sample_s) <= max(1e-9, sample_s * 1e-9):
-                    values = {field: row[field] for field in fields if field in row}
-                    quality = "GOOD" if len(values) == len(fields) else "INVALID"
-                    frame = self.telemetry.publish(stream_id, sim_time_s, values, quality)
-                    if self._workspace is not None:
-                        self._workspace.append_telemetry(frame)
+                tolerance = max(1e-9, sample_s * 1e-9)
+                if self.spec.continuous:
+                    due_s = self._continuous_stream_due_s[stream_id]
+                    is_initial = (
+                        abs(sim_time_s) <= tolerance
+                        and stream_id not in self._continuous_initial_streams
+                    )
+                    if not is_initial and sim_time_s + tolerance < due_s:
+                        continue
+                    if is_initial:
+                        self._continuous_initial_streams.add(stream_id)
+                    else:
+                        # One real sample per crossed due boundary; if a native
+                        # sample interval is larger than the requested stream
+                        # period, skip overdue ticks rather than duplicating
+                        # or fabricating a physical measurement.
+                        periods = max(1, int((sim_time_s - due_s + tolerance) // sample_s) + 1)
+                        self._continuous_stream_due_s[stream_id] = due_s + periods * sample_s
+                else:
+                    # Backward-compatible exact-grid sampling for finite runs.
+                    sample_index = round(sim_time_s / sample_s)
+                    if abs(sim_time_s - sample_index * sample_s) > tolerance:
+                        continue
+                values = {field: row[field] for field in fields if field in row}
+                quality = "GOOD" if len(values) == len(fields) else "INVALID"
+                frame = self.telemetry.publish(stream_id, sim_time_s, values, quality)
+                if self._workspace is not None:
+                    self._workspace.append_telemetry(frame)
         for command in executing:
             self._emit_ack(command, CommandState.ACKED, "OK", sim_time_s=target)
         return rows
