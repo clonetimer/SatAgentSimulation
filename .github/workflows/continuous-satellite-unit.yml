@@ -9,6 +9,7 @@ on:
       - "tests/interactive/test_continuous_persistence.py"
       - "tests/interactive/test_session_workspace.py"
       - "tests/interactive/test_telecommand_mailbox.py"
+      - "tests/interactive/test_telemetry_bus.py"
       - ".github/workflows/continuous-satellite-unit.yml"
   workflow_dispatch:
 
@@ -40,4 +41,5 @@ jobs:
           tests/interactive/test_session_workspace.py
           tests/interactive/test_telecommand_mailbox.py
           tests/interactive/test_command_lifecycle.py
+          tests/interactive/test_telemetry_bus.py
           -k "not native_basilisk"

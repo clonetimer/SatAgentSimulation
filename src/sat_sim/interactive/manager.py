@@ -46,7 +46,17 @@ class InteractiveSession:
         if spec.continuous != (end_time_s is None):
             raise ValueError("continuous sessions require no finite end_time_s; bounded sessions require an end_time_s")
         self.end_time_s = None if end_time_s is None else min(float(end_time_s), spec.max_sim_time_s)
-        self.telemetry = TelemetryBus(spec.session_id, spec.telemetry_buffer_frames)
+        self.telemetry = TelemetryBus(
+            spec.session_id, spec.telemetry_buffer_frames,
+            # runtime.trace contains full native model rows and is excluded from
+            # public stream allowlists.  The durable workspace remains the
+            # authoritative full trace; keep only a short diagnostic replay ring
+            # in continuous sessions, not thousands of huge Python dictionaries.
+            stream_capacities=(
+                {"runtime.trace": min(256, spec.telemetry_buffer_frames)}
+                if spec.continuous else None
+            ),
+        )
         self._state = SessionStateMachine()
         self._requests: queue.Queue[_ControlRequest] = queue.Queue(maxsize=spec.control_queue_capacity)
         self._accept_lock = threading.Lock()
