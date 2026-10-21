@@ -217,3 +217,36 @@ def test_duplicate_idempotent_ack_does_not_mutate_original_outbox(tmp_path):
     # Duplicate ACK is not a second accepted event or command execution.
     report = _interrupt(tmp_path, ws)
     assert report["automatic_tc_replay_allowed"] is False
+
+
+def test_failed_mirror_commit_does_not_reuse_fsynced_ack_sequence(tmp_path):
+    spec = _spec("outbox-sequence-safety")
+    ws = SessionWorkspace(tmp_path, spec)
+    runtime = _RecordedEffect(ws.path / "command_ids.sqlite")
+    session = InteractiveSession(spec, runtime, end_time_s=None, workspace=ws)
+    try:
+        tc = _cmd(spec.session_id)
+        session._emit_ack(tc, CommandState.RECEIVED)
+        assert session._command_mailbox.submit(tc, session_revision=2).accepted
+        with sqlite3.connect(runtime.db) as db:
+            db.execute(
+                "CREATE TRIGGER deny_cursor BEFORE UPDATE OF mirrored_sequence "
+                "ON command_event_outbox "
+                "BEGIN SELECT RAISE(ABORT, 'CURSOR_IO_ERROR'); END"
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="CURSOR_IO_ERROR"):
+            session._emit_ack(tc, CommandState.QUEUED, "QUEUED")
+        # The JSONL sequence was already fsynced, despite the exception.
+        assert session._ack_sequence == 2
+        assert [r["sequence"] for r in SessionWorkspace.iter_hash_chain(
+            ws.commands_path
+        )] == [0, 1]
+        with sqlite3.connect(runtime.db) as db:
+            db.execute("DROP TRIGGER deny_cursor")
+        assert reconcile_existing_outbox_mirrors(ws.path)["reconciled"] == 1
+        assert _outbox_rows(runtime.db)[0][1] == 1
+        # The recovered source is *only* a mirror cursor, not a replayable TC.
+        assert runtime.call_count == 0
+    finally:
+        session.abort()
+        session.wait(2.)
