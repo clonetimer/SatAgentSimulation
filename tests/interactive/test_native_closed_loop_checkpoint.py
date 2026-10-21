@@ -268,13 +268,17 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
     if mode not in (
         "complete_pilot", "no_held_rw_command", "no_fsw_memory",
         "no_rw_effector_memory", "guidance_switch", "guidance_missing_switch",
+        "guidance_pending", "guidance_pending_not_applied",
     ):
         raise ValueError("ADCS_CLOSED_LOOP_UNSUPPORTED_TEST_MODE")
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     evidence = data["evidence"]
     verify_closed_loop_evidence(evidence)
     graph = _build(closed_loop=True)
-    if mode in ("guidance_switch", "guidance_missing_switch"):
+    if mode in (
+        "guidance_switch", "guidance_missing_switch",
+        "guidance_pending", "guidance_pending_not_applied",
+    ):
         from sat_sim.interactive.native_mode_checkpoint import validate_mode_checkpoint
         from sat_sim.interactive.native_guidance_route_pilot import (
             restore_native_guidance_route_fresh,
@@ -283,7 +287,15 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
         validated = validate_mode_checkpoint(journal)
         if validated["checkpoint_ns"] != evidence["checkpoint_sim_time_ns"]:
             raise ValueError("ADCS_NATIVE_GUIDANCE_CHECKPOINT_TIME_MISMATCH")
-        if mode == "guidance_switch":
+        if mode in ("guidance_pending", "guidance_pending_not_applied"):
+            if (
+                validated["current_mode"] != "inertial3d"
+                or validated["transitions"][-1]["status"] != "pending"
+                or validated["transitions"][-1]["to_mode"] != "nadir"
+                or data.get("pending_apply_ns") != 2_200_000_000
+            ):
+                raise ValueError("ADCS_NATIVE_PENDING_MODE_CONTRACT_MISMATCH")
+        if mode != "guidance_missing_switch":
             restore_native_guidance_route_fresh(graph, journal)
     restore_state_subset_in_place(
         graph["sc"], evidence["spacecraft_rw_state"], expected_rw_count=3,
@@ -317,6 +329,19 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
         )
 
     checkpoint_ns = evidence["checkpoint_sim_time_ns"]
+    if mode in ("guidance_pending", "guidance_pending_not_applied"):
+        # Advance only to the 2.2s dynamics-only boundary. Next native
+        # FSW guidance/actuation update is due at 2.4s.
+        apply_ns = data["pending_apply_ns"]
+        if not checkpoint_ns < apply_ns < macros.sec2nano(end_s):
+            raise ValueError("ADCS_NATIVE_PENDING_APPLY_TIME_INVALID")
+        graph["sim"].ConfigureStopTime(apply_ns)
+        graph["sim"].ExecuteSimulation()
+        if mode == "guidance_pending":
+            from sat_sim.interactive.native_guidance_route_pilot import (
+                switch_native_guidance,
+            )
+            switch_native_guidance(graph, "nadir")
     graph["sim"].ConfigureStopTime(macros.sec2nano(end_s))
     graph["sim"].ExecuteSimulation()
     print("CLOSED_LOOP_RESTART_JSON:" + json.dumps({
@@ -546,6 +571,107 @@ def test_native_guidance_mode_switch_restart_parity(tmp_path) -> None:
         for x, y in zip(out, ref)
     )
     assert mismatch > 1e-7, "Missing native guidance connection went undetected"
+
+
+
+def test_native_pending_mode_change_survives_restart(tmp_path) -> None:
+    """Journal has a PENDING command at 2s, applied at 2.2s before FSW 2.4s."""
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_mode_checkpoint import (
+        capture_mode_checkpoint, validate_mode_checkpoint,
+    )
+    from sat_sim.interactive.native_guidance_route_pilot import switch_native_guidance
+    from sat_sim.interactive.native_closed_loop_evidence import (
+        capture_closed_loop_evidence,
+    )
+
+    source = _build(closed_loop=True)
+    checkpoint_ns = macros.sec2nano(2.0)
+    source["sim"].ConfigureStopTime(checkpoint_ns)
+    source["sim"].ExecuteSimulation()
+    evidence = capture_closed_loop_evidence(
+        sim=source["sim"], processes=source["processes"],
+        tasks=source["tasks"], spacecraft=source["sc"],
+        controller=source["controller"], allocator=source["allocator"],
+        rw_effector=source["rw"],
+    )
+    journal = capture_mode_checkpoint(
+        checkpoint_ns=checkpoint_ns, current_mode="inertial3d",
+        transitions=[
+            {
+                "event_id": "startup-inertial", "revision": 1,
+                "requested_ns": 0, "resolved_ns": 0,
+                "from_mode": "standby", "to_mode": "inertial3d",
+                "status": "applied",
+            },
+            {
+                "event_id": "queued-nadir-1", "revision": 2,
+                "requested_ns": macros.sec2nano(1.8),
+                "resolved_ns": None,
+                "from_mode": "inertial3d", "to_mode": "nadir",
+                "status": "pending",
+            },
+        ],
+    )
+    assert validate_mode_checkpoint(journal)["current_mode"] == "inertial3d"
+    path = tmp_path / "pending-native-mode-journal.json"
+    path.write_text(json.dumps({
+        "evidence": evidence,
+        "guidance_mode_checkpoint": journal,
+        "pending_apply_ns": macros.sec2nano(2.2),
+        "last_rw_motor_payload": [
+            float(v) for v in source["allocator"].rwMotorTorqueOutMsg.read().motorTorque
+        ],
+    }, sort_keys=True), encoding="utf-8")
+
+    source["sim"].ConfigureStopTime(macros.sec2nano(2.2))
+    source["sim"].ExecuteSimulation()
+    switch_native_guidance(source, "nadir")
+    source["sim"].ConfigureStopTime(macros.sec2nano(5.0))
+    source["sim"].ExecuteSimulation()
+    baseline_rows = _closed_loop_rows(source, after_ns=checkpoint_ns)
+    baseline_final = capture_state_subset(source["sc"], expected_rw_count=3)
+
+    outputs = {}
+    for mode in ("guidance_pending", "guidance_pending_not_applied"):
+        process = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--adcs-worker",
+             str(path), "5.0", mode],
+            capture_output=True, text=True, check=False, timeout=45,
+        )
+        assert process.returncode == 0, process.stdout + "\\n" + process.stderr
+        outputs[mode] = json.loads(next(
+            line.removeprefix("CLOSED_LOOP_RESTART_JSON:")
+            for line in process.stdout.splitlines()
+            if line.startswith("CLOSED_LOOP_RESTART_JSON:")
+        ))
+        assert outputs[mode]["resume_supported"] is False
+
+    recovered = outputs["guidance_pending"]
+    for channel in (
+        "attitude_mrp", "body_rate", "fsw_torque", "motor_torque", "rw_speeds",
+    ):
+        observed, baseline = recovered["telemetry"][channel], baseline_rows[channel]
+        assert [t for t, _ in observed] == [t for t, _ in baseline], channel
+        for (_, value), (_, reference) in zip(observed, baseline):
+            assert value == pytest.approx(reference, abs=1e-8, rel=1e-11), channel
+    for name, reference in baseline_final["vectors"].items():
+        assert recovered["final_state"]["vectors"][name] == pytest.approx(
+            reference, abs=1e-8, rel=1e-11
+        ), name
+
+    skipped = outputs["guidance_pending_not_applied"]
+    assert max(
+        abs(a - b)
+        for (_, actual), (_, reference) in zip(
+            skipped["telemetry"]["fsw_torque"], baseline_rows["fsw_torque"]
+        )
+        for a, b in zip(actual, reference)
+    ) > 1e-7, "Pending transition was silently ignored"
 
 
 if __name__ == "__main__":
