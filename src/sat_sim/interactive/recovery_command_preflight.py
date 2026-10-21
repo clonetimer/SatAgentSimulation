@@ -229,7 +229,10 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
     ):
         raise ValueError("RECOVERY_COMMAND_LIFECYCLE_SEQUENCE_GAP")
 
-    projection = verified_ack_projection(root)
+    projection = {
+        key: val for key, val in verified_ack_projection(root).items()
+        if key[0] in index
+    }
     used: set[tuple[str, str]] = set()
     last_outbox_id = 0
     for event in outbox:
