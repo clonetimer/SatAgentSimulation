@@ -313,6 +313,12 @@ class SessionWorkspace:
                 # requiring a new, separately named simulation epoch.
                 from .recovery_handoff import write_interrupted_handoff
                 write_interrupted_handoff(path)
+                # Bind the original ACK hash-chain to the persistent
+                # SQLite UNIQUE command index. This forensic preflight is
+                # deliberately read-only with respect to command execution:
+                # it NEVER makes the original native graph resumable.
+                from .recovery_command_preflight import write_interrupted_command_preflight
+                write_interrupted_command_preflight(path)
             updated = cls.inspect(path)
             assert isinstance(updated, WorkspaceInspection)
             results.append(updated)
