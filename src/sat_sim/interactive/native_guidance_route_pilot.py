@@ -26,7 +26,9 @@ def switch_native_guidance(graph: dict[str, Any], mode: str) -> None:
         raise ValueError("ADCS_NATIVE_GUIDANCE_UNSUPPORTED_MODE")
     desired = graph[GUIDANCE_SOURCE[mode]].attRefOutMsg
     actual = graph["attitude_error"].attRefInMsg
-    # AttRefMsg_C is a C message wrapper, not the Python message reader API:\n    # 2.11.0 has subscribeTo/read but no isLinked(). Verify via native readback.\n    actual.subscribeTo(desired)
+    # AttRefMsg_C is a C message wrapper, not the Python message reader API:
+    # 2.11.0 has subscribeTo/read but no isLinked(). Verify via native readback.
+    actual.subscribeTo(desired)
     if _vector(actual) != _vector(desired):
         raise ValueError("ADCS_NATIVE_GUIDANCE_SUBSCRIPTION_FAILED")
 
