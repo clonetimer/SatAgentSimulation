@@ -25,6 +25,10 @@ def main() -> int:
         "--command-preflight", action="store_true",
         help="Also verify the stopped session's immutable TC/ACK/SQLite preflight",
     )
+    parser.add_argument(
+        "--pending-audit", action="store_true",
+        help="Read-only audit of verified queued TC metadata; never activates a queue",
+    )
     args = parser.parse_args()
     if args.create_missing and not (args.workspace / HANDOFF_FILENAME).exists():
         write_interrupted_handoff(args.workspace)
@@ -36,7 +40,7 @@ def main() -> int:
         "physical_recovery": payload["physical_recovery"],
         "record_sha256": payload["record_sha256"],
     }
-    if args.command_preflight:
+    if args.command_preflight or args.pending_audit:
         from sat_sim.interactive.recovery_command_preflight import (
             verify_interrupted_command_preflight,
             write_interrupted_command_preflight, FILENAME,
@@ -44,6 +48,9 @@ def main() -> int:
         if args.create_missing and not (args.workspace / FILENAME).exists():
             write_interrupted_command_preflight(args.workspace)
         report["command_recovery"] = verify_interrupted_command_preflight(args.workspace)
+    if args.pending_audit:
+        from sat_sim.interactive.command_pending_audit import inspect_pending_queue
+        report["pending_audit"] = inspect_pending_queue(args.workspace)
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     return 0
 
