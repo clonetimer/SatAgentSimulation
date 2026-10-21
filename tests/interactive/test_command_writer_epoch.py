@@ -228,3 +228,28 @@ def test_interrupted_preflight_binds_writer_owner_generation(tmp_path):
         )
     with pytest.raises(ValueError, match="RECOVERY_COMMAND_PREFLIGHT_SOURCE_CHANGED"):
         verify_interrupted_command_preflight(ws.path)
+
+
+def test_second_manager_never_marks_live_or_orphaned_owner_interrupted(tmp_path):
+    from sat_sim.interactive.recovery_handoff import HANDOFF_FILENAME
+    spec = _spec("writer-owner-alive")
+    ws = SessionWorkspace(tmp_path, spec)
+    ws.append_state(SessionState.RUNNING, 2, 0., "OK")
+    mailbox = DeterministicCommandMailbox(
+        persistent_ledger=True, ledger_path=ws.path / "command_ids.sqlite",
+    )
+    assert _epoch(ws.path / "command_ids.sqlite") == (1, "ACTIVE")
+    competing = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    assert len(competing.interrupted_workspaces) == 1
+    inspection = competing.interrupted_workspaces[0]
+    assert inspection.valid is False
+    assert inspection.reason_code == "TC_WRITER_ACTIVE_OR_ORPHANED_NO_AUTOMATIC_INTERRUPTION"
+    assert SessionWorkspace.inspect(ws.path).state is SessionState.RUNNING
+    assert not (ws.path / HANDOFF_FILENAME).exists()
+    # A clean writer shutdown permits normal interruption handoff; it does
+    # not authorize running the old native graph again.
+    mailbox.close()
+    recovered = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    assert recovered.interrupted_workspaces[0].valid is True
+    assert recovered.interrupted_workspaces[0].state is SessionState.INTERRUPTED
+    assert (ws.path / HANDOFF_FILENAME).exists()
