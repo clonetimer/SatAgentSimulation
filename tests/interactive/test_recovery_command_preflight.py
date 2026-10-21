@@ -182,3 +182,45 @@ def test_recovery_inspection_cli_can_include_command_preflight(tmp_path, monkeyp
     assert result["command_recovery"]["status"] == "EVIDENCE_CONSISTENT_NO_NATIVE_RESTART"
     assert result["command_recovery"]["automatic_tc_replay_allowed"] is False
     assert (ws.path / FILENAME).read_bytes() == before
+
+
+def test_acked_without_prior_executing_is_not_accepted_as_proven(tmp_path):
+    spec = _spec("forged-ack-state")
+    ws = SessionWorkspace(tmp_path, spec)
+    ws.append_state(SessionState.RUNNING, 2, 2.0, "OK")
+    tc = _command(spec.session_id, "tc-ack-before-execution")
+    mailbox = DeterministicCommandMailbox(
+        persistent_ledger=True, ledger_path=ws.path / "command_ids.sqlite",
+    )
+    assert mailbox.submit(tc, session_revision=2).accepted
+    mailbox.close()
+    for seq, state in enumerate((CommandState.RECEIVED, CommandState.QUEUED, CommandState.ACKED)):
+        ws.append_command_ack(tc, CommandAck(
+            command_id=tc.command_id, session_id=spec.session_id,
+            state=state, sequence=seq,
+            reason_code="QUEUED" if state is CommandState.QUEUED else "OK",
+        ))
+    InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    report = verify_interrupted_command_preflight(ws.path)
+    assert report["status"] == "BLOCKED_EVIDENCE_UNVERIFIABLE"
+    assert "ACK_WITHOUT_EXECUTION_PROOF" in report["reason_code"]
+
+
+def test_unfinished_received_not_mistaken_for_replayable_command(tmp_path):
+    spec = _spec("incomplete-received")
+    ws = SessionWorkspace(tmp_path, spec)
+    ws.append_state(SessionState.RUNNING, 1, 2.0, "OK")
+    tc = _command(spec.session_id, "tc-received-not-validated")
+    mailbox = DeterministicCommandMailbox(
+        persistent_ledger=True, ledger_path=ws.path / "command_ids.sqlite",
+    )
+    mailbox.close()
+    ws.append_command_ack(tc, CommandAck(
+        command_id=tc.command_id, session_id=spec.session_id,
+        state=CommandState.RECEIVED, sequence=0,
+    ))
+    InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    report = verify_interrupted_command_preflight(ws.path)
+    assert report["status"] == "BLOCKED_UNRESOLVED_PENDING_TC"
+    assert report["command_evidence"]["preacceptance_uncertain_ids"] == [tc.command_id]
+    assert report["automatic_tc_replay_allowed"] is False
