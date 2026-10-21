@@ -204,6 +204,15 @@ def create_interactive_router(
             "activate_native_queue_allowed": False,
         }
 
+    @router.get("/continuous/sessions/{session_id}/observability")
+    def continuous_session_observability(session_id: str):
+        """Real host/ledger observations; no native side effects or TC replay."""
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        from .continuous_observability import observe_continuous_session
+        return observe_continuous_session(session)
+
     @router.get("/commands/catalog")
     def read_command_catalog():
         return {"schema_version": "interactive-command-catalog.v1", "commands": command_catalog.public_contracts()}
