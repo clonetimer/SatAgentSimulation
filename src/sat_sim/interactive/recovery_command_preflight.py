@@ -39,7 +39,7 @@ def _sha(value: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical(value)).hexdigest()
 
 
-def _read_index(path: Path) -> tuple[dict[str, str], str]:
+def _read_index(path: Path) -> tuple[dict[str, str], str, dict[str, dict[str, Any]], str]:
     """Read an immutable *view* of the live SQLite unique index, never mutate it.
 
     SQLite read transactions snapshot a consistent committed state. Since this
@@ -68,7 +68,28 @@ def _read_index(path: Path) -> tuple[dict[str, str], str]:
                     raise ValueError("RECOVERY_COMMAND_LEDGER_HASH_INVALID")
                 ledger[name] = fingerprint
                 digest.update(_canonical({"command_id": name, "fingerprint": fingerprint}) + b"\n")
-            return ledger, digest.hexdigest()
+            # The R6b lifecycle and accepted-ID table are committed in
+            # *one SQLite transaction*. Older index-only workspaces are not
+            # silently upgraded into resumable command evidence.
+            phases: dict[str, dict[str, Any]] = {}
+            phase_sha = hashlib.sha256()
+            for ident, fingerprint, session, due, sequence, state, at in con.execute(
+                "SELECT command_id, fingerprint, session_id, "
+                "execute_at_sim_time_s, receive_sequence, state, "
+                "transition_sim_time_s FROM command_lifecycle "
+                "ORDER BY receive_sequence"
+            ):
+                if not isinstance(ident, str) or ident in phases:
+                    raise ValueError("RECOVERY_COMMAND_LIFECYCLE_DUPLICATE")
+                record = {
+                    "fingerprint": fingerprint, "session_id": session,
+                    "execute_at_sim_time_s": due,
+                    "receive_sequence": sequence, "state": state,
+                    "transition_sim_time_s": at,
+                }
+                phases[ident] = record
+                phase_sha.update(_canonical({"command_id": ident, **record}) + b"\n")
+            return ledger, digest.hexdigest(), phases, phase_sha.hexdigest()
         finally:
             con.close()
     except sqlite3.DatabaseError as exc:
@@ -141,9 +162,26 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         command_state[ident] = state
         last_sequences[ident] = seq
 
-    index, index_sha = _read_index(root / "command_ids.sqlite")
+    index, index_sha, phases, phase_sha = _read_index(root / "command_ids.sqlite")
     if accepted != index:
         raise ValueError("RECOVERY_COMMAND_LEDGER_EVENT_SET_MISMATCH")
+    if set(phases) != set(index):
+        raise ValueError("RECOVERY_COMMAND_LIFECYCLE_ID_SET_MISMATCH")
+    for ident, fp in accepted.items():
+        durable = phases[ident]
+        if durable["session_id"] != session_id or durable["fingerprint"] != fp:
+            raise ValueError("RECOVERY_COMMAND_LIFECYCLE_IDENTITY_MISMATCH")
+        if durable["state"] != command_state[ident]:
+            # In particular, SQLite EXECUTING but JSONL QUEUED/ACKED means
+            # the second store was interrupted. Never infer a safe outcome.
+            raise ValueError("RECOVERY_COMMAND_LIFECYCLE_ACK_MIRROR_MISMATCH")
+        sequence = durable["receive_sequence"]
+        if type(sequence) is not int or sequence < 0:
+            raise ValueError("RECOVERY_COMMAND_LIFECYCLE_SEQUENCE_INVALID")
+    if sorted(row["receive_sequence"] for row in phases.values()) != list(
+        range(len(phases))
+    ):
+        raise ValueError("RECOVERY_COMMAND_LIFECYCLE_SEQUENCE_GAP")
     states = {"queued": [], "executing": [], "acked": [],
               "failed": [], "terminal_other": []}
     for ident in accepted:
@@ -156,6 +194,7 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         "accepted_count": len(accepted),
         "command_event_count": events,
         "index_sha256": index_sha,
+        "lifecycle_sha256": phase_sha,
         "queued_ids": sorted(states["queued"]),
         "executing_ids": sorted(states["executing"]),
         "acked_ids": sorted(states["acked"]),
