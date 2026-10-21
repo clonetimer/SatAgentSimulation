@@ -116,3 +116,74 @@ def test_metrics_unknown_session_and_bounded_workspace_reads(tmp_path, monkeypat
         assert obs["disk"]["available"] is True
         assert obs["telemetry"]["durable_frame_count"] == 0
         assert obs["telemetry"]["durable_bytes"] == 0
+
+
+def test_native_basilisk_actual_wallclock_metrics_smoke(tmp_path, monkeypatch):
+    """A genuine >=8s *wall-clock* Basilisk run, not 8 simulated seconds."""
+    import json
+    pytest.importorskip("Basilisk")
+    app = _client(tmp_path, monkeypatch)
+    samples = []
+    with TestClient(app) as client:
+        created = client.post(
+            "/interactive/continuous/sessions",
+            json={**_body("native-wall-observation"), "paced": True, "quantum_s": .2},
+        )
+        assert created.status_code == 201, created.text
+        path = "/interactive/continuous/sessions/native-wall-observation/observability"
+        try:
+            started = client.post(
+                "/interactive/sessions/native-wall-observation/control",
+                json={"action": "start"},
+            )
+            assert started.status_code == 200, started.text
+            wall_start = time.monotonic()
+            while time.monotonic() - wall_start < 8.0:
+                row = client.get(path)
+                assert row.status_code == 200, row.text
+                observation = row.json()
+                samples.append(observation)
+                assert observation["schema_version"] == "sat-continuous-observability.v1"
+                assert observation["session_state"] != "FAILED", observation
+                assert observation["automatic_tc_replay_allowed"] is False
+                assert observation["resume_supported"] is False
+                time.sleep(.5)
+            wall_actual = time.monotonic() - wall_start
+            assert wall_actual >= 8.
+            assert len(samples) >= 6
+            assert samples[-1]["wall_elapsed_s"] - samples[0]["wall_elapsed_s"] >= 7.
+            assert samples[-1]["sim_elapsed_s"] > samples[0]["sim_elapsed_s"]
+            assert samples[-1]["telemetry"]["durable_frame_count"] > 0
+            assert samples[-1]["telemetry"]["durable_bytes"] > 0
+            assert samples[-1]["telemetry"]["last_sim_time_s"] is not None
+            assert all(
+                a["telemetry"]["durable_frame_count"] <= b["telemetry"]["durable_frame_count"]
+                and a["telemetry"]["durable_bytes"] <= b["telemetry"]["durable_bytes"]
+                and a["sim_elapsed_s"] <= b["sim_elapsed_s"]
+                and a["wall_elapsed_s"] <= b["wall_elapsed_s"]
+                for a, b in zip(samples, samples[1:])
+            )
+            if all(row["process"]["available"] for row in samples):
+                assert all(
+                    a["process"]["cpu_time_s"] <= b["process"]["cpu_time_s"] + 0.1
+                    for a, b in zip(samples, samples[1:])
+                )
+            print("R7E_WALLCLOCK_NATIVE_SAMPLE_JSON:" + json.dumps({
+                "wall_sample_window_s": round(wall_actual, 3),
+                "wall_observed_delta_s": round(
+                    samples[-1]["wall_elapsed_s"] - samples[0]["wall_elapsed_s"], 3
+                ),
+                "sim_delta_s": round(
+                    samples[-1]["sim_elapsed_s"] - samples[0]["sim_elapsed_s"], 3
+                ),
+                "durable_frames": samples[-1]["telemetry"]["durable_frame_count"],
+                "durable_bytes": samples[-1]["telemetry"]["durable_bytes"],
+                "process_scope": samples[-1]["process"]["scope"],
+                "sample_count": len(samples),
+                "qualified_24h_wallclock": False,
+            }, sort_keys=True))
+        finally:
+            client.post(
+                "/interactive/sessions/native-wall-observation/control",
+                json={"action": "stop"},
+            )
