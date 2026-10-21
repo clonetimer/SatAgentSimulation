@@ -14,6 +14,7 @@ from __future__ import annotations
 import multiprocessing as mp
 import os
 import secrets
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -240,7 +241,7 @@ class SupervisedContinuousNativeRuntime:
             raise RuntimeError("SUPERVISED_NATIVE_PARENT_FENCE_HANDSHAKE_INVALID")
         fence = ready_record["parent_death_fence"]
         if (fence.get("parent_pid") != os.getpid()
-                or (os.name == "posix" and __import__("sys").platform == "linux"
+                or (sys.platform == "linux"
                     and (fence.get("supported") is not True
                          or fence.get("kind") != "LINUX_PR_SET_PDEATHSIG_SIGKILL"))):
             self._faulted = True
