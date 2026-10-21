@@ -311,6 +311,12 @@ class SessionWorkspace:
                 # A restart cannot restore the original Basilisk native graph.
                 # Persist validated source evidence and the explicit reason for
                 # requiring a new, separately named simulation epoch.
+                # The SQLite outbox is the authoritative accepted-command
+                # status journal; repair a missing mirror cursor *only* when
+                # its exact fsynced JSONL ACK is already present. No missing
+                # ACK is fabricated, and no original command is replayed.
+                from .command_outbox_mirror import reconcile_existing_outbox_mirrors
+                reconcile_existing_outbox_mirrors(path)
                 from .recovery_handoff import write_interrupted_handoff
                 write_interrupted_handoff(path)
                 # Bind the original ACK hash-chain to the persistent
