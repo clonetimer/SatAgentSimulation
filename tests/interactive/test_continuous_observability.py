@@ -15,8 +15,6 @@ from fastapi.testclient import TestClient
 from sat_sim.interactive.continuous_observability import (
     observe_continuous_session, process_resource_observation,
 )
-from sat_sim.interactive.manager import InteractiveSession
-from sat_sim.interactive.workspace import SessionWorkspace
 from test_continuous_console import _client, _body, _ControlProtocolStub
 
 
@@ -99,6 +97,10 @@ def test_metrics_observe_real_wall_and_do_not_scan_full_telemetry_history(tmp_pa
 
 def test_metrics_unknown_session_and_bounded_workspace_reads(tmp_path, monkeypatch):
     app = _client(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        "sat_sim.interactive.api.build_persistent_runtime",
+        lambda spec: (_ControlProtocolStub(), None),
+    )
     with TestClient(app) as client:
         assert client.get(
             "/interactive/continuous/sessions/missing/observability"
