@@ -19,6 +19,7 @@ on:
       - "tests/interactive/test_native_joint_checkpoint_guards.py"
       - "tests/interactive/test_recovery_command_preflight.py"
       - "tests/interactive/test_command_transaction_ledger.py"
+      - "tests/interactive/test_command_outbox_mirror.py"
       - "tests/test_native_mode_checkpoint.py"
       - "tests/interactive/test_session_workspace.py"
       - "tests/interactive/test_telecommand_mailbox.py"
@@ -63,6 +64,7 @@ jobs:
           tests/interactive/test_native_joint_checkpoint_guards.py
           tests/interactive/test_recovery_command_preflight.py
           tests/interactive/test_command_transaction_ledger.py
+          tests/interactive/test_command_outbox_mirror.py
           tests/test_native_mode_checkpoint.py
           tests/interactive/test_session_workspace.py
           tests/interactive/test_telecommand_mailbox.py
