@@ -197,6 +197,9 @@ def test_acked_jsonl_before_sqlite_commit_is_still_unsafe(tmp_path):
                 command_id=tc.command_id, session_id=spec.session_id,
                 state=state, sequence=i,
                 reason_code="QUEUED" if state is CommandState.QUEUED else "OK",
+                # Real EXECUTING JSONL includes the original native clock.
+                # The deliberately early ACKED record is not authoritative.
+                sim_time_s=0. if state is CommandState.EXECUTING else None,
             ))
         # Crash after the ACK event but before the SQLite ACKED transition.
         assert _state(ws.path / "command_ids.sqlite") == "EXECUTING"
