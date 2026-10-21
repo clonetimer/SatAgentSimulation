@@ -16,6 +16,7 @@ on:
       - "tests/interactive/test_native_closed_loop_checkpoint.py"
       - "tests/interactive/test_native_rw_fault_checkpoint.py"
       - "tests/interactive/test_native_tc_reconciliation.py"
+      - "tests/interactive/test_native_joint_checkpoint.py"
       - "tests/interactive/test_interactive_api.py"
       - "tests/interactive/test_continuous_soak.py"
       - "tests/interactive/test_unified_segmented_execution.py"
@@ -63,6 +64,7 @@ jobs:
             tests/interactive/test_native_closed_loop_checkpoint.py \
             tests/interactive/test_native_rw_fault_checkpoint.py \
             tests/interactive/test_native_tc_reconciliation.py \
+            tests/interactive/test_native_joint_checkpoint.py \
             tests/interactive/test_interactive_api.py \
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
