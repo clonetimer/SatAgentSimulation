@@ -84,3 +84,7 @@ jobs:
           tests/interactive/test_command_lifecycle.py
           tests/interactive/test_telemetry_bus.py
           -k "not native_basilisk"
+      - name: Validate workbench navigation and continuous JavaScript syntax
+        run: |
+          node --check src/sat_sim/web/app.js
+          node --check src/sat_sim/web/continuous.js
