@@ -43,7 +43,7 @@ def _sha(value: dict[str, Any]) -> str:
 
 def _read_index(path: Path) -> tuple[
     dict[str, str], str, dict[str, dict[str, Any]], str,
-    list[dict[str, Any]], str,
+    list[dict[str, Any]], str, dict[str, Any],
 ]:
     """Read an immutable *view* of the live SQLite unique index, never mutate it.
 
@@ -117,9 +117,26 @@ def _read_index(path: Path) -> tuple[
                 }
                 outbox.append(event)
                 outbox_sha.update(_canonical(event) + b"\n")
+            # A single bound read view also covers the original writer
+            # generation. Changing ownership after this interruption report
+            # invalidates its manifest; a new owner is never silently inferred.
+            owner = con.execute(
+                "SELECT epoch,owner_token,owner_state "
+                "FROM command_writer_epoch WHERE singleton=1"
+            ).fetchone()
+            if (owner is None or type(owner[0]) is not int or owner[0] < 1
+                    or not isinstance(owner[1], str) or len(owner[1]) != 32
+                    or owner[2] not in ("ACTIVE", "RELEASED")):
+                raise ValueError("RECOVERY_COMMAND_WRITER_EPOCH_UNVERIFIABLE")
+            owner_evidence = {
+                "epoch": owner[0], "state": owner[2],
+                "owner_token_sha256": hashlib.sha256(
+                    owner[1].encode("ascii")
+                ).hexdigest(),
+            }
             return (
                 ledger, digest.hexdigest(), phases, phase_sha.hexdigest(),
-                outbox, outbox_sha.hexdigest(),
+                outbox, outbox_sha.hexdigest(), owner_evidence,
             )
         finally:
             con.close()
@@ -195,7 +212,7 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         command_state[ident] = state
         last_sequences[ident] = seq
 
-    index, index_sha, phases, phase_sha, outbox, outbox_sha = _read_index(
+    index, index_sha, phases, phase_sha, outbox, outbox_sha, owner = _read_index(
         root / "command_ids.sqlite"
     )
     if accepted != index:
@@ -277,6 +294,7 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         "lifecycle_sha256": phase_sha,
         "outbox_sha256": outbox_sha,
         "outbox_events": len(outbox),
+        "writer_owner_evidence": owner,
         "queued_ids": sorted(states["queued"]),
         "executing_ids": sorted(states["executing"]),
         "acked_ids": sorted(states["acked"]),
