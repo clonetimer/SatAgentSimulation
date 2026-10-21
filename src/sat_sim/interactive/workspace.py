@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import shutil
+import sqlite3
 import threading
 from contextlib import ExitStack
 from dataclasses import dataclass
@@ -303,6 +304,33 @@ class SessionWorkspace:
                 continue
             envelope = json.loads((path / "session_spec.json").read_text(encoding="utf-8"))
             spec = InteractiveSessionSpec.model_validate(envelope["session_spec"])
+            # Never rewrite an unfinished workspace merely because a second
+            # API process observes it. ACTIVE may mean either a living owner
+            # or an unclean crash; neither may be automatically taken over.
+            ledger = path / "command_ids.sqlite"
+            if spec.continuous and ledger.exists():
+                try:
+                    conn = sqlite3.connect(
+                        ledger.resolve().as_uri() + "?mode=ro", uri=True,
+                    )
+                    try:
+                        owner = conn.execute(
+                            "SELECT owner_state FROM command_writer_epoch "
+                            "WHERE singleton=1"
+                        ).fetchone()
+                    finally:
+                        conn.close()
+                    reason = (
+                        None if owner == ("RELEASED",)
+                        else "TC_WRITER_ACTIVE_OR_ORPHANED_NO_AUTOMATIC_INTERRUPTION"
+                    )
+                except sqlite3.DatabaseError:
+                    reason = "TC_WRITER_EPOCH_UNVERIFIABLE_NO_AUTOMATIC_INTERRUPTION"
+                if reason is not None:
+                    results.append(WorkspaceInspection(
+                        path.name, SessionState.INTERRUPTED, -1, False, reason,
+                    ))
+                    continue
             workspace = cls(root, spec, create=False)
             last_revision = int(rows[-1].get("revision", 0)) if rows else 0
             last_sim_time_s = float(rows[-1].get("sim_time_s", 0.0)) if rows else 0.0
