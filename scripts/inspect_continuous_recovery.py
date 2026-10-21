@@ -21,17 +21,30 @@ def main() -> int:
         "--create-missing", action="store_true",
         help="Explicitly attest an already interrupted, verified session with a missing handoff",
     )
+    parser.add_argument(
+        "--command-preflight", action="store_true",
+        help="Also verify the stopped session's immutable TC/ACK/SQLite preflight",
+    )
     args = parser.parse_args()
     if args.create_missing and not (args.workspace / HANDOFF_FILENAME).exists():
         write_interrupted_handoff(args.workspace)
     payload = verify_interrupted_handoff(args.workspace)
-    print(json.dumps({
+    report = {
         "status": "VERIFIED_SOURCE_EVIDENCE",
         "session_id": payload["session_id"],
         "evidence": payload["evidence"],
         "physical_recovery": payload["physical_recovery"],
         "record_sha256": payload["record_sha256"],
-    }, ensure_ascii=False, sort_keys=True, indent=2))
+    }
+    if args.command_preflight:
+        from sat_sim.interactive.recovery_command_preflight import (
+            verify_interrupted_command_preflight,
+            write_interrupted_command_preflight, FILENAME,
+        )
+        if args.create_missing and not (args.workspace / FILENAME).exists():
+            write_interrupted_command_preflight(args.workspace)
+        report["command_recovery"] = verify_interrupted_command_preflight(args.workspace)
+    print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     return 0
 
 
