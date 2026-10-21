@@ -18,6 +18,7 @@ on:
       - "tests/interactive/test_native_tc_reconciliation.py"
       - "tests/interactive/test_native_joint_checkpoint.py"
       - "tests/interactive/test_native_supervised_process_barrier.py"
+      - "tests/interactive/test_supervised_continuous_native_runtime.py"
       - "tests/interactive/test_interactive_api.py"
       - "tests/interactive/test_continuous_soak.py"
       - "tests/interactive/test_unified_segmented_execution.py"
@@ -67,6 +68,7 @@ jobs:
             tests/interactive/test_native_tc_reconciliation.py \
             tests/interactive/test_native_joint_checkpoint.py \
             tests/interactive/test_native_supervised_process_barrier.py \
+            tests/interactive/test_supervised_continuous_native_runtime.py \
             tests/interactive/test_interactive_api.py \
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
