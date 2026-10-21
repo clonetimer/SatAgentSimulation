@@ -39,11 +39,12 @@ def _native_process_main(
         # objects. Linux delivers SIGKILL to this exact child when its actual
         # parent exits, even if the runtime is inside a native integration.
         parent_fence = arm_native_parent_death_fence(expected_parent_pid)
-        from .runtime_factory import build_persistent_runtime
-
+        # Two-phase startup is deliberate: the child announces its identity
+        # BEFORE creating a Basilisk C++ graph. The parent must successfully
+        # install its Windows Job or verify the Linux pdeathsig handshake and
+        # only then issue the first prepare RPC to permit construction.
         spec = InteractiveSessionSpec.model_validate(spec_raw)
-        runtime, end_time = build_persistent_runtime(spec, supervised=False)
-        if not spec.continuous or end_time is not None:
+        if not spec.continuous:
             raise ValueError("SUPERVISED_RUNTIME_REQUIRES_UNBOUNDED_NATIVE")
         connection.send({
             "schema": _SCHEMA, "seq": 0, "nonce": nonce,
@@ -68,8 +69,16 @@ def _native_process_main(
             payload = message["payload"]
             try:
                 if op == "prepare":
+                    if next_seq != 1 or runtime is not None:
+                        raise RuntimeError("SUPERVISED_NATIVE_PREPARE_OUT_OF_ORDER")
+                    from .runtime_factory import build_persistent_runtime
+                    runtime, end_time = build_persistent_runtime(spec, supervised=False)
+                    if end_time is not None:
+                        raise ValueError("SUPERVISED_RUNTIME_REQUIRES_UNBOUNDED_NATIVE")
                     runtime.prepare()
                     value = None
+                elif runtime is None:
+                    raise RuntimeError("SUPERVISED_NATIVE_PREPARE_REQUIRED")
                 elif op == "advance_to":
                     value = runtime.advance_to(float(payload))
                 elif op == "apply_command":
@@ -89,7 +98,7 @@ def _native_process_main(
                 connection.send({
                     "schema": _SCHEMA, "seq": next_seq, "nonce": nonce,
                     "pid": os.getpid(), "ok": True,
-                    "time_s": float(runtime.current_time_s),
+                    "time_s": float(runtime.current_time_s) if runtime is not None else 0.,
                     "payload": value,
                 })
                 next_seq += 1
@@ -101,7 +110,7 @@ def _native_process_main(
                 connection.send({
                     "schema": _SCHEMA, "seq": next_seq, "nonce": nonce,
                     "pid": os.getpid(), "ok": False,
-                    "time_s": float(runtime.current_time_s),
+                    "time_s": float(runtime.current_time_s) if runtime is not None else 0.,
                     "payload": {"reason_code": "NATIVE_SUBPROCESS_OPERATION_FAILED",
                                 "type": type(exc).__name__, "detail": str(exc)},
                 })
@@ -242,10 +251,10 @@ class SupervisedContinuousNativeRuntime:
         self._connection = parent
         self._nonce = nonce
         if sys.platform == "win32":
-            # Assign the already-created but not-yet-prepared native child to
-            # KILL_ON_JOB_CLOSE before the first prepare command. Parent
-            # dying before assignment leaves the child blocked on its pipe;
-            # it can never start Basilisk without the parent's prepare.
+            # Job assignment precedes the parent's first prepare RPC,
+            # which is the *only* operation constructing the Basilisk graph.
+            # Parent death before assignment leaves a passive child waiting
+            # for the request; no native graph exists yet.
             try:
                 from .native_windows_job import WindowsKillOnCloseJob
                 self._windows_job = WindowsKillOnCloseJob.attach(proc.pid)
