@@ -1,0 +1,65 @@
+/* Dedicated continuous whole-spacecraft workstation (R7 UI).
+   Uses existing workbench palette, navigation, and typography. */
+body[data-active-view="continuous"] .sidebar-capabilities { display: none; }
+.continuous-view { min-height: calc(100vh - 72px); background: var(--bg); color: var(--text); }
+.continuous-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 23px 24px; border-bottom: 1px solid var(--line); }
+.continuous-hero h1 { font-size: 23px; margin: 5px 0; }
+.continuous-hero p { color: var(--muted); line-height: 1.6; font-size: 12px; }
+.continuous-hero-actions { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.continuous-view > .notice { margin: 12px 20px; }
+.continuous-policy { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 11px 24px; border-bottom: 1px solid var(--line); font-size: 12px; background: var(--panel); }
+.continuous-policy span:first-child { font-weight: 600; color: var(--muted); }
+.continuous-policy strong { color: var(--text); }
+.continuous-policy span:last-child { color: var(--muted); }
+.continuous-grid { display: grid; grid-template-columns: minmax(255px, 285px) minmax(370px, 1fr) minmax(250px, 295px); align-items: start; min-height: calc(100vh - 190px); }
+.continuous-sidebar, .continuous-main, .continuous-telecommand { display: flex; flex-direction: column; gap: 12px; padding: 15px; min-width: 0; }
+.continuous-sidebar { border-right: 1px solid var(--line); }
+.continuous-telecommand { border-left: 1px solid var(--line); }
+.continuous-card { border: 1px solid var(--line); border-radius: 11px; padding: 16px; background: var(--panel); min-width: 0; }
+.continuous-card h2 { font-size: 14px; margin: 0 0 9px; }
+.continuous-card form { display: flex; flex-direction: column; gap: 11px; margin-top: 12px; }
+.continuous-card form label, .continuous-signal { display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.continuous-card form input:not([type=checkbox]), .continuous-card form select, .continuous-signal select { border: 1px solid var(--line); color: var(--text); background: var(--bg); padding: 9px 10px; font-size: 12px; border-radius: 6px; min-width: 0; width: 100%; }
+.continuous-card form .toggle-label { flex-direction: row; align-items: center; }
+.continuous-card form .button { width: 100%; min-height: 35px; }
+.continuous-muted { margin: 7px 0 0; color: var(--muted); line-height: 1.5; font-size: 11px; }
+.continuous-sessions { max-height: 250px; overflow: auto; }
+.continuous-session { display: flex; flex-direction: column; width: 100%; text-align: left; padding: 10px 11px; margin-top: 6px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--text); cursor: pointer; gap: 4px; }
+.continuous-session:hover, .continuous-session.active { border-color: var(--accent-2); background: rgba(84,145,185,.09); }
+.continuous-session strong { font-size: 12px; overflow-wrap: anywhere; }
+.continuous-session span { color: var(--muted); font-size: 11px; }
+.continuous-interrupted-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.continuous-interrupted-item strong { font-size: 11px; overflow-wrap: anywhere; }
+.continuous-interrupted-item span { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.continuous-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.continuous-metrics > div { min-width: 0; padding: 12px; border-radius: 7px; background: var(--bg); border: 1px solid var(--line); }
+.continuous-metrics span { display: block; color: var(--muted); font-size: 10px; }
+.continuous-metrics strong { display: block; margin-top: 6px; font-size: 15px; overflow-wrap: anywhere; }
+.continuous-fence-info { font-size: 11px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 14px; }
+.continuous-fence-info span:last-child { color: #b5614b; overflow-wrap: anywhere; }
+.continuous-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.continuous-actions .button { min-height: 35px; }
+.continuous-chart { display: block; width: 100%; height: 265px; margin: 11px 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+.continuous-signal { max-width: 290px; margin-top: 7px; }
+.continuous-log { max-height: 270px; overflow: auto; }
+.continuous-log-item { display: flex; flex-direction: column; gap: 4px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.continuous-log-item strong { font-size: 11px; overflow-wrap: anywhere; }
+.continuous-log-item small { font-size: 10px; color: var(--muted); }
+.continuous-dynamic-fields { display: flex; flex-direction: column; gap: 9px; }
+.continuous-dynamic-fields.hidden { display: none; }
+@media (max-width: 1300px) {
+  .continuous-grid { grid-template-columns: 245px minmax(320px, 1fr); }
+  .continuous-telecommand { grid-column: 2; border-left: 0; padding-top: 0; }
+}
+@media (max-width: 850px) {
+  .continuous-hero { flex-direction: column; padding: 16px; }
+  .continuous-policy { padding: 12px 16px; }
+  .continuous-grid { grid-template-columns: 1fr; }
+  .continuous-sidebar, .continuous-main, .continuous-telecommand { grid-column: auto; padding: 10px 14px; border: 0; }
+  .continuous-metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .continuous-actions .button { flex: 1 1 40%; }
+}
+@media (max-width: 480px) {
+  .continuous-metrics { grid-template-columns: 1fr 1fr; }
+  .continuous-hero-actions { flex-wrap: wrap; }
+}
