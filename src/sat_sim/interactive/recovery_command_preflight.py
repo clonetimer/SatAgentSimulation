@@ -76,7 +76,13 @@ def _read_index(path: Path) -> tuple[dict[str, str], str]:
 
 
 def _command_fingerprint(payload: dict[str, Any]) -> str:
-    return _sha({key: value for key, value in payload.items() if key != "received_at"})
+    # Match DeterministicCommandMailbox._fingerprint's canonical format
+    # exactly; the SQLite command-id index uses ensure_ascii=True.
+    canonical = json.dumps(
+        {key: value for key, value in payload.items() if key != "received_at"},
+        sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
