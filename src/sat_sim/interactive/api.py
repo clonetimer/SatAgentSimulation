@@ -9,6 +9,8 @@ import threading
 import time
 from collections import deque
 from typing import Any, Literal
+from uuid import uuid4
+import sys
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,6 +27,15 @@ MAX_WEBSOCKET_MESSAGES_PER_SECOND = 20
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class ContinuousCreateBody(_Strict):
+    """Restricted operator-friendly continuous simulation form, not arbitrary code."""
+    session_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+    quantum_s: Literal[0.1, 0.2, 0.5, 1.0] = 0.5
+    rate: Literal[0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0] = 1.0
+    paced: bool = True
+    initial_horizon_s: float = Field(default=60.0, ge=1.0, le=86400.0)
 
 
 class SessionControlBody(_Strict):
@@ -103,6 +114,95 @@ def create_interactive_router(
     @router.get("/sessions")
     def list_sessions():
         return {"sessions": manager.snapshots()}
+
+    @router.get("/continuous/overview")
+    def continuous_overview():
+        """Only capability and bounded status metadata; no SQLite secrets."""
+        sessions = tuple(
+            session for session in manager.snapshots()
+            if manager.get(session.session_id).spec.continuous
+        )
+        blocked = tuple({
+            "session_id": row.session_id,
+            "state": row.state.value,
+            "valid": row.valid,
+            "reason_code": row.reason_code,
+        } for row in manager.interrupted_workspaces)
+        return {
+            "schema_version": "sat-continuous-console.v1",
+            "enabled": manager.enabled,
+            "capability_id": "whole_spacecraft.unified_native.v1",
+            "mode": ("SUPERVISED_NATIVE_CHILD" if os.getenv("SAT_SIM_SUPERVISED_NATIVE_RUNTIME") == "1"
+                     else "IN_PROCESS_NATIVE"),
+            "platform": sys.platform,
+            "linux_parent_death_guard_possible": sys.platform == "linux",
+            "supported_operations": ["start", "pause", "resume", "step", "rate", "stop", "heartbeat"],
+            "native_resume_supported": False,
+            "automatic_tc_replay_allowed": False,
+            "sessions": sessions,
+            "interrupted_workspaces": blocked,
+        }
+
+    @router.post("/continuous/sessions", status_code=201)
+    def create_continuous_session(body: ContinuousCreateBody, request: Request):
+        """Begin a new Basilisk graph, never revive an old crashed session."""
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "CONTINUOUS_CREATE_ROLE_DENIED"})
+        from .runtime_factory import WHOLE_UNIFIED_CAPABILITY_ID
+        spec = InteractiveSessionSpec(
+            session_id=body.session_id,
+            capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
+            continuous=True,
+            quantum_s=body.quantum_s,
+            rate=body.rate,
+            paced=body.paced,
+            task_spec={
+                "simulation": {
+                    "duration_s": body.initial_horizon_s,
+                    "sample_s": body.quantum_s,
+                    "solver": {"step_s": min(body.quantum_s, 0.2)},
+                },
+                "parameters": {"values": {}},
+                "outputs": {"telemetry_streams": [{
+                    "stream_id": "whole.continuous",
+                    "sample_s": body.quantum_s,
+                    "fields": ["orbit.radius_m", "adcs.pointing_error_deg", "eps.battery_soc"],
+                }]},
+            },
+        )
+        try:
+            runtime, end_time = build_persistent_runtime(spec)
+            session = manager.create(spec, runtime, end_time_s=end_time)
+            session.prepare()
+        except ValueError as exc:
+            raise HTTPException(422, detail={"reason_code": str(exc)}) from exc
+        except RuntimeError as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "continuous_simulation_created", principal, session_id=spec.session_id)
+        return session.snapshot()
+
+    @router.get("/continuous/sessions/{session_id}/status")
+    def continuous_session_status(session_id: str):
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        runtime = session.runtime
+        return {
+            "schema_version": "sat-continuous-status.v1",
+            "session": session.snapshot(),
+            "telemetry_streams": session.allowed_telemetry_streams,
+            "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if
+                             runtime.__class__.__name__ == "SupervisedContinuousNativeRuntime"
+                             else "IN_PROCESS_NATIVE"),
+            "native_child_pid": getattr(runtime, "child_pid", None),
+            "parent_death_fence": getattr(runtime, "parent_death_fence", None),
+            "last_reap": getattr(runtime, "last_reap", None),
+            "writer_epoch": session._command_mailbox.writer_epoch,
+            "native_resume_supported": False,
+            "automatic_tc_replay_allowed": False,
+            "activate_native_queue_allowed": False,
+        }
 
     @router.get("/commands/catalog")
     def read_command_catalog():
