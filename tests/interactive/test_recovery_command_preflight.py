@@ -52,7 +52,6 @@ def _prepare(tmp_path: Path, kind: str, *, ident: str = "tc-1"):
     )
     # Real mailbox persists identity *before* the workspace's QUEUED ACK.
     assert mailbox.submit(tc, session_revision=2).accepted
-    mailbox.close()
     sequence = 0
     states = [CommandState.RECEIVED, CommandState.VALIDATED, CommandState.QUEUED]
     if kind in ("executing", "acked"):
@@ -60,6 +59,8 @@ def _prepare(tmp_path: Path, kind: str, *, ident: str = "tc-1"):
     if kind == "acked":
         states.append(CommandState.ACKED)
     for state in states:
+        if state is CommandState.EXECUTING:
+            mailbox.mark_executing_before_effect(tc, sim_time_s=2.0)
         ws.append_command_ack(tc, CommandAck(
             command_id=ident, session_id=spec.session_id,
             state=state, sequence=sequence,
@@ -67,7 +68,10 @@ def _prepare(tmp_path: Path, kind: str, *, ident: str = "tc-1"):
                        2.2 if state is CommandState.ACKED else None,
             reason_code="QUEUED" if state is CommandState.QUEUED else "OK",
         ))
+        if state is CommandState.ACKED:
+            mailbox.mark_acked_after_receipt(tc, sim_time_s=2.2)
         sequence += 1
+    mailbox.close()
     manager = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
     assert manager.interrupted_workspaces[0].state is SessionState.INTERRUPTED
     return ws, tc
