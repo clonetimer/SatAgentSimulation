@@ -1,0 +1,225 @@
+"""Crash-handoff TC/ACK/SQLite *preflight*, never native spacecraft restoration.
+
+Reads the real interrupted SessionWorkspace hash chain and the persisted
+command-id SQLite ledger, and binds their exact observed evidence into an
+atomic, immutable-once-written advisory manifest.  No TC is redispatched.
+A valid preflight proves source evidence coherence, not an applied physical
+effect or equivalence of a Basilisk integrator.
+
+This is deliberately conservative. Rejected/incomplete activity, in-flight
+or pending accepted TC always prevents automatic command replay. Full native
+resume remains unsupported even when all commands are ACKed.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import sqlite3
+from pathlib import Path
+from typing import Any
+
+from .models import CommandState
+from .workspace import SessionWorkspace
+from .recovery_handoff import verify_interrupted_handoff
+
+SCHEMA = "interactive-command-recovery-preflight.v1"
+FILENAME = "command_recovery_preflight.json"
+MAX_UNIQUE_IDS = 100_000
+TERMINAL = {"ACKED", "REJECTED", "FAILED", "EXPIRED"}
+ACTIVE = {"RECEIVED", "VALIDATED", "QUEUED", "EXECUTING"}
+
+
+def _canonical(value: dict[str, Any]) -> bytes:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
+def _sha(value: dict[str, Any]) -> str:
+    return hashlib.sha256(_canonical(value)).hexdigest()
+
+
+def _read_index(path: Path) -> tuple[dict[str, str], str]:
+    """Read an immutable *view* of the live SQLite unique index, never mutate it.
+
+    SQLite read transactions snapshot a consistent committed state. Since this
+    runs only after INTERRUPTION and not against a live writer, compare the
+    persisted digest again on verification to detect later changes.
+    """
+    if not path.is_file():
+        raise ValueError("RECOVERY_COMMAND_LEDGER_MISSING")
+    try:
+        con = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
+        try:
+            con.execute("PRAGMA query_only = ON")
+            if con.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+                raise ValueError("RECOVERY_COMMAND_LEDGER_INTEGRITY_FAILED")
+            rows = con.execute(
+                "SELECT command_id, fingerprint FROM command_ids ORDER BY command_id"
+            )
+            ledger: dict[str, str] = {}
+            digest = hashlib.sha256()
+            for name, fingerprint in rows:
+                if not isinstance(name, str) or not isinstance(fingerprint, str):
+                    raise ValueError("RECOVERY_COMMAND_LEDGER_ROW_INVALID")
+                if len(ledger) >= MAX_UNIQUE_IDS:
+                    raise ValueError("RECOVERY_COMMAND_LEDGER_CAPACITY_LIMIT")
+                if len(fingerprint) != 64 or any(c not in "0123456789abcdef" for c in fingerprint):
+                    raise ValueError("RECOVERY_COMMAND_LEDGER_HASH_INVALID")
+                ledger[name] = fingerprint
+                digest.update(_canonical({"command_id": name, "fingerprint": fingerprint}) + b"\n")
+            return ledger, digest.hexdigest()
+        finally:
+            con.close()
+    except sqlite3.DatabaseError as exc:
+        raise ValueError("RECOVERY_COMMAND_LEDGER_SQLITE_INVALID") from exc
+
+
+def _command_fingerprint(payload: dict[str, Any]) -> str:
+    return _sha({key: value for key, value in payload.items() if key != "received_at"})
+
+
+def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
+    """Check ACK log identity, ordering and persisted accepted-command index."""
+    accepted: dict[str, str] = {}
+    command_state: dict[str, str] = {}
+    last_sequences: dict[str, int] = {}
+    events = 0
+    last_event_sequence = -1
+    for row in SessionWorkspace.iter_hash_chain(root / "command_events.jsonl"):
+        seq = row["sequence"]
+        if type(seq) is not int or seq != last_event_sequence + 1:
+            raise ValueError("RECOVERY_COMMAND_EVENT_SEQUENCE_INVALID")
+        last_event_sequence = seq
+        events += 1
+        payload = row["command"]
+        ack = row["ack"]
+        ident = row["command_id"]
+        if (row["session_id"] != session_id or not isinstance(payload, dict)
+                or not isinstance(ack, dict) or payload.get("session_id") != session_id
+                or payload.get("command_id") != ident
+                or ack.get("session_id") != session_id
+                or ack.get("command_id") != ident):
+            raise ValueError("RECOVERY_COMMAND_EVENT_IDENTITY_INVALID")
+        if row["command_sha256"] != _sha(payload):
+            raise ValueError("RECOVERY_COMMAND_PAYLOAD_DIGEST_INVALID")
+        ack_seq = ack.get("sequence")
+        if type(ack_seq) is not int or ack_seq != seq:
+            raise ValueError("RECOVERY_ACK_SEQUENCE_INVALID")
+        state = ack.get("state")
+        if state not in {v.value for v in CommandState}:
+            raise ValueError("RECOVERY_ACK_STATE_INVALID")
+        fingerprint = _command_fingerprint(payload)
+        previous_fp = accepted.get(ident)
+        if previous_fp is not None and previous_fp != fingerprint:
+            # Rejected ID collision is possible, but cannot be used to
+            # establish an unambiguous original TC outcome for a resume.
+            raise ValueError("RECOVERY_COMMAND_DUPLICATE_PAYLOAD_CONFLICT")
+        if state == CommandState.QUEUED.value and ack.get("reason_code") != "DUPLICATE_IDEMPOTENT":
+            accepted[ident] = fingerprint
+        elif state in {CommandState.EXECUTING.value, CommandState.ACKED.value}:
+            if ident not in accepted:
+                raise ValueError("RECOVERY_COMMAND_UNACCEPTED_EXECUTION")
+        command_state[ident] = state
+        last_sequences[ident] = seq
+
+    index, index_sha = _read_index(root / "command_ids.sqlite")
+    if accepted != index:
+        raise ValueError("RECOVERY_COMMAND_LEDGER_EVENT_SET_MISMATCH")
+    states = {"queued": [], "executing": [], "acked": [], "terminal_other": []}
+    for ident in accepted:
+        state = command_state[ident]
+        bucket = ("queued" if state == "QUEUED" else "executing"
+                  if state == "EXECUTING" else "acked" if state == "ACKED"
+                  else "terminal_other")
+        states[bucket].append(ident)
+    return {
+        "accepted_count": len(accepted),
+        "command_event_count": events,
+        "index_sha256": index_sha,
+        "queued_ids": sorted(states["queued"]),
+        "executing_ids": sorted(states["executing"]),
+        "acked_ids": sorted(states["acked"]),
+        "other_terminal_ids": sorted(states["terminal_other"]),
+        "pending_accepted_ids": sorted(
+            ident for ident in accepted if command_state[ident] in {"RECEIVED", "VALIDATED"}
+        ),
+    }
+
+
+def assess_interrupted_command_recovery(root: Path) -> dict[str, Any]:
+    """Read-only, bounded evidence assessment. Do not attempt any resume."""
+    root = Path(root).resolve()
+    handoff = verify_interrupted_handoff(root)
+    if handoff["physical_recovery"]["resume_supported"] is not False:
+        raise ValueError("RECOVERY_COMMAND_PHYSICAL_RESUME_CLAIM")
+    result = {
+        "schema_version": SCHEMA,
+        "session_id": handoff["session_id"],
+        "handoff_record_sha256": handoff["record_sha256"],
+        "source_command_events_sha256": handoff["source_sha256"]["command_events"],
+        "source_spec_sha256": handoff["source_sha256"]["session_spec"],
+        "physical_resume_supported": False,
+        "automatic_tc_replay_allowed": False,
+        "required_action": "NEW_EPOCH_WITH_NEW_SESSION_ID",
+    }
+    try:
+        command = _analyze_commands(root, session_id=handoff["session_id"])
+    except (ValueError, sqlite3.DatabaseError, KeyError, TypeError, OSError) as exc:
+        result["status"] = "BLOCKED_EVIDENCE_UNVERIFIABLE"
+        result["reason_code"] = str(exc)
+        result["command_evidence"] = None
+    else:
+        result["command_evidence"] = command
+        if command["executing_ids"]:
+            result["status"] = "BLOCKED_AMBIGUOUS_INFLIGHT"
+            result["reason_code"] = "EXECUTION_OUTCOME_UNKNOWN_NO_REPLAY"
+        elif command["queued_ids"] or command["pending_accepted_ids"]:
+            result["status"] = "BLOCKED_UNRESOLVED_PENDING_TC"
+            result["reason_code"] = "PENDING_TC_MUST_NOT_BE_LOST_OR_REPLAYED"
+        else:
+            result["status"] = "EVIDENCE_CONSISTENT_NO_NATIVE_RESTART"
+            result["reason_code"] = "NATIVE_PHYSICAL_CHECKPOINT_NOT_AVAILABLE"
+    return result
+
+
+def write_interrupted_command_preflight(root: Path) -> Path:
+    """Write once, *after* the existing interrupted handoff is durably sealed."""
+    root = Path(root).resolve()
+    output = root / FILENAME
+    stage = root / (FILENAME + ".pending")
+    if output.exists() or stage.exists():
+        raise ValueError("RECOVERY_COMMAND_PREFLIGHT_ALREADY_EXISTS")
+    report = assess_interrupted_command_recovery(root)
+    report["record_sha256"] = _sha(report)
+    with stage.open("x", encoding="utf-8") as handle:
+        json.dump(report, handle, ensure_ascii=False, sort_keys=True, indent=2)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(stage, output)
+    if os.name == "posix":
+        fd = os.open(str(root), os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    return output
+
+
+def verify_interrupted_command_preflight(root: Path) -> dict[str, Any]:
+    """Report is valid only while the original handoff, ACKs and index agree."""
+    root = Path(root).resolve()
+    if (root / (FILENAME + ".pending")).exists():
+        raise ValueError("RECOVERY_COMMAND_PREFLIGHT_STAGING_PRESENT")
+    doc = json.loads((root / FILENAME).read_text(encoding="utf-8"))
+    if not isinstance(doc, dict):
+        raise ValueError("RECOVERY_COMMAND_PREFLIGHT_SCHEMA_INVALID")
+    content = dict(doc)
+    digest = content.pop("record_sha256", None)
+    if digest != _sha(content):
+        raise ValueError("RECOVERY_COMMAND_PREFLIGHT_DIGEST_INVALID")
+    expected = assess_interrupted_command_recovery(root)
+    if content != expected:
+        raise ValueError("RECOVERY_COMMAND_PREFLIGHT_SOURCE_CHANGED")
+    return doc
