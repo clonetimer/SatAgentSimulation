@@ -104,10 +104,14 @@ def apply_native_motor_dropout(graph: dict[str, Any], *, active: bool) -> None:
     else:
         expected = graph["allocator"].rwMotorTorqueOutMsg
     rw_input.subscribeTo(expected)
-    observed = [float(x) for x in rw_input.read().motorTorque]
+    # Basilisk 2.11.0 C++ ArrayMotorTorqueMsgReader exposes isLinked()
+    # but *not* read(). Verify source payload and input link separately;
+    # physical correctness is proved by native trajectory/negative controls.
+    if not rw_input.isLinked():
+        raise ValueError("RW_FAULT_NATIVE_SUBSCRIPTION_NOT_LINKED")
     target = [float(x) for x in expected.read().motorTorque]
-    if observed != target:
-        raise ValueError("RW_FAULT_NATIVE_SUBSCRIPTION_READBACK_FAILED")
+    if active and any(abs(v) > 1e-15 for v in target):
+        raise ValueError("RW_FAULT_ZERO_SOURCE_NOT_ZERO")
 
 
 def restore_native_fault_route_fresh(
