@@ -21,6 +21,7 @@ on:
       - "tests/interactive/test_supervised_continuous_native_runtime.py"
       - "tests/interactive/test_native_parent_death_fence.py"
       - "tests/interactive/test_continuous_console.py"
+      - "tests/interactive/test_windows_native_job.py"
       - "src/sat_sim/web/**"
       - "tests/interactive/test_interactive_api.py"
       - "tests/interactive/test_continuous_soak.py"
@@ -90,3 +91,18 @@ jobs:
           SAT_SIM_CONTINUOUS_SOAK_TARGET_S: "3600"
         run: |
           python -m pytest -q -s tests/interactive/test_continuous_soak.py --disable-warnings
+
+  windows-job-lifecycle:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install Windows process-guard test requirements
+        run: python -m pip install pytest==9.0.3
+      - name: Prove real Windows Job Object kill-on-close
+        env:
+          PYTHONPATH: "src;."
+        run: python -m pytest -q tests/interactive/test_windows_native_job.py
