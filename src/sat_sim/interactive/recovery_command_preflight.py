@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import sqlite3
 from pathlib import Path
@@ -52,6 +53,10 @@ def _read_index(path: Path) -> tuple[dict[str, str], str, dict[str, dict[str, An
         con = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
         try:
             con.execute("PRAGMA query_only = ON")
+            # One SQLite snapshot must cover both the accepted-ID index and
+            # its lifecycle rows. Without BEGIN, separate SELECTs can see
+            # distinct commits from an incorrectly still-running writer.
+            con.execute("BEGIN")
             if con.execute("PRAGMA quick_check").fetchone()[0] != "ok":
                 raise ValueError("RECOVERY_COMMAND_LEDGER_INTEGRITY_FAILED")
             rows = con.execute(
@@ -109,6 +114,7 @@ def _command_fingerprint(payload: dict[str, Any]) -> str:
 def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
     """Check ACK log identity, ordering and persisted accepted-command index."""
     accepted: dict[str, str] = {}
+    accepted_due: dict[str, float] = {}
     command_state: dict[str, str] = {}
     seen_executing: set[str] = set()
     preacceptance: set[str] = set()
@@ -146,6 +152,7 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
             raise ValueError("RECOVERY_COMMAND_DUPLICATE_PAYLOAD_CONFLICT")
         if state == CommandState.QUEUED.value and ack.get("reason_code") != "DUPLICATE_IDEMPOTENT":
             accepted[ident] = fingerprint
+            accepted_due[ident] = float(payload["execute_at_sim_time_s"])
             preacceptance.discard(ident)
         elif state in {CommandState.EXECUTING.value, CommandState.ACKED.value}:
             if ident not in accepted:
@@ -171,6 +178,17 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         durable = phases[ident]
         if durable["session_id"] != session_id or durable["fingerprint"] != fp:
             raise ValueError("RECOVERY_COMMAND_LIFECYCLE_IDENTITY_MISMATCH")
+        due = durable["execute_at_sim_time_s"]
+        at = durable["transition_sim_time_s"]
+        if (type(due) not in (int, float) or not math.isfinite(due)
+                or due != accepted_due[ident]
+                or (at is not None and (
+                    type(at) not in (int, float) or not math.isfinite(at)
+                ))):
+            raise ValueError("RECOVERY_COMMAND_LIFECYCLE_TIME_MISMATCH")
+        if (durable["state"] == "QUEUED" and at is not None
+                or durable["state"] != "QUEUED" and at is None):
+            raise ValueError("RECOVERY_COMMAND_LIFECYCLE_TRANSITION_TIME_INVALID")
         if durable["state"] != command_state[ident]:
             # In particular, SQLite EXECUTING but JSONL QUEUED/ACKED means
             # the second store was interrupted. Never infer a safe outcome.
