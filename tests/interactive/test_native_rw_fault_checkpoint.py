@@ -61,11 +61,16 @@ def _source_checkpoint(graph, kind: str) -> dict:
         graph["rw_fault_zero_message"] if kind == "active"
         else graph["allocator"].rwMotorTorqueOutMsg
     )
-    # The *real* native reactionWheelStateEffector input sees the selected
-    # motor command. A zero readback alone is not a substitute for physics parity.
-    assert list(graph["rw"].rwMotorCmdInMsg.read().motorTorque) == list(
-        expected_route.read().motorTorque
-    )
+    # The native C++ input reader is linked, but has no read() API in 2.11.0.
+    # Do not mistake source message contents for an actuator input readback:
+    # the native dynamics and omission negative controls establish the effect.
+    assert graph["rw"].rwMotorCmdInMsg.isLinked()
+    if kind == "active":
+        assert not any(abs(float(v)) > 1e-15
+                       for v in expected_route.read().motorTorque)
+    else:
+        assert any(abs(float(v)) > 1e-10
+                   for v in expected_route.read().motorTorque)
     return {
         "fault": fault,
         "evidence": evidence,
