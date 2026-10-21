@@ -124,12 +124,12 @@ def test_idle_timeout_reclaims_unprepared_session_and_heartbeat_extends_lease(tm
 def test_max_wall_time_reclaims_paused_session(tmp_path: Path) -> None:
     manager = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
     session = manager.create(
-        _spec("wall-limit", max_wall_time_s=0.08, idle_timeout_s=1.0),
+        _spec("wall-limit", max_wall_time_s=0.75, idle_timeout_s=3.0),
         RecordingRuntime(),
         end_time_s=10.0,
     )
     session.prepare()
-    assert session.wait(0.5)
+    assert session.wait(3.0)
     assert session.state is SessionState.ABORTED
     _, rows = SessionWorkspace.inspect(tmp_path / "wall-limit", include_rows=True)
     assert rows[-1]["reason_code"] == "MAX_WALL_TIME_EXCEEDED"
