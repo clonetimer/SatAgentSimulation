@@ -63,6 +63,20 @@ class DeterministicCommandMailbox:
                 "('QUEUED','EXECUTING','ACKED','FAILED','EXPIRED')), "
                 "transition_sim_time_s REAL)"
             )
+            self._database.execute(
+                "CREATE TABLE IF NOT EXISTS command_event_outbox ("
+                "event_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "command_id TEXT NOT NULL REFERENCES command_ids(command_id), "
+                "fingerprint TEXT NOT NULL, "
+                "state TEXT NOT NULL CHECK (state IN "
+                "('QUEUED','EXECUTING','ACKED','FAILED','EXPIRED')), "
+                "sim_time_s REAL, "
+                "mirrored_sequence INTEGER UNIQUE, "
+                "mirrored_entry_hash TEXT, "
+                "UNIQUE(command_id, state), "
+                "CHECK ((mirrored_sequence IS NULL AND mirrored_entry_hash IS NULL) "
+                "OR (mirrored_sequence IS NOT NULL AND mirrored_entry_hash IS NOT NULL)))"
+            )
             self._database.commit()
             # Reopening the *same* ledger must not reuse sequence numbers.
             row = self._database.execute(
@@ -115,6 +129,12 @@ class DeterministicCommandMailbox:
                         (command.command_id, fingerprint, command.session_id,
                          command.execute_at_sim_time_s, sequence),
                     )
+                    self._database.execute(
+                        "INSERT INTO command_event_outbox "
+                        "(command_id, fingerprint, state, sim_time_s) "
+                        "VALUES (?, ?, 'QUEUED', NULL)",
+                        (command.command_id, fingerprint),
+                    )
             else:
                 self._fingerprints[command.command_id] = fingerprint
             self._sequence += 1
@@ -163,6 +183,67 @@ class DeterministicCommandMailbox:
                         "TC_DURABLE_LIFECYCLE_TRANSITION_REJECTED:"
                         + from_state + "->" + to_state
                     )
+                # One transaction owns both the authoritative phase change
+                # and an append-only durable event intent. The JSONL event
+                # is a projection and is never an authoritative TC replay log.
+                self._database.execute(
+                    "INSERT INTO command_event_outbox "
+                    "(command_id, fingerprint, state, sim_time_s) VALUES (?, ?, ?, ?)",
+                    (command.command_id, self._fingerprint(command),
+                     to_state, float(sim_time_s)),
+                )
+
+    def mirror_durable_ack(
+        self, command: Telecommand, *, state: str, reason_code: str,
+        ack_sequence: int, entry_hash: str, sim_time_s: float | None,
+    ) -> None:
+        """Attest a *previously fsynced* JSONL projection of an SQLite event.
+
+        Crash after JSONL but before this marker is safe to reconcile from
+        identical verified bytes. Absence of JSONL is never repaired by
+        inventing or redispatching a command.
+        """
+        if self._database is None or state not in (
+            "QUEUED", "EXECUTING", "ACKED", "FAILED", "EXPIRED"
+        ) or reason_code == "DUPLICATE_IDEMPOTENT":
+            return
+        fp = self._fingerprint(command)
+        with self._lock:
+            row = self._database.execute(
+                "SELECT fingerprint, sim_time_s, mirrored_sequence, "
+                "mirrored_entry_hash FROM command_event_outbox "
+                "WHERE command_id=? AND state=?", (command.command_id, state),
+            ).fetchone()
+            if row is None:
+                # Rejected or already-expired *unaccepted* commands have
+                # no authoritative lifecycle state; their JSONL history
+                # remains append-only and is never replayed.
+                accepted = self._database.execute(
+                    "SELECT 1 FROM command_ids WHERE command_id=?",
+                    (command.command_id,),
+                ).fetchone()
+                if accepted:
+                    raise RuntimeError("TC_OUTBOX_MISSING_ACCEPTED_EVENT")
+                return
+            source_fp, time_s, mirrored_seq, mirrored_hash = row
+            if (source_fp != fp or type(ack_sequence) is not int
+                    or ack_sequence < 0
+                    or type(entry_hash) is not str or len(entry_hash) != 64
+                    or time_s != sim_time_s):
+                raise ValueError("TC_OUTBOX_ACK_PROJECTION_MISMATCH")
+            if mirrored_seq is not None:
+                if mirrored_seq == ack_sequence and mirrored_hash == entry_hash:
+                    return
+                raise ValueError("TC_OUTBOX_DUPLICATE_PROJECTION_CONFLICT")
+            with self._database:
+                updated = self._database.execute(
+                    "UPDATE command_event_outbox SET mirrored_sequence=?, "
+                    "mirrored_entry_hash=? WHERE command_id=? AND state=? "
+                    "AND mirrored_sequence IS NULL",
+                    (ack_sequence, entry_hash, command.command_id, state),
+                )
+                if updated.rowcount != 1:
+                    raise RuntimeError("TC_OUTBOX_MIRROR_RACE")
 
     def mark_executing_before_effect(self, command: Telecommand, *, sim_time_s: float) -> None:
         self._transition_durable(
