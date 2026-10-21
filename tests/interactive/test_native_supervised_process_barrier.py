@@ -141,8 +141,7 @@ def test_ready_missing_from_dead_worker_must_not_generate_reap_barrier(tmp_path)
         supervisor.cleanup_without_attestation()
 
 
-@pytest.mark.native_basilisk
-def test_reap_actual_native_adcs_child_before_r5_two_process_recovery(tmp_path):
+def test_native_basilisk_reap_actual_adcs_child_before_r5_two_process_recovery(tmp_path):
     pytest.importorskip("Basilisk")
     from test_native_joint_checkpoint import _make_joint_source, _continue
     from sat_sim.interactive.native_joint_checkpoint import verify_joint_checkpoint
