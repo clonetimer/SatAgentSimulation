@@ -1,0 +1,116 @@
+"""Live host observability of the continuous Basilisk control plane.
+
+Resource observations must be tied to the present OS process, persistent TM
+bytes must match original SessionWorkspace counters, and simulated seconds
+must never become reported as real-world uptime.
+"""
+from __future__ import annotations
+
+import os
+import time
+
+import pytest
+from fastapi.testclient import TestClient
+
+from sat_sim.interactive.continuous_observability import (
+    observe_continuous_session, process_resource_observation,
+)
+from sat_sim.interactive.manager import InteractiveSession
+from sat_sim.interactive.workspace import SessionWorkspace
+from test_continuous_console import _client, _body, _ControlProtocolStub
+
+
+def test_resource_sample_is_actual_os_process_or_explicit_unavailable():
+    missing = process_resource_observation(None)
+    assert missing["available"] is False
+    assert missing["resident_bytes"] is None
+    assert missing["cpu_time_s"] is None
+    assert missing["reason_code"] == "NO_LIVE_PROCESS_HANDLE"
+    actual = process_resource_observation(os.getpid())
+    if os.name in ("posix", "nt"):
+        assert actual["available"] is True, actual
+        assert actual["resident_bytes"] > 0
+        assert actual["cpu_time_s"] >= 0
+        assert actual["pid"] == os.getpid()
+
+
+def test_metrics_observe_real_wall_and_do_not_scan_full_telemetry_history(tmp_path, monkeypatch):
+    app = _client(tmp_path, monkeypatch)
+    runtimes = []
+    def factory(spec):
+        runtime = _ControlProtocolStub()
+        runtimes.append(runtime)
+        return runtime, None
+    monkeypatch.setattr("sat_sim.interactive.api.build_persistent_runtime", factory)
+
+    with TestClient(app) as client:
+        created = client.post("/interactive/continuous/sessions", json=_body("observed"))
+        assert created.status_code == 201, created.text
+        url = "/interactive/continuous/sessions/observed/observability"
+        initial = client.get(url)
+        assert initial.status_code == 200, initial.text
+        first = initial.json()
+        assert first["schema_version"] == "sat-continuous-observability.v1"
+        assert first["session_state"] == "READY"
+        assert first["sim_elapsed_s"] == 0.
+        assert first["wall_elapsed_s"] >= 0.
+        assert first["telemetry"]["status"] == "PAUSED_OR_READY"
+        assert first["telemetry"]["last_sequence"] is None
+        assert first["telemetry"]["lag_wall_s"] is None
+        assert first["telemetry"]["durable_frame_count"] == 0
+        assert first["telemetry"]["durable_bytes"] == 0
+        assert first["process"]["scope"] == "API_AND_BASILISK_PARENT"
+        assert first["process"]["pid"] == os.getpid()
+        assert first["disk"]["free_bytes"] >= 0
+        assert first["resume_supported"] is False
+        assert first["automatic_tc_replay_allowed"] is False
+
+        time.sleep(.05)
+        second = client.get(url).json()
+        assert second["wall_elapsed_s"] >= first["wall_elapsed_s"] + .03
+        assert second["sim_elapsed_s"] == first["sim_elapsed_s"] == 0.
+
+        started = client.post(
+            "/interactive/sessions/observed/control", json={"action": "start"},
+        )
+        assert started.status_code == 200, started.text
+        deadline = time.monotonic() + 8.
+        while True:
+            row = client.get(url).json()
+            if row["telemetry"]["durable_frame_count"] > 0:
+                break
+            assert time.monotonic() < deadline
+            time.sleep(.01)
+        assert row["telemetry"]["last_sequence"] is not None
+        assert row["telemetry"]["last_sim_time_s"] > 0
+        assert row["telemetry"]["last_wall_time"].endswith("+00:00")
+        assert row["telemetry"]["lag_wall_s"] >= 0.
+        assert row["telemetry"]["durable_bytes"] > 0
+        assert row["sim_elapsed_s"] > 0.
+        assert row["wall_elapsed_s"] > first["wall_elapsed_s"]
+        assert client.post(
+            "/interactive/sessions/observed/control", json={"action": "stop"},
+        ).status_code == 200
+        ended = client.get(url).json()
+        assert ended["telemetry"]["status"] == "TERMINAL"
+        assert ended["session_state"] == "COMPLETED"
+        assert ended["process"]["scope"] == "API_AND_BASILISK_PARENT"
+
+
+def test_metrics_unknown_session_and_bounded_workspace_reads(tmp_path, monkeypatch):
+    app = _client(tmp_path, monkeypatch)
+    with TestClient(app) as client:
+        assert client.get(
+            "/interactive/continuous/sessions/missing/observability"
+        ).status_code == 404
+        assert client.post(
+            "/interactive/continuous/sessions",
+            json=_body("bounded"),
+        ).status_code == 201
+        obs = client.get(
+            "/interactive/continuous/sessions/bounded/observability"
+        ).json()
+        # Free disk is an observed OS value, never implied by the task spec.
+        assert obs["disk"]["available"] is True
+        assert obs["telemetry"]["durable_frame_count"] == 0
+        assert obs["telemetry"]["durable_bytes"] == 0
