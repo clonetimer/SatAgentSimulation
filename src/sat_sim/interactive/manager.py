@@ -567,7 +567,17 @@ class InteractiveSession:
             self._terminal_error = self._archive_error
         finally:
             self._close_request_queue()
-            self._command_mailbox.close()
+            # A failed native process may have executed an effect before
+            # losing IPC. Do not mislabel its owner generation RELEASED.
+            # Keep ACTIVE until an external supervisor and checkpoint
+            # reconciliation can attest a safe handoff; no automatic steal.
+            clean_end = (
+                self.state in {SessionState.COMPLETED, SessionState.ABORTED}
+                and self._terminal_error is None
+            )
+            self._command_mailbox.close(
+                release_owner=(not self.spec.continuous or clean_end),
+            )
 
 
 class InteractiveFeatureDisabled(RuntimeError):
