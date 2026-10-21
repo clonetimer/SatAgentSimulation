@@ -238,6 +238,10 @@ class InteractiveSession:
             )
             if self._workspace is not None:
                 event = self._workspace.append_command_ack(command, ack)
+                # JSONL already owns the sequence after append+fsync. Advance
+                # the in-memory cursor immediately; if the SQLite mirror
+                # marker write fails, never reuse the old ACK sequence.
+                self._ack_sequence += 1
                 if self.spec.continuous:
                     self._command_mailbox.mirror_durable_ack(
                         command, state=state.value, reason_code=reason_code,
@@ -245,7 +249,8 @@ class InteractiveSession:
                         entry_hash=event["entry_hash"],
                         sim_time_s=sim_time_s,
                     )
-            self._ack_sequence += 1
+            else:
+                self._ack_sequence += 1
             self._acks.append(ack)
             return ack
 
