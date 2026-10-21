@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import InteractiveSessionSpec, Telecommand
+from .native_parent_death_fence import arm_native_parent_death_fence
 
 _SCHEMA = "sat-native-owner-rpc.v1"
 _OPERATIONS = frozenset({
@@ -26,10 +27,17 @@ _OPERATIONS = frozenset({
 })
 
 
-def _native_process_main(connection: Any, spec_raw: dict[str, Any], nonce: str) -> None:
+def _native_process_main(
+    connection: Any, spec_raw: dict[str, Any], nonce: str,
+    expected_parent_pid: int,
+) -> None:
     """Runs only in an mp.spawn child. Native graph never crosses the pipe."""
     runtime = None
     try:
+        # This must happen *before* constructing Basilisk native C++ graph
+        # objects. Linux delivers SIGKILL to this exact child when its actual
+        # parent exits, even if the runtime is inside a native integration.
+        parent_fence = arm_native_parent_death_fence(expected_parent_pid)
         from .runtime_factory import build_persistent_runtime
 
         spec = InteractiveSessionSpec.model_validate(spec_raw)
@@ -39,7 +47,11 @@ def _native_process_main(connection: Any, spec_raw: dict[str, Any], nonce: str) 
         connection.send({
             "schema": _SCHEMA, "seq": 0, "nonce": nonce,
             "pid": os.getpid(), "ok": True, "time_s": 0.,
-            "payload": {"ready": True, "native_resume_supported": False},
+            "payload": {
+                "ready": True, "native_resume_supported": False,
+                "parent_death_fence": parent_fence,
+                "automatic_tc_replay_allowed": False,
+            },
         })
         next_seq = 1
         while True:
@@ -120,6 +132,7 @@ class SupervisedContinuousNativeRuntime:
         self._closed = False
         self._faulted = False
         self._last_reap: dict[str, Any] | None = None
+        self._parent_death_fence: dict[str, object] | None = None
 
     @property
     def current_time_s(self) -> float:
@@ -128,6 +141,10 @@ class SupervisedContinuousNativeRuntime:
     @property
     def child_pid(self) -> int | None:
         return self._process.pid if self._process is not None else None
+
+    @property
+    def parent_death_fence(self) -> dict[str, object] | None:
+        return dict(self._parent_death_fence) if self._parent_death_fence is not None else None
 
     @property
     def last_reap(self) -> dict[str, Any] | None:
@@ -198,7 +215,7 @@ class SupervisedContinuousNativeRuntime:
         nonce = secrets.token_hex(32)
         proc = self._ctx.Process(
             target=_native_process_main,
-            args=(child, self._spec.model_dump(mode="json"), nonce),
+            args=(child, self._spec.model_dump(mode="json"), nonce, os.getpid()),
             name="sat-native-owner-" + self._spec.session_id,
             daemon=False,
         )
@@ -212,7 +229,24 @@ class SupervisedContinuousNativeRuntime:
         self._process = proc
         self._connection = parent
         self._nonce = nonce
-        self._recv(seq=0)  # live process+nonce/PID verified
+        ready_record = self._recv(seq=0)  # child+nonce/PID verified
+        if (not isinstance(ready_record, dict)
+                or ready_record.get("ready") is not True
+                or ready_record.get("native_resume_supported") is not False
+                or ready_record.get("automatic_tc_replay_allowed") is not False
+                or not isinstance(ready_record.get("parent_death_fence"), dict)):
+            self._faulted = True
+            self._reap(force=True)
+            raise RuntimeError("SUPERVISED_NATIVE_PARENT_FENCE_HANDSHAKE_INVALID")
+        fence = ready_record["parent_death_fence"]
+        if (fence.get("parent_pid") != os.getpid()
+                or (os.name == "posix" and __import__("sys").platform == "linux"
+                    and (fence.get("supported") is not True
+                         or fence.get("kind") != "LINUX_PR_SET_PDEATHSIG_SIGKILL"))):
+            self._faulted = True
+            self._reap(force=True)
+            raise RuntimeError("SUPERVISED_NATIVE_PARENT_FENCE_UNVERIFIED")
+        self._parent_death_fence = dict(fence)
         ready = self._rpc("prepare", None)
         if ready is not None:
             self._faulted = True
