@@ -237,7 +237,14 @@ class InteractiveSession:
                 sequence=self._ack_sequence,
             )
             if self._workspace is not None:
-                self._workspace.append_command_ack(command, ack)
+                event = self._workspace.append_command_ack(command, ack)
+                if self.spec.continuous:
+                    self._command_mailbox.mirror_durable_ack(
+                        command, state=state.value, reason_code=reason_code,
+                        ack_sequence=ack.sequence,
+                        entry_hash=event["entry_hash"],
+                        sim_time_s=sim_time_s,
+                    )
             self._ack_sequence += 1
             self._acks.append(ack)
             return ack
@@ -325,10 +332,10 @@ class InteractiveSession:
             return ()
         commands, expired = self._command_mailbox.pop_due_partitioned(target)
         for command in expired:
-            self._emit_ack(command, CommandState.EXPIRED, "COMMAND_EXPIRED", sim_time_s=self.current_time_s)
             self._command_mailbox.mark_expired_after_receipt(
                 command, sim_time_s=self.current_time_s,
             )
+            self._emit_ack(command, CommandState.EXPIRED, "COMMAND_EXPIRED", sim_time_s=self.current_time_s)
         executing: list[Telecommand] = []
         for command in commands:
             # Durable EXECUTING is a replay fence. It MUST reach SQLite
@@ -343,12 +350,12 @@ class InteractiveSession:
                 self.runtime.apply_command(command)
                 executing.append(command)
             except BaseException as exc:
-                self._emit_ack(command, CommandState.FAILED, "COMMAND_APPLY_FAILED", f"{type(exc).__name__}: {exc}", self.current_time_s)
                 # Failure does not imply the effect was rolled back. Even
                 # with durable FAILED, recovery must never auto-replay.
                 self._command_mailbox.mark_failed_after_receipt(
                     command, sim_time_s=self.current_time_s,
                 )
+                self._emit_ack(command, CommandState.FAILED, "COMMAND_APPLY_FAILED", f"{type(exc).__name__}: {exc}", self.current_time_s)
         rows = self.runtime.advance_to(target)
         for row in rows:
             sim_time_s = float(row.get("time_s", target))
@@ -385,12 +392,14 @@ class InteractiveSession:
                 if self._workspace is not None:
                     self._workspace.append_telemetry(frame)
         for command in executing:
-            self._emit_ack(command, CommandState.ACKED, "OK", sim_time_s=target)
-            # Mirror after durable JSONL ACK. A crash between the two
-            # records leaves SQLite EXECUTING: conservative/no replay.
+            # ACK denotes the runtime advance returned; it is NOT a
+            # cryptographic proof that the native effect is irreversible.
+            # Commit the authoritative SQLite ACKED+outbox first; then
+            # fsync JSONL; finally persist the mirror cursor.
             self._command_mailbox.mark_acked_after_receipt(
                 command, sim_time_s=target,
             )
+            self._emit_ack(command, CommandState.ACKED, "OK", sim_time_s=target)
         return rows
 
     def _handle(self, request: _ControlRequest) -> bool:
