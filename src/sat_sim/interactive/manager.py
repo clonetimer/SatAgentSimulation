@@ -326,14 +326,29 @@ class InteractiveSession:
         commands, expired = self._command_mailbox.pop_due_partitioned(target)
         for command in expired:
             self._emit_ack(command, CommandState.EXPIRED, "COMMAND_EXPIRED", sim_time_s=self.current_time_s)
+            self._command_mailbox.mark_expired_after_receipt(
+                command, sim_time_s=self.current_time_s,
+            )
         executing: list[Telecommand] = []
         for command in commands:
+            # Durable EXECUTING is a replay fence. It MUST reach SQLite
+            # before even writing the JSONL EXECUTING ACK, and certainly
+            # before the runtime/Basilisk side effect. A failed commit
+            # propagates to the session worker without applying the TC.
+            self._command_mailbox.mark_executing_before_effect(
+                command, sim_time_s=self.current_time_s,
+            )
             self._emit_ack(command, CommandState.EXECUTING, sim_time_s=self.current_time_s)
             try:
                 self.runtime.apply_command(command)
                 executing.append(command)
             except BaseException as exc:
                 self._emit_ack(command, CommandState.FAILED, "COMMAND_APPLY_FAILED", f"{type(exc).__name__}: {exc}", self.current_time_s)
+                # Failure does not imply the effect was rolled back. Even
+                # with durable FAILED, recovery must never auto-replay.
+                self._command_mailbox.mark_failed_after_receipt(
+                    command, sim_time_s=self.current_time_s,
+                )
         rows = self.runtime.advance_to(target)
         for row in rows:
             sim_time_s = float(row.get("time_s", target))
@@ -371,6 +386,11 @@ class InteractiveSession:
                     self._workspace.append_telemetry(frame)
         for command in executing:
             self._emit_ack(command, CommandState.ACKED, "OK", sim_time_s=target)
+            # Mirror after durable JSONL ACK. A crash between the two
+            # records leaves SQLite EXECUTING: conservative/no replay.
+            self._command_mailbox.mark_acked_after_receipt(
+                command, sim_time_s=target,
+            )
         return rows
 
     def _handle(self, request: _ControlRequest) -> bool:
