@@ -191,3 +191,40 @@ def test_missing_native_trace_cannot_prove_future_command(tmp_path):
     report = inspect_pending_queue(ws.path)
     assert report["status"] == "BLOCKED_PENDING_NOT_PROVEN_FUTURE"
     assert report["activate_native_queue_allowed"] is False
+
+
+def test_command_recovery_cli_pending_audit_is_read_only(tmp_path, monkeypatch, capsys):
+    import json
+    import sys
+    from scripts.inspect_continuous_recovery import main
+    ws = _interrupted_pending(tmp_path, [("queued-first", 0.5)])
+    before_ack = ws.commands_path.read_bytes()
+    before_epoch = _epoch(ws.path / "command_ids.sqlite")
+    monkeypatch.setattr(sys, "argv", [
+        "inspect_continuous_recovery.py", "--workspace", str(ws.path),
+        "--pending-audit",
+    ])
+    assert main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["pending_audit"]["status"] == "CANDIDATE_METADATA_VERIFIED_NO_NATIVE_ACTIVATION"
+    assert result["pending_audit"]["candidates"][0]["command_id"] == "queued-first"
+    assert result["pending_audit"]["activate_native_queue_allowed"] is False
+    assert result["command_recovery"]["command_evidence"]["writer_owner_evidence"]["epoch"] == 1
+    assert ws.commands_path.read_bytes() == before_ack
+    assert _epoch(ws.path / "command_ids.sqlite") == before_epoch
+
+
+def test_interrupted_preflight_binds_writer_owner_generation(tmp_path):
+    from sat_sim.interactive.recovery_command_preflight import (
+        verify_interrupted_command_preflight,
+    )
+    ws = _interrupted_pending(tmp_path, [("queued", 0.5)])
+    first = verify_interrupted_command_preflight(ws.path)
+    assert first["command_evidence"]["writer_owner_evidence"]["state"] == "RELEASED"
+    assert first["command_evidence"]["writer_owner_evidence"]["epoch"] == 1
+    with sqlite3.connect(ws.path / "command_ids.sqlite") as db:
+        db.execute(
+            "UPDATE command_writer_epoch SET epoch=epoch+1 WHERE singleton=1"
+        )
+    with pytest.raises(ValueError, match="RECOVERY_COMMAND_PREFLIGHT_SOURCE_CHANGED"):
+        verify_interrupted_command_preflight(ws.path)
