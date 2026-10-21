@@ -5,7 +5,7 @@
   const $ = (id) => document.getElementById(id);
   const state = {
     active: false, timer: null, refreshBusy: false,
-    selectedId: null, snapshot: null, policy: null,
+    selectedId: null, snapshot: null, policy: null, metrics: null,
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
   };
@@ -69,6 +69,7 @@
       node.addEventListener('click', () => {
         state.selectedId = session.session_id;
         state.snapshot = null;
+        state.metrics = null;
         state.telemetry = [];
         state.events = [];
         state.acks = [];
@@ -94,6 +95,39 @@
         item.reason_code || item.state || '不可自动接管'));
       target.append(card);
     });
+  }
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || !Number.isFinite(Number(bytes))) return '—';
+    const val = Math.max(0, Number(bytes));
+    if (val < 1024) return val.toFixed(0) + ' B';
+    if (val < 1048576) return (val / 1024).toFixed(1) + ' KiB';
+    if (val < 1073741824) return (val / 1048576).toFixed(1) + ' MiB';
+    return (val / 1073741824).toFixed(2) + ' GiB';
+  }
+  function renderObservability() {
+    const data = state.metrics;
+    const live = data && data.session_id === state.selectedId;
+    setText('continuousWallElapsed', live ? valueText(data.wall_elapsed_s, 1) + ' s' : '—');
+    setText('continuousResidentBytes', live && data.process.available
+      ? formatBytes(data.process.resident_bytes) : '—');
+    setText('continuousCpuTime', live && data.process.available
+      ? valueText(data.process.cpu_time_s, 2) + ' CPU s' : '—');
+    setText('continuousTelemetryLag', live && data.telemetry.lag_wall_s !== null
+      ? valueText(data.telemetry.lag_wall_s, 2) + ' s' : '—');
+    setText('continuousDurableFrames', live && data.telemetry.durable_frame_count !== null
+      ? data.telemetry.durable_frame_count : '—');
+    setText('continuousDiskStatus', live
+      ? (formatBytes(data.telemetry.durable_bytes) + ' / ' +
+          formatBytes(data.disk?.free_bytes))
+      : '—');
+    setText('continuousMonitorHealth', live ? data.telemetry.status : '尚无采样');
+    setText('continuousMetricScope', live
+      ? ((data.process.scope === 'BASILISK_CHILD'
+          ? '采样对象：受管 Basilisk 子进程'
+          : '采样对象：API 与 Basilisk 同一进程') +
+          '；CPU 为累计核心秒（非使用率）；运行时长从会话对象创建算起，含准备/暂停；' +
+          '不可用指标不会使用估算值替代。')
+      : '数值来自操作系统与遥测账本；暂无采样。');
   }
   function renderStatus() {
     const info = state.snapshot;
@@ -225,16 +259,18 @@
         (overview.mode === 'SUPERVISED_NATIVE_CHILD' ? '独立原生进程' : '进程内原生'));
       renderSessionList(sessions);
       renderInterrupted(overview.interrupted_workspaces || []);
-      if (!state.selectedId) { renderStatus(); return; }
+      if (!state.selectedId) { state.metrics = null; renderStatus(); renderObservability(); return; }
       const id = encodeURIComponent(state.selectedId);
-      const [info, tm, events, acks] = await Promise.all([
+      const [info, tm, events, acks, metrics] = await Promise.all([
         api('/interactive/continuous/sessions/' + id + '/status'),
         api('/interactive/sessions/' + id + '/telemetry/whole.continuous?after_sequence=' + state.lastTelemetrySeq),
         api('/interactive/sessions/' + id + '/events?after_sequence=' + state.lastEventSeq),
         api('/interactive/sessions/' + id + '/commands'),
+        api('/interactive/continuous/sessions/' + id + '/observability'),
       ]);
       if (info.session.session_id !== state.selectedId) return;
       state.snapshot = info;
+      state.metrics = metrics;
       state.gap = tm.gap || null;
       (tm.frames || []).forEach((frame) => {
         if (frame.sequence > state.lastTelemetrySeq) {
@@ -252,6 +288,7 @@
       if (state.events.length > 60) state.events.splice(0, state.events.length - 60);
       state.acks = (acks.acks || []).slice(-60);
       renderStatus();
+      renderObservability();
       latest();
       renderLog('continuousEventList', state.events, (e) => e.state + ' · ' + (e.reason_code || ''));
       renderLog('continuousAckList', state.acks, (a) => a.command_id + ' · ' + a.state);
@@ -278,6 +315,7 @@
         method: 'POST', body: JSON.stringify(body),
       });
       state.selectedId = result.session_id;
+      state.metrics = null;
       state.telemetry = []; state.events = []; state.acks = [];
       state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
       notice('持续会话已创建。可启动仿真并发送遥控。');
@@ -376,6 +414,7 @@
     });
     changeOperation();
     renderStatus();
+    renderObservability();
     renderChart();
   }
   window.SatContinuousConsole = { enter, exit };
