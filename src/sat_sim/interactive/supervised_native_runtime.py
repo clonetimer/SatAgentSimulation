@@ -134,6 +134,7 @@ class SupervisedContinuousNativeRuntime:
         self._faulted = False
         self._last_reap: dict[str, Any] | None = None
         self._parent_death_fence: dict[str, object] | None = None
+        self._windows_job: Any = None
 
     @property
     def current_time_s(self) -> float:
@@ -159,8 +160,18 @@ class SupervisedContinuousNativeRuntime:
             process.kill()
         process.join(timeout=5.)
         if process.is_alive():
-            self._faulted = True
-            raise RuntimeError("SUPERVISED_NATIVE_PROCESS_NOT_REAPED")
+            # Closing the Windows Job triggers kernel termination even when
+            # the child is stuck in native code. Parent never self-restarts.
+            if self._windows_job is not None:
+                self._windows_job.close()
+                self._windows_job = None
+                process.join(timeout=5.)
+            if process.is_alive():
+                self._faulted = True
+                raise RuntimeError("SUPERVISED_NATIVE_PROCESS_NOT_REAPED")
+        if self._windows_job is not None:
+            self._windows_job.close()
+            self._windows_job = None
         self._last_reap = {
             "child_pid": process.pid,
             "exitcode": process.exitcode,
@@ -230,6 +241,18 @@ class SupervisedContinuousNativeRuntime:
         self._process = proc
         self._connection = parent
         self._nonce = nonce
+        if sys.platform == "win32":
+            # Assign the already-created but not-yet-prepared native child to
+            # KILL_ON_JOB_CLOSE before the first prepare command. Parent
+            # dying before assignment leaves the child blocked on its pipe;
+            # it can never start Basilisk without the parent's prepare.
+            try:
+                from .native_windows_job import WindowsKillOnCloseJob
+                self._windows_job = WindowsKillOnCloseJob.attach(proc.pid)
+            except BaseException as exc:
+                self._faulted = True
+                self._reap(force=True)
+                raise RuntimeError("SUPERVISED_NATIVE_WINDOWS_JOB_REQUIRED") from exc
         ready_record = self._recv(seq=0)  # child+nonce/PID verified
         if (not isinstance(ready_record, dict)
                 or ready_record.get("ready") is not True
@@ -247,7 +270,18 @@ class SupervisedContinuousNativeRuntime:
             self._faulted = True
             self._reap(force=True)
             raise RuntimeError("SUPERVISED_NATIVE_PARENT_FENCE_UNVERIFIED")
-        self._parent_death_fence = dict(fence)
+        if sys.platform == "win32":
+            if self._windows_job is None or not self._windows_job.attached:
+                self._faulted = True
+                self._reap(force=True)
+                raise RuntimeError("SUPERVISED_NATIVE_WINDOWS_JOB_REQUIRED")
+            self._parent_death_fence = {
+                "supported": True,
+                "kind": "WINDOWS_JOB_KILL_ON_CLOSE",
+                "parent_pid": os.getpid(),
+            }
+        else:
+            self._parent_death_fence = dict(fence)
         ready = self._rpc("prepare", None)
         if ready is not None:
             self._faulted = True
