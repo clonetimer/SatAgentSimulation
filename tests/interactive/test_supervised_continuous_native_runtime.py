@@ -222,3 +222,65 @@ def test_live_session_child_crash_preserves_active_sqlite_owner_fence(tmp_path):
         if session.state not in (SessionState.COMPLETED, SessionState.FAILED, SessionState.ABORTED):
             session.abort()
             session.wait(10.)
+
+
+def test_native_graph_is_not_created_before_parent_fence_handshake(monkeypatch):
+    """No Windows/other-platform Basilisk graph until parent says prepare."""
+    import os
+    import sat_sim.interactive.supervised_native_runtime as target
+    import sat_sim.interactive.runtime_factory as factory
+
+    order = []
+    original_parent = os.getppid()
+    monkeypatch.setattr(
+        target, "arm_native_parent_death_fence",
+        lambda pid: {"supported": True, "kind": "TEST_GUARD",
+                     "parent_pid": pid},
+    )
+
+    class FakeGraph:
+        current_time_s = 0.
+        def prepare(self):
+            order.append("native_prepare")
+        def abort(self):
+            order.append("native_abort")
+
+    def construct(spec, *, supervised):
+        assert supervised is False
+        order.append("native_construct")
+        return FakeGraph(), None
+
+    monkeypatch.setattr(factory, "build_persistent_runtime", construct)
+
+    class FakePipe:
+        def __init__(self):
+            self.acks = []
+            self.commands = iter([
+                {"schema": target._SCHEMA, "seq": 1, "nonce": "test-nonce",
+                 "op": "prepare", "payload": None},
+                {"schema": target._SCHEMA, "seq": 2, "nonce": "test-nonce",
+                 "op": "abort", "payload": None},
+            ])
+        def send(self, message):
+            self.acks.append(message)
+            order.append("child_handshake" if message["seq"] == 0 else
+                         "native_reply")
+            if message["seq"] == 0:
+                assert "native_construct" not in order
+                assert message["pid"] == os.getpid()
+                assert message["payload"]["parent_death_fence"]["supported"]
+        def recv(self):
+            order.append("parent_request")
+            return next(self.commands)
+        def close(self):
+            pass
+
+    pipe = FakePipe()
+    target._native_process_main(
+        pipe, _spec("r7d-fence-first").model_dump(mode="json"),
+        "test-nonce", original_parent,
+    )
+    assert order[:3] == ["child_handshake", "parent_request",
+                          "native_construct"]
+    assert [ack["seq"] for ack in pipe.acks] == [0, 1, 2]
+    assert pipe.acks[-1]["ok"] is True
