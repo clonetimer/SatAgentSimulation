@@ -165,3 +165,20 @@ def test_preflight_manifest_tampering_or_staging_is_rejected(tmp_path):
     (ws.path / (FILENAME + ".pending")).write_text("partial")
     with pytest.raises(ValueError, match="PREFLIGHT_STAGING_PRESENT"):
         verify_interrupted_command_preflight(ws.path)
+
+
+def test_recovery_inspection_cli_can_include_command_preflight(tmp_path, monkeypatch, capsys):
+    import sys
+    from scripts.inspect_continuous_recovery import main
+    ws, _ = _prepare(tmp_path, "acked")
+    before = (ws.path / FILENAME).read_bytes()
+    monkeypatch.setattr(sys, "argv", [
+        "inspect_continuous_recovery.py", "--workspace", str(ws.path),
+        "--command-preflight",
+    ])
+    assert main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "VERIFIED_SOURCE_EVIDENCE"
+    assert result["command_recovery"]["status"] == "EVIDENCE_CONSISTENT_NO_NATIVE_RESTART"
+    assert result["command_recovery"]["automatic_tc_replay_allowed"] is False
+    assert (ws.path / FILENAME).read_bytes() == before
