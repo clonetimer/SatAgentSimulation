@@ -250,3 +250,24 @@ def test_failed_mirror_commit_does_not_reuse_fsynced_ack_sequence(tmp_path):
     finally:
         session.abort()
         session.wait(2.)
+
+
+def test_corrupt_outbox_blocks_only_its_own_interrupted_workspace(tmp_path):
+    corrupted, _ = _source(tmp_path, "acked")
+    healthy, _ = _source(tmp_path, "queued")
+    with sqlite3.connect(corrupted.path / "command_ids.sqlite") as db:
+        db.execute(
+            "UPDATE command_event_outbox SET mirrored_entry_hash=? "
+            "WHERE state='ACKED'", ("f" * 64,),
+        )
+    manager = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
+    assert len(manager.interrupted_workspaces) == 2
+    assert all(row.state is SessionState.INTERRUPTED
+               for row in manager.interrupted_workspaces)
+    blocked = verify_interrupted_command_preflight(corrupted.path)
+    good = verify_interrupted_command_preflight(healthy.path)
+    assert blocked["status"] == "BLOCKED_EVIDENCE_UNVERIFIABLE"
+    assert "OUTBOX_PROJECTION_MISMATCH" in blocked["reason_code"]
+    assert good["status"] == "BLOCKED_UNRESOLVED_PENDING_TC"
+    assert blocked["automatic_tc_replay_allowed"] is False
+    assert good["automatic_tc_replay_allowed"] is False
