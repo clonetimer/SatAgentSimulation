@@ -39,16 +39,36 @@ class DeterministicCommandMailbox:
             if persistent_ledger and ledger_path is None else None
         )
         self._database = None
+        self._sequence = 0
         if persistent_ledger:
             path = Path(ledger_path) if ledger_path is not None else Path(self._temporary_directory.name) / "command_ids.sqlite"
             path.parent.mkdir(parents=True, exist_ok=True)
             self._database = sqlite3.connect(str(path), check_same_thread=False)
+            # The accepted-ID UNIQUE index and command lifecycle share one
+            # SQLite transaction. No split commit / silent replay on crash.
+            self._database.execute("PRAGMA foreign_keys=ON")
+            self._database.execute("PRAGMA synchronous=FULL")
             self._database.execute(
                 "CREATE TABLE IF NOT EXISTS command_ids ("
                 "command_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL)"
             )
+            self._database.execute(
+                "CREATE TABLE IF NOT EXISTS command_lifecycle ("
+                "command_id TEXT PRIMARY KEY REFERENCES command_ids(command_id), "
+                "fingerprint TEXT NOT NULL, "
+                "session_id TEXT NOT NULL, "
+                "execute_at_sim_time_s REAL NOT NULL, "
+                "receive_sequence INTEGER NOT NULL UNIQUE, "
+                "state TEXT NOT NULL CHECK (state IN "
+                "('QUEUED','EXECUTING','ACKED','FAILED','EXPIRED')), "
+                "transition_sim_time_s REAL)"
+            )
             self._database.commit()
-        self._sequence = 0
+            # Reopening the *same* ledger must not reuse sequence numbers.
+            row = self._database.execute(
+                "SELECT COALESCE(MAX(receive_sequence), -1) FROM command_lifecycle"
+            ).fetchone()
+            self._sequence = int(row[0]) + 1
         self._lock = threading.Lock()
 
     @staticmethod
@@ -78,15 +98,26 @@ class DeterministicCommandMailbox:
             if command.expires_at is not None and command.expires_at <= datetime.now(timezone.utc):
                 return MailboxReceipt(False, False, "COMMAND_EXPIRED", None)
             sequence = self._sequence
-            self._sequence += 1
             if self._database is not None:
-                self._database.execute(
-                    "INSERT INTO command_ids (command_id, fingerprint) VALUES (?, ?)",
-                    (command.command_id, fingerprint),
-                )
-                self._database.commit()
+                # Both durable rows commit or both roll back. If crash occurs
+                # before the JSONL QUEUED receipt, the R6 preflight still
+                # blocks restart due to the missing mirrored event.
+                with self._database:
+                    self._database.execute(
+                        "INSERT INTO command_ids (command_id, fingerprint) VALUES (?, ?)",
+                        (command.command_id, fingerprint),
+                    )
+                    self._database.execute(
+                        "INSERT INTO command_lifecycle "
+                        "(command_id, fingerprint, session_id, execute_at_sim_time_s, "
+                        "receive_sequence, state, transition_sim_time_s) "
+                        "VALUES (?, ?, ?, ?, ?, 'QUEUED', NULL)",
+                        (command.command_id, fingerprint, command.session_id,
+                         command.execute_at_sim_time_s, sequence),
+                    )
             else:
                 self._fingerprints[command.command_id] = fingerprint
+            self._sequence += 1
             heapq.heappush(self._heap, (command.execute_at_sim_time_s, sequence, command))
             return MailboxReceipt(True, False, "QUEUED", sequence)
 
@@ -106,6 +137,56 @@ class DeterministicCommandMailbox:
                 else:
                     expired.append(command)
         return tuple(due), tuple(expired)
+
+    def _transition_durable(
+        self, command: Telecommand, *, from_state: str, to_state: str,
+        sim_time_s: float,
+    ) -> None:
+        """Commit the idempotent replay fence before native side effects.
+
+        For nonpersistent finite simulation sessions this is intentionally a
+        no-op. In a continuous session an unexpected state or failed commit
+        raises and therefore prevents further native command execution.
+        """
+        if self._database is None:
+            return
+        with self._lock:
+            with self._database:
+                cursor = self._database.execute(
+                    "UPDATE command_lifecycle SET state=?, transition_sim_time_s=? "
+                    "WHERE command_id=? AND fingerprint=? AND session_id=? AND state=?",
+                    (to_state, float(sim_time_s), command.command_id,
+                     self._fingerprint(command), command.session_id, from_state),
+                )
+                if cursor.rowcount != 1:
+                    raise RuntimeError(
+                        "TC_DURABLE_LIFECYCLE_TRANSITION_REJECTED:"
+                        + from_state + "->" + to_state
+                    )
+
+    def mark_executing_before_effect(self, command: Telecommand, *, sim_time_s: float) -> None:
+        self._transition_durable(
+            command, from_state="QUEUED", to_state="EXECUTING",
+            sim_time_s=sim_time_s,
+        )
+
+    def mark_acked_after_receipt(self, command: Telecommand, *, sim_time_s: float) -> None:
+        self._transition_durable(
+            command, from_state="EXECUTING", to_state="ACKED",
+            sim_time_s=sim_time_s,
+        )
+
+    def mark_failed_after_receipt(self, command: Telecommand, *, sim_time_s: float) -> None:
+        self._transition_durable(
+            command, from_state="EXECUTING", to_state="FAILED",
+            sim_time_s=sim_time_s,
+        )
+
+    def mark_expired_after_receipt(self, command: Telecommand, *, sim_time_s: float) -> None:
+        self._transition_durable(
+            command, from_state="QUEUED", to_state="EXPIRED",
+            sim_time_s=sim_time_s,
+        )
 
     def close(self) -> None:
         with self._lock:
