@@ -316,7 +316,15 @@ class SessionWorkspace:
                 # its exact fsynced JSONL ACK is already present. No missing
                 # ACK is fabricated, and no original command is replayed.
                 from .command_outbox_mirror import reconcile_existing_outbox_mirrors
-                reconcile_existing_outbox_mirrors(path)
+                try:
+                    reconcile_existing_outbox_mirrors(path)
+                except ValueError:
+                    # A single corrupt/inconsistent command projection must
+                    # not prevent other interrupted workspaces being
+                    # discovered. The immediately following recovery
+                    # preflight independently records a BLOCKED assessment
+                    # from the intact original files. No TC is replayed.
+                    pass
                 from .recovery_handoff import write_interrupted_handoff
                 write_interrupted_handoff(path)
                 # Bind the original ACK hash-chain to the persistent
