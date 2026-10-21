@@ -23,6 +23,7 @@ from typing import Any
 from .models import CommandState
 from .workspace import SessionWorkspace
 from .recovery_handoff import verify_interrupted_handoff
+from .command_outbox_mirror import verified_ack_projection
 
 SCHEMA = "interactive-command-recovery-preflight.v1"
 FILENAME = "command_recovery_preflight.json"
@@ -40,7 +41,10 @@ def _sha(value: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical(value)).hexdigest()
 
 
-def _read_index(path: Path) -> tuple[dict[str, str], str, dict[str, dict[str, Any]], str]:
+def _read_index(path: Path) -> tuple[
+    dict[str, str], str, dict[str, dict[str, Any]], str,
+    list[dict[str, Any]], str,
+]:
     """Read an immutable *view* of the live SQLite unique index, never mutate it.
 
     SQLite read transactions snapshot a consistent committed state. Since this
@@ -94,7 +98,29 @@ def _read_index(path: Path) -> tuple[dict[str, str], str, dict[str, dict[str, An
                 }
                 phases[ident] = record
                 phase_sha.update(_canonical({"command_id": ident, **record}) + b"\n")
-            return ledger, digest.hexdigest(), phases, phase_sha.hexdigest()
+            # Same read transaction as command IDs and authoritative state:
+            # no mixing two different SQLite commit generations.
+            outbox: list[dict[str, Any]] = []
+            outbox_sha = hashlib.sha256()
+            for event_id, ident, fingerprint, state, sim_time, seq, entry in con.execute(
+                "SELECT event_id, command_id, fingerprint, state, sim_time_s, "
+                "mirrored_sequence, mirrored_entry_hash FROM command_event_outbox "
+                "ORDER BY event_id"
+            ):
+                if len(outbox) >= MAX_UNIQUE_IDS * 5:
+                    raise ValueError("RECOVERY_COMMAND_OUTBOX_CAPACITY_LIMIT")
+                event = {
+                    "event_id": event_id, "command_id": ident,
+                    "fingerprint": fingerprint, "state": state,
+                    "sim_time_s": sim_time, "mirrored_sequence": seq,
+                    "mirrored_entry_hash": entry,
+                }
+                outbox.append(event)
+                outbox_sha.update(_canonical(event) + b"\n")
+            return (
+                ledger, digest.hexdigest(), phases, phase_sha.hexdigest(),
+                outbox, outbox_sha.hexdigest(),
+            )
         finally:
             con.close()
     except sqlite3.DatabaseError as exc:
@@ -169,7 +195,9 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         command_state[ident] = state
         last_sequences[ident] = seq
 
-    index, index_sha, phases, phase_sha = _read_index(root / "command_ids.sqlite")
+    index, index_sha, phases, phase_sha, outbox, outbox_sha = _read_index(
+        root / "command_ids.sqlite"
+    )
     if accepted != index:
         raise ValueError("RECOVERY_COMMAND_LEDGER_EVENT_SET_MISMATCH")
     if set(phases) != set(index):
@@ -200,6 +228,37 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         range(len(phases))
     ):
         raise ValueError("RECOVERY_COMMAND_LIFECYCLE_SEQUENCE_GAP")
+
+    projection = verified_ack_projection(root)
+    used: set[tuple[str, str]] = set()
+    last_outbox_id = 0
+    for event in outbox:
+        ident = event["command_id"]
+        state = event["state"]
+        key = ident, state
+        if (type(event["event_id"]) is not int
+                or event["event_id"] <= last_outbox_id
+                or ident not in index or event["fingerprint"] != index[ident]
+                or key in used):
+            raise ValueError("RECOVERY_COMMAND_OUTBOX_IDENTITY_INVALID")
+        last_outbox_id = event["event_id"]
+        used.add(key)
+        matched = projection.get(key)
+        if matched is None:
+            raise ValueError("RECOVERY_COMMAND_OUTBOX_UNMIRRORED_EVENT")
+        seq, entry_hash, fp, sample_time = matched
+        if (event["mirrored_sequence"] != seq
+                or event["mirrored_entry_hash"] != entry_hash
+                or event["fingerprint"] != fp
+                or event["sim_time_s"] != sample_time):
+            raise ValueError("RECOVERY_COMMAND_OUTBOX_PROJECTION_MISMATCH")
+    if used != set(projection):
+        raise ValueError("RECOVERY_COMMAND_OUTBOX_EVENT_SET_MISMATCH")
+    for ident, lifecycle in phases.items():
+        if (ident, "QUEUED") not in used:
+            raise ValueError("RECOVERY_COMMAND_OUTBOX_MISSING_ACCEPTANCE")
+        if lifecycle["state"] != "QUEUED" and (ident, lifecycle["state"]) not in used:
+            raise ValueError("RECOVERY_COMMAND_OUTBOX_MISSING_TERMINAL_PHASE")
     states = {"queued": [], "executing": [], "acked": [],
               "failed": [], "terminal_other": []}
     for ident in accepted:
@@ -213,6 +272,8 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         "command_event_count": events,
         "index_sha256": index_sha,
         "lifecycle_sha256": phase_sha,
+        "outbox_sha256": outbox_sha,
+        "outbox_events": len(outbox),
         "queued_ids": sorted(states["queued"]),
         "executing_ids": sorted(states["executing"]),
         "acked_ids": sorted(states["acked"]),
