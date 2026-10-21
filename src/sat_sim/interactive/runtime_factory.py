@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import os
 from typing import Any
 
 from sat_sim.bsk_engine.event_manager import parse_bsk_events
@@ -53,8 +54,21 @@ def _has_preplanned_events(task_spec: Mapping[str, Any]) -> bool:
     return False
 
 
-def build_persistent_runtime(spec: InteractiveSessionSpec):
-    """Build one approved runtime without exposing arbitrary constructors."""
+def build_persistent_runtime(
+    spec: InteractiveSessionSpec, *, supervised: bool | None = None,
+):
+    """Build approved runtime; fresh OS process is opt-in, no auto-resume.
+
+    Setting SAT_SIM_SUPERVISED_NATIVE_RUNTIME=1 is a deployment-side explicit
+    opt-in, not a client task-spec flag. Child always forces supervised=False.
+    """
+    if supervised is None:
+        supervised = os.environ.get("SAT_SIM_SUPERVISED_NATIVE_RUNTIME") == "1"
+    if supervised:
+        if spec.capability_id != WHOLE_UNIFIED_CAPABILITY_ID or not spec.continuous:
+            raise ValueError("SUPERVISED_NATIVE_ONLY_WHOLE_CONTINUOUS")
+        from .supervised_native_runtime import SupervisedContinuousNativeRuntime
+        return SupervisedContinuousNativeRuntime(spec), None
 
     if spec.capability_id not in APPROVED_CAPABILITY_IDS:
         raise ValueError("INTERACTIVE_CAPABILITY_NOT_APPROVED")
