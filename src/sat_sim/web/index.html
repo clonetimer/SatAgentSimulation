@@ -640,6 +640,19 @@
               <button class="button button-ghost" type="button" data-continuous-action="stop">■ 停止并归档</button>
             </div>
           </section>
+          <section class="continuous-card" aria-label="持续运行资源监测">
+            <div class="section-heading compact"><h2>真实运行与资源监测</h2>
+              <span id="continuousMonitorHealth" class="status-chip status-muted">尚无采样</span></div>
+            <div class="continuous-metrics">
+              <div><span>实际墙钟运行时长</span><strong id="continuousWallElapsed">—</strong></div>
+              <div><span>运行进程常驻内存</span><strong id="continuousResidentBytes">—</strong></div>
+              <div><span>进程累计 CPU 时间</span><strong id="continuousCpuTime">—</strong></div>
+              <div><span>距上次真实遥测</span><strong id="continuousTelemetryLag">—</strong></div>
+              <div><span>持久化遥测帧数</span><strong id="continuousDurableFrames">—</strong></div>
+              <div><span>遥测写盘量 / 空闲磁盘</span><strong id="continuousDiskStatus">—</strong></div>
+            </div>
+            <p id="continuousMetricScope" class="continuous-muted">数值来自当前操作系统与遥测账本；进程 CPU 为累计时间，不是 CPU 使用百分比。</p>
+          </section>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>实时整星遥测</h2><span id="continuousGapBadge" class="status-chip status-muted">未订阅</span></div>
             <label class="continuous-signal">监测参量<select id="continuousSignal"><option value="orbit.radius_m">轨道半径 / m</option><option value="adcs.pointing_error_deg">姿态指向误差 / °</option><option value="eps.battery_soc">蓄电池荷电状态</option></select></label>
