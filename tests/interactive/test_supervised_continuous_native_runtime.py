@@ -110,7 +110,7 @@ def test_native_supervised_worker_matches_real_inprocess_basilisk(tmp_path):
             for key in ("orbit.radius_m", "adcs.pointing_error_deg", "eps.battery_soc"):
                 if key in a and key in b:
                     assert a[key] == pytest.approx(b[key], rel=1e-9, abs=1e-8)
-        assert result["summary"]["overall_status"] == "completed"
+        assert result["summary"]["overall_status"] == "PASS"
         with pytest.raises(RuntimeError, match="SESSION_FENCED"):
             child.apply_command(_tc(spec))
     finally:
