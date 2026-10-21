@@ -129,6 +129,18 @@ class SessionWorkspace:
             self._command_sequence += 1
             return payload
 
+    def telemetry_write_statistics(self) -> dict[str, int]:
+        """Constant-cost observation of this process's durable telemetry ledger.
+
+        Includes rotated segments and active JSONL; is never interpreted as
+        proof that the disk will stay writable on the next sample.
+        """
+        with self._lock:
+            return {
+                "durable_frame_count": self._telemetry_sequence,
+                "durable_telemetry_bytes": self._telemetry_total_bytes,
+            }
+
     def append_telemetry(self, frame: TelemetryFrame) -> dict[str, Any]:
         with self._lock:
             payload = {
