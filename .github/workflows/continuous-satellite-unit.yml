@@ -21,6 +21,7 @@ on:
       - "tests/interactive/test_command_transaction_ledger.py"
       - "tests/interactive/test_command_outbox_mirror.py"
       - "tests/interactive/test_command_writer_epoch.py"
+      - "tests/interactive/test_native_supervised_process_barrier.py"
       - "tests/test_native_mode_checkpoint.py"
       - "tests/interactive/test_session_workspace.py"
       - "tests/interactive/test_telecommand_mailbox.py"
@@ -67,6 +68,7 @@ jobs:
           tests/interactive/test_command_transaction_ledger.py
           tests/interactive/test_command_outbox_mirror.py
           tests/interactive/test_command_writer_epoch.py
+          tests/interactive/test_native_supervised_process_barrier.py
           tests/test_native_mode_checkpoint.py
           tests/interactive/test_session_workspace.py
           tests/interactive/test_telecommand_mailbox.py
