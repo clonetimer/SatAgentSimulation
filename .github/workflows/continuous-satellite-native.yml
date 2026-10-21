@@ -81,6 +81,13 @@ jobs:
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
             --disable-warnings
+      - name: Run real Basilisk 8+ second wall-clock observation pilot
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/interactive/test_continuous_observability.py
+          -k test_native_basilisk_actual_wallclock_metrics_smoke
       - name: Run accelerated continuous full-spacecraft TC/TM soak (180 simulated seconds)
         env:
           PYTHONPATH: "src:."
