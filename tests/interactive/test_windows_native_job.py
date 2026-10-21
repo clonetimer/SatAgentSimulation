@@ -37,9 +37,16 @@ def test_windows_job_close_kills_live_child():
         job = WindowsKillOnCloseJob.attach(process.pid)
         assert job.attached
         assert process.poll() is None
+        # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE guarantees termination, but
+        # Windows does not guarantee a specific numeric exit code (CI has
+        # reported zero even when the sleeping process was killed).
+        # Assert prompt process termination, not a POSIX signal exit code.
+        started = time.monotonic()
         job.close()
         assert not job.attached
-        assert process.wait(timeout=10.) != 0
+        process.wait(timeout=10.)
+        assert time.monotonic() - started < 5.0
+        assert process.poll() is not None
     finally:
         if job is not None:
             job.close()
