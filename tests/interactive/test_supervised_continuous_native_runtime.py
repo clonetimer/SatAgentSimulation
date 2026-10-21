@@ -174,3 +174,51 @@ def test_native_worker_death_does_not_recreate_graph_or_retry_tc():
             worker.prepare()
     finally:
         worker.abort()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX SIGKILL fault injection")
+def test_live_session_child_crash_preserves_active_sqlite_owner_fence(tmp_path):
+    import sqlite3
+    pytest.importorskip("Basilisk")
+    spec = _spec("r7b-owner-crash")
+    ws = SessionWorkspace(tmp_path, spec)
+    runtime, end = build_persistent_runtime(spec, supervised=True)
+    session = InteractiveSession(spec, runtime, end_time_s=end, workspace=ws)
+    try:
+        session.prepare()
+        cmd = _tc(spec, revision=session.revision)
+        assert session.submit_command(cmd).state is CommandState.QUEUED
+        # Crash while session paused/READY before any new native step.
+        child_pid = runtime.child_pid
+        assert child_pid is not None
+        os.kill(child_pid, signal.SIGKILL)
+        session.start()
+        deadline = time.monotonic() + 15.
+        while session.state not in {SessionState.FAILED, SessionState.ABORTED}:
+            assert time.monotonic() < deadline, "crashed worker did not terminate session"
+            time.sleep(.02)
+        assert session.state is SessionState.FAILED
+        assert session.wait(10.)
+        assert runtime.last_reap is not None
+        assert runtime.last_reap["exitcode"] != 0
+        with sqlite3.connect(ws.path / "command_ids.sqlite") as db:
+            state = db.execute(
+                "SELECT owner_state FROM command_writer_epoch WHERE singleton=1"
+            ).fetchone()
+            assert state == ("ACTIVE",)
+            # No ACKED state is invented for the interrupted command.
+            status = db.execute(
+                "SELECT state FROM command_lifecycle WHERE command_id=?",
+                (cmd.command_id,),
+            ).fetchone()[0]
+            assert status in {"QUEUED", "EXECUTING"}
+        from sat_sim.interactive.command_mailbox import DeterministicCommandMailbox
+        with pytest.raises(RuntimeError, match="WRITER_ALREADY_ACTIVE"):
+            DeterministicCommandMailbox(
+                persistent_ledger=True,
+                ledger_path=ws.path / "command_ids.sqlite",
+            )
+    finally:
+        if session.state not in (SessionState.COMPLETED, SessionState.FAILED, SessionState.ABORTED):
+            session.abort()
+            session.wait(10.)
