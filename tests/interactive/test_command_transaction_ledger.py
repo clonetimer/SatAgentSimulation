@@ -207,3 +207,47 @@ def test_acked_jsonl_before_sqlite_commit_is_still_unsafe(tmp_path):
     assert report["status"] == "BLOCKED_EVIDENCE_UNVERIFIABLE"
     assert "LIFECYCLE_ACK_MIRROR_MISMATCH" in report["reason_code"]
     assert report["physical_resume_supported"] is False
+
+
+def test_sqlite_claim_commit_failure_prevents_runtime_side_effect(tmp_path):
+    spec = _spec("claim-commit-failed")
+    ws = SessionWorkspace(tmp_path, spec)
+    rt = _RecordedEffect(ws.path / "command_ids.sqlite")
+    session = InteractiveSession(spec, rt, end_time_s=None, workspace=ws)
+    try:
+        tc = _cmd(spec.session_id)
+        session._emit_ack(tc, CommandState.RECEIVED)
+        assert session._command_mailbox.submit(tc, session_revision=2).accepted
+        session._emit_ack(tc, CommandState.QUEUED, "QUEUED")
+        with sqlite3.connect(rt.db) as con:
+            con.execute(
+                "CREATE TRIGGER deny_claim BEFORE UPDATE OF state ON command_lifecycle "
+                "BEGIN SELECT RAISE(ABORT, 'CLAIM_COMMIT_DENIED'); END"
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="CLAIM_COMMIT_DENIED"):
+            session._advance()
+        assert rt.call_count == 0
+        assert _state(rt.db) == "QUEUED"
+        # pop_due removed the in-memory queue item, but the session must be
+        # terminated/reconciled, NOT silently retry the native command.
+    finally:
+        session.abort()
+        session.wait(2.)
+
+
+def test_interrupted_preflight_rejects_sqlite_due_time_corruption(tmp_path):
+    from test_recovery_command_preflight import _prepare
+    from sat_sim.interactive.recovery_command_preflight import assess_interrupted_command_recovery
+    ws, _ = _prepare(tmp_path, "acked")
+    db = sqlite3.connect(ws.path / "command_ids.sqlite")
+    db.execute(
+        "UPDATE command_lifecycle SET execute_at_sim_time_s=999 WHERE command_id=?",
+        ("tc-1",),
+    )
+    db.commit()
+    db.close()
+    assessment = assess_interrupted_command_recovery(ws.path)
+    assert assessment["status"] == "BLOCKED_EVIDENCE_UNVERIFIABLE"
+    assert "LIFECYCLE_TIME_MISMATCH" in assessment["reason_code"]
+    with pytest.raises(ValueError, match="PREFLIGHT_SOURCE_CHANGED"):
+        verify_interrupted_command_preflight(ws.path)
