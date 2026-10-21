@@ -5753,13 +5753,15 @@
       state.interactiveSessions = sessions.sessions || [];
       state.interactiveCommandCatalog = catalog.commands || [];
       el('interactiveNavButton').classList.remove('hidden');
+      el('continuousNavButton')?.classList.remove('hidden');
       renderInteractiveSessions();
       renderInteractiveCapabilityHint();
       renderInteractiveCommandTargets();
     } catch (error) {
       state.interactiveAvailable = false;
       el('interactiveNavButton').classList.add('hidden');
-      if (state.activeView === 'interactive') switchView('creator');
+      el('continuousNavButton')?.classList.add('hidden');
+      if (['interactive', 'continuous'].includes(state.activeView)) switchView('creator');
     }
   }
 
@@ -6191,7 +6193,7 @@
     document.body.dataset.activeView = name;
     const viewIds = {
       creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
-      interactive: 'interactiveView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
+      interactive: 'interactiveView', continuous: 'continuousView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
@@ -6200,6 +6202,8 @@
     if (name === 'runs') loadRunCenter().catch((error) => { el('runCenterSummary').textContent = `运行中心读取失败：${error.message}`; });
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
+    if (name === 'continuous') window.SatContinuousConsole?.enter();
+    else window.SatContinuousConsole?.exit();
     if (name === 'interactive') {
       loadInteractiveSessions().then(() => {
         if (!state.interactiveSession && state.interactiveSessions.length) selectInteractiveSession(state.interactiveSessions[0].session_id);
