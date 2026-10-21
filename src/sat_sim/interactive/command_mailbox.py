@@ -315,10 +315,18 @@ class DeterministicCommandMailbox:
             sim_time_s=sim_time_s,
         )
 
-    def close(self) -> None:
+    def close(self, *, release_owner: bool = True) -> None:
+        """Close DB. A failed native worker MUST leave an ACTIVE orphan fence.
+
+        Releasing an ACTIVE owner after unknown native side effects could
+        falsely signal a clean handoff. Abnormal termination closes only the
+        local connection; a supervisor must later prove original process
+        death and reconcile effects before any separate generation claim.
+        """
         with self._lock:
             if self._database is not None:
-                if self._owner_token is not None and self._owner_epoch is not None:
+                if (release_owner and self._owner_token is not None
+                        and self._owner_epoch is not None):
                     release_owned_writer(
                         self._database,
                         epoch=self._owner_epoch,
