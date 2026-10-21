@@ -12,6 +12,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from .models import Telecommand
+from .command_writer_epoch import (
+    claim_fresh_or_cleanly_released, require_current_writer, release_owned_writer,
+)
 
 
 @dataclass(frozen=True)
@@ -39,6 +42,8 @@ class DeterministicCommandMailbox:
             if persistent_ledger and ledger_path is None else None
         )
         self._database = None
+        self._owner_epoch: int | None = None
+        self._owner_token: str | None = None
         self._sequence = 0
         if persistent_ledger:
             path = Path(ledger_path) if ledger_path is not None else Path(self._temporary_directory.name) / "command_ids.sqlite"
@@ -61,7 +66,8 @@ class DeterministicCommandMailbox:
                 "receive_sequence INTEGER NOT NULL UNIQUE, "
                 "state TEXT NOT NULL CHECK (state IN "
                 "('QUEUED','EXECUTING','ACKED','FAILED','EXPIRED')), "
-                "transition_sim_time_s REAL)"
+                "transition_sim_time_s REAL, "
+                "command_json TEXT)"
             )
             self._database.execute(
                 "CREATE TABLE IF NOT EXISTS command_event_outbox ("
@@ -78,6 +84,27 @@ class DeterministicCommandMailbox:
                 "OR (mirrored_sequence IS NOT NULL AND mirrored_entry_hash IS NOT NULL)))"
             )
             self._database.commit()
+            # R6d upgrade path: existing accepted rows cannot magically
+            # acquire a historical full command payload. Their NULL
+            # command_json remains non-rehydratable and fail-closed.
+            columns = {
+                row[1] for row in self._database.execute(
+                    "PRAGMA table_info(command_lifecycle)"
+                )
+            }
+            if "command_json" not in columns:
+                self._database.execute(
+                    "ALTER TABLE command_lifecycle ADD COLUMN command_json TEXT"
+                )
+                self._database.commit()
+            try:
+                self._owner_epoch, self._owner_token = claim_fresh_or_cleanly_released(
+                    self._database
+                )
+            except BaseException:
+                self._database.close()
+                self._database = None
+                raise
             # Reopening the *same* ledger must not reuse sequence numbers.
             row = self._database.execute(
                 "SELECT COALESCE(MAX(receive_sequence), -1) FROM command_lifecycle"
@@ -95,6 +122,7 @@ class DeterministicCommandMailbox:
         fingerprint = self._fingerprint(command)
         with self._lock:
             if self._database is not None:
+                self._require_owner()
                 stored = self._database.execute(
                     "SELECT fingerprint FROM command_ids WHERE command_id=?", (command.command_id,)
                 ).fetchone()
@@ -117,6 +145,7 @@ class DeterministicCommandMailbox:
                 # before the JSONL QUEUED receipt, the R6 preflight still
                 # blocks restart due to the missing mirrored event.
                 with self._database:
+                    self._require_owner()
                     self._database.execute(
                         "INSERT INTO command_ids (command_id, fingerprint) VALUES (?, ?)",
                         (command.command_id, fingerprint),
@@ -124,10 +153,12 @@ class DeterministicCommandMailbox:
                     self._database.execute(
                         "INSERT INTO command_lifecycle "
                         "(command_id, fingerprint, session_id, execute_at_sim_time_s, "
-                        "receive_sequence, state, transition_sim_time_s) "
-                        "VALUES (?, ?, ?, ?, ?, 'QUEUED', NULL)",
+                        "receive_sequence, state, transition_sim_time_s, command_json) "
+                        "VALUES (?, ?, ?, ?, ?, 'QUEUED', NULL, ?)",
                         (command.command_id, fingerprint, command.session_id,
-                         command.execute_at_sim_time_s, sequence),
+                         command.execute_at_sim_time_s, sequence,
+                         json.dumps(command.model_dump(mode="json"),
+                                    sort_keys=True, separators=(",", ":"))),
                     )
                     self._database.execute(
                         "INSERT INTO command_event_outbox "
@@ -141,6 +172,17 @@ class DeterministicCommandMailbox:
             heapq.heappush(self._heap, (command.execute_at_sim_time_s, sequence, command))
             return MailboxReceipt(True, False, "QUEUED", sequence)
 
+    @property
+    def writer_epoch(self) -> int | None:
+        return self._owner_epoch
+
+    def _require_owner(self) -> None:
+        if self._database is not None:
+            assert self._owner_epoch is not None and self._owner_token is not None
+            require_current_writer(
+                self._database, epoch=self._owner_epoch, token=self._owner_token,
+            )
+
     def pop_due(self, sim_time_s: float) -> tuple[Telecommand, ...]:
         due, _ = self.pop_due_partitioned(sim_time_s)
         return due
@@ -150,6 +192,7 @@ class DeterministicCommandMailbox:
         expired: list[Telecommand] = []
         now = datetime.now(timezone.utc)
         with self._lock:
+            self._require_owner()
             while self._heap and self._heap[0][0] <= sim_time_s:
                 _, _, command = heapq.heappop(self._heap)
                 if command.expires_at is None or command.expires_at > now:
@@ -172,6 +215,7 @@ class DeterministicCommandMailbox:
             return
         with self._lock:
             with self._database:
+                self._require_owner()
                 cursor = self._database.execute(
                     "UPDATE command_lifecycle SET state=?, transition_sim_time_s=? "
                     "WHERE command_id=? AND fingerprint=? AND session_id=? AND state=?",
@@ -209,6 +253,7 @@ class DeterministicCommandMailbox:
             return
         fp = self._fingerprint(command)
         with self._lock:
+            self._require_owner()
             row = self._database.execute(
                 "SELECT fingerprint, sim_time_s, mirrored_sequence, "
                 "mirrored_entry_hash FROM command_event_outbox "
@@ -236,6 +281,7 @@ class DeterministicCommandMailbox:
                     return
                 raise ValueError("TC_OUTBOX_DUPLICATE_PROJECTION_CONFLICT")
             with self._database:
+                self._require_owner()
                 updated = self._database.execute(
                     "UPDATE command_event_outbox SET mirrored_sequence=?, "
                     "mirrored_entry_hash=? WHERE command_id=? AND state=? "
@@ -272,6 +318,12 @@ class DeterministicCommandMailbox:
     def close(self) -> None:
         with self._lock:
             if self._database is not None:
+                if self._owner_token is not None and self._owner_epoch is not None:
+                    release_owned_writer(
+                        self._database,
+                        epoch=self._owner_epoch,
+                        token=self._owner_token,
+                    )
                 self._database.close()
                 self._database = None
             if self._temporary_directory is not None:
