@@ -145,6 +145,12 @@ class TelemetryBus:
                 subscriber.offer(frame)
         return frame
 
+    def latest_frame(self, stream: str) -> TelemetryFrame | None:
+        """Constant-cost, lock-protected last *actual* published TM frame."""
+        with self._lock:
+            frames = self._buffers.get(stream)
+            return frames[-1] if frames else None
+
     def read_after(self, stream: str, after_sequence: int = -1) -> TelemetryRead:
         with self._lock:
             frames = tuple(self._buffers.get(stream, ()))
