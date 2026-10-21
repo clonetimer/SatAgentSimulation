@@ -117,6 +117,14 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             )
             assert "adcs.target.set" in running[0].commands
             assert page.locator("#continuousChart").is_visible()
+            page.wait_for_function(
+                "() => document.querySelector('#continuousDurableFrames').textContent !== '—'",
+                timeout=15000,
+            )
+            assert float(page.locator("#continuousWallElapsed").inner_text().split(" ")[0]) >= 0.
+            assert page.locator("#continuousResidentBytes").inner_text() != "—"
+            assert page.locator("#continuousDiskStatus").inner_text().find(" / ") > 0
+            assert int(page.locator("#continuousDurableFrames").inner_text()) > 0
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
