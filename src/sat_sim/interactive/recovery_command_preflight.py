@@ -89,6 +89,8 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
     """Check ACK log identity, ordering and persisted accepted-command index."""
     accepted: dict[str, str] = {}
     command_state: dict[str, str] = {}
+    seen_executing: set[str] = set()
+    preacceptance: set[str] = set()
     last_sequences: dict[str, int] = {}
     events = 0
     last_event_sequence = -1
@@ -123,21 +125,32 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
             raise ValueError("RECOVERY_COMMAND_DUPLICATE_PAYLOAD_CONFLICT")
         if state == CommandState.QUEUED.value and ack.get("reason_code") != "DUPLICATE_IDEMPOTENT":
             accepted[ident] = fingerprint
+            preacceptance.discard(ident)
         elif state in {CommandState.EXECUTING.value, CommandState.ACKED.value}:
             if ident not in accepted:
                 raise ValueError("RECOVERY_COMMAND_UNACCEPTED_EXECUTION")
+            if state == CommandState.EXECUTING.value:
+                seen_executing.add(ident)
+            elif ident not in seen_executing:
+                raise ValueError("RECOVERY_COMMAND_ACK_WITHOUT_EXECUTION_PROOF")
+        elif state in {CommandState.RECEIVED.value, CommandState.VALIDATED.value}:
+            if ident not in accepted:
+                preacceptance.add(ident)
+        elif state in {CommandState.REJECTED.value, CommandState.EXPIRED.value}:
+            preacceptance.discard(ident)
         command_state[ident] = state
         last_sequences[ident] = seq
 
     index, index_sha = _read_index(root / "command_ids.sqlite")
     if accepted != index:
         raise ValueError("RECOVERY_COMMAND_LEDGER_EVENT_SET_MISMATCH")
-    states = {"queued": [], "executing": [], "acked": [], "terminal_other": []}
+    states = {"queued": [], "executing": [], "acked": [],
+              "failed": [], "terminal_other": []}
     for ident in accepted:
         state = command_state[ident]
         bucket = ("queued" if state == "QUEUED" else "executing"
                   if state == "EXECUTING" else "acked" if state == "ACKED"
-                  else "terminal_other")
+                  else "failed" if state == "FAILED" else "terminal_other")
         states[bucket].append(ident)
     return {
         "accepted_count": len(accepted),
@@ -147,6 +160,8 @@ def _analyze_commands(root: Path, *, session_id: str) -> dict[str, Any]:
         "executing_ids": sorted(states["executing"]),
         "acked_ids": sorted(states["acked"]),
         "other_terminal_ids": sorted(states["terminal_other"]),
+        "failed_ids": sorted(states["failed"]),
+        "preacceptance_uncertain_ids": sorted(preacceptance),
         "pending_accepted_ids": sorted(
             ident for ident in accepted if command_state[ident] in {"RECEIVED", "VALIDATED"}
         ),
@@ -177,10 +192,11 @@ def assess_interrupted_command_recovery(root: Path) -> dict[str, Any]:
         result["command_evidence"] = None
     else:
         result["command_evidence"] = command
-        if command["executing_ids"]:
+        if command["executing_ids"] or command["failed_ids"]:
             result["status"] = "BLOCKED_AMBIGUOUS_INFLIGHT"
             result["reason_code"] = "EXECUTION_OUTCOME_UNKNOWN_NO_REPLAY"
-        elif command["queued_ids"] or command["pending_accepted_ids"]:
+        elif (command["queued_ids"] or command["pending_accepted_ids"]
+              or command["preacceptance_uncertain_ids"]):
             result["status"] = "BLOCKED_UNRESOLVED_PENDING_TC"
             result["reason_code"] = "PENDING_TC_MUST_NOT_BE_LOST_OR_REPLAYED"
         else:
