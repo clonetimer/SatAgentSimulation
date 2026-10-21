@@ -18,7 +18,7 @@ def _build(*, closed_loop: bool = True):
     from Basilisk.architecture import messaging
     from Basilisk.simulation import spacecraft, reactionWheelStateEffector, simpleNav
     from Basilisk.fswAlgorithms import (
-        inertial3D, attTrackingError, mrpFeedback, rwMotorTorque,
+        inertial3D, hillPoint, attTrackingError, mrpFeedback, rwMotorTorque,
     )
     from Basilisk.utilities import (
         SimulationBaseClass, macros, simIncludeRW, simIncludeGravBody,
@@ -63,6 +63,10 @@ def _build(*, closed_loop: bool = True):
     attitude_reference = inertial3D.inertial3D()
     attitude_reference.sigma_R0N = [0., 0., 0.]
     sim.AddModelToTask("slow", attitude_reference, None, 95)
+    hill = hillPoint.hillPoint()
+    hill.ModelTag = "native-nadir-hill-point"
+    hill.transNavInMsg.subscribeTo(nav.transOutMsg)
+    sim.AddModelToTask("slow", hill, None, 94)
     error = attTrackingError.attTrackingError()
     error.attNavInMsg.subscribeTo(nav.attOutMsg)
     error.attRefInMsg.subscribeTo(attitude_reference.attRefOutMsg)
@@ -109,6 +113,7 @@ def _build(*, closed_loop: bool = True):
         "tasks": {"dynamics": fast, "observer": slow},
         "sc": sc, "rw": rw, "controller": controller,
         "allocator": allocator, "nav": nav, "attitude_reference": attitude_reference,
+        "hill_guidance": hill,
         "attitude_error": error,
         "messages": (config_message, rw_params),
         "control_log": control_log, "motor_log": motor_log,
@@ -214,6 +219,18 @@ def test_live_closed_loop_joint_checkpoint_fails_closed_until_rw_and_messages_co
 def _closed_loop_rows(graph, *, after_ns: int):
     """Capture only native telemetry after the agreed physical checkpoint."""
     return {
+        "attitude_mrp": [
+            (int(t), [float(v) for v in sigma])
+            for t, sigma in zip(graph["attitude_log"].times(),
+                                graph["attitude_log"].sigma_BN)
+            if int(t) > after_ns
+        ],
+        "body_rate": [
+            (int(t), [float(v) for v in rate])
+            for t, rate in zip(graph["attitude_log"].times(),
+                               graph["attitude_log"].omega_BN_B)
+            if int(t) > after_ns
+        ],
         "fsw_torque": [
             (int(t), [float(v) for v in torque])
             for t, torque in zip(graph["control_log"].times(),
@@ -250,13 +267,24 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
 
     if mode not in (
         "complete_pilot", "no_held_rw_command", "no_fsw_memory",
-        "no_rw_effector_memory",
+        "no_rw_effector_memory", "guidance_switch", "guidance_missing_switch",
     ):
         raise ValueError("ADCS_CLOSED_LOOP_UNSUPPORTED_TEST_MODE")
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     evidence = data["evidence"]
     verify_closed_loop_evidence(evidence)
     graph = _build(closed_loop=True)
+    if mode in ("guidance_switch", "guidance_missing_switch"):
+        from sat_sim.interactive.native_mode_checkpoint import validate_mode_checkpoint
+        from sat_sim.interactive.native_guidance_route_pilot import (
+            restore_native_guidance_route_fresh,
+        )
+        journal = data["guidance_mode_checkpoint"]
+        validated = validate_mode_checkpoint(journal)
+        if validated["checkpoint_ns"] != evidence["checkpoint_sim_time_ns"]:
+            raise ValueError("ADCS_NATIVE_GUIDANCE_CHECKPOINT_TIME_MISMATCH")
+        if mode == "guidance_switch":
+            restore_native_guidance_route_fresh(graph, journal)
     restore_state_subset_in_place(
         graph["sc"], evidence["spacecraft_rw_state"], expected_rw_count=3,
     )
@@ -401,6 +429,123 @@ def test_native_full_loop_joint_checkpoint_cross_process_parity(tmp_path) -> Non
             )
         )
         assert delta > 1e-7, mode
+
+
+
+
+def test_native_guidance_mode_switch_restart_parity(tmp_path) -> None:
+    """Inertial guidance -> true Basilisk hillPoint nadir guidance at 1.8s.
+
+    Both C guidance algorithms run in the native 600ms FSW process. The
+    tracking controller's *real* C input subscription changes, and a new OS
+    process reconstructs that subscription alongside spacecraft/RW/FSW state.
+    This proves an isolated route transition, not the full flight mode manager.
+    """
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_mode_checkpoint import capture_mode_checkpoint
+    from sat_sim.interactive.native_guidance_route_pilot import switch_native_guidance
+    from sat_sim.interactive.native_closed_loop_evidence import (
+        capture_closed_loop_evidence, verify_closed_loop_evidence,
+    )
+
+    source = _build(closed_loop=True)
+    source["sim"].ConfigureStopTime(macros.sec2nano(1.8))
+    source["sim"].ExecuteSimulation()
+    # After the 1.8s FSW execution and before its next 2.4s execution:
+    # route the actual attTrackingError input to the native Hill reference.
+    switch_native_guidance(source, "nadir")
+    checkpoint_ns = macros.sec2nano(2.0)
+    source["sim"].ConfigureStopTime(checkpoint_ns)
+    source["sim"].ExecuteSimulation()
+    evidence = capture_closed_loop_evidence(
+        sim=source["sim"], processes=source["processes"],
+        tasks=source["tasks"], spacecraft=source["sc"],
+        controller=source["controller"], allocator=source["allocator"],
+        rw_effector=source["rw"],
+    )
+    verify_closed_loop_evidence(evidence)
+    journal = capture_mode_checkpoint(
+        checkpoint_ns=checkpoint_ns, current_mode="nadir",
+        transitions=[
+            {
+                "event_id": "startup-inertial", "revision": 1,
+                "requested_ns": 0, "resolved_ns": 0,
+                "from_mode": "standby", "to_mode": "inertial3d",
+                "status": "applied",
+            },
+            {
+                "event_id": "mode-nadir-tc-1", "revision": 2,
+                "requested_ns": macros.sec2nano(1.8),
+                "resolved_ns": macros.sec2nano(1.8),
+                "from_mode": "inertial3d", "to_mode": "nadir",
+                "status": "applied",
+            },
+        ],
+    )
+    assert journal["resume_supported"] is False
+    path = tmp_path / "native-guidance-switch-checkpoint.json"
+    path.write_text(json.dumps({
+        "evidence": evidence,
+        "guidance_mode_checkpoint": journal,
+        "last_rw_motor_payload": [
+            float(x) for x in source["allocator"].rwMotorTorqueOutMsg.read().motorTorque
+        ],
+    }, sort_keys=True), encoding="utf-8")
+
+    source["sim"].ConfigureStopTime(macros.sec2nano(5.0))
+    source["sim"].ExecuteSimulation()
+    expected_rows = _closed_loop_rows(source, after_ns=checkpoint_ns)
+    expected_final = capture_state_subset(source["sc"], expected_rw_count=3)
+    assert len(expected_rows["fsw_torque"]) >= 3
+    results = {}
+    for mode in ("guidance_switch", "guidance_missing_switch"):
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--adcs-worker",
+             str(path), "5.0", mode],
+            capture_output=True, text=True, timeout=45, check=False,
+        )
+        assert proc.returncode == 0, proc.stdout + "\\n" + proc.stderr
+        results[mode] = json.loads(next(
+            line.removeprefix("CLOSED_LOOP_RESTART_JSON:")
+            for line in proc.stdout.splitlines()
+            if line.startswith("CLOSED_LOOP_RESTART_JSON:")
+        ))
+        assert results[mode]["pid"] != os.getpid()
+        assert results[mode]["resume_supported"] is False
+        assert results[mode]["end_ns"] == macros.sec2nano(5.0)
+
+    restored = results["guidance_switch"]
+    for channel in ("attitude_mrp", "body_rate", "fsw_torque",
+                    "motor_torque", "rw_speeds"):
+        observed, baseline = restored["telemetry"][channel], expected_rows[channel]
+        assert [t for t, _ in observed] == [t for t, _ in baseline], channel
+        assert len(observed) > 2, channel
+        for row_idx, ((at, values), (_, target)) in enumerate(zip(observed, baseline)):
+            assert values == pytest.approx(target, abs=1e-8, rel=1e-11), (
+                f"GUIDANCE_RESTART_FIRST_MISMATCH channel={channel} "
+                f"row={row_idx} time_ns={at}"
+            )
+    for name, values in expected_final["vectors"].items():
+        assert restored["final_state"]["vectors"][name] == pytest.approx(
+            values, abs=1e-8, rel=1e-11
+        ), name
+
+    # The physically active route matters: preserving the same dynamics,
+    # scheduler, controller integrator, and held motor command is not enough.
+    omitted = results["guidance_missing_switch"]
+    mismatch = max(
+        abs(x - y)
+        for (t, out), (u, ref) in zip(
+            omitted["telemetry"]["fsw_torque"], expected_rows["fsw_torque"]
+        )
+        for x, y in zip(out, ref)
+    )
+    assert mismatch > 1e-7, "Missing native guidance connection went undetected"
 
 
 if __name__ == "__main__":
