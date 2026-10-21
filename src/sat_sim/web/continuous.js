@@ -1,0 +1,383 @@
+/* R7 continuous native console: independent UI over the approved interactive REST API.
+   No mock telemetry, hidden autoplay, client-side recovery or TC replay. */
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    active: false, timer: null, refreshBusy: false,
+    selectedId: null, snapshot: null, policy: null,
+    lastTelemetrySeq: -1, lastEventSeq: -1,
+    telemetry: [], events: [], acks: [], gap: null,
+  };
+  const terminal = new Set(['COMPLETED', 'ABORTED', 'FAILED', 'INTERRUPTED']);
+  const valueText = (val, digits = 3) => {
+    const n = Number(val);
+    return Number.isFinite(n) ? n.toFixed(digits) : '—';
+  };
+  async function api(path, options = {}) {
+    const token = sessionStorage.getItem('sat-sim-api-token') || '';
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: 'Bearer ' + token } : {}),
+        ...(options.headers || {}),
+      },
+    });
+    const payload = (response.headers.get('content-type') || '').includes('application/json')
+      ? await response.json() : await response.text();
+    if (!response.ok) {
+      const detail = payload?.detail || payload;
+      throw new Error(typeof detail === 'string' ? detail : (
+        detail?.reason_code || detail?.message || 'HTTP ' + response.status
+      ));
+    }
+    return payload;
+  }
+  function setText(id, text) {
+    const node = $(id);
+    if (node) node.textContent = String(text);
+  }
+  function notice(text, error = false) {
+    const target = $('continuousNotice');
+    target.classList.remove('hidden');
+    target.classList.toggle('error', error);
+    target.textContent = text;
+  }
+  function element(type, text, className) {
+    const node = document.createElement(type);
+    if (text !== undefined) node.textContent = String(text);
+    if (className) node.className = className;
+    return node;
+  }
+  function renderSessionList(sessions) {
+    const target = $('continuousSessionList');
+    target.replaceChildren();
+    setText('continuousSessionCount', sessions.length);
+    if (!sessions.length) {
+      target.append(element('p', '尚无持续会话，填写上方表单创建。', 'continuous-muted'));
+      return;
+    }
+    sessions.forEach((session) => {
+      const node = element('button', '', 'continuous-session' +
+        (session.session_id === state.selectedId ? ' active' : ''));
+      node.type = 'button';
+      node.append(
+        element('strong', session.session_id),
+        element('span', session.state + ' · ' + valueText(session.sim_time_s, 1) + ' s'),
+      );
+      node.addEventListener('click', () => {
+        state.selectedId = session.session_id;
+        state.snapshot = null;
+        state.telemetry = [];
+        state.events = [];
+        state.acks = [];
+        state.lastTelemetrySeq = -1;
+        state.lastEventSeq = -1;
+        state.gap = null;
+        renderChart();
+        refresh().catch((e) => notice('会话读取失败：' + e.message, true));
+      });
+      target.append(node);
+    });
+  }
+  function renderInterrupted(items) {
+    const target = $('continuousInterruptedList');
+    target.replaceChildren();
+    if (!items.length) {
+      target.append(element('p', '未发现待处理的中断工作区。', 'continuous-muted'));
+      return;
+    }
+    items.forEach((item) => {
+      const card = element('div', undefined, 'continuous-interrupted-item');
+      card.append(element('strong', item.session_id), element('span',
+        item.reason_code || item.state || '不可自动接管'));
+      target.append(card);
+    });
+  }
+  function renderStatus() {
+    const info = state.snapshot;
+    const session = info?.session;
+    const live = Boolean(session) && !terminal.has(session.state);
+    const mode = info?.runtime_mode || state.policy?.mode || '未连接';
+    setText('continuousRuntimeMode', mode === 'SUPERVISED_NATIVE_CHILD'
+      ? '原生独立进程' : '原生进程内');
+    setText('continuousState', session?.state || '未选择');
+    setText('continuousSimTime', valueText(session?.sim_time_s, 2) + ' s');
+    setText('continuousLiveRate', valueText(session?.rate || 1, 1) + '×');
+    setText('continuousArchive', session?.archive_status || '—');
+    setText('continuousChildPid', info?.native_child_pid ?? '进程内运行 / 未启动');
+    setText('continuousWriterEpoch', info?.writer_epoch ?? '—');
+    const fence = info?.parent_death_fence;
+    setText('continuousParentFence', fence?.supported
+      ? 'Linux 内核父进程死亡栅栏：已安装'
+      : (mode === 'SUPERVISED_NATIVE_CHILD' ? '未证明有操作系统父进程死亡保护' : '进程内模式：不适用子进程死亡保护'));
+    setText('continuousErrorDetail', session?.terminal_error || session?.archive_error || '');
+    document.querySelectorAll('[data-continuous-action]').forEach((button) => {
+      const action = button.dataset.continuousAction;
+      button.disabled = !live || (
+        action === 'start' ? session.state !== 'READY'
+          : action === 'pause' ? session.state !== 'RUNNING'
+          : action === 'resume' ? session.state !== 'PAUSED'
+          : action === 'step' ? session.state !== 'PAUSED'
+          : !['READY', 'RUNNING', 'PAUSED'].includes(session.state)
+      );
+    });
+    $('continuousCommandForm').querySelector('button[type=submit]').disabled =
+      !live || !['READY', 'RUNNING', 'PAUSED'].includes(session.state);
+  }
+  function renderLog(id, rows, formatter) {
+    const node = $(id);
+    node.replaceChildren();
+    const tail = rows.slice(-20).reverse();
+    if (!tail.length) {
+      node.append(element('p', '当前尚无记录。', 'continuous-muted'));
+      return;
+    }
+    tail.forEach((row) => {
+      const line = element('div', undefined, 'continuous-log-item');
+      line.append(element('strong', formatter(row)), element('small',
+        [row.reason_code, row.sim_time_s === null || row.sim_time_s === undefined
+          ? '' : valueText(row.sim_time_s, 2) + ' s'].filter(Boolean).join(' · ')));
+      node.append(line);
+    });
+  }
+  function renderChart() {
+    const canvas = $('continuousChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    const width = Math.max(320, Math.round(canvas.clientWidth || 800));
+    const height = Math.max(200, Math.round(canvas.clientHeight || 265));
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    ctx.scale(ratio, ratio);
+    ctx.clearRect(0, 0, width, height);
+    const key = $('continuousSignal').value;
+    const points = state.telemetry.flatMap((frame) => {
+      const t = Number(frame.sim_time_s);
+      const v = Number(frame.values?.[key]);
+      return Number.isFinite(t) && Number.isFinite(v) ? [{ t, v }] : [];
+    });
+    const padding = { left: 57, right: 20, top: 20, bottom: 30 };
+    const x0 = padding.left, x1 = width - padding.right;
+    const y0 = height - padding.bottom, y1 = padding.top;
+    ctx.strokeStyle = 'rgba(130,145,160,.3)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i += 1) {
+      const y = y1 + (y0 - y1) * i / 4;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+    }
+    ctx.fillStyle = '#7890a6';
+    ctx.font = '12px system-ui';
+    if (!points.length) {
+      ctx.fillText('尚无原生遥测数据，请启动会话。', x0 + 20, height / 2);
+      return;
+    }
+    let minT = points[0].t, maxT = points[points.length - 1].t;
+    let minV = Math.min(...points.map((p) => p.v));
+    let maxV = Math.max(...points.map((p) => p.v));
+    if (maxT <= minT) maxT = minT + 1;
+    if (maxV <= minV) { minV -= 1; maxV += 1; }
+    const margin = (maxV - minV) * 0.08;
+    minV -= margin; maxV += margin;
+    ctx.fillText(valueText(maxV, 2), 2, y1 + 8);
+    ctx.fillText(valueText(minV, 2), 2, y0);
+    ctx.fillText(valueText(minT, 1) + 's', x0, height - 7);
+    ctx.fillText(valueText(maxT, 1) + 's', x1 - 38, height - 7);
+    ctx.strokeStyle = '#24a7c8';
+    ctx.lineWidth = 2.1;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = x0 + (x1 - x0) * (p.t - minT) / (maxT - minT);
+      const y = y0 - (y0 - y1) * (p.v - minV) / (maxV - minV);
+      if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+  function latest() {
+    const frame = state.telemetry[state.telemetry.length - 1];
+    const vals = frame?.values || {};
+    setText('continuousOrbit', vals['orbit.radius_m'] === undefined ? '—' :
+      valueText(vals['orbit.radius_m'], 1) + ' m');
+    setText('continuousPointing', vals['adcs.pointing_error_deg'] === undefined ? '—' :
+      valueText(vals['adcs.pointing_error_deg'], 3) + '°');
+    setText('continuousSoc', vals['eps.battery_soc'] === undefined ? '—' :
+      valueText(Number(vals['eps.battery_soc']) * 100, 1) + '%');
+    setText('continuousGapBadge', state.gap ? '缓冲缺口 · ' +
+      state.gap.dropped_count : (frame ? '遥测已同步' : '暂无遥测'));
+    renderChart();
+  }
+  async function refresh() {
+    if (!state.active || state.refreshBusy) return;
+    state.refreshBusy = true;
+    try {
+      const overview = await api('/interactive/continuous/overview');
+      state.policy = overview;
+      const sessions = overview.sessions || [];
+      if (!state.selectedId && sessions.length) state.selectedId = sessions[0].session_id;
+      if (state.selectedId && !sessions.some((s) => s.session_id === state.selectedId)) {
+        state.selectedId = null;
+        state.snapshot = null;
+      }
+      setText('continuousConnectionBadge', '服务已连接 · ' +
+        (overview.mode === 'SUPERVISED_NATIVE_CHILD' ? '独立原生进程' : '进程内原生'));
+      renderSessionList(sessions);
+      renderInterrupted(overview.interrupted_workspaces || []);
+      if (!state.selectedId) { renderStatus(); return; }
+      const id = encodeURIComponent(state.selectedId);
+      const [info, tm, events, acks] = await Promise.all([
+        api('/interactive/continuous/sessions/' + id + '/status'),
+        api('/interactive/sessions/' + id + '/telemetry/whole.continuous?after_sequence=' + state.lastTelemetrySeq),
+        api('/interactive/sessions/' + id + '/events?after_sequence=' + state.lastEventSeq),
+        api('/interactive/sessions/' + id + '/commands'),
+      ]);
+      if (info.session.session_id !== state.selectedId) return;
+      state.snapshot = info;
+      state.gap = tm.gap || null;
+      (tm.frames || []).forEach((frame) => {
+        if (frame.sequence > state.lastTelemetrySeq) {
+          state.telemetry.push(frame);
+          state.lastTelemetrySeq = frame.sequence;
+        }
+      });
+      if (state.telemetry.length > 280) state.telemetry.splice(0, state.telemetry.length - 280);
+      (events.events || []).forEach((ev) => {
+        if (ev.sequence > state.lastEventSeq) {
+          state.events.push(ev);
+          state.lastEventSeq = ev.sequence;
+        }
+      });
+      if (state.events.length > 60) state.events.splice(0, state.events.length - 60);
+      state.acks = (acks.acks || []).slice(-60);
+      renderStatus();
+      latest();
+      renderLog('continuousEventList', state.events, (e) => e.state + ' · ' + (e.reason_code || ''));
+      renderLog('continuousAckList', state.acks, (a) => a.command_id + ' · ' + a.state);
+    } catch (error) {
+      setText('continuousConnectionBadge', '连接异常');
+      notice('持续会话状态读取失败：' + error.message, true);
+    } finally {
+      state.refreshBusy = false;
+    }
+  }
+  async function createSession(event) {
+    event.preventDefault();
+    const form = $('continuousCreateForm');
+    if (!form.reportValidity()) return;
+    const body = {
+      session_id: $('continuousSessionId').value.trim(),
+      quantum_s: Number($('continuousQuantum').value),
+      rate: Number($('continuousRate').value),
+      paced: $('continuousPaced').checked,
+      initial_horizon_s: Number($('continuousHorizon').value),
+    };
+    try {
+      const result = await api('/interactive/continuous/sessions', {
+        method: 'POST', body: JSON.stringify(body),
+      });
+      state.selectedId = result.session_id;
+      state.telemetry = []; state.events = []; state.acks = [];
+      state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
+      notice('持续会话已创建。可启动仿真并发送遥控。');
+      await refresh();
+    } catch (e) { notice('创建失败：' + e.message, true); }
+  }
+  async function control(action) {
+    if (!state.selectedId) return;
+    if (action === 'stop' && !confirm('确认停止持续仿真并归档？停止后不能继续当前物理状态。')) return;
+    try {
+      await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/control', {
+        method: 'POST', body: JSON.stringify({ action }),
+      });
+      notice({ start: '仿真已启动', pause: '仿真已暂停', resume: '已继续仿真',
+        step: '已推进一个量子', stop: '停止请求已处理' }[action] || '操作完成');
+      await refresh();
+    } catch (e) { notice('会话控制失败：' + e.message, true); }
+  }
+  function changeOperation() {
+    const op = $('continuousOperation').value;
+    const visibility = {
+      continuousTargetFields: op === 'adcs.target.set',
+      continuousModeFields: op === 'session.mode.set',
+      continuousControlFields: op === 'adcs.control.set',
+      continuousFaultFields: op === 'adcs.fault.inject',
+    };
+    Object.entries(visibility).forEach(([id, show]) => $(id).classList.toggle('hidden', !show));
+  }
+  async function sendCommand(event) {
+    event.preventDefault();
+    if (!state.snapshot?.session || !state.selectedId) {
+      notice('请先选择可操作的持续会话。', true); return;
+    }
+    const op = $('continuousOperation').value;
+    let parameters, target, actor_role = 'operator';
+    if (op === 'adcs.target.set') {
+      parameters = { sigma_rn: ['continuousSigma1', 'continuousSigma2', 'continuousSigma3']
+        .map((id) => Number($(id).value)) };
+      target = 'subsystem.adcs';
+    } else if (op === 'session.mode.set') {
+      parameters = { mode: $('continuousMode').value };
+      target = 'whole_spacecraft';
+    } else if (op === 'adcs.control.set') {
+      parameters = { enabled: $('continuousControlEnabled').value === 'true' };
+      target = 'subsystem.adcs';
+    } else {
+      parameters = { fault_id: $('continuousFault').value, severity: Number($('continuousSeverity').value) };
+      target = 'subsystem.adcs'; actor_role = 'fault_operator';
+    }
+    const when = Number($('continuousExecuteAt').value);
+    if (!Number.isFinite(when) || when < 0) {
+      notice('执行时刻必须是非负仿真秒数。', true); return;
+    }
+    if (op === 'adcs.target.set' && parameters.sigma_rn.some((n) => !Number.isFinite(n) || Math.abs(n) > 1)) {
+      notice('MRP 三个分量的范围均为 -1 到 1。', true); return;
+    }
+    const command = {
+      command_id: 'tc-' + crypto.randomUUID(),
+      session_id: state.selectedId,
+      session_revision: state.snapshot.session.revision,
+      operation: op, target, parameters, actor_id: 'browser-operator',
+      actor_role, execute_at_sim_time_s: when,
+    };
+    if (!confirm('确认发送遥控 ' + op + '，预定在仿真 ' + when.toFixed(2) + ' 秒执行？')) return;
+    try {
+      const ack = await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/commands', {
+        method: 'POST', body: JSON.stringify(command),
+      });
+      notice('遥控 ' + ack.command_id + '：' + ack.state +
+        (ack.reason_code ? ' / ' + ack.reason_code : ''), ack.state === 'REJECTED');
+      await refresh();
+    } catch (e) { notice('遥控发送失败：' + e.message, true); }
+  }
+  function enter() {
+    state.active = true;
+    clearInterval(state.timer);
+    refresh();
+    state.timer = setInterval(refresh, 1400);
+  }
+  function exit() {
+    state.active = false;
+    clearInterval(state.timer);
+    state.timer = null;
+  }
+  function initialize() {
+    $('continuousCreateForm')?.addEventListener('submit', createSession);
+    $('continuousCommandForm')?.addEventListener('submit', sendCommand);
+    $('continuousRefreshBtn')?.addEventListener('click', () => refresh());
+    $('continuousOperation')?.addEventListener('change', changeOperation);
+    $('continuousSignal')?.addEventListener('change', renderChart);
+    document.querySelectorAll('[data-continuous-action]').forEach((button) => {
+      button.addEventListener('click', () => control(button.dataset.continuousAction));
+    });
+    window.addEventListener('resize', () => {
+      if (state.active) renderChart();
+    });
+    changeOperation();
+    renderStatus();
+    renderChart();
+  }
+  window.SatContinuousConsole = { enter, exit };
+  document.addEventListener('DOMContentLoaded', initialize);
+})();
