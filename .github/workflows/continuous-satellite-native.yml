@@ -59,7 +59,7 @@ jobs:
             tests/interactive/test_native_state_pilot.py \
             tests/interactive/test_native_multitask_pilot.py \
             tests/interactive/test_native_multiprocess_pilot.py \
-            tests/interactive/test_native_closed_loop_checkpoint.py
+            tests/interactive/test_native_closed_loop_checkpoint.py \
             tests/interactive/test_native_rw_fault_checkpoint.py \
             tests/interactive/test_interactive_api.py \
             tests/interactive/test_unified_segmented_execution.py \
