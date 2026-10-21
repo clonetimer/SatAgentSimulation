@@ -22,6 +22,7 @@ on:
       - "tests/interactive/test_command_outbox_mirror.py"
       - "tests/interactive/test_command_writer_epoch.py"
       - "tests/interactive/test_native_supervised_process_barrier.py"
+      - "tests/interactive/test_supervised_continuous_native_runtime.py"
       - "tests/test_native_mode_checkpoint.py"
       - "tests/interactive/test_session_workspace.py"
       - "tests/interactive/test_telecommand_mailbox.py"
@@ -69,6 +70,7 @@ jobs:
           tests/interactive/test_command_outbox_mirror.py
           tests/interactive/test_command_writer_epoch.py
           tests/interactive/test_native_supervised_process_barrier.py
+          tests/interactive/test_supervised_continuous_native_runtime.py
           tests/test_native_mode_checkpoint.py
           tests/interactive/test_session_workspace.py
           tests/interactive/test_telecommand_mailbox.py
