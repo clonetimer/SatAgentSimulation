@@ -121,8 +121,14 @@ def test_metrics_unknown_session_and_bounded_workspace_reads(tmp_path, monkeypat
 def test_native_basilisk_actual_wallclock_metrics_smoke(tmp_path, monkeypatch):
     """A genuine >=8s *wall-clock* Basilisk run, not 8 simulated seconds."""
     import json
+    import os
+    import subprocess
+    import sys
+    from sat_sim.interactive.continuous_endurance import EVIDENCE_FILE
     pytest.importorskip("Basilisk")
     app = _client(tmp_path, monkeypatch)
+    real_target_s = float(os.getenv("SAT_SIM_CONTINUOUS_WALLCLOCK_TARGET_S", "8"))
+    assert 8. <= real_target_s <= 120., "short-run CI smoke only"
     samples = []
     with TestClient(app) as client:
         created = client.post(
@@ -141,7 +147,7 @@ def test_native_basilisk_actual_wallclock_metrics_smoke(tmp_path, monkeypatch):
             evidence_started = client.post(evidence_url + "/start", json={"sample_interval_s": 1.})
             assert evidence_started.status_code == 201, evidence_started.text
             wall_start = time.monotonic()
-            while time.monotonic() - wall_start < 8.0:
+            while time.monotonic() - wall_start < real_target_s:
                 row = client.get(path)
                 assert row.status_code == 200, row.text
                 observation = row.json()
@@ -152,7 +158,7 @@ def test_native_basilisk_actual_wallclock_metrics_smoke(tmp_path, monkeypatch):
                 assert observation["resume_supported"] is False
                 time.sleep(.5)
             wall_actual = time.monotonic() - wall_start
-            assert wall_actual >= 8.
+            assert wall_actual >= real_target_s
             assert len(samples) >= 6
             assert samples[-1]["wall_elapsed_s"] - samples[0]["wall_elapsed_s"] >= 7.
             assert samples[-1]["sim_elapsed_s"] > samples[0]["sim_elapsed_s"]
@@ -180,6 +186,21 @@ def test_native_basilisk_actual_wallclock_metrics_smoke(tmp_path, monkeypatch):
             assert proof["summary"]["observed_wall_span_s"] >= 6.
             assert client.get(evidence_url + "/evidence").status_code == 200
             assert client.get(evidence_url + "/summary").status_code == 200
+            audit = client.get(evidence_url + "/audit")
+            assert audit.status_code == 200, audit.text
+            assert audit.json()["verdict"] == "NOT_QUALIFIED"
+            assert audit.json()["qualified_24h_wallclock"] is False
+            # The same on-disk artifact can be verified by a *separate*
+            # Python process, without owning a session or reusing server
+            # runtime references.
+            workspace = next(tmp_path.rglob(EVIDENCE_FILE)).parent
+            external = subprocess.run(
+                [sys.executable, "-m",
+                 "sat_sim.interactive.continuous_endurance_audit", str(workspace)],
+                capture_output=True, text=True, timeout=20.,
+            )
+            assert external.returncode == 0, external.stderr + external.stdout
+            assert json.loads(external.stdout)["verdict"] == "NOT_QUALIFIED"
             print("R7F_ENDURANCE_NATIVE_EVIDENCE_JSON:" + json.dumps({
                 "real_endurance_samples": proof["sample_count"],
                 "observed_wall_span_s": round(proof["summary"]["observed_wall_span_s"], 3),
