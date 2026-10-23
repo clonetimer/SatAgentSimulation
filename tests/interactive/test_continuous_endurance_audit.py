@@ -264,3 +264,42 @@ def test_original_command_outbox_mismatch_blocks_even_if_endurance_chain_good(tm
         assert invalid["verdict"] == "BLOCKED", invalid
         assert "ORIGINAL_SOURCE_RECONCILIATION_INVALID" in invalid["reason_codes"]
         assert _cli(workspace).returncode == 2
+
+
+def test_source_state_pause_between_samples_is_independent_veto(tmp_path):
+    """A source PAUSED event may occur entirely between two R7f samples."""
+    from datetime import datetime, timedelta, timezone
+    from sat_sim.interactive.models import InteractiveSessionSpec, SessionState
+    from sat_sim.interactive.workspace import SessionWorkspace
+    from sat_sim.interactive.command_mailbox import DeterministicCommandMailbox
+    from sat_sim.interactive.continuous_source_audit import audit_original_sources
+
+    spec = InteractiveSessionSpec(
+        session_id="state-gap",
+        capability_id="whole_spacecraft.unified_native.v1",
+        continuous=True, quantum_s=0.2,
+        task_spec={"simulation": {"duration_s": 60}},
+    )
+    ws = SessionWorkspace(tmp_path, spec)
+    for revision, state in enumerate([
+        SessionState.CREATED, SessionState.PREPARING, SessionState.READY,
+        SessionState.RUNNING, SessionState.PAUSED, SessionState.RUNNING,
+        SessionState.STOPPING, SessionState.COMPLETED,
+    ]):
+        ws.append_state(state, revision, 0., "TEST_PHASE")
+    mailbox = DeterministicCommandMailbox(
+        persistent_ledger=True, ledger_path=ws.path / "command_ids.sqlite",
+    )
+    mailbox.close()
+    now = datetime.now(timezone.utc)
+    result = audit_original_sources(
+        ws.path,
+        first_sample_utc=now - timedelta(seconds=10),
+        last_sample_utc=now + timedelta(seconds=10),
+        evidence_last_sim_time_s=0.,
+    )
+    assert result["status"] == "WARNING"
+    assert result["state"]["observed_window_interruption"] is True
+    assert "ORIGINAL_STATE_PAUSED_OR_INTERRUPTED_IN_WINDOW" in result["reason_codes"]
+    assert result["tc_ledger"]["accepted_commands"] == 0
+    assert result["tc_ledger"]["sqlite_writer_state"] == "RELEASED"
