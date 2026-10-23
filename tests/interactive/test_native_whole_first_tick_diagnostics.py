@@ -50,18 +50,31 @@ def _worker(path: str, topology: str) -> None:
         restore_rw_effector_memory_fresh,
         capture_rw_effector_memory,
     )
+    from sat_sim.interactive.native_whole_applied_command_lab import (
+        restore_last_applied_rw_command_fresh,
+    )
     evidence = json.loads(Path(path).read_text(encoding="utf-8"))
     source = evidence["checkpoint"]
     measurement_ns = int(evidence["comparison_ns"])
+    all_stops = [int(t) for t in evidence.get("comparison_times_ns", [measurement_ns])]
+    if (
+        not 1 <= len(all_stops) <= 5
+        or all_stops[0] != measurement_ns
+        or all_stops != sorted(set(all_stops))
+        or any(t != 800_000_000 + (i+1) * 200_000_000 for i, t in enumerate(all_stops))
+    ):
+        raise ValueError("R9H_COMPARISON_GRID_UNSUPPORTED")
     ablation_mode = evidence.get("ablation_mode", "R9F_NATIVE_SUBSET_ONLY")
     if ablation_mode not in (
         "R9F_NATIVE_SUBSET_ONLY", "R9G_WITH_RW_CPP_MEMORY",
+        "R9H_RW_MEMORY_PLUS_APPLIED_COMMAND",
     ):
-        raise ValueError("R9G_ABLATION_MODE_UNSUPPORTED")
-    data = {}
+        raise ValueError("R9H_ABLATION_MODE_UNSUPPORTED")
+    data = {"measurements": []}
 
     def probe(*, sim, process, task, spacecraft, rw_effector, controller,
-              wheel_count, whole_modules):
+              wheel_count, whole_modules, rw_command_fault_manager=None,
+              allocator=None):
         native_vectors = import_fresh_native_whole_state_subset(
             sim=sim, spacecraft=spacecraft, expected_rw_count=wheel_count,
             checkpoint_audit=source,
@@ -78,7 +91,9 @@ def _worker(path: str, topology: str) -> None:
             source["native_clock_fsw_lab"]["clock"]["current_ns"]
         )
         assert measurement_ns > sim.TotalSim.CurrentNanos
-        if ablation_mode == "R9G_WITH_RW_CPP_MEMORY":
+        if ablation_mode in (
+            "R9G_WITH_RW_CPP_MEMORY", "R9H_RW_MEMORY_PLUS_APPLIED_COMMAND",
+        ):
             # R9-G adds only the genuine ReactionWheelStateEffector C++-held
             # memory visible in the source audit. Do NOT restore commands,
             # FSW message caches or anything synthetic in this experiment.
@@ -87,25 +102,37 @@ def _worker(path: str, topology: str) -> None:
             assert len(expected) == wheel_count
             restore_rw_effector_memory_fresh(rw_effector, expected)
             assert capture_rw_effector_memory(rw_effector) == expected
-        # STRICTLY A SCIENTIFICALLY UNTRUSTED ONE-TICK DIAGNOSTIC.
-        # Physics, sensor, EPS, thermal, comm and held commands are incomplete.
-        sim.ConfigureStopTime(measurement_ns)
-        sim.ExecuteSimulation()
-        phase = capture_scheduler_phase(sim)
-        assert phase["current_nanos"] == measurement_ns
-        subset = capture_state_subset(spacecraft, expected_rw_count=wheel_count)
-        joint = capture_joint_owner_observation(
-            scheduler_phase=phase,
-            battery=whole_modules["battery"], panel=whole_modules["panel"],
-            pdu=whole_modules["pdu"],
-            thermal_graph=whole_modules["thermal_graph"],
-            storage=whole_modules["storage"],
-            downlink=whole_modules["native_downlink"],
-        )
-        data["measurement"] = _measurement(
-            measurement_ns, subset["vectors"], joint,
-        )
-        # Importing a subset must *not* become a production restart pathway.
+        if ablation_mode == "R9H_RW_MEMORY_PLUS_APPLIED_COMMAND":
+            assert rw_command_fault_manager is not None
+            result = restore_last_applied_rw_command_fresh(
+                applied_command_manager=rw_command_fault_manager,
+                source_audit=source, expected_rw_count=wheel_count,
+                target_clock_ns=int(sim.TotalSim.CurrentNanos),
+            )
+            assert result["single_message_writeback"] is True
+            assert result["message_history_restored"] is False
+            data["writeback"] = result
+        # STRICTLY SCIENTIFICALLY INCOMPLETE LAB CONTINUATION. Every stop is
+        # performed by genuine Basilisk dynamics, never by Python propagation.
+        for stop_ns in all_stops:
+            sim.ConfigureStopTime(stop_ns)
+            sim.ExecuteSimulation()
+            phase = capture_scheduler_phase(sim)
+            assert phase["current_nanos"] == stop_ns
+            subset = capture_state_subset(spacecraft, expected_rw_count=wheel_count)
+            joint = capture_joint_owner_observation(
+                scheduler_phase=phase,
+                battery=whole_modules["battery"], panel=whole_modules["panel"],
+                pdu=whole_modules["pdu"],
+                thermal_graph=whole_modules["thermal_graph"],
+                storage=whole_modules["storage"],
+                downlink=whole_modules["native_downlink"],
+            )
+            data["measurements"].append(_measurement(
+                stop_ns, subset["vectors"], joint,
+            ))
+        data["measurement"] = data["measurements"][0]
+        # This child cannot be adopted as a resumed session.
         raise _LabMeasured()
 
     cfg = UnifiedRuntimeConfig(
@@ -123,6 +150,8 @@ def _worker(path: str, topology: str) -> None:
             "source_pid": evidence["source_pid"],
             "child_pid": os.getpid(),
             "measurement": data["measurement"],
+            "measurements": data["measurements"],
+            "writeback": data.get("writeback"),
             "ablation_mode": ablation_mode,
             "whole_resume_supported": False,
             "automatic_tc_replay_allowed": False,
