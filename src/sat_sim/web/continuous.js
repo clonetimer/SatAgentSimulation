@@ -330,8 +330,11 @@
     // actual stream frame contains the native fourth-wheel speed channel.
     const rw4Option = $('continuousRw4SignalOption');
     if (rw4Option) {
-      const hasRw4Telemetry = state.telemetry.some((frame) =>
-        Number.isFinite(Number(frame.values?.['adcs.rw.speed_rad_s_3'])));
+      const hasRw4Telemetry = state.telemetry.some((frame) => {
+        const value = frame.values?.['adcs.rw.speed_rad_s_3'];
+        // Missing/null TM is not a physical zero-speed measurement.
+        return typeof value === 'number' && Number.isFinite(value);
+      });
       rw4Option.disabled = !hasRw4Telemetry;
       rw4Option.hidden = !hasRw4Telemetry;
       if (!hasRw4Telemetry && $('continuousSignal').value === rw4Option.value) {
