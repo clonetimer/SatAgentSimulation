@@ -165,7 +165,9 @@ def test_r9g_refuses_rehashed_recovery_claim_or_fake_effect():
     forged["sha256"] = _hash({k:v for k,v in forged.items() if k != "sha256"})
     with pytest.raises(ValueError, match="R9G_ABLATION_DERIVED_RESULT_FORGED"):
         validate_ablation_record(forged)
-    with pytest.raises(ValueError, match="R9G_ABLATION_PROCESS_INVALID"):
+    # A child PID that contradicts the signed child measurement is
+    # rejected as a non-paired experiment before process-uniqueness checks.
+    with pytest.raises(ValueError, match="R9G_ABLATION_COMPARISON_NOT_PAIRED"):
         create_ablation_record(
             baseline=base, with_rw_memory=rw,
             source_pid=111, baseline_child_pid=222, rw_memory_child_pid=222,
