@@ -42,7 +42,12 @@ def _sha256_bytes(value: bytes) -> str:
 
 
 def _sha256_file(path: Path) -> str:
-    return _sha256_bytes(path.read_bytes())
+    """Hash large evidence files in constant memory."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -58,7 +63,7 @@ def _load_workspace(path: str | Path) -> tuple[Path, InteractiveSessionSpec, lis
     envelope = json.loads((root / "session_spec.json").read_text(encoding="utf-8"))
     spec = InteractiveSessionSpec.model_validate(envelope["session_spec"])
     commands = SessionWorkspace.inspect_hash_chain(root / "command_events.jsonl")
-    telemetry = SessionWorkspace.inspect_hash_chain(root / "telemetry.jsonl")
+    telemetry = list(SessionWorkspace.iter_telemetry(root))
     return root, spec, states, commands, telemetry
 
 
@@ -107,8 +112,11 @@ def _acked_effect_windows(
 
 def _validation(
     state: SessionState, trace_rows: list[dict[str, Any]], effect_windows: list[dict[str, Any]],
+    *, physical_override: dict[str, Any] | None = None,
 ) -> ValidationOutcome:
-    physical = evaluate_physical_validation(trace_rows, summary={}, strict=False)
+    physical = physical_override if physical_override is not None else evaluate_physical_validation(
+        trace_rows, summary={}, strict=False
+    )
     checks = [ValidationCheck(
         check_id="workspace_terminal_state", category="runtime_health",
         result=ValidationResult.PASS if state is SessionState.COMPLETED else ValidationResult.FAIL,
@@ -173,8 +181,14 @@ def _claim_report(validation: ValidationOutcome, spec: InteractiveSessionSpec, t
 
 
 def seal_interactive_workspace(path: str | Path) -> dict[str, Any]:
-    """Seal one completed workspace into a Run Bundle compatible artifact tree."""
+    """Seal completed workspaces; long-running sessions use streaming evidence."""
 
+    root = Path(path).resolve()
+    envelope = json.loads((root / "session_spec.json").read_text(encoding="utf-8"))
+    spec = InteractiveSessionSpec.model_validate(envelope["session_spec"])
+    if spec.continuous:
+        from .continuous_seal import seal_continuous_workspace
+        return seal_continuous_workspace(root)
     root, spec, states, commands, telemetry = _load_workspace(path)
     bundle = root / "run_bundle"
     if (bundle / "SEALED.json").exists():

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import queue
+from collections import deque
 import threading
 import time
 from dataclasses import dataclass, field
@@ -36,14 +37,26 @@ class InteractiveSession:
         spec: InteractiveSessionSpec,
         runtime: PersistentSimulationRuntime,
         *,
-        end_time_s: float,
+        end_time_s: float | None,
         workspace: SessionWorkspace | None = None,
         command_catalog: CommandCatalog | None = None,
     ) -> None:
         self.spec = spec
         self.runtime = runtime
-        self.end_time_s = min(float(end_time_s), spec.max_sim_time_s)
-        self.telemetry = TelemetryBus(spec.session_id, spec.telemetry_buffer_frames)
+        if spec.continuous != (end_time_s is None):
+            raise ValueError("continuous sessions require no finite end_time_s; bounded sessions require an end_time_s")
+        self.end_time_s = None if end_time_s is None else min(float(end_time_s), spec.max_sim_time_s)
+        self.telemetry = TelemetryBus(
+            spec.session_id, spec.telemetry_buffer_frames,
+            # runtime.trace contains full native model rows and is excluded from
+            # public stream allowlists.  The durable workspace remains the
+            # authoritative full trace; keep only a short diagnostic replay ring
+            # in continuous sessions, not thousands of huge Python dictionaries.
+            stream_capacities=(
+                {"runtime.trace": min(256, spec.telemetry_buffer_frames)}
+                if spec.continuous else None
+            ),
+        )
         self._state = SessionStateMachine()
         self._requests: queue.Queue[_ControlRequest] = queue.Queue(maxsize=spec.control_queue_capacity)
         self._accept_lock = threading.Lock()
@@ -51,22 +64,36 @@ class InteractiveSession:
         self._clock = SoftRealtimeClock(spec.rate)
         self._workspace = workspace
         self._command_catalog = command_catalog or CommandCatalog.default()
-        self._command_mailbox = DeterministicCommandMailbox(spec.command_queue_capacity)
-        self._acks: list[CommandAck] = []
+        ledger_path = workspace.path / "command_ids.sqlite" if workspace is not None else None
+        self._command_mailbox = DeterministicCommandMailbox(
+            spec.command_queue_capacity, persistent_ledger=spec.continuous,
+            ledger_path=ledger_path,
+        )
+        self._acks: list[CommandAck] | deque[CommandAck] = (
+            deque(maxlen=4096) if spec.continuous else []
+        )
         self._ack_sequence = 0
         self._ack_lock = threading.Lock()
-        self._events: list[SessionEvent] = []
+        self._events: list[SessionEvent] | deque[SessionEvent] = (
+            deque(maxlen=4096) if spec.continuous else []
+        )
+        self._event_sequence = 0
         self._event_lock = threading.Lock()
         self._created_monotonic = time.monotonic()
         self._last_activity_monotonic = self._created_monotonic
         self._last_heartbeat_monotonic = self._created_monotonic
         self._pace_observation_count = 0
-        self._pace_observations: list[PaceObservation] = []
+        # Continuous sessions must not retain one pacing object per quantum forever.
+        self._pace_observations: list[PaceObservation] | deque[PaceObservation] = (
+            deque(maxlen=4096) if spec.continuous else []
+        )
         self._pace_lock = threading.Lock()
         self._last_drift_s = 0.0
         self._max_abs_drift_s = 0.0
         self._runtime_summary: dict[str, Any] = {}
         self._terminal_error: str | None = None
+        self._archive_status = "NOT_READY" if workspace is not None else "NOT_CONFIGURED"
+        self._archive_error: str | None = None
         outputs = spec.task_spec.get("outputs") if isinstance(spec.task_spec, dict) else None
         raw_streams = outputs.get("telemetry_streams", ()) if isinstance(outputs, dict) else ()
         self._telemetry_stream_specs: tuple[tuple[str, float, tuple[str, ...]], ...] = tuple(
@@ -78,6 +105,14 @@ class InteractiveSession:
             for item in raw_streams
             if isinstance(item, dict) and item.get("stream_id") and float(item.get("sample_s", 0.0)) > 0.0 and item.get("fields")
         )
+        # Native recorder timestamps can fall between requested stream
+        # boundaries.  Continuous streams publish the first real sample at
+        # or after each due time, never synthetic/interpolated values.
+        self._continuous_stream_due_s = {
+            stream_id: sample_s
+            for stream_id, sample_s, _ in self._telemetry_stream_specs
+        }
+        self._continuous_initial_streams: set[str] = set()
         if self._workspace is not None:
             self._workspace.append_state(SessionState.CREATED, 0, 0.0, "SESSION_CREATED")
         self._thread = threading.Thread(target=self._worker, name=f"sat-interactive-{spec.session_id}", daemon=True)
@@ -109,6 +144,9 @@ class InteractiveSession:
             rate=self._clock.rate,
             paced=self.spec.paced,
             worker_alive=self._thread.is_alive(),
+            archive_status=self._archive_status,
+            archive_error=self._archive_error,
+            terminal_error=self._terminal_error,
             pace_observation_count=self._pace_observation_count,
             last_drift_s=self._last_drift_s,
             max_abs_drift_s=self._max_abs_drift_s,
@@ -121,6 +159,9 @@ class InteractiveSession:
         if after_index < 0:
             raise ValueError("after_index must be non-negative")
         with self._pace_lock:
+            if self.spec.continuous:
+                oldest_index = max(0, self._pace_observation_count - len(self._pace_observations))
+                return tuple(list(self._pace_observations)[max(0, after_index - oldest_index):])
             return tuple(self._pace_observations[after_index:])
 
     @property
@@ -173,6 +214,10 @@ class InteractiveSession:
     def heartbeat(self) -> SessionSnapshot:
         return self._request("heartbeat")
 
+    def checkpoint_coverage(self) -> dict[str, Any]:
+        """Audit a paused native session; never a resumable checkpoint."""
+        return self._request("checkpoint_audit")
+
     def _emit_ack(
         self,
         command: Telecommand,
@@ -191,13 +236,32 @@ class InteractiveSession:
                 sim_time_s=sim_time_s,
                 sequence=self._ack_sequence,
             )
-            self._ack_sequence += 1
-            self._acks.append(ack)
             if self._workspace is not None:
-                self._workspace.append_command_ack(command, ack)
+                event = self._workspace.append_command_ack(command, ack)
+                # JSONL already owns the sequence after append+fsync. Advance
+                # the in-memory cursor immediately; if the SQLite mirror
+                # marker write fails, never reuse the old ACK sequence.
+                self._ack_sequence += 1
+                if self.spec.continuous:
+                    self._command_mailbox.mirror_durable_ack(
+                        command, state=state.value, reason_code=reason_code,
+                        ack_sequence=ack.sequence,
+                        entry_hash=event["entry_hash"],
+                        sim_time_s=sim_time_s,
+                    )
+            else:
+                self._ack_sequence += 1
+            self._acks.append(ack)
             return ack
 
     def command_acks(self, command_id: str | None = None) -> tuple[CommandAck, ...]:
+        # Full targeted history remains readable after bounded-memory eviction.
+        if self.spec.continuous and command_id is not None and self._workspace is not None:
+            return tuple(
+                CommandAck.model_validate(row["ack"])
+                for row in SessionWorkspace.iter_hash_chain(self._workspace.commands_path)
+                if row["command_id"] == command_id
+            )
         with self._ack_lock:
             rows = tuple(self._acks)
         return tuple(row for row in rows if command_id is None or row.command_id == command_id)
@@ -242,7 +306,7 @@ class InteractiveSession:
         with self._event_lock:
             self._events.append(SessionEvent(
                 session_id=self.spec.session_id,
-                sequence=len(self._events),
+                sequence=self._event_sequence,
                 previous_state=event.previous,
                 state=event.current,
                 revision=event.revision,
@@ -250,6 +314,7 @@ class InteractiveSession:
                 reason_code=event.reason_code,
                 wall_time=event.wall_time_iso,
             ))
+            self._event_sequence += 1
         if self._workspace is not None:
             self._workspace.append_state(event.current, event.revision, self.current_time_s, reason_code)
 
@@ -265,20 +330,36 @@ class InteractiveSession:
         # boundary (observed at 1754.4 s for a 0.1 s quantum), making a valid
         # physical advance look like a no-progress segment.
         target_ns = round((self.current_time_s + self.spec.quantum_s * quanta) * 1.0e9)
-        end_ns = round(self.end_time_s * 1.0e9)
-        target = min(target_ns, end_ns) / 1_000_000_000
+        if self.end_time_s is not None:
+            target_ns = min(target_ns, round(self.end_time_s * 1.0e9))
+        target = target_ns / 1_000_000_000
         if target <= self.current_time_s:
             return ()
         commands, expired = self._command_mailbox.pop_due_partitioned(target)
         for command in expired:
+            self._command_mailbox.mark_expired_after_receipt(
+                command, sim_time_s=self.current_time_s,
+            )
             self._emit_ack(command, CommandState.EXPIRED, "COMMAND_EXPIRED", sim_time_s=self.current_time_s)
         executing: list[Telecommand] = []
         for command in commands:
+            # Durable EXECUTING is a replay fence. It MUST reach SQLite
+            # before even writing the JSONL EXECUTING ACK, and certainly
+            # before the runtime/Basilisk side effect. A failed commit
+            # propagates to the session worker without applying the TC.
+            self._command_mailbox.mark_executing_before_effect(
+                command, sim_time_s=self.current_time_s,
+            )
             self._emit_ack(command, CommandState.EXECUTING, sim_time_s=self.current_time_s)
             try:
                 self.runtime.apply_command(command)
                 executing.append(command)
             except BaseException as exc:
+                # Failure does not imply the effect was rolled back. Even
+                # with durable FAILED, recovery must never auto-replay.
+                self._command_mailbox.mark_failed_after_receipt(
+                    command, sim_time_s=self.current_time_s,
+                )
                 self._emit_ack(command, CommandState.FAILED, "COMMAND_APPLY_FAILED", f"{type(exc).__name__}: {exc}", self.current_time_s)
         rows = self.runtime.advance_to(target)
         for row in rows:
@@ -287,14 +368,42 @@ class InteractiveSession:
             if self._workspace is not None:
                 self._workspace.append_telemetry(frame)
             for stream_id, sample_s, fields in self._telemetry_stream_specs:
-                sample_index = round(sim_time_s / sample_s)
-                if abs(sim_time_s - sample_index * sample_s) <= max(1e-9, sample_s * 1e-9):
-                    values = {field: row[field] for field in fields if field in row}
-                    quality = "GOOD" if len(values) == len(fields) else "INVALID"
-                    frame = self.telemetry.publish(stream_id, sim_time_s, values, quality)
-                    if self._workspace is not None:
-                        self._workspace.append_telemetry(frame)
+                tolerance = max(1e-9, sample_s * 1e-9)
+                if self.spec.continuous:
+                    due_s = self._continuous_stream_due_s[stream_id]
+                    is_initial = (
+                        abs(sim_time_s) <= tolerance
+                        and stream_id not in self._continuous_initial_streams
+                    )
+                    if not is_initial and sim_time_s + tolerance < due_s:
+                        continue
+                    if is_initial:
+                        self._continuous_initial_streams.add(stream_id)
+                    else:
+                        # One real sample per crossed due boundary; if a native
+                        # sample interval is larger than the requested stream
+                        # period, skip overdue ticks rather than duplicating
+                        # or fabricating a physical measurement.
+                        periods = max(1, int((sim_time_s - due_s + tolerance) // sample_s) + 1)
+                        self._continuous_stream_due_s[stream_id] = due_s + periods * sample_s
+                else:
+                    # Backward-compatible exact-grid sampling for finite runs.
+                    sample_index = round(sim_time_s / sample_s)
+                    if abs(sim_time_s - sample_index * sample_s) > tolerance:
+                        continue
+                values = {field: row[field] for field in fields if field in row}
+                quality = "GOOD" if len(values) == len(fields) else "INVALID"
+                frame = self.telemetry.publish(stream_id, sim_time_s, values, quality)
+                if self._workspace is not None:
+                    self._workspace.append_telemetry(frame)
         for command in executing:
+            # ACK denotes the runtime advance returned; it is NOT a
+            # cryptographic proof that the native effect is irreversible.
+            # Commit the authoritative SQLite ACKED+outbox first; then
+            # fsync JSONL; finally persist the mirror cursor.
+            self._command_mailbox.mark_acked_after_receipt(
+                command, sim_time_s=target,
+            )
             self._emit_ack(command, CommandState.ACKED, "OK", sim_time_s=target)
         return rows
 
@@ -333,15 +442,22 @@ class InteractiveSession:
         elif action == "heartbeat":
             self._write_heartbeat("CLIENT_HEARTBEAT")
             request.result = self.snapshot()
+        elif action == "checkpoint_audit":
+            if not self.spec.continuous or self.state is not SessionState.PAUSED or self.current_time_s <= 0.0:
+                raise ValueError("NATIVE_CHECKPOINT_AUDIT_REQUIRES_ADVANCED_PAUSED_CONTINUOUS_SESSION")
+            audit = getattr(self.runtime, "audit_native_checkpoint_coverage", None)
+            if not callable(audit):
+                raise ValueError("NATIVE_CHECKPOINT_AUDIT_UNSUPPORTED_RUNTIME")
+            request.result = audit()
         else:
             raise ValueError(f"unknown control action: {action}")
         return True
 
     def _automatic_limit_reason(self) -> str | None:
         now = time.monotonic()
-        if now - self._created_monotonic >= self.spec.max_wall_time_s:
+        if not self.spec.continuous and now - self._created_monotonic >= self.spec.max_wall_time_s:
             return "MAX_WALL_TIME_EXCEEDED"
-        if self.state in {SessionState.CREATED, SessionState.READY, SessionState.PAUSED} and now - self._last_activity_monotonic >= self.spec.idle_timeout_s:
+        if not self.spec.continuous and self.state in {SessionState.CREATED, SessionState.READY, SessionState.PAUSED} and now - self._last_activity_monotonic >= self.spec.idle_timeout_s:
             return "IDLE_TIMEOUT"
         return None
 
@@ -402,6 +518,7 @@ class InteractiveSession:
                     self._write_heartbeat()
                 continue
             try:
+                previous_time_s = self.current_time_s
                 rows = self._advance()
                 if self.spec.paced:
                     observation = self._clock.pace_to(self.current_time_s)
@@ -412,12 +529,16 @@ class InteractiveSession:
                         self._max_abs_drift_s = max(self._max_abs_drift_s, abs(observation.drift_s))
                 if time.monotonic() - self._last_heartbeat_monotonic >= self.spec.heartbeat_interval_s:
                     self._write_heartbeat()
-                if self.current_time_s >= self.end_time_s:
+                if self.end_time_s is not None and self.current_time_s >= self.end_time_s:
                     self._transition(SessionState.STOPPING)
                     self._runtime_summary = self.runtime.finalize()
                     self._transition(SessionState.COMPLETED)
                     keep_running = False
-                elif not rows:
+                elif self.current_time_s <= previous_time_s:
+                    # Native recorders can legitimately emit no samples during an
+                    # integration quantum (for example when step and recorder
+                    # periods do not align).  Physical time advancement, rather
+                    # than non-empty telemetry, determines forward progress.
                     raise RuntimeError("runtime made no progress")
             except BaseException as exc:
                 self._terminal_error = f"{type(exc).__name__}: {exc}"
@@ -429,12 +550,34 @@ class InteractiveSession:
                 keep_running = False
         try:
             if self._workspace is not None:
+                self._archive_status = "SEALING"
                 self._workspace.finalize_telemetry()
                 if self.state is SessionState.COMPLETED:
                     from .evidence import seal_interactive_workspace
                     seal_interactive_workspace(self._workspace.path)
+                    self._archive_status = "SEALED"
+                else:
+                    self._archive_status = "NOT_APPLICABLE"
+        except BaseException as exc:
+            # A physics run may have completed while archival verification
+            # failed. Never leave this as an unreported worker exception or
+            # present its Run Bundle as successfully sealed.
+            self._archive_status = "FAILED"
+            self._archive_error = f"{type(exc).__name__}: {exc}"
+            self._terminal_error = self._archive_error
         finally:
             self._close_request_queue()
+            # A failed native process may have executed an effect before
+            # losing IPC. Do not mislabel its owner generation RELEASED.
+            # Keep ACTIVE until an external supervisor and checkpoint
+            # reconciliation can attest a safe handoff; no automatic steal.
+            clean_end = (
+                self.state in {SessionState.COMPLETED, SessionState.ABORTED}
+                and self._terminal_error is None
+            )
+            self._command_mailbox.close(
+                release_owner=(not self.spec.continuous or clean_end),
+            )
 
 
 class InteractiveFeatureDisabled(RuntimeError):
@@ -463,7 +606,7 @@ class InteractiveSessionManager:
             self.workspace_root.mkdir(parents=True, exist_ok=True)
             self.interrupted_workspaces = SessionWorkspace.mark_unfinished_interrupted(self.workspace_root)
 
-    def create(self, spec: InteractiveSessionSpec, runtime: PersistentSimulationRuntime, *, end_time_s: float) -> InteractiveSession:
+    def create(self, spec: InteractiveSessionSpec, runtime: PersistentSimulationRuntime, *, end_time_s: float | None) -> InteractiveSession:
         if not self.enabled:
             raise InteractiveFeatureDisabled("interactive simulation is disabled")
         with self._lock:

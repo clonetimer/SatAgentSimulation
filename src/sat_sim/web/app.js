@@ -5753,13 +5753,15 @@
       state.interactiveSessions = sessions.sessions || [];
       state.interactiveCommandCatalog = catalog.commands || [];
       el('interactiveNavButton').classList.remove('hidden');
+      el('continuousNavButton')?.classList.remove('hidden');
       renderInteractiveSessions();
       renderInteractiveCapabilityHint();
       renderInteractiveCommandTargets();
     } catch (error) {
       state.interactiveAvailable = false;
       el('interactiveNavButton').classList.add('hidden');
-      if (state.activeView === 'interactive') switchView('creator');
+      el('continuousNavButton')?.classList.add('hidden');
+      if (['interactive', 'continuous'].includes(state.activeView)) switchView('creator');
     }
   }
 
@@ -5857,6 +5859,7 @@
       quantum_s: quantum,
       rate,
       paced: el('interactivePaced').checked,
+      continuous: Boolean(el('interactiveContinuous')?.checked),
       max_sim_time_s: duration,
     };
     const created = await api('/interactive/sessions', { method: 'POST', body: JSON.stringify(spec) });
@@ -5868,6 +5871,14 @@
   function renderInteractiveSnapshot() {
     const snapshot = state.interactiveSession;
     el('interactiveState').textContent = snapshot?.state || '未选择';
+    el('interactiveState').title = snapshot?.terminal_error || '';
+    const archiveLabels = {
+      NOT_CONFIGURED: '未配置', NOT_READY: '未开始', SEALING: '封存中',
+      SEALED: '已验证封存', FAILED: '封存失败', NOT_APPLICABLE: '无需封存',
+    };
+    const archiveNode = el('interactiveArchiveStatus');
+    archiveNode.textContent = archiveLabels[snapshot?.archive_status] || '—';
+    archiveNode.title = snapshot?.archive_error || '';
     el('interactiveSimTime').textContent = `${Number(snapshot?.sim_time_s || 0).toFixed(3)} s`;
     el('interactiveRateValue').textContent = `${snapshot?.rate || 1}x`;
     el('interactiveDrift').textContent = `${Math.round(Number(snapshot?.last_drift_s || 0) * 1000)} ms`;
@@ -6182,7 +6193,7 @@
     document.body.dataset.activeView = name;
     const viewIds = {
       creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
-      interactive: 'interactiveView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
+      interactive: 'interactiveView', continuous: 'continuousView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
@@ -6191,6 +6202,8 @@
     if (name === 'runs') loadRunCenter().catch((error) => { el('runCenterSummary').textContent = `运行中心读取失败：${error.message}`; });
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
+    if (name === 'continuous') window.SatContinuousConsole?.enter();
+    else window.SatContinuousConsole?.exit();
     if (name === 'interactive') {
       loadInteractiveSessions().then(() => {
         if (!state.interactiveSession && state.interactiveSessions.length) selectInteractiveSession(state.interactiveSessions[0].session_id);

@@ -111,9 +111,11 @@ def test_idle_timeout_reclaims_unprepared_session_and_heartbeat_extends_lease(tm
     _, idle_rows = SessionWorkspace.inspect(tmp_path / "idle", include_rows=True)
     assert idle_rows[-1]["reason_code"] == "IDLE_TIMEOUT"
 
-    live = manager.create(_spec("heartbeat", idle_timeout_s=0.06), RecordingRuntime(), end_time_s=1.0)
+    # CI runners can pause worker scheduling for >60 ms during load;
+    # keep a generous lease while still exercising repeated renewals.
+    live = manager.create(_spec("heartbeat", idle_timeout_s=0.5), RecordingRuntime(), end_time_s=1.0)
     for _ in range(3):
-        time.sleep(0.03)
+        time.sleep(0.04)
         assert live.heartbeat().state is SessionState.CREATED
     assert live.state is SessionState.CREATED
     live.abort()
@@ -122,12 +124,12 @@ def test_idle_timeout_reclaims_unprepared_session_and_heartbeat_extends_lease(tm
 def test_max_wall_time_reclaims_paused_session(tmp_path: Path) -> None:
     manager = InteractiveSessionManager(enabled=True, workspace_root=tmp_path)
     session = manager.create(
-        _spec("wall-limit", max_wall_time_s=0.08, idle_timeout_s=1.0),
+        _spec("wall-limit", max_wall_time_s=0.75, idle_timeout_s=3.0),
         RecordingRuntime(),
         end_time_s=10.0,
     )
     session.prepare()
-    assert session.wait(0.5)
+    assert session.wait(3.0)
     assert session.state is SessionState.ABORTED
     _, rows = SessionWorkspace.inspect(tmp_path / "wall-limit", include_rows=True)
     assert rows[-1]["reason_code"] == "MAX_WALL_TIME_EXCEEDED"

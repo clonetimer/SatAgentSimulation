@@ -21,6 +21,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.14.0-graph-v14">
+  <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
   <div class="app-shell">
@@ -69,6 +70,7 @@
           <div class="sidebar-section-title">工作台</div>
           <button class="nav-button active" data-view="creator" type="button"><span>✦</span><b>仿真创建</b></button>
           <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
+          <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
           <button class="nav-button" data-view="tasks" type="button"><span>▣</span><b>任务中心</b></button>
           <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
           <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
@@ -514,7 +516,8 @@
             </select></label>
             <div id="interactiveCapabilityHint" class="interactive-scope-hint">整星会话共享同一时钟和状态，可控制姿轨控、能源与通信数传并观察跨系统影响。</div>
             <div class="interactive-form-grid">
-              <label>时长 / s<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
+              <label>时长 / s（限时模式；持续模式用于初始化）<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
+              <label class="toggle-label"><input id="interactiveContinuous" type="checkbox"><span>持续运行（手动停止）</span></label>
               <label>量子 / s<select id="interactiveQuantum"><option>0.1</option><option selected>0.5</option><option>1</option></select></label>
               <label>初始倍速<select id="interactiveInitialRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
               <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>
@@ -526,6 +529,7 @@
         <section class="interactive-console">
           <div class="interactive-status-strip">
             <div><span>状态</span><strong id="interactiveState">未选择</strong></div>
+            <div><span>归档状态</span><strong id="interactiveArchiveStatus">—</strong></div>
             <div><span>仿真时间</span><strong id="interactiveSimTime">0.000 s</strong></div>
             <div><span>倍速</span><strong id="interactiveRateValue">1x</strong></div>
             <div><span>漂移</span><strong id="interactiveDrift">0 ms</strong></div>
@@ -569,6 +573,219 @@
           <section class="interactive-section ack-section">
             <div class="section-heading compact"><h2>指令回执</h2></div>
             <div id="interactiveAckList" class="interactive-timeline"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <main id="continuousView" class="continuous-view app-view hidden" aria-label="持续卫星仿真">
+      <header class="continuous-hero">
+        <div><div class="eyebrow">Continuous Basilisk Native · TC / TM Control</div>
+          <h1>持续卫星仿真</h1>
+          <p>保持同一个原生整星状态持续推进。遥控按仿真时刻执行，遥测实时更新；异常会话默认禁止自动恢复。</p></div>
+        <div class="continuous-hero-actions">
+          <span id="continuousConnectionBadge" class="status-chip status-muted" role="status">尚未连接</span>
+          <button id="continuousRefreshBtn" class="button button-secondary" type="button">刷新状态</button>
+        </div>
+      </header>
+      <div id="continuousNotice" class="notice hidden" role="status" aria-live="polite"></div>
+      <section class="continuous-policy" aria-label="恢复安全边界">
+        <span>安全策略</span>
+        <strong>原生自动恢复：关闭</strong>
+        <span>异常执行的遥控不会自动重放；只有全新的会话可以重新创建原生计算图。</span>
+      </section>
+      <div class="continuous-grid">
+        <aside class="continuous-sidebar">
+          <section class="continuous-card">
+            <div class="section-heading compact"><h2>创建持续会话</h2></div>
+            <p class="continuous-muted">无需编写脚本。后端固定使用已注册的 Basilisk 原生整星能力。</p>
+            <form id="continuousCreateForm" autocomplete="off">
+              <label>会话标识<input id="continuousSessionId" maxlength="128" pattern="[A-Za-z0-9][A-Za-z0-9_.:-]*" required value="satellite-continuous-1"></label>
+              <label>仿真推进步长<select id="continuousQuantum"><option value="0.1">0.1 s</option><option value="0.2">0.2 s</option><option value="0.5" selected>0.5 s（推荐）</option><option value="1">1 s</option></select></label>
+              <label>运行倍速<select id="continuousRate"><option value="0.1">0.1×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="5">5×</option><option value="10">10×</option></select></label>
+              <label>初始化时长（非运行上限）<input id="continuousHorizon" type="number" min="1" max="86400" step="1" value="60" required></label>
+              <label class="toggle-label"><input id="continuousPaced" type="checkbox" checked><span>墙钟节拍（软实时）</span></label>
+              <details class="continuous-native-config">
+                <summary>运行前配置：整星、分系统与已接入的单机参数（点击展开）</summary>
+                <p class="continuous-muted">仅调整整星原生 Basilisk 计算图中已有的模型参数。创建会话后冻结配置；不支持任意新增/移除硬件或独立运行单机。默认值与现有模型相同。</p>
+                <div class="continuous-native-config-fields">
+                  <fieldset><legend>轨道与整星</legend>
+                    <label>轨道半长轴（m）<input data-native-group="orbit" data-native-key="orbit_radius_m" type="number" min="6500000" max="20000000" step="1000" value="7000000" required></label>
+                    <label>偏心率<input data-native-group="orbit" data-native-key="eccentricity" type="number" min="0" max="0.2" step="0.001" value="0.001" required></label>
+                    <label>倾角（°）<input data-native-group="orbit" data-native-key="inclination_deg" type="number" min="0" max="180" step="0.1" value="35" required></label>
+                    <label>初始真近点角（rad）<input data-native-group="orbit" data-native-key="initial_true_anomaly_rad" type="number" min="0" max="6.283185307179586" step="any" value="0" required></label>
+                  </fieldset>
+                  <fieldset><legend>ADCS 与反作用轮</legend>
+                    <label>初始指向误差（°）<input data-native-group="adcs" data-native-key="initial_pointing_error_deg" type="number" min="0" max="90" step="any" value="8" required></label>
+                    <label>姿态控制 K<input data-native-group="adcs" data-native-key="controller_k" type="number" min="0.001" max="100" step="any" value="3.5" required></label>
+                    <label>姿态控制 P<input data-native-group="adcs" data-native-key="controller_p" type="number" min="0.001" max="300" step="any" value="30" required></label>
+                    <label>反作用轮构型
+                      <select data-native-group="adcs" data-native-key="rw_configuration"><option value="orthogonal_3">3 轮正交</option><option value="pyramid_4">4 轮金字塔</option></select>
+                    </label>
+                    <label>反作用轮原生电机最大扭矩 u_max（N·m）<input data-native-group="adcs" data-native-key="rw_max_torque_nm" type="number" min="0.001" max="0.2" step="any" value="0.2" required title="同时作用于 Basilisk Honeywell_HR16 电机执行机构和命令限幅"></label>
+                    <label>RW1 初始轮速（rad/s）<input data-native-group="adcs" data-native-key="rw_initial_speed_rad_s_0" type="number" min="-500" max="500" step="any" value="10.471975511965978" required></label>
+                    <label>RW2 初始轮速（rad/s）<input data-native-group="adcs" data-native-key="rw_initial_speed_rad_s_1" type="number" min="-500" max="500" step="any" value="20.943951023931955" required></label>
+                    <label>RW3 初始轮速（rad/s）<input data-native-group="adcs" data-native-key="rw_initial_speed_rad_s_2" type="number" min="-500" max="500" step="any" value="31.41592653589793" required></label>
+                    <label id="continuousRw4InitialLabel" class="hidden">RW4 初始轮速（rad/s，仅 4 轮）
+                      <input data-native-group="adcs" data-native-key="rw_initial_speed_rad_s_3" type="number" min="-500" max="500" step="any" value="41.88790204786391" disabled>
+                    </label>
+                  </fieldset>
+                  <fieldset><legend>EPS 电池与太阳电池板</legend>
+                    <label>电池容量（Wh）<input data-native-group="eps" data-native-key="battery_capacity_wh" type="number" min="0.001" max="2000" step="any" value="160" required></label>
+                    <label>初始 SOC（0～1）<input data-native-group="eps" data-native-key="initial_soc" type="number" min="0.05" max="1" step="any" value="0.62" required></label>
+                    <label>太阳电池板面积（m²）<input data-native-group="eps" data-native-key="solar_panel_area_m2" type="number" min="0.001" max="25" step="any" value="2.5" required></label>
+                    <label>太阳电池板效率（0～1）<input data-native-group="eps" data-native-key="solar_efficiency" type="number" min="0.001" max="1" step="any" value="0.28" required></label>
+                    <label>基本母线负载（W）<input data-native-group="eps" data-native-key="bus_power_w" type="number" min="0" max="300" step="any" value="18" required></label>
+                  </fieldset>
+                  <fieldset><legend>载荷单机</legend>
+                    <label>载荷数据产生速率（bit/s）<input data-native-group="payload" data-native-key="payload_data_rate_bps" type="number" min="0" max="20000000" step="1" value="2500000" required></label>
+                    <label>载荷工作功耗（W）<input data-native-group="payload" data-native-key="payload_power_w" type="number" min="0" max="250" step="any" value="38" required></label>
+                  </fieldset>
+                  <fieldset><legend>通信数据分系统</legend>
+                    <label>存储单机容量（bit）<input data-native-group="comm_data" data-native-key="storage_capacity_bits" type="number" min="1" max="100000000000" step="1" value="6000000000" required></label>
+                    <label>下行设计速率（bit/s）<input data-native-group="comm_data" data-native-key="downlink_rate_bps" type="number" min="1" max="20000000" step="1" value="1500000" required></label>
+                  </fieldset>
+                </div>
+              </details>
+              <p id="continuousInitialConfigStatus" class="continuous-muted">仅当前新会话可设置；创建后无法修改已有模型实例。</p>
+              <button class="button button-primary" type="submit">创建原生持续会话</button>
+            </form>
+          </section>
+          <section class="continuous-card">
+            <div class="section-heading compact"><h2>会话列表</h2><span id="continuousSessionCount">0</span></div>
+            <div id="continuousSessionList" class="continuous-sessions"><p class="continuous-muted">暂无持续会话。</p></div>
+          </section>
+          <section class="continuous-card">
+            <h2>中断工作区</h2>
+            <div id="continuousInterruptedList" class="continuous-interrupted"><p class="continuous-muted">等待检查。</p></div>
+          </section>
+        </aside>
+        <div class="continuous-main">
+          <section class="continuous-card">
+            <div class="section-heading compact"><h2>运行与安全状态</h2><span id="continuousRuntimeMode" class="status-chip status-muted">未就绪</span></div>
+            <div class="continuous-metrics">
+              <div><span>会话状态</span><strong id="continuousState">未选择</strong></div>
+              <div><span>仿真时间</span><strong id="continuousSimTime">0.00 s</strong></div>
+              <div><span>本机倍速</span><strong id="continuousLiveRate">1×</strong></div>
+              <div><span>归档状态</span><strong id="continuousArchive">—</strong></div>
+              <div><span>原生子进程</span><strong id="continuousChildPid">—</strong></div>
+              <div><span>遥控写入者代际</span><strong id="continuousWriterEpoch">—</strong></div>
+            </div>
+            <div class="continuous-fence-info">
+              <span id="continuousParentFence">父进程死亡保护：检查中</span>
+              <span id="continuousErrorDetail"></span>
+            </div>
+            <div class="continuous-actions" role="toolbar" aria-label="持续仿真会话控制">
+              <button id="continuousStartBtn" class="button button-primary" type="button" data-continuous-action="start">▶ 启动</button>
+              <button class="button button-secondary" type="button" data-continuous-action="pause">Ⅱ 暂停</button>
+              <button class="button button-secondary" type="button" data-continuous-action="resume">▷ 继续</button>
+              <button class="button button-secondary" type="button" data-continuous-action="step">↦ 单步</button>
+              <button class="button button-ghost" type="button" data-continuous-action="stop">■ 停止并归档</button>
+            </div>
+          </section>
+          <section class="continuous-card" aria-label="原生中断恢复准入">
+            <div class="section-heading compact">
+              <h2>R8 · 原生中断恢复准备度</h2>
+              <span id="continuousRecoveryVerdict" class="status-chip status-muted">未检查</span>
+            </div>
+            <p class="continuous-muted">请先暂停持续会话，再读取实时 Basilisk 状态所有者。此操作不保存完整检查点，也不会恢复、启动或重放遥控。</p>
+            <div class="continuous-actions" style="margin-top: 12px">
+              <button id="continuousRecoveryAuditBtn" class="button button-secondary" type="button">检查原生恢复覆盖</button>
+              <button id="continuousRecoveryExportBtn" class="button button-ghost" type="button" disabled>导出缺口报告</button>
+            </div>
+            <div class="continuous-metrics">
+              <div><span>必需状态所有者</span><strong id="continuousRecoveryOwnerTotal">—</strong></div>
+              <div><span>可完整恢复所有者</span><strong id="continuousRecoveryOwnerRestorable">—</strong></div>
+              <div><span>检查时仿真时间</span><strong id="continuousRecoveryAtSim">—</strong></div>
+            </div>
+            <p id="continuousRecoveryMissing" class="continuous-muted">目前未证明整星级 Basilisk 原生检查点可以跨进程无损恢复。自动恢复保持关闭。</p>
+            <div id="continuousRecoveryOwners" class="continuous-log" role="list" aria-label="原生所有者恢复覆盖清单"></div>
+          </section>
+          <section class="continuous-card" aria-label="持续运行资源监测">
+            <div class="section-heading compact"><h2>真实运行与资源监测</h2>
+              <span id="continuousMonitorHealth" class="status-chip status-muted">尚无采样</span></div>
+            <div class="continuous-metrics">
+              <div><span>实际墙钟运行时长</span><strong id="continuousWallElapsed">—</strong></div>
+              <div><span>运行进程常驻内存</span><strong id="continuousResidentBytes">—</strong></div>
+              <div><span>进程累计 CPU 时间</span><strong id="continuousCpuTime">—</strong></div>
+              <div><span>距上次真实遥测</span><strong id="continuousTelemetryLag">—</strong></div>
+              <div><span>持久化遥测帧数</span><strong id="continuousDurableFrames">—</strong></div>
+              <div><span>遥测写盘量 / 空闲磁盘</span><strong id="continuousDiskStatus">—</strong></div>
+            </div>
+            <p id="continuousMetricScope" class="continuous-muted">数值来自当前操作系统与遥测账本；进程 CPU 为累计时间，不是 CPU 使用百分比。</p>
+          </section>
+          <section class="continuous-card" aria-label="长稳验收证据">
+            <div class="section-heading compact"><h2>长稳验收证据采集</h2><span id="continuousEnduranceStatus" class="status-chip status-muted">尚未采集</span></div>
+            <p class="continuous-muted">按真实墙钟时间持续留存遥测、资源和写盘证据。关闭浏览器不会结束服务器端采样；父进程崩溃后证据视为未完成。</p>
+            <div class="continuous-actions" style="margin-top: 12px">
+              <label class="continuous-signal" style="min-width: 125px">采样间隔
+                <select id="continuousEnduranceInterval">
+                  <option value="1">1 秒（试验）</option>
+                  <option value="5" selected>5 秒</option>
+                  <option value="30">30 秒</option>
+                  <option value="60">60 秒</option>
+                  <option value="300">300 秒</option>
+                </select>
+              </label>
+              <button id="continuousEnduranceStart" class="button button-secondary" type="button">开始证据采集</button>
+              <button id="continuousEnduranceStop" class="button button-secondary" type="button">停止并生成摘要</button>
+              <button id="continuousEnduranceEvidence" class="button button-ghost" type="button">导出采样 JSONL</button>
+              <button id="continuousEnduranceSummary" class="button button-ghost" type="button">导出验收摘要</button>
+              <button id="continuousEnduranceAuditBtn" class="button button-secondary" type="button">独立核验现有证据</button>
+            </div>
+            <div class="continuous-metrics">
+              <div><span>已留存采样</span><strong id="continuousEnduranceSamples">0</strong></div>
+              <div><span>监测告警次数</span><strong id="continuousEnduranceAlerts">0</strong></div>
+              <div><span>24h 人工审核资格</span><strong id="continuousEnduranceEligible">未达到</strong></div>
+            </div>
+            <p id="continuousEnduranceReason" class="continuous-muted">证据与原生仿真状态相互独立；不会触发停止、自动恢复或遥控重放。</p>
+            <div id="continuousEnduranceAuditResult" class="continuous-muted" role="status" aria-live="polite">尚未执行离线式证据完整性核验。</div>
+          </section>
+          <section class="continuous-card">
+            <div class="section-heading compact"><h2>实时整星遥测</h2><span id="continuousGapBadge" class="status-chip status-muted">未订阅</span></div>
+            <label class="continuous-signal">监测参量<select id="continuousSignal"><option value="orbit.radius_m">轨道半径 / m</option><option value="adcs.pointing_error_deg">姿态指向误差 / °</option><option value="eps.battery_soc">蓄电池荷电状态</option><option value="adcs.rw.speed_rad_s_0">RW1 实测原生轮速 / rad/s</option><option value="adcs.rw.speed_rad_s_1">RW2 实测原生轮速 / rad/s</option><option value="adcs.rw.speed_rad_s_2">RW3 实测原生轮速 / rad/s</option><option id="continuousRw4SignalOption" value="adcs.rw.speed_rad_s_3" hidden disabled>RW4 实测原生轮速 / rad/s（仅四轮构型）</option><option value="adcs.rw.effective_max_torque_nm_0">RW1 命令有效限幅 / N·m</option></select></label>
+            <canvas id="continuousChart" class="continuous-chart" width="950" height="265" role="img" aria-label="最近的原生遥测趋势"></canvas>
+            <div class="continuous-metrics continuous-last">
+              <div><span>轨道半径</span><strong id="continuousOrbit">—</strong></div>
+              <div><span>指向误差</span><strong id="continuousPointing">—</strong></div>
+              <div><span>电池 SOC</span><strong id="continuousSoc">—</strong></div>
+            </div>
+            <p class="continuous-muted">曲线仅显示原生 Basilisk 运行结果；断线后优先续读遥测序号，不插值或伪造数据。</p>
+          </section>
+          <section class="continuous-card">
+            <div class="section-heading compact"><h2>会话事件</h2></div>
+            <div id="continuousEventList" class="continuous-log" aria-live="polite"></div>
+          </section>
+        </div>
+        <aside class="continuous-telecommand">
+          <section class="continuous-card">
+            <div class="section-heading compact"><h2>遥控指令</h2></div>
+            <p class="continuous-muted">指令先进入持久化 SQLite 账本，再按指定仿真时刻执行。</p>
+            <form id="continuousCommandForm">
+              <label>指令类型<select id="continuousOperation">
+                <option value="adcs.target.set">ADCS · 设置姿态目标</option>
+                <option value="session.mode.set">整星 · 切换运行模式</option>
+                <option value="adcs.control.set">ADCS · 控制使能</option>
+                <option value="adcs.fault.inject">ADCS · 注入故障（需权限）</option>
+              </select></label>
+              <div id="continuousTargetFields" class="continuous-dynamic-fields">
+                <label>目标姿态 MRP σ₁<input id="continuousSigma1" type="number" min="-1" max="1" step="0.01" value="0.1"></label>
+                <label>目标姿态 MRP σ₂<input id="continuousSigma2" type="number" min="-1" max="1" step="0.01" value="0"></label>
+                <label>目标姿态 MRP σ₃<input id="continuousSigma3" type="number" min="-1" max="1" step="0.01" value="0"></label>
+              </div>
+              <div id="continuousModeFields" class="continuous-dynamic-fields hidden"><label>运行模式<select id="continuousMode"><option value="standby">待机</option><option value="inertialPoint">惯性定向</option><option value="safe">安全模式</option></select></label></div>
+              <div id="continuousControlFields" class="continuous-dynamic-fields hidden"><label>控制使能<select id="continuousControlEnabled"><option value="true">启用</option><option value="false">禁用</option></select></label></div>
+              <div id="continuousFaultFields" class="continuous-dynamic-fields hidden">
+                <label>故障模式<select id="continuousFault"><option value="rw_friction">反作用轮摩擦</option><option value="rw_jam">反作用轮卡滞</option><option value="sensor_bias">传感器偏置</option></select></label>
+                <label>严重程度 / 0–1<input id="continuousSeverity" type="number" min="0" max="1" step="0.05" value="0.3"></label>
+              </div>
+              <label>执行时刻 / 仿真秒<input id="continuousExecuteAt" type="number" min="0" step="0.1" value="5" required></label>
+              <button class="button button-primary" type="submit">确认并发送遥控</button>
+            </form>
+          </section>
+          <section class="continuous-card">
+            <div class="section-heading compact"><h2>遥控回执</h2></div>
+            <div id="continuousAckList" class="continuous-log" aria-live="polite"></div>
           </section>
         </aside>
       </div>
@@ -685,5 +902,6 @@
 
   <script>window.SAT_SIM_STATIC_VERSION = "0.15.0-graph-v15";</script>
   <script src="/assets/app.js?v=0.15.0-graph-v15" defer></script>
+  <script src="/assets/continuous.js?v=0.16.0-r7-ui" defer></script>
 </body>
 </html>

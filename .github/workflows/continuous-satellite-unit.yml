@@ -1,0 +1,100 @@
+name: Continuous satellite unit tests (without Basilisk)
+
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/interactive/**"
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "tests/interactive/test_continuous_session.py"
+      - "tests/interactive/test_continuous_persistence.py"
+      - "tests/interactive/test_continuous_seal.py"
+      - "tests/interactive/test_native_checkpoint_audit.py"
+      - "tests/interactive/test_native_recovery_readiness.py"
+      - "tests/interactive/test_native_time_rebase.py"
+      - "tests/interactive/test_native_scheduler_pilot.py"
+      - "tests/interactive/test_native_multitask_guards.py"
+      - "tests/interactive/test_native_multiprocess_guards.py"
+      - "tests/interactive/test_native_fsw_memory_guards.py"
+      - "tests/interactive/test_native_rw_fault_guards.py"
+      - "tests/interactive/test_native_tc_reconciliation_guards.py"
+      - "tests/interactive/test_native_joint_checkpoint_guards.py"
+      - "tests/interactive/test_recovery_command_preflight.py"
+      - "tests/interactive/test_command_transaction_ledger.py"
+      - "tests/interactive/test_command_outbox_mirror.py"
+      - "tests/interactive/test_command_writer_epoch.py"
+      - "tests/interactive/test_native_supervised_process_barrier.py"
+      - "tests/interactive/test_supervised_continuous_native_runtime.py"
+      - "tests/interactive/test_native_parent_death_fence.py"
+      - "tests/interactive/test_continuous_console.py"
+      - "tests/interactive/test_continuous_initial_config.py"
+      - "tests/interactive/test_continuous_observability.py"
+      - "tests/interactive/test_continuous_endurance.py"
+      - "tests/interactive/test_continuous_endurance_audit.py"
+      - "tests/interactive/test_windows_native_job.py"
+      - "src/sat_sim/web/**"
+      - "tests/test_native_mode_checkpoint.py"
+      - "tests/interactive/test_session_workspace.py"
+      - "tests/interactive/test_telecommand_mailbox.py"
+      - "tests/interactive/test_telemetry_bus.py"
+      - ".github/workflows/continuous-satellite-unit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  session-control:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install non-native Python test dependencies
+        run: >-
+          python -m pip install
+          pytest==9.0.3 pydantic==2.13.4 jsonschema==4.26.0
+          numpy==2.3.5 PyYAML==6.0.3 colorama==0.4.6
+          sgp4==2.25 joblib==1.5.3 scikit-learn==1.9.0
+          fastapi==0.139.2 starlette==1.3.1 httpx==0.28.1
+      - name: Run continuous session tests without native Basilisk
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q
+          tests/interactive/test_continuous_session.py
+          tests/interactive/test_continuous_persistence.py
+          tests/interactive/test_continuous_seal.py
+          tests/interactive/test_native_checkpoint_audit.py
+          tests/interactive/test_native_recovery_readiness.py
+          tests/interactive/test_native_time_rebase.py
+          tests/interactive/test_native_scheduler_pilot.py
+          tests/interactive/test_native_multitask_guards.py
+          tests/interactive/test_native_multiprocess_guards.py
+          tests/interactive/test_native_fsw_memory_guards.py
+          tests/interactive/test_native_rw_fault_guards.py
+          tests/interactive/test_native_tc_reconciliation_guards.py
+          tests/interactive/test_native_joint_checkpoint_guards.py
+          tests/interactive/test_recovery_command_preflight.py
+          tests/interactive/test_command_transaction_ledger.py
+          tests/interactive/test_command_outbox_mirror.py
+          tests/interactive/test_command_writer_epoch.py
+          tests/interactive/test_native_supervised_process_barrier.py
+          tests/interactive/test_supervised_continuous_native_runtime.py
+          tests/interactive/test_native_parent_death_fence.py
+          tests/interactive/test_continuous_console.py
+          tests/interactive/test_continuous_initial_config.py
+          tests/interactive/test_continuous_observability.py
+          tests/interactive/test_continuous_endurance.py
+          tests/interactive/test_continuous_endurance_audit.py
+          tests/interactive/test_windows_native_job.py
+          tests/test_native_mode_checkpoint.py
+          tests/interactive/test_session_workspace.py
+          tests/interactive/test_telecommand_mailbox.py
+          tests/interactive/test_command_lifecycle.py
+          tests/interactive/test_telemetry_bus.py
+          -k "not native_basilisk"
+      - name: Validate workbench navigation and continuous JavaScript syntax
+        run: |
+          node --check src/sat_sim/web/app.js
+          node --check src/sat_sim/web/continuous.js

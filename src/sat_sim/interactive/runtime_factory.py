@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import os
 from typing import Any
 
 from sat_sim.bsk_engine.event_manager import parse_bsk_events
@@ -53,11 +54,26 @@ def _has_preplanned_events(task_spec: Mapping[str, Any]) -> bool:
     return False
 
 
-def build_persistent_runtime(spec: InteractiveSessionSpec):
-    """Build one approved runtime without exposing arbitrary constructors."""
+def build_persistent_runtime(
+    spec: InteractiveSessionSpec, *, supervised: bool | None = None,
+):
+    """Build approved runtime; fresh OS process is opt-in, no auto-resume.
+
+    Setting SAT_SIM_SUPERVISED_NATIVE_RUNTIME=1 is a deployment-side explicit
+    opt-in, not a client task-spec flag. Child always forces supervised=False.
+    """
+    if supervised is None:
+        supervised = os.environ.get("SAT_SIM_SUPERVISED_NATIVE_RUNTIME") == "1"
+    if supervised:
+        if spec.capability_id != WHOLE_UNIFIED_CAPABILITY_ID or not spec.continuous:
+            raise ValueError("SUPERVISED_NATIVE_ONLY_WHOLE_CONTINUOUS")
+        from .supervised_native_runtime import SupervisedContinuousNativeRuntime
+        return SupervisedContinuousNativeRuntime(spec), None
 
     if spec.capability_id not in APPROVED_CAPABILITY_IDS:
         raise ValueError("INTERACTIVE_CAPABILITY_NOT_APPROVED")
+    if spec.continuous and spec.capability_id != WHOLE_UNIFIED_CAPABILITY_ID:
+        raise ValueError("CONTINUOUS_MODE_REQUIRES_WHOLE_UNIFIED_RUNTIME")
     task_spec = spec.task_spec
     duration_s = min(
         max(_simulation_number(task_spec, "duration_s", spec.max_sim_time_s), spec.quantum_s),
@@ -84,8 +100,9 @@ def build_persistent_runtime(spec: InteractiveSessionSpec):
                 dict(item) for item in (_mapping(task_spec.get("outputs")).get("telemetry_streams") or ())
                 if isinstance(item, Mapping)
             ),
+            interactive_unbounded=spec.continuous,
         )
-        return UnifiedPersistentRuntime(config), duration_s
+        return UnifiedPersistentRuntime(config, continuous=spec.continuous), None if spec.continuous else duration_s
 
     if _has_preplanned_events(task_spec):
         raise ValueError("SUBSYSTEM_PREPLANNED_EVENTS_NOT_SUPPORTED_INTERACTIVELY")

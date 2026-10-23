@@ -59,6 +59,9 @@ class InteractiveSessionSpec(FrozenModel):
     quantum_s: float = Field(default=0.5, gt=0.0, le=10.0)
     rate: float = 1.0
     paced: bool = True
+    # When enabled, a whole-spacecraft session advances until an explicit stop/abort.
+    # The finite duration fields remain as setup/legacy defaults, not session deadlines.
+    continuous: bool = False
     max_sim_time_s: float = Field(default=3600.0, gt=0.0, le=86400.0)
     max_wall_time_s: float = Field(default=14400.0, gt=0.0, le=86400.0)
     idle_timeout_s: float = Field(default=300.0, gt=0.0, le=3600.0)
@@ -66,6 +69,11 @@ class InteractiveSessionSpec(FrozenModel):
     control_queue_capacity: int = Field(default=128, ge=1, le=4096)
     command_queue_capacity: int = Field(default=1024, ge=1, le=10000)
     telemetry_buffer_frames: int = Field(default=10000, ge=1, le=1000000)
+    # Opt-in guard only for continuous sessions. Zero disables this particular cap.
+    telemetry_log_max_bytes: int = Field(default=0, ge=0)
+    # 64 MiB default active log segment; 0 disables rotation.
+    telemetry_segment_max_bytes: int = Field(default=64 * 1024 * 1024, ge=0)
+    telemetry_min_free_disk_bytes: int = Field(default=64 * 1024 * 1024, ge=0)
     drift_tolerance_s: float = Field(default=0.2, gt=0.0, le=10.0)
     created_at: datetime = Field(default_factory=utc_now)
 
@@ -88,6 +96,9 @@ class SessionSnapshot(FrozenModel):
     rate: float
     paced: bool
     worker_alive: bool
+    archive_status: Literal["NOT_CONFIGURED", "NOT_READY", "SEALING", "SEALED", "FAILED", "NOT_APPLICABLE"] = "NOT_CONFIGURED"
+    archive_error: str | None = None
+    terminal_error: str | None = None
     pace_observation_count: int = Field(default=0, ge=0)
     last_drift_s: float = 0.0
     max_abs_drift_s: float = Field(default=0.0, ge=0.0)

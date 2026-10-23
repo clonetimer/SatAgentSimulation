@@ -60,3 +60,24 @@ def test_disconnect_overflow_policy_and_ring_replay_after_sequence() -> None:
     bus.publish("fast", 6.0, {"x": 6})
     assert disconnected.closed is True
     assert disconnected.close_reason == "SUBSCRIBER_BACKPRESSURE"
+
+
+
+def test_internal_stream_can_use_small_replay_ring_without_truncating_public_streams() -> None:
+    bus = TelemetryBus(
+        "continuous-session",
+        capacity_per_stream=8,
+        stream_capacities={"runtime.trace": 2},
+    )
+    for i in range(6):
+        bus.publish("runtime.trace", float(i), {"very_wide_native_row": list(range(300))})
+        bus.publish("whole.fast", float(i), {"radius_m": 7_000_000 + i})
+    internal = bus.read_after("runtime.trace", after_sequence=-1)
+    public = bus.read_after("whole.fast", after_sequence=-1)
+    assert internal.gap is True
+    assert [frame.sequence for frame in internal.frames] == [4, 5]
+    assert public.gap is False
+    assert [frame.sequence for frame in public.frames] == list(range(6))
+    assert bus.subscribe(("runtime.trace",), after_sequences={"runtime.trace": 0}).poll()[0].reason_code == "BUFFER_EVICTED"
+    with pytest.raises(ValueError, match="positive integers"):
+        TelemetryBus("bad", stream_capacities={"runtime.trace": 0})

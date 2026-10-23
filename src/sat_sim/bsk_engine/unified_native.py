@@ -539,6 +539,8 @@ class UnifiedRuntimeConfig:
     telemetry_streams: tuple[dict[str, Any], ...] = ()
     execution_stops_s: tuple[float, ...] = ()
     execution_controller: Any = None
+    # Only opt-in persistent interactive sessions may extend beyond setup duration.
+    interactive_unbounded: bool = False
 
 
 class UnifiedNativeRuntime:
@@ -560,8 +562,21 @@ class UnifiedNativeRuntime:
         "project_power_data_mode_gate", "project_whole_parameter_event_controller",
     )
 
-    def __init__(self, config: UnifiedRuntimeConfig) -> None:
+    def __init__(
+        self, config: UnifiedRuntimeConfig, *,
+        _test_only_fresh_native_graph_probe: Any = None,
+    ) -> None:
         self.config = config
+        # Isolated test process only. This hook never appears in TaskSpec,
+        # the persistent runtime, HTTP handlers or a recoverable checkpoint.
+        if _test_only_fresh_native_graph_probe is not None:
+            if (
+                not callable(_test_only_fresh_native_graph_probe)
+                or config.execution_controller is not None
+                or config.interactive_unbounded
+            ):
+                raise ValueError("R9D_NATIVE_TEST_PROBE_NOT_PERMITTED")
+        self._test_only_fresh_native_graph_probe = _test_only_fresh_native_graph_probe
 
     def run(self) -> SimulationResult:
         from Basilisk.architecture import messaging  # type: ignore
@@ -604,7 +619,8 @@ class UnifiedNativeRuntime:
         process_name = "UnifiedNativeProcess"
         task_name = "UnifiedNativeTask"
         process = sim.CreateNewProcess(process_name)
-        process.addTask(sim.CreateNewTask(task_name, macros.sec2nano(cfg.step_s)))
+        native_task = sim.CreateNewTask(task_name, macros.sec2nano(cfg.step_s))
+        process.addTask(native_task)
         instantiated: list[dict[str, str]] = []
         connections: list[str] = []
         record_sources: list[str] = []
@@ -647,10 +663,29 @@ class UnifiedNativeRuntime:
         rw = reactionWheelStateEffector.ReactionWheelStateEffector()
         rw_factory = simIncludeRW.rwFactory()
         rw_axes = _reaction_wheel_axes(str(values.get("rw_configuration", "orthogonal_3")))
+        # R8-C: pass validated initial speeds and torque limits into the
+        # *actual* Basilisk reaction-wheel factory (not merely into the
+        # downstream fault manager or synthetic telemetry).
+        # The downstream native command clamp uses the same value below.
+        rw_hardware_u_max = float(values.get("rw_max_torque_nm", 0.2))
+        if not math.isfinite(rw_hardware_u_max) or not 0.0 < rw_hardware_u_max <= 0.2:
+            raise ValueError("NATIVE_RW_HARDWARE_TORQUE_LIMIT_INVALID")
         for index, axis in enumerate(rw_axes):
+            # The simIncludeRW.rwFactory API uses RPM for Omega, whereas
+            # physical telemetry and the operator schema use rad/s.
+            # Retain the pre-R8-C baseline physical 100/200/300/400 RPM
+            # when a speed was not explicitly specified.
+            default_rpm = 100.0 * (index + 1)
+            omega_init_rad_s = float(values.get(
+                f"rw_initial_speed_rad_s_{index}", default_rpm * (2.0 * math.pi / 60.0),
+            ))
+            if not math.isfinite(omega_init_rad_s) or abs(omega_init_rad_s) > 500.0:
+                raise ValueError("NATIVE_RW_INITIAL_SPEED_INVALID")
+            omega_factory_rpm = omega_init_rad_s * (60.0 / (2.0 * math.pi))
             rw_factory.create(
                 "Honeywell_HR16", list(axis), maxMomentum=50.0,
-                Omega=float(100.0 * (index + 1)), u_max=0.2, label=f"RW{index + 1}",
+                Omega=omega_factory_rpm, u_max=rw_hardware_u_max,
+                label=f"RW{index + 1}",
             )
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
         add(rw, "reaction_wheels", "basilisk_official_native", 99)
@@ -801,7 +836,7 @@ class UnifiedNativeRuntime:
         connected("mrp_feedback.cmdTorqueOutMsg", "rw_motor_torque")
 
         rw_fault = ReactionWheelCommandFaultManager(
-            cfg.events, wheel_count=len(rw_axes), max_torque_nm=float(values.get("rw_max_torque_nm", 0.2))
+            cfg.events, wheel_count=len(rw_axes), max_torque_nm=rw_hardware_u_max
         )
         rw_fault.commandInMsg.subscribeTo(motor.rwMotorTorqueOutMsg)
         rw_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)
@@ -1356,7 +1391,20 @@ class UnifiedNativeRuntime:
                 raise ValueError(f"operation has no unified runtime adapter: {operation}")
 
         sim.InitializeSimulation()
+        if self._test_only_fresh_native_graph_probe is not None:
+            # Strictly after Basilisk has registered all native StateData,
+            # strictly before executing the FIRST simulation time step.
+            # The R9-D lab callback inspects imported vectors and explicitly
+            # exits the isolated child. Do not use for session resumption.
+            self._test_only_fresh_native_graph_probe(
+                sim=sim, process=process, task=native_task,
+                spacecraft=sc, rw_effector=rw, controller=controller,
+                wheel_count=len(rw_axes), whole_modules=whole_modules,
+                rw_command_fault_manager=rw_fault, allocator=motor,
+            )
         execution_stops: list[float] = []
+        segment_count = 0
+        previous_stop_s = 0.0
         last_live_rows: list[dict[str, Any]] = []
         if cfg.execution_controller is not None:
             cfg.execution_controller.runtime_prepared()
@@ -1365,6 +1413,90 @@ class UnifiedNativeRuntime:
                 stop_time_s = cfg.execution_controller.wait_for_advance()
                 if stop_time_s is None:
                     break
+                if stop_time_s == "__NATIVE_CHECKPOINT_AUDIT__":
+                    # Capture directly from the *current native model graph*
+                    # while its worker owns the paused simulation state.
+                    # Observed output messages do not include integrator,
+                    # controller-memory or subsystem private state: this is a
+                    # fail-closed capability audit, not a resume checkpoint.
+                    from sat_sim.interactive.native_checkpoint_audit import (
+                        capture_observations, capture_scheduler_phase,
+                        create_coverage_report,
+                    )
+                    import threading
+                    observations, unavailable = capture_observations(
+                        spacecraft=sc, reference=reference, controller=controller,
+                        battery=battery if not cfg.adcs_only else None,
+                        storage=storage if not cfg.adcs_only else None,
+                    )
+                    from sat_sim.interactive.native_state_pilot import capture_state_subset
+                    from sat_sim.interactive.native_whole_adcs_observation import (
+                        capture_live_adcs_owner_observation,
+                    )
+                    pilot_subset = None
+                    native_adcs_owners = None
+                    try:
+                        pilot_subset = capture_state_subset(sc, expected_rw_count=len(rw_axes))
+                    except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                        unavailable["native_state_subset_pilot"] = f"{type(exc).__name__}: {exc}"
+                    if pilot_subset is not None:
+                        try:
+                            native_adcs_owners = capture_live_adcs_owner_observation(
+                                sim=sim, spacecraft=sc, rw_effector=rw,
+                                controller=controller, allocator=motor,
+                                applied_command_source=rw_fault,
+                                native_state_subset=pilot_subset,
+                            )
+                        except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                            unavailable["native_adcs_owner_observations"] = (
+                                f"{type(exc).__name__}: {exc}"
+                            )
+                    else:
+                        unavailable["native_adcs_owner_observations"] = (
+                            "NATIVE_ADCS_STATE_SUBSET_UNAVAILABLE"
+                        )
+                    from sat_sim.interactive.native_joint_owner_observation import (
+                        capture_joint_owner_observation,
+                    )
+                    phase = capture_scheduler_phase(sim)
+                    from sat_sim.interactive.native_whole_clock_fsw_lab import capture_memento
+                    clock_fsw = None
+                    try:
+                        clock_fsw = capture_memento(
+                            sim=sim, process=process, task=native_task,
+                            spacecraft=sc, controller=controller,
+                            expected_rw_count=len(rw_axes),
+                        )
+                    except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                        unavailable["native_clock_fsw_lab"] = f"{type(exc).__name__}: {exc}"
+                    native_joint = None
+                    if not cfg.adcs_only:
+                        try:
+                            native_joint = capture_joint_owner_observation(
+                                scheduler_phase=phase,
+                                battery=whole_modules["battery"],
+                                panel=whole_modules["panel"],
+                                pdu=whole_modules["pdu"],
+                                thermal_graph=whole_modules["thermal_graph"],
+                                storage=whole_modules["storage"],
+                                downlink=whole_modules["native_downlink"],
+                            )
+                        except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                            unavailable["native_joint_owner_observations"] = (
+                                f"{type(exc).__name__}: {exc}"
+                            )
+                    report = create_coverage_report(
+                        sim_time_s=previous_stop_s,
+                        observations=observations, unavailable=unavailable,
+                        native_worker_ident=threading.get_ident(),
+                        state_subset_pilot=pilot_subset,
+                        native_adcs_owner_observations=native_adcs_owners,
+                        native_joint_owner_observations=native_joint,
+                        native_clock_fsw_lab=clock_fsw,
+                        scheduler_phase=phase,
+                    )
+                    cfg.execution_controller.runtime_audited(report)
+                    continue
                 # Interactive telemetry has already copied the preceding
                 # delta into its bounded bus/workspace.  Keeping every native
                 # recorder sample as well makes long sessions progressively
@@ -1383,9 +1515,8 @@ class UnifiedNativeRuntime:
                         if isinstance(trace, list):
                             trace.clear()
                     emitted_count = 0
-                if stop_time_s <= (execution_stops[-1] if execution_stops else 0.0) or stop_time_s > cfg.duration_s:
+                if stop_time_s <= previous_stop_s or (not cfg.interactive_unbounded and stop_time_s > cfg.duration_s):
                     raise ValueError("controlled execution stop must increase and remain within duration_s")
-                previous_stop_s = execution_stops[-1] if execution_stops else 0.0
                 for command in cfg.execution_controller.take_commands():
                     apply_interactive_command(command, previous_stop_s, stop_time_s - previous_stop_s)
                 sim.ConfigureStopTime(macros.sec2nano(stop_time_s))
@@ -1393,7 +1524,10 @@ class UnifiedNativeRuntime:
                 if interactive_one_shot["reset_instrument_rate"]:
                     whole_modules["instrument"].nodeBaudRate = nominal_instrument_rate
                     interactive_one_shot["reset_instrument_rate"] = False
-                execution_stops.append(stop_time_s)
+                segment_count += 1
+                previous_stop_s = stop_time_s
+                if not cfg.interactive_unbounded:
+                    execution_stops.append(stop_time_s)
                 live_cfg = replace(cfg, events=(*cfg.events, *interactive_events))
                 live_rows = _build_unified_rows(
                     recorder_map,
@@ -1407,6 +1541,9 @@ class UnifiedNativeRuntime:
                     last_live_rows = live_rows
                 cfg.execution_controller.runtime_advanced(stop_time_s, tuple(live_rows))
                 emitted_count = len(recorder_map["state"].times())
+            if cfg.interactive_unbounded and segment_count:
+                # Keep the terminal stop only: unbounded sessions must not store all quanta.
+                execution_stops = [previous_stop_s]
         else:
             requested_stops = tuple(float(value) for value in cfg.execution_stops_s)
             if requested_stops:
@@ -1420,6 +1557,7 @@ class UnifiedNativeRuntime:
             for stop_time_s in execution_stops:
                 sim.ConfigureStopTime(macros.sec2nano(stop_time_s))
                 sim.ExecuteSimulation()
+            segment_count = len(execution_stops)
 
         if interactive_events:
             cfg = replace(cfg, events=(*cfg.events, *interactive_events), execution_controller=None)
@@ -1532,7 +1670,7 @@ class UnifiedNativeRuntime:
             "external_or_proxy_module_count": engineering_proxy_count,
             "connected_message_count": len(connections),
             "recorder_count": len(recorder_map),
-            "execution_segment_count": len(execution_stops),
+            "execution_segment_count": segment_count,
             "execution_stops_s": list(execution_stops),
             "trace_rows": len(rows),
             "initial_pointing_error_deg": rows[0]["adcs.pointing_error_deg"],

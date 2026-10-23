@@ -9,6 +9,8 @@ import threading
 import time
 from collections import deque
 from typing import Any, Literal
+from uuid import uuid4
+import sys
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,6 +27,23 @@ MAX_WEBSOCKET_MESSAGES_PER_SECOND = 20
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+from .continuous_initial_config import ContinuousInitialConfiguration, initial_configuration_catalog
+
+
+class ContinuousCreateBody(_Strict):
+    """Restricted operator-friendly continuous simulation form, not arbitrary code."""
+    session_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+    quantum_s: Literal[0.1, 0.2, 0.5, 1.0] = 0.5
+    rate: Literal[0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0] = 1.0
+    paced: bool = True
+    initial_horizon_s: float = Field(default=60.0, ge=1.0, le=86400.0)
+    initial_configuration: ContinuousInitialConfiguration = Field(default_factory=ContinuousInitialConfiguration)
+
+
+class EnduranceStartBody(_Strict):
+    sample_interval_s: Literal[1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 300.0] = 5.0
 
 
 class SessionControlBody(_Strict):
@@ -65,6 +84,8 @@ def create_interactive_router(
 
     router = APIRouter(prefix="/interactive", tags=["interactive"])
     command_catalog = CommandCatalog.default()
+    from .continuous_endurance import EnduranceRegistry, EVIDENCE_FILE, SUMMARY_FILE
+    endurance_registry = EnduranceRegistry()
     command_rate_windows: dict[tuple[str, str], deque[float]] = {}
     command_rate_lock = threading.Lock()
 
@@ -103,6 +124,215 @@ def create_interactive_router(
     @router.get("/sessions")
     def list_sessions():
         return {"sessions": manager.snapshots()}
+
+    @router.get("/continuous/overview")
+    def continuous_overview():
+        """Only capability and bounded status metadata; no SQLite secrets."""
+        sessions = tuple(
+            session for session in manager.snapshots()
+            if manager.get(session.session_id).spec.continuous
+        )
+        blocked = tuple({
+            "session_id": row.session_id,
+            "state": row.state.value,
+            "valid": row.valid,
+            "reason_code": row.reason_code,
+        } for row in manager.interrupted_workspaces)
+        return {
+            "schema_version": "sat-continuous-console.v1",
+            "enabled": manager.enabled,
+            "capability_id": "whole_spacecraft.unified_native.v1",
+            "mode": ("SUPERVISED_NATIVE_CHILD" if os.getenv("SAT_SIM_SUPERVISED_NATIVE_RUNTIME") == "1"
+                     else "IN_PROCESS_NATIVE"),
+            "platform": sys.platform,
+            "linux_parent_death_guard_possible": sys.platform == "linux",
+            "supported_operations": ["start", "pause", "resume", "step", "rate", "stop", "heartbeat"],
+            "native_resume_supported": False,
+            "automatic_tc_replay_allowed": False,
+            "sessions": sessions,
+            "interrupted_workspaces": blocked,
+        }
+
+    @router.get("/continuous/configuration/catalog")
+    def continuous_configuration_catalog():
+        return initial_configuration_catalog()
+
+    @router.post("/continuous/sessions", status_code=201)
+    def create_continuous_session(body: ContinuousCreateBody, request: Request):
+        """Begin a new Basilisk graph, never revive an old crashed session."""
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "CONTINUOUS_CREATE_ROLE_DENIED"})
+        from .runtime_factory import WHOLE_UNIFIED_CAPABILITY_ID
+        # Advertise only native outputs supported by the selected RW topology.
+        # A three-wheel session must not claim a fabricated fourth actuator.
+        native_values = body.initial_configuration.native_values()
+        telemetry_fields = [
+            "orbit.radius_m", "adcs.pointing_error_deg",
+            "eps.battery_soc",
+            "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
+            "adcs.rw.speed_rad_s_2", "adcs.rw.effective_max_torque_nm_0",
+        ]
+        if native_values.get("rw_configuration") == "pyramid_4":
+            telemetry_fields.extend([
+                "adcs.rw.speed_rad_s_3",
+                "adcs.rw.effective_max_torque_nm_3",
+            ])
+        spec = InteractiveSessionSpec(
+            session_id=body.session_id,
+            capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
+            continuous=True,
+            quantum_s=body.quantum_s,
+            rate=body.rate,
+            paced=body.paced,
+            task_spec={
+                "simulation": {
+                    "duration_s": body.initial_horizon_s,
+                    "sample_s": body.quantum_s,
+                    "solver": {"step_s": min(body.quantum_s, 0.2)},
+                },
+                "parameters": {"values": native_values},
+                "outputs": {"telemetry_streams": [{
+                    "stream_id": "whole.continuous",
+                    "sample_s": body.quantum_s,
+                    "fields": telemetry_fields,
+                }]},
+            },
+        )
+        try:
+            runtime, end_time = build_persistent_runtime(spec)
+            session = manager.create(spec, runtime, end_time_s=end_time)
+            session.prepare()
+        except ValueError as exc:
+            raise HTTPException(422, detail={"reason_code": str(exc)}) from exc
+        except RuntimeError as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "continuous_simulation_created", principal, session_id=spec.session_id)
+        return session.snapshot()
+
+    @router.get("/continuous/sessions/{session_id}/configuration")
+    def continuous_saved_initial_configuration(session_id: str):
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        return {
+            "schema_version": "sat-continuous-initial-config-readonly.v1",
+            "session_id": session_id,
+            "capability_id": session.spec.capability_id,
+            "native_initial_values": dict(session.spec.task_spec.get("parameters", {}).get("values", {})),
+            "editable_after_prepare": False,
+            "full_native_resume_supported": False,
+        }
+
+    @router.get("/continuous/sessions/{session_id}/status")
+    def continuous_session_status(session_id: str):
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        runtime = session.runtime
+        return {
+            "schema_version": "sat-continuous-status.v1",
+            "session": session.snapshot(),
+            "telemetry_streams": session.allowed_telemetry_streams,
+            "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if
+                             runtime.__class__.__name__ == "SupervisedContinuousNativeRuntime"
+                             else "IN_PROCESS_NATIVE"),
+            "native_child_pid": getattr(runtime, "child_pid", None),
+            "parent_death_fence": getattr(runtime, "parent_death_fence", None),
+            "last_reap": getattr(runtime, "last_reap", None),
+            "writer_epoch": session._command_mailbox.writer_epoch,
+            "native_resume_supported": False,
+            "automatic_tc_replay_allowed": False,
+            "activate_native_queue_allowed": False,
+        }
+
+    @router.get("/continuous/sessions/{session_id}/observability")
+    def continuous_session_observability(session_id: str):
+        """Real host/ledger observations; no native side effects or TC replay."""
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        from .continuous_observability import observe_continuous_session
+        return observe_continuous_session(session)
+
+    @router.post("/continuous/sessions/{session_id}/endurance/start", status_code=201)
+    def start_endurance(session_id: str, body: EnduranceStartBody, request: Request):
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "ENDURANCE_START_ROLE_DENIED"})
+        session = get_session(session_id)
+        try:
+            status = endurance_registry.start(session, body.sample_interval_s)
+        except (ValueError, RuntimeError, OSError) as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "endurance_evidence_started", principal, session_id=session_id)
+        return status
+
+    @router.post("/continuous/sessions/{session_id}/endurance/stop")
+    def stop_endurance(session_id: str, request: Request):
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "ENDURANCE_STOP_ROLE_DENIED"})
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None:
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_NOT_STARTED"})
+        try:
+            status = recorder.stop()
+        except RuntimeError as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "endurance_evidence_stopped", principal, session_id=session_id)
+        return status
+
+    @router.get("/continuous/sessions/{session_id}/endurance/status")
+    def endurance_status(session_id: str):
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None:
+            return {"schema_version": "sat-endurance-status.v1", "session_id": session_id,
+                    "recording_status": "NOT_STARTED", "sample_count": 0,
+                    "native_resume_supported": False,
+                    "automatic_tc_replay_allowed": False}
+        return recorder.status()
+
+    @router.get("/continuous/sessions/{session_id}/endurance/audit")
+    def endurance_external_audit(session_id: str):
+        """Read-only forensic verification (also executable off-server via CLI).
+
+        Bound to the registered workspace, never a user-supplied path. This
+        can run after recorder finalization without reactivating native state.
+        """
+        session = get_session(session_id)
+        if not session.spec.continuous or session._workspace is None:
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_WORKSPACE_NOT_FOUND"})
+        from .continuous_endurance_audit import audit_endurance_workspace
+        recorder = endurance_registry.get(session_id)
+        stale_s = max(30., recorder.interval_s * 3.) if recorder else 30.
+        return audit_endurance_workspace(
+            session._workspace.path, max_stale_s=stale_s,
+        )
+
+    @router.get("/continuous/sessions/{session_id}/endurance/evidence")
+    def endurance_evidence_download(session_id: str):
+        from fastapi.responses import FileResponse
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None or not recorder.path.is_file():
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_EVIDENCE_NOT_FOUND"})
+        return FileResponse(
+            recorder.path, media_type="application/x-ndjson",
+            filename=session_id + "-" + EVIDENCE_FILE,
+        )
+
+    @router.get("/continuous/sessions/{session_id}/endurance/summary")
+    def endurance_summary_download(session_id: str):
+        from fastapi.responses import FileResponse
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None or not recorder.summary_path.is_file():
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_SUMMARY_NOT_FINAL"})
+        return FileResponse(recorder.summary_path, media_type="application/json",
+                            filename=session_id + "-" + SUMMARY_FILE)
 
     @router.get("/commands/catalog")
     def read_command_catalog():
@@ -144,6 +374,52 @@ def create_interactive_router(
             session_id=session_id, action=body.action,
         )
         return session.snapshot()
+
+    @router.get("/sessions/{session_id}/checkpoint/coverage")
+    def checkpoint_coverage(session_id: str, request: Request):
+        """Read native module audit at a paused boundary; never promise restore."""
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "NATIVE_CHECKPOINT_AUDIT_ROLE_DENIED"})
+        session = get_session(session_id)
+        try:
+            report = session.checkpoint_coverage()
+        except (RuntimeError, ValueError, TimeoutError) as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(
+            audit_logger, "interactive_native_checkpoint_coverage_read", principal,
+            session_id=session_id,
+            sim_time_s=report["sim_time_s"],
+            resume_supported=False,
+        )
+        return report
+
+    @router.get("/continuous/sessions/{session_id}/recovery/readiness")
+    def native_recovery_readiness(session_id: str, request: Request):
+        """Real, paused Basilisk coverage only; no checkpoint import/restart.
+
+        Reuses the original single-owner worker's safe checkpoint audit
+        operation.  Its output is a fail-closed owner matrix, NOT a file
+        pretending to be a restorable physical snapshot.
+        """
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "NATIVE_RECOVERY_PREFLIGHT_ROLE_DENIED"})
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        try:
+            from .native_recovery_readiness import build_recovery_readiness
+            coverage = session.checkpoint_coverage()
+            result = build_recovery_readiness(
+                coverage, capability_id=session.spec.capability_id,
+            )
+        except (RuntimeError, ValueError, TimeoutError) as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "interactive_recovery_readiness_audit", principal,
+               session_id=session_id, sim_time_s=result["sim_time_s"],
+               automatic_resume_allowed=False)
+        return result
 
     @router.post("/sessions/{session_id}/commands", status_code=202)
     def submit_command(session_id: str, command: Telecommand, request: Request):

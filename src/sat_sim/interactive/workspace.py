@@ -4,13 +4,17 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
+import sqlite3
 import threading
+from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .models import CommandAck, InteractiveSessionSpec, SessionState, Telecommand, TelemetryFrame
+from . import telemetry_segments
 
 
 def _canonical(payload: dict[str, Any]) -> bytes:
@@ -42,6 +46,14 @@ class SessionWorkspace:
         self.telemetry_path = self.path / "telemetry.jsonl"
         self.telemetry_manifest_path = self.path / "telemetry_manifest.json"
         self._lock = threading.Lock()
+        self._continuous_storage_guard = bool(spec.continuous)
+        self._telemetry_log_max_bytes = int(spec.telemetry_log_max_bytes)
+        self._telemetry_segment_max_bytes = int(spec.telemetry_segment_max_bytes) if spec.continuous else 0
+        self._telemetry_min_free_disk_bytes = int(spec.telemetry_min_free_disk_bytes)
+        # Amortize disk usage checks; the safety reserve greatly exceeds the
+        # maximum size of a normal 128-frame batch.
+        self._telemetry_disk_check_interval = 128
+        self._telemetry_disk_check_count = 0
         if create:
             self.path.mkdir(parents=True, exist_ok=False)
             spec_payload = spec.model_dump(mode="json")
@@ -57,18 +69,16 @@ class SessionWorkspace:
             self._command_last_hash = "0" * 64
             self._telemetry_sequence = 0
             self._telemetry_last_hash = "0" * 64
+            self._telemetry_total_bytes = 0
         else:
             inspection, rows = self.inspect(self.path, include_rows=True)
             if not inspection.valid:
                 raise ValueError(f"invalid session workspace: {inspection.reason_code}")
             self._sequence = inspection.sequence + 1
             self._last_hash = str(rows[-1]["entry_hash"]) if rows else "0" * 64
-            command_rows = self.inspect_hash_chain(self.commands_path)
-            self._command_sequence = len(command_rows)
-            self._command_last_hash = str(command_rows[-1]["entry_hash"]) if command_rows else "0" * 64
-            telemetry_rows = self.inspect_hash_chain(self.telemetry_path)
-            self._telemetry_sequence = len(telemetry_rows)
-            self._telemetry_last_hash = str(telemetry_rows[-1]["entry_hash"]) if telemetry_rows else "0" * 64
+            self._command_sequence, self._command_last_hash = self.hash_chain_tail(self.commands_path)
+            self._telemetry_sequence, self._telemetry_last_hash = self.telemetry_chain_tail(self.path)
+            self._telemetry_total_bytes = telemetry_segments.total_logical_bytes(self.path)
 
     def append_state(self, state: SessionState, revision: int, sim_time_s: float, reason_code: str) -> dict[str, Any]:
         with self._lock:
@@ -119,6 +129,18 @@ class SessionWorkspace:
             self._command_sequence += 1
             return payload
 
+    def telemetry_write_statistics(self) -> dict[str, int]:
+        """Constant-cost observation of this process's durable telemetry ledger.
+
+        Includes rotated segments and active JSONL; is never interpreted as
+        proof that the disk will stay writable on the next sample.
+        """
+        with self._lock:
+            return {
+                "durable_frame_count": self._telemetry_sequence,
+                "durable_telemetry_bytes": self._telemetry_total_bytes,
+            }
+
     def append_telemetry(self, frame: TelemetryFrame) -> dict[str, Any]:
         with self._lock:
             payload = {
@@ -129,73 +151,128 @@ class SessionWorkspace:
                 "previous_hash": self._telemetry_last_hash,
             }
             payload["entry_hash"] = _sha256_bytes(_canonical(payload))
-            with self.telemetry_path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+            encoded = (json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+            if self._continuous_storage_guard:
+                # Reject before appending: never truncate, silently drop data,
+                # or create a broken hash-chain on capacity exhaustion.
+                if self._telemetry_log_max_bytes:
+                    if self._telemetry_total_bytes + len(encoded) > self._telemetry_log_max_bytes:
+                        raise RuntimeError("TELEMETRY_LOG_BUDGET_EXCEEDED")
+                if self._telemetry_segment_max_bytes and len(encoded) > self._telemetry_segment_max_bytes:
+                    raise RuntimeError("TELEMETRY_FRAME_EXCEEDS_SEGMENT_CAP")
+                if self._telemetry_min_free_disk_bytes and self._telemetry_disk_check_count == 0:
+                    if shutil.disk_usage(self.path).free <= (
+                        self._telemetry_min_free_disk_bytes + len(encoded)
+                    ):
+                        raise RuntimeError("TELEMETRY_DISK_RESERVE_EXHAUSTED")
+            if self._telemetry_segment_max_bytes:
+                used = self.telemetry_path.stat().st_size if self.telemetry_path.exists() else 0
+                if used and used + len(encoded) > self._telemetry_segment_max_bytes:
+                    telemetry_segments.roll_active(self.path)
+            with self.telemetry_path.open("ab") as handle:
+                handle.write(encoded)
                 handle.flush()
                 os.fsync(handle.fileno())
+            self._telemetry_total_bytes += len(encoded)
             self._telemetry_last_hash = payload["entry_hash"]
             self._telemetry_sequence += 1
+            if self._continuous_storage_guard:
+                self._telemetry_disk_check_count = (
+                    self._telemetry_disk_check_count + 1
+                ) % self._telemetry_disk_check_interval
             return payload
 
     def finalize_telemetry(self) -> dict[str, Any]:
+        """Archive verified telemetry with memory O(number of streams)."""
         with self._lock:
-            rows = self.inspect_hash_chain(self.telemetry_path)
             counts: dict[str, int] = {}
             latest_sequences: dict[str, int] = {}
-            frames_by_stream: dict[str, list[dict[str, Any]]] = {}
-            for row in rows:
-                frame = row["frame"]
-                stream = str(frame["stream"])
-                counts[stream] = counts.get(stream, 0) + 1
-                latest_sequences[stream] = int(frame["sequence"])
-                frames_by_stream.setdefault(stream, []).append(frame)
+            hashes: dict[str, Any] = {}
             artifact_root = self.path / "telemetry_streams"
             artifact_root.mkdir(parents=True, exist_ok=True)
             artifacts: dict[str, dict[str, Any]] = {}
-            for stream, frames in sorted(frames_by_stream.items()):
-                filename = f"stream-{hashlib.sha256(stream.encode('utf-8')).hexdigest()[:16]}.jsonl"
-                artifact_path = artifact_root / filename
-                content = "".join(
-                    json.dumps(frame, ensure_ascii=False, sort_keys=True) + "\n"
-                    for frame in frames
-                ).encode("utf-8")
-                artifact_path.write_bytes(content)
-                artifacts[stream] = {
-                    "path": f"telemetry_streams/{filename}",
-                    "row_count": len(frames),
-                    "sha256": _sha256_bytes(content),
-                }
-            payload = {
+            last_hash = "0" * 64
+            frame_count = 0
+            with ExitStack() as stack:
+                writers: dict[str, Any] = {}
+                for row in self.iter_telemetry(self.path):
+                    frame = row["frame"]
+                    stream = str(frame["stream"])
+                    if stream not in writers:
+                        filename = f"stream-{hashlib.sha256(stream.encode('utf-8')).hexdigest()[:16]}.jsonl"
+                        writers[stream] = stack.enter_context((artifact_root / filename).open("wb"))
+                        hashes[stream] = hashlib.sha256()
+                        artifacts[stream] = {"path": f"telemetry_streams/{filename}"}
+                    data = (json.dumps(frame, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+                    writers[stream].write(data)
+                    hashes[stream].update(data)
+                    counts[stream] = counts.get(stream, 0) + 1
+                    latest_sequences[stream] = int(frame["sequence"])
+                    last_hash = str(row["entry_hash"])
+                    frame_count += 1
+            for stream, artifact in artifacts.items():
+                artifact["row_count"] = counts[stream]
+                artifact["sha256"] = hashes[stream].hexdigest()
+            result = {
                 "schema_version": "interactive-telemetry-manifest.v1",
                 "session_id": self.path.name,
-                "frame_count": len(rows),
+                "frame_count": frame_count,
                 "streams": counts,
                 "latest_sequences": latest_sequences,
-                "artifacts": artifacts,
-                "telemetry_sha256": _sha256_bytes(self.telemetry_path.read_bytes()) if self.telemetry_path.exists() else _sha256_bytes(b""),
-                "final_entry_hash": rows[-1]["entry_hash"] if rows else "0" * 64,
+                "artifacts": dict(sorted(artifacts.items())),
+                "telemetry_sha256": telemetry_segments.logical_sha256(self.path),
+                "final_entry_hash": last_hash,
             }
+            segments = telemetry_segments.segments_metadata(self.path)
+            if segments:
+                result["source_segments"] = segments
             self.telemetry_manifest_path.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
-            return payload
+            return result
 
     @staticmethod
-    def inspect_hash_chain(path: Path) -> list[dict[str, Any]]:
-        rows: list[dict[str, Any]] = []
-        expected_previous = "0" * 64
+    def iter_telemetry(root: Path):
+        """Walk rotated and legacy telemetry with a shared global hash chain."""
+        yield from telemetry_segments.iter_entries(root)
+
+    @classmethod
+    def telemetry_chain_tail(cls, root: Path) -> tuple[int, str]:
+        count, last = 0, "0" * 64
+        for row in cls.iter_telemetry(root):
+            count += 1
+            last = row["entry_hash"]
+        return count, last
+
+    @staticmethod
+    def iter_hash_chain(path: Path):
+        """Verify each hash-chained JSONL entry without retaining prior rows."""
+        previous_hash = "0" * 64
         if not path.exists():
-            return rows
-        for raw_line in path.read_text(encoding="utf-8").splitlines():
-            row = json.loads(raw_line)
-            entry_hash = str(row.pop("entry_hash"))
-            if row.get("previous_hash") != expected_previous or _sha256_bytes(_canonical(row)) != entry_hash:
-                raise ValueError("HASH_CHAIN_INVALID")
-            row["entry_hash"] = entry_hash
-            rows.append(row)
-            expected_previous = entry_hash
-        return rows
+            return
+        with path.open("r", encoding="utf-8") as handle:
+            for raw_line in handle:
+                row = json.loads(raw_line)
+                entry_hash = str(row.pop("entry_hash"))
+                if row.get("previous_hash") != previous_hash or _sha256_bytes(_canonical(row)) != entry_hash:
+                    raise ValueError("HASH_CHAIN_INVALID")
+                row["entry_hash"] = entry_hash
+                previous_hash = entry_hash
+                yield row
+
+    @classmethod
+    def hash_chain_tail(cls, path: Path) -> tuple[int, str]:
+        count, last_hash = 0, "0" * 64
+        for row in cls.iter_hash_chain(path):
+            count += 1
+            last_hash = str(row["entry_hash"])
+        return count, last_hash
+
+    @classmethod
+    def inspect_hash_chain(cls, path: Path) -> list[dict[str, Any]]:
+        """Legacy full-materialization helper for finite session diagnostics."""
+        return list(cls.iter_hash_chain(path))
 
     @classmethod
     def inspect(cls, path: Path, *, include_rows: bool = False) -> WorkspaceInspection | tuple[WorkspaceInspection, list[dict[str, Any]]]:
@@ -211,11 +288,11 @@ class SessionWorkspace:
             except ValueError as exc:
                 raise ValueError("STATE_HASH_CHAIN_INVALID") from exc
             try:
-                cls.inspect_hash_chain(path / "command_events.jsonl")
+                cls.hash_chain_tail(path / "command_events.jsonl")
             except ValueError as exc:
                 raise ValueError("COMMAND_HASH_CHAIN_INVALID") from exc
             try:
-                cls.inspect_hash_chain(path / "telemetry.jsonl")
+                cls.telemetry_chain_tail(path)
             except ValueError as exc:
                 raise ValueError("TELEMETRY_HASH_CHAIN_INVALID") from exc
             state = SessionState(rows[-1]["state"]) if rows else SessionState.CREATED
@@ -239,10 +316,63 @@ class SessionWorkspace:
                 continue
             envelope = json.loads((path / "session_spec.json").read_text(encoding="utf-8"))
             spec = InteractiveSessionSpec.model_validate(envelope["session_spec"])
+            # Never rewrite an unfinished workspace merely because a second
+            # API process observes it. ACTIVE may mean either a living owner
+            # or an unclean crash; neither may be automatically taken over.
+            ledger = path / "command_ids.sqlite"
+            if spec.continuous and ledger.exists():
+                try:
+                    conn = sqlite3.connect(
+                        ledger.resolve().as_uri() + "?mode=ro", uri=True,
+                    )
+                    try:
+                        owner = conn.execute(
+                            "SELECT owner_state FROM command_writer_epoch "
+                            "WHERE singleton=1"
+                        ).fetchone()
+                    finally:
+                        conn.close()
+                    reason = (
+                        None if owner == ("RELEASED",)
+                        else "TC_WRITER_ACTIVE_OR_ORPHANED_NO_AUTOMATIC_INTERRUPTION"
+                    )
+                except sqlite3.DatabaseError:
+                    reason = "TC_WRITER_EPOCH_UNVERIFIABLE_NO_AUTOMATIC_INTERRUPTION"
+                if reason is not None:
+                    results.append(WorkspaceInspection(
+                        path.name, SessionState.INTERRUPTED, -1, False, reason,
+                    ))
+                    continue
             workspace = cls(root, spec, create=False)
             last_revision = int(rows[-1].get("revision", 0)) if rows else 0
             last_sim_time_s = float(rows[-1].get("sim_time_s", 0.0)) if rows else 0.0
             workspace.append_state(SessionState.INTERRUPTED, last_revision + 1, last_sim_time_s, "PROCESS_RESTART")
+            if spec.continuous:
+                # A restart cannot restore the original Basilisk native graph.
+                # Persist validated source evidence and the explicit reason for
+                # requiring a new, separately named simulation epoch.
+                # The SQLite outbox is the authoritative accepted-command
+                # status journal; repair a missing mirror cursor *only* when
+                # its exact fsynced JSONL ACK is already present. No missing
+                # ACK is fabricated, and no original command is replayed.
+                from .command_outbox_mirror import reconcile_existing_outbox_mirrors
+                try:
+                    reconcile_existing_outbox_mirrors(path)
+                except ValueError:
+                    # A single corrupt/inconsistent command projection must
+                    # not prevent other interrupted workspaces being
+                    # discovered. The immediately following recovery
+                    # preflight independently records a BLOCKED assessment
+                    # from the intact original files. No TC is replayed.
+                    pass
+                from .recovery_handoff import write_interrupted_handoff
+                write_interrupted_handoff(path)
+                # Bind the original ACK hash-chain to the persistent
+                # SQLite UNIQUE command index. This forensic preflight is
+                # deliberately read-only with respect to command execution:
+                # it NEVER makes the original native graph resumable.
+                from .recovery_command_preflight import write_interrupted_command_preflight
+                write_interrupted_command_preflight(path)
             updated = cls.inspect(path)
             assert isinstance(updated, WorkspaceInspection)
             results.append(updated)

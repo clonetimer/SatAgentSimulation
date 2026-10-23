@@ -110,12 +110,19 @@ class TelemetrySubscription:
 
 
 class TelemetryBus:
-    def __init__(self, session_id: str, capacity_per_stream: int = 10000) -> None:
+    def __init__(
+        self, session_id: str, capacity_per_stream: int = 10000,
+        *, stream_capacities: dict[str, int] | None = None,
+    ) -> None:
         if capacity_per_stream <= 0:
             raise ValueError("capacity_per_stream must be positive")
+        limits = dict(stream_capacities or {})
+        if any(not isinstance(value, int) or value <= 0 for value in limits.values()):
+            raise ValueError("stream capacities must be positive integers")
         self._session_id = session_id
         self._capacity = capacity_per_stream
-        self._buffers: dict[str, deque[TelemetryFrame]] = defaultdict(lambda: deque(maxlen=self._capacity))
+        self._stream_capacities = limits
+        self._buffers: dict[str, deque[TelemetryFrame]] = {}
         self._next_sequence: dict[str, int] = defaultdict(int)
         self._subscribers: dict[str, TelemetrySubscription] = {}
         self._lock = threading.Lock()
@@ -124,7 +131,10 @@ class TelemetryBus:
         with self._lock:
             sequence = self._next_sequence[stream]
             frame = TelemetryFrame(session_id=self._session_id, stream=stream, sequence=sequence, sim_time_s=sim_time_s, values=values, quality=quality)
-            buffer = self._buffers[stream]
+            buffer = self._buffers.get(stream)
+            if buffer is None:
+                buffer = deque(maxlen=self._stream_capacities.get(stream, self._capacity))
+                self._buffers[stream] = buffer
             if buffer and sim_time_s < buffer[-1].sim_time_s:
                 raise ValueError("telemetry sim_time_s must be monotonic per stream")
             buffer.append(frame)
@@ -134,6 +144,12 @@ class TelemetryBus:
             if subscriber.accepts(stream):
                 subscriber.offer(frame)
         return frame
+
+    def latest_frame(self, stream: str) -> TelemetryFrame | None:
+        """Constant-cost, lock-protected last *actual* published TM frame."""
+        with self._lock:
+            frames = self._buffers.get(stream)
+            return frames[-1] if frames else None
 
     def read_after(self, stream: str, after_sequence: int = -1) -> TelemetryRead:
         with self._lock:
