@@ -62,6 +62,7 @@ def test_endurance_samples_are_fsynced_hashed_and_never_replayed(tmp_path, monke
         assert report["summary"]["qualified_24h_wallclock"] is False
         assert report["summary"]["eligible_for_manual_24h_review"] is False
         assert report["summary"]["observed_wall_span_s"] >= 1.
+        assert report["summary"]["observed_running_wall_s"] == 0.
         assert report["summary"]["sim_progress_s"] == 0.
         assert client.get(base + "/summary").status_code == 200
         assert client.get(base + "/evidence").status_code == 200
@@ -121,3 +122,44 @@ def test_endurance_role_and_allowed_intervals_and_no_restart(tmp_path, monkeypat
         assert client.get(
             "/interactive/continuous/sessions/missing/endurance/status"
         ).status_code == 404
+
+
+def test_endurance_failed_summary_fsync_cannot_claim_finished(tmp_path, monkeypatch):
+    import sat_sim.interactive.continuous_endurance as endurance
+    from sat_sim.interactive.manager import InteractiveSessionManager
+    from sat_sim.interactive.models import InteractiveSessionSpec
+    from sat_sim.interactive.workspace import SessionWorkspace
+    from test_continuous_console import _body
+    from sat_sim.interactive.api import ContinuousCreateBody
+
+    # This test targets the recorder independently, not satellite physics.
+    spec = InteractiveSessionSpec(
+        session_id="summary-write-error",
+        capability_id="whole_spacecraft.unified_native.v1",
+        continuous=True,
+        quantum_s=.2,
+        task_spec={"simulation": {"duration_s": 1.0}},
+    )
+    workspace = SessionWorkspace(tmp_path, spec)
+    from sat_sim.interactive.manager import InteractiveSession
+    session = InteractiveSession(
+        spec, _ControlProtocolStub(), end_time_s=None, workspace=workspace,
+    )
+    recorder = endurance.EnduranceRecorder(session, interval_s=1.)
+    real_replace = endurance.os.replace
+    def fail_summary(src, dst):
+        if str(dst).endswith(endurance.SUMMARY_FILE):
+            raise OSError("simulated summary rename I/O loss")
+        return real_replace(src, dst)
+    monkeypatch.setattr(endurance.os, "replace", fail_summary)
+    recorder.start()
+    deadline = time.monotonic() + 4.
+    while recorder.status()["sample_count"] < 1:
+        assert time.monotonic() < deadline
+        time.sleep(.03)
+    status = recorder.stop()
+    assert status["recording_status"] == "INCOMPLETE_ERROR"
+    assert status["summary"] is None
+    assert status["alerts"]["ENDURANCE_SUMMARY_DURABILITY_FAILURE"] == 1
+    assert not recorder.summary_path.exists()
+    assert recorder.path.exists()
