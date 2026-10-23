@@ -653,6 +653,31 @@
             </div>
             <p id="continuousMetricScope" class="continuous-muted">数值来自当前操作系统与遥测账本；进程 CPU 为累计时间，不是 CPU 使用百分比。</p>
           </section>
+          <section class="continuous-card" aria-label="长稳验收证据">
+            <div class="section-heading compact"><h2>长稳验收证据采集</h2><span id="continuousEnduranceStatus" class="status-chip status-muted">尚未采集</span></div>
+            <p class="continuous-muted">按真实墙钟时间持续留存遥测、资源和写盘证据。关闭浏览器不会结束服务器端采样；父进程崩溃后证据视为未完成。</p>
+            <div class="continuous-actions" style="margin-top: 12px">
+              <label class="continuous-signal" style="min-width: 125px">采样间隔
+                <select id="continuousEnduranceInterval">
+                  <option value="1">1 秒（试验）</option>
+                  <option value="5" selected>5 秒</option>
+                  <option value="30">30 秒</option>
+                  <option value="60">60 秒</option>
+                  <option value="300">300 秒</option>
+                </select>
+              </label>
+              <button id="continuousEnduranceStart" class="button button-secondary" type="button">开始证据采集</button>
+              <button id="continuousEnduranceStop" class="button button-secondary" type="button">停止并生成摘要</button>
+              <button id="continuousEnduranceEvidence" class="button button-ghost" type="button">导出采样 JSONL</button>
+              <button id="continuousEnduranceSummary" class="button button-ghost" type="button">导出验收摘要</button>
+            </div>
+            <div class="continuous-metrics">
+              <div><span>已留存采样</span><strong id="continuousEnduranceSamples">0</strong></div>
+              <div><span>监测告警次数</span><strong id="continuousEnduranceAlerts">0</strong></div>
+              <div><span>24h 人工审核资格</span><strong id="continuousEnduranceEligible">未达到</strong></div>
+            </div>
+            <p id="continuousEnduranceReason" class="continuous-muted">证据与原生仿真状态相互独立；不会触发停止、自动恢复或遥控重放。</p>
+          </section>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>实时整星遥测</h2><span id="continuousGapBadge" class="status-chip status-muted">未订阅</span></div>
             <label class="continuous-signal">监测参量<select id="continuousSignal"><option value="orbit.radius_m">轨道半径 / m</option><option value="adcs.pointing_error_deg">姿态指向误差 / °</option><option value="eps.battery_soc">蓄电池荷电状态</option></select></label>
