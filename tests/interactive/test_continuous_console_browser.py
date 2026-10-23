@@ -108,6 +108,11 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousState").inner_text() == "未选择"
 
             page.locator("#continuousSessionId").fill("browser-r7d")
+            page.locator("details.continuous-native-config > summary").click()
+            page.locator('[data-native-key="orbit_radius_m"]').fill("7200000")
+            page.locator('[data-native-key="battery_capacity_wh"]').fill("210")
+            page.locator('[data-native-key="initial_soc"]').fill("0.7")
+            page.locator('[data-native-key="rw_configuration"]').select_option("orthogonal_3")
             page.locator("#continuousQuantum").select_option("0.2")
             page.locator("#continuousPaced").check()
             page.locator("#continuousCreateForm button[type=submit]").click()
@@ -116,6 +121,13 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 timeout=15000,
             )
             assert len(running) == 1
+            original = client.get("/interactive/continuous/sessions/browser-r7d/configuration")
+            assert original.status_code == 200, original.text
+            assert original.json()["native_initial_values"]["orbit_radius_m"] == 7200000.
+            assert original.json()["native_initial_values"]["battery_capacity_wh"] == 210.
+            assert original.json()["native_initial_values"]["initial_soc"] == .7
+            assert original.json()["editable_after_prepare"] is False
+            assert "配置在模型创建后不可修改" in page.locator("#continuousInitialConfigStatus").inner_text()
             assert page.locator("#continuousWriterEpoch").inner_text() == "1"
             page.locator("#continuousEnduranceInterval").select_option("1")
             page.locator("#continuousEnduranceStart").click()
