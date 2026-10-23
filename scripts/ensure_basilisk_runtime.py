@@ -14,10 +14,23 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT / "src") not in sys.path:
-    sys.path.insert(0, str(ROOT / "src"))
 
-from sat_sim.simulation_fidelity import inspect_basilisk_runtime  # noqa: E402
+# During first-time installation, PyYAML/numpy/pydantic etc. do not yet
+# exist. Importing sat_sim.simulation_fidelity through sat_sim.__init__
+# transitively loads these application dependencies, breaking clean Windows
+# and Linux bootstrap before pip can install them.
+import importlib.util
+_fidelity_path = ROOT / "src" / "sat_sim" / "simulation_fidelity.py"
+_spec = importlib.util.spec_from_file_location(
+    "_sat_bootstrap_fidelity_lightweight", _fidelity_path,
+)
+if _spec is None or _spec.loader is None:
+    raise RuntimeError("BASILISK_BOOTSTRAP_FIDELITY_MODULE_MISSING")
+_fidelity = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = _fidelity
+_spec.loader.exec_module(_fidelity)
+inspect_basilisk_runtime = _fidelity.inspect_basilisk_runtime
+
 from bsk_wheel_provenance import verify_approved_wheel
 
 
