@@ -32,6 +32,13 @@ jobs:
           python -m pip install "build==1.5.0" "setuptools==83.0.0" "wheel==0.46.2"
           python -m build --wheel --outdir /tmp/sat-stable-wheel
           test "$(find /tmp/sat-stable-wheel -maxdepth 1 -name 'satellite_simulation_platform-*.whl' | wc -l)" = 1
+          # Supply the declared non-Basilisk runtime requirements; the
+          # project's bsk==2.11.0+satfix1 pin comes from an audited wheelhouse
+          # and is deliberately NOT pulled from the public index here.
+          python -m pip install \
+            "colorama==0.4.6" "sgp4==2.25" "numpy==2.3.5" \
+            "pydantic==2.13.4" "PyYAML==6.0.3" "jsonschema==4.26.0" \
+            "joblib==1.5.3" "scikit-learn==1.9.0"
           python -m pip install --no-deps /tmp/sat-stable-wheel/satellite_simulation_platform-*.whl
       - name: Verify installed wheel assets and fail-closed native recovery contract
         working-directory: /tmp
