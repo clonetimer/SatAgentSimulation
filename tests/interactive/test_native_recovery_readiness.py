@@ -103,6 +103,7 @@ def test_r8_bad_native_scheduler_phase_or_source_is_rejected():
     from sat_sim.interactive.native_checkpoint_audit import create_coverage_report
     report = _audit_payload(2.)
     report["native_scheduler_phase"]["current_nanos"] = 1_000_000_000
+    report["native_scheduler_phase"]["next_task_time_nanos"] = 1_200_000_000
     from sat_sim.interactive.native_recovery_readiness import _digest
     report["report_sha256"] = _digest({k: v for k, v in report.items() if k != "report_sha256"})
     with pytest.raises(ValueError, match="NATIVE_CLOCK_MISMATCH"):
