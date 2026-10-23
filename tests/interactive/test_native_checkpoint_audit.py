@@ -367,3 +367,103 @@ def test_r9b_whole_native_adcs_owner_memory_is_live_and_read_only(topology, coun
     finally:
         if runtime._thread is not None and runtime._thread.is_alive():
             runtime.abort()
+
+
+@pytest.mark.parametrize("topology,expected_rw_count", [
+    ("orthogonal_3", 3), ("pyramid_4", 4),
+])
+def test_r9c_whole_native_joint_owner_audit_same_pause_phase(topology, expected_rw_count):
+    """Real upstream Basilisk with native EPS/comm and scheduled project thermal."""
+    pytest.importorskip("Basilisk")
+    import copy
+    import hashlib
+    from sat_sim.bsk_engine.unified_native import UnifiedRuntimeConfig
+    from sat_sim.interactive.unified_runtime import UnifiedPersistentRuntime
+    from sat_sim.interactive.native_joint_owner_observation import (
+        validate_joint_owner_observation, GAPS,
+    )
+    from sat_sim.interactive.native_recovery_readiness import (
+        build_recovery_readiness, verify_recovery_readiness,
+    )
+    config = UnifiedRuntimeConfig(
+        capability_id="whole_spacecraft.unified_native.v1",
+        duration_s=0.6, step_s=0.2, sample_s=0.2,
+        adcs_only=False, values={"rw_configuration": topology},
+        events=(), interactive_unbounded=True,
+    )
+    runtime = UnifiedPersistentRuntime(config, continuous=True)
+    runtime.prepare()
+    try:
+        runtime.advance_to(0.8)
+        report = runtime.audit_native_checkpoint_coverage()
+        verify_coverage_report(report)
+        adcs = report["native_adcs_owner_observations"]
+        joint = report["native_joint_owner_observations"]
+        assert adcs is not None, report["unavailable_observations"]
+        assert joint is not None, report["unavailable_observations"]
+        assert adcs["rw_count"] == expected_rw_count
+        assert adcs["capture_time_ns"] == joint["capture_time_ns"] == 800_000_000
+        assert joint["thermal"]["model_type"] == "BASILISK_SCHEDULED_PROJECT_THERMAL"
+        assert {"battery", "payload", "comm", "propulsion"}.issubset(
+            joint["thermal"]["nodes"]
+        )
+        assert joint["eps"]["battery_capacity_j"] > 0
+        assert joint["comm_data"]["storage_capacity_bits"] > 0
+        assert joint["missing_restore_owners"] == list(GAPS)
+        validate_joint_owner_observation(
+            joint, expected_time_ns=800_000_000,
+            native_scheduler_phase=report["native_scheduler_phase"],
+        )
+        readiness = build_recovery_readiness(report)
+        verify_recovery_readiness(readiness)
+        assert readiness["native_joint_owner_observation_present"] is True
+        assert readiness["restorable_owner_count"] == 0
+        assert readiness["restart_readiness"] == "BLOCKED"
+        assert readiness["automatic_resume_allowed"] is False
+        for i in (0, 5, 6, 7):
+            assert "native_joint_owner_observations" in (
+                readiness["owners"][i]["observation_keys"]
+            )
+
+        # Multiple reads do not advance the authoritative native graph.
+        again = runtime.audit_native_checkpoint_coverage()
+        assert again["native_joint_owner_observations"] == joint
+        assert runtime.current_time_s == pytest.approx(0.8)
+
+        def rehash(x):
+            x["report_sha256"] = hashlib.sha256(json.dumps({
+                k: v for k, v in x.items() if k != "report_sha256"
+            }, sort_keys=True, separators=(",", ":"),
+                ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+            return x
+
+        # Resigning the outer checksum must not bypass cross-owner phase
+        # checking or false-recovery-claim guards.
+        forged = copy.deepcopy(report)
+        forged["native_joint_owner_observations"]["capture_time_ns"] += 200_000_000
+        with pytest.raises(ValueError, match="JOINT_OWNER_TIME_MISMATCH"):
+            verify_coverage_report(rehash(forged))
+        forged = copy.deepcopy(report)
+        forged["native_joint_owner_observations"]["resume_supported"] = True
+        with pytest.raises(ValueError, match="JOINT_OWNER_FALSE_RESTORE_CLAIM"):
+            verify_coverage_report(rehash(forged))
+        forged = copy.deepcopy(report)
+        forged["native_joint_owner_observations"]["comm_data"]["storage_bits"] = -3
+        with pytest.raises(ValueError, match="JOINT_OWNER_COMM_STORAGE_RANGE_INVALID"):
+            verify_coverage_report(rehash(forged))
+        forged = copy.deepcopy(report)
+        forged["native_joint_owner_observations"]["thermal"]["nodes"]["payload"]["last_update_ns"] += 3_000_000_000
+        with pytest.raises(ValueError, match="JOINT_OWNER_THERMAL_TIME_MISMATCH"):
+            verify_coverage_report(rehash(forged))
+
+        runtime.advance_to(1.2)
+        later = runtime.audit_native_checkpoint_coverage()
+        assert later["native_joint_owner_observations"]["capture_time_ns"] == 1_200_000_000
+        assert later["native_scheduler_phase"]["current_nanos"] == 1_200_000_000
+        assert later["native_state_subset_pilot"]["vectors"]["hub_position_m"] != (
+            report["native_state_subset_pilot"]["vectors"]["hub_position_m"]
+        )
+        runtime.finalize()
+    finally:
+        if runtime._thread is not None and runtime._thread.is_alive():
+            runtime.abort()
