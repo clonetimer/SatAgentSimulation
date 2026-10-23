@@ -5,7 +5,7 @@
   const $ = (id) => document.getElementById(id);
   const state = {
     active: false, timer: null, refreshBusy: false,
-    selectedId: null, snapshot: null, policy: null, metrics: null, endurance: null,
+    selectedId: null, snapshot: null, policy: null, metrics: null, endurance: null, recovery: null,
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
   };
@@ -70,6 +70,7 @@
         state.selectedId = session.session_id;
         state.snapshot = null;
         state.metrics = null;
+        state.recovery = null;
         state.endurance = null;
         state.telemetry = [];
         state.events = [];
@@ -215,6 +216,57 @@
       URL.revokeObjectURL(url);
     } catch (e) { notice('证据导出失败：' + e.message, true); }
   }
+  function renderRecovery() {
+    const report = state.recovery;
+    const sameSession = report?.session_id === state.selectedId;
+    const data = sameSession ? report : null;
+    const rows = $('continuousRecoveryOwners');
+    rows.replaceChildren();
+    setText('continuousRecoveryVerdict', data?.restart_readiness || '未检查');
+    setText('continuousRecoveryOwnerTotal', data?.mandatory_owner_count ?? '—');
+    setText('continuousRecoveryOwnerRestorable', data?.restorable_owner_count ?? '—');
+    setText('continuousRecoveryAtSim', data ? valueText(data.sim_time_s, 2) + ' s' : '—');
+    setText('continuousRecoveryMissing', data
+      ? '恢复禁止原因：' + data.reason_code + '；尚缺 ' +
+        (data.blocking_requirements || []).join('、') +
+        '。现有部分原生状态仅用于观测，不是完整恢复检查点。'
+      : '先暂停已经推进过的原生会话，再检查各状态所有者。自动恢复保持关闭。');
+    (data?.owners || []).forEach((item) => {
+      const line = element('div', undefined, 'continuous-log-item');
+      line.append(element('strong', item.owner), element('small',
+        item.status + ' · 原生导出：' + item.native_state_export +
+        ' · 导入：' + item.native_state_import +
+        ' · 对照：' + item.cross_process_restart_parity));
+      rows.append(line);
+    });
+    $('continuousRecoveryAuditBtn').disabled =
+      !state.selectedId || state.snapshot?.session?.state !== 'PAUSED';
+    $('continuousRecoveryExportBtn').disabled = !data;
+  }
+  async function auditNativeRecovery() {
+    if (!state.selectedId) return;
+    try {
+      const id = encodeURIComponent(state.selectedId);
+      const report = await api('/interactive/continuous/sessions/' + id + '/recovery/readiness');
+      state.recovery = { ...report, session_id: state.selectedId };
+      renderRecovery();
+      notice('已读取真实 Basilisk 暂停边界状态：自动恢复仍未获得准入。');
+    } catch (e) {
+      notice('原生恢复覆盖检查失败：' + e.message, true);
+    }
+  }
+  function exportNativeRecovery() {
+    if (!state.recovery || state.recovery.session_id !== state.selectedId) return;
+    const file = new Blob([JSON.stringify(state.recovery, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = state.selectedId + '-native-recovery-readiness.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
   function renderStatus() {
     const info = state.snapshot;
     const session = info?.session;
@@ -345,7 +397,7 @@
         (overview.mode === 'SUPERVISED_NATIVE_CHILD' ? '独立原生进程' : '进程内原生'));
       renderSessionList(sessions);
       renderInterrupted(overview.interrupted_workspaces || []);
-      if (!state.selectedId) { state.metrics = null; state.endurance = null; renderStatus(); renderObservability(); renderEndurance(); return; }
+      if (!state.selectedId) { state.metrics = null; state.endurance = null; state.recovery = null; renderStatus(); renderObservability(); renderEndurance(); renderRecovery(); return; }
       const id = encodeURIComponent(state.selectedId);
       const [info, tm, events, acks, metrics, endurance] = await Promise.all([
         api('/interactive/continuous/sessions/' + id + '/status'),
@@ -358,6 +410,7 @@
       if (info.session.session_id !== state.selectedId) return;
       state.snapshot = info;
       state.metrics = metrics;
+      renderRecovery();
       state.endurance = endurance;
       state.gap = tm.gap || null;
       (tm.frames || []).forEach((frame) => {
@@ -406,6 +459,7 @@
       state.selectedId = result.session_id;
       state.metrics = null;
       state.endurance = null;
+      state.recovery = null;
       state.telemetry = []; state.events = []; state.acks = [];
       state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
       notice('持续会话已创建。可启动仿真并发送遥控。');
@@ -501,6 +555,8 @@
     $('continuousEnduranceEvidence')?.addEventListener('click', () => exportEndurance('evidence'));
     $('continuousEnduranceSummary')?.addEventListener('click', () => exportEndurance('summary'));
     $('continuousEnduranceAuditBtn')?.addEventListener('click', auditEndurance);
+    $('continuousRecoveryAuditBtn')?.addEventListener('click', auditNativeRecovery);
+    $('continuousRecoveryExportBtn')?.addEventListener('click', exportNativeRecovery);
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       button.addEventListener('click', () => control(button.dataset.continuousAction));
     });
@@ -511,6 +567,7 @@
     renderStatus();
     renderObservability();
     renderEndurance();
+    renderRecovery();
     renderChart();
   }
   window.SatContinuousConsole = { enter, exit };
