@@ -18,6 +18,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 from sat_sim.simulation_fidelity import inspect_basilisk_runtime  # noqa: E402
+from bsk_wheel_provenance import verify_approved_wheel
 
 
 def _platform_key() -> str:
@@ -36,7 +37,13 @@ def main() -> int:
     parser.add_argument("--report", type=Path, help="Write machine-readable status JSON.")
     parser.add_argument("--wheel", type=Path, help="Install a local approved bsk wheel with --no-deps before other methods.")
     parser.add_argument("--skip-pip-no-deps", action="store_true", help="Skip the first python -m pip install bsk --no-deps attempt.")
+    parser.add_argument(
+        "--require-satfix1", action="store_true",
+        help="For release/Windows installation: require an attested metadata-only 2.11.0+satfix1 wheel.",
+    )
     args = parser.parse_args()
+    if args.require_satfix1 and args.wheel:
+        parser.error("--require-satfix1 does not permit arbitrary --wheel overrides")
 
     before = inspect_basilisk_runtime()
     report: dict[str, object] = {
@@ -48,7 +55,47 @@ def main() -> int:
         "status": "PASS" if before.ready else "BLOCKED",
     }
     try:
-        if not before.ready and not args.check_only:
+        if args.require_satfix1:
+            report["distribution_policy"] = "AUDITED_METADATA_ONLY_SATFIX1"
+            if args.check_only:
+                report["status"] = (
+                    "PASS" if before.ready and before.version == "2.11.0+satfix1"
+                    else "BLOCKED"
+                )
+                report["reason"] = (
+                    "installed_version_checked_only_not_installer_provenance"
+                    if report["status"] == "PASS" else "SATFIX1_REQUIRED"
+                )
+            else:
+                wheelhouse = ROOT / "third_party" / "wheels"
+                try:
+                    verified = verify_approved_wheel(wheelhouse)
+                except (FileNotFoundError, ValueError, OSError, RuntimeError):
+                    # Always acquire the exact official precompiled binary,
+                    # check the pinned upstream SHA-256, then rewrite ONLY
+                    # the Pillow dependency metadata; never use the R9-K
+                    # experimental C++ SimpleBattery wheel as production bsk.
+                    key = _platform_key()
+                    subprocess.run([
+                        sys.executable,
+                        str(ROOT / "scripts" / "fetch_official_bsk_and_build_offline_bundle.py"),
+                        "--platform", key,
+                    ], cwd=ROOT, check=True)
+                    verified = verify_approved_wheel(wheelhouse)
+                report["approved_wheel"] = {
+                    "filename": verified["filename"],
+                    "sha256": verified["sha256"],
+                    "official_source": verified["official_source"],
+                    "official_sha256": verified["official_sha256"],
+                    "record_verified": verified["record_verified"],
+                    "metadata_only_change": verified["metadata_only_change"],
+                }
+                subprocess.run([
+                    sys.executable, str(ROOT / "scripts" / "install_offline_bsk.py"),
+                    "--wheelhouse", str(wheelhouse),
+                ], cwd=ROOT, check=True)
+                report["action"] = "install_verified_satfix1_metadata_only"
+        elif not before.ready and not args.check_only:
             attempts: list[dict[str, object]] = []
             report["attempts"] = attempts
             if args.wheel:
@@ -73,9 +120,16 @@ def main() -> int:
                     attempts.append({"method": "offline_verified_bundle", "returncode": exc.returncode, "error": str(exc)})
         after = inspect_basilisk_runtime()
         report["after"] = after.to_dict()
-        report["status"] = "PASS" if after.ready else "BLOCKED"
-        if not after.ready:
-            report["reason"] = after.reason
+        report["status"] = (
+            "PASS" if after.ready and (
+                not args.require_satfix1 or after.version == "2.11.0+satfix1"
+            ) else "BLOCKED"
+        )
+        if report["status"] != "PASS":
+            report["reason"] = (
+                "SATFIX1_REQUIRED" if after.ready and args.require_satfix1
+                else after.reason
+            )
     except Exception as exc:
         report["status"] = "BLOCKED"
         report["error"] = f"{type(exc).__name__}: {exc}"
