@@ -29,6 +29,9 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+from .continuous_initial_config import ContinuousInitialConfiguration, initial_configuration_catalog
+
+
 class ContinuousCreateBody(_Strict):
     """Restricted operator-friendly continuous simulation form, not arbitrary code."""
     session_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -36,6 +39,7 @@ class ContinuousCreateBody(_Strict):
     rate: Literal[0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0] = 1.0
     paced: bool = True
     initial_horizon_s: float = Field(default=60.0, ge=1.0, le=86400.0)
+    initial_configuration: ContinuousInitialConfiguration = Field(default_factory=ContinuousInitialConfiguration)
 
 
 class EnduranceStartBody(_Strict):
@@ -149,6 +153,10 @@ def create_interactive_router(
             "interrupted_workspaces": blocked,
         }
 
+    @router.get("/continuous/configuration/catalog")
+    def continuous_configuration_catalog():
+        return initial_configuration_catalog()
+
     @router.post("/continuous/sessions", status_code=201)
     def create_continuous_session(body: ContinuousCreateBody, request: Request):
         """Begin a new Basilisk graph, never revive an old crashed session."""
@@ -169,7 +177,7 @@ def create_interactive_router(
                     "sample_s": body.quantum_s,
                     "solver": {"step_s": min(body.quantum_s, 0.2)},
                 },
-                "parameters": {"values": {}},
+                "parameters": {"values": body.initial_configuration.native_values()},
                 "outputs": {"telemetry_streams": [{
                     "stream_id": "whole.continuous",
                     "sample_s": body.quantum_s,
@@ -187,6 +195,20 @@ def create_interactive_router(
             raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
         _audit(audit_logger, "continuous_simulation_created", principal, session_id=spec.session_id)
         return session.snapshot()
+
+    @router.get("/continuous/sessions/{session_id}/configuration")
+    def continuous_saved_initial_configuration(session_id: str):
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        return {
+            "schema_version": "sat-continuous-initial-config-readonly.v1",
+            "session_id": session_id,
+            "capability_id": session.spec.capability_id,
+            "native_initial_values": dict(session.spec.task_spec.get("parameters", {}).get("values", {})),
+            "editable_after_prepare": False,
+            "full_native_resume_supported": False,
+        }
 
     @router.get("/continuous/sessions/{session_id}/status")
     def continuous_session_status(session_id: str):
