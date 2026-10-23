@@ -164,6 +164,20 @@ def create_interactive_router(
         if not principal.has_any_role({"operator", "fault_operator", "admin"}):
             raise HTTPException(403, detail={"reason_code": "CONTINUOUS_CREATE_ROLE_DENIED"})
         from .runtime_factory import WHOLE_UNIFIED_CAPABILITY_ID
+        # Advertise only native outputs supported by the selected RW topology.
+        # A three-wheel session must not claim a fabricated fourth actuator.
+        native_values = body.initial_configuration.native_values()
+        telemetry_fields = [
+            "orbit.radius_m", "adcs.pointing_error_deg",
+            "eps.battery_soc",
+            "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
+            "adcs.rw.speed_rad_s_2", "adcs.rw.effective_max_torque_nm_0",
+        ]
+        if native_values.get("rw_configuration") == "pyramid_4":
+            telemetry_fields.extend([
+                "adcs.rw.speed_rad_s_3",
+                "adcs.rw.effective_max_torque_nm_3",
+            ])
         spec = InteractiveSessionSpec(
             session_id=body.session_id,
             capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
@@ -177,16 +191,11 @@ def create_interactive_router(
                     "sample_s": body.quantum_s,
                     "solver": {"step_s": min(body.quantum_s, 0.2)},
                 },
-                "parameters": {"values": body.initial_configuration.native_values()},
+                "parameters": {"values": native_values},
                 "outputs": {"telemetry_streams": [{
                     "stream_id": "whole.continuous",
                     "sample_s": body.quantum_s,
-                    "fields": [
-                        "orbit.radius_m", "adcs.pointing_error_deg",
-                        "eps.battery_soc",
-                        "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
-                        "adcs.rw.speed_rad_s_2", "adcs.rw.effective_max_torque_nm_0",
-                    ],
+                    "fields": telemetry_fields,
                 }]},
             },
         )
