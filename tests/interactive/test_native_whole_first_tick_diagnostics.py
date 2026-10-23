@@ -46,9 +46,18 @@ def _worker(path: str, topology: str) -> None:
     from sat_sim.interactive.native_whole_state_import_lab import (
         import_fresh_native_whole_state_subset,
     )
+    from sat_sim.interactive.native_closed_loop_evidence import (
+        restore_rw_effector_memory_fresh,
+        capture_rw_effector_memory,
+    )
     evidence = json.loads(Path(path).read_text(encoding="utf-8"))
     source = evidence["checkpoint"]
     measurement_ns = int(evidence["comparison_ns"])
+    ablation_mode = evidence.get("ablation_mode", "R9F_NATIVE_SUBSET_ONLY")
+    if ablation_mode not in (
+        "R9F_NATIVE_SUBSET_ONLY", "R9G_WITH_RW_CPP_MEMORY",
+    ):
+        raise ValueError("R9G_ABLATION_MODE_UNSUPPORTED")
     data = {}
 
     def probe(*, sim, process, task, spacecraft, rw_effector, controller,
@@ -69,6 +78,15 @@ def _worker(path: str, topology: str) -> None:
             source["native_clock_fsw_lab"]["clock"]["current_ns"]
         )
         assert measurement_ns > sim.TotalSim.CurrentNanos
+        if ablation_mode == "R9G_WITH_RW_CPP_MEMORY":
+            # R9-G adds only the genuine ReactionWheelStateEffector C++-held
+            # memory visible in the source audit. Do NOT restore commands,
+            # FSW message caches or anything synthetic in this experiment.
+            # This occurs in the private pre-tick probe only.
+            expected = source["native_adcs_owner_observations"]["native_rw_cpp_memory"]
+            assert len(expected) == wheel_count
+            restore_rw_effector_memory_fresh(rw_effector, expected)
+            assert capture_rw_effector_memory(rw_effector) == expected
         # STRICTLY A SCIENTIFICALLY UNTRUSTED ONE-TICK DIAGNOSTIC.
         # Physics, sensor, EPS, thermal, comm and held commands are incomplete.
         sim.ConfigureStopTime(measurement_ns)
@@ -105,6 +123,7 @@ def _worker(path: str, topology: str) -> None:
             "source_pid": evidence["source_pid"],
             "child_pid": os.getpid(),
             "measurement": data["measurement"],
+            "ablation_mode": ablation_mode,
             "whole_resume_supported": False,
             "automatic_tc_replay_allowed": False,
         }, sort_keys=True, allow_nan=False), flush=True)
