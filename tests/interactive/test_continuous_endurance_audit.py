@@ -178,3 +178,86 @@ def test_split_wallclock_runs_over_24h_are_not_continuous(tmp_path, monkeypatch)
     assert report["observed_running_wall_s"] >= 86400.
     assert report["observed_pause_after_run"] is True
     assert "CONTINUOUS_RUN_INTERRUPTED_BY_PAUSE" in report["reason_codes"]
+
+
+def test_original_state_log_corruption_blocks_valid_endurance_evidence(tmp_path, monkeypatch):
+    """Final evidence SHA alone is insufficient when original state is altered."""
+    app = _app(tmp_path, monkeypatch)
+    with TestClient(app) as client:
+        name = "source-state-tamper"
+        assert client.post("/interactive/continuous/sessions", json=_body(name)).status_code == 201
+        base = "/interactive/continuous/sessions/" + name + "/endurance"
+        assert client.post(base + "/start", json={"sample_interval_s": 1.}).status_code == 201
+        workspace = next(tmp_path.rglob(EVIDENCE_FILE)).parent
+        deadline = time.monotonic() + 4.
+        while client.get(base + "/status").json()["sample_count"] < 1:
+            assert time.monotonic() < deadline
+            time.sleep(.02)
+        assert client.post(base + "/stop").status_code == 200
+        original = client.get(base + "/audit").json()
+        assert original["verdict"] == "NOT_QUALIFIED", original
+        assert original["original_sources_verified"] is True
+        assert original["original_source_audit"]["state"]["events"] >= 3
+        state_path = workspace / "state_events.jsonl"
+        contents = state_path.read_text(encoding="utf-8")
+        assert '"state": "READY"' in contents
+        state_path.write_text(contents.replace('"state": "READY"', '"state": "FAILED"', 1), encoding="utf-8")
+        bad = client.get(base + "/audit").json()
+        assert bad["verdict"] == "BLOCKED"
+        assert bad["original_sources_verified"] is False
+        assert "ORIGINAL_SOURCE_RECONCILIATION_INVALID" in bad["reason_codes"]
+        assert _cli(workspace).returncode == 2
+
+
+def test_original_command_outbox_mismatch_blocks_even_if_endurance_chain_good(tmp_path, monkeypatch):
+    """An ACKED effect is never inferred from changed SQLite mirror metadata."""
+    import sqlite3
+    from test_continuous_console import _ControlProtocolStub
+    app = _app(tmp_path, monkeypatch)
+    with TestClient(app) as client:
+        name = "source-outbox-tamper"
+        created = client.post("/interactive/continuous/sessions", json={
+            **_body(name), "paced": False,
+        })
+        assert created.status_code == 201, created.text
+        base = "/interactive/continuous/sessions/" + name + "/endurance"
+        assert client.post(base + "/start", json={"sample_interval_s": 1.}).status_code == 201
+        command = {
+            "command_id": "source-ack-audit", "session_id": name,
+            "session_revision": created.json()["revision"],
+            "operation": "adcs.target.set", "target": "subsystem.adcs",
+            "parameters": {"sigma_rn": [0.1, 0., 0.]},
+            "actor_id": "r7h", "actor_role": "operator",
+            "execute_at_sim_time_s": .2,
+        }
+        queued = client.post("/interactive/sessions/" + name + "/commands", json=command)
+        assert queued.status_code == 202, queued.text
+        assert client.post("/interactive/sessions/" + name + "/control",
+                           json={"action": "start"}).status_code == 200
+        deadline = time.monotonic() + 8.
+        while True:
+            rows = client.get("/interactive/sessions/" + name + "/commands",
+                              params={"command_id": "source-ack-audit"}).json()["acks"]
+            if any(row["state"] == "ACKED" for row in rows):
+                break
+            assert time.monotonic() < deadline, rows
+            time.sleep(.02)
+        assert client.post(base + "/stop").status_code == 200
+        assert client.post("/interactive/sessions/" + name + "/control",
+                           json={"action": "stop"}).status_code == 200
+        good = client.get(base + "/audit").json()
+        assert good["verdict"] == "NOT_QUALIFIED", good
+        assert good["original_sources_verified"] is True
+        assert good["original_source_audit"]["tc_ledger"]["accepted_commands"] == 1
+        assert good["original_source_audit"]["tc_ledger"]["tc_all_acked"] is True
+        workspace = next(tmp_path.rglob(EVIDENCE_FILE)).parent
+        with sqlite3.connect(workspace / "command_ids.sqlite") as db:
+            db.execute(
+                "UPDATE command_event_outbox SET mirrored_entry_hash=? "
+                "WHERE command_id=? AND state='ACKED'",
+                ("f" * 64, "source-ack-audit"),
+            )
+        invalid = client.get(base + "/audit").json()
+        assert invalid["verdict"] == "BLOCKED", invalid
+        assert "ORIGINAL_SOURCE_RECONCILIATION_INVALID" in invalid["reason_codes"]
+        assert _cli(workspace).returncode == 2
