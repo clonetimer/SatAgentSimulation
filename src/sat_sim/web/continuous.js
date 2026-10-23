@@ -5,7 +5,7 @@
   const $ = (id) => document.getElementById(id);
   const state = {
     active: false, timer: null, refreshBusy: false,
-    selectedId: null, snapshot: null, policy: null, metrics: null,
+    selectedId: null, snapshot: null, policy: null, metrics: null, endurance: null,
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
   };
@@ -70,6 +70,7 @@
         state.selectedId = session.session_id;
         state.snapshot = null;
         state.metrics = null;
+        state.endurance = null;
         state.telemetry = [];
         state.events = [];
         state.acks = [];
@@ -128,6 +129,63 @@
           '；CPU 为累计核心秒（非使用率）；运行时长从会话对象创建算起，含准备/暂停；' +
           '不可用指标不会使用估算值替代。')
       : '数值来自操作系统与遥测账本；暂无采样。');
+  }
+  function renderEndurance() {
+    const monitor = state.endurance;
+    const active = monitor?.recording_status === 'RECORDING';
+    const available = Boolean(state.selectedId);
+    setText('continuousEnduranceStatus', monitor?.recording_status || '尚未采集');
+    setText('continuousEnduranceSamples', monitor?.sample_count ?? 0);
+    setText('continuousEnduranceAlerts', Object.values(monitor?.alerts || {})
+      .reduce((a, b) => a + Number(b || 0), 0));
+    setText('continuousEnduranceEligible', monitor?.summary?.eligible_for_manual_24h_review
+      ? '待人工审核' : '未达到');
+    setText('continuousEnduranceReason',
+      monitor?.reason_code || (active
+        ? '真实墙钟定时采样进行中；告警不会自动控制 Basilisk。'
+        : monitor?.summary?.observed_wall_span_s !== undefined
+          ? '已记录墙钟区间 ' + valueText(monitor.summary.observed_wall_span_s, 1) + ' s；24 小时资格不会自动判为通过。'
+          : '证据与原生仿真相互独立，不会停止、恢复或重放遥控。'));
+    $('continuousEnduranceStart').disabled = !available || active ||
+      (monitor && monitor.recording_status !== 'NOT_STARTED');
+    $('continuousEnduranceStop').disabled = !active;
+    $('continuousEnduranceEvidence').disabled = !monitor?.evidence_available;
+    $('continuousEnduranceSummary').disabled = !monitor?.summary;
+  }
+  async function changeEndurance(action) {
+    if (!state.selectedId) return;
+    const id = encodeURIComponent(state.selectedId);
+    if (action === 'stop' && !confirm('停止监测并写出长稳验收摘要？这不会停止 Basilisk 持续仿真。')) return;
+    const body = action === 'start'
+      ? { sample_interval_s: Number($('continuousEnduranceInterval').value) } : {};
+    try {
+      state.endurance = await api('/interactive/continuous/sessions/' + id +
+        '/endurance/' + action, { method: 'POST', body: JSON.stringify(body) });
+      renderEndurance();
+      notice(action === 'start' ? '长稳证据采集已启动。' :
+        '采样已停止，正式摘要已生成；持续仿真不受影响。');
+    } catch (e) { notice('长稳采集操作失败：' + e.message, true); }
+  }
+  async function exportEndurance(format) {
+    if (!state.selectedId) return;
+    const id = encodeURIComponent(state.selectedId);
+    const token = sessionStorage.getItem('sat-sim-api-token') || '';
+    const path = '/interactive/continuous/sessions/' + id +
+      '/endurance/' + format;
+    try {
+      const response = await fetch(path, {
+        headers: token ? { Authorization: 'Bearer ' + token } : {},
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const file = await response.blob();
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = state.selectedId + (format === 'summary'
+        ? '-endurance-summary.json' : '-endurance-evidence.jsonl');
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { notice('证据导出失败：' + e.message, true); }
   }
   function renderStatus() {
     const info = state.snapshot;
@@ -259,18 +317,20 @@
         (overview.mode === 'SUPERVISED_NATIVE_CHILD' ? '独立原生进程' : '进程内原生'));
       renderSessionList(sessions);
       renderInterrupted(overview.interrupted_workspaces || []);
-      if (!state.selectedId) { state.metrics = null; renderStatus(); renderObservability(); return; }
+      if (!state.selectedId) { state.metrics = null; state.endurance = null; renderStatus(); renderObservability(); renderEndurance(); return; }
       const id = encodeURIComponent(state.selectedId);
-      const [info, tm, events, acks, metrics] = await Promise.all([
+      const [info, tm, events, acks, metrics, endurance] = await Promise.all([
         api('/interactive/continuous/sessions/' + id + '/status'),
         api('/interactive/sessions/' + id + '/telemetry/whole.continuous?after_sequence=' + state.lastTelemetrySeq),
         api('/interactive/sessions/' + id + '/events?after_sequence=' + state.lastEventSeq),
         api('/interactive/sessions/' + id + '/commands'),
         api('/interactive/continuous/sessions/' + id + '/observability'),
+        api('/interactive/continuous/sessions/' + id + '/endurance/status'),
       ]);
       if (info.session.session_id !== state.selectedId) return;
       state.snapshot = info;
       state.metrics = metrics;
+      state.endurance = endurance;
       state.gap = tm.gap || null;
       (tm.frames || []).forEach((frame) => {
         if (frame.sequence > state.lastTelemetrySeq) {
@@ -289,6 +349,7 @@
       state.acks = (acks.acks || []).slice(-60);
       renderStatus();
       renderObservability();
+      renderEndurance();
       latest();
       renderLog('continuousEventList', state.events, (e) => e.state + ' · ' + (e.reason_code || ''));
       renderLog('continuousAckList', state.acks, (a) => a.command_id + ' · ' + a.state);
@@ -316,6 +377,7 @@
       });
       state.selectedId = result.session_id;
       state.metrics = null;
+      state.endurance = null;
       state.telemetry = []; state.events = []; state.acks = [];
       state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
       notice('持续会话已创建。可启动仿真并发送遥控。');
@@ -406,6 +468,10 @@
     $('continuousRefreshBtn')?.addEventListener('click', () => refresh());
     $('continuousOperation')?.addEventListener('change', changeOperation);
     $('continuousSignal')?.addEventListener('change', renderChart);
+    $('continuousEnduranceStart')?.addEventListener('click', () => changeEndurance('start'));
+    $('continuousEnduranceStop')?.addEventListener('click', () => changeEndurance('stop'));
+    $('continuousEnduranceEvidence')?.addEventListener('click', () => exportEndurance('evidence'));
+    $('continuousEnduranceSummary')?.addEventListener('click', () => exportEndurance('summary'));
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       button.addEventListener('click', () => control(button.dataset.continuousAction));
     });
@@ -415,6 +481,7 @@
     changeOperation();
     renderStatus();
     renderObservability();
+    renderEndurance();
     renderChart();
   }
   window.SatContinuousConsole = { enter, exit };
