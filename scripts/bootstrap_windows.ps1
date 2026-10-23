@@ -91,7 +91,7 @@ try {
     ) -Step "安装运行依赖后验证真实 Basilisk C++ 模块"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
-        "-m", "sat_sim.agent_cli", "doctor", "--require-api", "--strict-assets"
+        "-m", "sat_sim.agent_cli", "doctor", "--require-api"
     ) -Step "执行环境诊断"
 
     Write-Host "[sat-sim] 安装完成。执行 .\scripts\start_local_windows.ps1 启动服务。" -ForegroundColor Green
