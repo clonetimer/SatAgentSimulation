@@ -20,6 +20,7 @@ on:
       - "tests/interactive/test_native_whole_first_tick_diagnostics.py"
       - "tests/interactive/test_native_whole_rw_ablation.py"
       - "tests/interactive/test_native_whole_held_command_ablation.py"
+      - "tests/interactive/test_native_battery_reset_barrier.py"
       - "tests/interactive/test_native_rw_fault_checkpoint.py"
       - "tests/interactive/test_native_tc_reconciliation.py"
       - "tests/interactive/test_native_joint_checkpoint.py"
@@ -84,6 +85,7 @@ jobs:
             tests/interactive/test_native_whole_first_tick_diagnostics.py \
             tests/interactive/test_native_whole_rw_ablation.py \
             tests/interactive/test_native_whole_held_command_ablation.py \
+            tests/interactive/test_native_battery_reset_barrier.py \
             tests/interactive/test_native_rw_fault_checkpoint.py \
             tests/interactive/test_native_tc_reconciliation.py \
             tests/interactive/test_native_joint_checkpoint.py \
@@ -122,6 +124,14 @@ jobs:
           python -m pytest -q -s
           tests/interactive/test_native_whole_held_command_ablation.py
           -k test_r9h_real_basilisk_four_native_ticks_applied_command_ablation
+          --disable-warnings
+      - name: Publish native Basilisk battery public-Reset negative-control evidence
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/interactive/test_native_battery_reset_barrier.py
+          -k test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery
           --disable-warnings
       - name: Run real Basilisk 8+ second wall-clock observation pilot
         env:
