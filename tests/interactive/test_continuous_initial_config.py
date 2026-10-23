@@ -28,6 +28,15 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
         assert all("native_value_key" in x and "default" in x and "unit" in x
                    for x in row["fields"])
     assert ContinuousInitialConfiguration().native_values() == {}
+    from pydantic import ValidationError
+    wheel4 = ContinuousInitialConfiguration.model_validate({
+        "adcs": {"rw_configuration": "pyramid_4", "rw_initial_speed_rad_s_3": -50.},
+    })
+    assert wheel4.native_values()["rw_initial_speed_rad_s_3"] == -50.
+    with pytest.raises(ValidationError, match="RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4"):
+        ContinuousInitialConfiguration.model_validate({
+            "adcs": {"rw_configuration": "orthogonal_3", "rw_initial_speed_rad_s_3": 1.},
+        })
     assert ContinuousInitialConfiguration.model_validate({
         "eps": {"battery_capacity_wh": 180., "initial_soc": .7},
     }).native_values() == {"battery_capacity_wh": 180., "initial_soc": .7}
@@ -42,6 +51,11 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     {"payload": {"unknown_basilisk_function": "x"}},
     {"unknown_subsystem": {"actor": "eval(...)"}},
     {"adcs": {"controller_k": "nan"}},
+    {"adcs": {"rw_initial_speed_rad_s_0": 600}},
+    {"adcs": {"rw_initial_speed_rad_s_3": 400}},
+    {"adcs": {"rw_initial_speed_rad_s_0": "-inf"}},
+    {"adcs": {"rw_max_torque_nm": 0}},
+    {"adcs": {"rw_max_torque_nm": 0.3}},
 ])
 def test_initial_config_rejects_unsafe_or_invalid_options(bad):
     from pydantic import ValidationError
@@ -102,6 +116,20 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     No mocked physics here: source and telemetry come from official Basilisk.
     """
     pytest.importorskip("Basilisk")
+    from Basilisk.utilities import simIncludeRW
+    factory_invocations = []
+    native_factory_create = simIncludeRW.rwFactory.create
+
+    def capture_native_factory(self, wheel_model, axis, **kwargs):
+        # Transparently wrap the *official* Basilisk factory and then invoke
+        # the unchanged original constructor. This proves u_max and Omega
+        # reach the physical StateEffector object creation.
+        factory_invocations.append({
+            "wheel_model": wheel_model, "u_max": kwargs["u_max"],
+            "Omega": kwargs["Omega"], "label": kwargs["label"],
+        })
+        return native_factory_create(self, wheel_model, axis, **kwargs)
+    monkeypatch.setattr(simIncludeRW.rwFactory, "create", capture_native_factory)
     app = _client(tmp_path, monkeypatch)
     samples = {}
     with TestClient(app) as client:
@@ -111,7 +139,13 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                 "orbit": {"orbit_radius_m": 7_350_000., "eccentricity": .001},
                 "eps": {"battery_capacity_wh": 240., "initial_soc": .85,
                         "solar_panel_area_m2": 3.},
-                "adcs": {"controller_k": 5., "controller_p": 25.},
+                "adcs": {
+                    "controller_k": 5., "controller_p": 25.,
+                    "rw_max_torque_nm": 0.05,
+                    "rw_initial_speed_rad_s_0": -50.,
+                    "rw_initial_speed_rad_s_1": 140.,
+                    "rw_initial_speed_rad_s_2": -200.,
+                },
             }),
         ):
             body = {**_body(label), "initial_configuration": initial}
@@ -143,3 +177,14 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     # channel. Observe the real native SOC effect and verify the submitted
     # capacity separately through the immutable native-graph task spec.
     assert custom["eps.battery_soc"] > default["eps.battery_soc"] + .1
+    assert "adcs.rw.speed_rad_s_0" in custom
+    assert abs(custom["adcs.rw.speed_rad_s_0"] - default["adcs.rw.speed_rad_s_0"]) > 90.
+    assert custom["adcs.rw.speed_rad_s_0"] == pytest.approx(-50., abs=12.)
+    assert default["adcs.rw.speed_rad_s_0"] == pytest.approx(100., abs=12.)
+    assert custom["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(.05)
+    assert len(factory_invocations) == 6
+    assert [x["wheel_model"] for x in factory_invocations] == ["Honeywell_HR16"] * 6
+    assert [x["Omega"] for x in factory_invocations[:3]] == [100., 200., 300.]
+    assert [x["Omega"] for x in factory_invocations[3:]] == [-50., 140., -200.]
+    assert [x["u_max"] for x in factory_invocations[:3]] == [.2] * 3
+    assert [x["u_max"] for x in factory_invocations[3:]] == [.05] * 3
