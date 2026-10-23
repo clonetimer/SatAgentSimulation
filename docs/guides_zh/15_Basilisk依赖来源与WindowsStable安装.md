@@ -54,3 +54,12 @@ python scripts\install_offline_bsk.py --check-only
 - 仍未验收所有 Python ABI/Windows GPU 环境、完全断网的所有依赖、或用户本地 24 小时真实墙钟可靠性。只有全部原生轮状态所有者恢复且新进程与不中断物理轨迹长期等价，才可改变恢复准入。
 
 **整星中断恢复状态始终为 `BLOCKED`（12 owner / 0 fully restored），自动 TC 重放永久禁止进入未验收的发布路径。**
+
+
+## 5. 2026-10-23 安全审计阻塞（不可将当前包命名为安全 Stable Release）
+
+全量依赖审计在本次洁净安装 PR 中发现 **36 条漏洞记录**：Pillow 12.3.0（35 条，审计建议修复至 13.0.0）和 certifi 2026.6.17（1 条，审计建议修复至 2026.10.19）。证据由 `dependency-audit` 的 `pip_audit_raw.json` 保存，整改追踪在 [Issue #39](https://github.com/clonetimer/SatAgentSimulation/issues/39)。
+
+**当前 `satfix1` 明确限定 Pillow<13，因此不能单纯 `pip install --upgrade pillow` 修复安全问题。** Pillow 13 同时不再支持 Python 3.10。下一阶段需要对经版本化的新 metadata-only 构建（例如不复用 `satfix1` 名称）做实际 Basilisk 数值回归，再对所有 Python 依赖运行完整的 0 漏洞门禁。
+
+本页描述的是**现有兼容安装路径的可重复性**，不等同于已取得安全合规的二进制 Stable Release 资质。在 Issue #39 和所有必需的 CI 阶段完成之前，不发布正式安全 Stable 标签，不禁用依赖审计，也不把实验性的 Basilisk 电池 C++ wheel 替换生产 wheel。
