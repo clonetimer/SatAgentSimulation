@@ -1,6 +1,8 @@
 """Native checkpoint coverage auditing: real outputs but no false restore claim."""
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 
 import pytest
@@ -272,3 +274,96 @@ def test_scheduler_phase_capture_is_read_only_and_rejects_impossible_counters() 
     Sim.TotalSim.NextTaskTime = 900_000_000
     with pytest.raises(ValueError, match="NATIVE_SCHEDULER_COUNTERS_INVALID"):
         capture_scheduler_phase(Sim())
+
+
+@pytest.mark.parametrize("topology,count", [
+    ("orthogonal_3", 3), ("pyramid_4", 4),
+])
+def test_r9b_whole_native_adcs_owner_memory_is_live_and_read_only(topology, count):
+    """Real *whole-spacecraft* Basilisk graph, not the isolated R9-A pilot."""
+    pytest.importorskip("Basilisk")
+    from sat_sim.bsk_engine.unified_native import UnifiedRuntimeConfig
+    from sat_sim.interactive.unified_runtime import UnifiedPersistentRuntime
+    from sat_sim.interactive.native_recovery_readiness import (
+        build_recovery_readiness, verify_recovery_readiness,
+    )
+    from sat_sim.interactive.native_whole_adcs_observation import (
+        validate_live_adcs_owner_observation,
+    )
+
+    runtime = UnifiedPersistentRuntime(UnifiedRuntimeConfig(
+        capability_id="whole_spacecraft.unified_native.v1",
+        duration_s=0.5, step_s=0.2, sample_s=0.2,
+        adcs_only=False, values={"rw_configuration": topology},
+        events=(), interactive_unbounded=True,
+    ), continuous=True)
+    runtime.prepare()
+    try:
+        runtime.advance_to(0.8)
+        audit = runtime.audit_native_checkpoint_coverage()
+        verify_coverage_report(audit)
+        owner = audit["native_adcs_owner_observations"]
+        assert owner is not None, audit["unavailable_observations"]
+        assert owner["scope"] == "LIVE_UNIFIED_BASILISK_READ_ONLY"
+        assert owner["capture_time_ns"] == 800_000_000
+        assert owner["rw_count"] == count
+        assert owner["fsw_memory"]["cached_rw_count"] == count
+        assert len(owner["native_rw_speed_msg_rad_s"]) == count
+        assert len(owner["native_state_wheel_speeds_rad_s"]) == count
+        assert len(owner["native_rw_cpp_memory"]) == count
+        assert len(owner["native_motor_command_nm"]) == count
+        validate_live_adcs_owner_observation(
+            owner, native_state_subset=audit["native_state_subset_pilot"],
+            expected_time_ns=800_000_000,
+        )
+        gate = build_recovery_readiness(audit)
+        verify_recovery_readiness(gate)
+        assert gate["native_adcs_owner_observation_present"] is True
+        assert gate["native_adcs_owner_observation_scope"] == "LIVE_UNIFIED_BASILISK_READ_ONLY"
+        assert gate["native_state_pilot_scope"] == (
+            "SAME_NATIVE_GRAPH_DYNAMICS_4RW_ONLY" if count == 4
+            else "SAME_NATIVE_GRAPH_DYNAMICS_3RW_ONLY"
+        )
+        assert "native_adcs_owner_observations" in gate["owners"][2]["observation_keys"]
+        assert "native_adcs_owner_observations" in gate["owners"][3]["observation_keys"]
+        assert gate["restorable_owner_count"] == 0
+        assert gate["restart_readiness"] == "BLOCKED"
+        assert gate["automatic_resume_allowed"] is False
+
+        # Audit is a read-only operation on the paused native worker; repeated
+        # reads at the same simulation time must not advance the physical graph.
+        same = runtime.audit_native_checkpoint_coverage()
+        assert same["native_adcs_owner_observations"] == owner
+        assert same["native_state_subset_pilot"] == audit["native_state_subset_pilot"]
+        assert runtime.current_time_s == pytest.approx(0.8)
+
+        # Recomputed outer integrity checksum is insufficient to forge
+        # wheel-count consistency or a "recovery is proven" owner flag.
+        tampered = copy.deepcopy(audit)
+        tampered["native_adcs_owner_observations"]["rw_count"] = 4 if count == 3 else 3
+        tampered["report_sha256"] = hashlib.sha256(json.dumps({
+            k: v for k, v in tampered.items() if k != "report_sha256"
+        }, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+            allow_nan=False).encode("utf-8")).hexdigest()
+        with pytest.raises(ValueError, match="NATIVE_ADCS_OBSERVATION_"):
+            verify_coverage_report(tampered)
+
+        tampered = copy.deepcopy(audit)
+        tampered["native_adcs_owner_observations"]["resume_supported"] = True
+        tampered["report_sha256"] = hashlib.sha256(json.dumps({
+            k: v for k, v in tampered.items() if k != "report_sha256"
+        }, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+            allow_nan=False).encode("utf-8")).hexdigest()
+        with pytest.raises(ValueError, match="FALSE_RESTORE_CLAIM"):
+            verify_coverage_report(tampered)
+
+        runtime.advance_to(1.2)
+        later = runtime.audit_native_checkpoint_coverage()
+        assert later["native_adcs_owner_observations"]["capture_time_ns"] == 1_200_000_000
+        assert later["native_state_subset_pilot"]["vectors"]["hub_position_m"] != (
+            audit["native_state_subset_pilot"]["vectors"]["hub_position_m"]
+        )
+        runtime.finalize()
+    finally:
+        if runtime._thread is not None and runtime._thread.is_alive():
+            runtime.abort()
