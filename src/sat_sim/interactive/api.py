@@ -38,6 +38,10 @@ class ContinuousCreateBody(_Strict):
     initial_horizon_s: float = Field(default=60.0, ge=1.0, le=86400.0)
 
 
+class EnduranceStartBody(_Strict):
+    sample_interval_s: Literal[1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 300.0] = 5.0
+
+
 class SessionControlBody(_Strict):
     action: Literal["start", "pause", "resume", "step", "rate", "stop", "abort", "heartbeat"]
     quanta: int = Field(default=1, ge=1, le=10_000)
@@ -76,6 +80,8 @@ def create_interactive_router(
 
     router = APIRouter(prefix="/interactive", tags=["interactive"])
     command_catalog = CommandCatalog.default()
+    from .continuous_endurance import EnduranceRegistry, EVIDENCE_FILE, SUMMARY_FILE
+    endurance_registry = EnduranceRegistry()
     command_rate_windows: dict[tuple[str, str], deque[float]] = {}
     command_rate_lock = threading.Lock()
 
@@ -212,6 +218,68 @@ def create_interactive_router(
             raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
         from .continuous_observability import observe_continuous_session
         return observe_continuous_session(session)
+
+    @router.post("/continuous/sessions/{session_id}/endurance/start", status_code=201)
+    def start_endurance(session_id: str, body: EnduranceStartBody, request: Request):
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "ENDURANCE_START_ROLE_DENIED"})
+        session = get_session(session_id)
+        try:
+            status = endurance_registry.start(session, body.sample_interval_s)
+        except (ValueError, RuntimeError, OSError) as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "endurance_evidence_started", principal, session_id=session_id)
+        return status
+
+    @router.post("/continuous/sessions/{session_id}/endurance/stop")
+    def stop_endurance(session_id: str, request: Request):
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "ENDURANCE_STOP_ROLE_DENIED"})
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None:
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_NOT_STARTED"})
+        try:
+            status = recorder.stop()
+        except RuntimeError as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "endurance_evidence_stopped", principal, session_id=session_id)
+        return status
+
+    @router.get("/continuous/sessions/{session_id}/endurance/status")
+    def endurance_status(session_id: str):
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None:
+            return {"schema_version": "sat-endurance-status.v1", "session_id": session_id,
+                    "recording_status": "NOT_STARTED", "sample_count": 0,
+                    "native_resume_supported": False,
+                    "automatic_tc_replay_allowed": False}
+        return recorder.status()
+
+    @router.get("/continuous/sessions/{session_id}/endurance/evidence")
+    def endurance_evidence_download(session_id: str):
+        from fastapi.responses import FileResponse
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None or not recorder.path.is_file():
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_EVIDENCE_NOT_FOUND"})
+        return FileResponse(
+            recorder.path, media_type="application/x-ndjson",
+            filename=session_id + "-" + EVIDENCE_FILE,
+        )
+
+    @router.get("/continuous/sessions/{session_id}/endurance/summary")
+    def endurance_summary_download(session_id: str):
+        from fastapi.responses import FileResponse
+        get_session(session_id)
+        recorder = endurance_registry.get(session_id)
+        if recorder is None or not recorder.summary_path.is_file():
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_SUMMARY_NOT_FINAL"})
+        return FileResponse(recorder.summary_path, media_type="application/json",
+                            filename=session_id + "-" + SUMMARY_FILE)
 
     @router.get("/commands/catalog")
     def read_command_catalog():
