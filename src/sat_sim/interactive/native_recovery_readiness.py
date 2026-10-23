@@ -61,6 +61,13 @@ def build_recovery_readiness(
     pilot = coverage.get("native_state_subset_pilot")
     if pilot is not None:
         validate_state_subset(pilot)
+    adcs_owners = coverage.get("native_adcs_owner_observations")
+    if adcs_owners is not None:
+        from .native_whole_adcs_observation import validate_live_adcs_owner_observation
+        validate_live_adcs_owner_observation(
+            adcs_owners, native_state_subset=pilot,
+            expected_time_ns=round(float(t) * 1.0e9),
+        )
     phase = coverage.get("native_scheduler_phase")
     observations = coverage.get("observations")
     unavailable = coverage.get("unavailable_observations")
@@ -83,8 +90,12 @@ def build_recovery_readiness(
     observation_map = {
         "simulation.scheduler_and_integrators": ["native_scheduler_phase"],
         "spacecraft.dynamics_and_state_effectors": ["spacecraft"],
-        "adcs.reaction_wheels": ["native_state_subset_pilot"],
-        "adcs.fsw_and_controller_memory": ["adcs_gains", "adcs_reference"],
+        "adcs.reaction_wheels": [
+            "native_state_subset_pilot", "native_adcs_owner_observations",
+        ],
+        "adcs.fsw_and_controller_memory": [
+            "adcs_gains", "adcs_reference", "native_adcs_owner_observations",
+        ],
         "adcs.sensors_and_noise": [],
         "eps.battery_and_power_network": ["battery"],
         "thermal.node_integrators_and_history": [],
@@ -106,6 +117,7 @@ def build_recovery_readiness(
             key for key in observation_map[required] if
             (key == "native_scheduler_phase" and phase is not None) or
             (key == "native_state_subset_pilot" and pilot is not None) or
+            (key == "native_adcs_owner_observations" and adcs_owners is not None) or
             key in observations
         ]
         mapped.append({
@@ -139,8 +151,18 @@ def build_recovery_readiness(
             "event_queue_restore_proven": False,
         },
         "native_state_pilot_present": pilot is not None,
-        "native_state_pilot_scope": "SAME_NATIVE_GRAPH_DYNAMICS_3RW_ONLY" if pilot is not None else "UNAVAILABLE",
-        "pilot_cross_process_parity_scope": "R5_ISOLATED_3RW_ADCS_ONLY_NOT_THIS_WHOLE_GRAPH",
+        "native_state_pilot_scope": (
+            "SAME_NATIVE_GRAPH_DYNAMICS_4RW_ONLY"
+            if pilot is not None and len(pilot["vectors"]["reaction_wheel_speed_rad_s"]) == 4
+            else "SAME_NATIVE_GRAPH_DYNAMICS_3RW_ONLY" if pilot is not None else "UNAVAILABLE"
+        ),
+        "native_adcs_owner_observation_present": adcs_owners is not None,
+        "native_adcs_owner_observation_scope": (
+            "LIVE_UNIFIED_BASILISK_READ_ONLY" if adcs_owners is not None else "UNAVAILABLE"
+        ),
+        "pilot_cross_process_parity_scope": (
+            "R9_A_ISOLATED_3_OR_4RW_ADCS_ONLY_NOT_THIS_WHOLE_GRAPH"
+        ),
         "observations_unavailable": sorted(unavailable),
         "owners": mapped,
         "mandatory_owner_count": len(mapped),
@@ -172,6 +194,9 @@ def verify_recovery_readiness(report: dict[str, Any]) -> None:
             or content.get("automatic_tc_replay_allowed") is not False
             or content.get("same_session_recovery_allowed") is not False
             or content.get("restorable_owner_count") != 0
+            or content.get("native_adcs_owner_observation_scope") not in (
+                "UNAVAILABLE", "LIVE_UNIFIED_BASILISK_READ_ONLY",
+            )
             or content.get("blocking_requirements") != list(PRECONDITIONS)):
         raise ValueError("RECOVERY_READINESS_UNSUPPORTED_RESTART_CLAIM")
     rows = content.get("owners")
