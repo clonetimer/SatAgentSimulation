@@ -1405,16 +1405,36 @@ class UnifiedNativeRuntime:
                         storage=storage if not cfg.adcs_only else None,
                     )
                     from sat_sim.interactive.native_state_pilot import capture_state_subset
+                    from sat_sim.interactive.native_whole_adcs_observation import (
+                        capture_live_adcs_owner_observation,
+                    )
                     pilot_subset = None
+                    native_adcs_owners = None
                     try:
                         pilot_subset = capture_state_subset(sc, expected_rw_count=len(rw_axes))
                     except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
                         unavailable["native_state_subset_pilot"] = f"{type(exc).__name__}: {exc}"
+                    if pilot_subset is not None:
+                        try:
+                            native_adcs_owners = capture_live_adcs_owner_observation(
+                                sim=sim, spacecraft=sc, rw_effector=rw,
+                                controller=controller, allocator=motor,
+                                native_state_subset=pilot_subset,
+                            )
+                        except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                            unavailable["native_adcs_owner_observations"] = (
+                                f"{type(exc).__name__}: {exc}"
+                            )
+                    else:
+                        unavailable["native_adcs_owner_observations"] = (
+                            "NATIVE_ADCS_STATE_SUBSET_UNAVAILABLE"
+                        )
                     report = create_coverage_report(
                         sim_time_s=previous_stop_s,
                         observations=observations, unavailable=unavailable,
                         native_worker_ident=threading.get_ident(),
                         state_subset_pilot=pilot_subset,
+                        native_adcs_owner_observations=native_adcs_owners,
                         scheduler_phase=capture_scheduler_phase(sim),
                     )
                     cfg.execution_controller.runtime_audited(report)
