@@ -91,6 +91,25 @@ def verify_endurance_evidence(path: Path) -> dict[str, Any]:
     }
 
 
+def verify_endurance_summary(path: Path) -> dict[str, Any]:
+    """Require complete, matching evidence+summary; never bless crash tails."""
+    path = Path(path)
+    with path.open("rb") as source:
+        summary = json.load(source)
+    if not isinstance(summary, dict):
+        raise ValueError("ENDURANCE_SUMMARY_INVALID")
+    digest = summary.get("summary_sha256")
+    unsigned = {k: v for k, v in summary.items() if k != "summary_sha256"}
+    if not isinstance(digest, str) or _hash(unsigned) != digest:
+        raise ValueError("ENDURANCE_SUMMARY_DIGEST_INVALID")
+    evidence = verify_endurance_evidence(path.parent / EVIDENCE_FILE)
+    if (summary.get("samples") != evidence["samples"]
+            or summary.get("final_evidence_hash") != evidence["final_entry_hash"]
+            or summary.get("session_id") != evidence["session_id"]):
+        raise ValueError("ENDURANCE_SUMMARY_EVIDENCE_MISMATCH")
+    return {"summary": summary, "evidence": evidence}
+
+
 class EnduranceRecorder:
     def __init__(self, session: Any, *, interval_s: float = 5.) -> None:
         if (not session.spec.continuous or session._workspace is None
