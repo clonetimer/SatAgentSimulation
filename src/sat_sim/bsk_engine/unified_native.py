@@ -562,8 +562,21 @@ class UnifiedNativeRuntime:
         "project_power_data_mode_gate", "project_whole_parameter_event_controller",
     )
 
-    def __init__(self, config: UnifiedRuntimeConfig) -> None:
+    def __init__(
+        self, config: UnifiedRuntimeConfig, *,
+        _test_only_fresh_native_graph_probe: Any = None,
+    ) -> None:
         self.config = config
+        # Isolated test process only. This hook never appears in TaskSpec,
+        # the persistent runtime, HTTP handlers or a recoverable checkpoint.
+        if _test_only_fresh_native_graph_probe is not None:
+            if (
+                not callable(_test_only_fresh_native_graph_probe)
+                or config.execution_controller is not None
+                or config.interactive_unbounded
+            ):
+                raise ValueError("R9D_NATIVE_TEST_PROBE_NOT_PERMITTED")
+        self._test_only_fresh_native_graph_probe = _test_only_fresh_native_graph_probe
 
     def run(self) -> SimulationResult:
         from Basilisk.architecture import messaging  # type: ignore
@@ -1377,6 +1390,15 @@ class UnifiedNativeRuntime:
                 raise ValueError(f"operation has no unified runtime adapter: {operation}")
 
         sim.InitializeSimulation()
+        if self._test_only_fresh_native_graph_probe is not None:
+            # Strictly after Basilisk has registered all native StateData,
+            # strictly before executing the FIRST simulation time step.
+            # The R9-D lab callback inspects imported vectors and explicitly
+            # exits the isolated child. Do not use for session resumption.
+            self._test_only_fresh_native_graph_probe(
+                sim=sim, spacecraft=sc, rw_effector=rw,
+                wheel_count=len(rw_axes),
+            )
         execution_stops: list[float] = []
         segment_count = 0
         previous_stop_s = 0.0
