@@ -31,6 +31,23 @@ class UiProtocolDouble:
             "adcs.pointing_error_deg": 0.12,
             "eps.battery_soc": 0.81,
         },)
+    def audit_native_checkpoint_coverage(self):
+        # UI-only test double. Actual Basilisk ownership is tested in native CI.
+        from sat_sim.interactive.native_checkpoint_audit import create_coverage_report
+        nanos = round(self.current_time_s * 1.e9)
+        return create_coverage_report(
+            sim_time_s=self.current_time_s,
+            observations={"spacecraft": {"position_m": [7000000., 0., 0.]}},
+            unavailable={},
+            native_worker_ident=1,
+            scheduler_phase={
+                "current_nanos": nanos, "next_task_time_nanos": nanos+200000000,
+                "until_next_task_nanos": 200000000,
+                "native_clock_restore_proven": False,
+                "task_queue_restore_proven": False,
+                "event_queue_restore_proven": False,
+            },
+        )
     def read_delta(self):
         return ()
     def finalize(self):
@@ -149,6 +166,21 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             ).wait_for(timeout=10000)
             assert "原始状态事件" in page.locator("#continuousEnduranceAuditResult").inner_text()
             assert "ACK/Outbox" in page.locator("#continuousEnduranceAuditResult").inner_text()
+            assert page.locator("#continuousRecoveryAuditBtn").is_disabled()
+            page.locator("[data-continuous-action='pause']").click()
+            page.wait_for_function(
+                "() => document.querySelector('#continuousState').textContent === 'PAUSED'",
+                timeout=12000,
+            )
+            page.locator("#continuousRecoveryAuditBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#continuousRecoveryVerdict').textContent === 'BLOCKED'",
+                timeout=12000,
+            )
+            assert page.locator("#continuousRecoveryOwnerTotal").inner_text() == "12"
+            assert page.locator("#continuousRecoveryOwnerRestorable").inner_text() == "0"
+            assert page.locator("#continuousRecoveryExportBtn").is_enabled()
+            assert page.locator("#continuousRecoveryOwners .continuous-log-item").count() == 12
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
