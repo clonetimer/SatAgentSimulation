@@ -69,6 +69,13 @@ def build_recovery_readiness(
             expected_time_ns=round(float(t) * 1.0e9),
         )
     phase = coverage.get("native_scheduler_phase")
+    joint = coverage.get("native_joint_owner_observations")
+    if joint is not None:
+        from .native_joint_owner_observation import validate_joint_owner_observation
+        validate_joint_owner_observation(
+            joint, expected_time_ns=round(float(t) * 1.0e9),
+            native_scheduler_phase=phase,
+        )
     observations = coverage.get("observations")
     unavailable = coverage.get("unavailable_observations")
     if not isinstance(observations, dict) or not isinstance(unavailable, dict):
@@ -88,7 +95,9 @@ def build_recovery_readiness(
         raise ValueError("RECOVERY_READINESS_OWNER_MATRIX_INCOMPLETE")
 
     observation_map = {
-        "simulation.scheduler_and_integrators": ["native_scheduler_phase"],
+        "simulation.scheduler_and_integrators": [
+            "native_scheduler_phase", "native_joint_owner_observations",
+        ],
         "spacecraft.dynamics_and_state_effectors": ["spacecraft"],
         "adcs.reaction_wheels": [
             "native_state_subset_pilot", "native_adcs_owner_observations",
@@ -97,9 +106,9 @@ def build_recovery_readiness(
             "adcs_gains", "adcs_reference", "native_adcs_owner_observations",
         ],
         "adcs.sensors_and_noise": [],
-        "eps.battery_and_power_network": ["battery"],
-        "thermal.node_integrators_and_history": [],
-        "comm_data.storage_downlink_and_queues": ["data_storage"],
+        "eps.battery_and_power_network": ["battery", "native_joint_owner_observations"],
+        "thermal.node_integrators_and_history": ["native_joint_owner_observations"],
+        "comm_data.storage_downlink_and_queues": ["data_storage", "native_joint_owner_observations"],
         "propulsion.thrusters_fuel_and_control": [],
         "events.faults_and_timeline": [],
         "interactive.queued_commands_and_deduplication": [],
@@ -118,6 +127,7 @@ def build_recovery_readiness(
             (key == "native_scheduler_phase" and phase is not None) or
             (key == "native_state_subset_pilot" and pilot is not None) or
             (key == "native_adcs_owner_observations" and adcs_owners is not None) or
+            (key == "native_joint_owner_observations" and joint is not None) or
             key in observations
         ]
         mapped.append({
@@ -155,6 +165,10 @@ def build_recovery_readiness(
             "SAME_NATIVE_GRAPH_DYNAMICS_4RW_ONLY"
             if pilot is not None and len(pilot["vectors"]["reaction_wheel_speed_rad_s"]) == 4
             else "SAME_NATIVE_GRAPH_DYNAMICS_3RW_ONLY" if pilot is not None else "UNAVAILABLE"
+        ),
+        "native_joint_owner_observation_present": joint is not None,
+        "native_joint_owner_observation_scope": (
+            "LIVE_UNIFIED_BASILISK_READ_ONLY" if joint is not None else "UNAVAILABLE"
         ),
         "native_adcs_owner_observation_present": adcs_owners is not None,
         "native_adcs_owner_observation_scope": (
@@ -195,6 +209,9 @@ def verify_recovery_readiness(report: dict[str, Any]) -> None:
             or content.get("same_session_recovery_allowed") is not False
             or content.get("restorable_owner_count") != 0
             or content.get("native_adcs_owner_observation_scope") not in (
+                "UNAVAILABLE", "LIVE_UNIFIED_BASILISK_READ_ONLY",
+            )
+            or content.get("native_joint_owner_observation_scope") not in (
                 "UNAVAILABLE", "LIVE_UNIFIED_BASILISK_READ_ONLY",
             )
             or content.get("blocking_requirements") != list(PRECONDITIONS)):
