@@ -179,6 +179,8 @@ def import_memento_fresh_lab(
     gate = build_recovery_readiness(source_audit)
     if gate["automatic_resume_allowed"] is not False or gate["restorable_owner_count"] != 0:
         raise ValueError("R9E_RESTART_GATE_NOT_BLOCKED")
+    if checkpoint != source_audit.get("native_clock_fsw_lab"):
+        raise ValueError("R9E_MEMENTO_NOT_BOUND_TO_SOURCE_AUDIT")
     source_adcs = source_audit["native_adcs_owner_observations"]
     source_joint = source_audit["native_joint_owner_observations"]
     source_vectors = source_audit["native_state_subset_pilot"]
