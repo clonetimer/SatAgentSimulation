@@ -326,6 +326,18 @@
     canvas.height = Math.round(height * ratio);
     ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, width, height);
+    // Do not advertise RW4 from a UI form alone. Only expose it after an
+    // actual stream frame contains the native fourth-wheel speed channel.
+    const rw4Option = $('continuousRw4SignalOption');
+    if (rw4Option) {
+      const hasRw4Telemetry = state.telemetry.some((frame) =>
+        Number.isFinite(Number(frame.values?.['adcs.rw.speed_rad_s_3'])));
+      rw4Option.disabled = !hasRw4Telemetry;
+      rw4Option.hidden = !hasRw4Telemetry;
+      if (!hasRw4Telemetry && $('continuousSignal').value === rw4Option.value) {
+        $('continuousSignal').value = 'orbit.radius_m';
+      }
+    }
     const key = $('continuousSignal').value;
     const points = state.telemetry.flatMap((frame) => {
       const t = Number(frame.sim_time_s);
