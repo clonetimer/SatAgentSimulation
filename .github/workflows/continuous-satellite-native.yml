@@ -21,6 +21,8 @@ on:
       - "tests/interactive/test_native_whole_rw_ablation.py"
       - "tests/interactive/test_native_whole_held_command_ablation.py"
       - "tests/interactive/test_native_battery_reset_barrier.py"
+      - "tests/interactive/test_basilisk211_battery_source_contract.py"
+      - "scripts/apply_basilisk211_battery_checkpoint.py"
       - "tests/interactive/test_native_rw_fault_checkpoint.py"
       - "tests/interactive/test_native_tc_reconciliation.py"
       - "tests/interactive/test_native_joint_checkpoint.py"
@@ -86,6 +88,7 @@ jobs:
             tests/interactive/test_native_whole_rw_ablation.py \
             tests/interactive/test_native_whole_held_command_ablation.py \
             tests/interactive/test_native_battery_reset_barrier.py \
+            tests/interactive/test_basilisk211_battery_source_contract.py \
             tests/interactive/test_native_rw_fault_checkpoint.py \
             tests/interactive/test_native_tc_reconciliation.py \
             tests/interactive/test_native_joint_checkpoint.py \
@@ -160,6 +163,50 @@ jobs:
           SAT_SIM_CONTINUOUS_SOAK_TARGET_S: "3600"
         run: |
           python -m pytest -q -s tests/interactive/test_continuous_soak.py --disable-warnings
+
+  basilisk-battery-cpp-contract:
+    # This validates C++ source compilation *against the authentic upstream*
+    # v2.11.0 checkout. It does NOT produce an installed patched bsk wheel,
+    # does NOT exercise SWIG Python runtime import, and must not qualify
+    # production checkpoint resume.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install native header dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libeigen3-dev swig
+      - name: Fetch exact upstream Basilisk 2.11.0 source
+        run: |
+          git clone --depth=1 --filter=blob:none --branch v2.11.0 https://github.com/AVSLab/basilisk.git /tmp/r9j-basilisk
+          test "$(git -C /tmp/r9j-basilisk rev-parse HEAD)" = "6c1511f5385dccaa73c9ae24522a74adc24fe623"
+      - name: Apply and prove native C++ source-only checkpoint patch
+        run: |
+          python scripts/apply_basilisk211_battery_checkpoint.py /tmp/r9j-basilisk --check
+          python scripts/apply_basilisk211_battery_checkpoint.py /tmp/r9j-basilisk
+          git -C /tmp/r9j-basilisk diff --check
+          git -C /tmp/r9j-basilisk diff --stat
+          git -C /tmp/r9j-basilisk diff -- src/simulation/power/simpleBattery/simpleBattery.h src/simulation/power/simpleBattery/simpleBattery.cpp | head -n 190
+      - name: Compile actual pinned native C++ source without replacing wheel
+        run: |
+          c++ -std=c++17 -fsyntax-only \
+            -I/tmp/r9j-basilisk/src -I/usr/include/eigen3 \
+            /tmp/r9j-basilisk/src/simulation/power/simpleBattery/simpleBattery.cpp
+      - name: Generate SWIG Python interface from patched native header
+        run: |
+          swig -c++ -python \
+            -I/tmp/r9j-basilisk/src \
+            -I/tmp/r9j-basilisk/src/architecture/_GeneralModuleFiles \
+            -I/tmp/r9j-basilisk/src/simulation/power/simpleBattery \
+            -outdir /tmp \
+            -o /tmp/r9j_simpleBattery_wrap.cxx \
+            /tmp/r9j-basilisk/src/simulation/power/simpleBattery/simpleBattery.i
+          test -s /tmp/r9j_simpleBattery_wrap.cxx
+          grep -q 'exportCheckpointState' /tmp/r9j_simpleBattery_wrap.cxx
+          grep -q 'importCheckpointState' /tmp/r9j_simpleBattery_wrap.cxx
+          echo "R9J_NATIVE_CPP_AND_SWIG_SOURCE_CONTRACT_COMPILED"
+          echo "R9J_NOT_A_REBUILT_BASILISK_WHEEL_OR_RECOVERY_PARITY_PROOF"
 
   windows-job-lifecycle:
     runs-on: windows-latest
