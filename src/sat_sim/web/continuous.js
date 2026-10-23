@@ -445,8 +445,16 @@
     event.preventDefault();
     const form = $('continuousCreateForm');
     if (!form.reportValidity()) return;
+    const initial_configuration = {};
+    document.querySelectorAll('#continuousCreateForm [data-native-group][data-native-key]').forEach((field) => {
+      const group = field.dataset.nativeGroup;
+      initial_configuration[group] ||= {};
+      const value = field.tagName === 'SELECT' ? field.value : Number(field.value);
+      initial_configuration[group][field.dataset.nativeKey] = value;
+    });
     const body = {
       session_id: $('continuousSessionId').value.trim(),
+      initial_configuration,
       quantum_s: Number($('continuousQuantum').value),
       rate: Number($('continuousRate').value),
       paced: $('continuousPaced').checked,
@@ -462,7 +470,9 @@
       state.recovery = null;
       state.telemetry = []; state.events = []; state.acks = [];
       state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
-      notice('持续会话已创建。可启动仿真并发送遥控。');
+      setText('continuousInitialConfigStatus',
+        '已将运行前参数写入本次原生会话；配置在模型创建后不可修改。');
+      notice('已使用所选整星／分系统／单机参数创建 Basilisk 原生持续会话。');
       await refresh();
     } catch (e) { notice('创建失败：' + e.message, true); }
   }
