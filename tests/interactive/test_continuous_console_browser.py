@@ -112,7 +112,13 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator('[data-native-key="orbit_radius_m"]').fill("7200000")
             page.locator('[data-native-key="battery_capacity_wh"]').fill("210")
             page.locator('[data-native-key="initial_soc"]').fill("0.7")
+            page.locator('[data-native-key="rw_configuration"]').select_option("pyramid_4")
+            assert page.locator('[data-native-key="rw_initial_speed_rad_s_3"]').is_enabled()
+            page.locator('[data-native-key="rw_initial_speed_rad_s_3"]').fill("125")
             page.locator('[data-native-key="rw_configuration"]').select_option("orthogonal_3")
+            assert page.locator('[data-native-key="rw_initial_speed_rad_s_3"]').is_disabled()
+            page.locator('[data-native-key="rw_initial_speed_rad_s_0"]').fill("-75")
+            page.locator('[data-native-key="rw_max_torque_nm"]').fill("0.08")
             page.locator("#continuousQuantum").select_option("0.2")
             page.locator("#continuousPaced").check()
             page.locator("#continuousCreateForm button[type=submit]").click()
@@ -126,6 +132,9 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert original.json()["native_initial_values"]["orbit_radius_m"] == 7200000.
             assert original.json()["native_initial_values"]["battery_capacity_wh"] == 210.
             assert original.json()["native_initial_values"]["initial_soc"] == .7
+            assert original.json()["native_initial_values"]["rw_initial_speed_rad_s_0"] == -75.
+            assert original.json()["native_initial_values"]["rw_max_torque_nm"] == .08
+            assert "rw_initial_speed_rad_s_3" not in original.json()["native_initial_values"]
             assert original.json()["editable_after_prepare"] is False
             assert "配置在模型创建后不可修改" in page.locator("#continuousInitialConfigStatus").inner_text()
             assert page.locator("#continuousWriterEpoch").inner_text() == "1"
