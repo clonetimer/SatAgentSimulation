@@ -90,6 +90,14 @@ jobs:
           python -m pytest -q -s
           tests/interactive/test_continuous_observability.py
           -k test_native_basilisk_actual_wallclock_metrics_smoke
+      - name: Run genuine 30+ second real-wall-clock Basilisk endurance and external audit
+        env:
+          PYTHONPATH: "src:."
+          SAT_SIM_CONTINUOUS_WALLCLOCK_TARGET_S: "30"
+        run: >-
+          python -m pytest -q -s
+          tests/interactive/test_continuous_observability.py
+          -k test_native_basilisk_actual_wallclock_metrics_smoke
       - name: Run accelerated continuous full-spacecraft TC/TM soak (180 simulated seconds)
         env:
           PYTHONPATH: "src:."
