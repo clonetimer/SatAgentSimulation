@@ -120,6 +120,8 @@ def create_coverage_report(
         from .native_state_pilot import validate_state_subset
         validate_state_subset(state_subset_pilot)
     if native_adcs_owner_observations is not None:
+        if state_subset_pilot is None:
+            raise ValueError("NATIVE_ADCS_OBSERVATION_REQUIRES_NATIVE_STATE_SUBSET")
         from .native_whole_adcs_observation import validate_live_adcs_owner_observation
         validate_live_adcs_owner_observation(
             native_adcs_owner_observations, native_state_subset=state_subset_pilot,
@@ -168,6 +170,8 @@ def verify_coverage_report(report: dict[str, Any]) -> None:
         validate_state_subset(content["native_state_subset_pilot"])
     owner_observations = content.get("native_adcs_owner_observations")
     if owner_observations is not None:
+        if content.get("native_state_subset_pilot") is None:
+            raise ValueError("NATIVE_ADCS_OBSERVATION_REQUIRES_NATIVE_STATE_SUBSET")
         from .native_whole_adcs_observation import validate_live_adcs_owner_observation
         validate_live_adcs_owner_observation(
             owner_observations, native_state_subset=content.get("native_state_subset_pilot"),
