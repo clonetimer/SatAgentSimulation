@@ -129,6 +129,7 @@ class EnduranceRecorder:
         self._first: dict[str, Any] | None = None
         self._last: dict[str, Any] | None = None
         self._sample_gap_max_s = 0.
+        self._observed_running_wall_s = 0.
         self._lag_max_s = 0.
         self._disk_free_min: int | None = None
         self._rss_first: int | None = None
@@ -172,6 +173,13 @@ class EnduranceRecorder:
                 if elapsed_gap < 0:
                     raise RuntimeError("ENDURANCE_WALL_CLOCK_MOVED_BACKWARDS")
                 self._sample_gap_max_s = max(self._sample_gap_max_s, elapsed_gap)
+                # Intervals with paused/ready/terminal endpoints do not count
+                # towards *observed active running* wall-clock eligibility.
+                # Total session elapsed time includes setup/pauses and MUST
+                # NEVER qualify a 24h uninterrupted-running claim on its own.
+                if (observation["session_state"] == SessionState.RUNNING.value
+                        and prior["observation"]["session_state"] == SessionState.RUNNING.value):
+                    self._observed_running_wall_s += elapsed_gap
                 if elapsed_gap > max(self.interval_s * 3., self.interval_s + 5.):
                     self._alert("SAMPLE_INTERVAL_GAP")
             tm = observation["telemetry"]
@@ -245,7 +253,7 @@ class EnduranceRecorder:
                 if first and last else 0.
             )
             eligible = (
-                span >= 86400.
+                self._observed_running_wall_s >= 86400.
                 and self._count >= 2
                 and not self._alerts
                 and self._error is None
@@ -261,6 +269,7 @@ class EnduranceRecorder:
                 "samples": self._count,
                 "interval_target_s": self.interval_s,
                 "observed_wall_span_s": span,
+                "observed_running_wall_s": self._observed_running_wall_s,
                 "sim_progress_s": (last["sim_elapsed_s"] - first["sim_elapsed_s"] if first and last else 0.),
                 "max_sample_gap_wall_s": self._sample_gap_max_s,
                 "max_telemetry_lag_wall_s": self._lag_max_s,
