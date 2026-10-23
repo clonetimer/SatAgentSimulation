@@ -649,10 +649,23 @@ class UnifiedNativeRuntime:
         rw = reactionWheelStateEffector.ReactionWheelStateEffector()
         rw_factory = simIncludeRW.rwFactory()
         rw_axes = _reaction_wheel_axes(str(values.get("rw_configuration", "orthogonal_3")))
+        # R8-C: pass validated initial speeds and torque limits into the
+        # *actual* Basilisk reaction-wheel factory (not merely into the
+        # downstream fault manager or synthetic telemetry).
+        # The downstream native command clamp uses the same value below.
+        rw_hardware_u_max = float(values.get("rw_max_torque_nm", 0.2))
+        if not math.isfinite(rw_hardware_u_max) or not 0.0 < rw_hardware_u_max <= 0.2:
+            raise ValueError("NATIVE_RW_HARDWARE_TORQUE_LIMIT_INVALID")
         for index, axis in enumerate(rw_axes):
+            omega_init = float(values.get(
+                f"rw_initial_speed_rad_s_{index}", 100.0 * (index + 1),
+            ))
+            if not math.isfinite(omega_init) or abs(omega_init) > 500.0:
+                raise ValueError("NATIVE_RW_INITIAL_SPEED_INVALID")
             rw_factory.create(
                 "Honeywell_HR16", list(axis), maxMomentum=50.0,
-                Omega=float(100.0 * (index + 1)), u_max=0.2, label=f"RW{index + 1}",
+                Omega=omega_init, u_max=rw_hardware_u_max,
+                label=f"RW{index + 1}",
             )
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
         add(rw, "reaction_wheels", "basilisk_official_native", 99)
@@ -803,7 +816,7 @@ class UnifiedNativeRuntime:
         connected("mrp_feedback.cmdTorqueOutMsg", "rw_motor_torque")
 
         rw_fault = ReactionWheelCommandFaultManager(
-            cfg.events, wheel_count=len(rw_axes), max_torque_nm=float(values.get("rw_max_torque_nm", 0.2))
+            cfg.events, wheel_count=len(rw_axes), max_torque_nm=rw_hardware_u_max
         )
         rw_fault.commandInMsg.subscribeTo(motor.rwMotorTorqueOutMsg)
         rw_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)
