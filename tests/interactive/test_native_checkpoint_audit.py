@@ -105,6 +105,18 @@ def test_live_whole_spacecraft_native_audit_tracks_real_dynamic_state() -> None:
             runtime.audit_native_checkpoint_coverage()
         runtime.advance_to(0.8)
         before = runtime.audit_native_checkpoint_coverage()
+        from sat_sim.interactive.native_recovery_readiness import (
+            build_recovery_readiness, verify_recovery_readiness,
+        )
+        whole_gate = build_recovery_readiness(before)
+        verify_recovery_readiness(whole_gate)
+        assert whole_gate["restart_readiness"] == "BLOCKED"
+        assert whole_gate["mandatory_owner_count"] == len(MANDATORY_STATE_OWNERS)
+        assert whole_gate["restorable_owner_count"] == 0
+        assert whole_gate["native_state_pilot_present"] is True
+        assert whole_gate["native_scheduler_phase"]["current_nanos"] == 800_000_000
+        assert whole_gate["automatic_resume_allowed"] is False
+        assert whole_gate["sim_time_s"] == pytest.approx(0.8)
         assert before["sim_time_s"] == pytest.approx(0.8)
         assert before["native_worker_ident"] == runtime.worker_ident
         scheduler = before["native_scheduler_phase"]
@@ -138,6 +150,10 @@ def test_live_whole_spacecraft_native_audit_tracks_real_dynamic_state() -> None:
         runtime.advance_to(1.6)
         after = runtime.audit_native_checkpoint_coverage()
         verify_coverage_report(after)
+        whole_gate_after = build_recovery_readiness(after)
+        assert whole_gate_after["restart_readiness"] == "BLOCKED"
+        assert whole_gate_after["sim_time_s"] == pytest.approx(1.6)
+        assert whole_gate_after["source_audit_sha256"] != whole_gate["source_audit_sha256"]
         assert runtime.current_time_s == pytest.approx(1.6)
         assert after["sim_time_s"] == pytest.approx(1.6)
         assert after["native_scheduler_phase"]["current_nanos"] == 1_600_000_000
