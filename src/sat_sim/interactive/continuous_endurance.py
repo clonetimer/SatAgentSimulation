@@ -286,14 +286,23 @@ class EnduranceRecorder:
                 "automatic_tc_replay_allowed": False,
             }
             summary["summary_sha256"] = _hash(summary)
-            self._summary = summary
-            self._status = summary["recording_status"]
             staged = self.summary_path.with_suffix(".pending")
-            with staged.open("xb") as output:
-                output.write(_serialize(summary) + b"\n")
-                output.flush()
-                os.fsync(output.fileno())
-            os.replace(staged, self.summary_path)
+            try:
+                with staged.open("xb") as output:
+                    output.write(_serialize(summary) + b"\n")
+                    output.flush()
+                    os.fsync(output.fileno())
+                os.replace(staged, self.summary_path)
+            except OSError as exc:
+                # Never report FINISHED while the durable summary is absent.
+                # Keep the evidence tail for explicit forensic inspection.
+                self._error = "ENDURANCE_SUMMARY_DURABILITY_FAILURE:" + type(exc).__name__
+                self._alert("ENDURANCE_SUMMARY_DURABILITY_FAILURE")
+                self._status = "INCOMPLETE_ERROR"
+                self._summary = None
+            else:
+                self._summary = summary
+                self._status = summary["recording_status"]
 
     def stop(self, *, timeout_s: float = 15.) -> dict[str, Any]:
         with self._lock:
