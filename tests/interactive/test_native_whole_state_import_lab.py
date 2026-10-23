@@ -172,7 +172,7 @@ def test_r9d_rejects_rehashed_restart_claim_without_mutating_any_state():
         key: value for key, value in forged.items() if key != "report_sha256"
     }, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
         allow_nan=False).encode()).hexdigest()
-    with pytest.raises(ValueError, match="RECOVERY_READINESS_SOURCE_FALSE_CLAIM"):
+    with pytest.raises(ValueError, match="NATIVE_CHECKPOINT_AUDIT_UNSUPPORTED_RESUME_CLAIM"):
         import_fresh_native_whole_state_subset(
             sim=object(), spacecraft=object(), expected_rw_count=3,
             checkpoint_audit=forged,
