@@ -44,13 +44,20 @@ def validate_live_adcs_owner_observation(
     data: Any, *, native_state_subset: dict[str, Any] | None = None,
     expected_time_ns: int | None = None,
 ) -> None:
-    if not isinstance(data, dict) or set(data) != {
+    required = {
         "schema_version", "scope", "capture_time_ns", "rw_count",
         "native_state_wheel_speeds_rad_s", "native_rw_speed_msg_rad_s",
         "native_rw_cpp_memory", "fsw_memory", "native_motor_command_nm",
         "native_private_state_complete", "message_history_restored",
         "cross_process_parity_proven", "resume_supported",
-    }:
+    }
+    # R9-H extends the real paused full-graph owner with the command after
+    # the project fault manager, i.e. the actual wheel input. Legacy native
+    # R9-B evidence remains readable and cannot be used for held-command tests.
+    optional = {"native_applied_motor_command_nm"}
+    if not isinstance(data, dict) or (
+        set(data) != required and set(data) != required | optional
+    ):
         raise ValueError("NATIVE_ADCS_OBSERVATION_SCHEMA_INVALID")
     if data["schema_version"] != SCHEMA or data["scope"] != SCOPE:
         raise ValueError("NATIVE_ADCS_OBSERVATION_SCOPE_INVALID")
@@ -66,7 +73,9 @@ def validate_live_adcs_owner_observation(
     if type(t) is not int or t <= 0 or (expected_time_ns is not None and t != expected_time_ns):
         raise ValueError("NATIVE_ADCS_OBSERVATION_TIME_INVALID")
     for key in ("native_state_wheel_speeds_rad_s", "native_rw_speed_msg_rad_s",
-                "native_motor_command_nm"):
+                "native_motor_command_nm", "native_applied_motor_command_nm"):
+        if key not in data:
+            continue
         if not isinstance(data[key], list):
             raise ValueError(f"NATIVE_ADCS_OBSERVATION_SHAPE:{key}")
         _vector(data[key], count, key, exact=True)
@@ -104,6 +113,7 @@ def validate_live_adcs_owner_observation(
 def capture_live_adcs_owner_observation(
     *, sim: Any, spacecraft: Any, rw_effector: Any, controller: Any,
     allocator: Any, native_state_subset: dict[str, Any],
+    applied_command_source: Any | None = None,
 ) -> dict[str, Any]:
     """Observe live native owner memory; never alter any model or message."""
     count = int(controller.rwConfigParams.numRW)
@@ -141,6 +151,11 @@ def capture_live_adcs_owner_observation(
         "cross_process_parity_proven": False,
         "resume_supported": False,
     }
+    if applied_command_source is not None:
+        report["native_applied_motor_command_nm"] = _vector(
+            applied_command_source.commandOutMsg.read().motorTorque,
+            count, "appliedMotorTorque",
+        )
     validate_live_adcs_owner_observation(
         report, native_state_subset=native_state_subset, expected_time_ns=time_ns,
     )
