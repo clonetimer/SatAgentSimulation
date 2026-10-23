@@ -640,6 +640,24 @@
               <button class="button button-ghost" type="button" data-continuous-action="stop">■ 停止并归档</button>
             </div>
           </section>
+          <section class="continuous-card" aria-label="原生中断恢复准入">
+            <div class="section-heading compact">
+              <h2>R8 · 原生中断恢复准备度</h2>
+              <span id="continuousRecoveryVerdict" class="status-chip status-muted">未检查</span>
+            </div>
+            <p class="continuous-muted">请先暂停持续会话，再读取实时 Basilisk 状态所有者。此操作不保存完整检查点，也不会恢复、启动或重放遥控。</p>
+            <div class="continuous-actions" style="margin-top: 12px">
+              <button id="continuousRecoveryAuditBtn" class="button button-secondary" type="button">检查原生恢复覆盖</button>
+              <button id="continuousRecoveryExportBtn" class="button button-ghost" type="button" disabled>导出缺口报告</button>
+            </div>
+            <div class="continuous-metrics">
+              <div><span>必需状态所有者</span><strong id="continuousRecoveryOwnerTotal">—</strong></div>
+              <div><span>可完整恢复所有者</span><strong id="continuousRecoveryOwnerRestorable">—</strong></div>
+              <div><span>检查时仿真时间</span><strong id="continuousRecoveryAtSim">—</strong></div>
+            </div>
+            <p id="continuousRecoveryMissing" class="continuous-muted">目前未证明整星级 Basilisk 原生检查点可以跨进程无损恢复。自动恢复保持关闭。</p>
+            <div id="continuousRecoveryOwners" class="continuous-log" role="list" aria-label="原生所有者恢复覆盖清单"></div>
+          </section>
           <section class="continuous-card" aria-label="持续运行资源监测">
             <div class="section-heading compact"><h2>真实运行与资源监测</h2>
               <span id="continuousMonitorHealth" class="status-chip status-muted">尚无采样</span></div>
