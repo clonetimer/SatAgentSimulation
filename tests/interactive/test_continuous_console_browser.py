@@ -147,6 +147,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#continuousEnduranceAuditResult").get_by_text(
                 "证据完整，但尚未满足 24h 验收条件", exact=False,
             ).wait_for(timeout=10000)
+            assert "原始状态事件" in page.locator("#continuousEnduranceAuditResult").inner_text()
+            assert "ACK/Outbox" in page.locator("#continuousEnduranceAuditResult").inner_text()
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
