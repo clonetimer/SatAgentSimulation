@@ -3,7 +3,7 @@
 
 用途：对平台匹配的本地 satfix1 Basilisk wheel 逐文件验证 SHA-256/RECORD 后再离线安装。
 参数：--wheelhouse 指定本地目录，--check-only 仅核对不修改环境，--report 输出审计 JSON。
-输出：成功打印已验证的 wheel 来源与实际 bsk 版本；校验失败则禁止 pip 安装。
+输出：成功打印已验证的 wheel 来源与实际 bsk 版本；原生模块导入须在 NumPy 等依赖安装后进行。
 """
 from __future__ import annotations
 
@@ -34,8 +34,11 @@ def main() -> int:
         installed = version("bsk")
         if installed != "2.11.0+satfix1":
             raise RuntimeError("BSK_INSTALL_VERSION_MISMATCH:" + installed)
-        from Basilisk.simulation import spacecraft  # noqa: F401
-        record["native_module_imported"] = True
+        # Native C++ import requires numpy, which is installed during the
+        # NEXT bootstrap phase. Importing it here after --no-deps is unsafe
+        # in a truly clean Python environment; the post-install doctor/CI
+        # must run an actual Basilisk module smoke after resolving deps.
+        record["native_import_deferred_until_dependencies"] = True
         record["installed_version"] = installed
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
