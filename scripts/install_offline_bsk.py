@@ -1,26 +1,48 @@
 #!/usr/bin/env python3
-"""
-用途：从 third_party/wheels 离线安装与当前平台匹配且构建报告为 PASS 的 satfix1 Basilisk Wheel。
-参数：无命令行参数；依据当前操作系统自动选择 Linux 或 Windows Wheel。
-输出：执行离线 pip 安装并打印已安装 bsk 版本和 Basilisk 模块路径；失败时返回非零退出码。
+"""Install only the explicitly attested Basilisk 2.11.0+satfix1 binary wheel.
+
+用途：对平台匹配的本地 satfix1 Basilisk wheel 逐文件验证 SHA-256/RECORD 后再离线安装。
+参数：--wheelhouse 指定本地目录，--check-only 仅核对不修改环境，--report 输出审计 JSON。
+输出：成功打印已验证的 wheel 来源与实际 bsk 版本；校验失败则禁止 pip 安装。
 """
 from __future__ import annotations
-import json, platform, subprocess, sys
+
+import argparse
+from importlib.metadata import version
+import json
 from pathlib import Path
+import subprocess
+import sys
+
+from bsk_wheel_provenance import verify_approved_wheel, REPORT
 
 
 def main() -> int:
-    root=Path(__file__).resolve().parents[1]
-    wheels=root/'third_party'/'wheels'
-    report_path=wheels/'bsk_2.11.0_satfix1_build_report.json'
-    if not report_path.is_file(): raise FileNotFoundError(report_path)
-    report=json.loads(report_path.read_text(encoding='utf-8'))
-    if report.get('status')!='PASS': raise RuntimeError('Basilisk compatibility build report is not PASS')
-    tag='win_amd64' if platform.system().lower().startswith('win') else 'manylinux_2_27_x86_64'
-    matches=[wheels/item['target'] for item in report.get('results',[]) if tag in item.get('target','')]
-    if len(matches)!=1 or not matches[0].is_file(): raise FileNotFoundError(f'platform wheel not present for {tag}')
-    subprocess.run([sys.executable,'-m','pip','install','--no-index','--no-deps','--force-reinstall',str(matches[0])],check=True)
-    subprocess.run([sys.executable,'-c','import importlib.metadata as m; import Basilisk; print(m.version("bsk")); print(Basilisk.__path__)'],check=True)
+    root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--wheelhouse", type=Path, default=root / "third_party" / "wheels")
+    parser.add_argument("--check-only", action="store_true")
+    parser.add_argument("--report", type=Path)
+    args = parser.parse_args()
+    record = verify_approved_wheel(args.wheelhouse)
+    record["operation"] = "CHECK_ONLY" if args.check_only else "INSTALL"
+    if not args.check_only:
+        subprocess.run([
+            sys.executable, "-m", "pip", "install", "--no-index", "--no-deps",
+            "--force-reinstall", record["wheel_path"],
+        ], check=True)
+        installed = version("bsk")
+        if installed != "2.11.0+satfix1":
+            raise RuntimeError("BSK_INSTALL_VERSION_MISMATCH:" + installed)
+        from Basilisk.simulation import spacecraft  # noqa: F401
+        record["native_module_imported"] = True
+        record["installed_version"] = installed
+    if args.report:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps(record, indent=2, ensure_ascii=False))
     return 0
 
-if __name__=='__main__': raise SystemExit(main())
+
+if __name__ == "__main__":
+    raise SystemExit(main())
