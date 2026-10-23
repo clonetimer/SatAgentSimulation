@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Apply the *exact* Basilisk v2.11.0 SimpleBattery native state API.
 
+用途：锁定 AVSLab/Basilisk v2.11.0 并应用真正的 SimpleBattery C++ 状态导出/导入源码补丁。
+参数：upstream_root 指向独立的 Basilisk Git 检出目录；--check 只读校验版本、锚点和状态。
+输出：打印源码版本及补丁校验结果；应用时仅编辑上游 C++ 头/源文件，不替换已安装 bsk wheel。
+
 This is a source patch, NOT a monkeypatch for installed bsk wheels. The
 official bsk==2.11.0 wheel has no new interface. The source MUST be rebuilt
 and the resulting SWIG Python bindings separately verified before any
