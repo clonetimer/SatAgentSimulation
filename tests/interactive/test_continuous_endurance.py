@@ -65,10 +65,9 @@ def test_endurance_samples_are_fsynced_hashed_and_never_replayed(tmp_path, monke
         assert report["summary"]["sim_progress_s"] == 0.
         assert client.get(base + "/summary").status_code == 200
         assert client.get(base + "/evidence").status_code == 200
-        root = tmp_path / "runs" / "interactive_sessions" / "endurance-test"
-        if not root.is_dir():
-            # Resolve workspace from the actual application manager.
-            root = next((tmp_path / "runs").rglob(EVIDENCE_FILE)).parent
+        # App's persistent workspace root is independent of the runs_root
+        # argument. Discover only within this isolated pytest temp directory.
+        root = next(tmp_path.rglob(EVIDENCE_FILE)).parent
         verified = verify_endurance_summary(root / SUMMARY_FILE)
         assert verified["evidence"]["samples"] == report["sample_count"]
         assert verified["evidence"]["final_entry_hash"] == report["summary"]["final_evidence_hash"]
@@ -91,7 +90,7 @@ def test_hash_tamper_is_detected_and_crash_incomplete_never_qualified(tmp_path, 
             assert time.monotonic() < deadline
             time.sleep(.02)
         assert client.post(base + "/stop").status_code == 200
-        evidence = next((tmp_path / "runs").rglob(EVIDENCE_FILE))
+        evidence = next(tmp_path.rglob(EVIDENCE_FILE))
         rows = evidence.read_text(encoding="utf-8").splitlines()
         original = rows[0]
         payload = json.loads(original)
