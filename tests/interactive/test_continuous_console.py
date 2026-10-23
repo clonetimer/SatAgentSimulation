@@ -187,9 +187,17 @@ def test_continuous_new_page_creates_actual_session_control_and_tm_api(tmp_path,
             time.sleep(.02)
         assert frame["values"]["orbit.radius_m"] == 7000000.
         assert frame["values"]["eps.battery_soc"] == .65
-        ack = client.get("/interactive/sessions/continuous-web/commands",
-                         params={"command_id": "ui-set-target"}).json()["acks"]
-        assert any(row["state"] == "ACKED" for row in ack)
+        # A newly published TM frame can legitimately precede the
+        # scheduled native TC ACK; wait for durable ACK without assuming
+        # synchronous ordering of independent streams.
+        ack_deadline = time.monotonic() + 6.
+        while True:
+            ack = client.get("/interactive/sessions/continuous-web/commands",
+                             params={"command_id": "ui-set-target"}).json()["acks"]
+            if any(row["state"] == "ACKED" for row in ack):
+                break
+            assert time.monotonic() < ack_deadline, ack
+            time.sleep(.02)
         assert "adcs.target.set" in instances[0].calls
         stop = client.post(
             "/interactive/sessions/continuous-web/control",
