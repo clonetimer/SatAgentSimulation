@@ -9,6 +9,7 @@ on:
       - "tests/interactive/test_continuous_persistence.py"
       - "tests/interactive/test_continuous_seal.py"
       - "tests/interactive/test_native_checkpoint_audit.py"
+      - "tests/interactive/test_native_recovery_readiness.py"
       - "tests/interactive/test_native_state_pilot.py"
       - "tests/interactive/test_native_scheduler_pilot.py"
       - "tests/interactive/test_native_multitask_pilot.py"
@@ -67,6 +68,7 @@ jobs:
             tests/interactive/test_continuous_session.py \
             tests/interactive/test_continuous_seal.py \
             tests/interactive/test_native_checkpoint_audit.py \
+            tests/interactive/test_native_recovery_readiness.py \
             tests/interactive/test_native_state_pilot.py \
             tests/interactive/test_native_multitask_pilot.py \
             tests/interactive/test_native_multiprocess_pilot.py \
