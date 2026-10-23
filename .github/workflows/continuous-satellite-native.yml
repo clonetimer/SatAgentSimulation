@@ -16,6 +16,7 @@ on:
       - "tests/interactive/test_native_multiprocess_pilot.py"
       - "tests/interactive/test_native_closed_loop_checkpoint.py"
       - "tests/interactive/test_native_whole_state_import_lab.py"
+      - "tests/interactive/test_native_whole_clock_fsw_lab.py"
       - "tests/interactive/test_native_rw_fault_checkpoint.py"
       - "tests/interactive/test_native_tc_reconciliation.py"
       - "tests/interactive/test_native_joint_checkpoint.py"
@@ -76,6 +77,7 @@ jobs:
             tests/interactive/test_native_multiprocess_pilot.py \
             tests/interactive/test_native_closed_loop_checkpoint.py \
             tests/interactive/test_native_whole_state_import_lab.py \
+            tests/interactive/test_native_whole_clock_fsw_lab.py \
             tests/interactive/test_native_rw_fault_checkpoint.py \
             tests/interactive/test_native_tc_reconciliation.py \
             tests/interactive/test_native_joint_checkpoint.py \
