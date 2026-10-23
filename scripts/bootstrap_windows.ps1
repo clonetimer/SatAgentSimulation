@@ -82,6 +82,10 @@ try {
     ) -Step "检查 API 与 NumPy 依赖"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
+        "-c", "from Basilisk.architecture import messaging; from Basilisk.simulation import spacecraft, simpleBattery; import importlib.metadata as m; assert m.version('bsk') == '2.11.0+satfix1'; assert spacecraft.Spacecraft is not None and simpleBattery.SimpleBattery is not None; print('BASILISK_NATIVE_WINDOWS_SMOKE_PASS')"
+    ) -Step "安装运行依赖后验证真实 Basilisk C++ 模块"
+
+    Invoke-CheckedNative -Executable $VenvPython -Arguments @(
         "-m", "sat_sim.agent_cli", "doctor", "--require-api", "--strict-assets"
     ) -Step "执行环境诊断"
 
