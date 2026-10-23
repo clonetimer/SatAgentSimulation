@@ -251,6 +251,11 @@ class EnduranceRecorder:
 
     def _finalize(self) -> None:
         with self._lock:
+            if self._count == 0 and self._error is None:
+                # Immediate stop before the sampler's first scheduling slice
+                # cannot be reported as a verified, completed endurance run.
+                self._error = "ENDURANCE_NO_DURABLE_SAMPLES"
+                self._alert("ENDURANCE_NO_DURABLE_SAMPLES")
             first = self._first["observation"] if self._first else None
             last = self._last["observation"] if self._last else None
             span = (
