@@ -53,7 +53,7 @@ struct SimpleBatteryCheckpointState {
 DECLARATIONS = """
     /* R9-J: native source-rebuild-only, partial battery checkpoint API. */
     SimpleBatteryCheckpointState exportCheckpointState(uint64_t captureTimeNs) const;
-    void importCheckpointState(const SimpleBatteryCheckpointState &snapshot,
+    bool importCheckpointState(const SimpleBatteryCheckpointState &snapshot,
                                uint64_t targetTimeNs);
 """
 
@@ -62,6 +62,8 @@ CPP_METHODS = r"""
  * Export/import protected native state without invoking Reset(): Reset()
  * sets previousTime to 0 and cannot represent a checkpoint at t > 0.
  * Import validates every field BEFORE mutating any internal state.
+ * A rejected import returns false without writing ANY protected memory:
+ * SWIG does not necessarily translate std::invalid_argument to Python.
  * It publishes one output message; no prior message queue is restored.
  */
 SimpleBatteryCheckpointState SimpleBattery::exportCheckpointState(uint64_t captureTimeNs) const
@@ -115,11 +117,11 @@ bool SimpleBattery::validCheckpointState(const SimpleBatteryCheckpointState &s,
     return true;
 }
 
-void SimpleBattery::importCheckpointState(const SimpleBatteryCheckpointState &s,
+bool SimpleBattery::importCheckpointState(const SimpleBatteryCheckpointState &s,
                                           uint64_t targetTimeNs)
 {
     if (!this->validCheckpointState(s, targetTimeNs)) {
-        throw std::invalid_argument("R9J_IMPORT_NATIVE_BATTERY_INVALID");
+        return false; // SWIG-safe: never throw a raw C++ exception to Python.
     }
     // Do NOT call Reset(), which destroys the captured integrator phase.
     this->storedCharge = s.storedChargeJ;
@@ -133,6 +135,7 @@ void SimpleBattery::importCheckpointState(const SimpleBatteryCheckpointState &s,
     // Publish a *single* snapshot at the restored native clock. This is
     // NOT a reproduction of power-node message or event histories.
     this->writeMessages(targetTimeNs);
+    return true;
 }
 """
 
