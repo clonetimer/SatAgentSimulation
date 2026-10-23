@@ -619,7 +619,8 @@ class UnifiedNativeRuntime:
         process_name = "UnifiedNativeProcess"
         task_name = "UnifiedNativeTask"
         process = sim.CreateNewProcess(process_name)
-        process.addTask(sim.CreateNewTask(task_name, macros.sec2nano(cfg.step_s)))
+        native_task = sim.CreateNewTask(task_name, macros.sec2nano(cfg.step_s))
+        process.addTask(native_task)
         instantiated: list[dict[str, str]] = []
         connections: list[str] = []
         record_sources: list[str] = []
@@ -1396,7 +1397,8 @@ class UnifiedNativeRuntime:
             # The R9-D lab callback inspects imported vectors and explicitly
             # exits the isolated child. Do not use for session resumption.
             self._test_only_fresh_native_graph_probe(
-                sim=sim, spacecraft=sc, rw_effector=rw,
+                sim=sim, process=process, task=native_task,
+                spacecraft=sc, rw_effector=rw, controller=controller,
                 wheel_count=len(rw_axes),
             )
         execution_stops: list[float] = []
@@ -1455,6 +1457,16 @@ class UnifiedNativeRuntime:
                         capture_joint_owner_observation,
                     )
                     phase = capture_scheduler_phase(sim)
+                    from sat_sim.interactive.native_whole_clock_fsw_lab import capture_memento
+                    clock_fsw = None
+                    try:
+                        clock_fsw = capture_memento(
+                            sim=sim, process=process, task=native_task,
+                            spacecraft=sc, controller=controller,
+                            expected_rw_count=len(rw_axes),
+                        )
+                    except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                        unavailable["native_clock_fsw_lab"] = f"{type(exc).__name__}: {exc}"
                     native_joint = None
                     if not cfg.adcs_only:
                         try:
@@ -1478,6 +1490,7 @@ class UnifiedNativeRuntime:
                         state_subset_pilot=pilot_subset,
                         native_adcs_owner_observations=native_adcs_owners,
                         native_joint_owner_observations=native_joint,
+                        native_clock_fsw_lab=clock_fsw,
                         scheduler_phase=phase,
                     )
                     cfg.execution_controller.runtime_audited(report)
