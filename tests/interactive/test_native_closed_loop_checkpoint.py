@@ -13,7 +13,7 @@ from sat_sim.interactive.native_state_pilot import capture_state_subset
 from sat_sim.interactive.native_multiprocess_pilot import capture_two_process_clock
 
 
-def _build(*, closed_loop: bool = True):
+def _build(*, closed_loop: bool = True, wheel_count: int = 3):
     pytest.importorskip("Basilisk")
     from Basilisk.architecture import messaging
     from Basilisk.simulation import spacecraft, reactionWheelStateEffector, simpleNav
@@ -46,10 +46,22 @@ def _build(*, closed_loop: bool = True):
     grav.addBodiesTo(sc)
     sim.AddModelToTask("fast", sc, None, 100)
 
+    if wheel_count not in (3, 4):
+        raise ValueError("ADCS_NATIVE_TEST_GRAPH_RW_COUNT_INVALID")
     rw = reactionWheelStateEffector.ReactionWheelStateEffector()
     rw.ModelTag = "native-closed-loop-reaction-wheels"
     factory = simIncludeRW.rwFactory()
-    for i, axis in enumerate(([1, 0, 0], [0, 1, 0], [0, 0, 1])):
+    if wheel_count == 3:
+        axes = ([1., 0., 0.], [0., 1., 0.], [0., 0., 1.])
+    else:
+        import math
+        scale = 1. / math.sqrt(3.)
+        axes = tuple(
+            [scale * x for x in axis]
+            for axis in ((1., 1., 1.), (1., -1., -1.),
+                         (-1., 1., -1.), (-1., -1., 1.))
+        )
+    for i, axis in enumerate(axes):
         factory.create(
             "Honeywell_HR16", list(axis), maxMomentum=50.,
             Omega=100. * (i + 1), u_max=0.2, label=f"RW{i+1}",
@@ -108,7 +120,7 @@ def _build(*, closed_loop: bool = True):
 
     sim.InitializeSimulation()
     return {
-        "sim": sim,
+        "sim": sim, "wheel_count": wheel_count,
         "processes": {"dynamics": dynamics_proc, "observer": observer_proc},
         "tasks": {"dynamics": fast, "observer": slow},
         "sc": sc, "rw": rw, "controller": controller,
@@ -218,6 +230,7 @@ def test_live_closed_loop_joint_checkpoint_fails_closed_until_rw_and_messages_co
 
 def _closed_loop_rows(graph, *, after_ns: int):
     """Capture only native telemetry after the agreed physical checkpoint."""
+    count = graph["wheel_count"]
     return {
         "attitude_mrp": [
             (int(t), [float(v) for v in sigma])
@@ -238,13 +251,13 @@ def _closed_loop_rows(graph, *, after_ns: int):
             if int(t) > after_ns
         ],
         "motor_torque": [
-            (int(t), [float(v) for v in torque[:3]])
+            (int(t), [float(v) for v in torque[:count]])
             for t, torque in zip(graph["motor_log"].times(),
                                  graph["motor_log"].motorTorque)
             if int(t) > after_ns
         ],
         "rw_speeds": [
-            (int(t), [float(v) for v in speeds[:3]])
+            (int(t), [float(v) for v in speeds[:count]])
             for t, speeds in zip(graph["wheel_log"].times(),
                                  graph["wheel_log"].wheelSpeeds)
             if int(t) > after_ns
@@ -274,7 +287,8 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     evidence = data["evidence"]
     verify_closed_loop_evidence(evidence)
-    graph = _build(closed_loop=True)
+    wheel_count = evidence["fsw_integrator"]["cached_rw_count"]
+    graph = _build(closed_loop=True, wheel_count=wheel_count)
     if mode in (
         "guidance_switch", "guidance_missing_switch",
         "guidance_pending", "guidance_pending_not_applied",
@@ -298,7 +312,7 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
         if mode != "guidance_missing_switch":
             restore_native_guidance_route_fresh(graph, journal)
     restore_state_subset_in_place(
-        graph["sc"], evidence["spacecraft_rw_state"], expected_rw_count=3,
+        graph["sc"], evidence["spacecraft_rw_state"], expected_rw_count=wheel_count,
     )
     if mode != "no_rw_effector_memory":
         restore_rw_effector_memory_fresh(
@@ -350,7 +364,7 @@ def _closed_loop_worker(path: str, end_s: float, mode: str) -> None:
         "checkpoint_ns": checkpoint_ns,
         "end_ns": int(graph["sim"].TotalSim.CurrentNanos),
         "resume_supported": False,  # Full spacecraft recovery still unproven
-        "final_state": capture_state_subset(graph["sc"], expected_rw_count=3),
+        "final_state": capture_state_subset(graph["sc"], expected_rw_count=wheel_count),
         "telemetry": _closed_loop_rows(graph, after_ns=checkpoint_ns),
     }, sort_keys=True), flush=True)
 
@@ -673,6 +687,122 @@ def test_native_pending_mode_change_survives_restart(tmp_path) -> None:
         for a, b in zip(actual, reference)
     ) > 1e-7, "Pending transition was silently ignored"
 
+
+
+def test_native_four_rw_closed_loop_cross_process_parity(tmp_path) -> None:
+    """R9-A: four real native wheels, two processes, fresh PID, true feedback.
+
+    This *restricted* four-wheel research graph has no full EPS/thermal/comm,
+    fault event queue, stochastic sensor state or production command ledger.
+    It must never authorize automatic whole-spacecraft restart.
+    """
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from Basilisk.utilities import macros
+    from sat_sim.interactive.native_closed_loop_evidence import (
+        capture_closed_loop_evidence, verify_closed_loop_evidence, _checksum,
+    )
+
+    source = _build(closed_loop=True, wheel_count=4)
+    checkpoint_ns, stop_ns = macros.sec2nano(2.), macros.sec2nano(5.)
+    source["sim"].ConfigureStopTime(checkpoint_ns)
+    source["sim"].ExecuteSimulation()
+    evidence = capture_closed_loop_evidence(
+        sim=source["sim"], processes=source["processes"],
+        tasks=source["tasks"], spacecraft=source["sc"],
+        controller=source["controller"], allocator=source["allocator"],
+        rw_effector=source["rw"],
+    )
+    verify_closed_loop_evidence(evidence)
+    assert evidence["fsw_integrator"]["cached_rw_count"] == 4
+    assert len(evidence["rw_effector_memory"]) == 4
+    assert len(evidence["spacecraft_rw_state"]["vectors"]["reaction_wheel_speed_rad_s"]) == 4
+    assert len(evidence["last_rw_motor_command_nm"]) == 4
+    assert evidence["resume_supported"] is False
+
+    # Strong negative guard even if an attacker recomputes the outer digest:
+    # metadata claiming 3RW must be rejected against four genuine C++ wheels.
+    import copy
+    malformed = copy.deepcopy(evidence)
+    malformed["fsw_integrator"]["cached_rw_count"] = 3
+    malformed["digest_sha256"] = _checksum({
+        k: v for k, v in malformed.items() if k != "digest_sha256"
+    })
+    with pytest.raises(ValueError, match="NATIVE_STATE_REACTION_WHEEL_COUNT_MISMATCH"):
+        verify_closed_loop_evidence(malformed)
+
+    checkpoint_path = tmp_path / "native-four-rw-closed-loop-evidence.json"
+    checkpoint_path.write_text(json.dumps({
+        "evidence": evidence,
+        "last_rw_motor_payload": [
+            float(v) for v in source["allocator"].rwMotorTorqueOutMsg.read().motorTorque
+        ],
+    }, sort_keys=True), encoding="utf-8")
+
+    source["sim"].ConfigureStopTime(stop_ns)
+    source["sim"].ExecuteSimulation()
+    baseline_state = capture_state_subset(source["sc"], expected_rw_count=4)
+    baseline = _closed_loop_rows(source, after_ns=checkpoint_ns)
+    assert len(baseline["fsw_torque"]) >= 3
+    assert len(baseline["rw_speeds"]) >= 10
+    assert all(len(v) == 4 for _, v in baseline["rw_speeds"])
+    assert all(len(v) == 4 for _, v in baseline["motor_torque"])
+    assert max(abs(x) for _, row in baseline["motor_torque"] for x in row) > 1e-7
+
+    outputs = {}
+    for omission in ("complete_pilot", "no_held_rw_command", "no_fsw_memory"):
+        run = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--adcs-worker",
+             str(checkpoint_path), "5.0", omission],
+            capture_output=True, text=True, timeout=45, check=False,
+        )
+        assert run.returncode == 0, run.stdout + "\n" + run.stderr
+        report = json.loads(next(
+            ln.removeprefix("CLOSED_LOOP_RESTART_JSON:")
+            for ln in run.stdout.splitlines()
+            if ln.startswith("CLOSED_LOOP_RESTART_JSON:")
+        ))
+        assert report["pid"] != os.getpid()
+        assert report["end_ns"] == stop_ns
+        assert report["checkpoint_ns"] == checkpoint_ns
+        assert report["resume_supported"] is False
+        outputs[omission] = report
+
+    correct = outputs["complete_pilot"]
+    for key in ("attitude_mrp", "body_rate", "fsw_torque", "motor_torque", "rw_speeds"):
+        expected, observed = baseline[key], correct["telemetry"][key]
+        assert [t for t, _ in observed] == [t for t, _ in expected], key
+        for index, ((t, values), (_, reference)) in enumerate(zip(observed, expected)):
+            assert len(values) == len(reference)
+            assert values == pytest.approx(reference, abs=1e-8, rel=1e-11), (
+                f"R9_A_4RW_FIRST_MISMATCH channel={key} frame={index} t_ns={t}"
+            )
+    for key, vector in baseline_state["vectors"].items():
+        assert correct["final_state"]["vectors"][key] == pytest.approx(
+            vector, abs=1e-8, rel=1e-11
+        ), key
+
+    # Omitting held RW commands or integral FSW memory must produce a
+    # measurable *physical* difference, not only a different metadata flag.
+    for omission in ("no_held_rw_command", "no_fsw_memory"):
+        wrong = outputs[omission]
+        rw_delta = max(abs(x - y) for x, y in zip(
+            wrong["final_state"]["vectors"]["reaction_wheel_speed_rad_s"],
+            baseline_state["vectors"]["reaction_wheel_speed_rad_s"],
+        ))
+        fsw_delta = max(
+            abs(x - y)
+            for (_, row), (_, target) in zip(
+                wrong["telemetry"]["fsw_torque"], baseline["fsw_torque"],
+            )
+            for x, y in zip(row, target)
+        )
+        assert rw_delta > 1e-7 or fsw_delta > 1e-7, (
+            omission, rw_delta, fsw_delta,
+        )
 
 if __name__ == "__main__":
     import sys
