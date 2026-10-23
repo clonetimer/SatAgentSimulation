@@ -47,11 +47,26 @@ def _triple(value: Any, name: str) -> list[float]:
     return result
 
 
+def _motor_vector(value: Any, count: int) -> list[float]:
+    """Native ArrayMotorTorqueMsg has padding; require real first N wheels."""
+    try:
+        seq = list(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("ADCS_EVIDENCE_MOTOR_COMMAND_SHAPE_INVALID") from exc
+    if count not in (3, 4) or len(seq) < count:
+        raise ValueError("ADCS_EVIDENCE_MOTOR_COMMAND_SHAPE_INVALID")
+    selected = seq[:count]
+    if any(type(x) not in (int, float) or not math.isfinite(x) for x in selected):
+        raise ValueError("ADCS_EVIDENCE_MOTOR_COMMAND_NONFINITE")
+    return [float(x) for x in selected]
+
+
 def _native_memory(controller: Any, checkpoint_ns: int) -> dict[str, Any]:
     prior = int(controller.priorTime)
     if prior <= 0 or prior > checkpoint_ns or prior != (checkpoint_ns // 600_000_000) * 600_000_000:
         raise ValueError("ADCS_EVIDENCE_CONTROLLER_TIME_INVALID")
-    if int(controller.rwConfigParams.numRW) != 3:
+    count = int(controller.rwConfigParams.numRW)
+    if count not in (3, 4):
         raise ValueError("ADCS_EVIDENCE_RW_COUNT_INVALID")
     return {
         "prior_time_ns": prior,
@@ -61,7 +76,7 @@ def _native_memory(controller: Any, checkpoint_ns: int) -> dict[str, Any]:
         "P": float(controller.P),
         "Ki": float(controller.Ki),
         "integral_limit": float(controller.integralLimit),
-        "cached_rw_count": 3,
+        "cached_rw_count": count,
     }
 
 
@@ -75,7 +90,7 @@ def capture_rw_effector_memory(rw_effector: Any) -> list[dict[str, float]]:
     models, pending commands, thermal or reaction wheel module state.
     """
     wheels = list(rw_effector.ReactionWheelData)
-    if len(wheels) != 3:
+    if len(wheels) not in (3, 4):
         raise ValueError("ADCS_RW_MEMORY_COUNT_MISMATCH")
     result = []
     for i, wheel in enumerate(wheels):
@@ -87,7 +102,7 @@ def capture_rw_effector_memory(rw_effector: Any) -> list[dict[str, float]]:
 
 
 def validate_rw_effector_memory(data: Any) -> None:
-    if not isinstance(data, list) or len(data) != 3:
+    if not isinstance(data, list) or len(data) not in (3, 4):
         raise ValueError("ADCS_RW_MEMORY_COUNT_MISMATCH")
     for wheel in data:
         if not isinstance(wheel, dict) or set(wheel) != set(RW_EXPOSED_FIELDS):
@@ -103,6 +118,8 @@ def restore_rw_effector_memory_fresh(rw_effector: Any, saved: Any) -> None:
     """TEST-ONLY native pointer writeback on a fresh, unadvanced RW graph."""
     validate_rw_effector_memory(saved)
     original = capture_rw_effector_memory(rw_effector)
+    if len(original) != len(saved):
+        raise ValueError("ADCS_RW_MEMORY_COUNT_MISMATCH")
     if any(abs(w["u_current"]) > 1e-14 for w in original):
         raise ValueError("ADCS_RW_MEMORY_REQUIRES_FRESH_EFFECTOR")
     for wheel, fields in zip(rw_effector.ReactionWheelData, saved):
@@ -116,12 +133,16 @@ def capture_closed_loop_evidence(
     *, sim: Any, processes: dict[str, Any], tasks: dict[str, Any],
     spacecraft: Any, controller: Any, allocator: Any, rw_effector: Any,
 ) -> dict[str, Any]:
-    native = capture_state_subset(spacecraft, expected_rw_count=3)
     clock = capture_two_process_clock(sim, processes, tasks, spacecraft)
     checkpoint_ns = clock["state"]["current_ns"]
     memory = _native_memory(controller, checkpoint_ns)
+    count = memory["cached_rw_count"]
+    native = capture_state_subset(spacecraft, expected_rw_count=count)
     command = allocator.rwMotorTorqueOutMsg.read()
-    held = _triple(list(command.motorTorque)[:3], "motor_torque")
+    held = _motor_vector(command.motorTorque, count)
+    wheel_memory = capture_rw_effector_memory(rw_effector)
+    if len(wheel_memory) != count:
+        raise ValueError("ADCS_EVIDENCE_WHEEL_TOPOLOGY_MISMATCH")
     for name in ("K", "P", "Ki", "integral_limit"):
         if not math.isfinite(memory[name]):
             raise ValueError(f"ADCS_EVIDENCE_FSW_CONFIG_NONFINITE:{name}")
@@ -135,7 +156,7 @@ def capture_closed_loop_evidence(
         "spacecraft_rw_state": native,
         "native_scheduler": clock,
         "fsw_integrator": memory,
-        "rw_effector_memory": capture_rw_effector_memory(rw_effector),
+        "rw_effector_memory": wheel_memory,
         "last_rw_motor_command_nm": held,
         "restore_gaps": list(MISSING_RESTORE_OWNERS),
         "actuator_command_message_restored": False,
@@ -166,25 +187,32 @@ def verify_closed_loop_evidence(document: dict[str, Any]) -> None:
         or data.get("restore_gaps") != list(MISSING_RESTORE_OWNERS)
     ):
         raise ValueError("ADCS_EVIDENCE_FALSE_RESTORE_CLAIM")
-    validate_state_subset(data["spacecraft_rw_state"], expected_rw_count=3)
-    validate_rw_effector_memory(data["rw_effector_memory"])
-    phase = validate_two_process_clock(data["native_scheduler"])
-    if data["checkpoint_sim_time_ns"] != phase["current_ns"]:
-        raise ValueError("ADCS_EVIDENCE_TIME_MISMATCH")
-    memory = data["fsw_integrator"]
+    memory = data.get("fsw_integrator")
     if not isinstance(memory, dict) or set(memory) != {
         "prior_time_ns", "int_sigma", "z", "K", "P", "Ki", "integral_limit", "cached_rw_count",
     }:
         raise ValueError("ADCS_EVIDENCE_FSW_FIELDS_INVALID")
+    count = memory["cached_rw_count"]
+    if type(count) is not int or count not in (3, 4):
+        raise ValueError("ADCS_EVIDENCE_RW_COUNT_INVALID")
+    validate_state_subset(data["spacecraft_rw_state"], expected_rw_count=count)
+    validate_rw_effector_memory(data["rw_effector_memory"])
+    if len(data["rw_effector_memory"]) != count:
+        raise ValueError("ADCS_EVIDENCE_WHEEL_TOPOLOGY_MISMATCH")
+    phase = validate_two_process_clock(data["native_scheduler"])
+    if data["checkpoint_sim_time_ns"] != phase["current_ns"]:
+        raise ValueError("ADCS_EVIDENCE_TIME_MISMATCH")
     if (
         type(memory["prior_time_ns"]) is not int
         or memory["prior_time_ns"] != (phase["current_ns"] // 600_000_000) * 600_000_000
-        or memory["cached_rw_count"] != 3
     ):
         raise ValueError("ADCS_EVIDENCE_FSW_PHASE_INVALID")
     _triple(memory["int_sigma"], "int_sigma")
     _triple(memory["z"], "z")
-    _triple(data["last_rw_motor_command_nm"], "motor_torque")
+    motor = data["last_rw_motor_command_nm"]
+    if not isinstance(motor, list) or len(motor) != count:
+        raise ValueError("ADCS_EVIDENCE_MOTOR_COMMAND_SHAPE_INVALID")
+    _motor_vector(motor, count)
     for name in ("K", "P", "Ki", "integral_limit"):
         val = memory[name]
         if isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val):
