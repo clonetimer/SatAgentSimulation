@@ -173,11 +173,14 @@ def test_split_wallclock_runs_over_24h_are_not_continuous(tmp_path, monkeypatch)
     assert summary["observed_running_wall_s"] >= 86400.
     assert summary["observed_pause_after_run"] is True
     assert summary["eligible_for_manual_24h_review"] is False
+    # R7h now also requires ORIGINAL source logs. This deliberately
+    # synthetic observation-only fixture has no original SQLite/state
+    # records, so it must be BLOCKED rather than merely NOT_QUALIFIED.
+    # Its own R7f summary still independently refuses split-run eligibility.
     report = audit_endurance_workspace(tmp_path, max_stale_s=10800.)
-    assert report["verdict"] == "NOT_QUALIFIED", report
-    assert report["observed_running_wall_s"] >= 86400.
-    assert report["observed_pause_after_run"] is True
-    assert "CONTINUOUS_RUN_INTERRUPTED_BY_PAUSE" in report["reason_codes"]
+    assert report["verdict"] == "BLOCKED", report
+    assert report["original_sources_verified"] is False
+    assert "ORIGINAL_SOURCE_RECONCILIATION_INVALID" in report["reason_codes"]
 
 
 def test_original_state_log_corruption_blocks_valid_endurance_evidence(tmp_path, monkeypatch):
