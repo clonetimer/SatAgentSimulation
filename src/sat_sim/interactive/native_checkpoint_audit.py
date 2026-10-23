@@ -102,6 +102,7 @@ def create_coverage_report(
     *, sim_time_s: float, observations: dict[str, Any],
     unavailable: dict[str, str], native_worker_ident: int,
     state_subset_pilot: dict[str, Any] | None = None,
+    native_adcs_owner_observations: dict[str, Any] | None = None,
     scheduler_phase: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not math.isfinite(sim_time_s) or sim_time_s <= 0:
@@ -118,6 +119,12 @@ def create_coverage_report(
     if state_subset_pilot is not None:
         from .native_state_pilot import validate_state_subset
         validate_state_subset(state_subset_pilot)
+    if native_adcs_owner_observations is not None:
+        from .native_whole_adcs_observation import validate_live_adcs_owner_observation
+        validate_live_adcs_owner_observation(
+            native_adcs_owner_observations, native_state_subset=state_subset_pilot,
+            expected_time_ns=round(sim_time_s * 1.0e9),
+        )
     if scheduler_phase is not None and any(
         scheduler_phase.get(k) is not False for k in (
             "native_clock_restore_proven",
@@ -141,6 +148,7 @@ def create_coverage_report(
         "reason_code": "NATIVE_FULL_PHYSICAL_STATE_SNAPSHOT_NOT_AVAILABLE",
         "telemetry_is_not_checkpoint": True,
         "native_state_subset_pilot": state_subset_pilot,
+        "native_adcs_owner_observations": native_adcs_owner_observations,
         "native_scheduler_phase": scheduler_phase,
     }
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
@@ -158,6 +166,13 @@ def verify_coverage_report(report: dict[str, Any]) -> None:
     if content.get("native_state_subset_pilot") is not None:
         from .native_state_pilot import validate_state_subset
         validate_state_subset(content["native_state_subset_pilot"])
+    owner_observations = content.get("native_adcs_owner_observations")
+    if owner_observations is not None:
+        from .native_whole_adcs_observation import validate_live_adcs_owner_observation
+        validate_live_adcs_owner_observation(
+            owner_observations, native_state_subset=content.get("native_state_subset_pilot"),
+            expected_time_ns=round(float(content["sim_time_s"]) * 1.0e9),
+        )
     phase = content.get("native_scheduler_phase")
     if phase is not None and (
         any(phase.get(k) is not False for k in (
