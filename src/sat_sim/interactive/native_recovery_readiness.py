@@ -69,6 +69,14 @@ def build_recovery_readiness(
             expected_time_ns=round(float(t) * 1.0e9),
         )
     phase = coverage.get("native_scheduler_phase")
+    memento = coverage.get("native_clock_fsw_lab")
+    if memento is not None:
+        from .native_whole_clock_fsw_lab import validate_memento
+        validate_memento(
+            memento, source_time_ns=round(float(t)*1e9),
+            expected_rw_count=adcs_owners["rw_count"] if adcs_owners is not None else None,
+            expected_fsw=adcs_owners["fsw_memory"] if adcs_owners is not None else None,
+        )
     joint = coverage.get("native_joint_owner_observations")
     if joint is not None:
         from .native_joint_owner_observation import validate_joint_owner_observation
@@ -97,6 +105,7 @@ def build_recovery_readiness(
     observation_map = {
         "simulation.scheduler_and_integrators": [
             "native_scheduler_phase", "native_joint_owner_observations",
+            "native_clock_fsw_lab",
         ],
         "spacecraft.dynamics_and_state_effectors": ["spacecraft"],
         "adcs.reaction_wheels": [
@@ -104,6 +113,7 @@ def build_recovery_readiness(
         ],
         "adcs.fsw_and_controller_memory": [
             "adcs_gains", "adcs_reference", "native_adcs_owner_observations",
+            "native_clock_fsw_lab",
         ],
         "adcs.sensors_and_noise": [],
         "eps.battery_and_power_network": ["battery", "native_joint_owner_observations"],
@@ -128,6 +138,7 @@ def build_recovery_readiness(
             (key == "native_state_subset_pilot" and pilot is not None) or
             (key == "native_adcs_owner_observations" and adcs_owners is not None) or
             (key == "native_joint_owner_observations" and joint is not None) or
+            (key == "native_clock_fsw_lab" and memento is not None) or
             key in observations
         ]
         mapped.append({
@@ -165,6 +176,10 @@ def build_recovery_readiness(
             "SAME_NATIVE_GRAPH_DYNAMICS_4RW_ONLY"
             if pilot is not None and len(pilot["vectors"]["reaction_wheel_speed_rad_s"]) == 4
             else "SAME_NATIVE_GRAPH_DYNAMICS_3RW_ONLY" if pilot is not None else "UNAVAILABLE"
+        ),
+        "native_clock_fsw_lab_present": memento is not None,
+        "native_clock_fsw_lab_scope": (
+            "ONE_TASK_READBACK_ONLY_NOT_RESTART" if memento is not None else "UNAVAILABLE"
         ),
         "native_joint_owner_observation_present": joint is not None,
         "native_joint_owner_observation_scope": (
@@ -213,6 +228,9 @@ def verify_recovery_readiness(report: dict[str, Any]) -> None:
             )
             or content.get("native_joint_owner_observation_scope") not in (
                 "UNAVAILABLE", "LIVE_UNIFIED_BASILISK_READ_ONLY",
+            )
+            or content.get("native_clock_fsw_lab_scope") not in (
+                "UNAVAILABLE", "ONE_TASK_READBACK_ONLY_NOT_RESTART",
             )
             or content.get("blocking_requirements") != list(PRECONDITIONS)):
         raise ValueError("RECOVERY_READINESS_UNSUPPORTED_RESTART_CLAIM")
