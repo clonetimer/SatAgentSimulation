@@ -1,0 +1,114 @@
+name: Stable Basilisk provenance and clean installation (Issue 37)
+
+on:
+  pull_request:
+    paths:
+      - "scripts/bsk_wheel_provenance.py"
+      - "scripts/build_bsk_compat_wheels.py"
+      - "scripts/install_offline_bsk.py"
+      - "scripts/ensure_basilisk_runtime.py"
+      - "scripts/bootstrap_windows.ps1"
+      - "scripts/fetch_official_bsk_and_build_offline_bundle.py"
+      - "tests/test_bsk_wheel_provenance.py"
+      - ".github/workflows/stable-bsk-wheel-provenance.yml"
+      - "docs/guides_zh/15_Basilisk依赖来源与WindowsStable安装.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provenance-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Validate wheel source verification and tamper rejection
+        run: |
+          python -m pip install pytest==9.0.3
+          python -m pytest -q tests/test_bsk_wheel_provenance.py
+
+  clean-native-wheel:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python: "3.11"
+            wheel_platform: windows_x86_64
+          - os: ubuntu-latest
+            python: "3.13"
+            wheel_platform: linux_x86_64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      BSK_WHEEL_PLATFORM: ${{ matrix.wheel_platform }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Download SHA-pinned official Basilisk and rebuild metadata-only satfix1
+        shell: bash
+        run: |
+          python scripts/fetch_official_bsk_and_build_offline_bundle.py --platform "$BSK_WHEEL_PLATFORM"
+          python scripts/install_offline_bsk.py --check-only
+      - name: Clean Windows platform bootstrap from verified wheelhouse
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:SAT_SIM_RECREATE_VENV = "1"
+          & "$PWD/scripts/bootstrap_windows.ps1"
+          if ($LASTEXITCODE -ne 0) { throw "Windows bootstrap failed: $LASTEXITCODE" }
+      - name: Verify Linux package installation from same attested wheelhouse
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python scripts/ensure_basilisk_runtime.py --require-satfix1
+          python -m pip install --find-links third_party/wheels -c constraints.txt -e ".[api]"
+      - name: Verify actual installed native Basilisk module and pin
+        shell: bash
+        run: |
+          if [ "$BSK_WHEEL_PLATFORM" = "windows_x86_64" ]; then
+            PY_EXE=".venv/Scripts/python.exe"
+          else
+            PY_EXE="python"
+          fi
+          "$PY_EXE" - <<'PY'
+          import importlib.metadata
+          from Basilisk.architecture import messaging
+          from Basilisk.simulation import simpleBattery, spacecraft
+          from Basilisk.utilities import macros
+          assert importlib.metadata.version("bsk") == "2.11.0+satfix1"
+          assert not hasattr(simpleBattery, "SimpleBatteryCheckpointState"), (
+              "Production satfix1 MUST NOT bundle the experimental R9-K ABI"
+          )
+          bat = simpleBattery.SimpleBattery()
+          bat.storageCapacity = 1000.0
+          bat.storedCharge_Init = 100.0
+          node = messaging.PowerNodeUsageMsgPayload()
+          node.netPower = 5.0
+          message = messaging.PowerNodeUsageMsg().write(node)
+          bat.addPowerNodeToModel(message)
+          bat.Reset(0)
+          bat.UpdateState(macros.sec2nano(0.2))
+          bat.UpdateState(macros.sec2nano(0.4))
+          value = float(bat.batPowerOutMsg.read().storageLevel)
+          assert 100.0 <= value <= 104.0, value
+          assert spacecraft.Spacecraft is not None
+          print("STABLE_BASILISK_NATIVE_REAL_MODULE_PASS",
+                importlib.metadata.version("bsk"), value)
+          print("STABLE_NATIVE_WHOLE_RESTART_BLOCKED")
+          PY
+      - name: Archive manifest and attested metadata-only compatibility wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: sat-bsk211-satfix1-${{ matrix.wheel_platform }}-py${{ matrix.python }}
+          path: |
+            third_party/wheels/bsk-2.11.0+satfix1-*.whl
+            third_party/wheels/bsk_2.11.0_satfix1_build_report.json
+            third_party/wheels/OFFLINE_BSK_BUNDLE_MANIFEST.json
+          if-no-files-found: error
+          retention-days: 7
