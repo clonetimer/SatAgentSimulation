@@ -110,3 +110,71 @@ def test_external_audit_rejects_invalid_threshold_configuration(tmp_path):
         audit_endurance_workspace(tmp_path, max_stale_s=0)
     with raises(ValueError, match="BAD_THRESHOLDS"):
         audit_endurance_workspace(tmp_path, rss_growth_warning_mib_h=-1)
+
+
+def test_split_wallclock_runs_over_24h_are_not_continuous(tmp_path, monkeypatch):
+    """Both R7f summary and external auditor reject aggregated 24h across pause.
+
+    All rows are deliberately generated *control-plane evidence fixtures*.
+    Genuine satellite physical consistency is tested only in native Basilisk.
+    """
+    from types import SimpleNamespace
+    from datetime import datetime, timezone, timedelta
+    from sat_sim.interactive.models import SessionState
+    from sat_sim.interactive.continuous_endurance import (
+        EnduranceRecorder, verify_endurance_summary,
+    )
+    import sat_sim.interactive.continuous_endurance as endurance
+
+    session = SimpleNamespace(
+        spec=SimpleNamespace(continuous=True, session_id="split-24h", quantum_s=.2),
+        _workspace=SimpleNamespace(path=tmp_path),
+        state=SessionState.READY,
+    )
+    times_states = (
+        [(t, "RUNNING") for t in range(0, 48600, 1800)]
+        + [(48600, "PAUSED"), (50400, "RUNNING")]
+        + [(t, "RUNNING") for t in range(52200, 100800, 1800)]
+        + [(100800, "COMPLETED")]
+    )
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    items = []
+    for i, (wall, state) in enumerate(times_states):
+        items.append({
+            "schema_version": "sat-continuous-observability.v1",
+            "sampled_at": (start + timedelta(seconds=wall)).isoformat(),
+            "session_id": "split-24h", "session_state": state,
+            "wall_elapsed_s": float(wall), "sim_elapsed_s": float(i),
+            "telemetry": {
+                "stream_id": "whole.continuous", "status": "FRESH",
+                "lag_wall_s": 0., "last_sequence": i,
+                "last_sim_time_s": float(i), "last_wall_time": start.isoformat(),
+                "durable_frame_count": i, "durable_bytes": i * 40,
+            },
+            "process": {
+                "available": True, "pid": 1234,
+                "scope": "API_AND_BASILISK_PARENT",
+                "resident_bytes": 1024 * 1024 * 100,
+                "cpu_time_s": float(i), "source": "TEST_FIXTURE",
+            },
+            "disk": {
+                "available": True, "free_bytes": 1024**3,
+                "total_bytes": 2*1024**3, "reserved_bytes": 0,
+            },
+            "resume_supported": False, "automatic_tc_replay_allowed": False,
+        })
+    stream = iter(items)
+    monkeypatch.setattr(endurance, "observe_continuous_session", lambda s: next(stream))
+    recorder = EnduranceRecorder(session, interval_s=3600.)
+    for _ in items:
+        recorder._sample()
+    recorder._finalize()
+    summary = verify_endurance_summary(tmp_path / SUMMARY_FILE)["summary"]
+    assert summary["observed_running_wall_s"] >= 86400.
+    assert summary["observed_pause_after_run"] is True
+    assert summary["eligible_for_manual_24h_review"] is False
+    report = audit_endurance_workspace(tmp_path, max_stale_s=10800.)
+    assert report["verdict"] == "NOT_QUALIFIED", report
+    assert report["observed_running_wall_s"] >= 86400.
+    assert report["observed_pause_after_run"] is True
+    assert "CONTINUOUS_RUN_INTERRUPTED_BY_PAUSE" in report["reason_codes"]
