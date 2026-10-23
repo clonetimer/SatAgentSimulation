@@ -100,6 +100,12 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             )
             assert len(running) == 1
             assert page.locator("#continuousWriterEpoch").inner_text() == "1"
+            page.locator("#continuousEnduranceInterval").select_option("1")
+            page.locator("#continuousEnduranceStart").click()
+            page.wait_for_function(
+                "() => document.querySelector('#continuousEnduranceStatus').textContent === 'RECORDING'",
+                timeout=12000,
+            )
             page.locator("#continuousOperation").select_option("adcs.target.set")
             page.locator("#continuousExecuteAt").fill("0.2")
             page.locator("#continuousCommandForm button[type=submit]").click()
@@ -125,6 +131,18 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousResidentBytes").inner_text() != "—"
             assert page.locator("#continuousDiskStatus").inner_text().find(" / ") > 0
             assert int(page.locator("#continuousDurableFrames").inner_text()) > 0
+            page.wait_for_function(
+                "() => Number(document.querySelector('#continuousEnduranceSamples').textContent) >= 2",
+                timeout=15000,
+            )
+            page.locator("#continuousEnduranceStop").click()
+            page.wait_for_function(
+                "() => document.querySelector('#continuousEnduranceStatus').textContent === 'FINISHED'",
+                timeout=12000,
+            )
+            assert page.locator("#continuousEnduranceEligible").inner_text() == "未达到"
+            assert page.locator("#continuousEnduranceEvidence").is_enabled()
+            assert page.locator("#continuousEnduranceSummary").is_enabled()
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
