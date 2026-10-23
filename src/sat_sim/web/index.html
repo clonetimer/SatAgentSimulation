@@ -743,7 +743,7 @@
           </section>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>实时整星遥测</h2><span id="continuousGapBadge" class="status-chip status-muted">未订阅</span></div>
-            <label class="continuous-signal">监测参量<select id="continuousSignal"><option value="orbit.radius_m">轨道半径 / m</option><option value="adcs.pointing_error_deg">姿态指向误差 / °</option><option value="eps.battery_soc">蓄电池荷电状态</option></select></label>
+            <label class="continuous-signal">监测参量<select id="continuousSignal"><option value="orbit.radius_m">轨道半径 / m</option><option value="adcs.pointing_error_deg">姿态指向误差 / °</option><option value="eps.battery_soc">蓄电池荷电状态</option><option value="adcs.rw.speed_rad_s_0">RW1 实测原生轮速 / rad/s</option><option value="adcs.rw.speed_rad_s_1">RW2 实测原生轮速 / rad/s</option><option value="adcs.rw.speed_rad_s_2">RW3 实测原生轮速 / rad/s</option><option value="adcs.rw.effective_max_torque_nm_0">RW1 命令有效限幅 / N·m</option></select></label>
             <canvas id="continuousChart" class="continuous-chart" width="950" height="265" role="img" aria-label="最近的原生遥测趋势"></canvas>
             <div class="continuous-metrics continuous-last">
               <div><span>轨道半径</span><strong id="continuousOrbit">—</strong></div>
