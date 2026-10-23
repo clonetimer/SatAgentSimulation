@@ -137,6 +137,9 @@ def test_native_basilisk_actual_wallclock_metrics_smoke(tmp_path, monkeypatch):
                 json={"action": "start"},
             )
             assert started.status_code == 200, started.text
+            evidence_url = "/interactive/continuous/sessions/native-wall-observation/endurance"
+            evidence_started = client.post(evidence_url + "/start", json={"sample_interval_s": 1.})
+            assert evidence_started.status_code == 201, evidence_started.text
             wall_start = time.monotonic()
             while time.monotonic() - wall_start < 8.0:
                 row = client.get(path)
@@ -168,6 +171,23 @@ def test_native_basilisk_actual_wallclock_metrics_smoke(tmp_path, monkeypatch):
                     a["process"]["cpu_time_s"] <= b["process"]["cpu_time_s"] + 0.1
                     for a, b in zip(samples, samples[1:])
                 )
+            evidence_stopped = client.post(evidence_url + "/stop")
+            assert evidence_stopped.status_code == 200, evidence_stopped.text
+            proof = evidence_stopped.json()
+            assert proof["recording_status"] == "FINISHED"
+            assert proof["sample_count"] >= 6
+            assert proof["summary"]["qualified_24h_wallclock"] is False
+            assert proof["summary"]["observed_wall_span_s"] >= 6.
+            assert client.get(evidence_url + "/evidence").status_code == 200
+            assert client.get(evidence_url + "/summary").status_code == 200
+            print("R7F_ENDURANCE_NATIVE_EVIDENCE_JSON:" + json.dumps({
+                "real_endurance_samples": proof["sample_count"],
+                "observed_wall_span_s": round(proof["summary"]["observed_wall_span_s"], 3),
+                "sim_progress_s": round(proof["summary"]["sim_progress_s"], 3),
+                "alerts": proof["summary"]["alerts"],
+                "evidence_sha256": proof["summary"]["final_evidence_hash"],
+                "qualified_24h_wallclock": False,
+            }, sort_keys=True))
             print("R7E_WALLCLOCK_NATIVE_SAMPLE_JSON:" + json.dumps({
                 "wall_sample_window_s": round(wall_actual, 3),
                 "wall_observed_delta_s": round(
