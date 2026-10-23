@@ -7,7 +7,7 @@ before it can reach a fresh runtime. No arbitrary tasks, paths or Python code.
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class _Strict(BaseModel):
@@ -26,7 +26,21 @@ class NativeAdcsInitial(_Strict):
     controller_k: float = Field(default=3.5, gt=0., le=100.)
     controller_p: float = Field(default=30., gt=0., le=300.)
     rw_configuration: Literal["orthogonal_3", "pyramid_4"] = "orthogonal_3"
-    rw_max_torque_nm: float = Field(default=.2, gt=0., le=.2)
+    rw_max_torque_nm: float = Field(
+        default=.2, gt=0., le=.2,
+        description="真实 Basilisk RW 电机 u_max 与指令故障管理器的共同限幅 (N·m)",
+    )
+    rw_initial_speed_rad_s_0: float = Field(default=100., ge=-500., le=500., description="RW1 原生初始轮速 (rad/s)")
+    rw_initial_speed_rad_s_1: float = Field(default=200., ge=-500., le=500., description="RW2 原生初始轮速 (rad/s)")
+    rw_initial_speed_rad_s_2: float = Field(default=300., ge=-500., le=500., description="RW3 原生初始轮速 (rad/s)")
+    rw_initial_speed_rad_s_3: float | None = Field(default=None, ge=-500., le=500.,
+                                                   description="仅 4 轮金字塔构型可设置 RW4 初始轮速 (rad/s)")
+
+    @model_validator(mode="after")
+    def wheel_count_matches_hardware(self):
+        if self.rw_configuration != "pyramid_4" and self.rw_initial_speed_rad_s_3 is not None:
+            raise ValueError("RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
+        return self
 
 
 class NativeEpsInitial(_Strict):
@@ -80,6 +94,8 @@ _UNITS = {
     "initial_true_anomaly_rad": "rad",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
+    "rw_initial_speed_rad_s_0": "rad/s", "rw_initial_speed_rad_s_1": "rad/s",
+    "rw_initial_speed_rad_s_2": "rad/s", "rw_initial_speed_rad_s_3": "rad/s",
     "battery_capacity_wh": "Wh", "initial_soc": "1", "solar_panel_area_m2": "m²",
     "solar_efficiency": "1", "bus_power_w": "W",
     "payload_data_rate_bps": "bit/s", "payload_power_w": "W",
