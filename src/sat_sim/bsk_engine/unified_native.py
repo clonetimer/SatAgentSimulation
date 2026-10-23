@@ -1429,13 +1429,34 @@ class UnifiedNativeRuntime:
                         unavailable["native_adcs_owner_observations"] = (
                             "NATIVE_ADCS_STATE_SUBSET_UNAVAILABLE"
                         )
+                    from sat_sim.interactive.native_joint_owner_observation import (
+                        capture_joint_owner_observation,
+                    )
+                    phase = capture_scheduler_phase(sim)
+                    native_joint = None
+                    if not cfg.adcs_only:
+                        try:
+                            native_joint = capture_joint_owner_observation(
+                                scheduler_phase=phase,
+                                battery=whole_modules["battery"],
+                                panel=whole_modules["panel"],
+                                pdu=whole_modules["pdu"],
+                                thermal_graph=whole_modules["thermal_graph"],
+                                storage=whole_modules["storage"],
+                                downlink=whole_modules["native_downlink"],
+                            )
+                        except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                            unavailable["native_joint_owner_observations"] = (
+                                f"{type(exc).__name__}: {exc}"
+                            )
                     report = create_coverage_report(
                         sim_time_s=previous_stop_s,
                         observations=observations, unavailable=unavailable,
                         native_worker_ident=threading.get_ident(),
                         state_subset_pilot=pilot_subset,
                         native_adcs_owner_observations=native_adcs_owners,
-                        scheduler_phase=capture_scheduler_phase(sim),
+                        native_joint_owner_observations=native_joint,
+                        scheduler_phase=phase,
                     )
                     cfg.execution_controller.runtime_audited(report)
                     continue
