@@ -1400,6 +1400,7 @@ class UnifiedNativeRuntime:
                 sim=sim, process=process, task=native_task,
                 spacecraft=sc, rw_effector=rw, controller=controller,
                 wheel_count=len(rw_axes), whole_modules=whole_modules,
+                rw_command_fault_manager=rw_fault, allocator=motor,
             )
         execution_stops: list[float] = []
         segment_count = 0
@@ -1443,6 +1444,7 @@ class UnifiedNativeRuntime:
                             native_adcs_owners = capture_live_adcs_owner_observation(
                                 sim=sim, spacecraft=sc, rw_effector=rw,
                                 controller=controller, allocator=motor,
+                                applied_command_source=rw_fault,
                                 native_state_subset=pilot_subset,
                             )
                         except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
