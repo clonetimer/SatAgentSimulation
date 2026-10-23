@@ -8,6 +8,7 @@
     selectedId: null, snapshot: null, policy: null, metrics: null, endurance: null, recovery: null,
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
+    rwConfiguration: null,
   };
   const terminal = new Set(['COMPLETED', 'ABORTED', 'FAILED', 'INTERRUPTED']);
   const valueText = (val, digits = 3) => {
@@ -78,6 +79,7 @@
         state.lastTelemetrySeq = -1;
         state.lastEventSeq = -1;
         state.gap = null;
+        state.rwConfiguration = null;
         renderChart();
         refresh().catch((e) => notice('会话读取失败：' + e.message, true));
       });
@@ -330,7 +332,8 @@
     // actual stream frame contains the native fourth-wheel speed channel.
     const rw4Option = $('continuousRw4SignalOption');
     if (rw4Option) {
-      const hasRw4Telemetry = state.telemetry.some((frame) => {
+      const hasRw4Telemetry = state.rwConfiguration === 'pyramid_4' &&
+        state.telemetry.some((frame) => {
         const value = frame.values?.['adcs.rw.speed_rad_s_3'];
         // Missing/null TM is not a physical zero-speed measurement.
         return typeof value === 'number' && Number.isFinite(value);
@@ -407,6 +410,7 @@
       if (state.selectedId && !sessions.some((s) => s.session_id === state.selectedId)) {
         state.selectedId = null;
         state.snapshot = null;
+        state.rwConfiguration = null;
       }
       setText('continuousConnectionBadge', '服务已连接 · ' +
         (overview.mode === 'SUPERVISED_NATIVE_CHILD' ? '独立原生进程' : '进程内原生'));
@@ -414,15 +418,22 @@
       renderInterrupted(overview.interrupted_workspaces || []);
       if (!state.selectedId) { state.metrics = null; state.endurance = null; state.recovery = null; renderStatus(); renderObservability(); renderEndurance(); renderRecovery(); return; }
       const id = encodeURIComponent(state.selectedId);
-      const [info, tm, events, acks, metrics, endurance] = await Promise.all([
+      const [info, tm, events, acks, metrics, endurance, nativeConfig] = await Promise.all([
         api('/interactive/continuous/sessions/' + id + '/status'),
         api('/interactive/sessions/' + id + '/telemetry/whole.continuous?after_sequence=' + state.lastTelemetrySeq),
         api('/interactive/sessions/' + id + '/events?after_sequence=' + state.lastEventSeq),
         api('/interactive/sessions/' + id + '/commands'),
         api('/interactive/continuous/sessions/' + id + '/observability'),
         api('/interactive/continuous/sessions/' + id + '/endurance/status'),
+        state.rwConfiguration === null
+          ? api('/interactive/continuous/sessions/' + id + '/configuration')
+          : Promise.resolve(null),
       ]);
       if (info.session.session_id !== state.selectedId) return;
+      if (nativeConfig) {
+        state.rwConfiguration =
+          nativeConfig.native_initial_values?.rw_configuration || 'orthogonal_3';
+      }
       state.snapshot = info;
       state.metrics = metrics;
       renderRecovery();
@@ -494,6 +505,7 @@
       state.endurance = null;
       state.recovery = null;
       state.telemetry = []; state.events = []; state.acks = [];
+      state.rwConfiguration = null;
       state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
       setText('continuousInitialConfigStatus',
         '已将运行前参数写入本次原生会话；配置在模型创建后不可修改。');
