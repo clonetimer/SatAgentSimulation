@@ -1399,7 +1399,7 @@ class UnifiedNativeRuntime:
             self._test_only_fresh_native_graph_probe(
                 sim=sim, process=process, task=native_task,
                 spacecraft=sc, rw_effector=rw, controller=controller,
-                wheel_count=len(rw_axes),
+                wheel_count=len(rw_axes), whole_modules=whole_modules,
             )
         execution_stops: list[float] = []
         segment_count = 0
