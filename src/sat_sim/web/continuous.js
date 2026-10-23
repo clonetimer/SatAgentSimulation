@@ -166,6 +166,26 @@
         '采样已停止，正式摘要已生成；持续仿真不受影响。');
     } catch (e) { notice('长稳采集操作失败：' + e.message, true); }
   }
+  async function auditEndurance() {
+    if (!state.selectedId) return;
+    try {
+      const id = encodeURIComponent(state.selectedId);
+      const report = await api('/interactive/continuous/sessions/' + id + '/endurance/audit');
+      const label = ({
+        INCOMPLETE: '采集尚未完成',
+        BLOCKED: '证据不可信，禁止验收',
+        NOT_QUALIFIED: '证据完整，但尚未满足 24h 验收条件',
+        REVIEW_ELIGIBLE: '具备人工复核资格（尚未正式通过）',
+      })[report.verdict] || '未知结果';
+      setText('continuousEnduranceAuditResult',
+        '独立复核：' + label + '；样本 ' + (report.samples ?? '—') +
+        '；真实运行墙钟 ' + valueText(report.observed_running_wall_s, 1) + ' s' +
+        '；原生 RSS 增长率 ' + valueText(report.rss_growth_mib_per_hour, 2) +
+        ' MiB/h；原因：' + (report.reason_codes || []).join('、'));
+    } catch (e) {
+      setText('continuousEnduranceAuditResult', '证据核验失败：' + e.message);
+    }
+  }
   async function exportEndurance(format) {
     if (!state.selectedId) return;
     const id = encodeURIComponent(state.selectedId);
@@ -472,6 +492,7 @@
     $('continuousEnduranceStop')?.addEventListener('click', () => changeEndurance('stop'));
     $('continuousEnduranceEvidence')?.addEventListener('click', () => exportEndurance('evidence'));
     $('continuousEnduranceSummary')?.addEventListener('click', () => exportEndurance('summary'));
+    $('continuousEnduranceAuditBtn')?.addEventListener('click', auditEndurance);
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       button.addEventListener('click', () => control(button.dataset.continuousAction));
     });
