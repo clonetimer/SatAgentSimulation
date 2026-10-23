@@ -138,6 +138,8 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     custom = samples["config-custom"]
     # Native orbitalMotion initial elements and native simpleBattery capacity.
     assert abs(custom["orbit.radius_m"] - default["orbit.radius_m"]) > 200_000.
-    assert custom["eps.battery_capacity_j"] == pytest.approx(240. * 3600.)
-    assert default["eps.battery_capacity_j"] == pytest.approx(160. * 3600.)
+    # The continuous operator TM whitelist publishes SOC but not the
+    # internal SimpleBattery capacity field; do not fabricate a missing TM
+    # channel. Observe the real native SOC effect and verify the submitted
+    # capacity separately through the immutable native-graph task spec.
     assert custom["eps.battery_soc"] > default["eps.battery_soc"] + .1
