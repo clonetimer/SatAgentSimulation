@@ -167,7 +167,10 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             )
             assert "adcs.target.set" in running[0].commands
             assert page.locator("#continuousChart").is_visible()
-            assert page.locator("#continuousRw4SignalOption").is_disabled()
+            rw4_option = page.locator("#continuousRw4SignalOption")
+            assert rw4_option.evaluate("(el) => el.disabled"), rw4_option.evaluate(
+                "(el) => el.outerHTML"
+            )
             page.wait_for_function(
                 "() => document.querySelector('#continuousDurableFrames').textContent !== '—'",
                 timeout=15000,
@@ -226,7 +229,10 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 "() => document.querySelector('#continuousState').textContent === 'READY'",
                 timeout=15000,
             )
-            assert page.locator("#continuousRw4SignalOption").is_disabled()
+            rw4_option = page.locator("#continuousRw4SignalOption")
+            assert rw4_option.evaluate("(el) => el.disabled"), rw4_option.evaluate(
+                "(el) => el.outerHTML"
+            )
             assert running[-1].rw4 is True
             page.locator("#continuousStartBtn").click()
             page.wait_for_function(
