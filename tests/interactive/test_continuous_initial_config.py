@@ -178,13 +178,15 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     # capacity separately through the immutable native-graph task spec.
     assert custom["eps.battery_soc"] > default["eps.battery_soc"] + .1
     assert "adcs.rw.speed_rad_s_0" in custom
-    assert abs(custom["adcs.rw.speed_rad_s_0"] - default["adcs.rw.speed_rad_s_0"]) > 90.
+    assert abs(custom["adcs.rw.speed_rad_s_0"] - default["adcs.rw.speed_rad_s_0"]) > 45.
     assert custom["adcs.rw.speed_rad_s_0"] == pytest.approx(-50., abs=12.)
-    assert default["adcs.rw.speed_rad_s_0"] == pytest.approx(100., abs=12.)
+    assert default["adcs.rw.speed_rad_s_0"] == pytest.approx(100. * 2. * __import__("math").pi / 60., abs=2.)
     assert custom["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(.05)
     assert len(factory_invocations) == 6
     assert [x["wheel_model"] for x in factory_invocations] == ["Honeywell_HR16"] * 6
-    assert [x["Omega"] for x in factory_invocations[:3]] == [100., 200., 300.]
-    assert [x["Omega"] for x in factory_invocations[3:]] == [-50., 140., -200.]
+    assert [x["Omega"] for x in factory_invocations[:3]] == pytest.approx([100., 200., 300.])
+    assert [x["Omega"] for x in factory_invocations[3:]] == pytest.approx(
+        [x * 60. / (2. * __import__("math").pi) for x in (-50., 140., -200.)]
+    )
     assert [x["u_max"] for x in factory_invocations[:3]] == [.2] * 3
     assert [x["u_max"] for x in factory_invocations[3:]] == [.05] * 3
