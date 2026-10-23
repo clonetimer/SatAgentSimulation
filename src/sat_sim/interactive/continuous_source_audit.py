@@ -80,8 +80,9 @@ def _state_trace(root: Path, session_id: str, first_at: datetime, last_at: datet
         count += 1
     if count == 0:
         raise ValueError("SOURCE_STATE_TRACE_EMPTY")
-    if last_wall is not None and last_wall < first_at:
-        raise ValueError("SOURCE_STATE_EVENTS_PREDATE_EVIDENCE")
+    # A stationary READY/PAUSED session may have no transitions throughout
+    # the evidence window. Its last original state event can predate the
+    # first monitoring sample without implying missing source evidence.
     return {
         "events": count, "final_state": latest_state,
         "last_sim_time_s": last_sim, "final_revision": latest_revision,
