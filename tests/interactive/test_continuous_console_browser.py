@@ -143,6 +143,10 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousEnduranceEligible").inner_text() == "未达到"
             assert page.locator("#continuousEnduranceEvidence").is_enabled()
             assert page.locator("#continuousEnduranceSummary").is_enabled()
+            page.locator("#continuousEnduranceAuditBtn").click()
+            page.locator("#continuousEnduranceAuditResult").get_by_text(
+                "证据完整，但尚未满足 24h 验收条件", exact=False,
+            ).wait_for(timeout=10000)
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
