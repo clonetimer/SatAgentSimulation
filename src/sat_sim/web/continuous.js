@@ -177,11 +177,19 @@
         NOT_QUALIFIED: '证据完整，但尚未满足 24h 验收条件',
         REVIEW_ELIGIBLE: '具备人工复核资格（尚未正式通过）',
       })[report.verdict] || '未知结果';
+      const original = report.original_source_audit;
+      const sourceInfo = report.original_sources_verified
+        ? '；原始状态事件 ' + (original?.state?.events ?? '—') +
+            ' 条；SQLite 遥控 ' + (original?.tc_ledger?.accepted_commands ?? '—') +
+            ' 条；ACK/Outbox ' + (original?.tc_ledger?.outbox_events ?? '—') +
+            ' 条；原始核验 ' + (original?.status || '不可确认')
+        : '；原始事件/遥控账本：未完成一致性核验';
       setText('continuousEnduranceAuditResult',
         '独立复核：' + label + '；样本 ' + (report.samples ?? '—') +
         '；真实运行墙钟 ' + valueText(report.observed_running_wall_s, 1) + ' s' +
         '；原生 RSS 增长率 ' + valueText(report.rss_growth_mib_per_hour, 2) +
-        ' MiB/h；原因：' + (report.reason_codes || []).join('、'));
+        ' MiB/h' + sourceInfo +
+        '；原因：' + (report.reason_codes || []).join('、'));
     } catch (e) {
       setText('continuousEnduranceAuditResult', '证据核验失败：' + e.message);
     }
