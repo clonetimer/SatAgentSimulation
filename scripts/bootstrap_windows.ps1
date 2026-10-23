@@ -69,8 +69,9 @@ try {
     ) -Step "更新 Python 构建工具"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
-        (Join-Path $Root "scripts\ensure_basilisk_runtime.py")
-    ) -Step "安装并验证 Basilisk 原生运行时"
+        (Join-Path $Root "scripts\ensure_basilisk_runtime.py"),
+        "--require-satfix1"
+    ) -Step "核验官方 SHA-256，构建 metadata-only satfix1 并安装真实 Basilisk 原生运行时"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
         "-m", "pip", "install", "--find-links", $Wheelhouse, "-c", $Constraints, "-e", ".[api,dev]"
