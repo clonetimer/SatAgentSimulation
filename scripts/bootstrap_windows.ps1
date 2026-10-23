@@ -7,6 +7,11 @@
 输出：创建虚拟环境并安装依赖。
 #>
 $ErrorActionPreference = "Stop"
+# Windows PowerShell/legacy runner consoles may default to cp1252/GBK,
+# while the agent doctor emits Unicode arrows in structured diagnostics.
+# Keep this encoding policy for all Python subprocesses launched below.
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONUTF8 = "1"
 
 function Invoke-CheckedNative {
     param(
