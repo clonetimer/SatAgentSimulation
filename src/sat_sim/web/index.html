@@ -670,6 +670,7 @@
               <button id="continuousEnduranceStop" class="button button-secondary" type="button">停止并生成摘要</button>
               <button id="continuousEnduranceEvidence" class="button button-ghost" type="button">导出采样 JSONL</button>
               <button id="continuousEnduranceSummary" class="button button-ghost" type="button">导出验收摘要</button>
+              <button id="continuousEnduranceAuditBtn" class="button button-secondary" type="button">独立核验现有证据</button>
             </div>
             <div class="continuous-metrics">
               <div><span>已留存采样</span><strong id="continuousEnduranceSamples">0</strong></div>
@@ -677,6 +678,7 @@
               <div><span>24h 人工审核资格</span><strong id="continuousEnduranceEligible">未达到</strong></div>
             </div>
             <p id="continuousEnduranceReason" class="continuous-muted">证据与原生仿真状态相互独立；不会触发停止、自动恢复或遥控重放。</p>
+            <div id="continuousEnduranceAuditResult" class="continuous-muted" role="status" aria-live="polite">尚未执行离线式证据完整性核验。</div>
           </section>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>实时整星遥测</h2><span id="continuousGapBadge" class="status-chip status-muted">未订阅</span></div>
