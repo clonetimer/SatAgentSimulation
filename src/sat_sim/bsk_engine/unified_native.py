@@ -657,14 +657,20 @@ class UnifiedNativeRuntime:
         if not math.isfinite(rw_hardware_u_max) or not 0.0 < rw_hardware_u_max <= 0.2:
             raise ValueError("NATIVE_RW_HARDWARE_TORQUE_LIMIT_INVALID")
         for index, axis in enumerate(rw_axes):
-            omega_init = float(values.get(
-                f"rw_initial_speed_rad_s_{index}", 100.0 * (index + 1),
+            # The simIncludeRW.rwFactory API uses RPM for Omega, whereas
+            # physical telemetry and the operator schema use rad/s.
+            # Retain the pre-R8-C baseline physical 100/200/300/400 RPM
+            # when a speed was not explicitly specified.
+            default_rpm = 100.0 * (index + 1)
+            omega_init_rad_s = float(values.get(
+                f"rw_initial_speed_rad_s_{index}", default_rpm * (2.0 * math.pi / 60.0),
             ))
-            if not math.isfinite(omega_init) or abs(omega_init) > 500.0:
+            if not math.isfinite(omega_init_rad_s) or abs(omega_init_rad_s) > 500.0:
                 raise ValueError("NATIVE_RW_INITIAL_SPEED_INVALID")
+            omega_factory_rpm = omega_init_rad_s * (60.0 / (2.0 * math.pi))
             rw_factory.create(
                 "Honeywell_HR16", list(axis), maxMomentum=50.0,
-                Omega=omega_init, u_max=rw_hardware_u_max,
+                Omega=omega_factory_rpm, u_max=rw_hardware_u_max,
                 label=f"RW{index + 1}",
             )
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
