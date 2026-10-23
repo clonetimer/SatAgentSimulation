@@ -27,7 +27,7 @@ _NAMES = {
     "hub_position_m": "hub_position_m",
     "hub_velocity_m_s": "hub_velocity_m_s",
     "hub_sigma": "hub_mrp",
-    "hub_omega_rad_s": "hub_omega_rad_s",
+    "hub_omega_rad_s": "hub_angular_rate_rad_s",
     "reaction_wheel_speed_rad_s": "reaction_wheel_speed_rad_s",
 }
 # Avoid silently substituting an invented field when native keys change.
