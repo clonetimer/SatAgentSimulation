@@ -38,7 +38,7 @@ def _worker(checkpoint_path: str, topology: str) -> None:
     memento = original["native_clock_fsw_lab"]
 
     def probe(*, sim, process, task, spacecraft, rw_effector, controller,
-              wheel_count):
+              wheel_count, whole_modules=None):
         # Check the official native spacecraft/RW subset first. That operation
         # requires a fresh 0ns Basilisk scheduler. Neither probe ever runs it.
         dynamics = import_fresh_native_whole_state_subset(
