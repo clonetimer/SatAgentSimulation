@@ -441,12 +441,22 @@
       state.refreshBusy = false;
     }
   }
+  function updateRwNativeInitialLayout() {
+    const four = document.querySelector('[data-native-key="rw_configuration"]')?.value === 'pyramid_4';
+    $('continuousRw4InitialLabel')?.classList.toggle('hidden', !four);
+    const rw4 = document.querySelector('[data-native-key="rw_initial_speed_rad_s_3"]');
+    if (rw4) {
+      rw4.disabled = !four;
+      rw4.required = four;
+    }
+  }
   async function createSession(event) {
     event.preventDefault();
     const form = $('continuousCreateForm');
     if (!form.reportValidity()) return;
     const initial_configuration = {};
     document.querySelectorAll('#continuousCreateForm [data-native-group][data-native-key]').forEach((field) => {
+      if (field.disabled) return;
       const group = field.dataset.nativeGroup;
       initial_configuration[group] ||= {};
       const value = field.tagName === 'SELECT' ? field.value : Number(field.value);
@@ -566,6 +576,9 @@
     $('continuousEnduranceSummary')?.addEventListener('click', () => exportEndurance('summary'));
     $('continuousEnduranceAuditBtn')?.addEventListener('click', auditEndurance);
     $('continuousRecoveryAuditBtn')?.addEventListener('click', auditNativeRecovery);
+    document.querySelector('[data-native-key="rw_configuration"]')
+      ?.addEventListener('change', updateRwNativeInitialLayout);
+    updateRwNativeInitialLayout();
     $('continuousRecoveryExportBtn')?.addEventListener('click', exportNativeRecovery);
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       button.addEventListener('click', () => control(button.dataset.continuousAction));
