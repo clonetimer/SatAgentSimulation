@@ -110,6 +110,44 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert len(captured) == 1
 
 
+
+def test_rw4_operator_telemetry_fields_follow_selected_native_topology(tmp_path, monkeypatch):
+    """Do not claim an uninstalled fourth wheel, even at the REST boundary."""
+    captured = []
+
+    def factory(spec):
+        captured.append(spec)
+        return _ControlProtocolStub(), None
+
+    monkeypatch.setattr("sat_sim.interactive.api.build_persistent_runtime", factory)
+    app = _client(tmp_path, monkeypatch)
+    with TestClient(app) as client:
+        for name, configuration in (
+            ("telemetry-three", "orthogonal_3"),
+            ("telemetry-four", "pyramid_4"),
+        ):
+            body = {
+                **_body(name),
+                "initial_configuration": {"adcs": {
+                    "rw_configuration": configuration,
+                    **({"rw_initial_speed_rad_s_3": -120.}
+                       if configuration == "pyramid_4" else {}),
+                }},
+            }
+            created = client.post("/interactive/continuous/sessions", json=body)
+            assert created.status_code == 201, created.text
+        three, four = captured
+        three_fields = three.task_spec["outputs"]["telemetry_streams"][0]["fields"]
+        four_fields = four.task_spec["outputs"]["telemetry_streams"][0]["fields"]
+        assert "adcs.rw.speed_rad_s_3" not in three_fields
+        assert "adcs.rw.effective_max_torque_nm_3" not in three_fields
+        assert "adcs.rw.speed_rad_s_3" in four_fields
+        assert "adcs.rw.effective_max_torque_nm_3" in four_fields
+        assert len(four_fields) == len(three_fields) + 2
+        assert four.task_spec["parameters"]["values"]["rw_initial_speed_rad_s_3"] == -120.
+
+
+
 def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monkeypatch):
     """Native-only test: compare two separately created Basilisk spacecraft.
 
@@ -190,3 +228,85 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     )
     assert [x["u_max"] for x in factory_invocations[:3]] == [.2] * 3
     assert [x["u_max"] for x in factory_invocations[3:]] == [.05] * 3
+
+
+def test_native_basilisk_four_rw_telemetry_and_independent_hardware_initialization(
+    tmp_path, monkeypatch,
+):
+    """Compare two *real* four-wheel integrated Basilisk graphs through REST.
+
+    A factory spy captures arguments then forwards into the original upstream
+    constructor. Actual RW4 wheelSpeeds telemetry proves a fourth physical
+    wheel exists and its configurable initial speed changes the trajectory.
+    """
+    pytest.importorskip("Basilisk")
+    import math
+    from Basilisk.utilities import simIncludeRW
+
+    factory_args = []
+    actual_create = simIncludeRW.rwFactory.create
+
+    def watch_factory(self, wheel_model, axis, **kwargs):
+        factory_args.append({
+            "wheel_model": wheel_model,
+            "Omega": kwargs["Omega"],
+            "u_max": kwargs["u_max"],
+            "label": kwargs["label"],
+        })
+        return actual_create(self, wheel_model, axis, **kwargs)
+
+    monkeypatch.setattr(simIncludeRW.rwFactory, "create", watch_factory)
+    app = _client(tmp_path, monkeypatch)
+    measured = {}
+    cases = (
+        ("rw4-baseline", 41.88790204786391, .2),
+        ("rw4-custom", -120., .075),
+    )
+    with TestClient(app) as client:
+        for name, initial_speed, max_torque in cases:
+            response = client.post("/interactive/continuous/sessions", json={
+                **_body(name),
+                "initial_configuration": {"adcs": {
+                    "rw_configuration": "pyramid_4",
+                    "rw_initial_speed_rad_s_3": initial_speed,
+                    "rw_max_torque_nm": max_torque,
+                }},
+            })
+            assert response.status_code == 201, response.text
+            assert client.post("/interactive/sessions/" + name + "/control",
+                               json={"action": "start"}).status_code == 200
+            deadline = time.monotonic() + 20.
+            while True:
+                response = client.get(
+                    "/interactive/sessions/" + name + "/telemetry/whole.continuous"
+                )
+                assert response.status_code == 200, response.text
+                frames = response.json()["frames"]
+                if len(frames) >= 2:
+                    measured[name] = frames[0]["values"]
+                    break
+                assert time.monotonic() < deadline, name
+                time.sleep(.02)
+            assert client.post("/interactive/sessions/" + name + "/control",
+                               json={"action": "stop"}).status_code == 200
+
+    assert len(factory_args) == 8  # exactly four native wheels in each graph
+    assert [x["label"] for x in factory_args] == [
+        "RW1", "RW2", "RW3", "RW4",
+        "RW1", "RW2", "RW3", "RW4",
+    ]
+    assert all(x["wheel_model"] == "Honeywell_HR16" for x in factory_args)
+    assert factory_args[3]["Omega"] == pytest.approx(400.)
+    assert factory_args[7]["Omega"] == pytest.approx(-120. * 60. / (2. * math.pi))
+    assert [x["u_max"] for x in factory_args[:4]] == [.2] * 4
+    assert [x["u_max"] for x in factory_args[4:]] == [.075] * 4
+    base = measured["rw4-baseline"]
+    custom = measured["rw4-custom"]
+    for row in (base, custom):
+        assert all(f"adcs.rw.speed_rad_s_{i}" in row for i in range(4))
+        assert "adcs.rw.effective_max_torque_nm_3" in row
+    assert base["adcs.rw.speed_rad_s_3"] == pytest.approx(41.88790204786391, abs=15.)
+    assert custom["adcs.rw.speed_rad_s_3"] == pytest.approx(-120., abs=15.)
+    assert abs(base["adcs.rw.speed_rad_s_3"] - custom["adcs.rw.speed_rad_s_3"]) > 100.
+    assert base["adcs.rw.effective_max_torque_nm_3"] == pytest.approx(.2)
+    assert custom["adcs.rw.effective_max_torque_nm_3"] == pytest.approx(.075)
