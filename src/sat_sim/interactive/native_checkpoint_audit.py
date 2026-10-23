@@ -103,6 +103,7 @@ def create_coverage_report(
     unavailable: dict[str, str], native_worker_ident: int,
     state_subset_pilot: dict[str, Any] | None = None,
     native_adcs_owner_observations: dict[str, Any] | None = None,
+    native_joint_owner_observations: dict[str, Any] | None = None,
     scheduler_phase: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not math.isfinite(sim_time_s) or sim_time_s <= 0:
@@ -126,6 +127,15 @@ def create_coverage_report(
         validate_live_adcs_owner_observation(
             native_adcs_owner_observations, native_state_subset=state_subset_pilot,
             expected_time_ns=round(sim_time_s * 1.0e9),
+        )
+    if native_joint_owner_observations is not None:
+        if scheduler_phase is None:
+            raise ValueError("JOINT_OWNER_SCHEDULER_REQUIRED")
+        from .native_joint_owner_observation import validate_joint_owner_observation
+        validate_joint_owner_observation(
+            native_joint_owner_observations,
+            expected_time_ns=round(sim_time_s * 1.0e9),
+            native_scheduler_phase=scheduler_phase,
         )
     if scheduler_phase is not None and any(
         scheduler_phase.get(k) is not False for k in (
@@ -151,6 +161,7 @@ def create_coverage_report(
         "telemetry_is_not_checkpoint": True,
         "native_state_subset_pilot": state_subset_pilot,
         "native_adcs_owner_observations": native_adcs_owner_observations,
+        "native_joint_owner_observations": native_joint_owner_observations,
         "native_scheduler_phase": scheduler_phase,
     }
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
@@ -178,6 +189,15 @@ def verify_coverage_report(report: dict[str, Any]) -> None:
             expected_time_ns=round(float(content["sim_time_s"]) * 1.0e9),
         )
     phase = content.get("native_scheduler_phase")
+    joint = content.get("native_joint_owner_observations")
+    if joint is not None:
+        if phase is None:
+            raise ValueError("JOINT_OWNER_SCHEDULER_REQUIRED")
+        from .native_joint_owner_observation import validate_joint_owner_observation
+        validate_joint_owner_observation(
+            joint, expected_time_ns=round(float(content["sim_time_s"]) * 1.0e9),
+            native_scheduler_phase=phase,
+        )
     if phase is not None and (
         any(phase.get(k) is not False for k in (
             "native_clock_restore_proven",
