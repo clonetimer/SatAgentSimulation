@@ -1,0 +1,126 @@
+name: Stable continuous satellite main integration candidate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/stable-continuous-integration.yml"
+      - "docs/guides_zh/14_持续卫星仿真Stable集成验收.md"
+      - "README.md"
+      - "pyproject.toml"
+      - "src/**"
+      - "tests/**"
+      - "scripts/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stable-source-wheel:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'integration/stable-continuous-native-r9k-candidate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Build an installable source distribution wheel (dependency-neutral)
+        run: |
+          python -m pip install "build==1.5.0" "setuptools==83.0.0" "wheel==0.46.2"
+          python -m build --wheel --outdir /tmp/sat-stable-wheel
+          test "$(find /tmp/sat-stable-wheel -maxdepth 1 -name 'satellite_simulation_platform-*.whl' | wc -l)" = 1
+          python -m pip install --no-deps /tmp/sat-stable-wheel/satellite_simulation_platform-*.whl
+      - name: Verify installed wheel assets and fail-closed native recovery contract
+        working-directory: /tmp
+        run: |
+          python - <<'PY'
+          from importlib.metadata import distribution
+          from importlib.resources import files
+          from pathlib import Path
+          import json
+          import sat_sim
+          from sat_sim.interactive.native_recovery_readiness import (
+              MANDATORY_STATE_OWNERS, PRECONDITIONS,
+          )
+          from sat_sim.interactive.native_battery_checkpoint_compat import (
+              inspect_battery_native_checkpoint_abi,
+          )
+
+          pkg=Path(str(files('sat_sim')))
+          for relative in (
+              'web/index.html',
+              'web/app.js',
+              'web/continuous.js',
+              'web/continuous.css',
+              'schemas/interactive_session.schema.json',
+          ):
+              resource=pkg/relative
+              assert resource.is_file(), f'STABLE_INSTALLED_ASSET_MISSING:{relative}'
+          assert len(MANDATORY_STATE_OWNERS)==12
+          assert 'ALL_NATIVE_STATE_EXPORT_IMPORT_IMPLEMENTED' in PRECONDITIONS
+          assert 'FRESH_PROCESS_VS_UNINTERRUPTED_NATIVE_PARITY' in PRECONDITIONS
+
+          status=inspect_battery_native_checkpoint_abi()
+          assert status['whole_spacecraft_resume_supported'] is False
+          assert status['native_cpp_patch_abi_available'] is False, (
+              'STABLE_WHEEL_MUST_NOT_BUNDLE_EXPERIMENTAL_BASILISK_BINARY'
+          )
+          dist=distribution('satellite-simulation-platform')
+          deps=dist.requires or []
+          assert any('bsk==2.11.0+satfix1' in dep.replace(' ','') for dep in deps), (
+              'STABLE_BSK_PIN_CHANGED_WITHOUT_DEPENDENCY_REVIEW'
+          )
+          print('STABLE_SOURCE_ONLY_PACKAGE_INSTALLED_WITH_REQUIRED_WEB_ASSETS')
+          print('STABLE_WHOLE_NATIVE_RECOVERY_BLOCKED_12_OWNERS_0_COMPLETE')
+          print('STABLE_BSK_SATFIX1_REQUIRES_SEPARATE_WHEEL_PROVENANCE_REVIEW')
+          PY
+      - name: Archive source-only integration wheel (not a complete offline release)
+        uses: actions/upload-artifact@v7
+        with:
+          name: sat-stable-source-only-candidate
+          path: /tmp/sat-stable-wheel/*.whl
+          if-no-files-found: error
+          retention-days: 7
+
+  stable-change-governance:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'integration/stable-continuous-native-r9k-candidate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Validate all integration Python sources can parse
+        run: |
+          python -m compileall -q src/sat_sim/interactive src/sat_sim/bsk_engine/unified_native.py
+          python -m compileall -q tests/interactive
+      - name: Validate frontend entrypoints
+        run: |
+          node --check src/sat_sim/web/app.js
+          node --check src/sat_sim/web/continuous.js
+      - name: Enforce recovery default remains explicitly denied
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('src/sat_sim/interactive/native_recovery_readiness.py').read_text()
+          expected=[
+              '"restorable_owner_count": 0',
+              '"automatic_resume_allowed": False',
+              '"automatic_tc_replay_allowed": False',
+              '"same_session_recovery_allowed": False',
+              '"restart_readiness": "BLOCKED"',
+          ]
+          for marker in expected:
+              assert marker in source, f'STABLE_RECOVERY_FENCE_REMOVED:{marker}'
+          api=Path('src/sat_sim/interactive/api.py').read_text()
+          assert '"native_resume_supported": False' in api
+          assert '"automatic_tc_replay_allowed": False' in api
+          native=Path('src/sat_sim/bsk_engine/unified_native.py').read_text()
+          assert '_test_only_fresh_native_graph_probe' in native
+          print('STABLE_STATIC_DEFAULT_DENY_CONTRACT_PRESENT')
+          print('STABLE_REQUIRED_RUNTIME_NATIVE_AND_BROWSER_GATES_RUN_SEPARATELY')
+          PY
