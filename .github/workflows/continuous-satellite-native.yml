@@ -19,6 +19,7 @@ on:
       - "tests/interactive/test_native_whole_clock_fsw_lab.py"
       - "tests/interactive/test_native_whole_first_tick_diagnostics.py"
       - "tests/interactive/test_native_whole_rw_ablation.py"
+      - "tests/interactive/test_native_whole_held_command_ablation.py"
       - "tests/interactive/test_native_rw_fault_checkpoint.py"
       - "tests/interactive/test_native_tc_reconciliation.py"
       - "tests/interactive/test_native_joint_checkpoint.py"
@@ -82,6 +83,7 @@ jobs:
             tests/interactive/test_native_whole_clock_fsw_lab.py \
             tests/interactive/test_native_whole_first_tick_diagnostics.py \
             tests/interactive/test_native_whole_rw_ablation.py \
+            tests/interactive/test_native_whole_held_command_ablation.py \
             tests/interactive/test_native_rw_fault_checkpoint.py \
             tests/interactive/test_native_tc_reconciliation.py \
             tests/interactive/test_native_joint_checkpoint.py \
@@ -112,6 +114,14 @@ jobs:
           python -m pytest -q -s
           tests/interactive/test_native_whole_rw_ablation.py
           -k test_r9g_full_basilisk_rw_cpp_memory_isolated_ablation
+          --disable-warnings
+      - name: Publish real Basilisk applied motor message multi-tick ablation
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/interactive/test_native_whole_held_command_ablation.py
+          -k test_r9h_real_basilisk_four_native_ticks_applied_command_ablation
           --disable-warnings
       - name: Run real Basilisk 8+ second wall-clock observation pilot
         env:
