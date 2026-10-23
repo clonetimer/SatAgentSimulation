@@ -104,6 +104,7 @@ def create_coverage_report(
     state_subset_pilot: dict[str, Any] | None = None,
     native_adcs_owner_observations: dict[str, Any] | None = None,
     native_joint_owner_observations: dict[str, Any] | None = None,
+    native_clock_fsw_lab: dict[str, Any] | None = None,
     scheduler_phase: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not math.isfinite(sim_time_s) or sim_time_s <= 0:
@@ -137,6 +138,19 @@ def create_coverage_report(
             expected_time_ns=round(sim_time_s * 1.0e9),
             native_scheduler_phase=scheduler_phase,
         )
+    if native_clock_fsw_lab is not None:
+        from .native_whole_clock_fsw_lab import validate_memento
+        owner_fsw = (native_adcs_owner_observations or {}).get("fsw_memory")
+        if owner_fsw is None or scheduler_phase is None:
+            raise ValueError("R9E_REQUIRES_ADCS_AND_SCHEDULER_EVIDENCE")
+        validate_memento(
+            native_clock_fsw_lab,
+            source_time_ns=round(sim_time_s * 1e9),
+            expected_rw_count=owner_fsw["cached_rw_count"],
+            expected_fsw=owner_fsw,
+        )
+        if native_clock_fsw_lab["clock"]["next_ns"] != scheduler_phase["next_task_time_nanos"]:
+            raise ValueError("R9E_SCHEDULER_CROSS_OWNER_MISMATCH")
     if scheduler_phase is not None and any(
         scheduler_phase.get(k) is not False for k in (
             "native_clock_restore_proven",
@@ -162,6 +176,7 @@ def create_coverage_report(
         "native_state_subset_pilot": state_subset_pilot,
         "native_adcs_owner_observations": native_adcs_owner_observations,
         "native_joint_owner_observations": native_joint_owner_observations,
+        "native_clock_fsw_lab": native_clock_fsw_lab,
         "native_scheduler_phase": scheduler_phase,
     }
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
@@ -189,6 +204,20 @@ def verify_coverage_report(report: dict[str, Any]) -> None:
             expected_time_ns=round(float(content["sim_time_s"]) * 1.0e9),
         )
     phase = content.get("native_scheduler_phase")
+    memento = content.get("native_clock_fsw_lab")
+    if memento is not None:
+        from .native_whole_clock_fsw_lab import validate_memento
+        adcs = content.get("native_adcs_owner_observations") or {}
+        owner_fsw = adcs.get("fsw_memory")
+        if owner_fsw is None or phase is None:
+            raise ValueError("R9E_REQUIRES_ADCS_AND_SCHEDULER_EVIDENCE")
+        validate_memento(
+            memento, source_time_ns=round(float(content["sim_time_s"])*1e9),
+            expected_rw_count=owner_fsw["cached_rw_count"],
+            expected_fsw=owner_fsw,
+        )
+        if memento["clock"]["next_ns"] != phase["next_task_time_nanos"]:
+            raise ValueError("R9E_SCHEDULER_CROSS_OWNER_MISMATCH")
     joint = content.get("native_joint_owner_observations")
     if joint is not None:
         if phase is None:
