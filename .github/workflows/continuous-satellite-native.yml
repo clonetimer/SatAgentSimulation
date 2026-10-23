@@ -95,6 +95,14 @@ jobs:
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
             --disable-warnings
+      - name: Publish real Basilisk first-tick divergence diagnostics
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/interactive/test_native_whole_first_tick_diagnostics.py
+          -k test_r9f_real_basilisk_first_tick_negative_control
+          --disable-warnings
       - name: Run real Basilisk 8+ second wall-clock observation pilot
         env:
           PYTHONPATH: "src:."
