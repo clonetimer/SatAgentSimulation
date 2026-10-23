@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import math
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -74,6 +75,7 @@ def audit_endurance_workspace(
         findings.append("EVIDENCE_EMPTY")
     first_wall: float | None = None
     last_wall: float | None = None
+    first_sample_utc: datetime | None = None
     last_sample_utc: datetime | None = None
     last_state: str | None = None
     prev_state: str | None = None
@@ -110,6 +112,8 @@ def audit_endurance_workspace(
                 sim = obs["sim_elapsed_s"]
                 state = obs["session_state"]
                 sample_utc = _iso_utc(obs["sampled_at"])
+                if first_sample_utc is None:
+                    first_sample_utc = sample_utc
                 if (obs["session_id"] != chain["session_id"]
                         or obs.get("resume_supported") is not False
                         or obs.get("automatic_tc_replay_allowed") is not False
@@ -233,6 +237,7 @@ def audit_endurance_workspace(
         max(0., (datetime.now(timezone.utc) - last_sample_utc).total_seconds())
         if last_sample_utc else None
     )
+    source_verification = None
     if not summary_path.is_file():
         # A live producer may still be appending; no valid summary means
         # incomplete, even when one sees 86400s elapsed in the JSONL.
@@ -259,8 +264,29 @@ def audit_endurance_workspace(
             return {**baseline, "verdict": "BLOCKED", "reason_codes": [
                 "SUMMARY_INTEGRITY_OR_METRICS_INVALID", type(exc).__name__],
                 "samples": count}
-        # Running must be demonstrably continuous; event-level interruptions
-        # cannot be excluded purely by wall-span aggregation.
+        # R7h source verification only after the FINAL summary exists: a
+        # running SQLite/JSONL writer may naturally be between two commits.
+        # Check the original hash-chained state events, original TC ACK chain
+        # and authoritative SQLite snapshot without any write/repair action.
+        try:
+            from .continuous_source_audit import audit_original_sources
+            if first_sample_utc is None or last_sample_utc is None:
+                raise ValueError("ORIGINAL_SOURCE_NO_SAMPLE_TIME")
+            source_verification = audit_original_sources(
+                workspace, first_sample_utc=first_sample_utc,
+                last_sample_utc=last_sample_utc,
+                evidence_last_sim_time_s=previous_sim,
+            )
+        except (OSError, ValueError, TypeError, KeyError,
+                sqlite3.DatabaseError, json.JSONDecodeError) as exc:
+            return {**baseline, "verdict": "BLOCKED",
+                    "reason_codes": [
+                        "ORIGINAL_SOURCE_RECONCILIATION_INVALID",
+                        type(exc).__name__,
+                    ], "samples": count, "original_sources_verified": False}
+        findings.extend(source_verification["reason_codes"])
+        # Running must be demonstrably continuous; source events also veto
+        # a pause hidden wholly BETWEEN periodic monitoring observations.
         eligible = (
             observed_running_s >= 86400.
             and last_state == "COMPLETED"
@@ -294,6 +320,8 @@ def audit_endurance_workspace(
         "last_telemetry_sim_time_s": last_frame_sim,
         "summary_recording_status": summary["recording_status"] if summary else None,
         "summary_evidence_sha256": chain["final_entry_hash"],
+        "original_sources_verified": source_verification is not None,
+        "original_source_audit": source_verification,
     }
 
 
