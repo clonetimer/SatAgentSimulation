@@ -81,7 +81,7 @@ def _run_child(path: str):
     native = _reconstruct(doc["snapshot"])
     # The C++ Message wrapper is not obliged to expose isWritten();
     # readback is from the actual protected native checkpoint after import.
-    module.importCheckpointState(native, doc["checkpoint_ns"])
+    assert module.importCheckpointState(native, doc["checkpoint_ns"]) is True
     readback = module.exportCheckpointState(doc["checkpoint_ns"])
     assert _serialize(readback) == doc["snapshot"]
     assert float(readback.previousTimeS) == pytest.approx(0.8)
@@ -144,8 +144,12 @@ def test_r9k_rebuilt_native_wheel_fresh_pid_battery_integrator_parity(tmp_path):
     ):
         altered = dict(data)
         altered[field] = bad
-        with pytest.raises(Exception, match="R9J_IMPORT_NATIVE_BATTERY_INVALID"):
-            probe.importCheckpointState(_reconstruct(altered), 800_000_000)
+        # The actual C++ SWIG method returns false and MUST leave all
+        # protected fields unchanged. Throwing a raw C++ invalid_argument
+        # across this upstream SWIG wrapper aborts the Python interpreter.
+        assert probe.importCheckpointState(
+            _reconstruct(altered), 800_000_000,
+        ) is False
         assert _serialize(probe.exportCheckpointState(200_000_000)) == protected_before
 
     # Target process is not a fabricated model; it imports actual exported
