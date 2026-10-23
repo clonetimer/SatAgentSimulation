@@ -358,6 +358,33 @@ def create_interactive_router(
         )
         return report
 
+    @router.get("/continuous/sessions/{session_id}/recovery/readiness")
+    def native_recovery_readiness(session_id: str, request: Request):
+        """Real, paused Basilisk coverage only; no checkpoint import/restart.
+
+        Reuses the original single-owner worker's safe checkpoint audit
+        operation.  Its output is a fail-closed owner matrix, NOT a file
+        pretending to be a restorable physical snapshot.
+        """
+        principal = request.state.principal
+        if not principal.has_any_role({"operator", "fault_operator", "admin"}):
+            raise HTTPException(403, detail={"reason_code": "NATIVE_RECOVERY_PREFLIGHT_ROLE_DENIED"})
+        session = get_session(session_id)
+        if not session.spec.continuous:
+            raise HTTPException(404, detail={"reason_code": "NOT_A_CONTINUOUS_SESSION"})
+        try:
+            from .native_recovery_readiness import build_recovery_readiness
+            coverage = session.checkpoint_coverage()
+            result = build_recovery_readiness(
+                coverage, capability_id=session.spec.capability_id,
+            )
+        except (RuntimeError, ValueError, TimeoutError) as exc:
+            raise HTTPException(409, detail={"reason_code": str(exc)}) from exc
+        _audit(audit_logger, "interactive_recovery_readiness_audit", principal,
+               session_id=session_id, sim_time_s=result["sim_time_s"],
+               automatic_resume_allowed=False)
+        return result
+
     @router.post("/sessions/{session_id}/commands", status_code=202)
     def submit_command(session_id: str, command: Telecommand, request: Request):
         session = get_session(session_id)
