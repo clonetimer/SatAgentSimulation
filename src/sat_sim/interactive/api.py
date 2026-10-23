@@ -181,7 +181,12 @@ def create_interactive_router(
                 "outputs": {"telemetry_streams": [{
                     "stream_id": "whole.continuous",
                     "sample_s": body.quantum_s,
-                    "fields": ["orbit.radius_m", "adcs.pointing_error_deg", "eps.battery_soc"],
+                    "fields": [
+                        "orbit.radius_m", "adcs.pointing_error_deg",
+                        "eps.battery_soc",
+                        "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
+                        "adcs.rw.speed_rad_s_2", "adcs.rw.effective_max_torque_nm_0",
+                    ],
                 }]},
             },
         )
