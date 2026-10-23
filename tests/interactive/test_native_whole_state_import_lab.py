@@ -34,7 +34,8 @@ def _child_worker(path: str, topology: str) -> None:
     evidence = json.loads(Path(path).read_text(encoding="utf-8"))
     checkpoint = evidence["checkpoint_audit"]
 
-    def probe(*, sim, spacecraft, rw_effector, wheel_count):
+    def probe(*, sim, spacecraft, rw_effector, wheel_count,
+              process=None, task=None, controller=None):
         assert len(rw_effector.ReactionWheelData) == wheel_count
         report = import_fresh_native_whole_state_subset(
             sim=sim, spacecraft=spacecraft,
