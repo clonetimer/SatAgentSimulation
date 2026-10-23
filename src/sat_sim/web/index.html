@@ -605,6 +605,43 @@
               <label>运行倍速<select id="continuousRate"><option value="0.1">0.1×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="5">5×</option><option value="10">10×</option></select></label>
               <label>初始化时长（非运行上限）<input id="continuousHorizon" type="number" min="1" max="86400" step="1" value="60" required></label>
               <label class="toggle-label"><input id="continuousPaced" type="checkbox" checked><span>墙钟节拍（软实时）</span></label>
+              <details class="continuous-native-config">
+                <summary>运行前配置：整星、分系统与已接入的单机参数（点击展开）</summary>
+                <p class="continuous-muted">仅调整整星原生 Basilisk 计算图中已有的模型参数。创建会话后冻结配置；不支持任意新增/移除硬件或独立运行单机。默认值与现有模型相同。</p>
+                <div class="continuous-native-config-fields">
+                  <fieldset><legend>轨道与整星</legend>
+                    <label>轨道半长轴（m）<input data-native-group="orbit" data-native-key="orbit_radius_m" type="number" min="6500000" max="20000000" step="1000" value="7000000" required></label>
+                    <label>偏心率<input data-native-group="orbit" data-native-key="eccentricity" type="number" min="0" max="0.2" step="0.001" value="0.001" required></label>
+                    <label>倾角（°）<input data-native-group="orbit" data-native-key="inclination_deg" type="number" min="0" max="180" step="0.1" value="35" required></label>
+                    <label>初始真近点角（rad）<input data-native-group="orbit" data-native-key="initial_true_anomaly_rad" type="number" min="0" max="6.283185307179586" step="any" value="0" required></label>
+                  </fieldset>
+                  <fieldset><legend>ADCS 与反作用轮</legend>
+                    <label>初始指向误差（°）<input data-native-group="adcs" data-native-key="initial_pointing_error_deg" type="number" min="0" max="90" step="any" value="8" required></label>
+                    <label>姿态控制 K<input data-native-group="adcs" data-native-key="controller_k" type="number" min="0.001" max="100" step="any" value="3.5" required></label>
+                    <label>姿态控制 P<input data-native-group="adcs" data-native-key="controller_p" type="number" min="0.001" max="300" step="any" value="30" required></label>
+                    <label>反作用轮构型
+                      <select data-native-group="adcs" data-native-key="rw_configuration"><option value="orthogonal_3">3 轮正交</option><option value="pyramid_4">4 轮金字塔</option></select>
+                    </label>
+                    <label>反作用轮命令扭矩限制（N·m）<input data-native-group="adcs" data-native-key="rw_max_torque_nm" type="number" min="0.001" max="0.2" step="any" value="0.2" required></label>
+                  </fieldset>
+                  <fieldset><legend>EPS 电池与太阳电池板</legend>
+                    <label>电池容量（Wh）<input data-native-group="eps" data-native-key="battery_capacity_wh" type="number" min="0.001" max="2000" step="any" value="160" required></label>
+                    <label>初始 SOC（0～1）<input data-native-group="eps" data-native-key="initial_soc" type="number" min="0.05" max="1" step="any" value="0.62" required></label>
+                    <label>太阳电池板面积（m²）<input data-native-group="eps" data-native-key="solar_panel_area_m2" type="number" min="0.001" max="25" step="any" value="2.5" required></label>
+                    <label>太阳电池板效率（0～1）<input data-native-group="eps" data-native-key="solar_efficiency" type="number" min="0.001" max="1" step="any" value="0.28" required></label>
+                    <label>基本母线负载（W）<input data-native-group="eps" data-native-key="bus_power_w" type="number" min="0" max="300" step="any" value="18" required></label>
+                  </fieldset>
+                  <fieldset><legend>载荷单机</legend>
+                    <label>载荷数据产生速率（bit/s）<input data-native-group="payload" data-native-key="payload_data_rate_bps" type="number" min="0" max="20000000" step="1" value="2500000" required></label>
+                    <label>载荷工作功耗（W）<input data-native-group="payload" data-native-key="payload_power_w" type="number" min="0" max="250" step="any" value="38" required></label>
+                  </fieldset>
+                  <fieldset><legend>通信数据分系统</legend>
+                    <label>存储单机容量（bit）<input data-native-group="comm_data" data-native-key="storage_capacity_bits" type="number" min="1" max="100000000000" step="1" value="6000000000" required></label>
+                    <label>下行设计速率（bit/s）<input data-native-group="comm_data" data-native-key="downlink_rate_bps" type="number" min="1" max="20000000" step="1" value="1500000" required></label>
+                  </fieldset>
+                </div>
+              </details>
+              <p id="continuousInitialConfigStatus" class="continuous-muted">仅当前新会话可设置；创建后无法修改已有模型实例。</p>
               <button class="button button-primary" type="submit">创建原生持续会话</button>
             </form>
           </section>
