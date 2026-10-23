@@ -1,0 +1,81 @@
+name: R9-K experimental patched Basilisk battery wheel
+
+on:
+  pull_request:
+    paths:
+      - "scripts/apply_basilisk211_battery_checkpoint.py"
+      - "tests/interactive/test_native_battery_custom_wheel.py"
+      - ".github/workflows/native-battery-custom-wheel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-battery-built-wheel-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      CONAN_ARGS: "--vizInterface False --opNav False --examples False"
+      CMAKE_BUILD_PARALLEL_LEVEL: "2"
+      CMAKE_BUILD_TYPE: "Release"
+      PYTHONPATH: "src:."
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install compatible native build prerequisites
+        run: |
+          python -m pip install --upgrade "pip>=25,<27"
+          sudo apt-get update -qq
+          sudo apt-get install -y libeigen3-dev pkg-config
+      - name: Clone precisely pinned upstream Basilisk v2.11.0
+        run: |
+          git clone --depth=1 --branch v2.11.0 https://github.com/AVSLab/basilisk.git /tmp/r9k-basilisk
+          test "$(git -C /tmp/r9k-basilisk rev-parse HEAD)" = "6c1511f5385dccaa73c9ae24522a74adc24fe623"
+          python scripts/apply_basilisk211_battery_checkpoint.py /tmp/r9k-basilisk --check
+          python scripts/apply_basilisk211_battery_checkpoint.py /tmp/r9k-basilisk
+          git -C /tmp/r9k-basilisk diff --check
+      - name: Build actual patched Basilisk native wheel from C++ and SWIG
+        run: |
+          mkdir -p /tmp/r9k-wheels
+          python -m pip wheel --no-deps \
+            --wheel-dir /tmp/r9k-wheels /tmp/r9k-basilisk
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          wheels=list(Path('/tmp/r9k-wheels').glob('bsk-2.11.0-*.whl'))
+          assert len(wheels)==1, wheels
+          w=wheels[0]
+          print("R9K_COMPILED_PATCHED_BASILISK_WHEEL",w.name,w.stat().st_size)
+          print("R9K_WHEEL_SHA256",hashlib.sha256(w.read_bytes()).hexdigest())
+          PY
+      - name: Install custom compiled wheel, not official binary
+        run: |
+          python -m pip install "numpy==2.3.5" "pytest==9.0.3"
+          python -m pip install --no-deps /tmp/r9k-wheels/bsk-2.11.0-*.whl
+          python - <<'PY'
+          from Basilisk.simulation import simpleBattery
+          assert hasattr(simpleBattery, "SimpleBatteryCheckpointState")
+          assert hasattr(simpleBattery.SimpleBattery, "exportCheckpointState")
+          assert hasattr(simpleBattery.SimpleBattery, "importCheckpointState")
+          print("R9K_CUSTOM_WHEEL_NATIVE_SWIG_ABI_LOADED")
+          PY
+      - name: Prove genuine native C++ battery protected-state cross-PID four-step parity
+        run: |
+          python -m pytest -q -s \
+            tests/interactive/test_native_battery_custom_wheel.py \
+            --disable-warnings
+      - name: Publish experimental compiled binary with provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: r9k-experimental-bsk211-battery-source-patched-wheel
+          path: /tmp/r9k-wheels/*.whl
+          if-no-files-found: error
+          retention-days: 7
+      - name: Display explicit non-restoration boundary
+        run: |
+          echo "R9K ONLY proves one native SimpleBattery module checkpoint at fixed power inputs."
+          echo "R9K DOES NOT prove EPS power-network message history or 12-owner whole-spacecraft restore."
+          echo "R9K automatic resume = BLOCKED; automatic TC replay = DISABLED."
