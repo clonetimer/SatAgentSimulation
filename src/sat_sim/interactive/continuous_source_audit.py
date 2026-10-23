@@ -204,8 +204,13 @@ def audit_original_sources(
             spec.get("schema_version") != "interactive-workspace.v1"):
         raise ValueError("SOURCE_SESSION_ID_OR_MODE_MISMATCH")
     state = _state_trace(root, root.name, first_sample_utc, last_sample_utc)
-    if state["last_sim_time_s"] + 1e-7 < evidence_last_sim_time_s:
-        raise ValueError("SOURCE_STATE_SIM_BEHIND_EVIDENCE")
+    # State-event sim time records only *transitions/heartbeats*, not every
+    # native quantum. During a live RUNNING session it may legitimately lag
+    # behind the latest telemetry sample. Only a terminal state commits the
+    # final spacecraft time and can be compared against the evidence tail.
+    if (state["final_state"] in _TERMINAL_SESSION
+            and state["last_sim_time_s"] + 1e-7 < evidence_last_sim_time_s):
+        raise ValueError("SOURCE_TERMINAL_SIM_BEHIND_EVIDENCE")
     command = _command_ledger(root, root.name)
     warnings = []
     if state["observed_window_interruption"]:
