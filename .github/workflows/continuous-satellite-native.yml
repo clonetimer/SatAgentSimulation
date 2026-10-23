@@ -23,6 +23,7 @@ on:
       - "tests/interactive/test_continuous_console.py"
       - "tests/interactive/test_continuous_observability.py"
       - "tests/interactive/test_continuous_endurance.py"
+      - "tests/interactive/test_continuous_endurance_audit.py"
       - "tests/interactive/test_windows_native_job.py"
       - "src/sat_sim/web/**"
       - "tests/interactive/test_interactive_api.py"
@@ -79,6 +80,7 @@ jobs:
             tests/interactive/test_continuous_console.py \
             tests/interactive/test_continuous_observability.py \
             tests/interactive/test_continuous_endurance.py \
+            tests/interactive/test_continuous_endurance_audit.py \
             tests/interactive/test_interactive_api.py \
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
