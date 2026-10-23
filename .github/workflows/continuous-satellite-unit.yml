@@ -9,6 +9,7 @@ on:
       - "tests/interactive/test_continuous_persistence.py"
       - "tests/interactive/test_continuous_seal.py"
       - "tests/interactive/test_native_checkpoint_audit.py"
+      - "tests/interactive/test_native_recovery_readiness.py"
       - "tests/interactive/test_native_time_rebase.py"
       - "tests/interactive/test_native_scheduler_pilot.py"
       - "tests/interactive/test_native_multitask_guards.py"
@@ -64,6 +65,7 @@ jobs:
           tests/interactive/test_continuous_persistence.py
           tests/interactive/test_continuous_seal.py
           tests/interactive/test_native_checkpoint_audit.py
+          tests/interactive/test_native_recovery_readiness.py
           tests/interactive/test_native_time_rebase.py
           tests/interactive/test_native_scheduler_pilot.py
           tests/interactive/test_native_multitask_guards.py
