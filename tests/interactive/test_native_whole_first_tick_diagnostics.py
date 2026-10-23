@@ -53,6 +53,9 @@ def _worker(path: str, topology: str) -> None:
     from sat_sim.interactive.native_whole_applied_command_lab import (
         restore_last_applied_rw_command_fresh,
     )
+    from sat_sim.interactive.native_battery_reset_barrier import (
+        seed_battery_via_public_reset_lab,
+    )
     evidence = json.loads(Path(path).read_text(encoding="utf-8"))
     source = evidence["checkpoint"]
     measurement_ns = int(evidence["comparison_ns"])
@@ -68,6 +71,7 @@ def _worker(path: str, topology: str) -> None:
     if ablation_mode not in (
         "R9F_NATIVE_SUBSET_ONLY", "R9G_WITH_RW_CPP_MEMORY",
         "R9H_RW_MEMORY_PLUS_APPLIED_COMMAND",
+        "R9I_RW_APPLIED_AND_BATTERY_PUBLIC_RESET",
     ):
         raise ValueError("R9H_ABLATION_MODE_UNSUPPORTED")
     data = {"measurements": []}
@@ -93,6 +97,7 @@ def _worker(path: str, topology: str) -> None:
         assert measurement_ns > sim.TotalSim.CurrentNanos
         if ablation_mode in (
             "R9G_WITH_RW_CPP_MEMORY", "R9H_RW_MEMORY_PLUS_APPLIED_COMMAND",
+            "R9I_RW_APPLIED_AND_BATTERY_PUBLIC_RESET",
         ):
             # R9-G adds only the genuine ReactionWheelStateEffector C++-held
             # memory visible in the source audit. Do NOT restore commands,
@@ -102,7 +107,10 @@ def _worker(path: str, topology: str) -> None:
             assert len(expected) == wheel_count
             restore_rw_effector_memory_fresh(rw_effector, expected)
             assert capture_rw_effector_memory(rw_effector) == expected
-        if ablation_mode == "R9H_RW_MEMORY_PLUS_APPLIED_COMMAND":
+        if ablation_mode in (
+            "R9H_RW_MEMORY_PLUS_APPLIED_COMMAND",
+            "R9I_RW_APPLIED_AND_BATTERY_PUBLIC_RESET",
+        ):
             assert rw_command_fault_manager is not None
             result = restore_last_applied_rw_command_fresh(
                 applied_command_manager=rw_command_fault_manager,
@@ -112,6 +120,16 @@ def _worker(path: str, topology: str) -> None:
             assert result["single_message_writeback"] is True
             assert result["message_history_restored"] is False
             data["writeback"] = result
+        if ablation_mode == "R9I_RW_APPLIED_AND_BATTERY_PUBLIC_RESET":
+            # This is NOT restoration of protected SimpleBattery C++ memory.
+            # Public Reset() forces internal previousTime to 0. Compare the
+            # real resulting power trajectories in independent processes.
+            data["battery_reset_control"] = seed_battery_via_public_reset_lab(
+                battery=whole_modules["battery"], source_audit=source,
+                expected_clock_ns=source["native_joint_owner_observations"]["capture_time_ns"],
+                target_clock_ns=int(sim.TotalSim.CurrentNanos),
+            )
+            assert data["battery_reset_control"]["battery_full_state_restored"] is False
         # STRICTLY SCIENTIFICALLY INCOMPLETE LAB CONTINUATION. Every stop is
         # performed by genuine Basilisk dynamics, never by Python propagation.
         for stop_ns in all_stops:
@@ -152,6 +170,7 @@ def _worker(path: str, topology: str) -> None:
             "measurement": data["measurement"],
             "measurements": data["measurements"],
             "writeback": data.get("writeback"),
+            "battery_reset_control": data.get("battery_reset_control"),
             "ablation_mode": ablation_mode,
             "whole_resume_supported": False,
             "automatic_tc_replay_allowed": False,
