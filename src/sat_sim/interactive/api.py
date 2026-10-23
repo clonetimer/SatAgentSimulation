@@ -259,6 +259,23 @@ def create_interactive_router(
                     "automatic_tc_replay_allowed": False}
         return recorder.status()
 
+    @router.get("/continuous/sessions/{session_id}/endurance/audit")
+    def endurance_external_audit(session_id: str):
+        """Read-only forensic verification (also executable off-server via CLI).
+
+        Bound to the registered workspace, never a user-supplied path. This
+        can run after recorder finalization without reactivating native state.
+        """
+        session = get_session(session_id)
+        if not session.spec.continuous or session._workspace is None:
+            raise HTTPException(404, detail={"reason_code": "ENDURANCE_WORKSPACE_NOT_FOUND"})
+        from .continuous_endurance_audit import audit_endurance_workspace
+        recorder = endurance_registry.get(session_id)
+        stale_s = max(30., recorder.interval_s * 3.) if recorder else 30.
+        return audit_endurance_workspace(
+            session._workspace.path, max_stale_s=stale_s,
+        )
+
     @router.get("/continuous/sessions/{session_id}/endurance/evidence")
     def endurance_evidence_download(session_id: str):
         from fastapi.responses import FileResponse
