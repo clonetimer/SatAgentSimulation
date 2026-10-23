@@ -16,21 +16,26 @@ from sat_sim.api import create_app
 
 
 class UiProtocolDouble:
-    def __init__(self):
+    def __init__(self, *, rw4=False):
         self.current_time_s = 0.
         self.commands = []
+        self.rw4 = rw4
     def prepare(self):
         pass
     def apply_command(self, command):
         self.commands.append(command.operation)
     def advance_to(self, stop_time_s):
         self.current_time_s = stop_time_s
-        return ({
+        values = {
             "time_s": stop_time_s,
             "orbit.radius_m": 7000000.,
             "adcs.pointing_error_deg": 0.12,
             "eps.battery_soc": 0.81,
-        },)
+        }
+        # Protocol double solely for browser selection tests, not native physics.
+        if self.rw4:
+            values["adcs.rw.speed_rad_s_3"] = 77.
+        return (values,)
     def audit_native_checkpoint_coverage(self):
         # UI-only test double. Actual Basilisk ownership is tested in native CI.
         from sat_sim.interactive.native_checkpoint_audit import create_coverage_report
@@ -64,7 +69,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
     def factory(spec):
         assert spec.continuous
         assert spec.capability_id == "whole_spacecraft.unified_native.v1"
-        runtime = UiProtocolDouble()
+        rw4 = spec.task_spec["parameters"]["values"].get("rw_configuration") == "pyramid_4"
+        runtime = UiProtocolDouble(rw4=rw4)
         running.append(runtime)
         return runtime, None
     monkeypatch.setattr("sat_sim.interactive.api.build_persistent_runtime", factory)
@@ -161,6 +167,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             )
             assert "adcs.target.set" in running[0].commands
             assert page.locator("#continuousChart").is_visible()
+            assert page.locator("#continuousRw4SignalOption").is_disabled()
             page.wait_for_function(
                 "() => document.querySelector('#continuousDurableFrames').textContent !== '—'",
                 timeout=15000,
@@ -208,6 +215,31 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 timeout=15000,
             )
             assert not page.locator("#continuousStartBtn").is_enabled()
+
+            # New four-wheel session: RW4 selector stays disabled until real
+            # stream-shaped data arrives, then can be chosen for the chart.
+            page.locator("#continuousSessionId").fill("browser-rw4")
+            page.locator('[data-native-key="rw_configuration"]').select_option("pyramid_4")
+            page.locator('[data-native-key="rw_initial_speed_rad_s_3"]').fill("77")
+            page.locator("#continuousCreateForm button[type=submit]").click()
+            page.wait_for_function(
+                "() => document.querySelector('#continuousState').textContent === 'READY'",
+                timeout=15000,
+            )
+            assert page.locator("#continuousRw4SignalOption").is_disabled()
+            assert running[-1].rw4 is True
+            page.locator("#continuousStartBtn").click()
+            page.wait_for_function(
+                "() => !document.querySelector('#continuousRw4SignalOption').disabled",
+                timeout=15000,
+            )
+            page.locator("#continuousSignal").select_option("adcs.rw.speed_rad_s_3")
+            assert page.locator("#continuousSignal").input_value() == "adcs.rw.speed_rad_s_3"
+            page.locator("[data-continuous-action='stop']").click()
+            page.wait_for_function(
+                "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
+                timeout=15000,
+            )
             assert failures == [], failures
         finally:
             browser.close()
