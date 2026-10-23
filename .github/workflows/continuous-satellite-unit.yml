@@ -27,6 +27,7 @@ on:
       - "tests/interactive/test_continuous_console.py"
       - "tests/interactive/test_continuous_observability.py"
       - "tests/interactive/test_continuous_endurance.py"
+      - "tests/interactive/test_continuous_endurance_audit.py"
       - "tests/interactive/test_windows_native_job.py"
       - "src/sat_sim/web/**"
       - "tests/test_native_mode_checkpoint.py"
@@ -81,6 +82,7 @@ jobs:
           tests/interactive/test_continuous_console.py
           tests/interactive/test_continuous_observability.py
           tests/interactive/test_continuous_endurance.py
+          tests/interactive/test_continuous_endurance_audit.py
           tests/interactive/test_windows_native_job.py
           tests/test_native_mode_checkpoint.py
           tests/interactive/test_session_workspace.py
