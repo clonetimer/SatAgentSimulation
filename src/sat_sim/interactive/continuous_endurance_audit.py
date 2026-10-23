@@ -84,6 +84,8 @@ def audit_endurance_workspace(
     prev_last_frame_seq: int | None = None
     last_frame_sim: float | None = None
     observed_running_s = 0.
+    ever_running = False
+    observed_pause_after_run = False
     largest_sample_gap = 0.
     max_tm_lag_s = 0.
     process_unavailable_running_samples = 0
@@ -144,6 +146,10 @@ def audit_endurance_workspace(
                     if (state == "RUNNING" and prev_state == "RUNNING"
                             and seq == prev_last_frame_seq and gap >= max_stale_s):
                         running_no_frame_samples += 1
+                if state == "RUNNING":
+                    ever_running = True
+                elif ever_running and state in ("READY", "PAUSED"):
+                    observed_pause_after_run = True
                 if state == "RUNNING" and tm["status"] not in ("FRESH",):
                     # First sample of a new native runtime may precede its
                     # initial physical telemetry recorder output.
@@ -202,6 +208,8 @@ def audit_endurance_workspace(
             "EVIDENCE_SOURCE_INCONSISTENT", type(exc).__name__],
             "samples": count}
 
+    if observed_pause_after_run:
+        findings.append("CONTINUOUS_RUN_INTERRUPTED_BY_PAUSE")
     if running_no_frame_samples:
         findings.append("RUNNING_TELEMETRY_STALLED")
     if warning_samples:
@@ -241,6 +249,7 @@ def audit_endurance_workspace(
                     or summary.get("qualified_24h_wallclock") is not False
                     or summary.get("native_resume_supported") is not False
                     or summary.get("automatic_tc_replay_allowed") is not False
+                    or summary.get("observed_pause_after_run") is not observed_pause_after_run
                     or not math.isclose(
                         summary.get("observed_running_wall_s", -1),
                         observed_running_s, rel_tol=0, abs_tol=0.01,
@@ -270,6 +279,7 @@ def audit_endurance_workspace(
         "last_wall_elapsed_s": last_wall,
         "observed_wall_span_s": elapsed,
         "observed_running_wall_s": observed_running_s,
+        "observed_pause_after_run": observed_pause_after_run,
         "simulation_progress_s": sim_progress,
         "process_scope": rss_scope,
         "rss_first_bytes": rss_first, "rss_last_bytes": rss_last,
