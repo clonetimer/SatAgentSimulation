@@ -185,7 +185,12 @@ class EnduranceRecorder:
             tm = observation["telemetry"]
             if observation["session_state"] == SessionState.RUNNING.value:
                 if tm["status"] != "FRESH":
-                    self._alert("TELEMETRY_" + tm["status"])
+                    # Allow the very first sampling instant of a genuinely
+                    # fresh run before its first native TM recorder output.
+                    # This is not a silent ongoing grace period: every
+                    # subsequent RUNNING sample checks the actual stream.
+                    if not (self._count == 0 and tm["status"] == "NO_TELEMETRY"):
+                        self._alert("TELEMETRY_" + tm["status"])
             lag = tm["lag_wall_s"]
             if lag is not None:
                 self._lag_max_s = max(self._lag_max_s, lag)
