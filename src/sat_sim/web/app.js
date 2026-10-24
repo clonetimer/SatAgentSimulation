@@ -5093,7 +5093,7 @@
       // Keep the action available for a DIFFERENT run once submission
       // finishes; a running job remains tracked by its own run_id.
       updateSingleRunGuide(
-        state.activeRunId ? (state.executionState?.state === 'SUCCEEDED' ? 'complete' : 'running') : 'configure',
+        state.activeRunId ? (state.executionState?.state === 'SUCCEEDED' ? 'complete' : ['FAILED', 'TIMED_OUT', 'CANCELLED'].includes(state.executionState?.state) ? 'failed' : 'running') : 'configure',
         el('singleRunProgress')?.textContent || '可继续配置和运行单次仿真。',
       );
       hideBusy();
