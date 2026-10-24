@@ -15,6 +15,8 @@ class NativeWheelTrace:
     times_s: tuple[float, ...]
     wheel_speed_rad_s: tuple[float, ...]
     applied_motor_torque_nm: tuple[float, ...]
+    measured_friction_torque_nm: tuple[float, ...]
+    viscous_damping_nms: float
     factory_js_kg_m2: float
     factory_u_max_nm: float
     factory_omega_max_rad_s: float
@@ -25,6 +27,8 @@ class NativeWheelTrace:
             "times_s": list(self.times_s),
             "wheel_speed_rad_s": list(self.wheel_speed_rad_s),
             "applied_motor_torque_nm": list(self.applied_motor_torque_nm),
+            "measured_friction_torque_nm": list(self.measured_friction_torque_nm),
+            "viscous_damping_nms": self.viscous_damping_nms,
             "factory_js_kg_m2": self.factory_js_kg_m2,
             "factory_u_max_nm": self.factory_u_max_nm,
             "factory_omega_max_rad_s": self.factory_omega_max_rad_s,
@@ -50,6 +54,7 @@ def run_native_rw_probe(
     command_torque_nm: float = 0.01,
     max_motor_torque_nm: float = 0.02,
     max_speed_rad_s: float = 1000.0,
+    damping_nms: float = 0.0,
 ) -> NativeWheelTrace:
     """Run actual native SWIG RW + hub, and return the Basilisk recorder output.
 
@@ -66,6 +71,7 @@ def run_native_rw_probe(
     command = _real(command_torque_nm, "command_torque_nm", lower=-1., upper=1.)
     torque_limit = _real(max_motor_torque_nm, "max_motor_torque_nm", lower=1e-7, upper=0.2, strict_positive=True)
     speed_limit = _real(max_speed_rad_s, "max_speed_rad_s", lower=1., upper=10000., strict_positive=True)
+    damping = _real(damping_nms, "damping_nms", lower=0., upper=.01)
     if abs(initial) >= speed_limit:
         raise ValueError("NATIVE_RW_INITIAL_SPEED_LIMIT_INVALID")
 
@@ -96,7 +102,8 @@ def run_native_rw_probe(
         Omega=float(initial / macros.RPM),
         Omega_max=float(speed_limit / macros.RPM),
         u_max=float(torque_limit), useMaxTorque=True,
-        useMinTorque=False, useRWfriction=False, label="RW1",
+        useMinTorque=False, useRWfriction=(damping > 0.),
+        cViscous=float(damping), label="RW1",
         rWB_B=[0., 0., 0.],
     )
     factory.addToSpacecraft(wheels.ModelTag, wheels, hub)
@@ -122,14 +129,19 @@ def run_native_rw_probe(
     # recorder output is from the SWIG C++ RWSpeedMsg, not a Python equation.
     measured_speed = tuple(float(sample[0]) for sample in recorder.wheelSpeeds)
     measured_torque = tuple(float(v) for v in torque_recorder.u_current)
-    if not measured_times or len(measured_times) != len(measured_speed) or len(measured_speed) != len(measured_torque):
+    measured_friction = tuple(float(v) for v in torque_recorder.frictionTorque)
+    if (not measured_times or len(measured_times) != len(measured_speed)
+            or len(measured_speed) != len(measured_torque)
+            or len(measured_torque) != len(measured_friction)):
         raise RuntimeError("NATIVE_RW_REAL_RECORDER_MISSING")
-    if not all(math.isfinite(x) for x in (*measured_speed, *measured_torque)):
+    if not all(math.isfinite(x) for x in (*measured_speed, *measured_torque, *measured_friction)):
         raise RuntimeError("NATIVE_RW_NONFINITE_SPEED")
     return NativeWheelTrace(
         times_s=measured_times,
         wheel_speed_rad_s=measured_speed,
         applied_motor_torque_nm=measured_torque,
+        measured_friction_torque_nm=measured_friction,
+        viscous_damping_nms=damping,
         factory_js_kg_m2=float(device.Js),
         factory_u_max_nm=float(device.u_max),
         factory_omega_max_rad_s=float(device.Omega_max),
