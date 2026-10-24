@@ -38,6 +38,13 @@ class NativeOrbitInitial(_Strict):
 
 
 class NativeAdcsInitial(_Strict):
+    magnetometer_mount_yaw_deg: float = Field(default=0., ge=-180., le=180., description="官方 Basilisk Magnetometer B 到 S 安装航向角（3-2-1，deg）")
+    magnetometer_mount_pitch_deg: float = Field(default=0., ge=-89., le=89., description="官方 Basilisk Magnetometer B 到 S 安装俯仰角（deg）")
+    magnetometer_mount_roll_deg: float = Field(default=0., ge=-180., le=180., description="官方 Basilisk Magnetometer B 到 S 安装横滚角（deg）")
+    magnetometer_bias_tesla_x: float = Field(default=0., ge=-.0001, le=.0001, description="原生磁强计 S 系 X 轴固定测量偏置（T）")
+    magnetometer_bias_tesla_y: float = Field(default=0., ge=-.0001, le=.0001, description="原生磁强计 S 系 Y 轴固定测量偏置（T）")
+    magnetometer_bias_tesla_z: float = Field(default=0., ge=-.0001, le=.0001, description="原生磁强计 S 系 Z 轴固定测量偏置（T）")
+    magnetometer_scale_factor: float = Field(default=1., gt=0., le=2., description="原生 Basilisk Magnetometer.scaleFactor，无量纲；1=历史默认")
     imu_gyro_bias_rad_s_x: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU X 轴陀螺恒定偏置（rad/s）")
     imu_gyro_bias_rad_s_y: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU Y 轴陀螺恒定偏置（rad/s）")
     imu_gyro_bias_rad_s_z: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU Z 轴陀螺恒定偏置（rad/s）")
@@ -303,6 +310,10 @@ _UNITS = {
     "spacecraft_mass_kg": "kg", "sun_sensor_fov_deg": "deg",
     "spacecraft_inertia_xx_kg_m2": "kg·m²", "spacecraft_inertia_yy_kg_m2": "kg·m²",
     "spacecraft_inertia_zz_kg_m2": "kg·m²",
+    "magnetometer_mount_yaw_deg": "deg", "magnetometer_mount_pitch_deg": "deg",
+    "magnetometer_mount_roll_deg": "deg",
+    "magnetometer_bias_tesla_x": "T", "magnetometer_bias_tesla_y": "T",
+    "magnetometer_bias_tesla_z": "T", "magnetometer_scale_factor": "1",
     "imu_gyro_bias_rad_s_x": "rad/s",
     "imu_gyro_bias_rad_s_y": "rad/s",
     "imu_gyro_bias_rad_s_z": "rad/s",
