@@ -42,6 +42,7 @@ on:
       - "tests/test_native_imu_white_noise.py"
       - "tests/test_native_rw_geometry.py"
       - "tests/test_native_rw_power_consistency.py"
+      - "tests/test_native_rw_per_wheel_electrical.py"
       - "tests/test_native_rw_electrical_torque_limit.py"
       - "tests/test_native_rw_per_wheel_torque.py"
       - "tests/test_native_rw_per_wheel_friction.py"
@@ -172,6 +173,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_rw_power_consistency.py
+          --disable-warnings
+      - name: True Basilisk per-wheel current Kt torque and battery-load A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_rw_per_wheel_electrical.py
           --disable-warnings
       - name: Real Basilisk RW motor electrical current authority, commanded torque and wheel-spin A/B
         env:

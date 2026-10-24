@@ -164,6 +164,14 @@ class NativeAdcsInitial(_Strict):
     rw_mount_b_z_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置Z 坐标（m），仅逐轮几何模式、4 轮构型")
     rw_motor_current_limit_a: float = Field(default=10., ge=0., le=20., description="电机驱动器最大电流 Imax（A）；通过真实 Basilisk 任务调度命令限制 RW 力矩")
     rw_motor_torque_constant_nm_per_a: float = Field(default=.02, gt=0., le=.2, description="电机扭矩常数 Kt（N·m/A）；实际电机最大扭矩=min(官方 RW u_max, Imax×Kt)")
+    rw_motor_current_limit_a_0: float | None = Field(default=None, ge=0., le=20., description="RW1 独立驱动器电流 Imax (A)，缺省继承共享值")
+    rw_motor_current_limit_a_1: float | None = Field(default=None, ge=0., le=20., description="RW2 独立驱动器电流 Imax (A)，缺省继承共享值")
+    rw_motor_current_limit_a_2: float | None = Field(default=None, ge=0., le=20., description="RW3 独立驱动器电流 Imax (A)，缺省继承共享值")
+    rw_motor_current_limit_a_3: float | None = Field(default=None, ge=0., le=20., description="RW4 独立驱动器电流 Imax (A)，仅 4 轮构型")
+    rw_motor_torque_constant_nm_per_a_0: float | None = Field(default=None, gt=0., le=.2, description="RW1 独立电机力矩常数 Kt (N·m/A)，缺省继承共享值")
+    rw_motor_torque_constant_nm_per_a_1: float | None = Field(default=None, gt=0., le=.2, description="RW2 独立电机力矩常数 Kt (N·m/A)，缺省继承共享值")
+    rw_motor_torque_constant_nm_per_a_2: float | None = Field(default=None, gt=0., le=.2, description="RW3 独立电机力矩常数 Kt (N·m/A)，缺省继承共享值")
+    rw_motor_torque_constant_nm_per_a_3: float | None = Field(default=None, gt=0., le=.2, description="RW4 独立电机力矩常数 Kt (N·m/A)，仅 4 轮构型")
     rw_max_torque_nm: float = Field(
         default=.2, gt=0., le=.2,
         description="真实 Basilisk RW 电机 u_max 与指令故障管理器的共同限幅 (N·m)",
@@ -182,7 +190,12 @@ class NativeAdcsInitial(_Strict):
     rw_initial_speed_rad_s_3: float | None = Field(default=None, ge=-500., le=500.,
                                                    description="仅 4 轮金字塔构型可设置 RW4 初始轮速 (rad/s)")
 
-    @field_validator("rw_motor_current_limit_a", "rw_motor_torque_constant_nm_per_a", mode="before")
+    @field_validator("rw_motor_current_limit_a", "rw_motor_torque_constant_nm_per_a",
+                     "rw_motor_current_limit_a_0", "rw_motor_current_limit_a_1",
+                     "rw_motor_current_limit_a_2", "rw_motor_current_limit_a_3",
+                     "rw_motor_torque_constant_nm_per_a_0", "rw_motor_torque_constant_nm_per_a_1",
+                     "rw_motor_torque_constant_nm_per_a_2", "rw_motor_torque_constant_nm_per_a_3",
+                     mode="before")
     @classmethod
     def require_numeric_rw_driver_limits(cls, value):
         if type(value) not in (int, float):
@@ -203,6 +216,11 @@ class NativeAdcsInitial(_Strict):
             raise ValueError("RW4_MAX_MOMENTUM_REQUIRES_PYRAMID_4")
         if self.rw_configuration != "pyramid_4" and self.rw_max_torque_nm_3 is not None:
             raise ValueError("RW4_TORQUE_LIMIT_REQUIRES_PYRAMID_4")
+        if self.rw_configuration != "pyramid_4" and (
+            self.rw_motor_current_limit_a_3 is not None
+            or self.rw_motor_torque_constant_nm_per_a_3 is not None
+        ):
+            raise ValueError("RW4_ELECTRICAL_REQUIRES_PYRAMID_4")
         if self.rw_configuration != "pyramid_4" and (
             self.rw_coulomb_friction_nm_3 is not None or self.rw_viscous_friction_nms_3 is not None
         ):
@@ -419,6 +437,12 @@ _UNITS = {
     "rw_mount_b_z_m_3": "m",
     "rw_motor_current_limit_a": "A",
     "rw_motor_torque_constant_nm_per_a": "N·m/A",
+    "rw_motor_current_limit_a_0": "A", "rw_motor_current_limit_a_1": "A",
+    "rw_motor_current_limit_a_2": "A", "rw_motor_current_limit_a_3": "A",
+    "rw_motor_torque_constant_nm_per_a_0": "N·m/A",
+    "rw_motor_torque_constant_nm_per_a_1": "N·m/A",
+    "rw_motor_torque_constant_nm_per_a_2": "N·m/A",
+    "rw_motor_torque_constant_nm_per_a_3": "N·m/A",
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
     "rw_max_torque_nm_0": "N·m", "rw_max_torque_nm_1": "N·m",
     "rw_max_torque_nm_2": "N·m", "rw_max_torque_nm_3": "N·m",

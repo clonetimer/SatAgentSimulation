@@ -483,6 +483,7 @@
     }
     updateRwFrictionNativeInitialLayout();
     updateRwTorqueInitialLayout();
+    updateRwElectricalInitialLayout();
     updateRwGeometryInitialLayout();
   }
   function resetRwGeometryAxesForTopology() {
@@ -533,6 +534,29 @@
       if (control) {
         control.disabled = !visible;
         control.required = visible;
+      }
+    }
+  }
+  function updateRwElectricalInitialLayout() {
+    const independent = Boolean($('continuousRwElectricalIndependentToggle')?.checked);
+    const four = document.querySelector('[data-native-key="rw_configuration"]')?.value === 'pyramid_4';
+    for (let i = 0; i < 4; i += 1) {
+      const visible = independent && (i < 3 || four);
+      $('continuousRwElectrical_' + i)?.classList.toggle('hidden', !visible);
+      for (const base of ['rw_motor_current_limit_a', 'rw_motor_torque_constant_nm_per_a']) {
+        const field = document.querySelector('[data-native-key="' + base + '_' + i + '"]');
+        if (field) {
+          // Seed each wheel from the operator's *current shared settings*
+          // only the first time it is enabled. Subsequent mode/topology
+          // toggles must preserve per-wheel edits instead of resetting them.
+          if (visible && field.dataset.electricalSeeded !== 'true') {
+            const shared = document.querySelector('[data-native-key="' + base + '"]');
+            if (shared) field.value = shared.value;
+            field.dataset.electricalSeeded = 'true';
+          }
+          field.disabled = !visible;
+          field.required = visible;
+        }
       }
     }
   }
@@ -705,6 +729,8 @@
     updateRwFrictionNativeInitialLayout();
     $('continuousRwTorqueIndependentToggle')?.addEventListener('change', updateRwTorqueInitialLayout);
     updateRwTorqueInitialLayout();
+    $('continuousRwElectricalIndependentToggle')?.addEventListener('change', updateRwElectricalInitialLayout);
+    updateRwElectricalInitialLayout();
     $('continuousRecoveryExportBtn')?.addEventListener('click', exportNativeRecovery);
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       button.addEventListener('click', () => control(button.dataset.continuousAction));

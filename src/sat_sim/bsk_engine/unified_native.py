@@ -370,9 +370,9 @@ def _build_unified_rows(
             "adcs.rw.command_torque_nm_0": float(recorder_map["rw_command_raw"].motorTorque[index][0]),
             "adcs.rw.command_torque_nm_1": float(recorder_map["rw_command_raw"].motorTorque[index][1]),
             "adcs.rw.command_torque_nm_2": float(recorder_map["rw_command_raw"].motorTorque[index][2]),
-            "adcs.rw.motor_current_a_0": float(recorder_map["rw_command_applied"].motorTorque[index][0]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)),
-            "adcs.rw.motor_current_a_1": float(recorder_map["rw_command_applied"].motorTorque[index][1]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)),
-            "adcs.rw.motor_current_a_2": float(recorder_map["rw_command_applied"].motorTorque[index][2]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)),
+            "adcs.rw.motor_current_a_0": float(recorder_map["rw_command_applied"].motorTorque[index][0]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a_0", cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02))),
+            "adcs.rw.motor_current_a_1": float(recorder_map["rw_command_applied"].motorTorque[index][1]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a_1", cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02))),
+            "adcs.rw.motor_current_a_2": float(recorder_map["rw_command_applied"].motorTorque[index][2]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a_2", cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02))),
             "adcs.control.applied_torque_nm_0": float(recorder_map["rw_command_applied"].motorTorque[index][0]),
             "adcs.control.applied_torque_nm_1": float(recorder_map["rw_command_applied"].motorTorque[index][1]),
             "adcs.control.applied_torque_nm_2": float(recorder_map["rw_command_applied"].motorTorque[index][2]),
@@ -414,8 +414,11 @@ def _build_unified_rows(
             "adcs.fusion.source_mode": int(recorder_map["fusion_source_mode"].deviceStatus[index]),
         }
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
-        torque_constant = max(float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)), 1.0e-12)
         for wheel_index in range(3, wheel_count):
+            torque_constant = float(cfg.values.get(
+                f"rw_motor_torque_constant_nm_per_a_{wheel_index}",
+                cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)
+            ))
             nominal_torque = max(abs(float(cfg.values.get(
                 f"rw_max_torque_nm_{wheel_index}", cfg.values.get("rw_max_torque_nm", 0.2)
             ))), 1.0e-12)
@@ -702,6 +705,39 @@ class UnifiedNativeRuntime:
             if not math.isfinite(limit) or not 0.0 < limit <= 0.2:
                 raise ValueError("NATIVE_RW_PER_WHEEL_TORQUE_LIMIT_INVALID")
             rw_hardware_u_max_by_wheel.append(limit)
+        # Preserve the pre-existing shared-driver rejection contract even
+        # when wheel overrides exist; the old finite public API and native
+        # regression tests require NATIVE_RW_ELECTRICAL_LIMIT_INVALID.
+        for base, default, lower, upper in (
+            ("rw_motor_current_limit_a", 10., 0., 20.),
+            ("rw_motor_torque_constant_nm_per_a", .02, 0., .2),
+        ):
+            raw_shared = values.get(base, default)
+            if (type(raw_shared) not in (int, float) or not math.isfinite(raw_shared)
+                    or not lower <= raw_shared <= upper
+                    or (base.endswith("nm_per_a") and raw_shared <= 0.)):
+                raise ValueError("NATIVE_RW_ELECTRICAL_LIMIT_INVALID")
+        # Validate each electrical driver before constructing native RW and
+        # dispatching commands. A nonexistent RW4 must never be silently used.
+        if len(rw_axes) != 4 and any(
+            values.get(f"{base}_3") is not None
+            for base in ("rw_motor_current_limit_a", "rw_motor_torque_constant_nm_per_a")
+        ):
+            raise ValueError("NATIVE_RW4_ELECTRICAL_REQUIRES_PYRAMID_4")
+        rw_currents_a: list[float] = []
+        rw_torque_constants: list[float] = []
+        for wheel_index in range(len(rw_axes)):
+            for base, default, low, high, result_list in (
+                ("rw_motor_current_limit_a", 10., 0., 20., rw_currents_a),
+                ("rw_motor_torque_constant_nm_per_a", .02, 0., .2, rw_torque_constants),
+            ):
+                raw = values.get(f"{base}_{wheel_index}", values.get(base, default))
+                if type(raw) not in (int, float) or not math.isfinite(raw):
+                    raise ValueError("NATIVE_RW_PER_WHEEL_ELECTRICAL_INVALID")
+                number = float(raw)
+                if not low <= number <= high or (base.endswith("nm_per_a") and number <= 0.):
+                    raise ValueError("NATIVE_RW_PER_WHEEL_ELECTRICAL_INVALID")
+                result_list.append(number)
         rw_friction_mode = str(values.get("rw_friction_mode", "disabled"))
         rw_coulomb = float(values.get("rw_coulomb_friction_nm", 0.0))
         rw_viscous = float(values.get("rw_viscous_friction_nms", 0.0))
@@ -1105,6 +1141,8 @@ class UnifiedNativeRuntime:
             wheel_max_torques_nm=rw_hardware_u_max_by_wheel,
             motor_current_limit_a=values.get("rw_motor_current_limit_a", 10.0),
             motor_torque_constant_nm_per_a=values.get("rw_motor_torque_constant_nm_per_a", 0.02),
+            wheel_current_limits_a=rw_currents_a,
+            wheel_torque_constants_nm_per_a=rw_torque_constants,
         )
         rw_fault.commandInMsg.subscribeTo(motor.rwMotorTorqueOutMsg)
         rw_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)

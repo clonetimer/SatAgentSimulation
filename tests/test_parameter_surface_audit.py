@@ -47,17 +47,17 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     whole = report["whole_spacecraft"]
     assert report["physics_validated_by_this_audit"] is False
     assert report["source_lookup_is_not_physical_proof"] is True
-    assert whole["continuous_initial_field_count"] == 148
+    assert whole["continuous_initial_field_count"] == 156
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 11
-    assert whole["registered_parameter_count"] == 139
+    assert whole["registered_parameter_count"] == 147
     assert "rw_configuration" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_friction_mode" not in whole["native_source_keys_missing_whole_registry"]
     assert "gyro_base_noise_std_rad_s" in whole["native_source_keys_missing_whole_registry"]
     assert "rw_motor_current_limit_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_motor_torque_constant_nm_per_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
-    assert len(whole["continuous_groups"]["adcs"]) == 93
+    assert len(whole["continuous_groups"]["adcs"]) == 101
     assert len(whole["continuous_groups"]["orbit"]) == 8
     assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]
     assert "sun_sensor_fov_deg" in whole["continuous_groups"]["adcs"]

@@ -767,6 +767,24 @@
                       <p class="continuous-muted">电机的实际力矩指令上限为 min(官方 Basilisk RW u_max, 最大电流 Imax × 扭矩常数 Kt)。限幅在调度链路中施加到真实 RW 命令，而不是只修改电流曲线。默认 10 A × 0.02 N·m/A = 0.2 N·m，不改变旧场景。当前不模拟电驱功耗或电池的电机电流负载。</p>
                       <label>RW 驱动器最大电流 Imax（A）<input data-native-group="adcs" data-native-key="rw_motor_current_limit_a" type="number" min="0" max="20" step="any" value="10" required title="0 A 表示电机不可输出力矩；上限 20 A"></label>
                       <label>RW 电机扭矩常数 Kt（N·m/A）<input data-native-group="adcs" data-native-key="rw_motor_torque_constant_nm_per_a" type="number" min="0.000001" max="0.2" step="any" value="0.02" required title="额定电流与本参数之积是电气力矩上限"></label>
+                      <label class="continuous-muted"><input id="continuousRwElectricalIndependentToggle" type="checkbox"> 启用 RW1～RW4 独立电流上限与扭矩常数</label>
+                      <p class="continuous-muted">默认全部轮继承上述共享 Imax / Kt。启用后独立计算每只轮的 min(u_max_i, Imax_i × Kt_i)，并据实际施加力矩计算各轮电流和 EPS ADCS 机械轴功估算；仅更改真实驱动命令限幅，不代表官方 Basilisk 已具备详细电机电路模型。</p>
+                      <div id="continuousRwElectrical_0" class="hidden">
+                        <label>RW1 电流上限 Imax（A）<input data-native-group="adcs" data-native-key="rw_motor_current_limit_a_0" type="number" min="0" max="20" step="any" value="10" disabled></label>
+                        <label>RW1 扭矩常数 Kt（N·m/A）<input data-native-group="adcs" data-native-key="rw_motor_torque_constant_nm_per_a_0" type="number" min="0.000001" max="0.2" step="any" value="0.02" disabled></label>
+                      </div>
+                      <div id="continuousRwElectrical_1" class="hidden">
+                        <label>RW2 电流上限 Imax（A）<input data-native-group="adcs" data-native-key="rw_motor_current_limit_a_1" type="number" min="0" max="20" step="any" value="10" disabled></label>
+                        <label>RW2 扭矩常数 Kt（N·m/A）<input data-native-group="adcs" data-native-key="rw_motor_torque_constant_nm_per_a_1" type="number" min="0.000001" max="0.2" step="any" value="0.02" disabled></label>
+                      </div>
+                      <div id="continuousRwElectrical_2" class="hidden">
+                        <label>RW3 电流上限 Imax（A）<input data-native-group="adcs" data-native-key="rw_motor_current_limit_a_2" type="number" min="0" max="20" step="any" value="10" disabled></label>
+                        <label>RW3 扭矩常数 Kt（N·m/A）<input data-native-group="adcs" data-native-key="rw_motor_torque_constant_nm_per_a_2" type="number" min="0.000001" max="0.2" step="any" value="0.02" disabled></label>
+                      </div>
+                      <div id="continuousRwElectrical_3" class="hidden">
+                        <label>RW4 电流上限 Imax（A，仅四轮）<input data-native-group="adcs" data-native-key="rw_motor_current_limit_a_3" type="number" min="0" max="20" step="any" value="10" disabled></label>
+                        <label>RW4 扭矩常数 Kt（N·m/A，仅四轮）<input data-native-group="adcs" data-native-key="rw_motor_torque_constant_nm_per_a_3" type="number" min="0.000001" max="0.2" step="any" value="0.02" disabled></label>
+                      </div>
                     </details>
                     <label>反作用轮原生电机最大扭矩 u_max（N·m）<input data-native-group="adcs" data-native-key="rw_max_torque_nm" type="number" min="0.001" max="0.2" step="any" value="0.2" required title="同时作用于 Basilisk Honeywell_HR16 电机执行机构和命令限幅"></label>
                     <label class="continuous-muted"><input id="continuousRwTorqueIndependentToggle" type="checkbox"> 启用各轮独立电机最大力矩（覆盖上述统一限幅，仅运行前可设置）</label>
