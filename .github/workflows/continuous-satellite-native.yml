@@ -36,6 +36,7 @@ on:
       - "scripts/export_native_vizard.py"
       - "src/sat_sim/bsk_engine/rw_geometry.py"
       - "src/sat_sim/bsk_engine/sun_sensor_geometry.py"
+      - "tests/test_native_sun_sensor_calibration.py"
       - "tests/test_native_sun_sensor_geometry.py"
       - "tests/test_native_magnetometer_calibration.py"
       - "tests/test_native_imu_white_noise.py"
@@ -126,6 +127,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_vizard_recording.py
+          --disable-warnings
+      - name: Real upstream CSS normalized gain bias Kelly and saturation output A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_sun_sensor_calibration.py
           --disable-warnings
       - name: Official Basilisk CSS unit boresight geometry and native cosine response A/B
         env:
