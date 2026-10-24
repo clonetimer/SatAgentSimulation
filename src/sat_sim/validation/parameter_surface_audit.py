@@ -52,8 +52,10 @@ def build_parameter_surface_audit(*, root: Path | None = None) -> dict[str, Any]
                 raise ValueError("continuous initial field duplicated: " + key)
             continuous[key] = str(group["group"])
     contracts = list_capabilities()
-    selected = [c for c in contracts if (c.capability_id.startswith(("component.", "subsystem."))
-                                       and c.is_active and c.exposed_to_agent)]
+    # Inventory every registered contract, including compatibility models.
+    # A non-active model can have a valid generated form without being a
+    # selectable production capability; preserve that distinction.
+    selected = [c for c in contracts if c.capability_id.startswith(("component.", "subsystem."))]
     whole = next(c for c in contracts if c.capability_id == WHOLE_ID)
     issues: list[dict[str, str]] = []
     capability_rows = []
@@ -92,6 +94,8 @@ def build_parameter_surface_audit(*, root: Path | None = None) -> dict[str, Any]
         implementation = contract.data.get("implementation") or {}
         capability_rows.append({
             "capability_id": cid, "level": contract.target_level,
+            "lifecycle_status": contract.lifecycle_status,
+            "user_selectable": contract.is_active and contract.exposed_to_agent,
             "basilisk_required": bool(implementation.get("basilisk_required", False)),
             "registered_parameter_count": len(declared),
             "form_parameter_count": len(form_fields),
@@ -109,6 +113,8 @@ def build_parameter_surface_audit(*, root: Path | None = None) -> dict[str, Any]
         "component_count": sum(c["level"] == "component" for c in capability_rows),
         "subsystem_count": sum(c["level"] == "subsystem" for c in capability_rows),
         "capability_count": len(capability_rows),
+        "selectable_subsystem_count": sum(c["level"] == "subsystem" and c["user_selectable"] for c in capability_rows),
+        "selectable_component_count": sum(c["level"] == "component" and c["user_selectable"] for c in capability_rows),
         "total_registered_parameter_count": sum(c["registered_parameter_count"] for c in capability_rows),
         "form_issue_count": len(issues), "issues": issues, "capabilities": capability_rows,
         "whole_spacecraft": {
@@ -140,13 +146,16 @@ def render_parameter_surface_markdown(report: Mapping[str, Any]) -> str:
     lines = [
         "# 仿真参数能力合同—表单—原生源码覆盖审计", "",
         "结构门禁：" + report["status"] + "（不代表物理生效验收通过）", "",
-        "单机：" + str(report["component_count"]) + "；分系统：" + str(report["subsystem_count"]) +
-        "；总注册参数：" + str(report["total_registered_parameter_count"]), "",
-        "| Capability | 层级 | 参数声明数 | 表单参数数 | 原生运行依赖 |",
-        "|---|---|---:|---:|---|",
+        "已登记单机：" + str(report["component_count"]) + "（现役 " + str(report["selectable_component_count"]) +
+        "）；已登记分系统：" + str(report["subsystem_count"]) + "（现役 " +
+        str(report["selectable_subsystem_count"]) + "）；总注册参数：" +
+        str(report["total_registered_parameter_count"]), "",
+        "| Capability | 层级 | 现役可选 | 参数声明数 | 表单参数数 | 原生运行依赖 |",
+        "|---|---|---|---:|---:|---|",
     ]
     for c in report["capabilities"]:
         lines.append("| " + c["capability_id"] + " | " + c["level"] + " | " +
+                     ("是" if c["user_selectable"] else "否 (" + c["lifecycle_status"] + ")") + " | " +
                      str(c["registered_parameter_count"]) + " | " +
                      str(c["form_parameter_count"]) + " | " +
                      ("Basilisk" if c["basilisk_required"] else "独立项目模型/其它") + " |")
