@@ -37,6 +37,17 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     assert orbit_fields["spacecraft_mass_kg"]["default"] == 100.
     assert adcs_fields["sun_sensor_fov_deg"]["default"] == 80.
     assert adcs_fields["rw_friction_mode"]["default"] == "disabled"
+    for key in ("imu_gyro_bias_rad_s_x", "imu_gyro_bias_rad_s_y",
+                "imu_gyro_bias_rad_s_z"):
+        assert adcs_fields[key]["unit"] == "rad/s"
+        assert adcs_fields[key]["default"] == 0.
+    for key in ("imu_accel_bias_m_s2_x", "imu_accel_bias_m_s2_y",
+                "imu_accel_bias_m_s2_z"):
+        assert adcs_fields[key]["unit"] == "m/s²"
+        assert adcs_fields[key]["default"] == 0.
+    assert adcs_fields["imu_gyro_max_rad_s"]["unit"] == "rad/s"
+    assert adcs_fields["imu_accel_max_m_s2"]["unit"] == "m/s²"
+    assert adcs_fields["star_tracker_noise_std_arcsec"]["unit"] == "arcsec"
     assert adcs_fields["rw_mount_radius_m"]["unit"] == "m"
     assert adcs_fields["rw_coulomb_friction_nm"]["unit"] == "N·m"
     assert adcs_fields["rw_viscous_friction_nms"]["unit"] == "N·m·s/rad"
@@ -96,6 +107,15 @@ def test_continuous_web_form_matches_registered_native_catalog():
     {"adcs": {"imu_position_b_y_m": -2.01}},
     {"adcs": {"star_tracker_mount_pitch_deg": 90}},
     {"adcs": {"star_tracker_mount_roll_deg": float("nan")}},
+    {"adcs": {"imu_gyro_bias_rad_s_x": 0.10001}},
+    {"adcs": {"imu_gyro_bias_rad_s_y": -0.10001}},
+    {"adcs": {"imu_accel_bias_m_s2_z": 1.01}},
+    {"adcs": {"imu_accel_bias_m_s2_x": float("nan")}},
+    {"adcs": {"imu_gyro_max_rad_s": -1}},
+    {"adcs": {"imu_gyro_max_rad_s": 1001}},
+    {"adcs": {"imu_accel_max_m_s2": float("inf")}},
+    {"adcs": {"star_tracker_noise_std_arcsec": -1}},
+    {"adcs": {"star_tracker_noise_std_arcsec": 3601}},
     {"adcs": {"rw_coulomb_friction_nm": -1e-5}},
     {"adcs": {"rw_viscous_friction_nms": 0.02}},
     {"adcs": {"rw_mount_radius_m": -0.01}},
@@ -151,7 +171,12 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
                          "imu_position_b_z_m": .3,
                          "star_tracker_mount_yaw_deg": -14.,
                          "star_tracker_mount_pitch_deg": 7.,
-                         "star_tracker_mount_roll_deg": -3.},
+                         "star_tracker_mount_roll_deg": -3.,
+                         "imu_gyro_bias_rad_s_x": 0.001,
+                         "imu_accel_bias_m_s2_z": 0.06,
+                         "imu_gyro_max_rad_s": 0.5,
+                         "imu_accel_max_m_s2": 20.,
+                         "star_tracker_noise_std_arcsec": 10.},
                 "eps": {"battery_capacity_wh": 200., "initial_soc": .75,
                         "solar_panel_area_m2": 3.},
                 "payload": {"payload_data_rate_bps": 1_500_000.},
@@ -177,6 +202,11 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert values["star_tracker_mount_yaw_deg"] == -14.
         assert values["star_tracker_mount_pitch_deg"] == 7.
         assert values["star_tracker_mount_roll_deg"] == -3.
+        assert values["imu_gyro_bias_rad_s_x"] == .001
+        assert values["imu_accel_bias_m_s2_z"] == .06
+        assert values["imu_gyro_max_rad_s"] == .5
+        assert values["imu_accel_max_m_s2"] == 20.
+        assert values["star_tracker_noise_std_arcsec"] == 10.
         assert values["inclination_deg"] == 46.
         assert values["battery_capacity_wh"] == 200.
         assert values["rw_configuration"] == "orthogonal_3"
@@ -320,6 +350,15 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                     "star_tracker_mount_yaw_deg": -14.,
                     "star_tracker_mount_pitch_deg": 7.,
                     "star_tracker_mount_roll_deg": -3.,
+                    "imu_gyro_bias_rad_s_x": 0.001,
+                    "imu_gyro_bias_rad_s_y": -0.002,
+                    "imu_gyro_bias_rad_s_z": 0.003,
+                    "imu_accel_bias_m_s2_x": 0.04,
+                    "imu_accel_bias_m_s2_y": -0.05,
+                    "imu_accel_bias_m_s2_z": 0.06,
+                    "imu_gyro_max_rad_s": 0.5,
+                    "imu_accel_max_m_s2": 20.,
+                    "star_tracker_noise_std_arcsec": 10.,
                     "rw_friction_mode": "coulomb_viscous",
                     "rw_coulomb_friction_nm": 2e-5,
                     "rw_viscous_friction_nms": 3e-7,
@@ -390,6 +429,17 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
         atol=1e-12,
     )
     assert len(factory_invocations) == 6
+    np.testing.assert_allclose(np.asarray(native_imus[0].senRotBias).reshape(3), [0., 0., 0.], atol=1e-12)
+    np.testing.assert_allclose(np.asarray(native_imus[1].senRotBias).reshape(3), [.001, -.002, .003], atol=1e-12)
+    np.testing.assert_allclose(np.asarray(native_imus[1].senTransBias).reshape(3), [.04, -.05, .06], atol=1e-12)
+    assert native_imus[1].senRotMax == pytest.approx(.5)
+    assert native_imus[1].senTransMax == pytest.approx(20.)
+    # Official PMatrix stores the *standard deviation in radians*, not arcsec².
+    np.testing.assert_allclose(
+        np.asarray(native_trackers[1].PMatrix),
+        np.eye(3) * __import__("math").radians(10. / 3600.),
+        atol=1e-12,
+    )
     assert [x["wheel_model"] for x in factory_invocations] == ["Honeywell_HR16"] * 6
     assert [x["Omega"] for x in factory_invocations[:3]] == pytest.approx([100., 200., 300.])
     assert [x["Omega"] for x in factory_invocations[3:]] == pytest.approx(
