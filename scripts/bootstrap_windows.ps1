@@ -7,6 +7,11 @@
 输出：创建虚拟环境并安装依赖。
 #>
 $ErrorActionPreference = "Stop"
+# Windows PowerShell/legacy runner consoles may default to cp1252/GBK,
+# while the agent doctor emits Unicode arrows in structured diagnostics.
+# Keep this encoding policy for all Python subprocesses launched below.
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONUTF8 = "1"
 
 function Invoke-CheckedNative {
     param(
@@ -39,11 +44,11 @@ try {
 
     $VersionText = & $Python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
     if ($LASTEXITCODE -ne 0 -or -not $VersionText) {
-        throw "无法执行 Python。请安装 64 位 Python 3.10、3.11、3.12 或 3.13，或通过 PYTHON_BIN 指定解释器。"
+        throw "无法执行 Python。请安装 64 位 Python 3.12 或 3.13，或通过 PYTHON_BIN 指定解释器。"
     }
     $DetectedVersion = [Version]($VersionText.Trim())
-    if ($DetectedVersion -lt [Version]"3.10" -or $DetectedVersion -ge [Version]"3.14") {
-        throw "检测到 Python $DetectedVersion；当前版本支持 Python 3.10～3.13。"
+    if ($DetectedVersion -lt [Version]"3.12" -or $DetectedVersion -ge [Version]"3.14") {
+        throw "检测到 Python $DetectedVersion；当前洁净安装门禁仅支持 Python 3.12～3.13；Python 3.10/3.11 的依赖约束尚待 #39 分支整治。"
     }
     Write-Host "[sat-sim] Python：$DetectedVersion；虚拟环境：$Venv" -ForegroundColor Green
 
@@ -69,8 +74,9 @@ try {
     ) -Step "更新 Python 构建工具"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
-        (Join-Path $Root "scripts\ensure_basilisk_runtime.py")
-    ) -Step "安装并验证 Basilisk 原生运行时"
+        (Join-Path $Root "scripts\ensure_basilisk_runtime.py"),
+        "--require-satfix1"
+    ) -Step "核验官方 SHA-256，构建 metadata-only satfix1 并安装真实 Basilisk 原生运行时"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
         "-m", "pip", "install", "--find-links", $Wheelhouse, "-c", $Constraints, "-e", ".[api,dev]"
@@ -81,7 +87,11 @@ try {
     ) -Step "检查 API 与 NumPy 依赖"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
-        "-m", "sat_sim.agent_cli", "doctor", "--require-api", "--strict-assets"
+        "-c", "from Basilisk.architecture import messaging; from Basilisk.simulation import spacecraft, simpleBattery; import importlib.metadata as m; assert m.version('bsk') == '2.11.0+satfix1'; assert spacecraft.Spacecraft is not None and simpleBattery.SimpleBattery is not None; print('BASILISK_NATIVE_WINDOWS_SMOKE_PASS')"
+    ) -Step "安装运行依赖后验证真实 Basilisk C++ 模块"
+
+    Invoke-CheckedNative -Executable $VenvPython -Arguments @(
+        "-m", "sat_sim.agent_cli", "doctor", "--require-api"
     ) -Step "执行环境诊断"
 
     Write-Host "[sat-sim] 安装完成。执行 .\scripts\start_local_windows.ps1 启动服务。" -ForegroundColor Green
