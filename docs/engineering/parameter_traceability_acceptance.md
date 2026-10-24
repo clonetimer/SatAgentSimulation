@@ -160,6 +160,17 @@ Windows PowerShell：
 - 真实 L5：捕获 Basilisk 官方 RW 设备的 `gsHat_B` 与 `rWB_B` 值，分别验证**仅改变自旋轴**、**仅改变安装点**时，在相同 FSW 与初始条件下真实角速度轨迹分叉；纯位置变更还需验证官方 Hub 质心和惯量确实变化。四轮非对称几何与非法数值、非单位轴、缺少坐标、秩退化、三轮输入 RW4，以及 RW 质量预算非法都须失败关闭。
 - 现阶段**不提供**任意三维转动组件动平衡参数、RW 轴陀螺力矩依赖温度或装配有限元，不代表自动更新 `Spacecraft.hub.IHubPntBc_B` 以反推卫星 CAD 惯量。跨进程物理精确恢复仍 BLOCKED，Vizard 后续扩展继续延后。
 
+## P0-15 原生 IMU 测量噪声、随机种子与有限整星登记
+
+- **保真度界限**：以前 `gyro_base_noise_std_rad_s` 仅控制项目级 `ImuFaultInjector` 在噪声故障事件发生时的增益，不是官方 `Basilisk.simulation.imuSensor.ImuSensor` 的正常测量噪声；不得把故障注入噪声当作正常硬件白噪声。其余已接线 IMU 量程/安装/偏置及星敏噪声此前缺少整星 TaskSpec 注册，不允许仅凭网页字段数量宣称闭环。
+- 原生新参数 `imu_gyro_white_noise_std_rad_s`（三轴共同标准差 0～0.1 rad/s）和 `imu_accel_white_noise_std_m_s2`（0～1 m/s²）直写官方 SWIG `PMatrixGyro`、`PMatrixAccel` **对角矩阵**；矩阵值为 sigma（协方差平方根），非 sigma²。正值下强制 `setAMatrixGyro(0)` / `setAMatrixAccel(0)`，避免固定 Basilisk 2.11 陀螺 A 默认随机游走与“白噪声”用户设定矛盾。两个参数默认 0：保持历史完全无官方随机扰动。
+- 新增可复现 `simulation_seed`（0～2³¹−1 整数）供官方 IMU、星敏及原有项目故障注入使用；前启动强类型检查和直接 TaskSpec 双重 fail-closed。注意旧 2.11 的 IMU gyro 与 accel 噪声流独立性不足；官方 2.12 才修复不同种子派生策略，因此当前不能声称两种噪声独立或跨不同编译器逐点一致。
+- IMU 既有陀螺偏置 3、加速度计偏置 3、两项饱和量程、安装 Euler321 3、B 系安装位置 3 以及星敏噪声 1，也同步注册到有限整星原生 capability 表。整星有限参数登记净增 18，持续运行前表单净增 3。
+- 将真实上游 `imu.sensorOutMsg` 新增到行级证据 `adcs.sensor.raw_gyro_rad_s_{x,y,z}`、`adcs.sensor.raw_accel_m_s2_{x,y,z}`，以便区分官方测量结果与经过项目事件注入的 `adcs.sensor.gyro_measured_rad_s_*`。
+- L5 验收：真实 Basilisk SWIG ImuSensor 的 `PMatrix*/AMatrix*`、随机种子，原始 IMU 三轴测量在非零噪声配置下相对零噪声基线确实改变，同种子重跑可复现、不同种子应改变测量；无故障事件时下游应与原始输出一致。并核对噪声禁用旧场景、非法值与直接有限 TaskSpec 的失败关闭。
+- 不含 Allan 方差标定、噪声功率谱密度随采样间隔转换、轴间相关性、温度漂移、各轴独立 sigma 或噪声积分模型，均另列高保真候选；不会误认为本轮新增传感器测量噪声就完成 IMU 全部工程参数整改。
+- Vizard 新功能继续暂停，优先剩余 ADCS/其他分系统参数。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
