@@ -15,6 +15,10 @@ class _Strict(BaseModel):
 
 
 class NativeOrbitInitial(_Strict):
+    spacecraft_mass_kg: float = Field(
+        default=100., ge=1., le=2000.,
+        description="整星原生 Spacecraft.hub.mHub 总质量（kg）；包含当前图采用的总质量假设，不单独改变惯量矩阵。",
+    )
     orbit_radius_m: float = Field(default=7_000_000., ge=6_500_000., le=20_000_000.)
     eccentricity: float = Field(default=.001, ge=0., le=.2)
     inclination_deg: float = Field(default=35., ge=0., le=180.)
@@ -22,6 +26,10 @@ class NativeOrbitInitial(_Strict):
 
 
 class NativeAdcsInitial(_Strict):
+    sun_sensor_fov_deg: float = Field(
+        default=80., gt=0., le=180.,
+        description="原生 Basilisk CoarseSunSensor.fov 视场全角（deg），仅影响该光敏器观测，不代表所有敏感器的视场。",
+    )
     initial_pointing_error_deg: float = Field(default=8., ge=0., le=90.)
     controller_k: float = Field(default=3.5, gt=0., le=100.)
     controller_p: float = Field(default=30., gt=0., le=300.)
@@ -82,14 +90,15 @@ class ContinuousInitialConfiguration(_Strict):
 
 
 _DISPLAY = {
-    "orbit": "轨道初始条件（整星）",
-    "adcs": "姿态控制与反作用轮（ADCS／单机）",
+    "orbit": "整星质量与轨道初始条件",
+    "adcs": "姿态控制、太阳敏感器与反作用轮（ADCS／单机）",
     "eps": "电池与太阳电池板（EPS／单机）",
     "payload": "载荷设备",
     "comm_data": "通信数据存储",
 }
 
 _UNITS = {
+    "spacecraft_mass_kg": "kg", "sun_sensor_fov_deg": "deg",
     "orbit_radius_m": "m", "eccentricity": "1", "inclination_deg": "deg",
     "initial_true_anomaly_rad": "rad",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",

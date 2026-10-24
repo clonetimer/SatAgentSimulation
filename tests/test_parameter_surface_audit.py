@@ -47,12 +47,15 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     whole = report["whole_spacecraft"]
     assert report["physics_validated_by_this_audit"] is False
     assert report["source_lookup_is_not_physical_proof"] is True
-    assert whole["continuous_initial_field_count"] == 22
+    assert whole["continuous_initial_field_count"] == 24
     assert whole["registered_parameter_count"] == 33
     assert "rw_configuration" in whole["native_source_keys_missing_whole_registry"]
     assert "gyro_base_noise_std_rad_s" in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
-    assert len(whole["continuous_groups"]["adcs"]) == 9
+    assert len(whole["continuous_groups"]["adcs"]) == 10
+    assert len(whole["continuous_groups"]["orbit"]) == 5
+    assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]
+    assert "sun_sensor_fov_deg" in whole["continuous_groups"]["adcs"]
     assert "rw_initial_speed_rad_s_0" not in whole["continuous_fields_without_source_lookup"]
     assert whole["native_keys_not_exposed_in_continuous_initial"]
     markdown = render_parameter_surface_markdown(report)

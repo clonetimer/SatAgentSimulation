@@ -28,6 +28,12 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
         assert all("native_value_key" in x and "default" in x and "unit" in x
                    for x in row["fields"])
     assert ContinuousInitialConfiguration().native_values() == {}
+    orbit_fields = {f["name"]: f for f in catalog["groups"][0]["fields"]}
+    adcs_fields = {f["name"]: f for f in catalog["groups"][1]["fields"]}
+    assert orbit_fields["spacecraft_mass_kg"]["unit"] == "kg"
+    assert adcs_fields["sun_sensor_fov_deg"]["unit"] == "deg"
+    assert orbit_fields["spacecraft_mass_kg"]["default"] == 100.
+    assert adcs_fields["sun_sensor_fov_deg"]["default"] == 80.
     from pydantic import ValidationError
     wheel4 = ContinuousInitialConfiguration.model_validate({
         "adcs": {"rw_configuration": "pyramid_4", "rw_initial_speed_rad_s_3": -50.},
@@ -44,6 +50,10 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
 
 @pytest.mark.parametrize("bad", [
     {"orbit": {"orbit_radius_m": 120}},
+    {"orbit": {"spacecraft_mass_kg": 0}},
+    {"orbit": {"spacecraft_mass_kg": 3000}},
+    {"adcs": {"sun_sensor_fov_deg": 0}},
+    {"adcs": {"sun_sensor_fov_deg": 185}},
     {"adcs": {"rw_configuration": "arbitrary_python"}},
     {"eps": {"initial_soc": 1.5}},
     {"eps": {"solar_panel_area_m2": -1}},
@@ -77,8 +87,10 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         request = {
             **_body("configured-native"),
             "initial_configuration": {
-                "orbit": {"orbit_radius_m": 7_200_000., "inclination_deg": 46.},
-                "adcs": {"rw_configuration": "orthogonal_3", "controller_k": 7.},
+                "orbit": {"orbit_radius_m": 7_200_000., "inclination_deg": 46.,
+                          "spacecraft_mass_kg": 145.},
+                "adcs": {"rw_configuration": "orthogonal_3", "controller_k": 7.,
+                         "sun_sensor_fov_deg": 43.},
                 "eps": {"battery_capacity_wh": 200., "initial_soc": .75,
                         "solar_panel_area_m2": 3.},
                 "payload": {"payload_data_rate_bps": 1_500_000.},
@@ -89,6 +101,8 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert created.status_code == 201, created.text
         values = captured[0].task_spec["parameters"]["values"]
         assert values["orbit_radius_m"] == 7_200_000.
+        assert values["spacecraft_mass_kg"] == 145.
+        assert values["sun_sensor_fov_deg"] == 43.
         assert values["inclination_deg"] == 46.
         assert values["battery_capacity_wh"] == 200.
         assert values["rw_configuration"] == "orthogonal_3"
@@ -155,7 +169,27 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     """
     pytest.importorskip("Basilisk")
     from Basilisk.utilities import simIncludeRW
+    from Basilisk.simulation import coarseSunSensor, spacecraft
     factory_invocations = []
+    native_spacecraft = []
+    native_sun_sensors = []
+    real_spacecraft_ctor = spacecraft.Spacecraft
+    real_sun_sensor_ctor = coarseSunSensor.CoarseSunSensor
+
+    def capture_spacecraft(*args, **kwargs):
+        obj = real_spacecraft_ctor(*args, **kwargs)
+        native_spacecraft.append(obj)
+        return obj
+
+    def capture_sun_sensor(*args, **kwargs):
+        obj = real_sun_sensor_ctor(*args, **kwargs)
+        native_sun_sensors.append(obj)
+        return obj
+
+    # These wrappers return genuine official Basilisk SWIG instances, not
+    # stand-ins. The graphs execute their real UpdateState/dynamics code.
+    monkeypatch.setattr(spacecraft, "Spacecraft", capture_spacecraft)
+    monkeypatch.setattr(coarseSunSensor, "CoarseSunSensor", capture_sun_sensor)
     native_factory_create = simIncludeRW.rwFactory.create
 
     def capture_native_factory(self, wheel_model, axis, **kwargs):
@@ -174,11 +208,13 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
         for label, initial in (
             ("config-default", {}),
             ("config-custom", {
-                "orbit": {"orbit_radius_m": 7_350_000., "eccentricity": .001},
+                "orbit": {"orbit_radius_m": 7_350_000., "eccentricity": .001,
+                          "spacecraft_mass_kg": 145.},
                 "eps": {"battery_capacity_wh": 240., "initial_soc": .85,
                         "solar_panel_area_m2": 3.},
                 "adcs": {
                     "controller_k": 5., "controller_p": 25.,
+                    "sun_sensor_fov_deg": 43.,
                     "rw_max_torque_nm": 0.05,
                     "rw_initial_speed_rad_s_0": -50.,
                     "rw_initial_speed_rad_s_1": 140.,
@@ -220,6 +256,12 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     assert custom["adcs.rw.speed_rad_s_0"] == pytest.approx(-50., abs=12.)
     assert default["adcs.rw.speed_rad_s_0"] == pytest.approx(100. * 2. * __import__("math").pi / 60., abs=2.)
     assert custom["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(.05)
+    assert len(native_spacecraft) == 2
+    assert len(native_sun_sensors) == 2
+    assert [obj.hub.mHub for obj in native_spacecraft] == pytest.approx([100., 145.])
+    assert [obj.fov for obj in native_sun_sensors] == pytest.approx(
+        [__import__("math").radians(80.), __import__("math").radians(43.)]
+    )
     assert len(factory_invocations) == 6
     assert [x["wheel_model"] for x in factory_invocations] == ["Honeywell_HR16"] * 6
     assert [x["Omega"] for x in factory_invocations[:3]] == pytest.approx([100., 200., 300.])
