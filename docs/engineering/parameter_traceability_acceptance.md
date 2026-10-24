@@ -135,6 +135,14 @@ Windows PowerShell：
 - 新的 Basilisk CI 物理门禁在同一整星闭环中对 RW1 的 50/100 两档做 A/B：捕获真实官方工厂返回的 RW 对象的 `Js` 与 `Omega_max`，确认仅 RW1 惯量翻倍、RW2/3 不变；随后确认实际 Basilisk 采集的 `adcs.rw.speed_rad_s_0` 轨迹发生差异。补充四轮 [50,75,100,75] 实装检查、非法档位与虚拟 RW4 拒绝。
 - 不等同于为每只轮自由设定独立电机力矩、轴承摩擦、偏置安装轴或任意品牌型号；之前的轮组共享摩擦和最大力矩限制原样保留。整星跨进程完整物理恢复仍未通过。
 
+## P0-12 原生反作用轮逐轮摩擦系数
+
+- 冻结 Vizard 新增工作，优先 P0 参数整改。轮组摩擦增加兼容性模式 `per_wheel`，保留此前 `disabled` / `coulomb_viscous` 的默认值与全部语义。
+- 新增 RW1–RW4 独立 `rw_coulomb_friction_nm_0..3`（N·m）及 `rw_viscous_friction_nms_0..3`（N·m·s/rad），取值 [0, 0.01]；RW4 只允许 4 轮金字塔构型，三轮下前端禁用且后端拒绝显式指定。启用 `per_wheel` 必须至少一轮系数非零，且统一轮组系数必须为 0；独立系数不得偷偷混入其余两种模式。
+- 逐轮系数分别进入真正 `Basilisk.utilities.simIncludeRW.rwFactory.create(..., useRWfriction, fCoulomb, cViscous)`，每轮根据其独立零/非零系数配置真实轴承摩擦，绝非伪造的遥测或事后添加噪声。原生 C++ `ReactionWheelStateEffector` 继续连接姿态动力学与 FSW。
+- L5 验收：官方 SWIG RW 对象参数与 factory 参数双方核验；相同轨道、初始姿态与控制器，单独改变 RW1 摩擦应导致真实 Basilisk `adcs.rw.speed_rad_s_0` 曲线差异。补充 4RW 独立组合和原有共用模式的回归、非法/非有限值/不存在 RW4 的直接 TaskSpec 和 Pydantic 拒绝测试。
+- 这**不等同于**每只轮的自由可配置电机力矩、温度依赖磨损、结构安装三维位姿或转子振动；整星跨进程精确恢复仍为 BLOCKED。Vizard P1~P3 明确等待参数整改阶段后再考虑。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。

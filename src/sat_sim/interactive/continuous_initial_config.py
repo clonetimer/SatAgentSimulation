@@ -64,8 +64,8 @@ class NativeAdcsInitial(_Strict):
     controller_k: float = Field(default=3.5, gt=0., le=100.)
     controller_p: float = Field(default=30., gt=0., le=300.)
     rw_configuration: Literal["orthogonal_3", "pyramid_4"] = "orthogonal_3"
-    rw_friction_mode: Literal["disabled", "coulomb_viscous"] = Field(
-        default="disabled", description="原生 RW 摩擦：关闭或启用库仑/粘滞摩擦；整轮组共用相同系数",
+    rw_friction_mode: Literal["disabled", "coulomb_viscous", "per_wheel"] = Field(
+        default="disabled", description="原生 RW 摩擦：关闭、统一轮组系数或逐轮独立库仑/粘滞系数",
     )
     rw_coulomb_friction_nm: float = Field(
         default=0., ge=0., le=0.01,
@@ -75,6 +75,14 @@ class NativeAdcsInitial(_Strict):
         default=0., ge=0., le=0.01,
         description="原生 rwFactory.create.cViscous，所有 RW 共用；N·m·s/rad",
     )
+    rw_coulomb_friction_nm_0: float = Field(default=0., ge=0., le=.01, description="RW1 原生独立 fCoulomb (N·m)，仅逐轮摩擦模式生效")
+    rw_coulomb_friction_nm_1: float = Field(default=0., ge=0., le=.01, description="RW2 原生独立 fCoulomb (N·m)，仅逐轮摩擦模式生效")
+    rw_coulomb_friction_nm_2: float = Field(default=0., ge=0., le=.01, description="RW3 原生独立 fCoulomb (N·m)，仅逐轮摩擦模式生效")
+    rw_coulomb_friction_nm_3: float | None = Field(default=None, ge=0., le=.01, description="RW4 原生独立 fCoulomb，仅 4 轮构型 (N·m)")
+    rw_viscous_friction_nms_0: float = Field(default=0., ge=0., le=.01, description="RW1 原生独立 cViscous (N·m·s/rad)")
+    rw_viscous_friction_nms_1: float = Field(default=0., ge=0., le=.01, description="RW2 原生独立 cViscous (N·m·s/rad)")
+    rw_viscous_friction_nms_2: float = Field(default=0., ge=0., le=.01, description="RW3 原生独立 cViscous (N·m·s/rad)")
+    rw_viscous_friction_nms_3: float | None = Field(default=None, ge=0., le=.01, description="RW4 原生独立 cViscous，仅 4 轮构型 (N·m·s/rad)")
     rw_mount_radius_m: float = Field(
         default=0., ge=0., le=0.25,
         description="原生 rwFactory.create.rWB_B，按每只轮安装轴乘以共同偏移距离；m（简化安装几何）",
@@ -99,6 +107,23 @@ class NativeAdcsInitial(_Strict):
             raise ValueError("RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
         if self.rw_configuration != "pyramid_4" and self.rw_max_momentum_nms_3 is not None:
             raise ValueError("RW4_MAX_MOMENTUM_REQUIRES_PYRAMID_4")
+        if self.rw_configuration != "pyramid_4" and (
+            self.rw_coulomb_friction_nm_3 is not None or self.rw_viscous_friction_nms_3 is not None
+        ):
+            raise ValueError("RW4_FRICTION_REQUIRES_PYRAMID_4")
+        per_wheel = [
+            getattr(self, f"rw_{kind}_friction_{suffix}_{index}")
+            for kind, suffix in (("coulomb", "nm"), ("viscous", "nms"))
+            for index in range(4) if index < 3 or self.rw_configuration == "pyramid_4"
+        ]
+        per_wheel = [float(value or 0.) for value in per_wheel]
+        if self.rw_friction_mode != "per_wheel" and any(value > 0. for value in per_wheel):
+            raise ValueError("RW_PER_WHEEL_FRICTION_REQUIRES_PER_WHEEL_MODE")
+        if self.rw_friction_mode == "per_wheel":
+            if self.rw_coulomb_friction_nm or self.rw_viscous_friction_nms:
+                raise ValueError("RW_PER_WHEEL_FRICTION_FORBIDS_SHARED_COEFFICIENTS")
+            if not any(value > 0. for value in per_wheel):
+                raise ValueError("RW_PER_WHEEL_FRICTION_REQUIRES_POSITIVE_COEFFICIENT")
         if self.rw_friction_mode == "disabled" and (
             self.rw_coulomb_friction_nm != 0 or self.rw_viscous_friction_nms != 0
         ):
@@ -262,6 +287,10 @@ _UNITS = {
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
     "rw_friction_mode": "枚举", "rw_coulomb_friction_nm": "N·m",
     "rw_viscous_friction_nms": "N·m·s/rad", "rw_mount_radius_m": "m",
+    "rw_coulomb_friction_nm_0": "N·m", "rw_coulomb_friction_nm_1": "N·m",
+    "rw_coulomb_friction_nm_2": "N·m", "rw_coulomb_friction_nm_3": "N·m",
+    "rw_viscous_friction_nms_0": "N·m·s/rad", "rw_viscous_friction_nms_1": "N·m·s/rad",
+    "rw_viscous_friction_nms_2": "N·m·s/rad", "rw_viscous_friction_nms_3": "N·m·s/rad",
     "rw_max_momentum_nms_0": "N·m·s", "rw_max_momentum_nms_1": "N·m·s",
     "rw_max_momentum_nms_2": "N·m·s", "rw_max_momentum_nms_3": "N·m·s",
     "rw_initial_speed_rad_s_0": "rad/s", "rw_initial_speed_rad_s_1": "rad/s",
