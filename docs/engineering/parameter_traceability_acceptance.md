@@ -106,6 +106,13 @@ Windows PowerShell：
 - 电池加热器：设定相同 285 K 节点初始温度、30 W 额定加热功率与同等热边界，仅改变设定温度 275/295 K。验收低设定值下不启动、高设定值下启动，记录加热功率及最终温度响应。
 - 以上是**已实现热模型内部**的因果一致性验证，不构成热真空试验或热容/辐射率的工程级物理精度认证。热网络拓扑、辐射视角因子、各热节点设备级热负载及多物理耦合仍列入待办。
 
+## P0-8 太阳电池板机体系固定法线（Basilisk SimpleSolarPanel）
+
+- 有限时长统一整星 TaskSpec、持续运行前 EPS 表单及 `native_values` 新增 `solar_normal_b_x/y/z` 三轴。默认值 (1,0,0) 保持旧模型不变；每轴限制在 [-1,1]，向量模长平方限定 [0.999,1.001]。持续模式由 Pydantic 交叉字段校验，有限时长模式由执行时的原生模型边界再校验（包括 NaN、Inf）。
+- 三轴直接送入**官方 Basilisk SimpleSolarPanel.setPanelParameters(normal_B, area_m2, efficiency)**；保留现有 `sunInMsg`、`stateInMsg`、`sunEclipseInMsg` 及经 `nodePowerOutMsg` 接入 `simpleBattery` 的原生消息路径。
+- `normal_B` 是机体系**固定安装法线**，不是姿态控制指令、太阳跟踪关节或旋转速度。独立部件和简化 EPS 中的追踪功能不因此扩展到统一原生整星。
+- 验收测试对同一原生整星配置只切换 +X_B 和 -X_B 面板法线，使用实际 Basilisk 计算太阳板发电量，验证面对和背向太阳时的差异。此测试不等于太阳跟踪、遮挡热耦合或硬件标定完成；项目日照仍使用现有解析太阳历表。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
