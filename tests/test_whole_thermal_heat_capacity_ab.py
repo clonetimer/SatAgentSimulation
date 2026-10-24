@@ -22,7 +22,7 @@ def test_real_basilisk_scheduled_payload_heat_capacity_ab() -> None:
         Path("examples/whole_spacecraft_unified_native_nominal.yaml").read_text(encoding="utf-8")
     )
     spec["simulation"].update({"duration_s": 45., "step_s": .2, "sample_s": .5})
-    spec["parameters"]["values"].update({
+    spec["parameters"].update({
         "initial_payload_temp_k": 280.,
         "payload_power_w": 180.,
         "initial_soc": .9,
@@ -30,7 +30,7 @@ def test_real_basilisk_scheduled_payload_heat_capacity_ab() -> None:
         "payload_specific_heat_j_kg_k": 600.,
     })
     high_inertia = deepcopy(spec)
-    high_inertia["parameters"]["values"]["payload_thermal_mass_kg"] = 15.
+    high_inertia["parameters"]["payload_thermal_mass_kg"] = 15.
     contract = get_capability(WHOLE).data
     adapter = get_adapter_for_capability(WHOLE)
     assert not [e for e in adapter.validate(spec, contract) if e.severity == "error"]
