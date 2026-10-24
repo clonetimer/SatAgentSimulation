@@ -681,6 +681,10 @@ class UnifiedNativeRuntime:
         rw = reactionWheelStateEffector.ReactionWheelStateEffector()
         rw_factory = simIncludeRW.rwFactory()
         rw_axes = _reaction_wheel_axes(str(values.get("rw_configuration", "orthogonal_3")))
+        # Native physical installation geometry: do not rewrite the official
+        # axis/point pair into a synthetic moment or a telemetry-only setting.
+        from .rw_geometry import resolve_rw_geometry
+        rw_axes, rw_positions = resolve_rw_geometry(values, rw_axes)
         # R8-C: pass validated initial speeds and torque limits into the
         # *actual* Basilisk reaction-wheel factory (not merely into the
         # downstream fault manager or synthetic telemetry).
@@ -780,7 +784,7 @@ class UnifiedNativeRuntime:
                 "Honeywell_HR16", list(axis), maxMomentum=float(momentum_value),
                 Omega=omega_factory_rpm, u_max=rw_hardware_u_max_by_wheel[index],
                 label=f"RW{index + 1}",
-                rWB_B=[float(v) * rw_mount_radius for v in axis],
+                rWB_B=list(rw_positions[index]),
                 **rw_friction_kwargs,
             )
         # RW4 parameters have no physical owner in a three-wheel graph;
