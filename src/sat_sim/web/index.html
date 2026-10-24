@@ -695,6 +695,10 @@
                     <label>星敏安装航向角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_yaw_deg" type="number" min="-180" max="180" step="any" value="0" required title="采用 Basilisk RigidBodyKinematics.euler3212C，机体系到星敏机壳系"></label>
                     <label>星敏安装俯仰角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_pitch_deg" type="number" min="-89" max="89" step="any" value="0" required title="机体系到星敏机壳系 3-2-1 欧拉角第二项"></label>
                     <label>星敏安装横滚角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_roll_deg" type="number" min="-180" max="180" step="any" value="0" required title="机体系到星敏机壳系 3-2-1 欧拉角第三项"></label>
+                    <p class="continuous-muted"><strong>太阳敏感器独立安装方向</strong>：以下机体系 B 法线为官方 Basilisk CoarseSunSensor.nHat_B，不是太阳电池板法线。必须设置单位向量（X²+Y²+Z²=1）。原有默认方向为 (0, 0, −1)，调整会改变真实余弦测量与视场响应，不会改变电池板方向。</p>
+                    <label>太阳敏感器安装法线 X_B<input data-native-group="adcs" data-native-key="sun_sensor_normal_b_x" type="number" min="-1" max="1" step="any" value="0" required title="官方 Basilisk CSS nHat_B 机体系 B 的 X 分量"></label>
+                    <label>太阳敏感器安装法线 Y_B<input data-native-group="adcs" data-native-key="sun_sensor_normal_b_y" type="number" min="-1" max="1" step="any" value="0" required title="官方 Basilisk CSS nHat_B 机体系 B 的 Y 分量"></label>
+                    <label>太阳敏感器安装法线 Z_B<input data-native-group="adcs" data-native-key="sun_sensor_normal_b_z" type="number" min="-1" max="1" step="any" value="-1" required title="官方 Basilisk CSS nHat_B 机体系 B 的 Z 分量"></label>
                     <label>太阳敏感器视场（°）<input data-native-group="adcs" data-native-key="sun_sensor_fov_deg" type="number" min="0.001" max="180" step="any" value="80" required title="设置 Basilisk CoarseSunSensor.fov，不代表星敏感器视场"></label>
                     <label>初始指向误差（°）<input data-native-group="adcs" data-native-key="initial_pointing_error_deg" type="number" min="0" max="90" step="any" value="8" required></label>
                     <label>姿态控制 K<input data-native-group="adcs" data-native-key="controller_k" type="number" min="0.001" max="100" step="any" value="3.5" required></label>
