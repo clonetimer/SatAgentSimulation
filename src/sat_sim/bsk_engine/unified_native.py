@@ -929,8 +929,12 @@ class UnifiedNativeRuntime:
         connected("spacecraft.scStateOutMsg", "imu")
 
         sun_sensor = coarseSunSensor.CoarseSunSensor()
-        sun_sensor.nHat_B = [0.0, 0.0, -1.0]
-        sun_sensor.fov = math.radians(float(values.get("sun_sensor_fov_deg", 80.0)))
+        from .sun_sensor_geometry import resolve_sun_sensor_boresight
+        sun_sensor.nHat_B = list(resolve_sun_sensor_boresight(values))
+        fov_deg = values.get("sun_sensor_fov_deg", 80.0)
+        if type(fov_deg) not in (int, float) or not math.isfinite(fov_deg) or not 0. < fov_deg <= 180.:
+            raise ValueError("NATIVE_SUN_SENSOR_FOV_INVALID")
+        sun_sensor.fov = math.radians(float(fov_deg))
         sun_sensor.stateInMsg.subscribeTo(sc.scStateOutMsg)
         sun_sensor.sunInMsg.subscribeTo(sun_msg)
         sun_sensor.sunEclipseInMsg.subscribeTo(eclipse_model.eclipseOutMsgs[0])
