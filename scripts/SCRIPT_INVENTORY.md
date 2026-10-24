@@ -13,7 +13,7 @@
 | `audit_interactive_baseline.py` | 交互扩展兼容基线 | active | 冻结测试计数、Doctor、release-check、OpenAPI 与脚本清单哈希 |
 | `bootstrap_local.sh` | 环境初始化 | active | 保留并统一文件头与入口 |
 | `bootstrap_windows.ps1` | 环境初始化 | active | 保留并统一文件头与入口 |
-| `build_bsk_compat_wheels.py` | 依赖兼容构建 | active | 从已核验官方 BSK Wheel 仅重写依赖元数据并验证二进制载荷逐文件不变 |
+| `bsk_wheel_provenance.py` | Basilisk 发行件完整性审计 | active | 对固定官方 SHA-256、metadata-only satfix1 变更、Wheel RECORD、非法文件和伪造构建报告做安装前 fail-closed 校验；不声明依赖安全已清零 |\n| `build_bsk_compat_wheels.py` | 依赖兼容构建 | active | 从已核验官方 BSK Wheel 仅重写依赖元数据并验证二进制载荷逐文件不变 |
 | `build_dependency_security_gate.py` | 安全门禁 | active | 对完全未变化且不超过 72 小时的近期有效依赖审计执行可证明的限时继承，变化或过期时 fail-closed |
 | `check_api_stack.ps1` | 环境诊断 | active | 保留并统一文件头与入口 |
 | `check_basilisk_runtime.py` | Basilisk运行时检查 | active | 输出机器可读 Basilisk 安装、导入、版本与可用状态；正式数据门使用 fail-closed 结果。 |
