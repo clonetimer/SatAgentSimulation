@@ -38,6 +38,8 @@ def test_independent_driver_prestart_catalog_ui_and_legacy_default():
     assert 'id="continuousRwElectricalIndependentToggle"' in html
     assert "updateRwElectricalInitialLayout();" in js
     assert "independent && (i < 3 || four)" in js
+    assert "field.dataset.electricalSeeded = 'true'" in js
+    assert "if (shared) field.value = shared.value;" in js
     for i in range(4):
         assert f'id="continuousRwElectrical_{i}"' in html
         for key in (I, KT):
