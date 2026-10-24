@@ -3352,6 +3352,32 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
             raise HTTPException(status_code=404, detail="run not found")
         return {"ok": True, "run_id": run_id, **_read_telemetry(root, offset=offset, limit=limit)}
 
+    @app.get("/runs/{run_id}/telemetry/overview")
+    def get_telemetry_overview(
+        run_id: str,
+        max_points: int = Query(default=3000, ge=100, le=5000),
+        fields: str = Query(default="", max_length=2300),
+        start_s: float | None = Query(default=None, ge=0),
+        end_s: float | None = Query(default=None, ge=0),
+    ) -> dict[str, Any]:
+        """Bounded full-horizon plot; does not modify original telemetry or Run Bundle."""
+        from .telemetry_overview import read_telemetry_overview
+
+        root = _safe_bundle(run_root, run_id)
+        if not root.exists():
+            raise HTTPException(status_code=404, detail="run not found")
+        names = tuple(dict.fromkeys(item.strip() for item in fields.split(",") if item.strip()))
+        if len(names) > 16:
+            raise HTTPException(422, detail={"reason_code": "TELEMETRY_OVERVIEW_FIELD_LIMIT"})
+        try:
+            result = read_telemetry_overview(
+                root, max_points=max_points, fields=names,
+                start_s=start_s, end_s=end_s,
+            )
+        except ValueError as exc:
+            raise HTTPException(422, detail={"reason_code": str(exc)}) from exc
+        return {"ok": True, "run_id": run_id, **result}
+
     @app.get("/runs/{run_id}/telemetry-streams")
     def get_telemetry_streams(run_id: str) -> dict[str, Any]:
         root = _safe_bundle(run_root, run_id)
