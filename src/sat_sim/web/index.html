@@ -660,6 +660,10 @@
                   </fieldset>
                   <fieldset><legend>ADCS 与反作用轮</legend>
                     <p class="continuous-muted"><strong>IMU 原生测量误差</strong>：下列恒定偏置写入 Basilisk ImuSensor；量程填 0 表示保留原生默认，非零时启用对应原生饱和上限。和故障事件注入分开管理。</p>
+                    <p class="continuous-muted">官方 Basilisk ImuSensor 测量白噪声与项目“故障期间噪声增加”是两种不同机制。以下标准差直接进入官方传感器 PMatrixGyro / PMatrixAccel，并显式设置 A=0（避免 2.11 的陀螺噪声随机游走）。0 为不注入；正值时同一种子、相同环境可复现。</p>
+                    <label>仿真随机种子<input data-native-group="adcs" data-native-key="simulation_seed" type="number" min="0" max="2147483647" step="1" value="0" required title="用于官方 IMU、星敏和项目故障注入的随机种子"></label>
+                    <label>IMU 陀螺白噪声标准差（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_white_noise_std_rad_s" type="number" min="0" max="0.1" step="any" value="0" required title="直接写入 Basilisk ImuSensor.PMatrixGyro 对角，并设置 AMatrixGyro=0"></label>
+                    <label>IMU 加速度计白噪声标准差（m/s²）<input data-native-group="adcs" data-native-key="imu_accel_white_noise_std_m_s2" type="number" min="0" max="1" step="any" value="0" required title="直接写入 Basilisk ImuSensor.PMatrixAccel 对角，并设置 AMatrixAccel=0"></label>
                     <label>IMU 陀螺 X 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_x" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
                     <label>IMU 陀螺 Y 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_y" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
                     <label>IMU 陀螺 Z 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_z" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
