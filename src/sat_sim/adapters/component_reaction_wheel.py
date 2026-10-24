@@ -16,7 +16,7 @@ from sat_sim.task_validator import ValidationIssue
 
 
 def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
-    """Opt-in original Basilisk RW dynamics; explicitly single-wheel/nominal only."""
+    """Opt-in Basilisk 1RW / orthogonal 3RW / pyramid 4RW nominal dynamics."""
     from sat_sim.bsk_engine.native_rw_component import run_native_rw_probe
 
     params = spec.get("parameters") if isinstance(spec.get("parameters"), Mapping) else {}
@@ -26,7 +26,8 @@ def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
     unsupported = []
     if str(target.get("mode") or "nominal") != "nominal":
         unsupported.append("mode")
-    if type(params.get("num_wheels", 1)) is not int or params.get("num_wheels", 1) != 1:
+    count = params.get("num_wheels", 1)
+    if type(count) is not int or count not in (1, 3, 4):
         unsupported.append("num_wheels")
     if "torque_profile_nm" in params:
         unsupported.append("torque_profile_nm")
@@ -48,6 +49,9 @@ def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
         raise ValueError("NATIVE_RW_SAMPLE_INTERVAL_UNSUPPORTED")
     if type(duration) not in (int, float) or not 0.01 <= float(duration) <= 120.:
         raise ValueError("NATIVE_RW_DURATION_UNSUPPORTED")
+    if count in (3, 4):
+        from sat_sim.adapters.native_reaction_wheel_cluster import run_native_cluster_component
+        return run_native_cluster_component(spec)
     native = run_native_rw_probe(
         duration_s=duration, step_s=sample,
         inertia_kg_m2=params.get("wheel_inertia_kg_m2", .1),
@@ -165,14 +169,24 @@ class ReactionWheelAdapter:
             issues.append(ValidationIssue("error", "$.parameters.physics_backend", "unknown RW physics backend", "capability"))
         elif backend == "basilisk_native":
             native_unsupported = (
-                mode != "nominal" or num_wheels != 1 or "torque_profile_nm" in params
+                mode != "nominal" or num_wheels not in (1, 3, 4) or "torque_profile_nm" in params
                 or bool(self._normalized_faults(spec)) or bool(self._normalized_constraints(spec))
                 or bool(self._rw_degradation_payload(spec)) or bool(spec.get("events"))
             )
             if native_unsupported:
                 issues.append(ValidationIssue("error", "$.parameters.physics_backend",
-                                              "native RW currently supports only single-wheel nominal, no modifiers or torque profile",
+                                              "native RW supports 1, orthogonal 3 or pyramid 4 wheels, nominal only, no modifiers or torque profile",
                                               "native_scope"))
+            for key in ("wheel_inertia_kg_m2", "max_motor_torque_nm", "max_speed_rad_s",
+                        "initial_wheel_speeds_rad_s", "command_torque_nm", "damping_nms"):
+                value = params.get(key)
+                if isinstance(value, (list, tuple)) and len(value) != num_wheels:
+                    issues.append(ValidationIssue("error", "$.parameters." + key,
+                                                  "native parameter array must contain exactly num_wheels values",
+                                                  "native_scope"))
+                if num_wheels == 1 and isinstance(value, (list, tuple)):
+                    issues.append(ValidationIssue("error", "$.parameters." + key,
+                                                  "single-wheel native parameter must be a scalar", "native_scope"))
             if isinstance(sim.get("sample_s"), (int, float)) and float(sim["sample_s"]) > 1.0:
                 issues.append(ValidationIssue("error", "$.simulation.sample_s", "native RW sample_s <= 1 required", "native_scope"))
             if isinstance(sim.get("duration_s"), (int, float)) and float(sim["duration_s"]) > 120.0:
