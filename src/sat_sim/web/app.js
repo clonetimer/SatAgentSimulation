@@ -21,6 +21,7 @@
     traceability: null,
     plotManifest: null,
     telemetry: [],
+    telemetryOverview: null,
     artifacts: [],
     dataset: null,
     selectedSeries: [],
@@ -5404,6 +5405,19 @@
         api(`/runs/${encodeURIComponent(runId)}/fault-traceability`).catch(() => ({ traceability: null })),
       ]);
       if (requestId !== state.runLoadRequestId) return false;
+      // Finite-run charts must span the entire trace, not silently show only
+      // the first 2,000 samples. This bounded preview preserves actual extrema.
+      // Older servers or UI fixture transports can still return the legacy page.
+      let telemetryOverview = null;
+      try {
+        const plotFields = (plotsPayload.plot_manifest?.series || [])
+          .map((entry) => entry.field).filter(Boolean).slice(0, 16);
+        const query = new URLSearchParams({
+          max_points: '3000', fields: plotFields.join(','),
+        });
+        telemetryOverview = await api(`/runs/${encodeURIComponent(runId)}/telemetry/overview?${query}`);
+      } catch (_) { telemetryOverview = null; }
+      if (requestId !== state.runLoadRequestId) return false;
       state.activeRunId = runId;
       markSelectedRunInList();
       state.activeRun = runPayload.run;
@@ -5414,7 +5428,19 @@
       state.fmea = fmeaPayload;
       state.traceability = traceabilityPayload.traceability;
       state.plotManifest = plotsPayload.plot_manifest;
-      state.telemetry = telemetryPayload.rows || [];
+      state.telemetry = telemetryOverview?.source
+        ? (telemetryOverview.rows || []) : (telemetryPayload.rows || []);
+      state.telemetryOverview = telemetryOverview?.source ? telemetryOverview : null;
+      const coverage = el('chartTelemetryCoverage');
+      if (coverage) {
+        coverage.textContent = state.telemetryOverview
+          ? (state.telemetryOverview.sampled
+            ? `全时段概览：从 ${state.telemetryOverview.total} 条真实遥测中保留 ${state.telemetryOverview.count} 条样本及所选参量极值。局部缩放仍是概览，精确数据请导出完整数据集。`
+            : `全时段遥测：已加载 ${state.telemetryOverview.count} 条真实样本，无抽样。`)
+          : (telemetryPayload.truncated
+            ? `当前仅显示最前 ${(telemetryPayload.rows || []).length}/${telemetryPayload.total} 条遥测；概览服务不可用，不能据此判断全程趋势。`
+            : `已加载 ${(telemetryPayload.rows || []).length} 条遥测。`);
+      }
       state.artifacts = artifactsPayload.artifacts || [];
       state.dataset = datasetPayload.dataset || null;
       state.chartSeriesQuery = '';
