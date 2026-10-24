@@ -171,6 +171,14 @@ Windows PowerShell：
 - 不含 Allan 方差标定、噪声功率谱密度随采样间隔转换、轴间相关性、温度漂移、各轴独立 sigma 或噪声积分模型，均另列高保真候选；不会误认为本轮新增传感器测量噪声就完成 IMU 全部工程参数整改。
 - Vizard 新功能继续暂停，优先剩余 ADCS/其他分系统参数。
 
+## P0-16 磁强计原生三轴安装角与标定参数
+
+- 原有整星调用链把官方 `Basilisk.simulation.magnetometer.Magnetometer` 的 `setBodyToSensorDCM(0,0,0)` 固定写死，未向用户提供安装参数。现新增 `magnetometer_mount_{yaw,pitch,roll}_deg`（3-2-1 B→S 欧拉角）、`magnetometer_bias_tesla_{x,y,z}`（S 系逐轴常值偏置 ±1e-4 T）和 `magnetometer_scale_factor`（无量纲 (0,2]），7 项在有限 TaskSpec 与持续前端都有准确的默认值和单位。
+- 这些参数由统一原生图直接写入官方 C++ Magnetometer 的 `setBodyToSensorDCM`、`senBias` 和 `scaleFactor`，所有上游输入仍为真实 Basilisk `MagneticFieldCenteredDipole.envOutMsgs` 与 `Spacecraft.scStateOutMsg`；下游 ADCS fusion 不改为模拟场。直接 TaskSpec 的非有限值／超界／错误类型必须在 SWIG 前失败关闭。默认 (0,0,0)、(0,0,0) T、比例 1 保持历史行为。
+- 真实 L5：在相同轨道、姿态和仿真种子下，比较官方 TAM `adcs.magnetometer.tesla_{x,y,z}`：仅安装角变化须符合官方 `dcm_SB` 对原场向量的旋转，仅偏置变化须以特斯拉计入传感器输出，仅比例变化须对原始实测值产生比例响应；运行中捕获 SWIG 原生磁强计对象确认几何与标定配置，不能仅验证前端字段数量。
+- Basilisk 2.11 已知 `senNoiseStd` 默认传播矩阵和 RNGSeed 应用存在问题，官方 2.12 才修复，因此此 PR **不冒充已实现磁强计白噪声**，更不把错误的随机游走视为默认测量白噪声。噪声标准差／功率谱、随机偏置漂移、三轴交叉标定和饱和仍另列模型/版本修复清单，避免替换真实数据源。
+- Vizard 继续冻结，整星精确跨进程恢复与依赖安全发布均仍分别 BLOCKED，不因新增传感器参数而变更状态。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。

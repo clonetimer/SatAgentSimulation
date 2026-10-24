@@ -659,6 +659,16 @@
                     <label>初始真近点角（rad）<input data-native-group="orbit" data-native-key="initial_true_anomaly_rad" type="number" min="0" max="6.283185307179586" step="any" value="0" required></label>
                   </fieldset>
                   <fieldset><legend>ADCS 与反作用轮</legend>
+                    <details><summary>磁强计原生安装与校准（展开配置）</summary>
+                      <p class="continuous-muted">测量来自官方 Basilisk Magnetometer.tamDataOutMsg，安装角是 B→S 的 3-2-1 欧拉角；偏置单位为特斯拉 T，比例系数 1 保持原始校准。旧版 Basilisk 2.11 磁强计正常噪声存在随机游走与种子问题，暂不增加未验收的白噪声开关。</p>
+                      <label>磁强计安装航向角（°）<input data-native-group="adcs" data-native-key="magnetometer_mount_yaw_deg" type="number" min="-180" max="180" step="any" value="0" required></label>
+                      <label>磁强计安装俯仰角（°）<input data-native-group="adcs" data-native-key="magnetometer_mount_pitch_deg" type="number" min="-89" max="89" step="any" value="0" required></label>
+                      <label>磁强计安装横滚角（°）<input data-native-group="adcs" data-native-key="magnetometer_mount_roll_deg" type="number" min="-180" max="180" step="any" value="0" required></label>
+                      <label>磁强计 S 系 X 轴固定偏置（T）<input data-native-group="adcs" data-native-key="magnetometer_bias_tesla_x" type="number" min="-0.0001" max="0.0001" step="any" value="0" required></label>
+                      <label>磁强计 S 系 Y 轴固定偏置（T）<input data-native-group="adcs" data-native-key="magnetometer_bias_tesla_y" type="number" min="-0.0001" max="0.0001" step="any" value="0" required></label>
+                      <label>磁强计 S 系 Z 轴固定偏置（T）<input data-native-group="adcs" data-native-key="magnetometer_bias_tesla_z" type="number" min="-0.0001" max="0.0001" step="any" value="0" required></label>
+                      <label>磁强计测量比例因子<input data-native-group="adcs" data-native-key="magnetometer_scale_factor" type="number" min="0.001" max="2" step="any" value="1" required></label>
+                    </details>
                     <p class="continuous-muted"><strong>IMU 原生测量误差</strong>：下列恒定偏置写入 Basilisk ImuSensor；量程填 0 表示保留原生默认，非零时启用对应原生饱和上限。和故障事件注入分开管理。</p>
                     <p class="continuous-muted">官方 Basilisk ImuSensor 测量白噪声与项目“故障期间噪声增加”是两种不同机制。以下标准差直接进入官方传感器 PMatrixGyro / PMatrixAccel，并显式设置 A=0（避免 2.11 的陀螺噪声随机游走）。0 为不注入；正值时同一种子、相同环境可复现。</p>
                     <label>仿真随机种子<input data-native-group="adcs" data-native-key="simulation_seed" type="number" min="0" max="2147483647" step="1" value="0" required title="用于官方 IMU、星敏和项目故障注入的随机种子"></label>

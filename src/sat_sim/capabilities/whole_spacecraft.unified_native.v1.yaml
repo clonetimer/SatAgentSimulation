@@ -111,6 +111,55 @@ parameters:
     required: false
     default: 30.0
     min: 0.0
+  magnetometer_mount_yaw_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0
+    min: -180
+    max: 180
+  magnetometer_mount_pitch_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0
+    min: -89
+    max: 89
+  magnetometer_mount_roll_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0
+    min: -180
+    max: 180
+  magnetometer_bias_tesla_x:
+    type: number
+    unit: T
+    required: false
+    default: 0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_bias_tesla_y:
+    type: number
+    unit: T
+    required: false
+    default: 0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_bias_tesla_z:
+    type: number
+    unit: T
+    required: false
+    default: 0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_scale_factor:
+    type: number
+    unit: 1
+    required: false
+    default: 1
+    min: 0.000001
+    max: 2
   simulation_seed:
     type: integer
     unit: 1

@@ -960,7 +960,31 @@ class UnifiedNativeRuntime:
         connected("spacecraft.scStateOutMsg", "magnetic_field")
 
         magnetometer_model = magnetometer.Magnetometer()
-        magnetometer_model.setBodyToSensorDCM(0.0, 0.0, 0.0)
+        # This is a physical Basilisk magnetometer, not a magnetic-field
+        # telemetry rotation. Validate direct finite TaskSpec values before
+        # forwarding to upstream SWIG to avoid quiet NaN propagation.
+        angles = []
+        for name, low, high in (
+            ("magnetometer_mount_yaw_deg", -180., 180.),
+            ("magnetometer_mount_pitch_deg", -89., 89.),
+            ("magnetometer_mount_roll_deg", -180., 180.),
+        ):
+            raw = values.get(name, 0.)
+            if type(raw) not in (int, float) or not math.isfinite(raw) or not low <= raw <= high:
+                raise ValueError("NATIVE_MAGNETOMETER_MOUNT_INVALID")
+            angles.append(math.radians(float(raw)))
+        mag_bias = []
+        for axis in "xyz":
+            raw = values.get(f"magnetometer_bias_tesla_{axis}", 0.)
+            if type(raw) not in (int, float) or not math.isfinite(raw) or abs(raw) > 1e-4:
+                raise ValueError("NATIVE_MAGNETOMETER_BIAS_INVALID")
+            mag_bias.append(float(raw))
+        mag_scale = values.get("magnetometer_scale_factor", 1.)
+        if type(mag_scale) not in (int, float) or not math.isfinite(mag_scale) or not 0. < mag_scale <= 2.:
+            raise ValueError("NATIVE_MAGNETOMETER_SCALE_INVALID")
+        magnetometer_model.setBodyToSensorDCM(*angles)
+        magnetometer_model.senBias = mag_bias
+        magnetometer_model.scaleFactor = float(mag_scale)
         magnetometer_model.stateInMsg.subscribeTo(sc.scStateOutMsg)
         magnetometer_model.magInMsg.subscribeTo(magnetic.envOutMsgs[0])
         add(magnetometer_model, "magnetometer", "basilisk_official_native", 85)
