@@ -7,7 +7,7 @@ before it can reach a fresh runtime. No arbitrary tasks, paths or Python code.
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
 
 
 class _Strict(BaseModel):
@@ -73,6 +73,15 @@ class NativeAdcsInitial(_Strict):
         default=80., gt=0., le=180.,
         description="原生 Basilisk CoarseSunSensor.fov 视场全角（deg），仅影响该光敏器观测，不代表所有敏感器的视场。",
     )
+    @field_validator("sun_sensor_normal_b_x", "sun_sensor_normal_b_y", "sun_sensor_normal_b_z", mode="before")
+    @classmethod
+    def reject_non_numeric_css_boresight(cls, value):
+        # Pydantic float normally coerces True to 1.0, but hardware
+        # orientation must not accept booleans or string-number inputs.
+        if type(value) not in (int, float):
+            raise ValueError("SUN_SENSOR_NORMAL_REQUIRES_REAL_NUMBER")
+        return value
+
     @model_validator(mode="after")
     def check_sun_sensor_normal(self):
         from sat_sim.bsk_engine.sun_sensor_geometry import resolve_sun_sensor_boresight
