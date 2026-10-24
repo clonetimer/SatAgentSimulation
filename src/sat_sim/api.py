@@ -1001,6 +1001,34 @@ def create_app(
             "observability": {"schema_version": "release.observability-health.v1", "log_available": workbench_log.path.exists()},
         }
 
+    @app.get("/workbench/single-run/readiness")
+    def single_run_readiness() -> dict[str, Any]:
+        """Read-only installation hint; NEVER represent successful TaskSpec execution."""
+        from .simulation_fidelity import inspect_basilisk_runtime
+
+        native = inspect_basilisk_runtime()
+        return {
+            "schema_version": "sat-sim.single-run-workbench-readiness.v1",
+            "ok": True,
+            "simulation_mode": "finite_single_run",
+            "execution_protocol": "taskspec_prepare_then_persistent_async_run",
+            "native_basilisk": {
+                "ready": native.ready,
+                "version": native.version,
+                "reason": native.reason,
+                "preflight_only": True,
+            },
+            "endpoints": {
+                "validate": "/tasks/parse",
+                "submit": "/runs",
+                "track": "/runs/{run_id}/execution",
+                "result": "/runs/{run_id}",
+            },
+            "native_execution_result_proven": False,
+            "automatic_cross_process_resume_supported": False,
+            "automatic_tc_replay_allowed": False,
+        }
+
     @app.get("/auth/status")
     def auth_status(request: Request) -> dict[str, Any]:
         principal = getattr(request.state, "principal", None)
