@@ -5254,6 +5254,7 @@
       if (!runId) throw new Error('运行已返回，但未提供 run_id');
       submittedRunId = runId;
       state.activeRunId = runId;
+      markSelectedRunInList();
       state.activeRunDisplayName = displayName;
       state.singleRunSubmitting = false;
       updateSingleRunGuide('running', `“${displayName}”已建立运行记录（${runId}），正在执行。`);
@@ -5309,7 +5310,9 @@
     runs.forEach((run) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'run-list-item';
+      button.className = `run-list-item${run.run_id === state.activeRunId ? ' active' : ''}`;
+      button.setAttribute('aria-current', run.run_id === state.activeRunId ? 'true' : 'false');
+      button.dataset.runId = run.run_id;
       const main = document.createElement('div');
       main.className = 'run-list-main';
       const title = document.createElement('strong');
@@ -5326,6 +5329,14 @@
     });
   }
 
+  function markSelectedRunInList() {
+    $all('#runList .run-list-item').forEach((button) => {
+      const selected = button.dataset.runId === state.activeRunId;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-current', selected ? 'true' : 'false');
+    });
+  }
+
   async function loadRun(runId, options = {}) {
     const quiet = Boolean(options.quiet);
     const requestId = ++state.runLoadRequestId;
@@ -5334,6 +5345,7 @@
       // must not overwrite the user-selected run.
       stopExecutionPolling();
       state.activeRunId = runId;
+      markSelectedRunInList();
       state.activeRun = null;
       state.executionState = null;
       el('activeRunCard').className = 'active-run empty-state';
@@ -5354,6 +5366,7 @@
       ]);
       if (requestId !== state.runLoadRequestId) return false;
       state.activeRunId = runId;
+      markSelectedRunInList();
       state.activeRun = runPayload.run;
       state.metrics = metricsPayload.metrics?.metrics || metricsPayload.metrics || {};
       state.metricMetadata = metricsPayload.metric_metadata || {};
