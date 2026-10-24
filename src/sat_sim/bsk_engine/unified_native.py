@@ -832,6 +832,12 @@ class UnifiedNativeRuntime:
         add(eclipse_model, "eclipse", "basilisk_official_native", 95)
         connected("spacecraft.scStateOutMsg", "eclipse")
 
+        # Guard the shared random seed before the native star tracker, IMU
+        # and project event injectors consume it. The SWIG RNGSeed is unsigned;
+        # direct finite TaskSpecs must never allow negative/wrapped seeds.
+        raw_sim_seed = values.get("simulation_seed", 0)
+        if type(raw_sim_seed) is not int or not 0 <= raw_sim_seed <= 2147483647:
+            raise ValueError("NATIVE_SIMULATION_SEED_INVALID")
         # Real Basilisk 3-2-1 body-to-case installation. Default (0,0,0)
         # remains identity, so existing whole-spacecraft runs are unchanged.
         tracker_euler_321 = [
