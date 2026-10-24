@@ -266,6 +266,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
         }).json()
         assert parsed["ok"] is True
         payloads["ui-a"]["task_spec"] = parsed["result"]["task_spec"]
+        payloads["ui-a"]["task_spec"]["task"]["name"] = payloads["ui-a"]["name"]
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
             page = browser.new_page(viewport={"width": 1480, "height": 950}, locale="zh-CN")
