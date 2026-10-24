@@ -46,7 +46,8 @@ def test_real_native_cluster_per_wheel_command_and_hardware_limits(configuration
     for row in over.applied_motor_torque_nm:
         assert abs(row[0]) <= .005 + 1e-9
         assert all(abs(value) <= 1e-9 for value in row[1:])
-    assert over.wheel_speed_rad_s == pytest.approx(limit.wheel_speed_rad_s, abs=1e-5)
+    for saturated_row, rated_row in zip(over.wheel_speed_rad_s, limit.wheel_speed_rad_s):
+        assert saturated_row == pytest.approx(rated_row, abs=1e-5)
     # No hidden fourth RW exists in the orthogonal 3 native graph.
     assert len(over.applied_motor_torque_nm[0]) == count
 
