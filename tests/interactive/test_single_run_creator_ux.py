@@ -7,7 +7,7 @@ tests/interactive/test_unified_segmented_execution.py gate.
 from __future__ import annotations
 
 import json
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -74,9 +74,14 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert "comparableRunMetrics" in js
     assert "comparableRunTraceFields" in js
     assert "drawRunCompareChart" in js
+    assert "turnRunComparePage" in js
+    assert "runCompareMetricPresentation" in js
     assert ".run-compare-toolbar" in css
+    assert ".run-compare-pages" in css
     for control in ("runComparePanel", "runCompareSelectedBtn", "runCompareClearBtn",
-                    "runCompareField", "runCompareChart", "runCompareHead", "runCompareBody"):
+                    "runCompareField", "runCompareChart", "runCompareHead", "runCompareBody",
+                    "runCompareAPrevBtn", "runCompareANextBtn", "runCompareBPrevBtn",
+                    "runCompareBNextBtn", "runCompareAPageStatus", "runCompareBPageStatus"):
         assert f'id="{control}"' in page
 
 
@@ -429,11 +434,12 @@ def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_pat
          "validation_result": "NOT_EVALUATED", "primary_capability_id": "whole_spacecraft.unified_native.v1"},
     ]
     simulated = {
-        "cmp-a": {"metric": 4.0, "times": [0, 1, 2, 3], "values": [3.5, 3.0, 2.5, 2.0]},
+        "cmp-a": {"metric": 4.0, "times": list(range(2003)), "values": [3.5 - t / 1000 for t in range(2003)]},
         "cmp-b": {"metric": 2.5, "times": [0, 1.5, 3], "values": [3.0, 2.7, 2.2]},
     }
     compared_requests = []
     executed_requests = []
+    telemetry_requests = []
     with _client(tmp_path) as client, pw.sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
@@ -470,15 +476,36 @@ def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_pat
                     rid = parts[1]
                     item = simulated[rid]
                     if parts[2] == "metrics":
-                        result = {"metrics": {"qoi.adcs.final_pointing_error_deg": item["metric"]}}
+                        result = {
+                            "metrics": {
+                                "qoi.adcs.final_pointing_error_deg": item["metric"],
+                                "qoi.adcs.other_unit_mismatch": 1.0,
+                            },
+                            "metric_metadata": {
+                                "qoi.adcs.final_pointing_error_deg": {
+                                    "label_zh": "最终指向误差", "unit": "deg",
+                                    "description_zh": "来自原始 Run Bundle 的数值指标",
+                                },
+                                "qoi.adcs.other_unit_mismatch": {
+                                    "label_zh": "不可比指标",
+                                    "unit": "deg" if rid == "cmp-a" else "rad",
+                                },
+                            },
+                        }
                     elif parts[2] == "plots":
                         result = {"plot_manifest": {"time_axis": {"field": "time_s", "label": "仿真秒"},
                             "series": [{"field": "adcs.pointing_error_deg",
                                         "label": "姿态误差", "unit": "deg"}]}}
                     elif parts[2] == "telemetry":
-                        result = {"rows": [
+                        query = parse_qs(u.query)
+                        offset = int(query.get("offset", ["0"])[0])
+                        limit = int(query.get("limit", ["2000"])[0])
+                        telemetry_requests.append((rid, offset, limit))
+                        result = {"run_id": rid, "offset": offset, "limit": limit,
+                                  "total": len(item["times"]), "rows": [
                             {"time_s": time, "adcs.pointing_error_deg": value}
-                            for time, value in zip(item["times"], item["values"])
+                            for time, value in zip(item["times"][offset:offset + limit],
+                                                   item["values"][offset:offset + limit])
                         ]}
                     else:
                         result = {}
@@ -523,12 +550,32 @@ def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_pat
             }]
             table = page.locator("#runCompareBody").inner_text()
             assert "qoi.adcs.final_pointing_error_deg" in table
+            assert "最终指向误差（deg）" in table
+            assert "不可比指标" not in table
             assert "4" in table and "2.5" in table and "-1.5" in table
             assert page.locator("#runCompareField").input_value() == "adcs.pointing_error_deg"
             note = page.locator("#runCompareChartNote").inner_text()
             assert "cmp-a" in note and "cmp-b" in note
-            assert "有效 4/已载入 4 点" in note and "有效 3/已载入 3 点" in note
+            assert "有效 2000/已载入 2000 点" in note and "有效 3/已载入 3 点" in note
             assert "不做跨 Run 对齐" in note
+            assert page.locator("#runCompareANextBtn").is_enabled()
+            assert page.locator("#runCompareBNextBtn").is_disabled()
+            assert page.locator("#runCompareAPrevBtn").is_disabled()
+            page.locator("#runCompareANextBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#runCompareAPageStatus').textContent.includes('第 2 页')",
+                timeout=20000,
+            )
+            assert "有效 3/已载入 3 点" in page.locator("#runCompareChartNote").inner_text()
+            assert page.locator("#runCompareANextBtn").is_disabled()
+            assert page.locator("#runCompareAPrevBtn").is_enabled()
+            assert ("cmp-a", 2000, 2000) in telemetry_requests
+            page.locator("#runCompareAPrevBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#runCompareAPageStatus').textContent.includes('第 1 页')",
+                timeout=20000,
+            )
+            assert ("cmp-a", 0, 2000) in telemetry_requests
             assert not executed_requests
             page.locator("#runCompareClearBtn").click()
             assert page.locator("#runComparePanel").is_hidden()

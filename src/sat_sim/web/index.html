@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.15.4-finite-run-compare-ux">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.15.5-paged-run-compare">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -849,6 +849,10 @@
           <div class="run-compare-chart-controls">
             <label>共同遥测参量 <select id="runCompareField" aria-label="选择要叠加的共同遥测参量"></select></label>
           </div>
+          <div id="runComparePages" class="run-compare-pages" aria-label="两个 Run 独立遥测分页">
+            <div><strong>Run A 采样分页</strong><button id="runCompareAPrevBtn" class="button button-ghost" type="button" disabled>上一页</button><span id="runCompareAPageStatus" aria-live="polite">未读取</span><button id="runCompareANextBtn" class="button button-secondary" type="button" disabled>下一页</button></div>
+            <div><strong>Run B 采样分页</strong><button id="runCompareBPrevBtn" class="button button-ghost" type="button" disabled>上一页</button><span id="runCompareBPageStatus" aria-live="polite">未读取</span><button id="runCompareBNextBtn" class="button button-secondary" type="button" disabled>下一页</button></div>
+          </div>
           <div class="chart-frame run-compare-chart-frame"><canvas id="runCompareChart" width="900" height="320" aria-label="两次独立 Run 的同名遥测曲线叠加"></canvas></div>
           <div id="runCompareChartNote" class="chart-window-status">曲线数据来自各自 Run 的已加载遥测；不做插值或跨时间戳配对。</div>
         </section>
@@ -953,8 +957,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.15.4-finite-run-compare-ux";</script>
-  <script src="/assets/app.js?v=0.15.4-finite-run-compare-ux" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.15.5-paged-run-compare";</script>
+  <script src="/assets/app.js?v=0.15.5-paged-run-compare" defer></script>
   <script src="/assets/continuous.js?v=0.16.0-r7-ui" defer></script>
 </body>
 </html>
