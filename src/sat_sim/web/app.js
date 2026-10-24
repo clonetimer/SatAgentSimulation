@@ -4905,7 +4905,19 @@
       updateSingleRunGuide('configure', '表单参数未通过检查，请查看字段提示并修正。');
       return false;
     }
+    // The backend validates a snapshot. A user may edit the form while the
+    // async request is in flight; never attach the response to a newer form.
+    const requestedCapabilityId = state.selectedCapabilityId;
+    const requestedForm = JSON.stringify(state.formData);
     const payload=await api('/tasks/parse',{method:'POST',body:JSON.stringify({input_kind:'form',form_data:state.formData,compile_if_valid:true})});
+    if (state.selectedCapabilityId !== requestedCapabilityId || JSON.stringify(state.formData) !== requestedForm) {
+      state.taskSpec = null;
+      state.planning = null;
+      syncTaskSpecEditor();
+      updateSingleRunGuide('configure', '校验期间配置发生变化；旧校验结果已丢弃，请重新校验。');
+      showNotice('校验期间配置已更新，请重新执行“校验与预览”。', 'warning');
+      return false;
+    }
     const result=payload.result; state.taskSpec=result.task_spec || null; state.planning=result.planning || null; syncTaskSpecEditor();
     if (!payload.ok) {
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
