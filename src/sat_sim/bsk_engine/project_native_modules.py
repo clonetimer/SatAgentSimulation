@@ -435,6 +435,8 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         wheel_max_torques_nm: Sequence[float] | None = None,
         motor_current_limit_a: float = 10.0,
         motor_torque_constant_nm_per_a: float = 0.02,
+        wheel_current_limits_a: Sequence[float] | None = None,
+        wheel_torque_constants_nm_per_a: Sequence[float] | None = None,
     ) -> None:
         super().__init__()
         self.ModelTag = "project_rw_command_fault_manager"
@@ -459,12 +461,29 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 or not math.isfinite(self.motor_torque_constant_nm_per_a)
                 or not 0. < self.motor_torque_constant_nm_per_a <= .2):
             raise ValueError("NATIVE_RW_ELECTRICAL_LIMIT_INVALID")
-        # Each official Honeywell wheel retains its rated hardware u_max;
-        # the Basilisk-scheduled upstream command path also observes the
-        # separate motor driver's maximum torque Kt * Imax.
+        # Each wheel has independent *driver* electrical parameters. Missing
+        # overrides inherit the historical shared Imax/Kt. No electrical
+        # model is attributed to upstream Honeywell RW internals: these caps
+        # are enforced by this real Basilisk-scheduled command-path SysModel.
+        currents = (tuple(wheel_current_limits_a) if wheel_current_limits_a is not None
+                    else (self.motor_current_limit_a,) * self.wheel_count)
+        constants = (tuple(wheel_torque_constants_nm_per_a) if wheel_torque_constants_nm_per_a is not None
+                     else (self.motor_torque_constant_nm_per_a,) * self.wheel_count)
+        if len(currents) != self.wheel_count or len(constants) != self.wheel_count:
+            raise ValueError("NATIVE_RW_PER_WHEEL_ELECTRICAL_COUNT_INVALID")
+        for current, kt in zip(currents, constants):
+            if (type(current) not in (int, float) or type(kt) not in (int, float)
+                    or not math.isfinite(current) or not math.isfinite(kt)
+                    or not 0. <= current <= 20. or not 0. < kt <= .2):
+                raise ValueError("NATIVE_RW_PER_WHEEL_ELECTRICAL_INVALID")
+        self.wheel_current_limits_a = tuple(float(x) for x in currents)
+        self.wheel_torque_constants_nm_per_a = tuple(float(x) for x in constants)
         self.motor_electrical_max_torque_nm = self.motor_current_limit_a * self.motor_torque_constant_nm_per_a
         self.effective_nominal_max_torques_nm = tuple(
-            min(limit, self.motor_electrical_max_torque_nm) for limit in limits
+            min(hardware_max, current * kt)
+            for hardware_max, current, kt in zip(
+                limits, self.wheel_current_limits_a, self.wheel_torque_constants_nm_per_a
+            )
         )
         self.commandInMsg = messaging.ArrayMotorTorqueMsgReader()
         self.speedInMsg = messaging.RWSpeedMsgReader()
