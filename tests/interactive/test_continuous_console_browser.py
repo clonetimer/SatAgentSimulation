@@ -30,7 +30,7 @@ class UiProtocolDouble:
             "time_s": stop_time_s,
             "orbit.radius_m": 7000000.,
             "adcs.pointing_error_deg": 0.12,
-            "eps.battery_soc": 0.81,
+            "eps.battery_soc": None,  # Browser regression: absent TM is not 0% SOC.
         }
         # Protocol double solely for browser selection tests, not native physics.
         if self.rw4:
@@ -112,6 +112,19 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#interactiveView").is_hidden()
             assert page.locator("#continuousNavButton").get_attribute("class").find("active") != -1
             assert page.locator("#continuousState").inner_text() == "未选择"
+            page.get_by_text("已连接服务器遥控目录：10 类指令", exact=False).wait_for(timeout=15000)
+            assert page.locator("#continuousOperation option").count() == 10
+            assert page.locator("#continuousCommandSubmit").is_enabled()
+            # The same backend command catalogue drives the continuous console.
+            page.locator("#continuousOperation").select_option("eps.load.set")
+            assert page.locator("#continuousCatalogFields [data-command-field='load_id']").count() == 1
+            assert page.locator("#continuousCatalogFields [data-command-field='enabled']").count() == 1
+            assert "subsystem.eps" in page.locator("#continuousCommandHelp").inner_text()
+            page.locator("#continuousOperation").select_option("comm_data.downlink.set")
+            assert page.locator("#continuousCatalogFields [data-command-field='rate_bps']").count() == 1
+            page.locator("#continuousOperation").select_option("comm_data.fault.inject")
+            assert "fault_operator" in page.locator("#continuousCommandHelp").inner_text()
+            page.locator("#continuousOperation").select_option("adcs.target.set")
 
             page.locator("#continuousSessionId").fill("browser-r7d")
             page.locator("details.continuous-native-config > summary").click()
@@ -150,6 +163,12 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 "() => document.querySelector('#continuousEnduranceStatus').textContent === 'RECORDING'",
                 timeout=12000,
             )
+            page.locator("#continuousOperation").select_option("eps.load.set")
+            page.locator("#continuousCatalogFields [data-command-field='load_id']").select_option("heater")
+            page.locator("#continuousCatalogFields [data-command-field='enabled']").check()
+            page.locator("#continuousExecuteAt").fill("0.2")
+            page.locator("#continuousCommandForm button[type=submit]").click()
+            page.locator("#continuousAckList").get_by_text("QUEUED", exact=False).first.wait_for(timeout=10000)
             page.locator("#continuousOperation").select_option("adcs.target.set")
             page.locator("#continuousExecuteAt").fill("0.2")
             page.locator("#continuousCommandForm button[type=submit]").click()
@@ -166,6 +185,13 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 timeout=15000,
             )
             assert "adcs.target.set" in running[0].commands
+            assert "eps.load.set" in running[0].commands
+            # This protocol fixture deliberately sends null SOC; never show 0%.
+            assert page.locator("#continuousSoc").inner_text() == "—"
+            page.locator("#continuousSignal").select_option("eps.battery_soc")
+            # Null samples are rejected before numeric scale computation, no JS errors.
+            assert page.locator("#continuousChart").is_visible()
+            page.locator("#continuousSignal").select_option("orbit.radius_m")
             assert page.locator("#continuousChart").is_visible()
             rw4_option = page.locator("#continuousRw4SignalOption")
             assert rw4_option.evaluate("(el) => el.disabled"), rw4_option.evaluate(
