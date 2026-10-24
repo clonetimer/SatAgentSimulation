@@ -91,6 +91,10 @@ class NativeAdcsInitial(_Strict):
         default=.2, gt=0., le=.2,
         description="真实 Basilisk RW 电机 u_max 与指令故障管理器的共同限幅 (N·m)",
     )
+    rw_max_torque_nm_0: float | None = Field(default=None, gt=0., le=.2, description="RW1 独立真实电机 u_max (N·m)；缺省沿用 rw_max_torque_nm")
+    rw_max_torque_nm_1: float | None = Field(default=None, gt=0., le=.2, description="RW2 独立真实电机 u_max (N·m)；缺省沿用共用限幅")
+    rw_max_torque_nm_2: float | None = Field(default=None, gt=0., le=.2, description="RW3 独立真实电机 u_max (N·m)；缺省沿用共用限幅")
+    rw_max_torque_nm_3: float | None = Field(default=None, gt=0., le=.2, description="RW4 独立真实电机 u_max (N·m)；仅四轮金字塔构型有效")
     rw_max_momentum_nms_0: Literal[50, 75, 100] = Field(default=50, description="RW1 Honeywell HR16 额定动量容量（N·m·s）；原生 maxMomentum，决定转子 Js，只能选择 50/75/100")
     rw_max_momentum_nms_1: Literal[50, 75, 100] = Field(default=50, description="RW2 Honeywell HR16 额定动量容量（N·m·s）")
     rw_max_momentum_nms_2: Literal[50, 75, 100] = Field(default=50, description="RW3 Honeywell HR16 额定动量容量（N·m·s）")
@@ -107,6 +111,8 @@ class NativeAdcsInitial(_Strict):
             raise ValueError("RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
         if self.rw_configuration != "pyramid_4" and self.rw_max_momentum_nms_3 is not None:
             raise ValueError("RW4_MAX_MOMENTUM_REQUIRES_PYRAMID_4")
+        if self.rw_configuration != "pyramid_4" and self.rw_max_torque_nm_3 is not None:
+            raise ValueError("RW4_TORQUE_LIMIT_REQUIRES_PYRAMID_4")
         if self.rw_configuration != "pyramid_4" and (
             self.rw_coulomb_friction_nm_3 is not None or self.rw_viscous_friction_nms_3 is not None
         ):
@@ -285,6 +291,8 @@ _UNITS = {
     "initial_true_anomaly_rad": "rad",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
+    "rw_max_torque_nm_0": "N·m", "rw_max_torque_nm_1": "N·m",
+    "rw_max_torque_nm_2": "N·m", "rw_max_torque_nm_3": "N·m",
     "rw_friction_mode": "枚举", "rw_coulomb_friction_nm": "N·m",
     "rw_viscous_friction_nms": "N·m·s/rad", "rw_mount_radius_m": "m",
     "rw_coulomb_friction_nm_0": "N·m", "rw_coulomb_friction_nm_1": "N·m",

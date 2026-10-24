@@ -175,6 +175,30 @@ parameters:
     required: false
     min: 0.0
     max: 0.01
+  rw_max_torque_nm_0:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.000001
+    max: 0.2
+  rw_max_torque_nm_1:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.000001
+    max: 0.2
+  rw_max_torque_nm_2:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.000001
+    max: 0.2
+  rw_max_torque_nm_3:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.000001
+    max: 0.2
   rw_max_momentum_nms_0:
     type: number
     unit: N*m*s

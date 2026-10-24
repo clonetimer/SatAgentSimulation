@@ -34,6 +34,7 @@ on:
       - "tests/test_native_vizard_recording.py"
       - "src/sat_sim/bsk_engine/vizard_native_export.py"
       - "scripts/export_native_vizard.py"
+      - "tests/test_native_rw_per_wheel_torque.py"
       - "tests/test_native_rw_per_wheel_friction.py"
       - "tests/test_native_rw_momentum.py"
       - "tests/test_native_spacecraft_inertia.py"
@@ -119,6 +120,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_vizard_recording.py
+          --disable-warnings
+      - name: Genuine Basilisk independent RW hardware u_max, fault clamp and physical spin A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_rw_per_wheel_torque.py
           --disable-warnings
       - name: Genuine Basilisk per-wheel friction coefficients and physical wheel speed A/B
         env:

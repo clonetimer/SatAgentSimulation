@@ -143,6 +143,14 @@ Windows PowerShell：
 - L5 验收：官方 SWIG RW 对象参数与 factory 参数双方核验；相同轨道、初始姿态与控制器，单独改变 RW1 摩擦应导致真实 Basilisk `adcs.rw.speed_rad_s_0` 曲线差异。补充 4RW 独立组合和原有共用模式的回归、非法/非有限值/不存在 RW4 的直接 TaskSpec 和 Pydantic 拒绝测试。
 - 这**不等同于**每只轮的自由可配置电机力矩、温度依赖磨损、结构安装三维位姿或转子振动；整星跨进程精确恢复仍为 BLOCKED。Vizard P1~P3 明确等待参数整改阶段后再考虑。
 
+## P0-13 官方 Basilisk 反作用轮逐轮电机最大力矩及故障指令一致性
+
+- 继续优先 P0 参数整改；不扩展 Vizard。新增 `rw_max_torque_nm_0..3` 为可选逐轮电机限幅，允许 (0,0.2] N·m。保持旧 `rw_max_torque_nm` 统一值作为没有逐轮覆盖时的后备值，默认始终为 0.2 N·m。RW4 只在四轮构型存在；前端需要显式勾选才能启用独立参数编辑，默认不改变旧场景。
+- 实体级验证：每轮独立参数传给官方 `Basilisk.utilities.simIncludeRW.rwFactory.create(..., u_max=...)`，改变 C++ 反作用轮的真实扭矩能力。与此同时，Basilisk 任务中的 `ReactionWheelCommandFaultManager` 必须使用完全一致的逐轮限幅，禁止用统一限幅覆盖较小的物理上限；失效降额、RW 卡滞和超速制动按目标 RW 自身上限计算。
+- 遥测 `adcs.rw.effective_max_torque_nm_0..3` 为实时故障限幅，`adcs.rw.effective_torque_ratio_0..3` 按对应轮的原生硬件额定值归一化，不能统一除以 RW1 或共享额定值。
+- L5 原生 A/B：真实 Basilisk factory 所返回轮对象的 `u_max` 为 [0.0001,0.12,0.15] N·m，实际 `adcs.control.applied_torque_nm_*` 永不超过对应轮的限幅；RW1 降额相对统一默认 0.2 N·m 的真实轮速轨迹必须改变。另校验四轮 [0.07,0.16,0.16,0.03]、共享历史后备、非法参数与不存在 RW4 的 fail-closed。
+- **界限**：该项只配置扭矩上限，不提供每轮直接任意扭矩指令、驱动电机效率曲线或动态速度-力矩包络。整星跨进程精确状态恢复继续 BLOCKED。Vizard P1～P3 继续冻结直至参数整改收敛。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
