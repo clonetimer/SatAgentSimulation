@@ -75,4 +75,4 @@ def test_genuine_native_wheel_motor_and_inertia_a_b():
     }
     target = Path("reports/native_rw_component_probe/physical_ab.json")
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
