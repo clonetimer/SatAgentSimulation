@@ -111,6 +111,70 @@ parameters:
     required: false
     default: 30.0
     min: 0.0
+  rw_configuration:
+    type: string
+    required: false
+    default: orthogonal_3
+    enum: [orthogonal_3, pyramid_4]
+  rw_friction_mode:
+    type: string
+    required: false
+    default: disabled
+    enum: [disabled, coulomb_viscous, per_wheel]
+  rw_coulomb_friction_nm_0:
+    type: number
+    unit: N*m
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 0.01
+  rw_coulomb_friction_nm_1:
+    type: number
+    unit: N*m
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 0.01
+  rw_coulomb_friction_nm_2:
+    type: number
+    unit: N*m
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 0.01
+  rw_coulomb_friction_nm_3:
+    type: number
+    unit: N*m
+    required: false
+    min: 0.0
+    max: 0.01
+  rw_viscous_friction_nms_0:
+    type: number
+    unit: N*m*s/rad
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 0.01
+  rw_viscous_friction_nms_1:
+    type: number
+    unit: N*m*s/rad
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 0.01
+  rw_viscous_friction_nms_2:
+    type: number
+    unit: N*m*s/rad
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 0.01
+  rw_viscous_friction_nms_3:
+    type: number
+    unit: N*m*s/rad
+    required: false
+    min: 0.0
+    max: 0.01
   rw_max_momentum_nms_0:
     type: number
     unit: N*m*s
