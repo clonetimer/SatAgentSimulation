@@ -117,3 +117,62 @@ def resolve_rw_geometry(
     if rank_max < 0.05:
         raise ValueError("NATIVE_RW_GEOMETRY_AXES_SINGULAR")
     return tuple(axes), tuple(locations)
+
+
+def relocated_rw_hub_mass_properties(
+    *,
+    total_mass_kg: float,
+    nominal_inertia_b: Sequence[Sequence[float]],
+    rw_masses_kg: Sequence[float],
+    rw_positions_b_m: Sequence[Sequence[float]],
+) -> tuple[tuple[float, float, float], tuple[tuple[float, float, float], ...]]:
+    """Reallocate already-included RW mass from B origin to physical positions.
+
+    Basilisk 2.11 BalancedWheels assumes each RW's *constant* mass/inertia
+    lives in spacecraft.hub, and does NOT account for rWB_B in its own mass
+    contribution. The original hub total mass and tensor already include the
+    wheels at the historical origin. Moving those masses needs only the
+    incremental parallel-axis contribution, plus the new total center of mass,
+    so it must NOT add their mass to mHub a second time.
+
+    The pre-existing nominal hub tensor is specified about its original COM
+    at B origin. Rotor intrinsic inertia/imbalances are NOT reconstructed.
+    """
+    import numpy as np
+
+    total = _number(total_mass_kg, limit=2000.,
+                    error="NATIVE_RW_GEOMETRY_TOTAL_MASS_INVALID")
+    if total <= 0.:
+        raise ValueError("NATIVE_RW_GEOMETRY_TOTAL_MASS_INVALID")
+    if len(rw_masses_kg) != len(rw_positions_b_m) or len(rw_masses_kg) not in (3, 4):
+        raise ValueError("NATIVE_RW_GEOMETRY_MASS_COUNT_INVALID")
+    masses = [_number(m, limit=2000., error="NATIVE_RW_GEOMETRY_WHEEL_MASS_INVALID")
+              for m in rw_masses_kg]
+    if any(m <= 0 for m in masses) or sum(masses) >= total:
+        raise ValueError("NATIVE_RW_GEOMETRY_MASS_BUDGET_INVALID")
+
+    positions = np.asarray(rw_positions_b_m, dtype=float)
+    if positions.shape != (len(masses), 3) or not np.all(np.isfinite(positions)):
+        raise ValueError("NATIVE_RW_GEOMETRY_POSITION_INVALID")
+    if np.any(np.abs(positions) > .25):
+        raise ValueError("NATIVE_RW_GEOMETRY_POSITION_INVALID")
+    old = np.asarray(nominal_inertia_b, dtype=float)
+    if old.shape != (3, 3) or not np.all(np.isfinite(old)) or not np.allclose(old, old.T, atol=1e-10):
+        raise ValueError("NATIVE_RW_GEOMETRY_NOMINAL_INERTIA_INVALID")
+
+    def parallel_axis(r):
+        return (float(np.dot(r, r)) * np.eye(3)) - np.outer(r, r)
+
+    com = sum((m * r for m, r in zip(masses, positions)), np.zeros(3)) / total
+    updated = old.copy()
+    for m, r in zip(masses, positions):
+        updated += m * parallel_axis(r)
+    updated -= total * parallel_axis(com)
+    eigs = np.linalg.eigvalsh(updated)
+    if not np.all(np.isfinite(eigs)) or min(eigs) <= 0.0:
+        raise ValueError("NATIVE_RW_GEOMETRY_ASSEMBLY_INERTIA_NON_POSITIVE")
+    if max(eigs) >= sum(eigs) - max(eigs):
+        raise ValueError("NATIVE_RW_GEOMETRY_ASSEMBLY_INERTIA_TRIANGLE_VIOLATION")
+    return tuple(float(v) for v in com), tuple(
+        tuple(float(v) for v in row) for row in updated
+    )
