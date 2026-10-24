@@ -45,6 +45,7 @@ on:
       - "tests/test_native_rw_per_wheel_torque.py"
       - "tests/test_native_rw_per_wheel_friction.py"
       - "tests/test_native_rw_momentum.py"
+      - "tests/test_native_fsw_vehicle_inertia_consistency.py"
       - "tests/test_native_spacecraft_inertia.py"
       - "tests/test_native_solar_panel_normal.py"
       - "tests/test_native_solar_panel_tracking.py"
@@ -191,6 +192,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_rw_momentum.py
+          --disable-warnings
+      - name: Real Basilisk MRP FSW VehicleConfig inertia and COM matches official hub in physical A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_fsw_vehicle_inertia_consistency.py
           --disable-warnings
       - name: Real Basilisk spacecraft principal inertia closed-loop A/B and invalid geometry
         env:
