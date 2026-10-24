@@ -25,7 +25,6 @@ def test_native_rejects_unsupported_modes_and_profiles_even_if_direct_run():
     for change in (
         {"target": {"level": "component", "name": "reaction_wheel", "mode": "fault"}},
         {"parameters": {**_spec()["parameters"], "num_wheels": 2}},
-        {"parameters": {**_spec()["parameters"], "damping_nms": .00001}},
         {"parameters": {**_spec()["parameters"], "torque_profile_nm": [.01]}},
     ):
         spec = {**_spec(), **change}
@@ -48,7 +47,8 @@ def test_reference_default_path_remains_project_owned():
     reference["parameters"].pop("physics_backend")
     r = ReactionWheelAdapter().run(reference)
     assert r.summary["status"] == "complete"
-    assert r.metadata.get("physics_backend") != "basilisk_native"
+    assert r.metadata["physics_backend"] == "project_reference"
+    assert r.metadata["model_source_boundary"]["basilisk_physics_executed"] is False
 
 
 def test_component_rw_opt_in_real_basilisk_physics():
@@ -68,3 +68,16 @@ def test_component_rw_opt_in_real_basilisk_physics():
     assert all(abs(u) <= .005 + 1e-8 for u in applied)
     assert all(r["label.health_state"] == "nominal" for r in result.trace_rows)
     assert all(r["label.fault_active"] is False for r in result.trace_rows)
+
+
+def test_component_rw_real_native_viscous_damping_and_friction_logs():
+    pytest.importorskip("Basilisk")
+    adapter = ReactionWheelAdapter()
+    no_friction = adapter.run(_spec(command_torque_nm=0., initial_wheel_speeds_rad_s=100., damping_nms=0.))
+    with_friction = adapter.run(_spec(command_torque_nm=0., initial_wheel_speeds_rad_s=100., damping_nms=.0002))
+    bare = no_friction.trace_rows[-1]
+    altered = with_friction.trace_rows[-1]
+    assert altered["adcs.reaction_wheel.damping_nms_0"] == pytest.approx(.0002)
+    assert abs(altered["adcs.reaction_wheel.speed_rad_s_0"]) < abs(bare["adcs.reaction_wheel.speed_rad_s_0"]) - .03
+    assert max(abs(r["adcs.reaction_wheel.friction_torque_nm_0"]) for r in with_friction.trace_rows) > .0001
+    assert max(abs(r["adcs.reaction_wheel.friction_torque_nm_0"]) for r in no_friction.trace_rows) == pytest.approx(0.)
