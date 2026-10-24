@@ -6565,7 +6565,8 @@
       const item = document.createElement('div'); item.className = 'interactive-value';
       const label = document.createElement('span'); label.textContent = name;
       const strong = document.createElement('strong');
-      strong.textContent = typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value);
+      strong.textContent = value == null || (typeof value === 'number' && !Number.isFinite(value))
+        ? '—' : (typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value));
       item.append(label, strong); values.appendChild(item);
     });
     if (!frames.length) values.innerHTML = '<div class="empty-state"><strong>等待遥测数据</strong></div>';
@@ -6587,19 +6588,33 @@
     for (let index = 1; index < 5; index += 1) {
       const y = 18 + (height - 40) * index / 5; ctx.beginPath(); ctx.moveTo(42, y); ctx.lineTo(width - 12, y); ctx.stroke();
     }
-    const availableNumericFields = new Set(frames.flatMap(frame => Object.entries(frame.values).filter(([, value]) => typeof value === 'number').map(([name]) => name)));
+    const availableNumericFields = new Set(frames.flatMap(frame => Object.entries(frame.values || {})
+      .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
+      .map(([name]) => name)));
     const numericFields = visibleFields.filter(field => availableNumericFields.has(field)).slice(0, 3);
     const colors = ['#53d6b5', '#64a9ff', '#f2bd63'];
     numericFields.forEach((field, fieldIndex) => {
-      const points = frames.map(frame => [Number(frame.sim_time_s), Number(frame.values[field])]).filter(item => Number.isFinite(item[1]));
+      // A missing/null/invalid sensor reading is a gap, never physical zero.
+      const samples = frames.map(frame => {
+        const t = frame.sim_time_s, value = frame.values?.[field];
+        return typeof t === 'number' && Number.isFinite(t)
+          && typeof value === 'number' && Number.isFinite(value)
+          ? [t, value] : null;
+      });
+      const points = samples.filter(Boolean);
       if (!points.length) return;
       const times = points.map(item => item[0]); const data = points.map(item => item[1]);
-      const tMin = Math.min(...times); const tMax = Math.max(...times); const vMin = Math.min(...data); const vMax = Math.max(...data);
+      const tMin = Math.min(...times); const tMax = Math.max(...times);
+      const vMin = Math.min(...data); const vMax = Math.max(...data);
       ctx.strokeStyle = colors[fieldIndex]; ctx.lineWidth = 1.8; ctx.beginPath();
-      points.forEach(([t, value], index) => {
-        const x = 42 + (width - 56) * (tMax === tMin ? index / Math.max(points.length - 1, 1) : (t - tMin) / (tMax - tMin));
-        const y = height - 22 - (height - 42) * (vMax === vMin ? 0.5 : (value - vMin) / (vMax - vMin));
-        if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      let connected = false;
+      samples.forEach((sample) => {
+        if (!sample) { connected = false; return; }
+        const [t, value] = sample;
+        const x = 42 + (width - 56) * (tMax === tMin ? .5 : (t - tMin) / (tMax - tMin));
+        const y = height - 22 - (height - 42) * (vMax === vMin ? .5 : (value - vMin) / (vMax - vMin));
+        if (!connected) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        connected = true;
       });
       ctx.stroke(); ctx.fillStyle = colors[fieldIndex]; ctx.font = '10px sans-serif'; ctx.fillText(field, 46, 14 + fieldIndex * 13);
     });

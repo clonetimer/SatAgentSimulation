@@ -9,6 +9,7 @@
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
     rwConfiguration: null,
+    commandContracts: [], catalogLoading: false,
   };
   const terminal = new Set(['COMPLETED', 'ABORTED', 'FAILED', 'INTERRUPTED']);
   const valueText = (val, digits = 3) => {
@@ -345,11 +346,16 @@
       }
     }
     const key = $('continuousSignal').value;
-    const points = state.telemetry.flatMap((frame) => {
-      const t = Number(frame.sim_time_s);
-      const v = Number(frame.values?.[key]);
-      return Number.isFinite(t) && Number.isFinite(v) ? [{ t, v }] : [];
+    // A missing/null/non-number TM sample is not a physical zero.
+    // Preserve gaps in the drawn line rather than connecting across them.
+    const samples = state.telemetry.map((frame) => {
+      const t = frame.sim_time_s;
+      const raw = frame.values?.[key];
+      return typeof t === 'number' && Number.isFinite(t)
+        && typeof raw === 'number' && Number.isFinite(raw)
+        ? { t, v: raw } : null;
     });
+    const points = samples.filter(Boolean);
     const padding = { left: 57, right: 20, top: 20, bottom: 30 };
     const x0 = padding.left, x1 = width - padding.right;
     const y0 = height - padding.bottom, y1 = padding.top;
@@ -379,22 +385,26 @@
     ctx.strokeStyle = '#24a7c8';
     ctx.lineWidth = 2.1;
     ctx.beginPath();
-    points.forEach((p, i) => {
+    let connected = false;
+    samples.forEach((p) => {
+      if (!p) { connected = false; return; }
       const x = x0 + (x1 - x0) * (p.t - minT) / (maxT - minT);
       const y = y0 - (y0 - y1) * (p.v - minV) / (maxV - minV);
-      if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      if (!connected) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      connected = true;
     });
     ctx.stroke();
   }
   function latest() {
     const frame = state.telemetry[state.telemetry.length - 1];
     const vals = frame?.values || {};
-    setText('continuousOrbit', vals['orbit.radius_m'] === undefined ? '—' :
-      valueText(vals['orbit.radius_m'], 1) + ' m');
-    setText('continuousPointing', vals['adcs.pointing_error_deg'] === undefined ? '—' :
-      valueText(vals['adcs.pointing_error_deg'], 3) + '°');
-    setText('continuousSoc', vals['eps.battery_soc'] === undefined ? '—' :
-      valueText(Number(vals['eps.battery_soc']) * 100, 1) + '%');
+    const valid = (key) => typeof vals[key] === 'number' && Number.isFinite(vals[key]);
+    setText('continuousOrbit', valid('orbit.radius_m') ?
+      valueText(vals['orbit.radius_m'], 1) + ' m' : '—');
+    setText('continuousPointing', valid('adcs.pointing_error_deg') ?
+      valueText(vals['adcs.pointing_error_deg'], 3) + '°' : '—');
+    setText('continuousSoc', valid('eps.battery_soc') ?
+      valueText(vals['eps.battery_soc'] * 100, 1) + '%' : '—');
     setText('continuousGapBadge', state.gap ? '缓冲缺口 · ' +
       state.gap.dropped_count : (frame ? '遥测已同步' : '暂无遥测'));
     renderChart();
@@ -623,7 +633,7 @@
       state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
       setText('continuousInitialConfigStatus',
         '已将运行前参数写入本次原生会话；配置在模型创建后不可修改。');
-      notice('已使用所选整星／分系统／单机参数创建 Basilisk 原生持续会话。');
+      notice('已使用当前整星配置创建 Basilisk 原生持续会话；单机和分系统不可作为独立持续会话运行。');
       await refresh();
     } catch (e) { notice('创建失败：' + e.message, true); }
   }
@@ -639,52 +649,194 @@
       await refresh();
     } catch (e) { notice('会话控制失败：' + e.message, true); }
   }
+  const commandLabels = {
+    'session.mode.set': '整星 · 切换运行模式',
+    'adcs.target.set': 'ADCS · 设置姿态目标',
+    'adcs.control.set': 'ADCS · 控制使能',
+    'adcs.fault.inject': 'ADCS · 注入故障',
+    'eps.load.set': 'EPS · 负载开关',
+    'eps.protection.set': 'EPS · 保护开关',
+    'eps.fault.inject': 'EPS · 注入故障',
+    'comm_data.generate': '通信数传 · 生成数据',
+    'comm_data.downlink.set': '通信数传 · 下行设置',
+    'comm_data.fault.inject': '通信数传 · 注入故障',
+  };
+  const legacyCommands = new Set([
+    'session.mode.set', 'adcs.target.set', 'adcs.control.set', 'adcs.fault.inject',
+  ]);
+  const commandContract = () => state.commandContracts.find(
+    (item) => item.operation === $('continuousOperation').value
+  );
+  async function loadCommandCatalog() {
+    if (state.catalogLoading) return;
+    state.catalogLoading = true;
+    $('continuousCommandSubmit').disabled = true;
+    setText('continuousCommandCatalogStatus', '正在从后端获取已注册命令…');
+    try {
+      const payload = await api('/interactive/commands/catalog');
+      const contracts = Array.isArray(payload?.commands) ? payload.commands : [];
+      if (!contracts.length) throw new Error('后端未提供已注册命令');
+      state.commandContracts = contracts;
+      const select = $('continuousOperation');
+      const previous = select.value;
+      select.replaceChildren();
+      contracts.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.operation;
+        option.textContent = commandLabels[item.operation] || item.operation;
+        select.append(option);
+      });
+      if (contracts.some((item) => item.operation === previous)) select.value = previous;
+      setText('continuousCommandCatalogStatus',
+        '已连接服务器遥控目录：' + contracts.length + ' 类指令；最终由后端执行权限与参数校验。');
+      changeOperation();
+    } catch (error) {
+      state.commandContracts = [];
+      $('continuousCommandSubmit').disabled = true;
+      setText('continuousCommandCatalogStatus', '遥控目录不可用，发送已禁用：' + error.message);
+      notice('获取服务器遥控目录失败：' + error.message, true);
+    } finally {
+      state.catalogLoading = false;
+    }
+  }
   function changeOperation() {
     const op = $('continuousOperation').value;
+    const contract = commandContract();
     const visibility = {
-      continuousTargetFields: op === 'adcs.target.set',
-      continuousModeFields: op === 'session.mode.set',
-      continuousControlFields: op === 'adcs.control.set',
-      continuousFaultFields: op === 'adcs.fault.inject',
+      continuousTargetFields: op === 'adcs.target.set' && Boolean(contract),
+      continuousModeFields: op === 'session.mode.set' && Boolean(contract),
+      continuousControlFields: op === 'adcs.control.set' && Boolean(contract),
+      continuousFaultFields: op === 'adcs.fault.inject' && Boolean(contract),
     };
     Object.entries(visibility).forEach(([id, show]) => $(id).classList.toggle('hidden', !show));
+    const host = $('continuousCatalogFields');
+    host.replaceChildren();
+    const dynamic = Boolean(contract) && !legacyCommands.has(op);
+    host.classList.toggle('hidden', !dynamic);
+    if (dynamic) {
+      Object.entries(contract.parameter_schema?.properties || {}).forEach(([name, schema]) => {
+        const label = document.createElement('label');
+        label.textContent = name + (contract.units?.[name] ? ' / ' + contract.units[name] : '');
+        let field;
+        if (Array.isArray(schema.enum)) {
+          field = document.createElement('select');
+          schema.enum.forEach((value) => {
+            const option = document.createElement('option');
+            option.value = String(value);
+            option.textContent = String(value);
+            field.append(option);
+          });
+        } else {
+          field = document.createElement('input');
+          field.type = schema.type === 'boolean' ? 'checkbox'
+            : ['number', 'integer'].includes(schema.type) ? 'number' : 'text';
+          if (field.type === 'number') {
+            if (schema.minimum !== undefined) field.min = String(schema.minimum);
+            if (schema.maximum !== undefined) field.max = String(schema.maximum);
+            field.step = schema.type === 'integer' ? '1' : 'any';
+            field.value = String(schema.minimum != null && schema.minimum > 0 ? schema.minimum : 0);
+          } else if (schema.type === 'array') {
+            field.value = Array(schema.minItems || 3).fill('0').join(', ');
+          }
+        }
+        field.dataset.commandField = name;
+        field.dataset.schemaType = schema.type || 'string';
+        if (field.type !== 'checkbox') field.required = true;
+        label.append(field);
+        host.append(label);
+      });
+    }
+    $('continuousCommandSubmit').disabled = !contract;
+    setText('continuousCommandHelp', contract
+      ? ('控制对象：' + contract.target + ' · 权限：' + contract.required_role
+        + ' · 执行后观测：' + (contract.effect_fields || []).join('、'))
+      : '尚未取得后端遥控目录；禁止发送。');
+  }
+  function numericCommandValue(field, schema, label) {
+    const raw = field.value.trim();
+    if (raw === '') throw new Error(label + ' 不能为空');
+    const value = Number(raw);
+    if (!Number.isFinite(value)) throw new Error(label + ' 必须是有限数值');
+    if (schema.type === 'integer' && !Number.isInteger(value)) {
+      throw new Error(label + ' 必须是整数');
+    }
+    if (schema.minimum !== undefined && value < schema.minimum
+        || schema.maximum !== undefined && value > schema.maximum) {
+      throw new Error(label + ' 超出允许范围');
+    }
+    return value;
+  }
+  function commandParameters(contract) {
+    const op = contract.operation;
+    const values = {};
+    const fields = contract.parameter_schema?.properties || {};
+    if (op === 'adcs.target.set') {
+      values.sigma_rn = ['continuousSigma1', 'continuousSigma2', 'continuousSigma3']
+        .map((id) => numericCommandValue($(id), fields.sigma_rn?.items || {type:'number'}, id));
+    } else if (op === 'session.mode.set') {
+      values.mode = $('continuousMode').value;
+    } else if (op === 'adcs.control.set') {
+      values.enabled = $('continuousControlEnabled').value === 'true';
+    } else if (op === 'adcs.fault.inject') {
+      values.fault_id = $('continuousFault').value;
+      values.severity = numericCommandValue($('continuousSeverity'), fields.severity, '严重程度');
+    } else {
+      $('continuousCatalogFields').querySelectorAll('[data-command-field]').forEach((field) => {
+        const name = field.dataset.commandField, schema = fields[name];
+        if (schema.type === 'boolean') values[name] = field.checked;
+        else if (schema.type === 'number' || schema.type === 'integer') {
+          values[name] = numericCommandValue(field, schema, name);
+        } else if (schema.type === 'array') {
+          const raw = field.value.trim().split(',').map((v) => v.trim());
+          if (raw.some((v) => !v)) throw new Error(name + ' 的数组元素不能为空');
+          values[name] = raw.map((v) => {
+            const tmp = {value:v};
+            return numericCommandValue(tmp, schema.items || {type:'number'}, name);
+          });
+        } else values[name] = field.value;
+      });
+    }
+    for (const [name, schema] of Object.entries(fields)) {
+      if (!(name in values)) throw new Error('缺少遥控参数：' + name);
+      if (schema.enum && !schema.enum.includes(values[name])) {
+        throw new Error('非法遥控枚举值：' + name);
+      }
+      if (schema.type === 'array') {
+        const valuesArray = values[name];
+        if (!Array.isArray(valuesArray)
+          || valuesArray.length < (schema.minItems || 0)
+          || (schema.maxItems != null && valuesArray.length > schema.maxItems)) {
+          throw new Error(name + ' 数组长度不符合命令协议');
+        }
+      }
+    }
+    return values;
   }
   async function sendCommand(event) {
     event.preventDefault();
     if (!state.snapshot?.session || !state.selectedId) {
       notice('请先选择可操作的持续会话。', true); return;
     }
-    const op = $('continuousOperation').value;
-    let parameters, target, actor_role = 'operator';
-    if (op === 'adcs.target.set') {
-      parameters = { sigma_rn: ['continuousSigma1', 'continuousSigma2', 'continuousSigma3']
-        .map((id) => Number($(id).value)) };
-      target = 'subsystem.adcs';
-    } else if (op === 'session.mode.set') {
-      parameters = { mode: $('continuousMode').value };
-      target = 'whole_spacecraft';
-    } else if (op === 'adcs.control.set') {
-      parameters = { enabled: $('continuousControlEnabled').value === 'true' };
-      target = 'subsystem.adcs';
-    } else {
-      parameters = { fault_id: $('continuousFault').value, severity: Number($('continuousSeverity').value) };
-      target = 'subsystem.adcs'; actor_role = 'fault_operator';
-    }
+    const contract = commandContract();
+    if (!contract) { notice('后端未注册此指令，拒绝发送。', true); return; }
+    let parameters;
+    try { parameters = commandParameters(contract); }
+    catch (error) { notice('指令参数无效：' + error.message, true); return; }
     const when = Number($('continuousExecuteAt').value);
-    if (!Number.isFinite(when) || when < 0) {
+    if (!$('continuousExecuteAt').value.trim() || !Number.isFinite(when) || when < 0) {
       notice('执行时刻必须是非负仿真秒数。', true); return;
-    }
-    if (op === 'adcs.target.set' && parameters.sigma_rn.some((n) => !Number.isFinite(n) || Math.abs(n) > 1)) {
-      notice('MRP 三个分量的范围均为 -1 到 1。', true); return;
     }
     const command = {
       command_id: 'tc-' + crypto.randomUUID(),
       session_id: state.selectedId,
       session_revision: state.snapshot.session.revision,
-      operation: op, target, parameters, actor_id: 'browser-operator',
-      actor_role, execute_at_sim_time_s: when,
+      operation: contract.operation, target: contract.target, parameters,
+      actor_id: 'browser-operator', actor_role: contract.required_role,
+      execute_at_sim_time_s: when,
     };
-    if (!confirm('确认发送遥控 ' + op + '，预定在仿真 ' + when.toFixed(2) + ' 秒执行？')) return;
+    if (!confirm('确认发送遥控 ' + contract.operation + '，预定在仿真 '
+      + when.toFixed(2) + ' 秒执行？')) return;
+    $('continuousCommandSubmit').disabled = true;
     try {
       const ack = await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/commands', {
         method: 'POST', body: JSON.stringify(command),
@@ -692,12 +844,17 @@
       notice('遥控 ' + ack.command_id + '：' + ack.state +
         (ack.reason_code ? ' / ' + ack.reason_code : ''), ack.state === 'REJECTED');
       await refresh();
-    } catch (e) { notice('遥控发送失败：' + e.message, true); }
+    } catch (error) {
+      notice('遥控发送失败：' + error.message, true);
+    } finally {
+      $('continuousCommandSubmit').disabled = !commandContract();
+    }
   }
   function enter() {
     state.active = true;
     clearInterval(state.timer);
     refresh();
+    loadCommandCatalog();
     state.timer = setInterval(refresh, 1400);
   }
   function exit() {
