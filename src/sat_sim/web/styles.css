@@ -1465,3 +1465,52 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   #creatorView .event-add-row,
   #creatorView .event-fields { grid-template-columns: 1fr; }
 }
+
+/* Finite Run results: readable time-window controls and traceable failures. */
+#creatorView .chart-window-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(2, auto);
+  align-items: end;
+  gap: 7px;
+  margin: 8px 0;
+}
+#creatorView .chart-window-controls label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  min-width: 0;
+}
+#creatorView .chart-window-controls input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  font-size: 12px;
+}
+#creatorView .chart-window-controls .button { min-height: 33px; }
+#creatorView .chart-window-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 6px 0 9px;
+  overflow-wrap: anywhere;
+}
+#creatorView .run-result-warning {
+  margin-top: 11px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--danger) 5%, var(--panel-2));
+  color: var(--text);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+#creatorView .validation-card.pending { border-color: var(--line); }
+#creatorView .run-list-item.active {
+  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent-2) 8%, var(--panel));
+}
+@media (max-width: 760px) {
+  #creatorView .chart-window-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #creatorView .chart-window-controls .button { width: 100%; }
+}
