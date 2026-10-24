@@ -28,8 +28,13 @@ def test_each_active_component_and_subsystem_parameter_is_in_generated_form() ->
     assert report["status"] == "PASS", report["issues"]
     assert report["component_count"] == 24
     assert report["subsystem_count"] == 18
+    assert report["selectable_subsystem_count"] == 12
+    assert report["selectable_component_count"] == 24
     assert report["capability_count"] == 43  # 24 + 18 + integrated spacecraft
     assert report["form_issue_count"] == 0
+    inactive = [c for c in report["capabilities"] if c["level"] == "subsystem" and not c["user_selectable"]]
+    assert len(inactive) == 6
+    assert all(c["lifecycle_status"] != "active" or not c["user_selectable"] for c in inactive)
     for item in report["capabilities"]:
         assert item["registered_parameter_count"] == item["form_parameter_count"]
         for entry in item["parameters"]:
