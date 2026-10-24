@@ -836,7 +836,22 @@
           <div class="task-center-actions"><button id="refreshRunCenterBtn" class="button button-secondary" type="button">刷新</button></div>
         </div>
         <div id="runCenterSummary" class="task-summary">正在读取运行记录…</div>
-        <div class="task-table-wrap"><table class="task-table"><thead><tr><th>任务 / Run ID</th><th>状态</th><th>验证</th><th>能力</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="runCenterTableBody"></tbody></table></div>
+        <div class="run-compare-toolbar">
+          <span id="runCompareSelectionStatus" role="status" aria-live="polite">请选择两次同模型的已完成运行进行比较。</span>
+          <button id="runCompareSelectedBtn" class="button button-primary" type="button" disabled>比较选中的 2 次运行</button>
+          <button id="runCompareClearBtn" class="button button-ghost" type="button">清空选择</button>
+        </div>
+        <div class="task-table-wrap"><table class="task-table"><thead><tr><th>比较</th><th>任务 / Run ID</th><th>状态</th><th>验证</th><th>能力</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="runCenterTableBody"></tbody></table></div>
+        <section id="runComparePanel" class="run-compare-panel hidden" aria-label="两次运行比较" aria-live="polite">
+          <div class="section-heading compact"><h2>历史运行对比</h2><button id="runCompareCloseBtn" class="button button-ghost" type="button">关闭结果</button></div>
+          <div id="runCompareSummary" class="task-summary"></div>
+          <div class="task-table-wrap"><table class="task-table run-compare-table"><thead id="runCompareHead"></thead><tbody id="runCompareBody"></tbody></table></div>
+          <div class="run-compare-chart-controls">
+            <label>共同遥测参量 <select id="runCompareField" aria-label="选择要叠加的共同遥测参量"></select></label>
+          </div>
+          <div class="chart-frame run-compare-chart-frame"><canvas id="runCompareChart" width="900" height="320" aria-label="两次独立 Run 的同名遥测曲线叠加"></canvas></div>
+          <div id="runCompareChartNote" class="chart-window-status">曲线数据来自各自 Run 的已加载遥测；不做插值或跨时间戳配对。</div>
+        </section>
       </section>
     </main>
 
