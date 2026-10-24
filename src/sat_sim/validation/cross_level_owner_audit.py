@@ -78,7 +78,8 @@ def build_cross_level_owner_audit(*, root: Path | None = None) -> dict[str, Any]
                 "adapter_inspection": adapter_status,
                 "static_read": read,
                 "implementation_requires_basilisk": bool(implementation.get("basilisk_required", False)),
-                "native_model_owner": "unverified",
+                "native_model_owner": ("backend_dependent_project_reference_or_official_Basilisk"
+                                       if cid == "component.reaction_wheel.v1" else "unverified"),
                 "dynamic_effect_evidence": "not_provided",
                 "cross_level_equivalence": "not_verified",
             })
@@ -92,8 +93,14 @@ def build_cross_level_owner_audit(*, root: Path | None = None) -> dict[str, Any]
         "rw_independent_entry": {
             "capability_id": "component.reaction_wheel.v1",
             "basilisk_required": rw["basilisk_required"] if rw else None,
-            "native_reuse_verified": False,
-            "reason": "Current independent adapter uses components.reaction_wheel Python models; native whole-spacecraft RW does not certify this entry.",
+            "default_physics_backend": "project_reference",
+            "native_opt_in_available": "basilisk_native" in
+                ((contracts["component.reaction_wheel.v1"].data.get("parameters") or {})
+                 .get("physics_backend") or {}).get("enum", []),
+            "native_supported_wheel_counts": [1, 3, 4],
+            "native_physics_verified_by_this_static_audit": False,
+            "cross_level_physical_parity_verified": False,
+            "reason": "Default remains project Python reference. Explicit basilisk_native nominal uses genuine SWIG 1/3/4 RW models; physical evidence lives in separate CI, and whole-spacecraft HR16 equivalence is unverified.",
         },
         "limitations": [
             "Literal adapter reads are evidence of source references only, not model consumption.",

@@ -17,7 +17,11 @@ def test_cross_level_audit_conservatively_refuses_physics_claim():
     from sat_sim.validation.cross_level_owner_audit import build_cross_level_owner_audit
     report = build_cross_level_owner_audit()
     assert report["physics_status"] == "NOT_VERIFIED"
-    assert report["rw_independent_entry"]["native_reuse_verified"] is False
+    assert report["rw_independent_entry"]["native_opt_in_available"] is True
+    assert report["rw_independent_entry"]["native_supported_wheel_counts"] == [1, 3, 4]
+    assert report["rw_independent_entry"]["native_physics_verified_by_this_static_audit"] is False
+    assert report["rw_independent_entry"]["cross_level_physical_parity_verified"] is False
+    assert report["rw_independent_entry"]["default_physics_backend"] == "project_reference"
     assert report["rw_independent_entry"]["basilisk_required"] is False
     rw = [r for r in report["parameter_rows"] if r["capability_id"] == "component.reaction_wheel.v1"]
     assert rw
