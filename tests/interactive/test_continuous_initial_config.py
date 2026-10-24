@@ -375,8 +375,8 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     assert len(native_imus) == 2 and len(native_trackers) == 2
     np.testing.assert_allclose(np.asarray(native_imus[0].dcm_PB), np.eye(3), atol=1e-12)
     np.testing.assert_allclose(np.asarray(native_trackers[0].dcm_CB), np.eye(3), atol=1e-12)
-    np.testing.assert_allclose(np.asarray(native_imus[0].sensorPos_B), [0., 0., 0.], atol=1e-12)
-    np.testing.assert_allclose(np.asarray(native_imus[1].sensorPos_B), [.1, -.2, .3], atol=1e-12)
+    np.testing.assert_allclose(np.asarray(native_imus[0].sensorPos_B).reshape(3), [0., 0., 0.], atol=1e-12)
+    np.testing.assert_allclose(np.asarray(native_imus[1].sensorPos_B).reshape(3), [.1, -.2, .3], atol=1e-12)
     imu_angles = np.radians([18., -6., 4.])
     tracker_angles = np.radians([-14., 7., -3.])
     np.testing.assert_allclose(
