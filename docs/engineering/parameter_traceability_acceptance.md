@@ -195,6 +195,14 @@ Windows PowerShell：
 - 真正 L5 验收捕获官方 SWIG `CoarseSunSensor` 各原生属性，对同轨道、姿态和时间分别执行非零增益、偏置、Kelly 非线性、上限截断、下限抬升的独立 A/B。要求读取实际 `cssDataOutMsg.OutputData`，验证数值差异以及 EPS 太阳板物理功率不受 CSS 标定改动影响；不能以 SWIG 属性配置成功替代测量输出证据。
 - 2.11 的 CSS `senNoiseStd`/RNG 以及项目太阳敏感器故障注入器保留独立职责，随机误差、温度漂移、多探头等将来单独验收。Vizard P1～P3 继续冻结，跨进程精确恢复也不因参数整改而宣称完成。
 
+## P0-19 跨域整改：RW 驱动器电流参数必须真正约束机械执行力矩
+
+- 跨系统参数审计发现 `rw_motor_current_limit_a` / `rw_motor_torque_constant_nm_per_a` 以前只在遥测 `adcs.rw.motor_current_a_*` 中作用于**显示值截断**，并未改变发送给官方 `ReactionWheelStateEffector` 的电机指令。这类“图表受限、真实机械加速度不变”的假生效必须整改，原有参数未登记到有限整星和持续前启动表单。
+- 两个参数分别为驱动器电流上限 `Imax` [0,20] A（0 为关闭电机）以及电机扭矩常数 `Kt` (0,0.2] N·m/A。默认 `Imax=10 A`、`Kt=0.02 N·m/A`，保持此前 0.2 N·m 额定驱动能力。二者进入 **Basilisk Task 调度的项目级** `ReactionWheelCommandFaultManager`，每轮发往原生 Basilisk `ReactionWheelStateEffector` 的实际最大命令力矩 = `min(official RW u_max_i, Imax × Kt)`；设备官方原有物理 `u_max_i`、独立摩擦及转子动力学保持不变。
+- 已有 `rw_motor_current_a_0..3` 遥测改为 **真实施加电机力矩 / Kt**，不会先把未经施加的控制器命令截断成看似合格的电流。有效最大力矩和额定比例反映包含电流上限的真实驱动命令能力，同时与各轮独立机械 `u_max_i` 取最小值。对主动故障处理、卡滞制动仍保持原有上层事件逻辑，并受电流驱动上限约束。
+- L5 真实 A/B：相同卫星、控制器、初始状态，单独降低 `Imax` 时 `adcs.control.applied_torque_nm_*`、`adcs.rw.effective_max_torque_nm_*` 和实际 Basilisk `adcs.rw.speed_rad_s_*` 均变化；更改 `Kt` 亦造成相同电气力矩能力下的电流遥测变化。四轮独立 `u_max` 和驱动器电气限制共同作用，非法值/NaN/布尔类型两层失败关闭。
+- **模型边界**：这是原生 RW 前的项目级电机驱动器**力矩限幅**，不是官方 Honeywell HR16 内部电气电流仿真；此时并未模拟母线电压、电机铜耗、驱动器热损耗，也没有把估计电机电流耦合为 EPS Battery 的实际负载。不能据此声称完成 ADCS→EPS 电流/功率耦合。Vizard 冻结，精确恢复仍 BLOCKED。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。

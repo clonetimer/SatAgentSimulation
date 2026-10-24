@@ -562,6 +562,20 @@ parameters:
     required: false
     min: 0.0
     max: 0.01
+  rw_motor_current_limit_a:
+    type: number
+    unit: A
+    required: false
+    default: 10.0
+    min: 0.0
+    max: 20.0
+  rw_motor_torque_constant_nm_per_a:
+    type: number
+    unit: N*m/A
+    required: false
+    default: 0.02
+    min: 0.000001
+    max: 0.2
   rw_max_torque_nm_0:
     type: number
     unit: N*m

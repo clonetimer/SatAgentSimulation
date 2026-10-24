@@ -41,6 +41,7 @@ on:
       - "tests/test_native_magnetometer_calibration.py"
       - "tests/test_native_imu_white_noise.py"
       - "tests/test_native_rw_geometry.py"
+      - "tests/test_native_rw_electrical_torque_limit.py"
       - "tests/test_native_rw_per_wheel_torque.py"
       - "tests/test_native_rw_per_wheel_friction.py"
       - "tests/test_native_rw_momentum.py"
@@ -162,6 +163,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_rw_geometry.py
+          --disable-warnings
+      - name: Real Basilisk RW motor electrical current authority, commanded torque and wheel-spin A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_rw_electrical_torque_limit.py
           --disable-warnings
       - name: Genuine Basilisk independent RW hardware u_max, fault clamp and physical spin A/B
         env:

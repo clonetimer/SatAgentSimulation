@@ -433,6 +433,8 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         self, events: Sequence[BSKEventSpec], *, wheel_count: int = 3,
         max_torque_nm: float = 0.2,
         wheel_max_torques_nm: Sequence[float] | None = None,
+        motor_current_limit_a: float = 10.0,
+        motor_torque_constant_nm_per_a: float = 0.02,
     ) -> None:
         super().__init__()
         self.ModelTag = "project_rw_command_fault_manager"
@@ -447,6 +449,23 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         ):
             raise ValueError("NATIVE_RW_PER_WHEEL_TORQUE_LIMIT_INVALID")
         self.wheel_max_torques_nm = limits
+        if (type(motor_current_limit_a) not in (int, float)
+                or type(motor_torque_constant_nm_per_a) not in (int, float)):
+            raise ValueError("NATIVE_RW_ELECTRICAL_LIMIT_INVALID")
+        self.motor_current_limit_a = float(motor_current_limit_a)
+        self.motor_torque_constant_nm_per_a = float(motor_torque_constant_nm_per_a)
+        if (not math.isfinite(self.motor_current_limit_a)
+                or not 0. <= self.motor_current_limit_a <= 20.
+                or not math.isfinite(self.motor_torque_constant_nm_per_a)
+                or not 0. < self.motor_torque_constant_nm_per_a <= .2):
+            raise ValueError("NATIVE_RW_ELECTRICAL_LIMIT_INVALID")
+        # Each official Honeywell wheel retains its rated hardware u_max;
+        # the Basilisk-scheduled upstream command path also observes the
+        # separate motor driver's maximum torque Kt * Imax.
+        self.motor_electrical_max_torque_nm = self.motor_current_limit_a * self.motor_torque_constant_nm_per_a
+        self.effective_nominal_max_torques_nm = tuple(
+            min(limit, self.motor_electrical_max_torque_nm) for limit in limits
+        )
         self.commandInMsg = messaging.ArrayMotorTorqueMsgReader()
         self.speedInMsg = messaging.RWSpeedMsgReader()
         self.commandOutMsg = messaging.ArrayMotorTorqueMsg()
@@ -465,7 +484,7 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         drag = [0.0] * len(output)
         torque_limits = [self.max_torque_nm] * len(output)
         for index in range(min(self.wheel_count, len(output))):
-            torque_limits[index] = self.wheel_max_torques_nm[index]
+            torque_limits[index] = self.effective_nominal_max_torques_nm[index]
         speed_limits = [0.0] * len(list(speed_payload.wheelSpeeds))
         speeds = list(speed_payload.wheelSpeeds)
 
@@ -474,7 +493,7 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
             if event.effect in {"rw_motor_failure", "adcs_rw_motor_failure"}:
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.0), 1.0))
                 output[index] *= scale
-                torque_limits[index] = self.wheel_max_torques_nm[index] * scale
+                torque_limits[index] = self.effective_nominal_max_torques_nm[index] * scale
             elif event.effect == "adcs_actuator_failure":
                 output[index] = 0.0; torque_limits[index] = 0.0
             elif event.effect == "adcs_control_loop_failure":
@@ -484,7 +503,7 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
             elif event.effect == "adcs_rw_torque_authority_loss":
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.5), 1.0))
                 output[index] *= scale
-                torque_limits[index] = self.wheel_max_torques_nm[index] * scale
+                torque_limits[index] = self.effective_nominal_max_torques_nm[index] * scale
             elif event.effect == "rw_friction_degradation":
                 coefficient = max(_event_number(event, ("drag_nms",), 0.01), 0.0)
                 drag[index] = coefficient
@@ -495,18 +514,20 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 speed = float(speeds[index])
                 if abs(speed) >= limit:
                     gain = max(_event_number(event, ("overspeed_brake_gain_nms",), 0.02), 0.0)
-                    brake = min(self.wheel_max_torques_nm[index], gain * max(0.0, abs(speed) - limit))
+                    brake = min(self.effective_nominal_max_torques_nm[index], gain * max(0.0, abs(speed) - limit))
                     output[index] = -math.copysign(brake, speed)
             elif event.effect in {"rw_jamming", "adcs_rw_jamming"}:
-                brake = min(max(_event_number(event, ("brake_torque_nm",), self.wheel_max_torques_nm[index]), 0.0), self.wheel_max_torques_nm[index])
+                brake = min(max(_event_number(event, ("brake_torque_nm",), self.effective_nominal_max_torques_nm[index]), 0.0), self.effective_nominal_max_torques_nm[index])
                 tolerance = max(_event_number(event, ("lock_tolerance_rad_s",), 0.25), 0.0)
                 speed = float(speeds[index])
                 output[index] = -math.copysign(brake, speed) if abs(speed) > tolerance else 0.0
                 torque_limits[index] = 0.0
 
         for index in range(min(self.wheel_count, len(output))):
-            limit = self.wheel_max_torques_nm[index]
-            output[index] = max(-limit, min(limit, float(output[index])))
+            # This is the actual torque sent to official RW dynamics. A
+            # displayed-current clip must never disguise a larger command.
+            electrical_and_hardware_limit = self.effective_nominal_max_torques_nm[index]
+            output[index] = max(-electrical_and_hardware_limit, min(electrical_and_hardware_limit, float(output[index])))
 
         out_payload = messaging.ArrayMotorTorqueMsgPayload()
         out_payload.motorTorque = output
