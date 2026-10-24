@@ -5030,6 +5030,7 @@
     clearNotice();
     showBusy('正在准备仿真', '校验 TaskSpec 与生成执行计划');
     let visualRunContext = null;
+    let submittedRunId = null;
     try {
       const activeTab = document.querySelector('.tab.active')?.dataset.tab;
       if (activeTab === 'agent' && !state.taskSpec) await parseNaturalLanguage();
@@ -5069,6 +5070,7 @@
       const prepared = payload.prepared_run || {};
       const runId = prepared.run_id || payload.execution_state?.run_id;
       if (!runId) throw new Error('运行已返回，但未提供 run_id');
+      submittedRunId = runId;
       state.activeRunId = runId;
       state.activeRunDisplayName = displayName;
       state.singleRunSubmitting = false;
@@ -5093,8 +5095,10 @@
       // Keep the action available for a DIFFERENT run once submission
       // finishes; a running job remains tracked by its own run_id.
       updateSingleRunGuide(
-        state.activeRunId ? (state.executionState?.state === 'SUCCEEDED' ? 'complete' : ['FAILED', 'TIMED_OUT', 'CANCELLED'].includes(state.executionState?.state) ? 'failed' : 'running') : 'configure',
-        el('singleRunProgress')?.textContent || '可继续配置和运行单次仿真。',
+        submittedRunId ? (state.executionState?.state === 'SUCCEEDED' ? 'complete' : ['FAILED', 'TIMED_OUT', 'CANCELLED'].includes(state.executionState?.state) ? 'failed' : 'running') : 'configure',
+        submittedRunId
+          ? (el('singleRunProgress')?.textContent || '运行已经提交，可在运行中心查看。')
+          : '本次未提交新仿真；请根据配置与校验提示修正后重试。',
       );
       hideBusy();
     }
