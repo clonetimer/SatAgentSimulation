@@ -5167,7 +5167,10 @@
           return;
         }
         el('cancelRunBtn').classList.add('hidden');
-        await Promise.all([loadRun(runId, { quiet: true }), loadRuns()]);
+        const [runLoaded] = await Promise.all([loadRun(runId, { quiet: true }), loadRuns()]);
+        // A manual historical selection may happen during artifact fetch.
+        // Never publish this older job's terminal notice over the new Run.
+        if (!runLoaded || state.activeRunId !== runId) return;
         if (state.activeVisualRunContext?.runId === runId) await loadVisualRunOverlay(runId, state.activeVisualRunContext);
         const passed = execution.state === 'SUCCEEDED' && execution.validation_result === 'PASS';
         const displayName = state.activeRunDisplayName || state.activeRun?.task_spec?.task?.name || runId;
