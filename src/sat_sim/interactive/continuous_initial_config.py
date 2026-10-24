@@ -83,6 +83,10 @@ class NativeAdcsInitial(_Strict):
         default=.2, gt=0., le=.2,
         description="真实 Basilisk RW 电机 u_max 与指令故障管理器的共同限幅 (N·m)",
     )
+    rw_max_momentum_nms_0: Literal[50, 75, 100] = Field(default=50, description="RW1 Honeywell HR16 额定动量容量（N·m·s）；原生 maxMomentum，决定转子 Js，只能选择 50/75/100")
+    rw_max_momentum_nms_1: Literal[50, 75, 100] = Field(default=50, description="RW2 Honeywell HR16 额定动量容量（N·m·s）")
+    rw_max_momentum_nms_2: Literal[50, 75, 100] = Field(default=50, description="RW3 Honeywell HR16 额定动量容量（N·m·s）")
+    rw_max_momentum_nms_3: Literal[50, 75, 100] | None = Field(default=None, description="仅 4 轮金字塔构型可配置 RW4 动量容量（N·m·s）；不指定时为 50")
     rw_initial_speed_rad_s_0: float = Field(default=10.471975511965978, ge=-500., le=500., description="RW1 原生初始轮速 (rad/s)")
     rw_initial_speed_rad_s_1: float = Field(default=20.943951023931955, ge=-500., le=500., description="RW2 原生初始轮速 (rad/s)")
     rw_initial_speed_rad_s_2: float = Field(default=31.41592653589793, ge=-500., le=500., description="RW3 原生初始轮速 (rad/s)")
@@ -93,6 +97,8 @@ class NativeAdcsInitial(_Strict):
     def wheel_count_matches_hardware(self):
         if self.rw_configuration != "pyramid_4" and self.rw_initial_speed_rad_s_3 is not None:
             raise ValueError("RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
+        if self.rw_configuration != "pyramid_4" and self.rw_max_momentum_nms_3 is not None:
+            raise ValueError("RW4_MAX_MOMENTUM_REQUIRES_PYRAMID_4")
         if self.rw_friction_mode == "disabled" and (
             self.rw_coulomb_friction_nm != 0 or self.rw_viscous_friction_nms != 0
         ):
@@ -256,6 +262,8 @@ _UNITS = {
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
     "rw_friction_mode": "枚举", "rw_coulomb_friction_nm": "N·m",
     "rw_viscous_friction_nms": "N·m·s/rad", "rw_mount_radius_m": "m",
+    "rw_max_momentum_nms_0": "N·m·s", "rw_max_momentum_nms_1": "N·m·s",
+    "rw_max_momentum_nms_2": "N·m·s", "rw_max_momentum_nms_3": "N·m·s",
     "rw_initial_speed_rad_s_0": "rad/s", "rw_initial_speed_rad_s_1": "rad/s",
     "rw_initial_speed_rad_s_2": "rad/s", "rw_initial_speed_rad_s_3": "rad/s",
     "battery_capacity_wh": "Wh", "initial_soc": "1", "solar_panel_area_m2": "m²",

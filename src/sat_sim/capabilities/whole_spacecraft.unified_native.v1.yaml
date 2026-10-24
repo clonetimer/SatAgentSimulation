@@ -111,6 +111,29 @@ parameters:
     required: false
     default: 30.0
     min: 0.0
+  rw_max_momentum_nms_0:
+    type: number
+    unit: N*m*s
+    required: false
+    default: 50
+    enum: [50, 75, 100]
+  rw_max_momentum_nms_1:
+    type: number
+    unit: N*m*s
+    required: false
+    default: 50
+    enum: [50, 75, 100]
+  rw_max_momentum_nms_2:
+    type: number
+    unit: N*m*s
+    required: false
+    default: 50
+    enum: [50, 75, 100]
+  rw_max_momentum_nms_3:
+    type: number
+    unit: N*m*s
+    required: false
+    enum: [50, 75, 100]
   initial_soc:
     type: number
     unit: ratio

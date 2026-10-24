@@ -714,13 +714,24 @@ class UnifiedNativeRuntime:
             if not math.isfinite(omega_init_rad_s) or abs(omega_init_rad_s) > 500.0:
                 raise ValueError("NATIVE_RW_INITIAL_SPEED_INVALID")
             omega_factory_rpm = omega_init_rad_s * (60.0 / (2.0 * math.pi))
+            # HR16 allows exactly 50, 75, or 100 N*m*s. Other values cause
+            # the upstream rwFactory to terminate the process; reject them
+            # here before entering Basilisk. Configures physical Js=H/Omega_max.
+            momentum_key = f"rw_max_momentum_nms_{index}"
+            momentum_value = values.get(momentum_key, 50)
+            if type(momentum_value) not in (int, float) or not math.isfinite(momentum_value) or momentum_value not in (50, 75, 100):
+                raise ValueError("NATIVE_RW_HR16_MOMENTUM_UNSUPPORTED")
             rw_factory.create(
-                "Honeywell_HR16", list(axis), maxMomentum=50.0,
+                "Honeywell_HR16", list(axis), maxMomentum=float(momentum_value),
                 Omega=omega_factory_rpm, u_max=rw_hardware_u_max,
                 label=f"RW{index + 1}",
                 rWB_B=[float(v) * rw_mount_radius for v in axis],
                 **rw_friction_kwargs,
             )
+        # RW4 parameters have no physical owner in a three-wheel graph;
+        # reject them instead of silently dropping a requested hardware edit.
+        if len(rw_axes) != 4 and values.get("rw_max_momentum_nms_3") is not None:
+            raise ValueError("NATIVE_RW4_MOMENTUM_REQUIRES_PYRAMID_4")
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
         add(rw, "reaction_wheels", "basilisk_official_native", 99)
         rw_config = rw_factory.getConfigMessage()

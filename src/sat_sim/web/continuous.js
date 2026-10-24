@@ -470,6 +470,12 @@
   function updateRwNativeInitialLayout() {
     const four = document.querySelector('[data-native-key="rw_configuration"]')?.value === 'pyramid_4';
     $('continuousRw4InitialLabel')?.classList.toggle('hidden', !four);
+    $('continuousRw4MomentumLabel')?.classList.toggle('hidden', !four);
+    const rw4Momentum = document.querySelector('[data-native-key="rw_max_momentum_nms_3"]');
+    if (rw4Momentum) {
+      rw4Momentum.disabled = !four;
+      rw4Momentum.required = four;
+    }
     const rw4 = document.querySelector('[data-native-key="rw_initial_speed_rad_s_3"]');
     if (rw4) {
       rw4.disabled = !four;
