@@ -128,6 +128,13 @@ Windows PowerShell：
 - 仅支持在机体系 B 中对角惯量矩阵，不能视为任意惯性积、质量分布 CAD 自动计算或推进耗燃料的惯量动态修正。默认图不变；对有限 TaskSpec 在真正创建 Basilisk 刚体对象时再次做非有限值、范围和三角关系 fail-closed 检查。
 - 验收门禁包含 UI↔Registry ↔ Pydantic 映射、无效配置拒绝、官方 SWIG Spacecraft 原生对象的实际三轴惯量矩阵，以及相同初始状态与相同 FSW/RW 下主惯量改变的实际 Basilisk 姿态/角速度曲线 A/B；不将静态矩阵检查单独冒充 L5 物理生效证明。
 
+## P0-11 原生 Honeywell HR16 逐轮额定动量容量
+
+- 整星有限时长 TaskSpec 与持续运行前 ADCS 配置中新增 `rw_max_momentum_nms_0..3`。每个真实反作用轮只能选择 Honeywell HR16 支持的 **50/75/100 N·m·s** 档位；RW1~RW3 默认 50，RW4 仅适用于 `pyramid_4`，该档位默认 50。网页在三轮构型隐藏/禁用 RW4 字段；三轮对 RW4 的显式输入直接失败关闭。
+- 在统一原生图中，每轮单独传给官方 `Basilisk.utilities.simIncludeRW.rwFactory.create("Honeywell_HR16", ..., maxMomentum=...)`。该额定动量容量对应官方 HR16 工厂的轮质量、`Js=H/Omega_max` 转子惯量（`Omega_max=6000 rpm`），而非仅改变命令夹持器或遥测描述。离散取值源于上游硬件型号工厂，只允许三档；非法值在任何上游模块可能退出进程前先拒绝。
+- 新的 Basilisk CI 物理门禁在同一整星闭环中对 RW1 的 50/100 两档做 A/B：捕获真实官方工厂返回的 RW 对象的 `Js` 与 `Omega_max`，确认仅 RW1 惯量翻倍、RW2/3 不变；随后确认实际 Basilisk 采集的 `adcs.rw.speed_rad_s_0` 轨迹发生差异。补充四轮 [50,75,100,75] 实装检查、非法档位与虚拟 RW4 拒绝。
+- 不等同于为每只轮自由设定独立电机力矩、轴承摩擦、偏置安装轴或任意品牌型号；之前的轮组共享摩擦和最大力矩限制原样保留。整星跨进程完整物理恢复仍未通过。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
