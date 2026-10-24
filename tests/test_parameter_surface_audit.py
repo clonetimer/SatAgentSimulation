@@ -50,7 +50,7 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert whole["continuous_initial_field_count"] == 82
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 11
-    assert whole["registered_parameter_count"] == 52
+    assert whole["registered_parameter_count"] == 55
     assert "rw_configuration" in whole["native_source_keys_missing_whole_registry"]
     assert "gyro_base_noise_std_rad_s" in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
