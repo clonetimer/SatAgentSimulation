@@ -69,10 +69,30 @@ class NativeAdcsInitial(_Strict):
     sun_sensor_normal_b_x: float = Field(default=0., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 X；须与 Y/Z 构成单位矢量")
     sun_sensor_normal_b_y: float = Field(default=0., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 Y；须与 X/Z 构成单位矢量")
     sun_sensor_normal_b_z: float = Field(default=-1., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 Z；旧默认 -Z")
+    sun_sensor_scale_factor: float = Field(default=1., ge=.001, le=4., description="官方 CoarseSunSensor.scaleFactor，归一化光敏值增益；1 为旧默认")
+    sun_sensor_bias_normalized: float = Field(default=0., ge=-.5, le=.5, description="官方 CoarseSunSensor.senBias，无量纲，传感器缩放之前加上此偏置")
+    sun_sensor_kelly_factor: float = Field(default=0., ge=0., le=1., description="官方 CoarseSunSensor.kellyFactor，非线性余弦响应；0 关闭，1 最强")
+    sun_sensor_min_output: float = Field(default=0., ge=0., le=4., description="官方 CoarseSunSensor.minOutput，输出下限（缩放之后的读数）")
+    sun_sensor_max_output: float = Field(default=1000000., gt=0., le=1000000., description="官方 CoarseSunSensor.maxOutput，输出上限；1e6 为旧原生默认")
     sun_sensor_fov_deg: float = Field(
         default=80., gt=0., le=180.,
         description="原生 Basilisk CoarseSunSensor.fov 视场全角（deg），仅影响该光敏器观测，不代表所有敏感器的视场。",
     )
+    @field_validator("sun_sensor_scale_factor", "sun_sensor_bias_normalized",
+                     "sun_sensor_kelly_factor", "sun_sensor_min_output",
+                     "sun_sensor_max_output", mode="before")
+    @classmethod
+    def reject_non_numeric_css_calibration(cls, value):
+        if type(value) not in (int, float):
+            raise ValueError("SUN_SENSOR_CALIBRATION_REQUIRES_REAL_NUMBER")
+        return value
+
+    @model_validator(mode="after")
+    def check_css_output_bounds(self):
+        if self.sun_sensor_min_output >= self.sun_sensor_max_output:
+            raise ValueError("SUN_SENSOR_OUTPUT_BOUNDS_INVALID")
+        return self
+
     @field_validator("sun_sensor_normal_b_x", "sun_sensor_normal_b_y", "sun_sensor_normal_b_z", mode="before")
     @classmethod
     def reject_non_numeric_css_boresight(cls, value):
@@ -330,6 +350,9 @@ _UNITS = {
     "spacecraft_mass_kg": "kg", "sun_sensor_fov_deg": "deg",
     "sun_sensor_normal_b_x": "1", "sun_sensor_normal_b_y": "1",
     "sun_sensor_normal_b_z": "1",
+    "sun_sensor_scale_factor": "1", "sun_sensor_bias_normalized": "1",
+    "sun_sensor_kelly_factor": "1", "sun_sensor_min_output": "1",
+    "sun_sensor_max_output": "1",
     "spacecraft_inertia_xx_kg_m2": "kg·m²", "spacecraft_inertia_yy_kg_m2": "kg·m²",
     "spacecraft_inertia_zz_kg_m2": "kg·m²",
     "magnetometer_mount_yaw_deg": "deg", "magnetometer_mount_pitch_deg": "deg",
