@@ -30,8 +30,7 @@ def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
         unsupported.append("num_wheels")
     if "torque_profile_nm" in params:
         unsupported.append("torque_profile_nm")
-    if "damping_nms" in params and params["damping_nms"] != 0.0:
-        unsupported.append("damping_nms")
+
     if (ReactionWheelAdapter._normalized_faults(spec)
             or ReactionWheelAdapter._normalized_constraints(spec)
             or ReactionWheelAdapter._rw_degradation_payload(spec)
@@ -56,6 +55,7 @@ def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
         max_speed_rad_s=params.get("max_speed_rad_s", 1000.),
         initial_speed_rad_s=params.get("initial_wheel_speeds_rad_s", 100.),
         command_torque_nm=params.get("command_torque_nm", .01),
+        damping_nms=params.get("damping_nms", 1e-5),
     )
     task_id = str(spec.get("task_id") or (spec.get("task") or {}).get("id") or "native_rw_task")
     metadata = spec.get("metadata") if isinstance(spec.get("metadata"), Mapping) else {}
@@ -78,8 +78,9 @@ def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
             "adcs.reaction_wheel.effective_max_speed_rad_s_0": native.factory_omega_max_rad_s,
             "adcs.reaction_wheel.nominal_max_torque_nm_0": native.factory_u_max_nm,
             "adcs.reaction_wheel.effective_max_torque_nm_0": native.factory_u_max_nm,
-            "adcs.reaction_wheel.nominal_damping_nms_0": 0.0,
-            "adcs.reaction_wheel.damping_nms_0": 0.0,
+            "adcs.reaction_wheel.nominal_damping_nms_0": native.viscous_damping_nms,
+            "adcs.reaction_wheel.damping_nms_0": native.viscous_damping_nms,
+            "adcs.reaction_wheel.friction_torque_nm_0": native.measured_friction_torque_nm[i],
             "label.health_state": "nominal", "label.fault_active": False,
             "label.degradation_active": False, "label.constraint_active": False,
         })
@@ -110,7 +111,7 @@ def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
                   "basilisk_official_native": ["spacecraft", "reactionWheelStateEffector"],
                   "native_provenance": native.model_source,
                   "limits": ["single wheel", "nominal only", "no fault/degradation",
-                             "no time-varying torque", "no EPS or ADCS closed loop"]},
+                             "no time-varying torque", "native viscous damping only", "no EPS or ADCS closed loop"]},
     )
 
 
@@ -165,13 +166,12 @@ class ReactionWheelAdapter:
         elif backend == "basilisk_native":
             native_unsupported = (
                 mode != "nominal" or num_wheels != 1 or "torque_profile_nm" in params
-                or ("damping_nms" in params and params["damping_nms"] != 0.0)
                 or bool(self._normalized_faults(spec)) or bool(self._normalized_constraints(spec))
                 or bool(self._rw_degradation_payload(spec)) or bool(spec.get("events"))
             )
             if native_unsupported:
                 issues.append(ValidationIssue("error", "$.parameters.physics_backend",
-                                              "native RW currently supports only single-wheel nominal, no modifiers/profile/damping",
+                                              "native RW currently supports only single-wheel nominal, no modifiers or torque profile",
                                               "native_scope"))
             if isinstance(sim.get("sample_s"), (int, float)) and float(sim["sample_s"]) > 1.0:
                 issues.append(ValidationIssue("error", "$.simulation.sample_s", "native RW sample_s <= 1 required", "native_scope"))
@@ -374,7 +374,18 @@ class ReactionWheelAdapter:
             "constraint_labels": self._constraint_label_rows(task_id, case_id, constraints),
             "run_labels": [{"task_id": task_id, "mode": mode, "capability_id": self.capability_id}],
         }
-        return SimulationResult(summary=summary, trace_rows=tuple(rows), labels=labels, metadata={"capability_id": self.capability_id, "modifiers_applied_by_adapter": True})
+        summary["physics_backend"] = "project_reference"
+        summary["model_source"] = "components.reaction_wheel.model"
+        return SimulationResult(
+            summary=summary, trace_rows=tuple(rows), labels=labels,
+            metadata={"capability_id": self.capability_id,
+                      "modifiers_applied_by_adapter": True,
+                      "physics_backend": "project_reference",
+                      "model_source_boundary": {
+                          "project_python_reference": ["components.reaction_wheel.model"],
+                          "basilisk_physics_executed": False,
+                      }},
+        )
 
     def generate_python(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> str:
         payload = json.dumps(dict(spec), indent=2, ensure_ascii=False, sort_keys=False)
