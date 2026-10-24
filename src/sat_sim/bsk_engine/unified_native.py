@@ -1070,8 +1070,21 @@ class UnifiedNativeRuntime:
         controller.integralLimit = -1.0
         controller.guidInMsg.subscribeTo(tracking.attGuidOutMsg)
         vehicle = messaging.VehicleConfigMsgPayload()
-        vehicle.ISCPntB_B = [100.0, 0.0, 0.0, 0.0, 80.0, 0.0, 0.0, 0.0, 60.0]
-        vehicle.massSC = sc.hub.mHub
+        # FSW must use the inertia of the actual Basilisk hub about its
+        # center of mass, including any P0-14 RW relocation increments.
+        # The former hardcoded 100/80/60 silently disagreed with user-
+        # configured principal inertia and B-frame shifted RW mass.
+        # mrpFeedback reads this configuration on Reset, not each tick.
+        hub_inertia_com_b = np.asarray(sc.hub.IHubPntBc_B, dtype=float).reshape(3, 3)
+        hub_com_b = np.asarray(sc.hub.r_BcB_B, dtype=float).reshape(3)
+        if (not np.all(np.isfinite(hub_inertia_com_b))
+                or not np.all(np.isfinite(hub_com_b))
+                or not np.allclose(hub_inertia_com_b, hub_inertia_com_b.T, atol=1e-10)
+                or min(np.linalg.eigvalsh(hub_inertia_com_b)) <= 0.):
+            raise ValueError("NATIVE_FSW_VEHICLE_MASS_PROPERTIES_INVALID")
+        vehicle.ISCPntB_B = hub_inertia_com_b.reshape(-1).tolist()
+        vehicle.CoM_B = hub_com_b.tolist()
+        vehicle.massSC = float(sc.hub.mHub)
         vehicle_msg = messaging.VehicleConfigMsg().write(vehicle)
         controller.vehConfigInMsg.subscribeTo(vehicle_msg)
         controller.rwParamsInMsg.subscribeTo(rw_config)
