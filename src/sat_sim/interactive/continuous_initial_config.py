@@ -97,7 +97,19 @@ class NativeEpsInitial(_Strict):
     initial_soc: float = Field(default=.62, ge=0.05, le=1.)
     solar_panel_area_m2: float = Field(default=2.5, gt=0., le=25.)
     solar_efficiency: float = Field(default=.28, gt=0., le=1.)
+    solar_normal_b_x: float = Field(default=1., ge=-1., le=1., description="原生太阳电池板固定法线在机体系 B 的 X 分量；不表示自动追踪")
+    solar_normal_b_y: float = Field(default=0., ge=-1., le=1., description="原生太阳电池板固定法线在机体系 B 的 Y 分量；三轴必须构成单位向量")
+    solar_normal_b_z: float = Field(default=0., ge=-1., le=1., description="原生太阳电池板固定法线在机体系 B 的 Z 分量；三轴必须构成单位向量")
     bus_power_w: float = Field(default=18., ge=0., le=300.)
+
+    @model_validator(mode="after")
+    def check_panel_normal(self):
+        norm_sq = sum(value * value for value in (
+            self.solar_normal_b_x, self.solar_normal_b_y, self.solar_normal_b_z,
+        ))
+        if not 0.999 <= norm_sq <= 1.001:
+            raise ValueError("SOLAR_PANEL_NORMAL_B_NOT_UNIT")
+        return self
 
 
 class NativePayloadInitial(_Strict):
@@ -228,6 +240,7 @@ _UNITS = {
     "rw_initial_speed_rad_s_2": "rad/s", "rw_initial_speed_rad_s_3": "rad/s",
     "battery_capacity_wh": "Wh", "initial_soc": "1", "solar_panel_area_m2": "m²",
     "solar_efficiency": "1", "bus_power_w": "W",
+    "solar_normal_b_x": "1", "solar_normal_b_y": "1", "solar_normal_b_z": "1",
     "payload_data_rate_bps": "bit/s", "payload_power_w": "W",
     "storage_capacity_bits": "bit", "downlink_rate_bps": "bit/s",
     "propulsion_enabled": "布尔", "propulsion_thrust_n": "N", "propulsion_isp_s": "s",
