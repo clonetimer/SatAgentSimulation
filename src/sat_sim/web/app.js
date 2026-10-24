@@ -31,6 +31,10 @@
     chartTimeWindow: null,
     chartDrag: null,
     runLoadRequestId: 0,
+    runCompareRows: [],
+    runCompareSelection: [],
+    runCompareResult: null,
+    runCompareRequestId: 0,
     changedPaths: new Set(),
     agentBeforeForm: null,
     executionState: null,
@@ -6720,19 +6724,280 @@
     }
   }
 
+  // Read-only two-Run comparison uses the existing /runs/compare contract.
+  // Deliberately limited to sealed successful runs with the same capability:
+  // identical metric names alone do not establish physical comparability.
+  function invalidateRunComparison() {
+    state.runCompareRequestId += 1;
+    state.runCompareResult = null;
+    el('runComparePanel')?.classList.add('hidden');
+    el('runCompareHead')?.replaceChildren();
+    el('runCompareBody')?.replaceChildren();
+    el('runCompareField')?.replaceChildren();
+  }
+
+  function updateRunCompareSelection() {
+    const selected = state.runCompareSelection;
+    const baseline = state.runCompareRows.find((run) => run.run_id === selected[0]);
+    $all('#runCenterTableBody input[data-run-compare-id]').forEach((input) => {
+      const record = state.runCompareRows.find((run) => run.run_id === input.dataset.runCompareId);
+      const available = record?.status === 'SUCCEEDED' && record?.sealed === true
+        && Boolean(record?.primary_capability_id);
+      input.checked = selected.includes(input.dataset.runCompareId);
+      input.disabled = !available || (!input.checked && (selected.length >= 2
+        || (baseline && record.primary_capability_id !== baseline.primary_capability_id)));
+      input.title = !available ? '只比较有模型标识、已密封且成功的 Run'
+        : baseline && record.primary_capability_id !== baseline.primary_capability_id
+          ? '只能比较同一仿真能力的 Run' : '选入或移出历史对比';
+    });
+    const ready = selected.length === 2 && selected.every((id) => {
+      const row = state.runCompareRows.find((run) => run.run_id === id);
+      return row?.status === 'SUCCEEDED' && row?.sealed === true
+        && row?.primary_capability_id === baseline?.primary_capability_id;
+    });
+    el('runCompareSelectedBtn').disabled = !ready;
+    el('runCompareClearBtn').disabled = selected.length === 0;
+    el('runCompareSelectionStatus').textContent = ready
+      ? `已选 2 次同模型运行（${baseline.primary_capability_id}），可比较共同指标和遥测。`
+      : selected.length ? `已选 ${selected.length} / 2 次运行，请再选择同模型、已成功并密封的 Run。`
+        : '请选择两次同模型、已成功并密封的运行进行比较；此操作不会启动新的仿真。';
+  }
+
+  function toggleRunCompareSelection(runId, checked) {
+    const row = state.runCompareRows.find((run) => run.run_id === runId);
+    if (!row?.sealed || row.status !== 'SUCCEEDED' || !row.primary_capability_id) return;
+    const prior = state.runCompareSelection;
+    if (checked && prior.length < 2
+        && (!prior.length || state.runCompareRows.find((run) => run.run_id === prior[0])?.primary_capability_id === row.primary_capability_id)) {
+      state.runCompareSelection = [...prior.filter((id) => id !== runId), runId];
+    } else if (!checked) {
+      state.runCompareSelection = prior.filter((id) => id !== runId);
+    } else {
+      showNotice('仅支持选择两次同一模型的已密封成功运行。', 'warning');
+    }
+    invalidateRunComparison();
+    updateRunCompareSelection();
+  }
+
+  function comparableRunMetrics(metricPayloads) {
+    const numbers = metricPayloads.map((payload) => payload.metrics?.metrics || payload.metrics || {});
+    if (numbers.length !== 2) return [];
+    const common = Object.keys(numbers[0]).filter((key) => numbers.every((values) =>
+      typeof values[key] === 'number' && Number.isFinite(values[key])));
+    common.sort((a, b) => Number(!a.startsWith('qoi.')) - Number(!b.startsWith('qoi.')) || a.localeCompare(b));
+    return common.slice(0, 20);
+  }
+
+  function comparableRunTraceFields(entries) {
+    if (entries.length !== 2) return [];
+    const getFields = ({ plots, telemetry }) => {
+      const available = new Set((telemetry?.rows || []).flatMap((row) =>
+        Object.keys(row).filter((key) => typeof row[key] === 'number' && Number.isFinite(row[key]))));
+      return new Map((plots?.plot_manifest?.series || []).filter((item) => available.has(item.field))
+        .map((item) => [item.field, item]));
+    };
+    const left = getFields(entries[0]);
+    const right = getFields(entries[1]);
+    return [...left].filter(([key, meta]) => {
+      const other = right.get(key);
+      return other && (!meta.unit || !other.unit || meta.unit === other.unit);
+    }).map(([field, meta]) => ({ field, label: meta.label || field, unit: meta.unit || right.get(field)?.unit || '' })).slice(0, 60);
+  }
+
+  function drawRunCompareChart() {
+    const canvas = el('runCompareChart');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(320, rect.width || 900);
+    const height = Math.max(200, rect.height || 320);
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+    const theme = getComputedStyle(document.documentElement);
+    const color = (token, fallback) => theme.getPropertyValue(token).trim() || fallback;
+    ctx.fillStyle = color('--bg', '#071019');
+    ctx.fillRect(0, 0, width, height);
+    const result = state.runCompareResult;
+    const field = el('runCompareField').value;
+    const note = el('runCompareChartNote');
+    if (!result || !field) {
+      if (note) note.textContent = '两次运行没有共同且有限的已请求遥测参量；可以查看上方共同指标。';
+      return;
+    }
+    const traces = result.entries.map(({ runId, telemetry, plots }) => {
+      const rows = telemetry?.rows || [];
+      const timeField = plots?.plot_manifest?.time_axis?.field || plots?.plot_manifest?.time_field
+        || (rows[0] && Object.hasOwn(rows[0], 'time_s') ? 'time_s' : 't_s');
+      return { runId, points: rows.map((row) => ({ t: Number(row[timeField]), y: row[field] }))
+        .filter((point) => Number.isFinite(point.t) && typeof point.y === 'number' && Number.isFinite(point.y))
+        .sort((a, b) => a.t - b.t), loaded: rows.length };
+    });
+    const points = traces.flatMap((trace) => trace.points);
+    if (!points.length) { note.textContent = '当前共同字段没有可绘制的有效采样点。'; return; }
+    let minT = Math.min(...points.map((point) => point.t));
+    let maxT = Math.max(...points.map((point) => point.t));
+    let minY = Math.min(...points.map((point) => point.y));
+    let maxY = Math.max(...points.map((point) => point.y));
+    if (minT === maxT) { minT -= 1; maxT += 1; }
+    if (minY === maxY) { minY -= 1; maxY += 1; }
+    const pad = { left: 66, right: 14, top: 22, bottom: 38 };
+    const mapX = (t) => pad.left + (t - minT) / (maxT - minT) * (width - pad.left - pad.right);
+    const mapY = (y) => pad.top + (maxY - y) / (maxY - minY) * (height - pad.top - pad.bottom);
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'right';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = color('--line', '#273642');
+    ctx.fillStyle = color('--muted', '#8796a3');
+    for (let n = 0; n <= 4; n += 1) {
+      const py = pad.top + n / 4 * (height - pad.top - pad.bottom);
+      ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(width - pad.right, py); ctx.stroke();
+      ctx.fillText(formatNumber(maxY - n / 4 * (maxY - minY)), pad.left - 6, py + 4);
+    }
+    ctx.textAlign = 'center';
+    for (let n = 0; n <= 5; n += 1) {
+      const px = pad.left + n / 5 * (width - pad.left - pad.right);
+      ctx.fillText(formatNumber(minT + n / 5 * (maxT - minT)), px, height - 11);
+    }
+    const palette = [color('--accent', '#53d6b5'), color('--accent-2', '#64a9ff')];
+    traces.forEach((trace, index) => {
+      ctx.strokeStyle = palette[index];
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      trace.points.forEach((point, i) => {
+        if (i === 0) ctx.moveTo(mapX(point.t), mapY(point.y));
+        else ctx.lineTo(mapX(point.t), mapY(point.y));
+      });
+      ctx.stroke();
+      // Mark the actual samples, so connection segments do not look like
+      // reconstructed or matched cross-Run timestamps.
+      ctx.fillStyle = palette[index];
+      trace.points.forEach((point) => {
+        ctx.beginPath(); ctx.arc(mapX(point.t), mapY(point.y), 2.4, 0, Math.PI * 2); ctx.fill();
+      });
+    });
+    const labels = traces.map((trace, i) => `Run ${i + 1}：${trace.runId}（有效 ${trace.points.length}/已载入 ${trace.loaded} 点）`);
+    note.textContent = `${labels.join('；')}。横轴为各 Run 独立的仿真秒数，使用共同 Y 轴；仅连线各自真实采样点，不做跨 Run 对齐、插值或重采样。每个 Run 最多读取 2000 行用于预览。`;
+  }
+
+  function renderRunComparison() {
+    const result = state.runCompareResult;
+    if (!result) return;
+    const metrics = result.comparison?.metrics || [];
+    const rows = result.comparison?.rows || [];
+    const summary = el('runCompareSummary');
+    const ids = result.runIds;
+    summary.textContent = `模型：${result.capabilityId} · Run A：${ids[0]} · Run B：${ids[1]}。指标来自现有 /runs/compare 的 Run Bundle 汇总；仅共同数值指标，差值 B−A 不代表性能改善。`;
+    const head = el('runCompareHead'); const body = el('runCompareBody');
+    head.replaceChildren(); body.replaceChildren();
+    const headers = ['共同指标', 'Run A', 'Run B', '差值 B−A'];
+    const trHead = document.createElement('tr');
+    headers.forEach((label) => { const th = document.createElement('th'); th.textContent = label; trHead.appendChild(th); });
+    head.appendChild(trHead);
+    if (!metrics.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 4; td.textContent = '没有共同的有限数值指标；可以查看两次运行各自的详细报告。'; tr.appendChild(td); body.appendChild(tr);
+    }
+    metrics.forEach((metric) => {
+      const [a, b] = rows.map((row) => row.values?.[metric]);
+      const ta = typeof a === 'number' && Number.isFinite(a) ? a : null;
+      const tb = typeof b === 'number' && Number.isFinite(b) ? b : null;
+      if (ta === null || tb === null) return;
+      const row = document.createElement('tr');
+      [metric, formatComparisonValue(ta), formatComparisonValue(tb), formatComparisonValue(tb - ta)].forEach((value) => {
+        const cell = document.createElement('td'); cell.textContent = String(value); row.appendChild(cell);
+      });
+      body.appendChild(row);
+    });
+    const series = result.fields;
+    const select = el('runCompareField'); select.replaceChildren();
+    series.forEach(({ field, label, unit }) => {
+      const option = document.createElement('option'); option.value = field;
+      option.textContent = `${label}${unit ? `（${unit}）` : ''}`; select.appendChild(option);
+    });
+    drawRunCompareChart();
+  }
+
+  async function compareSelectedRuns() {
+    const ids = [...state.runCompareSelection];
+    const baseline = state.runCompareRows.find((row) => row.run_id === ids[0]);
+    if (ids.length !== 2 || ids.some((id) => {
+      const row = state.runCompareRows.find((item) => item.run_id === id);
+      return row?.status !== 'SUCCEEDED' || !row?.sealed
+        || row?.primary_capability_id !== baseline?.primary_capability_id;
+    })) {
+      showNotice('请选择两个同一模型、已密封的成功 Run。', 'warning');
+      return false;
+    }
+    const seq = ++state.runCompareRequestId;
+    const panel = el('runComparePanel');
+    panel.classList.remove('hidden');
+    el('runCompareSummary').textContent = '正在读取两个 Run Bundle 的共同数值指标与遥测预览…';
+    el('runCompareSelectedBtn').disabled = true;
+    try {
+      const entries = await Promise.all(ids.map(async (runId) => {
+        const enc = encodeURIComponent(runId);
+        const [metrics, plots, telemetry] = await Promise.all([
+          api(`/runs/${enc}/metrics`),
+          api(`/runs/${enc}/plots`).catch(() => ({ plot_manifest: null })),
+          api(`/runs/${enc}/telemetry?limit=2000`).catch(() => ({ rows: [] })),
+        ]);
+        return { runId, metrics, plots, telemetry };
+      }));
+      if (seq !== state.runCompareRequestId) return false;
+      const selectedMetrics = comparableRunMetrics(entries.map((entry) => entry.metrics));
+      const comparisonPayload = await api('/runs/compare', {
+        method: 'POST', body: JSON.stringify({ run_ids: ids, metrics: selectedMetrics }),
+      });
+      if (seq !== state.runCompareRequestId) return false;
+      const comparison = comparisonPayload.comparison || {};
+      if (comparison.run_count !== 2 || (comparison.rows || []).some((row, i) => row.run_id !== ids[i])) {
+        throw new Error('对比接口返回的 Run ID 与选择不一致，已拒绝展示。');
+      }
+      state.runCompareResult = { runIds: ids, capabilityId: baseline.primary_capability_id,
+        comparison, entries, fields: comparableRunTraceFields(entries) };
+      renderRunComparison();
+      return true;
+    } catch (error) {
+      if (seq !== state.runCompareRequestId) return false;
+      state.runCompareResult = null;
+      el('runCompareSummary').textContent = `对比失败：${error.message}。请检查 Run Bundle 制品是否仍可读取。`;
+      showNotice(`历史运行对比失败：${error.message}`, 'error');
+      return false;
+    } finally {
+      if (seq === state.runCompareRequestId) updateRunCompareSelection();
+    }
+  }
+
   async function loadRunCenter() {
     const payload = await api('/runs?limit=200');
     const runs = payload.runs || [];
+    state.runCompareRows = runs;
+    state.runCompareSelection = state.runCompareSelection.filter((id) =>
+      runs.some((run) => run.run_id === id && run.status === 'SUCCEEDED' && run.sealed && run.primary_capability_id));
     el('runCenterSummary').textContent = `共 ${payload.total || runs.length} 次运行；自动报告来自密封 Run Bundle。`;
     const body = el('runCenterTableBody');
     body.replaceChildren();
     runs.forEach((run) => {
       const tr = document.createElement('tr');
+      const chooseCell = document.createElement('td');
+      const choose = document.createElement('input');
+      choose.type = 'checkbox';
+      choose.dataset.runCompareId = run.run_id;
+      choose.setAttribute('aria-label', `比较运行 ${run.run_id}`);
+      choose.addEventListener('change', () => toggleRunCompareSelection(run.run_id, choose.checked));
+      chooseCell.appendChild(choose);
+      tr.appendChild(chooseCell);
       const values = [`${run.task_name || run.task_id || '未命名任务'}\n${run.run_id}`, run.status || '—', run.validation_result || '—', run.primary_capability_id || run.task_id || '—', formatDateTime(run.updated_at)];
       values.forEach((value, index) => {
         const td = document.createElement('td');
-        td.textContent = String(value);
-        if (index === 1) td.innerHTML = `<span class="run-status ${String(run.status || '').toLowerCase()}">${String(value)}</span>`;
+        if (index === 1) {
+          const tag = document.createElement('span');
+          tag.className = `run-status ${String(run.status || '').toLowerCase().replace(/[^a-z0-9_-]/g, '')}`;
+          tag.textContent = String(value);
+          td.appendChild(tag);
+        } else td.textContent = String(value);
         tr.appendChild(td);
       });
       const actions = document.createElement('td');
@@ -6745,6 +7010,7 @@
       diag.addEventListener('click', () => downloadEndpoint(`/diagnostics/bundle?run_id=${encodeURIComponent(run.run_id)}`, `diagnostic_${run.run_id}.zip`).catch((error) => showNotice(error.message, 'error')));
       actions.append(open, report, diag); tr.appendChild(actions); body.appendChild(tr);
     });
+    updateRunCompareSelection();
   }
 
   async function loadDiagnostics() {
@@ -7592,6 +7858,12 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('exportDatasetBtn').addEventListener('click', () => exportActiveDataset().catch((error) => showNotice(`导出数据集失败：${error.message}`, 'error')));
     el('downloadRunDiagnosticBtn').addEventListener('click', () => state.activeRunId && downloadEndpoint(`/diagnostics/bundle?run_id=${encodeURIComponent(state.activeRunId)}`, `diagnostic_${state.activeRunId}.zip`).catch((error) => showNotice(error.message, 'error')));
     el('refreshRunCenterBtn').addEventListener('click', () => loadRunCenter().catch((error) => { el('runCenterSummary').textContent = error.message; }));
+    el('runCompareSelectedBtn').addEventListener('click', compareSelectedRuns);
+    el('runCompareClearBtn').addEventListener('click', () => {
+      state.runCompareSelection = []; invalidateRunComparison(); updateRunCompareSelection();
+    });
+    el('runCompareCloseBtn').addEventListener('click', invalidateRunComparison);
+    el('runCompareField').addEventListener('change', drawRunCompareChart);
     el('refreshDiagnosticsBtn').addEventListener('click', () => loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = error.message; }));
     el('downloadDiagnosticBtn').addEventListener('click', () => downloadEndpoint('/diagnostics/bundle', 'sat_sim_diagnostic.zip').catch((error) => showNotice(error.message, 'error')));
     el('refreshLogsBtn').addEventListener('click', () => loadLogs().catch((error) => { el('logSummary').textContent = error.message; }));
@@ -7650,6 +7922,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     $all('.result-tab').forEach((button) => button.addEventListener('click', () => switchResultTab(button.dataset.resultTab)));
     window.addEventListener('resize', () => {
       if (document.querySelector('.result-tab.active')?.dataset.resultTab === 'charts') drawChart();
+      if (state.runCompareResult && !el('runComparePanel').classList.contains('hidden')) drawRunCompareChart();
       if (state.activeView === 'interactive') renderInteractiveTelemetry();
       if (state.graphComposerMode === 'assembly') assemblyDrawEdges();
     });
