@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.16.0-propulsion-geometry">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.16.1-thermal-param-ab">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -736,6 +736,13 @@
                   </fieldset>
                   <fieldset><legend>热控分系统 · 项目热网络</legend>
                     <p class="continuous-muted">热控为与 Basilisk 仿真任务耦合运行的项目确定性热网络，非官方 Basilisk 原生热模块；温度单位为开尔文。</p>
+                    <p class="continuous-muted">载荷热容量由质量 × 比热容给出；散热器、加热器均为本项目热网络中的真实调度节点。</p>
+                    <label>载荷热节点质量（kg）<input data-native-group="thermal" data-native-key="payload_thermal_mass_kg" type="number" min="0.001" max="50" step="any" value="3" required></label>
+                    <label>载荷节点比热容（J/(kg·K)）<input data-native-group="thermal" data-native-key="payload_specific_heat_j_kg_k" type="number" min="0.001" max="3000" step="any" value="600" required></label>
+                    <label>载荷热节点发射率（0–1）<input data-native-group="thermal" data-native-key="payload_thermal_emissivity" type="number" min="0" max="1" step="any" value="0.75" required></label>
+                    <label>载荷散热器面积（m²）<input data-native-group="thermal" data-native-key="payload_radiator_area_m2" type="number" min="0" max="5" step="any" value="0.25" required></label>
+                    <label>电池加热器标称功率（W）<input data-native-group="thermal" data-native-key="battery_heater_power_w" type="number" min="0" max="100" step="any" value="12" required></label>
+                    <label>电池加热器设定温度（K）<input data-native-group="thermal" data-native-key="battery_heater_setpoint_k" type="number" min="240" max="310" step="any" value="286" required></label>
                     <label>载荷初始温度（K）<input data-native-group="thermal" data-native-key="initial_payload_temp_k" type="number" min="220" max="340" step="any" value="292" required></label>
                     <label>通信设备初始温度（K）<input data-native-group="thermal" data-native-key="initial_comm_temp_k" type="number" min="230" max="335" step="any" value="295" required></label>
                     <label>推进设备初始温度（K）<input data-native-group="thermal" data-native-key="initial_propulsion_temp_k" type="number" min="220" max="350" step="any" value="292" required></label>
@@ -1020,8 +1027,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.16.0-propulsion-geometry";</script>
-  <script src="/assets/app.js?v=0.16.0-propulsion-geometry" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.16.1-thermal-param-ab";</script>
+  <script src="/assets/app.js?v=0.16.1-thermal-param-ab" defer></script>
   <script src="/assets/continuous.js?v=0.16.1-rw-native-controls" defer></script>
 </body>
 </html>

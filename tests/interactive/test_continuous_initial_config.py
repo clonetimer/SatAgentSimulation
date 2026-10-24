@@ -34,6 +34,10 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     assert propulsion_fields["propulsion_min_pulse_s"]["default"] == .05
     assert propulsion_fields["propulsion_thruster_0_location_b_y_m"]["default"] == .5
     assert propulsion_fields["propulsion_thruster_1_location_b_y_m"]["default"] == -.5
+    thermal_fields = {f["name"]: f for f in catalog["groups"][6]["fields"]}
+    assert thermal_fields["payload_thermal_mass_kg"]["default"] == 3.
+    assert thermal_fields["payload_specific_heat_j_kg_k"]["default"] == 600.
+    assert thermal_fields["battery_heater_setpoint_k"]["unit"] == "K"
     orbit_fields = {f["name"]: f for f in catalog["groups"][0]["fields"]}
     adcs_fields = {f["name"]: f for f in catalog["groups"][1]["fields"]}
     assert orbit_fields["spacecraft_mass_kg"]["unit"] == "kg"
@@ -150,6 +154,12 @@ def test_continuous_web_form_matches_registered_native_catalog():
     {"propulsion": {"propulsion_initial_propellant_kg": 4, "propulsion_tank_capacity_kg": 2}},
     {"propulsion": {"propulsion_enabled": "exec(evil)"}},
     {"thermal": {"initial_payload_temp_k": 350}},
+    {"thermal": {"payload_thermal_mass_kg": 0}},
+    {"thermal": {"payload_specific_heat_j_kg_k": -1}},
+    {"thermal": {"payload_thermal_emissivity": 1.01}},
+    {"thermal": {"payload_radiator_area_m2": -1}},
+    {"thermal": {"battery_heater_power_w": 101}},
+    {"thermal": {"battery_heater_setpoint_k": 320}},
     {"thermal": {"initial_propulsion_temp_k": float("nan")}},
     {"thermal": {"comm_structure_conductance_w_k": -0.1}},
     {"thermal": {"propulsion_structure_conductance_w_k": 5.1}},
@@ -223,6 +233,12 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
                 },
                 "thermal": {
                     "initial_payload_temp_k": 300.,
+                    "payload_thermal_mass_kg": 7.,
+                    "payload_specific_heat_j_kg_k": 850.,
+                    "payload_thermal_emissivity": .8,
+                    "payload_radiator_area_m2": .45,
+                    "battery_heater_power_w": 14.,
+                    "battery_heater_setpoint_k": 289.,
                     "initial_comm_temp_k": 303.,
                     "initial_propulsion_temp_k": 302.,
                     "comm_structure_conductance_w_k": .7,
@@ -268,6 +284,12 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert values["propulsion_initial_propellant_kg"] == .8
         assert values["propulsion_tank_capacity_kg"] == 1.6
         assert values["initial_payload_temp_k"] == 300.
+        assert values["payload_thermal_mass_kg"] == 7.
+        assert values["payload_specific_heat_j_kg_k"] == 850.
+        assert values["payload_thermal_emissivity"] == .8
+        assert values["payload_radiator_area_m2"] == .45
+        assert values["battery_heater_power_w"] == 14.
+        assert values["battery_heater_setpoint_k"] == 289.
         assert values["initial_comm_temp_k"] == 303.
         assert values["initial_propulsion_temp_k"] == 302.
         assert values["comm_structure_conductance_w_k"] == .7
@@ -436,6 +458,12 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                 },
                 "thermal": {
                     "initial_payload_temp_k": 301.,
+                    "payload_thermal_mass_kg": 7.,
+                    "payload_specific_heat_j_kg_k": 850.,
+                    "payload_thermal_emissivity": .8,
+                    "payload_radiator_area_m2": .45,
+                    "battery_heater_power_w": 14.,
+                    "battery_heater_setpoint_k": 289.,
                     "initial_comm_temp_k": 303.,
                     "initial_propulsion_temp_k": 305.,
                     "comm_structure_conductance_w_k": .7,
@@ -523,6 +551,12 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     assert len(thermal_configs) == 2
     assert thermal_configs[0].nodes["payload"].initial_temp_k == pytest.approx(292.)
     assert thermal_configs[1].nodes["payload"].initial_temp_k == pytest.approx(301.)
+    assert thermal_configs[1].nodes["payload"].mass_kg == pytest.approx(7.)
+    assert thermal_configs[1].nodes["payload"].specific_heat_j_per_kg_k == pytest.approx(850.)
+    assert thermal_configs[1].nodes["payload"].emissivity == pytest.approx(.8)
+    assert thermal_configs[1].radiators["payload"].area_m2 == pytest.approx(.45)
+    assert thermal_configs[1].heaters["battery"].power_w == pytest.approx(14.)
+    assert thermal_configs[1].heaters["battery"].setpoint_k == pytest.approx(289.)
     assert thermal_configs[1].nodes["comm"].initial_temp_k == pytest.approx(303.)
     assert thermal_configs[1].nodes["propulsion"].initial_temp_k == pytest.approx(305.)
     paths = {(item.from_node, item.to_node): item.conductance_w_per_k

@@ -177,6 +177,48 @@ parameters:
     required: false
     default: 295.0
     min: 1.0
+  payload_thermal_mass_kg:
+    type: number
+    unit: kg
+    required: false
+    default: 3
+    min: 0.000001
+    max: 50
+  payload_specific_heat_j_kg_k:
+    type: number
+    unit: J/(kg*K)
+    required: false
+    default: 600
+    min: 0.000001
+    max: 3000
+  payload_thermal_emissivity:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.75
+    min: 0
+    max: 1
+  payload_radiator_area_m2:
+    type: number
+    unit: m2
+    required: false
+    default: 0.25
+    min: 0
+    max: 5
+  battery_heater_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 12
+    min: 0
+    max: 100
+  battery_heater_setpoint_k:
+    type: number
+    unit: K
+    required: false
+    default: 286
+    min: 240
+    max: 310
   propulsion_enabled:
     type: boolean
     required: false

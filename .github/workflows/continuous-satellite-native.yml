@@ -112,6 +112,13 @@ jobs:
           tests/test_propulsion_whole_coupling.py
           -k test_native_thruster_direction_ab_changes_trajectory_without_changing_fuel_rate
           --disable-warnings
+      - name: Basilisk-scheduled project thermal heat-capacity A/B response
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_whole_thermal_heat_capacity_ab.py
+          --disable-warnings
       - name: Publish real Basilisk first-tick divergence diagnostics
         env:
           PYTHONPATH: "src:."

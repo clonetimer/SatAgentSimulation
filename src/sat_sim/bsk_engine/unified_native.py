@@ -1265,9 +1265,44 @@ class UnifiedNativeRuntime:
                 min_temp_k=float(values.get("propulsion_min_temp_k", 220.0)),
                 max_temp_k=float(values.get("propulsion_max_temp_k", 350.0)),
             )
-            # Apply user-facing payload initial temperature to the dedicated node.
+            # User-facing project thermal-network physics: these values modify
+            # the actual Basilisk-scheduled ThermalNetworkSysModel, never a
+            # synthetic post-run curve or an upstream Basilisk heat module.
             payload_node = thermal_nodes["payload"]
-            thermal_nodes["payload"] = replace(payload_node, initial_temp_k=float(values.get("initial_payload_temp_k", payload_node.initial_temp_k)))
+            thermal_fields = {
+                "payload_thermal_mass_kg": (3., 0., 50.),
+                "payload_specific_heat_j_kg_k": (600., 0., 3000.),
+                "payload_thermal_emissivity": (.75, 0., 1.),
+                "payload_radiator_area_m2": (.25, 0., 5.),
+                "battery_heater_power_w": (12., 0., 100.),
+                "battery_heater_setpoint_k": (286., 240., 310.),
+            }
+            thermal_operator = {key: float(values.get(key, default))
+                                for key, (default, _, _) in thermal_fields.items()}
+            for key, val in thermal_operator.items():
+                _, lower, upper = thermal_fields[key]
+                if not math.isfinite(val) or val < lower or val > upper or (
+                    key in {"payload_thermal_mass_kg", "payload_specific_heat_j_kg_k"} and val <= 0
+                ):
+                    raise ValueError(f"NATIVE_THERMAL_FIELD_OUT_OF_RANGE:{key}")
+            thermal_nodes["payload"] = replace(
+                payload_node,
+                initial_temp_k=float(values.get("initial_payload_temp_k", payload_node.initial_temp_k)),
+                mass_kg=thermal_operator["payload_thermal_mass_kg"],
+                specific_heat_j_per_kg_k=thermal_operator["payload_specific_heat_j_kg_k"],
+                emissivity=thermal_operator["payload_thermal_emissivity"],
+            )
+            thermal_radiators = dict(base_thermal_cfg.radiators)
+            thermal_radiators["payload"] = replace(
+                thermal_radiators["payload"],
+                area_m2=thermal_operator["payload_radiator_area_m2"],
+            )
+            thermal_heaters = dict(base_thermal_cfg.heaters)
+            thermal_heaters["battery"] = replace(
+                thermal_heaters["battery"],
+                power_w=thermal_operator["battery_heater_power_w"],
+                setpoint_k=thermal_operator["battery_heater_setpoint_k"],
+            )
             conduction_paths = list(base_thermal_cfg.conduction_paths) + [
                 ThermalConductionPath("comm", "structure", float(values.get("comm_structure_conductance_w_k", 0.35))),
                 ThermalConductionPath("propulsion", "structure", float(values.get("propulsion_structure_conductance_w_k", 0.45))),
@@ -1276,6 +1311,8 @@ class UnifiedNativeRuntime:
                 base_thermal_cfg,
                 nodes=thermal_nodes,
                 conduction_paths=conduction_paths,
+                radiators=thermal_radiators,
+                heaters=thermal_heaters,
                 duration_s=max(cfg.duration_s, cfg.step_s),
                 step_s=cfg.step_s,
             )

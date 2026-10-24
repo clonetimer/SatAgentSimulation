@@ -152,6 +152,13 @@ class NativePropulsionInitial(_Strict):
 class NativeThermalInitial(_Strict):
     """Project thermal network executed inside the Basilisk task, not BSK-native."""
 
+    payload_thermal_mass_kg: float = Field(default=3., gt=0., le=50., description="载荷热节点质量（kg），参与热容量 m×cp，项目热网络")
+    payload_specific_heat_j_kg_k: float = Field(default=600., gt=0., le=3000., description="载荷热节点比热容（J/(kg·K)），项目热网络")
+    payload_thermal_emissivity: float = Field(default=.75, ge=0., le=1., description="载荷节点辐射率 0–1，项目热网络")
+    payload_radiator_area_m2: float = Field(default=.25, ge=0., le=5., description="载荷散热器面积（m²），项目热网络，不代表整星所有散热器")
+    battery_heater_power_w: float = Field(default=12., ge=0., le=100., description="电池热节点加热器标称功率（W），项目热网络")
+    battery_heater_setpoint_k: float = Field(default=286., ge=240., le=310., description="电池加热器目标温度（K），项目热网络滞回控制")
+
     initial_payload_temp_k: float = Field(default=292., ge=220., le=340., description="载荷热节点初始温度（K），项目热网络")
     initial_comm_temp_k: float = Field(default=295., ge=230., le=335., description="通信热节点初始温度（K），项目热网络")
     initial_propulsion_temp_k: float = Field(default=292., ge=220., le=350., description="推进热节点初始温度（K），项目热网络")
@@ -240,6 +247,9 @@ _UNITS = {
     "propulsion_thruster_1_location_b_y_m": "m",
     "propulsion_thruster_1_direction_b_z": "1",
     "propulsion_thruster_1_location_b_z_m": "m",
+    "payload_thermal_mass_kg": "kg", "payload_specific_heat_j_kg_k": "J/(kg·K)",
+    "payload_thermal_emissivity": "1", "payload_radiator_area_m2": "m²",
+    "battery_heater_power_w": "W", "battery_heater_setpoint_k": "K",
     "initial_payload_temp_k": "K", "initial_comm_temp_k": "K",
     "initial_propulsion_temp_k": "K", "comm_structure_conductance_w_k": "W/K",
     "propulsion_structure_conductance_w_k": "W/K",
