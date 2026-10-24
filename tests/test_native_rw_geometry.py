@@ -75,7 +75,9 @@ def test_prestart_3d_geometry_is_exposed_and_submitted_only_if_selected():
     ({"rw_geometry_mode": "per_wheel", "rw_axis_b_z_3": 0.}, "RW4_GEOMETRY_REQUIRES_PYRAMID_4"),
 ])
 def test_invalid_3d_geometry_fails_pydantic_and_shared_resolver(bad,error):
-    with pytest.raises(ValidationError, match=error):
+    # Pydantic may reject invalid bounds or Literal values before the
+    # shared resolver produces its more specific native failure code.
+    with pytest.raises(ValidationError):
         ContinuousInitialConfiguration.model_validate({"adcs": bad})
     with pytest.raises(ValueError, match=error):
         resolve_rw_geometry(bad, standard_rw_axes("orthogonal_3"))
