@@ -26,9 +26,9 @@ class NativeOrbitInitial(_Strict):
 
 
 class NativeAdcsInitial(_Strict):
-    imu_gyro_bias_rad_s_x: float = Field(default=0., ge=-0.1., le=0.1., description="原生 IMU X 轴陀螺恒定偏置（rad/s）")
-    imu_gyro_bias_rad_s_y: float = Field(default=0., ge=-0.1., le=0.1., description="原生 IMU Y 轴陀螺恒定偏置（rad/s）")
-    imu_gyro_bias_rad_s_z: float = Field(default=0., ge=-0.1., le=0.1., description="原生 IMU Z 轴陀螺恒定偏置（rad/s）")
+    imu_gyro_bias_rad_s_x: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU X 轴陀螺恒定偏置（rad/s）")
+    imu_gyro_bias_rad_s_y: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU Y 轴陀螺恒定偏置（rad/s）")
+    imu_gyro_bias_rad_s_z: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU Z 轴陀螺恒定偏置（rad/s）")
     imu_accel_bias_m_s2_x: float = Field(default=0., ge=-1., le=1., description="原生 IMU X 轴加速度计恒定偏置（m/s²）")
     imu_accel_bias_m_s2_y: float = Field(default=0., ge=-1., le=1., description="原生 IMU Y 轴加速度计恒定偏置（m/s²）")
     imu_accel_bias_m_s2_z: float = Field(default=0., ge=-1., le=1., description="原生 IMU Z 轴加速度计恒定偏置（m/s²）")
