@@ -121,6 +121,13 @@ Windows PowerShell：
 - 回归门禁要求真实 Basilisk 全整星 A/B：相同初始背向太阳法线，未启用跟踪时功率保持近零，启用限速跟踪后功率上升；从真实调度控制器采集逐步转角并逐步验收限速、单位法线、运行电能边界。保持原有 +X / -X 固定法线 A/B 回归。
 - 后续仍须实现具有真实状态/反力矩的关节动力学与驱动执行机构、面板多片几何及自遮挡；跨进程完整物理恢复未通过验收，不能因为跟踪配置增加而宣称已具备。
 
+## P0-10 官方 Basilisk Spacecraft 主惯量独立配置
+
+- 整星有限时长 TaskSpec 与持续运行前的 Orbit 表单分别增加 `spacecraft_inertia_xx_kg_m2`、`spacecraft_inertia_yy_kg_m2`、`spacecraft_inertia_zz_kg_m2`。默认仍为 [100,80,60] kg·m²；每个正值不超过 10000 kg·m²，三轴必须满足严格刚体主惯量三角不等式。
+- 每项直达官方 Basilisk `Spacecraft.hub.IHubPntBc_B` 对角矩阵，而非变更数据展示/估算代理；初始质量 `spacecraft_mass_kg` 和主惯量为**独立模型参数**，更改质量不会自动推导惯量。
+- 仅支持在机体系 B 中对角惯量矩阵，不能视为任意惯性积、质量分布 CAD 自动计算或推进耗燃料的惯量动态修正。默认图不变；对有限 TaskSpec 在真正创建 Basilisk 刚体对象时再次做非有限值、范围和三角关系 fail-closed 检查。
+- 验收门禁包含 UI↔Registry ↔ Pydantic 映射、无效配置拒绝、官方 SWIG Spacecraft 原生对象的实际三轴惯量矩阵，以及相同初始状态与相同 FSW/RW 下主惯量改变的实际 Basilisk 姿态/角速度曲线 A/B；不将静态矩阵检查单独冒充 L5 物理生效证明。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
