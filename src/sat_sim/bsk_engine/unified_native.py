@@ -928,7 +928,16 @@ class UnifiedNativeRuntime:
         whole_modules: dict[str, Any] = {}
         if not cfg.adcs_only:
             panel = simpleSolarPanel.SimpleSolarPanel()
-            panel.setPanelParameters([1.0, 0.0, 0.0], float(values.get("solar_panel_area_m2", 2.5)), float(values.get("solar_efficiency", 0.28)))
+            # A fixed body-frame normal on the *official* Basilisk panel.
+            # Not an articulated/tracking panel. Check again at the runtime
+            # boundary: finite TaskSpecs do not pass the continuous Pydantic form.
+            panel_normal_b = [float(values.get(f"solar_normal_b_{axis}", default))
+                              for axis, default in zip("xyz", (1.0, 0.0, 0.0))]
+            normal_sq = sum(x * x for x in panel_normal_b)
+            if (any(not math.isfinite(x) or abs(x) > 1.0 for x in panel_normal_b)
+                    or not 0.999 <= normal_sq <= 1.001):
+                raise ValueError("NATIVE_SOLAR_PANEL_NORMAL_B_NOT_UNIT")
+            panel.setPanelParameters(panel_normal_b, float(values.get("solar_panel_area_m2", 2.5)), float(values.get("solar_efficiency", 0.28)))
             panel.sunInMsg.subscribeTo(sun_msg)
             panel.stateInMsg.subscribeTo(sc.scStateOutMsg)
             panel.sunEclipseInMsg.subscribeTo(eclipse_model.eclipseOutMsgs[0])

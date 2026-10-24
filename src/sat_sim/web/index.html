@@ -701,6 +701,10 @@
                     <label>初始 SOC（0～1）<input data-native-group="eps" data-native-key="initial_soc" type="number" min="0.05" max="1" step="any" value="0.62" required></label>
                     <label>太阳电池板面积（m²）<input data-native-group="eps" data-native-key="solar_panel_area_m2" type="number" min="0.001" max="25" step="any" value="2.5" required></label>
                     <label>太阳电池板效率（0～1）<input data-native-group="eps" data-native-key="solar_efficiency" type="number" min="0.001" max="1" step="any" value="0.28" required></label>
+                    <p class="continuous-muted">电池板固定法线（机体系 B，单位向量 X²+Y²+Z²=1）；当前原生整星未实现太阳自动跟踪。</p>
+                    <label>电池板法线 X_B<input data-native-group="eps" data-native-key="solar_normal_b_x" type="number" min="-1" max="1" step="any" value="1" required></label>
+                    <label>电池板法线 Y_B<input data-native-group="eps" data-native-key="solar_normal_b_y" type="number" min="-1" max="1" step="any" value="0" required></label>
+                    <label>电池板法线 Z_B<input data-native-group="eps" data-native-key="solar_normal_b_z" type="number" min="-1" max="1" step="any" value="0" required></label>
                     <label>基本母线负载（W）<input data-native-group="eps" data-native-key="bus_power_w" type="number" min="0" max="300" step="any" value="18" required></label>
                   </fieldset>
                   <fieldset><legend>载荷单机</legend>
