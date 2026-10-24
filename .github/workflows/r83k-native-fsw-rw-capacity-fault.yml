@@ -2,10 +2,10 @@ name: R83k Genuine Basilisk FSW Reference and Native RW Torque-Capacity Fault
 
 # Costly physics runs only when this new research protocol is introduced in
 # its Draft PR, or on explicit manual dispatch. Keep original negative outcomes.
+# ORIGINAL 4-arm physical experiment was completed under run #40114200932.
+# Seal cost and provenance; PR documentation changes must never silently
+# rerun physics, change outcomes or select a more favorable repeat.
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/r83k-native-fsw-rw-capacity-fault.yml'
   workflow_dispatch:
 
 permissions:
