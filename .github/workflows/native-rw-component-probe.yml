@@ -4,9 +4,12 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/native_rw_component.py"
+      - "src/sat_sim/bsk_engine/native_rw_cluster.py"
+      - "src/sat_sim/bsk_engine/rw_geometry.py"
       - "src/sat_sim/adapters/component_reaction_wheel.py"
       - "src/sat_sim/capabilities/component.reaction_wheel.v1.yaml"
       - "tests/test_native_rw_component_probe.py"
+      - "tests/test_native_rw_cluster.py"
       - "tests/test_component_rw_native_entry.py"
       - ".github/workflows/native-rw-component-probe.yml"
   workflow_dispatch:
@@ -41,11 +44,13 @@ jobs:
       - name: Native SWIG RW state/torque/inertia physical A/B
         env:
           PYTHONPATH: "src:."
-        run: python -m pytest -q -s tests/test_native_rw_component_probe.py tests/test_component_rw_native_entry.py
+        run: python -m pytest -q -s tests/test_native_rw_component_probe.py tests/test_native_rw_cluster.py tests/test_component_rw_native_entry.py
 
       - name: Archive Basilisk-native measured RW traces and A/B metrics
         uses: actions/upload-artifact@v7
         with:
           name: native-rw-component-physical-ab
-          path: reports/native_rw_component_probe/physical_ab.json
+          path: |
+            reports/native_rw_component_probe/physical_ab.json
+            reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
