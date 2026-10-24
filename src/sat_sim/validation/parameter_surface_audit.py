@@ -167,3 +167,27 @@ def render_parameter_surface_markdown(report: Mapping[str, Any]) -> str:
 
 __all__ = ["SCHEMA_VERSION", "WHOLE_ID", "SOURCE", "literal_runtime_keys",
            "build_parameter_surface_audit", "render_parameter_surface_markdown"]
+
+
+def main() -> int:
+    """Write machine-readable and reviewable reports, without modifying models."""
+    import json
+
+    report = build_parameter_surface_audit()
+    out = Path("reports/parameter_surface_audit")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "coverage.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
+    )
+    (out / "coverage.md").write_text(
+        render_parameter_surface_markdown(report), encoding="utf-8",
+    )
+    print("status:", report["status"], "capabilities:", report["capability_count"],
+          "form_issues:", report["form_issue_count"],
+          "native_keys_unregistered:",
+          len(report["whole_spacecraft"]["native_source_keys_missing_whole_registry"]))
+    return 0 if report["status"] == "PASS" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
