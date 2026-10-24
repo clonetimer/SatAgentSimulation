@@ -210,6 +210,13 @@ Windows PowerShell：
 - 独立 L4/L5：捕获真实 `Spacecraft` 与官方 `mrpFeedback`，通过控制器已订阅的 `vehConfigInMsg` 读取实际 VehicleConfigMsg，验证默认值、用户指定三主惯量和 RW 重定位的非对角惯量／质心均**与 Hub 真值一致**；自定义惯量 A/B 应使飞控输出真实 RW 扭矩响应变化（不是只改变轮速／姿态动力学），原有整星闭环、RW、电源、推进、热控及 TC/TM 回归保持。
 - 原生 2.11 `mrpFeedback` 在 Reset 时读取 VehicleConfigMsg，因此只保证仿真启动前的几何／惯量一致；改变质量的在轨事件或跨进程恢复时动态重计算控制器参数仍未验收。本轮无新增前端参数字段，P0 参数生效证据改善而非登记计数增加；Vizard 仍冻结。
 
+## P0-21 电驱限制后的真实 RW 电机命令必须驱动 EPS 功率核算
+
+- #69 已使 `rw_motor_current_limit_a` 与 `rw_motor_torque_constant_nm_per_a` 在 Basilisk 调度的 `ReactionWheelCommandFaultManager` 中真正限制电机力矩 `min(u_max_i, Imax Kt)`，但在随后跨系统审计发现：`AdcsControlPowerBridge` 仍订阅 FSW `rwMotorTorque.rwMotorTorqueOutMsg` **未经电驱限幅和故障处理的原始请求**，进而输入官方 `simpleBattery` 和项目热网络。这使控制轮虽然真被限制，电池功耗却按未真正执行的力矩消耗。
+- 改为将 `ReactionWheelCommandFaultManager.commandOutMsg` 同时供给 Basilisk 官方 `ReactionWheelStateEffector.rwMotorCmdInMsg` 和项目 `AdcsControlPowerBridge.motorTorqueInMsg`。由于统一原生 Task 执行顺序：FSW 扭矩分配器(60) → 电驱故障管理器(59) → ADCS 功率桥(54) → 官方 Battery(50)，实际施加的电驱力矩能在同一仿真步用于电池负载功率核算，且保留原有 `EPS simpleBattery` 上游电力消息链。
+- L5 原生 A/B：真实 3 个 Honeywell HR16 轮采用非零初始轮速与同一 FSW 初始误差，改变 Imax 为 0 / 极低值时，实际轮扭矩为零或降低；`eps.loads.adcs_power_w` 应从固定 ADCS 电子底耗 + `sum(abs(torque_applied_i * wheel_speed_i))/adcs_drive_efficiency` 有效减少（最高受 `adcs_max_power_w` 限制），且官方 Basilisk 电池 `eps.net_power_w` 随之改变。严格检查 FSW raw 命令本身未被错误归零，EPS 曲线不是遥测后处理。旧无故障高额定电驱模式保持原有性能。
+- **准确边界**：这只是已存在的项目级“RW 机械轴功 / 驱动效率”估算桥接，在 Basilisk 官方 `simpleBattery` 消费的消息中生效；并未新增母线电压 `V*I`、绕组铜耗 `I²R`、逆变器开关损耗、能量回馈或电机电热耦合的详细电路模型。当前不能说已完成高保真 RW 电驱功耗模型，亦不应把这个项目桥接称为 Basilisk 官方原生电机电子模型。Vizard P1～P3 不变，持续冻结。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
