@@ -117,7 +117,7 @@ def run_native_fsw_reference_arm(arm: str):
         wheel_factory.create(
             "Honeywell_HR16", list(axis), maxMomentum=50.,
             Omega=100.*(i+1), u_max=NATIVE_WHEEL_LIMIT_NM,
-            label=f"R83J_RW_{i+1}")
+            label=f"RW{i+1}")
     wheel_factory.addToSpacecraft("r83j_rw_effector",rw,sc)
     sim.AddModelToTask(dyn_task,rw,2)
     config=wheel_factory.getConfigMessage()
