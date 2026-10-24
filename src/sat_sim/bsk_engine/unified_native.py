@@ -670,6 +670,27 @@ class UnifiedNativeRuntime:
         rw_hardware_u_max = float(values.get("rw_max_torque_nm", 0.2))
         if not math.isfinite(rw_hardware_u_max) or not 0.0 < rw_hardware_u_max <= 0.2:
             raise ValueError("NATIVE_RW_HARDWARE_TORQUE_LIMIT_INVALID")
+        rw_friction_mode = str(values.get("rw_friction_mode", "disabled"))
+        rw_coulomb = float(values.get("rw_coulomb_friction_nm", 0.0))
+        rw_viscous = float(values.get("rw_viscous_friction_nms", 0.0))
+        rw_mount_radius = float(values.get("rw_mount_radius_m", 0.0))
+        if rw_friction_mode not in {"disabled", "coulomb_viscous"}:
+            raise ValueError("NATIVE_RW_FRICTION_MODE_INVALID")
+        if any(not math.isfinite(x) for x in (rw_coulomb, rw_viscous, rw_mount_radius)):
+            raise ValueError("NATIVE_RW_FRICTION_OR_MOUNT_NOT_FINITE")
+        if not (0 <= rw_coulomb <= .01 and 0 <= rw_viscous <= .01 and 0 <= rw_mount_radius <= .25):
+            raise ValueError("NATIVE_RW_FRICTION_OR_MOUNT_OUT_OF_RANGE")
+        if rw_friction_mode == "disabled" and (rw_coulomb > 0 or rw_viscous > 0):
+            raise ValueError("NATIVE_RW_FRICTION_DISABLED_REQUIRES_ZERO")
+        if rw_friction_mode == "coulomb_viscous" and rw_coulomb == rw_viscous == 0:
+            raise ValueError("NATIVE_RW_FRICTION_ENABLED_REQUIRES_NONZERO")
+        # Preserve the original frictionless hub-mounted wheels when unset.
+        # Only recognized rwFactory arguments are supplied to official Basilisk.
+        rw_friction_kwargs = ({"useRWfriction": True, "fCoulomb": rw_coulomb,
+                               "fStatic": 0.0, "betaStatic": -1.0,
+                               "cViscous": rw_viscous}
+                              if rw_friction_mode == "coulomb_viscous"
+                              else {"useRWfriction": False})
         for index, axis in enumerate(rw_axes):
             # The simIncludeRW.rwFactory API uses RPM for Omega, whereas
             # physical telemetry and the operator schema use rad/s.
@@ -686,6 +707,8 @@ class UnifiedNativeRuntime:
                 "Honeywell_HR16", list(axis), maxMomentum=50.0,
                 Omega=omega_factory_rpm, u_max=rw_hardware_u_max,
                 label=f"RW{index + 1}",
+                rWB_B=[float(v) * rw_mount_radius for v in axis],
+                **rw_friction_kwargs,
             )
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
         add(rw, "reaction_wheels", "basilisk_official_native", 99)
