@@ -1409,3 +1409,32 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   #creatorView .editor-toolbar #previewBtn,
   #creatorView .editor-toolbar #runBtn { flex: 1 1 145px; }
 }
+
+/* Finite-run configuration overview: desktop density, narrow-screen clarity. */
+#creatorView .editor-toolbar { flex-wrap: wrap; align-items: flex-start; }
+#creatorView .editor-toolbar > div:first-child { flex: 1 1 290px; min-width: 0; }
+#creatorView .editor-toolbar .toolbar-actions {
+  flex: 2 1 520px;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: end;
+}
+#creatorView .editor-toolbar .toolbar-actions .variant-control { min-width: 135px; }
+.single-run-config-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.single-run-config-summary { display: grid; grid-template-columns: repeat(5, minmax(105px, 1fr)); flex: 1 1 590px; gap: 9px; min-width: 0; }
+.single-run-config-item { display: grid; align-content: start; gap: 3px; min-width: 0; padding: 7px 9px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+.single-run-config-item > span { color: var(--muted); font-size: 10px; }
+.single-run-config-item > strong { color: var(--text); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.single-run-shortcuts { display: flex; flex: 0 1 auto; flex-wrap: wrap; gap: 6px; }
+.single-run-shortcuts .button { min-height: 30px; padding: 6px 9px; font-size: 11px; }
+.single-run-search-empty { margin: 12px 0; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: 9px; color: var(--muted); line-height: 1.5; font-size: 12px; }
+@media (max-width: 1450px) {
+  .single-run-config-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  #creatorView .editor-toolbar .toolbar-actions { justify-content: flex-start; flex-basis: 100%; }
+  .single-run-config-summary { flex-basis: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .single-run-shortcuts { width: 100%; }
+  .single-run-shortcuts .button { flex: 1 1 auto; }
+}
