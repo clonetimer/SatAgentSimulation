@@ -87,6 +87,31 @@ class NativeAdcsInitial(_Strict):
         default=0., ge=0., le=0.25,
         description="原生 rwFactory.create.rWB_B，按每只轮安装轴乘以共同偏移距离；m（简化安装几何）",
     )
+    rw_geometry_mode: Literal["legacy_axis_offset", "per_wheel"] = Field(default="legacy_axis_offset", description="轮组安装几何：沿原生轴共用偏置半径，或分别指定轮轴和 B 系安装点")
+    rw_axis_b_x_0: float | None = Field(default=None, ge=-1., le=1., description="RW1 机体系 B 自旋轴单位矢量X 分量，仅逐轮几何模式")
+    rw_axis_b_y_0: float | None = Field(default=None, ge=-1., le=1., description="RW1 机体系 B 自旋轴单位矢量Y 分量，仅逐轮几何模式")
+    rw_axis_b_z_0: float | None = Field(default=None, ge=-1., le=1., description="RW1 机体系 B 自旋轴单位矢量Z 分量，仅逐轮几何模式")
+    rw_axis_b_x_1: float | None = Field(default=None, ge=-1., le=1., description="RW2 机体系 B 自旋轴单位矢量X 分量，仅逐轮几何模式")
+    rw_axis_b_y_1: float | None = Field(default=None, ge=-1., le=1., description="RW2 机体系 B 自旋轴单位矢量Y 分量，仅逐轮几何模式")
+    rw_axis_b_z_1: float | None = Field(default=None, ge=-1., le=1., description="RW2 机体系 B 自旋轴单位矢量Z 分量，仅逐轮几何模式")
+    rw_axis_b_x_2: float | None = Field(default=None, ge=-1., le=1., description="RW3 机体系 B 自旋轴单位矢量X 分量，仅逐轮几何模式")
+    rw_axis_b_y_2: float | None = Field(default=None, ge=-1., le=1., description="RW3 机体系 B 自旋轴单位矢量Y 分量，仅逐轮几何模式")
+    rw_axis_b_z_2: float | None = Field(default=None, ge=-1., le=1., description="RW3 机体系 B 自旋轴单位矢量Z 分量，仅逐轮几何模式")
+    rw_axis_b_x_3: float | None = Field(default=None, ge=-1., le=1., description="RW4 机体系 B 自旋轴单位矢量X 分量，仅逐轮几何模式、4 轮构型")
+    rw_axis_b_y_3: float | None = Field(default=None, ge=-1., le=1., description="RW4 机体系 B 自旋轴单位矢量Y 分量，仅逐轮几何模式、4 轮构型")
+    rw_axis_b_z_3: float | None = Field(default=None, ge=-1., le=1., description="RW4 机体系 B 自旋轴单位矢量Z 分量，仅逐轮几何模式、4 轮构型")
+    rw_mount_b_x_m_0: float | None = Field(default=None, ge=-.25, le=.25, description="RW1 机体系 B 三维安装位置X 坐标（m），仅逐轮几何模式")
+    rw_mount_b_y_m_0: float | None = Field(default=None, ge=-.25, le=.25, description="RW1 机体系 B 三维安装位置Y 坐标（m），仅逐轮几何模式")
+    rw_mount_b_z_m_0: float | None = Field(default=None, ge=-.25, le=.25, description="RW1 机体系 B 三维安装位置Z 坐标（m），仅逐轮几何模式")
+    rw_mount_b_x_m_1: float | None = Field(default=None, ge=-.25, le=.25, description="RW2 机体系 B 三维安装位置X 坐标（m），仅逐轮几何模式")
+    rw_mount_b_y_m_1: float | None = Field(default=None, ge=-.25, le=.25, description="RW2 机体系 B 三维安装位置Y 坐标（m），仅逐轮几何模式")
+    rw_mount_b_z_m_1: float | None = Field(default=None, ge=-.25, le=.25, description="RW2 机体系 B 三维安装位置Z 坐标（m），仅逐轮几何模式")
+    rw_mount_b_x_m_2: float | None = Field(default=None, ge=-.25, le=.25, description="RW3 机体系 B 三维安装位置X 坐标（m），仅逐轮几何模式")
+    rw_mount_b_y_m_2: float | None = Field(default=None, ge=-.25, le=.25, description="RW3 机体系 B 三维安装位置Y 坐标（m），仅逐轮几何模式")
+    rw_mount_b_z_m_2: float | None = Field(default=None, ge=-.25, le=.25, description="RW3 机体系 B 三维安装位置Z 坐标（m），仅逐轮几何模式")
+    rw_mount_b_x_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置X 坐标（m），仅逐轮几何模式、4 轮构型")
+    rw_mount_b_y_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置Y 坐标（m），仅逐轮几何模式、4 轮构型")
+    rw_mount_b_z_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置Z 坐标（m），仅逐轮几何模式、4 轮构型")
     rw_max_torque_nm: float = Field(
         default=.2, gt=0., le=.2,
         description="真实 Basilisk RW 电机 u_max 与指令故障管理器的共同限幅 (N·m)",
@@ -107,6 +132,12 @@ class NativeAdcsInitial(_Strict):
 
     @model_validator(mode="after")
     def wheel_count_matches_hardware(self):
+        from sat_sim.bsk_engine.rw_geometry import resolve_rw_geometry, standard_rw_axes
+        geometry = {"rw_geometry_mode": self.rw_geometry_mode,
+                    "rw_mount_radius_m": self.rw_mount_radius_m}
+        geometry.update({key: getattr(self, key) for key in self.model_fields_set
+                         if key.startswith(("rw_axis_b_", "rw_mount_b_"))})
+        resolve_rw_geometry(geometry, standard_rw_axes(self.rw_configuration))
         if self.rw_configuration != "pyramid_4" and self.rw_initial_speed_rad_s_3 is not None:
             raise ValueError("RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
         if self.rw_configuration != "pyramid_4" and self.rw_max_momentum_nms_3 is not None:
@@ -290,6 +321,31 @@ _UNITS = {
     "orbit_radius_m": "m", "eccentricity": "1", "inclination_deg": "deg",
     "initial_true_anomaly_rad": "rad",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",
+    "rw_geometry_mode": "枚举",
+    "rw_axis_b_x_0": "1",
+    "rw_axis_b_y_0": "1",
+    "rw_axis_b_z_0": "1",
+    "rw_axis_b_x_1": "1",
+    "rw_axis_b_y_1": "1",
+    "rw_axis_b_z_1": "1",
+    "rw_axis_b_x_2": "1",
+    "rw_axis_b_y_2": "1",
+    "rw_axis_b_z_2": "1",
+    "rw_axis_b_x_3": "1",
+    "rw_axis_b_y_3": "1",
+    "rw_axis_b_z_3": "1",
+    "rw_mount_b_x_m_0": "m",
+    "rw_mount_b_y_m_0": "m",
+    "rw_mount_b_z_m_0": "m",
+    "rw_mount_b_x_m_1": "m",
+    "rw_mount_b_y_m_1": "m",
+    "rw_mount_b_z_m_1": "m",
+    "rw_mount_b_x_m_2": "m",
+    "rw_mount_b_y_m_2": "m",
+    "rw_mount_b_z_m_2": "m",
+    "rw_mount_b_x_m_3": "m",
+    "rw_mount_b_y_m_3": "m",
+    "rw_mount_b_z_m_3": "m",
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
     "rw_max_torque_nm_0": "N·m", "rw_max_torque_nm_1": "N·m",
     "rw_max_torque_nm_2": "N·m", "rw_max_torque_nm_3": "N·m",

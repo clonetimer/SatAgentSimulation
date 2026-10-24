@@ -101,15 +101,8 @@ def _norm3(values: Any) -> float:
 
 def _reaction_wheel_axes(configuration: str) -> tuple[tuple[float, float, float], ...]:
     """Return the selected, non-duplicated actuator architecture."""
-    if configuration == "pyramid_4":
-        scale = 1.0 / math.sqrt(3.0)
-        return tuple(
-            tuple(scale * value for value in axis)
-            for axis in ((1.0, 1.0, 1.0), (1.0, -1.0, -1.0), (-1.0, 1.0, -1.0), (-1.0, -1.0, 1.0))
-        )
-    if configuration == "orthogonal_3":
-        return ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
-    raise ValueError(f"unsupported rw_configuration: {configuration!r}")
+    from .rw_geometry import standard_rw_axes
+    return standard_rw_axes(configuration)
 
 
 
@@ -681,6 +674,10 @@ class UnifiedNativeRuntime:
         rw = reactionWheelStateEffector.ReactionWheelStateEffector()
         rw_factory = simIncludeRW.rwFactory()
         rw_axes = _reaction_wheel_axes(str(values.get("rw_configuration", "orthogonal_3")))
+        # Native physical installation geometry: do not rewrite the official
+        # axis/point pair into a synthetic moment or a telemetry-only setting.
+        from .rw_geometry import resolve_rw_geometry
+        rw_axes, rw_positions = resolve_rw_geometry(values, rw_axes)
         # R8-C: pass validated initial speeds and torque limits into the
         # *actual* Basilisk reaction-wheel factory (not merely into the
         # downstream fault manager or synthetic telemetry).
@@ -745,6 +742,7 @@ class UnifiedNativeRuntime:
                 raise ValueError("NATIVE_RW_PER_WHEEL_FRICTION_REQUIRES_NONZERO")
         # Preserve the original frictionless nominal hardware and identical
         # legacy group-wide friction when the new mode is not requested.
+        rw_actual_masses_kg: list[float] = []
         for index, axis in enumerate(rw_axes):
             if rw_friction_mode == "per_wheel":
                 wheel_coulomb, wheel_viscous = per_wheel_coefficients[index]
@@ -776,13 +774,31 @@ class UnifiedNativeRuntime:
             momentum_value = values.get(momentum_key, 50)
             if type(momentum_value) not in (int, float) or not math.isfinite(momentum_value) or momentum_value not in (50, 75, 100):
                 raise ValueError("NATIVE_RW_HR16_MOMENTUM_UNSUPPORTED")
-            rw_factory.create(
+            official_rw_device = rw_factory.create(
                 "Honeywell_HR16", list(axis), maxMomentum=float(momentum_value),
                 Omega=omega_factory_rpm, u_max=rw_hardware_u_max_by_wheel[index],
                 label=f"RW{index + 1}",
-                rWB_B=[float(v) * rw_mount_radius for v in axis],
+                rWB_B=list(rw_positions[index]),
                 **rw_friction_kwargs,
             )
+            # For BalancedWheels in pinned Basilisk 2.11, rotor mass is
+            # assumed included in hub.mHub/IHub; it is NOT re-counted by the
+            # effector when moving rWB_B. Use official wheel.mass for the
+            # incremental rigid-body mass relocation below.
+            rw_actual_masses_kg.append(float(official_rw_device.mass))
+        if (values.get("rw_geometry_mode") == "per_wheel"
+                and any(any(abs(v) > 0. for v in loc) for loc in rw_positions)):
+            from .rw_geometry import relocated_rw_hub_mass_properties
+            new_hub_com_b, new_hub_inertia_b = relocated_rw_hub_mass_properties(
+                total_mass_kg=float(sc.hub.mHub),
+                nominal_inertia_b=[[inertia[0], 0., 0.],
+                                   [0., inertia[1], 0.],
+                                   [0., 0., inertia[2]]],
+                rw_masses_kg=rw_actual_masses_kg,
+                rw_positions_b_m=rw_positions,
+            )
+            sc.hub.r_BcB_B = list(new_hub_com_b)
+            sc.hub.IHubPntBc_B = [list(row) for row in new_hub_inertia_b]
         # RW4 parameters have no physical owner in a three-wheel graph;
         # reject them instead of silently dropping a requested hardware edit.
         if len(rw_axes) != 4 and values.get("rw_max_momentum_nms_3") is not None:

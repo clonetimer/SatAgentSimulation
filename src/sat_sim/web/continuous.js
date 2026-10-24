@@ -483,6 +483,45 @@
     }
     updateRwFrictionNativeInitialLayout();
     updateRwTorqueInitialLayout();
+    updateRwGeometryInitialLayout();
+  }
+  function resetRwGeometryAxesForTopology() {
+    const four = document.querySelector('[data-native-key="rw_configuration"]')?.value === 'pyramid_4';
+    const scale = 1 / Math.sqrt(3);
+    const pyramids = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]];
+    for (let i = 0; i < 4; i += 1) {
+      for (let j = 0; j < 3; j += 1) {
+        const component = ['x', 'y', 'z'][j];
+        const field = document.querySelector('[data-native-key="rw_axis_b_' + component + '_' + i + '"]');
+        if (field) field.value = four ? String(pyramids[i][j] * scale) : String(Number(i === j));
+      }
+    }
+  }
+  function updateRwGeometryInitialLayout() {
+    const perWheel = document.querySelector('[data-native-key="rw_geometry_mode"]')?.value === 'per_wheel';
+    const four = document.querySelector('[data-native-key="rw_configuration"]')?.value === 'pyramid_4';
+    $('continuousRwGeometryEditor')?.classList.toggle('hidden', !perWheel);
+    const sharedRadius = document.querySelector('[data-native-key="rw_mount_radius_m"]');
+    if (sharedRadius) {
+      sharedRadius.disabled = perWheel;
+      sharedRadius.required = !perWheel;
+    }
+    for (let i = 0; i < 4; i += 1) {
+      const visible = perWheel && (i < 3 || four);
+      $('continuousRwGeometryWheel_' + i)?.classList.toggle('hidden', !visible);
+      for (const kind of ['axis', 'mount']) for (const component of ['x', 'y', 'z']) {
+        const key = kind === 'axis' ? 'rw_axis_b_' + component + '_' + i : 'rw_mount_b_' + component + '_m_' + i;
+        const field = document.querySelector('[data-native-key="' + key + '"]');
+        if (field) {
+          field.disabled = !visible;
+          field.required = visible;
+        }
+      }
+    }
+  }
+  function handleRwTopologyChange() {
+    resetRwGeometryAxesForTopology();
+    updateRwNativeInitialLayout();
   }
   function updateRwTorqueInitialLayout() {
     const enabled = Boolean($('continuousRwTorqueIndependentToggle')?.checked);
@@ -655,8 +694,12 @@
     $('continuousEnduranceAuditBtn')?.addEventListener('click', auditEndurance);
     $('continuousRecoveryAuditBtn')?.addEventListener('click', auditNativeRecovery);
     document.querySelector('[data-native-key="rw_configuration"]')
-      ?.addEventListener('change', updateRwNativeInitialLayout);
+      ?.addEventListener('change', handleRwTopologyChange);
+    resetRwGeometryAxesForTopology();
     updateRwNativeInitialLayout();
+    document.querySelector('[data-native-key="rw_geometry_mode"]')
+      ?.addEventListener('change', updateRwGeometryInitialLayout);
+    updateRwGeometryInitialLayout();
     document.querySelector('[data-native-key="rw_friction_mode"]')
       ?.addEventListener('change', updateRwFrictionNativeInitialLayout);
     updateRwFrictionNativeInitialLayout();

@@ -688,7 +688,43 @@
                     <label>反作用轮构型
                       <select data-native-group="adcs" data-native-key="rw_configuration"><option value="orthogonal_3">3 轮正交</option><option value="pyramid_4">4 轮金字塔</option></select>
                     </label>
-                    <label>轮组安装轴向偏置半径（m）<input data-native-group="adcs" data-native-key="rw_mount_radius_m" type="number" min="0" max="0.25" step="any" value="0" required title="每个轮子的原生 rWB_B = 当前轮轴向量 × 此偏置值，非完整三维安装位姿"></label>
+                    <label>反作用轮安装几何模式<select data-native-group="adcs" data-native-key="rw_geometry_mode"><option value="legacy_axis_offset">预设自旋轴 + 共用偏置半径（旧默认）</option><option value="per_wheel">RW1～RW4 独立三维安装位置与自旋轴</option></select></label>
+                    <p class="continuous-muted">轴向为机体系 B 内的单位向量 X²+Y²+Z²=1；每个安装点为 B 系米坐标。不能出现退化的三维控制轴矩阵。切换 3/4 轮构型会重置自定义轴为对应构型的预设方向。</p>
+                    <details id="continuousRwGeometryEditor" class="hidden"><summary>逐轮三维安装位置与轴向（展开配置）</summary>
+                      <fieldset id="continuousRwGeometryWheel_0"><legend>RW1 安装位置 rWB_B 与自旋轴 gsHat_B</legend>
+                        <label>RW1 安装位置 X（m）<input data-native-group="adcs" data-native-key="rw_mount_b_x_m_0" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW1 安装位置 Y（m）<input data-native-group="adcs" data-native-key="rw_mount_b_y_m_0" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW1 安装位置 Z（m）<input data-native-group="adcs" data-native-key="rw_mount_b_z_m_0" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW1 自旋轴 X<input data-native-group="adcs" data-native-key="rw_axis_b_x_0" type="number" min="-1" max="1" step="any" value="1" disabled></label>
+                        <label>RW1 自旋轴 Y<input data-native-group="adcs" data-native-key="rw_axis_b_y_0" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                        <label>RW1 自旋轴 Z<input data-native-group="adcs" data-native-key="rw_axis_b_z_0" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                      </fieldset>
+                      <fieldset id="continuousRwGeometryWheel_1"><legend>RW2 安装位置 rWB_B 与自旋轴 gsHat_B</legend>
+                        <label>RW2 安装位置 X（m）<input data-native-group="adcs" data-native-key="rw_mount_b_x_m_1" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW2 安装位置 Y（m）<input data-native-group="adcs" data-native-key="rw_mount_b_y_m_1" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW2 安装位置 Z（m）<input data-native-group="adcs" data-native-key="rw_mount_b_z_m_1" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW2 自旋轴 X<input data-native-group="adcs" data-native-key="rw_axis_b_x_1" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                        <label>RW2 自旋轴 Y<input data-native-group="adcs" data-native-key="rw_axis_b_y_1" type="number" min="-1" max="1" step="any" value="1" disabled></label>
+                        <label>RW2 自旋轴 Z<input data-native-group="adcs" data-native-key="rw_axis_b_z_1" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                      </fieldset>
+                      <fieldset id="continuousRwGeometryWheel_2"><legend>RW3 安装位置 rWB_B 与自旋轴 gsHat_B</legend>
+                        <label>RW3 安装位置 X（m）<input data-native-group="adcs" data-native-key="rw_mount_b_x_m_2" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW3 安装位置 Y（m）<input data-native-group="adcs" data-native-key="rw_mount_b_y_m_2" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW3 安装位置 Z（m）<input data-native-group="adcs" data-native-key="rw_mount_b_z_m_2" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW3 自旋轴 X<input data-native-group="adcs" data-native-key="rw_axis_b_x_2" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                        <label>RW3 自旋轴 Y<input data-native-group="adcs" data-native-key="rw_axis_b_y_2" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                        <label>RW3 自旋轴 Z<input data-native-group="adcs" data-native-key="rw_axis_b_z_2" type="number" min="-1" max="1" step="any" value="1" disabled></label>
+                      </fieldset>
+                      <fieldset id="continuousRwGeometryWheel_3"><legend>RW4 安装位置 rWB_B 与自旋轴 gsHat_B（仅四轮）</legend>
+                        <label>RW4 安装位置 X（m）<input data-native-group="adcs" data-native-key="rw_mount_b_x_m_3" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW4 安装位置 Y（m）<input data-native-group="adcs" data-native-key="rw_mount_b_y_m_3" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW4 安装位置 Z（m）<input data-native-group="adcs" data-native-key="rw_mount_b_z_m_3" type="number" min="-0.25" max="0.25" step="any" value="0" disabled></label>
+                        <label>RW4 自旋轴 X<input data-native-group="adcs" data-native-key="rw_axis_b_x_3" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                        <label>RW4 自旋轴 Y<input data-native-group="adcs" data-native-key="rw_axis_b_y_3" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                        <label>RW4 自旋轴 Z<input data-native-group="adcs" data-native-key="rw_axis_b_z_3" type="number" min="-1" max="1" step="any" value="0" disabled></label>
+                      </fieldset>
+                    </details>
+                    <label>预设轮组共用安装偏置半径（m）<input data-native-group="adcs" data-native-key="rw_mount_radius_m" type="number" min="0" max="0.25" step="any" value="0" required title="旧默认模式：原生 rWB_B = 预设轮轴方向 × 统一半径；逐轮模式会禁用本字段"></label>
                     <label>反作用轮摩擦模式<select data-native-group="adcs" data-native-key="rw_friction_mode"><option value="disabled">关闭（历史默认）</option><option value="coulomb_viscous">统一轮组库仑 + 粘滞摩擦</option><option value="per_wheel">逐轮独立库仑 + 粘滞摩擦</option></select></label>
                     <label id="continuousRwCoulombLabel" class="hidden">轮组库仑摩擦（N·m）<input data-native-group="adcs" data-native-key="rw_coulomb_friction_nm" type="number" min="0" max="0.01" step="any" value="0.00001" disabled title="所有轮子共用的原生 fCoulomb"></label>
                     <label id="continuousRwViscousLabel" class="hidden">轮组粘滞摩擦（N·m·s/rad）<input data-native-group="adcs" data-native-key="rw_viscous_friction_nms" type="number" min="0" max="0.01" step="any" value="0.0000001" disabled title="所有轮子共用的原生 cViscous"></label>
