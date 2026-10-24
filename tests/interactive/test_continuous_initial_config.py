@@ -30,6 +30,10 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
         assert all("native_value_key" in x and "default" in x and "unit" in x
                    for x in row["fields"])
     assert ContinuousInitialConfiguration().native_values() == {}
+    propulsion_fields = {f["name"]: f for f in catalog["groups"][5]["fields"]}
+    assert propulsion_fields["propulsion_min_pulse_s"]["default"] == .05
+    assert propulsion_fields["propulsion_thruster_0_location_b_y_m"]["default"] == .5
+    assert propulsion_fields["propulsion_thruster_1_location_b_y_m"]["default"] == -.5
     orbit_fields = {f["name"]: f for f in catalog["groups"][0]["fields"]}
     adcs_fields = {f["name"]: f for f in catalog["groups"][1]["fields"]}
     assert orbit_fields["spacecraft_mass_kg"]["unit"] == "kg"
@@ -133,6 +137,12 @@ def test_continuous_web_form_matches_registered_native_catalog():
     {"comm_data": {"storage_capacity_bits": 0}},
     {"payload": {"unknown_basilisk_function": "x"}},
     {"propulsion": {"propulsion_thrust_n": 0}},
+    {"propulsion": {"propulsion_min_pulse_s": 0}},
+    {"propulsion": {"propulsion_min_pulse_s": 10.1}},
+    {"propulsion": {"propulsion_thruster_0_direction_b_x": 0}},
+    {"propulsion": {"propulsion_thruster_1_direction_b_z": 0.1}},
+    {"propulsion": {"propulsion_thruster_0_direction_b_y": float("nan")}},
+    {"propulsion": {"propulsion_thruster_1_location_b_x_m": 2.01}},
     {"propulsion": {"propulsion_isp_s": -1}},
     {"propulsion": {"propulsion_burn_start_s": -1}},
     {"propulsion": {"propulsion_burn_on_time_s": 0}},
@@ -205,6 +215,11 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
                     "propulsion_tank_capacity_kg": 1.6,
                     "propulsion_min_burn_soc": .25,
                     "propulsion_power_w": 30.,
+                    "propulsion_min_pulse_s": .08,
+                    "propulsion_thruster_0_direction_b_x": .6,
+                    "propulsion_thruster_0_direction_b_y": .8,
+                    "propulsion_thruster_0_location_b_y_m": .75,
+                    "propulsion_thruster_1_location_b_y_m": -.65,
                 },
                 "thermal": {
                     "initial_payload_temp_k": 300.,
@@ -245,6 +260,11 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert values["storage_capacity_bits"] == 7_000_000_000.
         assert values["propulsion_enabled"] is True
         assert values["propulsion_thrust_n"] == 2.5
+        assert values["propulsion_min_pulse_s"] == .08
+        assert values["propulsion_thruster_0_direction_b_x"] == .6
+        assert values["propulsion_thruster_0_direction_b_y"] == .8
+        assert values["propulsion_thruster_0_location_b_y_m"] == .75
+        assert values["propulsion_thruster_1_location_b_y_m"] == -.65
         assert values["propulsion_initial_propellant_kg"] == .8
         assert values["propulsion_tank_capacity_kg"] == 1.6
         assert values["initial_payload_temp_k"] == 300.
@@ -408,6 +428,11 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                     "propulsion_tank_capacity_kg": 1.6,
                     "propulsion_min_burn_soc": .25,
                     "propulsion_power_w": 30.,
+                    "propulsion_min_pulse_s": .08,
+                    "propulsion_thruster_0_direction_b_x": .6,
+                    "propulsion_thruster_0_direction_b_y": .8,
+                    "propulsion_thruster_0_location_b_y_m": .75,
+                    "propulsion_thruster_1_location_b_y_m": -.65,
                 },
                 "thermal": {
                     "initial_payload_temp_k": 301.,
@@ -489,6 +514,12 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     assert all(spec.thrust_n == pytest.approx(2.5) for spec in p_graph.thruster_specs)
     assert all(spec.isp_s == pytest.approx(240.) for spec in p_graph.thruster_specs)
     assert p_graph.fuel_tank is not None and p_graph.thruster_effector is not None
+    assert p_cfg.thruster_command.min_pulse_s == pytest.approx(.08)
+    assert p_graph.thruster_specs[0].direction_b == pytest.approx((.6, .8, 0.))
+    assert p_graph.thruster_specs[1].direction_b == pytest.approx((1., 0., 0.))
+    assert p_graph.thruster_specs[0].location_b_m == pytest.approx((0., .75, 0.))
+    assert p_graph.thruster_specs[1].location_b_m == pytest.approx((0., -.65, 0.))
+    assert all(spec.min_on_time_s == pytest.approx(.08) for spec in p_graph.thruster_specs)
     assert len(thermal_configs) == 2
     assert thermal_configs[0].nodes["payload"].initial_temp_k == pytest.approx(292.)
     assert thermal_configs[1].nodes["payload"].initial_temp_k == pytest.approx(301.)
