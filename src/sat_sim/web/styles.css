@@ -1514,3 +1514,24 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   #creatorView .chart-window-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #creatorView .chart-window-controls .button { width: 100%; }
 }
+
+/* PR44: chart drag selection overlays only the read-only canvas. */
+#creatorView .chart-drag-frame { position: relative; }
+#creatorView .chart-drag-frame canvas { cursor: crosshair; touch-action: pan-y; }
+#creatorView .chart-drag-selection {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent-2) 22%, transparent);
+  border-left: 1px solid var(--accent-2);
+  border-right: 1px solid var(--accent-2);
+  pointer-events: none;
+}
+#creatorView .chart-drag-help {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+#creatorView .run-header-actions #reuseRunConfigBtn { white-space: nowrap; }
