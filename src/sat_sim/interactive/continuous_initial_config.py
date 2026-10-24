@@ -7,7 +7,7 @@ before it can reach a fresh runtime. No arbitrary tasks, paths or Python code.
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
 
 
 class _Strict(BaseModel):
@@ -66,10 +66,30 @@ class NativeAdcsInitial(_Strict):
     star_tracker_mount_yaw_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的航向安装角 (321 Euler; deg)")
     star_tracker_mount_pitch_deg: float = Field(default=0., ge=-89., le=89., description="星敏相对机体系的俯仰安装角 (321 Euler; deg)")
     star_tracker_mount_roll_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的横滚安装角 (321 Euler; deg)")
+    sun_sensor_normal_b_x: float = Field(default=0., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 X；须与 Y/Z 构成单位矢量")
+    sun_sensor_normal_b_y: float = Field(default=0., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 Y；须与 X/Z 构成单位矢量")
+    sun_sensor_normal_b_z: float = Field(default=-1., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 Z；旧默认 -Z")
     sun_sensor_fov_deg: float = Field(
         default=80., gt=0., le=180.,
         description="原生 Basilisk CoarseSunSensor.fov 视场全角（deg），仅影响该光敏器观测，不代表所有敏感器的视场。",
     )
+    @field_validator("sun_sensor_normal_b_x", "sun_sensor_normal_b_y", "sun_sensor_normal_b_z", mode="before")
+    @classmethod
+    def reject_non_numeric_css_boresight(cls, value):
+        # Pydantic float normally coerces True to 1.0, but hardware
+        # orientation must not accept booleans or string-number inputs.
+        if type(value) not in (int, float):
+            raise ValueError("SUN_SENSOR_NORMAL_REQUIRES_REAL_NUMBER")
+        return value
+
+    @model_validator(mode="after")
+    def check_sun_sensor_normal(self):
+        from sat_sim.bsk_engine.sun_sensor_geometry import resolve_sun_sensor_boresight
+        keys = tuple(f"sun_sensor_normal_b_{axis}" for axis in "xyz")
+        specified = {key: getattr(self, key) for key in keys if key in self.model_fields_set}
+        resolve_sun_sensor_boresight(specified)
+        return self
+
     initial_pointing_error_deg: float = Field(default=8., ge=0., le=90.)
     controller_k: float = Field(default=3.5, gt=0., le=100.)
     controller_p: float = Field(default=30., gt=0., le=300.)
@@ -308,6 +328,8 @@ _DISPLAY = {
 
 _UNITS = {
     "spacecraft_mass_kg": "kg", "sun_sensor_fov_deg": "deg",
+    "sun_sensor_normal_b_x": "1", "sun_sensor_normal_b_y": "1",
+    "sun_sensor_normal_b_z": "1",
     "spacecraft_inertia_xx_kg_m2": "kg·m²", "spacecraft_inertia_yy_kg_m2": "kg·m²",
     "spacecraft_inertia_zz_kg_m2": "kg·m²",
     "magnetometer_mount_yaw_deg": "deg", "magnetometer_mount_pitch_deg": "deg",
