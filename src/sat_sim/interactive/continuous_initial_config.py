@@ -17,12 +17,24 @@ class _Strict(BaseModel):
 class NativeOrbitInitial(_Strict):
     spacecraft_mass_kg: float = Field(
         default=100., ge=1., le=2000.,
-        description="整星原生 Spacecraft.hub.mHub 总质量（kg）；包含当前图采用的总质量假设，不单独改变惯量矩阵。",
+        description="整星原生 Spacecraft.hub.mHub 总质量（kg）；质量与下面的惯量需分别配置，不从质量推算惯量。",
     )
+    spacecraft_inertia_xx_kg_m2: float = Field(default=100., gt=0., le=10000., description="Basilisk Spacecraft.hub.IHubPntBc_B 机体系主惯量 Ixx（kg·m²），不自动由质量推算")
+    spacecraft_inertia_yy_kg_m2: float = Field(default=80., gt=0., le=10000., description="Basilisk Spacecraft.hub.IHubPntBc_B 机体系主惯量 Iyy（kg·m²）")
+    spacecraft_inertia_zz_kg_m2: float = Field(default=60., gt=0., le=10000., description="Basilisk Spacecraft.hub.IHubPntBc_B 机体系主惯量 Izz（kg·m²）")
     orbit_radius_m: float = Field(default=7_000_000., ge=6_500_000., le=20_000_000.)
     eccentricity: float = Field(default=.001, ge=0., le=.2)
     inclination_deg: float = Field(default=35., ge=0., le=180.)
     initial_true_anomaly_rad: float = Field(default=0., ge=0., le=6.283185307179586)
+
+    @model_validator(mode="after")
+    def validate_principal_inertia(self):
+        xx, yy, zz = (self.spacecraft_inertia_xx_kg_m2,
+                      self.spacecraft_inertia_yy_kg_m2,
+                      self.spacecraft_inertia_zz_kg_m2)
+        if xx >= yy + zz or yy >= xx + zz or zz >= xx + yy:
+            raise ValueError("SPACECRAFT_PRINCIPAL_INERTIA_TRIANGLE_VIOLATION")
+        return self
 
 
 class NativeAdcsInitial(_Strict):
@@ -218,6 +230,8 @@ _DISPLAY = {
 
 _UNITS = {
     "spacecraft_mass_kg": "kg", "sun_sensor_fov_deg": "deg",
+    "spacecraft_inertia_xx_kg_m2": "kg·m²", "spacecraft_inertia_yy_kg_m2": "kg·m²",
+    "spacecraft_inertia_zz_kg_m2": "kg·m²",
     "imu_gyro_bias_rad_s_x": "rad/s",
     "imu_gyro_bias_rad_s_y": "rad/s",
     "imu_gyro_bias_rad_s_z": "rad/s",
