@@ -12,7 +12,9 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from sat_sim.bsk_engine.rw_geometry import resolve_rw_geometry, standard_rw_axes
+from sat_sim.bsk_engine.rw_geometry import (
+    resolve_rw_geometry, standard_rw_axes, relocated_rw_hub_mass_properties,
+)
 from sat_sim.interactive.continuous_initial_config import (
     ContinuousInitialConfiguration, initial_configuration_catalog,
 )
@@ -25,6 +27,26 @@ def test_legacy_native_axes_and_location_remain_exact():
         assert axes == original
         assert np.allclose(positions, np.asarray(original) * 0.2, atol=0., rtol=1e-15)
     assert ContinuousInitialConfiguration().native_values() == {}
+
+
+def test_balanced_rw_mass_relocation_uses_parallel_axis_and_conserves_existing_mass():
+    old = np.diag([100., 80., 60.])
+    masses = [10., 10., 10.]
+    locations = [[.25, -.2, .1], [0., 0., 0.], [0., 0., 0.]]
+    com, inertia = relocated_rw_hub_mass_properties(
+        total_mass_kg=100., nominal_inertia_b=old,
+        rw_masses_kg=masses, rw_positions_b_m=locations,
+    )
+    assert com == pytest.approx([.025, -.02, .01], abs=1e-14)
+    matrix = np.asarray(inertia, dtype=float)
+    assert np.max(np.abs(matrix - old)) > .01
+    assert np.all(np.linalg.eigvalsh(matrix) > 0.)
+    assert matrix[0, 1] != pytest.approx(0., abs=1e-12)
+    with pytest.raises(ValueError, match="MASS_BUDGET_INVALID"):
+        relocated_rw_hub_mass_properties(
+            total_mass_kg=20., nominal_inertia_b=old,
+            rw_masses_kg=masses, rw_positions_b_m=locations,
+        )
 
 
 def test_prestart_3d_geometry_is_exposed_and_submitted_only_if_selected():
@@ -86,9 +108,17 @@ def test_invalid_3d_geometry_fails_pydantic_and_shared_resolver(bad,error):
 def test_native_real_rw_axis_and_installation_points_change_actual_dynamics(monkeypatch):
     pytest.importorskip("Basilisk")
     from Basilisk.utilities import simIncludeRW
+    from Basilisk.simulation import spacecraft
     from sat_sim.capability_registry import get_adapter_for_capability
     from test_unified_native_migration import WHOLE_ID, _short_spec
 
+    original_spacecraft = spacecraft.Spacecraft
+    installed_spacecraft = []
+    def capture_spacecraft():
+        obj = original_spacecraft()
+        installed_spacecraft.append(obj)
+        return obj
+    monkeypatch.setattr(spacecraft, "Spacecraft", capture_spacecraft)
     baseline = standard_rw_axes("orthogonal_3")
     captured = []
     create = simIncludeRW.rwFactory.create
@@ -147,6 +177,12 @@ def test_native_real_rw_axis_and_installation_points_change_actual_dynamics(monk
     })
     assert offset_wheels[0]["axis"] == pytest.approx(baseline[0], abs=1e-12)
     assert offset_wheels[0]["position"] == pytest.approx([.25, -.2, .1], abs=1e-12)
+    assert len(installed_spacecraft) == 3
+    hub = installed_spacecraft[-1].hub
+    hub_com = np.asarray(hub.r_BcB_B, dtype=float).reshape(-1)
+    hub_inertia = np.asarray(hub.IHubPntBc_B, dtype=float)
+    assert max(abs(hub_com)) > 0.
+    assert np.max(np.abs(hub_inertia - np.diag([100., 80., 60.]))) > 1e-3
     offset_deltas = [max(abs(float(a[k]) - float(b[k])) for k in rate_keys)
                      for a, b in zip(clean[1:], offset_only[1:])]
     assert max(offset_deltas) > 1e-9, offset_deltas
