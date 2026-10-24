@@ -744,6 +744,17 @@ class UnifiedNativeRuntime:
         ]
         tracker = starTracker.StarTracker()
         tracker.dcm_CB = np.asarray(RigidBodyKinematics.euler3212C(tracker_euler_321)).tolist()
+        star_noise_std_arcsec = float(values.get("star_tracker_noise_std_arcsec", 0.0))
+        if not math.isfinite(star_noise_std_arcsec) or not 0 <= star_noise_std_arcsec <= 3600:
+            raise ValueError("NATIVE_STAR_TRACKER_NOISE_STD_OUT_OF_RANGE")
+        if star_noise_std_arcsec > 0:
+            # Official PMatrix is the *sqrt covariance*, not a variance.
+            # Explicit A=0 prevents earlier Basilisk versions from silently
+            # interpreting the operator's white-noise sigma as a random walk.
+            star_sigma_rad = math.radians(star_noise_std_arcsec / 3600.0)
+            tracker.PMatrix = (np.eye(3) * star_sigma_rad).tolist()
+            tracker.setAMatrix(np.zeros((3, 3)).tolist())
+            tracker.RNGSeed = int(values.get("simulation_seed", 0))
         tracker.scStateInMsg.subscribeTo(sc.scStateOutMsg)
         add(tracker, "star_tracker", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "star_tracker")
@@ -762,6 +773,30 @@ class UnifiedNativeRuntime:
             float(values.get("imu_position_b_y_m", 0.0)),
             float(values.get("imu_position_b_z_m", 0.0)),
         ]
+        # These are the official native sensor biases and saturation limits,
+        # NOT the separate event-triggered project IMU fault injector.
+        gyro_bias = [float(values.get(f"imu_gyro_bias_rad_s_{axis}", 0.0))
+                     for axis in "xyz"]
+        accel_bias = [float(values.get(f"imu_accel_bias_m_s2_{axis}", 0.0))
+                      for axis in "xyz"]
+        if not all(math.isfinite(v) for v in (*gyro_bias, *accel_bias)):
+            raise ValueError("NATIVE_IMU_BIAS_NOT_FINITE")
+        if any(abs(v) > 0.1 for v in gyro_bias) or any(abs(v) > 1.0 for v in accel_bias):
+            raise ValueError("NATIVE_IMU_BIAS_OUT_OF_RANGE")
+        imu.senRotBias = gyro_bias
+        imu.senTransBias = accel_bias
+        gyro_max = float(values.get("imu_gyro_max_rad_s", 0.0))
+        accel_max = float(values.get("imu_accel_max_m_s2", 0.0))
+        if not all(math.isfinite(v) for v in (gyro_max, accel_max)) or not (
+            0 <= gyro_max <= 1000 and 0 <= accel_max <= 1000
+        ):
+            raise ValueError("NATIVE_IMU_SATURATION_OUT_OF_RANGE")
+        # Zero means 'do not overwrite the upstream module default', so the
+        # old nominal graph retains exactly its existing saturation behavior.
+        if gyro_max > 0:
+            imu.senRotMax = gyro_max
+        if accel_max > 0:
+            imu.senTransMax = accel_max
         imu.scStateInMsg.subscribeTo(sc.scStateOutMsg)
         add(imu, "imu", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "imu")
