@@ -546,6 +546,14 @@
       for (const base of ['rw_motor_current_limit_a', 'rw_motor_torque_constant_nm_per_a']) {
         const field = document.querySelector('[data-native-key="' + base + '_' + i + '"]');
         if (field) {
+          // Seed each wheel from the operator's *current shared settings*
+          // only the first time it is enabled. Subsequent mode/topology
+          // toggles must preserve per-wheel edits instead of resetting them.
+          if (visible && field.dataset.electricalSeeded !== 'true') {
+            const shared = document.querySelector('[data-native-key="' + base + '"]');
+            if (shared) field.value = shared.value;
+            field.dataset.electricalSeeded = 'true';
+          }
           field.disabled = !visible;
           field.required = visible;
         }
