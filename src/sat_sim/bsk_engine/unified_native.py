@@ -335,6 +335,12 @@ def _build_unified_rows(
             "adcs.body_rate_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
             "adcs.body_rate_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
             "adcs.body_rate_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
+            "adcs.sensor.raw_gyro_rad_s_x": float(recorder_map["imu_raw"].AngVelPlatform[index][0]),
+            "adcs.sensor.raw_gyro_rad_s_y": float(recorder_map["imu_raw"].AngVelPlatform[index][1]),
+            "adcs.sensor.raw_gyro_rad_s_z": float(recorder_map["imu_raw"].AngVelPlatform[index][2]),
+            "adcs.sensor.raw_accel_m_s2_x": float(recorder_map["imu_raw"].AccelPlatform[index][0]),
+            "adcs.sensor.raw_accel_m_s2_y": float(recorder_map["imu_raw"].AccelPlatform[index][1]),
+            "adcs.sensor.raw_accel_m_s2_z": float(recorder_map["imu_raw"].AccelPlatform[index][2]),
             "adcs.sensor.gyro_measured_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
             "adcs.sensor.gyro_measured_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
             "adcs.sensor.gyro_measured_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
@@ -876,6 +882,30 @@ class UnifiedNativeRuntime:
             raise ValueError("NATIVE_IMU_BIAS_OUT_OF_RANGE")
         imu.senRotBias = gyro_bias
         imu.senTransBias = accel_bias
+        # Noise on the actual official Basilisk ImuSensor, distinct from
+        # event-conditioned project ImuFaultInjector's base_noise_std_rad_s.
+        # P is a square-root covariance (sigma), NOT variance (sigma^2).
+        # Explicit A=0 is required with pinned Basilisk 2.11: its gyro
+        # default is a random walk, not the operator-selected WHITE noise.
+        native_gyro_sigma = values.get("imu_gyro_white_noise_std_rad_s", 0.)
+        native_accel_sigma = values.get("imu_accel_white_noise_std_m_s2", 0.)
+        if any(type(v) not in (int, float) for v in (native_gyro_sigma, native_accel_sigma)):
+            raise ValueError("NATIVE_IMU_WHITE_NOISE_INVALID")
+        native_gyro_sigma, native_accel_sigma = float(native_gyro_sigma), float(native_accel_sigma)
+        if (not math.isfinite(native_gyro_sigma) or not 0. <= native_gyro_sigma <= .1
+                or not math.isfinite(native_accel_sigma) or not 0. <= native_accel_sigma <= 1.):
+            raise ValueError("NATIVE_IMU_WHITE_NOISE_INVALID")
+        if native_gyro_sigma > 0. or native_accel_sigma > 0.:
+            # No added noise or RNG state when both controls remain zero;
+            # old scenarios retain their original native call graph.
+            imu.RNGSeed = int(values.get("simulation_seed", 0))
+            zero = np.zeros((3, 3)).tolist()
+            if native_gyro_sigma > 0.:
+                imu.PMatrixGyro = (np.eye(3) * native_gyro_sigma).tolist()
+                imu.setAMatrixGyro(zero)
+            if native_accel_sigma > 0.:
+                imu.PMatrixAccel = (np.eye(3) * native_accel_sigma).tolist()
+                imu.setAMatrixAccel(zero)
         gyro_max = float(values.get("imu_gyro_max_rad_s", 0.0))
         accel_max = float(values.get("imu_accel_max_m_s2", 0.0))
         if not all(math.isfinite(v) for v in (gyro_max, accel_max)) or not (
