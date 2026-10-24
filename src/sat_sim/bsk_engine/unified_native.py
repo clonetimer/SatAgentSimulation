@@ -942,6 +942,26 @@ class UnifiedNativeRuntime:
             panel.stateInMsg.subscribeTo(sc.scStateOutMsg)
             panel.sunEclipseInMsg.subscribeTo(eclipse_model.eclipseOutMsgs[0])
             add(panel, "solar_panel", "basilisk_official_native", 55)
+            # Tracking is project-owned kinematics executed in the SAME
+            # Basilisk task, prior to the official panel update at priority 55.
+            # The official panel still calculates the actual power and eclipse.
+            tracking_enabled = values.get("solar_tracking_enabled", False)
+            tracking_rate = float(values.get("solar_tracking_max_slew_rad_s", 0.))
+            if not isinstance(tracking_enabled, bool) or not math.isfinite(tracking_rate) or not 0. <= tracking_rate <= 1.:
+                raise ValueError("NATIVE_SOLAR_TRACKING_CONFIG_INVALID")
+            if tracking_enabled != (tracking_rate > 0.):
+                raise ValueError("NATIVE_SOLAR_TRACKING_RATE_ENABLE_MISMATCH")
+            if tracking_enabled:
+                from .solar_tracking import BasiliskScheduledSolarNormalTracker
+                panel_tracker = BasiliskScheduledSolarNormalTracker(
+                    panel, max_slew_rate_rad_s=tracking_rate,
+                )
+                panel_tracker.scStateInMsg.subscribeTo(sc.scStateOutMsg)
+                panel_tracker.sunInMsg.subscribeTo(sun_msg)
+                add(panel_tracker, "project_solar_normal_tracker", "basilisk_project_native", 57)
+                connected("spacecraft.scStateOutMsg", "project_solar_normal_tracker")
+                connected("sun_ephemeris", "project_solar_normal_tracker")
+                connected("project_solar_normal_tracker.normal_B", "solar_panel.nHat_B")
             connected("eclipse.eclipseOutMsgs[0]", "solar_panel")
 
             power_nodes = []
