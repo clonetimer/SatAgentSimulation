@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.15.7-imu-star-mount-native">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.15.8-native-sensor-error-controls">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -655,6 +655,17 @@
                     <label>初始真近点角（rad）<input data-native-group="orbit" data-native-key="initial_true_anomaly_rad" type="number" min="0" max="6.283185307179586" step="any" value="0" required></label>
                   </fieldset>
                   <fieldset><legend>ADCS 与反作用轮</legend>
+                    <p class="continuous-muted"><strong>IMU 原生测量误差</strong>：下列恒定偏置写入 Basilisk ImuSensor；量程填 0 表示保留原生默认，非零时启用对应原生饱和上限。和故障事件注入分开管理。</p>
+                    <label>IMU 陀螺 X 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_x" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <label>IMU 陀螺 Y 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_y" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <label>IMU 陀螺 Z 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_z" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <label>IMU 加速度计 X 轴恒定偏置（m/s²）<input data-native-group="adcs" data-native-key="imu_accel_bias_m_s2_x" type="number" min="-1" max="1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <label>IMU 加速度计 Y 轴恒定偏置（m/s²）<input data-native-group="adcs" data-native-key="imu_accel_bias_m_s2_y" type="number" min="-1" max="1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <label>IMU 加速度计 Z 轴恒定偏置（m/s²）<input data-native-group="adcs" data-native-key="imu_accel_bias_m_s2_z" type="number" min="-1" max="1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <label>陀螺最大量程（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_max_rad_s" type="number" min="0" max="1000" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <label>加速度计最大量程（m/s²）<input data-native-group="adcs" data-native-key="imu_accel_max_m_s2" type="number" min="0" max="1000" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
+                    <p class="continuous-muted"><strong>星敏原生正常噪声</strong>：单位角秒；0 为关闭，大于 0 使用官方 Basilisk PMatrix 并明确将状态传播设为零（白噪声，非随机游走），区别于故障注入的精度退化。</p>
+                    <label>星敏逐轴白噪声标准差（角秒）<input data-native-group="adcs" data-native-key="star_tracker_noise_std_arcsec" type="number" min="0" max="3600" step="any" value="0" required title="Basilisk StarTracker.PMatrix 的逐轴标准差，内部转为 rad"></label>
                     <p class="continuous-muted"><strong>IMU 原生安装</strong>：机体系 B → 平台系 P，按航向、俯仰、横滚（3-2-1）设置；位置为机体系坐标。默认均为 0。</p>
                     <label>IMU 安装航向角（°）<input data-native-group="adcs" data-native-key="imu_mount_yaw_deg" type="number" min="-180" max="180" step="any" value="0" required title="IMU 机体系到平台系 3-2-1 欧拉角第一项；传入 Basilisk setBodyToPlatformDCM(yaw,pitch,roll)"></label>
                     <label>IMU 安装俯仰角（°）<input data-native-group="adcs" data-native-key="imu_mount_pitch_deg" type="number" min="-89" max="89" step="any" value="0" required title="限制俯仰角避免欧拉奇异姿态"></label>
@@ -974,8 +985,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.15.7-imu-star-mount-native";</script>
-  <script src="/assets/app.js?v=0.15.7-imu-star-mount-native" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.15.8-native-sensor-error-controls";</script>
+  <script src="/assets/app.js?v=0.15.8-native-sensor-error-controls" defer></script>
   <script src="/assets/continuous.js?v=0.16.1-rw-native-controls" defer></script>
 </body>
 </html>
