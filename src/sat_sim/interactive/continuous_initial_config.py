@@ -99,7 +99,9 @@ class NativeEpsInitial(_Strict):
     solar_efficiency: float = Field(default=.28, gt=0., le=1.)
     solar_normal_b_x: float = Field(default=1., ge=-1., le=1., description="原生太阳电池板固定法线在机体系 B 的 X 分量；不表示自动追踪")
     solar_normal_b_y: float = Field(default=0., ge=-1., le=1., description="原生太阳电池板固定法线在机体系 B 的 Y 分量；三轴必须构成单位向量")
-    solar_normal_b_z: float = Field(default=0., ge=-1., le=1., description="原生太阳电池板固定法线在机体系 B 的 Z 分量；三轴必须构成单位向量")
+    solar_normal_b_z: float = Field(default=0., ge=-1., le=1., description="原生太阳电池板初始法线在机体系 B 的 Z 分量；三轴必须构成单位向量")
+    solar_tracking_enabled: bool = Field(default=False, description="可选项目运动学跟踪控制；官方 Basilisk 太阳板仍负责发电，无真实铰链惯量/电机/反力矩")
+    solar_tracking_max_slew_rad_s: float = Field(default=0., ge=0., le=1., description="太阳板法线最大角速度（rad/s）；启用跟踪时必须大于 0")
     bus_power_w: float = Field(default=18., ge=0., le=300.)
 
     @model_validator(mode="after")
@@ -109,6 +111,10 @@ class NativeEpsInitial(_Strict):
         ))
         if not 0.999 <= norm_sq <= 1.001:
             raise ValueError("SOLAR_PANEL_NORMAL_B_NOT_UNIT")
+        if self.solar_tracking_enabled and self.solar_tracking_max_slew_rad_s <= 0.:
+            raise ValueError("SOLAR_TRACKING_REQUIRES_POSITIVE_SLEW_RATE")
+        if not self.solar_tracking_enabled and self.solar_tracking_max_slew_rad_s != 0.:
+            raise ValueError("SOLAR_TRACKING_DISABLED_REQUIRES_ZERO_RATE")
         return self
 
 
@@ -203,7 +209,7 @@ class ContinuousInitialConfiguration(_Strict):
 _DISPLAY = {
     "orbit": "整星质量与轨道初始条件",
     "adcs": "ADCS：IMU、星敏安装、太阳敏感器与反作用轮",
-    "eps": "电池与太阳电池板（EPS／单机）",
+    "eps": "电池与太阳电池板（EPS／单机，含项目限速跟踪）",
     "payload": "载荷设备",
     "comm_data": "通信数据存储",
     "propulsion": "推进分系统（Basilisk 原生执行机构／燃料箱）",
@@ -241,6 +247,7 @@ _UNITS = {
     "battery_capacity_wh": "Wh", "initial_soc": "1", "solar_panel_area_m2": "m²",
     "solar_efficiency": "1", "bus_power_w": "W",
     "solar_normal_b_x": "1", "solar_normal_b_y": "1", "solar_normal_b_z": "1",
+    "solar_tracking_enabled": "布尔", "solar_tracking_max_slew_rad_s": "rad/s",
     "payload_data_rate_bps": "bit/s", "payload_power_w": "W",
     "storage_capacity_bits": "bit", "downlink_rate_bps": "bit/s",
     "propulsion_enabled": "布尔", "propulsion_thrust_n": "N", "propulsion_isp_s": "s",
