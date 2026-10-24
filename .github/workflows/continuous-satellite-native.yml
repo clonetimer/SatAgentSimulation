@@ -34,6 +34,8 @@ on:
       - "tests/test_native_vizard_recording.py"
       - "src/sat_sim/bsk_engine/vizard_native_export.py"
       - "scripts/export_native_vizard.py"
+      - "src/sat_sim/bsk_engine/rw_geometry.py"
+      - "tests/test_native_rw_geometry.py"
       - "tests/test_native_rw_per_wheel_torque.py"
       - "tests/test_native_rw_per_wheel_friction.py"
       - "tests/test_native_rw_momentum.py"
@@ -120,6 +122,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_vizard_recording.py
+          --disable-warnings
+      - name: Genuine Basilisk RW 3D position/axis SWIG and closed-loop physical response A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_rw_geometry.py
           --disable-warnings
       - name: Genuine Basilisk independent RW hardware u_max, fault clamp and physical spin A/B
         env:
