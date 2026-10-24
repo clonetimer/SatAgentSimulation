@@ -1297,9 +1297,15 @@ class UnifiedNativeRuntime:
             connected("project_native_rf_downlink_gate.linkBudgetOutMsg", "native_downlink_handling")
             connected("native_downlink_handling.nodeDataOutMsg", "storage")
 
+            # P0-21: the EPS/thermal power source must observe the same
+            # *post-electrical-driver*, *post-fault* torque vector that reaches
+            # the official Basilisk reaction wheels. The upstream FSW raw
+            # request can exceed min(u_max_i, Imax*Kt) and is NOT applied.
+            # This remains an explicit |T*Omega|/efficiency engineering load
+            # bridge, not a winding loss, bus-voltage or motor current model.
             adcs_power_bridge = AdcsControlPowerBridge(
                 "project_adcs_control_power_bridge",
-                motor_torque_msg=motor.rwMotorTorqueOutMsg,
+                motor_torque_msg=rw_fault.commandOutMsg,
                 wheel_speed_msg=rw.rwSpeedOutMsg,
                 base_power_w=float(values.get("adcs_power_w", 12.0)),
                 drive_efficiency=float(values.get("adcs_drive_efficiency", 0.75)),
@@ -1329,6 +1335,8 @@ class UnifiedNativeRuntime:
                 add(bridge, bridge.ModelTag, "engineering_proxy", 54)
                 battery.addPowerNodeToModel(bridge.powerOutMsg)
                 connected(f"{bridge.ModelTag}.powerOutMsg", "battery")
+            connected("project_rw_command_fault_manager.commandOutMsg", "project_adcs_control_power_bridge")
+            connected("reaction_wheels.rwSpeedOutMsg", "project_adcs_control_power_bridge")
             whole_modules.update({
                 "adcs_power_bridge": adcs_power_bridge,
                 "payload_power_bridge": payload_power_bridge,
