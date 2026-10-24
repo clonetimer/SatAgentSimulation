@@ -217,6 +217,14 @@ Windows PowerShell：
 - L5 原生 A/B：真实 3 个 Honeywell HR16 轮采用非零初始轮速与同一 FSW 初始误差，改变 Imax 为 0 / 极低值时，实际轮扭矩为零或降低；`eps.loads.adcs_power_w` 应从固定 ADCS 电子底耗 + `sum(abs(torque_applied_i * wheel_speed_i))/adcs_drive_efficiency` 有效减少（最高受 `adcs_max_power_w` 限制），且官方 Basilisk 电池 `eps.net_power_w` 随之改变。严格检查 FSW raw 命令本身未被错误归零，EPS 曲线不是遥测后处理。旧无故障高额定电驱模式保持原有性能。
 - **准确边界**：这只是已存在的项目级“RW 机械轴功 / 驱动效率”估算桥接，在 Basilisk 官方 `simpleBattery` 消费的消息中生效；并未新增母线电压 `V*I`、绕组铜耗 `I²R`、逆变器开关损耗、能量回馈或电机电热耦合的详细电路模型。当前不能说已完成高保真 RW 电驱功耗模型，亦不应把这个项目桥接称为 Basilisk 官方原生电机电子模型。Vizard P1～P3 不变，持续冻结。
 
+## P0-22 逐轮 RW 驱动器电流上限、扭矩常数及 ADCS→EPS 链路闭环
+
+- P0-19～21 已修复驱动器共享 `Imax×Kt` 真实力矩限幅、Hub–FSW 惯量同步、EPS 电池消费**实际已执行**的轮扭矩。剩余问题：RW1～RW4 均共用一组电流上限/电机常数，但已支持独立 RW 硬件 `u_max`、摩擦、转动惯量和 B 系安装几何；在多轮混合硬件和驱动器条件下配置无法准确表示每轮真实电驱额定能力。
+- 新增可选 `rw_motor_current_limit_a_0..3`（A，范围 [0,20]）和 `rw_motor_torque_constant_nm_per_a_0..3`（N·m/A，范围 (0,.2]）。缺省分别继承以前的共享值 10 A、0.02 N·m/A；RW4 必须是 `pyramid_4` 构型。持续前端提供**显式逐轮模式开关**，默认保持隐藏禁用，不污染旧运行参数。原生模块无新“电机电路方程”：项目级 `ReactionWheelCommandFaultManager` 继续在同一 Basilisk Task 中调度，计算每轮实际命令限幅 `min(official_RW_u_max_i, Imax_i*Kt_i)`，同时严格处理轮组故障与超速制动。官方 `ReactionWheelStateEffector` 原生计算轮速和姿态，`AdcsControlPowerBridge` 消费的仍是 post-clamp 消息，官方 `simpleBattery` 消费桥接功率节点。
+- `adcs.rw.motor_current_a_i` 必须从**各轮真实施加扭矩**除以各自 `Kt_i`，不是用共享 Kt，也不得以看起来正确的电流曲线代替物理验收。硬件 `u_max_i` 原生值不变；对应 `effective_max_torque_nm_i`、`effective_torque_ratio_i` 与轮速必须响应逐轮 I/Kt 控制。
+- L5 真 Basilisk：同轨道和 FSW 初值，单独限制 RW1 电流和 RW2 Kt，验证各自输出力矩、有效额定限幅/比例、实际轮速、独立电流遥测；四轮场景验证 RW4 不同扭矩常数与硬件 max torque 共同约束；单独关闭 RW1 电流后，实际 `eps.loads.adcs_power_w` 和官方电池净功率必须随真实轮扭矩变化。负值、NaN、bool、字符串、错误 RW4 均在预启动校验与直接 TaskSpec 双路径失败关闭；默认旧共享配置验证保持。
+- **建模边界**：该工作在 Basilisk-scheduled 项目级驱动命令层实现，不是官方 Honeywell 轮内部的电驱绕组模型；EPS 使用实际机械轴功 / 效率估算，不等同于 V×I 电流功耗模型、驱动损耗或真实电机温度。跨进程精确恢复和软件安全稳定发布仍分别 BLOCKED；Vizard 新增能力继续冻结。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
