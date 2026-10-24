@@ -54,6 +54,10 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert ".single-run-config-summary" in css
     assert "配置已修改；上次校验已失效" in js
     assert "旧校验结果已丢弃" in js
+    assert "collectEventInputIssues" in js
+    assert "必须填写整数" in js
+    assert "数组必须包含有效数值" in js
+    assert ".event-field-invalid" in css
 
 
 def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path):
@@ -132,6 +136,39 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             assert page.locator("#effectKind").is_visible()
             page.locator("#singleRunJumpOutputsBtn").click()
             assert page.locator("#plotOptions").is_visible()
+            assert calls == []
+
+            # Fault event fields must reject invalid numbers instead of
+            # silently retaining the last valid TaskSpec parameter.
+            page.locator("#effectKind").select_option("fault")
+            assert page.locator("#addEffectBtn").is_enabled()
+            page.locator("#addEffectBtn").click()
+            first_event = page.locator("#eventList .event-card").first
+            start = first_event.locator('[data-event-field="start_s"]')
+            start.fill("-1")
+            start.press("Tab")
+            assert start.get_attribute("aria-invalid") == "true"
+            assert first_event.locator(".event-input-error:visible").count() >= 1
+            page.locator("#singleRunValidateBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert "事件配置" in page.locator("#formValidationSummary").inner_text()
+
+            start.fill("2")
+            start.press("Tab")
+            end = first_event.locator('[data-event-field="end_s"]')
+            end.fill("1")
+            end.press("Tab")
+            page.locator("#singleRunValidateBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert "结束时间不能早于开始时间" in page.locator("#formValidationSummary").inner_text()
+            end.fill("3")
+            end.press("Tab")
             assert calls == []
 
             page.set_viewport_size({"width": 390, "height": 844})
