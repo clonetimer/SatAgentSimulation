@@ -49,6 +49,7 @@
     authEnabled: false,
     logSearchTimer: null,
     activeRunDisplayName: null,
+    singleRunSubmitting: false,
     showCompatibilityCapabilities: false,
     interactiveAvailable: false,
     interactiveSessions: [],
@@ -114,6 +115,53 @@
 
   const el = (id) => document.getElementById(id);
   const $all = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+  // This only guides finite-duration executions. It never creates a fake
+  // simulation, changes the TaskSpec, or controls continuous native sessions.
+  function updateSingleRunGuide(stage, message) {
+    const guide = el('singleRunGuide');
+    if (!guide) return;
+    guide.dataset.stage = stage;
+    guide.querySelectorAll('[data-stage]').forEach((item) => {
+      const key = item.dataset.stage;
+      item.classList.toggle('is-current', (
+        stage === 'select' && key === 'select'
+        || ['configure', 'validated'].includes(stage) && key === 'configure'
+        || ['submitting', 'running', 'complete', 'failed'].includes(stage) && key === 'run'
+      ));
+      item.classList.toggle('is-done', (
+        stage !== 'select' && key === 'select'
+        || ['validated', 'submitting', 'running', 'complete', 'failed'].includes(stage) && key === 'configure'
+        || stage === 'complete' && key === 'run'
+      ));
+    });
+    const progress = el('singleRunProgress');
+    if (progress) progress.textContent = message;
+    const runButton = el('runBtn');
+    if (runButton) {
+      runButton.disabled = Boolean(state.singleRunSubmitting) || !state.schema;
+      runButton.textContent = state.singleRunSubmitting ? '正在提交…' : '运行仿真';
+    }
+    const validate = el('singleRunValidateBtn');
+    if (validate) validate.disabled = Boolean(state.singleRunSubmitting) || !state.schema;
+  }
+
+  async function loadSingleRunReadiness() {
+    const node = el('singleRunReadiness');
+    if (!node) return;
+    try {
+      const payload = await api('/workbench/single-run/readiness');
+      const native = payload.native_basilisk || {};
+      node.textContent = native.ready
+        ? `Basilisk ${native.version || ''} 已检测 · 运行前仍需校验`
+        : 'Basilisk 原生环境未就绪 · 可先配置任务';
+      node.dataset.ready = native.ready ? 'true' : 'false';
+      node.title = '这是安装环境预检，不代表指定场景已经成功运行；正式执行结果以 Run Bundle 为准。';
+    } catch (error) {
+      node.textContent = '环境状态读取失败 · 请检查服务连接';
+      node.dataset.ready = 'unknown';
+    }
+  }
 
   async function api(path, options = {}) {
     const authHeaders = state.apiToken ? { Authorization: `Bearer ${state.apiToken}` } : {};
@@ -4078,6 +4126,7 @@
       el('previewBtn').disabled = true;
       el('runBtn').disabled = true;
       el('saveTaskBtn').disabled = true;
+      updateSingleRunGuide('select', `“${object.name_zh}”尚无可运行模型，请改选其他对象。`);
       renderVariantControl(object);
       renderCapabilityList();
       renderForm();
@@ -4128,6 +4177,7 @@
       el('previewBtn').disabled = false;
       el('runBtn').disabled = false;
       el('saveTaskBtn').disabled = false;
+      updateSingleRunGuide('configure', `已选择“${el('selectedCapabilityName').textContent}”，请配置参数、故障与输出，再校验或运行。`);
       renderVariantControl(object);
       renderCapabilityList();
       renderForm();
@@ -4795,17 +4845,23 @@
 
   async function previewForm() {
     if (!state.formData) throw new Error('请先选择能力');
-    if (!validateClientForm()) return false;
+    if (!validateClientForm()) {
+      updateSingleRunGuide('configure', '表单参数未通过检查，请查看字段提示并修正。');
+      return false;
+    }
     const payload=await api('/tasks/parse',{method:'POST',body:JSON.stringify({input_kind:'form',form_data:state.formData,compile_if_valid:true})});
     const result=payload.result; state.taskSpec=result.task_spec || null; state.planning=result.planning || null; syncTaskSpecEditor();
     if (!payload.ok) {
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
       showValidationIssues(errors,'TaskSpec 校验失败');
+      updateSingleRunGuide('configure', '后端校验未通过；请按错误提示修正参数再提交。');
     } else {
       clearFieldErrors();
       const nodes=result.planning?.execution_plan?.nodes?.length || result.planning?.plan?.nodes?.length || 0;
       showNotice(`校验通过：Schema、语义、能力兼容和执行计划均有效${nodes?`；计划包含 ${nodes} 个节点`:''}。尚未启动仿真。`,'success');
-      switchTab('taskspec');
+      updateSingleRunGuide('validated', `配置校验通过${nodes?` · ${nodes} 个执行节点`:''}，尚未运行。请点击“运行仿真”。`);
+      // Do not unexpectedly move beginners from their configuration form
+      // into the expert-only TaskSpec JSON tab just after validation.
     }
     return payload.ok;
   }
@@ -4920,11 +4976,13 @@
     const tick = async () => {
       try {
         const payload = await api(`/runs/${encodeURIComponent(runId)}/execution`);
+        if (state.activeRunId !== runId) return;
         const execution = payload.execution_state || {};
         state.executionState = execution;
         const terminal = ['SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT'].includes(execution.state);
         if (!terminal) {
           renderExecutionProgress(execution);
+          updateSingleRunGuide('running', `运行 ${runId} · ${execution.state || 'QUEUED'}，状态自动刷新；可在右侧结果面板查看。`);
           await loadRuns();
           state.pollTimer = window.setTimeout(tick, 750);
           return;
@@ -4939,6 +4997,7 @@
           : `仿真“${displayName}”已结束：${execution.state}${execution.validation_result ? ` / ${execution.validation_result}` : ''}（Run ID：${runId}）`;
         const noticeType = passed ? 'success' : (execution.state === 'SUCCEEDED' || execution.state === 'CANCELLED' ? 'warning' : 'error');
         showNotice(message, noticeType);
+        updateSingleRunGuide(passed ? 'complete' : 'failed', message);
         if ((execution.error || ['FAILED', 'TIMED_OUT'].includes(execution.state)) && state.activeVisualRunContext?.runId === runId) {
           await requestVisualDiagnostics(execution.error || message, state.activeVisualRunContext);
         }
@@ -4962,6 +5021,12 @@
   }
 
   async function runSimulation() {
+    // Prevent duplicate POST /runs caused by rapid double-clicks or a
+    // simultaneous top-toolbar and graph-run submit. Release after the
+    // backend returns a run_id: polling a long-running job is not submission.
+    if (state.singleRunSubmitting) return;
+    state.singleRunSubmitting = true;
+    updateSingleRunGuide('submitting', '正在检查配置并提交单次仿真；请勿重复点击。');
     clearNotice();
     showBusy('正在准备仿真', '校验 TaskSpec 与生成执行计划');
     let visualRunContext = null;
@@ -5006,6 +5071,8 @@
       if (!runId) throw new Error('运行已返回，但未提供 run_id');
       state.activeRunId = runId;
       state.activeRunDisplayName = displayName;
+      state.singleRunSubmitting = false;
+      updateSingleRunGuide('running', `“${displayName}”已建立运行记录（${runId}），正在执行。`);
       state.activeRun = null;
       state.dataset = null;
       state.artifacts = [];
@@ -5022,6 +5089,13 @@
       if (visualRunContext) await requestVisualDiagnostics(error.message, visualRunContext, error.payload?.detail?.reason_code || error.payload?.reason_code || null);
       throw error;
     } finally {
+      state.singleRunSubmitting = false;
+      // Keep the action available for a DIFFERENT run once submission
+      // finishes; a running job remains tracked by its own run_id.
+      updateSingleRunGuide(
+        state.activeRunId ? (state.executionState?.state === 'SUCCEEDED' ? 'complete' : 'running') : 'configure',
+        el('singleRunProgress')?.textContent || '可继续配置和运行单次仿真。',
+      );
       hideBusy();
     }
   }
@@ -7033,6 +7107,13 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('showAdvancedFields').addEventListener('change', renderForm);
     el('acceptAgentChangesBtn').addEventListener('click', clearAgentChanges);
     el('undoAgentChangesBtn').addEventListener('click', undoAgentChanges);
+    el('singleRunSelectBtn').addEventListener('click', () => {
+      switchView('creator');
+      el('capabilitySearch')?.focus();
+      el('capabilityList')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    el('singleRunValidateBtn').addEventListener('click', () => el('previewBtn').click());
+    el('singleRunResultsBtn').addEventListener('click', () => switchView('runs'));
     el('previewBtn').addEventListener('click', async () => {
       const graphMode = document.querySelector('.tab.active')?.dataset.tab === 'graph';
       showBusy(graphMode ? '校验图形流程' : '校验并编译 TaskSpec', graphMode ? '检查节点结构并编译 Canonical TaskSpec' : '解析 Schema 表单与能力约束');
@@ -7134,7 +7215,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     initDisplayPreferences();
     bindEvents();
     await loadAuthStatus().catch(() => null);
-    await Promise.allSettled([loadHeader(), loadRuns(), loadModelProviders(), loadTasks(), loadScenarioTemplates(), loadExperiments(), loadInteractiveAvailability()]);
+    await Promise.allSettled([loadHeader(), loadRuns(), loadSingleRunReadiness(), loadModelProviders(), loadTasks(), loadScenarioTemplates(), loadExperiments(), loadInteractiveAvailability()]);
     try {
       await loadCapabilities();
       await loadAssemblyCatalog();
