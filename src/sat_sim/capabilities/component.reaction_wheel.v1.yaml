@@ -6,7 +6,7 @@ domain: adcs
 target: reaction_wheel
 trust_level: conformance_tested
 status: agent_ready_candidate
-summary: Default project Python wheel reference model, plus opt-in genuine Basilisk single-wheel nominal physics. Fault, constraint, degradation and profiles remain Python-only until native evidence exists.
+summary: Default project Python wheel reference model (NOT native research physics); opt-in Basilisk physical single-wheel nominal mode supports motor torque, inertia and viscous damping. Fault, constraint, degradation and torque profiles remain Python-only until native evidence exists.
 adapter:
   class_path: sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter
   script_export: true
@@ -46,7 +46,7 @@ parameters:
     unit: none
     required: false
     default: project_reference
-    description: Explicit engine; Basilisk supports only one wheel nominal with no time-varying torque, friction, faults or constraints. Default remains project Python reference.
+    description: Explicit engine; Basilisk supports only one-wheel nominal, direct motor torque, inertia and viscous damping, but not faults, constraints or torque profiles. Default Python reference is NOT native research physics.
   num_wheels:
     type: integer
     unit: count
