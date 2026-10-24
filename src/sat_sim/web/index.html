@@ -648,7 +648,11 @@
                 <p class="continuous-muted">仅调整整星原生 Basilisk 计算图中已有的模型参数。创建会话后冻结配置；不支持任意新增/移除硬件或独立运行单机。默认值与现有模型相同。</p>
                 <div class="continuous-native-config-fields">
                   <fieldset><legend>轨道与整星</legend>
-                    <label>整星质量（kg）<input data-native-group="orbit" data-native-key="spacecraft_mass_kg" type="number" min="1" max="2000" step="any" value="100" required title="设置 Basilisk Spacecraft.hub.mHub；惯量矩阵仍为模型预设值"></label>
+                    <label>整星质量（kg）<input data-native-group="orbit" data-native-key="spacecraft_mass_kg" type="number" min="1" max="2000" step="any" value="100" required title="设置 Basilisk Spacecraft.hub.mHub；惯量需单独配置，不从质量自动推算"></label>
+                    <p class="continuous-muted">机体系主惯量 Ixx/Iyy/Izz（kg·m²）：分别设置 Basilisk Spacecraft.hub.IHubPntBc_B 的对角项。三者必须大于零、满足主惯量三角不等式；只支持对角惯量，不从质量自动估算、也不支持任意惯性积。</p>
+                    <label>主惯量 Ixx（kg·m²）<input data-native-group="orbit" data-native-key="spacecraft_inertia_xx_kg_m2" type="number" min="0.001" max="10000" step="any" value="100" required></label>
+                    <label>主惯量 Iyy（kg·m²）<input data-native-group="orbit" data-native-key="spacecraft_inertia_yy_kg_m2" type="number" min="0.001" max="10000" step="any" value="80" required></label>
+                    <label>主惯量 Izz（kg·m²）<input data-native-group="orbit" data-native-key="spacecraft_inertia_zz_kg_m2" type="number" min="0.001" max="10000" step="any" value="60" required></label>
                     <label>轨道半长轴（m）<input data-native-group="orbit" data-native-key="orbit_radius_m" type="number" min="6500000" max="20000000" step="1000" value="7000000" required></label>
                     <label>偏心率<input data-native-group="orbit" data-native-key="eccentricity" type="number" min="0" max="0.2" step="0.001" value="0.001" required></label>
                     <label>倾角（°）<input data-native-group="orbit" data-native-key="inclination_deg" type="number" min="0" max="180" step="0.1" value="35" required></label>
