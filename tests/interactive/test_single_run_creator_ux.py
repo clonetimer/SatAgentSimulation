@@ -57,7 +57,12 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert "runLoadRequestId" in js
     assert "requestId !== state.runLoadRequestId" in js
     assert "applyChartTimeWindow" in js
+    assert "onChartPointerDown" in js
+    assert "reuseActiveRunConfiguration" in js
     assert ".chart-window-controls" in css
+    assert ".chart-drag-selection" in css
+    assert 'id="chartDragSelection"' in page
+    assert 'id="reuseRunConfigBtn"' in page
     for control in ("chartTimeStart", "chartTimeEnd", "chartApplyWindowBtn",
                     "chartResetWindowBtn", "chartWindowStatus"):
         assert f'id="{control}"' in page
@@ -253,6 +258,15 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
     }
 
     with _client(tmp_path) as client, pw.sync_playwright() as p:
+        # A real registered capability and canonical parser supply the
+        # history fixture. Browser checks are still UI-only, not physics proof.
+        default_form = client.get("/forms/capabilities/component.battery.v1").json()["form_schema"]["default_form"]
+        parsed = client.post("/tasks/parse", json={
+            "input_kind": "form", "form_data": default_form, "compile_if_valid": True,
+        }).json()
+        assert parsed["ok"] is True
+        payloads["ui-a"]["task_spec"] = parsed["result"]["task_spec"]
+        payloads["ui-a"]["task_spec"]["task"]["name"] = payloads["ui-a"]["name"]
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
             page = browser.new_page(viewport={"width": 1480, "height": 950}, locale="zh-CN")
@@ -282,7 +296,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
                     if len(parts) == 2:
                         response = {"run": {
                             "sealed": item["status"] == "SUCCEEDED",
-                            "task_spec": {"task": {"name": item["name"]}},
+                            "task_spec": item.get("task_spec") or {"task": {"name": item["name"]}},
                             "run_record": {"run_id": rid, "task_id": rid, "status": item["status"],
                                            "error": item["error"]},
                             "validation_outcome": {"result": item["validation"]},
@@ -342,6 +356,35 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
             page.locator("#chartResetWindowBtn").click()
             assert "4 / 4" in page.locator("#chartWindowStatus").inner_text()
             assert page.locator("#chartResetWindowBtn").is_disabled()
+
+            # Drag horizontally across the canvas plot area; the selection
+            # must zoom to actual loaded time points, not modify backend data.
+            canvas = page.locator("#telemetryChart")
+            bounds = canvas.bounding_box()
+            assert bounds is not None
+            y = bounds["y"] + bounds["height"] * 0.55
+            page.mouse.move(bounds["x"] + bounds["width"] * 0.36, y)
+            page.mouse.down()
+            page.mouse.move(bounds["x"] + bounds["width"] * 0.75, y, steps=6)
+            assert page.locator("#chartDragSelection").is_visible()
+            page.mouse.up()
+            assert page.locator("#chartDragSelection").is_hidden()
+            assert "局部范围" in page.locator("#chartWindowStatus").inner_text()
+            assert page.locator("#chartResetWindowBtn").is_enabled()
+            page.locator("#chartResetWindowBtn").click()
+
+            # Historical canonical TaskSpec is projected back into a fresh
+            # editable form. This action does not create or rerun a Run.
+            assert page.locator("#reuseRunConfigBtn").is_visible()
+            page.once("dialog", lambda dialog: dialog.accept())
+            page.locator("#reuseRunConfigBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#singleRunProgress').textContent.includes('已复用运行')",
+                timeout=20000,
+            )
+            assert page.locator("#singleRunGuide").get_attribute("data-stage") == "configure"
+            assert page.locator("#runBtn").is_enabled()
+            assert page.locator("#dynamicForm [data-path='simulation.duration_s']").count() == 1
 
             page.locator("#runList [data-run-id='ui-b']").click()
             page.locator("#activeRunCard .run-id").get_by_text("UI 失败验收 B").wait_for(timeout=20000)

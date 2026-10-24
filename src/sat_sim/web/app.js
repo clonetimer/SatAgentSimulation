@@ -29,6 +29,7 @@
     chartSeriesQuery: '',
     chartSelectedOnly: false,
     chartTimeWindow: null,
+    chartDrag: null,
     runLoadRequestId: 0,
     changedPaths: new Set(),
     agentBeforeForm: null,
@@ -5379,6 +5380,7 @@
       el('traceabilityList').replaceChildren();
       el('traceabilitySummary').replaceChildren();
       el('openRunReportBtn').classList.add('hidden');
+      el('reuseRunConfigBtn').classList.add('hidden');
       el('exportDatasetBtn').classList.add('hidden');
       el('downloadRunDiagnosticBtn').classList.add('hidden');
       el('activeRunCard').className = 'active-run empty-state';
@@ -5439,6 +5441,9 @@
   function renderActiveRun() {
     el('cancelRunBtn').classList.add('hidden');
     el('openRunReportBtn').classList.toggle('hidden', !state.activeRunId || !state.activeRun?.sealed);
+    const hasReusableSpec = Boolean(state.activeRunId && state.activeRun?.task_spec?.model?.capability_id);
+    el('reuseRunConfigBtn').classList.toggle('hidden', !hasReusableSpec);
+    el('reuseRunConfigBtn').disabled = !hasReusableSpec;
     const datasetButton = el('exportDatasetBtn');
     datasetButton.classList.toggle('hidden', !state.activeRunId || !state.dataset?.available);
     datasetButton.title = state.dataset?.available
@@ -5496,6 +5501,37 @@
         : `本次运行状态：${runStatus}。运行记录未提供具体原因；请查看制品与诊断包。`;
       card.appendChild(failure);
     }
+  }
+
+  async function reuseActiveRunConfiguration() {
+    const runId = state.activeRunId;
+    const savedSpec = state.activeRun?.task_spec;
+    if (!runId || !savedSpec?.model?.capability_id) {
+      showNotice('当前 Run 没有保存可投影的 TaskSpec，不能复用配置。', 'warning');
+      return false;
+    }
+    if (!window.confirm('将该 Run 保存的模型参数、故障事件与输出配置复制到当前编辑表单？当前未保存的编辑内容将被覆盖；历史 Run 不会改变，也不会自动运行。')) return false;
+    const spec = clone(savedSpec);
+    showBusy('复用历史仿真配置', `从 ${runId} 复制 TaskSpec 到表单，不会启动仿真`);
+    try {
+      if (state.activeRunId !== runId) return false;
+      await projectTaskSpecToForm(spec, '历史 Run');
+      state.activeTaskCenterId = null;
+      updateTaskEditState();
+      // Projected fields are editable but must pass fresh preflight, even
+      // when the source Run had a PASS verdict.
+      state.taskSpec = null;
+      state.planning = null;
+      syncTaskSpecEditor();
+      updateSingleRunGuide('configure', `已复用运行 ${runId} 的配置；请检查并重新校验后再启动新的仿真。`);
+      switchView('creator');
+      switchTab('form');
+      showNotice(`已加载历史运行 ${runId} 的配置（仅复制到编辑表单，未执行新仿真）。`, 'success');
+      return true;
+    } catch (error) {
+      showNotice(`复用历史配置失败：${error.message}`, 'error');
+      return false;
+    } finally { hideBusy(); }
   }
 
   function renderMetrics() {
@@ -5703,9 +5739,73 @@
     drawChart();
   }
 
+  function chartDragGeometry() {
+    const canvas = el('telemetryChart');
+    const points = chartTimeSamples();
+    if (!canvas || points.length < 2) return null;
+    const allTimes = points.map((point) => point.time);
+    const low = state.chartTimeWindow?.start ?? Math.min(...allTimes);
+    const high = state.chartTimeWindow?.end ?? Math.max(...allTimes);
+    if (!Number.isFinite(low) || !Number.isFinite(high) || high <= low) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    // Match the exact plot margins and min-width mapping in drawChart().
+    const paintedWidth = Math.max(300, rect.width);
+    const padLeft = 48;
+    const padRight = 16;
+    const innerWidth = paintedWidth - padLeft - padRight;
+    const scale = rect.width / paintedWidth;
+    return { rect, left: padLeft * scale, width: innerWidth * scale, low, high };
+  }
+
+  function clearChartDrag() {
+    state.chartDrag = null;
+    el('chartDragSelection')?.classList.add('hidden');
+  }
+
+  function onChartPointerDown(event) {
+    if (event.button !== 0 || !state.selectedSeries.length) return;
+    const geom = chartDragGeometry();
+    if (!geom) return;
+    const local = event.clientX - geom.rect.left;
+    if (local < geom.left || local > geom.left + geom.width) return;
+    state.chartDrag = { pointerId: event.pointerId, origin: local, current: local, geom };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const overlay = el('chartDragSelection');
+    overlay.style.left = `${local}px`;
+    overlay.style.width = '0px';
+    overlay.classList.remove('hidden');
+  }
+
+  function onChartPointerMove(event) {
+    const drag = state.chartDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const { geom } = drag;
+    drag.current = Math.max(geom.left, Math.min(geom.left + geom.width, event.clientX - geom.rect.left));
+    const overlay = el('chartDragSelection');
+    overlay.style.left = `${Math.min(drag.origin, drag.current)}px`;
+    overlay.style.width = `${Math.abs(drag.current - drag.origin)}px`;
+  }
+
+  function onChartPointerUp(event) {
+    const drag = state.chartDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    clearChartDrag();
+    if (Math.abs(drag.current - drag.origin) < 8) return;
+    const { geom } = drag;
+    const toTime = (position) => geom.low + ((position - geom.left) / geom.width) * (geom.high - geom.low);
+    const from = Math.min(toTime(drag.origin), toTime(drag.current));
+    const to = Math.max(toTime(drag.origin), toTime(drag.current));
+    el('chartTimeStart').value = String(from);
+    el('chartTimeEnd').value = String(to);
+    applyChartTimeWindow();
+  }
+
   function drawChart() {
     const canvas = el('telemetryChart');
     if (!canvas) return;
+    clearChartDrag();
     const rect = canvas.getBoundingClientRect();
     const ratio = window.devicePixelRatio || 1;
     const width = Math.max(300, rect.width || 760);
@@ -7475,6 +7575,11 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await validateEditor(); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
     });
     el('refreshRunsBtn').addEventListener('click', loadRuns);
+    el('reuseRunConfigBtn').addEventListener('click', () => reuseActiveRunConfiguration());
+    el('telemetryChart').addEventListener('pointerdown', onChartPointerDown);
+    el('telemetryChart').addEventListener('pointermove', onChartPointerMove);
+    el('telemetryChart').addEventListener('pointerup', onChartPointerUp);
+    el('telemetryChart').addEventListener('pointercancel', clearChartDrag);
     el('chartApplyWindowBtn').addEventListener('click', applyChartTimeWindow);
     el('chartResetWindowBtn').addEventListener('click', resetChartTimeWindow);
     ['chartTimeStart', 'chartTimeEnd'].forEach((id) => el(id).addEventListener('keydown', (event) => {
