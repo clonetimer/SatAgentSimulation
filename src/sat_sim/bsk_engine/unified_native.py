@@ -705,6 +705,18 @@ class UnifiedNativeRuntime:
             if not math.isfinite(limit) or not 0.0 < limit <= 0.2:
                 raise ValueError("NATIVE_RW_PER_WHEEL_TORQUE_LIMIT_INVALID")
             rw_hardware_u_max_by_wheel.append(limit)
+        # Preserve the pre-existing shared-driver rejection contract even
+        # when wheel overrides exist; the old finite public API and native
+        # regression tests require NATIVE_RW_ELECTRICAL_LIMIT_INVALID.
+        for base, default, lower, upper in (
+            ("rw_motor_current_limit_a", 10., 0., 20.),
+            ("rw_motor_torque_constant_nm_per_a", .02, 0., .2),
+        ):
+            raw_shared = values.get(base, default)
+            if (type(raw_shared) not in (int, float) or not math.isfinite(raw_shared)
+                    or not lower <= raw_shared <= upper
+                    or (base.endswith("nm_per_a") and raw_shared <= 0.)):
+                raise ValueError("NATIVE_RW_ELECTRICAL_LIMIT_INVALID")
         # Validate each electrical driver before constructing native RW and
         # dispatching commands. A nonexistent RW4 must never be silently used.
         if len(rw_axes) != 4 and any(
