@@ -74,6 +74,27 @@ parameters:
     default: 35.0
     min: 0.0
     max: 180.0
+  spacecraft_inertia_xx_kg_m2:
+    type: number
+    unit: kg*m^2
+    required: false
+    default: 100.0
+    min: 0.001
+    max: 10000.0
+  spacecraft_inertia_yy_kg_m2:
+    type: number
+    unit: kg*m^2
+    required: false
+    default: 80.0
+    min: 0.001
+    max: 10000.0
+  spacecraft_inertia_zz_kg_m2:
+    type: number
+    unit: kg*m^2
+    required: false
+    default: 60.0
+    min: 0.001
+    max: 10000.0
   orbit_radius_m:
     type: number
     unit: m
