@@ -84,12 +84,10 @@ def test_native_adcs_to_eps_graph_records_applied_wheel_torque_source():
     # scenario (the physical test above separately requires a real A/B).
     code = (Path(__file__).resolve().parents[1] /
             "src/sat_sim/bsk_engine/unified_native.py").read_text(encoding="utf-8")
-    import re
-    bridge = re.search(
-        r'adcs_power_bridge = AdcsControlPowerBridge\\((.*?)\\n\\s*\\)',
-        code, re.S,
-    )
-    assert bridge is not None
-    assert "motor_torque_msg=rw_fault.commandOutMsg" in bridge.group(1)
-    assert "motor_torque_msg=motor.rwMotorTorqueOutMsg" not in bridge.group(1)
+    start = "adcs_power_bridge = AdcsControlPowerBridge("
+    end = "payload_power_bridge = DataActivityPowerBridge("
+    assert code.count(start) == 1 and code.count(end) == 1
+    bridge = code.split(start, 1)[1].split(end, 1)[0]
+    assert "motor_torque_msg=rw_fault.commandOutMsg" in bridge
+    assert "motor_torque_msg=motor.rwMotorTorqueOutMsg" not in bridge
     assert 'battery.addPowerNodeToModel(bridge.powerOutMsg)' in code
