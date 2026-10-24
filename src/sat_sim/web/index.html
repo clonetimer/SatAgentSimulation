@@ -983,8 +983,9 @@
         <aside class="continuous-telecommand">
           <section class="continuous-card">
             <div class="section-heading compact"><h2>遥控指令</h2></div>
-            <p class="continuous-muted">指令先进入持久化 SQLite 账本，再按指定仿真时刻执行。</p>
+            <p class="continuous-muted">命令及权限以服务端已注册目录为准，支持整星、ADCS、EPS、通信数传；提交后查询实际 ACK，不将 QUEUED 当作执行成功。</p>
             <form id="continuousCommandForm">
+              <p id="continuousCommandCatalogStatus" class="continuous-muted" role="status">正在读取服务器遥控目录…</p>
               <label>指令类型<select id="continuousOperation">
                 <option value="adcs.target.set">ADCS · 设置姿态目标</option>
                 <option value="session.mode.set">整星 · 切换运行模式</option>
@@ -1002,8 +1003,10 @@
                 <label>故障模式<select id="continuousFault"><option value="rw_friction">反作用轮摩擦</option><option value="rw_jam">反作用轮卡滞</option><option value="sensor_bias">传感器偏置</option></select></label>
                 <label>严重程度 / 0–1<input id="continuousSeverity" type="number" min="0" max="1" step="0.05" value="0.3"></label>
               </div>
+              <div id="continuousCatalogFields" class="continuous-dynamic-fields hidden"></div>
+              <p id="continuousCommandHelp" class="continuous-muted" role="status">根据服务端目录显示权限、目标与生效观测。</p>
               <label>执行时刻 / 仿真秒<input id="continuousExecuteAt" type="number" min="0" step="0.1" value="5" required></label>
-              <button class="button button-primary" type="submit">确认并发送遥控</button>
+              <button id="continuousCommandSubmit" class="button button-primary" type="submit" disabled>确认并发送遥控</button>
             </form>
           </section>
           <section class="continuous-card">
