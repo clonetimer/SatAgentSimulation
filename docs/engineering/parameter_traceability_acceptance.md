@@ -203,6 +203,13 @@ Windows PowerShell：
 - L5 真实 A/B：相同卫星、控制器、初始状态，单独降低 `Imax` 时 `adcs.control.applied_torque_nm_*`、`adcs.rw.effective_max_torque_nm_*` 和实际 Basilisk `adcs.rw.speed_rad_s_*` 均变化；更改 `Kt` 亦造成相同电气力矩能力下的电流遥测变化。四轮独立 `u_max` 和驱动器电气限制共同作用，非法值/NaN/布尔类型两层失败关闭。
 - **模型边界**：这是原生 RW 前的项目级电机驱动器**力矩限幅**，不是官方 Honeywell HR16 内部电气电流仿真；此时并未模拟母线电压、电机铜耗、驱动器热损耗，也没有把估计电机电流耦合为 EPS Battery 的实际负载。不能据此声称完成 ADCS→EPS 电流/功率耦合。Vizard 冻结，精确恢复仍 BLOCKED。
 
+## P0-20 修复原生动力学 Hub 与 MRP 飞控惯量不一致
+
+- 2026-10-24 对 P0-19（PR #69 电驱限幅）后主干的跨分系统参数闭环审计发现：`spacecraft_inertia_{xx,yy,zz}_kg_m2` 和 RW 逐轮安装位置已经能改变官方 `Spacecraft.hub.IHubPntBc_B` 与 `hub.r_BcB_B`，但官方 `mrpFeedback` 所消费的 `VehicleConfigMsgPayload.ISCPntB_B` 仍写死为默认 `[100,0,0,0,80,0,0,0,60]`。这是两套 Basilisk 原生模块的数据流不一致，前述 Hub 物理 A/B 通过并不能证明飞控知道新的真实惯量。
+- 修复时在所有 Hub 与 RW 重定位质量属性计算完成之后，**直接读取官方 Basilisk Hub** 的质心处 3×3 惯量（不是 B 原点的附加平行轴张量）及 B 系 COM 向量，写入官方 `VehicleConfigMsgPayload.ISCPntB_B`（行优先平铺）和 `CoM_B`，并保持 `massSC` 为既有质量。先验证惯量有限、对称、正定，避免错误质量输入进入 C++ FSW。默认配置仍为旧 100/80/60，不能扩大成运行期间惯量自动辨识或实时质量管理。
+- 独立 L4/L5：捕获真实 `Spacecraft` 与官方 `mrpFeedback`，通过控制器已订阅的 `vehConfigInMsg` 读取实际 VehicleConfigMsg，验证默认值、用户指定三主惯量和 RW 重定位的非对角惯量／质心均**与 Hub 真值一致**；自定义惯量 A/B 应使飞控输出真实 RW 扭矩响应变化（不是只改变轮速／姿态动力学），原有整星闭环、RW、电源、推进、热控及 TC/TM 回归保持。
+- 原生 2.11 `mrpFeedback` 在 Reset 时读取 VehicleConfigMsg，因此只保证仿真启动前的几何／惯量一致；改变质量的在轨事件或跨进程恢复时动态重计算控制器参数仍未验收。本轮无新增前端参数字段，P0 参数生效证据改善而非登记计数增加；Vizard 仍冻结。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
