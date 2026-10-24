@@ -106,7 +106,7 @@ def test_real_basilisk_magnetometer_mount_bias_scale_affect_native_sensor_tam(mo
     assert not np.allclose(np.asarray(sensor.dcm_SB, dtype=float), np.eye(3), atol=1e-6)
     assert np.asarray(sensor.dcm_SB, dtype=float) @ np.array([0., 0., 1.]) == pytest.approx(
         np.array([0., 0., 1.]), abs=1e-10)
-    assert np.asarray(biased.senBias, dtype=float) == pytest.approx(
+    assert np.asarray(biased.senBias, dtype=float).reshape(-1) == pytest.approx(
         np.array([.000005, 0., 0.]), abs=1e-12)
     assert float(scaled.scaleFactor) == pytest.approx(1.5)
 
