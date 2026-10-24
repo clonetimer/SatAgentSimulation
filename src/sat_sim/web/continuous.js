@@ -481,9 +481,26 @@
       rw4.disabled = !four;
       rw4.required = four;
     }
+    updateRwFrictionNativeInitialLayout();
   }
   function updateRwFrictionNativeInitialLayout() {
-    const enabled = document.querySelector('[data-native-key="rw_friction_mode"]')?.value === 'coulomb_viscous';
+    const mode = document.querySelector('[data-native-key="rw_friction_mode"]')?.value || 'disabled';
+    const enabled = mode === 'coulomb_viscous';
+    const perWheel = mode === 'per_wheel';
+    const four = document.querySelector('[data-native-key="rw_configuration"]')?.value === 'pyramid_4';
+    $('continuousRwPerWheelHelp')?.classList.toggle('hidden', !perWheel);
+    for (const type of ['coulomb', 'viscous']) {
+      for (let i = 0; i < 4; i += 1) {
+        const visible = perWheel && (i < 3 || four);
+        $('continuousRwFriction_' + type + '_' + i)?.classList.toggle('hidden', !visible);
+        const suffix = type === 'coulomb' ? 'nm' : 'nms';
+        const control = document.querySelector('[data-native-key="rw_' + type + '_friction_' + suffix + '_' + i + '"]');
+        if (control) {
+          control.disabled = !visible;
+          control.required = visible;
+        }
+      }
+    }
     for (const [key, labelId] of [
       ['rw_coulomb_friction_nm', 'continuousRwCoulombLabel'],
       ['rw_viscous_friction_nms', 'continuousRwViscousLabel'],
