@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import pytest
+import json
+from pathlib import Path
 
 from sat_sim.bsk_engine.native_rw_component import run_native_rw_probe
 
@@ -42,3 +44,35 @@ def test_genuine_native_wheel_motor_and_inertia_a_b():
     # from a request exactly at max after the native motor saturation.
     assert clamped.wheel_speed_rad_s == pytest.approx(at_limit.wheel_speed_rad_s, abs=1e-5)
     assert abs(clamped.wheel_speed_rad_s[-1] - baseline.wheel_speed_rad_s[-1]) > .02
+
+    # Persist source measurements only after native physical assertions passed.
+    import Basilisk
+    report = {
+        "evidence_schema": "sat-sim.native-rw-physical-ab.v1",
+        "runtime": {"package": "Basilisk", "version": Basilisk.__version__},
+        "source": "Basilisk.simulation.reactionWheelStateEffector.rwSpeedOutMsg",
+        "status": "PHYSICAL_AB_PASSED",
+        "cases": {
+            "zero_torque": baseline.as_dict(),
+            "driven": driven.as_dict(),
+            "double_inertia": double_inertia.as_dict(),
+            "clamped_above_u_max": clamped.as_dict(),
+            "command_at_u_max": at_limit.as_dict(),
+        },
+        "physical_comparisons": {
+            "command_delta_rad_s": driven_delta,
+            "double_inertia_delta_rad_s": heavier_delta,
+            "inertia_response_ratio": heavier_delta / driven_delta,
+            "saturated_limit_max_abs_difference_rad_s": max(
+                abs(a - b) for a, b in zip(clamped.wheel_speed_rad_s, at_limit.wheel_speed_rad_s)
+            ),
+        },
+        "limitations": [
+            "Single wheel physically attached to a Basilisk hub only.",
+            "Fault, degradation, EPS bridge and cross-level equivalence not yet tested.",
+            "Not a selectable production TaskSpec component.",
+        ],
+    }
+    target = Path("reports/native_rw_component_probe/physical_ab.json")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
