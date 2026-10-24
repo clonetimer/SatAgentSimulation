@@ -6947,7 +6947,7 @@
       const telemetry = entry?.telemetry || {};
       const offset = Number(telemetry.offset || 0);
       const count = Array.isArray(telemetry.rows) ? telemetry.rows.length : 0;
-      const total = Number.isFinite(Number(telemetry.total)) ? Number(telemetry.total) : null;
+      const total = telemetry.total == null ? null : (Number.isFinite(Number(telemetry.total)) ? Number(telemetry.total) : null);
       const busy = Boolean(entry?.pageBusy);
       el(`runCompare${letter}PrevBtn`).disabled = !entry || busy || offset <= 0;
       el(`runCompare${letter}NextBtn`).disabled = !entry || busy
