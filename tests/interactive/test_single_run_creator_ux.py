@@ -53,6 +53,7 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert ".single-run-steps" in css
     assert ".single-run-config-summary" in css
     assert "配置已修改；上次校验已失效" in js
+    assert "旧校验结果已丢弃" in js
 
 
 def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path):
@@ -117,9 +118,11 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             # estimates. Configuration edits do not POST a physical run.
             duration = page.locator("#dynamicForm [data-path='simulation.duration_s']")
             assert duration.count() == 1
-            duration.fill("60")
+            previous_duration = duration.input_value()
+            new_duration = "61" if previous_duration == "60" else "60"
+            duration.fill(new_duration)
             duration.press("Tab")
-            assert "60 s" in page.locator("#singleRunConfigSummary").inner_text()
+            assert f"{new_duration} s" in page.locator("#singleRunConfigSummary").inner_text()
             assert page.locator("#singleRunGuide").get_attribute("data-stage") == "configure"
             page.locator("#formFieldSearch").fill("__no_such_registered_parameter__")
             assert page.locator("#formSearchEmpty").is_visible()
