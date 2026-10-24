@@ -119,7 +119,7 @@ def test_real_basilisk_css_gain_bias_nonlinearity_and_adc_clamping(monkeypatch):
     b = data(baseline)
     g, biased_data, k = data(gain), data(biased), data(nonlinear)
     cap, floor = data(capped), data(floored)
-    usable = np.flatnonzero((b > .35) & (b < .98))
+    usable = np.flatnonzero((b > .35) & (b <= 1.01))
     assert len(usable) > 0, b.tolist()
     assert g[usable] == pytest.approx(1.7 * b[usable], abs=1e-6, rel=1e-5)
     assert biased_data[usable] == pytest.approx(b[usable] - .15, abs=1e-6, rel=1e-5)
