@@ -31,6 +31,9 @@ on:
       - "tests/interactive/test_native_parent_death_fence.py"
       - "tests/interactive/test_continuous_console.py"
       - "tests/interactive/test_continuous_initial_config.py"
+      - "tests/test_native_vizard_recording.py"
+      - "src/sat_sim/bsk_engine/vizard_native_export.py"
+      - "scripts/export_native_vizard.py"
       - "tests/test_native_rw_momentum.py"
       - "tests/test_native_spacecraft_inertia.py"
       - "tests/test_native_solar_panel_normal.py"
@@ -109,6 +112,13 @@ jobs:
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
             --disable-warnings
+      - name: Official Vizard vizInterface genuine Basilisk .bin and no-physics-change A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_vizard_recording.py
+          --disable-warnings
       - name: Real Basilisk HR16 per-wheel rated momentum and native spin-inertia A/B
         env:
           PYTHONPATH: "src:."

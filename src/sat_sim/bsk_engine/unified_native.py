@@ -541,6 +541,9 @@ class UnifiedRuntimeConfig:
     execution_controller: Any = None
     # Only opt-in persistent interactive sessions may extend beyond setup duration.
     interactive_unbounded: bool = False
+    # Only the trusted local native Vizard exporter may set this. Not a TaskSpec
+    # parameter or HTTP API path. Disabled in persistent/interactive sessions.
+    vizard_save_file: str | None = None
 
 
 class UnifiedNativeRuntime:
@@ -616,6 +619,8 @@ class UnifiedNativeRuntime:
         )
 
         cfg = self.config
+        if cfg.vizard_save_file is not None and (cfg.execution_controller is not None or cfg.interactive_unbounded):
+            raise ValueError("VIZARD_NATIVE_RECORDING_FINITE_ONLY")
         values = cfg.values
         sim = SimulationBaseClass.SimBaseClass()
         process_name = "UnifiedNativeProcess"
@@ -1485,6 +1490,18 @@ class UnifiedNativeRuntime:
             sim=sim, task_name=task_name, message_handles=messages, streams=cfg.telemetry_streams
         )
 
+        vizard_recording_file = None
+        if cfg.vizard_save_file is not None:
+            from .vizard_native_export import connect_native_vizard_recording
+            viz_module, vizard_recording_file = connect_native_vizard_recording(
+                sim, task_name, sc, rw_effector=rw, output_file=cfg.vizard_save_file,
+            )
+            # vizSupport adds the real upstream vizInterface module to this
+            # Basilisk task; Vizard is a post-processing output, not a solver.
+            instantiated.append({"tag": "native_vizard_vizInterface", "source": "basilisk_official_native"})
+            connected("spacecraft.scStateOutMsg", "native_vizard_vizInterface")
+            connected("reaction_wheels", "native_vizard_vizInterface")
+
         nominal_control = {
             "K": float(controller.K),
             "P": float(controller.P),
@@ -1946,6 +1963,11 @@ class UnifiedNativeRuntime:
             "fault_environment": fault_environment.to_dict(),
             "native_multi_rate_telemetry": native_multi_rate,
         }
+        if vizard_recording_file is not None:
+            from .vizard_native_export import verify_native_vizard_recording
+            recording_evidence = verify_native_vizard_recording(vizard_recording_file)
+            metadata["vizard_native_recording"] = recording_evidence
+            summary["vizard_native_recording_status"] = recording_evidence["status"]
         labels = {
             "run_labels": [{"capability_id": cfg.capability_id, "engine": summary["engine"]}],
             "event_labels": [event.to_dict() for event in cfg.events],

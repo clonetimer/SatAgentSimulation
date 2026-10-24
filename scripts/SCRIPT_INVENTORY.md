@@ -25,6 +25,7 @@
 | `check_workbench_reports_diagnostics.py` | 功能审计 | active | 保留并统一文件头与入口 |
 | `clean_local_runtime_artifacts.py` | 本地洁净治理 | active | Ubuntu/Linux 入口；默认 dry-run，显式 `--apply` 后仅清理项目根目录内的缓存、运行目录、字节码及指定临时证据 |
 | `diagnose_windows.ps1` | 环境诊断 | active | 保留并统一文件头与入口 |
+| `export_native_vizard.py` | 官方 Basilisk Vizard 原生回放导出 | active | 仅本机有限时长原生整星；官方 vizInterface 生成不可覆盖的 .bin 与 SHA-256 清单；不是浏览器三维播放器或实时流 |
 | `export_astrograph_diagnostic_mapping.py` | 诊断映射导出 | active | 导出故障机理、遥测特征和诊断 Pipeline 的受控互操作包 |
 | `generate_astrograph_rw_fault_dataset.py` | 数据集生成 | active | 生成反作用轮故障/名义配对数据和受控 sidecar 契约 |
 | `generate_taskspec_schema.py` | 构建生成 | active | 保留并统一文件头与入口 |
