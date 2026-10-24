@@ -4709,9 +4709,12 @@
             }
             try {
               const normalized = raw.replace(/，/g, ',');
+              const parts = normalized.includes(',') && !normalized.startsWith('[')
+                ? normalized.split(',').map((item) => item.trim()) : null;
+              if (parts?.some((item) => !item)) throw new Error('数组元素不能为空');
               const value = normalized.startsWith('[')
                 ? JSON.parse(normalized)
-                : (normalized.includes(',') ? normalized.split(',').map((item) => Number(item.trim())) : Number(normalized));
+                : (parts ? parts.map(Number) : Number(normalized));
               if (Array.isArray(value)) {
                 if (!value.length || value.some((part) => typeof part !== 'number' || !Number.isFinite(part))) throw new Error('数组必须包含有效数值');
                 if (type === 'vector3_or_number' && value.length !== 3) throw new Error('三轴向量必须恰好包含 3 个数值');
