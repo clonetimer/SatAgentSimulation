@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Create an official Basilisk Vizard .bin from a fresh finite native scenario.
 
+用途：仅在本机用真正 Basilisk 原生模块录制 Vizard .bin，不生成伪物理回放。
+参数：--output 指定未存在的 .bin 目标；--duration-s 或 --task-spec 指定有限时长整星。
+输出：官方 Vizard 二进制文件及含 SHA-256 的 .vizard.json，失败时拒绝写入伪制品。
+
 This is a LOCAL, explicit output command, never exposed as an arbitrary HTTP
 filesystem writer. No Unity app, browser embedded player, or replay converter
 is used. See docs/guides_zh/16_Vizard原生三维回放与前端集成评估.md.
