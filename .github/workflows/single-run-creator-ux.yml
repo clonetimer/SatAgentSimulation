@@ -5,6 +5,8 @@ on:
     paths:
       - "src/sat_sim/web/**"
       - "src/sat_sim/api.py"
+      - "src/sat_sim/telemetry_overview.py"
+      - "tests/interactive/test_finite_telemetry_overview.py"
       - "tests/interactive/test_single_run_creator_ux.py"
       - ".github/workflows/single-run-creator-ux.yml"
   workflow_dispatch:
@@ -35,7 +37,7 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           node --check src/sat_sim/web/app.js
-          python -m pytest -q -s tests/interactive/test_single_run_creator_ux.py
+          python -m pytest -q -s tests/interactive/test_single_run_creator_ux.py tests/interactive/test_finite_telemetry_overview.py
 
   finite-basilisk-physics:
     runs-on: ubuntu-latest
@@ -60,4 +62,5 @@ jobs:
           python -m pytest -q \
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_single_run_creator_ux.py \
+            tests/interactive/test_finite_telemetry_overview.py \
             -k 'not browser_path' --disable-warnings
