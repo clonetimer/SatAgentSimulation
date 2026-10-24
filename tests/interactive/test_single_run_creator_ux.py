@@ -6,6 +6,7 @@ tests/interactive/test_unified_segmented_execution.py gate.
 """
 from __future__ import annotations
 
+import json
 from urllib.parse import urlsplit
 
 import pytest
@@ -70,6 +71,13 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert "必须填写整数" in js
     assert "数组必须包含有效数值" in js
     assert ".event-field-invalid" in css
+    assert "comparableRunMetrics" in js
+    assert "comparableRunTraceFields" in js
+    assert "drawRunCompareChart" in js
+    assert ".run-compare-toolbar" in css
+    for control in ("runComparePanel", "runCompareSelectedBtn", "runCompareClearBtn",
+                    "runCompareField", "runCompareChart", "runCompareHead", "runCompareBody"):
+        assert f'id="{control}"' in page
 
 
 def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path):
@@ -402,6 +410,129 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
             assert page.locator("#chartLegend").inner_text() == ""
             assert page.locator("#chartTimeStart").input_value() == ""
             assert "3 / 3" not in page.locator("#chartWindowStatus").inner_text()
+            assert not errors, errors
+        finally:
+            browser.close()
+
+
+def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_path):
+    """UI fixture only; native Basilisk execution is independently gated."""
+    pw = pytest.importorskip("playwright.sync_api")
+    run_records = [
+        {"run_id": "cmp-a", "task_name": "任务 A", "status": "SUCCEEDED", "sealed": True,
+         "validation_result": "PASS", "primary_capability_id": "whole_spacecraft.unified_native.v1"},
+        {"run_id": "cmp-b", "task_name": "任务 B", "status": "SUCCEEDED", "sealed": True,
+         "validation_result": "PASS", "primary_capability_id": "whole_spacecraft.unified_native.v1"},
+        {"run_id": "cmp-incompatible", "task_name": "其他模型", "status": "SUCCEEDED", "sealed": True,
+         "validation_result": "PASS", "primary_capability_id": "component.battery.v1"},
+        {"run_id": "cmp-failed", "task_name": "未成功运行", "status": "FAILED", "sealed": True,
+         "validation_result": "NOT_EVALUATED", "primary_capability_id": "whole_spacecraft.unified_native.v1"},
+    ]
+    simulated = {
+        "cmp-a": {"metric": 4.0, "times": [0, 1, 2, 3], "values": [3.5, 3.0, 2.5, 2.0]},
+        "cmp-b": {"metric": 2.5, "times": [0, 1.5, 3], "values": [3.0, 2.7, 2.2]},
+    }
+    compared_requests = []
+    executed_requests = []
+    with _client(tmp_path) as client, pw.sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        try:
+            page = browser.new_page(viewport={"width": 1480, "height": 950}, locale="zh-CN")
+            errors = []
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def route_request(route):
+                req = route.request
+                u = urlsplit(req.url)
+                path = u.path
+                if req.method == "POST" and path == "/runs":
+                    executed_requests.append(req.post_data)
+                    route.fulfill(status=403, json={"detail": "unexpected run creation"})
+                    return
+                if req.method == "GET" and path == "/runs" and u.query in ("limit=30", "limit=200"):
+                    route.fulfill(json={"runs": run_records, "total": len(run_records)})
+                    return
+                if req.method == "POST" and path == "/runs/compare":
+                    body = json.loads(req.post_data)
+                    compared_requests.append(body)
+                    route.fulfill(json={"ok": True, "comparison": {
+                        "schema_version": "scenario.run-comparison.v2",
+                        "run_count": 2, "metrics": body["metrics"],
+                        "rows": [
+                            {"run_id": rid, "status": "SUCCEEDED", "validation_result": "PASS",
+                             "values": {"qoi.adcs.final_pointing_error_deg": simulated[rid]["metric"]}}
+                            for rid in body["run_ids"]
+                        ], "statistics": {},
+                    }})
+                    return
+                parts = path.strip("/").split("/")
+                if req.method == "GET" and len(parts) == 3 and parts[0] == "runs" and parts[1] in simulated:
+                    rid = parts[1]
+                    item = simulated[rid]
+                    if parts[2] == "metrics":
+                        result = {"metrics": {"qoi.adcs.final_pointing_error_deg": item["metric"]}}
+                    elif parts[2] == "plots":
+                        result = {"plot_manifest": {"time_axis": {"field": "time_s", "label": "仿真秒"},
+                            "series": [{"field": "adcs.pointing_error_deg",
+                                        "label": "姿态误差", "unit": "deg"}]}}
+                    elif parts[2] == "telemetry":
+                        result = {"rows": [
+                            {"time_s": time, "adcs.pointing_error_deg": value}
+                            for time, value in zip(item["times"], item["values"])
+                        ]}
+                    else:
+                        result = {}
+                    route.fulfill(json=result)
+                    return
+                forwarded = client.request(
+                    req.method, path + ("?" + u.query if u.query else ""),
+                    content=req.post_data.encode("utf-8") if req.post_data else None,
+                    headers={k: v for k, v in req.headers.items()
+                             if k.lower() in ("authorization", "content-type", "accept")},
+                )
+                route.fulfill(
+                    status=forwarded.status_code, body=forwarded.content,
+                    headers={k: v for k, v in forwarded.headers.items()
+                             if k.lower() in ("content-type", "cache-control")},
+                )
+
+            page.route("https://workbench.test/**", route_request)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator(".nav-button[data-view='runs']").click()
+            first = page.locator('input[data-run-compare-id="cmp-a"]')
+            second = page.locator('input[data-run-compare-id="cmp-b"]')
+            different = page.locator('input[data-run-compare-id="cmp-incompatible"]')
+            failed = page.locator('input[data-run-compare-id="cmp-failed"]')
+            first.wait_for(timeout=30000)
+            assert page.locator("#runCompareSelectedBtn").is_disabled()
+            assert failed.is_disabled()
+            first.check()
+            assert different.is_disabled()
+            assert second.is_enabled()
+            second.check()
+            assert page.locator("#runCompareSelectedBtn").is_enabled()
+            page.locator("#runCompareSelectedBtn").click()
+            page.locator("#runComparePanel").wait_for(state="visible", timeout=20000)
+            page.wait_for_function(
+                "() => document.querySelector('#runCompareBody').querySelectorAll('tr').length >= 1",
+                timeout=20000,
+            )
+            assert compared_requests == [{
+                "run_ids": ["cmp-a", "cmp-b"],
+                "metrics": ["qoi.adcs.final_pointing_error_deg"],
+            }]
+            table = page.locator("#runCompareBody").inner_text()
+            assert "qoi.adcs.final_pointing_error_deg" in table
+            assert "4" in table and "2.5" in table and "-1.5" in table
+            assert page.locator("#runCompareField").input_value() == "adcs.pointing_error_deg"
+            note = page.locator("#runCompareChartNote").inner_text()
+            assert "cmp-a" in note and "cmp-b" in note
+            assert "有效 4/已载入 4 点" in note and "有效 3/已载入 3 点" in note
+            assert "不做跨 Run 对齐" in note
+            assert not executed_requests
+            page.locator("#runCompareClearBtn").click()
+            assert page.locator("#runComparePanel").is_hidden()
+            assert page.locator("#runCompareSelectedBtn").is_disabled()
             assert not errors, errors
         finally:
             browser.close()

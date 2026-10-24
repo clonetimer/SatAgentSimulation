@@ -1535,3 +1535,23 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   overflow-wrap: anywhere;
 }
 #creatorView .run-header-actions #reuseRunConfigBtn { white-space: nowrap; }
+
+/* Historical Run comparison: reuse immutable Run Bundle APIs; no new simulator. */
+.run-compare-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 0; }
+.run-compare-toolbar [role="status"] { color:var(--muted); line-height:1.55; flex:1 1 260px; font-size:12px; }
+.run-compare-toolbar .button { white-space:nowrap; }
+.run-compare-panel { margin-top:18px; border-top:1px solid var(--line); padding-top:14px; display:grid; gap:10px; }
+.run-compare-panel.hidden { display:none; }
+.run-compare-table { min-width:520px; }
+.run-compare-chart-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.run-compare-chart-controls label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
+.run-compare-chart-controls select { max-width:min(100%, 440px); min-width:180px; }
+.run-compare-chart-frame canvas { width:100%; height:300px; display:block; }
+#runCompareChartNote { line-height:1.65; overflow-wrap:anywhere; }
+#runCenterTableBody input[data-run-compare-id] { width:16px; height:16px; cursor:pointer; accent-color:var(--accent-2); }
+#runCenterTableBody input[data-run-compare-id]:disabled { cursor:not-allowed; }
+@media (max-width: 640px) {
+  .run-compare-toolbar { align-items:stretch; }
+  .run-compare-toolbar .button { flex:1 1 auto; }
+  .run-compare-chart-frame canvas { height:240px; }
+}
