@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.15.1-single-run-ux">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.15.2-finite-config-ux">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -160,6 +160,14 @@
               <button id="singleRunResultsBtn" class="button button-ghost" type="button">运行记录</button>
             </div>
           </div>
+          <div class="single-run-config-bar" aria-label="当前有限时长仿真配置">
+            <div id="singleRunConfigSummary" class="single-run-config-summary" role="status" aria-live="polite">选择模型后显示配置摘要。</div>
+            <div class="single-run-shortcuts" aria-label="跳转到配置区域">
+              <button id="singleRunJumpParametersBtn" class="button button-ghost" type="button">参数</button>
+              <button id="singleRunJumpEventsBtn" class="button button-ghost" type="button">故障与事件</button>
+              <button id="singleRunJumpOutputsBtn" class="button button-ghost" type="button">输出与曲线</button>
+            </div>
+          </div>
           <p id="singleRunProgress" class="single-run-progress" role="status" aria-live="polite">请选择左侧仿真对象。运行后可在右侧结果面板或运行中心查看记录。</p>
         </section>
 
@@ -175,6 +183,7 @@
             <label class="search-box"><span aria-hidden="true">⌕</span><input id="formFieldSearch" type="search" placeholder="搜索参数名称、含义或单位…"></label>
             <label class="advanced-toggle"><input id="showAdvancedFields" type="checkbox"><span>显示专业参数</span></label>
           </div>
+          <div id="formSearchEmpty" class="single-run-search-empty hidden" role="status">未找到匹配参数。请尝试其他关键词，或清空搜索框。</div>
           <div id="formValidationSummary" class="inline-validation hidden" aria-live="polite"></div>
           <form id="dynamicForm" class="dynamic-form" autocomplete="off"></form>
           <section class="form-section">
@@ -920,8 +929,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.15.1-single-run-ux";</script>
-  <script src="/assets/app.js?v=0.15.1-single-run-ux" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.15.2-finite-config-ux";</script>
+  <script src="/assets/app.js?v=0.15.2-finite-config-ux" defer></script>
   <script src="/assets/continuous.js?v=0.16.0-r7-ui" defer></script>
 </body>
 </html>

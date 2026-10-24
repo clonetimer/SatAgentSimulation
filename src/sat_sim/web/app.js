@@ -146,6 +146,52 @@
     if (validate) validate.disabled = Boolean(state.singleRunSubmitting) || !state.schema;
   }
 
+  // A read-only snapshot of the actual form state: it never infers model
+  // capabilities or claims that any physical execution has succeeded.
+  function updateSingleRunSummary() {
+    const host = el('singleRunConfigSummary');
+    if (!host) return;
+    host.replaceChildren();
+    if (!state.schema || !state.formData) {
+      host.textContent = '请选择具有可配置执行模型的仿真对象。';
+      return;
+    }
+    const form = state.formData;
+    const events = form.events || {};
+    const outputs = form.outputs || {};
+    const valueWithSeconds = (value) => {
+      if (value === '' || value === null || value === undefined) return '未设置';
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? `${number} s` : '需要修正';
+    };
+    const eventCount = ['faults', 'degradations', 'constraints']
+      .reduce((count, key) => count + (Array.isArray(events[key]) ? events[key].length : 0), 0);
+    const count = (values) => Array.isArray(values) ? values.length : 0;
+    const items = [
+      ['仿真对象', el('selectedCapabilityName')?.textContent || state.selectedCapabilityId],
+      ['运行时长', valueWithSeconds(getPath(form, 'simulation.duration_s'))],
+      ['采样间隔', valueWithSeconds(getPath(form, 'simulation.sample_s'))],
+      ['故障 / 退化 / 约束', `${eventCount} 个事件`],
+      ['结果输出', `${count(outputs.qoi)} 项摘要 · ${count(outputs.plots)} 条曲线`],
+    ];
+    items.forEach(([label, value]) => {
+      const chip = document.createElement('div');
+      chip.className = 'single-run-config-item';
+      const name = document.createElement('span');
+      name.textContent = label;
+      const detail = document.createElement('strong');
+      detail.textContent = value || '未选择';
+      detail.title = detail.textContent;
+      chip.append(name, detail);
+      host.appendChild(chip);
+    });
+    // A successful TaskSpec preflight belongs to that exact configuration.
+    // Edits must not leave an obsolete "validated" guide badge visible.
+    if (!state.taskSpec && el('singleRunGuide')?.dataset.stage === 'validated') {
+      updateSingleRunGuide('configure', '配置已修改；上次校验已失效，请重新执行“校验与预览”。');
+    }
+  }
+
   async function loadSingleRunReadiness() {
     const node = el('singleRunReadiness');
     if (!node) return;
@@ -3556,6 +3602,7 @@
   function validateClientForm({ show = true } = {}) {
     clearFieldErrors();
     if (!state.formData) return false;
+    updateSingleRunSummary();
     const duration = Number(getPath(state.formData, 'simulation.duration_s'));
     const sample = Number(getPath(state.formData, 'simulation.sample_s'));
     const step = Number(getPath(state.formData, 'simulation.step_s'));
@@ -4312,7 +4359,11 @@
   function renderForm() {
     const form = el('dynamicForm');
     form.replaceChildren();
-    if (!state.schema || !state.formData) return;
+    if (!state.schema || !state.formData) {
+      el('formSearchEmpty')?.classList.add('hidden');
+      updateSingleRunSummary();
+      return;
+    }
     const query = (el('formFieldSearch')?.value || '').trim().toLowerCase();
     const showAdvanced = Boolean(el('showAdvancedFields')?.checked);
     const fieldsByPath = new Map((state.schema.fields || []).map((field) => [field.path, field]));
@@ -4398,6 +4449,7 @@
       if (advancedGrid.children.length) card.appendChild(advanced);
       form.appendChild(card);
     });
+    el('formSearchEmpty')?.classList.toggle('hidden', !query || Boolean(form.children.length));
     validateClientForm({show:false});
   }
 
@@ -4440,6 +4492,7 @@
   function renderEvents() {
     const container = el('eventList');
     container.replaceChildren();
+    updateSingleRunSummary();
     if (!state.formData) return;
     const events = [
       ...(state.formData.events.faults || []).map((event, index) => ({ event, kind: 'fault', key: 'faults', index })),
@@ -4508,6 +4561,7 @@
             options.onChange(options.integer ? Math.trunc(parsed) : parsed);
           }
           state.taskSpec = null;
+          updateSingleRunSummary();
           state.changedPaths.delete(`events.${key}`);
           card.classList.remove('agent-changed');
           renderAgentChangePanel();
@@ -4560,7 +4614,7 @@
               catch (_) { input.setCustomValidity('请输入数值或JSON数组'); input.reportValidity(); return; }
               input.setCustomValidity('');
             }
-            state.taskSpec = null; renderAgentChangePanel();
+            state.taskSpec = null; updateSingleRunSummary(); renderAgentChangePanel();
           });
           label.append(title, input);
           if (fieldMeta.description) { const help=document.createElement('small'); help.textContent=fieldMeta.description; label.appendChild(help); }
@@ -4584,6 +4638,7 @@
     renderCheckOptions('qoiOptions', state.schema.outputs.summary_options || [], state.formData.outputs.qoi || [], 'qoi');
     renderCheckOptions('plotOptions', state.schema.outputs.trace_options || [], state.formData.outputs.plots || [], 'plots');
     renderAdvancedOutputs();
+    updateSingleRunSummary();
   }
 
   function ensureAdvancedOutputs() {
@@ -4599,6 +4654,7 @@
 
   function markOutputChanged() {
     state.taskSpec = null;
+    updateSingleRunSummary();
     syncTaskSpecEditor();
   }
 
@@ -4849,7 +4905,19 @@
       updateSingleRunGuide('configure', '表单参数未通过检查，请查看字段提示并修正。');
       return false;
     }
+    // The backend validates a snapshot. A user may edit the form while the
+    // async request is in flight; never attach the response to a newer form.
+    const requestedCapabilityId = state.selectedCapabilityId;
+    const requestedForm = JSON.stringify(state.formData);
     const payload=await api('/tasks/parse',{method:'POST',body:JSON.stringify({input_kind:'form',form_data:state.formData,compile_if_valid:true})});
+    if (state.selectedCapabilityId !== requestedCapabilityId || JSON.stringify(state.formData) !== requestedForm) {
+      state.taskSpec = null;
+      state.planning = null;
+      syncTaskSpecEditor();
+      updateSingleRunGuide('configure', '校验期间配置发生变化；旧校验结果已丢弃，请重新校验。');
+      showNotice('校验期间配置已更新，请重新执行“校验与预览”。', 'warning');
+      return false;
+    }
     const result=payload.result; state.taskSpec=result.task_spec || null; state.planning=result.planning || null; syncTaskSpecEditor();
     if (!payload.ok) {
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
@@ -7118,6 +7186,15 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('singleRunValidateBtn').addEventListener('click', () => el('previewBtn').click());
     el('singleRunResultsBtn').addEventListener('click', () => switchView('runs'));
+    [['singleRunJumpParametersBtn', 'formFieldSearch'], ['singleRunJumpEventsBtn', 'effectKind'], ['singleRunJumpOutputsBtn', 'plotOptions']].forEach(([buttonId, targetId]) => {
+      el(buttonId).addEventListener('click', () => {
+        switchView('creator');
+        switchTab('form');
+        const target = el(targetId);
+        target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (targetId !== 'plotOptions') target?.focus({ preventScroll: true });
+      });
+    });
     el('previewBtn').addEventListener('click', async () => {
       const graphMode = document.querySelector('.tab.active')?.dataset.tab === 'graph';
       showBusy(graphMode ? '校验图形流程' : '校验并编译 TaskSpec', graphMode ? '检查节点结构并编译 Canonical TaskSpec' : '解析 Schema 表单与能力约束');
