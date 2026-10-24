@@ -145,8 +145,8 @@ def test_real_basilisk_single_rw_electrical_disable_reduces_actual_eps_load():
         for a, b in zip(original[1:], disabled[1:])
     ]
     assert max(deltas) > .02, deltas
-    assert any(float(a["eps.net_power_w"]) != pytest.approx(float(b["eps.net_power_w"]), abs=.02)
-               for a, b in zip(original[1:], disabled[1:]))
+    assert max(abs(float(a["eps.net_power_w"]) - float(b["eps.net_power_w"]))
+               for a, b in zip(original[1:], disabled[1:])) > .02
 
 
 @pytest.mark.parametrize("bad,error", [
