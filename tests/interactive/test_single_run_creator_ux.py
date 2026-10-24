@@ -43,12 +43,16 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert payload["endpoints"]["submit"] == "/runs"
     assert payload["endpoints"]["track"] == "/runs/{run_id}/execution"
     for control in ("singleRunGuide", "singleRunReadiness", "singleRunSelectBtn",
-                    "singleRunValidateBtn", "singleRunResultsBtn", "singleRunProgress"):
+                    "singleRunValidateBtn", "singleRunResultsBtn", "singleRunProgress",
+                    "singleRunConfigSummary", "singleRunJumpParametersBtn",
+                    "singleRunJumpEventsBtn", "singleRunJumpOutputsBtn", "formSearchEmpty"):
         assert f'id="{control}"' in page
     assert "singleRunSubmitting" in js
     assert "if (state.singleRunSubmitting) return;" in js
     assert "state.activeRunId !== runId" in js
     assert ".single-run-steps" in css
+    assert ".single-run-config-summary" in css
+    assert "配置已修改；上次校验已失效" in js
 
 
 def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path):
@@ -86,6 +90,8 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             assert page.locator("#singleRunGuide .single-run-step").count() == 3
             assert "Basilisk" in page.locator("#singleRunReadiness").inner_text()
             assert page.locator("#runBtn").is_enabled()
+            assert "运行时长" in page.locator("#singleRunConfigSummary").inner_text()
+            assert "结果输出" in page.locator("#singleRunConfigSummary").inner_text()
 
             page.locator("#singleRunSelectBtn").click()
             assert page.locator("#capabilitySearch").evaluate(
@@ -106,6 +112,24 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             # A schema preflight never creates a persisted physics execution.
             assert calls == []
             assert page.locator("#singleRunProgress").inner_text().strip()
+
+            # The overview must reflect real edited values, not placeholder
+            # estimates. Configuration edits do not POST a physical run.
+            duration = page.locator("#dynamicForm [data-path='simulation.duration_s']")
+            assert duration.count() == 1
+            duration.fill("60")
+            duration.press("Tab")
+            assert "60 s" in page.locator("#singleRunConfigSummary").inner_text()
+            assert page.locator("#singleRunGuide").get_attribute("data-stage") == "configure"
+            page.locator("#formFieldSearch").fill("__no_such_registered_parameter__")
+            assert page.locator("#formSearchEmpty").is_visible()
+            page.locator("#formFieldSearch").fill("")
+            assert page.locator("#formSearchEmpty").is_hidden()
+            page.locator("#singleRunJumpEventsBtn").click()
+            assert page.locator("#effectKind").is_visible()
+            page.locator("#singleRunJumpOutputsBtn").click()
+            assert page.locator("#plotOptions").is_visible()
+            assert calls == []
 
             page.set_viewport_size({"width": 390, "height": 844})
             assert page.locator("#singleRunGuide").is_visible()
