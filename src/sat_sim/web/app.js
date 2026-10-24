@@ -28,6 +28,8 @@
     outputPlotSelectedOnly: false,
     chartSeriesQuery: '',
     chartSelectedOnly: false,
+    chartTimeWindow: null,
+    runLoadRequestId: 0,
     changedPaths: new Set(),
     agentBeforeForm: null,
     executionState: null,
@@ -5326,7 +5328,18 @@
 
   async function loadRun(runId, options = {}) {
     const quiet = Boolean(options.quiet);
-    if (!quiet) showBusy('读取运行制品', runId);
+    const requestId = ++state.runLoadRequestId;
+    if (!quiet) {
+      // Establish selection before network awaits: an older run's polling
+      // must not overwrite the user-selected run.
+      stopExecutionPolling();
+      state.activeRunId = runId;
+      state.activeRun = null;
+      state.executionState = null;
+      el('activeRunCard').className = 'active-run empty-state';
+      el('activeRunCard').textContent = `正在读取运行 ${runId}…`;
+      showBusy('读取运行制品', runId);
+    }
     try {
       const [runPayload, metricsPayload, eventsPayload, plotsPayload, telemetryPayload, artifactsPayload, datasetPayload, fmeaPayload, traceabilityPayload] = await Promise.all([
         api(`/runs/${encodeURIComponent(runId)}`),
@@ -5339,6 +5352,7 @@
         api(`/runs/${encodeURIComponent(runId)}/fmea`).catch(() => ({ table: null, manifest: null })),
         api(`/runs/${encodeURIComponent(runId)}/fault-traceability`).catch(() => ({ traceability: null })),
       ]);
+      if (requestId !== state.runLoadRequestId) return false;
       state.activeRunId = runId;
       state.activeRun = runPayload.run;
       state.metrics = metricsPayload.metrics?.metrics || metricsPayload.metrics || {};
@@ -5353,6 +5367,8 @@
       state.dataset = datasetPayload.dataset || null;
       state.chartSeriesQuery = '';
       state.chartSelectedOnly = false;
+      state.chartTimeWindow = null;
+      syncChartWindowControls();
       const manifestSeries = (state.plotManifest?.series || []).map((item) => item.field);
       state.selectedSeries = manifestSeries.slice(0, 4);
       renderActiveRun();
@@ -5363,10 +5379,14 @@
       renderTraceability();
       renderArtifacts();
       switchResultTab('overview');
+      return true;
     } catch (error) {
+      if (requestId !== state.runLoadRequestId) return false;
+      el('activeRunCard').textContent = `运行 ${runId} 读取失败：${error.message}`;
       showNotice(`读取运行失败：${error.message}`, 'error');
+      return false;
     } finally {
-      if (!quiet) hideBusy();
+      if (!quiet && requestId === state.runLoadRequestId) hideBusy();
     }
   }
 
@@ -5419,6 +5439,17 @@
       details.appendChild(item);
     });
     card.append(titleRow, details);
+    const runStatus = String(record.status || '').toUpperCase();
+    const failureReason = state.executionState?.run_id === technicalRunId ? state.executionState?.error : null;
+    const recordedError = run.failure_reason || record.error || record.error_message || record.message || failureReason;
+    if (['FAILED', 'CANCELLED', 'TIMED_OUT'].includes(runStatus)) {
+      const failure = document.createElement('div');
+      failure.className = 'run-result-warning';
+      failure.textContent = recordedError
+        ? `本次运行状态：${runStatus}。记录原因：${typeof recordedError === 'string' ? recordedError : JSON.stringify(recordedError)}。可点击“诊断包”导出排查信息。`
+        : `本次运行状态：${runStatus}。运行记录未提供具体原因；请查看制品与诊断包。`;
+      card.appendChild(failure);
+    }
   }
 
   function renderMetrics() {
@@ -5463,7 +5494,7 @@
     const validation = state.activeRun?.validation_outcome || {};
     const card = el('validationCard');
     const result = validation.result || state.activeRun?.run_record?.validation_result || 'NOT_EVALUATED';
-    card.className = `validation-card ${result === 'PASS' ? 'pass' : 'fail'}`;
+    card.className = `validation-card ${result === 'PASS' ? 'pass' : (result === 'NOT_EVALUATED' ? 'pending' : 'fail')}`;
     card.replaceChildren();
     const strong = document.createElement('strong');
     strong.textContent = `验证：${localizedValidationResult(result)}`;
@@ -5569,6 +5600,63 @@
     drawChart();
   }
 
+  function chartTimeSamples() {
+    const rows = state.telemetry || [];
+    const timeField = state.plotManifest?.time_axis?.field || state.plotManifest?.time_field
+      || (rows[0] && Object.hasOwn(rows[0], 'time_s') ? 'time_s' : 't_s');
+    return rows.map((row, index) => ({ row, time: Number(row[timeField] ?? index) }))
+      .filter((point) => Number.isFinite(point.time));
+  }
+
+  function syncChartWindowControls() {
+    const points = chartTimeSamples();
+    const start = el('chartTimeStart');
+    const end = el('chartTimeEnd');
+    const reset = el('chartResetWindowBtn');
+    const apply = el('chartApplyWindowBtn');
+    if (!start || !end || !reset || !apply) return;
+    const enabled = points.length > 1 && Math.min(...points.map(p => p.time)) < Math.max(...points.map(p => p.time));
+    start.disabled = !enabled;
+    end.disabled = !enabled;
+    apply.disabled = !enabled;
+    reset.disabled = !enabled || !state.chartTimeWindow;
+    if (!enabled) { start.value = ''; end.value = ''; return; }
+    const allTimes = points.map(p => p.time);
+    start.value = String(state.chartTimeWindow?.start ?? Math.min(...allTimes));
+    end.value = String(state.chartTimeWindow?.end ?? Math.max(...allTimes));
+  }
+
+  function applyChartTimeWindow() {
+    const points = chartTimeSamples();
+    if (!points.length) return;
+    const startInput = el('chartTimeStart');
+    const endInput = el('chartTimeEnd');
+    const start = Number(startInput.value);
+    const end = Number(endInput.value);
+    const values = points.map(p => p.time);
+    const low = Math.min(...values);
+    const high = Math.max(...values);
+    if (!startInput.value.trim() || !endInput.value.trim() || !Number.isFinite(start) || !Number.isFinite(end)
+        || !(start < end) || start < low || end > high) {
+      el('chartWindowStatus').textContent = `范围无效：请输入 ${formatNumber(low)}–${formatNumber(high)} s 内、起点小于终点的数值。`;
+      return false;
+    }
+    if (!points.some(p => p.time >= start && p.time <= end)) {
+      el('chartWindowStatus').textContent = '此时间范围内没有加载到遥测采样点，请扩大范围。';
+      return false;
+    }
+    state.chartTimeWindow = { start, end };
+    syncChartWindowControls();
+    drawChart();
+    return true;
+  }
+
+  function resetChartTimeWindow() {
+    state.chartTimeWindow = null;
+    syncChartWindowControls();
+    drawChart();
+  }
+
   function drawChart() {
     const canvas = el('telemetryChart');
     if (!canvas) return;
@@ -5585,8 +5673,16 @@
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = themeColor('--bg', '#071019');
     ctx.fillRect(0, 0, width, height);
-    const rows = state.telemetry;
+    const loadedPoints = chartTimeSamples();
+    const windowRange = state.chartTimeWindow;
+    const points = windowRange ? loadedPoints.filter((p) => p.time >= windowRange.start && p.time <= windowRange.end) : loadedPoints;
+    const rows = points.map((p) => p.row);
     const series = state.selectedSeries.filter((field) => rows.some((row) => typeof row[field] === 'number' && Number.isFinite(row[field])));
+    const status = el('chartWindowStatus');
+    if (status) {
+      const bounds = loadedPoints.length ? `${formatNumber(Math.min(...loadedPoints.map(p => p.time)))}–${formatNumber(Math.max(...loadedPoints.map(p => p.time)))} s` : '无可用时间轴';
+      status.textContent = `当前显示 ${rows.length} / ${loadedPoints.length} 条已加载采样点 · ${windowRange ? '局部范围' : '完整已加载范围'} · 可用时间 ${bounds} · 页面最多读取 2000 行，不能代表完整 Run Bundle。`;
+    }
     if (!rows.length || !series.length) {
       ctx.fillStyle = themeColor('--muted', '#7890a1');
       ctx.font = '12px system-ui';
@@ -5595,9 +5691,9 @@
       return;
     }
     const timeField = state.plotManifest?.time_axis?.field || state.plotManifest?.time_field || (Object.hasOwn(rows[0], 'time_s') ? 'time_s' : 't_s');
-    const times = rows.map((row, index) => Number(row[timeField] ?? index));
-    const minX = Math.min(...times);
-    const maxX = Math.max(...times);
+    const times = points.map((p) => p.time);
+    const minX = windowRange?.start ?? Math.min(...times);
+    const maxX = windowRange?.end ?? Math.max(...times);
     const allValues = series.flatMap((field) => rows.map((row) => row[field]).filter((value) => typeof value === 'number' && Number.isFinite(value)));
     let minY = Math.min(...allValues);
     let maxY = Math.max(...allValues);
@@ -5632,7 +5728,7 @@
       let started = false;
       rows.forEach((row, rowIndex) => {
         const value = row[field];
-        if (typeof value !== 'number' || !Number.isFinite(value)) return;
+        if (typeof value !== 'number' || !Number.isFinite(value)) { started = false; return; }
         const xx = x(times[rowIndex]);
         const yy = y(value);
         if (!started) { ctx.moveTo(xx, yy); started = true; }
@@ -6496,7 +6592,7 @@
       const actions = document.createElement('td');
       actions.className = 'table-actions';
       const open = document.createElement('button'); open.className = 'button button-ghost'; open.textContent = '查看';
-      open.addEventListener('click', async () => { await loadRun(run.run_id); switchView('creator'); });
+      open.addEventListener('click', async () => { if (await loadRun(run.run_id)) switchView('creator'); });
       const report = document.createElement('button'); report.className = 'button button-secondary'; report.textContent = '报告'; report.disabled = !run.sealed;
       report.addEventListener('click', () => openReport(run.run_id).catch((error) => showNotice(error.message, 'error')));
       const diag = document.createElement('button'); diag.className = 'button button-ghost'; diag.textContent = '诊断包';
@@ -7333,6 +7429,11 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await validateEditor(); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
     });
     el('refreshRunsBtn').addEventListener('click', loadRuns);
+    el('chartApplyWindowBtn').addEventListener('click', applyChartTimeWindow);
+    el('chartResetWindowBtn').addEventListener('click', resetChartTimeWindow);
+    ['chartTimeStart', 'chartTimeEnd'].forEach((id) => el(id).addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') { event.preventDefault(); applyChartTimeWindow(); }
+    }));
     el('cancelRunBtn').addEventListener('click', async () => {
       try { await cancelActiveRun(); } catch (error) { showNotice(`取消失败：${error.message}`, 'error'); }
     });
