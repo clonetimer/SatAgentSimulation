@@ -1,12 +1,29 @@
 """R83j research command timing contract: synthetic checks only, no physics."""
 import math
+import importlib.util
+from pathlib import Path
+
 import pytest
 
-from sat_sim.experiments.native_fsw_scheduled_reference_lab import (
-    SCHEMA, DURATION_S, FSW_REQUEST_LIMIT_NM, MAX_REFERENCE_DEG,
-    STEP_S, SCHEDULE, WHEEL_SPEED_OBSERVATION_LIMIT_RAD_S,
-    _reference_mrp, run_native_fsw_reference_arm, validate_schedule
-)
+# This contract intentionally does not import the heavy sat_sim package,
+# whose top-level initialization needs the full native runtime dependency
+# set. Actual native Basilisk execution is tested separately in CI.
+_source=(Path(__file__).resolve().parents[1]/
+         "src/sat_sim/experiments/native_fsw_scheduled_reference_lab.py")
+_spec=importlib.util.spec_from_file_location("r83j_native_reference_only", _source)
+assert _spec is not None and _spec.loader is not None
+_lab=importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_lab)
+SCHEMA=_lab.SCHEMA
+DURATION_S=_lab.DURATION_S
+FSW_REQUEST_LIMIT_NM=_lab.FSW_REQUEST_LIMIT_NM
+MAX_REFERENCE_DEG=_lab.MAX_REFERENCE_DEG
+STEP_S=_lab.STEP_S
+SCHEDULE=_lab.SCHEDULE
+WHEEL_SPEED_OBSERVATION_LIMIT_RAD_S=_lab.WHEEL_SPEED_OBSERVATION_LIMIT_RAD_S
+_reference_mrp=_lab._reference_mrp
+run_native_fsw_reference_arm=_lab.run_native_fsw_reference_arm
+validate_schedule=_lab.validate_schedule
 
 
 def test_static_schedule_is_small_bounded_deterministic_and_physics_only():
