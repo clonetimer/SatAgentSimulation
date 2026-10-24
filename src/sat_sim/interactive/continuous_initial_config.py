@@ -26,6 +26,15 @@ class NativeOrbitInitial(_Strict):
 
 
 class NativeAdcsInitial(_Strict):
+    imu_gyro_bias_rad_s_x: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU X 轴陀螺恒定偏置（rad/s）")
+    imu_gyro_bias_rad_s_y: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU Y 轴陀螺恒定偏置（rad/s）")
+    imu_gyro_bias_rad_s_z: float = Field(default=0., ge=-0.1, le=0.1, description="原生 IMU Z 轴陀螺恒定偏置（rad/s）")
+    imu_accel_bias_m_s2_x: float = Field(default=0., ge=-1., le=1., description="原生 IMU X 轴加速度计恒定偏置（m/s²）")
+    imu_accel_bias_m_s2_y: float = Field(default=0., ge=-1., le=1., description="原生 IMU Y 轴加速度计恒定偏置（m/s²）")
+    imu_accel_bias_m_s2_z: float = Field(default=0., ge=-1., le=1., description="原生 IMU Z 轴加速度计恒定偏置（m/s²）")
+    imu_gyro_max_rad_s: float = Field(default=0., ge=0., le=1000., description="原生 IMU 陀螺最大量程（rad/s，0=保持原生默认）")
+    imu_accel_max_m_s2: float = Field(default=0., ge=0., le=1000., description="原生 IMU 加速度计最大量程（m/s²，0=保持原生默认）")
+    star_tracker_noise_std_arcsec: float = Field(default=0., ge=0., le=3600., description="原生星敏逐轴白噪声标准差（arcsec，0=关闭）")
     imu_mount_yaw_deg: float = Field(default=0., ge=-180., le=180., description="IMU 平台相对机体系的航向安装角 (321 Euler; deg)")
     imu_mount_pitch_deg: float = Field(default=0., ge=-89., le=89., description="IMU 平台相对机体系的俯仰安装角 (321 Euler; deg)")
     imu_mount_roll_deg: float = Field(default=0., ge=-180., le=180., description="IMU 平台相对机体系的横滚安装角 (321 Euler; deg)")
@@ -131,6 +140,15 @@ _DISPLAY = {
 
 _UNITS = {
     "spacecraft_mass_kg": "kg", "sun_sensor_fov_deg": "deg",
+    "imu_gyro_bias_rad_s_x": "rad/s",
+    "imu_gyro_bias_rad_s_y": "rad/s",
+    "imu_gyro_bias_rad_s_z": "rad/s",
+    "imu_accel_bias_m_s2_x": "m/s²",
+    "imu_accel_bias_m_s2_y": "m/s²",
+    "imu_accel_bias_m_s2_z": "m/s²",
+    "imu_gyro_max_rad_s": "rad/s",
+    "imu_accel_max_m_s2": "m/s²",
+    "star_tracker_noise_std_arcsec": "arcsec",
     "imu_mount_yaw_deg": "deg",
     "imu_mount_pitch_deg": "deg",
     "imu_mount_roll_deg": "deg",
