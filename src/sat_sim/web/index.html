@@ -423,6 +423,7 @@
           <div class="run-header-actions">
             <button id="expandRunPanelBtn" class="icon-button" type="button" title="扩展结果栏" aria-label="扩展结果栏" aria-pressed="false">⇔</button>
             <button id="fullscreenRunPanelBtn" class="icon-button" type="button" title="全屏显示运行结果" aria-label="全屏显示运行结果" aria-pressed="false">⛶</button>
+            <button id="reuseRunConfigBtn" class="button button-secondary hidden" type="button" title="复制本次 Run 保存的配置到新建表单，不运行、不修改历史记录">复用此配置</button>
             <button id="openRunReportBtn" class="button button-ghost hidden" type="button">查看报告</button>
             <button id="exportDatasetBtn" class="button button-primary hidden" type="button">导出数据集</button>
             <button id="downloadRunDiagnosticBtn" class="button button-ghost hidden" type="button">诊断包</button>
@@ -456,7 +457,8 @@
             <button id="chartResetWindowBtn" class="button button-ghost" type="button">恢复全程</button>
           </div>
           <div id="chartWindowStatus" class="chart-window-status" role="status" aria-live="polite">选择运行后可查看曲线时窗。</div>
-          <div class="chart-frame"><canvas id="telemetryChart" width="760" height="360"></canvas></div>
+          <div class="chart-frame chart-drag-frame"><canvas id="telemetryChart" width="760" height="360" aria-label="遥测曲线，可用鼠标从左向右拖选时间范围"></canvas><div id="chartDragSelection" class="chart-drag-selection hidden" aria-hidden="true"></div></div>
+          <div class="chart-drag-help">鼠标按住曲线横向拖动框选时间段；“恢复全程”可退出局部缩放。框选只改变浏览器显示，不修改原始遥测。</div>
           <div id="chartLegend" class="chart-legend"></div>
         </div>
         <div id="resultEvents" class="result-content" data-result-panel="events"><div id="resultEventList" class="timeline"></div></div>
