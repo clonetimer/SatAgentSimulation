@@ -5351,6 +5351,36 @@
       markSelectedRunInList();
       state.activeRun = null;
       state.executionState = null;
+      // A new selection is not yet a loaded Run. Remove the previous Run's
+      // visuals immediately, including if the new request ultimately fails.
+      state.metrics = {};
+      state.metricMetadata = {};
+      state.requestedQoi = [];
+      state.events = null;
+      state.fmea = null;
+      state.traceability = null;
+      state.plotManifest = null;
+      state.telemetry = [];
+      state.artifacts = [];
+      state.dataset = null;
+      state.selectedSeries = [];
+      state.chartTimeWindow = null;
+      state.chartSeriesQuery = '';
+      state.chartSelectedOnly = false;
+      el('metricGrid').replaceChildren();
+      el('validationCard').replaceChildren();
+      el('chartControls').replaceChildren();
+      el('chartLegend').textContent = '';
+      el('chartWindowStatus').textContent = '正在读取当前 Run 的遥测记录…';
+      syncChartWindowControls();
+      drawChart();
+      el('resultEventList').replaceChildren();
+      el('artifactList').replaceChildren();
+      el('traceabilityList').replaceChildren();
+      el('traceabilitySummary').replaceChildren();
+      el('openRunReportBtn').classList.add('hidden');
+      el('exportDatasetBtn').classList.add('hidden');
+      el('downloadRunDiagnosticBtn').classList.add('hidden');
       el('activeRunCard').className = 'active-run empty-state';
       el('activeRunCard').textContent = `正在读取运行 ${runId}…`;
       showBusy('读取运行制品', runId);
