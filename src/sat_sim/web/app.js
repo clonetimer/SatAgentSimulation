@@ -6565,7 +6565,8 @@
       const item = document.createElement('div'); item.className = 'interactive-value';
       const label = document.createElement('span'); label.textContent = name;
       const strong = document.createElement('strong');
-      strong.textContent = typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value);
+      strong.textContent = value == null || (typeof value === 'number' && !Number.isFinite(value))
+        ? '—' : (typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value));
       item.append(label, strong); values.appendChild(item);
     });
     if (!frames.length) values.innerHTML = '<div class="empty-state"><strong>等待遥测数据</strong></div>';
