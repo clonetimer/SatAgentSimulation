@@ -184,9 +184,26 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             end.press("Tab")
             assert calls == []
 
-            # The official whole-spacecraft event catalog contains gyro_bias_step
-            # with a registered vector3_or_number bias field.
-            page.locator("#effectSelect").select_option("gyro_bias_step")
+            # The fidelity ADCS variant (not the unified whole-spacecraft
+            # variant) exposes the vector3_or_number gyro bias event field.
+            # This is UI-only validation, not acceptance of proxy physics.
+            page.locator("#levelFilter").select_option("subsystem")
+            page.locator("#capabilityList [data-object-id='subsystem.adcs']").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            fidelity_option = page.locator("#variantSelect option[value='subsystem.adcs_fidelity.v1']")
+            if fidelity_option.count() == 0:
+                page.locator("#showCompatibilityCapabilities").check()
+                fidelity_option.wait_for(timeout=20000)
+            page.locator("#variantSelect").select_option("subsystem.adcs_fidelity.v1")
+            page.wait_for_function(
+                "() => [...document.querySelectorAll('#effectSelect option')].some(o => o.value === 'adcs_gyro_bias_step')",
+                timeout=20000,
+            )
+            page.locator("#effectKind").select_option("fault")
+            page.locator("#effectSelect").select_option("adcs_gyro_bias_step")
             page.locator("#addEffectBtn").click()
             vector = page.locator("#eventList .event-card").last.locator('[data-event-field="parameters.bias_deg_s"]')
             assert vector.count() == 1
