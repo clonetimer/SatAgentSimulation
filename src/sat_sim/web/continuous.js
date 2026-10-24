@@ -499,7 +499,7 @@
       if (field.disabled) return;
       const group = field.dataset.nativeGroup;
       initial_configuration[group] ||= {};
-      const value = field.tagName === 'SELECT' ? field.value : Number(field.value);
+      const value = field.type === 'checkbox' ? field.checked : (field.tagName === 'SELECT' ? field.value : Number(field.value));
       initial_configuration[group][field.dataset.nativeKey] = value;
     });
     const body = {
