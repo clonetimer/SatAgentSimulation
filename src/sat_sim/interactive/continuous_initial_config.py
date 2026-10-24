@@ -162,6 +162,8 @@ class NativeAdcsInitial(_Strict):
     rw_mount_b_x_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置X 坐标（m），仅逐轮几何模式、4 轮构型")
     rw_mount_b_y_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置Y 坐标（m），仅逐轮几何模式、4 轮构型")
     rw_mount_b_z_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置Z 坐标（m），仅逐轮几何模式、4 轮构型")
+    rw_motor_current_limit_a: float = Field(default=10., ge=0., le=20., description="电机驱动器最大电流 Imax（A）；通过真实 Basilisk 任务调度命令限制 RW 力矩")
+    rw_motor_torque_constant_nm_per_a: float = Field(default=.02, gt=0., le=.2, description="电机扭矩常数 Kt（N·m/A）；实际电机最大扭矩=min(官方 RW u_max, Imax×Kt)")
     rw_max_torque_nm: float = Field(
         default=.2, gt=0., le=.2,
         description="真实 Basilisk RW 电机 u_max 与指令故障管理器的共同限幅 (N·m)",
@@ -179,6 +181,13 @@ class NativeAdcsInitial(_Strict):
     rw_initial_speed_rad_s_2: float = Field(default=31.41592653589793, ge=-500., le=500., description="RW3 原生初始轮速 (rad/s)")
     rw_initial_speed_rad_s_3: float | None = Field(default=None, ge=-500., le=500.,
                                                    description="仅 4 轮金字塔构型可设置 RW4 初始轮速 (rad/s)")
+
+    @field_validator("rw_motor_current_limit_a", "rw_motor_torque_constant_nm_per_a", mode="before")
+    @classmethod
+    def require_numeric_rw_driver_limits(cls, value):
+        if type(value) not in (int, float):
+            raise ValueError("RW_DRIVER_REQUIRES_REAL_NUMBER")
+        return value
 
     @model_validator(mode="after")
     def wheel_count_matches_hardware(self):
@@ -408,6 +417,8 @@ _UNITS = {
     "rw_mount_b_x_m_3": "m",
     "rw_mount_b_y_m_3": "m",
     "rw_mount_b_z_m_3": "m",
+    "rw_motor_current_limit_a": "A",
+    "rw_motor_torque_constant_nm_per_a": "N·m/A",
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
     "rw_max_torque_nm_0": "N·m", "rw_max_torque_nm_1": "N·m",
     "rw_max_torque_nm_2": "N·m", "rw_max_torque_nm_3": "N·m",
