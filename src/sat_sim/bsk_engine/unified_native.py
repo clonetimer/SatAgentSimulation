@@ -690,7 +690,7 @@ class UnifiedNativeRuntime:
         rw_coulomb = float(values.get("rw_coulomb_friction_nm", 0.0))
         rw_viscous = float(values.get("rw_viscous_friction_nms", 0.0))
         rw_mount_radius = float(values.get("rw_mount_radius_m", 0.0))
-        if rw_friction_mode not in {"disabled", "coulomb_viscous"}:
+        if rw_friction_mode not in {"disabled", "coulomb_viscous", "per_wheel"}:
             raise ValueError("NATIVE_RW_FRICTION_MODE_INVALID")
         if any(not math.isfinite(x) for x in (rw_coulomb, rw_viscous, rw_mount_radius)):
             raise ValueError("NATIVE_RW_FRICTION_OR_MOUNT_NOT_FINITE")
@@ -700,14 +700,51 @@ class UnifiedNativeRuntime:
             raise ValueError("NATIVE_RW_FRICTION_DISABLED_REQUIRES_ZERO")
         if rw_friction_mode == "coulomb_viscous" and rw_coulomb == rw_viscous == 0:
             raise ValueError("NATIVE_RW_FRICTION_ENABLED_REQUIRES_NONZERO")
-        # Preserve the original frictionless hub-mounted wheels when unset.
-        # Only recognized rwFactory arguments are supplied to official Basilisk.
-        rw_friction_kwargs = ({"useRWfriction": True, "fCoulomb": rw_coulomb,
-                               "fStatic": 0.0, "betaStatic": -1.0,
-                               "cViscous": rw_viscous}
-                              if rw_friction_mode == "coulomb_viscous"
-                              else {"useRWfriction": False})
+        # Validate every physically instantiated wheel before constructing any
+        # Basilisk hardware: three-wheel configurations must never silently
+        # accept a nonexistent RW4 parameter (even if its value is zero).
+        if len(rw_axes) != 4 and any(
+            values.get(f"rw_{kind}_friction_{suffix}_3") is not None
+            for kind, suffix in (("coulomb", "nm"), ("viscous", "nms"))
+        ):
+            raise ValueError("NATIVE_RW4_FRICTION_REQUIRES_PYRAMID_4")
+        per_wheel_coefficients: list[tuple[float, float]] = []
+        for wheel_index in range(len(rw_axes)):
+            coefficients: list[float] = []
+            for kind, suffix in (("coulomb", "nm"), ("viscous", "nms")):
+                raw = values.get(f"rw_{kind}_friction_{suffix}_{wheel_index}", 0.0)
+                try:
+                    value = float(raw)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise ValueError("NATIVE_RW_PER_WHEEL_FRICTION_INVALID") from exc
+                if not math.isfinite(value) or not 0. <= value <= 0.01:
+                    raise ValueError("NATIVE_RW_PER_WHEEL_FRICTION_INVALID")
+                coefficients.append(value)
+            per_wheel_coefficients.append((coefficients[0], coefficients[1]))
+        if rw_friction_mode != "per_wheel" and any(
+            c > 0. or v > 0. for c, v in per_wheel_coefficients
+        ):
+            raise ValueError("NATIVE_RW_PER_WHEEL_FRICTION_MODE_MISMATCH")
+        if rw_friction_mode == "per_wheel":
+            if rw_coulomb > 0. or rw_viscous > 0.:
+                raise ValueError("NATIVE_RW_PER_WHEEL_FRICTION_FORBIDS_SHARED")
+            if not any(c > 0. or v > 0. for c, v in per_wheel_coefficients):
+                raise ValueError("NATIVE_RW_PER_WHEEL_FRICTION_REQUIRES_NONZERO")
+        # Preserve the original frictionless nominal hardware and identical
+        # legacy group-wide friction when the new mode is not requested.
         for index, axis in enumerate(rw_axes):
+            if rw_friction_mode == "per_wheel":
+                wheel_coulomb, wheel_viscous = per_wheel_coefficients[index]
+                # Basilisk supports a frictionless wheel amongst other wheels
+                # with friction; disabling it removes unexpected motor drag.
+                use_wheel_friction = bool(wheel_coulomb or wheel_viscous)
+            else:
+                wheel_coulomb, wheel_viscous = rw_coulomb, rw_viscous
+                use_wheel_friction = rw_friction_mode == "coulomb_viscous"
+            rw_friction_kwargs = ({"useRWfriction": True, "fCoulomb": wheel_coulomb,
+                                   "fStatic": 0.0, "betaStatic": -1.0,
+                                   "cViscous": wheel_viscous}
+                                  if use_wheel_friction else {"useRWfriction": False})
             # The simIncludeRW.rwFactory API uses RPM for Omega, whereas
             # physical telemetry and the operator schema use rad/s.
             # Retain the pre-R8-C baseline physical 100/200/300/400 RPM
