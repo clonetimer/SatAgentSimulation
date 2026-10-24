@@ -32,6 +32,8 @@ on:
       - "tests/interactive/test_continuous_console.py"
       - "tests/interactive/test_continuous_initial_config.py"
       - "tests/test_native_solar_panel_normal.py"
+      - "tests/test_native_solar_panel_tracking.py"
+      - "src/sat_sim/bsk_engine/solar_tracking.py"
       - "tests/interactive/test_continuous_observability.py"
       - "tests/interactive/test_continuous_endurance.py"
       - "tests/interactive/test_continuous_endurance_audit.py"
@@ -111,6 +113,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_solar_panel_normal.py
+          --disable-warnings
+      - name: Real Basilisk opt-in panel tracking and slew-bound A/B validation
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_solar_panel_tracking.py
           --disable-warnings
       - name: Native propulsion geometry A/B with actual orbit and fuel response
         env:
