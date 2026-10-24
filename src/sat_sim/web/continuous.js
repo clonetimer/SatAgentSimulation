@@ -482,6 +482,20 @@
       rw4.required = four;
     }
     updateRwFrictionNativeInitialLayout();
+    updateRwTorqueInitialLayout();
+  }
+  function updateRwTorqueInitialLayout() {
+    const enabled = Boolean($('continuousRwTorqueIndependentToggle')?.checked);
+    const four = document.querySelector('[data-native-key="rw_configuration"]')?.value === 'pyramid_4';
+    for (let i = 0; i < 4; i += 1) {
+      const visible = enabled && (i < 3 || four);
+      $('continuousRwTorque_' + i)?.classList.toggle('hidden', !visible);
+      const control = document.querySelector('[data-native-key="rw_max_torque_nm_' + i + '"]');
+      if (control) {
+        control.disabled = !visible;
+        control.required = visible;
+      }
+    }
   }
   function updateRwFrictionNativeInitialLayout() {
     const mode = document.querySelector('[data-native-key="rw_friction_mode"]')?.value || 'disabled';
@@ -646,6 +660,8 @@
     document.querySelector('[data-native-key="rw_friction_mode"]')
       ?.addEventListener('change', updateRwFrictionNativeInitialLayout);
     updateRwFrictionNativeInitialLayout();
+    $('continuousRwTorqueIndependentToggle')?.addEventListener('change', updateRwTorqueInitialLayout);
+    updateRwTorqueInitialLayout();
     $('continuousRecoveryExportBtn')?.addEventListener('click', exportNativeRecovery);
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       button.addEventListener('click', () => control(button.dataset.continuousAction));
