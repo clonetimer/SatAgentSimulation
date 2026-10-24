@@ -3630,6 +3630,10 @@
   function collectEventInputIssues() {
     const issues = [];
     const inputs = $all('#eventList [data-event-input]');
+    // Cross-field messages must be recalculated when either time changes.
+    inputs.forEach((input) => {
+      if (input.dataset.eventError === '结束时间不能早于开始时间') setEventInputIssue(input, '');
+    });
     inputs.forEach((input) => {
       const message = eventInputIssue(input);
       setEventInputIssue(input, message);
