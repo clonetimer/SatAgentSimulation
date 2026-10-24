@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.15.6-rw-native-parameter-controls">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.15.7-imu-star-mount-native">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -655,6 +655,17 @@
                     <label>初始真近点角（rad）<input data-native-group="orbit" data-native-key="initial_true_anomaly_rad" type="number" min="0" max="6.283185307179586" step="any" value="0" required></label>
                   </fieldset>
                   <fieldset><legend>ADCS 与反作用轮</legend>
+                    <p class="continuous-muted"><strong>IMU 原生安装</strong>：机体系 B → 平台系 P，按航向、俯仰、横滚（3-2-1）设置；位置为机体系坐标。默认均为 0。</p>
+                    <label>IMU 安装航向角（°）<input data-native-group="adcs" data-native-key="imu_mount_yaw_deg" type="number" min="-180" max="180" step="any" value="0" required title="IMU 机体系到平台系 3-2-1 欧拉角第一项；传入 Basilisk setBodyToPlatformDCM(yaw,pitch,roll)"></label>
+                    <label>IMU 安装俯仰角（°）<input data-native-group="adcs" data-native-key="imu_mount_pitch_deg" type="number" min="-89" max="89" step="any" value="0" required title="限制俯仰角避免欧拉奇异姿态"></label>
+                    <label>IMU 安装横滚角（°）<input data-native-group="adcs" data-native-key="imu_mount_roll_deg" type="number" min="-180" max="180" step="any" value="0" required title="安装角单位为度，进入原生模型前转换为弧度"></label>
+                    <label>IMU 安装位置 X_B（m）<input data-native-group="adcs" data-native-key="imu_position_b_x_m" type="number" min="-2" max="2" step="any" value="0" required title="传入原生 IMU.sensorPos_B 第一个坐标，机体系"></label>
+                    <label>IMU 安装位置 Y_B（m）<input data-native-group="adcs" data-native-key="imu_position_b_y_m" type="number" min="-2" max="2" step="any" value="0" required title="传入原生 IMU.sensorPos_B 第二个坐标，机体系"></label>
+                    <label>IMU 安装位置 Z_B（m）<input data-native-group="adcs" data-native-key="imu_position_b_z_m" type="number" min="-2" max="2" step="any" value="0" required title="传入原生 IMU.sensorPos_B 第三个坐标，机体系"></label>
+                    <p class="continuous-muted"><strong>星敏原生安装</strong>：机体系 B → 星敏机壳系 C，3-2-1 欧拉角；此处仅配置安装几何，不改变测量噪声。</p>
+                    <label>星敏安装航向角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_yaw_deg" type="number" min="-180" max="180" step="any" value="0" required title="采用 Basilisk RigidBodyKinematics.euler3212C，机体系到星敏机壳系"></label>
+                    <label>星敏安装俯仰角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_pitch_deg" type="number" min="-89" max="89" step="any" value="0" required title="机体系到星敏机壳系 3-2-1 欧拉角第二项"></label>
+                    <label>星敏安装横滚角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_roll_deg" type="number" min="-180" max="180" step="any" value="0" required title="机体系到星敏机壳系 3-2-1 欧拉角第三项"></label>
                     <label>太阳敏感器视场（°）<input data-native-group="adcs" data-native-key="sun_sensor_fov_deg" type="number" min="0.001" max="180" step="any" value="80" required title="设置 Basilisk CoarseSunSensor.fov，不代表星敏感器视场"></label>
                     <label>初始指向误差（°）<input data-native-group="adcs" data-native-key="initial_pointing_error_deg" type="number" min="0" max="90" step="any" value="8" required></label>
                     <label>姿态控制 K<input data-native-group="adcs" data-native-key="controller_k" type="number" min="0.001" max="100" step="any" value="3.5" required></label>
@@ -963,8 +974,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.15.6-rw-native-parameter-controls";</script>
-  <script src="/assets/app.js?v=0.15.6-rw-native-parameter-controls" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.15.7-imu-star-mount-native";</script>
+  <script src="/assets/app.js?v=0.15.7-imu-star-mount-native" defer></script>
   <script src="/assets/continuous.js?v=0.16.1-rw-native-controls" defer></script>
 </body>
 </html>
