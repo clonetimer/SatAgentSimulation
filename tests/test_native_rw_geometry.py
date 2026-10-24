@@ -137,6 +137,20 @@ def test_native_real_rw_axis_and_installation_points_change_actual_dynamics(monk
                    for a, b in zip(clean[1:], rotated[1:])]
     assert max(differences) > 1e-6, differences
 
+    # Isolate the location parameter from axis rotation: rWB_B must itself
+    # alter the actual mass-offset coupling of the Basilisk RW effector.
+    offset_only, offset_wheels = run({
+        "rw_geometry_mode": "per_wheel",
+        "rw_mount_b_x_m_0": .25,
+        "rw_mount_b_y_m_0": -.2,
+        "rw_mount_b_z_m_0": .1,
+    })
+    assert offset_wheels[0]["axis"] == pytest.approx(baseline[0], abs=1e-12)
+    assert offset_wheels[0]["position"] == pytest.approx([.25, -.2, .1], abs=1e-12)
+    offset_deltas = [max(abs(float(a[k]) - float(b[k])) for k in rate_keys)
+                     for a, b in zip(clean[1:], offset_only[1:])]
+    assert max(offset_deltas) > 1e-9, offset_deltas
+
 
 def test_native_four_rw_custom_b_frame_installation_and_axes(monkeypatch):
     pytest.importorskip("Basilisk")
