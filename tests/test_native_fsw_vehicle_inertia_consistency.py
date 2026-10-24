@@ -18,11 +18,13 @@ def test_real_fsw_vehicle_config_tracks_hub_inertia_and_center_of_mass(monkeypat
     pytest.importorskip("Basilisk")
     from Basilisk.simulation import spacecraft
     from Basilisk.fswAlgorithms import mrpFeedback
+    from Basilisk.architecture import messaging
     from sat_sim.capability_registry import get_adapter_for_capability
     from test_unified_native_migration import WHOLE_ID, _short_spec
 
     real_sc, real_fsw = spacecraft.Spacecraft, mrpFeedback.mrpFeedback
-    sc_objects, fsw_objects = [], []
+    real_vehicle_msg = messaging.VehicleConfigMsg
+    sc_objects, fsw_objects, vehicle_messages = [], [], []
 
     def make_sc():
         obj = real_sc()
@@ -34,8 +36,14 @@ def test_real_fsw_vehicle_config_tracks_hub_inertia_and_center_of_mass(monkeypat
         fsw_objects.append(obj)
         return obj
 
+    def make_vehicle_message():
+        msg = real_vehicle_msg()
+        vehicle_messages.append(msg)
+        return msg
+
     monkeypatch.setattr(spacecraft, "Spacecraft", make_sc)
     monkeypatch.setattr(mrpFeedback, "mrpFeedback", make_controller)
+    monkeypatch.setattr(messaging, "VehicleConfigMsg", make_vehicle_message)
     adapter = get_adapter_for_capability(WHOLE_ID)
 
     def run(values):
@@ -45,11 +53,12 @@ def test_real_fsw_vehicle_config_tracks_hub_inertia_and_center_of_mass(monkeypat
         assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
         assert "spacecraft" in result.metadata["model_source_boundary"]["basilisk_official_native"]
         assert "mrp_feedback" in result.metadata["model_source_boundary"]["basilisk_official_native"]
-        assert len(sc_objects) == len(fsw_objects)
+        assert len(sc_objects) == len(fsw_objects) == len(vehicle_messages)
         hub = sc_objects[-1].hub
-        # The official Basilisk FSW reader is connected to the actual
-        # VehicleConfigMsg and exposes the payload read by mrpFeedback.
-        vehicle = fsw_objects[-1].vehConfigInMsg()
+        # mrpFeedback is a C module in Basilisk 2.11: its vehConfigInMsg is
+        # a VehicleConfigMsg_C, NOT a callable Python reader. Capture the
+        # actual Python-origin message written to and subscribed by FSW.
+        vehicle = vehicle_messages[-1].read()
         actual_hub_inertia = _matrix(hub.IHubPntBc_B)
         actual_fsw_inertia = _matrix(vehicle.ISCPntB_B)
         actual_hub_com = np.asarray(hub.r_BcB_B, dtype=float).reshape(3)
@@ -57,6 +66,10 @@ def test_real_fsw_vehicle_config_tracks_hub_inertia_and_center_of_mass(monkeypat
         assert actual_fsw_inertia == pytest.approx(actual_hub_inertia, abs=1e-10)
         assert actual_fsw_com == pytest.approx(actual_hub_com, abs=1e-12)
         assert float(vehicle.massSC) == pytest.approx(float(hub.mHub))
+        # C mrpFeedback retains its reset-time inertia in its public C array;
+        # compare that to the exact payload and to the real official hub.
+        loaded_fsw_inertia = _matrix(fsw_objects[-1].ISCPntB_B)
+        assert loaded_fsw_inertia == pytest.approx(actual_fsw_inertia, abs=1e-10)
         assert len(result.trace_rows) >= 5
         return result.trace_rows, actual_fsw_inertia, actual_fsw_com
 
