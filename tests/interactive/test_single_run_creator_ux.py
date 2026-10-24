@@ -63,6 +63,7 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
 def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path):
     pw = pytest.importorskip("playwright.sync_api")
     calls = []
+    parse_calls = []
     with _client(tmp_path) as client, pw.sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
@@ -77,6 +78,8 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
                 path = u.path + ("?" + u.query if u.query else "")
                 if req.method == "POST" and u.path == "/runs":
                     calls.append("POST /runs")
+                if req.method == "POST" and u.path == "/tasks/parse":
+                    parse_calls.append("POST /tasks/parse")
                 response = client.request(
                     req.method, path,
                     content=req.post_data.encode("utf-8") if req.post_data else None,
@@ -145,6 +148,7 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             page.locator("#addEffectBtn").click()
             first_event = page.locator("#eventList .event-card").first
             start = first_event.locator('[data-event-field="start_s"]')
+            before_invalid_parse = len(parse_calls)
             start.fill("-1")
             start.press("Tab")
             assert start.get_attribute("aria-invalid") == "true"
@@ -155,6 +159,14 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
                 timeout=20000,
             )
             assert "事件配置" in page.locator("#formValidationSummary").inner_text()
+            assert len(parse_calls) == before_invalid_parse
+            page.locator("#runBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert calls == []
+            assert len(parse_calls) == before_invalid_parse
 
             start.fill("2")
             start.press("Tab")
@@ -167,6 +179,7 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
                 timeout=20000,
             )
             assert "结束时间不能早于开始时间" in page.locator("#formValidationSummary").inner_text()
+            assert len(parse_calls) == before_invalid_parse
             end.fill("3")
             end.press("Tab")
             assert calls == []
