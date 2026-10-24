@@ -179,6 +179,14 @@ Windows PowerShell：
 - Basilisk 2.11 已知 `senNoiseStd` 默认传播矩阵和 RNGSeed 应用存在问题，官方 2.12 才修复，因此此 PR **不冒充已实现磁强计白噪声**，更不把错误的随机游走视为默认测量白噪声。噪声标准差／功率谱、随机偏置漂移、三轴交叉标定和饱和仍另列模型/版本修复清单，避免替换真实数据源。
 - Vizard 继续冻结，整星精确跨进程恢复与依赖安全发布均仍分别 BLOCKED，不因新增传感器参数而变更状态。
 
+## P0-17 官方 Basilisk CoarseSunSensor 安装法线与有限整星视场补登记
+
+- 原来统一整星在 `CoarseSunSensor.nHat_B` 固定使用 `[0,0,-1]`，用户不能设置太阳敏感器在机体系 B 的独立安装方向；这与 EPS 太阳电池板的 `solar_normal_b_*` 是两个不同的实体，必须保持互不影响。
+- 新增 `sun_sensor_normal_b_{x,y,z}`（各分量 [-1,1]，机体系无量纲），默认严格保留 `(0,0,-1)`。一旦指定安装方向，**三个分量必须全部指定**，真实矢量长度平方在 [0.999,1.001]；数值非法、非有限、布尔类型或退化轴必须由共享 `resolve_sun_sensor_boresight` 同时在持续仿真 Pydantic 与有限 TaskSpec 运行时失败关闭。不得简单归一化用户无效输入。
+- 三轴法线直接写入**官方 C++** `Basilisk.simulation.coarseSunSensor.CoarseSunSensor.nHat_B`，并以 `cssDataOutMsg.OutputData` 作为原生正余弦／视场观测；不以 Python 模拟太阳矢量冒充其测量。已有 `sun_sensor_fov_deg` 写入真正的 `fov`，但此前未注册为有限整星参数，本轮补登记，使用角度范围 (0,180] 度且在 TaskSpec 校验后换算弧度。
+- 真实 L5：同轨道、同姿态和时刻，仅将法线从 +X 反转到 -X，官方 CSS 输出必须显著不同；太阳电池板物理发电和项目独立太阳矢量遥测必须保持一致。指定偏轴法线时，缩小 `fov` 必须使真正的 CSS 测量失效，并检查官方 SWIG 属性与时间曲线一致。旧默认 -Z、三轴单位长度、FOV 非法和部分分量丢失均单独测试。
+- **模型边界**：此功能只建模一个 CoarseSunSensor 的单轴视场方向，**不**实现多探头阵列、遮挡/结构自身阴影、失准随温度变化、精确光电电流噪声 PSD；项目 `SunDirectionSensor` 是与官方 CSS 分开的独立遥测信号，并非等价硬件。跨进程物理精确恢复仍 BLOCKED。Vizard P1～P3 继续冻结，参数整改优先。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
