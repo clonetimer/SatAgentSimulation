@@ -935,6 +935,25 @@ class UnifiedNativeRuntime:
         if type(fov_deg) not in (int, float) or not math.isfinite(fov_deg) or not 0. < fov_deg <= 180.:
             raise ValueError("NATIVE_SUN_SENSOR_FOV_INVALID")
         sun_sensor.fov = math.radians(float(fov_deg))
+        css_calibration = (
+            ("sun_sensor_scale_factor", "scaleFactor", 1., .001, 4.),
+            ("sun_sensor_bias_normalized", "senBias", 0., -.5, .5),
+            ("sun_sensor_kelly_factor", "kellyFactor", 0., 0., 1.),
+            ("sun_sensor_min_output", "minOutput", 0., 0., 4.),
+            ("sun_sensor_max_output", "maxOutput", 1e6, 1e-12, 1e6),
+        )
+        css_values: dict[str, float] = {}
+        for key, native_attribute, default, minimum, maximum in css_calibration:
+            raw = values.get(key, default)
+            if type(raw) not in (int, float) or not math.isfinite(raw):
+                raise ValueError("NATIVE_SUN_SENSOR_CALIBRATION_INVALID")
+            numeric = float(raw)
+            if not minimum <= numeric <= maximum or (key == "sun_sensor_max_output" and numeric <= 0.):
+                raise ValueError("NATIVE_SUN_SENSOR_CALIBRATION_INVALID")
+            css_values[key] = numeric
+            setattr(sun_sensor, native_attribute, numeric)
+        if css_values["sun_sensor_min_output"] >= css_values["sun_sensor_max_output"]:
+            raise ValueError("NATIVE_SUN_SENSOR_OUTPUT_BOUNDS_INVALID")
         sun_sensor.stateInMsg.subscribeTo(sc.scStateOutMsg)
         sun_sensor.sunInMsg.subscribeTo(sun_msg)
         sun_sensor.sunEclipseInMsg.subscribeTo(eclipse_model.eclipseOutMsgs[0])

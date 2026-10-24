@@ -187,6 +187,14 @@ Windows PowerShell：
 - 真实 L5：同轨道、同姿态和时刻，仅将法线从 +X 反转到 -X，官方 CSS 输出必须显著不同；太阳电池板物理发电和项目独立太阳矢量遥测必须保持一致。指定偏轴法线时，缩小 `fov` 必须使真正的 CSS 测量失效，并检查官方 SWIG 属性与时间曲线一致。旧默认 -Z、三轴单位长度、FOV 非法和部分分量丢失均单独测试。
 - **模型边界**：此功能只建模一个 CoarseSunSensor 的单轴视场方向，**不**实现多探头阵列、遮挡/结构自身阴影、失准随温度变化、精确光电电流噪声 PSD；项目 `SunDirectionSensor` 是与官方 CSS 分开的独立遥测信号，并非等价硬件。跨进程物理精确恢复仍 BLOCKED。Vizard P1～P3 继续冻结，参数整改优先。
 
+## P0-18 官方 Basilisk CoarseSunSensor 输出标定、非线性和量程
+
+- 固定上游 Basilisk v2.11.0 的 `CoarseSunSensor` 官方源码可确认 `scaleFactor=1`、`senBias=0`、`kellyFactor=0`、`minOutput=0`、`maxOutput=1e6` 原生默认值，因此引入 5 个对应真实硬件量测的参数同时完整保留旧场景。不是事后 Python 曲线修正，也不修改发电板或太阳方向独立探头。
+- 参数分别为 `sun_sensor_scale_factor` [0.001,4]、`sun_sensor_bias_normalized` [-0.5,0.5]、`sun_sensor_kelly_factor` [0,1]、`sun_sensor_min_output` [0,4]、`sun_sensor_max_output` (0,1e6]；必须满足 `minOutput < maxOutput`。全部进入有限 TaskSpec 与持续前启动表单，Pydantic、绕过前端的有限运行都拒绝布尔值、非有限值及无效阈值。
+- 上游物理顺序为光照余弦/视场 → Kelly 非线性修正 → 含阴影距离系数 → `senBias`（**归一化、尚未缩放**）→ `scaleFactor` → `minOutput/maxOutput` 饱和。
+- 真正 L5 验收捕获官方 SWIG `CoarseSunSensor` 各原生属性，对同轨道、姿态和时间分别执行非零增益、偏置、Kelly 非线性、上限截断、下限抬升的独立 A/B。要求读取实际 `cssDataOutMsg.OutputData`，验证数值差异以及 EPS 太阳板物理功率不受 CSS 标定改动影响；不能以 SWIG 属性配置成功替代测量输出证据。
+- 2.11 的 CSS `senNoiseStd`/RNG 以及项目太阳敏感器故障注入器保留独立职责，随机误差、温度漂移、多探头等将来单独验收。Vizard P1～P3 继续冻结，跨进程精确恢复也不因参数整改而宣称完成。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
