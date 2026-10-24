@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
+import pytest
 import yaml
 
 from sat_sim.capability_registry import get_adapter_for_capability, get_capability
@@ -52,6 +54,44 @@ def test_propulsion_burn_changes_orbit_relative_to_same_no_burn_baseline() -> No
     assert base_result.summary["propulsion_enabled"] is False
     assert base_result.summary["official_module_count"] == 21
     assert base_result.summary["project_native_module_count"] == 21
+
+
+def test_native_thruster_direction_ab_changes_trajectory_without_changing_fuel_rate() -> None:
+    """Real Basilisk whole-spacecraft A/B: axis change affects net force, not Isp.
+
+    Two equal engines nominally push +X. Reversing only the second engine
+    cancels their net translational force, while keeping two engines firing
+    at identical thrust/Isp; moments may differ and ADCS remains closed-loop.
+    This is a behavioral perturbation test, not proof of flight calibration.
+    """
+    baseline = _spec()
+    baseline["simulation"].update({"duration_s": 35., "step_s": .2, "sample_s": .5})
+    baseline["parameters"]["values"].update({
+        "initial_soc": .9, "propulsion_min_burn_soc": .05,
+        "propulsion_burn_start_s": 5., "propulsion_burn_on_time_s": 8.,
+        "propulsion_thrust_n": 5., "propulsion_isp_s": 200.,
+    })
+    reversed_axis = deepcopy(baseline)
+    reversed_axis["parameters"]["values"].update({
+        "propulsion_thruster_1_direction_b_x": -1.,
+        "propulsion_thruster_1_direction_b_y": 0.,
+        "propulsion_thruster_1_direction_b_z": 0.,
+    })
+    adapter = get_adapter_for_capability(WHOLE)
+    contract = get_capability(WHOLE).data
+    for spec in (baseline, reversed_axis):
+        assert not [i for i in adapter.validate(spec, contract) if i.severity == "error"]
+    a = adapter.run(baseline, contract)
+    b = adapter.run(reversed_axis, contract)
+    assert a.summary["propulsion_burn_observed"] is True
+    assert b.summary["propulsion_burn_observed"] is True
+    assert a.summary["propellant_used_kg"] > 0.
+    assert b.summary["propellant_used_kg"] == pytest.approx(
+        a.summary["propellant_used_kg"], rel=.07,
+    )
+    # The 5 N +X/+X vs +X/-X net force difference is propagated through
+    # the Basilisk ThrusterDynamicEffector into real orbit/attitude dynamics.
+    assert abs(a.summary["final_orbit_radius_m"] - b.summary["final_orbit_radius_m"]) > .1
 
 
 def test_low_soc_blocks_propulsion_burn_inside_runtime() -> None:

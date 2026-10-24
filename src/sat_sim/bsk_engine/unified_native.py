@@ -1144,17 +1144,43 @@ class UnifiedNativeRuntime:
                 initial_propellant_kg = max(float(values.get("propulsion_initial_propellant_kg", 1.0)), 0.0)
                 tank_capacity_kg = max(float(values.get("propulsion_tank_capacity_kg", 2.0)), initial_propellant_kg)
                 min_burn_soc = max(0.0, min(float(values.get("propulsion_min_burn_soc", 0.30)), 1.0))
+                nominal_directions = propulsion_cfg.thruster_physical.directions_b
+                nominal_positions = propulsion_cfg.thruster_physical.lever_arms_b_m
+                thruster_directions = []
+                thruster_positions = []
+                for thr_index in range(thruster_count):
+                    direction = tuple(float(values.get(
+                        f"propulsion_thruster_{thr_index}_direction_b_{axis}",
+                        nominal_directions[thr_index][axis_index],
+                    )) for axis_index, axis in enumerate("xyz"))
+                    position = tuple(float(values.get(
+                        f"propulsion_thruster_{thr_index}_location_b_{axis}_m",
+                        nominal_positions[thr_index][axis_index],
+                    )) for axis_index, axis in enumerate("xyz"))
+                    norm_sq = sum(x * x for x in direction)
+                    if not all(math.isfinite(x) for x in (*direction, *position)):
+                        raise ValueError("NATIVE_PROPULSION_GEOMETRY_NOT_FINITE")
+                    if not 0.999 <= norm_sq <= 1.001 or any(abs(x) > 2 for x in position):
+                        raise ValueError("NATIVE_PROPULSION_GEOMETRY_OUT_OF_RANGE")
+                    thruster_directions.append(direction)
+                    thruster_positions.append(position)
+                min_pulse_s = float(values.get("propulsion_min_pulse_s", .05))
+                if not math.isfinite(min_pulse_s) or not 0 < min_pulse_s <= 10:
+                    raise ValueError("NATIVE_PROPULSION_MIN_PULSE_OUT_OF_RANGE")
                 propulsion_cfg = replace(
                     propulsion_cfg,
                     thruster_command=replace(
                         propulsion_cfg.thruster_command,
                         nominal_on_time_s=burn_on_time_s,
                         active_ids=tuple(range(thruster_count)),
+                        min_pulse_s=min_pulse_s,
                     ),
                     thruster_physical=replace(
                         propulsion_cfg.thruster_physical,
                         thrust_n=tuple(thrust_n for _ in range(thruster_count)),
                         isp_s=tuple(isp_s for _ in range(thruster_count)),
+                        directions_b=tuple(thruster_directions),
+                        lever_arms_b_m=tuple(thruster_positions),
                     ),
                     fuel_tank=replace(
                         propulsion_cfg.fuel_tank,
