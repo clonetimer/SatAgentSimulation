@@ -268,10 +268,14 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
                         {"run_id": rid, "task_name": item["name"], "status": item["status"],
                          "validation_result": item["validation"]}
                         for rid, item in payloads.items()
-                    ]})
+                    ] + [{"run_id": "ui-missing", "task_name": "UI 不存在记录",
+                          "status": "FAILED", "validation_result": "NOT_EVALUATED"}]})
                     return
 
                 parts = path.strip("/").split("/")
+                if request.method == "GET" and len(parts) >= 2 and parts[0] == "runs" and parts[1] == "ui-missing":
+                    route.fulfill(status=404, json={"detail": "Synthetic missing Run"})
+                    return
                 if request.method == "GET" and len(parts) >= 2 and parts[0] == "runs" and parts[1] in payloads:
                     rid = parts[1]
                     item = payloads[rid]
@@ -346,6 +350,15 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
             page.locator(".result-tab[data-result-tab='charts']").click()
             assert "3 / 3" in page.locator("#chartWindowStatus").inner_text()
             assert page.locator("#chartTimeStart").input_value() == "10"
+
+            # A missing historical Run must not leave prior chart values
+            # visible with the newly selected Run identity.
+            page.locator("#runList [data-run-id='ui-missing']").click()
+            page.get_by_text("Synthetic missing Run").first.wait_for(timeout=20000)
+            assert page.locator("#metricGrid").inner_text() == ""
+            assert page.locator("#chartLegend").inner_text() == ""
+            assert page.locator("#chartTimeStart").input_value() == ""
+            assert "3 / 3" not in page.locator("#chartWindowStatus").inner_text()
             assert not errors, errors
         finally:
             browser.close()
