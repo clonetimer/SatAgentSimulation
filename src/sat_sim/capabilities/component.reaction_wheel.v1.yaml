@@ -6,7 +6,7 @@ domain: adcs
 target: reaction_wheel
 trust_level: conformance_tested
 status: agent_ready_candidate
-summary: Default project Python wheel reference model (NOT native research physics); opt-in Basilisk physical single-wheel nominal mode supports motor torque, inertia and viscous damping. Fault, constraint, degradation and torque profiles remain Python-only until native evidence exists.
+summary: Default project Python wheel reference model (NOT native research physics); opt-in Basilisk physical 1-wheel, orthogonal 3-wheel and pyramid 4-wheel nominal modes support per-wheel motor torque, inertia and viscous damping. Fault, constraint, degradation and torque profiles remain Python-only until native evidence exists.
 adapter:
   class_path: sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter
   script_export: true
@@ -46,7 +46,7 @@ parameters:
     unit: none
     required: false
     default: project_reference
-    description: Explicit engine; Basilisk supports only one-wheel nominal, direct motor torque, inertia and viscous damping, but not faults, constraints or torque profiles. Default Python reference is NOT native research physics.
+    description: Explicit engine; Basilisk supports 1, orthogonal 3, or pyramid 4 wheels in nominal mode with individual scalar/array parameters, but not faults, constraints or time-varying torque profiles. Default Python reference is NOT native research physics.
   num_wheels:
     type: integer
     unit: count
@@ -197,6 +197,7 @@ simulation_module_interface:
     description: Stateful reaction-wheel speed vector produced by the registered step_wheel_speed dynamics API.
 validation:
   conformance_tests:
+  - test_real_native_rw_cluster_component_3_4
   - test_component_rw_opt_in_real_basilisk_physics
   - test_reaction_wheel_duration_and_sample_control_trace
   - test_reaction_wheel_initial_speed_controls_first_sample
