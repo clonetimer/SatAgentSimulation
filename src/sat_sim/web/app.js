@@ -6784,8 +6784,20 @@
     if (numbers.length !== 2) return [];
     const common = Object.keys(numbers[0]).filter((key) => numbers.every((values) =>
       typeof values[key] === 'number' && Number.isFinite(values[key])));
-    common.sort((a, b) => Number(!a.startsWith('qoi.')) - Number(!b.startsWith('qoi.')) || a.localeCompare(b));
-    return common.slice(0, 20);
+    // A numeric difference with incompatible (or unconfirmed) units is
+    // misleading. Only compare identical declared units or both unspecified.
+    const unit = (payload, key) => String(payload.metric_metadata?.[key]?.unit || '').trim();
+    const safe = common.filter((key) => unit(metricPayloads[0], key) === unit(metricPayloads[1], key));
+    safe.sort((a, b) => Number(!a.startsWith('qoi.')) - Number(!b.startsWith('qoi.')) || a.localeCompare(b));
+    return safe.slice(0, 20);
+  }
+
+  function runCompareMetricPresentation(entries, field) {
+    const left = entries[0]?.metrics?.metric_metadata?.[field] || {};
+    const right = entries[1]?.metrics?.metric_metadata?.[field] || {};
+    const unit = String(left.unit || right.unit || '');
+    return { label: left.label_zh || right.label_zh || field, unit,
+      description: left.description_zh || right.description_zh || '' };
   }
 
   function comparableRunTraceFields(entries) {
@@ -6800,7 +6812,7 @@
     const right = getFields(entries[1]);
     return [...left].filter(([key, meta]) => {
       const other = right.get(key);
-      return other && (!meta.unit || !other.unit || meta.unit === other.unit);
+      return other && String(meta.unit || '') === String(other.unit || '');
     }).map(([field, meta]) => ({ field, label: meta.label || field, unit: meta.unit || right.get(field)?.unit || '' })).slice(0, 60);
   }
 
@@ -6878,7 +6890,7 @@
       });
     });
     const labels = traces.map((trace, i) => `Run ${i + 1}：${trace.runId}（有效 ${trace.points.length}/已载入 ${trace.loaded} 点）`);
-    note.textContent = `${labels.join('；')}。横轴为各 Run 独立的仿真秒数，使用共同 Y 轴；仅连线各自真实采样点，不做跨 Run 对齐、插值或重采样。每个 Run 最多读取 2000 行用于预览。`;
+    note.textContent = `${labels.join('；')}。横轴为各 Run 独立的仿真秒数，使用共同 Y 轴；仅连线各自真实采样点，不做跨 Run 对齐、插值或重采样。每个 Run 每页最多读取 2000 行；切换不同页不意味着相同物理时间范围。`;
   }
 
   function renderRunComparison() {
@@ -6905,7 +6917,13 @@
       const tb = typeof b === 'number' && Number.isFinite(b) ? b : null;
       if (ta === null || tb === null) return;
       const row = document.createElement('tr');
-      [metric, formatComparisonValue(ta), formatComparisonValue(tb), formatComparisonValue(tb - ta)].forEach((value) => {
+      const presentation = runCompareMetricPresentation(result.entries, metric);
+      const label = document.createElement('td');
+      label.textContent = presentation.label + (presentation.unit ? `（${presentation.unit}）` : '');
+      label.title = presentation.description || `技术字段：${metric}`;
+      const code = document.createElement('small'); code.className = 'run-compare-field-code'; code.textContent = metric;
+      label.appendChild(code); row.appendChild(label);
+      [formatComparisonValue(ta), formatComparisonValue(tb), formatComparisonValue(tb - ta)].forEach((value) => {
         const cell = document.createElement('td'); cell.textContent = String(value); row.appendChild(cell);
       });
       body.appendChild(row);
@@ -6916,7 +6934,66 @@
       const option = document.createElement('option'); option.value = field;
       option.textContent = `${label}${unit ? `（${unit}）` : ''}`; select.appendChild(option);
     });
+    updateRunComparePages();
     drawRunCompareChart();
+  }
+
+  const RUN_COMPARE_PAGE_SIZE = 2000;
+
+  function updateRunComparePages() {
+    const entries = state.runCompareResult?.entries || [];
+    ['A', 'B'].forEach((letter, index) => {
+      const entry = entries[index];
+      const telemetry = entry?.telemetry || {};
+      const offset = Number(telemetry.offset || 0);
+      const count = Array.isArray(telemetry.rows) ? telemetry.rows.length : 0;
+      const total = Number.isFinite(Number(telemetry.total)) ? Number(telemetry.total) : null;
+      const busy = Boolean(entry?.pageBusy);
+      el(`runCompare${letter}PrevBtn`).disabled = !entry || busy || offset <= 0;
+      el(`runCompare${letter}NextBtn`).disabled = !entry || busy
+        || (total == null ? count < RUN_COMPARE_PAGE_SIZE : offset + count >= total);
+      el(`runCompare${letter}PageStatus`).textContent = !entry ? '未读取'
+        : busy ? '正在读取分页…'
+          : `第 ${Math.floor(offset / RUN_COMPARE_PAGE_SIZE) + 1} 页 · 行 ${count ? offset + 1 : 0}–${offset + count}${total == null ? '' : ` / ${total}`}`;
+    });
+  }
+
+  async function turnRunComparePage(index, delta) {
+    const result = state.runCompareResult;
+    const entry = result?.entries[index];
+    if (!entry || entry.pageBusy || ![-1, 1].includes(delta)) return false;
+    const oldOffset = Number(entry.telemetry?.offset || 0);
+    const targetOffset = Math.max(0, oldOffset + delta * RUN_COMPARE_PAGE_SIZE);
+    if (oldOffset === targetOffset) return false;
+    const seq = state.runCompareRequestId;
+    entry.pageBusy = true;
+    updateRunComparePages();
+    try {
+      const response = await api(`/runs/${encodeURIComponent(entry.runId)}/telemetry?offset=${targetOffset}&limit=${RUN_COMPARE_PAGE_SIZE}`);
+      if (seq !== state.runCompareRequestId || state.runCompareResult !== result) return false;
+      if (response.run_id && response.run_id !== entry.runId
+        || response.offset !== targetOffset || !Array.isArray(response.rows)) {
+        throw new Error('遥测分页返回的 Run ID、offset 或数据结构不匹配');
+      }
+      entry.telemetry = response;
+      result.fields = comparableRunTraceFields(result.entries);
+      const selectedField = el('runCompareField').value;
+      renderRunComparison();
+      if ([...el('runCompareField').options].some((option) => option.value === selectedField)) {
+        el('runCompareField').value = selectedField;
+      }
+      drawRunCompareChart();
+      return true;
+    } catch (error) {
+      if (seq !== state.runCompareRequestId || state.runCompareResult !== result) return false;
+      showNotice(`Run ${index === 0 ? 'A' : 'B'} 翻页失败：${error.message}`, 'error');
+      return false;
+    } finally {
+      if (seq === state.runCompareRequestId && state.runCompareResult === result) {
+        entry.pageBusy = false;
+        updateRunComparePages();
+      }
+    }
   }
 
   async function compareSelectedRuns() {
@@ -6941,7 +7018,7 @@
         const [metrics, plots, telemetry] = await Promise.all([
           api(`/runs/${enc}/metrics`),
           api(`/runs/${enc}/plots`).catch(() => ({ plot_manifest: null })),
-          api(`/runs/${enc}/telemetry?limit=2000`).catch(() => ({ rows: [] })),
+          api(`/runs/${enc}/telemetry?offset=0&limit=2000`).catch(() => ({ rows: [], offset: 0, total: null })),
         ]);
         return { runId, metrics, plots, telemetry };
       }));
@@ -7864,6 +7941,10 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('runCompareCloseBtn').addEventListener('click', invalidateRunComparison);
     el('runCompareField').addEventListener('change', drawRunCompareChart);
+    ['A', 'B'].forEach((letter, index) => {
+      el(`runCompare${letter}PrevBtn`).addEventListener('click', () => turnRunComparePage(index, -1));
+      el(`runCompare${letter}NextBtn`).addEventListener('click', () => turnRunComparePage(index, 1));
+    });
     el('refreshDiagnosticsBtn').addEventListener('click', () => loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = error.message; }));
     el('downloadDiagnosticBtn').addEventListener('click', () => downloadEndpoint('/diagnostics/bundle', 'sat_sim_diagnostic.zip').catch((error) => showNotice(error.message, 'error')));
     el('refreshLogsBtn').addEventListener('click', () => loadLogs().catch((error) => { el('logSummary').textContent = error.message; }));
