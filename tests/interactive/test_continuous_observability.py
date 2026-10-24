@@ -75,7 +75,14 @@ def test_metrics_observe_real_wall_and_do_not_scan_full_telemetry_history(tmp_pa
         deadline = time.monotonic() + 8.
         while True:
             row = client.get(url).json()
-            if row["telemetry"]["durable_frame_count"] > 0:
+            # The fsynced Workspace counter and live TelemetryBus frame
+            # index are observed independently. Under concurrent sampling
+            # the durable counter can become visible a moment before the
+            # in-memory latest-frame pointer. Wait until BOTH authentic
+            # observations agree, without fabricating telemetry or weakening
+            # the 8-second bound.
+            if (row["telemetry"]["durable_frame_count"] > 0
+                    and row["telemetry"]["last_sequence"] is not None):
                 break
             assert time.monotonic() < deadline
             time.sleep(.01)

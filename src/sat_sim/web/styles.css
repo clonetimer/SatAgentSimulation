@@ -1339,3 +1339,73 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
 .assembly-selection-box { position: absolute; z-index: 12; border: 1px solid color-mix(in srgb, var(--accent) 82%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, transparent); pointer-events: none; }
 .assembly-selection-box.hidden { display: none; }
 @media (max-width: 760px) { .assembly-edit-toolbar .button { flex: 1 1 auto; } .assembly-selection-summary { width: 100%; margin-right: 0; } }
+
+
+/* Single-run guided creator: only presentation; no changes to Basilisk. */
+#creatorView .single-run-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 18px 0;
+  padding: 14px;
+  background: color-mix(in srgb, var(--panel) 95%, var(--accent) 5%);
+}
+.single-run-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.single-run-heading strong { font-size: 14px; line-height: 1.4; }
+.single-run-heading span { font-size: 11px; line-height: 1.55; }
+.single-run-readiness {
+  display: inline-flex;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 11px;
+  max-width: 100%;
+}
+.single-run-readiness[data-ready="true"] { border-color: color-mix(in srgb, var(--accent) 38%, var(--line)); }
+.single-run-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.single-run-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "index title" "action action";
+  gap: 8px;
+  align-content: start;
+  padding: 12px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.single-run-step.is-current { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.single-run-step.is-done .single-run-step-index { background: var(--accent); color: var(--panel); }
+.single-run-step-index {
+  grid-area: index;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 12px;
+}
+.single-run-step > div { grid-area: title; min-width: 0; }
+.single-run-step strong { font-size: 12px; line-height: 1.4; }
+.single-run-step span:not(.single-run-step-index) { font-size: 10.5px; line-height: 1.5; }
+.single-run-step .button { grid-area: action; justify-self: start; min-height: 34px; font-size: 11px; }
+.single-run-progress { margin: 0; font-size: 11px; line-height: 1.55; color: var(--muted); overflow-wrap: anywhere; }
+#creatorView .editor-toolbar #runBtn { min-width: 124px; font-weight: 700; }
+#creatorView .editor-toolbar #runBtn:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 1250px) {
+  .single-run-steps { grid-template-columns: 1fr; }
+  .single-run-step { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "index title action"; align-items: center; }
+}
+@media (max-width: 760px) {
+  #creatorView .single-run-guide { margin: 9px 12px 0; padding: 12px; }
+  .single-run-step { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "index title" "action action"; }
+  #creatorView .editor-toolbar .toolbar-actions { display: flex; flex-wrap: wrap; }
+  #creatorView .editor-toolbar #previewBtn,
+  #creatorView .editor-toolbar #runBtn { flex: 1 1 145px; }
+}

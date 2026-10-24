@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.14.0-graph-v14">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.15.1-single-run-ux">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -138,9 +138,29 @@
         </div>
 
         <div id="notice" class="notice hidden" role="status"></div>
-        <section class="workflow-explainer" aria-label="页面功能说明">
-          <strong>本页可以直接运行仿真。</strong>
-          <span>“校验与预览”只检查配置并生成执行计划，不消耗一次仿真运行；“运行仿真”会创建不可变 Run Bundle 并提交执行。任务中心用于保存可复用配置，运行中心用于查看每次执行记录。</span>
+        <section id="singleRunGuide" class="workflow-explainer single-run-guide" aria-label="单次仿真三步操作">
+          <div class="single-run-heading">
+            <div><strong>单次仿真 · 从配置到结果</strong><span>有限时长任务，执行一次后形成独立 Run Bundle；不同于持续卫星仿真。</span></div>
+            <span id="singleRunReadiness" class="single-run-readiness" role="status" aria-live="polite">检查 Basilisk 环境中…</span>
+          </div>
+          <div class="single-run-steps" role="list">
+            <div class="single-run-step is-current" data-stage="select" role="listitem">
+              <span class="single-run-step-index" aria-hidden="true">1</span>
+              <div><strong>选择仿真对象</strong><span>左侧选择整星、分系统或部件</span></div>
+              <button id="singleRunSelectBtn" class="button button-ghost" type="button">去选择</button>
+            </div>
+            <div class="single-run-step" data-stage="configure" role="listitem">
+              <span class="single-run-step-index" aria-hidden="true">2</span>
+              <div><strong>配置与校验</strong><span>设置参数、故障、输出；校验不执行</span></div>
+              <button id="singleRunValidateBtn" class="button button-ghost" type="button">校验</button>
+            </div>
+            <div class="single-run-step" data-stage="run" role="listitem">
+              <span class="single-run-step-index" aria-hidden="true">3</span>
+              <div><strong>执行并查看结果</strong><span>提交后跟踪状态、曲线及导出</span></div>
+              <button id="singleRunResultsBtn" class="button button-ghost" type="button">运行记录</button>
+            </div>
+          </div>
+          <p id="singleRunProgress" class="single-run-progress" role="status" aria-live="polite">请选择左侧仿真对象。运行后可在右侧结果面板或运行中心查看记录。</p>
         </section>
 
         <div id="formTab" class="tab-content active" data-panel="form">
@@ -900,8 +920,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.15.0-graph-v15";</script>
-  <script src="/assets/app.js?v=0.15.0-graph-v15" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.15.1-single-run-ux";</script>
+  <script src="/assets/app.js?v=0.15.1-single-run-ux" defer></script>
   <script src="/assets/continuous.js?v=0.16.0-r7-ui" defer></script>
 </body>
 </html>
