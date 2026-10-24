@@ -1,11 +1,10 @@
 name: R83j Actual Basilisk Native Scheduled FSW Reference Pilot
 
+# Original real native proof run #40111820380 completed and pinned downstream.
+# GitHub pull_request path filters can retrigger on report-only changes because
+# they inspect the whole PR diff, not just the latest commit.
+# Expensive physics re-execution is now deliberately MANUAL ONLY.
 on:
-  pull_request:
-    paths:
-      - 'src/sat_sim/experiments/native_fsw_scheduled_reference_lab.py'
-      - 'tests/test_r83j_native_fsw_reference_schedule.py'
-      - '.github/workflows/r83j-native-fsw-reference-excitation.yml'
   workflow_dispatch:
 
 permissions:
