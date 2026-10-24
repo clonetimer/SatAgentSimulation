@@ -54,11 +54,16 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert ".single-run-config-summary" in css
     assert "配置已修改；上次校验已失效" in js
     assert "旧校验结果已丢弃" in js
+    assert "collectEventInputIssues" in js
+    assert "必须填写整数" in js
+    assert "数组必须包含有效数值" in js
+    assert ".event-field-invalid" in css
 
 
 def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path):
     pw = pytest.importorskip("playwright.sync_api")
     calls = []
+    parse_calls = []
     with _client(tmp_path) as client, pw.sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
@@ -73,6 +78,8 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
                 path = u.path + ("?" + u.query if u.query else "")
                 if req.method == "POST" and u.path == "/runs":
                     calls.append("POST /runs")
+                if req.method == "POST" and u.path == "/tasks/parse":
+                    parse_calls.append("POST /tasks/parse")
                 response = client.request(
                     req.method, path,
                     content=req.post_data.encode("utf-8") if req.post_data else None,
@@ -132,6 +139,87 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             assert page.locator("#effectKind").is_visible()
             page.locator("#singleRunJumpOutputsBtn").click()
             assert page.locator("#plotOptions").is_visible()
+            assert calls == []
+
+            # Fault event fields must reject invalid numbers instead of
+            # silently retaining the last valid TaskSpec parameter.
+            page.locator("#effectKind").select_option("fault")
+            assert page.locator("#addEffectBtn").is_enabled()
+            page.locator("#addEffectBtn").click()
+            first_event = page.locator("#eventList .event-card").first
+            start = first_event.locator('[data-event-field="start_s"]')
+            before_invalid_parse = len(parse_calls)
+            start.fill("-1")
+            start.press("Tab")
+            assert start.get_attribute("aria-invalid") == "true"
+            assert first_event.locator(".event-input-error:visible").count() >= 1
+            page.locator("#singleRunValidateBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert "事件配置" in page.locator("#formValidationSummary").inner_text()
+            assert len(parse_calls) == before_invalid_parse
+            page.locator("#runBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert calls == []
+            assert len(parse_calls) == before_invalid_parse
+
+            start.fill("2")
+            start.press("Tab")
+            end = first_event.locator('[data-event-field="end_s"]')
+            end.fill("1")
+            end.press("Tab")
+            page.locator("#singleRunValidateBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert "结束时间不能早于开始时间" in page.locator("#formValidationSummary").inner_text()
+            assert len(parse_calls) == before_invalid_parse
+            end.fill("3")
+            end.press("Tab")
+            assert calls == []
+
+            # The fidelity ADCS variant (not the unified whole-spacecraft
+            # variant) exposes the vector3_or_number gyro bias event field.
+            # This is UI-only validation, not acceptance of proxy physics.
+            page.locator("#levelFilter").select_option("subsystem")
+            page.locator("#capabilityList [data-object-id='subsystem.adcs']").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            fidelity_option = page.locator("#variantSelect option[value='subsystem.adcs_fidelity.v1']")
+            if fidelity_option.count() == 0:
+                page.locator("#showCompatibilityCapabilities").check()
+                fidelity_option.wait_for(timeout=20000)
+            page.locator("#variantSelect").select_option("subsystem.adcs_fidelity.v1")
+            page.wait_for_function(
+                "() => [...document.querySelectorAll('#effectSelect option')].some(o => o.value === 'adcs_gyro_bias_step')",
+                timeout=20000,
+            )
+            page.locator("#effectKind").select_option("fault")
+            page.locator("#effectSelect").select_option("adcs_gyro_bias_step")
+            page.locator("#addEffectBtn").click()
+            vector = page.locator("#eventList .event-card").last.locator('[data-event-field="parameters.bias_deg_s"]')
+            assert vector.count() == 1
+            vector.fill("1,,2")
+            vector.press("Tab")
+            assert vector.get_attribute("aria-invalid") == "true"
+            page.locator("#singleRunValidateBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert "数组元素不能为空" in page.locator("#formValidationSummary").inner_text()
+            assert len(parse_calls) == before_invalid_parse
+            vector.fill("[0.1, 0, 0]")
+            vector.press("Tab")
+            assert vector.get_attribute("aria-invalid") == "false"
             assert calls == []
 
             page.set_viewport_size({"width": 390, "height": 844})

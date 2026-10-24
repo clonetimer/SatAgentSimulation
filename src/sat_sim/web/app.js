@@ -3599,6 +3599,59 @@
     return String(value);
   }
 
+  // Event inputs are outside #dynamicForm. Validate them explicitly before
+  // TaskSpec preflight so invalid browser edits never submit old hidden values.
+  function eventInputIssue(input) {
+    if (input.disabled) return '';
+    if (input.dataset.eventError) return input.dataset.eventError;
+    if (input.validity.badInput || (input.value !== '' && input.type === 'number' && !Number.isFinite(Number(input.value)))) {
+      return '请输入有效数值';
+    }
+    if (input.validity.rangeUnderflow) return `不得小于 ${input.min}`;
+    if (input.validity.rangeOverflow) return `不得大于 ${input.max}`;
+    if (input.validity.stepMismatch) return '必须填写整数';
+    if (input.dataset.eventDirty === 'true') return '该值尚未保存，请确认输入';
+    return '';
+  }
+
+  function setEventInputIssue(input, message) {
+    input.dataset.eventError = message || '';
+    input.setAttribute('aria-invalid', message ? 'true' : 'false');
+    const label = input.closest('label');
+    if (!label) return;
+    label.classList.toggle('event-field-invalid', Boolean(message));
+    const help = label.querySelector('.event-input-error');
+    if (help) {
+      help.textContent = message || '';
+      help.classList.toggle('hidden', !message);
+    }
+  }
+
+  function collectEventInputIssues() {
+    const issues = [];
+    const inputs = $all('#eventList [data-event-input]');
+    // Cross-field messages must be recalculated when either time changes.
+    inputs.forEach((input) => {
+      if (input.dataset.eventError === '结束时间不能早于开始时间') setEventInputIssue(input, '');
+    });
+    inputs.forEach((input) => {
+      const message = eventInputIssue(input);
+      setEventInputIssue(input, message);
+      if (message) issues.push({ path: `事件配置.${input.dataset.eventLabel || '参数'}`, message });
+    });
+    $all('#eventList .event-card').forEach((card) => {
+      const start = card.querySelector('[data-event-field="start_s"]');
+      const end = card.querySelector('[data-event-field="end_s"]');
+      if (!start || !end || start.value === '' || end.value === '' || eventInputIssue(start) || eventInputIssue(end)) return;
+      if (Number(end.value) < Number(start.value)) {
+        const message = '结束时间不能早于开始时间';
+        setEventInputIssue(end, message);
+        issues.push({ path: '事件配置.结束时间', message });
+      }
+    });
+    return issues;
+  }
+
   function validateClientForm({ show = true } = {}) {
     clearFieldErrors();
     if (!state.formData) return false;
@@ -3612,6 +3665,7 @@
     if (Number.isFinite(step) && !(step > 0)) issues.push({ path: 'simulation.step_s', message: '必须大于 0' });
     if (Number.isFinite(step) && Number.isFinite(sample) && step > sample) issues.push({ path: 'simulation.sample_s', message: '输出采样间隔必须大于或等于积分步长 step_s' });
     if (Number.isFinite(sample) && Number.isFinite(duration) && sample > duration) issues.push({ path: 'simulation.sample_s', message: '输出采样间隔不能超过仿真时长 duration_s' });
+    if (show) issues.push(...collectEventInputIssues());
     if (issues.length) {
       issues.forEach((item) => setFieldError(item.path, item.message));
       const summary = el('formValidationSummary');
@@ -4484,6 +4538,7 @@
     if (kind === 'degradation' && state.schema.event_catalog.timed_degradation_supported === false) event.start_s = 0;
     state.formData.events[key].push(event);
     state.taskSpec = null;
+    state.planning = null;
     state.changedPaths.delete(`events.${key}`);
     renderEvents();
     renderAgentChangePanel();
@@ -4510,6 +4565,7 @@
     events.forEach(({ event, kind, key, index }) => {
       const card = document.createElement('div');
       card.className = `event-card${state.changedPaths.has(`events.${key}`) ? ' agent-changed' : ''}`;
+      card.dataset.eventKind = kind;
       const top = document.createElement('div');
       top.className = 'event-top';
       const nameWrap = document.createElement('div');
@@ -4540,6 +4596,35 @@
       const fields = document.createElement('div');
       fields.className = 'event-fields';
 
+      const markEventEdited = () => {
+        state.taskSpec = null;
+        state.planning = null;
+        updateSingleRunSummary();
+      };
+      const configureEventInput = (input, field, labelText) => {
+        input.dataset.eventInput = 'true';
+        input.dataset.eventField = field;
+        input.dataset.eventLabel = labelText;
+        input.dataset.eventDirty = 'false';
+        const issue = document.createElement('small');
+        issue.className = 'event-input-error hidden';
+        issue.setAttribute('role', 'status');
+        input.closest('label').appendChild(issue);
+        input.addEventListener('input', () => {
+          input.dataset.eventDirty = 'true';
+          setEventInputIssue(input, '');
+          markEventEdited();
+        });
+        return input;
+      };
+      const finishEventEdit = (input) => {
+        input.dataset.eventDirty = 'false';
+        setEventInputIssue(input, '');
+        markEventEdited();
+        state.changedPaths.delete(`events.${key}`);
+        card.classList.remove('agent-changed');
+        renderAgentChangePanel();
+      };
       const addNumberField = (host, field, labelText, options = {}) => {
         const label = document.createElement('label');
         const title = document.createElement('span');
@@ -4553,34 +4638,39 @@
         input.value = options.value ?? '';
         if (options.disabled) input.disabled = true;
         if (options.description) input.title = options.description;
-        input.addEventListener('change', () => {
-          if (input.value === '') options.onChange(undefined);
-          else {
-            const parsed = Number(input.value);
-            if (!Number.isFinite(parsed)) return;
-            options.onChange(options.integer ? Math.trunc(parsed) : parsed);
-          }
-          state.taskSpec = null;
-          updateSingleRunSummary();
-          state.changedPaths.delete(`events.${key}`);
-          card.classList.remove('agent-changed');
-          renderAgentChangePanel();
-        });
         label.appendChild(input);
         if (options.description) {
           const help = document.createElement('small'); help.textContent = options.description; label.appendChild(help);
         }
+        configureEventInput(input, field, labelText);
+        input.addEventListener('change', () => {
+          const value = input.value.trim();
+          const number = Number(value);
+          let error = '';
+          if (input.validity.badInput || (value !== '' && !Number.isFinite(number))) error = '请输入有效数值';
+          else if (input.validity.rangeUnderflow) error = `不得小于 ${input.min}`;
+          else if (input.validity.rangeOverflow) error = `不得大于 ${input.max}`;
+          else if (input.validity.stepMismatch || (options.integer && value !== '' && !Number.isInteger(number))) error = '必须填写整数';
+          if (error) {
+            setEventInputIssue(input, error);
+            return;
+          }
+          options.onChange(value === '' ? undefined : number);
+          finishEventEdit(input);
+        });
         host.appendChild(label);
       };
 
       addNumberField(fields, 'start_s', '开始时间 / s', {
         value: event.start_s ?? 0,
+        minimum: 0,
         disabled: kind === 'degradation' && state.schema.event_catalog.timed_degradation_supported === false,
         description: '事件开始生效的仿真时间。',
         onChange: (value) => { if (value === undefined) delete event.start_s; else event.start_s = value; },
       });
       addNumberField(fields, 'end_s', '结束时间 / s', {
         value: event.end_s ?? '',
+        minimum: 0,
         description: '可留空，表示从开始时间持续到仿真结束。',
         onChange: (value) => { if (value === undefined) delete event.end_s; else event.end_s = value; },
       });
@@ -4605,19 +4695,38 @@
           const input = document.createElement('input'); input.type = 'text';
           const current = event.parameters[name] ?? fieldMeta.default ?? '';
           input.value = Array.isArray(current) ? JSON.stringify(current) : String(current);
-          input.title = fieldMeta.description || '';
-          input.addEventListener('change', () => {
-            const text = input.value.trim();
-            if (!text) delete event.parameters[name];
-            else {
-              try { event.parameters[name] = text.startsWith('[') ? JSON.parse(text) : Number(text); }
-              catch (_) { input.setCustomValidity('请输入数值或JSON数组'); input.reportValidity(); return; }
-              input.setCustomValidity('');
-            }
-            state.taskSpec = null; updateSingleRunSummary(); renderAgentChangePanel();
-          });
+          input.title = fieldMeta.description || '请输入有效数值或数值数组';
+          input.placeholder = type === 'vector3_or_number' ? '例如 0.1 或 [0.1, 0, 0]' : '例如 [1, 2, 3]';
           label.append(title, input);
           if (fieldMeta.description) { const help=document.createElement('small'); help.textContent=fieldMeta.description; label.appendChild(help); }
+          configureEventInput(input, `parameters.${name}`, fieldMeta.label || name);
+          input.addEventListener('change', () => {
+            const raw = input.value.trim();
+            if (!raw) {
+              delete event.parameters[name];
+              finishEventEdit(input);
+              return;
+            }
+            try {
+              const normalized = raw.replace(/，/g, ',');
+              const parts = normalized.includes(',') && !normalized.startsWith('[')
+                ? normalized.split(',').map((item) => item.trim()) : null;
+              if (parts?.some((item) => !item)) throw new Error('数组元素不能为空');
+              const value = normalized.startsWith('[')
+                ? JSON.parse(normalized)
+                : (parts ? parts.map(Number) : Number(normalized));
+              if (Array.isArray(value)) {
+                if (!value.length || value.some((part) => typeof part !== 'number' || !Number.isFinite(part))) throw new Error('数组必须包含有效数值');
+                if (type === 'vector3_or_number' && value.length !== 3) throw new Error('三轴向量必须恰好包含 3 个数值');
+              } else if (type.startsWith('array') || typeof value !== 'number' || !Number.isFinite(value)) {
+                throw new Error(type.startsWith('array') ? '请输入数值数组' : '请输入数值或三轴向量');
+              }
+              event.parameters[name] = value;
+              finishEventEdit(input);
+            } catch (error) {
+              setEventInputIssue(input, error instanceof SyntaxError ? '数组格式无效，请使用 [1, 2, 3]' : error.message);
+            }
+          });
           fields.appendChild(label);
         } else {
           addNumberField(fields, `parameters.${name}`, `${fieldMeta.label || name}${unit}`, {
@@ -5123,6 +5232,9 @@
         const valid = await previewForm();
         if (!valid) return;
       }
+      // Form editor validation also applies when an earlier TaskSpec preflight exists.
+      // A pending/invalid event input must never submit an older saved value.
+      if (activeTab === 'form' && !validateClientForm()) return;
       const displayName = state.taskSpec?.task?.name || state.taskSpec?.task?.id || '未命名仿真';
       const requestedId = state.taskSpec?.task?.id ? `${state.taskSpec.task.id}_${Date.now().toString(36)}` : null;
       const payload = await api('/runs', {

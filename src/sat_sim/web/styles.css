@@ -1438,3 +1438,30 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   .single-run-shortcuts { width: 100%; }
   .single-run-shortcuts .button { flex: 1 1 auto; }
 }
+
+/* Finite-run event editor: inline validation is anchored to the exact input. */
+#creatorView .event-field-invalid input {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 14%, transparent);
+}
+#creatorView .event-field-invalid .event-input-error {
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+#creatorView .event-fields input[aria-invalid="true"]:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 1px;
+}
+#creatorView .event-card:has(.event-field-invalid) {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--line));
+}
+@media (max-width: 1040px) {
+  #creatorView .event-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  #creatorView .event-add-row,
+  #creatorView .event-fields { grid-template-columns: 1fr; }
+}
