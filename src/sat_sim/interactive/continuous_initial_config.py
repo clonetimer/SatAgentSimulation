@@ -110,6 +110,36 @@ class NativeCommInitial(_Strict):
     downlink_rate_bps: float = Field(default=1_500_000., gt=0., le=20_000_000.)
 
 
+class NativePropulsionInitial(_Strict):
+    """Official Basilisk thrusters + fuel tank; disabled unless opted in."""
+
+    propulsion_enabled: bool = Field(default=False, description="是否在整星原生图中装配推进器、燃料箱与点火控制器")
+    propulsion_thrust_n: float = Field(default=1.0, gt=0., le=50., description="每只 Basilisk 推进器的标称最大推力（N）")
+    propulsion_isp_s: float = Field(default=200., gt=0., le=5000., description="推进器比冲（s）")
+    propulsion_burn_start_s: float = Field(default=30., ge=0., le=86400., description="相对于会话仿真时间起点的点火起始时刻（s）")
+    propulsion_burn_on_time_s: float = Field(default=0.5, gt=0., le=120., description="每只推进器的点火持续时长（s）")
+    propulsion_initial_propellant_kg: float = Field(default=1., ge=0., le=100., description="原生 FuelTank 初始燃料质量（kg）")
+    propulsion_tank_capacity_kg: float = Field(default=2., gt=0., le=100., description="原生 FuelTank 容量（kg），不得小于初始燃料质量")
+    propulsion_min_burn_soc: float = Field(default=.30, ge=0., le=1., description="推进点火许可的最小电池 SOC")
+    propulsion_power_w: float = Field(default=20., ge=0., le=500., description="每只点火中的推进器电功率估算（W，项目侧功率桥）")
+
+    @model_validator(mode="after")
+    def check_propellant_capacity(self):
+        if self.propulsion_initial_propellant_kg > self.propulsion_tank_capacity_kg:
+            raise ValueError("PROPULSION_INITIAL_FUEL_EXCEEDS_TANK_CAPACITY")
+        return self
+
+
+class NativeThermalInitial(_Strict):
+    """Project thermal network executed inside the Basilisk task, not BSK-native."""
+
+    initial_payload_temp_k: float = Field(default=292., ge=220., le=340., description="载荷热节点初始温度（K），项目热网络")
+    initial_comm_temp_k: float = Field(default=295., ge=230., le=335., description="通信热节点初始温度（K），项目热网络")
+    initial_propulsion_temp_k: float = Field(default=292., ge=220., le=350., description="推进热节点初始温度（K），项目热网络")
+    comm_structure_conductance_w_k: float = Field(default=.35, ge=0., le=5., description="通信—结构导热系数（W/K），项目热网络")
+    propulsion_structure_conductance_w_k: float = Field(default=.45, ge=0., le=5., description="推进—结构导热系数（W/K），项目热网络")
+
+
 class ContinuousInitialConfiguration(_Strict):
     """Editable subsystems/devices of the *integrated* native spacecraft."""
 
@@ -118,12 +148,14 @@ class ContinuousInitialConfiguration(_Strict):
     eps: NativeEpsInitial = Field(default_factory=NativeEpsInitial)
     payload: NativePayloadInitial = Field(default_factory=NativePayloadInitial)
     comm_data: NativeCommInitial = Field(default_factory=NativeCommInitial)
+    propulsion: NativePropulsionInitial = Field(default_factory=NativePropulsionInitial)
+    thermal: NativeThermalInitial = Field(default_factory=NativeThermalInitial)
 
     def native_values(self) -> dict[str, Any]:
         # Only explicitly chosen groups/values are forwarded. Omitted fields
         # retain existing Basilisk graph defaults, including future changes.
         values: dict[str, Any] = {}
-        for group in ("orbit", "adcs", "eps", "payload", "comm_data"):
+        for group in ("orbit", "adcs", "eps", "payload", "comm_data", "propulsion", "thermal"):
             model = getattr(self, group)
             if group in self.model_fields_set:
                 values.update(model.model_dump(exclude_unset=True))
@@ -136,6 +168,8 @@ _DISPLAY = {
     "eps": "电池与太阳电池板（EPS／单机）",
     "payload": "载荷设备",
     "comm_data": "通信数据存储",
+    "propulsion": "推进分系统（Basilisk 原生执行机构／燃料箱）",
+    "thermal": "热控分系统（项目热网络，非 Basilisk 原生热模型）",
 }
 
 _UNITS = {
@@ -170,6 +204,13 @@ _UNITS = {
     "solar_efficiency": "1", "bus_power_w": "W",
     "payload_data_rate_bps": "bit/s", "payload_power_w": "W",
     "storage_capacity_bits": "bit", "downlink_rate_bps": "bit/s",
+    "propulsion_enabled": "布尔", "propulsion_thrust_n": "N", "propulsion_isp_s": "s",
+    "propulsion_burn_start_s": "s", "propulsion_burn_on_time_s": "s",
+    "propulsion_initial_propellant_kg": "kg", "propulsion_tank_capacity_kg": "kg",
+    "propulsion_min_burn_soc": "1", "propulsion_power_w": "W",
+    "initial_payload_temp_k": "K", "initial_comm_temp_k": "K",
+    "initial_propulsion_temp_k": "K", "comm_structure_conductance_w_k": "W/K",
+    "propulsion_structure_conductance_w_k": "W/K",
 }
 
 
@@ -182,6 +223,8 @@ def initial_configuration_catalog() -> dict[str, Any]:
         ("eps", NativeEpsInitial),
         ("payload", NativePayloadInitial),
         ("comm_data", NativeCommInitial),
+        ("propulsion", NativePropulsionInitial),
+        ("thermal", NativeThermalInitial),
     ):
         template = cls()
         fields = []

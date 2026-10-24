@@ -23,7 +23,7 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     assert catalog["graph_scope"] == "INTEGRATED_WHOLE_NATIVE_ONLY"
     assert catalog["standalone_subsystem_continuous_simulation_supported"] is False
     assert [row["group"] for row in catalog["groups"]] == [
-        "orbit", "adcs", "eps", "payload", "comm_data",
+        "orbit", "adcs", "eps", "payload", "comm_data", "propulsion", "thermal",
     ]
     for row in catalog["groups"]:
         assert row["fields"]
@@ -91,6 +91,9 @@ def test_continuous_web_form_matches_registered_native_catalog():
     )
     assert "updateRwFrictionNativeInitialLayout" in js
     assert "updateRwNativeInitialLayout" in js
+    assert "field.type === 'checkbox' ? field.checked" in js
+    assert 'data-native-key="propulsion_enabled" type="checkbox"' in html
+    assert "非官方 Basilisk 原生热模块" in html
 
 
 @pytest.mark.parametrize("bad", [
@@ -129,6 +132,17 @@ def test_continuous_web_form_matches_registered_native_catalog():
     {"eps": {"solar_panel_area_m2": -1}},
     {"comm_data": {"storage_capacity_bits": 0}},
     {"payload": {"unknown_basilisk_function": "x"}},
+    {"propulsion": {"propulsion_thrust_n": 0}},
+    {"propulsion": {"propulsion_isp_s": -1}},
+    {"propulsion": {"propulsion_burn_start_s": -1}},
+    {"propulsion": {"propulsion_burn_on_time_s": 0}},
+    {"propulsion": {"propulsion_min_burn_soc": 1.01}},
+    {"propulsion": {"propulsion_initial_propellant_kg": 4, "propulsion_tank_capacity_kg": 2}},
+    {"propulsion": {"propulsion_enabled": "exec(evil)"}},
+    {"thermal": {"initial_payload_temp_k": 350}},
+    {"thermal": {"initial_propulsion_temp_k": float("nan")}},
+    {"thermal": {"comm_structure_conductance_w_k": -0.1}},
+    {"thermal": {"propulsion_structure_conductance_w_k": 5.1}},
     {"unknown_subsystem": {"actor": "eval(...)"}},
     {"adcs": {"controller_k": "nan"}},
     {"adcs": {"rw_initial_speed_rad_s_0": 600}},
@@ -181,6 +195,24 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
                         "solar_panel_area_m2": 3.},
                 "payload": {"payload_data_rate_bps": 1_500_000.},
                 "comm_data": {"storage_capacity_bits": 7_000_000_000.},
+                "propulsion": {
+                    "propulsion_enabled": True,
+                    "propulsion_thrust_n": 2.5,
+                    "propulsion_isp_s": 240.,
+                    "propulsion_burn_start_s": 15.,
+                    "propulsion_burn_on_time_s": .4,
+                    "propulsion_initial_propellant_kg": .8,
+                    "propulsion_tank_capacity_kg": 1.6,
+                    "propulsion_min_burn_soc": .25,
+                    "propulsion_power_w": 30.,
+                },
+                "thermal": {
+                    "initial_payload_temp_k": 300.,
+                    "initial_comm_temp_k": 303.,
+                    "initial_propulsion_temp_k": 302.,
+                    "comm_structure_conductance_w_k": .7,
+                    "propulsion_structure_conductance_w_k": .6,
+                },
             },
         }
         created = client.post("/interactive/continuous/sessions", json=request)
@@ -211,6 +243,15 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert values["battery_capacity_wh"] == 200.
         assert values["rw_configuration"] == "orthogonal_3"
         assert values["storage_capacity_bits"] == 7_000_000_000.
+        assert values["propulsion_enabled"] is True
+        assert values["propulsion_thrust_n"] == 2.5
+        assert values["propulsion_initial_propellant_kg"] == .8
+        assert values["propulsion_tank_capacity_kg"] == 1.6
+        assert values["initial_payload_temp_k"] == 300.
+        assert values["initial_comm_temp_k"] == 303.
+        assert values["initial_propulsion_temp_k"] == 302.
+        assert values["comm_structure_conductance_w_k"] == .7
+        assert values["propulsion_structure_conductance_w_k"] == .6
         assert "initial_true_anomaly_rad" not in values
         original = client.get("/interactive/continuous/sessions/configured-native/configuration")
         assert original.status_code == 200
@@ -275,7 +316,28 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     from Basilisk.utilities import simIncludeRW
     from Basilisk.simulation import coarseSunSensor, spacecraft, imuSensor, starTracker
     from Basilisk.utilities import RigidBodyKinematics
+    from subsystems.propulsion import builder as propulsion_builder
+    from subsystems.thermal import builder as thermal_builder
     import numpy as np
+    propulsion_assemblies = []
+    thermal_configs = []
+    real_propulsion_builder = propulsion_builder.build_propulsion_basilisk_assembly_graph
+    real_thermal_builder = thermal_builder.build_thermal_network_assembly_graph
+
+    def capture_propulsion_assembly(cfg, **kwargs):
+        graph = real_propulsion_builder(cfg, **kwargs)
+        propulsion_assemblies.append((cfg, graph))
+        return graph
+
+    def capture_thermal_graph(*args, **kwargs):
+        thermal_configs.append(kwargs["thermal_network_cfg"])
+        return real_thermal_builder(*args, **kwargs)
+
+    # Observe the genuine Basilisk thrust/fuel assembly and scheduled project
+    # thermal network, never replace either calculation with mocked physics.
+    monkeypatch.setattr(propulsion_builder, "build_propulsion_basilisk_assembly_graph",
+                        capture_propulsion_assembly)
+    monkeypatch.setattr(thermal_builder, "build_thermal_network_assembly_graph", capture_thermal_graph)
     factory_invocations = []
     native_imus = []
     native_trackers = []
@@ -338,6 +400,22 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                           "spacecraft_mass_kg": 145.},
                 "eps": {"battery_capacity_wh": 240., "initial_soc": .85,
                         "solar_panel_area_m2": 3.},
+                "propulsion": {
+                    "propulsion_enabled": True, "propulsion_thrust_n": 2.5,
+                    "propulsion_isp_s": 240., "propulsion_burn_start_s": 30.,
+                    "propulsion_burn_on_time_s": .4,
+                    "propulsion_initial_propellant_kg": .8,
+                    "propulsion_tank_capacity_kg": 1.6,
+                    "propulsion_min_burn_soc": .25,
+                    "propulsion_power_w": 30.,
+                },
+                "thermal": {
+                    "initial_payload_temp_k": 301.,
+                    "initial_comm_temp_k": 303.,
+                    "initial_propulsion_temp_k": 305.,
+                    "comm_structure_conductance_w_k": .7,
+                    "propulsion_structure_conductance_w_k": .6,
+                },
                 "adcs": {
                     "controller_k": 5., "controller_p": 25.,
                     "sun_sensor_fov_deg": 43.,
@@ -404,6 +482,22 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     assert custom["adcs.rw.speed_rad_s_0"] == pytest.approx(-50., abs=12.)
     assert default["adcs.rw.speed_rad_s_0"] == pytest.approx(100. * 2. * __import__("math").pi / 60., abs=2.)
     assert custom["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(.05)
+    assert len(propulsion_assemblies) == 1
+    p_cfg, p_graph = propulsion_assemblies[0]
+    assert p_cfg.fuel_tank.initial_mass_kg == pytest.approx(.8)
+    assert p_cfg.fuel_tank.capacity_kg == pytest.approx(1.6)
+    assert all(spec.thrust_n == pytest.approx(2.5) for spec in p_graph.thruster_specs)
+    assert all(spec.isp_s == pytest.approx(240.) for spec in p_graph.thruster_specs)
+    assert p_graph.fuel_tank is not None and p_graph.thruster_effector is not None
+    assert len(thermal_configs) == 2
+    assert thermal_configs[0].nodes["payload"].initial_temp_k == pytest.approx(292.)
+    assert thermal_configs[1].nodes["payload"].initial_temp_k == pytest.approx(301.)
+    assert thermal_configs[1].nodes["comm"].initial_temp_k == pytest.approx(303.)
+    assert thermal_configs[1].nodes["propulsion"].initial_temp_k == pytest.approx(305.)
+    paths = {(item.from_node, item.to_node): item.conductance_w_per_k
+             for item in thermal_configs[1].conduction_paths}
+    assert paths[("comm", "structure")] == pytest.approx(.7)
+    assert paths[("propulsion", "structure")] == pytest.approx(.6)
     assert len(native_spacecraft) == 2
     assert len(native_sun_sensors) == 2
     assert [obj.hub.mHub for obj in native_spacecraft] == pytest.approx([100., 145.])

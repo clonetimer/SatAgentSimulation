@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.15.8-native-sensor-error-controls">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.15.9-thermal-propulsion-setup">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -707,6 +707,26 @@
                     <label>载荷数据产生速率（bit/s）<input data-native-group="payload" data-native-key="payload_data_rate_bps" type="number" min="0" max="20000000" step="1" value="2500000" required></label>
                     <label>载荷工作功耗（W）<input data-native-group="payload" data-native-key="payload_power_w" type="number" min="0" max="250" step="any" value="38" required></label>
                   </fieldset>
+                  <fieldset><legend>推进分系统 · Basilisk 原生动力学</legend>
+                    <p class="continuous-muted">仅在勾选启用时向整星动态模型添加官方 Basilisk ThrusterDynamicEffector 与 FuelTank。推进电功率估计由项目侧桥接，不是电机硬件级模型。</p>
+                    <label>启用推进器与燃料箱<input data-native-group="propulsion" data-native-key="propulsion_enabled" type="checkbox" title="默认关闭，勾选后允许原生推进器和燃料箱装配到新会话"></label>
+                    <label>每只推进器推力（N）<input data-native-group="propulsion" data-native-key="propulsion_thrust_n" type="number" min="0.001" max="50" step="any" value="1" required></label>
+                    <label>比冲 Isp（s）<input data-native-group="propulsion" data-native-key="propulsion_isp_s" type="number" min="0.001" max="5000" step="any" value="200" required></label>
+                    <label>点火起始仿真时刻（s）<input data-native-group="propulsion" data-native-key="propulsion_burn_start_s" type="number" min="0" max="86400" step="any" value="30" required></label>
+                    <label>点火持续时长（s）<input data-native-group="propulsion" data-native-key="propulsion_burn_on_time_s" type="number" min="0.001" max="120" step="any" value="0.5" required></label>
+                    <label>初始燃料质量（kg）<input data-native-group="propulsion" data-native-key="propulsion_initial_propellant_kg" type="number" min="0" max="100" step="any" value="1" required></label>
+                    <label>燃料箱容量（kg）<input data-native-group="propulsion" data-native-key="propulsion_tank_capacity_kg" type="number" min="0.001" max="100" step="any" value="2" required></label>
+                    <label>最小点火 SOC（0–1）<input data-native-group="propulsion" data-native-key="propulsion_min_burn_soc" type="number" min="0" max="1" step="any" value="0.3" required></label>
+                    <label>每只点火推进器电功率估算（W）<input data-native-group="propulsion" data-native-key="propulsion_power_w" type="number" min="0" max="500" step="any" value="20" required></label>
+                  </fieldset>
+                  <fieldset><legend>热控分系统 · 项目热网络</legend>
+                    <p class="continuous-muted">热控为与 Basilisk 仿真任务耦合运行的项目确定性热网络，非官方 Basilisk 原生热模块；温度单位为开尔文。</p>
+                    <label>载荷初始温度（K）<input data-native-group="thermal" data-native-key="initial_payload_temp_k" type="number" min="220" max="340" step="any" value="292" required></label>
+                    <label>通信设备初始温度（K）<input data-native-group="thermal" data-native-key="initial_comm_temp_k" type="number" min="230" max="335" step="any" value="295" required></label>
+                    <label>推进设备初始温度（K）<input data-native-group="thermal" data-native-key="initial_propulsion_temp_k" type="number" min="220" max="350" step="any" value="292" required></label>
+                    <label>通信—结构导热系数（W/K）<input data-native-group="thermal" data-native-key="comm_structure_conductance_w_k" type="number" min="0" max="5" step="any" value="0.35" required></label>
+                    <label>推进—结构导热系数（W/K）<input data-native-group="thermal" data-native-key="propulsion_structure_conductance_w_k" type="number" min="0" max="5" step="any" value="0.45" required></label>
+                  </fieldset>
                   <fieldset><legend>通信数据分系统</legend>
                     <label>存储单机容量（bit）<input data-native-group="comm_data" data-native-key="storage_capacity_bits" type="number" min="1" max="100000000000" step="1" value="6000000000" required></label>
                     <label>下行设计速率（bit/s）<input data-native-group="comm_data" data-native-key="downlink_rate_bps" type="number" min="1" max="20000000" step="1" value="1500000" required></label>
@@ -985,8 +1005,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.15.8-native-sensor-error-controls";</script>
-  <script src="/assets/app.js?v=0.15.8-native-sensor-error-controls" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.15.9-thermal-propulsion-setup";</script>
+  <script src="/assets/app.js?v=0.15.9-thermal-propulsion-setup" defer></script>
   <script src="/assets/continuous.js?v=0.16.1-rw-native-controls" defer></script>
 </body>
 </html>
