@@ -119,6 +119,13 @@ jobs:
           python -m pytest -q -s
           tests/test_whole_thermal_heat_capacity_ab.py
           --disable-warnings
+      - name: Basilisk-scheduled project radiator and heater A/B temperature response
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_thermal_radiator_heater_ab.py
+          --disable-warnings
       - name: Publish real Basilisk first-tick divergence diagnostics
         env:
           PYTHONPATH: "src:."
