@@ -611,7 +611,9 @@ class UnifiedNativeRuntime:
             spacecraft,
             starTracker,
         )
-        from Basilisk.utilities import SimulationBaseClass, macros, orbitalMotion, simIncludeGravBody, simIncludeRW  # type: ignore
+        from Basilisk.utilities import (  # type: ignore
+            RigidBodyKinematics, SimulationBaseClass, macros, orbitalMotion, simIncludeGravBody, simIncludeRW,
+        )
 
         cfg = self.config
         values = cfg.values
@@ -733,15 +735,33 @@ class UnifiedNativeRuntime:
         add(eclipse_model, "eclipse", "basilisk_official_native", 95)
         connected("spacecraft.scStateOutMsg", "eclipse")
 
+        # Real Basilisk 3-2-1 body-to-case installation. Default (0,0,0)
+        # remains identity, so existing whole-spacecraft runs are unchanged.
+        tracker_euler_321 = [
+            math.radians(float(values.get("star_tracker_mount_yaw_deg", 0.0))),
+            math.radians(float(values.get("star_tracker_mount_pitch_deg", 0.0))),
+            math.radians(float(values.get("star_tracker_mount_roll_deg", 0.0))),
+        ]
         tracker = starTracker.StarTracker()
-        tracker.dcm_CB = np.eye(3).tolist()
+        tracker.dcm_CB = np.asarray(RigidBodyKinematics.euler3212C(tracker_euler_321)).tolist()
         tracker.scStateInMsg.subscribeTo(sc.scStateOutMsg)
         add(tracker, "star_tracker", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "star_tracker")
 
+        # Official IMU method accepts yaw, pitch, roll in radians. Sensor
+        # location is a 3-D body-frame vector, not an Euler parameter.
+        imu_mount_321 = [
+            math.radians(float(values.get("imu_mount_yaw_deg", 0.0))),
+            math.radians(float(values.get("imu_mount_pitch_deg", 0.0))),
+            math.radians(float(values.get("imu_mount_roll_deg", 0.0))),
+        ]
         imu = imuSensor.ImuSensor()
-        imu.setBodyToPlatformDCM(0.0, 0.0, 0.0)
-        imu.sensorPos_B = [0.0, 0.0, 0.0]
+        imu.setBodyToPlatformDCM(*imu_mount_321)
+        imu.sensorPos_B = [
+            float(values.get("imu_position_b_x_m", 0.0)),
+            float(values.get("imu_position_b_y_m", 0.0)),
+            float(values.get("imu_position_b_z_m", 0.0)),
+        ]
         imu.scStateInMsg.subscribeTo(sc.scStateOutMsg)
         add(imu, "imu", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "imu")

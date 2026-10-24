@@ -26,6 +26,15 @@ class NativeOrbitInitial(_Strict):
 
 
 class NativeAdcsInitial(_Strict):
+    imu_mount_yaw_deg: float = Field(default=0., ge=-180., le=180., description="IMU 平台相对机体系的航向安装角 (321 Euler; deg)")
+    imu_mount_pitch_deg: float = Field(default=0., ge=-89., le=89., description="IMU 平台相对机体系的俯仰安装角 (321 Euler; deg)")
+    imu_mount_roll_deg: float = Field(default=0., ge=-180., le=180., description="IMU 平台相对机体系的横滚安装角 (321 Euler; deg)")
+    imu_position_b_x_m: float = Field(default=0., ge=-2., le=2., description="IMU 安装中心在机体系 B 中的 X 坐标 (m)")
+    imu_position_b_y_m: float = Field(default=0., ge=-2., le=2., description="IMU 安装中心在机体系 B 中的 Y 坐标 (m)")
+    imu_position_b_z_m: float = Field(default=0., ge=-2., le=2., description="IMU 安装中心在机体系 B 中的 Z 坐标 (m)")
+    star_tracker_mount_yaw_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的航向安装角 (321 Euler; deg)")
+    star_tracker_mount_pitch_deg: float = Field(default=0., ge=-89., le=89., description="星敏相对机体系的俯仰安装角 (321 Euler; deg)")
+    star_tracker_mount_roll_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的横滚安装角 (321 Euler; deg)")
     sun_sensor_fov_deg: float = Field(
         default=80., gt=0., le=180.,
         description="原生 Basilisk CoarseSunSensor.fov 视场全角（deg），仅影响该光敏器观测，不代表所有敏感器的视场。",
@@ -114,7 +123,7 @@ class ContinuousInitialConfiguration(_Strict):
 
 _DISPLAY = {
     "orbit": "整星质量与轨道初始条件",
-    "adcs": "姿态控制、太阳敏感器与反作用轮（ADCS／单机）",
+    "adcs": "ADCS：IMU、星敏安装、太阳敏感器与反作用轮",
     "eps": "电池与太阳电池板（EPS／单机）",
     "payload": "载荷设备",
     "comm_data": "通信数据存储",
@@ -122,6 +131,15 @@ _DISPLAY = {
 
 _UNITS = {
     "spacecraft_mass_kg": "kg", "sun_sensor_fov_deg": "deg",
+    "imu_mount_yaw_deg": "deg",
+    "imu_mount_pitch_deg": "deg",
+    "imu_mount_roll_deg": "deg",
+    "imu_position_b_x_m": "m",
+    "imu_position_b_y_m": "m",
+    "imu_position_b_z_m": "m",
+    "star_tracker_mount_yaw_deg": "deg",
+    "star_tracker_mount_pitch_deg": "deg",
+    "star_tracker_mount_roll_deg": "deg",
     "orbit_radius_m": "m", "eccentricity": "1", "inclination_deg": "deg",
     "initial_true_anomaly_rad": "rad",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",

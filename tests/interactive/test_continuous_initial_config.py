@@ -40,6 +40,14 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     assert adcs_fields["rw_mount_radius_m"]["unit"] == "m"
     assert adcs_fields["rw_coulomb_friction_nm"]["unit"] == "N·m"
     assert adcs_fields["rw_viscous_friction_nms"]["unit"] == "N·m·s/rad"
+    for field in ("imu_mount_yaw_deg", "imu_mount_pitch_deg", "imu_mount_roll_deg",
+                  "star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg",
+                  "star_tracker_mount_roll_deg"):
+        assert adcs_fields[field]["unit"] == "deg"
+        assert adcs_fields[field]["default"] == 0.
+    for field in ("imu_position_b_x_m", "imu_position_b_y_m", "imu_position_b_z_m"):
+        assert adcs_fields[field]["unit"] == "m"
+        assert adcs_fields[field]["default"] == 0.
     from pydantic import ValidationError
     wheel4 = ContinuousInitialConfiguration.model_validate({
         "adcs": {"rw_configuration": "pyramid_4", "rw_initial_speed_rad_s_3": -50.},
@@ -81,6 +89,13 @@ def test_continuous_web_form_matches_registered_native_catalog():
     {"adcs": {"sun_sensor_fov_deg": 0}},
     {"adcs": {"sun_sensor_fov_deg": 185}},
     {"adcs": {"rw_friction_mode": "unlimited"}},
+    {"adcs": {"imu_mount_yaw_deg": 180.1}},
+    {"adcs": {"imu_mount_pitch_deg": -90}},
+    {"adcs": {"imu_mount_roll_deg": float("inf")}},
+    {"adcs": {"imu_position_b_x_m": 2.01}},
+    {"adcs": {"imu_position_b_y_m": -2.01}},
+    {"adcs": {"star_tracker_mount_pitch_deg": 90}},
+    {"adcs": {"star_tracker_mount_roll_deg": float("nan")}},
     {"adcs": {"rw_coulomb_friction_nm": -1e-5}},
     {"adcs": {"rw_viscous_friction_nms": 0.02}},
     {"adcs": {"rw_mount_radius_m": -0.01}},
@@ -129,7 +144,14 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
                          "rw_friction_mode": "coulomb_viscous",
                          "rw_coulomb_friction_nm": 2e-5,
                          "rw_viscous_friction_nms": 3e-7,
-                         "rw_mount_radius_m": .12},
+                         "rw_mount_radius_m": .12,
+                         "imu_mount_yaw_deg": 18., "imu_mount_pitch_deg": -6.,
+                         "imu_mount_roll_deg": 4.,
+                         "imu_position_b_x_m": .1, "imu_position_b_y_m": -.2,
+                         "imu_position_b_z_m": .3,
+                         "star_tracker_mount_yaw_deg": -14.,
+                         "star_tracker_mount_pitch_deg": 7.,
+                         "star_tracker_mount_roll_deg": -3.},
                 "eps": {"battery_capacity_wh": 200., "initial_soc": .75,
                         "solar_panel_area_m2": 3.},
                 "payload": {"payload_data_rate_bps": 1_500_000.},
@@ -146,6 +168,15 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert values["rw_coulomb_friction_nm"] == 2e-5
         assert values["rw_viscous_friction_nms"] == 3e-7
         assert values["rw_mount_radius_m"] == .12
+        assert values["imu_mount_yaw_deg"] == 18.
+        assert values["imu_mount_pitch_deg"] == -6.
+        assert values["imu_mount_roll_deg"] == 4.
+        assert values["imu_position_b_x_m"] == .1
+        assert values["imu_position_b_y_m"] == -.2
+        assert values["imu_position_b_z_m"] == .3
+        assert values["star_tracker_mount_yaw_deg"] == -14.
+        assert values["star_tracker_mount_pitch_deg"] == 7.
+        assert values["star_tracker_mount_roll_deg"] == -3.
         assert values["inclination_deg"] == 46.
         assert values["battery_capacity_wh"] == 200.
         assert values["rw_configuration"] == "orthogonal_3"
@@ -212,8 +243,27 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     """
     pytest.importorskip("Basilisk")
     from Basilisk.utilities import simIncludeRW
-    from Basilisk.simulation import coarseSunSensor, spacecraft
+    from Basilisk.simulation import coarseSunSensor, spacecraft, imuSensor, starTracker
+    from Basilisk.utilities import RigidBodyKinematics
+    import numpy as np
     factory_invocations = []
+    native_imus = []
+    native_trackers = []
+    real_imu_ctor = imuSensor.ImuSensor
+    real_tracker_ctor = starTracker.StarTracker
+
+    def capture_imu(*args, **kwargs):
+        obj = real_imu_ctor(*args, **kwargs)
+        native_imus.append(obj)
+        return obj
+
+    def capture_tracker(*args, **kwargs):
+        obj = real_tracker_ctor(*args, **kwargs)
+        native_trackers.append(obj)
+        return obj
+
+    monkeypatch.setattr(imuSensor, "ImuSensor", capture_imu)
+    monkeypatch.setattr(starTracker, "StarTracker", capture_tracker)
     native_spacecraft = []
     native_sun_sensors = []
     real_spacecraft_ctor = spacecraft.Spacecraft
@@ -261,6 +311,15 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                 "adcs": {
                     "controller_k": 5., "controller_p": 25.,
                     "sun_sensor_fov_deg": 43.,
+                    "imu_mount_yaw_deg": 18.,
+                    "imu_mount_pitch_deg": -6.,
+                    "imu_mount_roll_deg": 4.,
+                    "imu_position_b_x_m": .1,
+                    "imu_position_b_y_m": -.2,
+                    "imu_position_b_z_m": .3,
+                    "star_tracker_mount_yaw_deg": -14.,
+                    "star_tracker_mount_pitch_deg": 7.,
+                    "star_tracker_mount_roll_deg": -3.,
                     "rw_friction_mode": "coulomb_viscous",
                     "rw_coulomb_friction_nm": 2e-5,
                     "rw_viscous_friction_nms": 3e-7,
@@ -311,6 +370,24 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     assert [obj.hub.mHub for obj in native_spacecraft] == pytest.approx([100., 145.])
     assert [obj.fov for obj in native_sun_sensors] == pytest.approx(
         [__import__("math").radians(80.), __import__("math").radians(43.)]
+    )
+    # These are *real* Basilisk SWIG sensor instances, not synthetic traces.
+    assert len(native_imus) == 2 and len(native_trackers) == 2
+    np.testing.assert_allclose(np.asarray(native_imus[0].dcm_PB), np.eye(3), atol=1e-12)
+    np.testing.assert_allclose(np.asarray(native_trackers[0].dcm_CB), np.eye(3), atol=1e-12)
+    np.testing.assert_allclose(np.asarray(native_imus[0].sensorPos_B).reshape(3), [0., 0., 0.], atol=1e-12)
+    np.testing.assert_allclose(np.asarray(native_imus[1].sensorPos_B).reshape(3), [.1, -.2, .3], atol=1e-12)
+    imu_angles = np.radians([18., -6., 4.])
+    tracker_angles = np.radians([-14., 7., -3.])
+    np.testing.assert_allclose(
+        np.asarray(native_imus[1].dcm_PB),
+        np.asarray(RigidBodyKinematics.euler3212C(imu_angles)),
+        atol=1e-12,
+    )
+    np.testing.assert_allclose(
+        np.asarray(native_trackers[1].dcm_CB),
+        np.asarray(RigidBodyKinematics.euler3212C(tracker_angles)),
+        atol=1e-12,
     )
     assert len(factory_invocations) == 6
     assert [x["wheel_model"] for x in factory_invocations] == ["Honeywell_HR16"] * 6

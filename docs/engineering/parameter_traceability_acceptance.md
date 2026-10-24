@@ -58,6 +58,15 @@ Windows PowerShell：
 - 安装半径只能在 [0, 0.25] m 范围变化；采用向轮轴方向平移各个安装点的**简化几何规则**，不等于任意三维安装坐标/独立安装姿态。
 - 真实 Basilisk 测试通过透明 factory 监视器检查实际给原生部件传递的 `rWB_B`、`useRWfriction`、`fCoulomb` 和 `cViscous` 参数，并让官方 Basilisk 继续完成动力学；这属于构造/接线证据，**不等于已获得摩擦衰减曲线标定或硬件级精度认证**。
 
+## P0-3 IMU 与星敏感器安装配置（统一整星持续模式）
+
+- 新增 **9 项 ADCS 单机安装参数**：IMU 三个 3-2-1 安装角（yaw/pitch/roll）、IMU 在机体系 B 中的 XYZ 位置，以及星敏感器机壳系 C 相对机体系 B 的三个 3-2-1 安装角。
+- 所有角度由用户在网页按 **度** 输入（航向和横滚 −180° 至 180°，俯仰 −89° 至 89°）；位置参数为机体系 **米**（−2 至 2 m）。初始化转成弧度，分别写入官方 `ImuSensor.setBodyToPlatformDCM(yaw,pitch,roll)`、`ImuSensor.sensorPos_B` 和 `StarTracker.dcm_CB`（后者由 Basilisk `RigidBodyKinematics.euler3212C` 生成）。
+- 默认安装角和位置均为零，保持前版真实 Basilisk 计算图的默认姿态与位置；只允许创建新会话前配置，不开放运行中随意改安装参数。
+- 强制的 HTML ↔ 后端 Catalog 逐字段覆盖门禁防止漏配；REST 传参、非法范围阻断与真实 Basilisk C++ 模块安装矩阵／位置检查由专项测试覆盖。
+- **边界：**星敏、IMU 的硬件噪声参数、误差传播矩阵、偏置、饱和、频率、视线遮挡以及动态精度标定仍待后续单独评审；不将本次安装几何参数视为全部传感器模型完整。
+- 注意 Basilisk 传感器惯用安装角度和 `dcm_CB` 是机体系到各自传感器坐标系的变换；不能把机体初始姿态和传感器安装姿态混为一谈。
+
 ## 后续 P0 闭环顺序
 
 1. **真实原生 ADCS**：确认 RW 安装轴、位置、最大动量、摩擦与电机电流/力矩等值最终写入官方 reactionWheelStateEffector 配置；IMU 与星敏安装、噪声、偏置及数据连接逐项验证。明确独立 source-native 部件与统一 Basilisk 内核的区别。
