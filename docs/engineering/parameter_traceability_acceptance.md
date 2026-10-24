@@ -7,6 +7,8 @@
 - **有限时长单次仿真**：各独立 Capability 通过 Registry 的 parameters 字段生成 Schema 表单。只有标记为需要 Basilisk 的具体能力，才可主张在其受限功能边界内使用 Basilisk 原生执行。项目 source-native 部件（例如独立 RW、太阳板、CMG）不可因为有参数表就自动宣称它们的执行内核是 Basilisk。
 - **整星持续仿真**：单独使用 continuous_initial_config.py 列出的运行前配置字段，最终送入 UnifiedNativeRuntime 的原生混合模型图。只有统一原生整星的 continuous=True 是正式持续模式；独立分系统的有限时长交互并不是同一回事。完整跨进程物理恢复没有通过验收。
 
+**登记口径特别说明：**分系统 YAML 文件共 18 个，但当前 active 且 exposed_to_agent 的现役可选分系统只有 12 个；其余 6 个需在报告中保留并标注生命周期。具备 schema、能够生成表单，并不代表默认 UI 应当提供运行入口。全部 24 个独立部件合同当前均为现役能力，但执行内核仍需分别识别是否依赖 Basilisk。
+
 ## 六级逐参数验收
 
 | 级别 | 证据 | 当前工具能否证明 |
