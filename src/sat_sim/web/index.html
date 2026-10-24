@@ -699,6 +699,14 @@
                     <label>太阳敏感器安装法线 X_B<input data-native-group="adcs" data-native-key="sun_sensor_normal_b_x" type="number" min="-1" max="1" step="any" value="0" required title="官方 Basilisk CSS nHat_B 机体系 B 的 X 分量"></label>
                     <label>太阳敏感器安装法线 Y_B<input data-native-group="adcs" data-native-key="sun_sensor_normal_b_y" type="number" min="-1" max="1" step="any" value="0" required title="官方 Basilisk CSS nHat_B 机体系 B 的 Y 分量"></label>
                     <label>太阳敏感器安装法线 Z_B<input data-native-group="adcs" data-native-key="sun_sensor_normal_b_z" type="number" min="-1" max="1" step="any" value="-1" required title="官方 Basilisk CSS nHat_B 机体系 B 的 Z 分量"></label>
+                    <details><summary>太阳敏感器原生测量标定、失真及限幅（展开设置）</summary>
+                      <p class="continuous-muted">这 5 个参数进入官方 Basilisk CoarseSunSensor。传感器先计算余弦与 Kelly 非线性，再加无量纲偏置、乘比例因子，最后进行上下限饱和；它们不控制 EPS 太阳能板，也不表示项目故障注入器的噪声。</p>
+                      <label>测量比例系数 scaleFactor<input data-native-group="adcs" data-native-key="sun_sensor_scale_factor" type="number" min="0.001" max="4" step="any" value="1" required></label>
+                      <label>归一化偏置 senBias<input data-native-group="adcs" data-native-key="sun_sensor_bias_normalized" type="number" min="-0.5" max="0.5" step="any" value="0" required></label>
+                      <label>Kelly 非线性因子 kellyFactor<input data-native-group="adcs" data-native-key="sun_sensor_kelly_factor" type="number" min="0" max="1" step="any" value="0" required></label>
+                      <label>输出下限 minOutput<input data-native-group="adcs" data-native-key="sun_sensor_min_output" type="number" min="0" max="4" step="any" value="0" required title="缩放后的传感器读数下限，必须小于上限"></label>
+                      <label>输出上限 maxOutput<input data-native-group="adcs" data-native-key="sun_sensor_max_output" type="number" min="0.000001" max="1000000" step="any" value="1000000" required title="缩放后的读数上限；1000000 是 Basilisk 2.11 旧默认"></label>
+                    </details>
                     <label>太阳敏感器视场（°）<input data-native-group="adcs" data-native-key="sun_sensor_fov_deg" type="number" min="0.001" max="180" step="any" value="80" required title="设置 Basilisk CoarseSunSensor.fov，不代表星敏感器视场"></label>
                     <label>初始指向误差（°）<input data-native-group="adcs" data-native-key="initial_pointing_error_deg" type="number" min="0" max="90" step="any" value="8" required></label>
                     <label>姿态控制 K<input data-native-group="adcs" data-native-key="controller_k" type="number" min="0.001" max="100" step="any" value="3.5" required></label>
