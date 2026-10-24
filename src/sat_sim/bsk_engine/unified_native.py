@@ -370,9 +370,9 @@ def _build_unified_rows(
             "adcs.rw.command_torque_nm_0": float(recorder_map["rw_command_raw"].motorTorque[index][0]),
             "adcs.rw.command_torque_nm_1": float(recorder_map["rw_command_raw"].motorTorque[index][1]),
             "adcs.rw.command_torque_nm_2": float(recorder_map["rw_command_raw"].motorTorque[index][2]),
-            "adcs.rw.motor_current_a_0": max(-float(cfg.values.get("rw_motor_current_limit_a", 10.0)), min(float(cfg.values.get("rw_motor_current_limit_a", 10.0)), float(recorder_map["rw_command_raw"].motorTorque[index][0]) / max(float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)), 1.0e-12))),
-            "adcs.rw.motor_current_a_1": max(-float(cfg.values.get("rw_motor_current_limit_a", 10.0)), min(float(cfg.values.get("rw_motor_current_limit_a", 10.0)), float(recorder_map["rw_command_raw"].motorTorque[index][1]) / max(float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)), 1.0e-12))),
-            "adcs.rw.motor_current_a_2": max(-float(cfg.values.get("rw_motor_current_limit_a", 10.0)), min(float(cfg.values.get("rw_motor_current_limit_a", 10.0)), float(recorder_map["rw_command_raw"].motorTorque[index][2]) / max(float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)), 1.0e-12))),
+            "adcs.rw.motor_current_a_0": float(recorder_map["rw_command_applied"].motorTorque[index][0]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)),
+            "adcs.rw.motor_current_a_1": float(recorder_map["rw_command_applied"].motorTorque[index][1]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)),
+            "adcs.rw.motor_current_a_2": float(recorder_map["rw_command_applied"].motorTorque[index][2]) / float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)),
             "adcs.control.applied_torque_nm_0": float(recorder_map["rw_command_applied"].motorTorque[index][0]),
             "adcs.control.applied_torque_nm_1": float(recorder_map["rw_command_applied"].motorTorque[index][1]),
             "adcs.control.applied_torque_nm_2": float(recorder_map["rw_command_applied"].motorTorque[index][2]),
@@ -415,17 +415,17 @@ def _build_unified_rows(
         }
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         torque_constant = max(float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)), 1.0e-12)
-        current_limit = float(cfg.values.get("rw_motor_current_limit_a", 10.0))
         for wheel_index in range(3, wheel_count):
             nominal_torque = max(abs(float(cfg.values.get(
                 f"rw_max_torque_nm_{wheel_index}", cfg.values.get("rw_max_torque_nm", 0.2)
             ))), 1.0e-12)
             raw_torque = float(recorder_map["rw_command_raw"].motorTorque[index][wheel_index])
+            applied_torque = float(recorder_map["rw_command_applied"].motorTorque[index][wheel_index])
             row.update({
                 f"adcs.rw.speed_rad_s_{wheel_index}": float(rw_rec.wheelSpeeds[index][wheel_index]),
                 f"adcs.rw.measured_speed_rad_s_{wheel_index}": float(recorder_map["rw_measured"].wheelSpeeds[index][wheel_index]),
                 f"adcs.rw.command_torque_nm_{wheel_index}": raw_torque,
-                f"adcs.rw.motor_current_a_{wheel_index}": max(-current_limit, min(current_limit, raw_torque / torque_constant)),
+                f"adcs.rw.motor_current_a_{wheel_index}": applied_torque / torque_constant,
                 f"adcs.control.applied_torque_nm_{wheel_index}": float(recorder_map["rw_command_applied"].motorTorque[index][wheel_index]),
                 f"adcs.rw.effective_drag_nms_{wheel_index}": float(recorder_map["rw_effective_drag"].motorTorque[index][wheel_index]),
                 f"adcs.rw.effective_max_torque_nm_{wheel_index}": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][wheel_index]),
@@ -1090,6 +1090,8 @@ class UnifiedNativeRuntime:
         rw_fault = ReactionWheelCommandFaultManager(
             cfg.events, wheel_count=len(rw_axes), max_torque_nm=rw_hardware_u_max,
             wheel_max_torques_nm=rw_hardware_u_max_by_wheel,
+            motor_current_limit_a=values.get("rw_motor_current_limit_a", 10.0),
+            motor_torque_constant_nm_per_a=values.get("rw_motor_torque_constant_nm_per_a", 0.02),
         )
         rw_fault.commandInMsg.subscribeTo(motor.rwMotorTorqueOutMsg)
         rw_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)
