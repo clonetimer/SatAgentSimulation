@@ -10,6 +10,19 @@ import math
 from typing import Any, Mapping, Sequence
 
 
+def standard_rw_axes(configuration: str) -> tuple[tuple[float, float, float], ...]:
+    """Return physically defined 3RW orthogonal or 4RW tetrahedral axes."""
+    if configuration == "pyramid_4":
+        scale = 1.0 / math.sqrt(3.0)
+        return tuple(
+            tuple(scale * value for value in axis)
+            for axis in ((1., 1., 1.), (1., -1., -1.), (-1., 1., -1.), (-1., -1., 1.))
+        )
+    if configuration == "orthogonal_3":
+        return ((1., 0., 0.), (0., 1., 0.), (0., 0., 1.))
+    raise ValueError(f"unsupported rw_configuration: {configuration!r}")
+
+
 def _number(raw: Any, *, limit: float, error: str) -> float:
     if type(raw) not in (int, float):
         raise ValueError(error)
