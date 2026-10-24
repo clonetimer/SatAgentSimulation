@@ -383,9 +383,9 @@ def _build_unified_rows(
             "adcs.rw.effective_max_torque_nm_0": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][0]),
             "adcs.rw.effective_max_torque_nm_1": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][1]),
             "adcs.rw.effective_max_torque_nm_2": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][2]),
-            "adcs.rw.effective_torque_ratio_0": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][0]) / max(abs(float(cfg.values.get("rw_max_torque_nm", 0.2))), 1.0e-12),
-            "adcs.rw.effective_torque_ratio_1": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][1]) / max(abs(float(cfg.values.get("rw_max_torque_nm", 0.2))), 1.0e-12),
-            "adcs.rw.effective_torque_ratio_2": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][2]) / max(abs(float(cfg.values.get("rw_max_torque_nm", 0.2))), 1.0e-12),
+            "adcs.rw.effective_torque_ratio_0": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][0]) / max(abs(float(cfg.values.get("rw_max_torque_nm_0", cfg.values.get("rw_max_torque_nm", 0.2)))), 1.0e-12),
+            "adcs.rw.effective_torque_ratio_1": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][1]) / max(abs(float(cfg.values.get("rw_max_torque_nm_1", cfg.values.get("rw_max_torque_nm", 0.2)))), 1.0e-12),
+            "adcs.rw.effective_torque_ratio_2": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][2]) / max(abs(float(cfg.values.get("rw_max_torque_nm_2", cfg.values.get("rw_max_torque_nm", 0.2)))), 1.0e-12),
             "adcs.rw.effective_max_speed_rad_s_0": float(recorder_map["rw_effective_speed_limit"].wheelSpeeds[index][0]),
             "adcs.rw.effective_max_speed_rad_s_1": float(recorder_map["rw_effective_speed_limit"].wheelSpeeds[index][1]),
             "adcs.rw.effective_max_speed_rad_s_2": float(recorder_map["rw_effective_speed_limit"].wheelSpeeds[index][2]),
@@ -417,8 +417,10 @@ def _build_unified_rows(
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         torque_constant = max(float(cfg.values.get("rw_motor_torque_constant_nm_per_a", 0.02)), 1.0e-12)
         current_limit = float(cfg.values.get("rw_motor_current_limit_a", 10.0))
-        nominal_torque = max(abs(float(cfg.values.get("rw_max_torque_nm", 0.2))), 1.0e-12)
         for wheel_index in range(3, wheel_count):
+            nominal_torque = max(abs(float(cfg.values.get(
+                f"rw_max_torque_nm_{wheel_index}", cfg.values.get("rw_max_torque_nm", 0.2)
+            ))), 1.0e-12)
             raw_torque = float(recorder_map["rw_command_raw"].motorTorque[index][wheel_index])
             row.update({
                 f"adcs.rw.speed_rad_s_{wheel_index}": float(rw_rec.wheelSpeeds[index][wheel_index]),
@@ -686,6 +688,17 @@ class UnifiedNativeRuntime:
         rw_hardware_u_max = float(values.get("rw_max_torque_nm", 0.2))
         if not math.isfinite(rw_hardware_u_max) or not 0.0 < rw_hardware_u_max <= 0.2:
             raise ValueError("NATIVE_RW_HARDWARE_TORQUE_LIMIT_INVALID")
+        if len(rw_axes) != 4 and values.get("rw_max_torque_nm_3") is not None:
+            raise ValueError("NATIVE_RW4_TORQUE_LIMIT_REQUIRES_PYRAMID_4")
+        rw_hardware_u_max_by_wheel: list[float] = []
+        for wheel_index in range(len(rw_axes)):
+            raw = values.get(f"rw_max_torque_nm_{wheel_index}", rw_hardware_u_max)
+            if type(raw) not in (int, float):
+                raise ValueError("NATIVE_RW_PER_WHEEL_TORQUE_LIMIT_INVALID")
+            limit = float(raw)
+            if not math.isfinite(limit) or not 0.0 < limit <= 0.2:
+                raise ValueError("NATIVE_RW_PER_WHEEL_TORQUE_LIMIT_INVALID")
+            rw_hardware_u_max_by_wheel.append(limit)
         rw_friction_mode = str(values.get("rw_friction_mode", "disabled"))
         rw_coulomb = float(values.get("rw_coulomb_friction_nm", 0.0))
         rw_viscous = float(values.get("rw_viscous_friction_nms", 0.0))
@@ -765,7 +778,7 @@ class UnifiedNativeRuntime:
                 raise ValueError("NATIVE_RW_HR16_MOMENTUM_UNSUPPORTED")
             rw_factory.create(
                 "Honeywell_HR16", list(axis), maxMomentum=float(momentum_value),
-                Omega=omega_factory_rpm, u_max=rw_hardware_u_max,
+                Omega=omega_factory_rpm, u_max=rw_hardware_u_max_by_wheel[index],
                 label=f"RW{index + 1}",
                 rWB_B=[float(v) * rw_mount_radius for v in axis],
                 **rw_friction_kwargs,
@@ -976,7 +989,8 @@ class UnifiedNativeRuntime:
         connected("mrp_feedback.cmdTorqueOutMsg", "rw_motor_torque")
 
         rw_fault = ReactionWheelCommandFaultManager(
-            cfg.events, wheel_count=len(rw_axes), max_torque_nm=rw_hardware_u_max
+            cfg.events, wheel_count=len(rw_axes), max_torque_nm=rw_hardware_u_max,
+            wheel_max_torques_nm=rw_hardware_u_max_by_wheel,
         )
         rw_fault.commandInMsg.subscribeTo(motor.rwMotorTorqueOutMsg)
         rw_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)
