@@ -7,7 +7,7 @@ before it can reach a fresh runtime. No arbitrary tasks, paths or Python code.
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
 
 class _Strict(BaseModel):
@@ -44,7 +44,7 @@ class NativeAdcsInitial(_Strict):
     imu_accel_bias_m_s2_x: float = Field(default=0., ge=-1., le=1., description="原生 IMU X 轴加速度计恒定偏置（m/s²）")
     imu_accel_bias_m_s2_y: float = Field(default=0., ge=-1., le=1., description="原生 IMU Y 轴加速度计恒定偏置（m/s²）")
     imu_accel_bias_m_s2_z: float = Field(default=0., ge=-1., le=1., description="原生 IMU Z 轴加速度计恒定偏置（m/s²）")
-    simulation_seed: int = Field(default=0, ge=0, le=2147483647, description="官方 Basilisk IMU、星敏和项目事件注入共用的仿真随机种子；相同软件环境内可复现")
+    simulation_seed: StrictInt = Field(default=0, ge=0, le=2147483647, description="官方 Basilisk IMU、星敏和项目事件注入共用的仿真随机种子；相同软件环境内可复现")
     imu_gyro_white_noise_std_rad_s: float = Field(default=0., ge=0., le=.1, description="官方 Basilisk ImuSensor 陀螺三轴白噪声标准差（rad/s），直接配置 PMatrixGyro 与 A=0；0=禁用")
     imu_accel_white_noise_std_m_s2: float = Field(default=0., ge=0., le=1., description="官方 Basilisk ImuSensor 加速度计三轴白噪声标准差（m/s²），直接配置 PMatrixAccel 与 A=0；0=禁用")
     imu_gyro_max_rad_s: float = Field(default=0., ge=0., le=1000., description="原生 IMU 陀螺最大量程（rad/s，0=保持原生默认）")
