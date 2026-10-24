@@ -15,6 +15,105 @@ from sat_sim.adapter_base import SimulationResult
 from sat_sim.task_validator import ValidationIssue
 
 
+def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
+    """Opt-in original Basilisk RW dynamics; explicitly single-wheel/nominal only."""
+    from sat_sim.bsk_engine.native_rw_component import run_native_rw_probe
+
+    params = spec.get("parameters") if isinstance(spec.get("parameters"), Mapping) else {}
+    target = spec.get("target") if isinstance(spec.get("target"), Mapping) else {}
+    sim = spec.get("simulation") if isinstance(spec.get("simulation"), Mapping) else {}
+    # Fail closed even if a caller bypasses validate()/TaskSpec compilation.
+    unsupported = []
+    if str(target.get("mode") or "nominal") != "nominal":
+        unsupported.append("mode")
+    if type(params.get("num_wheels", 1)) is not int or params.get("num_wheels", 1) != 1:
+        unsupported.append("num_wheels")
+    if "torque_profile_nm" in params:
+        unsupported.append("torque_profile_nm")
+    if "damping_nms" in params and params["damping_nms"] != 0.0:
+        unsupported.append("damping_nms")
+    if (ReactionWheelAdapter._normalized_faults(spec)
+            or ReactionWheelAdapter._normalized_constraints(spec)
+            or ReactionWheelAdapter._rw_degradation_payload(spec)
+            or spec.get("events")):
+        unsupported.append("events_or_modifiers")
+    allowed = {"num_wheels", "wheel_inertia_kg_m2", "max_motor_torque_nm",
+               "max_speed_rad_s", "initial_wheel_speeds_rad_s", "command_torque_nm",
+               "physics_backend", "damping_nms"}
+    unsupported += sorted(set(params) - allowed)
+    if unsupported:
+        raise ValueError("NATIVE_RW_UNSUPPORTED:" + ",".join(unsupported))
+    duration = sim.get("duration_s", 3.)
+    sample = sim.get("sample_s", 0.1)
+    if type(sample) not in (int, float) or not 0.001 <= float(sample) <= 1.0:
+        raise ValueError("NATIVE_RW_SAMPLE_INTERVAL_UNSUPPORTED")
+    if type(duration) not in (int, float) or not 0.01 <= float(duration) <= 120.:
+        raise ValueError("NATIVE_RW_DURATION_UNSUPPORTED")
+    native = run_native_rw_probe(
+        duration_s=duration, step_s=sample,
+        inertia_kg_m2=params.get("wheel_inertia_kg_m2", .1),
+        max_motor_torque_nm=params.get("max_motor_torque_nm", .02),
+        max_speed_rad_s=params.get("max_speed_rad_s", 1000.),
+        initial_speed_rad_s=params.get("initial_wheel_speeds_rad_s", 100.),
+        command_torque_nm=params.get("command_torque_nm", .01),
+    )
+    task_id = str(spec.get("task_id") or (spec.get("task") or {}).get("id") or "native_rw_task")
+    metadata = spec.get("metadata") if isinstance(spec.get("metadata"), Mapping) else {}
+    case_id = str(metadata.get("case_id") or "case_000")
+    rows: list[dict[str, Any]] = []
+    for i, (time_s, speed, applied) in enumerate(zip(
+            native.times_s, native.wheel_speed_rad_s, native.applied_motor_torque_nm)):
+        rows.append({
+            "task_id": task_id, "case_id": case_id,
+            "time_s": time_s, "sample_index": i,
+            "target_level": "component", "target_name": "reaction_wheel",
+            "mode": "nominal",
+            "adcs.reaction_wheel.num_wheels": 1,
+            "adcs.reaction_wheel.speed_rad_s_0": speed,
+            "adcs.reaction_wheel.command_torque_nm_0": float(params.get("command_torque_nm", .01)),
+            "adcs.reaction_wheel.applied_torque_nm_0": applied,
+            "adcs.reaction_wheel.momentum_norm_nms": abs(native.factory_js_kg_m2 * speed),
+            "adcs.reaction_wheel.rotational_energy_j": .5 * native.factory_js_kg_m2 * speed**2,
+            "adcs.reaction_wheel.nominal_max_speed_rad_s_0": native.factory_omega_max_rad_s,
+            "adcs.reaction_wheel.effective_max_speed_rad_s_0": native.factory_omega_max_rad_s,
+            "adcs.reaction_wheel.nominal_max_torque_nm_0": native.factory_u_max_nm,
+            "adcs.reaction_wheel.effective_max_torque_nm_0": native.factory_u_max_nm,
+            "adcs.reaction_wheel.nominal_damping_nms_0": 0.0,
+            "adcs.reaction_wheel.damping_nms_0": 0.0,
+            "label.health_state": "nominal", "label.fault_active": False,
+            "label.degradation_active": False, "label.constraint_active": False,
+        })
+    speeds = [x["adcs.reaction_wheel.speed_rad_s_0"] for x in rows]
+    summary = {
+        "task_id": task_id, "case_id": case_id, "status": "complete",
+        "duration_s": float(duration), "sample_s": float(sample),
+        "target_level": "component", "target_name": "reaction_wheel",
+        "capability_id": ReactionWheelAdapter.capability_id,
+        "mode": "nominal", "trace_rows": len(rows),
+        "physics_backend": "basilisk_native",
+        "runtime_truth_status": "real_native_rw_spacecraft_recorded",
+        "qoi": {
+            "adcs.reaction_wheel.initial_speed_rad_s_0": speeds[0],
+            "adcs.reaction_wheel.final_speed_rad_s_0": speeds[-1],
+            "adcs.reaction_wheel.max_abs_speed_rad_s": max(abs(x) for x in speeds),
+            "adcs.reaction_wheel.final_momentum_norm_nms": rows[-1]["adcs.reaction_wheel.momentum_norm_nms"],
+            "adcs.reaction_wheel.final_rotational_energy_j": rows[-1]["adcs.reaction_wheel.rotational_energy_j"],
+        },
+    }
+    return SimulationResult(
+        summary=summary, trace_rows=tuple(rows),
+        labels={"run_labels": [{"task_id": task_id, "capability_id": ReactionWheelAdapter.capability_id,
+                                "mode": "nominal", "physics_backend": "basilisk_native"}]},
+        metadata={"capability_id": ReactionWheelAdapter.capability_id,
+                  "modifiers_applied_by_adapter": True,
+                  "physics_backend": "basilisk_native",
+                  "basilisk_official_native": ["spacecraft", "reactionWheelStateEffector"],
+                  "native_provenance": native.model_source,
+                  "limits": ["single wheel", "nominal only", "no fault/degradation",
+                             "no time-varying torque", "no EPS or ADCS closed loop"]},
+    )
+
+
 class ReactionWheelAdapter:
     """Production adapter for the reaction wheel component capability."""
 
@@ -60,6 +159,24 @@ class ReactionWheelAdapter:
             elif any(not self._numeric_or_numeric_sequence(item) for item in profile):
                 issues.append(ValidationIssue("error", "$.parameters.torque_profile_nm", "items must be numeric or numeric lists", "type"))
 
+        backend = params.get("physics_backend", "project_reference")
+        if type(backend) is not str or backend not in {"project_reference", "basilisk_native"}:
+            issues.append(ValidationIssue("error", "$.parameters.physics_backend", "unknown RW physics backend", "capability"))
+        elif backend == "basilisk_native":
+            native_unsupported = (
+                mode != "nominal" or num_wheels != 1 or "torque_profile_nm" in params
+                or ("damping_nms" in params and params["damping_nms"] != 0.0)
+                or bool(self._normalized_faults(spec)) or bool(self._normalized_constraints(spec))
+                or bool(self._rw_degradation_payload(spec)) or bool(spec.get("events"))
+            )
+            if native_unsupported:
+                issues.append(ValidationIssue("error", "$.parameters.physics_backend",
+                                              "native RW currently supports only single-wheel nominal, no modifiers/profile/damping",
+                                              "native_scope"))
+            if isinstance(sim.get("sample_s"), (int, float)) and float(sim["sample_s"]) > 1.0:
+                issues.append(ValidationIssue("error", "$.simulation.sample_s", "native RW sample_s <= 1 required", "native_scope"))
+            if isinstance(sim.get("duration_s"), (int, float)) and float(sim["duration_s"]) > 120.0:
+                issues.append(ValidationIssue("error", "$.simulation.duration_s", "native RW duration_s <= 120 required", "native_scope"))
         faults = self._normalized_faults(spec)
         if mode == "fault":
             supported = {"rw_jamming", "rw_motor_failure"}
@@ -84,6 +201,13 @@ class ReactionWheelAdapter:
         return tuple(issues)
 
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
+        params = spec.get("parameters") if isinstance(spec.get("parameters"), Mapping) else {}
+        backend = params.get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            return _run_basilisk_nominal(spec)
+        if backend != "project_reference":
+            raise ValueError("RW_PHYSICS_BACKEND_INVALID")
+
         from components.reaction_wheel.degradation import ReactionWheelDegradation
         from components.reaction_wheel.degradation import apply_reaction_wheel_degradation
         from components.reaction_wheel.model import clamp_motor_torque, momentum_norm_nms, rotational_energy_j, step_wheel_speed

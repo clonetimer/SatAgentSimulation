@@ -6,8 +6,7 @@ domain: adcs
 target: reaction_wheel
 trust_level: conformance_tested
 status: agent_ready_candidate
-summary: Pure-Python reaction wheel capability that maps TaskSpec parameters to components.reaction_wheel model classes without
-  using demo runner functions.
+summary: Default project Python wheel reference model, plus opt-in genuine Basilisk single-wheel nominal physics. Fault, constraint, degradation and profiles remain Python-only until native evidence exists.
 adapter:
   class_path: sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter
   script_export: true
@@ -18,6 +17,7 @@ implementation:
   - components.reaction_wheel.schemas
   - components.reaction_wheel.degradation
   - components.reaction_wheel.faults
+  - sat_sim.bsk_engine.native_rw_component
   legacy_demo_runner: components.reaction_wheel.runner
   uses_legacy_runner: false
   basilisk_required: false
@@ -40,6 +40,13 @@ modes:
     - friction_increase_pct
     - bearing_wear_factor
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    required: false
+    default: project_reference
+    description: Explicit engine; Basilisk supports only one wheel nominal with no time-varying torque, friction, faults or constraints. Default remains project Python reference.
   num_wheels:
     type: integer
     unit: count
@@ -190,6 +197,7 @@ simulation_module_interface:
     description: Stateful reaction-wheel speed vector produced by the registered step_wheel_speed dynamics API.
 validation:
   conformance_tests:
+  - test_component_rw_opt_in_real_basilisk_physics
   - test_reaction_wheel_duration_and_sample_control_trace
   - test_reaction_wheel_initial_speed_controls_first_sample
   - test_reaction_wheel_command_torque_controls_speed_change

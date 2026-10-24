@@ -14,6 +14,7 @@ from dataclasses import dataclass
 class NativeWheelTrace:
     times_s: tuple[float, ...]
     wheel_speed_rad_s: tuple[float, ...]
+    applied_motor_torque_nm: tuple[float, ...]
     factory_js_kg_m2: float
     factory_u_max_nm: float
     factory_omega_max_rad_s: float
@@ -23,6 +24,7 @@ class NativeWheelTrace:
         return {
             "times_s": list(self.times_s),
             "wheel_speed_rad_s": list(self.wheel_speed_rad_s),
+            "applied_motor_torque_nm": list(self.applied_motor_torque_nm),
             "factory_js_kg_m2": self.factory_js_kg_m2,
             "factory_u_max_nm": self.factory_u_max_nm,
             "factory_omega_max_rad_s": self.factory_omega_max_rad_s,
@@ -107,6 +109,10 @@ def run_native_rw_probe(
     wheels.rwMotorCmdInMsg.subscribeTo(cmd_msg)
     recorder = wheels.rwSpeedOutMsg.recorder(macros.sec2nano(step))
     sim.AddModelToTask("ComponentRWNativeTask", recorder, None, 5)
+    # SWIG RWConfigLogMsg provides the *physically applied* torque (u_current).
+    # Never calculate this field from Python-only clipping assumptions.
+    torque_recorder = wheels.rwOutMsgs[0].recorder(macros.sec2nano(step))
+    sim.AddModelToTask("ComponentRWNativeTask", torque_recorder, None, 4)
 
     sim.InitializeSimulation()
     sim.ConfigureStopTime(macros.sec2nano(duration))
@@ -115,13 +121,15 @@ def run_native_rw_probe(
     measured_times = tuple(float(ns) * 1e-9 for ns in recorder.times())
     # recorder output is from the SWIG C++ RWSpeedMsg, not a Python equation.
     measured_speed = tuple(float(sample[0]) for sample in recorder.wheelSpeeds)
-    if not measured_times or len(measured_times) != len(measured_speed):
+    measured_torque = tuple(float(v) for v in torque_recorder.u_current)
+    if not measured_times or len(measured_times) != len(measured_speed) or len(measured_speed) != len(measured_torque):
         raise RuntimeError("NATIVE_RW_REAL_RECORDER_MISSING")
-    if not all(math.isfinite(x) for x in measured_speed):
+    if not all(math.isfinite(x) for x in (*measured_speed, *measured_torque)):
         raise RuntimeError("NATIVE_RW_NONFINITE_SPEED")
     return NativeWheelTrace(
         times_s=measured_times,
         wheel_speed_rad_s=measured_speed,
+        applied_motor_torque_nm=measured_torque,
         factory_js_kg_m2=float(device.Js),
         factory_u_max_nm=float(device.u_max),
         factory_omega_max_rad_s=float(device.Omega_max),
