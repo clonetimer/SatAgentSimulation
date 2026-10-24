@@ -54,6 +54,13 @@ def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     assert ".single-run-config-summary" in css
     assert "配置已修改；上次校验已失效" in js
     assert "旧校验结果已丢弃" in js
+    assert "runLoadRequestId" in js
+    assert "requestId !== state.runLoadRequestId" in js
+    assert "applyChartTimeWindow" in js
+    assert ".chart-window-controls" in css
+    for control in ("chartTimeStart", "chartTimeEnd", "chartApplyWindowBtn",
+                    "chartResetWindowBtn", "chartWindowStatus"):
+        assert f'id="{control}"' in page
     assert "collectEventInputIssues" in js
     assert "必须填写整数" in js
     assert "数组必须包含有效数值" in js
@@ -225,6 +232,120 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             page.set_viewport_size({"width": 390, "height": 844})
             assert page.locator("#singleRunGuide").is_visible()
             assert page.locator("#singleRunGuide .single-run-step").count() == 3
+            assert not errors, errors
+        finally:
+            browser.close()
+
+
+def test_single_run_history_chart_window_and_failure_ui(tmp_path):
+    """Synthetic transport fixtures exercise UI only, never physics acceptance."""
+    pw = pytest.importorskip("playwright.sync_api")
+    payloads = {
+        "ui-a": {
+            "name": "UI 曲线验收 A", "status": "SUCCEEDED", "validation": "PASS",
+            "error": "", "times": [0, 1, 2, 3], "values": [4, 3, 2, 1],
+        },
+        "ui-b": {
+            "name": "UI 失败验收 B", "status": "FAILED", "validation": "NOT_EVALUATED",
+            "error": "UI-only synthetic failure", "times": [10, 20, 30],
+            "values": [2, 3, 1],
+        },
+    }
+
+    with _client(tmp_path) as client, pw.sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        try:
+            page = browser.new_page(viewport={"width": 1480, "height": 950}, locale="zh-CN")
+            errors = []
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def route_request(route):
+                request = route.request
+                url = urlsplit(request.url)
+                path = url.path
+                if request.method == "GET" and path == "/runs" and url.query == "limit=30":
+                    route.fulfill(json={"runs": [
+                        {"run_id": rid, "task_name": item["name"], "status": item["status"],
+                         "validation_result": item["validation"]}
+                        for rid, item in payloads.items()
+                    ]})
+                    return
+
+                parts = path.strip("/").split("/")
+                if request.method == "GET" and len(parts) >= 2 and parts[0] == "runs" and parts[1] in payloads:
+                    rid = parts[1]
+                    item = payloads[rid]
+                    if len(parts) == 2:
+                        response = {"run": {
+                            "sealed": item["status"] == "SUCCEEDED",
+                            "task_spec": {"task": {"name": item["name"]}},
+                            "run_record": {"run_id": rid, "task_id": rid, "status": item["status"],
+                                           "error": item["error"]},
+                            "validation_outcome": {"result": item["validation"]},
+                            "integrity": {"ok": item["status"] == "SUCCEEDED"},
+                        }}
+                    elif parts[2] == "plots":
+                        response = {"plot_manifest": {
+                            "time_axis": {"field": "time_s", "label": "仿真时间"},
+                            "series": [{"field": "adcs.pointing_error_deg", "label": "姿态误差"}],
+                        }}
+                    elif parts[2] == "telemetry":
+                        response = {"rows": [
+                            {"time_s": t, "adcs.pointing_error_deg": v}
+                            for t, v in zip(item["times"], item["values"])
+                        ]}
+                    elif parts[2] == "metrics":
+                        response = {"metrics": {}}
+                    elif parts[2] == "artifacts":
+                        response = {"artifacts": []}
+                    else:
+                        response = {}
+                    route.fulfill(json=response)
+                    return
+
+                assert request.method != "POST" or path != "/runs"
+                forwarded = client.request(
+                    request.method, path + (f"?{url.query}" if url.query else ""),
+                    content=request.post_data.encode("utf-8") if request.post_data else None,
+                    headers={k: v for k, v in request.headers.items()
+                             if k.lower() in ("authorization", "content-type", "accept")},
+                )
+                route.fulfill(
+                    status=forwarded.status_code, body=forwarded.content,
+                    headers={k: v for k, v in forwarded.headers.items()
+                             if k.lower() in ("content-type", "cache-control")},
+                )
+
+            page.route("https://workbench.test/**", route_request)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#runList .run-list-item").first.wait_for(timeout=30000)
+            page.locator("#runList [data-run-id='ui-a']").click()
+            page.locator("#activeRunCard .run-id").get_by_text("UI 曲线验收 A").wait_for(timeout=20000)
+            assert page.locator("#runList [data-run-id='ui-a']").get_attribute("aria-current") == "true"
+            page.locator(".result-tab[data-result-tab='charts']").click()
+            assert "4 / 4" in page.locator("#chartWindowStatus").inner_text()
+
+            page.locator("#chartTimeStart").fill("1")
+            page.locator("#chartTimeEnd").fill("2")
+            page.locator("#chartApplyWindowBtn").click()
+            assert "2 / 4" in page.locator("#chartWindowStatus").inner_text()
+            assert "局部范围" in page.locator("#chartWindowStatus").inner_text()
+            assert page.locator("#chartResetWindowBtn").is_enabled()
+
+            page.locator("#chartTimeStart").fill("-1")
+            page.locator("#chartApplyWindowBtn").click()
+            assert "范围无效" in page.locator("#chartWindowStatus").inner_text()
+            page.locator("#chartResetWindowBtn").click()
+            assert "4 / 4" in page.locator("#chartWindowStatus").inner_text()
+            assert page.locator("#chartResetWindowBtn").is_disabled()
+
+            page.locator("#runList [data-run-id='ui-b']").click()
+            page.locator("#activeRunCard .run-id").get_by_text("UI 失败验收 B").wait_for(timeout=20000)
+            assert "UI-only synthetic failure" in page.locator("#activeRunCard").inner_text()
+            assert page.locator("#runList [data-run-id='ui-b']").get_attribute("aria-current") == "true"
+            page.locator(".result-tab[data-result-tab='charts']").click()
+            assert "3 / 3" in page.locator("#chartWindowStatus").inner_text()
+            assert page.locator("#chartTimeStart").input_value() == "10"
             assert not errors, errors
         finally:
             browser.close()
