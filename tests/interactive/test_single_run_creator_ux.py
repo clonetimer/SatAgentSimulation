@@ -184,6 +184,27 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             end.press("Tab")
             assert calls == []
 
+            # The official whole-spacecraft event catalog contains gyro_bias_step
+            # with a registered vector3_or_number bias field.
+            page.locator("#effectSelect").select_option("gyro_bias_step")
+            page.locator("#addEffectBtn").click()
+            vector = page.locator("#eventList .event-card").last.locator('[data-event-field="parameters.bias_deg_s"]')
+            assert vector.count() == 1
+            vector.fill("1,,2")
+            vector.press("Tab")
+            assert vector.get_attribute("aria-invalid") == "true"
+            page.locator("#singleRunValidateBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#busyOverlay').classList.contains('hidden')",
+                timeout=20000,
+            )
+            assert "数组元素不能为空" in page.locator("#formValidationSummary").inner_text()
+            assert len(parse_calls) == before_invalid_parse
+            vector.fill("[0.1, 0, 0]")
+            vector.press("Tab")
+            assert vector.get_attribute("aria-invalid") == "false"
+            assert calls == []
+
             page.set_viewport_size({"width": 390, "height": 844})
             assert page.locator("#singleRunGuide").is_visible()
             assert page.locator("#singleRunGuide .single-run-step").count() == 3
