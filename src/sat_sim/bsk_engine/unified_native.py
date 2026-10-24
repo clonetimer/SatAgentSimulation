@@ -101,15 +101,8 @@ def _norm3(values: Any) -> float:
 
 def _reaction_wheel_axes(configuration: str) -> tuple[tuple[float, float, float], ...]:
     """Return the selected, non-duplicated actuator architecture."""
-    if configuration == "pyramid_4":
-        scale = 1.0 / math.sqrt(3.0)
-        return tuple(
-            tuple(scale * value for value in axis)
-            for axis in ((1.0, 1.0, 1.0), (1.0, -1.0, -1.0), (-1.0, 1.0, -1.0), (-1.0, -1.0, 1.0))
-        )
-    if configuration == "orthogonal_3":
-        return ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
-    raise ValueError(f"unsupported rw_configuration: {configuration!r}")
+    from .rw_geometry import standard_rw_axes
+    return standard_rw_axes(configuration)
 
 
 
