@@ -111,6 +111,34 @@ parameters:
     required: false
     default: 30.0
     min: 0.0
+  sun_sensor_fov_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 80.0
+    min: 0.001
+    max: 180.0
+  sun_sensor_normal_b_x:
+    type: number
+    unit: 1
+    required: false
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  sun_sensor_normal_b_y:
+    type: number
+    unit: 1
+    required: false
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  sun_sensor_normal_b_z:
+    type: number
+    unit: 1
+    required: false
+    default: -1.0
+    min: -1.0
+    max: 1.0
   magnetometer_mount_yaw_deg:
     type: number
     unit: deg
