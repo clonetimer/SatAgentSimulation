@@ -476,6 +476,20 @@
       rw4.required = four;
     }
   }
+  function updateRwFrictionNativeInitialLayout() {
+    const enabled = document.querySelector('[data-native-key="rw_friction_mode"]')?.value === 'coulomb_viscous';
+    for (const [key, labelId] of [
+      ['rw_coulomb_friction_nm', 'continuousRwCoulombLabel'],
+      ['rw_viscous_friction_nms', 'continuousRwViscousLabel'],
+    ]) {
+      $(labelId)?.classList.toggle('hidden', !enabled);
+      const control = document.querySelector('[data-native-key="' + key + '"]');
+      if (control) {
+        control.disabled = !enabled;
+        control.required = enabled;
+      }
+    }
+  }
   async function createSession(event) {
     event.preventDefault();
     const form = $('continuousCreateForm');
@@ -606,6 +620,9 @@
     document.querySelector('[data-native-key="rw_configuration"]')
       ?.addEventListener('change', updateRwNativeInitialLayout);
     updateRwNativeInitialLayout();
+    document.querySelector('[data-native-key="rw_friction_mode"]')
+      ?.addEventListener('change', updateRwFrictionNativeInitialLayout);
+    updateRwFrictionNativeInitialLayout();
     $('continuousRecoveryExportBtn')?.addEventListener('click', exportNativeRecovery);
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       button.addEventListener('click', () => control(button.dataset.continuousAction));
