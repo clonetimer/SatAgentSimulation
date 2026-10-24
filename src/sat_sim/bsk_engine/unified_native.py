@@ -641,8 +641,17 @@ class UnifiedNativeRuntime:
 
         sc = spacecraft.Spacecraft()
         sc.hub.mHub = float(values.get("spacecraft_mass_kg", 100.0))
-        inertia = [100.0, 80.0, 60.0]
-        sc.hub.IHubPntBc_B = [[inertia[0], 0.0, 0.0], [0.0, inertia[1], 0.0], [0.0, 0.0, inertia[2]]]
+        # Configurable diagonal rigid-body inertia in the body B frame.
+        # Preserve the historical nominal values when omitted; mass is a
+        # separate independent input and never silently rescales inertia.
+        inertia = [float(values.get(f"spacecraft_inertia_{axis}_kg_m2", default))
+                   for axis, default in (("xx", 100.0), ("yy", 80.0), ("zz", 60.0))]
+        if any(not math.isfinite(moment) or not 0. < moment <= 10000. for moment in inertia):
+            raise ValueError("NATIVE_SPACECRAFT_PRINCIPAL_INERTIA_INVALID")
+        xx, yy, zz = inertia
+        if xx >= yy + zz or yy >= xx + zz or zz >= xx + yy:
+            raise ValueError("NATIVE_SPACECRAFT_PRINCIPAL_INERTIA_TRIANGLE_VIOLATION")
+        sc.hub.IHubPntBc_B = [[xx, 0.0, 0.0], [0.0, yy, 0.0], [0.0, 0.0, zz]]
         gravity_factory = simIncludeGravBody.gravBodyFactory()
         earth = gravity_factory.createEarth()
         earth.isCentralBody = True
