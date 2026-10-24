@@ -34,6 +34,21 @@ class NativeAdcsInitial(_Strict):
     controller_k: float = Field(default=3.5, gt=0., le=100.)
     controller_p: float = Field(default=30., gt=0., le=300.)
     rw_configuration: Literal["orthogonal_3", "pyramid_4"] = "orthogonal_3"
+    rw_friction_mode: Literal["disabled", "coulomb_viscous"] = Field(
+        default="disabled", description="原生 RW 摩擦：关闭或启用库仑/粘滞摩擦；整轮组共用相同系数",
+    )
+    rw_coulomb_friction_nm: float = Field(
+        default=0., ge=0., le=0.01,
+        description="原生 rwFactory.create.fCoulomb，所有 RW 共用；N·m",
+    )
+    rw_viscous_friction_nms: float = Field(
+        default=0., ge=0., le=0.01,
+        description="原生 rwFactory.create.cViscous，所有 RW 共用；N·m·s/rad",
+    )
+    rw_mount_radius_m: float = Field(
+        default=0., ge=0., le=0.25,
+        description="原生 rwFactory.create.rWB_B，按每只轮安装轴乘以共同偏移距离；m（简化安装几何）",
+    )
     rw_max_torque_nm: float = Field(
         default=.2, gt=0., le=.2,
         description="真实 Basilisk RW 电机 u_max 与指令故障管理器的共同限幅 (N·m)",
@@ -48,6 +63,14 @@ class NativeAdcsInitial(_Strict):
     def wheel_count_matches_hardware(self):
         if self.rw_configuration != "pyramid_4" and self.rw_initial_speed_rad_s_3 is not None:
             raise ValueError("RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
+        if self.rw_friction_mode == "disabled" and (
+            self.rw_coulomb_friction_nm != 0 or self.rw_viscous_friction_nms != 0
+        ):
+            raise ValueError("RW_FRICTION_DISABLED_REQUIRES_ZERO_COEFFICIENTS")
+        if self.rw_friction_mode == "coulomb_viscous" and (
+            self.rw_coulomb_friction_nm == 0 and self.rw_viscous_friction_nms == 0
+        ):
+            raise ValueError("RW_FRICTION_ENABLED_REQUIRES_POSITIVE_COEFFICIENT")
         return self
 
 
@@ -103,6 +126,8 @@ _UNITS = {
     "initial_true_anomaly_rad": "rad",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",
     "rw_configuration": "枚举", "rw_max_torque_nm": "N·m",
+    "rw_friction_mode": "枚举", "rw_coulomb_friction_nm": "N·m",
+    "rw_viscous_friction_nms": "N·m·s/rad", "rw_mount_radius_m": "m",
     "rw_initial_speed_rad_s_0": "rad/s", "rw_initial_speed_rad_s_1": "rad/s",
     "rw_initial_speed_rad_s_2": "rad/s", "rw_initial_speed_rad_s_3": "rad/s",
     "battery_capacity_wh": "Wh", "initial_soc": "1", "solar_panel_area_m2": "m²",

@@ -6,6 +6,8 @@ is validated by the native-only test without substituting a Python orbit/EPS.
 from __future__ import annotations
 
 import time
+import re
+from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
@@ -34,6 +36,10 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     assert adcs_fields["sun_sensor_fov_deg"]["unit"] == "deg"
     assert orbit_fields["spacecraft_mass_kg"]["default"] == 100.
     assert adcs_fields["sun_sensor_fov_deg"]["default"] == 80.
+    assert adcs_fields["rw_friction_mode"]["default"] == "disabled"
+    assert adcs_fields["rw_mount_radius_m"]["unit"] == "m"
+    assert adcs_fields["rw_coulomb_friction_nm"]["unit"] == "N·m"
+    assert adcs_fields["rw_viscous_friction_nms"]["unit"] == "N·m·s/rad"
     from pydantic import ValidationError
     wheel4 = ContinuousInitialConfiguration.model_validate({
         "adcs": {"rw_configuration": "pyramid_4", "rw_initial_speed_rad_s_3": -50.},
@@ -48,12 +54,41 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     }).native_values() == {"battery_capacity_wh": 180., "initial_soc": .7}
 
 
+
+def test_continuous_web_form_matches_registered_native_catalog():
+    """Regress #48: previously API-available mass/FOV were missing in HTML."""
+    root = Path(__file__).resolve().parents[2]
+    html = (root / "src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    js = (root / "src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+    offered = re.findall(
+        r'<(?:input|select)\b[^>]*data-native-group="([^"]+)"[^>]*data-native-key="([^"]+)"',
+        html,
+    )
+    expected = [(group["group"], item["name"])
+                for group in initial_configuration_catalog()["groups"] for item in group["fields"]]
+    assert len(offered) == len(set(offered)), "duplicate native controls"
+    assert set(offered) == set(expected), (
+        f"missing={sorted(set(expected) - set(offered))}; extra={sorted(set(offered) - set(expected))}"
+    )
+    assert "updateRwFrictionNativeInitialLayout" in js
+    assert "updateRwNativeInitialLayout" in js
+
+
 @pytest.mark.parametrize("bad", [
     {"orbit": {"orbit_radius_m": 120}},
     {"orbit": {"spacecraft_mass_kg": 0}},
     {"orbit": {"spacecraft_mass_kg": 3000}},
     {"adcs": {"sun_sensor_fov_deg": 0}},
     {"adcs": {"sun_sensor_fov_deg": 185}},
+    {"adcs": {"rw_friction_mode": "unlimited"}},
+    {"adcs": {"rw_coulomb_friction_nm": -1e-5}},
+    {"adcs": {"rw_viscous_friction_nms": 0.02}},
+    {"adcs": {"rw_mount_radius_m": -0.01}},
+    {"adcs": {"rw_mount_radius_m": 0.4}},
+    {"adcs": {"rw_friction_mode": "disabled", "rw_coulomb_friction_nm": 1e-5}},
+    {"adcs": {"rw_friction_mode": "coulomb_viscous"}},
+    {"adcs": {"rw_friction_mode": "coulomb_viscous", "rw_coulomb_friction_nm": 0,
+              "rw_viscous_friction_nms": 0}},
     {"adcs": {"rw_configuration": "arbitrary_python"}},
     {"eps": {"initial_soc": 1.5}},
     {"eps": {"solar_panel_area_m2": -1}},
@@ -90,7 +125,11 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
                 "orbit": {"orbit_radius_m": 7_200_000., "inclination_deg": 46.,
                           "spacecraft_mass_kg": 145.},
                 "adcs": {"rw_configuration": "orthogonal_3", "controller_k": 7.,
-                         "sun_sensor_fov_deg": 43.},
+                         "sun_sensor_fov_deg": 43.,
+                         "rw_friction_mode": "coulomb_viscous",
+                         "rw_coulomb_friction_nm": 2e-5,
+                         "rw_viscous_friction_nms": 3e-7,
+                         "rw_mount_radius_m": .12},
                 "eps": {"battery_capacity_wh": 200., "initial_soc": .75,
                         "solar_panel_area_m2": 3.},
                 "payload": {"payload_data_rate_bps": 1_500_000.},
@@ -103,6 +142,10 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert values["orbit_radius_m"] == 7_200_000.
         assert values["spacecraft_mass_kg"] == 145.
         assert values["sun_sensor_fov_deg"] == 43.
+        assert values["rw_friction_mode"] == "coulomb_viscous"
+        assert values["rw_coulomb_friction_nm"] == 2e-5
+        assert values["rw_viscous_friction_nms"] == 3e-7
+        assert values["rw_mount_radius_m"] == .12
         assert values["inclination_deg"] == 46.
         assert values["battery_capacity_wh"] == 200.
         assert values["rw_configuration"] == "orthogonal_3"
@@ -199,6 +242,9 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
         factory_invocations.append({
             "wheel_model": wheel_model, "u_max": kwargs["u_max"],
             "Omega": kwargs["Omega"], "label": kwargs["label"],
+            "position": kwargs["rWB_B"], "friction": kwargs["useRWfriction"],
+            "fCoulomb": kwargs.get("fCoulomb", 0.),
+            "cViscous": kwargs.get("cViscous", 0.),
         })
         return native_factory_create(self, wheel_model, axis, **kwargs)
     monkeypatch.setattr(simIncludeRW.rwFactory, "create", capture_native_factory)
@@ -215,6 +261,10 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                 "adcs": {
                     "controller_k": 5., "controller_p": 25.,
                     "sun_sensor_fov_deg": 43.,
+                    "rw_friction_mode": "coulomb_viscous",
+                    "rw_coulomb_friction_nm": 2e-5,
+                    "rw_viscous_friction_nms": 3e-7,
+                    "rw_mount_radius_m": .12,
                     "rw_max_torque_nm": 0.05,
                     "rw_initial_speed_rad_s_0": -50.,
                     "rw_initial_speed_rad_s_1": 140.,
@@ -270,6 +320,13 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
     )
     assert [x["u_max"] for x in factory_invocations[:3]] == [.2] * 3
     assert [x["u_max"] for x in factory_invocations[3:]] == [.05] * 3
+    assert [x["friction"] for x in factory_invocations] == [False] * 3 + [True] * 3
+    assert [x["fCoulomb"] for x in factory_invocations[3:]] == pytest.approx([2e-5] * 3)
+    assert [x["cViscous"] for x in factory_invocations[3:]] == pytest.approx([3e-7] * 3)
+    assert [x["position"] for x in factory_invocations[:3]] == [[0., 0., 0.]] * 3
+    assert [x["position"] for x in factory_invocations[3:]] == [
+        [.12, 0., 0.], [0., .12, 0.], [0., 0., .12],
+    ]
 
 
 def test_native_basilisk_four_rw_telemetry_and_independent_hardware_initialization(
