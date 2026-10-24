@@ -122,11 +122,30 @@ class NativePropulsionInitial(_Strict):
     propulsion_tank_capacity_kg: float = Field(default=2., gt=0., le=100., description="原生 FuelTank 容量（kg），不得小于初始燃料质量")
     propulsion_min_burn_soc: float = Field(default=.30, ge=0., le=1., description="推进点火许可的最小电池 SOC")
     propulsion_power_w: float = Field(default=20., ge=0., le=500., description="每只点火中的推进器电功率估算（W，项目侧功率桥）")
+    propulsion_min_pulse_s: float = Field(default=.05, gt=0., le=10., description="真实 Basilisk Thruster MinOnTime（s）；硬件最小脉冲，不等于计划点火时间")
+    propulsion_thruster_0_direction_b_x: float = Field(default=1., ge=-1., le=1., description="原生推进器 1 的机体系 B 推力方向 X 分量（必须为单位向量）")
+    propulsion_thruster_0_direction_b_y: float = Field(default=0., ge=-1., le=1., description="原生推进器 1 的机体系 B 推力方向 Y 分量（必须为单位向量）")
+    propulsion_thruster_0_direction_b_z: float = Field(default=0., ge=-1., le=1., description="原生推进器 1 的机体系 B 推力方向 Z 分量（必须为单位向量）")
+    propulsion_thruster_0_location_b_x_m: float = Field(default=0., ge=-2., le=2., description="推进器 1 的机体系 B 安装位置 X（m），相对整星质心坐标原点")
+    propulsion_thruster_0_location_b_y_m: float = Field(default=.5, ge=-2., le=2., description="推进器 1 的机体系 B 安装位置 Y（m），相对整星质心坐标原点")
+    propulsion_thruster_0_location_b_z_m: float = Field(default=0., ge=-2., le=2., description="推进器 1 的机体系 B 安装位置 Z（m），相对整星质心坐标原点")
+    propulsion_thruster_1_direction_b_x: float = Field(default=1., ge=-1., le=1., description="原生推进器 2 的机体系 B 推力方向 X 分量（必须为单位向量）")
+    propulsion_thruster_1_direction_b_y: float = Field(default=0., ge=-1., le=1., description="原生推进器 2 的机体系 B 推力方向 Y 分量（必须为单位向量）")
+    propulsion_thruster_1_direction_b_z: float = Field(default=0., ge=-1., le=1., description="原生推进器 2 的机体系 B 推力方向 Z 分量（必须为单位向量）")
+    propulsion_thruster_1_location_b_x_m: float = Field(default=0., ge=-2., le=2., description="推进器 2 的机体系 B 安装位置 X（m），相对整星质心坐标原点")
+    propulsion_thruster_1_location_b_y_m: float = Field(default=-.5, ge=-2., le=2., description="推进器 2 的机体系 B 安装位置 Y（m），相对整星质心坐标原点")
+    propulsion_thruster_1_location_b_z_m: float = Field(default=0., ge=-2., le=2., description="推进器 2 的机体系 B 安装位置 Z（m），相对整星质心坐标原点")
 
     @model_validator(mode="after")
     def check_propellant_capacity(self):
         if self.propulsion_initial_propellant_kg > self.propulsion_tank_capacity_kg:
             raise ValueError("PROPULSION_INITIAL_FUEL_EXCEEDS_TANK_CAPACITY")
+        for index in (0, 1):
+            direction = [getattr(self, f"propulsion_thruster_{index}_direction_b_{axis}")
+                         for axis in "xyz"]
+            norm_sq = sum(x * x for x in direction)
+            if not 0.999 <= norm_sq <= 1.001:
+                raise ValueError(f"PROPULSION_THRUSTER_{index}_DIRECTION_NOT_UNIT")
         return self
 
 
@@ -208,6 +227,19 @@ _UNITS = {
     "propulsion_burn_start_s": "s", "propulsion_burn_on_time_s": "s",
     "propulsion_initial_propellant_kg": "kg", "propulsion_tank_capacity_kg": "kg",
     "propulsion_min_burn_soc": "1", "propulsion_power_w": "W",
+    "propulsion_min_pulse_s": "s",
+    "propulsion_thruster_0_direction_b_x": "1",
+    "propulsion_thruster_0_location_b_x_m": "m",
+    "propulsion_thruster_0_direction_b_y": "1",
+    "propulsion_thruster_0_location_b_y_m": "m",
+    "propulsion_thruster_0_direction_b_z": "1",
+    "propulsion_thruster_0_location_b_z_m": "m",
+    "propulsion_thruster_1_direction_b_x": "1",
+    "propulsion_thruster_1_location_b_x_m": "m",
+    "propulsion_thruster_1_direction_b_y": "1",
+    "propulsion_thruster_1_location_b_y_m": "m",
+    "propulsion_thruster_1_direction_b_z": "1",
+    "propulsion_thruster_1_location_b_z_m": "m",
     "initial_payload_temp_k": "K", "initial_comm_temp_k": "K",
     "initial_propulsion_temp_k": "K", "comm_structure_conductance_w_k": "W/K",
     "propulsion_structure_conductance_w_k": "W/K",
