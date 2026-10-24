@@ -27,6 +27,8 @@ def test_genuine_native_wheel_motor_and_inertia_a_b():
     double_inertia = run_native_rw_probe(inertia_kg_m2=.2, command_torque_nm=.01)
     clamped = run_native_rw_probe(command_torque_nm=.05, max_motor_torque_nm=.005)
     at_limit = run_native_rw_probe(command_torque_nm=.005, max_motor_torque_nm=.005)
+    coasting = run_native_rw_probe(initial_speed_rad_s=100., command_torque_nm=0., damping_nms=0.)
+    damped = run_native_rw_probe(initial_speed_rad_s=100., command_torque_nm=0., damping_nms=.0002)
     assert baseline.model_source == "Basilisk.simulation.reactionWheelStateEffector"
     assert baseline.times_s == driven.times_s == double_inertia.times_s == clamped.times_s == at_limit.times_s
     assert len(baseline.times_s) > 5
@@ -45,6 +47,12 @@ def test_genuine_native_wheel_motor_and_inertia_a_b():
     assert clamped.wheel_speed_rad_s == pytest.approx(at_limit.wheel_speed_rad_s, abs=1e-5)
     assert abs(clamped.wheel_speed_rad_s[-1] - baseline.wheel_speed_rad_s[-1]) > .02
 
+    # A/B genuinely executed in Basilisk: viscous damping must change wheel speed
+    # and the RWConfigLog message must record nonzero friction torque.
+    assert abs(damped.wheel_speed_rad_s[-1]) < abs(coasting.wheel_speed_rad_s[-1]) - .03
+    assert max(abs(x) for x in damped.measured_friction_torque_nm) > .0001
+    assert max(abs(x) for x in coasting.measured_friction_torque_nm) == pytest.approx(0.)
+
     # Persist source measurements only after native physical assertions passed.
     import Basilisk
     report = {
@@ -58,11 +66,14 @@ def test_genuine_native_wheel_motor_and_inertia_a_b():
             "double_inertia": double_inertia.as_dict(),
             "clamped_above_u_max": clamped.as_dict(),
             "command_at_u_max": at_limit.as_dict(),
+            "zero_viscous_friction": coasting.as_dict(),
+            "nonzero_viscous_friction": damped.as_dict(),
         },
         "physical_comparisons": {
             "command_delta_rad_s": driven_delta,
             "double_inertia_delta_rad_s": heavier_delta,
             "inertia_response_ratio": heavier_delta / driven_delta,
+            "viscous_friction_speed_delta_rad_s": abs(coasting.wheel_speed_rad_s[-1]) - abs(damped.wheel_speed_rad_s[-1]),
             "saturated_limit_max_abs_difference_rad_s": max(
                 abs(a - b) for a, b in zip(clamped.wheel_speed_rad_s, at_limit.wheel_speed_rad_s)
             ),
