@@ -39,3 +39,10 @@ jobs:
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q -s tests/test_native_rw_component_probe.py
+
+      - name: Archive Basilisk-native measured RW traces and A/B metrics
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-rw-component-physical-ab
+          path: reports/native_rw_component_probe/physical_ab.json
+          if-no-files-found: error
