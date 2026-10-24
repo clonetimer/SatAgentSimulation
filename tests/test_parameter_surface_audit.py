@@ -63,7 +63,7 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert whole["native_keys_not_exposed_in_continuous_initial"]
     markdown = render_parameter_surface_markdown(report)
     assert "不代表物理生效验收通过" in markdown
-    assert "rw_configuration" in markdown
+    assert "gyro_base_noise_std_rad_s" in markdown
 
 
 def test_registry_parameter_dropped_from_form_is_a_blocking_coverage_failure(monkeypatch) -> None:
