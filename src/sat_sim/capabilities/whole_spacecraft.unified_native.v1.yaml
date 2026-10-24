@@ -116,6 +116,155 @@ parameters:
     required: false
     default: orthogonal_3
     enum: [orthogonal_3, pyramid_4]
+  rw_geometry_mode:
+    type: string
+    required: false
+    default: legacy_axis_offset
+    enum: [legacy_axis_offset, per_wheel]
+  rw_axis_b_x_0:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_y_0:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_z_0:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_mount_b_x_m_0:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_y_m_0:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_z_m_0:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_axis_b_x_1:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_y_1:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_z_1:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_mount_b_x_m_1:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_y_m_1:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_z_m_1:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_axis_b_x_2:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_y_2:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_z_2:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_mount_b_x_m_2:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_y_m_2:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_z_m_2:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_axis_b_x_3:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_y_3:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_axis_b_z_3:
+    type: number
+    unit: 1
+    required: false
+    min: -1.0
+    max: 1.0
+  rw_mount_b_x_m_3:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_y_m_3:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
+  rw_mount_b_z_m_3:
+    type: number
+    unit: m
+    required: false
+    min: -0.25
+    max: 0.25
   rw_friction_mode:
     type: string
     required: false
