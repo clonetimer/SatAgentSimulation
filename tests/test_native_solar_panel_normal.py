@@ -25,7 +25,7 @@ def test_fixed_body_frame_panel_normal_is_visible_and_forwarded():
     assert all(fields[f"solar_normal_b_{axis}"]["unit"] == "1" for axis in "xyz")
     assert [fields[f"solar_normal_b_{axis}"]["default"] for axis in "xyz"] == [1., 0., 0.]
     html = (Path(__file__).resolve().parents[1] / "src/sat_sim/web/index.html").read_text(encoding="utf-8")
-    assert "当前原生整星未实现太阳自动跟踪" in html
+    assert "不包含太阳翼铰链/电机力矩等硬件动力学" in html
 
 
 @pytest.mark.parametrize("invalid", [
