@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.15.2-finite-config-ux">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.15.3-finite-results-ux">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
 </head>
 <body>
@@ -449,6 +449,13 @@
         <div id="resultCharts" class="result-content" data-result-panel="charts">
           <div class="chart-axis-note">横轴固定为仿真时间（time_s）；曲线按整星 / 分系统 / 部件层次选择，最多同时显示 4 条。</div>
           <div id="chartControls" class="chart-controls"></div>
+          <div class="chart-window-controls" aria-label="曲线时间范围">
+            <label>起点 / s <input id="chartTimeStart" type="number" step="any" inputmode="decimal" aria-label="曲线开始时间"></label>
+            <label>终点 / s <input id="chartTimeEnd" type="number" step="any" inputmode="decimal" aria-label="曲线结束时间"></label>
+            <button id="chartApplyWindowBtn" class="button button-secondary" type="button">应用范围</button>
+            <button id="chartResetWindowBtn" class="button button-ghost" type="button">恢复全程</button>
+          </div>
+          <div id="chartWindowStatus" class="chart-window-status" role="status" aria-live="polite">选择运行后可查看曲线时窗。</div>
           <div class="chart-frame"><canvas id="telemetryChart" width="760" height="360"></canvas></div>
           <div id="chartLegend" class="chart-legend"></div>
         </div>
@@ -929,8 +936,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.15.2-finite-config-ux";</script>
-  <script src="/assets/app.js?v=0.15.2-finite-config-ux" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.15.3-finite-results-ux";</script>
+  <script src="/assets/app.js?v=0.15.3-finite-results-ux" defer></script>
   <script src="/assets/continuous.js?v=0.16.0-r7-ui" defer></script>
 </body>
 </html>
