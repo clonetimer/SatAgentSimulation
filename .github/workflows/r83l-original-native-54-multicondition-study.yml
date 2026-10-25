@@ -1,11 +1,10 @@
 name: R83l Original Basilisk 54 Native RW Multiwheel Physics Study
 
-# First-pass prospective source run, not model training; lock protocol and
-# seal the original run after it completes. Do not treat PR checks as science.
+# ORIGINAL 54-case Basilisk source run #40156825783 already completed.
+# Case-level source data remain SEALED, including the disclosed wheel-field
+# metadata shadow defect. Changes to export code must not create a new
+# auto-selected physics outcome; manual replay needs explicit research intent.
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/r83l-original-native-54-multicondition-study.yml'
   workflow_dispatch:
 
 permissions:
