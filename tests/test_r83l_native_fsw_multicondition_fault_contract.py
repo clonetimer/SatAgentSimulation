@@ -73,3 +73,16 @@ def test_real_physics_fields_present_and_protected_from_model_input():
         "not_a_generalizable_diagnostic_benchmark",
     ):
         assert exact in s
+
+
+
+def test_wheel_target_id_not_shadowed_by_allocator_recorder_vector():
+    # Regression for a genuine metadata defect disclosed in the FIRST
+    # original 54-case artifact: a local 'wheel' assignment accidentally
+    # overwrote the original integer target with final motor torque values.
+    # Raw original physical source is immutable; later generators must fix it.
+    code=SOURCE.read_text(encoding="utf8")
+    assert "wheel_commands=_float3(motor_rec.motorTorque[i])" in code
+    assert "wheel=_float3(motor_rec.motorTorque[i])" not in code
+    assert 'source_fault_target_index_QA_ONLY":wheel' in code
+    assert 'native_independent_condition_id":f"rw{wheel}_initial{initial}"' in code
