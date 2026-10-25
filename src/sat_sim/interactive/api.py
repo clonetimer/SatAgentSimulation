@@ -42,6 +42,10 @@ class ContinuousCreateBody(_Strict):
     initial_configuration: ContinuousInitialConfiguration = Field(default_factory=ContinuousInitialConfiguration)
 
 
+class OfflineNativePreviewBody(_Strict):
+    form_data: dict[str, Any]
+
+
 class EnduranceStartBody(_Strict):
     sample_interval_s: Literal[1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 300.0] = 5.0
 
@@ -156,6 +160,15 @@ def create_interactive_router(
     @router.get("/continuous/configuration/catalog")
     def continuous_configuration_catalog():
         return initial_configuration_catalog()
+
+    @router.post("/continuous/configuration/preview-from-finite")
+    def preview_offline_native_configuration(body: OfflineNativePreviewBody):
+        """Compare edited finite native configuration without creating a session."""
+        from .offline_config_bridge import preview_finite_config_for_live
+        try:
+            return preview_finite_config_for_live(body.form_data)
+        except ValueError as exc:
+            raise HTTPException(422, detail={"reason_code": str(exc)}) from exc
 
     @router.post("/continuous/sessions", status_code=201)
     def create_continuous_session(body: ContinuousCreateBody, request: Request):
