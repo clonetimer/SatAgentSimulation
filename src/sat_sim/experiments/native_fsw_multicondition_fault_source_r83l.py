@@ -79,7 +79,7 @@ def validate_schedule(schedule: tuple[tuple[float,float], ...] = SCHEDULE):
             "wheel_speed_observation_limit_rad_s":WHEEL_SPEED_OBSERVATION_LIMIT_RAD_S,
             "safety_independently_certified":False,
             "flight_qualified":False,
-            "no_rw_fault_injected":True,
+            "fault_physical_derating_experiment":True,
             "diagnostic_model_trained":False}
 
 
