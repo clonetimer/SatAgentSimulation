@@ -253,17 +253,17 @@ def run_native_parameter_case(*, wheel: int, initial: int,
     for i,t in enumerate(raw_times):
         ref=_float3(ref_rec.sigma_RN[i])
         body=_float3(cmd_rec.torqueRequestBody[i])
-        wheel=_float3(motor_rec.motorTorque[i])
+        wheel_commands=_float3(motor_rec.motorTorque[i])
         speeds=_float3(rw_rec.wheelSpeeds[i])
         sigma=_float3(sc_rec.sigma_BN[i])
         omega=_float3(sc_rec.omega_BN_B[i])
         actual=float(rw_actual_rec.u_current[i])
-        if not all(math.isfinite(v) for v in (*ref,*body,*wheel,*speeds,*sigma,*omega,actual)):
+        if not all(math.isfinite(v) for v in (*ref,*body,*wheel_commands,*speeds,*sigma,*omega,actual)):
             raise RuntimeError("R83L_NONFINITE_NATIVE_MESSAGE")
         rows.append({"time_s":t,
                      **{f"fsw.native_reference_mrp_{j}":ref[j] for j in range(3)},
                      **{f"fsw.body_request_nm_{j}":body[j] for j in range(3)},
-                     **{f"rw.native_allocator_request_nm_{j}":wheel[j] for j in range(3)},
+                     **{f"rw.native_allocator_request_nm_{j}":wheel_commands[j] for j in range(3)},
                      **{f"rw.native_speed_rad_s_{j}":speeds[j] for j in range(3)},
                      "rw.native_target_applied_torque_nm_QA_ONLY":actual,
                      **{f"hub.sigma_bn_{j}":sigma[j] for j in range(3)},
