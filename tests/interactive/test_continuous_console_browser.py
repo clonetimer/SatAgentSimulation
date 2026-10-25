@@ -117,13 +117,13 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             offline_orbit.press("Tab")
             page.locator("#interactiveNavButton").click()
             page.locator("#interactiveImportOfflineConfigBtn").click()
-            page.get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
+            page.locator("#interactiveOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
             assert "orbit_radius_m" in page.locator("#interactiveOfflineConfigStatus").inner_text()
             assert running == []  # Review must not auto-start a physical run.
             page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
             page.locator("#continuousNavButton").click()
             page.locator("#continuousImportOfflineConfigBtn").click()
-            page.get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
+            page.locator("#continuousOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
             assert page.locator('[data-native-key="orbit_radius_m"]').input_value() == "7230000"
             assert running == []  # Import is configuration only.
             assert page.locator("#continuousView").is_visible()
