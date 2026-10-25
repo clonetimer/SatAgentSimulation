@@ -6366,6 +6366,44 @@
     hint.classList.toggle('is-subsystem', descriptor.scope !== 'whole');
   }
 
+  async function chooseSimulationCreateMode(mode) {
+    const status = el('simulationModeChooserStatus');
+    if (mode === 'finite') {
+      switchView('creator');
+      status.textContent = '继续在此配置单次仿真，校验后再点击运行，不会自动提交。';
+      return true;
+    }
+    if (!state.interactiveAvailable) {
+      status.textContent = '实时会话服务未启用或当前不可用；保留离线配置不变。';
+      return false;
+    }
+    if (state.selectedCapabilityId !== 'whole_spacecraft.unified_native.v1') {
+      status.textContent = '此快捷入口需要先在左侧选择“原生整星”模型。单机／分系统仍可使用现有运行入口，不做跨能力参数猜测。';
+      return false;
+    }
+    if (mode === 'bounded') {
+      el('interactiveCapability').value = 'whole_spacecraft.unified_native.v1';
+      const valid = await importOfflineNativeToRealtime('interactive');
+      status.textContent = valid
+        ? '参数审核完成，已转到限时实时创建页。还需确认时长并点击创建会话。'
+        : '实时导入未通过或已取消；请检查当前离线参数／故障事件。';
+      if (valid) {
+        el('interactiveContinuous').checked = false;
+        switchView('interactive');
+      }
+      return valid;
+    }
+    if (mode === 'continuous') {
+      const valid = await importOfflineNativeToRealtime('continuous');
+      status.textContent = valid
+        ? '参数审核完成，已转到持续整星创建页。还需核对配置并点击创建。'
+        : '持续运行配置未通过或已取消；当前离线任务未修改。';
+      if (valid) switchView('continuous');
+      return valid;
+    }
+    return false;
+  }
+
   async function importOfflineNativeToRealtime(mode) {
     const statusId = mode === 'continuous'
       ? 'continuousOfflineConfigStatus' : 'interactiveOfflineConfigStatus';
@@ -8052,6 +8090,9 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       renderInteractiveCapabilityHint();
       if (!state.interactiveSession) renderInteractiveCommandTargets();
     });
+    el('modeFiniteRunBtn').addEventListener('click', () => chooseSimulationCreateMode('finite'));
+    el('modeBoundedRealtimeBtn').addEventListener('click', () => chooseSimulationCreateMode('bounded'));
+    el('modeContinuousRealtimeBtn').addEventListener('click', () => chooseSimulationCreateMode('continuous'));
     el('interactiveImportOfflineConfigBtn').addEventListener('click',
       () => importOfflineNativeToRealtime('interactive'));
     el('continuousImportOfflineConfigBtn').addEventListener('click',
