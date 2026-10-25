@@ -850,6 +850,72 @@
       $('continuousCommandSubmit').disabled = !commandContract();
     }
   }
+  function applyNativeConfiguration(grouped) {
+    // Apply only server-reviewed fields, before creating a native session.
+    // Do not silently ignore unavailable, disabled or invalid form controls.
+    if (!grouped || typeof grouped !== 'object') throw new Error('导入配置无效');
+    const form = $('continuousCreateForm');
+    const fields = Array.from(form.querySelectorAll('[data-native-group][data-native-key]'));
+    const saved = fields.map(field => ({
+      field, value: field.type === 'checkbox' ? field.checked : field.value,
+    }));
+    const requested = [];
+    for (const [group, values] of Object.entries(grouped)) {
+      if (!values || typeof values !== 'object' || Array.isArray(values)) {
+        throw new Error('无效配置分组：' + group);
+      }
+      for (const [key, value] of Object.entries(values)) {
+        const field = fields.find(item =>
+          item.dataset.nativeGroup === group && item.dataset.nativeKey === key);
+        if (!field) throw new Error('界面不支持原生参数：' + group + '.' + key);
+        requested.push({field, value, key});
+      }
+    }
+    if (!requested.length) throw new Error('没有可导入参数');
+    // Topology/mode controls enable the dependent RW fields; configure first
+    // because topology changes can reset axis defaults.
+    const first = ['rw_configuration', 'rw_geometry_mode', 'rw_friction_mode'];
+    const ordered = [...requested].sort((a, b) =>
+      (first.includes(a.key) ? first.indexOf(a.key) : 99)
+      - (first.includes(b.key) ? first.indexOf(b.key) : 99));
+    function assign(field, value) {
+      if (field.type === 'checkbox') {
+        if (typeof value !== 'boolean') throw new Error(field.dataset.nativeKey + ' 必须是布尔值');
+        field.checked = value;
+      } else {
+        if (typeof value === 'number' && !Number.isFinite(value)) {
+          throw new Error(field.dataset.nativeKey + ' 不可使用非有限数值');
+        }
+        field.value = String(value);
+        if (field.tagName === 'SELECT' && field.value !== String(value)) {
+          throw new Error(field.dataset.nativeKey + ' 非法选项');
+        }
+      }
+      field.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+    try {
+      for (const {field, value, key} of ordered) {
+        if (field.disabled) throw new Error(key + ' 当前未启用，需先完成对应配置开关');
+        assign(field, value);
+        if (!field.checkValidity()) throw new Error(key + ' 不满足实时表单参数限制');
+      }
+      if (!form.checkValidity()) {
+        throw new Error('导入参数与实时初始化表单存在约束冲突');
+      }
+    } catch (error) {
+      // All-or-nothing UI import, even if the error occurs after topology toggles.
+      saved.filter(item => first.includes(item.field.dataset.nativeKey))
+        .forEach(item => assign(item.field, item.value));
+      saved.filter(item => !first.includes(item.field.dataset.nativeKey))
+        .forEach(item => assign(item.field, item.value));
+      throw error;
+    }
+    $('continuousInitialConfigStatus').textContent =
+      '从离线整星导入的参数已在创建前写入实时表单；请核对后再创建会话。';
+    form.querySelector('details.continuous-native-config')?.setAttribute('open', '');
+    return requested.length;
+  }
+
   function enter() {
     state.active = true;
     clearInterval(state.timer);
@@ -902,6 +968,6 @@
     renderRecovery();
     renderChart();
   }
-  window.SatContinuousConsole = { enter, exit };
+  window.SatContinuousConsole = { enter, exit, applyNativeConfiguration };
   document.addEventListener('DOMContentLoaded', initialize);
 })();
