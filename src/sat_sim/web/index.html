@@ -138,6 +138,17 @@
         </div>
 
         <div id="notice" class="notice hidden" role="status"></div>
+        <section id="simulationModeChooser" class="workflow-explainer" aria-label="仿真运行方式">
+          <div class="single-run-heading">
+            <div><strong>运行方式</strong><span>从当前仿真配置选择单次执行、限时实时或持续实时。切换实时模式不会自动启动。</span></div>
+          </div>
+          <div class="single-run-shortcuts" aria-label="选择仿真运行方式">
+            <button type="button" class="button button-primary" id="modeFiniteRunBtn">单次离线仿真（当前）</button>
+            <button type="button" class="button button-secondary" id="modeBoundedRealtimeBtn">限时实时 · 审核当前整星配置</button>
+            <button type="button" class="button button-secondary" id="modeContinuousRealtimeBtn">持续实时 · 审核当前整星配置</button>
+          </div>
+          <p id="simulationModeChooserStatus" class="continuous-muted" role="status">实时配置复用目前仅适用于原生整星正常工况；分系统与单机请使用相应的已有独立入口。实时模式不自动运行。</p>
+        </section>
         <section id="singleRunGuide" class="workflow-explainer single-run-guide" aria-label="单次仿真三步操作">
           <div class="single-run-heading">
             <div><strong>单次仿真 · 从配置到结果</strong><span>有限时长任务，执行一次后形成独立 Run Bundle；不同于持续卫星仿真。</span></div>

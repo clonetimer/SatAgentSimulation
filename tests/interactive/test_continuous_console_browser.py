@@ -115,14 +115,18 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             offline_orbit.wait_for(state="attached", timeout=20000)
             offline_orbit.fill("7230000")
             offline_orbit.press("Tab")
-            page.locator("#interactiveNavButton").click()
-            page.locator("#interactiveImportOfflineConfigBtn").click()
+            assert page.locator("#simulationModeChooser").is_visible()
+            page.locator("#modeBoundedRealtimeBtn").click()
+            page.locator("#interactiveView").wait_for(state="visible", timeout=15000)
+            assert not page.locator("#interactiveContinuous").is_checked()
+            assert "参数审核完成" in page.locator("#simulationModeChooserStatus").inner_text()
             page.locator("#interactiveOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
             assert "orbit_radius_m" in page.locator("#interactiveOfflineConfigStatus").inner_text()
             assert running == []  # Review must not auto-start a physical run.
-            page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
-            page.locator("#continuousNavButton").click()
-            page.locator("#continuousImportOfflineConfigBtn").click()
+            page.locator(".nav-button[data-view='creator']").click()
+            page.locator("#modeContinuousRealtimeBtn").click()
+            page.locator("#continuousView").wait_for(state="visible", timeout=15000)
+            assert "参数审核完成" in page.locator("#simulationModeChooserStatus").inner_text()
             page.locator("#continuousOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
             assert page.locator('[data-native-key="orbit_radius_m"]').input_value() == "7230000"
             assert running == []  # Import is configuration only.
