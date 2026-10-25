@@ -67,10 +67,11 @@ def test_rejects_component_and_conflicting_capability_id():
         preview_finite_config_for_live(form)
 
 
-def test_api_preview_has_no_run_side_effect_and_rejects_incompatible(tmp_path):
+def test_api_preview_has_no_run_side_effect_and_rejects_incompatible(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
     from sat_sim.api import create_app
 
+    monkeypatch.setenv("SAT_SIM_INTERACTIVE_ENABLED", "1")
     run_root = tmp_path / "runs"
     app = create_app(runs_root=run_root, artifacts_root=tmp_path / "api",
                      embedded_worker=False, auth_mode="disabled")
