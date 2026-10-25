@@ -1,0 +1,132 @@
+name: R83l Original Basilisk 54 Native RW Multiwheel Physics Study
+
+# First-pass prospective source run, not model training; lock protocol and
+# seal the original run after it completes. Do not treat PR checks as science.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/r83l-original-native-54-multicondition-study.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  command-contracts:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            python-version: '3.11'
+          - os: ubuntu-24.04
+            python-version: '3.12'
+          - os: windows-2025
+            python-version: '3.11'
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build with only metadata/test requirements (no test simulator)
+        run: |
+          python -m pip install pytest
+          python -m pip install -e . --no-deps
+      - name: Reject unsafe schedules and unapproved motor override
+        run: python -m pytest -q tests/test_r83l_native_fsw_multicondition_fault_contract.py tests/test_r83k_native_faulted_reference_contract.py
+
+  genuine-native-scheduled-fsw:
+    needs: command-contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Pin official bsk 2.11.0 original wheel before any native execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/r83j/wheel" "$RUNNER_TEMP/r83j/compat" "$RUNNER_TEMP/r83j/evidence"
+          python -m pip download --only-binary=:all: --no-deps \
+            --dest "$RUNNER_TEMP/r83j/wheel" "bsk==2.11.0"
+          python - <<'PY'
+          import hashlib,os
+          from pathlib import Path
+          files=list((Path(os.environ["RUNNER_TEMP"])/"r83j/wheel").glob("bsk-2.11.0-*.whl"))
+          expected="d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a"
+          if len(files)!=1 or hashlib.sha256(files[0].read_bytes()).hexdigest()!=expected:
+              raise RuntimeError("R83J_ORIGINAL_OFFICIAL_NATIVE_WHEEL_MISMATCH")
+          print("R83J_PINNED_BASILISK_ORIGINAL_WHEEL_SHA256",expected)
+          PY
+          python scripts/build_bsk_compat_wheels.py \
+            "$RUNNER_TEMP"/r83j/wheel/bsk-2.11.0-*.whl \
+            --output-dir "$RUNNER_TEMP/r83j/compat" \
+            --report "$RUNNER_TEMP/r83j/evidence/compat_payload_review.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          x=json.loads((Path(os.environ["RUNNER_TEMP"])/"r83j/evidence/compat_payload_review.json").read_text())["results"][0]
+          if not x["payload_bytes_unchanged"] or x["payload_file_count"]<800:
+              raise RuntimeError("R83J_NATIVE_BASILISK_ORIGINAL_PAYLOAD_CHANGED")
+          PY
+      - name: Install actual native bsk and source with no dynamics proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "$RUNNER_TEMP"/r83j/compat/bsk-2.11.0+satfix1-*.whl
+          python -m pip install -e .
+          python - <<'PY'
+          from importlib.metadata import version
+          from Basilisk.simulation import spacecraft, reactionWheelStateEffector
+          from Basilisk.fswAlgorithms import inertial3D, attTrackingError, mrpFeedback, rwMotorTorque
+          assert version("bsk") == "2.11.0+satfix1"
+          print("R83J_NATIVE_FSW_DYNAMICS_CHAIN_MODULES_IMPORTED")
+          PY
+      - name: Execute 54 ORIGINAL physical native FSW×RW cases without synthetic fallback
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os,hashlib
+          from pathlib import Path
+          from sat_sim.experiments.native_fsw_multicondition_fault_source_r83l import run_native_multifactor_source_physics
+          report=run_native_multifactor_source_physics()
+          output=Path(os.environ["RUNNER_TEMP"])/"r83j/evidence/r83l_original_native_54_raw.json"
+          output.write_text(json.dumps(report,sort_keys=True,indent=2,allow_nan=False)+"\n")
+          assert report["source_native_cases"]==54
+          assert report["independent_wheel_and_initial_condition_groups"]==9
+          assert report["reused_healthy_cases"]==18
+          assert report["paired_fault_vs_nominal_comparisons"]==36
+          assert len(report["physical_source_cases"])==54
+          assert len(report["native_physical_paired_outcomes"])==36
+          assert report["actual_applied_motor_torque_verified_from_rwOutMsgs"]
+          assert report["fault_derating_verified_by_real_cpp_state"]
+          assert report["fault_truth_only_for_offline_physics_QA"]
+          assert report["no_protected_validation_test_final_cases_generated"]
+          assert report["no_machine_learning_trained"]
+          print("R83L_NATIVE_ACTUAL_SOURCE_SHA256",hashlib.sha256(output.read_bytes()).hexdigest())
+          print("R83L_PHYSICS_CASES_GROUPS",report["source_native_cases"],
+                report["independent_wheel_and_initial_condition_groups"])
+          for fault_key,outcome in sorted(report["native_physical_paired_outcomes"].items()):
+              print("R83L_REAL_NATIVE_PAIR",fault_key,
+                    "speed_delta",outcome["post_event_max_native_rw_speed_difference_rad_s"],
+                    "actual_torque_delta",outcome["post_event_max_native_rw_applied_torque_difference_nm"],
+                    "applied_torque_limit",outcome["post_event_fault_native_rw_actual_max_abs_nm"])
+          print("R83L_NATIVE_REQUEST_SPEED_AND_BODY_RATE",
+                report["max_original_native_allocator_request_nm"],
+                report["max_original_native_wheel_speed_rad_s"],
+                report["max_original_native_body_rate_rad_s"])
+          if not report["predeclared_provisional_request_speed_envelope_passed"]:
+              raise RuntimeError("R83L_PROVISIONAL_REQUEST_OR_WHEEL_SPEED_BOUND_FAILED")
+          PY
+      - name: Archive actual C-backed Basilisk FSW and RW source message evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r83l-original-basilisk-native-54-multicondition-physics
+          if-no-files-found: warn
+          retention-days: 21
+          path: ${{ runner.temp }}/r83j/evidence/
