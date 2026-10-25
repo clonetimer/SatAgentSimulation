@@ -106,8 +106,26 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.route("https://workbench.test/**", route_request)
             page.on("dialog", lambda dialog: dialog.accept())
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            # Edit the current offline whole-spacecraft form, then import the
+            # same approved native value into each realtime UI. Browser test
+            # checks only UI/API wiring; it never claims physical equivalence.
+            page.locator("#singleRunGuide[data-stage='configure']").wait_for(timeout=30000)
+            page.locator("#capabilityList [data-object-id='whole_spacecraft']").click()
+            offline_orbit = page.locator("#dynamicForm [data-path='parameters.values.orbit_radius_m']")
+            offline_orbit.wait_for(state="attached", timeout=20000)
+            offline_orbit.fill("7230000")
+            offline_orbit.press("Tab")
+            page.locator("#interactiveNavButton").click()
+            page.locator("#interactiveImportOfflineConfigBtn").click()
+            page.get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
+            assert "orbit_radius_m" in page.locator("#interactiveOfflineConfigStatus").inner_text()
+            assert running == []  # Review must not auto-start a physical run.
             page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
             page.locator("#continuousNavButton").click()
+            page.locator("#continuousImportOfflineConfigBtn").click()
+            page.get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
+            assert page.locator('[data-native-key="orbit_radius_m"]').input_value() == "7230000"
+            assert running == []  # Import is configuration only.
             assert page.locator("#continuousView").is_visible()
             assert page.locator("#interactiveView").is_hidden()
             assert page.locator("#continuousNavButton").get_attribute("class").find("active") != -1
