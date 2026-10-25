@@ -475,6 +475,48 @@ def create_interactive_router(
     def read_session_events(session_id: str, after_sequence: int = -1):
         return {"events": get_session(session_id).session_events(after_sequence)}
 
+    @router.get("/sessions/{session_id}/telemetry-history/{stream}")
+    def read_verified_telemetry_history(
+        session_id: str, stream: str, start_s: float, end_s: float,
+        fields: str, max_rows: int = 3000,
+    ) -> dict[str, Any]:
+        """Exact time-window only when no writer is advancing Basilisk."""
+        from .telemetry_history import exact_telemetry_window
+        from .models import SessionState
+
+        session = get_session(session_id)
+        if stream not in session.allowed_telemetry_streams:
+            raise HTTPException(404, detail={"reason_code": "TELEMETRY_STREAM_NOT_ALLOWED"})
+        if session.state not in {
+            SessionState.PAUSED, SessionState.COMPLETED,
+            SessionState.FAILED, SessionState.ABORTED, SessionState.READY,
+        }:
+            raise HTTPException(409, detail={
+                "reason_code": "HISTORY_REQUIRES_PAUSED_OR_TERMINAL_SESSION",
+                "message": "Pause the live session before verifying the durable journal.",
+            })
+        workspace = session._workspace
+        if workspace is None:
+            raise HTTPException(409, detail={"reason_code": "HISTORY_DURABLE_WORKSPACE_NOT_CONFIGURED"})
+        names = tuple(key.strip() for key in fields.split(",") if key.strip())
+        if not names or len(names) > 6:
+            raise HTTPException(422, detail={"reason_code": "HISTORY_INVALID_FIELDS"})
+        try:
+            return exact_telemetry_window(
+                workspace.path, session_id=session_id, stream=stream,
+                start_s=start_s, end_s=end_s, fields=names,
+                max_rows=max_rows,
+            )
+        except ValueError as exc:
+            code = str(exc).split(":", 1)[0]
+            if code == "HISTORY_TOO_MANY_SAMPLES_NARROW_WINDOW":
+                raise HTTPException(413, detail={"reason_code": code}) from exc
+            if code.startswith("TELEMETRY_") or code.startswith("HASH_CHAIN_"):
+                raise HTTPException(409, detail={"reason_code": "HISTORY_JOURNAL_INTEGRITY_FAILURE"}) from exc
+            raise HTTPException(422, detail={"reason_code": code}) from exc
+        except (OSError, KeyError, TypeError, UnicodeError) as exc:
+            raise HTTPException(409, detail={"reason_code": "HISTORY_JOURNAL_READ_FAILED"}) from exc
+
     @router.get("/sessions/{session_id}/telemetry/{stream}")
     def read_telemetry(session_id: str, stream: str, after_sequence: int = -1):
         session = get_session(session_id)
