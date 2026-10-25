@@ -106,8 +106,26 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.route("https://workbench.test/**", route_request)
             page.on("dialog", lambda dialog: dialog.accept())
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            # Edit the current offline whole-spacecraft form, then import the
+            # same approved native value into each realtime UI. Browser test
+            # checks only UI/API wiring; it never claims physical equivalence.
+            page.locator("#singleRunGuide[data-stage='configure']").wait_for(timeout=30000)
+            page.locator("#capabilityList [data-object-id='whole_spacecraft']").click()
+            offline_orbit = page.locator("#dynamicForm [data-path='parameters.values.orbit_radius_m']")
+            offline_orbit.wait_for(state="attached", timeout=20000)
+            offline_orbit.fill("7230000")
+            offline_orbit.press("Tab")
+            page.locator("#interactiveNavButton").click()
+            page.locator("#interactiveImportOfflineConfigBtn").click()
+            page.locator("#interactiveOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
+            assert "orbit_radius_m" in page.locator("#interactiveOfflineConfigStatus").inner_text()
+            assert running == []  # Review must not auto-start a physical run.
             page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
             page.locator("#continuousNavButton").click()
+            page.locator("#continuousImportOfflineConfigBtn").click()
+            page.locator("#continuousOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
+            assert page.locator('[data-native-key="orbit_radius_m"]').input_value() == "7230000"
+            assert running == []  # Import is configuration only.
             assert page.locator("#continuousView").is_visible()
             assert page.locator("#interactiveView").is_hidden()
             assert page.locator("#continuousNavButton").get_attribute("class").find("active") != -1
@@ -127,7 +145,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#continuousOperation").select_option("adcs.target.set")
 
             page.locator("#continuousSessionId").fill("browser-r7d")
-            page.locator("details.continuous-native-config > summary").click()
+            # Reviewed import intentionally expands the native form.\n            assert page.locator("details.continuous-native-config").evaluate("(el) => el.open")
             page.locator('[data-native-key="orbit_radius_m"]').fill("7200000")
             page.locator('[data-native-key="battery_capacity_wh"]').fill("210")
             page.locator('[data-native-key="initial_soc"]').fill("0.7")

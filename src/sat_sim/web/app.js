@@ -60,6 +60,7 @@
     singleRunSubmitting: false,
     showCompatibilityCapabilities: false,
     interactiveAvailable: false,
+    interactivePreparedNativeValues: null,
     interactiveSessions: [],
     interactiveSession: null,
     interactiveSocket: null,
@@ -6365,6 +6366,57 @@
     hint.classList.toggle('is-subsystem', descriptor.scope !== 'whole');
   }
 
+  async function importOfflineNativeToRealtime(mode) {
+    const statusId = mode === 'continuous'
+      ? 'continuousOfflineConfigStatus' : 'interactiveOfflineConfigStatus';
+    const status = el(statusId);
+    if (state.selectedCapabilityId !== 'whole_spacecraft.unified_native.v1' || !state.formData) {
+      status.textContent = '仅能从仿真创建页当前选择的 Basilisk 原生整星配置导入；请先选择整星模型并修改参数。';
+      return false;
+    }
+    if (mode === 'interactive'
+        && el('interactiveCapability').value !== 'whole_spacecraft.unified_native.v1') {
+      status.textContent = '独立分系统实时会话不支持整星参数移植；请先选择“整星”。';
+      return false;
+    }
+    status.textContent = '正在核对离线配置和实时原生参数边界…';
+    try {
+      const review = await api('/interactive/continuous/configuration/preview-from-finite', {
+        method: 'POST', body: JSON.stringify({ form_data: state.formData }),
+      });
+      if (!review.eligible) {
+        const issues = (review.blocked || [])
+          .map(item => item.path + '：' + item.reason).join('；');
+        status.textContent = '导入被拒绝：'
+          + (issues || '当前离线整星参数与注册默认值相同，没有可迁移的修改项。');
+        return false;
+      }
+      const keys = review.applied_parameters || [];
+      const message = '将导入 ' + keys.length + ' 个已审核的原生参数：\n'
+        + keys.join('、')
+        + '\n\n仅迁移相对离线注册默认值的修改项；其他参数保留实时模式默认值。'
+        + '离线故障和输出不迁移，也不保证两种模式轨迹相等。确认导入？';
+      if (!window.confirm(message)) {
+        status.textContent = '用户取消配置导入；实时参数未更改。';
+        return false;
+      }
+      if (mode === 'continuous') {
+        if (!window.SatContinuousConsole?.applyNativeConfiguration) {
+          throw new Error('持续仿真配置界面尚未初始化');
+        }
+        window.SatContinuousConsole.applyNativeConfiguration(review.grouped_values);
+      } else {
+        state.interactivePreparedNativeValues = structuredClone(review.native_values);
+      }
+      status.textContent = '已导入并冻结当前离线参数修改快照：' + keys.join('、')
+        + '。未创建会话；后续离线表单修改不会自动同步。';
+      return true;
+    } catch (error) {
+      status.textContent = '导入失败，未启动仿真：' + error.message;
+      return false;
+    }
+  }
+
   async function createInteractiveSession() {
     const capabilityId = el('interactiveCapability').value;
     const descriptor = INTERACTIVE_CAPABILITIES[capabilityId];
@@ -6377,7 +6429,8 @@
       capability_id: capabilityId,
       task_spec: {
         simulation: { duration_s: duration, sample_s: quantum, solver: { step_s: Math.min(quantum, 0.2) } },
-        parameters: { values: {} },
+        parameters: { values: capabilityId === 'whole_spacecraft.unified_native.v1'
+          ? structuredClone(state.interactivePreparedNativeValues || {}) : {} },
         outputs: { telemetry_streams: descriptor.streams.map((stream) => ({
           stream_id: stream.id,
           sample_s: Math.max(quantum, Math.min(duration, quantum * stream.sampleMultiplier)),
@@ -7994,9 +8047,15 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('logSearch').addEventListener('input', () => { clearTimeout(state.logSearchTimer); state.logSearchTimer = setTimeout(() => loadLogs().catch(() => null), 250); });
     el('refreshInteractiveBtn').addEventListener('click', () => loadInteractiveSessions().catch(error => interactiveNotice(error.message, 'error')));
     el('interactiveCapability').addEventListener('change', () => {
+      state.interactivePreparedNativeValues = null;
+      el('interactiveOfflineConfigStatus').textContent = '会话范围已修改，之前导入的整星配置已清除，请按需重新审核导入。';
       renderInteractiveCapabilityHint();
       if (!state.interactiveSession) renderInteractiveCommandTargets();
     });
+    el('interactiveImportOfflineConfigBtn').addEventListener('click',
+      () => importOfflineNativeToRealtime('interactive'));
+    el('continuousImportOfflineConfigBtn').addEventListener('click',
+      () => importOfflineNativeToRealtime('continuous'));
     el('createInteractiveSessionBtn').addEventListener('click', () => createInteractiveSession().catch(error => interactiveNotice(error.message, 'error')));
     el('interactiveStartBtn').addEventListener('click', () => interactiveControl('start').catch(error => interactiveNotice(error.message, 'error')));
     el('interactivePauseBtn').addEventListener('click', () => interactiveControl('pause').catch(error => interactiveNotice(error.message, 'error')));
