@@ -10,6 +10,7 @@
     telemetry: [], events: [], acks: [], gap: null,
     rwConfiguration: null,
     commandContracts: [], catalogLoading: false,
+    history: null,
   };
   const terminal = new Set(['COMPLETED', 'ABORTED', 'FAILED', 'INTERRUPTED']);
   const valueText = (val, digits = 3) => {
@@ -75,6 +76,8 @@
         state.recovery = null;
         state.endurance = null;
         state.telemetry = [];
+        state.history = null;
+        setText("continuousHistoryStatus", "已切换会话；需要重新查询历史。");
         state.events = [];
         state.acks = [];
         state.lastTelemetrySeq = -1;
@@ -395,6 +398,125 @@
     });
     ctx.stroke();
   }
+  function renderVerifiedHistory() {
+    const canvas = $('continuousHistoryChart');
+    const legend = $('continuousHistoryLegend');
+    if (!canvas || !legend) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    const width = Math.max(360, canvas.clientWidth || 800);
+    const height = Math.max(180, canvas.clientHeight || 260);
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    ctx.scale(ratio, ratio);
+    ctx.clearRect(0, 0, width, height);
+    legend.replaceChildren();
+    const record = state.history;
+    const x0 = 52, x1 = width - 25, y0 = height - 28, y1 = 20;
+    ctx.strokeStyle = 'rgba(130,145,160,.35)';
+    ctx.fillStyle = '#7890a6';
+    ctx.font = '11px system-ui';
+    for (let i = 0; i <= 4; i += 1) {
+      const y = y1 + (y0 - y1) * i / 4;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+    }
+    ctx.fillText('100%', 3, y1 + 7);
+    ctx.fillText('0%', 17, y0);
+    if (!record || !record.frames?.length) {
+      ctx.fillText('尚无经过校验的历史时间窗采样。', x0 + 15, height / 2);
+      return;
+    }
+    const selected = record.selectedFields || [];
+    const colors = ['#24a7c8', '#bf7de1', '#e2a14b'];
+    selected.forEach((field, index) => {
+      const values = record.frames.map(frame => frame.values?.[field])
+        .filter(v => typeof v === 'number' && Number.isFinite(v));
+      if (!values.length) return;
+      const min = Math.min(...values), max = Math.max(...values);
+      const line = document.createElement('p');
+      line.textContent = field + '：真实 min=' + valueText(min, 6)
+        + '；max=' + valueText(max, 6)
+        + (min === max ? '（常量）' : '');
+      line.style.color = colors[index];
+      legend.append(line);
+      ctx.strokeStyle = colors[index]; ctx.lineWidth = 2;
+      ctx.beginPath();
+      let connected = false, previousSeq = null;
+      for (const frame of record.frames) {
+        const value = frame.values?.[field];
+        const valid = typeof value === 'number' && Number.isFinite(value)
+          && !['GAP', 'INVALID'].includes(frame.quality);
+        if (!valid) {
+          connected = false;
+          previousSeq = frame.sequence;
+          continue;
+        }
+        const x = x0 + (x1 - x0) * (frame.sim_time_s - record.start_s)
+          / (record.end_s - record.start_s);
+        const normalized = min === max ? .5 : (value - min) / (max - min);
+        const y = y0 - normalized * (y0 - y1);
+        if (!connected || (previousSeq !== null && frame.sequence !== previousSeq + 1)) {
+          ctx.moveTo(x, y);
+        } else ctx.lineTo(x, y);
+        connected = true;
+        previousSeq = frame.sequence;
+      }
+      ctx.stroke();
+    });
+    ctx.fillStyle = '#7890a6';
+    ctx.fillText(valueText(record.start_s, 2) + 's', x0, height - 6);
+    ctx.fillText(valueText(record.end_s, 2) + 's', Math.max(x0, x1 - 56), height - 6);
+  }
+
+  async function queryVerifiedHistory() {
+    const sessionId = state.selectedId;
+    state.history = null;
+    renderVerifiedHistory();
+    if (!sessionId) {
+      setText('continuousHistoryStatus', '请先选择持续仿真会话。'); return;
+    }
+    const stateName = state.snapshot?.session?.state;
+    if (!['READY', 'PAUSED', 'COMPLETED', 'FAILED', 'ABORTED'].includes(stateName)) {
+      setText('continuousHistoryStatus', '请先暂停或结束会话，再从稳定的持久化日志中核验精确历史。'); return;
+    }
+    const start_s = Number($('continuousHistoryStart').value);
+    const end_s = Number($('continuousHistoryEnd').value);
+    const fields = Array.from($('continuousHistoryChannels')
+      .querySelectorAll('input:checked')).map(node => node.value);
+    if (!Number.isFinite(start_s) || !Number.isFinite(end_s) || start_s < 0 || end_s <= start_s) {
+      setText('continuousHistoryStatus', '时间区间无效，结束时间必须大于起始时间。'); return;
+    }
+    if (!fields.length || fields.length > 3) {
+      setText('continuousHistoryStatus', '请勾选 1～3 个要对比的参量。'); return;
+    }
+    const query = new URLSearchParams({
+      start_s: String(start_s), end_s: String(end_s),
+      fields: fields.join(','), max_rows: '3000',
+    });
+    setText('continuousHistoryStatus', '正在读取并核验留存遥测的哈希链…');
+    try {
+      const response = await api('/interactive/sessions/'
+        + encodeURIComponent(sessionId) + '/telemetry-history/whole.continuous?'
+        + query.toString());
+      if (sessionId !== state.selectedId) return;
+      state.history = { ...response, selectedFields: fields };
+      setText('continuousHistoryStatus', response.frame_count
+        + ' 条真实留存采样；时间窗 ' + start_s + '～' + end_s
+        + ' s；哈希链已验证；无抽样/插值。'
+        + (response.gaps?.length ? ' 检出序号缺口 ' + response.gaps.length + ' 处。' : ''));
+      renderVerifiedHistory();
+    } catch (error) {
+      if (sessionId !== state.selectedId) return;
+      const help = error.message === 'HISTORY_TOO_MANY_SAMPLES_NARROW_WINDOW'
+        ? '此窗口内超过 3000 条记录，请缩小起止时间。'
+        : error.message === 'HISTORY_REQUIRES_PAUSED_OR_TERMINAL_SESSION'
+        ? '正在运行或状态发生变化，请先暂停后重试。'
+        : '原始日志查询失败：' + error.message;
+      setText('continuousHistoryStatus', help);
+    }
+  }
+
   function latest() {
     const frame = state.telemetry[state.telemetry.length - 1];
     const vals = frame?.values || {};
@@ -628,7 +750,7 @@
       state.metrics = null;
       state.endurance = null;
       state.recovery = null;
-      state.telemetry = []; state.events = []; state.acks = [];
+      state.telemetry = []; state.history = null; state.events = []; state.acks = [];
       state.rwConfiguration = null;
       state.lastTelemetrySeq = -1; state.lastEventSeq = -1;
       setText('continuousInitialConfigStatus',
@@ -934,6 +1056,7 @@
     $('continuousRefreshBtn')?.addEventListener('click', () => refresh());
     $('continuousOperation')?.addEventListener('change', changeOperation);
     $('continuousSignal')?.addEventListener('change', renderChart);
+    $('continuousHistoryQueryBtn')?.addEventListener('click', queryVerifiedHistory);
     $('continuousEnduranceStart')?.addEventListener('click', () => changeEndurance('start'));
     $('continuousEnduranceStop')?.addEventListener('click', () => changeEndurance('stop'));
     $('continuousEnduranceEvidence')?.addEventListener('click', () => exportEndurance('evidence'));
@@ -959,7 +1082,7 @@
       button.addEventListener('click', () => control(button.dataset.continuousAction));
     });
     window.addEventListener('resize', () => {
-      if (state.active) renderChart();
+      if (state.active) { renderChart(); renderVerifiedHistory(); }
     });
     changeOperation();
     renderStatus();
@@ -967,6 +1090,7 @@
     renderEndurance();
     renderRecovery();
     renderChart();
+    renderVerifiedHistory();
   }
   window.SatContinuousConsole = { enter, exit, applyNativeConfiguration };
   document.addEventListener('DOMContentLoaded', initialize);

@@ -227,6 +227,14 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousResidentBytes").inner_text() != "—"
             assert page.locator("#continuousDiskStatus").inner_text().find(" / ") > 0
             assert int(page.locator("#continuousDurableFrames").inner_text()) > 0
+            active_window = client.get(
+                "/interactive/sessions/browser-r7d/telemetry-history/whole.continuous",
+                params={"start_s": 0, "end_s": 60, "fields": "orbit.radius_m"},
+            )
+            assert active_window.status_code == 409
+            assert active_window.json()["detail"]["reason_code"] == (
+                "HISTORY_REQUIRES_PAUSED_OR_TERMINAL_SESSION"
+            )
             page.wait_for_function(
                 "() => Number(document.querySelector('#continuousEnduranceSamples').textContent) >= 2",
                 timeout=15000,
@@ -251,6 +259,28 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 "() => document.querySelector('#continuousState').textContent === 'PAUSED'",
                 timeout=12000,
             )
+            # A paused session permits verified historical retrieval from
+            # durable workspace, not from the browser's 280-frame replay ring.
+            page.locator("#continuousHistoryPanel > summary").click()
+            page.locator("#continuousHistoryStart").fill("0")
+            page.locator("#continuousHistoryEnd").fill("60")
+            page.locator("#continuousHistoryQueryBtn").click()
+            page.locator("#continuousHistoryStatus").get_by_text(
+                "哈希链已验证", exact=False,
+            ).wait_for(timeout=15000)
+            assert "无抽样/插值" in page.locator("#continuousHistoryStatus").inner_text()
+            assert "orbit.radius_m" in page.locator("#continuousHistoryLegend").inner_text()
+            assert page.locator("#continuousHistoryChart").is_visible()
+            raw = client.get(
+                "/interactive/sessions/browser-r7d/telemetry-history/whole.continuous",
+                params={
+                    "start_s": 0, "end_s": 60, "fields": "orbit.radius_m,adcs.pointing_error_deg",
+                },
+            )
+            assert raw.status_code == 200, raw.text
+            assert raw.json()["exact_original_samples"] is True
+            assert raw.json()["frame_count"] > 0
+            assert raw.json()["source"] == "hash_verified_append_only_workspace"
             page.locator("#continuousRecoveryAuditBtn").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousRecoveryVerdict').textContent === 'BLOCKED'",
