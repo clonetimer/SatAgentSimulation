@@ -1,11 +1,10 @@
 name: R83m Original Basilisk 54-case RW 75pct Loss and Guidance Threshold
 
-# One registered research run on first PR; after execution seal this
-# workflow to manual-only to prevent selective repeat from README edits.
+# Original 54-case genuine Basilisk run #40160788578 is complete.
+# The source JSON and preregistration are SHA-frozen. GitHub PR path
+# filtering can retrigger expensive physics on document-only changes;
+# no automatic selective repeats. Explicit manual research reruns only.
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/r83m-real-native-54-guidance-threshold.yml'
   workflow_dispatch:
 
 permissions:
