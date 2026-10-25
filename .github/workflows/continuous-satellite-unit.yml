@@ -27,6 +27,7 @@ on:
       - "tests/interactive/test_native_parent_death_fence.py"
       - "tests/interactive/test_continuous_console.py"
       - "tests/interactive/test_continuous_initial_config.py"
+      - "tests/interactive/test_offline_realtime_config_bridge.py"
       - "tests/interactive/test_continuous_observability.py"
       - "tests/interactive/test_continuous_endurance.py"
       - "tests/interactive/test_continuous_endurance_audit.py"
@@ -84,6 +85,7 @@ jobs:
           tests/interactive/test_native_parent_death_fence.py
           tests/interactive/test_continuous_console.py
           tests/interactive/test_continuous_initial_config.py
+          tests/interactive/test_offline_realtime_config_bridge.py
           tests/interactive/test_continuous_observability.py
           tests/interactive/test_continuous_endurance.py
           tests/interactive/test_continuous_endurance_audit.py
