@@ -145,7 +145,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#continuousOperation").select_option("adcs.target.set")
 
             page.locator("#continuousSessionId").fill("browser-r7d")
-            page.locator("details.continuous-native-config > summary").click()
+            # Reviewed import intentionally expands the native form.\n            assert page.locator("details.continuous-native-config").evaluate("(el) => el.open")
             page.locator('[data-native-key="orbit_radius_m"]').fill("7200000")
             page.locator('[data-native-key="battery_capacity_wh"]').fill("210")
             page.locator('[data-native-key="initial_soc"]').fill("0.7")
