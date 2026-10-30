@@ -1,0 +1,13 @@
+{
+  "status": "FOUR_ORIGINAL_BROWSER_PARAMETERS_PASS_NOT_FULL_QUALIFIED",
+  "application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "completion_sha256": "91c487d20f8f498c4d4913418f0c8d4e9db88f8a0b7d24aa7c2abb18d4933af0",
+  "frozen_inputs_sha256": "ef378eee593595d42115de69360464a81d5f898a33718a19580ae4e06ae442b8",
+  "passed": 4,
+  "original_assertions_preserved": 7,
+  "original_parameters_preserved": 4,
+  "production_files_changed": 0,
+  "actual_model_or_native_calls": 0,
+  "full_regression": "PENDING"
+}

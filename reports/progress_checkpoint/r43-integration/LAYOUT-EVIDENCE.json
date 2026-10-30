@@ -1,0 +1,51 @@
+{
+  "status": "FIVE_PREVIOUSLY_ACTUALLY_VIEWED_COMPONENT_IMAGES_COPIED_EXACTLY",
+  "source_review_sha256": "9ac7f9d632da8d8e56237e40b96a7967c27d32d0a1fe1fb31ecf67cc3526a657",
+  "images": [
+    {
+      "path": "images/empty-1440.png",
+      "sha256": "600bb0f4a51b188d6c18049b7495defaa7566f580c8a162a766143dd2f2e782d",
+      "original_component_application": "5dbf0c5eceae6bc1beef5cf08ce30bba827756f813a264b9b7ba1d7860de0d8f",
+      "original_source_path": "reports/local_requirements_completion/workbench-layout-r40-evidence/qualification-final-v7/empty-1440.png",
+      "actually_viewed": true,
+      "scope": "R40 component screenshot, not relabeled as R43 full/AI qualification",
+      "browser_fault_fixture": false
+    },
+    {
+      "path": "images/native-chart-1366.png",
+      "sha256": "3422251a43da1e1020883fb17e55c846f7346de3b27a9266f4aa8291aa0fa924",
+      "original_component_application": "5dbf0c5eceae6bc1beef5cf08ce30bba827756f813a264b9b7ba1d7860de0d8f",
+      "original_source_path": "reports/local_requirements_completion/workbench-layout-r40-evidence/qualification-final-v7/native-chart-1366.png",
+      "actually_viewed": true,
+      "scope": "R40 component screenshot, not relabeled as R43 full/AI qualification",
+      "browser_fault_fixture": false
+    },
+    {
+      "path": "images/empty-390-font130.png",
+      "sha256": "0e16c37da64eecf48a2ff4880b8e2e0494b98bbca1f25742b76371fd64e22441",
+      "original_component_application": "5dbf0c5eceae6bc1beef5cf08ce30bba827756f813a264b9b7ba1d7860de0d8f",
+      "original_source_path": "reports/local_requirements_completion/workbench-layout-r40-evidence/qualification-final-v7/empty-390-font130.png",
+      "actually_viewed": true,
+      "scope": "R40 component screenshot, not relabeled as R43 full/AI qualification",
+      "browser_fault_fixture": false
+    },
+    {
+      "path": "images/native-fullscreen-390-font130.png",
+      "sha256": "a6e0cb22225b4d1781984d156246be23ea73e5eca0b7506edeff8e1f140c99cc",
+      "original_component_application": "5dbf0c5eceae6bc1beef5cf08ce30bba827756f813a264b9b7ba1d7860de0d8f",
+      "original_source_path": "reports/local_requirements_completion/workbench-layout-r40-evidence/qualification-final-v7/native-fullscreen-390-font130.png",
+      "actually_viewed": true,
+      "scope": "R40 component screenshot, not relabeled as R43 full/AI qualification",
+      "browser_fault_fixture": false
+    },
+    {
+      "path": "images/owned-run-browser-induced-read-error.png",
+      "sha256": "a0f6e50ab3aee4be61c03dc46bf8e13da31c6debcfe2294d4c6ec278f084a029",
+      "original_component_application": "5dbf0c5eceae6bc1beef5cf08ce30bba827756f813a264b9b7ba1d7860de0d8f",
+      "original_source_path": "reports/local_requirements_completion/workbench-layout-r40-evidence/qualification-final-v7/owned-run-browser-induced-read-error.png",
+      "actually_viewed": true,
+      "scope": "R40 component screenshot, not relabeled as R43 full/AI qualification",
+      "browser_fault_fixture": true
+    }
+  ]
+}

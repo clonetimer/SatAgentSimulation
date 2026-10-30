@@ -1,0 +1,97 @@
+{
+  "schema_version": "interactive-capability-matrix.v1",
+  "claim_boundary": "Internal engineering simulation only; not real hardware, HIL, hard real-time, or flight validation.",
+  "default_feature_flag": {"environment": "SAT_SIM_INTERACTIVE_ENABLED", "value": false},
+  "support_states": ["controllable", "telemetry_only", "unsupported"],
+  "initial_release_capabilities": [
+    {
+      "object_id": "whole_spacecraft",
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "status": "controllable",
+      "phase": "accepted_rt8",
+      "commands": [{"operation":"session.mode.set","required_role":"operator","parameters":{"mode":{"type":"string","enum":["standby","inertialPoint","safe"]}},"units":{},"effect_fields":["fsw.mode"]}],
+      "streams": ["whole.fast", "whole.housekeeping"],
+      "blocker": null
+    },
+    {
+      "object_id": "subsystem.adcs",
+      "capability_id": "subsystem.adcs_unified_native.v1",
+      "status": "controllable",
+      "phase": "accepted_rt8",
+      "commands": [
+        {"operation":"adcs.target.set","required_role":"operator","parameters":{"sigma_rn":{"type":"array","items":{"type":"number","minimum":-1,"maximum":1},"minItems":3,"maxItems":3}},"units":{"sigma_rn":"MRP"},"effect_fields":["adcs.pointing_error_deg","adcs.sigma_br_norm"]},
+        {"operation":"adcs.control.set","required_role":"operator","parameters":{"enabled":{"type":"boolean"}},"units":{},"effect_fields":["adcs.control_enabled","adcs.command_torque_norm_nm"]},
+        {"operation":"adcs.fault.inject","required_role":"fault_operator","parameters":{"fault_id":{"type":"string","enum":["rw_friction","rw_jam","sensor_bias"]},"severity":{"type":"number","minimum":0,"maximum":1}},"units":{"severity":"1"},"effect_fields":["label.fault_active","adcs.rw.speed_rad_s_0"]}
+      ],
+      "streams": ["adcs.fast", "adcs.housekeeping"],
+      "blocker": null
+    },
+    {
+      "object_id": "subsystem.eps",
+      "capability_id": "subsystem.eps.unified_native.v1",
+      "status": "controllable",
+      "phase": "accepted_rt8",
+      "commands": [
+        {"operation":"eps.load.set","required_role":"operator","parameters":{"load_id":{"type":"string","enum":["payload","downlink","heater"]},"enabled":{"type":"boolean"}},"units":{},"effect_fields":["eps.net_power_w","eps.battery_soc"]},
+        {"operation":"eps.protection.set","required_role":"operator","parameters":{"enabled":{"type":"boolean"}},"units":{},"effect_fields":["eps.safe_mode","eps.battery_soc"]},
+        {"operation":"eps.fault.inject","required_role":"fault_operator","parameters":{"fault_id":{"type":"string","enum":["battery_capacity_loss","solar_array_degradation"]},"severity":{"type":"number","minimum":0,"maximum":1}},"units":{"severity":"1"},"effect_fields":["label.fault_active","eps.battery_soc","eps.solar_power_w"]}
+      ],
+      "streams": ["eps.fast", "eps.housekeeping"],
+      "blocker": null
+    },
+    {
+      "object_id": "subsystem.comm_data",
+      "capability_id": "subsystem.comm_data.unified_native.v1",
+      "status": "controllable",
+      "phase": "accepted_rt8",
+      "commands": [
+        {"operation":"comm_data.generate","required_role":"operator","parameters":{"bits":{"type":"integer","minimum":0,"maximum":1000000000}},"units":{"bits":"bit"},"effect_fields":["data.storage_bits"]},
+        {"operation":"comm_data.downlink.set","required_role":"operator","parameters":{"enabled":{"type":"boolean"},"rate_bps":{"type":"number","minimum":0,"maximum":1000000000}},"units":{"rate_bps":"bit/s"},"effect_fields":["data.downlink_rate_bps","data.storage_bits"]},
+        {"operation":"comm_data.fault.inject","required_role":"fault_operator","parameters":{"fault_id":{"type":"string","enum":["transmitter_loss"]},"severity":{"type":"number","minimum":0,"maximum":1}},"units":{"severity":"1"},"effect_fields":["label.fault_active","data.downlink_rate_bps","data.storage_bits"]}
+      ],
+      "streams": ["comm_data.fast", "comm_data.housekeeping"],
+      "blocker": null
+    }
+  ],
+  "feasibility_probe": {
+    "object_id": "whole_spacecraft",
+    "capability_id": "whole_spacecraft.bsksim_foundation.v1",
+    "status": "telemetry_only",
+    "commands": [],
+    "streams": ["foundation.trace"],
+    "scope": "Segmented-runtime feasibility only; it does not close the main whole-spacecraft capability."
+  },
+  "objects": [
+    {"object_id":"whole_spacecraft","level":"whole_spacecraft","status":"controllable"},
+    {"object_id":"subsystem.adcs","level":"subsystem","status":"controllable"},
+    {"object_id":"subsystem.propulsion","level":"subsystem","status":"unsupported"},
+    {"object_id":"subsystem.eps","level":"subsystem","status":"controllable"},
+    {"object_id":"subsystem.thermal","level":"subsystem","status":"unsupported"},
+    {"object_id":"subsystem.payload","level":"subsystem","status":"unsupported"},
+    {"object_id":"subsystem.comm_data","level":"subsystem","status":"controllable"},
+    {"object_id":"component.antenna","level":"component","status":"unsupported"},
+    {"object_id":"component.battery","level":"component","status":"unsupported"},
+    {"object_id":"component.cmg","level":"component","status":"unsupported"},
+    {"object_id":"component.data_queue","level":"component","status":"unsupported"},
+    {"object_id":"component.fuel_tank","level":"component","status":"unsupported"},
+    {"object_id":"component.ground_station","level":"component","status":"unsupported"},
+    {"object_id":"component.heater","level":"component","status":"unsupported"},
+    {"object_id":"component.imu","level":"component","status":"unsupported"},
+    {"object_id":"component.link_budget","level":"component","status":"unsupported"},
+    {"object_id":"component.magnetometer","level":"component","status":"unsupported"},
+    {"object_id":"component.mtb","level":"component","status":"unsupported"},
+    {"object_id":"component.onboard_storage","level":"component","status":"unsupported"},
+    {"object_id":"component.payload","level":"component","status":"unsupported"},
+    {"object_id":"component.payload_sensor","level":"component","status":"unsupported"},
+    {"object_id":"component.pdu","level":"component","status":"unsupported"},
+    {"object_id":"component.power_sink","level":"component","status":"unsupported"},
+    {"object_id":"component.radiator","level":"component","status":"unsupported"},
+    {"object_id":"component.reaction_wheel","level":"component","status":"unsupported"},
+    {"object_id":"component.solar_panel","level":"component","status":"unsupported"},
+    {"object_id":"component.star_tracker","level":"component","status":"unsupported"},
+    {"object_id":"component.sun_sensor","level":"component","status":"unsupported"},
+    {"object_id":"component.thermal_node","level":"component","status":"unsupported"},
+    {"object_id":"component.thruster","level":"component","status":"unsupported"},
+    {"object_id":"component.transmitter","level":"component","status":"unsupported"}
+  ]
+}

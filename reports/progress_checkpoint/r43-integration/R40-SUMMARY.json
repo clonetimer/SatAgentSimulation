@@ -1,0 +1,19 @@
+{
+  "status": "COMPONENT_QUALIFIED_NOT_FINAL_RELEASE_PASS",
+  "component_application": "5dbf0c5eceae6bc1beef5cf08ce30bba827756f813a264b9b7ba1d7860de0d8f",
+  "component_core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "completion_sha256": "6af2652a098b2af4745858f754e119e9476092afe9e78b7df886d38267d8d6da",
+  "documentation_amendment_sha256": "7d0c450aa23c86ee58cdf89659deb4c2e8ff845ce1e5b31bf732ab6225913711",
+  "production_files": 4,
+  "navigation_test_files": 9,
+  "original_assert_AST_unchanged": true,
+  "targeted_pytest_passed": 45,
+  "actual_http_chrome_checks_passed": 53,
+  "actually_viewed_original_png_count": 17,
+  "selected_public_png_count": 5,
+  "new_actual_native_runs": 1,
+  "native_scope": "One2s whole Basilisk execution/11samples; later layout/error checks replayed its sealed bundle. No raw telemetry is included.",
+  "actual_model_or_gpu_calls": 0,
+  "known_failures_retained": "Original ancestor clipping, large-font wrapping and stale coverage screenshots/results are retained in internal component evidence; final bounded checks pass.",
+  "qualification_limit": "Component result only. No aggregate/full release/AI accuracy/24h qualification claim."
+}

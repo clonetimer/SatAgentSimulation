@@ -1,0 +1,17 @@
+{
+  "status": "IN_PROGRESS_VERIFIED_INSTALLATION_CANDIDATE_NOT_FINAL_RELEASE",
+  "path": "dist/satellite_simulation_platform-0.7.8-py3-none-any.whl",
+  "sha256": "4a03c38f391300063e9bde27534e25c012455eadcb6ded9905cd79b9995afad8",
+  "bytes": 2707759,
+  "production_application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "production_core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "origin": "Exact read-only mirror of the previously verified R43 installed candidate",
+  "mirror_proof_sha256": "a9d39a996e2f843f1de38ff8a2e1ff80729bf671440623d5b7417a7a3df5950c",
+  "runtime_payload_files_matching_R45_frozen_source": 868,
+  "production_identical_R43_R45": true,
+  "full_R45": "PENDING",
+  "ubuntu_target_revalidation": "NOT_REVALIDATED",
+  "new_current_source24h_qualification": "NOT_CLAIMED",
+  "physical_high_fidelity": "NOT_CLAIMED",
+  "source_or_environment_installation_performed_here": false
+}

@@ -1,0 +1,62 @@
+{
+  "status": "REVIEW_PROGRESS_NOT_RELEASE_QUALIFIED",
+  "application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "frozen_input_count": 1498,
+  "frozen_inputs_sha256": "a4f9ae455249209e4318fe0e74762c734d2d7b7c89a824f60efddc866672fa6f",
+  "preparation_sha256": "fdd9d66d007c2ad56aa84a5d02ad66f13c13ceb51d48ff1a93e9ebf9c342b6a2",
+  "full_regression": "ACTUAL_FAIL_RETAINED",
+  "full_observation": "Original R43 full result remains FAIL. R44/R45 targeted navigation passes are separate records and are not added to this score.",
+  "actual_model_gui_v2": "SCOPED_PASS_94_DRIVER_CHECKS_PLUS15_BOOLEAN_RECHECKS",
+  "earlier_gui_attempt": "One actual create model response succeeded but subsequent driver projection-readiness race caused GUI flow failure; raw evidence retained, not counted as complete joint-chain PASS. Root owns any authorized follow-up.",
+  "final_installed_and_joint_chain": "Root-owned final qualification; not inferred by adding component scores.",
+  "component_scores_are_not_summed": true,
+  "unapplied_navigation_patch_status": "R44_INDEPENDENT_TEST_NODE_PASS_NOT_APPLIED_TO_R43",
+  "no_git_or_current_entry_mutations": false,
+  "as_of_utc": "2026-10-30T20:36:11.930243+00:00",
+  "related_R44_test_only": {
+    "completion_sha256": "9460a11331f5e9a74c74ebfd9fb1aea815783dd745885a914ec627584ef32c33",
+    "production_application_unchanged": true,
+    "actual_original_node_passed": 1,
+    "original_assertions_preserved": 79,
+    "applied_to_R43": false,
+    "full_R44_not_claimed": true
+  },
+  "model_settings_navigation_patch": "APPLIED_ONLY_TO_R45_ORIGINAL4_PARAMETERS_PASS",
+  "full_result": {
+    "total": 2428,
+    "passed": 2417,
+    "failed": 5,
+    "skipped": 6,
+    "warnings": 2,
+    "duration_s": 1691.93,
+    "junit_sha256": "f9258b56c244c5f832c8deefc6ade81474aec2f41bd684a8f3e4dafadcd50e79",
+    "failure_scope": "One hidden catalog direct click and four hidden font selection actions, confirmed by original tracebacks",
+    "relabeled": false
+  },
+  "actual_model_gui_v2_pngs_actually_viewed": 11,
+  "actual_model_gui_v2_source_application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "current_test_snapshot": "R45",
+  "current_test_snapshot_frozen_sha256": "ef378eee593595d42115de69360464a81d5f898a33718a19580ae4e06ae442b8",
+  "full_R45": "SCOPED_PASS_2422P_0F_6S_2WARN",
+  "root_runtime_modified": false,
+  "current_entries_updated_by_root": true,
+  "git_actions_by_original_package_preparer": "NONE",
+  "frozen69_current_driver_attempt": {
+    "status": "INFRASTRUCTURE_FAILURE_BENCHMARK_NOT_EXECUTED",
+    "model_posts": 0,
+    "native_executions": 0,
+    "reason": "Windows venv redirector violates initial direct-parent assumption; precise process-chain preflight in repair.",
+    "historical_strict0_of69_is_separate": true
+  },
+  "full_R45_summary": "R45-FULL-RESULT.json",
+  "full_R45_summary_sha256": "89b8df9db65b699508ebcc87ef42ddb83b4ae764e89bcdbcf8325c50e8207ac2",
+  "next_candidate_R46": "CPU browser race reproduction/minimal repair; production artifact not yet frozen; zero new model calls",
+  "frozen69_launcher_v2_prepared": {
+    "status": "SEALED_NOT_EXECUTED",
+    "actual_no_model_process_checks": 4,
+    "independent_static_checks": 27,
+    "driver_sha256": "d7ba3b64696288072a660a8b6fb9476d95ffb4c751074bf26369302fbaab7d9c",
+    "requires_new_final_source_binding": true
+  }
+}

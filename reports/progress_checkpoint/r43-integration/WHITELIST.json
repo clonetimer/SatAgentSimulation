@@ -1,0 +1,749 @@
+{
+  "status": "PROGRESS_CHECKPOINT_PAYLOADS_VERIFIED",
+  "at_utc": "2026-10-30T20:37:47.897902+00:00",
+  "production_application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "production_core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "target_test_snapshot": "R45",
+  "target_frozen_inputs_sha256": "ef378eee593595d42115de69360464a81d5f898a33718a19580ae4e06ae442b8",
+  "files": [
+    {
+      "path": "reports/progress_checkpoint/r43-integration/AI-EVIDENCE-INDEX.json",
+      "sha256": "7830c809a17ea53dbdc30442328c95f7b40b1fae03aab27a2db45bf6eca955ee",
+      "bytes": 2266,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/LAYOUT-EVIDENCE.json",
+      "sha256": "fe4d17d5ff896d1b8ebd90f5663e30a38aea4f4bc32350f4bfc152bf081f4f74",
+      "bytes": 3052,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/R40-SUMMARY.json",
+      "sha256": "0c9dcf2897f5120eba91316215bba2666f28098954b73d97657a62c42c8d90e5",
+      "bytes": 1223,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/R42-SUMMARY.json",
+      "sha256": "58e9a32205bbbc81ac5eee58f8c8c20ae5f3a18b5ab2e18390598c4860451ca0",
+      "bytes": 1688,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/R43-FREEZE-AND-STATUS.json",
+      "sha256": "552bd65022386eb32d65df9ea411f70f0d8dd9cafe1d56db0debf3ea68ba72b2",
+      "bytes": 3530,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/R44-SUMMARY.json",
+      "sha256": "4c2eba16c1f968c0956b4c39f8218a19da2a84d6dcffcec93a42912be65de5ea",
+      "bytes": 802,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/R45-FULL-RESULT.json",
+      "sha256": "89b8df9db65b699508ebcc87ef42ddb83b4ae764e89bcdbcf8325c50e8207ac2",
+      "bytes": 2737,
+      "kind": "derived_complete_regression_result"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/R45-SUMMARY.json",
+      "sha256": "47a9f6517f6b3900e15fd03b32a0ba8348e69d5cf3203c73b070e12973bf3241",
+      "bytes": 629,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/README.md",
+      "sha256": "ac119d109002933f8fd90f2672af3a313d81759f4a293ac4476175774fd3b1d1",
+      "bytes": 2857,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/SOURCE-DELTA-INVENTORY.json",
+      "sha256": "b7d80c337593a86810361abf7731122979707e971387f111aa29146e5f7090bf",
+      "bytes": 38401,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/SOURCE-OVERLAY-MANIFEST.json",
+      "sha256": "624626979391d75e07d84d325e7b88f7c3013e958ca218641f5857aa8aa84dfe",
+      "bytes": 26372,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/SOURCE-OVERLAY-README.md",
+      "sha256": "56d40f4504f61467e09cd5206be7673fbd833cdaf40da79dd0954b612cf67d55",
+      "bytes": 902,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/UI-DELIVERY.zh-CN.md",
+      "sha256": "c275f94b99dd84bd76a3d6fa0d6aa99ed5dcacae80d810a7096e7a08d9690ea3",
+      "bytes": 2985,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/WHEEL-CANDIDATE.json",
+      "sha256": "5d11485ba0fbe883c8c3d51eda7a31ad3a54fecf183ec6dd3ed751b0fb24b23d",
+      "bytes": 971,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/create17-01-ready.png",
+      "sha256": "1ccbe04b9c8bc16470d4918d155a9bb7ac3c8be4e66a688808e71bf5123052b1",
+      "bytes": 176840,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/public-summary.json",
+      "sha256": "a7cdefc4e3d002159f365674edfe0e687102f72e2fce309e1649b54ce39db418",
+      "bytes": 1573,
+      "kind": "public_summary_or_manifest"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/refine42-02-generated.png",
+      "sha256": "bcde26b4670a005b42c2ff873aef74717af01962ad06a88bfce2ccb9e5b9dc91",
+      "bytes": 179249,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/web-run/eps_battery_capacity_ratio-desktop.png",
+      "sha256": "365ef879ddc0a5883aa03af69895f6fe95f547720830086cbf8b05ad9c3ece9f",
+      "bytes": 241120,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/web-run/eps_battery_capacity_ratio-narrow.png",
+      "sha256": "06576df26c72bb61f382c08f5922f66ed0e21e78926d1ac325724f8a0e198bc9",
+      "bytes": 62109,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/web-run/eps_effective_battery_capacity_wh-desktop.png",
+      "sha256": "13ce9496de360e975239cf9d4d8a1466ec592e2b6f23a3b540d4507f12319a2b",
+      "bytes": 241086,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/web-run/eps_effective_battery_capacity_wh-narrow.png",
+      "sha256": "6004af32b3ca64c72ced9c248eb8b1c1ced0751a7129950865495129ff1ad4bb",
+      "bytes": 62073,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/ai-evidence/web-run/overview-physical-warning42-desktop.png",
+      "sha256": "6e6b644bccdc0870371efbb3ed165cab008f71047a457e3160e322bf28f886c6",
+      "bytes": 246001,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/dist/satellite_simulation_platform-0.7.8-py3-none-any.whl",
+      "sha256": "4a03c38f391300063e9bde27534e25c012455eadcb6ded9905cd79b9995afad8",
+      "bytes": 2707759,
+      "kind": "verified_candidate_wheel"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/history/current_requirements_status.pre-r45.md",
+      "sha256": "1628969c9c83080c6c15177907cce458feea81ca21b1aab494f8277b071acf09",
+      "bytes": 41923,
+      "kind": "original_historical_progress_entry"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/history/progress_checkpoint_README.pre-r45.md",
+      "sha256": "09ed6288b18d69ae7fe50278ab3bd77617d603c7f40b56f57aae30a42f69a64e",
+      "bytes": 14083,
+      "kind": "original_historical_progress_entry"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/images/empty-1440.png",
+      "sha256": "600bb0f4a51b188d6c18049b7495defaa7566f580c8a162a766143dd2f2e782d",
+      "bytes": 158656,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/images/empty-390-font130.png",
+      "sha256": "0e16c37da64eecf48a2ff4880b8e2e0494b98bbca1f25742b76371fd64e22441",
+      "bytes": 84009,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/images/native-chart-1366.png",
+      "sha256": "3422251a43da1e1020883fb17e55c846f7346de3b27a9266f4aa8291aa0fa924",
+      "bytes": 184695,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/images/native-fullscreen-390-font130.png",
+      "sha256": "a6e0cb22225b4d1781984d156246be23ea73e5eca0b7506edeff8e1f140c99cc",
+      "bytes": 52921,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/images/owned-run-browser-induced-read-error.png",
+      "sha256": "a0f6e50ab3aee4be61c03dc46bf8e13da31c6debcfe2294d4c6ec278f084a029",
+      "bytes": 192947,
+      "kind": "actual_approved_png"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/constraints.txt",
+      "sha256": "6c72f240450e697af13f8dab5dffbce0146ae7d953993fdbd614a86dc2bfd7df",
+      "bytes": 564,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/docs/guides_zh/01_快速开始.md",
+      "sha256": "8b013b86af19f39cd58dd2cc72d8c5397c267b161cc603277cfa2027dad30b6a",
+      "bytes": 2903,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/docs/guides_zh/15_Basilisk依赖来源与Windows安装校验.md",
+      "sha256": "19e2e083e53e5b0c3365eccdde42bd5f950298808c0eba46e9a6abc8d2b6c4c1",
+      "bytes": 6781,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/docs/guides_zh/RW_Basilisk验收步骤.md",
+      "sha256": "b9ad905b34fab34a40a65fca628846da56a543f55067f8a69c3d761777bb6d36",
+      "bytes": 1300,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/docs/legacy_degradation_units.md",
+      "sha256": "92de0f23706550201fd4c68f78b41ce88009fbac8ebee754b227fea48339fed1",
+      "bytes": 747,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/docs/native_resource_loss_events.md",
+      "sha256": "2e24108db948ca2ba6e660dfc274795ea662acdcdf637bc429c6555f3e5fca32",
+      "bytes": 4210,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/docs/native_thermal_environment.md",
+      "sha256": "b295984cc07056eabf69baeca1248b5f79cccc732d42ad79e40b383a17a422ce",
+      "bytes": 10189,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/pyproject.toml",
+      "sha256": "a8eaf0acaf67a190379a2a299c37b00dbac94930f6ede71b64f36d3898ad45da",
+      "bytes": 2195,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/reports/dependency_audit.json",
+      "sha256": "3e9b875d2f2bd823416c1d5ae9af1009ae8200d12d781743d281047de1c204ac",
+      "bytes": 1715,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/reports/security/all-platforms-audit-requirements.txt",
+      "sha256": "700d9d5ae03ef656c0d1291519ca9be10c9f64b8a1dcf9a23ca030b8320c7f1c",
+      "bytes": 1689,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/reports/security/pip_audit_raw.json",
+      "sha256": "8add3453478eddf491e9034e0c68e8f37d3d71e40cc07ce0f20d9cc1aca7cebf",
+      "bytes": 5172,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/reports/security/pip_audit_raw_requirements.txt",
+      "sha256": "9ca161d92c935a26eb95e4cbcd0e468998391049c568211c3e00725866c2f237",
+      "bytes": 1681,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/requirements-api.txt",
+      "sha256": "db9084efd76ef69fe340211fdceac75d9e20a5bd975216b4028cd065de30d47d",
+      "bytes": 174,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/requirements-lock.txt",
+      "sha256": "6da6646e30c39d552b41161ffa10bcd43f470547a81891588830f0c764c779f6",
+      "bytes": 1674,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/scripts/serve_modelscope_model.py",
+      "sha256": "faa0a478dcc443a9234478e7c831e910311bb64ef1b32be7fa633d0d2dd88b89",
+      "bytes": 2594,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/agent_facade.py",
+      "sha256": "941fef0ee1c7d78ef75d221743456c1138e0cb3b0b8b2864205b371d09dccc74",
+      "bytes": 45268,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/api.py",
+      "sha256": "d559b26e0b500810e02df3e84a9fff374f940e74543cd96fc323ece7393c7992",
+      "bytes": 178905,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/bsk_engine/event_manager.py",
+      "sha256": "814a000f46f667aa55742be0d0986652ee437c1c49ff1fafab3bd372185851b3",
+      "bytes": 4757,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/canonical_transport.py",
+      "sha256": "f636c023f4cc550d008804be91e898a9f8bee6b2c484e4eff67245dac43478da",
+      "bytes": 12426,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/capability_agent.py",
+      "sha256": "26f7402337ec5461ef31bb7772e0f46c27ebdb25b270c9591d2c951fcc1c0b11",
+      "bytes": 262286,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/form_schema.py",
+      "sha256": "a4f4a0ea57fa4dc34d824bc581560c312b064cabe2ce5e167317dc1a03b85471",
+      "bytes": 90241,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/interactive/api.py",
+      "sha256": "66d9f277bf141e382b8c43ab036c2252a9b9d9eacda4941fbae0f55eea27b00d",
+      "bytes": 35937,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/interactive/command_catalog.py",
+      "sha256": "ea8cf8dbb7924d33c599a1da68c6314ec4872912d2031635b54967dc4f4d9ccf",
+      "bytes": 4544,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/interactive/manager.py",
+      "sha256": "50d07e98d303ca3f0d054a405da2bfbbff9807db3457e8fb24d7b7125dde5a9c",
+      "bytes": 32448,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/interactive/realtime_capability_matrix.json",
+      "sha256": "efb5b660e11b864319b0eb0379dddc40c7c31f96fc60c913c3e5eaec33f597dd",
+      "bytes": 7051,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/interactive/runtime_factory.py",
+      "sha256": "40ce31fe59ed5345a10d02383b6cd16c31d537a2c87ec7ceeea598123b382f6c",
+      "bytes": 7651,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/llm_backends.py",
+      "sha256": "a7c7064b2e637b4fbc5c6d2f5cc62d4f925b549d2fa55437d034e5ff80a39496",
+      "bytes": 53981,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/nl_aliases.py",
+      "sha256": "b93c64833033ba04094421af768e55a572aa08b0341bcf8e4ba558c672fce517",
+      "bytes": 1204,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/nl_time.py",
+      "sha256": "65ad7388a8dd3ba976fe2f87aaf1b712aacbe85b81c3cfee3602d92b7305cc85",
+      "bytes": 9064,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/release_closure.py",
+      "sha256": "cb2c716e3fe1ba2eb933c3a4f75bef5414bbf8d53aa4fa7341842a58c161d494",
+      "bytes": 45007,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/release_manifest.json",
+      "sha256": "7d58a6f0c854679410a25c1c0eca1b9d06e5d34f39ce2e8e9e3f2613e9fa29aa",
+      "bytes": 21001,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/script_exporter.py",
+      "sha256": "b4c30f1e31894db506194f4338083b7a950719c04c88564dc09a98e6fec25678",
+      "bytes": 29136,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/unified_agent.py",
+      "sha256": "058fad840fc776de0b13f13acfa072a687502c66310ff29e281c213d3f5a8a01",
+      "bytes": 76857,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/web/app.js",
+      "sha256": "7223b5d282329b289c5ab3a75586dd26ce08fa2833909d25f8d47c4e702b88da",
+      "bytes": 504764,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/web/compact-workbench.css",
+      "sha256": "0f1489069ea7fc64e862f0cbd41fb99211ffbcc531d311e9f68123c4b27c82d8",
+      "bytes": 13581,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/web/compact-workbench.js",
+      "sha256": "b79df5fa34644535342188bd92acb0c530e398fce12aba3132570a38424ff725",
+      "bytes": 10204,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/web/continuous.js",
+      "sha256": "8217dc336952c1717425844821db5a438cb447934d6398e7c98af8e76ab96a9d",
+      "bytes": 60645,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/web/index.html",
+      "sha256": "f6d95ac9feb63ee9875a050733cfae7623cf229fd2f3cdad34ed1acc76f1bd56",
+      "bytes": 135190,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim/web/styles.css",
+      "sha256": "baee071601faf7f62fb17a5ebc7c94848c995a6b98e994836cd26326891d2d5c",
+      "bytes": 118366,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim_ml/generation_control.py",
+      "sha256": "df5fd65d4d49ec8803535adcd85c49ba4d3c69e2cdfa6151bf49f8b9e27d70f0",
+      "bytes": 8254,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim_ml/guided_decoding.py",
+      "sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b",
+      "bytes": 7355,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/src/sat_sim_ml/serving.py",
+      "sha256": "01c01b294b45a522b5007dd490f0df4ffd9065812938ac44e4a2aab4630253c7",
+      "bytes": 15493,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/fixtures/export_roundtrip/create17_task_spec.json",
+      "sha256": "f1c0177d7412f239b8e3677439e86c293982c884216ef91aaf29bd48358a4723",
+      "bytes": 14056,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/fixtures/form_projection/offline_sentinel.json",
+      "sha256": "f85f2f29f6c0309eb233d80fbf45d39fdba4bd6be296d53a6c194adccb77211d",
+      "bytes": 35763,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/fixtures/form_projection/recorded_create17.json",
+      "sha256": "c1fb86b2d61a767d08ceb34e32f399ba42d44ff2aaadf01ff7247e36630815dd",
+      "bytes": 35415,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/interactive/test_command_catalog.py",
+      "sha256": "46bb24ee8f79d244b0266b1dedd908693cc64e317a3b6a177b6983982df797cd",
+      "bytes": 3821,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/interactive/test_continuous_console_browser.py",
+      "sha256": "9d1c1e7366f531ebec9f10720fcf8487cb8271b386314b481100ea1272fe7bdf",
+      "bytes": 23577,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/interactive/test_single_run_creator_ux.py",
+      "sha256": "25a6f6398e70cd78a3c2cc304697cbd6b445bf3a4b73ba5043dd6524640962ee",
+      "bytes": 36242,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/numeric_const_decode_contract_worker.py",
+      "sha256": "6ea035c799b95193163451b23a09031825a6b90dd5cbf73d5e246d0898a86457",
+      "bytes": 9778,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_agent_generation_responsiveness_browser.py",
+      "sha256": "75b65f4c7766c299d9313b24fcae0205ff54a2bf3c775b1a363d32cd94b73b4d",
+      "bytes": 6363,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_canonical_transport.py",
+      "sha256": "b0ef7847821f9fa020535f67aefbd8b6d62d3955fc397ac09bae371d22298f01",
+      "bytes": 15996,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_canonical_transport_api.py",
+      "sha256": "fbe9458d9658549a8da0c2fd7d378296f16b69f0915cacf0f5dac021fc4dcc9e",
+      "bytes": 10902,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_capability_issue_closure.py",
+      "sha256": "ebab25cb458b37ca717c8daad2b58387853b5b9e092d4520b3e6c9f7660e857f",
+      "bytes": 5865,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_dependency_security.py",
+      "sha256": "33eb7148a70073945041bb9c0637009ae84c7d9d9cb210a9891e5916cc989c5d",
+      "bytes": 4270,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_exported_script_canonical_roundtrip.py",
+      "sha256": "836324b9fd7f0e1af2fc9471883ca56e2859dd37564ee3385ea1151dca61be78",
+      "bytes": 6407,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_exported_script_plan_identity.py",
+      "sha256": "82458581d58653c45cf0a68ec59e1a0b8d014725481a8ff1aeaccf66c957b470",
+      "bytes": 8236,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_external_gate_closure.py",
+      "sha256": "572107e68e191cafde419055fb5b2c48dbdb47e71921d08b407206798ff2dd73",
+      "bytes": 7090,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_form_projection_identity.py",
+      "sha256": "3703d5a452069b33705d2ac648f0b599389a167090ae86cc0e9d2855a59750a8",
+      "bytes": 14790,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_generation_admission_control.py",
+      "sha256": "2f6f126cb549d3baed35bc86e294e71461ac81a4d764528074139a5cba1e0dd0",
+      "bytes": 14680,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_graph_editor_containment_browser.py",
+      "sha256": "ac2f144863b02a360cb31dbb2755fbd1c1dfbb1f5588c4c43a86633b11ee3fb9",
+      "bytes": 4859,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_legacy_bsk_event_delivery.py",
+      "sha256": "2748d3269e99314b31688d6cd29c6c937721b9ac01b6d42b8dc08b242280dfb2",
+      "bytes": 2020,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_legacy_degradation_units.py",
+      "sha256": "d47cc145e1b7e290b82a7cd6190c39c0fca3cb78319f7092e4c72d97389f7dc9",
+      "bytes": 3664,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_legacy_issue_closure.py",
+      "sha256": "b99075941d5f22b455a97c643174968cbe7551421e856385c8d97127f867fa8b",
+      "bytes": 9651,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_local_engine_cooperative_control.py",
+      "sha256": "3bcc2f0f248f528657c2361b696676b610743ccc9e0e91a90f67c0f751fb6b1b",
+      "bytes": 8326,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_model_magnitude_preservation.py",
+      "sha256": "1b41c9b0e1f024e1a396688e4d868e4332e9e0e3fa357f8abceddd2c120ed85a",
+      "bytes": 5537,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_model_settings_mobile_layout.py",
+      "sha256": "bc473b82abb2b1e65b324969ddb7d96a25e15c3d128c11544b9b3d34a2012239",
+      "bytes": 2856,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_natural_battery_loss_guard.py",
+      "sha256": "6a8180384c6de5d2bd9e677a289784deb4b9b56a0cb23e2d80513ab0612a0ed2",
+      "bytes": 2986,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_nl_literal_grammar_boundaries.py",
+      "sha256": "a536c66dfca21754dc979fe85a03eca527bc30633430c9b6f6ee55a1414d7842",
+      "bytes": 5494,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_numeric_const_decode_contract.py",
+      "sha256": "4bcb97a4742e8e464635ea047df39ba22c30ee60be6984c2013142a92bead3ee",
+      "bytes": 2411,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_python_support_floor.py",
+      "sha256": "a9a2d370370fecc0c4fe61276c46250b8fdaab205968667eb4e7e5b33efa26fb",
+      "bytes": 1973,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_refinement_event_preservation.py",
+      "sha256": "26430bc48ec4d0f2244237e63babafe3ad0178b0b9338da43cd26824af511769",
+      "bytes": 6362,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_refinement_negated_clauses_and_dimensions.py",
+      "sha256": "f27a18e0fce931a62a74c4ae289580af84c88637d02cc54ad9c184578e337334",
+      "bytes": 4972,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_refinement_prompt_projection.py",
+      "sha256": "e71f5b5df74e2541ec4a8de6a7e9afe018466bc6ffdd440a8095a3883eb817f5",
+      "bytes": 2412,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_refinement_transaction.py",
+      "sha256": "2879238de1519c3695a1d18b4d604611a0738e6ff9de5bea0de62fb735ef8210",
+      "bytes": 6418,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_refinement_units_and_intent.py",
+      "sha256": "6ca0f95f2939991c14e4ddeff494d8b11b716bed6e0114f60d0647517b816b96",
+      "bytes": 8581,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_release_contract.py",
+      "sha256": "0804de78e5239f71b556c835f5c0f0a5db53f7d2db6ac95895d288b9744b86d6",
+      "bytes": 11064,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_run_panel_provider_presentation_browser.py",
+      "sha256": "a69224e1b9e96cf11d9619a8ad585334d214a7c1087be6b254f7990a36e7a6c3",
+      "bytes": 9992,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_scoped_event_intent_and_count.py",
+      "sha256": "3716f3a2df66892334985e32f4c4786fc7af3416dd98da93beb3d0a731456e07",
+      "bytes": 6738,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_single_fault_generation_fields.py",
+      "sha256": "b9faf22d48ed7d1908181259e5e83c6701130aef58df776edf2c2268c83da414",
+      "bytes": 2838,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_task_projection_source_browser.py",
+      "sha256": "4fb64660eb4583c05459248ae92f9d2d1afe53eb3adc2b8070ece87b5df07c28",
+      "bytes": 11105,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_task_save_feedback_browser.py",
+      "sha256": "dc0863bc5c0af100657a9bab38bcea035fbaf534aa51f9d2c4534ed8f0f621a0",
+      "bytes": 4793,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_typed_event_draft_candidate.py",
+      "sha256": "9ac296074648720caf0ba720fec56f3ac642197bd890a2a05ea9668eb4be46a6",
+      "bytes": 4037,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_web_workbench.py",
+      "sha256": "312b72ee200440afd47331c0a2b0fc68dfe04d72a2a972acfabb9f814a1baac2",
+      "bytes": 37350,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_workbench_accessibility_browser.py",
+      "sha256": "3fe38f688eedd38f1db6a04c2fb19e0eed9b3ce1dccfff17245abb56af1e1d16",
+      "bytes": 10073,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_workbench_agent_refinement_browser.py",
+      "sha256": "7ba3b3c375ed963ed4b24b18010770dc0ca2ff535680708ab0e4146e16da6352",
+      "bytes": 9452,
+      "kind": "source_overlay"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/source-overlay/tests/test_workbench_task_identity_browser.py",
+      "sha256": "61f636f72e5a46fe3d2f271fd01522e8035b12eeaf645763e6698fe3ed4df4f1",
+      "bytes": 7777,
+      "kind": "source_overlay"
+    }
+  ],
+  "payload_file_count": 116,
+  "source_delta_inventory_count": 87,
+  "source_payload_count": 86,
+  "ai_public_allowlist_payload_count": 8,
+  "layout_png_count": 5,
+  "wheel_count": 1,
+  "wheel_bytes": 2707759,
+  "root_runtime_or_current_entry_modified": true,
+  "git_actions": "NONE_BY_ORIGINAL_PACKAGE_PREPARER",
+  "full_R43": "ACTUAL_FAIL_2417_PASS_5_FAIL_6_SKIP",
+  "R44_targeted": "1_PASS",
+  "R45_targeted": "4_PASS",
+  "R45_full": "SCOPED_PASS_2422P_0F_6S_2WARN_WITH_UNCOVERED_R46_RACES_PENDING",
+  "R43_actual_model_gui": "94_DRIVER_CHECKS_15_BOOLEAN_RECHECKS_11_PNG_VIEWED",
+  "source_delta_inventory_sha256": "b7d80c337593a86810361abf7731122979707e971387f111aa29146e5f7090bf",
+  "source_overlay_manifest_sha256": "624626979391d75e07d84d325e7b88f7c3013e958ca218641f5857aa8aa84dfe",
+  "excluded": [
+    "reports/current_requirements_status.md payload",
+    "full1498-source snapshot",
+    "environments",
+    "model weights",
+    "private provider configuration",
+    "raw model prompt/response files",
+    "raw telemetry/dataset",
+    "databases"
+  ],
+  "historical_entry_archives": [
+    {
+      "path": "reports/progress_checkpoint/r43-integration/history/current_requirements_status.pre-r45.md",
+      "sha256": "1628969c9c83080c6c15177907cce458feea81ca21b1aab494f8277b071acf09",
+      "bytes": 41923,
+      "kind": "original_historical_progress_entry"
+    },
+    {
+      "path": "reports/progress_checkpoint/r43-integration/history/progress_checkpoint_README.pre-r45.md",
+      "sha256": "09ed6288b18d69ae7fe50278ab3bd77617d603c7f40b56f57aae30a42f69a64e",
+      "bytes": 14083,
+      "kind": "original_historical_progress_entry"
+    }
+  ],
+  "root_runtime_modified": false,
+  "current_entries_updated_by_root": true,
+  "payload_bytes": 7017655
+}

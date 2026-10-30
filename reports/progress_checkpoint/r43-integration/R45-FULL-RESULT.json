@@ -1,0 +1,58 @@
+{
+  "status": "FULL_WINDOWS_ENGINEERING_REGRESSION_SCOPED_PASS",
+  "application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "source": "requirements-r45-navigation-complete-candidate",
+  "frozen_inputs_sha256": "ef378eee593595d42115de69360464a81d5f898a33718a19580ae4e06ae442b8",
+  "total": 2428,
+  "passed": 2422,
+  "failed": 0,
+  "skipped": 6,
+  "warnings": 2,
+  "pytest_reported_duration_s": 1508.52,
+  "junit_suite_duration_s": 1508.479,
+  "finished_utc": "2026-10-30T20:30:11.243166+00:00",
+  "junit_sha256": "16433ec286ba195202fcaffdc682f9b0c5280fe832496ee7214363de420cfcc6",
+  "returned_sha256": "5a6e4a270ee27c8120bbda7cb54d17c4332d94ffbc5c48919c77c9fc829c3ec1",
+  "source_and_imports_stable": true,
+  "skips": [
+    {
+      "class": "tests.interactive.test_native_battery_custom_wheel",
+      "name": "test_r9k_rebuilt_native_wheel_fresh_pid_battery_integrator_parity",
+      "reason": "Experimental custom-wheel profile unavailable; no native checkpoint qualification claimed"
+    },
+    {
+      "class": "tests.interactive.test_native_parent_death_fence",
+      "name": "test_real_basilisk_subprocess_dies_when_parent_os_process_is_killed",
+      "reason": "Linux kernel PR_SET_PDEATHSIG only"
+    },
+    {
+      "class": "tests.interactive.test_supervised_continuous_native_runtime",
+      "name": "test_native_worker_death_does_not_recreate_graph_or_retry_tc",
+      "reason": "SIGKILL direct-worker injection on POSIX"
+    },
+    {
+      "class": "tests.interactive.test_supervised_continuous_native_runtime",
+      "name": "test_live_session_child_crash_preserves_active_sqlite_owner_fence",
+      "reason": "POSIX SIGKILL fault injection"
+    },
+    {
+      "class": "tests.interactive.test_windows_native_job",
+      "name": "test_job_not_available_on_linux",
+      "reason": "tested by native Windows tests"
+    },
+    {
+      "class": "tests.test_guided_numeric_bounds",
+      "name": "test_guided_numeric_bounds_reject_invalid_emitted_values",
+      "reason": "optional serving environment with lm-format-enforcer is not installed"
+    }
+  ],
+  "warnings_scope": [
+    "Starlette TestClient httpx deprecation",
+    "Intentional duplicate Basilisk/__init__.py in tamper-rejection test fixture"
+  ],
+  "does_not_prove_absence_of_uncovered_ui_races": true,
+  "next_R46": "Supplementary static control-flow review identified parse reentry via Run and stale ZIP completion. CPU browser red/green repair in a new isolated candidate; no source change claimed here.",
+  "historical_R43_full_fail_unchanged": true,
+  "not_24h_or_all69_model_qualification": true
+}

@@ -1,0 +1,32 @@
+{
+  "status": "LOCAL_RELEASE_AUDIT_COUNT_CONSISTENCY_PASS_NOT_FULL_QUALIFIED",
+  "component_application": "ae30865741c079881912993077b2ac061a951c71a4a831a5b45631fb7569183f",
+  "completion_sha256": "4cc3fe18e70a37f842c4351fa57773e6dbd47ee78d2468262501226076b64131",
+  "scope": "Only production release_manifest.json current audit claim and its release-contract tests changed. No dependency, install, model, native simulation, thresholds or existing frozen source changes. Parent must qualify later integrated source/full suite/wheel/UI/AI.",
+  "targeted_tests": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "dependency_security": {
+    "stable_status": "CURRENT_LOCK_OSV_AUDITED_ZERO_VULNERABILITIES",
+    "audited_count": 91,
+    "rule": "Actual current all-branch lock pins -> transparent BSK alias -> prepared pins -> exact unique raw OSV pins; zero vulnerabilities and successful actual prior scan required. Distinct from90 applicable installed dependency distributions.",
+    "audit_sha256": "3e9b875d2f2bd823416c1d5ae9af1009ae8200d12d781743d281047de1c204ac",
+    "raw_sha256": "8add3453478eddf491e9034e0c68e8f37d3d71e40cc07ce0f20d9cc1aca7cebf",
+    "new_scan_performed": false
+  },
+  "current_status": "IN_PROGRESS",
+  "historical_evidence_inheritance": "DISALLOWED",
+  "ubuntu_target_revalidation": "NOT_REVALIDATED",
+  "soak_status": "PENDING_CURRENT_SOURCE",
+  "zero_vulnerability_requirement_unchanged": true,
+  "retained_old_full_result": {
+    "application": "5605efa2fb7eb5b1ae09a8d972bf9537ade18e3576643114cbae52b7fb12c4ba",
+    "passed": 2420,
+    "failed": 1,
+    "skipped": 6,
+    "relabeled": false
+  }
+}

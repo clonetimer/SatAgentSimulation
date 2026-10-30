@@ -1,0 +1,11 @@
+{
+  "status": "SINGLE_BROWSER_CONTROL_PLANE_NODE_PASS_NOT_FULL_QUALIFIED",
+  "application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "completion_sha256": "9460a11331f5e9a74c74ebfd9fb1aea815783dd745885a914ec627584ef32c33",
+  "passed": 1,
+  "original_assertions_preserved": 79,
+  "scope": "Original Chromium continuous-console function retained all configuration import/freeze, commands/ACK, chart selection, null SOC, durable-history, recovery and two completed-session assertions. Runtime is the original explicit UiProtocolDouble: this is real browser/API control-plane wiring, not Basilisk/model accuracy.",
+  "actual_model_or_native_calls": 0,
+  "full_result_not_inferred": true
+}

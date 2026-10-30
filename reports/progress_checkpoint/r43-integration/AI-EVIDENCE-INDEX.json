@@ -1,0 +1,54 @@
+{
+  "status": "EXACT_EIGHT_ROOT_APPROVED_PUBLIC_ARTIFACTS",
+  "source_application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "source_core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "source_allowlist_sha256": "4d7e8eec7639310e93d23a5b78a2586b9d74f333007a41687ed0b6762d0901ec",
+  "private_completion_sha256": "8e78692b589a8ead0f8cc3e80768ad79ad46df939336a44231de7190b6083b2c",
+  "driver_checks": 94,
+  "independent_boolean_rechecks": 15,
+  "original_pngs_actually_viewed": 11,
+  "copied_pngs": 7,
+  "scope": "Original R43 installed-wheel GUI/native evidence; R45 changes test navigation only. No new R45 inference or full-regression claim.",
+  "files": [
+    {
+      "path": "ai-evidence/public-summary.json",
+      "sha256": "a7cdefc4e3d002159f365674edfe0e687102f72e2fce309e1649b54ce39db418",
+      "bytes": 1573
+    },
+    {
+      "path": "ai-evidence/create17-01-ready.png",
+      "sha256": "1ccbe04b9c8bc16470d4918d155a9bb7ac3c8be4e66a688808e71bf5123052b1",
+      "bytes": 176840
+    },
+    {
+      "path": "ai-evidence/refine42-02-generated.png",
+      "sha256": "bcde26b4670a005b42c2ff873aef74717af01962ad06a88bfce2ccb9e5b9dc91",
+      "bytes": 179249
+    },
+    {
+      "path": "ai-evidence/web-run/overview-physical-warning42-desktop.png",
+      "sha256": "6e6b644bccdc0870371efbb3ed165cab008f71047a457e3160e322bf28f886c6",
+      "bytes": 246001
+    },
+    {
+      "path": "ai-evidence/web-run/eps_effective_battery_capacity_wh-desktop.png",
+      "sha256": "13ce9496de360e975239cf9d4d8a1466ec592e2b6f23a3b540d4507f12319a2b",
+      "bytes": 241086
+    },
+    {
+      "path": "ai-evidence/web-run/eps_effective_battery_capacity_wh-narrow.png",
+      "sha256": "6004af32b3ca64c72ced9c248eb8b1c1ced0751a7129950865495129ff1ad4bb",
+      "bytes": 62073
+    },
+    {
+      "path": "ai-evidence/web-run/eps_battery_capacity_ratio-desktop.png",
+      "sha256": "365ef879ddc0a5883aa03af69895f6fe95f547720830086cbf8b05ad9c3ece9f",
+      "bytes": 241120
+    },
+    {
+      "path": "ai-evidence/web-run/eps_battery_capacity_ratio-narrow.png",
+      "sha256": "06576df26c72bb61f382c08f5922f66ed0e21e78926d1ac325724f8a0e198bc9",
+      "bytes": 62109
+    }
+  ]
+}

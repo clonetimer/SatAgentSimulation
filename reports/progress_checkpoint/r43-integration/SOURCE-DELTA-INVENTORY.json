@@ -1,0 +1,933 @@
+{
+  "status": "ROOT_APPROVED_FINITE_PAYLOAD_COPIED_TO_PACKAGE_ONLY_NOT_APPLIED",
+  "at_utc": "2026-10-30T20:11:22.152690+00:00",
+  "baseline": "Current physical shared Root bytes; not an assumed fresh clone",
+  "baseline_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "baseline_core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "target_source": "reports/local_requirements_completion/requirements-r45-navigation-complete-candidate",
+  "target_application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "target_core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "target_frozen_inputs_sha256": "ef378eee593595d42115de69360464a81d5f898a33718a19580ae4e06ae442b8",
+  "target_frozen_count": 1498,
+  "inventory_file_count": 87,
+  "source_payloads_copied": 86,
+  "excluded_current_entry": "reports/current_requirements_status.md",
+  "automatic_deletions": false,
+  "files": [
+    {
+      "path": "constraints.txt",
+      "before_sha256": "106e299a18327d9357b990201a9bba99a5ecd12b99465b924612f97a80f22113",
+      "after_sha256": "6c72f240450e697af13f8dab5dffbce0146ae7d953993fdbd614a86dc2bfd7df",
+      "before_bytes": 551,
+      "after_bytes": 564,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "docs/guides_zh/01_快速开始.md",
+      "before_sha256": "80cdc70e82749b829d28ef4e6fa08744ead5854256bf452ece3945a1b2bca950",
+      "after_sha256": "8b013b86af19f39cd58dd2cc72d8c5397c267b161cc603277cfa2027dad30b6a",
+      "before_bytes": 2862,
+      "after_bytes": 2903,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "docs/guides_zh/15_Basilisk依赖来源与Windows安装校验.md",
+      "before_sha256": "c910d188d88b5a8fc03d9f399c49e15fcb99f5050131499eb217fc8596d4adfc",
+      "after_sha256": "19e2e083e53e5b0c3365eccdde42bd5f950298808c0eba46e9a6abc8d2b6c4c1",
+      "before_bytes": 6342,
+      "after_bytes": 6781,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "docs/guides_zh/RW_Basilisk验收步骤.md",
+      "before_sha256": "57a23eb7376ae66e7e6dd38689de34d4208bcffb8ed6488a6d38e77b2a5ad233",
+      "after_sha256": "b9ad905b34fab34a40a65fca628846da56a543f55067f8a69c3d761777bb6d36",
+      "before_bytes": 1300,
+      "after_bytes": 1300,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "docs/legacy_degradation_units.md",
+      "before_sha256": null,
+      "after_sha256": "92de0f23706550201fd4c68f78b41ce88009fbac8ebee754b227fea48339fed1",
+      "before_bytes": null,
+      "after_bytes": 747,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "docs/native_resource_loss_events.md",
+      "before_sha256": "4fe3bbdc9ce0ff63f2e3b41437483c7010bf1eb39116de6e521e4888d263036c",
+      "after_sha256": "2e24108db948ca2ba6e660dfc274795ea662acdcdf637bc429c6555f3e5fca32",
+      "before_bytes": 2579,
+      "after_bytes": 4210,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "docs/native_thermal_environment.md",
+      "before_sha256": "4f344c3d69aa3d15bb3b2c0ec169d4f98abf845a5e15f6d745cc82f35fa81855",
+      "after_sha256": "b295984cc07056eabf69baeca1248b5f79cccc732d42ad79e40b383a17a422ce",
+      "before_bytes": 9691,
+      "after_bytes": 10189,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "pyproject.toml",
+      "before_sha256": "a3fa38a61b77ef70a0087a648ea97c488e8221502c41ab2abb51be0fba3e6c60",
+      "after_sha256": "a8eaf0acaf67a190379a2a299c37b00dbac94930f6ede71b64f36d3898ad45da",
+      "before_bytes": 2142,
+      "after_bytes": 2195,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "reports/current_requirements_status.md",
+      "before_sha256": "1628969c9c83080c6c15177907cce458feea81ca21b1aab494f8277b071acf09",
+      "after_sha256": "37dafd53079c9f6a3f1c1c58f0b64ee9694fcc382f5ed04eff6d4ba2b7992c08",
+      "before_bytes": 41923,
+      "after_bytes": 39282,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": false,
+      "exclusion_reason": "Root will separately author the current requirements entry; candidate copy is an older point-in-time document."
+    },
+    {
+      "path": "reports/dependency_audit.json",
+      "before_sha256": "6388b2fd8fb3c6b57e02d98439de77a4998aafb6b9f6307cbfb375e5e5e58e52",
+      "after_sha256": "3e9b875d2f2bd823416c1d5ae9af1009ae8200d12d781743d281047de1c204ac",
+      "before_bytes": 1883,
+      "after_bytes": 1715,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "reports/security/all-platforms-audit-requirements.txt",
+      "before_sha256": null,
+      "after_sha256": "700d9d5ae03ef656c0d1291519ca9be10c9f64b8a1dcf9a23ca030b8320c7f1c",
+      "before_bytes": null,
+      "after_bytes": 1689,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "reports/security/pip_audit_raw.json",
+      "before_sha256": "2ee8303275dd64a418b7dbae060939d62dd74abfd2d51b690e33d517ca803c76",
+      "after_sha256": "8add3453478eddf491e9034e0c68e8f37d3d71e40cc07ce0f20d9cc1aca7cebf",
+      "before_bytes": 5011,
+      "after_bytes": 5172,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "reports/security/pip_audit_raw_requirements.txt",
+      "before_sha256": "e7fb14f86f36cc6517560f56f22b190934292a0c675ca267fcab69880ebc985a",
+      "after_sha256": "9ca161d92c935a26eb95e4cbcd0e468998391049c568211c3e00725866c2f237",
+      "before_bytes": 1634,
+      "after_bytes": 1681,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "requirements-api.txt",
+      "before_sha256": "972cd902cd1a2185f545bb1a9c9380d01280e64d0c01552a744814ef63ca065a",
+      "after_sha256": "db9084efd76ef69fe340211fdceac75d9e20a5bd975216b4028cd065de30d47d",
+      "before_bytes": 96,
+      "after_bytes": 174,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "requirements-lock.txt",
+      "before_sha256": "744332822c18b53081fd465d787aacb830f2947ef58834cc14ce9399c197e752",
+      "after_sha256": "6da6646e30c39d552b41161ffa10bcd43f470547a81891588830f0c764c779f6",
+      "before_bytes": 1642,
+      "after_bytes": 1674,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "scripts/serve_modelscope_model.py",
+      "before_sha256": "e4e86b029bd239a07a5088bf144a2577dac07f6c8dd3d326d03f8d911ea18efd",
+      "after_sha256": "faa0a478dcc443a9234478e7c831e910311bb64ef1b32be7fa633d0d2dd88b89",
+      "before_bytes": 1383,
+      "after_bytes": 2594,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/agent_facade.py",
+      "before_sha256": "8456254f0658081fe159e12aa81a674781b9a01d57c8864db27b1304a894763e",
+      "after_sha256": "941fef0ee1c7d78ef75d221743456c1138e0cb3b0b8b2864205b371d09dccc74",
+      "before_bytes": 43835,
+      "after_bytes": 45268,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/api.py",
+      "before_sha256": "64a5e093af7324e5571650d2a556c11aec82254c419ece3c70ce209110dfb51e",
+      "after_sha256": "d559b26e0b500810e02df3e84a9fff374f940e74543cd96fc323ece7393c7992",
+      "before_bytes": 177719,
+      "after_bytes": 178905,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/event_manager.py",
+      "before_sha256": "8b12b51f6afdacd6ee7835d35da6584eca9753cd82cc8aba9887e9f17567c67d",
+      "after_sha256": "814a000f46f667aa55742be0d0986652ee437c1c49ff1fafab3bd372185851b3",
+      "before_bytes": 4250,
+      "after_bytes": 4757,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/canonical_transport.py",
+      "before_sha256": null,
+      "after_sha256": "f636c023f4cc550d008804be91e898a9f8bee6b2c484e4eff67245dac43478da",
+      "before_bytes": null,
+      "after_bytes": 12426,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/capability_agent.py",
+      "before_sha256": "741a8d9815990e1c466addd9c6453ccd4c1fcc803792c884726d67fcf1df7bd0",
+      "after_sha256": "26f7402337ec5461ef31bb7772e0f46c27ebdb25b270c9591d2c951fcc1c0b11",
+      "before_bytes": 257832,
+      "after_bytes": 262286,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/form_schema.py",
+      "before_sha256": "fb81bbe10fe1cb1925bca9bfd652cebb389ec7384ebef6c431ba8064d0e1ecbe",
+      "after_sha256": "a4f4a0ea57fa4dc34d824bc581560c312b064cabe2ce5e167317dc1a03b85471",
+      "before_bytes": 89642,
+      "after_bytes": 90241,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/interactive/api.py",
+      "before_sha256": "32fdec728f04abbf79be8933b88c8dfd67123a694b41fd9c4d1f5d88546b007f",
+      "after_sha256": "66d9f277bf141e382b8c43ab036c2252a9b9d9eacda4941fbae0f55eea27b00d",
+      "before_bytes": 35067,
+      "after_bytes": 35937,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/interactive/command_catalog.py",
+      "before_sha256": "e0407f106fe159799fe6ece737da90f6e716f97c9c1945be882659f3c0f6e8c2",
+      "after_sha256": "ea8cf8dbb7924d33c599a1da68c6314ec4872912d2031635b54967dc4f4d9ccf",
+      "before_bytes": 4394,
+      "after_bytes": 4544,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/interactive/manager.py",
+      "before_sha256": "d3699e2f69ed1521ac846d515b32c07644a78c5f08b8de0630ad936a11cd7fbc",
+      "after_sha256": "50d07e98d303ca3f0d054a405da2bfbbff9807db3457e8fb24d7b7125dde5a9c",
+      "before_bytes": 32101,
+      "after_bytes": 32448,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/interactive/realtime_capability_matrix.json",
+      "before_sha256": null,
+      "after_sha256": "efb5b660e11b864319b0eb0379dddc40c7c31f96fc60c913c3e5eaec33f597dd",
+      "before_bytes": null,
+      "after_bytes": 7051,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/interactive/runtime_factory.py",
+      "before_sha256": "d0ae216d81cea73ceffc4f4e7cb7cd7c9f3bec06d6e555603e64083bf8db94ff",
+      "after_sha256": "40ce31fe59ed5345a10d02383b6cd16c31d537a2c87ec7ceeea598123b382f6c",
+      "before_bytes": 6524,
+      "after_bytes": 7651,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/llm_backends.py",
+      "before_sha256": "3a21e51d225c712ee899055f9fd658b64d34309095ce4ee873048ca5570a3a32",
+      "after_sha256": "a7c7064b2e637b4fbc5c6d2f5cc62d4f925b549d2fa55437d034e5ff80a39496",
+      "before_bytes": 45250,
+      "after_bytes": 53981,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/nl_aliases.py",
+      "before_sha256": null,
+      "after_sha256": "b93c64833033ba04094421af768e55a572aa08b0341bcf8e4ba558c672fce517",
+      "before_bytes": null,
+      "after_bytes": 1204,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/nl_time.py",
+      "before_sha256": null,
+      "after_sha256": "65ad7388a8dd3ba976fe2f87aaf1b712aacbe85b81c3cfee3602d92b7305cc85",
+      "before_bytes": null,
+      "after_bytes": 9064,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/release_closure.py",
+      "before_sha256": "090d776e0348ae3930efe80db519b6109a98be2f041b3fb2b7be07d5f3b7f8da",
+      "after_sha256": "cb2c716e3fe1ba2eb933c3a4f75bef5414bbf8d53aa4fa7341842a58c161d494",
+      "before_bytes": 45007,
+      "after_bytes": 45007,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/release_manifest.json",
+      "before_sha256": "5bd03839b59563276d6164bd9440e5d75c4c15ae8e65469494634dab14e4d3a7",
+      "after_sha256": "7d58a6f0c854679410a25c1c0eca1b9d06e5d34f39ce2e8e9e3f2613e9fa29aa",
+      "before_bytes": 20960,
+      "after_bytes": 21001,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/script_exporter.py",
+      "before_sha256": "336c8f7c2f54f4b69324bb683a262dce987640222c07019c2a7c550b8d4dda3d",
+      "after_sha256": "b4c30f1e31894db506194f4338083b7a950719c04c88564dc09a98e6fec25678",
+      "before_bytes": 20765,
+      "after_bytes": 29136,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/unified_agent.py",
+      "before_sha256": "978998b8fa74cd40d8af9c84c9ab5bf196e9656984c9bd977db5510500b9e0db",
+      "after_sha256": "058fad840fc776de0b13f13acfa072a687502c66310ff29e281c213d3f5a8a01",
+      "before_bytes": 58180,
+      "after_bytes": 76857,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/web/app.js",
+      "before_sha256": "2b31c7207f95b5e34c87e5e95327976a668a22185f27c7bd8286329366f6e6d7",
+      "after_sha256": "7223b5d282329b289c5ab3a75586dd26ce08fa2833909d25f8d47c4e702b88da",
+      "before_bytes": 501751,
+      "after_bytes": 504764,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/web/compact-workbench.css",
+      "before_sha256": null,
+      "after_sha256": "0f1489069ea7fc64e862f0cbd41fb99211ffbcc531d311e9f68123c4b27c82d8",
+      "before_bytes": null,
+      "after_bytes": 13581,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/web/compact-workbench.js",
+      "before_sha256": null,
+      "after_sha256": "b79df5fa34644535342188bd92acb0c530e398fce12aba3132570a38424ff725",
+      "before_bytes": null,
+      "after_bytes": 10204,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/web/continuous.js",
+      "before_sha256": "5dfd4ef4d3a1ac4967e1c2fa6ac7dd6fe6f2222b5d5e1933ba8e38b638c71988",
+      "after_sha256": "8217dc336952c1717425844821db5a438cb447934d6398e7c98af8e76ab96a9d",
+      "before_bytes": 56805,
+      "after_bytes": 60645,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/web/index.html",
+      "before_sha256": "36011acea0989c9309d14de651c667ceabaa9f4ddd5f2c17a205da9352ddd3f1",
+      "after_sha256": "f6d95ac9feb63ee9875a050733cfae7623cf229fd2f3cdad34ed1acc76f1bd56",
+      "before_bytes": 134583,
+      "after_bytes": 135190,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim/web/styles.css",
+      "before_sha256": "b14ee06bc55e790259e08a16e7557d33450a32b2f8bc52e8cca5ce7a66980c16",
+      "after_sha256": "baee071601faf7f62fb17a5ebc7c94848c995a6b98e994836cd26326891d2d5c",
+      "before_bytes": 118349,
+      "after_bytes": 118366,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim_ml/generation_control.py",
+      "before_sha256": null,
+      "after_sha256": "df5fd65d4d49ec8803535adcd85c49ba4d3c69e2cdfa6151bf49f8b9e27d70f0",
+      "before_bytes": null,
+      "after_bytes": 8254,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim_ml/guided_decoding.py",
+      "before_sha256": "4b0fc8e30efc9841d81d8902fcc9daacc6be08e7193af01f27c1244ed932510c",
+      "after_sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b",
+      "before_bytes": 4144,
+      "after_bytes": 7355,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "src/sat_sim_ml/serving.py",
+      "before_sha256": "b3c8203b145af0fde10cb85e5a0b325ba612094ec7f9b6f5f9fadbf8df73e3a9",
+      "after_sha256": "01c01b294b45a522b5007dd490f0df4ffd9065812938ac44e4a2aab4630253c7",
+      "before_bytes": 9638,
+      "after_bytes": 15493,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/fixtures/export_roundtrip/create17_task_spec.json",
+      "before_sha256": null,
+      "after_sha256": "f1c0177d7412f239b8e3677439e86c293982c884216ef91aaf29bd48358a4723",
+      "before_bytes": null,
+      "after_bytes": 14056,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/fixtures/form_projection/offline_sentinel.json",
+      "before_sha256": null,
+      "after_sha256": "f85f2f29f6c0309eb233d80fbf45d39fdba4bd6be296d53a6c194adccb77211d",
+      "before_bytes": null,
+      "after_bytes": 35763,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/fixtures/form_projection/recorded_create17.json",
+      "before_sha256": null,
+      "after_sha256": "c1fb86b2d61a767d08ceb34e32f399ba42d44ff2aaadf01ff7247e36630815dd",
+      "before_bytes": null,
+      "after_bytes": 35415,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/interactive/test_command_catalog.py",
+      "before_sha256": "2bebbdbe6464f6c8dd828d8c860e1ea484fe3c2a64cd7544300f11e3249aff59",
+      "after_sha256": "46bb24ee8f79d244b0266b1dedd908693cc64e317a3b6a177b6983982df797cd",
+      "before_bytes": 2341,
+      "after_bytes": 3821,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/interactive/test_continuous_console_browser.py",
+      "before_sha256": "d09b58cdae3ee8e3a61249d922e14bb7de2108c4b7d1b851bc59e414032d2504",
+      "after_sha256": "9d1c1e7366f531ebec9f10720fcf8487cb8271b386314b481100ea1272fe7bdf",
+      "before_bytes": 20209,
+      "after_bytes": 23577,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/interactive/test_single_run_creator_ux.py",
+      "before_sha256": "e71a0ebc16058143e610aac7ede5cabb78fc7a48c58427526746f5f818a4871d",
+      "after_sha256": "25a6f6398e70cd78a3c2cc304697cbd6b445bf3a4b73ba5043dd6524640962ee",
+      "before_bytes": 32842,
+      "after_bytes": 36242,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/numeric_const_decode_contract_worker.py",
+      "before_sha256": null,
+      "after_sha256": "6ea035c799b95193163451b23a09031825a6b90dd5cbf73d5e246d0898a86457",
+      "before_bytes": null,
+      "after_bytes": 9778,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_agent_generation_responsiveness_browser.py",
+      "before_sha256": "e6327f9709de5f8fd96c8a7a06ad9767ffecdec0f0d8d6cf790eeb5b71fd0ea1",
+      "after_sha256": "75b65f4c7766c299d9313b24fcae0205ff54a2bf3c775b1a363d32cd94b73b4d",
+      "before_bytes": 6055,
+      "after_bytes": 6363,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_canonical_transport.py",
+      "before_sha256": null,
+      "after_sha256": "b0ef7847821f9fa020535f67aefbd8b6d62d3955fc397ac09bae371d22298f01",
+      "before_bytes": null,
+      "after_bytes": 15996,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_canonical_transport_api.py",
+      "before_sha256": null,
+      "after_sha256": "fbe9458d9658549a8da0c2fd7d378296f16b69f0915cacf0f5dac021fc4dcc9e",
+      "before_bytes": null,
+      "after_bytes": 10902,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_capability_issue_closure.py",
+      "before_sha256": "6cf3e2a57b4b4012060fbed3311327e23249c5ade686efb67053a51121f2db99",
+      "after_sha256": "ebab25cb458b37ca717c8daad2b58387853b5b9e092d4520b3e6c9f7660e857f",
+      "before_bytes": 5880,
+      "after_bytes": 5865,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_dependency_security.py",
+      "before_sha256": "e30b3b5cb7215dc334ef2a9a16b80e462fa28bcc6bbc98eb46fecf4f2ac4dc7c",
+      "after_sha256": "33eb7148a70073945041bb9c0637009ae84c7d9d9cb210a9891e5916cc989c5d",
+      "before_bytes": 4248,
+      "after_bytes": 4270,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_exported_script_canonical_roundtrip.py",
+      "before_sha256": null,
+      "after_sha256": "836324b9fd7f0e1af2fc9471883ca56e2859dd37564ee3385ea1151dca61be78",
+      "before_bytes": null,
+      "after_bytes": 6407,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_exported_script_plan_identity.py",
+      "before_sha256": null,
+      "after_sha256": "82458581d58653c45cf0a68ec59e1a0b8d014725481a8ff1aeaccf66c957b470",
+      "before_bytes": null,
+      "after_bytes": 8236,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_external_gate_closure.py",
+      "before_sha256": "ada13b382923a21c3844ca6da3effc100e3546cfbeca5b7ff8ed9f3bcac735cc",
+      "after_sha256": "572107e68e191cafde419055fb5b2c48dbdb47e71921d08b407206798ff2dd73",
+      "before_bytes": 7074,
+      "after_bytes": 7090,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_form_projection_identity.py",
+      "before_sha256": null,
+      "after_sha256": "3703d5a452069b33705d2ac648f0b599389a167090ae86cc0e9d2855a59750a8",
+      "before_bytes": null,
+      "after_bytes": 14790,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_generation_admission_control.py",
+      "before_sha256": null,
+      "after_sha256": "2f6f126cb549d3baed35bc86e294e71461ac81a4d764528074139a5cba1e0dd0",
+      "before_bytes": null,
+      "after_bytes": 14680,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_graph_editor_containment_browser.py",
+      "before_sha256": "f03dd808c206e4ad7f151517ee752c8d4366421a564a7a5c2af434f3cad4bb7d",
+      "after_sha256": "ac2f144863b02a360cb31dbb2755fbd1c1dfbb1f5588c4c43a86633b11ee3fb9",
+      "before_bytes": 4547,
+      "after_bytes": 4859,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_legacy_bsk_event_delivery.py",
+      "before_sha256": null,
+      "after_sha256": "2748d3269e99314b31688d6cd29c6c937721b9ac01b6d42b8dc08b242280dfb2",
+      "before_bytes": null,
+      "after_bytes": 2020,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_legacy_degradation_units.py",
+      "before_sha256": null,
+      "after_sha256": "d47cc145e1b7e290b82a7cd6190c39c0fca3cb78319f7092e4c72d97389f7dc9",
+      "before_bytes": null,
+      "after_bytes": 3664,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_legacy_issue_closure.py",
+      "before_sha256": "96afa69899ef537afee5c2be8233b31e4814882d452a66ac9e75a6159793426a",
+      "after_sha256": "b99075941d5f22b455a97c643174968cbe7551421e856385c8d97127f867fa8b",
+      "before_bytes": 9525,
+      "after_bytes": 9651,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_local_engine_cooperative_control.py",
+      "before_sha256": null,
+      "after_sha256": "3bcc2f0f248f528657c2361b696676b610743ccc9e0e91a90f67c0f751fb6b1b",
+      "before_bytes": null,
+      "after_bytes": 8326,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_model_magnitude_preservation.py",
+      "before_sha256": null,
+      "after_sha256": "1b41c9b0e1f024e1a396688e4d868e4332e9e0e3fa357f8abceddd2c120ed85a",
+      "before_bytes": null,
+      "after_bytes": 5537,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_model_settings_mobile_layout.py",
+      "before_sha256": "bbf72f88d8a076eafedf6568301eb86a6313f7b1b86635b4b87f41e8345854fd",
+      "after_sha256": "bc473b82abb2b1e65b324969ddb7d96a25e15c3d128c11544b9b3d34a2012239",
+      "before_bytes": 2594,
+      "after_bytes": 2856,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_natural_battery_loss_guard.py",
+      "before_sha256": null,
+      "after_sha256": "6a8180384c6de5d2bd9e677a289784deb4b9b56a0cb23e2d80513ab0612a0ed2",
+      "before_bytes": null,
+      "after_bytes": 2986,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_nl_literal_grammar_boundaries.py",
+      "before_sha256": null,
+      "after_sha256": "a536c66dfca21754dc979fe85a03eca527bc30633430c9b6f6ee55a1414d7842",
+      "before_bytes": null,
+      "after_bytes": 5494,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_numeric_const_decode_contract.py",
+      "before_sha256": null,
+      "after_sha256": "4bcb97a4742e8e464635ea047df39ba22c30ee60be6984c2013142a92bead3ee",
+      "before_bytes": null,
+      "after_bytes": 2411,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_python_support_floor.py",
+      "before_sha256": null,
+      "after_sha256": "a9a2d370370fecc0c4fe61276c46250b8fdaab205968667eb4e7e5b33efa26fb",
+      "before_bytes": null,
+      "after_bytes": 1973,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_refinement_event_preservation.py",
+      "before_sha256": null,
+      "after_sha256": "26430bc48ec4d0f2244237e63babafe3ad0178b0b9338da43cd26824af511769",
+      "before_bytes": null,
+      "after_bytes": 6362,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_refinement_negated_clauses_and_dimensions.py",
+      "before_sha256": null,
+      "after_sha256": "f27a18e0fce931a62a74c4ae289580af84c88637d02cc54ad9c184578e337334",
+      "before_bytes": null,
+      "after_bytes": 4972,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_refinement_prompt_projection.py",
+      "before_sha256": null,
+      "after_sha256": "e71f5b5df74e2541ec4a8de6a7e9afe018466bc6ffdd440a8095a3883eb817f5",
+      "before_bytes": null,
+      "after_bytes": 2412,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_refinement_transaction.py",
+      "before_sha256": null,
+      "after_sha256": "2879238de1519c3695a1d18b4d604611a0738e6ff9de5bea0de62fb735ef8210",
+      "before_bytes": null,
+      "after_bytes": 6418,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_refinement_units_and_intent.py",
+      "before_sha256": null,
+      "after_sha256": "6ca0f95f2939991c14e4ddeff494d8b11b716bed6e0114f60d0647517b816b96",
+      "before_bytes": null,
+      "after_bytes": 8581,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_release_contract.py",
+      "before_sha256": "9014bbc072b0956cf49050a6b5422228ba7bcdcc8d85f7d9c605cadb32566941",
+      "after_sha256": "0804de78e5239f71b556c835f5c0f0a5db53f7d2db6ac95895d288b9744b86d6",
+      "before_bytes": 7552,
+      "after_bytes": 11064,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_run_panel_provider_presentation_browser.py",
+      "before_sha256": "8724e0749f65cf8355c2604892690a83ac21a9b929acfadb02a4613f9c7df81c",
+      "after_sha256": "a69224e1b9e96cf11d9619a8ad585334d214a7c1087be6b254f7990a36e7a6c3",
+      "before_bytes": 9661,
+      "after_bytes": 9992,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_scoped_event_intent_and_count.py",
+      "before_sha256": null,
+      "after_sha256": "3716f3a2df66892334985e32f4c4786fc7af3416dd98da93beb3d0a731456e07",
+      "before_bytes": null,
+      "after_bytes": 6738,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_single_fault_generation_fields.py",
+      "before_sha256": null,
+      "after_sha256": "b9faf22d48ed7d1908181259e5e83c6701130aef58df776edf2c2268c83da414",
+      "before_bytes": null,
+      "after_bytes": 2838,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_task_projection_source_browser.py",
+      "before_sha256": null,
+      "after_sha256": "4fb64660eb4583c05459248ae92f9d2d1afe53eb3adc2b8070ece87b5df07c28",
+      "before_bytes": null,
+      "after_bytes": 11105,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_task_save_feedback_browser.py",
+      "before_sha256": null,
+      "after_sha256": "dc0863bc5c0af100657a9bab38bcea035fbaf534aa51f9d2c4534ed8f0f621a0",
+      "before_bytes": null,
+      "after_bytes": 4793,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_typed_event_draft_candidate.py",
+      "before_sha256": null,
+      "after_sha256": "9ac296074648720caf0ba720fec56f3ac642197bd890a2a05ea9668eb4be46a6",
+      "before_bytes": null,
+      "after_bytes": 4037,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_web_workbench.py",
+      "before_sha256": "3c0deb99ee7ca5bdc11d7e31fa43150efa2f9dbea7992f94b1c6e85d6b66aa5c",
+      "after_sha256": "312b72ee200440afd47331c0a2b0fc68dfe04d72a2a972acfabb9f814a1baac2",
+      "before_bytes": 37363,
+      "after_bytes": 37350,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_workbench_accessibility_browser.py",
+      "before_sha256": "26c5f005edcfd5ca51382a2b90f2835a29633a3aa8797e533ca3d1dc223dcffa",
+      "after_sha256": "3fe38f688eedd38f1db6a04c2fb19e0eed9b3ce1dccfff17245abb56af1e1d16",
+      "before_bytes": 8970,
+      "after_bytes": 10073,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_workbench_agent_refinement_browser.py",
+      "before_sha256": "28138135c5cd5084ff4daf022e3ff5edfa747456ca580a0fa91d7788b26098a4",
+      "after_sha256": "7ba3b3c375ed963ed4b24b18010770dc0ca2ff535680708ab0e4146e16da6352",
+      "before_bytes": 9416,
+      "after_bytes": 9452,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    },
+    {
+      "path": "tests/test_workbench_task_identity_browser.py",
+      "before_sha256": "dc5a89f2b86a3c1922c5d28314b9d5fe0d603de9d804389d7f703d81d32fdac1",
+      "after_sha256": "61f636f72e5a46fe3d2f271fd01522e8035b12eeaf645763e6698fe3ed4df4f1",
+      "before_bytes": 6192,
+      "after_bytes": 7777,
+      "crlf_normalized_bytes_equal": false,
+      "source_payload_copied": true,
+      "exclusion_reason": null
+    }
+  ],
+  "historical_egg_info_retained": [
+    {
+      "path": "src/satellite_simulation_platform.egg-info/PKG-INFO",
+      "before_sha256": "6a4c70c3de8add24a0da7d546cdca29fdcf87d12bc816b1dd2561577954e9a0f",
+      "after_sha256": "6a4c70c3de8add24a0da7d546cdca29fdcf87d12bc816b1dd2561577954e9a0f",
+      "copied": false
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/SOURCES.txt",
+      "before_sha256": "fcd8f9a7b79264ff0ef9abb8ac251a299940db7460ce27ec99ebd86922ba55f7",
+      "after_sha256": "fcd8f9a7b79264ff0ef9abb8ac251a299940db7460ce27ec99ebd86922ba55f7",
+      "copied": false
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/dependency_links.txt",
+      "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "copied": false
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/entry_points.txt",
+      "before_sha256": "8ab90e9f283d75a81b103387d83c933c876bda6366f328a78107e0e92d6b417b",
+      "after_sha256": "8ab90e9f283d75a81b103387d83c933c876bda6366f328a78107e0e92d6b417b",
+      "copied": false
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/requires.txt",
+      "before_sha256": "eacbf9fdf740edba8e2f9450d0873e180b4a49f7000c904a6358f535da28ccd0",
+      "after_sha256": "eacbf9fdf740edba8e2f9450d0873e180b4a49f7000c904a6358f535da28ccd0",
+      "copied": false
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/top_level.txt",
+      "before_sha256": "cd717b1fbedd2c9186d7ba2352055a89bcd160b2721d96bdaae2aff64601a983",
+      "after_sha256": "cd717b1fbedd2c9186d7ba2352055a89bcd160b2721d96bdaae2aff64601a983",
+      "copied": false
+    }
+  ],
+  "caveats": [
+    "Check every current Root preimage SHA or expected absence before applying any overlay; stop on mismatch.",
+    "Hashes bind exact source bytes. CRLF normalization is only a diagnostic flag, never applied to the payload.",
+    "Six historical egg-info files are retained and not overwritten; wheel builds require independent staging.",
+    "The current requirements status document is intentionally excluded for Root to write from latest evidence.",
+    "No deletion of Root-only files. No full1498 snapshot, environment, weights, provider config or raw telemetry copied."
+  ]
+}

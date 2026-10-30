@@ -1,0 +1,46 @@
+{
+  "schema_version": "sat-sim.dependency-audit.v2",
+  "release_version": "0.7.8",
+  "generated_at_utc": "2026-10-30T17:37:12.052509+00:00",
+  "status": "PASS",
+  "requirements": "reports/security/all-platforms-audit-requirements.txt",
+  "audit_requirements": "reports/security/pip_audit_raw_requirements.txt",
+  "aliases_applied": [
+    {
+      "installed_requirement": "bsk==2.11.0+satfix2",
+      "audit_requirement": "bsk==2.11.0",
+      "reason": "The project lock uses a metadata-only satfix2 variant for dependency compatibility; runtime acceptance also permits the byte-equivalent official bsk 2.11.0 installation.",
+      "evidence": "configs/security/bsk_runtime_compatibility_policy.json"
+    }
+  ],
+  "tool": "pip-audit",
+  "vulnerability_service": "osv",
+  "command": [
+    "python",
+    "-m",
+    "pip_audit",
+    "--requirement",
+    "<PROJECT_ROOT>/reports/security/pip_audit_raw_requirements.txt",
+    "--format",
+    "json",
+    "--vulnerability-service",
+    "osv",
+    "--strict",
+    "--no-deps",
+    "--disable-pip",
+    "--cache-dir",
+    "<PROJECT_ROOT>/.cache/pip-audit",
+    "--progress-spinner",
+    "off",
+    "--timeout",
+    "20",
+    "--output",
+    "<PROJECT_ROOT>/reports/security/pip_audit_raw.json"
+  ],
+  "return_code": 0,
+  "dependency_count": 91,
+  "vulnerability_count": 0,
+  "raw_output": "reports/security/pip_audit_raw.json",
+  "stdout": "",
+  "stderr": "WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies\nWARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes\nNo known vulnerabilities found\n"
+}
