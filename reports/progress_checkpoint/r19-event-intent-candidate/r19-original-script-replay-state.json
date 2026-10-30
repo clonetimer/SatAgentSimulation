@@ -1,0 +1,31 @@
+{
+  "status": "NATIVE_REPLAY_PASS_REQUIRES_INDEPENDENT_REVIEW",
+  "scope": "Exact real-model-generated R18 script, replayed under a one-file runtime parser fix. No new inference or model-answer substitution.",
+  "started_at_utc": "2026-10-30T13:04:59.317279+00:00",
+  "candidate_application": "272504b29bbb82d375d0eb6ccaee7342f82558ede13706332189c76457f72d7a",
+  "candidate_core": "c159589c6955dcfdaa58b257904d4ba00b6883181d0a608432d27bcf00c0d356",
+  "changed_from_r18": [
+    "src/sat_sim/bsk_engine/event_manager.py"
+  ],
+  "script_sha256": "1447291f837dd9ac0fb0a8a8941a7568cf0b2b33eb5ebace061f2e0d1883920f",
+  "origin_model_call_sha256": "866a39fb738f99ff0230446a91e38a43ed0f67b31325bd623c877817f8866ac8",
+  "checks": {
+    "script_exit_zero": true,
+    "native_validation_pass": true,
+    "owned_dataset": true,
+    "native_sample_grid": true,
+    "before_capacity140": true,
+    "after_capacity116p2": true,
+    "after_ratio_p83": true,
+    "soc_bounds": true,
+    "unchanged_actual_script": true,
+    "production_app_unchanged": true,
+    "candidate_source_unchanged": true
+  },
+  "trace": {
+    "path": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\r19-original-script-native-replay\\datasets\\generated_task\\trace.csv",
+    "sha256": "e6f8436755fd150de1db8f25f0f03c7408f632b62acf096db6b62a12e98c6287",
+    "rows": 61
+  },
+  "finished_at_utc": "2026-10-30T13:05:12.559182+00:00"
+}

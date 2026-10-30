@@ -1,0 +1,2 @@
+# Isolated preview dependency; main/endurance environment stays unchanged.
+websockets==15.0.1

@@ -587,9 +587,9 @@
             <button id="interactiveImportOfflineConfigBtn" class="button button-secondary" type="button">复用离线整星修改参数</button>
             <p id="interactiveOfflineConfigStatus" class="continuous-muted" role="status">仅支持将当前离线整星的可兼容修改项导入实时整星；不会自动启动。</p>
             <div class="interactive-form-grid">
-              <label>时长 / s（限时模式；持续模式用于初始化）<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
+              <label>时长 / s（持续模式为初始化时长）<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
               <label class="toggle-label"><input id="interactiveContinuous" type="checkbox"><span>持续运行（手动停止）</span></label>
-              <label>量子 / s<select id="interactiveQuantum"><option>0.1</option><option selected>0.5</option><option>1</option></select></label>
+              <label>推进步长 / s<select id="interactiveQuantum"><option>0.1</option><option selected>0.5</option><option>1</option></select></label>
               <label>初始倍速<select id="interactiveInitialRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
               <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>
             </div>
@@ -623,6 +623,7 @@
               </div>
             </div>
             <div class="interactive-chart"><canvas id="interactiveTelemetryChart" width="960" height="320"></canvas></div>
+            <p class="continuous-muted">各曲线按自身范围归一化；下方显示原始数值。</p>
             <div id="interactiveLatestValues" class="interactive-latest-values"></div>
           </section>
           <section class="interactive-section">
@@ -653,7 +654,7 @@
       <header class="continuous-hero">
         <div><div class="eyebrow">Continuous Basilisk Native · TC / TM Control</div>
           <h1>持续卫星仿真</h1>
-          <p>保持同一个原生整星状态持续推进。遥控按仿真时刻执行，遥测实时更新；异常会话默认禁止自动恢复。</p></div>
+          <p>遥控按仿真时刻执行，遥测实时更新。</p></div>
         <div class="continuous-hero-actions">
           <span id="continuousConnectionBadge" class="status-chip status-muted" role="status">尚未连接</span>
           <button id="continuousRefreshBtn" class="button button-secondary" type="button">刷新状态</button>
@@ -680,7 +681,7 @@
               <label>初始化时长（非运行上限）<input id="continuousHorizon" type="number" min="1" max="86400" step="1" value="60" required></label>
               <label class="toggle-label"><input id="continuousPaced" type="checkbox" checked><span>墙钟节拍（软实时）</span></label>
               <details class="continuous-native-config">
-                <summary>运行前配置：整星、分系统与已接入的单机参数（点击展开）</summary>
+                <summary>运行前配置</summary>
                 <p class="continuous-muted">仅调整整星原生 Basilisk 计算图中已有的模型参数。创建会话后冻结配置；不支持任意新增/移除硬件或独立运行单机。默认值与现有模型相同。</p>
                 <div class="continuous-native-config-fields">
                   <fieldset><legend>轨道与整星</legend>
@@ -918,7 +919,7 @@
                 </div>
               </details>
               <p id="continuousInitialConfigStatus" class="continuous-muted">仅当前新会话可设置；创建后无法修改已有模型实例。</p>
-              <button class="button button-primary" type="submit">创建原生持续会话</button>
+              <button class="button button-primary" type="submit">创建会话</button>
             </form>
           </section>
           <section class="continuous-card">

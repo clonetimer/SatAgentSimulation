@@ -1,0 +1,78 @@
+{
+  "observed_utc": "2026-10-30T13:49:27.913518+00:00",
+  "original_processes": [
+    {
+      "pid": 82756,
+      "created": 1793337780.3809385,
+      "running": true
+    },
+    {
+      "pid": 22936,
+      "created": 1793337818.0322924,
+      "running": true
+    },
+    {
+      "pid": 80520,
+      "created": 1793337824.415924,
+      "running": true
+    },
+    {
+      "pid": 46364,
+      "created": 1793339200.2216158,
+      "running": true
+    },
+    {
+      "pid": 26572,
+      "created": 1793331665.7039902,
+      "running": true
+    }
+  ],
+  "previews": [
+    {
+      "url": "http://127.0.0.1:62918",
+      "mode": "supervised",
+      "server_pid": 84148,
+      "creation": 1793367690.2366693,
+      "actual_http_assets_matched": [
+        "app.js",
+        "compact-workbench.js",
+        "compact-workbench.css"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:49189",
+      "mode": "in-process",
+      "server_pid": 85136,
+      "creation": 1793367674.4863305,
+      "actual_http_assets_matched": [
+        "app.js",
+        "compact-workbench.js",
+        "compact-workbench.css"
+      ]
+    }
+  ],
+  "root_app": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "root_core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "progress_status": "RUNNING",
+  "wall_seconds": 30335.079000000027,
+  "session": {
+    "schema_version": "interactive.v1",
+    "session_id": "native-endurance",
+    "capability_id": "whole_spacecraft.unified_native.v1",
+    "state": "RUNNING",
+    "revision": 3,
+    "sim_time_s": 30335.5,
+    "rate": 1.0,
+    "paced": true,
+    "worker_alive": true,
+    "archive_status": "NOT_READY",
+    "archive_error": null,
+    "terminal_error": null,
+    "pace_observation_count": 60670,
+    "last_drift_s": 0.00021039997227489948,
+    "max_abs_drift_s": 2.5371086000232026,
+    "timing_status": "DEGRADED",
+    "updated_at": "2026-10-30T13:49:23.439267Z"
+  },
+  "scope": "Read-only identity/source/HTTP observation. Original run preserved; no 24h or quiet-load qualification. Concurrent native/UI/model diagnostic load disclosed."
+}

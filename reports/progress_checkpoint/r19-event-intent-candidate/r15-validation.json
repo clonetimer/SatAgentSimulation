@@ -1,0 +1,21 @@
+{
+  "ok": false,
+  "error_count": 1,
+  "warning_count": 1,
+  "errors": [
+    {
+      "severity": "error",
+      "path": "$.events.faults.magnitude",
+      "code": "USER_NATURAL_EVENT_REQUIREMENT_MISMATCH",
+      "message": "The user explicitly requested loss fraction 0.17, but the model returned 1.7000000000000002e-15. Regenerate the requested value; no answer substitution is permitted."
+    }
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "path": "$.schema_version",
+      "code": "TASKSPEC_LEGACY_MIGRATED",
+      "message": "Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0."
+    }
+  ]
+}

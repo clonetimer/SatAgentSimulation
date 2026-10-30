@@ -6723,12 +6723,14 @@
     const duration = Number(el('interactiveDuration').value);
     const quantum = Number(el('interactiveQuantum').value);
     const rate = Number(el('interactiveInitialRate').value);
+    // The default 0.5 s cadence must divide into complete native steps.
+    const integrationStep = quantum === 0.5 ? 0.1 : Math.min(quantum, 0.2);
     const sessionId = `live-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
     const spec = {
       session_id: sessionId,
       capability_id: capabilityId,
       task_spec: {
-        simulation: { duration_s: duration, sample_s: quantum, solver: { step_s: Math.min(quantum, 0.2) } },
+        simulation: { duration_s: duration, sample_s: quantum, solver: { step_s: integrationStep } },
         parameters: { values: capabilityId === 'whole_spacecraft.unified_native.v1'
           ? structuredClone(state.interactivePreparedNativeValues || {}) : {} },
         outputs: { telemetry_streams: descriptor.streams.map((stream) => ({

@@ -1,0 +1,149 @@
+{
+  "scope": "Byte binding, not correctness proof. The manifest excludes itself.",
+  "files": [
+    {
+      "path": "actual-telemetry.json",
+      "sha256": "e8a9ebe2533173256d7a4c1340b5c4e7b1b052497e69b07466550d0e704a8afd"
+    },
+    {
+      "path": "after-1366.png",
+      "sha256": "87d9c927f02c76818df3c5c4b80de6feefa27673d9305e952604f1a8b4c1cc09"
+    },
+    {
+      "path": "before-1366.png",
+      "sha256": "50ca4403b541dfa4eed2f9cf2375a9f377a5d23f4006420a028c02863ced5e0c"
+    },
+    {
+      "path": "browser-report.json",
+      "sha256": "f5c57ffe4311672b8d7d89e5ea0e3f0e01ec9c5ad450284221934f5398b62fd9"
+    },
+    {
+      "path": "comparison-source.py",
+      "sha256": "cbaf35507dc44f5eab8649de1bbb46a8b97e3228e6ee9d1df7d942f9b2321c05"
+    },
+    {
+      "path": "continuous-dark.png",
+      "sha256": "0bfbe714a78cc70bda4871609a6247387f8587354b301a2726708e261a9197d5"
+    },
+    {
+      "path": "continuous-font130.png",
+      "sha256": "2098f15e7acd55ba21fbe5aa68781ebbf5e2b49a323d9e76046c0d2f9ebcc194"
+    },
+    {
+      "path": "continuous-new-desktop.png",
+      "sha256": "759e0b22d47c55e016da437b6732f562292da7fcaf33d4337cbeb9ca35f767f0"
+    },
+    {
+      "path": "continuous-selected-1366.png",
+      "sha256": "4d6bffd49576d40bcf49fca19f214a69a06081edc485ccec95d409504afa9e19"
+    },
+    {
+      "path": "continuous-selected-1920.png",
+      "sha256": "831b707f684318cd6ccec90a51d4a3d02d2138cac1749bf554c39c4f54b8ff60"
+    },
+    {
+      "path": "continuous-selected-390.png",
+      "sha256": "7eb5c7207b7f03bcf5812dba3d7760398ec13bec7134a1fb335c55b1d18bff11"
+    },
+    {
+      "path": "continuous-selected-768.png",
+      "sha256": "b32ada2bde2caa2ae8d97d3c844a31e0d319a6e9e4740d482f67c6efeea2243a"
+    },
+    {
+      "path": "history/v1-report.json",
+      "sha256": "727890f1851c2f9d306a0cf15bb09766f29ddf736fa8e1be0df286e6ec267759"
+    },
+    {
+      "path": "history/v2-report.json",
+      "sha256": "d961379f5a7501b73445ab451ac6f32b890575dd600dec7d1dae92649b91e1c8"
+    },
+    {
+      "path": "history/v3-report.json",
+      "sha256": "62199a097faa0f0d82eb2a298d8e84fad74404d08a5f491595e2e1f85d77cec4"
+    },
+    {
+      "path": "history/v4-report.json",
+      "sha256": "b7bfe41b75cfe51f9aac4eadd5eb33b93e79891e799b732ea6a9c4a173ee0253"
+    },
+    {
+      "path": "history/v5-report.json",
+      "sha256": "3ce106dbc435ee6af4e1776bf0cc76c879f8cbcc20beaf894075e8bc16f2be9f"
+    },
+    {
+      "path": "history/v6-bounded-create-error.json",
+      "sha256": "393a3bb17fbaa3ab3f16f50b2b2c4131f9cb39765c192abf62d6678e18823a69"
+    },
+    {
+      "path": "history/v6-report.json",
+      "sha256": "a542186b9f4a42eb07f9d3852ac5dafd585ecc5e68e382e258439afcb0debdcc"
+    },
+    {
+      "path": "history/v7-bounded-create-error.json",
+      "sha256": "ba80a0cbc19a07f36088f52110aa9692fc6d748161ab1c37694d715e3bfac314"
+    },
+    {
+      "path": "history/v7-report.json",
+      "sha256": "7908bdb4b0571419fd6b286957f31584d58746958d23c305f507df605a7bbe5b"
+    },
+    {
+      "path": "history/v8-report.json",
+      "sha256": "5aecb6c759c223a42102544fe9a4e30bafee662794771e9fa5942cbf82c8ea05"
+    },
+    {
+      "path": "history/v9-report.json",
+      "sha256": "2f7bc2ec8c86608d8c39bb1e9161ebf932b3eb324bc7ea5eee7f25b6046653c2"
+    },
+    {
+      "path": "independent-review-source.py",
+      "sha256": "bd404c9cfd1ed31ed793dfa9a2ccf2e963acebe6f380bf9d4c542ec4d43f9bca"
+    },
+    {
+      "path": "independent-review.json",
+      "sha256": "8184320c8436e679836e0aea02ff33636c8f2b1cc6df2f1447dbd1161ca774b8"
+    },
+    {
+      "path": "interactive-dark.png",
+      "sha256": "18283a34407bc60893579e6bbad9462f6da1eb013dee47703624ca185e28a7cc"
+    },
+    {
+      "path": "interactive-light.png",
+      "sha256": "58de2ff395898a166f118d2711bda693f2aa3096988568bf72781a03dbd1da93"
+    },
+    {
+      "path": "interactive-selected-1366.png",
+      "sha256": "787acabe5b49a7711d4efe448c96cd407f3716885117362b17275b5dcdf3ccfe"
+    },
+    {
+      "path": "interactive-selected-390.png",
+      "sha256": "f15887caf0e2b3e3e622cb537c6ce4ba706e674ca5541d6b9a66ef03542aeab2"
+    },
+    {
+      "path": "layout-comparison.json",
+      "sha256": "214bf1be175d54722b3a09de8ceb04983ac711651c0ff637aafa0b397342c7e5"
+    },
+    {
+      "path": "preview-in-process.json",
+      "sha256": "23cb5ae45f9a24fe83166a27760d1eec10f6e727b01eac2609d86666c003242a"
+    },
+    {
+      "path": "preview-retirement.json",
+      "sha256": "988df97623e8bb195f4041fa1c6d52a6d75643dcc0ccd9184efc4529032050e9"
+    },
+    {
+      "path": "preview-supervised.json",
+      "sha256": "be8e691d08e7c27cba1a66e28015903804bb2329ec5a8b1d6e2bbc75f340bc1e"
+    },
+    {
+      "path": "README.md",
+      "sha256": "556da1b9e35b57006241fa9b8a3e2d161da57a57236d17199cb75331d4c7eeb7"
+    },
+    {
+      "path": "review-source.py",
+      "sha256": "8734d6c7ede92b6d17453cdad957e2a248cb99b773052d98772c844222dc4928"
+    },
+    {
+      "path": "visual-review.json",
+      "sha256": "c5ee562defab568f2b05ee1d9d357e991aeff11c6a70fadaeb61320abe2c2141"
+    }
+  ]
+}

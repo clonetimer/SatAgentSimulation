@@ -1,0 +1,143 @@
+{
+  "status": "FAILED_NO_SUBSTITUTION",
+  "scope": "Two new natural-language engineering cases, not arbitrary-prompt accuracy. No event JSON supplied; no label or parameter substitution; wrong cases are not executed.",
+  "started_at_utc": "2026-10-30T13:08:31.825381+00:00",
+  "application": "272504b29bbb82d375d0eb6ccaee7342f82558ede13706332189c76457f72d7a",
+  "source_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\event-intent-r19-candidate",
+  "root_application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "process": {
+    "pid": 72904,
+    "creation": 1793365710.3791995,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "source_sha256": "3c99c25b9bd7344e1d75f5a33e52e4b71ccd422f0f900f76ea32a6573b522a0b",
+  "requests_sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+  "model_health": {
+    "ok": true,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "source": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+    }
+  },
+  "measurement_context": "Isolated scoped-negation, preferred-carrier normal-form, public-target grounding, numerical preservation and pre-export planning and legacy-native-event-delivery candidate with the same live model service and original native80520. Output-token budget2048 (prior runs4096), same frozen user texts and unchanged thresholds; not a same-condition accuracy comparison. No exclusive performance qualification.",
+  "cases": [
+    {
+      "id": "create17",
+      "status": "PASS",
+      "started_at_utc": "2026-10-30T13:08:31.826386+00:00",
+      "checks": {
+        "actual_model_verified": true,
+        "valid_compiled": true,
+        "no_template_fallback": true,
+        "raw_response_hash": true,
+        "raw_response_bound": true,
+        "raw_loss_fraction": true,
+        "raw_fraction_not_substituted": true,
+        "only_requested_fault": true,
+        "requested_parameters": true,
+        "requested_time": true,
+        "owned_script": true,
+        "script_exit_success": true,
+        "native_validation_pass": true,
+        "owned_trace": true,
+        "sample_grid": true,
+        "before_fault_capacity": true,
+        "after_fault_capacity": true,
+        "after_fault_ratio": true
+      },
+      "backend_identity": {
+        "backend": "openai_compatible",
+        "backend_class": "actual_model_service",
+        "model_backend_requested": true,
+        "actual_model_used": true,
+        "actual_model_execution_verified": true,
+        "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "base_url": "http://127.0.0.1:8031/v1",
+        "claim": "model_backed_generation_verified",
+        "invocation_evidence": {
+          "schema_version": "sat-sim.model-invocation-evidence.v1",
+          "verified": true,
+          "backend": "openai_compatible",
+          "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+          "request_id": "chatcmpl-72776bf49ce2488b8292ccd97787aa76",
+          "provider_response_id": "chatcmpl-72776bf49ce2488b8292ccd97787aa76",
+          "prompt_sha256": "a2f8e1e94c50199766358057d27199163e04ab799027b39a271828aeadcd24bb",
+          "response_sha256": "616670f5a491963c9b24ec0cd8203e8f40ad11f7ba23e670f05f633e6ba644e0",
+          "structured_output_sha256": "3a0fc3170f9375f536fb47e56d4881dde9d32828a0c48614424bf3ad6e26b536",
+          "structured_output_kind": "json",
+          "usage": {
+            "prompt_tokens": 7827,
+            "completion_tokens": 1639
+          },
+          "structured_generation": {
+            "enabled": true,
+            "method": "lm-format-enforcer",
+            "schema_sha256": "41f0af9266352137acc4b2ec15152f2be1a32cdbc01acf5c66372bdb282ef57f",
+            "answer_substitution": false,
+            "semantic_validation_required": true,
+            "numeric_bounds_at_decode": true,
+            "empty_arrays_at_decode": true,
+            "invalid_numeric_mantissa_digit_budget": 17,
+            "canonical_exponent_range": [
+              -324,
+              308
+            ]
+          },
+          "latency_ms": 135188.66,
+          "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+          "error": null
+        }
+      },
+      "validation": {
+        "ok": true,
+        "error_count": 0,
+        "warning_count": 0,
+        "errors": [],
+        "warnings": []
+      },
+      "raw_call": {
+        "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\r19-real-end-to-end-variations\\create17\\model_call.json",
+        "sha256": "8f0a9882a5f9437bce7e8c0ca8666933f20992483e7e69728cb2c79675348dad"
+      },
+      "finished_at_utc": "2026-10-30T13:10:56.456902+00:00",
+      "trace": {
+        "path": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\r19-real-end-to-end-variations\\create17\\datasets\\generated_task\\trace.csv",
+        "sha256": "e6f8436755fd150de1db8f25f0f03c7408f632b62acf096db6b62a12e98c6287",
+        "rows": 61
+      },
+      "script_sha256": "1447291f837dd9ac0fb0a8a8941a7568cf0b2b33eb5ebace061f2e0d1883920f"
+    },
+    {
+      "id": "refine42",
+      "status": "FAILED",
+      "started_at_utc": "2026-10-30T13:10:56.457901+00:00",
+      "checks": {}
+    }
+  ],
+  "error": {
+    "type": "ValidationError",
+    "message": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+  },
+  "application_after": "272504b29bbb82d375d0eb6ccaee7342f82558ede13706332189c76457f72d7a",
+  "root_application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "root_application_unchanged": true,
+  "source_unchanged": true,
+  "requests_unchanged": true,
+  "finished_at_utc": "2026-10-30T13:14:07.936772+00:00"
+}

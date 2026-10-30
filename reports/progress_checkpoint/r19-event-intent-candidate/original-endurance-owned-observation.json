@@ -1,0 +1,49 @@
+{
+  "observed_utc": "2026-10-30T13:37:23.874492+00:00",
+  "originals": [
+    {
+      "pid": 82756,
+      "create_time": 1793337780.3809385,
+      "running": true
+    },
+    {
+      "pid": 22936,
+      "create_time": 1793337818.0322924,
+      "running": true
+    },
+    {
+      "pid": 80520,
+      "create_time": 1793337824.415924,
+      "running": true
+    },
+    {
+      "pid": 46364,
+      "create_time": 1793339200.2216158,
+      "running": true
+    }
+  ],
+  "root_app": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "root_core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "status": "RUNNING",
+  "wall_seconds": 29614.204000000027,
+  "session": {
+    "schema_version": "interactive.v1",
+    "session_id": "native-endurance",
+    "capability_id": "whole_spacecraft.unified_native.v1",
+    "state": "RUNNING",
+    "revision": 3,
+    "sim_time_s": 29614.5,
+    "rate": 1.0,
+    "paced": true,
+    "worker_alive": true,
+    "archive_status": "NOT_READY",
+    "archive_error": null,
+    "terminal_error": null,
+    "pace_observation_count": 59228,
+    "last_drift_s": 0.00019950000569224358,
+    "max_abs_drift_s": 2.5371086000232026,
+    "timing_status": "DEGRADED",
+    "updated_at": "2026-10-30T13:37:22.568977Z"
+  },
+  "scope": "Read-only observation of the same original run, not 24h qualification. Concurrent UI/native diagnostic load disclosed."
+}

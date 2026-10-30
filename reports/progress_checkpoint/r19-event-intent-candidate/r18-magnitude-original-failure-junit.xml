@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="9" time="5.463" timestamp="2026-10-30T20:34:05.092424+08:00" hostname="DESKTOP-1E2E8R0"><testcase classname="tests.test_model_magnitude_preservation" name="test_backend_normalization_preserves_explicit_invalid_values[-0.2]" time="0.052"><failure message="assert 0.0 == -0.2">value = -0.2
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_backend_normalization_preserves_explicit_invalid_values(value):
+        draft = spec(value)
+        original = copy.deepcopy(draft)
+        result = _coerce_common_llm_aliases(draft, CapabilityAgentRequest(request='Create a fault simulation with ' + CID))
+&gt;       assert result['faults'][0]['magnitude'] == value
+E       assert 0.0 == -0.2
+
+tests\test_model_magnitude_preservation.py:26: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_backend_normalization_preserves_explicit_invalid_values[17.0]" time="0.037"><failure message="assert 0.17 == 17.0">value = 17.0
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_backend_normalization_preserves_explicit_invalid_values(value):
+        draft = spec(value)
+        original = copy.deepcopy(draft)
+        result = _coerce_common_llm_aliases(draft, CapabilityAgentRequest(request='Create a fault simulation with ' + CID))
+&gt;       assert result['faults'][0]['magnitude'] == value
+E       assert 0.17 == 17.0
+
+tests\test_model_magnitude_preservation.py:26: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_backend_normalization_preserves_explicit_invalid_values[101.0]" time="0.035"><failure message="assert 1.0 == 101.0">value = 101.0
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_backend_normalization_preserves_explicit_invalid_values(value):
+        draft = spec(value)
+        original = copy.deepcopy(draft)
+        result = _coerce_common_llm_aliases(draft, CapabilityAgentRequest(request='Create a fault simulation with ' + CID))
+&gt;       assert result['faults'][0]['magnitude'] == value
+E       assert 1.0 == 101.0
+
+tests\test_model_magnitude_preservation.py:26: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_backend_normalization_preserves_explicit_invalid_values[bad]" time="0.036"><failure message="AssertionError: assert 1.0 == 'bad'">value = 'bad'
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_backend_normalization_preserves_explicit_invalid_values(value):
+        draft = spec(value)
+        original = copy.deepcopy(draft)
+        result = _coerce_common_llm_aliases(draft, CapabilityAgentRequest(request='Create a fault simulation with ' + CID))
+&gt;       assert result['faults'][0]['magnitude'] == value
+E       AssertionError: assert 1.0 == 'bad'
+
+tests\test_model_magnitude_preservation.py:26: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_real_generation_path_rejects_invalid_physical_magnitude[-0.2]" time="2.222"><failure message="AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}&#10;assert not True&#10; +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)).ok&#10; +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje0\\out\\generated_simulation.py'}))).validation">value = -0.2
+tmp_path = WindowsPath('E:/tmp/SatAgentSimulation/reports/local_requirements_completion/r18-magnitude-before-fix-v2/owned-temporary/test_real_generation_path_reje0')
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_real_generation_path_rejects_invalid_physical_magnitude(value,tmp_path):
+        source = tmp_path/'model-draft.json'
+        source.write_text(json.dumps(spec(value)),encoding='utf-8')
+        before = hashlib.sha256(source.read_bytes()).hexdigest()
+        result = run_capability_script_generation(CapabilityAgentRequest(
+            request='Create a fault simulation with ' + CID, draft_spec_path=source,
+            output_dir=tmp_path/'out', max_repair_attempts=0, allowed_capabilities=(CID,)))
+&gt;       assert not result.validation.ok, result.validation.to_dict()
+E       AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}
+E       assert not True
+E        +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)).ok
+E        +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje0\\out\\generated_simulation.py'}))).validation
+
+tests\test_model_magnitude_preservation.py:38: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_real_generation_path_rejects_invalid_physical_magnitude[17.0]" time="0.217"><failure message="AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}&#10;assert not True&#10; +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)).ok&#10; +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje1\\out\\generated_simulation.py'}))).validation">value = 17.0
+tmp_path = WindowsPath('E:/tmp/SatAgentSimulation/reports/local_requirements_completion/r18-magnitude-before-fix-v2/owned-temporary/test_real_generation_path_reje1')
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_real_generation_path_rejects_invalid_physical_magnitude(value,tmp_path):
+        source = tmp_path/'model-draft.json'
+        source.write_text(json.dumps(spec(value)),encoding='utf-8')
+        before = hashlib.sha256(source.read_bytes()).hexdigest()
+        result = run_capability_script_generation(CapabilityAgentRequest(
+            request='Create a fault simulation with ' + CID, draft_spec_path=source,
+            output_dir=tmp_path/'out', max_repair_attempts=0, allowed_capabilities=(CID,)))
+&gt;       assert not result.validation.ok, result.validation.to_dict()
+E       AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}
+E       assert not True
+E        +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)).ok
+E        +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje1\\out\\generated_simulation.py'}))).validation
+
+tests\test_model_magnitude_preservation.py:38: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_real_generation_path_rejects_invalid_physical_magnitude[101.0]" time="0.205"><failure message="AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}&#10;assert not True&#10; +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)).ok&#10; +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje2\\out\\generated_simulation.py'}))).validation">value = 101.0
+tmp_path = WindowsPath('E:/tmp/SatAgentSimulation/reports/local_requirements_completion/r18-magnitude-before-fix-v2/owned-temporary/test_real_generation_path_reje2')
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_real_generation_path_rejects_invalid_physical_magnitude(value,tmp_path):
+        source = tmp_path/'model-draft.json'
+        source.write_text(json.dumps(spec(value)),encoding='utf-8')
+        before = hashlib.sha256(source.read_bytes()).hexdigest()
+        result = run_capability_script_generation(CapabilityAgentRequest(
+            request='Create a fault simulation with ' + CID, draft_spec_path=source,
+            output_dir=tmp_path/'out', max_repair_attempts=0, allowed_capabilities=(CID,)))
+&gt;       assert not result.validation.ok, result.validation.to_dict()
+E       AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}
+E       assert not True
+E        +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)).ok
+E        +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje2\\out\\generated_simulation.py'}))).validation
+
+tests\test_model_magnitude_preservation.py:38: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_real_generation_path_rejects_invalid_physical_magnitude[bad]" time="0.175"><failure message="AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}&#10;assert not True&#10; +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)).ok&#10; +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message=&quot;Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.&quot;, code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje3\\out\\generated_simulation.py'}))).validation">value = 'bad'
+tmp_path = WindowsPath('E:/tmp/SatAgentSimulation/reports/local_requirements_completion/r18-magnitude-before-fix-v2/owned-temporary/test_real_generation_path_reje3')
+
+    @pytest.mark.parametrize('value', [-.2, 17., 101., 'bad'])
+    def test_real_generation_path_rejects_invalid_physical_magnitude(value,tmp_path):
+        source = tmp_path/'model-draft.json'
+        source.write_text(json.dumps(spec(value)),encoding='utf-8')
+        before = hashlib.sha256(source.read_bytes()).hexdigest()
+        result = run_capability_script_generation(CapabilityAgentRequest(
+            request='Create a fault simulation with ' + CID, draft_spec_path=source,
+            output_dir=tmp_path/'out', max_repair_attempts=0, allowed_capabilities=(CID,)))
+&gt;       assert not result.validation.ok, result.validation.to_dict()
+E       AssertionError: {'error_count': 0, 'errors': [], 'ok': True, 'warning_count': 1, ...}
+E       assert not True
+E        +  where True = ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)).ok
+E        +    where ValidationResult(issues=(ValidationIssue(severity='warning', path='$.schema_version', message="Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0.", code='TASKSPEC_LEGACY_MIGRATED'),)) = CapabilityScriptGenerationResult(ok=True, request=CapabilityAgentRequest(request='Create a fault simulation with whole...etion\\r18-magnitude-before-fix-v2\\owned-temporary\\test_real_generation_path_reje3\\out\\generated_simulation.py'}))).validation
+
+tests\test_model_magnitude_preservation.py:38: AssertionError</failure></testcase><testcase classname="tests.test_model_magnitude_preservation" name="test_valid_fraction_is_preserved_in_real_generation_path" time="0.201" /></testsuite></testsuites>

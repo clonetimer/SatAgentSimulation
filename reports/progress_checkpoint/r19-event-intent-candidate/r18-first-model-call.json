@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "backend": "openai_compatible",
+  "raw_text": "{\"schema_version\":\"0.1.0\",\"task_id\":\"generated_task\",\"task_type\":\"whole_spacecraft\",\"description\":\"在第4秒使电池容量损失17%，只添加这一个故障，其余无故障。\",\"tags\":[\"schema_form\"],\"mission\":{\"required_couplings\":[]},\"simulation\":{\"duration_s\":12.0,\"sample_s\":0.2,\"backend\":\"basilisk\",\"time_base\":\"simulation_seconds\",\"time_system\":\"UTC\",\"seed\":0,\"solver\":{\"method\":\"euler\",\"step_s\":0.2,\"rtol\":1e-09,\"atol\":1e-12,\"include_endpoint\":true}},\"target\":{\"level\":\"whole_spacecraft\",\"name\":\"whole_spacecraft\",\"mode\":\"fault\"},\"spacecraft\":{\"mission\":{\"configuration_source\":\"form_default\"}},\"orbit_environment\":{},\"parameters\":{\"environment_profile\":\"spice_wmm\",\"epoch_utc\":\"2026-01-01T00:00:00Z\",\"spacecraft_mass_kg\":100,\"solar_panel_structure_conductance_w_k\":3,\"initial_soc\":0.65,\"battery_capacity_wh\":140,\"eccentricity\":0.001,\"raan_deg\":0.0,\"arg_perigee_deg\":0.0,\"initial_true_anomaly_rad\":0.0,\"initial_pointing_error_deg\":8.0,\"inclination_deg\":35.0,\"spacecraft_inertia_xx_kg_m2\":100.0,\"spacecraft_inertia_yy_kg_m2\":80.0,\"spacecraft_inertia_zz_kg_m2\":60.0,\"controller_k\":3.5,\"controller_p\":30.0,\"sun_sensor_fov_deg\":80.0,\"sun_sensor_scale_factor\":1.0,\"sun_sensor_bias_normalized\":0.0,\"sun_sensor_kelly_factor\":0.0,\"sun_sensor_min_output\":0.0,\"sun_sensor_max_output\":1000000.0,\"magnetometer_mount_yaw_deg\":0,\"magnetometer_mount_pitch_deg\":0,\"magnetometer_mount_roll_deg\":0,\"magnetometer_bias_tesla_x\":0,\"magnetometer_bias_tesla_y\":0,\"magnetometer_bias_tesla_z\":0,\"magnetometer_scale_factor\":1,\"simulation_seed\":0,\"imu_gyro_bias_rad_s_x\":0,\"imu_gyro_bias_rad_s_y\":0,\"imu_gyro_bias_rad_s_z\":0,\"imu_accel_bias_m_s2_x\":0,\"imu_accel_bias_m_s2_y\":0,\"imu_accel_bias_m_s2_z\":0,\"imu_gyro_white_noise_std_rad_s\":0,\"imu_accel_white_noise_std_m_s2\":0,\"imu_gyro_max_rad_s\":0,\"imu_accel_max_m_s2\":0,\"star_tracker_noise_std_arcsec\":0,\"imu_mount_yaw_deg\":0,\"imu_mount_pitch_deg\":0,\"imu_mount_roll_deg\":0,\"imu_position_b_x_m\":0,\"imu_position_b_y_m\":0,\"imu_position_b_z_m\":0,\"rw_configuration\":\"orthogonal_3\",\"rw_motor_current_limit_a\":10.0,\"rw_motor_torque_constant_nm_per_a\":0.02,\"solar_panel_area_m2\":2.5,\"solar_efficiency\":0.28,\"solar_normal_b_x\":1.0,\"solar_normal_b_y\":0.0,\"solar_normal_b_z\":0.0,\"solar_tracking_enabled\":false,\"solar_tracking_max_slew_rad_s\":0.0,\"bus_power_w\":18.0,\"adcs_power_w\":12.0,\"payload_power_w\":38.0,\"downlink_power_w\":16.0,\"min_operational_soc\":0.2,\"payload_max_pointing_error_deg\":20.0,\"payload_data_rate_bps\":2500000.0,\"downlink_rate_bps\":1500000.0,\"storage_capacity_bits\":6000000000.0,\"initial_payload_temp_k\":295.0,\"payload_thermal_mass_kg\":3,\"thermal_earth_ir_w_m2\":234,\"thermal_earth_albedo\":0.3,\"thermal_panel_front_absorptivity\":0.9,\"thermal_panel_back_absorptivity\":0.35,\"sun_sensor_normal_b_x\":1.0,\"sun_sensor_normal_b_y\":0.0,\"sun_sensor_normal_b_z\":0.0,\"spacecraft_antenna_orientation_b\":[0.0,-0.41421356237309503,0.0],\"downlink_frequency_hz\":2200000000.0,\"downlink_bandwidth_hz\":1000000.0,\"downlink_packet_size_bits\":256.0,\"downlink_max_retransmissions\":10,\"payload_specific_heat_j_kg_k\":600,\"payload_thermal_emissivity\":0.75,\"payload_radiator_area_m2\":0.25,\"battery_heater_power_w\":12,\"battery_heater_setpoint_k\":286,\"propulsion_enabled\":false,\"comm_max_pointing_error_deg\":20.0,\"rw_friction_mode\":\"disabled\",\"propulsion_burn_start_s\":30.0,\"propulsion_burn_on_time_s\":4.0,\"propulsion_thrust_n\":1.0,\"propulsion_isp_s\":200.0,\"propulsion_initial_propellant_kg\":1.0,\"propulsion_tank_capacity_kg\":2.0,\"propulsion_min_burn_soc\":0.3,\"propulsion_min_pulse_s\":0.05,\"propulsion_thruster_0_direction_b_x\":1.0,\"propulsion_thruster_0_direction_b_y\":0.0,\"propulsion_thruster_0_direction_b_z\":0.0,\"propulsion_thruster_0_location_b_x_m\":0.0,\"propulsion_thruster_0_location_b_y_m\":0.5,\"propulsion_thruster_0_location_b_z_m\":0.0,\"propulsion_thruster_1_direction_b_x\":1.0,\"propulsion_thruster_1_direction_b_y\":0.0,\"propulsion_thruster_1_direction_b_z\":0.0,\"propulsion_thruster_1_location_b_x_m\":0.0,\"propulsion_thruster_1_location_b_y_m\":-0.5,\"propulsion_thruster_1_location_b_z_m\":0.0,\"orbit_radius_m\":7000000.0},\"degradations\":{},\"faults\":[{\"fault_id\":\"add_fault\",\"target\":\"whole_spacecraft\",\"fault_type\":\"eps_battery_capacity_loss\",\"onset_time_s\":4.0,\"duration_s\":-1.0,\"magnitude\":0.17,\"parameters\":{}}],\"modifiers\":{\"faults\":[],\"degradations\":[],\"constraints\":[]},\"outputs\":{\"output_root\":\"datasets/generated_task\",\"trace_format\":\"csv\",\"include_summary\":true,\"include_trace\":true,\"include_labels\":true,\"include_manifest\":true,\"record_fields\":[\"runtime_truth_status\",\"coupling_integrity_pass\",\"energy_bounds_pass\",\"data_bounds_pass\"],\"plots\":[\"orbit.radius_m\",\"orbit.position_m_x\",\"orbit.position_m_y\",\"orbit.position_m_z\"],\"telemetry_streams\":[],\"fmea\":{\"enabled\":false,\"formats\":[\"csv\",\"json\"]}},\"assurance\":{\"fidelity_level\":\"declared_by_capability\",\"claim_level\":\"analysis_only\",\"validation_profile\":\"default\",\"parameter_profile\":\"demo\",\"allow_proxy\":false},\"validation\":{},\"capability_id\":\"whole_spacecraft.unified_native.v1\"}",
+  "prompt_chars": 25002,
+  "metadata": {
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+    "response_id": "chatcmpl-8c62d276d50d43b791208e0479801c22",
+    "usage": {
+      "prompt_tokens": 7827,
+      "completion_tokens": 1639
+    },
+    "seed": null,
+    "structured_output": "json_schema",
+    "structured_generation": {
+      "enabled": true,
+      "method": "lm-format-enforcer",
+      "schema_sha256": "41f0af9266352137acc4b2ec15152f2be1a32cdbc01acf5c66372bdb282ef57f",
+      "answer_substitution": false,
+      "semantic_validation_required": true,
+      "numeric_bounds_at_decode": true,
+      "empty_arrays_at_decode": true,
+      "invalid_numeric_mantissa_digit_budget": 17,
+      "canonical_exponent_range": [
+        -324,
+        308
+      ]
+    },
+    "authenticated": false,
+    "prompt_sha256": "a2f8e1e94c50199766358057d27199163e04ab799027b39a271828aeadcd24bb",
+    "latency_ms": 147269.37
+  },
+  "invocation_evidence": {
+    "schema_version": "sat-sim.model-invocation-evidence.v1",
+    "verified": true,
+    "backend": "openai_compatible",
+    "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "request_id": "chatcmpl-8c62d276d50d43b791208e0479801c22",
+    "provider_response_id": "chatcmpl-8c62d276d50d43b791208e0479801c22",
+    "prompt_sha256": "a2f8e1e94c50199766358057d27199163e04ab799027b39a271828aeadcd24bb",
+    "response_sha256": "616670f5a491963c9b24ec0cd8203e8f40ad11f7ba23e670f05f633e6ba644e0",
+    "structured_output_sha256": "3a0fc3170f9375f536fb47e56d4881dde9d32828a0c48614424bf3ad6e26b536",
+    "structured_output_kind": "json",
+    "usage": {
+      "prompt_tokens": 7827,
+      "completion_tokens": 1639
+    },
+    "structured_generation": {
+      "enabled": true,
+      "method": "lm-format-enforcer",
+      "schema_sha256": "41f0af9266352137acc4b2ec15152f2be1a32cdbc01acf5c66372bdb282ef57f",
+      "answer_substitution": false,
+      "semantic_validation_required": true,
+      "numeric_bounds_at_decode": true,
+      "empty_arrays_at_decode": true,
+      "invalid_numeric_mantissa_digit_budget": 17,
+      "canonical_exponent_range": [
+        -324,
+        308
+      ]
+    },
+    "latency_ms": 147269.37,
+    "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+    "error": null
+  },
+  "error": null
+}

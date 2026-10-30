@@ -1,0 +1,4857 @@
+{
+  "ok": true,
+  "capability_id": "whole_spacecraft.unified_native.v1",
+  "summary": {
+    "status": "complete",
+    "status_semantics_version": "v0.5.7.3",
+    "execution_status": "PASS",
+    "mission_status": "PASS",
+    "mission_bounds_scope": "all_published_runtime_samples",
+    "mission_bounds_sample_count": 61,
+    "overall_status": "PASS",
+    "mission_reason_codes": [],
+    "capability_id": "whole_spacecraft.unified_native.v1",
+    "engine": "basilisk_unified_native_runtime",
+    "orbital_environment": {
+      "profile": "spice_wmm",
+      "epoch_utc": "2026-01-01T00:00:00+00:00",
+      "ephemeris": "JPL_DE430_SPICE",
+      "gravity": "earth_J2_plus_sun_moon",
+      "magnetic_field": "WMM2025",
+      "assets": {
+        "spice": [
+          {
+            "name": "de430.bsp",
+            "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\de430.bsp",
+            "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+            "size_bytes": 119741440
+          },
+          {
+            "name": "naif0012.tls",
+            "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\naif0012.tls",
+            "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+            "size_bytes": 5257
+          },
+          {
+            "name": "pck00010.tpc",
+            "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\pck00010.tpc",
+            "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2",
+            "size_bytes": 126143
+          },
+          {
+            "name": "gm_de431.tpc",
+            "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\gm_de431.tpc",
+            "sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b",
+            "size_bytes": 6291
+          }
+        ],
+        "wmm": {
+          "name": "WMM.COF",
+          "path": "E:\\tmp\\SatAgentSimulation\\third_party\\wmm\\WMM.COF",
+          "sha256": "dfa8597825af4e0b87ff4198a5b4fb661b3c49f4cd090cd0164e0259b075582f",
+          "size_bytes": 4554
+        }
+      },
+      "spacecraft_flight_validation": false
+    },
+    "backend_type": "basilisk_native_mixed",
+    "runtime_truth_status": "instantiated_connected_recorded_unified",
+    "process_count": 1,
+    "task_count": 1,
+    "instantiated_module_count": 53,
+    "official_module_count": 23,
+    "project_native_module_count": 26,
+    "engineering_proxy_module_count": 4,
+    "external_module_count": 0,
+    "external_or_proxy_module_count": 4,
+    "connected_message_count": 60,
+    "recorder_count": 69,
+    "execution_segment_count": 1,
+    "execution_stops_s": [
+      12.0
+    ],
+    "trace_rows": 61,
+    "initial_pointing_error_deg": 7.999999999999998,
+    "final_pointing_error_deg": 8.594205576325773,
+    "adcs_closed_loop_improved": false,
+    "initial_orbit_radius_m": 6993000.000000001,
+    "final_orbit_radius_m": 6992999.794035324,
+    "runtime_message_read_error_count": 0,
+    "runtime_message_read_errors": [],
+    "thermal_environment": {
+      "model": "finite_spherical_earth_lambertian_v1",
+      "earth_ir_exitance_w_m2": 234.0,
+      "earth_albedo": 0.3,
+      "solar_irradiance_at_au_w_m2": 1361.0,
+      "radial_order": 16,
+      "azimuth_order": 64,
+      "quadrature_backend": "numba_nopython_float64_no_fastmath_no_parallel",
+      "quadrature_runtime": {
+        "numpy": "2.3.5",
+        "numba": "0.63.1",
+        "llvmlite": "0.46.0"
+      },
+      "geometry": "body_nodes_six_equal_faces_wing_actual_eps_normal_two_sides",
+      "panel_front_solar_absorptivity": 0.9,
+      "panel_back_solar_absorptivity": 0.35,
+      "panel_emissivity": "thermal_node_emissivity_both_sides",
+      "panel_area": "EPS_panelArea_each_side",
+      "electrical_energy": "actual_EPS_output_subtracted_from_front_absorbed_solar",
+      "radiator_geometry": "six_equal_faces_effective_area_times_view_factor_when_exposed",
+      "radiator_optics": "node_shortwave_absorptivity_and_radiator_IR_emissivity",
+      "coupling": "explicit_previous_tick_heat_same_as_network_conduction",
+      "assumptions": [
+        "Uniform global IR and albedo; no local weather, land or cloud maps.",
+        "Effective exposed surfaces; no CAD occlusion, cavities or mutual radiation.",
+        "Wing optical values are declared engineering assumptions, not measured hardware data.",
+        "234 W/m2 is a global annual mean, not an instantaneous hot/cold bound.",
+        "Radiator view_factor is treated as an effective exposed-area multiplier."
+      ],
+      "references": [
+        "https://llis.nasa.gov/lesson/693",
+        "https://www.nasa.gov/sites/default/files/atoms/files/std8070.1.pdf"
+      ]
+    },
+    "thermal_conduction_paths": [
+      {
+        "from_node": "battery",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.5
+      },
+      {
+        "from_node": "battery",
+        "to_node": "electronics",
+        "conductance_w_per_k": 0.3
+      },
+      {
+        "from_node": "electronics",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.8
+      },
+      {
+        "from_node": "electronics",
+        "to_node": "payload",
+        "conductance_w_per_k": 0.4
+      },
+      {
+        "from_node": "electronics",
+        "to_node": "adcs",
+        "conductance_w_per_k": 0.2
+      },
+      {
+        "from_node": "payload",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.3
+      },
+      {
+        "from_node": "adcs",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.4
+      },
+      {
+        "from_node": "solar_panel",
+        "to_node": "structure",
+        "conductance_w_per_k": 3.0
+      },
+      {
+        "from_node": "comm",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.35
+      },
+      {
+        "from_node": "propulsion",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.45
+      }
+    ],
+    "thermal_internal_power_accounting": {
+      "constant_internal_heat_w": 0.0,
+      "housekeeping_allocation": {
+        "battery": 0.1111111111111111,
+        "electronics": 0.4444444444444444,
+        "adcs": 0.16666666666666666,
+        "solar_panel": 0.2777777777777778
+      },
+      "housekeeping_source": "actual_bus_power_message",
+      "thermostats": "full_electrical_power_debited_from_native_battery; heat=electrical*efficiency",
+      "auxiliary_heater": "separate_PDU_controlled_load_heater_power_w",
+      "boundary": "unallocated_electrical_to_heat_fraction_outside_lumped_nodes; not_full_electromechanical_conservation"
+    },
+    "final_battery_soc": 0.7850940125157098,
+    "final_storage_bits": 12300000.0,
+    "energy_bounds_pass": true,
+    "data_bounds_pass": true,
+    "thermal_bounds_pass": true,
+    "coupling_integrity_pass": true,
+    "resource_feedback_closure_status": "PASS",
+    "resource_feedback_bridge_health": {
+      "adcs": {
+        "status": "PASS",
+        "sample_count": 62,
+        "valid_sample_count": 61,
+        "not_ready_sample_count": 1,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": 12.737879438506072,
+        "power_max_w": 20.554622892565703,
+        "power_span_w": 7.8167434540596314,
+        "activity_min": 0.004611746490662949,
+        "activity_max": 0.05346639307853565,
+        "activity_span": 0.048854646587872703,
+        "positive_activity_sample_count": 61,
+        "positive_power_sample_count": 61,
+        "enabled_transition_observed": false,
+        "stimulus_observed": true,
+        "directional_response_pass": true,
+        "directional_violation_count": 0,
+        "directional_violations": []
+      },
+      "payload": {
+        "status": "PASS",
+        "sample_count": 62,
+        "valid_sample_count": 60,
+        "not_ready_sample_count": 2,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": 38.0,
+        "power_max_w": 38.0,
+        "power_span_w": 0.0,
+        "activity_min": 1.0,
+        "activity_max": 1.0,
+        "activity_span": 0.0,
+        "positive_activity_sample_count": 60,
+        "positive_power_sample_count": 60,
+        "enabled_transition_observed": false,
+        "stimulus_observed": true,
+        "directional_response_pass": true,
+        "directional_violation_count": 0,
+        "directional_violations": []
+      },
+      "comm": {
+        "status": "PASS",
+        "sample_count": 62,
+        "valid_sample_count": 60,
+        "not_ready_sample_count": 2,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": 0.0,
+        "power_max_w": 16.0,
+        "power_span_w": 16.0,
+        "activity_min": 0.0,
+        "activity_max": 1.0,
+        "activity_span": 1.0,
+        "positive_activity_sample_count": 58,
+        "positive_power_sample_count": 58,
+        "enabled_transition_observed": false,
+        "stimulus_observed": true,
+        "directional_response_pass": true,
+        "directional_violation_count": 0,
+        "directional_violations": []
+      },
+      "heater": {
+        "status": "PASS",
+        "sample_count": 62,
+        "valid_sample_count": 61,
+        "not_ready_sample_count": 1,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": 15.0,
+        "power_max_w": 15.0,
+        "power_span_w": 0.0,
+        "activity_min": 1.0,
+        "activity_max": 1.0,
+        "activity_span": 0.0,
+        "positive_activity_sample_count": 61,
+        "positive_power_sample_count": 61,
+        "enabled_transition_observed": false,
+        "stimulus_observed": true,
+        "directional_response_pass": true,
+        "directional_violation_count": 0,
+        "directional_violations": []
+      }
+    },
+    "causal_requirement_evidence_status": "NOT_REQUIRED",
+    "coupling_causality_status": "NOT_EVALUATED_PAIRED_RUN_REQUIRED",
+    "coupling_claim_scope": "single_run_wiring_numerics_conservation_and_response_observation_only",
+    "causal_requirement_evidence": {
+      "status": "NOT_REQUIRED",
+      "requirements": [],
+      "claim_scope": "no_explicit_causal_requirement_declared_for_this_run",
+      "paired_run_required_for_causal_pass": true
+    },
+    "pdu_payload_feedback_observed": false,
+    "pdu_comm_feedback_observed": false,
+    "adcs_dynamic_power_observed": true,
+    "payload_dynamic_power_observed": true,
+    "comm_dynamic_power_observed": true,
+    "heater_pdu_power_feedback_observed": false,
+    "propulsion_enabled": false,
+    "runtime_event_count": 1,
+    "fault_environment_episode_count": 1,
+    "physical_effect_verified_count": 1,
+    "events": {
+      "applied_modifiers": {
+        "schema_version": "c7.scenario_modifiers.v1",
+        "count": 1,
+        "fault_count": 1,
+        "degradation_count": 0,
+        "constraint_count": 0,
+        "modifiers": [
+          {
+            "modifier_id": "add_fault",
+            "kind": "fault",
+            "target": "whole_spacecraft",
+            "modifier_type": "eps_battery_capacity_loss",
+            "onset_time_s": 4.0,
+            "duration_s": -1.0,
+            "severity": 0.17,
+            "scale": null,
+            "parameters": {},
+            "schema_version": "c7.scenario_modifiers.v1",
+            "end_time_s": null
+          }
+        ],
+        "runnable_capability": false,
+        "active_sample_count": 41
+      }
+    },
+    "modifier_count": 1,
+    "fault_modifier_count": 1,
+    "degradation_modifier_count": 0,
+    "constraint_modifier_count": 0,
+    "adapter_labels": {
+      "run_labels": [
+        {
+          "capability_id": "whole_spacecraft.unified_native.v1",
+          "engine": "basilisk_unified_native_runtime"
+        }
+      ],
+      "event_labels": [
+        {
+          "event_id": "add_fault",
+          "category": "fault",
+          "effect": "eps_battery_capacity_loss",
+          "target": "whole_spacecraft",
+          "start_s": 4.0,
+          "end_s": null,
+          "parameters": {
+            "remaining_ratio": 0.83
+          }
+        }
+      ],
+      "fault_environment": {
+        "schema_version": "fault-environment.v1",
+        "style": "bsk_rl_style_no_gym_dependency",
+        "episode_count": 1,
+        "categories": {
+          "fault": 1,
+          "degradation": 0,
+          "constraint": 0
+        },
+        "episodes": [
+          {
+            "episode_id": "episode::add_fault",
+            "category": "fault",
+            "effect": "eps_battery_capacity_loss",
+            "display_name_zh": "电池容量损失",
+            "target": "whole_spacecraft",
+            "target_kind": "battery",
+            "start_s": 4.0,
+            "end_s": null,
+            "trigger_semantics": "容量状态突变；有效容量变化进入电池能量和SOC积分。",
+            "state": {
+              "event_id": "add_fault",
+              "category": "fault",
+              "effect": "eps_battery_capacity_loss",
+              "target": "whole_spacecraft",
+              "start_s": 4.0,
+              "end_s": null,
+              "status": "scheduled",
+              "display_name_zh": "电池容量损失",
+              "target_kind": "battery",
+              "parameters": {
+                "remaining_ratio": 0.83
+              }
+            },
+            "observations": [
+              {
+                "time_s": 3.8000000000000003,
+                "phase": "before",
+                "active": false,
+                "selected_values": {
+                  "label.fault_active": false,
+                  "event.active_effects": "",
+                  "eps.battery_energy_j": 327857.17519949004,
+                  "eps.battery_capacity_j": 504000.0,
+                  "eps.effective_battery_capacity_wh": 140.0,
+                  "eps.battery_energy_wh": 91.0714375554139,
+                  "eps.battery_soc": 0.6505102682529564
+                }
+              },
+              {
+                "time_s": 4.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327870.2981853999,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.07508282927775,
+                  "eps.battery_soc": 0.7837786818354368
+                }
+              },
+              {
+                "time_s": 4.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327883.40191238624,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.07872275344062,
+                  "eps.battery_soc": 0.7838100064839985
+                }
+              },
+              {
+                "time_s": 4.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327896.4871447072,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.08235754019644,
+                  "eps.battery_soc": 0.7838412869207955
+                }
+              },
+              {
+                "time_s": 4.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327909.5869523529,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.08599637565358,
+                  "eps.battery_soc": 0.7838726022001169
+                }
+              },
+              {
+                "time_s": 4.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327922.7383617699,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.08964954493608,
+                  "eps.battery_soc": 0.7839040408342175
+                }
+              },
+              {
+                "time_s": 5.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327935.9437246651,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.09331770129586,
+                  "eps.battery_soc": 0.7839356084448869
+                }
+              },
+              {
+                "time_s": 5.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327949.2034119343,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.09700094775953,
+                  "eps.battery_soc": 0.7839673059187567
+                }
+              },
+              {
+                "time_s": 5.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327962.5172072161,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1006992242267,
+                  "eps.battery_soc": 0.7839991327386119
+                }
+              },
+              {
+                "time_s": 5.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327975.8844784326,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.10441235512016,
+                  "eps.battery_soc": 0.784031087393461
+                }
+              },
+              {
+                "time_s": 5.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327989.3042558127,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.10814007105908,
+                  "eps.battery_soc": 0.7840631675650525
+                }
+              },
+              {
+                "time_s": 6.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328002.7752949504,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.11188202637511,
+                  "eps.battery_soc": 0.7840953702786154
+                }
+              },
+              {
+                "time_s": 6.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328016.29613119643,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.11563781422123,
+                  "eps.battery_soc": 0.7841276920328849
+                }
+              },
+              {
+                "time_s": 6.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328029.86512669065,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1194069796363,
+                  "eps.battery_soc": 0.7841601289125326
+                }
+              },
+              {
+                "time_s": 6.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328043.48051091545,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.12318903080985,
+                  "eps.battery_soc": 0.7841926766851106
+                }
+              },
+              {
+                "time_s": 6.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328057.1404155399,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.12698344876108,
+                  "eps.battery_soc": 0.7842253308843466
+                }
+              },
+              {
+                "time_s": 7.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328070.8390440468,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.13078862334633,
+                  "eps.battery_soc": 0.7842580776535829
+                }
+              },
+              {
+                "time_s": 7.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328084.5730712591,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1346036309053,
+                  "eps.battery_soc": 0.7842909090439354
+                }
+              },
+              {
+                "time_s": 7.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328098.3405564702,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.13842793235284,
+                  "eps.battery_soc": 0.7843238204161174
+                }
+              },
+              {
+                "time_s": 7.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328112.13958995446,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.14226099720958,
+                  "eps.battery_soc": 0.7843568072049016
+                }
+              },
+              {
+                "time_s": 7.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328125.96830176224,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.14610230604507,
+                  "eps.battery_soc": 0.7843898649401468
+                }
+              },
+              {
+                "time_s": 8.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328139.8248687995,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1499513524443,
+                  "eps.battery_soc": 0.7844229892637203
+                }
+              },
+              {
+                "time_s": 8.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328153.7075204202,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.15380764456117,
+                  "eps.battery_soc": 0.7844561759428672
+                }
+              },
+              {
+                "time_s": 8.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328167.61454273766,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.15767070631601,
+                  "eps.battery_soc": 0.7844894208805165
+                }
+              },
+              {
+                "time_s": 8.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328181.54428183264,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.16154007828685,
+                  "eps.battery_soc": 0.7845227201229504
+                }
+              },
+              {
+                "time_s": 8.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328195.4951460176,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.16541531833822,
+                  "eps.battery_soc": 0.784556069865217
+                }
+              },
+              {
+                "time_s": 9.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328209.46560729516,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.16929600202643,
+                  "eps.battery_soc": 0.7845894664546165
+                }
+              },
+              {
+                "time_s": 9.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328223.4542021335,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.17318172281487,
+                  "eps.battery_soc": 0.7846229063925548
+                }
+              },
+              {
+                "time_s": 9.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328237.45953166473,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1770720921291,
+                  "eps.battery_soc": 0.784656386335018
+                }
+              },
+              {
+                "time_s": 9.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328251.48026139993,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.18096673927776,
+                  "eps.battery_soc": 0.7846899030918912
+                }
+              },
+              {
+                "time_s": 9.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328265.5151205425,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1848653112618,
+                  "eps.battery_soc": 0.7847234536253167
+                }
+              },
+              {
+                "time_s": 10.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328279.56290097005,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.18876747249168,
+                  "eps.battery_soc": 0.7847570350472606
+                }
+              },
+              {
+                "time_s": 10.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328293.6224559475,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.19267290442987,
+                  "eps.battery_soc": 0.784790644616436
+                }
+              },
+              {
+                "time_s": 10.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328307.6926986234,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.19658130517317,
+                  "eps.battery_soc": 0.7848242797347088
+                }
+              },
+              {
+                "time_s": 10.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328321.77260035666,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.20049238898797,
+                  "eps.battery_soc": 0.7848579379430978
+                }
+              },
+              {
+                "time_s": 10.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328335.861188913,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.20440588580917,
+                  "eps.battery_soc": 0.7848916169174627
+                }
+              },
+              {
+                "time_s": 11.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328349.9575465647,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.20832154071242,
+                  "eps.battery_soc": 0.7849253144639623
+                }
+              },
+              {
+                "time_s": 11.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328364.0608081238,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.21223911336772,
+                  "eps.battery_soc": 0.7849590285143522
+                }
+              },
+              {
+                "time_s": 11.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328378.1701589325,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.21615837748125,
+                  "eps.battery_soc": 0.7849927571211812
+                }
+              },
+              {
+                "time_s": 11.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328392.28483283235,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.2200791202312,
+                  "eps.battery_soc": 0.7850264984529364
+                }
+              },
+              {
+                "time_s": 11.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328406.40411012963,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.22400114170267,
+                  "eps.battery_soc": 0.7850602507891796
+                }
+              },
+              {
+                "time_s": 12.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328420.52731557173,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.22792425432549,
+                  "eps.battery_soc": 0.7850940125157098
+                }
+              }
+            ],
+            "evidence_status": "observed",
+            "evidence_summary": {
+              "active_sample_count": 41,
+              "observation_count": 42,
+              "effect_text_seen": true,
+              "timeline_label_seen": true,
+              "physical_observable_fields": [
+                "eps.battery_capacity_j",
+                "eps.battery_energy_j",
+                "eps.battery_energy_wh",
+                "eps.battery_soc",
+                "eps.effective_battery_capacity_wh"
+              ],
+              "changed_physical_fields": [
+                "eps.battery_capacity_j",
+                "eps.battery_energy_j",
+                "eps.battery_energy_wh",
+                "eps.battery_soc",
+                "eps.effective_battery_capacity_wh"
+              ],
+              "expected_observables": [
+                "label.fault_active",
+                "event.active_effects",
+                "eps.effective_battery_capacity_wh",
+                "eps.battery_capacity_j",
+                "eps.battery_energy_wh",
+                "eps.battery_energy_j",
+                "eps.battery_soc"
+              ],
+              "evidence_policy": "state_and_observable_effect",
+              "physical_effect_verified": true
+            }
+          }
+        ]
+      }
+    },
+    "operations_object": {
+      "object_ref": "spacecraft.attitude_control",
+      "pointing_status": "UNSTABLE",
+      "rw_speed_rad_s": [
+        28.487313484638694,
+        17.276232673529588,
+        32.48589038162837
+      ],
+      "safe_mode_active": false
+    },
+    "binding_evidence": {
+      "evidence_ref": "spacecraft.attitude_control.pointing_evidence",
+      "binding_id": "pointing-evidence",
+      "final_pointing_error_deg": 8.594205576325773,
+      "max_pointing_error_deg": 9.65702173734009,
+      "final_stable": false
+    },
+    "adapter_metadata": {
+      "runtime_manifest": {
+        "process": "UnifiedNativeProcess",
+        "task": "UnifiedNativeTask",
+        "instantiated_modules": [
+          {
+            "tag": "project_native_event_status",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "spice_ephemeris",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "spacecraft",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "reaction_wheels",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "eclipse",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "star_tracker",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "imu",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "coarse_sun_sensor",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "project_earth_horizon_sensor",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_sun_direction_sensor",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "magnetic_field",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "magnetometer",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "project_imu_fault_injector",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_star_tracker_fault_injector",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_sun_vector_fault_injector",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_adcs_sensor_fusion",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_rw_speed_fault_injector",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "inertial_guidance",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "attitude_error",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "mrp_feedback",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "rw_motor_torque",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "project_rw_command_fault_manager",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "solar_panel",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "bus_power",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "battery",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "project_payload_power_request",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_adcs_power_request",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_comm_power_request",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_heater_power_request",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_eps_pdu",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "project_power_data_mode_gate",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "payload_instrument",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "ground_location",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "spacecraft_antenna",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "ground_antenna",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "native_link_budget",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "project_native_rf_downlink_gate",
+            "source": "basilisk_project_native"
+          },
+          {
+            "tag": "native_downlink_handling",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "storage",
+            "source": "basilisk_official_native"
+          },
+          {
+            "tag": "project_adcs_control_power_bridge",
+            "source": "engineering_proxy"
+          },
+          {
+            "tag": "project_payload_activity_power_bridge",
+            "source": "engineering_proxy"
+          },
+          {
+            "tag": "project_comm_activity_power_bridge",
+            "source": "engineering_proxy"
+          },
+          {
+            "tag": "project_heater_status_power_bridge",
+            "source": "engineering_proxy"
+          },
+          {
+            "tag": "thermal_network",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_adcs",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_battery",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_comm",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_electronics",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_payload",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_propulsion",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_solar_panel",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "thermal_node_structure",
+            "source": "project_deterministic_model"
+          },
+          {
+            "tag": "project_whole_parameter_event_controller",
+            "source": "basilisk_project_native"
+          }
+        ],
+        "connections": [
+          "reaction_wheels->spacecraft",
+          "spacecraft.scStateOutMsg->eclipse",
+          "spacecraft.scStateOutMsg->star_tracker",
+          "spacecraft.scStateOutMsg->imu",
+          "spacecraft.scStateOutMsg->coarse_sun_sensor",
+          "eclipse.eclipseOutMsgs[0]->coarse_sun_sensor",
+          "spacecraft.scStateOutMsg->project_earth_horizon_sensor",
+          "spacecraft.scStateOutMsg->project_sun_direction_sensor",
+          "sun_ephemeris->project_sun_direction_sensor",
+          "spacecraft.scStateOutMsg->magnetic_field",
+          "magnetic_field.envOutMsgs[0]->magnetometer",
+          "imu.sensorOutMsg->project_imu_fault_injector",
+          "star_tracker.sensorOutMsg->project_star_tracker_fault_injector",
+          "project_sun_direction_sensor.bodyOutMsg->project_sun_vector_fault_injector",
+          "project_star_tracker_fault_injector.starOutMsg->project_adcs_sensor_fusion",
+          "project_imu_fault_injector.imuOutMsg->project_adcs_sensor_fusion",
+          "magnetometer.tamDataOutMsg->project_adcs_sensor_fusion",
+          "project_sun_vector_fault_injector.vectorOutMsg->project_adcs_sensor_fusion",
+          "project_earth_horizon_sensor.directionOutMsg->project_adcs_sensor_fusion",
+          "reaction_wheels.rwSpeedOutMsg->project_rw_speed_fault_injector",
+          "project_adcs_sensor_fusion.attOutMsg->attitude_error",
+          "attitude_error.attGuidOutMsg->mrp_feedback",
+          "project_rw_speed_fault_injector.speedOutMsg->mrp_feedback",
+          "mrp_feedback.cmdTorqueOutMsg->rw_motor_torque",
+          "rw_motor_torque.rwMotorTorqueOutMsg->project_rw_command_fault_manager",
+          "reaction_wheels.rwSpeedOutMsg->project_rw_command_fault_manager",
+          "project_rw_command_fault_manager.commandOutMsg->reaction_wheels",
+          "eclipse.eclipseOutMsgs[0]->solar_panel",
+          "solar_panel.nodePowerOutMsg->battery",
+          "bus_power.nodePowerOutMsg->battery",
+          "battery.batPowerOutMsg->project_eps_pdu",
+          "battery.batPowerOutMsg->project_power_data_mode_gate",
+          "attitude_error.attGuidOutMsg->project_power_data_mode_gate",
+          "project_eps_pdu.payloadStatusOutMsg->project_power_data_mode_gate",
+          "project_eps_pdu.commStatusOutMsg->project_power_data_mode_gate",
+          "project_power_data_mode_gate.payloadCmdOutMsg->payload_instrument",
+          "spacecraft.scStateOutMsg->ground_location",
+          "spacecraft.scStateOutMsg->spacecraft_antenna",
+          "ground_location.currentGroundStateOutMsg->ground_antenna",
+          "spacecraft_antenna.antennaOutMsg->native_link_budget",
+          "ground_antenna.antennaOutMsg->native_link_budget",
+          "payload_instrument.nodeDataOutMsg->storage",
+          "ground_location.accessOutMsgs[0]->project_native_rf_downlink_gate",
+          "native_link_budget.linkBudgetOutPayload->project_native_rf_downlink_gate",
+          "project_power_data_mode_gate.downlinkStatusOutMsg->project_native_rf_downlink_gate",
+          "project_native_rf_downlink_gate.linkBudgetOutMsg->native_downlink_handling",
+          "native_downlink_handling.nodeDataOutMsg->storage",
+          "project_adcs_control_power_bridge.powerOutMsg->battery",
+          "project_payload_activity_power_bridge.powerOutMsg->battery",
+          "project_comm_activity_power_bridge.powerOutMsg->battery",
+          "project_heater_status_power_bridge.powerOutMsg->battery",
+          "project_rw_command_fault_manager.commandOutMsg->project_adcs_control_power_bridge",
+          "reaction_wheels.rwSpeedOutMsg->project_adcs_control_power_bridge",
+          "thermal_network.thermalStatusOutMsg->project_power_data_mode_gate",
+          "thermal_network.thermalStatusOutMsg->project_native_rf_downlink_gate",
+          "project_eps_pdu.heaterStatusOutMsg->thermal_network.heaters",
+          "thermal_network.heaters.electricalPowerOutMsg->battery",
+          "project_whole_parameter_event_controller->solar_panel.parameters",
+          "project_whole_parameter_event_controller->battery.parameters",
+          "project_whole_parameter_event_controller->thermal_network.radiators"
+        ],
+        "recorded_sources": [
+          "state",
+          "guid",
+          "rw",
+          "rw_measured",
+          "rw_command_raw",
+          "rw_command_applied",
+          "rw_effective_drag",
+          "rw_effective_torque_limit",
+          "rw_effective_speed_limit",
+          "star_raw",
+          "star",
+          "star_valid",
+          "imu_raw",
+          "imu",
+          "imu_bias",
+          "imu_noise",
+          "mag",
+          "sun_sensor",
+          "sun_vector_raw",
+          "sun_vector",
+          "sun_valid",
+          "fusion_source_mode",
+          "earth_sensor",
+          "earth_reference",
+          "eclipse",
+          "event_fault",
+          "event_degradation",
+          "event_constraint",
+          "battery",
+          "panel",
+          "bus_power",
+          "adcs_power",
+          "payload_power",
+          "downlink_power",
+          "heater_power",
+          "instrument",
+          "storage",
+          "temperature",
+          "thermal_status",
+          "ground_access",
+          "native_link_budget",
+          "gated_link_budget",
+          "downlink_handling",
+          "payload_status",
+          "downlink_status",
+          "safe_mode_status",
+          "pdu_payload_status",
+          "pdu_adcs_status",
+          "pdu_comm_status",
+          "pdu_heater_status",
+          "thermal_temp_battery",
+          "thermal_safe_battery",
+          "thermal_temp_electronics",
+          "thermal_safe_electronics",
+          "thermal_temp_payload",
+          "thermal_safe_payload",
+          "thermal_temp_adcs",
+          "thermal_safe_adcs",
+          "thermal_temp_structure",
+          "thermal_safe_structure",
+          "thermal_temp_solar_panel",
+          "thermal_safe_solar_panel",
+          "thermal_temp_comm",
+          "thermal_safe_comm",
+          "thermal_temp_propulsion",
+          "thermal_safe_propulsion",
+          "thermal_heater_electrical_battery",
+          "thermal_heater_electrical_electronics",
+          "sun_ephemeris"
+        ],
+        "excluded_runtime_categories": [
+          "external_solver",
+          "curve_only_proxy"
+        ]
+      },
+      "model_source_boundary": {
+        "official_basilisk_native": [
+          "spice_ephemeris",
+          "spacecraft",
+          "reaction_wheels",
+          "eclipse",
+          "star_tracker",
+          "imu",
+          "coarse_sun_sensor",
+          "magnetic_field",
+          "magnetometer",
+          "inertial_guidance",
+          "attitude_error",
+          "mrp_feedback",
+          "rw_motor_torque",
+          "solar_panel",
+          "bus_power",
+          "battery",
+          "payload_instrument",
+          "ground_location",
+          "spacecraft_antenna",
+          "ground_antenna",
+          "native_link_budget",
+          "native_downlink_handling",
+          "storage"
+        ],
+        "project_deterministic_model": [
+          "project_native_event_status",
+          "project_earth_horizon_sensor",
+          "project_sun_direction_sensor",
+          "project_imu_fault_injector",
+          "project_star_tracker_fault_injector",
+          "project_sun_vector_fault_injector",
+          "project_adcs_sensor_fusion",
+          "project_rw_speed_fault_injector",
+          "project_rw_command_fault_manager",
+          "project_payload_power_request",
+          "project_adcs_power_request",
+          "project_comm_power_request",
+          "project_heater_power_request",
+          "project_eps_pdu",
+          "project_power_data_mode_gate",
+          "project_native_rf_downlink_gate",
+          "thermal_network",
+          "thermal_node_adcs",
+          "thermal_node_battery",
+          "thermal_node_comm",
+          "thermal_node_electronics",
+          "thermal_node_payload",
+          "thermal_node_propulsion",
+          "thermal_node_solar_panel",
+          "thermal_node_structure",
+          "project_whole_parameter_event_controller"
+        ],
+        "engineering_proxy": [
+          "project_adcs_control_power_bridge",
+          "project_payload_activity_power_bridge",
+          "project_comm_activity_power_bridge",
+          "project_heater_status_power_bridge"
+        ],
+        "external_solver": [],
+        "basilisk_official_native": [
+          "spice_ephemeris",
+          "spacecraft",
+          "reaction_wheels",
+          "eclipse",
+          "star_tracker",
+          "imu",
+          "coarse_sun_sensor",
+          "magnetic_field",
+          "magnetometer",
+          "inertial_guidance",
+          "attitude_error",
+          "mrp_feedback",
+          "rw_motor_torque",
+          "solar_panel",
+          "bus_power",
+          "battery",
+          "payload_instrument",
+          "ground_location",
+          "spacecraft_antenna",
+          "ground_antenna",
+          "native_link_budget",
+          "native_downlink_handling",
+          "storage"
+        ],
+        "basilisk_project_native": [
+          "project_native_event_status",
+          "project_earth_horizon_sensor",
+          "project_sun_direction_sensor",
+          "project_imu_fault_injector",
+          "project_star_tracker_fault_injector",
+          "project_sun_vector_fault_injector",
+          "project_adcs_sensor_fusion",
+          "project_rw_speed_fault_injector",
+          "project_rw_command_fault_manager",
+          "project_payload_power_request",
+          "project_adcs_power_request",
+          "project_comm_power_request",
+          "project_heater_power_request",
+          "project_eps_pdu",
+          "project_power_data_mode_gate",
+          "project_native_rf_downlink_gate",
+          "thermal_network",
+          "thermal_node_adcs",
+          "thermal_node_battery",
+          "thermal_node_comm",
+          "thermal_node_electronics",
+          "thermal_node_payload",
+          "thermal_node_propulsion",
+          "thermal_node_solar_panel",
+          "thermal_node_structure",
+          "project_whole_parameter_event_controller"
+        ],
+        "external_or_proxy": [
+          "project_adcs_control_power_bridge",
+          "project_payload_activity_power_bridge",
+          "project_comm_activity_power_bridge",
+          "project_heater_status_power_bridge"
+        ]
+      },
+      "runtime_status_semantics": {
+        "legacy_status": "complete",
+        "execution_status": "PASS",
+        "mission_status": "PASS",
+        "overall_status": "PASS"
+      },
+      "modifiers_applied_by_adapter": true,
+      "fault_environment": {
+        "schema_version": "fault-environment.v1",
+        "style": "bsk_rl_style_no_gym_dependency",
+        "episode_count": 1,
+        "categories": {
+          "fault": 1,
+          "degradation": 0,
+          "constraint": 0
+        },
+        "episodes": [
+          {
+            "episode_id": "episode::add_fault",
+            "category": "fault",
+            "effect": "eps_battery_capacity_loss",
+            "display_name_zh": "电池容量损失",
+            "target": "whole_spacecraft",
+            "target_kind": "battery",
+            "start_s": 4.0,
+            "end_s": null,
+            "trigger_semantics": "容量状态突变；有效容量变化进入电池能量和SOC积分。",
+            "state": {
+              "event_id": "add_fault",
+              "category": "fault",
+              "effect": "eps_battery_capacity_loss",
+              "target": "whole_spacecraft",
+              "start_s": 4.0,
+              "end_s": null,
+              "status": "scheduled",
+              "display_name_zh": "电池容量损失",
+              "target_kind": "battery",
+              "parameters": {
+                "remaining_ratio": 0.83
+              }
+            },
+            "observations": [
+              {
+                "time_s": 3.8000000000000003,
+                "phase": "before",
+                "active": false,
+                "selected_values": {
+                  "label.fault_active": false,
+                  "event.active_effects": "",
+                  "eps.battery_energy_j": 327857.17519949004,
+                  "eps.battery_capacity_j": 504000.0,
+                  "eps.effective_battery_capacity_wh": 140.0,
+                  "eps.battery_energy_wh": 91.0714375554139,
+                  "eps.battery_soc": 0.6505102682529564
+                }
+              },
+              {
+                "time_s": 4.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327870.2981853999,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.07508282927775,
+                  "eps.battery_soc": 0.7837786818354368
+                }
+              },
+              {
+                "time_s": 4.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327883.40191238624,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.07872275344062,
+                  "eps.battery_soc": 0.7838100064839985
+                }
+              },
+              {
+                "time_s": 4.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327896.4871447072,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.08235754019644,
+                  "eps.battery_soc": 0.7838412869207955
+                }
+              },
+              {
+                "time_s": 4.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327909.5869523529,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.08599637565358,
+                  "eps.battery_soc": 0.7838726022001169
+                }
+              },
+              {
+                "time_s": 4.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327922.7383617699,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.08964954493608,
+                  "eps.battery_soc": 0.7839040408342175
+                }
+              },
+              {
+                "time_s": 5.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327935.9437246651,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.09331770129586,
+                  "eps.battery_soc": 0.7839356084448869
+                }
+              },
+              {
+                "time_s": 5.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327949.2034119343,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.09700094775953,
+                  "eps.battery_soc": 0.7839673059187567
+                }
+              },
+              {
+                "time_s": 5.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327962.5172072161,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1006992242267,
+                  "eps.battery_soc": 0.7839991327386119
+                }
+              },
+              {
+                "time_s": 5.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327975.8844784326,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.10441235512016,
+                  "eps.battery_soc": 0.784031087393461
+                }
+              },
+              {
+                "time_s": 5.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 327989.3042558127,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.10814007105908,
+                  "eps.battery_soc": 0.7840631675650525
+                }
+              },
+              {
+                "time_s": 6.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328002.7752949504,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.11188202637511,
+                  "eps.battery_soc": 0.7840953702786154
+                }
+              },
+              {
+                "time_s": 6.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328016.29613119643,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.11563781422123,
+                  "eps.battery_soc": 0.7841276920328849
+                }
+              },
+              {
+                "time_s": 6.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328029.86512669065,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1194069796363,
+                  "eps.battery_soc": 0.7841601289125326
+                }
+              },
+              {
+                "time_s": 6.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328043.48051091545,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.12318903080985,
+                  "eps.battery_soc": 0.7841926766851106
+                }
+              },
+              {
+                "time_s": 6.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328057.1404155399,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.12698344876108,
+                  "eps.battery_soc": 0.7842253308843466
+                }
+              },
+              {
+                "time_s": 7.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328070.8390440468,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.13078862334633,
+                  "eps.battery_soc": 0.7842580776535829
+                }
+              },
+              {
+                "time_s": 7.2,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328084.5730712591,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1346036309053,
+                  "eps.battery_soc": 0.7842909090439354
+                }
+              },
+              {
+                "time_s": 7.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328098.3405564702,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.13842793235284,
+                  "eps.battery_soc": 0.7843238204161174
+                }
+              },
+              {
+                "time_s": 7.6000000000000005,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328112.13958995446,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.14226099720958,
+                  "eps.battery_soc": 0.7843568072049016
+                }
+              },
+              {
+                "time_s": 7.800000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328125.96830176224,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.14610230604507,
+                  "eps.battery_soc": 0.7843898649401468
+                }
+              },
+              {
+                "time_s": 8.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328139.8248687995,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1499513524443,
+                  "eps.battery_soc": 0.7844229892637203
+                }
+              },
+              {
+                "time_s": 8.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328153.7075204202,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.15380764456117,
+                  "eps.battery_soc": 0.7844561759428672
+                }
+              },
+              {
+                "time_s": 8.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328167.61454273766,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.15767070631601,
+                  "eps.battery_soc": 0.7844894208805165
+                }
+              },
+              {
+                "time_s": 8.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328181.54428183264,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.16154007828685,
+                  "eps.battery_soc": 0.7845227201229504
+                }
+              },
+              {
+                "time_s": 8.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328195.4951460176,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.16541531833822,
+                  "eps.battery_soc": 0.784556069865217
+                }
+              },
+              {
+                "time_s": 9.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328209.46560729516,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.16929600202643,
+                  "eps.battery_soc": 0.7845894664546165
+                }
+              },
+              {
+                "time_s": 9.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328223.4542021335,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.17318172281487,
+                  "eps.battery_soc": 0.7846229063925548
+                }
+              },
+              {
+                "time_s": 9.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328237.45953166473,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1770720921291,
+                  "eps.battery_soc": 0.784656386335018
+                }
+              },
+              {
+                "time_s": 9.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328251.48026139993,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.18096673927776,
+                  "eps.battery_soc": 0.7846899030918912
+                }
+              },
+              {
+                "time_s": 9.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328265.5151205425,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.1848653112618,
+                  "eps.battery_soc": 0.7847234536253167
+                }
+              },
+              {
+                "time_s": 10.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328279.56290097005,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.18876747249168,
+                  "eps.battery_soc": 0.7847570350472606
+                }
+              },
+              {
+                "time_s": 10.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328293.6224559475,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.19267290442987,
+                  "eps.battery_soc": 0.784790644616436
+                }
+              },
+              {
+                "time_s": 10.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328307.6926986234,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.19658130517317,
+                  "eps.battery_soc": 0.7848242797347088
+                }
+              },
+              {
+                "time_s": 10.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328321.77260035666,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.20049238898797,
+                  "eps.battery_soc": 0.7848579379430978
+                }
+              },
+              {
+                "time_s": 10.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328335.861188913,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.20440588580917,
+                  "eps.battery_soc": 0.7848916169174627
+                }
+              },
+              {
+                "time_s": 11.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328349.9575465647,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.20832154071242,
+                  "eps.battery_soc": 0.7849253144639623
+                }
+              },
+              {
+                "time_s": 11.200000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328364.0608081238,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.21223911336772,
+                  "eps.battery_soc": 0.7849590285143522
+                }
+              },
+              {
+                "time_s": 11.4,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328378.1701589325,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.21615837748125,
+                  "eps.battery_soc": 0.7849927571211812
+                }
+              },
+              {
+                "time_s": 11.600000000000001,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328392.28483283235,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.2200791202312,
+                  "eps.battery_soc": 0.7850264984529364
+                }
+              },
+              {
+                "time_s": 11.8,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328406.40411012963,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.22400114170267,
+                  "eps.battery_soc": 0.7850602507891796
+                }
+              },
+              {
+                "time_s": 12.0,
+                "phase": "during",
+                "active": true,
+                "selected_values": {
+                  "label.fault_active": true,
+                  "event.active_effects": "eps_battery_capacity_loss",
+                  "eps.battery_energy_j": 328420.52731557173,
+                  "eps.battery_capacity_j": 418320.0,
+                  "eps.effective_battery_capacity_wh": 116.2,
+                  "eps.battery_energy_wh": 91.22792425432549,
+                  "eps.battery_soc": 0.7850940125157098
+                }
+              }
+            ],
+            "evidence_status": "observed",
+            "evidence_summary": {
+              "active_sample_count": 41,
+              "observation_count": 42,
+              "effect_text_seen": true,
+              "timeline_label_seen": true,
+              "physical_observable_fields": [
+                "eps.battery_capacity_j",
+                "eps.battery_energy_j",
+                "eps.battery_energy_wh",
+                "eps.battery_soc",
+                "eps.effective_battery_capacity_wh"
+              ],
+              "changed_physical_fields": [
+                "eps.battery_capacity_j",
+                "eps.battery_energy_j",
+                "eps.battery_energy_wh",
+                "eps.battery_soc",
+                "eps.effective_battery_capacity_wh"
+              ],
+              "expected_observables": [
+                "label.fault_active",
+                "event.active_effects",
+                "eps.effective_battery_capacity_wh",
+                "eps.battery_capacity_j",
+                "eps.battery_energy_wh",
+                "eps.battery_energy_j",
+                "eps.battery_soc"
+              ],
+              "evidence_policy": "state_and_observable_effect",
+              "physical_effect_verified": true
+            }
+          }
+        ]
+      },
+      "unified_execution": {
+        "schema_version": "sat-sim.execution-evidence.v2",
+        "request_id": "exec_b740c92acba77d73",
+        "request_sha256": "5bc58e04e71baf69954698efc257979226c4b9663fa7ef85400f2b3c53fae773",
+        "execution_plan_sha256": "b740c92acba77d733ef3cb8642f6c9de9a7f97392f424809284d10f50d0e1bae",
+        "adapter_key": "basilisk.attitude_control_graph",
+        "route": "bound_model_graph",
+        "legacy_mode": false,
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "model_ref": "spacecraft.demo_satellite@1",
+        "implementation_id": "spacecraft.demo_satellite.basilisk_unified@1",
+        "bound_model_graph_sha256": "cc33d2ef95e8ba468c77efd70ef85859a848f2b37ad79c2c5b68ffb70c098206",
+        "model_graph_sha256": "824f1a0bf56e59f9613f55250e383adf70c26dae9276f65c7cd9c20a6e181c00",
+        "parameter_set_sha256": "f7ac0d6ac5ab0996efe45ce46fd11f5fd1e06174f7b930b98fb0508980bc925a",
+        "binding_set_sha256": "ccf62f2f26f3f7bce6b539d40349246353956f7b29ff4b558fd059b9d3f7bae2",
+        "capability_projection_sha256": "d89c4be1c424415148855cc282762eca2962b6b543fb2de18c063e105aa2b961"
+      },
+      "model_asset_execution": {
+        "schema_version": "sat-sim.model-asset-execution.v1",
+        "bound_graph_id": {
+          "value": "attitude-control-run"
+        },
+        "graph_ref": {
+          "model_id": {
+            "value": "spacecraft.demo_satellite"
+          },
+          "version": "1"
+        },
+        "graph_sha256": "824f1a0bf56e59f9613f55250e383adf70c26dae9276f65c7cd9c20a6e181c00",
+        "root_model_ref": {
+          "model_id": {
+            "value": "spacecraft.demo_satellite"
+          },
+          "version": "1"
+        },
+        "implementation_id": {
+          "value": "spacecraft.demo_satellite.basilisk_unified",
+          "version": "1"
+        },
+        "implementation_profile_sha256": "d4e282551741ccef0851f3e7c0732ce5466229d29fcaf2dc20cc7e5e8d9403ae",
+        "parameter_set_id": {
+          "value": "demo-satellite-attitude-v1"
+        },
+        "parameter_set_sha256": "f7ac0d6ac5ab0996efe45ce46fd11f5fd1e06174f7b930b98fb0508980bc925a",
+        "binding_set_id": {
+          "value": "attitude-control-bindings-v1"
+        },
+        "binding_set_sha256": "ccf62f2f26f3f7bce6b539d40349246353956f7b29ff4b558fd059b9d3f7bae2",
+        "capability_projection_id": {
+          "value": "whole-spacecraft-attitude-projection-v1"
+        },
+        "capability_projection_sha256": "d89c4be1c424415148855cc282762eca2962b6b543fb2de18c063e105aa2b961",
+        "resolved_parameters": {
+          "adcs_power_w": 12.0,
+          "arg_perigee_deg": 0.0,
+          "battery_capacity_wh": 140,
+          "battery_heater_power_w": 12,
+          "battery_heater_setpoint_k": 286,
+          "bus_power_w": 18.0,
+          "comm_max_pointing_error_deg": 20.0,
+          "controller_k": 3.5,
+          "controller_p": 30.0,
+          "downlink_bandwidth_hz": 1000000.0,
+          "downlink_frequency_hz": 2200000000.0,
+          "downlink_max_retransmissions": 10,
+          "downlink_packet_size_bits": 256.0,
+          "downlink_power_w": 16.0,
+          "downlink_rate_bps": 1500000.0,
+          "eccentricity": 0.001,
+          "environment_profile": "spice_wmm",
+          "epoch_utc": "2026-01-01T00:00:00Z",
+          "imu_accel_bias_m_s2_x": 0,
+          "imu_accel_bias_m_s2_y": 0,
+          "imu_accel_bias_m_s2_z": 0,
+          "imu_accel_max_m_s2": 0,
+          "imu_accel_white_noise_std_m_s2": 0,
+          "imu_gyro_bias_rad_s_x": 0,
+          "imu_gyro_bias_rad_s_y": 0,
+          "imu_gyro_bias_rad_s_z": 0,
+          "imu_gyro_max_rad_s": 0,
+          "imu_gyro_white_noise_std_rad_s": 0,
+          "imu_mount_pitch_deg": 0,
+          "imu_mount_roll_deg": 0,
+          "imu_mount_yaw_deg": 0,
+          "imu_position_b_x_m": 0,
+          "imu_position_b_y_m": 0,
+          "imu_position_b_z_m": 0,
+          "inclination_deg": 35.0,
+          "initial_payload_temp_k": 295.0,
+          "initial_pointing_error_deg": 8.0,
+          "initial_soc": 0.65,
+          "initial_true_anomaly_rad": 0.0,
+          "magnetometer_bias_tesla_x": 0,
+          "magnetometer_bias_tesla_y": 0,
+          "magnetometer_bias_tesla_z": 0,
+          "magnetometer_mount_pitch_deg": 0,
+          "magnetometer_mount_roll_deg": 0,
+          "magnetometer_mount_yaw_deg": 0,
+          "magnetometer_scale_factor": 1,
+          "min_operational_soc": 0.2,
+          "orbit_radius_m": 7000000.0,
+          "payload_data_rate_bps": 2500000.0,
+          "payload_max_pointing_error_deg": 20.0,
+          "payload_power_w": 38.0,
+          "payload_radiator_area_m2": 0.25,
+          "payload_specific_heat_j_kg_k": 600,
+          "payload_thermal_emissivity": 0.75,
+          "payload_thermal_mass_kg": 3,
+          "propulsion_burn_on_time_s": 4.0,
+          "propulsion_burn_start_s": 30.0,
+          "propulsion_enabled": false,
+          "propulsion_initial_propellant_kg": 1.0,
+          "propulsion_isp_s": 200.0,
+          "propulsion_min_burn_soc": 0.3,
+          "propulsion_min_pulse_s": 0.05,
+          "propulsion_tank_capacity_kg": 2.0,
+          "propulsion_thrust_n": 1.0,
+          "propulsion_thruster_0_direction_b_x": 1.0,
+          "propulsion_thruster_0_direction_b_y": 0.0,
+          "propulsion_thruster_0_direction_b_z": 0.0,
+          "propulsion_thruster_0_location_b_x_m": 0.0,
+          "propulsion_thruster_0_location_b_y_m": 0.5,
+          "propulsion_thruster_0_location_b_z_m": 0.0,
+          "propulsion_thruster_1_direction_b_x": 1.0,
+          "propulsion_thruster_1_direction_b_y": 0.0,
+          "propulsion_thruster_1_direction_b_z": 0.0,
+          "propulsion_thruster_1_location_b_x_m": 0.0,
+          "propulsion_thruster_1_location_b_y_m": -0.5,
+          "propulsion_thruster_1_location_b_z_m": 0.0,
+          "raan_deg": 0.0,
+          "rw_configuration": "orthogonal_3",
+          "rw_damping_nms": 0.0,
+          "rw_friction_mode": "disabled",
+          "rw_max_speed_rad_s": 1047.2,
+          "rw_max_torque_nm": 0.2,
+          "rw_motor_current_limit_a": 10.0,
+          "rw_motor_torque_constant_nm_per_a": 0.02,
+          "simulation_seed": 0,
+          "solar_efficiency": 0.28,
+          "solar_normal_b_x": 1.0,
+          "solar_normal_b_y": 0.0,
+          "solar_normal_b_z": 0.0,
+          "solar_panel_area_m2": 2.5,
+          "solar_panel_structure_conductance_w_k": 3,
+          "solar_tracking_enabled": false,
+          "solar_tracking_max_slew_rad_s": 0.0,
+          "spacecraft_antenna_orientation_b": [
+            0.0,
+            -0.41421356237309503,
+            0.0
+          ],
+          "spacecraft_inertia_xx_kg_m2": 100.0,
+          "spacecraft_inertia_yy_kg_m2": 80.0,
+          "spacecraft_inertia_zz_kg_m2": 60.0,
+          "spacecraft_mass_kg": 100,
+          "star_tracker_noise_std_arcsec": 0,
+          "storage_capacity_bits": 6000000000.0,
+          "sun_sensor_bias_normalized": 0.0,
+          "sun_sensor_fov_deg": 80.0,
+          "sun_sensor_kelly_factor": 0.0,
+          "sun_sensor_max_output": 1000000.0,
+          "sun_sensor_min_output": 0.0,
+          "sun_sensor_normal_b_x": 1.0,
+          "sun_sensor_normal_b_y": 0.0,
+          "sun_sensor_normal_b_z": 0.0,
+          "sun_sensor_scale_factor": 1.0,
+          "thermal_earth_albedo": 0.3,
+          "thermal_earth_ir_w_m2": 234,
+          "thermal_panel_back_absorptivity": 0.35,
+          "thermal_panel_front_absorptivity": 0.9,
+          "wheel_count": 3,
+          "wheel_inertia_kg_m2": 0.015
+        },
+        "resolved_actions": [],
+        "resolved_effects": [],
+        "requested_outputs": [
+          "adcs.pointing_error_deg",
+          "adcs.rw.speed_rad_s_0",
+          "adcs.rw.speed_rad_s_1",
+          "adcs.rw.speed_rad_s_2",
+          "eps.battery_soc",
+          "payload.active",
+          "label.power_safe_mode_engaged"
+        ],
+        "content_sha256": "cc33d2ef95e8ba468c77efd70ef85859a848f2b37ad79c2c5b68ffb70c098206",
+        "operations_object_ref": "spacecraft.attitude_control",
+        "operations_object_sha256": "c245f62ce91fffd2dea5713f62a23136f93eb8ba871089d2c574abcce7f53b12",
+        "legacy_bridge_called": false,
+        "object_state": {
+          "object_ref": "spacecraft.attitude_control",
+          "pointing_status": "UNSTABLE",
+          "rw_speed_rad_s": [
+            28.487313484638694,
+            17.276232673529588,
+            32.48589038162837
+          ],
+          "safe_mode_active": false
+        },
+        "evidence_binding": {
+          "evidence_ref": "spacecraft.attitude_control.pointing_evidence",
+          "binding_id": "pointing-evidence",
+          "final_pointing_error_deg": 8.594205576325773,
+          "max_pointing_error_deg": 9.65702173734009,
+          "final_stable": false
+        }
+      }
+    }
+  },
+  "validation_outcome": {
+    "schema_version": "v26.validation-outcome.v1",
+    "execution_status": "SUCCEEDED",
+    "result": "PASS",
+    "reason_code": "VALIDATION_PASSED",
+    "checks": [
+      {
+        "check_id": "output:runtime_truth_status",
+        "category": "required_output",
+        "result": "PASS",
+        "reason_code": "REQUIRED_QOI_PRESENT",
+        "message": "Required output 'runtime_truth_status' was observed.",
+        "path": null,
+        "expected": null,
+        "observed": "runtime_truth_status",
+        "evidence": {}
+      },
+      {
+        "check_id": "output:coupling_integrity_pass",
+        "category": "required_output",
+        "result": "PASS",
+        "reason_code": "REQUIRED_QOI_PRESENT",
+        "message": "Required output 'coupling_integrity_pass' was observed.",
+        "path": null,
+        "expected": null,
+        "observed": "coupling_integrity_pass",
+        "evidence": {}
+      },
+      {
+        "check_id": "output:energy_bounds_pass",
+        "category": "required_output",
+        "result": "PASS",
+        "reason_code": "REQUIRED_QOI_PRESENT",
+        "message": "Required output 'energy_bounds_pass' was observed.",
+        "path": null,
+        "expected": null,
+        "observed": "energy_bounds_pass",
+        "evidence": {}
+      },
+      {
+        "check_id": "output:data_bounds_pass",
+        "category": "required_output",
+        "result": "PASS",
+        "reason_code": "REQUIRED_QOI_PRESENT",
+        "message": "Required output 'data_bounds_pass' was observed.",
+        "path": null,
+        "expected": null,
+        "observed": "data_bounds_pass",
+        "evidence": {}
+      },
+      {
+        "check_id": "physical_validation",
+        "category": "physical_validation",
+        "result": "PASS",
+        "reason_code": "PHYSICAL_VALIDATION_PARTIAL",
+        "message": "The observed subset of physical checks completed; missing checks remain unevaluated.",
+        "path": null,
+        "expected": null,
+        "observed": {
+          "coverage_status": "PARTIAL",
+          "checks_run": [
+            "soc_bounds",
+            "thermal_bounds",
+            "pointing_convergence",
+            "energy_balance_proxy"
+          ]
+        },
+        "evidence": {
+          "checks_missing": [
+            "orbit_altitude_sanity",
+            "fuel_monotonicity",
+            "data_conservation",
+            "quaternion_norm"
+          ],
+          "check_results": {
+            "soc_bounds": {
+              "status": "PASS",
+              "evaluated": true,
+              "reason_code": "PHYSICAL_CHECK_EVALUATED",
+              "minimum_samples_per_field": 1,
+              "valid_row_count": 61,
+              "valid_sample_count": 61,
+              "invalid_sample_count": 0,
+              "fields_observed": [
+                "eps.battery_soc"
+              ],
+              "finding_fail_count": 0,
+              "finding_warning_count": 0
+            },
+            "thermal_bounds": {
+              "status": "PASS",
+              "evaluated": true,
+              "reason_code": "PHYSICAL_CHECK_EVALUATED",
+              "minimum_samples_per_field": 1,
+              "valid_row_count": 61,
+              "valid_sample_count": 1525,
+              "invalid_sample_count": 0,
+              "fields_observed": [
+                "thermal.adcs_safe",
+                "thermal.adcs_temp_c",
+                "thermal.adcs_temp_k",
+                "thermal.battery_safe",
+                "thermal.battery_temp_c",
+                "thermal.battery_temp_k",
+                "thermal.comm_safe",
+                "thermal.comm_temp_c",
+                "thermal.comm_temp_k",
+                "thermal.electronics_safe",
+                "thermal.electronics_temp_c",
+                "thermal.electronics_temp_k",
+                "thermal.payload_safe",
+                "thermal.payload_temp_c",
+                "thermal.payload_temp_k",
+                "thermal.propulsion_safe",
+                "thermal.propulsion_temp_c",
+                "thermal.propulsion_temp_k",
+                "thermal.safe",
+                "thermal.solar_panel_safe",
+                "thermal.solar_panel_temp_c",
+                "thermal.solar_panel_temp_k",
+                "thermal.structure_safe",
+                "thermal.structure_temp_c",
+                "thermal.structure_temp_k"
+              ],
+              "finding_fail_count": 0,
+              "finding_warning_count": 0
+            },
+            "orbit_altitude_sanity": {
+              "status": "NOT_EVALUATED",
+              "evaluated": false,
+              "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+              "minimum_samples_per_field": 1,
+              "valid_row_count": 0,
+              "valid_sample_count": 0,
+              "invalid_sample_count": 0,
+              "fields_observed": [],
+              "finding_fail_count": 0,
+              "finding_warning_count": 0
+            },
+            "fuel_monotonicity": {
+              "status": "NOT_EVALUATED",
+              "evaluated": false,
+              "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+              "minimum_samples_per_field": 2,
+              "valid_row_count": 0,
+              "valid_sample_count": 0,
+              "invalid_sample_count": 0,
+              "fields_observed": [],
+              "finding_fail_count": 0,
+              "finding_warning_count": 0
+            },
+            "data_conservation": {
+              "status": "NOT_EVALUATED",
+              "evaluated": false,
+              "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+              "minimum_samples_per_field": 1,
+              "valid_row_count": 0,
+              "valid_sample_count": 0,
+              "invalid_sample_count": 0,
+              "fields_observed": [],
+              "finding_fail_count": 0,
+              "finding_warning_count": 0
+            },
+            "quaternion_norm": {
+              "status": "NOT_EVALUATED",
+              "evaluated": false,
+              "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+              "minimum_samples_per_field": 1,
+              "valid_row_count": 0,
+              "valid_sample_count": 0,
+              "invalid_sample_count": 0,
+              "fields_observed": [],
+              "finding_fail_count": 0,
+              "finding_warning_count": 0
+            },
+            "pointing_convergence": {
+              "status": "WARNING",
+              "evaluated": true,
+              "reason_code": "PHYSICAL_CHECK_EVALUATED",
+              "minimum_samples_per_field": 3,
+              "valid_row_count": 61,
+              "valid_sample_count": 61,
+              "invalid_sample_count": 0,
+              "fields_observed": [
+                "adcs.pointing_error_deg"
+              ],
+              "finding_fail_count": 0,
+              "finding_warning_count": 1
+            },
+            "energy_balance_proxy": {
+              "status": "PASS",
+              "evaluated": true,
+              "reason_code": "PHYSICAL_CHECK_EVALUATED",
+              "minimum_samples_per_field": 1,
+              "valid_row_count": 61,
+              "valid_sample_count": 305,
+              "invalid_sample_count": 0,
+              "fields_observed": [
+                "eps.loads.adcs_power_w",
+                "eps.loads.comm_power_w",
+                "eps.loads.heater_power_w",
+                "eps.loads.payload_power_w",
+                "eps.solar_array_power_w"
+              ],
+              "finding_fail_count": 0,
+              "finding_warning_count": 0
+            }
+          },
+          "issues": [
+            {
+              "severity": "warning",
+              "check_id": "pointing_convergence",
+              "path": "trace[60].adcs.pointing_error_deg",
+              "message": "pointing error did not show convergence over the run",
+              "value": 8.594205576325773,
+              "limit": "initial 7.999999999999998 deg"
+            }
+          ],
+          "issue_count": 1,
+          "fail_count": 0,
+          "warning_count": 1,
+          "issues_truncated": false,
+          "omitted_issue_count": 0,
+          "issue_counts": [
+            {
+              "check_id": "pointing_convergence",
+              "severity": "warning",
+              "count": 1,
+              "first_issue": {
+                "severity": "warning",
+                "check_id": "pointing_convergence",
+                "path": "trace[60].adcs.pointing_error_deg",
+                "message": "pointing error did not show convergence over the run",
+                "value": 8.594205576325773,
+                "limit": "initial 7.999999999999998 deg"
+              },
+              "last_issue": {
+                "severity": "warning",
+                "check_id": "pointing_convergence",
+                "path": "trace[60].adcs.pointing_error_deg",
+                "message": "pointing error did not show convergence over the run",
+                "value": 8.594205576325773,
+                "limit": "initial 7.999999999999998 deg"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "check_id": "injection_delivery:add_fault",
+        "category": "runtime_injection",
+        "result": "PASS",
+        "reason_code": "RUNTIME_INJECTION_DELIVERY_VERIFIED",
+        "message": "Runtime event 'add_fault' delivery was verified.",
+        "path": null,
+        "expected": null,
+        "observed": null,
+        "evidence": {
+          "active_sample_count": 41,
+          "registered": true
+        }
+      },
+      {
+        "check_id": "injection_effect:add_fault",
+        "category": "runtime_effect",
+        "result": "PASS",
+        "reason_code": "RUNTIME_EFFECT_VERIFIED",
+        "message": "Runtime event 'add_fault' effect was verified.",
+        "path": null,
+        "expected": null,
+        "observed": null,
+        "evidence": {
+          "present": [
+            "eps.battery_capacity_ratio",
+            "eps.battery_capacity_j",
+            "eps.battery_soc"
+          ],
+          "missing": []
+        }
+      }
+    ],
+    "injection_evidence": [
+      {
+        "event_id": "add_fault",
+        "event_kind": "fault",
+        "requested_effect": "eps_battery_capacity_loss",
+        "delivery_result": "PASS",
+        "effect_result": "PASS",
+        "registered": true,
+        "active_sample_count": 41,
+        "evidence_fields_present": [
+          "eps.battery_capacity_ratio",
+          "eps.battery_capacity_j",
+          "eps.battery_soc"
+        ],
+        "evidence_fields_missing": [],
+        "reason_codes": [
+          "RUNTIME_EFFECT_VERIFIED"
+        ]
+      }
+    ],
+    "physical_validation": {
+      "schema_version": "hf8.physical_validation.v2",
+      "route_b_version": "B-5/HF-8",
+      "status": "warning",
+      "gate_status": "warning",
+      "strict": false,
+      "explicit_checks": false,
+      "trace_row_count": 61,
+      "checks_requested": [
+        "soc_bounds",
+        "thermal_bounds",
+        "orbit_altitude_sanity",
+        "fuel_monotonicity",
+        "data_conservation",
+        "quaternion_norm",
+        "pointing_convergence",
+        "energy_balance_proxy"
+      ],
+      "checks_run": [
+        "soc_bounds",
+        "thermal_bounds",
+        "pointing_convergence",
+        "energy_balance_proxy"
+      ],
+      "checks_missing": [
+        "orbit_altitude_sanity",
+        "fuel_monotonicity",
+        "data_conservation",
+        "quaternion_norm"
+      ],
+      "coverage_status": "PARTIAL",
+      "check_results": {
+        "soc_bounds": {
+          "status": "PASS",
+          "evaluated": true,
+          "reason_code": "PHYSICAL_CHECK_EVALUATED",
+          "minimum_samples_per_field": 1,
+          "valid_row_count": 61,
+          "valid_sample_count": 61,
+          "invalid_sample_count": 0,
+          "fields_observed": [
+            "eps.battery_soc"
+          ],
+          "finding_fail_count": 0,
+          "finding_warning_count": 0
+        },
+        "thermal_bounds": {
+          "status": "PASS",
+          "evaluated": true,
+          "reason_code": "PHYSICAL_CHECK_EVALUATED",
+          "minimum_samples_per_field": 1,
+          "valid_row_count": 61,
+          "valid_sample_count": 1525,
+          "invalid_sample_count": 0,
+          "fields_observed": [
+            "thermal.adcs_safe",
+            "thermal.adcs_temp_c",
+            "thermal.adcs_temp_k",
+            "thermal.battery_safe",
+            "thermal.battery_temp_c",
+            "thermal.battery_temp_k",
+            "thermal.comm_safe",
+            "thermal.comm_temp_c",
+            "thermal.comm_temp_k",
+            "thermal.electronics_safe",
+            "thermal.electronics_temp_c",
+            "thermal.electronics_temp_k",
+            "thermal.payload_safe",
+            "thermal.payload_temp_c",
+            "thermal.payload_temp_k",
+            "thermal.propulsion_safe",
+            "thermal.propulsion_temp_c",
+            "thermal.propulsion_temp_k",
+            "thermal.safe",
+            "thermal.solar_panel_safe",
+            "thermal.solar_panel_temp_c",
+            "thermal.solar_panel_temp_k",
+            "thermal.structure_safe",
+            "thermal.structure_temp_c",
+            "thermal.structure_temp_k"
+          ],
+          "finding_fail_count": 0,
+          "finding_warning_count": 0
+        },
+        "orbit_altitude_sanity": {
+          "status": "NOT_EVALUATED",
+          "evaluated": false,
+          "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+          "minimum_samples_per_field": 1,
+          "valid_row_count": 0,
+          "valid_sample_count": 0,
+          "invalid_sample_count": 0,
+          "fields_observed": [],
+          "finding_fail_count": 0,
+          "finding_warning_count": 0
+        },
+        "fuel_monotonicity": {
+          "status": "NOT_EVALUATED",
+          "evaluated": false,
+          "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+          "minimum_samples_per_field": 2,
+          "valid_row_count": 0,
+          "valid_sample_count": 0,
+          "invalid_sample_count": 0,
+          "fields_observed": [],
+          "finding_fail_count": 0,
+          "finding_warning_count": 0
+        },
+        "data_conservation": {
+          "status": "NOT_EVALUATED",
+          "evaluated": false,
+          "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+          "minimum_samples_per_field": 1,
+          "valid_row_count": 0,
+          "valid_sample_count": 0,
+          "invalid_sample_count": 0,
+          "fields_observed": [],
+          "finding_fail_count": 0,
+          "finding_warning_count": 0
+        },
+        "quaternion_norm": {
+          "status": "NOT_EVALUATED",
+          "evaluated": false,
+          "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+          "minimum_samples_per_field": 1,
+          "valid_row_count": 0,
+          "valid_sample_count": 0,
+          "invalid_sample_count": 0,
+          "fields_observed": [],
+          "finding_fail_count": 0,
+          "finding_warning_count": 0
+        },
+        "pointing_convergence": {
+          "status": "WARNING",
+          "evaluated": true,
+          "reason_code": "PHYSICAL_CHECK_EVALUATED",
+          "minimum_samples_per_field": 3,
+          "valid_row_count": 61,
+          "valid_sample_count": 61,
+          "invalid_sample_count": 0,
+          "fields_observed": [
+            "adcs.pointing_error_deg"
+          ],
+          "finding_fail_count": 0,
+          "finding_warning_count": 1
+        },
+        "energy_balance_proxy": {
+          "status": "PASS",
+          "evaluated": true,
+          "reason_code": "PHYSICAL_CHECK_EVALUATED",
+          "minimum_samples_per_field": 1,
+          "valid_row_count": 61,
+          "valid_sample_count": 305,
+          "invalid_sample_count": 0,
+          "fields_observed": [
+            "eps.loads.adcs_power_w",
+            "eps.loads.comm_power_w",
+            "eps.loads.heater_power_w",
+            "eps.loads.payload_power_w",
+            "eps.solar_array_power_w"
+          ],
+          "finding_fail_count": 0,
+          "finding_warning_count": 0
+        }
+      },
+      "fail_count": 0,
+      "warning_count": 1,
+      "issue_count": 1,
+      "issues": [
+        {
+          "severity": "warning",
+          "check_id": "pointing_convergence",
+          "path": "trace[60].adcs.pointing_error_deg",
+          "message": "pointing error did not show convergence over the run",
+          "value": 8.594205576325773,
+          "limit": "initial 7.999999999999998 deg"
+        }
+      ],
+      "issue_sample_limit": 2048,
+      "issues_truncated": false,
+      "omitted_issue_count": 0,
+      "issue_counts": [
+        {
+          "check_id": "pointing_convergence",
+          "severity": "warning",
+          "count": 1,
+          "first_issue": {
+            "severity": "warning",
+            "check_id": "pointing_convergence",
+            "path": "trace[60].adcs.pointing_error_deg",
+            "message": "pointing error did not show convergence over the run",
+            "value": 8.594205576325773,
+            "limit": "initial 7.999999999999998 deg"
+          },
+          "last_issue": {
+            "severity": "warning",
+            "check_id": "pointing_convergence",
+            "path": "trace[60].adcs.pointing_error_deg",
+            "message": "pointing error did not show convergence over the run",
+            "value": 8.594205576325773,
+            "limit": "initial 7.999999999999998 deg"
+          }
+        }
+      ],
+      "limitations": [
+        "Only checks with supported finite telemetry inputs were evaluated; missing checks are not passes."
+      ],
+      "summary_status": "complete",
+      "can_claim_high_fidelity": false,
+      "reason_high_fidelity_still_blocked": "HF-8 checks provide scoped internal verification, not calibrated physical accuracy or flight validity."
+    },
+    "evidence_present": [
+      "coupling_integrity_pass",
+      "data_bounds_pass",
+      "energy_bounds_pass",
+      "runtime_truth_status"
+    ],
+    "evidence_missing": [],
+    "limitations": [
+      "Only checks with supported finite telemetry inputs were evaluated; missing checks are not passes.",
+      "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+    ]
+  },
+  "dataset": {
+    "output_root": "datasets\\generated_task",
+    "files": {
+      "task_spec": "task_spec.json",
+      "compiled_task": "compiled_task.json",
+      "summary": "summary.json",
+      "trace": "trace.csv",
+      "run_labels": "labels\\run_labels.csv",
+      "fault_labels": "labels\\fault_labels.csv",
+      "manifest": "manifest.json"
+    },
+    "manifest": {
+      "manifest_version": "0.1.0",
+      "dataset_id": "generated_task",
+      "created_at": "2026-10-30T13:05:10.804445Z",
+      "platform": {
+        "platform_version": "0.1.0",
+        "bsk_version": "2.11.0+satfix2",
+        "python_version": "3.12.12"
+      },
+      "task": {
+        "task_id": "generated_task",
+        "task_type": "whole_spacecraft",
+        "schema_version": "0.1.0",
+        "spec_hash": "be832e1fab6854f2a00fcfa5d6d5f95d4518aae938ae101b8ab6295e4f548d51",
+        "seed": 0,
+        "capability_id": "whole_spacecraft.unified_native.v1"
+      },
+      "run": {
+        "duration_s": 12.0,
+        "sample_s": 0.2,
+        "scenario_count": 1,
+        "success_count": 1,
+        "failure_count": 0
+      },
+      "files": {
+        "task_spec": "task_spec.json",
+        "compiled_task": "compiled_task.json",
+        "summary": "summary.json",
+        "trace": "trace.csv",
+        "run_labels": "labels\\run_labels.csv",
+        "fault_labels": "labels\\fault_labels.csv",
+        "manifest": "manifest.json"
+      },
+      "trace_schema": [
+        {
+          "name": "time_s",
+          "unit": "s",
+          "dtype": "number"
+        },
+        {
+          "name": "orbit.radius_m",
+          "unit": "m",
+          "dtype": "number"
+        },
+        {
+          "name": "orbit.position_m_x",
+          "unit": "unknown",
+          "dtype": "number"
+        },
+        {
+          "name": "orbit.position_m_y",
+          "unit": "unknown",
+          "dtype": "number"
+        },
+        {
+          "name": "orbit.position_m_z",
+          "unit": "unknown",
+          "dtype": "number"
+        },
+        {
+          "name": "eps.effective_battery_capacity_wh",
+          "unit": "unknown",
+          "dtype": "number"
+        },
+        {
+          "name": "eps.battery_capacity_ratio",
+          "unit": "unknown",
+          "dtype": "number"
+        },
+        {
+          "name": "eps.battery_soc",
+          "unit": "unknown",
+          "dtype": "number"
+        }
+      ],
+      "labels": {
+        "mode": "fault",
+        "target_level": "whole_spacecraft",
+        "target_name": "whole_spacecraft",
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "fault_labels": [
+          "add_fault"
+        ],
+        "degradation_present": false,
+        "constraint_present": false,
+        "modifier_present": true
+      },
+      "quality": {
+        "trace_rows": 61,
+        "summary_status": "complete",
+        "spec_canonical_sha256": "be832e1fab6854f2a00fcfa5d6d5f95d4518aae938ae101b8ab6295e4f548d51"
+      },
+      "status": "complete",
+      "capability": {
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "trust_level": "engineering_preview",
+        "adapter": "sat_sim.adapters.whole_spacecraft_unified_native.WholeSpacecraftUnifiedNativeAdapter",
+        "contract": {
+          "capability_id": "whole_spacecraft.unified_native.v1",
+          "level": "whole_spacecraft",
+          "target": "whole_spacecraft",
+          "trust_level": "engineering_preview",
+          "dependencies": [],
+          "consumes": [],
+          "produces": [],
+          "time_grid": {},
+          "source_binding": {
+            "mode": "source_native",
+            "status": "inferred_from_implementation_model_modules",
+            "primary_module": "sat_sim.bsk_engine.unified_native",
+            "source_modules": [
+              "sat_sim.bsk_engine.unified_native",
+              "sat_sim.bsk_engine.project_native_modules",
+              "subsystems.comm_data.builder",
+              "subsystems.thermal.thermal_network",
+              "integration.resource_feedback"
+            ],
+            "public_api": [],
+            "legacy_demo_runner": null,
+            "uses_legacy_runner": false,
+            "basilisk_required": true,
+            "rationale": null,
+            "schema_version": "s2.source_binding.v1"
+          }
+        },
+        "source_binding": {
+          "mode": "source_native",
+          "status": "inferred_from_implementation_model_modules",
+          "primary_module": "sat_sim.bsk_engine.unified_native",
+          "source_modules": [
+            "sat_sim.bsk_engine.unified_native",
+            "sat_sim.bsk_engine.project_native_modules",
+            "subsystems.comm_data.builder",
+            "subsystems.thermal.thermal_network",
+            "integration.resource_feedback"
+          ],
+          "public_api": [],
+          "legacy_demo_runner": null,
+          "uses_legacy_runner": false,
+          "basilisk_required": true,
+          "rationale": null,
+          "schema_version": "s2.source_binding.v1"
+        }
+      },
+      "composition": {
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "schema_version": "p7b.composition.v1",
+        "composition_type": "single_capability",
+        "dependencies": [],
+        "composition_chain": [
+          {
+            "capability_id": "whole_spacecraft.unified_native.v1",
+            "role": "parent"
+          }
+        ],
+        "time_grid": {},
+        "resolved_time_grid": {
+          "duration_s": 12.0,
+          "sample_s": 0.2,
+          "policy": "single_parent_time_grid"
+        },
+        "consumes": [],
+        "produces": [],
+        "field_mappings": [],
+        "simulation_ports": {},
+        "steps": []
+      },
+      "repair_log": [
+        {
+          "action": "alias_override",
+          "source_path": "simulation.step_s",
+          "target_path": "simulation.solver.step_s",
+          "message": "Mapped alias simulation.step_s to simulation.solver.step_s.",
+          "value": 0.2
+        }
+      ],
+      "pruned_fields": [
+        "$.mission",
+        "$.assurance"
+      ],
+      "taskspec_pruning": {
+        "schema_version": "a4.taskspec_pruning.v1",
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "pruned_fields": [
+          "$.mission",
+          "$.assurance"
+        ],
+        "allowed_top_level_keys": [
+          "capability_id",
+          "degradations",
+          "description",
+          "faults",
+          "metadata",
+          "modifiers",
+          "orbit_environment",
+          "outputs",
+          "parameters",
+          "schema_version",
+          "simulation",
+          "spacecraft",
+          "tags",
+          "target",
+          "task_id",
+          "task_type",
+          "template",
+          "validation"
+        ]
+      },
+      "modifiers": {
+        "schema_version": "c7.scenario_modifiers.v1",
+        "count": 1,
+        "fault_count": 1,
+        "degradation_count": 0,
+        "constraint_count": 0,
+        "modifiers": [
+          {
+            "modifier_id": "add_fault",
+            "kind": "fault",
+            "target": "whole_spacecraft",
+            "modifier_type": "eps_battery_capacity_loss",
+            "onset_time_s": 4.0,
+            "duration_s": -1.0,
+            "severity": 0.17,
+            "scale": null,
+            "parameters": {},
+            "schema_version": "c7.scenario_modifiers.v1",
+            "end_time_s": null
+          }
+        ],
+        "runnable_capability": false
+      },
+      "applied_modifiers": {
+        "schema_version": "c7.scenario_modifiers.v1",
+        "count": 1,
+        "fault_count": 1,
+        "degradation_count": 0,
+        "constraint_count": 0,
+        "modifiers": [
+          {
+            "modifier_id": "add_fault",
+            "kind": "fault",
+            "target": "whole_spacecraft",
+            "modifier_type": "eps_battery_capacity_loss",
+            "onset_time_s": 4.0,
+            "duration_s": -1.0,
+            "severity": 0.17,
+            "scale": null,
+            "parameters": {},
+            "schema_version": "c7.scenario_modifiers.v1",
+            "end_time_s": null
+          }
+        ],
+        "runnable_capability": false
+      },
+      "hf_foundation": {
+        "schema_version": "hf1_hf2.foundation.v1",
+        "route_b_version": "B-1/HF-1+HF-2",
+        "status": "foundation_implemented_not_physics_validated",
+        "can_claim_high_fidelity": false,
+        "reason_high_fidelity_still_blocked": "HF-1/HF-2 foundations are implemented, but capability-specific physics models, validation gates, and benchmark envelopes are still pending.",
+        "implemented_foundations": [
+          {
+            "foundation_id": "hf1.time_systems",
+            "status": "implemented",
+            "evidence": [
+              "UTC/JD/MJD conversion",
+              "monotonic time grid"
+            ],
+            "blocking_for_high_fidelity_claim": true
+          },
+          {
+            "foundation_id": "hf1.units",
+            "status": "implemented",
+            "evidence": [
+              "distance/angle/energy/temperature/data conversions",
+              "unknown-unit rejection"
+            ],
+            "blocking_for_high_fidelity_claim": true
+          },
+          {
+            "foundation_id": "hf2.frames",
+            "status": "implemented_foundation",
+            "evidence": [
+              "ECI/ECEF round-trip",
+              "ECI/LVLH vector round-trip",
+              "frame metadata"
+            ],
+            "blocking_for_high_fidelity_claim": true
+          },
+          {
+            "foundation_id": "hf2.state",
+            "status": "implemented_foundation",
+            "evidence": [
+              "CartesianState",
+              "AttitudeState",
+              "SpacecraftState",
+              "quaternion normalization"
+            ],
+            "blocking_for_high_fidelity_claim": true
+          },
+          {
+            "foundation_id": "hf2.solvers",
+            "status": "implemented_foundation",
+            "evidence": [
+              "deterministic fixed-step config",
+              "Euler/RK4 propagation trace"
+            ],
+            "blocking_for_high_fidelity_claim": true
+          }
+        ],
+        "time_contract": {
+          "schema_version": "hf1.time_systems.v1",
+          "time_system": "UTC",
+          "epoch_utc": "2000-01-01T12:00:00Z",
+          "epoch_jd": 2451545.0,
+          "epoch_mjd": 51544.5,
+          "duration_s": 12.0,
+          "sample_s": 0.2,
+          "sample_count": 61,
+          "times_s": [
+            0.0,
+            0.2,
+            0.4,
+            0.6,
+            0.8,
+            1.0,
+            1.2,
+            1.4,
+            1.6,
+            1.8,
+            2.0,
+            2.2,
+            2.4,
+            2.6,
+            2.8,
+            3.0,
+            3.2,
+            3.4,
+            3.6,
+            3.8,
+            4.0,
+            4.2,
+            4.4,
+            4.6,
+            4.8,
+            5.0,
+            5.2,
+            5.4,
+            5.6,
+            5.8,
+            6.0,
+            6.2,
+            6.4,
+            6.6,
+            6.8,
+            7.0,
+            7.2,
+            7.4,
+            7.6,
+            7.8,
+            8.0,
+            8.2,
+            8.4,
+            8.6,
+            8.8,
+            9.0,
+            9.2,
+            9.4,
+            9.6,
+            9.8,
+            10.0,
+            10.2,
+            10.4,
+            10.6,
+            10.8,
+            11.0,
+            11.2,
+            11.4,
+            11.6,
+            11.8,
+            12.0
+          ],
+          "monotonic": true,
+          "include_endpoint": true,
+          "contract_status": "implemented_hf1",
+          "round_trip_evidence": {
+            "utc_jd_mjd": "implemented",
+            "monotonic_grid": true
+          }
+        },
+        "unit_contract": {
+          "schema_version": "hf1.units.v1",
+          "contract_status": "implemented_hf1",
+          "canonical_units": {
+            "time": "s",
+            "distance": "m",
+            "mass": "kg",
+            "angle": "rad",
+            "temperature": "K",
+            "power": "W",
+            "energy": "J",
+            "torque": "N*m",
+            "data": "bit",
+            "data_rate": "bit/s",
+            "pressure": "Pa",
+            "angular_rate": "rad/s",
+            "velocity": "m/s"
+          },
+          "accepted_input_units": [
+            "B",
+            "C",
+            "Gbit",
+            "J",
+            "K",
+            "Mbit",
+            "Mbit/s",
+            "Mbps",
+            "N",
+            "N*m",
+            "Nm",
+            "Pa",
+            "W",
+            "Wh",
+            "bit",
+            "bit/s",
+            "bps",
+            "byte",
+            "cm",
+            "deg",
+            "deg/s",
+            "degC",
+            "g",
+            "h",
+            "hr",
+            "kPa",
+            "kW",
+            "kWh",
+            "kbit",
+            "kbit/s",
+            "kbps",
+            "kg",
+            "km",
+            "km/s",
+            "m",
+            "m/s",
+            "min",
+            "mm",
+            "rad",
+            "rad/s",
+            "s",
+            "sec"
+          ],
+          "normalization_policy": "normalize_at_task_boundary_and_record_source_unit",
+          "strict_unknown_unit_policy": "reject_unknown_unit_in_high_fidelity_mode",
+          "round_trip_evidence": {
+            "distance_angle_energy_temperature": "implemented",
+            "unknown_unit_rejection": "implemented"
+          }
+        },
+        "frame_contract": {
+          "schema_version": "hf2.frames.v1",
+          "contract_status": "implemented_hf2_foundation",
+          "supported_frames": [
+            "ECI",
+            "ECEF",
+            "LVLH",
+            "BODY"
+          ],
+          "implemented_transforms": [
+            "ECI<->ECEF vector rotation",
+            "ECI<->LVLH vector projection"
+          ],
+          "metadata_only_frames": [
+            "BODY"
+          ],
+          "default_inertial_frame": "ECI",
+          "default_body_frame": "BODY",
+          "lvlh_convention": "x_radial_y_along_track_z_cross_track",
+          "required_state_metadata": [
+            "frame_id",
+            "frame_origin",
+            "frame_orientation",
+            "epoch_utc",
+            "units"
+          ],
+          "known_limits": [
+            "ECEF transform uses deterministic Earth-rate rotation, not full IAU precession/nutation/polar motion.",
+            "BODY frame transforms require HF-4 attitude state/controller implementation."
+          ]
+        },
+        "state_contract": {
+          "schema_version": "hf2.state.v1",
+          "contract_status": "implemented_hf2_foundation",
+          "state_containers": [
+            "CartesianState",
+            "AttitudeState",
+            "SpacecraftState"
+          ],
+          "required_fields": {
+            "cartesian": [
+              "position_m",
+              "velocity_m_s",
+              "frame",
+              "epoch_utc"
+            ],
+            "attitude": [
+              "quaternion_body_to_ref",
+              "angular_rate_rad_s",
+              "reference_frame_id",
+              "body_frame_id",
+              "epoch_utc"
+            ]
+          },
+          "unit_policy": {
+            "position": "m",
+            "velocity": "m/s",
+            "quaternion": "unit_norm",
+            "angular_rate": "rad/s",
+            "mass": "kg"
+          },
+          "validation_evidence": {
+            "finite_vector_checks": "implemented",
+            "quaternion_normalization": "implemented",
+            "frame_metadata_required": "implemented"
+          }
+        },
+        "solver_config": {
+          "schema_version": "hf2.solvers.v1",
+          "solver_family": "deterministic_fixed_step",
+          "method": "euler",
+          "step_s": 0.2,
+          "duration_s": 12.0,
+          "rtol": 1e-09,
+          "atol": 1e-12,
+          "deterministic_seed": 0,
+          "include_endpoint": true,
+          "adaptive_step_allowed": false,
+          "benchmark_status": "pending_HF9_benchmark_scenarios",
+          "contract_status": "implemented_hf2_foundation",
+          "allowed_methods": [
+            "euler",
+            "rk4"
+          ],
+          "determinism_policy": "fixed_step_no_randomness_except_recorded_seed",
+          "known_limits": [
+            "Adaptive solvers and stiffness handling are not enabled until model-specific benchmarks exist.",
+            "Solver accuracy is not a high-fidelity claim without HF9 tolerance-envelope benchmarks."
+          ]
+        },
+        "remaining_route_b_dependencies": [
+          "HF-9 benchmark scenarios and tolerance envelopes"
+        ],
+        "implemented_route_b_models": [
+          "HF-3 orbit/environment medium-fidelity model is available when using orbit_environment.medium_fidelity.v1",
+          "HF-4 basic closed-loop ADCS model is available when using subsystem.adcs_closed_loop.basic.v1",
+          "HF-5 power/thermal/orbit coupled model is available when using whole_spacecraft.power_thermal_orbit_coupled.v1",
+          "HF-6 comm/payload mission-coupled model is available when using whole_spacecraft.comm_payload_mission_coupled.v1",
+          "HF-7 propulsion/orbit/attitude maneuver-coupled model is available when using whole_spacecraft.maneuver_orbit_attitude.v1",
+          "HF-8 physical validation gates are available for Route-B coupled model traces"
+        ]
+      },
+      "hf8_physical_validation": {
+        "schema_version": "hf8.physical_validation.v2",
+        "route_b_version": "B-5/HF-8",
+        "status": "implemented_validation_gates_not_benchmark_envelopes",
+        "default_checks": [
+          "soc_bounds",
+          "thermal_bounds",
+          "orbit_altitude_sanity",
+          "fuel_monotonicity",
+          "data_conservation",
+          "quaternion_norm",
+          "pointing_convergence",
+          "energy_balance_proxy"
+        ],
+        "requested_checks": [
+          "soc_bounds",
+          "thermal_bounds",
+          "orbit_altitude_sanity",
+          "fuel_monotonicity",
+          "data_conservation",
+          "quaternion_norm",
+          "pointing_convergence",
+          "energy_balance_proxy"
+        ],
+        "strict": false,
+        "can_claim_high_fidelity": false,
+        "remaining_route_b_dependencies": [
+          "HF-9 benchmark scenarios and tolerance envelopes"
+        ]
+      },
+      "execution_traceability": {
+        "unified_execution": {
+          "schema_version": "sat-sim.execution-evidence.v2",
+          "request_id": "exec_b740c92acba77d73",
+          "request_sha256": "5bc58e04e71baf69954698efc257979226c4b9663fa7ef85400f2b3c53fae773",
+          "execution_plan_sha256": "b740c92acba77d733ef3cb8642f6c9de9a7f97392f424809284d10f50d0e1bae",
+          "adapter_key": "basilisk.attitude_control_graph",
+          "route": "bound_model_graph",
+          "legacy_mode": false,
+          "capability_id": "whole_spacecraft.unified_native.v1",
+          "model_ref": "spacecraft.demo_satellite@1",
+          "implementation_id": "spacecraft.demo_satellite.basilisk_unified@1",
+          "bound_model_graph_sha256": "cc33d2ef95e8ba468c77efd70ef85859a848f2b37ad79c2c5b68ffb70c098206",
+          "model_graph_sha256": "824f1a0bf56e59f9613f55250e383adf70c26dae9276f65c7cd9c20a6e181c00",
+          "parameter_set_sha256": "f7ac0d6ac5ab0996efe45ce46fd11f5fd1e06174f7b930b98fb0508980bc925a",
+          "binding_set_sha256": "ccf62f2f26f3f7bce6b539d40349246353956f7b29ff4b558fd059b9d3f7bae2",
+          "capability_projection_sha256": "d89c4be1c424415148855cc282762eca2962b6b543fb2de18c063e105aa2b961"
+        },
+        "model_asset_execution": {
+          "schema_version": "sat-sim.model-asset-execution.v1",
+          "bound_graph_id": {
+            "value": "attitude-control-run"
+          },
+          "graph_ref": {
+            "model_id": {
+              "value": "spacecraft.demo_satellite"
+            },
+            "version": "1"
+          },
+          "graph_sha256": "824f1a0bf56e59f9613f55250e383adf70c26dae9276f65c7cd9c20a6e181c00",
+          "root_model_ref": {
+            "model_id": {
+              "value": "spacecraft.demo_satellite"
+            },
+            "version": "1"
+          },
+          "implementation_id": {
+            "value": "spacecraft.demo_satellite.basilisk_unified",
+            "version": "1"
+          },
+          "implementation_profile_sha256": "d4e282551741ccef0851f3e7c0732ce5466229d29fcaf2dc20cc7e5e8d9403ae",
+          "parameter_set_id": {
+            "value": "demo-satellite-attitude-v1"
+          },
+          "parameter_set_sha256": "f7ac0d6ac5ab0996efe45ce46fd11f5fd1e06174f7b930b98fb0508980bc925a",
+          "binding_set_id": {
+            "value": "attitude-control-bindings-v1"
+          },
+          "binding_set_sha256": "ccf62f2f26f3f7bce6b539d40349246353956f7b29ff4b558fd059b9d3f7bae2",
+          "capability_projection_id": {
+            "value": "whole-spacecraft-attitude-projection-v1"
+          },
+          "capability_projection_sha256": "d89c4be1c424415148855cc282762eca2962b6b543fb2de18c063e105aa2b961",
+          "resolved_parameters": {
+            "adcs_power_w": 12.0,
+            "arg_perigee_deg": 0.0,
+            "battery_capacity_wh": 140,
+            "battery_heater_power_w": 12,
+            "battery_heater_setpoint_k": 286,
+            "bus_power_w": 18.0,
+            "comm_max_pointing_error_deg": 20.0,
+            "controller_k": 3.5,
+            "controller_p": 30.0,
+            "downlink_bandwidth_hz": 1000000.0,
+            "downlink_frequency_hz": 2200000000.0,
+            "downlink_max_retransmissions": 10,
+            "downlink_packet_size_bits": 256.0,
+            "downlink_power_w": 16.0,
+            "downlink_rate_bps": 1500000.0,
+            "eccentricity": 0.001,
+            "environment_profile": "spice_wmm",
+            "epoch_utc": "2026-01-01T00:00:00Z",
+            "imu_accel_bias_m_s2_x": 0,
+            "imu_accel_bias_m_s2_y": 0,
+            "imu_accel_bias_m_s2_z": 0,
+            "imu_accel_max_m_s2": 0,
+            "imu_accel_white_noise_std_m_s2": 0,
+            "imu_gyro_bias_rad_s_x": 0,
+            "imu_gyro_bias_rad_s_y": 0,
+            "imu_gyro_bias_rad_s_z": 0,
+            "imu_gyro_max_rad_s": 0,
+            "imu_gyro_white_noise_std_rad_s": 0,
+            "imu_mount_pitch_deg": 0,
+            "imu_mount_roll_deg": 0,
+            "imu_mount_yaw_deg": 0,
+            "imu_position_b_x_m": 0,
+            "imu_position_b_y_m": 0,
+            "imu_position_b_z_m": 0,
+            "inclination_deg": 35.0,
+            "initial_payload_temp_k": 295.0,
+            "initial_pointing_error_deg": 8.0,
+            "initial_soc": 0.65,
+            "initial_true_anomaly_rad": 0.0,
+            "magnetometer_bias_tesla_x": 0,
+            "magnetometer_bias_tesla_y": 0,
+            "magnetometer_bias_tesla_z": 0,
+            "magnetometer_mount_pitch_deg": 0,
+            "magnetometer_mount_roll_deg": 0,
+            "magnetometer_mount_yaw_deg": 0,
+            "magnetometer_scale_factor": 1,
+            "min_operational_soc": 0.2,
+            "orbit_radius_m": 7000000.0,
+            "payload_data_rate_bps": 2500000.0,
+            "payload_max_pointing_error_deg": 20.0,
+            "payload_power_w": 38.0,
+            "payload_radiator_area_m2": 0.25,
+            "payload_specific_heat_j_kg_k": 600,
+            "payload_thermal_emissivity": 0.75,
+            "payload_thermal_mass_kg": 3,
+            "propulsion_burn_on_time_s": 4.0,
+            "propulsion_burn_start_s": 30.0,
+            "propulsion_enabled": false,
+            "propulsion_initial_propellant_kg": 1.0,
+            "propulsion_isp_s": 200.0,
+            "propulsion_min_burn_soc": 0.3,
+            "propulsion_min_pulse_s": 0.05,
+            "propulsion_tank_capacity_kg": 2.0,
+            "propulsion_thrust_n": 1.0,
+            "propulsion_thruster_0_direction_b_x": 1.0,
+            "propulsion_thruster_0_direction_b_y": 0.0,
+            "propulsion_thruster_0_direction_b_z": 0.0,
+            "propulsion_thruster_0_location_b_x_m": 0.0,
+            "propulsion_thruster_0_location_b_y_m": 0.5,
+            "propulsion_thruster_0_location_b_z_m": 0.0,
+            "propulsion_thruster_1_direction_b_x": 1.0,
+            "propulsion_thruster_1_direction_b_y": 0.0,
+            "propulsion_thruster_1_direction_b_z": 0.0,
+            "propulsion_thruster_1_location_b_x_m": 0.0,
+            "propulsion_thruster_1_location_b_y_m": -0.5,
+            "propulsion_thruster_1_location_b_z_m": 0.0,
+            "raan_deg": 0.0,
+            "rw_configuration": "orthogonal_3",
+            "rw_damping_nms": 0.0,
+            "rw_friction_mode": "disabled",
+            "rw_max_speed_rad_s": 1047.2,
+            "rw_max_torque_nm": 0.2,
+            "rw_motor_current_limit_a": 10.0,
+            "rw_motor_torque_constant_nm_per_a": 0.02,
+            "simulation_seed": 0,
+            "solar_efficiency": 0.28,
+            "solar_normal_b_x": 1.0,
+            "solar_normal_b_y": 0.0,
+            "solar_normal_b_z": 0.0,
+            "solar_panel_area_m2": 2.5,
+            "solar_panel_structure_conductance_w_k": 3,
+            "solar_tracking_enabled": false,
+            "solar_tracking_max_slew_rad_s": 0.0,
+            "spacecraft_antenna_orientation_b": [
+              0.0,
+              -0.41421356237309503,
+              0.0
+            ],
+            "spacecraft_inertia_xx_kg_m2": 100.0,
+            "spacecraft_inertia_yy_kg_m2": 80.0,
+            "spacecraft_inertia_zz_kg_m2": 60.0,
+            "spacecraft_mass_kg": 100,
+            "star_tracker_noise_std_arcsec": 0,
+            "storage_capacity_bits": 6000000000.0,
+            "sun_sensor_bias_normalized": 0.0,
+            "sun_sensor_fov_deg": 80.0,
+            "sun_sensor_kelly_factor": 0.0,
+            "sun_sensor_max_output": 1000000.0,
+            "sun_sensor_min_output": 0.0,
+            "sun_sensor_normal_b_x": 1.0,
+            "sun_sensor_normal_b_y": 0.0,
+            "sun_sensor_normal_b_z": 0.0,
+            "sun_sensor_scale_factor": 1.0,
+            "thermal_earth_albedo": 0.3,
+            "thermal_earth_ir_w_m2": 234,
+            "thermal_panel_back_absorptivity": 0.35,
+            "thermal_panel_front_absorptivity": 0.9,
+            "wheel_count": 3,
+            "wheel_inertia_kg_m2": 0.015
+          },
+          "resolved_actions": [],
+          "resolved_effects": [],
+          "requested_outputs": [
+            "adcs.pointing_error_deg",
+            "adcs.rw.speed_rad_s_0",
+            "adcs.rw.speed_rad_s_1",
+            "adcs.rw.speed_rad_s_2",
+            "eps.battery_soc",
+            "payload.active",
+            "label.power_safe_mode_engaged"
+          ],
+          "content_sha256": "cc33d2ef95e8ba468c77efd70ef85859a848f2b37ad79c2c5b68ffb70c098206",
+          "operations_object_ref": "spacecraft.attitude_control",
+          "operations_object_sha256": "c245f62ce91fffd2dea5713f62a23136f93eb8ba871089d2c574abcce7f53b12",
+          "legacy_bridge_called": false,
+          "object_state": {
+            "object_ref": "spacecraft.attitude_control",
+            "pointing_status": "UNSTABLE",
+            "rw_speed_rad_s": [
+              28.487313484638694,
+              17.276232673529588,
+              32.48589038162837
+            ],
+            "safe_mode_active": false
+          },
+          "evidence_binding": {
+            "evidence_ref": "spacecraft.attitude_control.pointing_evidence",
+            "binding_id": "pointing-evidence",
+            "final_pointing_error_deg": 8.594205576325773,
+            "max_pointing_error_deg": 9.65702173734009,
+            "final_stable": false
+          }
+        }
+      },
+      "runtime_evidence": {
+        "runtime_manifest": {
+          "process": "UnifiedNativeProcess",
+          "task": "UnifiedNativeTask",
+          "instantiated_modules": [
+            {
+              "tag": "project_native_event_status",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "spice_ephemeris",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "spacecraft",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "reaction_wheels",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "eclipse",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "star_tracker",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "imu",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "coarse_sun_sensor",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_earth_horizon_sensor",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_sun_direction_sensor",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "magnetic_field",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "magnetometer",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_imu_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_star_tracker_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_sun_vector_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_adcs_sensor_fusion",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_rw_speed_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "inertial_guidance",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "attitude_error",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "mrp_feedback",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "rw_motor_torque",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_rw_command_fault_manager",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "solar_panel",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "bus_power",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "battery",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_payload_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_adcs_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_comm_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_heater_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_eps_pdu",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_power_data_mode_gate",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "payload_instrument",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "ground_location",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "spacecraft_antenna",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "ground_antenna",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "native_link_budget",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_native_rf_downlink_gate",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "native_downlink_handling",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "storage",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_adcs_control_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "project_payload_activity_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "project_comm_activity_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "project_heater_status_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "thermal_network",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_adcs",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_battery",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_comm",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_electronics",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_payload",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_propulsion",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_solar_panel",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_structure",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "project_whole_parameter_event_controller",
+              "source": "basilisk_project_native"
+            }
+          ],
+          "connections": [
+            "reaction_wheels->spacecraft",
+            "spacecraft.scStateOutMsg->eclipse",
+            "spacecraft.scStateOutMsg->star_tracker",
+            "spacecraft.scStateOutMsg->imu",
+            "spacecraft.scStateOutMsg->coarse_sun_sensor",
+            "eclipse.eclipseOutMsgs[0]->coarse_sun_sensor",
+            "spacecraft.scStateOutMsg->project_earth_horizon_sensor",
+            "spacecraft.scStateOutMsg->project_sun_direction_sensor",
+            "sun_ephemeris->project_sun_direction_sensor",
+            "spacecraft.scStateOutMsg->magnetic_field",
+            "magnetic_field.envOutMsgs[0]->magnetometer",
+            "imu.sensorOutMsg->project_imu_fault_injector",
+            "star_tracker.sensorOutMsg->project_star_tracker_fault_injector",
+            "project_sun_direction_sensor.bodyOutMsg->project_sun_vector_fault_injector",
+            "project_star_tracker_fault_injector.starOutMsg->project_adcs_sensor_fusion",
+            "project_imu_fault_injector.imuOutMsg->project_adcs_sensor_fusion",
+            "magnetometer.tamDataOutMsg->project_adcs_sensor_fusion",
+            "project_sun_vector_fault_injector.vectorOutMsg->project_adcs_sensor_fusion",
+            "project_earth_horizon_sensor.directionOutMsg->project_adcs_sensor_fusion",
+            "reaction_wheels.rwSpeedOutMsg->project_rw_speed_fault_injector",
+            "project_adcs_sensor_fusion.attOutMsg->attitude_error",
+            "attitude_error.attGuidOutMsg->mrp_feedback",
+            "project_rw_speed_fault_injector.speedOutMsg->mrp_feedback",
+            "mrp_feedback.cmdTorqueOutMsg->rw_motor_torque",
+            "rw_motor_torque.rwMotorTorqueOutMsg->project_rw_command_fault_manager",
+            "reaction_wheels.rwSpeedOutMsg->project_rw_command_fault_manager",
+            "project_rw_command_fault_manager.commandOutMsg->reaction_wheels",
+            "eclipse.eclipseOutMsgs[0]->solar_panel",
+            "solar_panel.nodePowerOutMsg->battery",
+            "bus_power.nodePowerOutMsg->battery",
+            "battery.batPowerOutMsg->project_eps_pdu",
+            "battery.batPowerOutMsg->project_power_data_mode_gate",
+            "attitude_error.attGuidOutMsg->project_power_data_mode_gate",
+            "project_eps_pdu.payloadStatusOutMsg->project_power_data_mode_gate",
+            "project_eps_pdu.commStatusOutMsg->project_power_data_mode_gate",
+            "project_power_data_mode_gate.payloadCmdOutMsg->payload_instrument",
+            "spacecraft.scStateOutMsg->ground_location",
+            "spacecraft.scStateOutMsg->spacecraft_antenna",
+            "ground_location.currentGroundStateOutMsg->ground_antenna",
+            "spacecraft_antenna.antennaOutMsg->native_link_budget",
+            "ground_antenna.antennaOutMsg->native_link_budget",
+            "payload_instrument.nodeDataOutMsg->storage",
+            "ground_location.accessOutMsgs[0]->project_native_rf_downlink_gate",
+            "native_link_budget.linkBudgetOutPayload->project_native_rf_downlink_gate",
+            "project_power_data_mode_gate.downlinkStatusOutMsg->project_native_rf_downlink_gate",
+            "project_native_rf_downlink_gate.linkBudgetOutMsg->native_downlink_handling",
+            "native_downlink_handling.nodeDataOutMsg->storage",
+            "project_adcs_control_power_bridge.powerOutMsg->battery",
+            "project_payload_activity_power_bridge.powerOutMsg->battery",
+            "project_comm_activity_power_bridge.powerOutMsg->battery",
+            "project_heater_status_power_bridge.powerOutMsg->battery",
+            "project_rw_command_fault_manager.commandOutMsg->project_adcs_control_power_bridge",
+            "reaction_wheels.rwSpeedOutMsg->project_adcs_control_power_bridge",
+            "thermal_network.thermalStatusOutMsg->project_power_data_mode_gate",
+            "thermal_network.thermalStatusOutMsg->project_native_rf_downlink_gate",
+            "project_eps_pdu.heaterStatusOutMsg->thermal_network.heaters",
+            "thermal_network.heaters.electricalPowerOutMsg->battery",
+            "project_whole_parameter_event_controller->solar_panel.parameters",
+            "project_whole_parameter_event_controller->battery.parameters",
+            "project_whole_parameter_event_controller->thermal_network.radiators"
+          ],
+          "recorded_sources": [
+            "state",
+            "guid",
+            "rw",
+            "rw_measured",
+            "rw_command_raw",
+            "rw_command_applied",
+            "rw_effective_drag",
+            "rw_effective_torque_limit",
+            "rw_effective_speed_limit",
+            "star_raw",
+            "star",
+            "star_valid",
+            "imu_raw",
+            "imu",
+            "imu_bias",
+            "imu_noise",
+            "mag",
+            "sun_sensor",
+            "sun_vector_raw",
+            "sun_vector",
+            "sun_valid",
+            "fusion_source_mode",
+            "earth_sensor",
+            "earth_reference",
+            "eclipse",
+            "event_fault",
+            "event_degradation",
+            "event_constraint",
+            "battery",
+            "panel",
+            "bus_power",
+            "adcs_power",
+            "payload_power",
+            "downlink_power",
+            "heater_power",
+            "instrument",
+            "storage",
+            "temperature",
+            "thermal_status",
+            "ground_access",
+            "native_link_budget",
+            "gated_link_budget",
+            "downlink_handling",
+            "payload_status",
+            "downlink_status",
+            "safe_mode_status",
+            "pdu_payload_status",
+            "pdu_adcs_status",
+            "pdu_comm_status",
+            "pdu_heater_status",
+            "thermal_temp_battery",
+            "thermal_safe_battery",
+            "thermal_temp_electronics",
+            "thermal_safe_electronics",
+            "thermal_temp_payload",
+            "thermal_safe_payload",
+            "thermal_temp_adcs",
+            "thermal_safe_adcs",
+            "thermal_temp_structure",
+            "thermal_safe_structure",
+            "thermal_temp_solar_panel",
+            "thermal_safe_solar_panel",
+            "thermal_temp_comm",
+            "thermal_safe_comm",
+            "thermal_temp_propulsion",
+            "thermal_safe_propulsion",
+            "thermal_heater_electrical_battery",
+            "thermal_heater_electrical_electronics",
+            "sun_ephemeris"
+          ],
+          "excluded_runtime_categories": [
+            "external_solver",
+            "curve_only_proxy"
+          ]
+        },
+        "model_source_boundary": {
+          "official_basilisk_native": [
+            "spice_ephemeris",
+            "spacecraft",
+            "reaction_wheels",
+            "eclipse",
+            "star_tracker",
+            "imu",
+            "coarse_sun_sensor",
+            "magnetic_field",
+            "magnetometer",
+            "inertial_guidance",
+            "attitude_error",
+            "mrp_feedback",
+            "rw_motor_torque",
+            "solar_panel",
+            "bus_power",
+            "battery",
+            "payload_instrument",
+            "ground_location",
+            "spacecraft_antenna",
+            "ground_antenna",
+            "native_link_budget",
+            "native_downlink_handling",
+            "storage"
+          ],
+          "project_deterministic_model": [
+            "project_native_event_status",
+            "project_earth_horizon_sensor",
+            "project_sun_direction_sensor",
+            "project_imu_fault_injector",
+            "project_star_tracker_fault_injector",
+            "project_sun_vector_fault_injector",
+            "project_adcs_sensor_fusion",
+            "project_rw_speed_fault_injector",
+            "project_rw_command_fault_manager",
+            "project_payload_power_request",
+            "project_adcs_power_request",
+            "project_comm_power_request",
+            "project_heater_power_request",
+            "project_eps_pdu",
+            "project_power_data_mode_gate",
+            "project_native_rf_downlink_gate",
+            "thermal_network",
+            "thermal_node_adcs",
+            "thermal_node_battery",
+            "thermal_node_comm",
+            "thermal_node_electronics",
+            "thermal_node_payload",
+            "thermal_node_propulsion",
+            "thermal_node_solar_panel",
+            "thermal_node_structure",
+            "project_whole_parameter_event_controller"
+          ],
+          "engineering_proxy": [
+            "project_adcs_control_power_bridge",
+            "project_payload_activity_power_bridge",
+            "project_comm_activity_power_bridge",
+            "project_heater_status_power_bridge"
+          ],
+          "external_solver": [],
+          "basilisk_official_native": [
+            "spice_ephemeris",
+            "spacecraft",
+            "reaction_wheels",
+            "eclipse",
+            "star_tracker",
+            "imu",
+            "coarse_sun_sensor",
+            "magnetic_field",
+            "magnetometer",
+            "inertial_guidance",
+            "attitude_error",
+            "mrp_feedback",
+            "rw_motor_torque",
+            "solar_panel",
+            "bus_power",
+            "battery",
+            "payload_instrument",
+            "ground_location",
+            "spacecraft_antenna",
+            "ground_antenna",
+            "native_link_budget",
+            "native_downlink_handling",
+            "storage"
+          ],
+          "basilisk_project_native": [
+            "project_native_event_status",
+            "project_earth_horizon_sensor",
+            "project_sun_direction_sensor",
+            "project_imu_fault_injector",
+            "project_star_tracker_fault_injector",
+            "project_sun_vector_fault_injector",
+            "project_adcs_sensor_fusion",
+            "project_rw_speed_fault_injector",
+            "project_rw_command_fault_manager",
+            "project_payload_power_request",
+            "project_adcs_power_request",
+            "project_comm_power_request",
+            "project_heater_power_request",
+            "project_eps_pdu",
+            "project_power_data_mode_gate",
+            "project_native_rf_downlink_gate",
+            "thermal_network",
+            "thermal_node_adcs",
+            "thermal_node_battery",
+            "thermal_node_comm",
+            "thermal_node_electronics",
+            "thermal_node_payload",
+            "thermal_node_propulsion",
+            "thermal_node_solar_panel",
+            "thermal_node_structure",
+            "project_whole_parameter_event_controller"
+          ],
+          "external_or_proxy": [
+            "project_adcs_control_power_bridge",
+            "project_payload_activity_power_bridge",
+            "project_comm_activity_power_bridge",
+            "project_heater_status_power_bridge"
+          ]
+        },
+        "runtime_status_semantics": {
+          "legacy_status": "complete",
+          "execution_status": "PASS",
+          "mission_status": "PASS",
+          "overall_status": "PASS"
+        },
+        "fault_environment": {
+          "schema_version": "fault-environment.v1",
+          "style": "bsk_rl_style_no_gym_dependency",
+          "episode_count": 1,
+          "categories": {
+            "fault": 1,
+            "degradation": 0,
+            "constraint": 0
+          },
+          "episodes": [
+            {
+              "episode_id": "episode::add_fault",
+              "category": "fault",
+              "effect": "eps_battery_capacity_loss",
+              "display_name_zh": "电池容量损失",
+              "target": "whole_spacecraft",
+              "target_kind": "battery",
+              "start_s": 4.0,
+              "end_s": null,
+              "trigger_semantics": "容量状态突变；有效容量变化进入电池能量和SOC积分。",
+              "state": {
+                "event_id": "add_fault",
+                "category": "fault",
+                "effect": "eps_battery_capacity_loss",
+                "target": "whole_spacecraft",
+                "start_s": 4.0,
+                "end_s": null,
+                "status": "scheduled",
+                "display_name_zh": "电池容量损失",
+                "target_kind": "battery",
+                "parameters": {
+                  "remaining_ratio": 0.83
+                }
+              },
+              "observations": [
+                {
+                  "time_s": 3.8000000000000003,
+                  "phase": "before",
+                  "active": false,
+                  "selected_values": {
+                    "label.fault_active": false,
+                    "event.active_effects": "",
+                    "eps.battery_energy_j": 327857.17519949004,
+                    "eps.battery_capacity_j": 504000.0,
+                    "eps.effective_battery_capacity_wh": 140.0,
+                    "eps.battery_energy_wh": 91.0714375554139,
+                    "eps.battery_soc": 0.6505102682529564
+                  }
+                },
+                {
+                  "time_s": 4.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327870.2981853999,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.07508282927775,
+                    "eps.battery_soc": 0.7837786818354368
+                  }
+                },
+                {
+                  "time_s": 4.2,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327883.40191238624,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.07872275344062,
+                    "eps.battery_soc": 0.7838100064839985
+                  }
+                },
+                {
+                  "time_s": 4.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327896.4871447072,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.08235754019644,
+                    "eps.battery_soc": 0.7838412869207955
+                  }
+                },
+                {
+                  "time_s": 4.6000000000000005,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327909.5869523529,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.08599637565358,
+                    "eps.battery_soc": 0.7838726022001169
+                  }
+                },
+                {
+                  "time_s": 4.800000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327922.7383617699,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.08964954493608,
+                    "eps.battery_soc": 0.7839040408342175
+                  }
+                },
+                {
+                  "time_s": 5.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327935.9437246651,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.09331770129586,
+                    "eps.battery_soc": 0.7839356084448869
+                  }
+                },
+                {
+                  "time_s": 5.2,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327949.2034119343,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.09700094775953,
+                    "eps.battery_soc": 0.7839673059187567
+                  }
+                },
+                {
+                  "time_s": 5.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327962.5172072161,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.1006992242267,
+                    "eps.battery_soc": 0.7839991327386119
+                  }
+                },
+                {
+                  "time_s": 5.6000000000000005,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327975.8844784326,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.10441235512016,
+                    "eps.battery_soc": 0.784031087393461
+                  }
+                },
+                {
+                  "time_s": 5.800000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 327989.3042558127,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.10814007105908,
+                    "eps.battery_soc": 0.7840631675650525
+                  }
+                },
+                {
+                  "time_s": 6.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328002.7752949504,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.11188202637511,
+                    "eps.battery_soc": 0.7840953702786154
+                  }
+                },
+                {
+                  "time_s": 6.2,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328016.29613119643,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.11563781422123,
+                    "eps.battery_soc": 0.7841276920328849
+                  }
+                },
+                {
+                  "time_s": 6.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328029.86512669065,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.1194069796363,
+                    "eps.battery_soc": 0.7841601289125326
+                  }
+                },
+                {
+                  "time_s": 6.6000000000000005,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328043.48051091545,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.12318903080985,
+                    "eps.battery_soc": 0.7841926766851106
+                  }
+                },
+                {
+                  "time_s": 6.800000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328057.1404155399,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.12698344876108,
+                    "eps.battery_soc": 0.7842253308843466
+                  }
+                },
+                {
+                  "time_s": 7.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328070.8390440468,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.13078862334633,
+                    "eps.battery_soc": 0.7842580776535829
+                  }
+                },
+                {
+                  "time_s": 7.2,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328084.5730712591,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.1346036309053,
+                    "eps.battery_soc": 0.7842909090439354
+                  }
+                },
+                {
+                  "time_s": 7.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328098.3405564702,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.13842793235284,
+                    "eps.battery_soc": 0.7843238204161174
+                  }
+                },
+                {
+                  "time_s": 7.6000000000000005,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328112.13958995446,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.14226099720958,
+                    "eps.battery_soc": 0.7843568072049016
+                  }
+                },
+                {
+                  "time_s": 7.800000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328125.96830176224,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.14610230604507,
+                    "eps.battery_soc": 0.7843898649401468
+                  }
+                },
+                {
+                  "time_s": 8.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328139.8248687995,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.1499513524443,
+                    "eps.battery_soc": 0.7844229892637203
+                  }
+                },
+                {
+                  "time_s": 8.200000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328153.7075204202,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.15380764456117,
+                    "eps.battery_soc": 0.7844561759428672
+                  }
+                },
+                {
+                  "time_s": 8.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328167.61454273766,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.15767070631601,
+                    "eps.battery_soc": 0.7844894208805165
+                  }
+                },
+                {
+                  "time_s": 8.600000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328181.54428183264,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.16154007828685,
+                    "eps.battery_soc": 0.7845227201229504
+                  }
+                },
+                {
+                  "time_s": 8.8,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328195.4951460176,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.16541531833822,
+                    "eps.battery_soc": 0.784556069865217
+                  }
+                },
+                {
+                  "time_s": 9.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328209.46560729516,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.16929600202643,
+                    "eps.battery_soc": 0.7845894664546165
+                  }
+                },
+                {
+                  "time_s": 9.200000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328223.4542021335,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.17318172281487,
+                    "eps.battery_soc": 0.7846229063925548
+                  }
+                },
+                {
+                  "time_s": 9.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328237.45953166473,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.1770720921291,
+                    "eps.battery_soc": 0.784656386335018
+                  }
+                },
+                {
+                  "time_s": 9.600000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328251.48026139993,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.18096673927776,
+                    "eps.battery_soc": 0.7846899030918912
+                  }
+                },
+                {
+                  "time_s": 9.8,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328265.5151205425,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.1848653112618,
+                    "eps.battery_soc": 0.7847234536253167
+                  }
+                },
+                {
+                  "time_s": 10.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328279.56290097005,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.18876747249168,
+                    "eps.battery_soc": 0.7847570350472606
+                  }
+                },
+                {
+                  "time_s": 10.200000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328293.6224559475,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.19267290442987,
+                    "eps.battery_soc": 0.784790644616436
+                  }
+                },
+                {
+                  "time_s": 10.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328307.6926986234,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.19658130517317,
+                    "eps.battery_soc": 0.7848242797347088
+                  }
+                },
+                {
+                  "time_s": 10.600000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328321.77260035666,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.20049238898797,
+                    "eps.battery_soc": 0.7848579379430978
+                  }
+                },
+                {
+                  "time_s": 10.8,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328335.861188913,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.20440588580917,
+                    "eps.battery_soc": 0.7848916169174627
+                  }
+                },
+                {
+                  "time_s": 11.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328349.9575465647,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.20832154071242,
+                    "eps.battery_soc": 0.7849253144639623
+                  }
+                },
+                {
+                  "time_s": 11.200000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328364.0608081238,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.21223911336772,
+                    "eps.battery_soc": 0.7849590285143522
+                  }
+                },
+                {
+                  "time_s": 11.4,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328378.1701589325,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.21615837748125,
+                    "eps.battery_soc": 0.7849927571211812
+                  }
+                },
+                {
+                  "time_s": 11.600000000000001,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328392.28483283235,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.2200791202312,
+                    "eps.battery_soc": 0.7850264984529364
+                  }
+                },
+                {
+                  "time_s": 11.8,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328406.40411012963,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.22400114170267,
+                    "eps.battery_soc": 0.7850602507891796
+                  }
+                },
+                {
+                  "time_s": 12.0,
+                  "phase": "during",
+                  "active": true,
+                  "selected_values": {
+                    "label.fault_active": true,
+                    "event.active_effects": "eps_battery_capacity_loss",
+                    "eps.battery_energy_j": 328420.52731557173,
+                    "eps.battery_capacity_j": 418320.0,
+                    "eps.effective_battery_capacity_wh": 116.2,
+                    "eps.battery_energy_wh": 91.22792425432549,
+                    "eps.battery_soc": 0.7850940125157098
+                  }
+                }
+              ],
+              "evidence_status": "observed",
+              "evidence_summary": {
+                "active_sample_count": 41,
+                "observation_count": 42,
+                "effect_text_seen": true,
+                "timeline_label_seen": true,
+                "physical_observable_fields": [
+                  "eps.battery_capacity_j",
+                  "eps.battery_energy_j",
+                  "eps.battery_energy_wh",
+                  "eps.battery_soc",
+                  "eps.effective_battery_capacity_wh"
+                ],
+                "changed_physical_fields": [
+                  "eps.battery_capacity_j",
+                  "eps.battery_energy_j",
+                  "eps.battery_energy_wh",
+                  "eps.battery_soc",
+                  "eps.effective_battery_capacity_wh"
+                ],
+                "expected_observables": [
+                  "label.fault_active",
+                  "event.active_effects",
+                  "eps.effective_battery_capacity_wh",
+                  "eps.battery_capacity_j",
+                  "eps.battery_energy_wh",
+                  "eps.battery_energy_j",
+                  "eps.battery_soc"
+                ],
+                "evidence_policy": "state_and_observable_effect",
+                "physical_effect_verified": true
+              }
+            }
+          ]
+        },
+        "native_multi_rate_telemetry": {
+          "schema_version": "sat-sim.basilisk-recorder-groups.v1",
+          "recorder_mode": "basilisk_message_recorder_groups",
+          "same_writer_task": true,
+          "post_run_downsampling": false,
+          "groups": [],
+          "streams": []
+        }
+      }
+    }
+  }
+}

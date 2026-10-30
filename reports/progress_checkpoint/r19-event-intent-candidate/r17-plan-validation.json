@@ -1,0 +1,28 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "severity": "error",
+      "code": "EFFECT_TARGET_OWNER_MISMATCH",
+      "path": "$.events.faults[0].target",
+      "message": "Target 'eps' does not match effect owner 'project_whole_parameter_event_controller'.",
+      "details": {
+        "event_id": "add_fault",
+        "capability_id": "whole_spacecraft.unified_native.v1"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "severity": "error",
+      "code": "EFFECT_TARGET_OWNER_MISMATCH",
+      "path": "$.events.faults[0].target",
+      "message": "Target 'eps' does not match effect owner 'project_whole_parameter_event_controller'.",
+      "details": {
+        "event_id": "add_fault",
+        "capability_id": "whole_spacecraft.unified_native.v1"
+      }
+    }
+  ],
+  "warnings": []
+}

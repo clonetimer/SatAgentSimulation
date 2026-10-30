@@ -1,0 +1,233 @@
+{
+  "scope": "Isolated browser and actual native child. No mock API/telemetry. Not a full production or endurance qualification. Prior v1 failed because an expression-style browser wait violated CSP; retained unchanged.",
+  "checks": {
+    "no_duplicate_dom_ids": true,
+    "all_original_static_ids_present": true,
+    "creation_disclosure_matches_selection": true,
+    "diagnostics_initially_closed": true,
+    "telemetry_follows_status": true,
+    "real_native_session_created": true,
+    "form_closes_after_selection": true,
+    "pause_works": true,
+    "command_accepted_by_actual_api": true,
+    "actual_command_executed": false,
+    "root_unchanged": true
+  },
+  "errors": [],
+  "mutations": [
+    {
+      "url": "http://127.0.0.1:61500/interactive/continuous/sessions",
+      "status": 201,
+      "body": "{\"session_id\":\"compact-ui-review-1793367086\",\"initial_configuration\":{\"orbit\":{\"spacecraft_mass_kg\":100,\"spacecraft_inertia_xx_kg_m2\":100,\"spacecraft_inertia_yy_kg_m2\":80,\"spacecraft_inertia_zz_kg_m2\":60,\"orbit_radius_m\":7000000,\"eccentricity\":0.001,\"inclination_deg\":35,\"raan_deg\":0,\"arg_perigee_deg\":0,\"initial_true_anomaly_rad\":0,\"environment_profile\":\"simplified\",\"epoch_utc\":\"2026-01-01T00:00:00Z\"},\"adcs\":{\"magnetometer_mount_yaw_deg\":0,\"magnetometer_mount_pitch_deg\":0,\"magnetometer_mount_roll_deg\":0,\"magnetometer_bias_tesla_x\":0,\"magnetometer_bias_tesla_y\":0,\"magnetometer_bias_tesla_z\":0,\"magnetometer_scale_factor\":1,\"simulation_seed\":0,\"imu_gyro_white_noise_std_rad_s\":0,\"imu_accel_white_noise_std_m_s2\":0,\"imu_gyro_bias_rad_s_x\":0,\"imu_gyro_bias_rad_s_y\":0,\"imu_gyro_bias_rad_s_z\":0,\"imu_accel_bias_m_s2_x\":0,\"imu_accel_bias_m_s2_y\":0,\"imu_accel_bias_m_s2_z\":0,\"imu_gyro_max_rad_s\":0,\"imu_accel_max_m_s2\":0,\"star_tracker_noise_std_arcsec\":0,\"imu_mount_yaw_deg\":0,\"imu_mount_pitch_deg\":0,\"imu_mount_roll_deg\":0,\"imu_position_b_x_m\":0,\"imu_position_b_y_m\":0,\"imu_position_b_z_m\":0,\"star_tracker_mount_yaw_deg\":0,\"star_tracker_mount_pitch_deg\":0,\"star_tracker_mount_roll_deg\":0,\"sun_sensor_normal_b_x\":0,\"sun_sensor_normal_b_y\":0,\"sun_sensor_normal_b_z\":-1,\"sun_sensor_scale_factor\":1,\"sun_sensor_bias_normalized\":0,\"sun_sensor_kelly_factor\":0,\"sun_sensor_min_output\":0,\"sun_sensor_max_output\":1000000,\"sun_sensor_fov_deg\":80,\"initial_pointing_error_deg\":8,\"controller_k\":3.5,\"controller_p\":30,\"rw_configuration\":\"orthogonal_3\",\"rw_geometry_mode\":\"legacy_axis_offset\",\"rw_mount_radius_m\":0,\"rw_friction_mode\":\"disabled\",\"rw_motor_current_limit_a\":10,\"rw_motor_torque_constant_nm_per_a\":0.02,\"rw_max_torque_nm\":0.2,\"rw_max_momentum_nms_0\":50,\"rw_max_momentum_nms_1\":50,\"rw_max_momentum_nms_2\":50,\"rw_initial_speed_rad_s_0\":10.471975511965978,\"rw_initial_speed_rad_s_1\":20.943951023931955,\"rw_initial_speed_rad_s_2\":31.41592653589793},\"eps\":{\"battery_capacity_wh\":160,\"initial_soc\":0.62,\"solar_panel_area_m2\":2.5,\"solar_efficiency\":0.28,\"solar_normal_b_x\":1,\"solar_normal_b_y\":0,\"solar_normal_b_z\":0,\"solar_tracking_enabled\":false,\"solar_tracking_max_slew_rad_s\":0,\"bus_power_w\":18},\"payload\":{\"payload_data_rate_bps\":2500000,\"payload_power_w\":38},\"propulsion\":{\"propulsion_enabled\":false,\"propulsion_thrust_n\":1,\"propulsion_isp_s\":200,\"propulsion_burn_start_s\":30,\"propulsion_burn_on_time_s\":0.5,\"propulsion_initial_propellant_kg\":1,\"propulsion_tank_capacity_kg\":2,\"propulsion_min_burn_soc\":0.3,\"propulsion_power_w\":20,\"propulsion_min_pulse_s\":0.05,\"propulsion_thruster_0_direction_b_x\":1,\"propulsion_thruster_0_direction_b_y\":0,\"propulsion_thruster_0_direction_b_z\":0,\"propulsion_thruster_0_location_b_x_m\":0,\"propulsion_thruster_0_location_b_y_m\":0.5,\"propulsion_thruster_0_location_b_z_m\":0,\"propulsion_thruster_1_direction_b_x\":1,\"propulsion_thruster_1_direction_b_y\":0,\"propulsion_thruster_1_direction_b_z\":0,\"propulsion_thruster_1_location_b_x_m\":0,\"propulsion_thruster_1_location_b_y_m\":-0.5,\"propulsion_thruster_1_location_b_z_m\":0},\"thermal\":{\"thermal_earth_ir_w_m2\":234,\"thermal_earth_albedo\":0.3,\"thermal_panel_front_absorptivity\":0.9,\"thermal_panel_back_absorptivity\":0.35,\"payload_thermal_mass_kg\":3,\"payload_specific_heat_j_kg_k\":600,\"payload_thermal_emissivity\":0.75,\"payload_radiator_area_m2\":0.25,\"battery_heater_power_w\":12,\"battery_heater_setpoint_k\":286,\"initial_payload_temp_k\":292,\"initial_comm_temp_k\":295,\"initial_propulsion_temp_k\":292,\"comm_structure_conductance_w_k\":0.35,\"propulsion_structure_conductance_w_k\":0.45,\"solar_panel_structure_conductance_w_k\":2},\"comm_data\":{\"storage_capacity_bits\":6000000000,\"downlink_rate_bps\":1500000}},\"quantum_s\":0.5,\"rate\":1,\"paced\":true,\"initial_horizon_s\":60}"
+    },
+    {
+      "url": "http://127.0.0.1:61500/interactive/sessions/compact-ui-review-1793367086/control",
+      "status": 200,
+      "body": "{\"action\":\"start\"}"
+    },
+    {
+      "url": "http://127.0.0.1:61500/interactive/sessions/compact-ui-review-1793367086/control",
+      "status": 200,
+      "body": "{\"action\":\"pause\"}"
+    },
+    {
+      "url": "http://127.0.0.1:61500/interactive/sessions/compact-ui-review-1793367086/commands",
+      "status": 202,
+      "body": "{\"command_id\":\"tc-375eb3de-b4ae-4af4-b44a-4c40492a31a2\",\"session_id\":\"compact-ui-review-1793367086\",\"session_revision\":4,\"operation\":\"adcs.target.set\",\"target\":\"subsystem.adcs\",\"parameters\":{\"sigma_rn\":[0.1,0,0]},\"actor_id\":\"browser-operator\",\"actor_role\":\"operator\",\"execute_at_sim_time_s\":2.5}"
+    },
+    {
+      "url": "http://127.0.0.1:61500/interactive/sessions/compact-ui-review-1793367086/control",
+      "status": 200,
+      "body": "{\"action\":\"step\"}"
+    }
+  ],
+  "observations": [
+    {
+      "label": "continuous-new-desktop",
+      "width": 1366,
+      "rootWidth": 1366,
+      "renderedText": 1148,
+      "chart": {
+        "x": 567,
+        "y": 637.375,
+        "width": 472,
+        "height": 280
+      }
+    }
+  ],
+  "session_id": "compact-ui-review-1793367086",
+  "started_utc": "2026-10-30T13:31:26.369527+00:00",
+  "application": "8f9918570a3cea9cb5e8c60a29f6f08b3ccf489ac1c1f28927c36c0744d3b14d",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "root_application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "original_static_id_count": 474,
+  "create_response": {
+    "schema_version": "interactive.v1",
+    "session_id": "compact-ui-review-1793367086",
+    "capability_id": "whole_spacecraft.unified_native.v1",
+    "state": "READY",
+    "revision": 2,
+    "sim_time_s": 0.0,
+    "rate": 1.0,
+    "paced": true,
+    "worker_alive": true,
+    "archive_status": "NOT_READY",
+    "archive_error": null,
+    "terminal_error": null,
+    "pace_observation_count": 0,
+    "last_drift_s": 0.0,
+    "max_abs_drift_s": 0.0,
+    "timing_status": "GOOD",
+    "updated_at": "2026-10-30T13:31:34.908707Z"
+  },
+  "paused_snapshot": {
+    "schema_version": "sat-continuous-status.v1",
+    "session": {
+      "schema_version": "interactive.v1",
+      "session_id": "compact-ui-review-1793367086",
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "state": "PAUSED",
+      "revision": 4,
+      "sim_time_s": 2.0,
+      "rate": 1.0,
+      "paced": true,
+      "worker_alive": true,
+      "archive_status": "NOT_READY",
+      "archive_error": null,
+      "terminal_error": null,
+      "pace_observation_count": 4,
+      "last_drift_s": 0.00021979992743581533,
+      "max_abs_drift_s": 0.0005543999141082168,
+      "timing_status": "GOOD",
+      "updated_at": "2026-10-30T13:31:37.115535Z"
+    },
+    "telemetry_streams": [
+      "whole.continuous"
+    ],
+    "runtime_mode": "SUPERVISED_NATIVE_CHILD",
+    "native_child_pid": 73664,
+    "native_cpu_scheduling": {
+      "schema_version": "sat-native-cpu-scheduling.v1",
+      "pid": 73664,
+      "requested_policy": "prefer_performance",
+      "mode": "PERFORMANCE_CORES",
+      "applied": true,
+      "scope": "This owned worker only; no global power or process-priority changes.",
+      "allowed_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "selected_affinity": [
+        0,
+        2,
+        5,
+        6,
+        9,
+        10
+      ],
+      "reason": "HIGHEST_PERFORMANCE_CLASS_WITHIN_ALLOWED_AFFINITY"
+    },
+    "parent_death_fence": {
+      "supported": true,
+      "kind": "WINDOWS_JOB_KILL_ON_CLOSE",
+      "parent_pid": 36248
+    },
+    "last_reap": null,
+    "writer_epoch": 1,
+    "native_resume_supported": false,
+    "automatic_tc_replay_allowed": false,
+    "activate_native_queue_allowed": false
+  },
+  "queued_ack": {
+    "schema_version": "interactive.v1",
+    "command_id": "tc-375eb3de-b4ae-4af4-b44a-4c40492a31a2",
+    "session_id": "compact-ui-review-1793367086",
+    "state": "QUEUED",
+    "reason_code": "QUEUED",
+    "detail": "",
+    "sim_time_s": null,
+    "sequence": 2,
+    "timestamp": "2026-10-30T13:31:37.234230Z"
+  },
+  "actual_acks": {
+    "acks": [
+      {
+        "schema_version": "interactive.v1",
+        "command_id": "tc-375eb3de-b4ae-4af4-b44a-4c40492a31a2",
+        "session_id": "compact-ui-review-1793367086",
+        "state": "RECEIVED",
+        "reason_code": "OK",
+        "detail": "",
+        "sim_time_s": null,
+        "sequence": 0,
+        "timestamp": "2026-10-30T13:31:37.213661Z"
+      },
+      {
+        "schema_version": "interactive.v1",
+        "command_id": "tc-375eb3de-b4ae-4af4-b44a-4c40492a31a2",
+        "session_id": "compact-ui-review-1793367086",
+        "state": "VALIDATED",
+        "reason_code": "OK",
+        "detail": "",
+        "sim_time_s": null,
+        "sequence": 1,
+        "timestamp": "2026-10-30T13:31:37.217338Z"
+      },
+      {
+        "schema_version": "interactive.v1",
+        "command_id": "tc-375eb3de-b4ae-4af4-b44a-4c40492a31a2",
+        "session_id": "compact-ui-review-1793367086",
+        "state": "QUEUED",
+        "reason_code": "QUEUED",
+        "detail": "",
+        "sim_time_s": null,
+        "sequence": 2,
+        "timestamp": "2026-10-30T13:31:37.234230Z"
+      },
+      {
+        "schema_version": "interactive.v1",
+        "command_id": "tc-375eb3de-b4ae-4af4-b44a-4c40492a31a2",
+        "session_id": "compact-ui-review-1793367086",
+        "state": "EXECUTING",
+        "reason_code": "OK",
+        "detail": "",
+        "sim_time_s": 2.0,
+        "sequence": 3,
+        "timestamp": "2026-10-30T13:31:37.330778Z"
+      },
+      {
+        "schema_version": "interactive.v1",
+        "command_id": "tc-375eb3de-b4ae-4af4-b44a-4c40492a31a2",
+        "session_id": "compact-ui-review-1793367086",
+        "state": "ACKED",
+        "reason_code": "OK",
+        "detail": "",
+        "sim_time_s": 2.5,
+        "sequence": 4,
+        "timestamp": "2026-10-30T13:31:37.388751Z"
+      }
+    ]
+  },
+  "status": "FAIL",
+  "exception": "Traceback (most recent call last):\n  File \"E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\review_compact_realtime_ui.py\", line 109, in <module>\n    check('actual_command_executed', 'EXECUTED' in json.dumps(acks))\n  File \"E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\review_compact_realtime_ui.py\", line 36, in check\n    assert value, name\n           ^^^^^\nAssertionError: actual_command_executed\n",
+  "root_application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "ended_utc": "2026-10-30T13:31:44.651548+00:00"
+}

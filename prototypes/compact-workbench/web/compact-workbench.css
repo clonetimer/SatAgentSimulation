@@ -78,12 +78,56 @@ details.single-run-guide .single-run-heading { margin-block: 8px; }
 .compact-chart-selection > summary, .compact-chart-options > summary { font-size: 12px; min-height: 32px; padding-block: 6px; }
 .run-panel { border-radius: 8px; }
 .chart-drag-help { font-size: 12px; }
+.compact-workspace-disclosure { min-width: 0; border-bottom: 1px solid var(--line); }
+.compact-workspace-disclosure > summary { padding: 12px 14px; }
+.compact-workspace-disclosure > section { border: 0; border-radius: 0; }
+:is(#compactInteractiveCreate, #compactContinuousCreate, #compactInterruptedWorkspaces) > section > :is(h2, .section-heading) { display: none; }
+.interactive-header .eyebrow, .continuous-hero .eyebrow { display: none; }
+.interactive-header h1, .continuous-hero h1 { font-size: 19px; margin: 0; }
+.interactive-header-status { flex-shrink: 0; }
+.interactive-header-status .status-chip { white-space: nowrap; }
+.continuous-hero { padding: 16px 20px; }
+.interactive-header p, .continuous-hero p { font-size: 12px; max-width: 64ch; }
+.interactive-layout { grid-template-columns: 220px minmax(0, 1fr) 270px; }
+.interactive-controls { flex-wrap: wrap; }
+.interactive-controls .icon-button { width: auto; flex: 0 0 auto; padding: 8px 10px; font-size: 12px; }
+.interactive-status-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.interactive-status-strip span, .interactive-section label, .interactive-command-field { font-size: 12px; }
+.interactive-scope-hint, .interactive-command-help { font-size: 12px; }
+.interactive-scope-hint::before { display: none; }
+.interactive-latest-values { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.interactive-value span, .interactive-session-item strong, .interactive-timeline-item strong { font-size: 12px; }
+.interactive-value strong { font-size: 13px; }
+.interactive-session-item span, .interactive-timeline-item span { font-size: 11px; }
+.continuous-card { box-shadow: none; border-radius: 6px; }
+.continuous-sidebar { gap: 8px; }
+.continuous-sidebar .continuous-card { border: 0; background: transparent; padding: 10px 0; }
+.continuous-sidebar .compact-workspace-disclosure > summary { padding-inline: 0; }
+.continuous-card form label, .continuous-signal, .continuous-muted { font-size: 12px; }
+.continuous-main { gap: 10px; }
+.compact-runtime-diagnostics { display: grid; gap: 10px; padding-bottom: 12px; }
+.compact-runtime-diagnostics .continuous-card { border: 0; background: transparent; }
+.continuous-metrics > div { border: 0; background: transparent; padding: 7px 0; }
+.continuous-metrics span { font-size: 12px; }
+.compact-live-status .continuous-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.continuous-chart { height: 280px; }
+@media (max-width: 1280px) {
+  .interactive-layout { grid-template-columns: 210px minmax(0, 1fr); }
+}
 @media (max-width: 1100px) {
   .editor-toolbar { flex-wrap: wrap; }
   .creator-primary-actions { width: 100%; margin-top: 0; }
   #creatorView .editor-toolbar { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
+  .interactive-layout { display: flex; flex-direction: column; }
+  .compact-live-status .continuous-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .interactive-status-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .interactive-status-strip > div { padding: 10px; }
+  .interactive-header, .continuous-hero { padding: 14px; }
+  .interactive-header p, .continuous-hero p { line-height: 1.5; }
+  .interactive-controls .icon-button { min-height: 40px; }
+  .interactive-controls .danger-icon { margin-left: 0; }
   .editor-toolbar { padding: 12px; }
   .editor-toolbar h2 { font-size: 16px; }
   #creatorView .editor-toolbar .creator-primary-actions { display: grid; grid-template-columns: 1fr 1fr auto; align-items: start; margin-top: 10px; }

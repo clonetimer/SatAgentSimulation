@@ -1,0 +1,110 @@
+{
+  "status": "FAILED_NO_SUBSTITUTION",
+  "scope": "Two new natural-language engineering cases, not arbitrary-prompt accuracy. No event JSON supplied; no label or parameter substitution; wrong cases are not executed.",
+  "started_at_utc": "2026-10-30T12:28:37.355631+00:00",
+  "application": "6e7b6a1cc00ad1f307a99b88d78f2e5c648e9e15ab4e7032347fb570b9c4a01e",
+  "source_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\event-intent-r17-candidate",
+  "root_application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "process": {
+    "pid": 29968,
+    "creation": 1793363312.7226524,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "source_sha256": "83cb4642d985fc14b447c4c2f0ec66404407513fb915288797f7259a18daa75d",
+  "requests_sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+  "model_health": {
+    "ok": true,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "source": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+    }
+  },
+  "measurement_context": "Isolated scoped-negation, single-fault decoding, event-preservation, unit-contract and refinement-prompt candidate with the same live model service and original native80520. Output-token budget2048 (prior runs4096), same frozen user texts and unchanged thresholds; not a same-condition accuracy comparison. No exclusive performance qualification.",
+  "cases": [
+    {
+      "id": "create17",
+      "status": "FAILED",
+      "started_at_utc": "2026-10-30T12:28:37.359038+00:00",
+      "checks": {
+        "actual_model_verified": true,
+        "valid_compiled": false
+      },
+      "backend_identity": {
+        "backend": "openai_compatible",
+        "backend_class": "actual_model_service",
+        "model_backend_requested": true,
+        "actual_model_used": true,
+        "actual_model_execution_verified": true,
+        "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "base_url": "http://127.0.0.1:8031/v1",
+        "claim": "model_backed_generation_verified",
+        "invocation_evidence": {
+          "schema_version": "sat-sim.model-invocation-evidence.v1",
+          "verified": true,
+          "backend": "openai_compatible",
+          "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+          "request_id": "chatcmpl-83cf6b2f11b74059a00e63c1f55d3b4d",
+          "provider_response_id": "chatcmpl-83cf6b2f11b74059a00e63c1f55d3b4d",
+          "prompt_sha256": "cb5f0327c046b81b51b5ad3c1b79f403f3aab847f245b1ec9fbd4f51939d454a",
+          "response_sha256": "18153528af23c4bbb74ffd8046d9e949e38116d8ebe8f14f2b15fa4990ff8d8d",
+          "structured_output_sha256": "b0418e7a1ea64bba6ee9ea84f95a54da5f84c28ff4f729788a9e87068ad96920",
+          "structured_output_kind": "json",
+          "usage": {
+            "prompt_tokens": 7759,
+            "completion_tokens": 1646
+          },
+          "structured_generation": {
+            "enabled": true,
+            "method": "lm-format-enforcer",
+            "schema_sha256": "149f2e5f4ebf906f9159edfaabe1a8d68abec09a304c299021c811aa5eb4c67c",
+            "answer_substitution": false,
+            "semantic_validation_required": true,
+            "numeric_bounds_at_decode": true,
+            "empty_arrays_at_decode": true,
+            "invalid_numeric_mantissa_digit_budget": 17,
+            "canonical_exponent_range": [
+              -324,
+              308
+            ]
+          },
+          "latency_ms": 274958.43,
+          "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+          "error": null
+        }
+      },
+      "validation": {
+        "ok": true,
+        "error_count": 0,
+        "warning_count": 0,
+        "errors": [],
+        "warnings": []
+      }
+    }
+  ],
+  "error": {
+    "type": "AssertionError",
+    "message": "valid_compiled"
+  },
+  "application_after": "6e7b6a1cc00ad1f307a99b88d78f2e5c648e9e15ab4e7032347fb570b9c4a01e",
+  "root_application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "root_application_unchanged": true,
+  "source_unchanged": true,
+  "requests_unchanged": true,
+  "finished_at_utc": "2026-10-30T12:33:15.651197+00:00"
+}

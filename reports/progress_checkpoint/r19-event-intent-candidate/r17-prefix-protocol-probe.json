@@ -1,0 +1,78 @@
+{
+  "status": "PASS",
+  "scope": "CPU decoder protocol fixtures only; the archived model answer is never replaced or executed. No semantic model accuracy or production qualification.",
+  "cases": [
+    {
+      "case": "archived_actual_extra_and_nominal",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 483,
+      "peak_branches": 14
+    },
+    {
+      "case": "protocol_fixture_single_fault",
+      "expected": true,
+      "accepted": true,
+      "rejected_at": null,
+      "peak_branches": 14
+    },
+    {
+      "case": "protocol_fixture_extra_fault",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4240,
+      "peak_branches": 14
+    },
+    {
+      "case": "protocol_fixture_split_carriers",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4240,
+      "peak_branches": 14
+    },
+    {
+      "case": "protocol_fixture_missing_fault",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4088,
+      "peak_branches": 14
+    },
+    {
+      "case": "protocol_fixture_different_values",
+      "expected": true,
+      "accepted": true,
+      "rejected_at": null,
+      "peak_branches": 14
+    },
+    {
+      "case": "protocol_fixture_canonical_wrapped",
+      "expected": true,
+      "accepted": true,
+      "rejected_at": null,
+      "peak_branches": 7
+    },
+    {
+      "case": "archived_r16_conflicting_quantity_aliases",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4184,
+      "peak_branches": 14
+    }
+  ],
+  "elapsed_s": 4.210729900049046,
+  "schema_bytes": 280912,
+  "process": {
+    "pid": 77068,
+    "creation": 1793363089.8128302,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  }
+}

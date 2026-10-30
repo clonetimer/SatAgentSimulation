@@ -1,0 +1,85 @@
+{
+  "status": "PASS",
+  "scope": "CPU decoder protocol fixtures only; the archived model answer is never replaced or executed. No semantic model accuracy or production qualification.",
+  "cases": [
+    {
+      "case": "archived_actual_r17_wrong_target",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4051,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_public_target",
+      "expected": true,
+      "accepted": true,
+      "rejected_at": null,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_extra_fault",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4180,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_split_carriers",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4205,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_missing_fault",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4017,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_different_values",
+      "expected": true,
+      "accepted": true,
+      "rejected_at": null,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_canonical_wrapped",
+      "expected": true,
+      "accepted": true,
+      "rejected_at": null,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_conflicting_aliases",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4182,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_nonpreferred_carrier",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4017,
+      "peak_branches": 7
+    }
+  ],
+  "elapsed_s": 2.8054337999783456,
+  "schema_bytes": 208987,
+  "process": {
+    "pid": 71992,
+    "creation": 1793364735.1303675,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  }
+}

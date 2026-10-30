@@ -1,0 +1,29 @@
+{
+  "providers": [
+    {
+      "provider_id": "local-modelscope",
+      "label": "ModelScope actual evaluation",
+      "backend": "openai_compatible",
+      "location": "local",
+      "tier": "L2",
+      "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+      "base_url": "http://127.0.0.1:8031/v1",
+      "api_key_env": null,
+      "command": null,
+      "structured_output": "json_schema",
+      "timeout_s": 300,
+      "temperature": 0.0,
+      "max_output_tokens": 2048,
+      "priority": 100,
+      "enabled": true,
+      "source": "bounded_generation_evaluation",
+      "description": "",
+      "capabilities": [
+        "taskspec_generation"
+      ],
+      "api_key_configured": false,
+      "configured": true,
+      "secret_values_exposed": false
+    }
+  ]
+}

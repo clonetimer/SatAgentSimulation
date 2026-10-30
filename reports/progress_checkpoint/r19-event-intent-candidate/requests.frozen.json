@@ -1,0 +1,12 @@
+[
+  {
+    "id": "create17",
+    "loss": 0.17,
+    "text": "使用 whole_spacecraft.unified_native.v1 创建通用近地小卫星原生整星仿真脚本，Basilisk后端。总时长12秒，步长0.2秒，记录周期0.2秒。environment_profile=spice_wmm，epoch_utc=2026-01-01T00:00:00Z，battery_capacity_wh=140，initial_soc=0.65，spacecraft_mass_kg=100，solar_panel_structure_conductance_w_k=3。在第4秒使电池容量损失17%，只添加这一个故障，其余无故障。输出 eps.effective_battery_capacity_wh、eps.battery_capacity_ratio、eps.battery_soc。"
+  },
+  {
+    "id": "refine42",
+    "loss": 0.42,
+    "text": "把电池容量损失从17%改为42%。保留原有第4秒故障时刻、140 Wh标称容量、12秒时长、0.2秒步长和记录周期、3 W/K导热系数，以及其他参数和输出；不要添加其他事件。"
+  }
+]

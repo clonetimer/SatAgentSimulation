@@ -1,0 +1,63 @@
+{
+  "scope": "One-token inference barrier: LocalModelEngine serializes generate with its lock. Health alone does not prove an empty generation queue. This probe is not accuracy or timing qualification.",
+  "status": "BARRIER_RETURNED",
+  "started_at_utc": "2026-10-30T12:25:10.229194+00:00",
+  "request": {
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Reply with one token."
+      }
+    ],
+    "max_tokens": 1,
+    "temperature": 0,
+    "stream": false
+  },
+  "response": {
+    "id": "chatcmpl-6268432dc8484752abc2229c337cbf23",
+    "object": "chat.completion",
+    "created": 1793363301,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "0"
+        },
+        "finish_reason": "length"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 34,
+      "completion_tokens": 1
+    },
+    "sat_sim": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b",
+      "elapsed_s": 0.6578496999572963,
+      "structured_generation": {
+        "enabled": false,
+        "method": "unconstrained",
+        "schema_sha256": null,
+        "answer_substitution": false,
+        "semantic_validation_required": true,
+        "numeric_bounds_at_decode": false,
+        "empty_arrays_at_decode": false,
+        "invalid_numeric_mantissa_digit_budget": null,
+        "canonical_exponent_range": null
+      },
+      "output_sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+      "template_fallback_used": false
+    }
+  },
+  "elapsed_s": 191.58841149997897,
+  "finished_at_utc": "2026-10-30T12:28:21.819122+00:00"
+}

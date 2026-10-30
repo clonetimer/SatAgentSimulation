@@ -1,0 +1,259 @@
+{
+  "scope": "Isolated preview; not production qualification. Own new run/artifact directories.",
+  "workspace": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\compact-ui-preview-k0l0_yof",
+  "url": "http://127.0.0.1:62918",
+  "base_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "preview_application": "0ad9cfe95d0c77b8002eda062d87033dea2a49b2de64783a7f1ed3bf46f00091",
+  "prototype_base_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "native_runtime": "supervised",
+  "dependency_dir": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\compact-ui-websocket-deps",
+  "dependency_files": [
+    {
+      "path": ".lock",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "bin\\websockets.exe",
+      "sha256": "44662b00b03711b8a19eee470711aae5e546b5f42dcf73dea5fe433d83dc7d88"
+    },
+    {
+      "path": "websockets\\__init__.py",
+      "sha256": "8276756bcaa1ad65550a569fee51aa91255000f3e6f9c499de4df9db97e8cda6"
+    },
+    {
+      "path": "websockets\\__main__.py",
+      "sha256": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3"
+    },
+    {
+      "path": "websockets\\asyncio\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "websockets\\asyncio\\async_timeout.py",
+      "sha256": "8cc28c41c54a5ad9f4f67ea5a9e7ea769498a0c4653f8124eb446327a07a11ca"
+    },
+    {
+      "path": "websockets\\asyncio\\client.py",
+      "sha256": "bb97a4f193d6b874b5fd9deba19d5fb96dba8867816990488eb5da724e63d8b3"
+    },
+    {
+      "path": "websockets\\asyncio\\compatibility.py",
+      "sha256": "95de65a5b06027c606022ded73584c888c6e2de4160e0ea928360155b490325e"
+    },
+    {
+      "path": "websockets\\asyncio\\connection.py",
+      "sha256": "a456c2ce94c7cd583002c102ec84a38d88e62f972ed2fff60c25744d31e6f75d"
+    },
+    {
+      "path": "websockets\\asyncio\\messages.py",
+      "sha256": "6f33e445aa214932ca9a366a02b88820c4dd201e0314ce06df2fb535f0c0bb79"
+    },
+    {
+      "path": "websockets\\asyncio\\router.py",
+      "sha256": "5b0ffa2196c2f024fff84bd58038e42605fe41265135fbb21b302525dd2c686b"
+    },
+    {
+      "path": "websockets\\asyncio\\server.py",
+      "sha256": "01407fdc35a65173c45201b34a9886ef4b675b14a94a7df4eba5eccf010e24ba"
+    },
+    {
+      "path": "websockets\\auth.py",
+      "sha256": "359eb4ce8135d309256e8047ce3e16a1ff69895074f633b56c39ff28737c65c1"
+    },
+    {
+      "path": "websockets\\cli.py",
+      "sha256": "74452b5cdea33aad3e1d96ddba3a6f1074d8d96b004d25f617a733196342fb9f"
+    },
+    {
+      "path": "websockets\\client.py",
+      "sha256": "502bf6ef53e12edb05d4d59cb7a9417b46d49903d4a22daadf9e6e75737e4186"
+    },
+    {
+      "path": "websockets\\connection.py",
+      "sha256": "b88462e63792df35485aaf037040c93e8bacad835322d3ded22a0ac41af684eb"
+    },
+    {
+      "path": "websockets\\datastructures.py",
+      "sha256": "cce81f27d0adb78300e1a5b1d4c243edd1c48cc8b0bb44f08f5da7144f2d43e8"
+    },
+    {
+      "path": "websockets\\exceptions.py",
+      "sha256": "5de60348576a76a23a6d7eba8963a15614994437c8e992b031671c156a600a48"
+    },
+    {
+      "path": "websockets\\extensions\\__init__.py",
+      "sha256": "1dd41a4213959024794495512971b95e66fa70ca4084b68a8118a4611cceeb81"
+    },
+    {
+      "path": "websockets\\extensions\\base.py",
+      "sha256": "25ed553011eaeff82aab989db02a8c3c3f3b088ea6ef3a434918ff9422f7ed17"
+    },
+    {
+      "path": "websockets\\extensions\\permessage_deflate.py",
+      "sha256": "9cc01f6dfa207a648cc155962b40823b9085d31722cd2cb28922653d24374a0b"
+    },
+    {
+      "path": "websockets\\frames.py",
+      "sha256": "2ae9a31fbd4ea175620e69389dda73716504087b2ac947c9bc2cf3927b7d34de"
+    },
+    {
+      "path": "websockets\\headers.py",
+      "sha256": "d9715b504d01cc421fb41476292db281e491218ccf07e6beab7e637dd719d4c0"
+    },
+    {
+      "path": "websockets\\http.py",
+      "sha256": "a5099dcd18982bf4ae8b0bd722b3ffaec259023f2d188a25efa7bf4efb0f52b8"
+    },
+    {
+      "path": "websockets\\http11.py",
+      "sha256": "afc15a76faa15ac533e747f3d3f331feab928b2bb62718a50a6e17f1f5e6c135"
+    },
+    {
+      "path": "websockets\\imports.py",
+      "sha256": "a05756931ca98ff762baa9de46e0393961172cc43aa40b63fab2aa154e8f99d8"
+    },
+    {
+      "path": "websockets\\legacy\\__init__.py",
+      "sha256": "552e6644fee84b791709c5d7ec5def3d42e65cf162e1573229b9eff0b935f0c6"
+    },
+    {
+      "path": "websockets\\legacy\\auth.py",
+      "sha256": "c082c8244dbc62c40a99071674f33399d33fd12c3aef876a528d971aac94bc7e"
+    },
+    {
+      "path": "websockets\\legacy\\client.py",
+      "sha256": "144bdb9e64d5f254b9a07bea7288ac81ba1c9e6b9d12f43c469bae8bce863818"
+    },
+    {
+      "path": "websockets\\legacy\\exceptions.py",
+      "sha256": "2abbd4108df50d466cde097a33e43e760b129ec317cd4fdb0d1b8753a01c29b7"
+    },
+    {
+      "path": "websockets\\legacy\\framing.py",
+      "sha256": "936ca464d87692e9ac102d5c1e4f575486a1f48622a11a1bce24e948bc8346fd"
+    },
+    {
+      "path": "websockets\\legacy\\handshake.py",
+      "sha256": "091471909f7a4c8816ba83082f48a89788e9e17ee594c03c6ee5f881fa344b01"
+    },
+    {
+      "path": "websockets\\legacy\\http.py",
+      "sha256": "38fbbf5258c5247ef89f193957e8e738e92acdd5dca49e8cd0bca7229b99ef8d"
+    },
+    {
+      "path": "websockets\\legacy\\protocol.py",
+      "sha256": "60dd5074660ad539beb7dd366e8e4f234f96bcc2a494e794a92768c35146b1b4"
+    },
+    {
+      "path": "websockets\\legacy\\server.py",
+      "sha256": "8fa43d7b9dd623093992ed3103df1a6d60daf12768771008a69fdb9f7c938c1e"
+    },
+    {
+      "path": "websockets\\protocol.py",
+      "sha256": "3181bb4e7eeb151c6ab8b1aa450b06376052f6613b2864f27246cba32ce7b1f9"
+    },
+    {
+      "path": "websockets\\py.typed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "websockets\\server.py",
+      "sha256": "f7986d2d546378fe38e56b275a4170d88ce55fac05e98eb4f64a358159b6fb1a"
+    },
+    {
+      "path": "websockets\\speedups.c",
+      "sha256": "8fda7fa34691f14d5db7b5570054ce6736251a389294756b4ee8e9133a8fd7db"
+    },
+    {
+      "path": "websockets\\speedups.cp312-win_amd64.pyd",
+      "sha256": "aa0e88b5f3fff571490e29a8a8c617ee117b63d01c24b0c8634dca5e5d38826f"
+    },
+    {
+      "path": "websockets\\speedups.pyi",
+      "sha256": "b582227e81f8429a278fa1d3f2b864d8c40e56b7c1156f13e5261c6b179f39d0"
+    },
+    {
+      "path": "websockets\\streams.py",
+      "sha256": "e83f98a2c55b4e86d4c4562db12e6ba79dfe220d021fb1007ada0e3fd5f20f4f"
+    },
+    {
+      "path": "websockets\\sync\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "websockets\\sync\\client.py",
+      "sha256": "3637a552c9867cfe9de2de1e9bcb4d7faeedccb17239524f5ef03357f72ec232"
+    },
+    {
+      "path": "websockets\\sync\\connection.py",
+      "sha256": "6a863805f106d7786f5811564851f9d2263f12bd9144853a00580a3af244e050"
+    },
+    {
+      "path": "websockets\\sync\\messages.py",
+      "sha256": "5ba63e0591e0cae43a854443b19da2b5ec22e6500c27d95ded7d300255766649"
+    },
+    {
+      "path": "websockets\\sync\\router.py",
+      "sha256": "13a8758af2d433d0ec9074019fb2d665086f577c9b62a705204a6c438525943f"
+    },
+    {
+      "path": "websockets\\sync\\server.py",
+      "sha256": "977bbe8f12347444f0ebdfd899a474b00db507ad2510f41356003aa08059f06c"
+    },
+    {
+      "path": "websockets\\sync\\utils.py",
+      "sha256": "260415c4efcd7105d977c9ba843797a5243fb8de86605f2ef572c767b9acbf79"
+    },
+    {
+      "path": "websockets\\typing.py",
+      "sha256": "70b3a35a7d633e0c50b9c3915d94ccc522d964df9f8c3d2a0dc8da5638a8665e"
+    },
+    {
+      "path": "websockets\\uri.py",
+      "sha256": "fd9856833b8bfde906586bbc405a1d7bfd2b80b376b68cfdbb530fbb9a290daf"
+    },
+    {
+      "path": "websockets\\utils.py",
+      "sha256": "cf7952172c299c4e1a89f889c1854f4e073030b3430246036dd654aa44b084fa"
+    },
+    {
+      "path": "websockets\\version.py",
+      "sha256": "9f7aa07af0774a1e9f0fd172defbfc4fa855c62563e95e8800fb5fc6a37ff384"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\entry_points.txt",
+      "sha256": "0e7867e1d9b912c23864c02c1e574617a0b005766b1979d1edc9cadbe5d1ef36"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\INSTALLER",
+      "sha256": "e6184ce10e266134fdcfa401e8f1a95005bcd4f18d16b62b757323e2833fe9a9"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\LICENSE",
+      "sha256": "0f44514998aca209d3482d10204a8adf2aa4296ff157a36a5c0922f2280632d3"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\METADATA",
+      "sha256": "841a67852caccd5d2772768f5fa9db1e9d2202e13bc7655d7e31cbcd09f3d789"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\RECORD",
+      "sha256": "143c1cfecbb58f9db8f0005f14c7e248797966cd76da214aad9027001b3ea202"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\REQUESTED",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\top_level.txt",
+      "sha256": "08ca5d2a49712acbd980283296dc5458e1e26d95d9d6e60856971af71b10f079"
+    },
+    {
+      "path": "websockets-15.0.1.dist-info\\WHEEL",
+      "sha256": "18d48c2cab08e0970e0c2f22214c1f082da63f96a3de91e3f0236a9551fe9802"
+    }
+  ],
+  "server_pid": 84148,
+  "initial_preview_application": "a28b102be1d1395a9f2649fca1214d294c6a725a2460851df8bf252ef9731765",
+  "latest_ui_observed_utc": "2026-10-30T13:48:44.435928+00:00"
+}

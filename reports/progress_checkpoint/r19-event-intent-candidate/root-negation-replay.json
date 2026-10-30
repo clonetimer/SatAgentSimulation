@@ -1,0 +1,36 @@
+{
+  "scope": "Sanitizer causality replay only; no generated script or model performance claim.",
+  "source": "E:\\tmp\\SatAgentSimulation",
+  "source_facade_sha256": "8456254f0658081fe159e12aa81a674781b9a01d57c8864db27b1304a894763e",
+  "request_file_sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+  "raw_call_file_sha256": "01146b85205b808521aa5d4038154f675d71437ec5f39fc4dbec64421f20927b",
+  "intent": "explicit_negative",
+  "cases": [
+    {
+      "case": "actual_archived_answer",
+      "input_mode": "nominal",
+      "before_fault_count": 2,
+      "after_fault_count": 0,
+      "input_unmodified": true,
+      "repairs": [
+        {
+          "path": "modifiers.faults",
+          "action": "removed_by_explicit_negative_intent"
+        }
+      ]
+    },
+    {
+      "case": "protocol_fixture_same_events_fault_mode",
+      "input_mode": "fault",
+      "before_fault_count": 2,
+      "after_fault_count": 0,
+      "input_unmodified": true,
+      "repairs": [
+        {
+          "path": "modifiers.faults",
+          "action": "removed_by_explicit_negative_intent"
+        }
+      ]
+    }
+  ]
+}

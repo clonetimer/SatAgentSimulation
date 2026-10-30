@@ -1,0 +1,27 @@
+{
+  "scope": "Request-form coverage of the actual v5 train/validation labels; no model inference, dataset edits, accuracy relabeling or proof that any one coverage gap caused a failure.",
+  "splits": {
+    "train": {
+      "sha256": "d526a9ab35113bec55f333051a3074b969e10b239a3c219a66639cd5b84054f7",
+      "counts": {
+        "records": 588,
+        "eventful_labels": 96,
+        "eventful_with_explicit_json_marker": 96,
+        "eventful_without_explicit_json_marker": 0,
+        "requests_with_percent_literals": 0
+      },
+      "eventful_without_marker_records": []
+    },
+    "validation": {
+      "sha256": "570894f6e9ae6afb7055e3ad9cb43568c4f54eef1f482645a467480d545b5673",
+      "counts": {
+        "records": 69,
+        "eventful_labels": 36,
+        "eventful_with_explicit_json_marker": 36,
+        "eventful_without_explicit_json_marker": 0,
+        "requests_with_percent_literals": 0
+      },
+      "eventful_without_marker_records": []
+    }
+  }
+}

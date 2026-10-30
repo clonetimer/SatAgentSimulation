@@ -1,0 +1,36 @@
+{
+  "scope": "Isolated browser and actual native child. No mock API/telemetry. Not a full production or endurance qualification. Prior v1 failed because an expression-style browser wait violated CSP; retained unchanged.",
+  "checks": {
+    "no_duplicate_dom_ids": true,
+    "all_original_static_ids_present": true,
+    "new_session_form_initially_open": false,
+    "root_unchanged": true
+  },
+  "errors": [],
+  "mutations": [],
+  "observations": [
+    {
+      "label": "continuous-new-desktop",
+      "width": 1366,
+      "rootWidth": 1366,
+      "renderedText": 1107,
+      "chart": {
+        "x": 567,
+        "y": 637.375,
+        "width": 472,
+        "height": 280
+      }
+    }
+  ],
+  "session_id": "compact-ui-review-1793366971",
+  "started_utc": "2026-10-30T13:29:31.487168+00:00",
+  "application": "3e45e1de4936f122462652a1c08df01120dcc93f5dd62094979167a7de6d351c",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "root_application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "original_static_id_count": 474,
+  "status": "FAIL",
+  "exception": "Traceback (most recent call last):\n  File \"E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\review_compact_realtime_ui.py\", line 75, in <module>\n    check('new_session_form_initially_open', page.locator('#compactContinuousCreate').evaluate('(el)=>el.open'))\n  File \"E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\review_compact_realtime_ui.py\", line 36, in check\n    assert value, name\n           ^^^^^\nAssertionError: new_session_form_initially_open\n",
+  "cleanup_observation": "HTTP Error 404: Not Found",
+  "root_application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "ended_utc": "2026-10-30T13:29:37.187181+00:00"
+}

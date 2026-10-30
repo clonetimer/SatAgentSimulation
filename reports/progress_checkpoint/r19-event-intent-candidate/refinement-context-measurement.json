@@ -1,0 +1,23 @@
+{
+  "scope": "Tokenizer-only comparison on the same archived r13 canonical task. Not a model generation, current r16 execution or accuracy result.",
+  "base_sha256": "441208a27f5c933400fd77efe5cf5882da34f8e45ff2cf6109265e77b54dbf12",
+  "physics_fields_identical": true,
+  "counts": {
+    "before": {
+      "base_chars": 23851,
+      "prompt_tokens": 14378,
+      "requested_output_tokens": 4096,
+      "context_limit": 16384,
+      "fits_full_requested_budget": false,
+      "prompt_sha256": "fb739a39bd7d810ffbcbe6c31af44342000ab4049577794882fea7367ca29a75"
+    },
+    "after": {
+      "base_chars": 9022,
+      "prompt_tokens": 11028,
+      "requested_output_tokens": 4096,
+      "context_limit": 16384,
+      "fits_full_requested_budget": true,
+      "prompt_sha256": "4fb0c7d6007fa0b3715a5be50086a3af2366100536fcb98a998170741afa0e87"
+    }
+  }
+}

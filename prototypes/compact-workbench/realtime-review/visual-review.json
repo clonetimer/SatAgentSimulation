@@ -1,0 +1,58 @@
+{
+  "status": "ACTUALLY_VIEWED",
+  "scope": "Root assistant viewed all11 final browser screenshots and2 same-session comparison screenshots with the image tool; no automated claim of universal visual perfection.",
+  "images": [
+    {
+      "path": "after-1366.png",
+      "sha256": "87d9c927f02c76818df3c5c4b80de6feefa27673d9305e952604f1a8b4c1cc09"
+    },
+    {
+      "path": "before-1366.png",
+      "sha256": "50ca4403b541dfa4eed2f9cf2375a9f377a5d23f4006420a028c02863ced5e0c"
+    },
+    {
+      "path": "continuous-dark.png",
+      "sha256": "0bfbe714a78cc70bda4871609a6247387f8587354b301a2726708e261a9197d5"
+    },
+    {
+      "path": "continuous-font130.png",
+      "sha256": "2098f15e7acd55ba21fbe5aa68781ebbf5e2b49a323d9e76046c0d2f9ebcc194"
+    },
+    {
+      "path": "continuous-new-desktop.png",
+      "sha256": "759e0b22d47c55e016da437b6732f562292da7fcaf33d4337cbeb9ca35f767f0"
+    },
+    {
+      "path": "continuous-selected-1366.png",
+      "sha256": "4d6bffd49576d40bcf49fca19f214a69a06081edc485ccec95d409504afa9e19"
+    },
+    {
+      "path": "continuous-selected-1920.png",
+      "sha256": "831b707f684318cd6ccec90a51d4a3d02d2138cac1749bf554c39c4f54b8ff60"
+    },
+    {
+      "path": "continuous-selected-390.png",
+      "sha256": "7eb5c7207b7f03bcf5812dba3d7760398ec13bec7134a1fb335c55b1d18bff11"
+    },
+    {
+      "path": "continuous-selected-768.png",
+      "sha256": "b32ada2bde2caa2ae8d97d3c844a31e0d319a6e9e4740d482f67c6efeea2243a"
+    },
+    {
+      "path": "interactive-dark.png",
+      "sha256": "18283a34407bc60893579e6bbad9462f6da1eb013dee47703624ca185e28a7cc"
+    },
+    {
+      "path": "interactive-light.png",
+      "sha256": "58de2ff395898a166f118d2711bda693f2aa3096988568bf72781a03dbd1da93"
+    },
+    {
+      "path": "interactive-selected-1366.png",
+      "sha256": "787acabe5b49a7711d4efe448c96cd407f3716885117362b17275b5dcdf3ccfe"
+    },
+    {
+      "path": "interactive-selected-390.png",
+      "sha256": "f15887caf0e2b3e3e622cb537c6ce4ba706e674ca5541d6b9a66ef03542aeab2"
+    }
+  ]
+}

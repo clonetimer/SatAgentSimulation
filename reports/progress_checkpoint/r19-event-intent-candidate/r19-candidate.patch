@@ -1,0 +1,465 @@
+--- a/src/sat_sim/llm_backends.py
++++ b/src/sat_sim/llm_backends.py
+@@ -349,3 +349,59 @@
+ 
++def _event_draft_schemas(contract: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
++    """Require parseable event discriminators, without supplying user values.
++
++    Legacy aliases remain accepted at the parser boundary. Generated drafts
++    use the selected registry's public effect names; validation stays mandatory.
++    """
++    legacy_items, canonical_items = {}, {}
++    for plural, mode, type_key in (
++        ('faults', 'fault', 'fault_type'),
++        ('degradations', 'degradation', 'degradation_type'),
++        ('constraints', 'constraint', 'constraint_type'),
++    ):
++        mode_contract = contract.get('modes', {}).get(mode, {})
++        effects = mode_contract.get('effects') or mode_contract.get(mode + '_types') or []
++        effect = {'type': 'string', 'minLength': 1}
++        if effects:
++            effect['enum'] = list(dict.fromkeys(str(value) for value in effects))
++        common = {name: {'type': 'string'} for name in (
++            'target', 'target_path', 'target_type', 'label', 'implementation')}
++        common.update({name: {'type': 'number', 'minimum': 0, 'maximum': 1}
++                       for name in ('magnitude', 'severity')})
++        common.update({name: {'type': 'number', 'minimum': 0}
++                       for name in ('onset_time_s', 'start_time_s', 'scale')})
++        common['duration_s'] = {'type': 'number', 'minimum': -1}
++        common['parameters'] = {'type': 'object', 'properties': {'scenario': copy.deepcopy(effect)}}
++        common.update({name: copy.deepcopy(effect) for name in (type_key, 'modifier_type', 'type')})
++        common.update({name: {'type': 'string'} for name in (mode + '_id', 'modifier_id')})
++        alternatives = []
++        for discriminator in (type_key, 'modifier_type', 'type', 'parameters'):
++            properties = copy.deepcopy(common)
++            if discriminator == 'parameters':
++                properties['parameters']['required'] = ['scenario']
++            alternatives.append({'type': 'object', 'properties': properties,
++                                 'required': [discriminator], 'additionalProperties': False})
++        legacy_items[plural] = {'anyOf': alternatives}
++        canonical_properties = {
++            'id': {'type': 'string', 'minLength': 1},
++            'target': {'type': 'string', 'minLength': 1}, 'effect': copy.deepcopy(effect),
++            'start_s': {'type': 'number', 'minimum': 0},
++            'end_s': {'anyOf': [{'type': 'number', 'exclusiveMinimum': 0}, {'type': 'null'}]},
++            'magnitude': {'anyOf': [copy.deepcopy(common['magnitude']), {'type': 'null'}]},
++            'scale': {'anyOf': [copy.deepcopy(common['scale']), {'type': 'null'}]},
++            'implementation': {'enum': ['auto', 'native', 'proxy']},
++            'delivery': {'enum': ['modifier', 'legacy_fault', 'legacy_degradation',
++                                  'runtime_parameter', 'runtime_constraint']},
++            'target_type': {'type': ['string', 'null']}, 'label': {'type': ['string', 'null']},
++            'parameters': {'type': 'object'}, 'event_type': {'const': mode},
++        }
++        canonical_items[plural] = {'type': 'object', 'properties': canonical_properties,
++                                   'required': ['id', 'target', 'effect'], 'additionalProperties': False}
++    return legacy_items, canonical_items
++
++
+ def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_events: bool = False,
++                                 constrain_events: bool = False,
++                                 single_fault: bool = False,
++                                 single_fault_carrier: str = 'auto',
+                                  allow_geometry_overrides: bool = True,
+@@ -358,2 +414,4 @@
+     """
++    if single_fault_carrier not in {'auto', 'faults', 'modifiers'}:
++        raise ValueError('UNSUPPORTED_SINGLE_FAULT_CARRIER')
+     legacy = {
+@@ -443,2 +501,14 @@
+         canonical['required'].append('model')
++        if (constrain_events or single_fault) and not forbid_events:
++            old_events, new_events = _event_draft_schemas(contract)
++            for kind, items in old_events.items():
++                array = {'type': 'array', 'items': copy.deepcopy(items)}
++                legacy['properties'][kind] = (array if kind == 'faults' else
++                    {'anyOf': [array, {'type': 'object'}]})
++            legacy['properties']['modifiers'] = {'type': 'object', 'properties': {
++                kind: {'type': 'array', 'items': copy.deepcopy(items)}
++                for kind, items in old_events.items()}, 'additionalProperties': False}
++            canonical['properties']['events'] = {'type': 'object', 'properties': {
++                kind: {'type': 'array', 'items': copy.deepcopy(items)}
++                for kind, items in new_events.items()}, 'additionalProperties': False}
+     if forbid_events:
+@@ -457,3 +527,58 @@
+             canonical['properties']['model']['properties']['legacy_degradations'] = copy.deepcopy(empty_object)
+-    direct = {"anyOf": [legacy, canonical]}
++    # MissionSpec declares a string list. Typing this known field avoids
++    # unconstrained empty-array parser forks without excluding extension keys.
++    mission = {'type': 'object', 'properties': {
++        'required_couplings': {'type': 'array', 'items': {'type': 'string'}}}}
++    legacy['properties']['mission'] = copy.deepcopy(mission)
++    canonical['properties']['mission'] = copy.deepcopy(mission)
++    alternatives = [legacy, canonical]
++    if single_fault and not forbid_events and capability_id is not None:
++        # Full object alternatives are intentional: LM-format-enforcer does not
++        # merge sibling constraints into nested anyOf branches. Restrict count
++        # from the user's explicit instruction, never constrain answer values.
++        empty = {'type': 'array', 'maxItems': 0}
++        empty_object = {'type': 'object', 'properties': {}, 'additionalProperties': False}
++        fault_target = {'type': 'object', 'properties': {
++            'level': {'type': 'string'}, 'name': {'type': 'string'}, 'mode': {'const': 'fault'}},
++            'required': ['mode'], 'additionalProperties': False}
++        for kind in ('degradations', 'constraints'):
++            legacy['properties'][kind] = {'anyOf': [copy.deepcopy(empty), copy.deepcopy(empty_object)]}
++            legacy['properties']['modifiers']['properties'][kind] = copy.deepcopy(empty)
++            canonical['properties']['events']['properties'][kind] = copy.deepcopy(empty)
++        legacy['properties']['target'] = copy.deepcopy(fault_target)
++        # Prefer one unambiguous spelling in generated legacy faults. The broad
++        # parser/default transport still accepts aliases; generation must not
++        # emit both severity and magnitude with contradictory values.
++        fault_fields = copy.deepcopy(old_events['faults']['anyOf'][0]['properties'])
++        for alias in ('severity', 'modifier_type', 'type', 'start_time_s', 'target_path'):
++            fault_fields.pop(alias, None)
++        fault_fields['parameters'] = {'type': 'object'}
++        event_target = str(contract.get('target') or '')
++        if event_target and not contract.get('event_target_prefixes'):
++            fault_fields['target'] = {'type': 'string', 'enum': [event_target]}
++        fault_item = {'type': 'object', 'properties': fault_fields,
++                      'required': ['fault_type', 'target', 'onset_time_s', 'magnitude'],
++                      'additionalProperties': False}
++        legacy['properties']['faults']['items'] = copy.deepcopy(fault_item)
++        legacy['properties']['modifiers']['properties']['faults']['items'] = copy.deepcopy(fault_item)
++        canonical['properties']['model']['properties']['target'] = copy.deepcopy(fault_target)
++        canonical['properties']['model']['required'].append('target')
++        canonical['properties']['model']['properties']['legacy_degradations'] = copy.deepcopy(empty_object)
++        canonical_faults = canonical['properties']['events']['properties']['faults']
++        if event_target and not contract.get('event_target_prefixes'):
++            canonical_faults['items']['properties']['target'] = {'type': 'string', 'enum': [event_target]}
++        canonical_faults.update({'minItems': 1, 'maxItems': 1})
++        canonical['properties']['events']['required'] = ['faults']
++        canonical['required'].append('events')
++        top, modifier = copy.deepcopy(legacy), copy.deepcopy(legacy)
++        top['properties']['faults'].update({'minItems': 1, 'maxItems': 1})
++        top['required'].append('faults')
++        top['properties']['modifiers']['properties']['faults'] = copy.deepcopy(empty)
++        modifier['properties']['faults'] = copy.deepcopy(empty)
++        modifier['properties']['modifiers']['properties']['faults'].update({'minItems': 1, 'maxItems': 1})
++        modifier['properties']['modifiers']['required'] = ['faults']
++        modifier['required'].append('modifiers')
++        alternatives = ([top, modifier, canonical] if single_fault_carrier == 'auto' else
++                        [top, canonical] if single_fault_carrier == 'faults' else [modifier, canonical])
++    direct = {"anyOf": alternatives}
+     wrappers = [{"type": "object", "properties": {key: direct},
+@@ -461,3 +586,3 @@
+                 for key in ("task_spec", "taskspec", "TaskSpec", "spec")]
+-    return {"anyOf": [legacy, canonical, *wrappers]}
++    return {"anyOf": [*alternatives, *wrappers]}
+ 
+--- a/src/sat_sim/capability_agent.py
++++ b/src/sat_sim/capability_agent.py
+@@ -178,2 +178,3 @@
+     max_repair_attempts: int = 2
++    compile_if_valid: bool = True
+     run_task: bool = False
+@@ -417,2 +418,31 @@
+ 
++def _request_requires_single_fault(text: str) -> bool:
++    """A count bound from explicit prose or the actual supplied refinement base.
++
++    No effect, magnitude or onset is inferred or supplied to the decoder.
++    Requests naming other event kinds retain the general transport schema.
++    """
++    latest = text.rsplit('本轮补充指令：', 1)[-1]
++    if re.search(r'退化|约束|\b(?:degradations?|constraints?)\b', latest, re.I):
++        return False
++    for match in re.finditer(r'只(?:添加|注入|设置)?(?:这)?(?:一个|1个)故障|\b(?:only one|a single) fault\b', latest, re.I):
++        prefix = re.split(r'[，。；;\n]', latest[:match.start()])[-1]
++        if not re.search(r'不要|禁止|\b(?:not|never)\b', prefix, re.I):
++            return True
++    if '本轮补充指令：' not in text or not re.search(
++            r'不要添加其他事件|不添加其他事件|\bno (?:other|additional) events\b', latest, re.I):
++        return False
++    head = text.rsplit('本轮补充指令：', 1)[0]
++    marker = '现有 TaskSpec：'
++    if marker not in head:
++        return False
++    try:
++        base, _ = json.JSONDecoder().raw_decode(head.rsplit(marker, 1)[-1].lstrip())
++        from .task_models import canonicalize_task_spec
++        events = canonicalize_task_spec(base)['events']
++        return len(events['faults']) == 1 and not events['degradations'] and not events['constraints']
++    except (ValueError, TypeError, KeyError):
++        return False
++
++
+ def _request_allows_custom_rw_geometry(text: str) -> bool:
+@@ -575,2 +605,64 @@
+ 
++def _natural_battery_loss_requirement_issues(spec: Mapping[str, Any], text: str) -> list[ValidationIssue]:
++    """Validate a narrowly explicit prose literal; never modify a model answer.
++
++    Supports one battery-capacity-loss percentage, including 'from X% to Y%'.
++    Unrecognized, negated and multi-event prose remains outside this checker.
++    Values come only from the latest user instruction, never benchmark labels.
++    """
++    from .task_models import canonicalize_task_spec
++
++    latest = text.rsplit('本轮补充指令：', 1)[-1]
++    if re.search(r'(?:\bEvents\s*[:：]|事件配置\s*[:：]|事件为)', latest, re.I):
++        return []  # The existing explicit-JSON checker owns this contract.
++    number = r'(?:\d+(?:\.\d*)?|\.\d+)'
++    pattern = (r'(?:电池\s*容量|battery\s+capacity)\s*(?:损失|loss)\s*'
++               rf'(?:(?:从|from)\s*{number}\s*[%％]\s*(?:改为|变为|调整为|更改为|to)\s*'
++               r'|(?:为|of|is|=)?\s*)'
++               rf'(?P<percent>{number})\s*[%％]')
++    matches = list(re.finditer(pattern, latest, re.I))
++    if len(matches) != 1:
++        return []
++    match = matches[0]
++    prefix = re.split(r'[，。；;\n]', latest[:match.start()])[-1]
++    if re.search(r'不要|不添加|取消|\b(?:remove|without|no)\b', prefix, re.I):
++        return []
++    wanted = float(match.group('percent')) / 100.0
++    if not 0.0 <= wanted <= 1.0:
++        return [ValidationIssue('error', '$.request.events',
++            'Battery-capacity loss must be between 0% and 100%; clarify the user request.',
++            'USER_NATURAL_EVENT_REQUIREMENT_INVALID')]
++    actual = canonicalize_task_spec(spec)['events']
++    faults = actual.get('faults', [])
++    matching = [event for event in faults if event.get('effect') == 'eps_battery_capacity_loss']
++    issues = []
++    if len(matching) != 1:
++        issues.append(ValidationIssue('error', '$.events.faults',
++            f'The latest user instruction explicitly requests battery-capacity loss of {wanted:g}. '
++            'Generate exactly one eps_battery_capacity_loss fault with that magnitude; '
++            f'the model returned effects {[event.get("effect") for event in faults]!r}. '
++            'This checker has not changed the model answer.', 'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
++    else:
++        value = matching[0].get('magnitude')
++        if type(value) not in (int, float) or not math.isfinite(value) or not math.isclose(value, wanted, rel_tol=1e-12, abs_tol=0.):
++            issues.append(ValidationIssue('error', '$.events.faults.magnitude',
++                f'The user explicitly requested loss fraction {wanted:g}, but the model returned {value!r}. '
++                'Regenerate the requested value; no answer substitution is permitted.',
++                'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
++        times = list(re.finditer(rf'第\s*(?P<seconds>{number})\s*秒', latest))
++        if len(times) == 1:
++            wanted_time = float(times[0].group('seconds'))
++            value = matching[0].get('start_s')
++            if type(value) not in (int, float) or not math.isfinite(value) or not math.isclose(value, wanted_time, rel_tol=1e-12, abs_tol=0.):
++                issues.append(ValidationIssue('error', '$.events.faults.start_s',
++                    f'The user explicitly requested fault onset {wanted_time:g} s, but the model returned {value!r}.',
++                    'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
++    if _request_requires_single_fault(text):
++        if sum(len(actual.get(kind, [])) for kind in ('faults', 'degradations', 'constraints')) != 1:
++            issues.append(ValidationIssue('error', '$.events',
++                'The user explicitly requested only one fault; extra or missing events are forbidden.',
++                'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
++    return issues
++
++
+ def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str) -> list[ValidationIssue]:
+@@ -620,3 +712,10 @@
+         issues.extend(_explicit_event_requirement_issues(spec, request.request))
++        issues.extend(_natural_battery_loss_requirement_issues(spec, request.request))
+         issues.extend(_explicit_literal_requirement_issues(spec, request.request))
++    if request.compile_if_valid and not any(issue.severity == 'error' for issue in issues):
++        # Compatibility exports must also wait for the execution plan.
++        from .execution_planner import plan_task_spec
++        planning = plan_task_spec(spec)
++        issues.extend(ValidationIssue('error', issue.path, issue.message, issue.code)
++                      for issue in planning.validation.errors)
+     return ValidationResult(tuple(issues))
+@@ -1093,2 +1192,4 @@
+         "target": {"level": contract.target_level, "name": contract.target_name},
++        "event_target_default": contract.target_name,
++        "event_target_prefixes": list(data.get('event_target_prefixes') or []),
+         "parameters": params,
+@@ -1371,2 +1472,9 @@
+     if compact:
++        event_count_note = ('The user explicitly requires exactly one fault. Use target.mode=fault, '
++            'one fault in a single event carrier, and no extra events. Choose its declared type, '
++            'magnitude and time from the user request; do not copy the nominal example mode. '
++            'For legacy faults use fault_type, target, onset_time_s and magnitude. Do not emit '
++            'severity or duplicate type/time aliases alongside those fields. Put the legacy '
++            'event in top-level faults and leave modifiers.faults empty.\n'
++            if _request_requires_single_fault(request_text) else '')
+         return f"""# Satellite Simulation TaskSpec Generation
+@@ -1383,2 +1491,3 @@
+ ## Output contract
++{event_count_note}
+ Return one YAML/JSON object, no Markdown or explanation. Use schema_version: {TASK_SPEC_VERSION}.
+@@ -1387,2 +1496,4 @@
+ Satisfy requested_time exactly. Use declared parameter names/defaults/units. Use only declared effects at requested times/severities, no extra events. Legacy fault keys: fault_id, target, target_type, fault_type, onset_time_s, duration_s, magnitude.
++Event magnitude/severity is a fraction in [0,1]. For a requested loss of P%, emit P/100 as magnitude, not P, not the remaining fraction, and not an exponent-shifted approximation. Fault onset_time_s is in seconds. Preserve these user quantities exactly.
++Use event_target_default for each event target unless the selected capability declares event_target_prefixes. Do not guess a subsystem target from an effect-name prefix; event ownership must pass the execution planner.
+ For a new task, include required parameters and every user-specified parameter; omit unrelated optional defaults instead of copying the whole registry. Omitted optional values use registered defaults with provenance. For refinement, retain the supplied task's unchanged parameters. Never omit a requested parameter to shorten output.
+@@ -2602,2 +2713,5 @@
+             plan.selected_capability_id, forbid_events=_request_forbids_all_events(request.request),
++            constrain_events=requested_health_mode(request.request) != 'nominal',
++            single_fault=_request_requires_single_fault(request.request),
++            single_fault_carrier='faults',
+             allow_geometry_overrides=_request_allows_custom_rw_geometry(request.request),
+@@ -3541,11 +3655,2 @@
+ 
+-    def normalized_unit_severity(value: Any) -> float:
+-        try:
+-            numeric = float(value)
+-        except (TypeError, ValueError):
+-            return 1.0
+-        if 1.0 < numeric <= 100.0:
+-            numeric /= 100.0
+-        return min(1.0, max(0.0, numeric))
+-
+     # Normalize task_type aliases commonly invented by LLMs.
+@@ -3704,3 +3809,3 @@
+             fault = dict(item)
+-            if "onset_time_s" not in fault or float(fault.get("onset_time_s") or 0.0) == 0.0:
++            if "onset_time_s" not in fault:
+                 for alias in ("trigger_time_s", "fault_time_s", "injection_time_s", "start_time_s", "time_s"):
+@@ -3725,3 +3830,5 @@
+                 fault["duration_s"] = -1
+-            fault["magnitude"] = normalized_unit_severity(fault.get("magnitude", 1.0))
++            # Alias projection must not convert percentages, clamp invalid
++            # values or replace malformed model output with a physical default.
++            fault["magnitude"] = fault.get("magnitude", fault.get("severity", 1.0))
+             _strip_keys(fault, {"fault_id", "target", "target_type", "fault_type", "onset_time_s", "duration_s", "magnitude", "parameters", "label"})
+@@ -3772,5 +3879,3 @@
+                     "duration_s": item.get("duration_s", -1.0),
+-                    "severity": normalized_unit_severity(
+-                        item.get("severity", item.get("magnitude", 1.0))
+-                    ),
++                    "severity": item.get("severity", item.get("magnitude", 1.0)),
+                     "parameters": {
+@@ -4531,3 +4636,3 @@
+     ok = False
+-    if validation.ok:
++    if validation.ok and request.compile_if_valid:
+         compiled = compile_task_spec(current, validate=False)
+@@ -4553,2 +4658,6 @@
+         ok = True
++    elif validation.ok:
++        ok = True
++        steps.append(CapabilityAgentStep('draft_only', 'complete',
++            'Validated the draft; compilation/export is deferred to the product planning gate.'))
+     else:
+--- a/src/sat_sim/agent_facade.py
++++ b/src/sat_sim/agent_facade.py
+@@ -33,3 +33,3 @@
+ from .task_spec import write_json
+-from .task_validator import ValidationResult, validate_task_spec
++from .task_validator import ValidationIssue, ValidationResult, validate_task_spec
+ from .nl_outputs import apply_output_intents_to_spec
+@@ -183,4 +183,5 @@
+ _EXPLICIT_NEGATIVE_EFFECT_RE = re.compile(
+-    r"(?:不|不要|无需|禁止|不添加|不注入|不设置|没有|无)(?:任何)?(?:故障|失效|异常|退化|漂移|偏置|噪声增加)"
+-    r"|(?:nominal|no|without)\s+(?:faults?|failures?|degradations?|anomalies?)",
++    r"(?:(?:不|不要|无需|禁止|不添加|不注入|不设置|没有|无)(?:任何)?(?:故障|失效|异常|退化|漂移|偏置|噪声增加)"
++    r"|(?:nominal|no|without)\s+(?:faults?|failures?|degradations?|anomalies?))"
++    r"(?:\s*(?:或|和|及|、|/|or\b|and\b)\s*(?:故障|失效|异常|退化|漂移|偏置|噪声增加|faults?|failures?|degradations?|anomalies?))*",
+     re.IGNORECASE,
+@@ -214,6 +215,21 @@
+     """Classify event intent without destructively guessing from missing keywords."""
+-    text = request_text or ""
+-    if _EXPLICIT_NEGATIVE_EFFECT_RE.search(text):
++    text = (request_text or "").rsplit('本轮补充指令：', 1)[-1]
++    # Exclusions apply to *other* events, not to an explicitly requested fault.
++    # Mask the complete exclusion so its word 'fault' is not a positive cue.
++    text = re.sub(
++        r'(?:其余|其他|其它|额外)(?:均|都)?(?:无|没有|不添加|不注入)(?:任何)?(?:故障|失效|异常|退化)'
++        r'|(?:不|不要)(?:再)?(?:添加|注入)(?:其他|其它|额外)(?:故障|失效|异常|退化|事件)'
++        r'|\b(?:no|without)\s+(?:other|additional|extra)\s+(?:faults?|failures?|degradations?|events?)\b'
++        r'|\b(?:no|without)\s+(?:faults?|failures?|degradations?)\s+(?:except|other than)\b',
++        ' ', text, flags=re.I)
++    negative = bool(_EXPLICIT_NEGATIVE_EFFECT_RE.search(text))
++    positive_probe = _EXPLICIT_NEGATIVE_EFFECT_RE.sub(' ', text)
++    positive = bool(_EXPLICIT_POSITIVE_EFFECT_RE.search(positive_probe)
++                    or _EFFECT_DOMAIN_CHANGE_RE.search(positive_probe)
++                    or re.search(r'\bbattery\s+capacity\s+(?:loss|drop|reduction)\b', positive_probe, re.I))
++    if negative and positive:
++        return "unconfirmed"  # Contradictory instructions must not erase events.
++    if negative:
+         return "explicit_negative"
+-    if _EXPLICIT_POSITIVE_EFFECT_RE.search(text) or _EFFECT_DOMAIN_CHANGE_RE.search(text):
++    if positive:
+         return "explicit_positive"
+@@ -241,2 +257,16 @@
+     return collections
++
++
++def _event_preservation_issues(before: Mapping[str, Any], after: Mapping[str, Any], request_text: str) -> list[ValidationIssue]:
++    """Reject event loss/value changes across product transformations."""
++    if _effect_intent_state(request_text) == 'explicit_negative':
++        return []  # Explicit removal remains separately logged by the sanitizer.
++    previous = canonicalize_task_spec(before)['events']
++    current = canonicalize_task_spec(after)['events']
++    if previous != current:
++        return [ValidationIssue('error', '$.events',
++            'Product transformations changed model event semantics. Preserve the generated '
++            'event values or reject the draft; never silently change the physical scenario.',
++            'MODEL_EVENT_PRESERVATION_MISMATCH')]
++    return []
+ 
+@@ -300,23 +330,4 @@
+ 
+-    def repair_list(items: Any, path: str) -> None:
+-        if not isinstance(items, list):
+-            return
+-        for index, item in enumerate(items):
+-            if not isinstance(item, dict):
+-                continue
+-            for key in ("magnitude", "severity"):
+-                value = item.get(key)
+-                if isinstance(value, (int, float)) and not isinstance(value, bool) and value < 0:
+-                    item[key] = 0.0
+-                    repairs.append({"path": f"{path}.{index}.{key}", "action": "clamped_to_zero", "original": value})
+-
+-    events = out.get("events") if isinstance(out.get("events"), dict) else {}
+-    repair_list(events.get("faults"), "events.faults")
+-    repair_list(events.get("degradations"), "events.degradations")
+-    repair_list(events.get("constraints"), "events.constraints")
+-    repair_list(out.get("faults"), "faults")
+-    modifiers = out.get("modifiers") if isinstance(out.get("modifiers"), dict) else {}
+-    repair_list(modifiers.get("faults"), "modifiers.faults")
+-    repair_list(modifiers.get("degradations"), "modifiers.degradations")
+-    repair_list(modifiers.get("constraints"), "modifiers.constraints")
++    # Physical magnitudes belong to the model answer. Invalid values must be
++    # rejected by validation, never silently clamped into a different scenario.
+ 
+@@ -567,2 +578,3 @@
+         max_repair_attempts=request.max_repair_attempts,
++        compile_if_valid=False,
+         run_task=False,
+@@ -681,2 +693,6 @@
+     validation = validate_task_spec(canonical)
++    from .capability_agent import _natural_battery_loss_requirement_issues
++    validation = ValidationResult(tuple(validation.issues)
++        + tuple(_event_preservation_issues(backend_result.task_spec, canonical, request.request))
++        + tuple(_natural_battery_loss_requirement_issues(canonical, request.request)))
+     guards = evaluate_agent_guards(canonical)
+--- a/src/sat_sim/unified_agent.py
++++ b/src/sat_sim/unified_agent.py
+@@ -795,2 +795,14 @@
+ 
++def _refinement_prompt_projection(base: Mapping[str, Any]) -> dict[str, Any]:
++    """Present physics to the model; retain full provenance in the real base.
++
++    Machine field histories are not fields the model should regenerate. Only
++    this deep-copy projection drops them; merge/validation still use the base.
++    """
++    prompt_base = copy.deepcopy(dict(base))
++    prompt_base.pop('metadata', None)
++    prompt_base.pop('provenance', None)
++    return prompt_base
++
++
+ def _merge_natural_language_refinement(
+@@ -1070,6 +1082,5 @@
+             base = canonicalize_task_spec(request.base_task_spec)
+-            prompt_base = copy.deepcopy(base)
++            prompt_base = _refinement_prompt_projection(base)
+             # Keep the real base intact for the merge. Machine provenance can
+             # dominate the model context and must not be regenerated as physics.
+-            prompt_base.pop("metadata", None)
+             effective_request_text = (
+--- a/src/sat_sim/bsk_engine/event_manager.py
++++ b/src/sat_sim/bsk_engine/event_manager.py
+@@ -23,2 +23,9 @@
+                 out.append((category[:-1], item))
++    # Runtime conversion retains legacy-fault delivery in top-level arrays.
++    # These declarations must reach the same native controllers and evidence
++    # as canonical/modifier events, rather than silently running nominally.
++    for category in ("faults", "degradations", "constraints"):
++        items = spec.get(category)
++        if isinstance(items, Sequence) and not isinstance(items, (str, bytes)):
++            out.extend((category[:-1], item) for item in items if isinstance(item, Mapping))
+     return out

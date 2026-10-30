@@ -1,0 +1,31 @@
+{
+  "scope": "Read-only original UI assets versus candidate UI over the same actual native API and completed session. No mocked API/data or new simulation. Rendered text includes offscreen content; it is not a first-screen word count.",
+  "observations": [
+    {
+      "session": "compact-ui-review-1793367727",
+      "renderedText": 1992,
+      "chartTop": 1654.6875,
+      "viewport": 900,
+      "state": "已完成",
+      "time": "3.50 s",
+      "orbit": "6993000.0 m",
+      "phase": "before"
+    },
+    {
+      "session": "compact-ui-review-1793367727",
+      "renderedText": 1394,
+      "chartTop": 552.1875,
+      "viewport": 900,
+      "state": "已完成",
+      "time": "3.50 s",
+      "orbit": "6993000.0 m",
+      "phase": "after"
+    }
+  ],
+  "checks": {
+    "same_actual_session": true,
+    "same_actual_state": true,
+    "chart_moved_forward": true
+  },
+  "status": "PASS_REQUIRES_SCREENSHOT_REVIEW"
+}

@@ -1,0 +1,124 @@
+{
+  "status": "FAILED_NO_SUBSTITUTION",
+  "scope": "Two new natural-language engineering cases, not arbitrary-prompt accuracy. No event JSON supplied; no label or parameter substitution; wrong cases are not executed.",
+  "started_at_utc": "2026-10-30T12:16:14.506016+00:00",
+  "application": "ea721f52b74b77e4e3c915a30d3d5097ce54ac6a7edea35a4aaa1f488a6f6790",
+  "source_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\event-intent-r16-candidate",
+  "root_application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "process": {
+    "pid": 37236,
+    "creation": 1793362571.7490969,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "source_sha256": "a73ecbb54146ffb0e1ac0f8f78e1cf89c52b429d1810d8aa89ceecf9583fe3b5",
+  "requests_sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+  "model_health": {
+    "ok": true,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "source": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+    }
+  },
+  "measurement_context": "Isolated scoped-negation, single-fault decoding, event-preservation, unit-contract and refinement-prompt candidate with the same live model service and original native80520. Owned regression processes were also live at launch; no exclusive performance qualification.",
+  "cases": [
+    {
+      "id": "create17",
+      "status": "FAILED",
+      "started_at_utc": "2026-10-30T12:16:14.506016+00:00",
+      "checks": {
+        "actual_model_verified": true,
+        "valid_compiled": false
+      },
+      "backend_identity": {
+        "backend": "openai_compatible",
+        "backend_class": "actual_model_service",
+        "model_backend_requested": true,
+        "actual_model_used": true,
+        "actual_model_execution_verified": true,
+        "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "base_url": "http://127.0.0.1:8031/v1",
+        "claim": "model_backed_generation_verified",
+        "invocation_evidence": {
+          "schema_version": "sat-sim.model-invocation-evidence.v1",
+          "verified": true,
+          "backend": "openai_compatible",
+          "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+          "request_id": "chatcmpl-d7b97074bcfa4a93a35ca0aea2326ec9",
+          "provider_response_id": "chatcmpl-d7b97074bcfa4a93a35ca0aea2326ec9",
+          "prompt_sha256": "793552ca6ec08ee3ca86a524d630e71f7211287927169f9bde58b4739c28daf1",
+          "response_sha256": "f5039c1c3a3be4a9f3922418cc923466908bf294c4ec463a003e452b07499700",
+          "structured_output_sha256": "ba4e58eeb2ba38525dea9ebb5747c16064458e330fc4212594604fb0f568c4a2",
+          "structured_output_kind": "json",
+          "usage": {
+            "prompt_tokens": 7731,
+            "completion_tokens": 1716
+          },
+          "structured_generation": {
+            "enabled": true,
+            "method": "lm-format-enforcer",
+            "schema_sha256": "abf26146e9146fee20fe683cac4f7203441b1e3083de6471cdacd4f73410de86",
+            "answer_substitution": false,
+            "semantic_validation_required": true,
+            "numeric_bounds_at_decode": true,
+            "empty_arrays_at_decode": true,
+            "invalid_numeric_mantissa_digit_budget": 17,
+            "canonical_exponent_range": [
+              -324,
+              308
+            ]
+          },
+          "latency_ms": 207332.14,
+          "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+          "error": null
+        }
+      },
+      "validation": {
+        "ok": false,
+        "error_count": 1,
+        "warning_count": 1,
+        "errors": [
+          {
+            "severity": "error",
+            "path": "$.events.faults.magnitude",
+            "code": "USER_NATURAL_EVENT_REQUIREMENT_MISMATCH",
+            "message": "The user explicitly requested loss fraction 0.17, but the model returned 1.7000000000000002e-15. Regenerate the requested value; no answer substitution is permitted."
+          }
+        ],
+        "warnings": [
+          {
+            "severity": "warning",
+            "path": "$.schema_version",
+            "code": "TASKSPEC_LEGACY_MIGRATED",
+            "message": "Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0."
+          }
+        ]
+      }
+    }
+  ],
+  "error": {
+    "type": "AssertionError",
+    "message": "valid_compiled"
+  },
+  "application_after": "ea721f52b74b77e4e3c915a30d3d5097ce54ac6a7edea35a4aaa1f488a6f6790",
+  "root_application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "root_application_unchanged": true,
+  "source_unchanged": true,
+  "requests_unchanged": true,
+  "finished_at_utc": "2026-10-30T12:24:45.159755+00:00"
+}

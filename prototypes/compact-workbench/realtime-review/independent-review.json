@@ -1,0 +1,37 @@
+{
+  "status": "SCOPED_CHECKS_PASS_NOT_PRODUCTION_QUALIFICATION",
+  "checks": {
+    "31_browser_checks": true,
+    "474_static_ids": true,
+    "3_same_session_comparison_checks": true,
+    "actual_continuous_archive": true,
+    "actual_bounded_archive": true,
+    "actual_bounded_frames": true,
+    "default_sample_alignment": true,
+    "tested_application_unchanged": true,
+    "production_app_unchanged": true,
+    "production_core_unchanged": true,
+    "main_environment_websocket_not_modified": true,
+    "source_web/index.html": true,
+    "source_web/app.js": true,
+    "source_web/compact-workbench.css": true,
+    "source_web/compact-workbench.js": true,
+    "13_reviewed_final_images": true,
+    "preview_compact-ui-preview-k0l0_yof": true,
+    "preview_compact-ui-preview-v5p62fx2": true,
+    "original_native_identity": true
+  },
+  "application": "0ad9cfe95d0c77b8002eda062d87033dea2a49b2de64783a7f1ed3bf46f00091",
+  "previews": [
+    {
+      "url": "http://127.0.0.1:62918",
+      "native_runtime": "supervised"
+    },
+    {
+      "url": "http://127.0.0.1:49189",
+      "native_runtime": "in-process"
+    }
+  ],
+  "observed_utc": "2026-10-30T13:48:44.659931+00:00",
+  "scope": "Independent re-read of real browser/API artifacts and source bytes, no re-execution or changed thresholds. Does not replace final UI screenshots, full regression, runtime capability UX, AI integration or original endurance disposition."
+}

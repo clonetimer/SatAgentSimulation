@@ -2,30 +2,34 @@
   "schema_version": "sat-compact-ui-prototype.v1",
   "status": "ISOLATED_CANDIDATE_NOT_PRODUCTION",
   "base_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
-  "candidate_application": "c5525864003ed15c6f0a276cfa7422ba3c6f58d8020a647366e6f9c6f5850964",
   "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
   "files": [
     {
       "path": "web/index.html",
       "target": "src/sat_sim/web/index.html",
-      "sha256": "e83b3cb1cbf6fe980a19c7948b200ccf2064192737cf2af4fb36a778ccdeb455"
+      "sha256": "8c5e4a1351df48c4fd678cac47cf71d349e88c5c73d322dd3caa7e0d55bb9f21"
     },
     {
       "path": "web/app.js",
       "target": "src/sat_sim/web/app.js",
-      "sha256": "decdfc1ff4a3adffba0561c8897ef60569c0c232c4156e62cc0809f7dd47c0e0"
+      "sha256": "168253fdfea1833c579df4e1dc3315733a4d1d7e87d20b383f87bcb2a34aa31c"
     },
     {
       "path": "web/compact-workbench.css",
       "target": "src/sat_sim/web/compact-workbench.css",
-      "sha256": "f0138e4d759015423017320ec327d7e57e6573b9784c601fa67bcfa1eb9f47d7"
+      "sha256": "ed6bba464fcf4eb1bf38d98301a568cb20ac4147c7acacc49e2927720fe5113f"
     },
     {
       "path": "web/compact-workbench.js",
       "target": "src/sat_sim/web/compact-workbench.js",
-      "sha256": "1c093abb663007f41ca292abdab0292f51e936f07f1c2705cd24b76ea761acf2"
+      "sha256": "77d65b54da0eade0f2fda2c9f273c2503fc2ce53fc9c8cb63bdb6c71b0aa89fc"
     }
   ],
   "browser_test_application_before_whitespace_cleanup": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
-  "whitespace_cleanup": "Trailing spaces on8 HTML lines removed and HTML line endings normalized to LF; parsed element/attribute/nonempty-text sequence identical. Prior22 browser checks remain scoped evidence of unchanged behavior; current runtime assets separately verified."
+  "whitespace_cleanup": "Trailing spaces on8 HTML lines removed and HTML line endings normalized to LF; parsed element/attribute/nonempty-text sequence identical. Prior22 browser checks remain scoped evidence of unchanged behavior; current runtime assets separately verified.",
+  "creation_only_candidate_application": "c5525864003ed15c6f0a276cfa7422ba3c6f58d8020a647366e6f9c6f5850964",
+  "realtime_scope": "31 browser checks plus3 same-session layout checks; isolated candidate, not full-app or endurance qualification.",
+  "candidate_application": "0ad9cfe95d0c77b8002eda062d87033dea2a49b2de64783a7f1ed3bf46f00091",
+  "realtime_browser_report": "realtime-review/browser-report.json",
+  "default_cadence_fix": "Bounded default sample0.5s now uses native step0.1s; previous0.2s was rejected as misaligned. No sampling period replacement."
 }

@@ -1,0 +1,1 @@
+{"detail":{"reason_code":"NATIVE_SAMPLING_MISALIGNED: sample_s must be an integer multiple of step_s"}}

@@ -1,0 +1,60 @@
+{
+  "at": "2026-10-30T13:42:40.845274+00:00",
+  "owned_retired": [
+    {
+      "workspace": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\compact-ui-preview-n6owbyr4",
+      "pid": 60744,
+      "creation": 1793366844.74715,
+      "cmdline": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "-m",
+        "uvicorn",
+        "sat_sim.api:create_app",
+        "--factory",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "61500",
+        "--no-access-log"
+      ],
+      "children": [
+        {
+          "pid": 71292,
+          "creation": 1793366844.7710068
+        },
+        {
+          "pid": 36248,
+          "creation": 1793366844.8138182
+        }
+      ]
+    },
+    {
+      "workspace": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\compact-ui-preview-h6b5_zsw",
+      "pid": 67968,
+      "creation": 1793367348.6865067,
+      "cmdline": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "-m",
+        "uvicorn",
+        "sat_sim.api:create_app",
+        "--factory",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "52558",
+        "--no-access-log"
+      ],
+      "children": [
+        {
+          "pid": 49964,
+          "creation": 1793367348.7085745
+        },
+        {
+          "pid": 78212,
+          "creation": 1793367348.7570324
+        }
+      ]
+    }
+  ],
+  "original_native_alive": true
+}

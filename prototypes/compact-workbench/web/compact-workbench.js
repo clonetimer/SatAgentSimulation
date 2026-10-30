@@ -82,5 +82,81 @@
   if (form) new MutationObserver(() => {
     form.querySelectorAll('.field-error, .field-error-message').forEach(reveal);
   }).observe(form, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+  // Keep the original controls and listeners; reorganize their presentation.
+  const disclose = (section, label, id, open = false) => {
+    if (!section) return null;
+    const details = document.createElement('details');
+    details.id = id; details.className = 'compact-workspace-disclosure'; details.open = open;
+    const summary = document.createElement('summary');
+    summary.className = 'compact-section-summary'; summary.textContent = label;
+    section.before(details); details.append(summary, section);
+    return details;
+  };
+  const interactiveCreate = disclose(document.querySelector('.interactive-create'), '新建实时会话', 'compactInteractiveCreate', true);
+  const continuousCreate = disclose(byId('continuousCreateForm')?.closest('section'), '新建持续会话', 'compactContinuousCreate', true);
+  const continuousList = byId('continuousSessionList')?.closest('section');
+  if (continuousList && continuousCreate) continuousCreate.before(continuousList);
+  const syncCreationDisclosure = (list, details) => {
+    if (!list || !details) return;
+    let selected = null;
+    new MutationObserver(() => {
+      const next = list.querySelector('.active strong')?.textContent || null;
+      if (next && next !== selected) details.open = false;
+      if (!next && selected) details.open = true;
+      selected = next;
+    }).observe(list, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  };
+  syncCreationDisclosure(byId('interactiveSessionList'), interactiveCreate);
+  syncCreationDisclosure(byId('continuousSessionList'), continuousCreate);
+  const syncInteractiveOrder = () => {
+    const grid = document.querySelector('.interactive-layout');
+    const selected = byId('interactiveSessionList')?.querySelector('.active');
+    const first = grid?.querySelector(selected && matchMedia('(max-width: 760px)').matches ? '.interactive-console' : '.interactive-rail');
+    if (first && grid.firstElementChild !== first) grid.prepend(first);
+  };
+  new MutationObserver(syncInteractiveOrder).observe(byId('interactiveSessionList'), { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', syncInteractiveOrder);
+  syncInteractiveOrder();
+  for (const [id, label] of Object.entries({
+    interactiveStartBtn: '启动', interactivePauseBtn: '暂停', interactiveResumeBtn: '继续',
+    interactiveStepBtn: '单步', interactiveStopBtn: '停止并归档',
+  })) {
+    const button = byId(id);
+    if (button) button.textContent = label;
+  }
+  const continuousMain = document.querySelector('.continuous-main');
+  const telemetry = byId('continuousChart')?.closest('section');
+  const status = byId('continuousState')?.closest('section');
+  if (telemetry && status) status.after(telemetry);
+  const diagnostics = document.createElement('div');
+  diagnostics.className = 'compact-runtime-diagnostics';
+  const runtimeInfo = document.createElement('section'); runtimeInfo.className = 'continuous-card';
+  const infoHeading = document.createElement('h2'); infoHeading.textContent = '运行信息';
+  const infoMetrics = document.createElement('div'); infoMetrics.className = 'continuous-metrics';
+  for (const id of ['continuousChildPid', 'continuousWriterEpoch']) {
+    const metric = byId(id)?.parentElement;
+    if (metric) infoMetrics.append(metric);
+  }
+  runtimeInfo.append(infoHeading, infoMetrics); diagnostics.append(runtimeInfo);
+  status?.classList.add('compact-live-status');
+  for (const id of ['continuousRecoveryAuditBtn', 'continuousMetricScope']) {
+    const section = byId(id)?.closest('section');
+    if (section) diagnostics.append(section);
+  }
+  if (continuousMain && diagnostics.children.length) {
+    continuousMain.append(diagnostics);
+    disclose(diagnostics, '运行诊断与恢复覆盖', 'compactRuntimeDiagnostics');
+  }
+  const recoveryHeading = byId('continuousRecoveryAuditBtn')?.closest('section')?.querySelector('h2');
+  if (recoveryHeading) recoveryHeading.textContent = '原生恢复覆盖';
+  const interrupted = byId('continuousInterruptedList')?.closest('section');
+  const interruptedDetails = disclose(interrupted, '中断工作区', 'compactInterruptedWorkspaces');
+  if (interrupted && interruptedDetails) {
+    new MutationObserver(() => {
+      if (interrupted.querySelector('.continuous-interrupted-item')) interruptedDetails.open = true;
+    }).observe(interrupted, { childList: true, subtree: true });
+  }
+  // Native browser validation must reveal invalid inputs in closed groups.
+  document.addEventListener('invalid', event => reveal(event.target), true);
   updateCounts();
 })();
