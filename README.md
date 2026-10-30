@@ -4,6 +4,8 @@
 
 使用 uv 安装当前开发环境：从仓库根目录运行 `python scripts/setup_uv.py`。已有完整缓存与资产时可加 `--offline`。逐项判定见[当前需求验收状态](reports/current_requirements_status.md)，过程及失败记录见[功能补齐记录](docs/functional_completion.md)；实际目标卫星的参数和遥测标定仍需对应工程数据。
 
+界面精简的第一版已在隔离候选完成创建/结果区验证，支持独立本机预览，见[界面候选与对比图](docs/compact_workbench_ui.md)。它尚未替换正在进行耐久验收的生产版本，不影响现有实例；其余页面与AI故障生成仍在补齐。
+
 没有现成模型服务时，可按 [ModelScope 本地微调与脚本生成](docs/modelscope_local_training.md) 复现独立 GPU 环境、基座来源、训练和真实模型评测。本地v5的既有热环境、导热参数、电池容量损失及网页链路通过；新增纯自然语言17%故障请求因事件结构错误及纠错超时被拒绝执行，仍待修复。训练入口已加入数据合同预检，旧基准题面/标签冲突与严格0/69失败均保留，见[本轮实测发现](reports/timing_and_ai_contract_findings.md)。
 
 最新进展见 [2026-10-30 检查点](reports/progress_checkpoint/README.md)：冻结版本完整回归 **1978通过、0失败、5跳过、4警告**；模型网页85项、原生曲线76项、独立851项及45张实际看图复核通过。新的4 W/K配置实际24小时耐久已从零启动，尚未取得终态资格，目标仍为进行中。

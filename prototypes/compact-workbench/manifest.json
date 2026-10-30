@@ -1,0 +1,29 @@
+{
+  "schema_version": "sat-compact-ui-prototype.v1",
+  "status": "ISOLATED_CANDIDATE_NOT_PRODUCTION",
+  "base_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "candidate_application": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "files": [
+    {
+      "path": "web/index.html",
+      "target": "src/sat_sim/web/index.html",
+      "sha256": "3ddaf8c06b29fe6cf1cf8f5b346e64219f72d8565b7dd7d864a2af6f253d3b65"
+    },
+    {
+      "path": "web/app.js",
+      "target": "src/sat_sim/web/app.js",
+      "sha256": "decdfc1ff4a3adffba0561c8897ef60569c0c232c4156e62cc0809f7dd47c0e0"
+    },
+    {
+      "path": "web/compact-workbench.css",
+      "target": "src/sat_sim/web/compact-workbench.css",
+      "sha256": "f0138e4d759015423017320ec327d7e57e6573b9784c601fa67bcfa1eb9f47d7"
+    },
+    {
+      "path": "web/compact-workbench.js",
+      "target": "src/sat_sim/web/compact-workbench.js",
+      "sha256": "1c093abb663007f41ca292abdab0292f51e936f07f1c2705cd24b76ea761acf2"
+    }
+  ]
+}

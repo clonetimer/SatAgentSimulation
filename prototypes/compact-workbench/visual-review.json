@@ -1,0 +1,62 @@
+{
+  "status": "SCOPED_CANDIDATE_BROWSER_AND_VISUAL_REVIEW_PASS",
+  "scope": "Creation and run-result UI only; not complete production regression, all real-time views, formal timing or actual24h qualification. Final source snapshot bound after browser run; preview replays same candidate application fingerprint.",
+  "application": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "original_ids_retained": 474,
+  "candidate_static_ids": 481,
+  "changed_files": [
+    "src/sat_sim/web/app.js",
+    "src/sat_sim/web/compact-workbench.css",
+    "src/sat_sim/web/compact-workbench.js",
+    "src/sat_sim/web/index.html"
+  ],
+  "root_application_unchanged": true,
+  "same_original_native_alive": true,
+  "browser_report_sha256": "7f6abcf2ba645d79425bdcc266ae2ddca35e4707a1ff58ea38efeb04436a3410",
+  "images": [
+    {
+      "path": "reports\\local_requirements_completion\\ui-compact-r12-candidate\\review-compact-v6\\1920-100.png",
+      "sha256": "a61bb2924986a9e50d7f1bf5bf459e4f013065d852fcc147d033442d9eb90e60",
+      "actually_viewed": true
+    },
+    {
+      "path": "reports\\local_requirements_completion\\ui-compact-r12-candidate\\review-compact-v6\\1366-100.png",
+      "sha256": "bca563ed37d570a2756a8a167009037a2608a376b6eaad96db29609d4112d908",
+      "actually_viewed": true
+    },
+    {
+      "path": "reports\\local_requirements_completion\\ui-compact-r12-candidate\\review-compact-v6\\768-100.png",
+      "sha256": "a877c951183f67940756abed6fe6eb62d47c5cd15abe3261c5ffaecdf59b3c67",
+      "actually_viewed": true
+    },
+    {
+      "path": "reports\\local_requirements_completion\\ui-compact-r12-candidate\\review-compact-v6\\390-100.png",
+      "sha256": "8dfee95fa2d951f1dd87ef0a2d4003167598cbec136d0879479009c35d561abd",
+      "actually_viewed": true
+    },
+    {
+      "path": "reports\\local_requirements_completion\\ui-compact-r12-candidate\\review-compact-v6\\1366-130.png",
+      "sha256": "b7d7ece4c6b2db4f09ca85c2df98033c9bf8fcabd0ffc8757aa879f8af9b26d1",
+      "actually_viewed": true
+    },
+    {
+      "path": "reports\\local_requirements_completion\\ui-compact-r12-candidate\\review-compact-v6\\light-1366.png",
+      "sha256": "8319660627c1da432c6680fe834ee7ef9783cea5b8fe4ba17ae8b60de0f82b21",
+      "actually_viewed": true
+    },
+    {
+      "path": "reports\\local_requirements_completion\\ui-compact-r12-candidate\\review-compact-v6\\native-result.png",
+      "sha256": "433692038cd1bbe8f9b7f0835863aa12e6041f866e30f704ece9ab80bc03b62c",
+      "actually_viewed": true
+    }
+  ],
+  "preview": {
+    "url": "http://127.0.0.1:51103",
+    "tool_session_id": 7142,
+    "state_path": "reports/local_requirements_completion/compact-ui-preview-t7itiht1/preview-state.json",
+    "server_pid": 86228,
+    "server_creation": 1793358559.4654007
+  },
+  "preserved_failure": "review-compact-v2/report.json records the real help-summary overlap failure. V4 terminal encoding/readability defect corrected before final source snapshot."
+}

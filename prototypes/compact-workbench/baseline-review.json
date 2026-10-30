@@ -1,0 +1,1047 @@
+{
+  "status": "CHECKS_PASS_REQUIRES_VISUAL_REVIEW",
+  "phase": "baseline",
+  "errors": [],
+  "observations": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "rootWidth": 1920,
+      "firstScreenButtons": [
+        "应用模板",
+        "另存为新任务",
+        "恢复默认",
+        "校验与预览",
+        "运行仿真",
+        "参数表单",
+        "图形组装",
+        "自然语言",
+        "TaskSpec",
+        "单次离线仿真（当前）",
+        "限时实时 · 审核当前整星配置",
+        "持续实时 · 审核当前整星配置",
+        "去选择",
+        "校验",
+        "运行记录",
+        "参数",
+        "故障与事件",
+        "输出与曲线",
+        "⇔",
+        "⛶",
+        "↻",
+        "概览",
+        "曲线",
+        "事件",
+        "FMEA/证据",
+        "制品"
+      ],
+      "visibleCreatorText": 4372,
+      "runButton": {
+        "x": 1363,
+        "y": 202,
+        "width": 124,
+        "height": 37
+      },
+      "formStart": 799.234375,
+      "font_scale": "100"
+    },
+    {
+      "width": 1366,
+      "height": 900,
+      "rootWidth": 1366,
+      "firstScreenButtons": [
+        "应用模板",
+        "另存为新任务",
+        "恢复默认",
+        "校验与预览",
+        "运行仿真",
+        "参数表单",
+        "图形组装",
+        "自然语言",
+        "TaskSpec",
+        "单次离线仿真（当前）",
+        "限时实时 · 审核当前整星配置",
+        "持续实时 · 审核当前整星配置",
+        "去选择",
+        "校验",
+        "运行记录",
+        "参数",
+        "故障与事件",
+        "输出与曲线",
+        "⇔",
+        "⛶",
+        "↻",
+        "概览",
+        "曲线",
+        "事件",
+        "FMEA/证据",
+        "制品"
+      ],
+      "visibleCreatorText": 4372,
+      "runButton": {
+        "x": 849,
+        "y": 247,
+        "width": 124,
+        "height": 37
+      },
+      "formStart": 998.984375,
+      "font_scale": "100"
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "rootWidth": 768,
+      "firstScreenButtons": [
+        "应用模板",
+        "另存为新任务",
+        "恢复默认",
+        "校验与预览",
+        "运行仿真",
+        "参数表单",
+        "图形组装",
+        "自然语言",
+        "TaskSpec",
+        "单次离线仿真（当前）",
+        "限时实时 · 审核当前整星配置",
+        "持续实时 · 审核当前整星配置",
+        "去选择",
+        "校验",
+        "运行记录"
+      ],
+      "visibleCreatorText": 4371,
+      "runButton": {
+        "x": 613,
+        "y": 373,
+        "width": 124,
+        "height": 37
+      },
+      "formStart": 1333.0625,
+      "font_scale": "100"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "rootWidth": 390,
+      "firstScreenButtons": [
+        "应用模板",
+        "另存为新任务",
+        "恢复默认",
+        "校验与预览",
+        "运行仿真",
+        "参数表单",
+        "图形组装",
+        "自然语言",
+        "TaskSpec",
+        "单次离线仿真（当前）",
+        "限时实时 · 审核当前整星配置",
+        "持续实时 · 审核当前整星配置"
+      ],
+      "visibleCreatorText": 4371,
+      "runButton": {
+        "x": 199,
+        "y": 594,
+        "width": 163,
+        "height": 37
+      },
+      "formStart": 1773.15625,
+      "font_scale": "100"
+    },
+    {
+      "width": 1366,
+      "height": 900,
+      "rootWidth": 1366,
+      "firstScreenButtons": [
+        "应用模板",
+        "另存为新任务",
+        "恢复默认",
+        "校验与预览",
+        "运行仿真",
+        "参数表单",
+        "图形组装",
+        "自然语言",
+        "TaskSpec",
+        "单次离线仿真（当前）",
+        "限时实时 · 审核当前整星配置",
+        "持续实时 · 审核当前整星配置",
+        "去选择",
+        "校验",
+        "运行记录"
+      ],
+      "visibleCreatorText": 4372,
+      "runButton": {
+        "x": 1164.828125,
+        "y": 339.296875,
+        "width": 161.1875,
+        "height": 47.375
+      },
+      "formStart": 1289.234375,
+      "font_scale": "130"
+    }
+  ],
+  "checks": {
+    "no_page_errors": true,
+    "no_horizontal_overflow": true
+  },
+  "scope": "Real candidate TestClient API through isolated Chromium. Root app/native80520 not modified. No model inference performed.",
+  "initial_fields": [
+    {
+      "path": "task.id",
+      "value": "whole_spacecraft_unified_native_v1",
+      "checked": false
+    },
+    {
+      "path": "task.name",
+      "value": "整星数字样机 · 整星统一 Basilisk 运行图（推荐）",
+      "checked": false
+    },
+    {
+      "path": "simulation.duration_s",
+      "value": "60",
+      "checked": false
+    },
+    {
+      "path": "simulation.sample_s",
+      "value": "10",
+      "checked": false
+    },
+    {
+      "path": "simulation.step_s",
+      "value": "10",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.adcs_power_w",
+      "value": "12",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.downlink_power_w",
+      "value": "16",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.min_operational_soc",
+      "value": "0.2",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.payload_max_pointing_error_deg",
+      "value": "20",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.comm_max_pointing_error_deg",
+      "value": "20",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.spacecraft_antenna_orientation_b",
+      "value": "[0,-0.41421356237309503,0]",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.downlink_frequency_hz",
+      "value": "2200000000",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.downlink_bandwidth_hz",
+      "value": "1000000",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.downlink_packet_size_bits",
+      "value": "256",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.downlink_max_retransmissions",
+      "value": "10",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.environment_profile",
+      "value": "simplified",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.epoch_utc",
+      "value": "2026-01-01T00:00:00Z",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.spacecraft_mass_kg",
+      "value": "100",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.inclination_deg",
+      "value": "35",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.orbit_radius_m",
+      "value": "7000000",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.eccentricity",
+      "value": "0.001",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.raan_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.arg_perigee_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.initial_true_anomaly_rad",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.spacecraft_inertia_xx_kg_m2",
+      "value": "100",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.spacecraft_inertia_yy_kg_m2",
+      "value": "80",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.spacecraft_inertia_zz_kg_m2",
+      "value": "60",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.initial_pointing_error_deg",
+      "value": "8",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.controller_k",
+      "value": "3.5",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.controller_p",
+      "value": "30",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_fov_deg",
+      "value": "80",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_scale_factor",
+      "value": "1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_kelly_factor",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_min_output",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_max_output",
+      "value": "1000000",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_normal_b_x",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_normal_b_y",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.sun_sensor_normal_b_z",
+      "value": "-1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.magnetometer_mount_yaw_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.magnetometer_mount_pitch_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.magnetometer_mount_roll_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.magnetometer_scale_factor",
+      "value": "1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.simulation_seed",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_gyro_max_rad_s",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_accel_max_m_s2",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_mount_yaw_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_mount_pitch_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_mount_roll_deg",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_position_b_x_m",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_position_b_y_m",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_position_b_z_m",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_configuration",
+      "value": "orthogonal_3",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.rw_geometry_mode",
+      "value": "legacy_axis_offset",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.rw_axis_b_x_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_y_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_z_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_x_m_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_y_m_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_z_m_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_x_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_y_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_z_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_x_m_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_y_m_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_z_m_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_x_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_y_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_z_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_x_m_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_y_m_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_z_m_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_x_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_y_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_axis_b_z_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_x_m_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_y_m_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_mount_b_z_m_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_friction_mode",
+      "value": "disabled",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.rw_coulomb_friction_nm_0",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_coulomb_friction_nm_1",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_coulomb_friction_nm_2",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_coulomb_friction_nm_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_viscous_friction_nms_0",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_viscous_friction_nms_1",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_viscous_friction_nms_2",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_viscous_friction_nms_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_current_limit_a",
+      "value": "10",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_torque_constant_nm_per_a",
+      "value": "0.02",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_current_limit_a_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_current_limit_a_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_current_limit_a_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_current_limit_a_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_torque_constant_nm_per_a_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_torque_constant_nm_per_a_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_torque_constant_nm_per_a_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_motor_torque_constant_nm_per_a_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_max_torque_nm_0",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_max_torque_nm_1",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_max_torque_nm_2",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_max_torque_nm_3",
+      "value": "",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.rw_max_momentum_nms_0",
+      "value": "50",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.rw_max_momentum_nms_1",
+      "value": "50",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.rw_max_momentum_nms_2",
+      "value": "50",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.rw_max_momentum_nms_3",
+      "value": "",
+      "checked": null
+    },
+    {
+      "path": "parameters.values.sun_sensor_bias_normalized",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.magnetometer_bias_tesla_x",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.magnetometer_bias_tesla_y",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.magnetometer_bias_tesla_z",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_gyro_bias_rad_s_x",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_gyro_bias_rad_s_y",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_gyro_bias_rad_s_z",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_accel_bias_m_s2_x",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_accel_bias_m_s2_y",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_accel_bias_m_s2_z",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_gyro_white_noise_std_rad_s",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.imu_accel_white_noise_std_m_s2",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.star_tracker_noise_std_arcsec",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.initial_soc",
+      "value": "0.62",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.battery_capacity_wh",
+      "value": "160",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_panel_area_m2",
+      "value": "2.5",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_efficiency",
+      "value": "0.28",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_normal_b_x",
+      "value": "1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_normal_b_y",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_normal_b_z",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.bus_power_w",
+      "value": "18",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_tracking_enabled",
+      "value": "on",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_tracking_max_slew_rad_s",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.payload_power_w",
+      "value": "38",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.payload_data_rate_bps",
+      "value": "2500000",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.downlink_rate_bps",
+      "value": "1500000",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.storage_capacity_bits",
+      "value": "6000000000",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_enabled",
+      "value": "on",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_burn_start_s",
+      "value": "30",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_burn_on_time_s",
+      "value": "4",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thrust_n",
+      "value": "1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_isp_s",
+      "value": "200",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_initial_propellant_kg",
+      "value": "1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_tank_capacity_kg",
+      "value": "2",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_min_burn_soc",
+      "value": "0.3",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_min_pulse_s",
+      "value": "0.05",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_0_direction_b_x",
+      "value": "1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_0_direction_b_y",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_0_direction_b_z",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_0_location_b_x_m",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_0_location_b_y_m",
+      "value": "0.5",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_0_location_b_z_m",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_1_direction_b_x",
+      "value": "1",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_1_direction_b_y",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_1_direction_b_z",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_1_location_b_x_m",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_1_location_b_y_m",
+      "value": "-0.5",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.propulsion_thruster_1_location_b_z_m",
+      "value": "0",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.initial_payload_temp_k",
+      "value": "295",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.payload_thermal_mass_kg",
+      "value": "3",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.thermal_earth_ir_w_m2",
+      "value": "234",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.thermal_earth_albedo",
+      "value": "0.3",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.thermal_panel_front_absorptivity",
+      "value": "0.9",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.thermal_panel_back_absorptivity",
+      "value": "0.35",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.payload_radiator_area_m2",
+      "value": "0.25",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.battery_heater_power_w",
+      "value": "12",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.battery_heater_setpoint_k",
+      "value": "286",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.solar_panel_structure_conductance_w_k",
+      "value": "2",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.payload_specific_heat_j_kg_k",
+      "value": "600",
+      "checked": false
+    },
+    {
+      "path": "parameters.values.payload_thermal_emissivity",
+      "value": "0.75",
+      "checked": false
+    }
+  ],
+  "initial_title": "整星数字样机 · 整星统一 Basilisk 运行图（推荐）",
+  "catalog_cards": [
+    {
+      "text": "整星数字样机6 个模型/场景一个整星对象，按任务选择综合、姿轨、电热轨、通信载荷或推进机动场景。",
+      "data": {
+        "objectId": "whole_spacecraft"
+      }
+    },
+    {
+      "text": "轨道与空间环境可独立运行轨道传播、J2、大气阻力和太阳光压等环境模型。",
+      "data": {
+        "objectId": "orbit_environment"
+      }
+    },
+    {
+      "text": "电源3 个模型/场景电源分系统；多个能力合同作为模型变体展示，不重复计数。",
+      "data": {
+        "objectId": "subsystem.eps"
+      }
+    },
+    {
+      "text": "热控2 个模型/场景热控分系统；多个能力合同作为模型变体展示，不重复计数。",
+      "data": {
+        "objectId": "subsystem.thermal"
+      }
+    },
+    {
+      "text": "通信与数据管理3 个模型/场景通信与数据管理分系统；多个能力合同作为模型变体展示，不重复计数。",
+      "data": {
+        "objectId": "subsystem.comm_data"
+      }
+    },
+    {
+      "text": "推进可独立运行推进分系统；多个能力合同作为模型变体展示，不重复计数。",
+      "data": {
+        "objectId": "subsystem.propulsion"
+      }
+    }
+  ]
+}
