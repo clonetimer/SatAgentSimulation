@@ -1,0 +1,172 @@
+{
+  "schema_version": "sat-sim.public-versioned-delta.v1",
+  "status": "LOCAL_PROGRESS_DELTA_COMPLETE_NOT_PROJECT_QUALIFIED",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "f531d502d19dec6160305a8f2da17877aacf667e492eb92db03582b838c251eb",
+      "bytes": 4548
+    },
+    {
+      "path": "evidence/application-source-r34.json",
+      "sha256": "55b806b0d7125ac8d2b5dcf9fef516dfec7f5a4006eb65703706bc6a4d326aca",
+      "bytes": 136784
+    },
+    {
+      "path": "evidence/component-r32.summary.json",
+      "sha256": "2214eb3628856f3ed6d3da43094fc22c6d8fdef34fab3628b11e8a03be1ab187",
+      "bytes": 1132
+    },
+    {
+      "path": "evidence/component-r33.summary.json",
+      "sha256": "c5dd56e39042dce30ecf32b93213e70bd301b788a67308df6d8437cbdaf8b4f9",
+      "bytes": 1324
+    },
+    {
+      "path": "evidence/component-r34.summary.json",
+      "sha256": "8b34ffbf854df6968d6d5a2ca189048798942c77d6bb9cdf385928dfda787f50",
+      "bytes": 1196
+    },
+    {
+      "path": "evidence/r34-full-regression.summary.json",
+      "sha256": "db38a870094e6a49f691df193849ecf7a4eae83305f193b471f5f2d6f3ff76b2",
+      "bytes": 975
+    },
+    {
+      "path": "evidence/r34-short15s-pace.summary.json",
+      "sha256": "5f1afbeb48a7b7927ccb157f451582fe0d5c1a7361f478dd354412efca34b5a5",
+      "bytes": 1582
+    },
+    {
+      "path": "evidence/runtime-source-r34.json",
+      "sha256": "8d88b9142dda39aed910c0257b5dad64ce14f301f5e69402a6a5b6d29cb7ce3b",
+      "bytes": 25655
+    },
+    {
+      "path": "fingerprint-erratum.json",
+      "sha256": "757ce34509a56e5e5f8cd3396aca4ce121c35deaf6e3138beddfe2445d56e9e8",
+      "bytes": 4548
+    },
+    {
+      "path": "fingerprint-support/PKG-INFO.txt",
+      "sha256": "6a4c70c3de8add24a0da7d546cdca29fdcf87d12bc816b1dd2561577954e9a0f",
+      "bytes": 20427
+    },
+    {
+      "path": "fingerprint-support/SOURCES.txt",
+      "sha256": "fcd8f9a7b79264ff0ef9abb8ac251a299940db7460ce27ec99ebd86922ba55f7",
+      "bytes": 42036
+    },
+    {
+      "path": "fingerprint-support/archive-manifest.json",
+      "sha256": "e12bd59d19b91167553aff53e972cd5e3acd5fab4057fee8a12a01333a8756cd",
+      "bytes": 3312
+    },
+    {
+      "path": "fingerprint-support/dependency_links.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "fingerprint-support/entry_points.txt",
+      "sha256": "8ab90e9f283d75a81b103387d83c933c876bda6366f328a78107e0e92d6b417b",
+      "bytes": 125
+    },
+    {
+      "path": "fingerprint-support/requires.txt",
+      "sha256": "eacbf9fdf740edba8e2f9450d0873e180b4a49f7000c904a6358f535da28ccd0",
+      "bytes": 423
+    },
+    {
+      "path": "fingerprint-support/top_level.txt",
+      "sha256": "cd717b1fbedd2c9186d7ba2352055a89bcd160b2721d96bdaae2aff64601a983",
+      "bytes": 201
+    },
+    {
+      "path": "overlay/r32/tests/interactive/test_continuous_console_browser.py",
+      "sha256": "da7c885713a948c2a28a9aae128caaef0f5615e0c0c92e1eb7acf6979f1a0d70",
+      "bytes": 23347
+    },
+    {
+      "path": "overlay/r32/tests/interactive/test_single_run_creator_ux.py",
+      "sha256": "3968836f2cf4866cb6260bea7381ed9d13957c5f08d25fd26aa5a08c25ef2007",
+      "bytes": 35333
+    },
+    {
+      "path": "overlay/r32/tests/test_capability_issue_closure.py",
+      "sha256": "ebab25cb458b37ca717c8daad2b58387853b5b9e092d4520b3e6c9f7660e857f",
+      "bytes": 5865
+    },
+    {
+      "path": "overlay/r32/tests/test_external_gate_closure.py",
+      "sha256": "572107e68e191cafde419055fb5b2c48dbdb47e71921d08b407206798ff2dd73",
+      "bytes": 7090
+    },
+    {
+      "path": "overlay/r32/tests/test_legacy_issue_closure.py",
+      "sha256": "b99075941d5f22b455a97c643174968cbe7551421e856385c8d97127f867fa8b",
+      "bytes": 9651
+    },
+    {
+      "path": "overlay/r32/tests/test_web_workbench.py",
+      "sha256": "312b72ee200440afd47331c0a2b0fc68dfe04d72a2a972acfabb9f814a1baac2",
+      "bytes": 37350
+    },
+    {
+      "path": "overlay/r33/pyproject.toml",
+      "sha256": "751e3ab86464570735e82d88f65f832ff4a6e4b987456a280c2b801bebf4497f",
+      "bytes": 2160
+    },
+    {
+      "path": "overlay/r33/requirements-api.txt",
+      "sha256": "db9084efd76ef69fe340211fdceac75d9e20a5bd975216b4028cd065de30d47d",
+      "bytes": 174
+    },
+    {
+      "path": "overlay/r33/requirements-lock.txt",
+      "sha256": "489a82389feb4dd7e230b77546d414b37586f733cf67a60013698b16af1aa2b5",
+      "bytes": 1637
+    },
+    {
+      "path": "overlay/r34/pyproject.toml",
+      "sha256": "97545397d10e10dfda12b5069512c76c03d13f22b5643697588192ae7b35193b",
+      "bytes": 2195
+    },
+    {
+      "path": "overlay/r34/src/sat_sim/interactive/command_catalog.py",
+      "sha256": "ea8cf8dbb7924d33c599a1da68c6314ec4872912d2031635b54967dc4f4d9ccf",
+      "bytes": 4544
+    },
+    {
+      "path": "overlay/r34/src/sat_sim/interactive/realtime_capability_matrix.json",
+      "sha256": "efb5b660e11b864319b0eb0379dddc40c7c31f96fc60c913c3e5eaec33f597dd",
+      "bytes": 7051
+    },
+    {
+      "path": "overlay/r34/tests/interactive/test_command_catalog.py",
+      "sha256": "46bb24ee8f79d244b0266b1dedd908693cc64e317a3b6a177b6983982df797cd",
+      "bytes": 3821
+    },
+    {
+      "path": "stage-status.json",
+      "sha256": "2236407c97596d78911ff13d56980976c7ae917bd539748575919b9c5bb1a5f2",
+      "bytes": 1073
+    },
+    {
+      "path": "whitelist.json",
+      "sha256": "f7ffeae622a029da314eecec91810215b39785c3ce6725b90f515f9f158082c1",
+      "bytes": 14168
+    }
+  ],
+  "whitelist_sha256": "f7ffeae622a029da314eecec91810215b39785c3ce6725b90f515f9f158082c1",
+  "initial_manifest_sha256": "f687d52c4332ede4bfc2bf8a295e9bf97b1e046628fa1ba8c385f08ebc2dff28",
+  "ordered_steps": 13,
+  "distinct_overlay_paths": 12,
+  "historical_generated_fingerprint_inputs": 6,
+  "R34_full_failed": true,
+  "R35_R36_pending": true,
+  "root_runtime_not_applied": true,
+  "Git_push_by_preparer": false,
+  "previous_unpublished_manifest_sha256": "4daf4c4ef30f8d2c98f2be7561477b46bc423e5115deb137ea518cc0d815ae6a",
+  "encoding_repair_receipt_sha256": "2db32a82130b385514b9eec8f111021824ab97d8f3880a0977bb95f6d3ca15d3"
+}

@@ -1,0 +1,134 @@
+{
+  "schema_version": "sat-sim.public-derived-evidence.v1",
+  "public_derivative": true,
+  "sources": [
+    {
+      "path": "reports/local_requirements_completion/r20-full-regression-v2/junit.xml",
+      "sha256": "7f1cfaad60fb0cd6be0158c51abb49420245248914d07d712a67969e47356561",
+      "bytes": 366278
+    }
+  ],
+  "raw_original_copied": false,
+  "derivation": "Selected original facts only; full raw original with absolute environment paths remains local and unchanged.",
+  "status": "ORIGINAL_FULL_SUITE_FAILED",
+  "application": "72daa676022d9e3afae6a154d067bacc8e70a428c067b16e88db3da1a60c4c4d",
+  "counts": {
+    "tests": 2170,
+    "passed": 2152,
+    "failures": 12,
+    "errors": 0,
+    "skipped": 6
+  },
+  "nonpassing_cases": [
+    {
+      "classname": "tests.interactive.test_native_battery_custom_wheel",
+      "name": "test_r9k_rebuilt_native_wheel_fresh_pid_battery_integrator_parity",
+      "outcome": "skipped",
+      "detail_type": "pytest.skip"
+    },
+    {
+      "classname": "tests.interactive.test_native_parent_death_fence",
+      "name": "test_real_basilisk_subprocess_dies_when_parent_os_process_is_killed",
+      "outcome": "skipped",
+      "detail_type": "pytest.skip"
+    },
+    {
+      "classname": "tests.interactive.test_supervised_continuous_native_runtime",
+      "name": "test_native_worker_death_does_not_recreate_graph_or_retry_tc",
+      "outcome": "skipped",
+      "detail_type": "pytest.skip"
+    },
+    {
+      "classname": "tests.interactive.test_supervised_continuous_native_runtime",
+      "name": "test_live_session_child_crash_preserves_active_sqlite_owner_fence",
+      "outcome": "skipped",
+      "detail_type": "pytest.skip"
+    },
+    {
+      "classname": "tests.interactive.test_windows_native_job",
+      "name": "test_job_not_available_on_linux",
+      "outcome": "skipped",
+      "detail_type": "pytest.skip"
+    },
+    {
+      "classname": "tests.test_agent_prompt_contract_closure",
+      "name": "test_explicit_user_time_does_not_bind_fault_onset[\\u8fd0\\u884c20\\u79d2\\uff0c\\u6545\\u969c\\u57285\\u79d2\\u53d1\\u751f-expected0]",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_agent_prompt_contract_closure",
+      "name": "test_explicit_user_time_does_not_bind_fault_onset[\\u6545\\u969c\\u572820\\u79d2\\u53d1\\u751f\\uff0c\\u8fd0\\u884c60\\u79d2-expected1]",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_agent_prompt_contract_closure",
+      "name": "test_explicit_user_time_does_not_bind_fault_onset[Create a 30-second internal engineering simulation-expected2]",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_agent_prompt_contract_closure",
+      "name": "test_explicit_user_time_does_not_bind_fault_onset[\\u8fd0\\u884c1\\u5c0f\\u65f6\\uff0c\\u6bcf5\\u79d2\\u91c7\\u6837-expected4]",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_agent_prompt_contract_closure",
+      "name": "test_model_duration_mismatch_is_rejected_without_template_replacement",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_explicit_parameter_output_guards",
+      "name": "test_requested_recording_period_is_not_silently_changed_to_step[0.2]",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_guided_numeric_bounds",
+      "name": "test_guided_numeric_bounds_reject_invalid_emitted_values",
+      "outcome": "skipped",
+      "detail_type": "pytest.skip"
+    },
+    {
+      "classname": "tests.test_model_schema_rejection_repair",
+      "name": "test_failed_semantic_correction_retains_its_raw_response",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_p0_engineering_closure",
+      "name": "test_provenance_distinguishes_user_explicit_from_agent_default_and_requires_confirmation",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_script_dependency_governance",
+      "name": "test_non_production_scripts_are_consolidated_under_scripts",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_script_dependency_governance",
+      "name": "test_governance_scripts_are_standalone_and_scanner_uses_lock_without_resolution",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_taskspec_compatibility",
+      "name": "test_explicit_degradation_normalizes_percentage_magnitude",
+      "outcome": "failures",
+      "detail_type": null
+    },
+    {
+      "classname": "tests.test_workbench_task_identity_browser",
+      "name": "test_task_details_cannot_change_editor_update_target",
+      "outcome": "failures",
+      "detail_type": null
+    }
+  ],
+  "warnings_count_source": "Separate original pytest/triage records report two warnings; JUnit case outcomes alone do not count warnings.",
+  "relabelled_as_r30": false
+}

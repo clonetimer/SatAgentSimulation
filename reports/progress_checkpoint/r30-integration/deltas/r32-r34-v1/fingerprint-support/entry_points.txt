@@ -1,0 +1,4 @@
+[console_scripts]
+sat-agent = sat_sim.agent_cli:main
+sat-experience = sat_sim.experience_cli:main
+sat-sim = sat_sim.cli:main

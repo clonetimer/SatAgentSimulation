@@ -1,0 +1,56 @@
+{
+  "status": "COMPONENT_TESTED_PENDING_WHOLE_CANDIDATE_INTEGRATION",
+  "sealed_utc": "2026-10-30T15:21:25.080853+00:00",
+  "candidate": "reports/local_requirements_completion/legacy-degradation-units-r29-candidate",
+  "application": "3d96433bf6b1fed707eec205b00ed9673b4ae2a99c64229d20e20e9cd5cb15e7",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "changed_files": [
+    {
+      "path": "src/sat_sim/capability_agent.py",
+      "before_sha256": "bc859f056d8200ee5b80926ff0cb7bf8a2000c343d3d680b90ace8a867ffa5b4",
+      "after_sha256": "26f7402337ec5461ef31bb7772e0f46c27ebdb25b270c9591d2c951fcc1c0b11",
+      "bytes": 262286
+    },
+    {
+      "path": "tests/test_legacy_degradation_units.py",
+      "before_sha256": null,
+      "after_sha256": "d47cc145e1b7e290b82a7cd6190c39c0fca3cb78319f7092e4c72d97389f7dc9",
+      "bytes": 3664
+    },
+    {
+      "path": "docs/legacy_degradation_units.md",
+      "before_sha256": null,
+      "after_sha256": "92de0f23706550201fd4c68f78b41ce88009fbac8ebee754b227fea48339fed1",
+      "bytes": 747
+    }
+  ],
+  "runs": [
+    {
+      "run": "r29-legacy-unit-regression-v3",
+      "passed": 76,
+      "failed": 2,
+      "skipped": 0,
+      "junit_sha256": "06dd0917af446df1149bb63f152d88384e7805134c2d525132dd1dc157915137",
+      "state_sha256": "3ca3b4a04d6130d31960823413b86b8a7ecb7cfa63807b7e7e2c1ff4b99e74de"
+    },
+    {
+      "run": "r29-legacy-unit-regression-v4",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "junit_sha256": "0290dc83e01ba00abc4662942a31108e98cb5dc7259eaee4158a6e58e5a5b690",
+      "state_sha256": "94bff363a8c4618c09b25375dcc32c49a8fa5b81c7d6eb27c737f58c854fcd5f"
+    }
+  ],
+  "unique_current_production_passing_nodes": 78,
+  "patch_sha256": "1a73866a7a49d97034af3c5cc3d29f1a7c66d9c01ad8096bcf230d941635a61a",
+  "notes": [
+    "Current production source is identical across v3 and v4. V3 passed76/78; its two added rejection assertions assumed a legacy severity/range error, but actual canonical validation correctly rejected both at events.degradations[0].magnitude with TASKSPEC_MODEL_INVALID.",
+    "V4 explicitly checks that canonical path/code and all13 new tests pass. Combined same-production-source node coverage is78, not a single78-pass invocation.",
+    "V1 new canonical-input fixture was malformed and never reached the normalization; repaired fixture starts from a valid normalized canonical degradation then changes its magnitude to10. Original failure retained.",
+    "Earlier v2 had75PASS before the metadata shape guard. Independent P2 metadata finding is fixed by preserving untyped input in an explicit record; no fake history iteration.",
+    "Only v0.1 legacy degradation magnitude percent units convert; raw responses/canonical magnitudes/faults/explicit severity remain unchanged; invalid values reject without clamping."
+  ],
+  "root_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "full_release_or_endurance_claim": false
+}

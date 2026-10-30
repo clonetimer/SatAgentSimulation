@@ -1,0 +1,48 @@
+{
+  "schema_version": "public-evidence-exact-byte-relocation.v1",
+  "status": "INCOMPLETE_CANONICAL_ROUNDTRIP_DEFECT",
+  "at_utc": "2026-10-30T16:52:48.764145+00:00",
+  "scope": "Relocate only the prior four-file public GUI allowlist, preserving every raw byte. No private config/environment/raw API/full telemetry. No upload performed.",
+  "initial_package_manifest_sha256_unchanged": "f687d52c4332ede4bfc2bf8a295e9bf97b1e046628fa1ba8c385f08ebc2dff28",
+  "source_whitelist_sha256": "ea89919ae190c5f322b9224c08a9436da85f3101a58b6a1a5f95f537c73f7d8f",
+  "source_whitelist_copy": {
+    "path": "reports/progress_checkpoint/r30-integration/evidence/gui-r30-v1/source-public-review-index.json",
+    "package_path": "evidence/gui-r30-v1/source-public-review-index.json",
+    "sha256": "ea89919ae190c5f322b9224c08a9436da85f3101a58b6a1a5f95f537c73f7d8f",
+    "bytes": 1308
+  },
+  "files": [
+    {
+      "old_path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/summary.json",
+      "new_path": "reports/progress_checkpoint/r30-integration/evidence/gui-r30-v1/summary.json",
+      "package_path": "evidence/gui-r30-v1/summary.json",
+      "sha256": "5ea307b6230e032a51ba8e4d2fc72db767feda02417a2bf19eb1dd3bb2b6a737",
+      "bytes": 3411,
+      "exact_bytes": true
+    },
+    {
+      "old_path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/01-ready-exact-request-and-v5-provider.png",
+      "new_path": "reports/progress_checkpoint/r30-integration/evidence/gui-r30-v1/01-ready-exact-request-and-v5-provider.png",
+      "package_path": "evidence/gui-r30-v1/01-ready-exact-request-and-v5-provider.png",
+      "sha256": "d7ef8b3faf9d3f58e77b6f2c1ffb662df5a730a453f4495da9adbb1917c7c589",
+      "bytes": 222832,
+      "exact_bytes": true
+    },
+    {
+      "old_path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/02-model-generation-visible-success.png",
+      "new_path": "reports/progress_checkpoint/r30-integration/evidence/gui-r30-v1/02-model-generation-visible-success.png",
+      "package_path": "evidence/gui-r30-v1/02-model-generation-visible-success.png",
+      "sha256": "4e9ab4f0329839c0d523d3060d72391d9e4e18e8e1647a793f81b1af071ddada",
+      "bytes": 220623,
+      "exact_bytes": true
+    },
+    {
+      "old_path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/03-real-ui-script-download.png",
+      "new_path": "reports/progress_checkpoint/r30-integration/evidence/gui-r30-v1/03-real-ui-script-download.png",
+      "package_path": "evidence/gui-r30-v1/03-real-ui-script-download.png",
+      "sha256": "febd84dbfbb1cc99eda5337ebd7b8f321a9bdeb345d274f6c0f945d0d5bce400",
+      "bytes": 213394,
+      "exact_bytes": true
+    }
+  ]
+}

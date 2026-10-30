@@ -1,0 +1,3541 @@
+{
+  "scheme": "application-source-v1",
+  "files": [
+    {
+      "path": "constraints.txt",
+      "sha256": "106e299a18327d9357b990201a9bba99a5ecd12b99465b924612f97a80f22113"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "a3fa38a61b77ef70a0087a648ea97c488e8221502c41ab2abb51be0fba3e6c60"
+    },
+    {
+      "path": "requirements-api.txt",
+      "sha256": "972cd902cd1a2185f545bb1a9c9380d01280e64d0c01552a744814ef63ca065a"
+    },
+    {
+      "path": "requirements-dev.txt",
+      "sha256": "8a5b94fd31a98359d149b7a69fad258f9bd886a34ebe14cd78baf8af6fefc147"
+    },
+    {
+      "path": "requirements-lock.txt",
+      "sha256": "744332822c18b53081fd465d787aacb830f2947ef58834cc14ce9399c197e752"
+    },
+    {
+      "path": "requirements-sft-lock.txt",
+      "sha256": "46bdab2e383891820adf9193706f53bfb736b9cee4175f082b856e5e07d6e1d0"
+    },
+    {
+      "path": "requirements-sft.txt",
+      "sha256": "e1057c9654b78f8d0542580e6ad28c15158dc860c2fef5120e027705b9503ef5"
+    },
+    {
+      "path": "requirements-ui-test.txt",
+      "sha256": "76c181255b4a00f3b0358d8bd80d6faf7dad333fdd4a51e374a5dcd5fcf81cb0"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "dc2fd376dc2ebb3dad291eaf53eab6481b702e44830b44b86e1d2e3d0222f40c"
+    },
+    {
+      "path": "src/__init__.py",
+      "sha256": "c323aa30194058a996d938e8d89c7c43ccb7cfd54dbc7a2944cb5794cb83005f"
+    },
+    {
+      "path": "src/components/__init__.py",
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6"
+    },
+    {
+      "path": "src/components/antenna/__init__.py",
+      "sha256": "eb062ae0511c3411a6a0dc453e45db5e00d127fdf543d1192763e09be5dad2d0"
+    },
+    {
+      "path": "src/components/antenna/builder.py",
+      "sha256": "65ff583adfc881dc80943b9cbbb4320de3aa04fc6162865063b81ac7c1100746"
+    },
+    {
+      "path": "src/components/antenna/degradation.py",
+      "sha256": "1acfe1a8a62dacfb0f991bf93b4d0accc5ce6c8f55d3d552d3638c10cdf04472"
+    },
+    {
+      "path": "src/components/antenna/faults.py",
+      "sha256": "3d361e4485743c5b17720f4ceb8207a23246f9c0b128f53902e3434d9b4b83b5"
+    },
+    {
+      "path": "src/components/antenna/runner.py",
+      "sha256": "84f4e6fe16676df1a9856efcc0bd895f68ee79785bb30f140f513318442e2efe"
+    },
+    {
+      "path": "src/components/antenna/schemas.py",
+      "sha256": "f23aae74748f181735625ad5222a041ec46fb8c795d05c4edde750443312ca46"
+    },
+    {
+      "path": "src/components/battery/__init__.py",
+      "sha256": "45f3b022119d60dcffcba40ccf0cc9d50b579ea82e19c37e44612b0d5c1a0025"
+    },
+    {
+      "path": "src/components/battery/builder.py",
+      "sha256": "faaf3025e766c70e08bdffaa4c7c2db7752cc76c3922ca45efa4b7002d6b4e6a"
+    },
+    {
+      "path": "src/components/battery/degradation.py",
+      "sha256": "46771308e8832041d0a651517ab8f9dda3c049fe4a59a7f31a2841ace11d52a0"
+    },
+    {
+      "path": "src/components/battery/electrical_aging.py",
+      "sha256": "af733f0f68094e5408d4a521ddb3b74fb5f92694ac75c42526de096c81857fe3"
+    },
+    {
+      "path": "src/components/battery/faults.py",
+      "sha256": "98451922ac61828201fe847f3f7349bfb25ca733d17328083296ab7054d93711"
+    },
+    {
+      "path": "src/components/battery/model.py",
+      "sha256": "661edc5e5d6c96c243189b2812eba558314f4128d6aa64b5a6441f97d496e3d5"
+    },
+    {
+      "path": "src/components/battery/runner.py",
+      "sha256": "5a6605fb2dea8179e588187c5191728cc2a6decde5b3c6d5fa5ea28a4bdb028c"
+    },
+    {
+      "path": "src/components/battery/schemas.py",
+      "sha256": "61a35ee9dfd423a1aa59ca567e597dbd5f065c916b274004ea1cce375860eb07"
+    },
+    {
+      "path": "src/components/cmg/__init__.py",
+      "sha256": "b23aefe785de71384edaa4621e3fc7239cb152e0caa5b6c0cd0ae80df85414cb"
+    },
+    {
+      "path": "src/components/cmg/builder.py",
+      "sha256": "d0034fb2dd5a92f71810257bfcc5affc581a0eaf44f2d3d5f71cf127ec439715"
+    },
+    {
+      "path": "src/components/cmg/degradation.py",
+      "sha256": "a78ccb6925ddaa2b55bb7cd4daf9b4e94eb81eb4203574956d732a05f064de7f"
+    },
+    {
+      "path": "src/components/cmg/faults.py",
+      "sha256": "c0b6c6ef5af2152bc39b264b7f3afd8b68105ad90510378a93f1eaf27df0c887"
+    },
+    {
+      "path": "src/components/cmg/model.py",
+      "sha256": "32271428eebf621c239faca898f81f71f631cde4668b65cc53689bcebb2c5ca9"
+    },
+    {
+      "path": "src/components/cmg/runner.py",
+      "sha256": "39ca68e74e7d15f4baccef4af11c1dce85dee970aedb9b6a42396786fe062996"
+    },
+    {
+      "path": "src/components/cmg/schemas.py",
+      "sha256": "63a150ff13e09043e96ebb6ca550cf5a32397b0420f32b369bd5efe4f5c3d672"
+    },
+    {
+      "path": "src/components/comm/__init__.py",
+      "sha256": "092b6bd361ee2254bdf921fe3b5e55dad131333e3dc5521abfdda761a177fe03"
+    },
+    {
+      "path": "src/components/comm/degradation.py",
+      "sha256": "97446fc6899d631633d77ba1e3cee5b833fc8dfb1d32e8ed55a220e40d153b7b"
+    },
+    {
+      "path": "src/components/comm/faults.py",
+      "sha256": "e79e4ba5778eae3ea26fc665b73adb8f70c1db58ccb33c8348149ad7ffd8a248"
+    },
+    {
+      "path": "src/components/data_queue/__init__.py",
+      "sha256": "99ee87ac6554e7663e57cab7ab53858608a66f04fae2897e7dd33cc76f8656d5"
+    },
+    {
+      "path": "src/components/data_queue/builder.py",
+      "sha256": "1702779f7642886a8c926ac99d409844870e98fba2d44d1e4d37319e563d0737"
+    },
+    {
+      "path": "src/components/data_queue/degradation.py",
+      "sha256": "1596a117cffa4cb30e700f7545741fce65147ad53fb3e4e35ffbdaafbf7a8225"
+    },
+    {
+      "path": "src/components/data_queue/faults.py",
+      "sha256": "9c379198925bf06b3a38dbec2dcb53499c7aedf4880fc3cbcb62b5a2fa82c266"
+    },
+    {
+      "path": "src/components/data_queue/model.py",
+      "sha256": "6e47cd5f201ee549b26bee4ee1645d2087ea732e216e9e4aaaa30815c76287fb"
+    },
+    {
+      "path": "src/components/data_queue/runner.py",
+      "sha256": "e1b733b4550812aebf2bc2d9884d0958bf83fc868e3b6dac1dba4b993006bb46"
+    },
+    {
+      "path": "src/components/data_queue/schemas.py",
+      "sha256": "528376a9086f8f38e0ae17dfd0327dd9823f3cba3dcd88e1d90160db38be3238"
+    },
+    {
+      "path": "src/components/degradation_base.py",
+      "sha256": "cd1c8234bd90198a5af0a37d75d568926cd24f70563db8940732789b929a3128"
+    },
+    {
+      "path": "src/components/dynamic_models.py",
+      "sha256": "61e5aa41a45be8326c17032afbe922a40926a1d0419da5c9e584870df82346de"
+    },
+    {
+      "path": "src/components/exceptions.py",
+      "sha256": "2f01dab8ee6832c73183ee31cb0de52cdba86c278015d338f6506ee567bc782e"
+    },
+    {
+      "path": "src/components/fault_base.py",
+      "sha256": "ecfa5680352eaab30d844ab66230209ad0ac91e720639be103601f5434161e4e"
+    },
+    {
+      "path": "src/components/fault_spec.py",
+      "sha256": "833895073e64a18644eacf145bee7f6a8a356a081826ba5ab1c0127f6735ec14"
+    },
+    {
+      "path": "src/components/fuel_tank/__init__.py",
+      "sha256": "656f8ba3d4fbc9b6622ff111a1192d667e1c0082d4c0b73e04c8170fd6c8a22a"
+    },
+    {
+      "path": "src/components/fuel_tank/builder.py",
+      "sha256": "b206d7d34cd17683c5cb4c7a37ce320347b06a20aa40c67a098fdfcf876d4883"
+    },
+    {
+      "path": "src/components/fuel_tank/degradation.py",
+      "sha256": "703b9327dcb41b4bd277f0ef47469cf65c02fe46e415c082b90248ff4bafeafe"
+    },
+    {
+      "path": "src/components/fuel_tank/faults.py",
+      "sha256": "728c484144d4ccfb574700ccc5b258f89fdded91c0c444a63a738d5a49faa295"
+    },
+    {
+      "path": "src/components/fuel_tank/model.py",
+      "sha256": "7e1f01ef0380e1e81d514b807c773a6bf29f757168ea405fa61221d1289e2304"
+    },
+    {
+      "path": "src/components/fuel_tank/runner.py",
+      "sha256": "70ac94150dcd547d8753539b7650d414c2ecac4c175e2646b00125b502b5a0b7"
+    },
+    {
+      "path": "src/components/fuel_tank/schemas.py",
+      "sha256": "582eb804bbfef6dbea0d59f103a9f5399245ee0a55cccf5e98fe07127e638ede"
+    },
+    {
+      "path": "src/components/ground_station/__init__.py",
+      "sha256": "20f88af7c393e37634a8d190c309ad7db5bd4864b517803c25271e8c1262735b"
+    },
+    {
+      "path": "src/components/ground_station/builder.py",
+      "sha256": "c5929251a8c52684a024d081c12f504cf00a9c03a1d2952960148a00c10c7c89"
+    },
+    {
+      "path": "src/components/ground_station/degradation.py",
+      "sha256": "1897c77f7669f075c9975ab6c9eecea34284fc27a1ab3a4b06cbed5ccf6e9729"
+    },
+    {
+      "path": "src/components/ground_station/faults.py",
+      "sha256": "9dd0c9d4bfa26b034f5093221c81f676ef38bd15f9e937531fc48e0645956988"
+    },
+    {
+      "path": "src/components/ground_station/model.py",
+      "sha256": "7701b6fa952f6cad837e41f4e45eb618898fec167f4115aaa64c1206294c33ac"
+    },
+    {
+      "path": "src/components/ground_station/runner.py",
+      "sha256": "e7807d1398beb7f46c2d9257b583ed775e6bf7e1b33f60c0ad2267e9f95719e6"
+    },
+    {
+      "path": "src/components/ground_station/schemas.py",
+      "sha256": "dd056ec743b8e61c0f3bb30898786997639f60c77864f056e0e7141af54a8231"
+    },
+    {
+      "path": "src/components/heater/__init__.py",
+      "sha256": "6e1b42ed618d20e5432cb675276482bb920ec2ea46f0d2983b249b979667efbc"
+    },
+    {
+      "path": "src/components/heater/builder.py",
+      "sha256": "dea56d924da723ed22118d52b3d0b90879bf57afe8a3e9727f8f6be5774ba8b8"
+    },
+    {
+      "path": "src/components/heater/degradation.py",
+      "sha256": "a8a9f8169fd82c97d460259b91d7951fe0a1c4849d05ca64dc0f652136e2f52c"
+    },
+    {
+      "path": "src/components/heater/faults.py",
+      "sha256": "7e743b5a27528303515d9f58967868a3a2d828dc263585e000d75608462eee2d"
+    },
+    {
+      "path": "src/components/heater/model.py",
+      "sha256": "24af570bf92e9e46803948ad8044ebebcf55d892d39f93ff881ce7d5a95abe4a"
+    },
+    {
+      "path": "src/components/heater/runner.py",
+      "sha256": "108ecb45d788a361ee5f26d73c701f1262e10ac9ce57f649a3d874fe67b5496a"
+    },
+    {
+      "path": "src/components/heater/schemas.py",
+      "sha256": "ae010d36f1d5832dcea5d52d2ca5044b4d153dac3ae5974685427f32042b1f67"
+    },
+    {
+      "path": "src/components/imu/__init__.py",
+      "sha256": "3043c2a8a304c228e4a88181019165f4657a68084e0c4d9db127dfe473391145"
+    },
+    {
+      "path": "src/components/imu/builder.py",
+      "sha256": "d18c5fdb3c8fd0a40a7185841cee9267607abd0b59be5489285742f21c3402ca"
+    },
+    {
+      "path": "src/components/imu/degradation.py",
+      "sha256": "80ba119f5b2a6e7da9080f475ed638bbfc9175fd13b35e4eac48d3f934ff85f7"
+    },
+    {
+      "path": "src/components/imu/faults.py",
+      "sha256": "4ae0122f5d730a4b3d9136a7f6c85e0103e7bc45a1118dd4a4c8b7b5a5592a3e"
+    },
+    {
+      "path": "src/components/imu/model.py",
+      "sha256": "e5a78b950e3fbdd905a8669fcd3527020531fda8325f4b751fb9b016bf2c66a9"
+    },
+    {
+      "path": "src/components/imu/runner.py",
+      "sha256": "cf597567c0c88895b56380c51d9f509172a2453bfa4866b219ab5ef0d6f4065c"
+    },
+    {
+      "path": "src/components/imu/schemas.py",
+      "sha256": "021084c781bbd37c89165c980950194e295f7dc3caaf2523e7aabdfc7681cd1e"
+    },
+    {
+      "path": "src/components/link_budget/__init__.py",
+      "sha256": "b01016149d9b45af76d14cb01f55e4f1018f6da15d4a8a06fc3c51d56830cef8"
+    },
+    {
+      "path": "src/components/link_budget/builder.py",
+      "sha256": "2e54400928a624d882d44a35ef6a03b629444ca249a3de0b24ba8b3e518f310b"
+    },
+    {
+      "path": "src/components/link_budget/degradation.py",
+      "sha256": "f508f7841c62829f7d7d73999032ac29d7a3b77d48e3075c1fd456119d746e75"
+    },
+    {
+      "path": "src/components/link_budget/faults.py",
+      "sha256": "a4c79c57a9f9f0d3329fb6f5cc23d8406da101f53fa13d9f16b1dec20de3875f"
+    },
+    {
+      "path": "src/components/link_budget/model.py",
+      "sha256": "0f0e174a6534628e944affd1d5b6ecec91de6f9f92f00003b7834e1c7d2b8466"
+    },
+    {
+      "path": "src/components/link_budget/runner.py",
+      "sha256": "73d998d9e666f66c468588e977ed90d75a7a954b016248fec13ca57ef7f6f13c"
+    },
+    {
+      "path": "src/components/link_budget/schemas.py",
+      "sha256": "7c15d57118962ab1a96c7c40adcc6a1efc801536700f5893f6b40e350ca8914d"
+    },
+    {
+      "path": "src/components/magnetometer/__init__.py",
+      "sha256": "9d4595c63c62f66b69fbd6342d0b4f63bab943769240382fed0e3f884e1d6099"
+    },
+    {
+      "path": "src/components/magnetometer/builder.py",
+      "sha256": "340b7c9e74116ce5a4c07215f03fe11e1f98e9e2fd29b6e5a66cb1f31c7bffba"
+    },
+    {
+      "path": "src/components/magnetometer/degradation.py",
+      "sha256": "858ffeea913e54744a5f6148813b66ee37b6f01894900946abdc7715a5018299"
+    },
+    {
+      "path": "src/components/magnetometer/faults.py",
+      "sha256": "8d4b4cb87604202cdea1c1189800362d2b8ee49f2ff75dc4470be0f63f760dc4"
+    },
+    {
+      "path": "src/components/magnetometer/model.py",
+      "sha256": "de6c7b173476a41779f3b9b711e3d99a000ac8a5887e4784cb7f1fa282494516"
+    },
+    {
+      "path": "src/components/magnetometer/runner.py",
+      "sha256": "b07b9ee78252f376641611eebd0c5aa71535d868e8362b03710ce70ac8a04dd4"
+    },
+    {
+      "path": "src/components/magnetometer/schemas.py",
+      "sha256": "169a36018a033b6c8f0171edcce1504ffa2bb3b377bb9f7e4d9a48b0532a91ee"
+    },
+    {
+      "path": "src/components/mtb/__init__.py",
+      "sha256": "384fb10f69b2bc774024cc25a2cd2a81fc0d38cc079ba377c4ef6e241fbda619"
+    },
+    {
+      "path": "src/components/mtb/builder.py",
+      "sha256": "72e05a37148cfba0c9d62823c04c269ad71cf91187e3e2cf6132ec9aaa28aeda"
+    },
+    {
+      "path": "src/components/mtb/degradation.py",
+      "sha256": "ee9c29171d368ede802792174c4487c66ce47b00b962b64595a83bbe175c7c3d"
+    },
+    {
+      "path": "src/components/mtb/faults.py",
+      "sha256": "c7b92a8c058329dfc7d034d44568c3297c2304305ddecac2ae5d972112385dc4"
+    },
+    {
+      "path": "src/components/mtb/model.py",
+      "sha256": "aeb53842f7d4284463e18f95a4fc83932ee18e124fe110216d0684f0eca81e51"
+    },
+    {
+      "path": "src/components/mtb/runner.py",
+      "sha256": "bdaabbd6fa207820b222f1dd992763d9f386fe0ae6437b0783b201f34eb915e5"
+    },
+    {
+      "path": "src/components/mtb/schemas.py",
+      "sha256": "443b08249fdca264d51f605640842f903e7c586c4c31fdc680cf365daeef284f"
+    },
+    {
+      "path": "src/components/onboard_storage/__init__.py",
+      "sha256": "99e7656a3190a3085e1db113b3a047cbf83136097da959a6be9e66a7c30b4518"
+    },
+    {
+      "path": "src/components/onboard_storage/builder.py",
+      "sha256": "b6979c376195f22ce75128fd30a4fb9dd4e58d0f0bfea3d5e4f679d1895a15da"
+    },
+    {
+      "path": "src/components/onboard_storage/degradation.py",
+      "sha256": "68ddf402b7343e5c87794ac857e529ced69ccc5adce3da33221820c20f362ecb"
+    },
+    {
+      "path": "src/components/onboard_storage/faults.py",
+      "sha256": "15c2ab46649fb9820c59d9ca6450ac7f339bd27897165748e88ac0527214e439"
+    },
+    {
+      "path": "src/components/onboard_storage/model.py",
+      "sha256": "19a7067d04b6db0664294237012d6ecd0b2551038bebcfef4f0b41a030082bcd"
+    },
+    {
+      "path": "src/components/onboard_storage/runner.py",
+      "sha256": "59a51e9468ad16d124014a8703e0dc9bc8e9fb98dd47c7c6dbda6b2bc3987104"
+    },
+    {
+      "path": "src/components/onboard_storage/schemas.py",
+      "sha256": "a5ae0910949b0674b079f32e4c734ec974b9bd6807f075fae934b6945e1d24da"
+    },
+    {
+      "path": "src/components/payload/__init__.py",
+      "sha256": "40bf6083c7fb5c6f9548c5a98fb8a449da170cabe615c5ea2e30a91f64fa9c46"
+    },
+    {
+      "path": "src/components/payload/basilisk_impl.py",
+      "sha256": "649a4787efdd666c10233c164453571325f16a0f669f86d97bd1f6fb091587ac"
+    },
+    {
+      "path": "src/components/payload/builder.py",
+      "sha256": "0a9dae15df8a2daea1369f2c701493adb1679f7634d71a0c6e41e36f32437b84"
+    },
+    {
+      "path": "src/components/payload/degradation.py",
+      "sha256": "8fbb5fd26297480f04e12e7cc8f63cc89433957e262cf75b98057ca49c3d8c8c"
+    },
+    {
+      "path": "src/components/payload/faults.py",
+      "sha256": "872811e0ce4d8ed1035d7e351d042281f68aa2c6c74688d2b753bfd203086741"
+    },
+    {
+      "path": "src/components/payload/model.py",
+      "sha256": "8de6215659d813a95096dfec4020bd9342e6fae2dfc0c7a3bfd6f5cc8bafa05d"
+    },
+    {
+      "path": "src/components/payload/runner.py",
+      "sha256": "8be5901fb619fdfda634a16ee0c0e82997017c55e686d5d1448517596c76b417"
+    },
+    {
+      "path": "src/components/payload/schemas.py",
+      "sha256": "85e95b429f65c91e902ac750931675d97a7322841706b47a11baa5f35a6e0a09"
+    },
+    {
+      "path": "src/components/payload_sensor/__init__.py",
+      "sha256": "927743e4872ea7cd62875e76e4508e24567dee447d20067bb9411734ef3b2f78"
+    },
+    {
+      "path": "src/components/payload_sensor/builder.py",
+      "sha256": "23fb5449f4d34f0c58316218c037e64090461dae86f0590f7d6db5d2ba8049dd"
+    },
+    {
+      "path": "src/components/payload_sensor/degradation.py",
+      "sha256": "ee1fdf2ac6291d50a0080b288460d566ba86e51b5e7f3bcb3546f24fe1e2a6f8"
+    },
+    {
+      "path": "src/components/payload_sensor/faults.py",
+      "sha256": "72af70d180f9c8a604c68e8556906b95a03b96edb131c2e787a50d071c0693eb"
+    },
+    {
+      "path": "src/components/payload_sensor/model.py",
+      "sha256": "0623c3c1580666bcf253ff91f638177e1b2e570b52bfcbf5aeac4e4488c20bb9"
+    },
+    {
+      "path": "src/components/payload_sensor/runner.py",
+      "sha256": "cd99cc45e85d8622765e1244492c9010402bc0df9292196dcd44931bbf820ca1"
+    },
+    {
+      "path": "src/components/payload_sensor/schemas.py",
+      "sha256": "24ddba1a9a5bc2246c8dbcae6f0ec88624a41fb3fb7df39a018fa20c75169be5"
+    },
+    {
+      "path": "src/components/pdu/__init__.py",
+      "sha256": "17b42845cde90bc50aa406e4d80ba91d11745566889f3d7911623a1928d90a55"
+    },
+    {
+      "path": "src/components/pdu/builder.py",
+      "sha256": "61c506c9fa89c8d07c77fc7e396a2b66d29030ab4a45b11c130ea96f04eec89a"
+    },
+    {
+      "path": "src/components/pdu/degradation.py",
+      "sha256": "c59ac3abad93d2853687d564820451075618966be50f3d004fb71ac83e75a7c1"
+    },
+    {
+      "path": "src/components/pdu/faults.py",
+      "sha256": "cb781850dea7e4b30ced3f980416e781346644f1d59011d71f1ec29b4bb0550c"
+    },
+    {
+      "path": "src/components/pdu/model.py",
+      "sha256": "aa927daba826e551b1554b57d748047de328285edc1b4f78223a4935ad87b2b5"
+    },
+    {
+      "path": "src/components/pdu/runner.py",
+      "sha256": "e4c330c85a7c7cb97aed53a31678b7da3dde00b640e5cbfd01b82badfb9f8466"
+    },
+    {
+      "path": "src/components/pdu/schemas.py",
+      "sha256": "64867ece81db666039d37902955d882ad5364be0371451ea5ef0d0dbb89e41db"
+    },
+    {
+      "path": "src/components/power_sink/__init__.py",
+      "sha256": "295b4fd69b7657049271cb98645e88bb81c81d4b560a89062a8c8560cb9bf7cc"
+    },
+    {
+      "path": "src/components/power_sink/builder.py",
+      "sha256": "1248dffcecde4cd8a304b04e08463d93f2bfb10e721933ff55fa0da263b5ea1d"
+    },
+    {
+      "path": "src/components/power_sink/degradation.py",
+      "sha256": "a590c3a774248b68852f8fb331c781c1b1e8316676ca3317724e39a6b645fe75"
+    },
+    {
+      "path": "src/components/power_sink/faults.py",
+      "sha256": "c347c9b8e7afad9fffc3806aaedd87d822cf6deb54932876ed25e57465163e23"
+    },
+    {
+      "path": "src/components/power_sink/model.py",
+      "sha256": "bee61249dbe353ccbd4d157115f56663499bc923c79d1eda5221cc190f7d1e6d"
+    },
+    {
+      "path": "src/components/power_sink/runner.py",
+      "sha256": "248c90fcc872456be0e1ac4fe0160a47e751e4b75c1a542b9a3ba5106769192f"
+    },
+    {
+      "path": "src/components/power_sink/schemas.py",
+      "sha256": "c9331fd4d0bd99f2b1d6148c08e20b21ed85a1f979f6eed8534dcdacec49a8ba"
+    },
+    {
+      "path": "src/components/radiator/__init__.py",
+      "sha256": "7b96270d240740f27c9a04245e9bc5d720d47bd5ab2f4779504a048e06b254dd"
+    },
+    {
+      "path": "src/components/radiator/builder.py",
+      "sha256": "e7bc4d921d04845380e3406cd25889c84fdc3d62c1e3457d21bcd864fff91e0b"
+    },
+    {
+      "path": "src/components/radiator/degradation.py",
+      "sha256": "e91393175d8fd6411aeb27e943f90b3bb2824a6be134ff6d9c8bc530251cd3a5"
+    },
+    {
+      "path": "src/components/radiator/faults.py",
+      "sha256": "202314ae75268c6fffaf9feb04d2d2ad5e6601b845eca1b07924e274db795306"
+    },
+    {
+      "path": "src/components/radiator/model.py",
+      "sha256": "b2fb1cfbcb23ded13a0b40a17476545f48e86dc1cd958101f98147e15db97b27"
+    },
+    {
+      "path": "src/components/radiator/runner.py",
+      "sha256": "d430689f9f41427d3520595f3078dfe484f55f0379a68c0c8d97f11b8162a77e"
+    },
+    {
+      "path": "src/components/radiator/schemas.py",
+      "sha256": "c70b966743403768b111ff14343a73340b188e05bef808b61e65699f8d92bf12"
+    },
+    {
+      "path": "src/components/reaction_wheel/__init__.py",
+      "sha256": "e80a71fda41c5ad02a8a0c8ce83d78c916615c50c928c38f9845aa7d94590184"
+    },
+    {
+      "path": "src/components/reaction_wheel/builder.py",
+      "sha256": "882237b1bfd6884337303a8fa79624913eddfff26b60ad1a059bb0d0ed5b9c05"
+    },
+    {
+      "path": "src/components/reaction_wheel/constraints.py",
+      "sha256": "4a1e319b4c971ccd22bb25c1b8785eca4bfe9a77e63558d969feeb617be74dc5"
+    },
+    {
+      "path": "src/components/reaction_wheel/degradation.py",
+      "sha256": "e2f56d8a62ab5300965d424bee48cadce099adc3a4e886694b6f0126043e6032"
+    },
+    {
+      "path": "src/components/reaction_wheel/faults.py",
+      "sha256": "11c6d7da701b30b963ef13f7f4b058892b5c6b6db54a304e22cbfcf9c8ce6d19"
+    },
+    {
+      "path": "src/components/reaction_wheel/model.py",
+      "sha256": "c02994034d5b0292a3a8c853bfd11113a5495c4321d3e4c67fd9b61a66556f4f"
+    },
+    {
+      "path": "src/components/reaction_wheel/runner.py",
+      "sha256": "5aea564fd8c8f17881b19103b7782cde13d022a9047490ad060eb96d46937cf0"
+    },
+    {
+      "path": "src/components/reaction_wheel/schemas.py",
+      "sha256": "bdfdaf25f734c8adbe55c34d8a10f1ca06c7d61fa258d9bd787b822386b5b2a0"
+    },
+    {
+      "path": "src/components/runner_common.py",
+      "sha256": "0c81bf3e26d5e28c70521d867bea0d51f11dbf363827dc397094605955de3e75"
+    },
+    {
+      "path": "src/components/sensor/__init__.py",
+      "sha256": "c45ed5f206bd9ca147f9e4766d2a57134f0c416a0ab972c9ef52ba3ed7435db6"
+    },
+    {
+      "path": "src/components/sensor/degradation.py",
+      "sha256": "46c53ce48bec60f4577aad6d94ac7fa7479919764c6a04f3c88baec83daa2dae"
+    },
+    {
+      "path": "src/components/sensor/faults.py",
+      "sha256": "12b27a3969da02cb61b11d8c54ff728f8a6685a5222dfd6ec035173c852c25ee"
+    },
+    {
+      "path": "src/components/solar_panel/__init__.py",
+      "sha256": "a75619a8e3dcf41b24a5e580f687795f3b46fa746b7d12766f1215b8da30f377"
+    },
+    {
+      "path": "src/components/solar_panel/builder.py",
+      "sha256": "e2b8b2946f2e7a30f46c7072c6a853ab0e6dd21efa353bf7718270550ae571e3"
+    },
+    {
+      "path": "src/components/solar_panel/degradation.py",
+      "sha256": "8ab2e2bbd2f0fc0b8a602c28de61cf977524b43b528abd3b0fbb2f9c44a671e2"
+    },
+    {
+      "path": "src/components/solar_panel/faults.py",
+      "sha256": "22495afb52f1a29d611c77729364775e41e9983f534f2b56356cc849e9140886"
+    },
+    {
+      "path": "src/components/solar_panel/model.py",
+      "sha256": "9ab89e05dba9915da855dcdf5603b9b9256d4f2bbd0e4ebc78a7097fcf000d61"
+    },
+    {
+      "path": "src/components/solar_panel/runner.py",
+      "sha256": "0e1a064edf96c989921e7ee9ea30b817307ac6c30259e9721f1cfd6d033e5544"
+    },
+    {
+      "path": "src/components/solar_panel/schemas.py",
+      "sha256": "ba389305fdbd6db4b4e33a2e9072dee4186de22242a50e4eacbe3ed2c3d882d7"
+    },
+    {
+      "path": "src/components/star_tracker/__init__.py",
+      "sha256": "8a8140e2406c50a6cef641fb22381cb2fc606c4d380efd24325fe8da17ae487c"
+    },
+    {
+      "path": "src/components/star_tracker/builder.py",
+      "sha256": "d57a237bcef7e1a61de85f4a119e36de730e5821efc335d3404991f018ec9067"
+    },
+    {
+      "path": "src/components/star_tracker/degradation.py",
+      "sha256": "5010c5abc59b18e2877be35dc9ce0852b11cddda76df8e89617fe98046ac7aa2"
+    },
+    {
+      "path": "src/components/star_tracker/faults.py",
+      "sha256": "6cdecc5290c5c5f2d4e89ac3cc105e86f97faf87f742c78e82479f6fdb1b8dae"
+    },
+    {
+      "path": "src/components/star_tracker/model.py",
+      "sha256": "90ed817c62dff98ad501e70d45e8c3e5b2335be90e1bd66404b1ee905c05fe82"
+    },
+    {
+      "path": "src/components/star_tracker/runner.py",
+      "sha256": "92375bcc319a2ca1e51a033cb755a561e76ec000c1049c97adc337f34dedab24"
+    },
+    {
+      "path": "src/components/star_tracker/schemas.py",
+      "sha256": "15eb69f2d6c350b19b2c97db371bf21fcd118ed376d04ee459c8b78c79a0e44e"
+    },
+    {
+      "path": "src/components/sun_sensor/__init__.py",
+      "sha256": "e58fc4cffa7c43db9fb08cb672d2bf00f477ccd791ae965cb2308afebc94940f"
+    },
+    {
+      "path": "src/components/sun_sensor/builder.py",
+      "sha256": "f58f2ef31b1bea9901397d22c3730dfbf168a2280f8bdec55e87f9320fe7444c"
+    },
+    {
+      "path": "src/components/sun_sensor/degradation.py",
+      "sha256": "d8bc2a091baf19205ca74a71a96a37dacb57aef75cd89897847d5fdd3b66d2d4"
+    },
+    {
+      "path": "src/components/sun_sensor/faults.py",
+      "sha256": "9ee49e340174abffca93193f48c7f905697ae8e3080db98ca049488832d5f08e"
+    },
+    {
+      "path": "src/components/sun_sensor/model.py",
+      "sha256": "bda6086b6686f905e15716c2d73ceaeb66807af46fd0c900f3b1929ac816e63d"
+    },
+    {
+      "path": "src/components/sun_sensor/runner.py",
+      "sha256": "c2fee266c75f96e3f53083e0df278a43095978013b146372d744626a81e49bcf"
+    },
+    {
+      "path": "src/components/sun_sensor/schemas.py",
+      "sha256": "b541dfb42179e9c91e35e82df40cde9f2d329fd55ed28c56eb17aa2865439e73"
+    },
+    {
+      "path": "src/components/thermal_node/__init__.py",
+      "sha256": "ae5a219f21fd30349d3d879836519494205e1718ee2e5fe584bf4a5a2298fbbb"
+    },
+    {
+      "path": "src/components/thermal_node/basilisk_scheduled.py",
+      "sha256": "79c92a2a7583137980b17cecf7a69530c1cc68c080323b4a4e5b574d2f7172de"
+    },
+    {
+      "path": "src/components/thermal_node/builder.py",
+      "sha256": "6a8629df562367864f5cb839a740382e6bfdd38ab2a6358f4ce8d0b31b9fb60a"
+    },
+    {
+      "path": "src/components/thermal_node/degradation.py",
+      "sha256": "681074fa3b341f807f30c407bb9a7fec552fa1d8550330b706f97bfa3d90663f"
+    },
+    {
+      "path": "src/components/thermal_node/faults.py",
+      "sha256": "e6077dac875a4a5d01b4e379d6fdf153f4003e94cf280867381e38c854a73651"
+    },
+    {
+      "path": "src/components/thermal_node/model.py",
+      "sha256": "2abc807844fcc496e625c4e16cfcb20f53b1c67aefdecb1163af5be470b825a0"
+    },
+    {
+      "path": "src/components/thermal_node/runner.py",
+      "sha256": "ef5ba46e4b9823a27c8222f5b59eac998213114c2a65e766b76ac2879a16f11c"
+    },
+    {
+      "path": "src/components/thermal_node/schemas.py",
+      "sha256": "981fa5d4fa15c6c6342ffedac9263c76a7f6ce605ddc5c7ecc38fe0d077921ff"
+    },
+    {
+      "path": "src/components/thruster/__init__.py",
+      "sha256": "a8f7248043f07c48cfe591f0176fafad701c2fe0199ee23c3dbe47f65fb03c97"
+    },
+    {
+      "path": "src/components/thruster/builder.py",
+      "sha256": "b05f3ccfd95ab7cd97799336f1c140c3f3f011335466d3c1d1db83880e2d4085"
+    },
+    {
+      "path": "src/components/thruster/degradation.py",
+      "sha256": "c7918dc100d5e23443ff95cc2a390d34488e4c768fcb800e3f17e44d347e79e6"
+    },
+    {
+      "path": "src/components/thruster/faults.py",
+      "sha256": "5bb58bb3d6d3cf5447abeb5448d5c25b498a09e5985898c5afc94750c54db2c8"
+    },
+    {
+      "path": "src/components/thruster/model.py",
+      "sha256": "79e0e586bd19e9b5287594f11f354041bd1d4c5309f54a0b2d2788ed81c36fae"
+    },
+    {
+      "path": "src/components/thruster/runner.py",
+      "sha256": "76d089dd644b5edaef3a8048078a851d9611cc43e752d75fa0dd45100bb43ee9"
+    },
+    {
+      "path": "src/components/thruster/schemas.py",
+      "sha256": "c4ebe9835877a682c86ceb4456d155e9e29138c6fdd97a4cfb8e1240c6bcb45b"
+    },
+    {
+      "path": "src/components/transmitter/__init__.py",
+      "sha256": "aad96f439a4f16042c06f6539452ff2b3a3b7c890bdad9fb3701cf83fe8e4d0a"
+    },
+    {
+      "path": "src/components/transmitter/builder.py",
+      "sha256": "52e816e5764232efca79e104caa161c504c8f489bd79faafc88e558fa8dda1c2"
+    },
+    {
+      "path": "src/components/transmitter/degradation.py",
+      "sha256": "5784c905f1f0564a34bc0b72ba7708b6bfa3e65a473ac32ebed0d96e932ac4ae"
+    },
+    {
+      "path": "src/components/transmitter/faults.py",
+      "sha256": "082753e27cce4c04570d5714961bc9f2780005b38e2901b04c50cf033ded47d7"
+    },
+    {
+      "path": "src/components/transmitter/model.py",
+      "sha256": "265186b6e80ca9e92b43892812b3cca27aafe747e4ed2e8c4dab89d5e574c6d4"
+    },
+    {
+      "path": "src/components/transmitter/runner.py",
+      "sha256": "b987dea66316ae0167d7c9017c92b719a2d1769d1a471dcdbc8b47fbc0b3081e"
+    },
+    {
+      "path": "src/components/transmitter/schemas.py",
+      "sha256": "9548cbaa799f4c2d3edb65e22309a2d1398ed80fdc020ddf34054844a56e33d4"
+    },
+    {
+      "path": "src/integrated/__init__.py",
+      "sha256": "ea1b69e19b75035d5f3f374151e3e0d2bfd16cd42021371f310c2d1ef2de468f"
+    },
+    {
+      "path": "src/integrated/orbit_environment/__init__.py",
+      "sha256": "e4a62abbc22f3ac202a554210455df97d5df63b91881e06f278dc4d634e59f17"
+    },
+    {
+      "path": "src/integrated/orbit_environment/assets.py",
+      "sha256": "3890d481ff38cb4f342fd8efb227b2af475a07835def6b34d7eb7b4f6e3a0e66"
+    },
+    {
+      "path": "src/integrated/orbit_environment/basilisk_impl.py",
+      "sha256": "75f9f3dc297d6ed9cfa42603c693c0f30e22188aaf7b687534e759159d22c78e"
+    },
+    {
+      "path": "src/integrated/orbit_environment/builder.py",
+      "sha256": "655a669f96b185502bbe08abfaf3284db1406430ef6e0503a2120ab484134e1f"
+    },
+    {
+      "path": "src/integrated/orbit_environment/harness.py",
+      "sha256": "072e3a632105d00348f2d7fdc2e4e98bec2217bcdc7072a987d33a8cc144c937"
+    },
+    {
+      "path": "src/integrated/orbit_environment/model.py",
+      "sha256": "bfaea90273b3e40069cf3b4edd5a43b2872a7e2d645b687c4187c4979de9b5e2"
+    },
+    {
+      "path": "src/integrated/orbit_environment/schemas.py",
+      "sha256": "f1fdd6650607c4fdac9f986413c64b9f6c1d1146bf293074ecd9b18284f7b8f2"
+    },
+    {
+      "path": "src/integration/__init__.py",
+      "sha256": "b2895c134dd1eb62416a0180a01f0fa66ca4a7230e7e390426614fd64f4e7ab8"
+    },
+    {
+      "path": "src/integration/qoi_profiles/__init__.py",
+      "sha256": "fbfbfbf13e8ed8c774539bad5494aec11a2d3ffb1882472f4bd7977e454942b8"
+    },
+    {
+      "path": "src/integration/qoi_profiles/dynamic.py",
+      "sha256": "3804a87770f2aeb5cb4201555f99363f2eca384e19542de394af2c3168fe1745"
+    },
+    {
+      "path": "src/integration/qoi_profiles/pairwise.py",
+      "sha256": "2b2ad81ba4521d1d4b2b878097c9888690fc51b021502ea462501b7a17a27409"
+    },
+    {
+      "path": "src/integration/qoi_profiles/resource_closure.py",
+      "sha256": "b6dee00565a439c8f71bb080ce8d1b0c4f6b54901b9181791b3d287255172cd4"
+    },
+    {
+      "path": "src/integration/resource_feedback.py",
+      "sha256": "03ba07df827a86840155a2468af9c656f2c3829eb197e20c01b5c046d821d053"
+    },
+    {
+      "path": "src/integration/whole_spacecraft_links.py",
+      "sha256": "d0f598bc02de208af04b436a1baf2fcfde3f525243543aeb23f9104c3f3875e1"
+    },
+    {
+      "path": "src/mode_inventory.py",
+      "sha256": "e7ba3fdfd77c0ee2c0d4f41d2ee92d517f45b2335441ea8ae76b5868a6dc03a2"
+    },
+    {
+      "path": "src/parameters/__init__.py",
+      "sha256": "ed4252fe198bf0e03e438b30ef089eada5ea9336d3bc20bfa0e9b2ee9031a02c"
+    },
+    {
+      "path": "src/parameters/data/demo_parameter_registry_v1.json",
+      "sha256": "29fae52d413c260a420184a86a7bb78ca07bb5c58b58f731c7723228774f57ec"
+    },
+    {
+      "path": "src/parameters/data/engineering_estimate_registry_v1.json",
+      "sha256": "ed43e1707145c0377119f340016f1b1bc32867cc81458039d9d58b15f3c958d6"
+    },
+    {
+      "path": "src/parameters/data/evidence_sources_v1.json",
+      "sha256": "8c04c0731e32dd05b891eaa01d15567933616d7c34609e4284a4261b196b194f"
+    },
+    {
+      "path": "src/parameters/evidence.py",
+      "sha256": "b194c4cb36846bc980514ba04d301ece4a141a76d1484f3a798f2066cdac0521"
+    },
+    {
+      "path": "src/parameters/provenance.py",
+      "sha256": "2bc737abf652748181ccd554a3efe319d8779b1f32f976e296db5b93ef27d1df"
+    },
+    {
+      "path": "src/parameters/resource_paths.py",
+      "sha256": "b4b22e3613195b937469a52c53077bdf80b3775bee3ccf9e4d2f88234d67146d"
+    },
+    {
+      "path": "src/sat_sim/__init__.py",
+      "sha256": "8fb0dadfb5dcca42862bd18b5a4276b3ae098d3fb7c470d56e8f6712fc59d388"
+    },
+    {
+      "path": "src/sat_sim/a3r/__init__.py",
+      "sha256": "b0dd62509b8e62cba8f5df56a15fa23a148936fda90e9a9b278ba56222f82ea9"
+    },
+    {
+      "path": "src/sat_sim/a3r/adapter.py",
+      "sha256": "0f585284cafde1ba5d463db7f180a1a57b54a7a5d1cfb93ba9668dc1b4076bc2"
+    },
+    {
+      "path": "src/sat_sim/a3r/capability_adapter.py",
+      "sha256": "5403722dfed395231f23bbe77f3fcc2a9e528532711d11ebd5ba341a6d75b00f"
+    },
+    {
+      "path": "src/sat_sim/a3r/projection_api.py",
+      "sha256": "bc30ea3849e705a60b0ff8c9aa4f04429429f93990f15f3642b93e583425c1c8"
+    },
+    {
+      "path": "src/sat_sim/a3r/resolution.py",
+      "sha256": "305e6147d0385dd6edadc0ef1b076cf957e2f250c3a84b3c8a74d4db2f64a90e"
+    },
+    {
+      "path": "src/sat_sim/a4r/__init__.py",
+      "sha256": "34f93b7ef29c54a5959d76ecd8ebbc2c7998fab28dffe6515927259a855c4092"
+    },
+    {
+      "path": "src/sat_sim/a4r/adapter.py",
+      "sha256": "bd4f2387340e6d4d182b31755b075a2656310de4a61935377724b7e35de494a1"
+    },
+    {
+      "path": "src/sat_sim/a4r/projection_api.py",
+      "sha256": "0efa45efc9f2729c4f6c280d30bf8025d4a3e6ce52c66b75c24c5029d7288d32"
+    },
+    {
+      "path": "src/sat_sim/a4r/resolution.py",
+      "sha256": "7dce63267c22e70e2612794312f80f57d8d26a627cddf353936cc8d195d952f5"
+    },
+    {
+      "path": "src/sat_sim/a5r/__init__.py",
+      "sha256": "db64cf9351ad2e85a76b53b0f793f8791e77013dd36f52722c1d678ffe284ba1"
+    },
+    {
+      "path": "src/sat_sim/a5r/adapter.py",
+      "sha256": "602c39e9bff97f0ce1b0e069e60369d36721d0a5cd453e55f0ff9051d16ba5dc"
+    },
+    {
+      "path": "src/sat_sim/a5r/projection_api.py",
+      "sha256": "7d6af29e56f1f68071dba9c98991fcc6b7d1423d4d4e246fbd86d05b6cd3587a"
+    },
+    {
+      "path": "src/sat_sim/a5r/resolution.py",
+      "sha256": "eb288daf57ec76dfafbe1aa6475e725cae8c8bfbba947c916df589b30272b463"
+    },
+    {
+      "path": "src/sat_sim/actuator_contracts/__init__.py",
+      "sha256": "10206219a2eaeb1e4dc0436d7e2fd2bcb063f0b70a7553ab58a664526bb58dcd"
+    },
+    {
+      "path": "src/sat_sim/actuator_contracts/adcs/__init__.py",
+      "sha256": "635a8bb2d1ac8eace29451f600fe2fc4d1654d7f96450d378148bfd664b34717"
+    },
+    {
+      "path": "src/sat_sim/actuator_contracts/adcs/rw_engineering_reference_v1.json",
+      "sha256": "557a30e37e57ab5c7a41c6b0e3190f0aea7b6f50cd368c9e3360e0a6d143532c"
+    },
+    {
+      "path": "src/sat_sim/adapter_base.py",
+      "sha256": "fd2b3995d2bfb3675215a03e396ab8eb5b607e31163085b72ee92e0cfde0f3af"
+    },
+    {
+      "path": "src/sat_sim/adapter_effects.py",
+      "sha256": "bdd5eebeb6a34b116960269218429935e5f10a5b89a87c2a9ba45cd447542b41"
+    },
+    {
+      "path": "src/sat_sim/adapters/__init__.py",
+      "sha256": "59b8469c8edd6a4ca35ad01098c99690bc7efd9ad664469cdd9bcbe93e3706c0"
+    },
+    {
+      "path": "src/sat_sim/adapters/component_battery.py",
+      "sha256": "04791911f23ecba82062f1b36424628a525b67d2fa1ad5af9f74a704d3abde7f"
+    },
+    {
+      "path": "src/sat_sim/adapters/component_data_queue.py",
+      "sha256": "ee2f2b78f70614c505261d011e05fe927007229ecac39cc9b6cacf8f16c036f8"
+    },
+    {
+      "path": "src/sat_sim/adapters/component_mtb.py",
+      "sha256": "fde456fc98163098c69f947b6559d1baadab1ae11058be068736fbd88179df78"
+    },
+    {
+      "path": "src/sat_sim/adapters/component_onboard_storage.py",
+      "sha256": "a8af4be764f9dddbf0a4b7e91282d008b2c7d0f3bfec2f4e99297ec62a55c1ef"
+    },
+    {
+      "path": "src/sat_sim/adapters/component_reaction_wheel.py",
+      "sha256": "02073cc56f03bbd03fad58b4ba8b411b21e678135e196b62f2712b344e3d3e8b"
+    },
+    {
+      "path": "src/sat_sim/adapters/component_solar_panel.py",
+      "sha256": "401d7b98d1565d2edfe9a35a2e1e18d7936d818742ed048ab6af190668f8ae91"
+    },
+    {
+      "path": "src/sat_sim/adapters/component_source_native_misc.py",
+      "sha256": "4626edd9d9877fbcd70140bd7b9153d251ae90d53e62c54ad7d9e94f03e98e82"
+    },
+    {
+      "path": "src/sat_sim/adapters/native_reaction_wheel_cluster.py",
+      "sha256": "7cd4cb375220f91de9455530d0b0c4805de08cb811de1d74452e709b5d99babc"
+    },
+    {
+      "path": "src/sat_sim/adapters/orbit_environment_basilisk_hf.py",
+      "sha256": "a9405dd20ec79d51af492126560289b6abf5a9a124ad916503fdc7ec289508e0"
+    },
+    {
+      "path": "src/sat_sim/adapters/orbit_environment_leo_simple.py",
+      "sha256": "0a08c2d12e6fa9a71e752f32d3139e10ce22a5180eefeb87f6d605c854514b75"
+    },
+    {
+      "path": "src/sat_sim/adapters/orbit_environment_medium_fidelity.py",
+      "sha256": "cba635c123e08243b052f7c72954bf440627e06e218702c2a94059ce052eb8d4"
+    },
+    {
+      "path": "src/sat_sim/adapters/orbit_environment_orbit_fidelity.py",
+      "sha256": "7bc63dcf8f2ac7059c93ab1a9b9aaa767781c2291a1e7b27dd0066783ad3eba0"
+    },
+    {
+      "path": "src/sat_sim/adapters/reference_public_satellite_case.py",
+      "sha256": "191b30ccbfc7575ec2b5e0ff3cc950c4e956e3b565e2e1aab8c608b4aad545f1"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_adcs_basic_rw_pointing.py",
+      "sha256": "95548b67cc7ae2947d112536d67b450da2a4a923999bccf86d42c56761ad67cf"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_adcs_basilisk_fsw.py",
+      "sha256": "e9ff3b7b9816cdaabd5ab3f041f284745186d6d115e61a788cbac3ac7e64928a"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_adcs_bsksim.py",
+      "sha256": "f2f58be708fe1531b1b9d158900251183acdf346b0cc7790fb7b8eeb034bdc33"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_adcs_closed_loop_basic.py",
+      "sha256": "948adbe9039a25bfc17b7f2c0277f12d3229682b1b44a19b4288bd6e8e6ca7fb"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_adcs_fidelity.py",
+      "sha256": "ed5defa821f8612e1598b9db8d926ebe4c26e24c5480ae0967f7c89cc3bc7dc3"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_adcs_unified_native.py",
+      "sha256": "b85e62cb273ed54376c7806c9d1e0773b219fa6df3fb90e42c42402bd6087b9e"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_comm_basic_ground_pass.py",
+      "sha256": "0092f89cf74fac605f28f151ddb7bc44745c36db1a3984687a5090e5c6e2d64f"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_comm_data_unified_native.py",
+      "sha256": "ab86b43e3a8d4633dd9df2cff5350f769f148a1da9790453af2b28a363dc2b5f"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_eps_basic.py",
+      "sha256": "60624818807968a3feb7be461b48143554e4a1edce6c647214cbae096855384f"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_eps_unified_native.py",
+      "sha256": "a24695781cff1fdd22873c4733c4146cffc8fc646d4ed2a72cb31245c8f4b54d"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_propulsion_unified_native.py",
+      "sha256": "e4e2768b1b4c9007cefc786e4abc11cfa1d85603dda2dfdf5108bffe10636297"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_source_native.py",
+      "sha256": "272fc0e499735e29fe7d484e2589bebd96d35cb18d5b415d59bc2ff164b43b4f"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_thermal_basic_lumped.py",
+      "sha256": "03dcac280b5b38dc9309b281c25fa2f5d44d56973d1d295d426f087bd9d2c413"
+    },
+    {
+      "path": "src/sat_sim/adapters/subsystem_thermal_reduced_order.py",
+      "sha256": "3a681acfc5624084b6b4864e5c535283d4103a45805908d902ac5187deab4df4"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_basic_power_attitude_orbit.py",
+      "sha256": "a2aa92e7cc54b7c1a8a2b9e64505c91c264e01d1e64c163a85474abb15cb2cbf"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_basic_power_orbit.py",
+      "sha256": "3db551820ee7cf9c0303b3496af63ec03c335e6734fd83cb3d47a682526ebd04"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_basic_power_thermal_orbit.py",
+      "sha256": "37ee89831aa041f24a4ff62a0154a3b35ab2af713c74688d50fea73a20d0385f"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_basilisk_6dof.py",
+      "sha256": "2896755ebaf5d0a2cc4ea6b8893554286d4e0837fbf7327baa25147cb22bc1da"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_bsksim_coupled.py",
+      "sha256": "993bbd3ea7e4ab7a23a99d4060357b3fbbc4f12853f7fb595d7ae21c33eb4603"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_bsksim_foundation.py",
+      "sha256": "8f7dad43206325db03ea5b926e1de8bcc0336040380a22105a99c74c2be67f22"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_comm_payload_mission_coupled.py",
+      "sha256": "1c9aad25827037a41fff960d7eb4e2b762e6ca5f3f30fac4aecf44213dd2bd94"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py",
+      "sha256": "74b2065c70f2b6d3b2697a9b3a1e696e65beb9e2818e1bd93ad579b66e420214"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_maneuver_orbit_attitude.py",
+      "sha256": "0900abc5eb7e003ee3fe2b9494ec8b8805ad866ab73c42531a0cf455eabb0de2"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_orbit_adcs_fidelity.py",
+      "sha256": "5d6b2f034b6c424ee650e6987973fc870aaf99fdb8585313814763f3155ee15c"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_orbit_attitude_thermal.py",
+      "sha256": "96200ad47cf40cb9e9908da373e44fd25b95d8db551a692541e2ddd3ff958f5e"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_power_thermal_orbit_coupled.py",
+      "sha256": "05ac0ce442f8977668c20ca47320b97c5ab11cc369708de019e7440d368e7fff"
+    },
+    {
+      "path": "src/sat_sim/adapters/whole_spacecraft_unified_native.py",
+      "sha256": "e0db553e1f344a959af99d16439a586896eddf53dcdcaa2be4b00462277db43a"
+    },
+    {
+      "path": "src/sat_sim/adcs/__init__.py",
+      "sha256": "c42ce3bf1edff7ae132a99ed85c6bea7488049389aa2ad0b7cbdf5effde51c82"
+    },
+    {
+      "path": "src/sat_sim/adcs/basilisk_fsw.py",
+      "sha256": "354e47674944e7d2666406acf1017e93648f20c922759d37fb003e8d31fc61b6"
+    },
+    {
+      "path": "src/sat_sim/adcs/closed_loop.py",
+      "sha256": "084b6f494eccaef388ba385e89bbb20002d7aed2801de83b07d5c0b930f55b65"
+    },
+    {
+      "path": "src/sat_sim/adcs/fidelity.py",
+      "sha256": "e03ddef50a520a7e2edf74b9ef4d7a4f6641fe44be2ffd13979f8ddd063a3a7c"
+    },
+    {
+      "path": "src/sat_sim/agent.py",
+      "sha256": "bdf159b4d8bdf72a26239d2ee902181f6ef00d6862308f6d7d05b988defc536e"
+    },
+    {
+      "path": "src/sat_sim/agent_cli.py",
+      "sha256": "aa5431bf3e86a9e5aa979a9e2287a17c1676b77d9338d55fc0910c494d1355be"
+    },
+    {
+      "path": "src/sat_sim/agent_facade.py",
+      "sha256": "941fef0ee1c7d78ef75d221743456c1138e0cb3b0b8b2864205b371d09dccc74"
+    },
+    {
+      "path": "src/sat_sim/agent_frameworks.py",
+      "sha256": "ba46ff72120b1b9339d4abd4a864053dd9e44c2a968b831fd3344109b45af516"
+    },
+    {
+      "path": "src/sat_sim/agent_guards.py",
+      "sha256": "73a8a34674a3a44b9cd9bb8b8b7323926f7d88cf987387029ddd2f7f5d557e93"
+    },
+    {
+      "path": "src/sat_sim/agent_orchestrator.py",
+      "sha256": "360af653d7fad44586e683cc796e6d818ab137387cfdceac1fdd05dff511d73b"
+    },
+    {
+      "path": "src/sat_sim/agent_policy.py",
+      "sha256": "a8983e0715113fbd261a4fa067d0a8a0742a6e6919054cacd899c5c5db4a1acb"
+    },
+    {
+      "path": "src/sat_sim/api.py",
+      "sha256": "64a5e093af7324e5571650d2a556c11aec82254c419ece3c70ce209110dfb51e"
+    },
+    {
+      "path": "src/sat_sim/assembly_graph.py",
+      "sha256": "62ef0b2f3cbbec13c12e6d8806cf400c01c7726e732fb446ed63287df21c8f9b"
+    },
+    {
+      "path": "src/sat_sim/assertions.py",
+      "sha256": "de4f92701c129fea5f62a7e506faabb9208058948201d93973bbe1f842b387da"
+    },
+    {
+      "path": "src/sat_sim/astrograph_dataset_contract.py",
+      "sha256": "7a2292655dde1d8397bcdc75c9031ad4ef0df4fe17b6be0b494bc5d00e7aadf6"
+    },
+    {
+      "path": "src/sat_sim/astrograph_roundtrip.py",
+      "sha256": "3289ca8ebd2e67594a8070a208411c50018b4876c18bc6949996e92ee6494ca7"
+    },
+    {
+      "path": "src/sat_sim/basilisk_recorder_groups.py",
+      "sha256": "802793aa53267cfc42b5a1788cd49d3e83e75b66818b65bfd39a00999135157e"
+    },
+    {
+      "path": "src/sat_sim/benchmark.py",
+      "sha256": "2090303ccf719e803b3b6e809cb4ff9f75ac1a82e3a2ed046ae8eee4b5e9282c"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/__init__.py",
+      "sha256": "0c5ffd882982d656280ace494169d264a0a617015bb223955b45a9d6377c6d4f"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/adcs_fidelity.py",
+      "sha256": "114df4643859995f5a41d71b73dc0b05c6ac469d0befd7e03429ad2e303c87be"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/basilisk_6dof.py",
+      "sha256": "f53e6e0c83619e0268308f60dd471cc621dcdd2e83d7dda1385b4f2e861d14cd"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/basilisk_adcs.py",
+      "sha256": "15db3f74d0c540a0ff36f63aeff0c86bed7b263166b78931e8a168c1a3e9b064"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/basilisk_orbit.py",
+      "sha256": "d0d2576655222cd175cc5494384344d9121ac13183a5622212ade489692b7a2c"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/basilisk_runtime_gate.py",
+      "sha256": "0154d11e5fe4bb22fd842be8507a201d93c5c1d6a9b2ecdc37ff3af0f28c9edf"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/orbit_adcs_integration.py",
+      "sha256": "c0bac8b768a49640cb3c18fc9663011d538de55a4e956c6f53d8acfb17f3d2d9"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/orbit_fidelity.py",
+      "sha256": "75576069b7fda6c4542ccd24aa7d124ffdf7cd55dffd271f1980ad98a8d40229"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/route_b.py",
+      "sha256": "c382289ad5e180e8a6c64d48fe088373225aaddaed202f24ca87d6956002eda8"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/thermal_control.py",
+      "sha256": "d0ebcb5859f6136c25bbb9c4359251bc864116da6ae54d63b59c482a6db47847"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/thermal_network.py",
+      "sha256": "e50c520dc38bd1a9a26a35d49298c11de458dc0594c7c4c752b52ae8d54c04a6"
+    },
+    {
+      "path": "src/sat_sim/benchmarks/thermal_templates.py",
+      "sha256": "2bd870a588a88b962779810990126e109cbc4405d28bad31d478af7e475d0cf8"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/__init__.py",
+      "sha256": "2f1180dd631837a4c957d5081c99d0951af99b129e0ced4f89b537d1a3c0ce05"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/adcs_scenario.py",
+      "sha256": "fc38ef1989696b0a98064c1372bc0383afac5a248ecfde97576f24f632403bcb"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/dynamics.py",
+      "sha256": "a6fbbdbea68b05be696a7573bc0395d872eb59540beb71dce53faabc27f7ba25"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/event_manager.py",
+      "sha256": "814a000f46f667aa55742be0d0986652ee437c1c49ff1fafab3bd372185851b3"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/fsw.py",
+      "sha256": "2d67946cc906e171595b3b9b03624c2fc71feb8c5be0757ec4607bad1c65206d"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/master.py",
+      "sha256": "12e9d7c5957f2707eab31b6c4b0357684e5423ef02ffa72475299c473ce6ca9b"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/native_rw_cluster.py",
+      "sha256": "9b8cef76a9c47bffb39d166b341203e49fc5f3a67443961223e040d508f92047"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/native_rw_component.py",
+      "sha256": "8a900af2fe3c3c9f5a82faa1edba682e21aefd45e0a6c2fb705da3857fbac1c9"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/orbital_environment.py",
+      "sha256": "39584dad737d812139e259959b08e9720901969ccdffadfc810a3f4bceec29a0"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/project_native_modules.py",
+      "sha256": "3ed0ff6ea26c284bd0289f9c852d5fa80d9bd673c21d52f53294c81634a5e6d6"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/recorder_registry.py",
+      "sha256": "3f845c18fe48850f86d03ac6ef8309b1a329f2932a1fe7bb84e0d50bbc4d73bf"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/rw_geometry.py",
+      "sha256": "31912d0416c1f97c4f1fc75d208134eeffbc713598c88e359cc91cf549fae446"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/scenario_base.py",
+      "sha256": "2f73b89848bcda0f50a82b713de7f050dac12e47ed0b9d71fc1cd5d4927fe9c3"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/scenario_factory.py",
+      "sha256": "5604ca0db96e773f5afc83680156e7c82b4eb6effebf7bc195b12c000a97345c"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/solar_tracking.py",
+      "sha256": "e494f4c867282172553aa7bba0c6731fa9eeaf0b236cac42f316b0ff6c6e34ac"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/sun_sensor_geometry.py",
+      "sha256": "81b7dafbd654e33abbfdfdf37dfdc38d653e034ed319c0184d069c6604909e42"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/thermal_environment.py",
+      "sha256": "9577c07cf092c5ff0d3d84a9a83c148d9ed5a01b9e39a131c1962051099365b4"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/types.py",
+      "sha256": "b48173a37b42b5d744fa675211b899e38b9f825972cfe43f742250efee0ca922"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/unified_native.py",
+      "sha256": "10d815bc49a296160c2b3e0ea8f7696087cc5bc4621df2097eecea9548d22c17"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/vizard_native_export.py",
+      "sha256": "d1799f0cf697ea5c9d6d69288175e97f87f08bcbb9129ecc902587a1a25b26de"
+    },
+    {
+      "path": "src/sat_sim/bsk_engine/whole_spacecraft_coupled.py",
+      "sha256": "a0b16d6545947dd564a9e9cda70222a819d0f4d745a2b9393193f8850cbc85f8"
+    },
+    {
+      "path": "src/sat_sim/calibration.py",
+      "sha256": "17a42580cc8c8170c242f7958f07a2af29922a3d8944de9fd5f726834e15cde2"
+    },
+    {
+      "path": "src/sat_sim/calibration_data/__init__.py",
+      "sha256": "e063affc712d391f3e7c9b7205689bc59ad28041ccfc0be8c178fb91f78a3df9"
+    },
+    {
+      "path": "src/sat_sim/calibration_data/dataset_registry_v1.json",
+      "sha256": "7dbded2bd3841d99e3617f725a714782ba9e22acd93a8d02d7df41d2c437277b"
+    },
+    {
+      "path": "src/sat_sim/calibration_data/evidence_policy_v1.json",
+      "sha256": "64119c34435022289736df6c75d8fff96a02757b376f800612e692f24227317d"
+    },
+    {
+      "path": "src/sat_sim/campaign.py",
+      "sha256": "cca66fa3a21ee345eacffddcf01bc03da6e422397052e88c2c7187ac47de8bf9"
+    },
+    {
+      "path": "src/sat_sim/capabilities/__init__.py",
+      "sha256": "760bf3233446edc178324f4003c9e3ae1f51c0817e1254f15584b5eed279d916"
+    },
+    {
+      "path": "src/sat_sim/capabilities/_coverage_index.yaml",
+      "sha256": "ba26dd5197a0f84cd1f40ef4169aaa91d5096aaa4e6f440c95f88beb8d77da1c"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.antenna.v1.yaml",
+      "sha256": "1332e3875160860a143b64fb436affaa075c31298c56bb8da413bf948a93519c"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.battery.v1.yaml",
+      "sha256": "58daa338d10e89c14ac89ebfe90aeafdcbe795a66f3811e44c726917bd7d763b"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.cmg.v1.yaml",
+      "sha256": "7b82eda438cddead0760b9dc7ead037775a7a8c7670d73ed0a92629eb086a430"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.data_queue.v1.yaml",
+      "sha256": "b1515a4a00750e03129ca42898d20005a40b3d11a8b8cf1cc9c7eecc0d22e7b7"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.fuel_tank.v1.yaml",
+      "sha256": "ca1ce50b071148977459dcc96deb6a4f7773ed6edffb18b101231e9706a381f1"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.ground_station.v1.yaml",
+      "sha256": "049aa1777a19be455e64ba83606f024b93b97965512aadc26bc7df7fec17b16f"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.heater.v1.yaml",
+      "sha256": "1b09e0b0007e11ac1f26769d141be566cb98e9c46d0e5003efa08e6a20713030"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.imu.v1.yaml",
+      "sha256": "b88fb731af0c6abddba78ed610067194b86df00eb8bf2bf74fe24cd544d352cd"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.link_budget.v1.yaml",
+      "sha256": "a486e9027a67939484eb1018412320eecdcf28b1e1d9fa5d06719026e1a3c71c"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.magnetometer.v1.yaml",
+      "sha256": "928dc59e3cab91108751db154e53f927215f7df416940c85466066e0962a572a"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.mtb.v1.yaml",
+      "sha256": "66a5468c85b73cf4977fc2fd0e48c64dcb69f423f9167a74eb681ae00bf51900"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.onboard_storage.v1.yaml",
+      "sha256": "b6aeef2a7cd5ab210eba96889cf7ba73b2be0b6a7498d80bb962f42729a411d7"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.payload.v1.yaml",
+      "sha256": "f8cbbbe2b90ad9eb5c7538425173f4c586028b207cf4d1ca8987ae6f2c909311"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.payload_sensor.v1.yaml",
+      "sha256": "717d01ca088bb670429235528c08545bea87bddac94381fb36d96e1bce22b0ff"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.pdu.v1.yaml",
+      "sha256": "367fefb6e1919611e48e43be28316f4ad0eba10e34764024d315425bec065c20"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.power_sink.v1.yaml",
+      "sha256": "4b6860c7d16813b385e6b34fbaa8d6cb0dddb761825b4a0a3b06f44780368a3e"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.radiator.v1.yaml",
+      "sha256": "1fe25a6ff7b043ea9622abbf8fd86b0255d71cdd14747835d7078d0d17abac9b"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.reaction_wheel.v1.yaml",
+      "sha256": "76c4992d362fdf7b09e132525e10ba94bbf658f2b463257b1b4b31046f073c49"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.solar_panel.v1.yaml",
+      "sha256": "79fca3620610888c6e2f21f41d1727c8947321bdcc352119cc446f9b29b22d54"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.star_tracker.v1.yaml",
+      "sha256": "1cfd5d3ad0a589cac2519291440b74f62d2ca8b39b6e2329e22dd05c85449fd4"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.sun_sensor.v1.yaml",
+      "sha256": "75930293c1bbb08b10f7146f9f2781473676ad1980214e81a304f73788511457"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.thermal_node.v1.yaml",
+      "sha256": "81a770f7e23a1a8103281f9be68a41dc04124f85a9af77ed71820562c58f50b5"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.thruster.v1.yaml",
+      "sha256": "906b4b0788ae025f214e44d822f0da2ca60f98c696ac8c65be50291739566a94"
+    },
+    {
+      "path": "src/sat_sim/capabilities/component.transmitter.v1.yaml",
+      "sha256": "9c4b4d7e6e82e136215d59bd1cbe8e0eac27068b137d4126742d939219de8a2a"
+    },
+    {
+      "path": "src/sat_sim/capabilities/orbit_environment.basilisk_hf.v1.yaml",
+      "sha256": "72e6dee31a600bd8b553a9a6468a10944bdacf60f095cb7ded563830f40dc346"
+    },
+    {
+      "path": "src/sat_sim/capabilities/orbit_environment.leo_simple.v1.yaml",
+      "sha256": "312432c906f320e57ec34227eaae5e435ef2fa730a85e8f16da73bcf0f84a244"
+    },
+    {
+      "path": "src/sat_sim/capabilities/orbit_environment.medium_fidelity.v1.yaml",
+      "sha256": "3928772c826326f157e38a7328f67377b098cbad54087e179dcf72e8fb856d22"
+    },
+    {
+      "path": "src/sat_sim/capabilities/orbit_environment.orbit_fidelity.v1.yaml",
+      "sha256": "54f554de89a032aaac11d0dd592eda6bd1e5202d2094d9237f10beda06ec4088"
+    },
+    {
+      "path": "src/sat_sim/capabilities/reference.public_satellite_case.v1.yaml",
+      "sha256": "683d4a94f96641038070cd01bd1be4bd468639f5e25df37dd1c656516ff8f9b0"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.adcs.basic_rw_pointing.v1.yaml",
+      "sha256": "8101b114c9e983634353867b47f6ee6f9063eb61b1f9b65135de453a5dbf8a48"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.adcs_basilisk_fsw.v1.yaml",
+      "sha256": "ff9153aff505b77c5835fcbf184b098e36a3aba2e50a58c82b15c4cb6f036a78"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.adcs_bsksim.v1.yaml",
+      "sha256": "9e857bf1ac627d90be3574028bccd7362e088168e7da0cce840f9b2d546b49bb"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.adcs_closed_loop.basic.v1.yaml",
+      "sha256": "376212b16d66ecac9a319aeed5be8c2113edc793afb80f38ccfcbc30a7ce6c35"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.adcs_fidelity.v1.yaml",
+      "sha256": "5a33429239b4e41d697aca2bf4b6a374968e3efbd323ff8701dd8c9cf68c33e2"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml",
+      "sha256": "20ff871252da983264845eeb8d8d0e4ed933c0a95751ee1b300475821e010f5d"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.comm.basic_ground_pass.v1.yaml",
+      "sha256": "704e2ebc7d3feba29c778e50b29efad4832f4ce58d008a71e9aa6d65cadb2c8a"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.comm_data.source_native.v1.yaml",
+      "sha256": "78f183f204b18f2ff4501b21d1ab0fb1397717179abbdae43bb46006c1e2bc90"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.comm_data.unified_native.v1.yaml",
+      "sha256": "ac90d0c2082d859e57c10c97bc8411f3a1a56a20732a0312080a29c000240ed3"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.eps.basic.v1.yaml",
+      "sha256": "abc6d491ed5dc014a11c283fa94db5deb1b09c0408461e56776a0f191cf75465"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.eps.source_native.v1.yaml",
+      "sha256": "696a7d45bccb84ea645b6c1c081f21e60e8492b46591b36bde0d6c33d5b33db5"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml",
+      "sha256": "bdaeddc78a6e11d62fb2427bbc3ca84142553c5557bfa98287bed4711a94c7d4"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.payload.source_native.v1.yaml",
+      "sha256": "54eb0b6e20f3a59e6393afe2b61a6b2e3ea3d4ca56a5b2e9f0fbed56b05f0981"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.propulsion.source_native.v1.yaml",
+      "sha256": "9f16d1f54f30e386c11f1ca2c7297d3a1f083a8879ac19a13d015ae5816b7b7d"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.propulsion.unified_native.v1.yaml",
+      "sha256": "01f0bd98fcdcdb2f29c3d0403f302a46b1a05b7035fac5e155d39863c8c18d56"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.thermal.basic_lumped.v1.yaml",
+      "sha256": "07db3bdea5883776af9b963f973c83603b1f4ff939d31fb763516376e0a721ae"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.thermal.source_native.v1.yaml",
+      "sha256": "ed6e46197736c336e6b8f7ba8615d154a2ca828ede0c10003615592897063d86"
+    },
+    {
+      "path": "src/sat_sim/capabilities/subsystem.thermal_reduced_order.v1.yaml",
+      "sha256": "ea7f98928008dd2220977fc417fbc51dfbb3fec11b04b51d159a60a8bf957bda"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.basic_power_attitude_orbit.v1.yaml",
+      "sha256": "6a82dde98f27ebba5a222d080a4df6643557884a4fed5c3a314852012ced3d9f"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.basic_power_orbit.v1.yaml",
+      "sha256": "48646910aeccb2994a66f785dc67faeda4adfd754c70dbd1566262720270c6fe"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.basic_power_thermal_orbit.v1.yaml",
+      "sha256": "a837dfc25a6adee8dcca995ba47250ff6c5bfef6c10ca8cff2aae8a5ac767117"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.basilisk_6dof.v1.yaml",
+      "sha256": "1cca54404534dd9219e23f54eb916767050aa7c2c40de4634222126f1fa4a98b"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.bsksim_coupled.v1.yaml",
+      "sha256": "05984091fc5df3655b6ef7d06d7f173986fa63746a6a08ee767d922cac3da31d"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.bsksim_foundation.v1.yaml",
+      "sha256": "aa2de6b66bdf5371ce2bc409a36b7a9c3663c02ee95a6a4da2dd461bb599d6ef"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.comm_payload_mission_coupled.v1.yaml",
+      "sha256": "559a26563b0c809baa6b8e0b74532112fe101e6f52dffaa8319aa4de45e21303"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.composite_digital_twin.v1.yaml",
+      "sha256": "6a087492acdd8282bc5e46c9a91b487154d09e5fd0a2da5474e44830b195c745"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.maneuver_orbit_attitude.v1.yaml",
+      "sha256": "2e55642ec874524d651e0c8fefe5c7c452fdf966eef63d298652b46b95ba8ae7"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.orbit_adcs_fidelity.v1.yaml",
+      "sha256": "d06e5b29f20d024b3bf3a42e4451144313c9c51c6951be3a7cfa12165355f0ca"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.orbit_attitude_thermal.v1.yaml",
+      "sha256": "77a6069183722b24b613f836fd41a80187343ee3d9629d679126baf7855a2f52"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.power_thermal_orbit_coupled.v1.yaml",
+      "sha256": "e26197b91c27d26a4cae73bcfaf68dc442f9c4d6f7584e047e47a74e1aa5f36d"
+    },
+    {
+      "path": "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml",
+      "sha256": "60237dbc984e61fb57890928507f9dd82d655fa6f2eb6fed6ea774e5c06208da"
+    },
+    {
+      "path": "src/sat_sim/capability_agent.py",
+      "sha256": "26f7402337ec5461ef31bb7772e0f46c27ebdb25b270c9591d2c951fcc1c0b11"
+    },
+    {
+      "path": "src/sat_sim/capability_agent_eval.py",
+      "sha256": "4cda5217425af2af0be3d95bc8059106e83de145df95027de068a4d1deff706b"
+    },
+    {
+      "path": "src/sat_sim/capability_composition.py",
+      "sha256": "235502c8c7099e73eaa1240546a9e3bb0650497f409caa7b616ed1a30ffafa3b"
+    },
+    {
+      "path": "src/sat_sim/capability_integration.py",
+      "sha256": "295dc0f6ffc1f6a4bb2a8f0638327f841a82048b8801e86997a24f3752141463"
+    },
+    {
+      "path": "src/sat_sim/capability_integration_audit.py",
+      "sha256": "98b717f26b355435ec201ce2460d43035c725afb4a793a656f6792bff7a6f00e"
+    },
+    {
+      "path": "src/sat_sim/capability_planner.py",
+      "sha256": "f1f840588f22bf6734defba9a703bf4d3dd843fec273cc638719c4f69069d0b2"
+    },
+    {
+      "path": "src/sat_sim/capability_registry.py",
+      "sha256": "6beee6529913c91fded72a3ccc09d2dee8beaf8d197908b643c9b691000511e3"
+    },
+    {
+      "path": "src/sat_sim/capacity_benchmark.py",
+      "sha256": "f3f5cf61c93be16a5c1246e00b3e0ccb37b800b8ce8beaf0b8e5e2d5eaf0c608"
+    },
+    {
+      "path": "src/sat_sim/catalog.py",
+      "sha256": "c5cb5c9e414a393d1abc12d202e8f7cc151ddfdbffe616cfe58436435aaa5452"
+    },
+    {
+      "path": "src/sat_sim/catalog_consistency.py",
+      "sha256": "f61cd32ddd3f95b11b13c18b79a250bba33c6350a16c696dfa14e9ffba9642cd"
+    },
+    {
+      "path": "src/sat_sim/cli.py",
+      "sha256": "86030b6160a3f2aed714a776a26645d05728e9b0e9a9f5204d5df7bb912b65ad"
+    },
+    {
+      "path": "src/sat_sim/config.py",
+      "sha256": "f9a3a0fa84820abb40894ad17afce70a3d7c9742bda120e39e4637d96dc8dcf5"
+    },
+    {
+      "path": "src/sat_sim/coupled/__init__.py",
+      "sha256": "f4a1d30d990f9743bf684990e3ca1801529cb28e1739fbf344485d1ce619f6f4"
+    },
+    {
+      "path": "src/sat_sim/coupled/comm_payload_mission.py",
+      "sha256": "556867f26246be649fc13bd222990a378e889a79e886f67c2b5130ce6a12ac35"
+    },
+    {
+      "path": "src/sat_sim/coupled/orbit_adcs_fidelity.py",
+      "sha256": "5686cd475304c2169d1ee9acb1ead3565cff35d84b1828151f190609ce5111dd"
+    },
+    {
+      "path": "src/sat_sim/coupled/orbit_attitude_thermal.py",
+      "sha256": "e7e7ecfd3c8d53a569edadab107cb528ab87a297f9e47ee7455bd15946394c0f"
+    },
+    {
+      "path": "src/sat_sim/coupled/power_thermal_orbit.py",
+      "sha256": "120b33bbb318147ca37e356696b820b220e4a7e13bdf3637ae55991231272afb"
+    },
+    {
+      "path": "src/sat_sim/coupled/propulsion_orbit_attitude.py",
+      "sha256": "2584cfb1c50e9be9996274da3878cdb0def2c18f8bdb993468d636d21916d64a"
+    },
+    {
+      "path": "src/sat_sim/coupling_causality.py",
+      "sha256": "080596dcf44210816daaff37971b93aac728ec4c37d8db0f06951fd0d1d1b9d7"
+    },
+    {
+      "path": "src/sat_sim/coupling_gate.py",
+      "sha256": "1b9aa19d51e8c380c4728530ec34f9757e48d81c228473e914ca16e5133723b1"
+    },
+    {
+      "path": "src/sat_sim/coupling_requirements.py",
+      "sha256": "3a575b6070431c63797a7d26224ad280acc09bdbfd957e919c1587956ac3e992"
+    },
+    {
+      "path": "src/sat_sim/coupling_validation_suite.py",
+      "sha256": "68ae94014d15d02647ce50c258291f576c341e9963bffa71b0f0a5d7ad720db4"
+    },
+    {
+      "path": "src/sat_sim/dag_harness.py",
+      "sha256": "7cac1c6d15fd763ffc5e969823f8130cb02f73c8615560ac7ce8e6e461453b74"
+    },
+    {
+      "path": "src/sat_sim/dag_mutations.py",
+      "sha256": "ffb0fb99bf1850013ee929a1a6261672d0ea286291576a6e3df7adf0dc2fca00"
+    },
+    {
+      "path": "src/sat_sim/dag_store.py",
+      "sha256": "3f365764e59e494a181ca39aa50e285df38c64af9abb97b862dc2debd5aefd1a"
+    },
+    {
+      "path": "src/sat_sim/dag_validation.py",
+      "sha256": "703e955823235b34bc89db1e17cfabf3899b942f3305b858b67c7a21f7d59011"
+    },
+    {
+      "path": "src/sat_sim/dataset_expert_review.py",
+      "sha256": "3c8b9419d7b4775697ebba173f619a847acc3c2ada068e92076575c2dea524dc"
+    },
+    {
+      "path": "src/sat_sim/dataset_writer.py",
+      "sha256": "9a02bc0922b53f8f29a8b235d6a37b869bbf06c90d327162b8bf9a57b41553dc"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_bundle.py",
+      "sha256": "46f69f39e0231bc950b86be5a40e812d265c8eb2c4298437598f3161037ed4b0"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_feature_extractor.py",
+      "sha256": "3c37cf69e8c34972418c1b4ed8cd5908ce38c5d6e66aadcdbb7bb855f5890761"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_mapping_bundle.py",
+      "sha256": "47c96522f3506a18a24d63bdeec1d03ba02840636d32b722db22a5abb301e0eb"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipeline_registry.py",
+      "sha256": "a6f76b82ed11875ba81f33e26d5410f3fcd1dec4654d75c27b4763a96f05a0fb"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipeline_runtime.py",
+      "sha256": "0fdc4c4650ba6d864f8fdb00853aa2d540b04303365e18a15864fd0e4e3f9b83"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipelines/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipelines/adcs/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipelines/adcs/rw_friction_increase.yaml",
+      "sha256": "52f230165c8e9909e982371da50386fd619ddf71559b8d47f013388a15cd77be"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipelines/adcs/rw_jam.yaml",
+      "sha256": "8f284140234cab489d4c789277fccecd3f12a0e05b449511148d4dd818a578fe"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipelines/adcs/rw_torque_authority_loss.yaml",
+      "sha256": "dd7b8d42b0b3c1220f94e9b0c53c00e32443fb9dc88a9eb513a23181bb7b2d46"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipelines/eps/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_pipelines/eps/battery_capacity_loss.yaml",
+      "sha256": "6296b1941bab6198190e816ea949df2ed241ea45261fb6345d00b08bdc38d9a7"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_signature_library.py",
+      "sha256": "1c7f145906a48fcc7be36b052f87fce505addf3fc0252c9e23f9591105a92662"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_signature_review.py",
+      "sha256": "97752fd1b191d6c5317faf2137a640ff03af84e1fcf11019018d88e41de96022"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_signatures/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_signatures/adcs/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_signatures/adcs/rw_friction_increase.yaml",
+      "sha256": "f3fb00bb958dec26355a5fa2019160c7393042b92d15613f6bbc9777e0a49006"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_signatures/adcs/rw_jam.yaml",
+      "sha256": "e11bf8d6e71af4e978c35daf55fec252c1772b630f05d059304bb790e451b535"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_signatures/adcs/rw_torque_authority_loss.yaml",
+      "sha256": "be4c856ef9e86c5e40c21c4bf5893483274e952e4b46c43b2867993375bfd802"
+    },
+    {
+      "path": "src/sat_sim/diagnostic_validation_agent.py",
+      "sha256": "3e49d0b513a50c1e9f3596b397557caed0f5b93347b5c59e10d02e5f9e18921a"
+    },
+    {
+      "path": "src/sat_sim/durable_queue.py",
+      "sha256": "bba5c04e5700b3359303de60cae75306b488dc2f4c817b098eb6c65a9ab46728"
+    },
+    {
+      "path": "src/sat_sim/effect_evidence.py",
+      "sha256": "2148ebcde4591fb9f3cbe2beaef18d1c2e1621bd0b0595651c949b29ca698be3"
+    },
+    {
+      "path": "src/sat_sim/environment/__init__.py",
+      "sha256": "7727ef054337082197bced04fffc7007acb6bc2884e8894f403cdc2c9cc99ad2"
+    },
+    {
+      "path": "src/sat_sim/eval_runner.py",
+      "sha256": "806de3e3ed9b0eeee7af13a362280b92ecce090132c71406ad8863cc7cdd4f11"
+    },
+    {
+      "path": "src/sat_sim/evals/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/evals/golden_set.json",
+      "sha256": "60021815c566ff39060d46bccfe002290180e3366eef14dde636c962fdb8737b"
+    },
+    {
+      "path": "src/sat_sim/evidence/__init__.py",
+      "sha256": "b22f9dd6eb9a31c89da078524ca755a659c17a7d318a8dba4e7009ff797caaaa"
+    },
+    {
+      "path": "src/sat_sim/evidence/effect_evidence_v32.json",
+      "sha256": "4420da909d6adf30818ddc6c12f112b1fa13261b2eba252dbf2ff4928952e981"
+    },
+    {
+      "path": "src/sat_sim/exceptions.py",
+      "sha256": "97e6075b11d2ccc7ecbee8bf00663e6718be35db20a23979ecf8e4ee5846631b"
+    },
+    {
+      "path": "src/sat_sim/execution_planner.py",
+      "sha256": "b52cd37982f30c5c374f79959770ee89deda9ba448a6e40aee77325c661f7095"
+    },
+    {
+      "path": "src/sat_sim/execution_worker.py",
+      "sha256": "70c6281285e8151c47cf81c5674b22057cb67f52b416d863e2610503a9cab354"
+    },
+    {
+      "path": "src/sat_sim/experience.py",
+      "sha256": "edd330cf748295b522bbd84ada514dd1d4ecce10a4c921e456129304ad8757a9"
+    },
+    {
+      "path": "src/sat_sim/experience_acceptance.py",
+      "sha256": "492b97715bccb238d78bde840890384408e1872e0979f55dbdf5fd7089620d7d"
+    },
+    {
+      "path": "src/sat_sim/experience_benchmark.py",
+      "sha256": "2ad07f97b8f4e1ff6371d9a771e8247f2dba9cfb0babb9ff8381a359f4a9fcde"
+    },
+    {
+      "path": "src/sat_sim/experience_cli.py",
+      "sha256": "e7cf093797f1cffe01b005657646a27d302c38434b15c8aeef42eaa631c1d958"
+    },
+    {
+      "path": "src/sat_sim/experience_lessons.py",
+      "sha256": "32f1667c3a52fe4b98381bf4699d9a69c7f964ca815ca0e4e57a52f677c3e64e"
+    },
+    {
+      "path": "src/sat_sim/experience_longitudinal_eval.py",
+      "sha256": "8794d0bfa2d97aab273bcbc8aabe64b019d9a61bc4c0f52856d9cee598d64a8e"
+    },
+    {
+      "path": "src/sat_sim/experiment_manager.py",
+      "sha256": "d8ec32c00ec758d4bd0ef30e2aee0ebc84920527c9e692e647e77111bc797b32"
+    },
+    {
+      "path": "src/sat_sim/experiment_record.py",
+      "sha256": "d3763ae3333836a72b7717db0647c090786a84098953de9fa1ac0b7326354954"
+    },
+    {
+      "path": "src/sat_sim/experiment_templates/__init__.py",
+      "sha256": "8aa2e7462aedec06776e076e1a1ea2f1ed981769e0318507e8e49fb29aed4c8b"
+    },
+    {
+      "path": "src/sat_sim/experiment_templates/adcs/__init__.py",
+      "sha256": "ea582678844faa9c4e48bf587b3b4adf92d365201ebd73e28a7ad67fb30e9fe7"
+    },
+    {
+      "path": "src/sat_sim/experiment_templates/adcs/rw_friction_increase.yaml",
+      "sha256": "d8e936430637b43c08c794cf362da30daecd1926d8f780fa56313e6b935cbfa4"
+    },
+    {
+      "path": "src/sat_sim/experiment_templates/adcs/rw_jam.yaml",
+      "sha256": "6d4c3636c1b169f080c79b0e064bbe6a9eedfc95e773ac6d6924665b1ab9a613"
+    },
+    {
+      "path": "src/sat_sim/experiment_templates/adcs/rw_torque_authority_loss.yaml",
+      "sha256": "eaa480eaf0e31d1187009629d71ff7c7f74e18dcd78f2b020e04e2cf12f1c378"
+    },
+    {
+      "path": "src/sat_sim/experiments/__init__.py",
+      "sha256": "6c2e0793be0ec505fa5c150896263e64f3c8936288f16d3a0c10e94ad9cecf6b"
+    },
+    {
+      "path": "src/sat_sim/experiments/basilisk_mc_adapter.py",
+      "sha256": "034f58af5ad90d8486b7495981b29ca14b64e7ae25563fdc43f546fa94acf19f"
+    },
+    {
+      "path": "src/sat_sim/experiments/basilisk_mc_worker.py",
+      "sha256": "fcf15c89633c8ecc31a68f2f8dbbc00455c84aa175cd0754fc871c8d2f340008"
+    },
+    {
+      "path": "src/sat_sim/experiments/dispersion_registry.py",
+      "sha256": "a3e968f46d4adb9a063ed29b7d9fa8de8fe2f6a3948f8436b970399b3408afa3"
+    },
+    {
+      "path": "src/sat_sim/experiments/monte_carlo_engine.py",
+      "sha256": "bd0b0cb9b9019d53dc84186974a457573d361f6093d4a4c58d06bf56a68eefa7"
+    },
+    {
+      "path": "src/sat_sim/experiments/native_controller_registry.py",
+      "sha256": "0f779a701f3bbcfa2da8ddbddf127a0bdde508053f9e1456975fe1ce4cf991af"
+    },
+    {
+      "path": "src/sat_sim/experiments/statistics.py",
+      "sha256": "817c9d24a139396f82e74a7f5ebb54adb1ddc872a9fa87b2acf1a60bedf52c67"
+    },
+    {
+      "path": "src/sat_sim/external_gate.py",
+      "sha256": "cd0fe455b94a9225b852b2b7e9b64c78763c303924d495a3982ae1bcc6640152"
+    },
+    {
+      "path": "src/sat_sim/fault_dataset_factory.py",
+      "sha256": "25f8534ecf538b735860815deaf9a9e9f6ec69d466122772c2cfbf4ff3128761"
+    },
+    {
+      "path": "src/sat_sim/fault_environment/__init__.py",
+      "sha256": "bed025520fa93ee51cab90c83691b33637e12eeb0b9931f076e55be917818a3f"
+    },
+    {
+      "path": "src/sat_sim/fault_environment/bsk_rl_style_adapter.py",
+      "sha256": "e3158f4e915c1fbd3b519e88c0c6241bab7f2dff50bf356e60584b5543977a42"
+    },
+    {
+      "path": "src/sat_sim/fault_environment/fault_catalog.py",
+      "sha256": "e6fe0888de32af0981bc6cb1a6508de7401e3550478ea4c8f2fd4fd371f8740b"
+    },
+    {
+      "path": "src/sat_sim/fault_environment/fault_effect_contract.py",
+      "sha256": "ce655f68dd7067641f70fb16b0f3bf29e34634460e77ed9295496a00012815a0"
+    },
+    {
+      "path": "src/sat_sim/fault_environment/fault_episode.py",
+      "sha256": "04e60a99e6905ae2e4c2281b5699593d8da5df191bba0094693f95c1c4a110f5"
+    },
+    {
+      "path": "src/sat_sim/fault_environment/fault_observation.py",
+      "sha256": "07d3a7c672434e273721de8268571af4e9a4d79b95a6f2979812f34509993e56"
+    },
+    {
+      "path": "src/sat_sim/fault_environment/fault_state.py",
+      "sha256": "f88ca2ff2267feb3d71147e3d774dad1c2175ad90d059a45974d1aa7c476a5c8"
+    },
+    {
+      "path": "src/sat_sim/fault_experiment_templates.py",
+      "sha256": "78c6d62f0c212abc61a897100ed1399984fb5df3300faf20f939abb6830b968d"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanism_library.py",
+      "sha256": "965bff8a646660c227a946e28675b4982f8074854a6e3986e21941a60cdd859b"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanisms/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanisms/adcs/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanisms/adcs/rw_friction_increase.yaml",
+      "sha256": "f24de9f437891cc2a7626b1c94fd46f310812d02d465f4e3ce134c74f1690009"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanisms/adcs/rw_jam.yaml",
+      "sha256": "55ffd0877708bff443c88d8877281e0aff9c9a77a05eb8b95487ed5012bd9ed1"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanisms/adcs/rw_torque_authority_loss.yaml",
+      "sha256": "2639753d566eb8b77a2610faa8f4fa089fbce32c6f7224d2203cc5651788bbfd"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanisms/eps/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/fault_mechanisms/eps/battery_capacity_loss.yaml",
+      "sha256": "24427951d2970410070f3f65142a25526a1c1b1c04a616659f0097569b673909"
+    },
+    {
+      "path": "src/sat_sim/fault_severity.py",
+      "sha256": "faf5427b51a29835ec3b63ed63df3ea7d708829f312cf59167449f9e70238a11"
+    },
+    {
+      "path": "src/sat_sim/fault_traceability.py",
+      "sha256": "b1bae501cf74986649229eb7fa9caf9a7169ba25eb9e0b53125d97da64e3b036"
+    },
+    {
+      "path": "src/sat_sim/fidelity/__init__.py",
+      "sha256": "7a8650d2e933c116a81fc38048341443cf0d1c922feef298295cd388bd47942e"
+    },
+    {
+      "path": "src/sat_sim/fidelity/contracts.py",
+      "sha256": "399dc8ece1c79525d607b83e96f347bbad257f26fb009b7edf5d1e05edcf7776"
+    },
+    {
+      "path": "src/sat_sim/fidelity/foundations.py",
+      "sha256": "b4327943c3be36cc66bd86ba99dc3a45775f4604e5f4a5f1ba149b6d71dd2c7f"
+    },
+    {
+      "path": "src/sat_sim/fidelity/package_policy.py",
+      "sha256": "78147f9b501e309671653a28c6a06957b062ab2345ac6d1207510f0d107b629f"
+    },
+    {
+      "path": "src/sat_sim/fidelity_policy.py",
+      "sha256": "66c24ae17e174d988c7e85f22229a2432d1d8d06a21333785e17dcc7717a36b0"
+    },
+    {
+      "path": "src/sat_sim/fmea.py",
+      "sha256": "a3a31c493ae4a1117658b34fc9cfbf6b71b1cc7b52867f08c3b8ac6a33e5a36c"
+    },
+    {
+      "path": "src/sat_sim/form_schema.py",
+      "sha256": "fb81bbe10fe1cb1925bca9bfd652cebb389ec7384ebef6c431ba8064d0e1ecbe"
+    },
+    {
+      "path": "src/sat_sim/frames/__init__.py",
+      "sha256": "fe43a8956dcbee2ec51bc9cdab5973d80e19556ba1a3f1ef040d2f8777eddb2a"
+    },
+    {
+      "path": "src/sat_sim/frames/core.py",
+      "sha256": "91cf88f79ee74ee3aa611c04f18ae506e6184e15b31675a5afe5540a408212fc"
+    },
+    {
+      "path": "src/sat_sim/golden_eval.py",
+      "sha256": "6ba8e31e5cc886ab727fdaf2c957cbd03c93ee707dbe976629e2f9d404239603"
+    },
+    {
+      "path": "src/sat_sim/interactive/__init__.py",
+      "sha256": "abfcf720075a67bf0b7afbce27446f25f27fe428814e0dbb9def3a4ba131bc83"
+    },
+    {
+      "path": "src/sat_sim/interactive/api.py",
+      "sha256": "66d9f277bf141e382b8c43ab036c2252a9b9d9eacda4941fbae0f55eea27b00d"
+    },
+    {
+      "path": "src/sat_sim/interactive/basilisk_runtime.py",
+      "sha256": "a6c29720fef9628ae8850982279b5772970d02c09fceef1a5b5a33f6cccf4b29"
+    },
+    {
+      "path": "src/sat_sim/interactive/clock.py",
+      "sha256": "fbfbcc712e24971c007d0c0aca32a2c33f63895842f4d762cb0f624ca98815dc"
+    },
+    {
+      "path": "src/sat_sim/interactive/command_candidate.py",
+      "sha256": "02048f9b3c923bc6de4d24fba5be67ee00e1cac543936cc387df9f94c9dc8ca9"
+    },
+    {
+      "path": "src/sat_sim/interactive/command_catalog.py",
+      "sha256": "e0407f106fe159799fe6ece737da90f6e716f97c9c1945be882659f3c0f6e8c2"
+    },
+    {
+      "path": "src/sat_sim/interactive/command_mailbox.py",
+      "sha256": "178f039a6b8c82bf42ecd59a273ad9627c87bbeac4531049d11321601755608f"
+    },
+    {
+      "path": "src/sat_sim/interactive/command_outbox_mirror.py",
+      "sha256": "14fa6ac38da200c8088b540bead70502626ba5a36546571ecdbcab6a2cfbcae0"
+    },
+    {
+      "path": "src/sat_sim/interactive/command_pending_audit.py",
+      "sha256": "c1c98507dd5e1824241e72206e7423d859820fda873188cb2ae6a0bd0dfc17f4"
+    },
+    {
+      "path": "src/sat_sim/interactive/command_writer_epoch.py",
+      "sha256": "882ab00012698b90460d01b49a227a5d68c926a0ee306d2c709b124899a65cd5"
+    },
+    {
+      "path": "src/sat_sim/interactive/continuous_endurance.py",
+      "sha256": "bfed3348869715f5d1ae42ff73d2cdf73f64659b273b2f99a5402e624a2d001f"
+    },
+    {
+      "path": "src/sat_sim/interactive/continuous_endurance_audit.py",
+      "sha256": "ea3fe68dac71b0c3af82739de4a9347b4571581658a179cab1fc80a68366d05c"
+    },
+    {
+      "path": "src/sat_sim/interactive/continuous_initial_config.py",
+      "sha256": "bc07f1f069be687e769583a67cab40faeedf815eaec88aadb1d76a9904f2ae45"
+    },
+    {
+      "path": "src/sat_sim/interactive/continuous_observability.py",
+      "sha256": "2a1ab476a7370d41e8b578912ba04bbbd85d154839bd34c4ab3f79833498ef5f"
+    },
+    {
+      "path": "src/sat_sim/interactive/continuous_seal.py",
+      "sha256": "6c71e560c7e586d64636c5924abe054ce88dceaf4cdf3e70b682b183ca0899fa"
+    },
+    {
+      "path": "src/sat_sim/interactive/continuous_source_audit.py",
+      "sha256": "144d212c0d891890de9548a134a40e6b30113fc97ac01a470ca824eb13c1a8fd"
+    },
+    {
+      "path": "src/sat_sim/interactive/evidence.py",
+      "sha256": "a5d1b7f1e9ed7e4605ee4581ff976d9f4eaf79de630ac5c29b688c1bc122f81c"
+    },
+    {
+      "path": "src/sat_sim/interactive/manager.py",
+      "sha256": "50d07e98d303ca3f0d054a405da2bfbbff9807db3457e8fb24d7b7125dde5a9c"
+    },
+    {
+      "path": "src/sat_sim/interactive/models.py",
+      "sha256": "cceff64d32babfac062f39120f4cb66ed9ab45d1b04a176944c72de2890ea530"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_battery_checkpoint_compat.py",
+      "sha256": "95c5a68bc617d1ff25641bdb2fd13c9e658d41df01b3850410b0e081a3079294"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_battery_reset_barrier.py",
+      "sha256": "5033af6f50365890d499676a501040548b9eed222b0c03630d66298de751e209"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_battery_reset_comparison.py",
+      "sha256": "58020952718e79142b4ce498ff65f04a051cc93dbb67ba076ba098ca6058d10b"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_checkpoint_audit.py",
+      "sha256": "6b4b4e00a61890ac80f070c76affc5980f758dcbaf389a4fd9626df59e7f03c2"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_closed_loop_evidence.py",
+      "sha256": "a43ca66844de35192a8c6c3a1f4023e28d8ba7bc618b784567973cc0ea9965fd"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_cpu_scheduling.py",
+      "sha256": "5c78b4f513bc13173608cab53153a7756c3c8e93924e5201995a7c0ac659c5a3"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_fsw_memory_pilot.py",
+      "sha256": "778e955767066c2f8bd93712aaa748eb5b9bb1e3efd0a3107fd92cb7e3573a11"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_guidance_route_pilot.py",
+      "sha256": "be52ed16c701e91afcc2479a03c7fb40e0d3e5300f4ac02a556c942ab3a965af"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_joint_checkpoint.py",
+      "sha256": "675daf69fe7931005cb89eb240f31098381b4dd7db5d7995ce8505e7bd42b6a8"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_joint_owner_observation.py",
+      "sha256": "e77fc36a2598704bf38b096753ccf68b4187cbfd38dee44b369632824fb5daa4"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_mode_checkpoint.py",
+      "sha256": "da157708cd349b88d9b3c5ed0118cc2b0194aab69c8297947cfe66f4c0688bfb"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_multiprocess_pilot.py",
+      "sha256": "0ef9fc0ef1fbd8809c5931fa9bb22fc1ba4bb735f436fcf08c020f0db847580b"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_multitask_pilot.py",
+      "sha256": "4190532f9c73e9f9254a89926290ee9ecf3b5ce8fc6aaeffb6495b905dfe8f0c"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_parent_death_fence.py",
+      "sha256": "8652f20a326b765880114edf1878b6fd05a11b983433591fadc3f5a941859ed8"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_process_supervisor.py",
+      "sha256": "c50b5d09e1a75074d6e59840b485daf51ab96e67e9ea18599b355d8c1fc5b5a2"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_recovery_readiness.py",
+      "sha256": "c3294a9f83aa17d355ab0e4e682256543390f230831d11bcc2097e7b2d087879"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_rw_fault_checkpoint.py",
+      "sha256": "dfc671d9c119b5f2cac859f5e6c6063fe1a70e84d332aa6279c9e59e68a42685"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_scheduler_pilot.py",
+      "sha256": "36a922b973651d5e859c0e9419f13d4b7ee21d68b8f993f75a31aec74f80ae9b"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_state_pilot.py",
+      "sha256": "486820df5ddfd003ae9430eefb233590ac2b64eb083155a7d01a49efb0bb9b51"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_tc_reconciliation.py",
+      "sha256": "9a4f8964f866c4be90d8c89f020f649219137e9b4ad35eaea998f50450b83c8a"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_time_rebase_pilot.py",
+      "sha256": "2511eff3b0718bb5d5f4531e955de01bd9490d7c31d38a7af7ece25df5ffc176"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_whole_adcs_observation.py",
+      "sha256": "d99ab78873f78ea4f12ffb31baf674b6e3b0549d7832d2980acc0f6f5c7cfdaa"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_whole_applied_command_lab.py",
+      "sha256": "eda0f205e28cb9d66b2d3e25242eefc26376636fa2c79c82e18dccd6a5409228"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_whole_clock_fsw_lab.py",
+      "sha256": "557b57241139cbf2a13ed8c486f61c901eb4a8dbef2d7afebc4a30d9e57c3ad2"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_whole_first_tick_diagnostics.py",
+      "sha256": "886b01883c8651d6a665c9b38a899229bb92beb3efbd3821bbf156206c2c23fc"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_whole_held_command_ablation.py",
+      "sha256": "dd8f45e532a72ae528ca1d0ed87410502eee916e5c36e059c7b7e156609c33bb"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_whole_rw_ablation.py",
+      "sha256": "41642e3dd96b2bbd3d1ba20f958916799783f0da456d37db9cbff6459b53fe6e"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_whole_state_import_lab.py",
+      "sha256": "35db9b9f7a5018a27f90086cfa692171396091bf59755a3630d559b85a5d1adc"
+    },
+    {
+      "path": "src/sat_sim/interactive/native_windows_job.py",
+      "sha256": "36ecfa2d05c68066bbd25f1376f66f6b873b8e3e63da062b8d64a3322bd1d02e"
+    },
+    {
+      "path": "src/sat_sim/interactive/offline_config_bridge.py",
+      "sha256": "c415986ff82fb564f6ccea9f1ba1be395623bf1ecedee5edeb6251c3bd8ae9d1"
+    },
+    {
+      "path": "src/sat_sim/interactive/performance.py",
+      "sha256": "a06a52dc00e08a5d0acecaa2d30c52348313111f9f088aa22bf628e8bd21431b"
+    },
+    {
+      "path": "src/sat_sim/interactive/recovery_command_preflight.py",
+      "sha256": "dcdb6edad35237318ca0e6f849b6b1e029ba7117315fb45d9ed50e3331d4d00a"
+    },
+    {
+      "path": "src/sat_sim/interactive/recovery_handoff.py",
+      "sha256": "116701d299784ae2a5878d3b437aab6ea9a22f28f0ab1fdf034c633484771d78"
+    },
+    {
+      "path": "src/sat_sim/interactive/runtime.py",
+      "sha256": "b02dacff6305d4782054ac1ddb85f7703c5b6eef3a8974e68965fafa7c4316e0"
+    },
+    {
+      "path": "src/sat_sim/interactive/runtime_factory.py",
+      "sha256": "40ce31fe59ed5345a10d02383b6cd16c31d537a2c87ec7ceeea598123b382f6c"
+    },
+    {
+      "path": "src/sat_sim/interactive/state_machine.py",
+      "sha256": "2fb12ae2d9d2c4554ba4e8f18a445a1edb24905b044a9f767562dbc01d1b5168"
+    },
+    {
+      "path": "src/sat_sim/interactive/subsystem_runtimes.py",
+      "sha256": "a72df1f882eb6fbae347cf77648ed1fa41787737d5f77be5062e0ef6ce0d388a"
+    },
+    {
+      "path": "src/sat_sim/interactive/supervised_native_runtime.py",
+      "sha256": "e5bd6b98cf47f41b53f59c85dabeae408ca7442c5ae0cf116e2061c44e5b9f06"
+    },
+    {
+      "path": "src/sat_sim/interactive/telemetry_bus.py",
+      "sha256": "3027268cc303c5ac1d343dfbc1201148354576f1c60aab5554ca47d6f8fe7b91"
+    },
+    {
+      "path": "src/sat_sim/interactive/telemetry_history.py",
+      "sha256": "641690db5394e4ce223e798f830aa64155c604d56e494d94a32cce93891efc92"
+    },
+    {
+      "path": "src/sat_sim/interactive/telemetry_segments.py",
+      "sha256": "ec67e453df53df108de837b08a913d5e48fe49a90f0960b752c8d61ad9e04450"
+    },
+    {
+      "path": "src/sat_sim/interactive/unified_runtime.py",
+      "sha256": "2fcd1af505704b649fced4f325271ae49128cebcbb0ffad3443b364fb4aab288"
+    },
+    {
+      "path": "src/sat_sim/interactive/workspace.py",
+      "sha256": "68a57700a9686756f3c109da017cb7c6b7b6e971783134c51e3174801217238f"
+    },
+    {
+      "path": "src/sat_sim/internal_capability_acceptance.py",
+      "sha256": "d8cc583394c68be00b42adff361c2953d758990aee37a725defb9be09390f45a"
+    },
+    {
+      "path": "src/sat_sim/legacy_execution/__init__.py",
+      "sha256": "36630452e442b3c126b26c143d01eccb172a611182277948e6459f21792aaafa"
+    },
+    {
+      "path": "src/sat_sim/legacy_execution/base.py",
+      "sha256": "df93f48c43e88fe827238a199616bf4f82d1675c2cb0178eada59f871b1c5941"
+    },
+    {
+      "path": "src/sat_sim/legacy_execution/capability_adapter.py",
+      "sha256": "7fad0afa5e10560133099f7efa06f8bbf708f6a1c12e161d646edf427fa2047b"
+    },
+    {
+      "path": "src/sat_sim/legacy_execution/module_adapter.py",
+      "sha256": "2280782409012ab03cddbcafc510f7c293162df6f15bcf3224fbd1a9499eca07"
+    },
+    {
+      "path": "src/sat_sim/legacy_execution/orbit_environment_adapter.py",
+      "sha256": "7c8b4845f3bd55438ffc379d6810df5d3fcdf9c6600445d40e821e1bbf175951"
+    },
+    {
+      "path": "src/sat_sim/legacy_execution/runner_bridge.py",
+      "sha256": "a6b7e59f6e8a5b3fbac14f781eeba6b6180635afb9c67eafa02fcbfbe61cd9d6"
+    },
+    {
+      "path": "src/sat_sim/legacy_execution/whole_spacecraft_adapter.py",
+      "sha256": "092f810c3367438576283e478c12914ab85ca868e0d04afea128814e10ad728b"
+    },
+    {
+      "path": "src/sat_sim/limited_repair.py",
+      "sha256": "44483467323be65ee53e67f5c0655290cb3a1a97a0b28150db2d7a14134c0e75"
+    },
+    {
+      "path": "src/sat_sim/llm_backends.py",
+      "sha256": "a7c7064b2e637b4fbc5c6d2f5cc62d4f925b549d2fa55437d034e5ff80a39496"
+    },
+    {
+      "path": "src/sat_sim/lmstudio_acceptance.py",
+      "sha256": "01ec788dfe8b535e31a2065e859ac6093c7bb82258830e104f70020bef5c1a20"
+    },
+    {
+      "path": "src/sat_sim/model_governance.py",
+      "sha256": "1a3894b809522a4346bb938cb4117b73e614519aefc30772465cb0b0d951ca3f"
+    },
+    {
+      "path": "src/sat_sim/model_providers.py",
+      "sha256": "c4806c97fa5af3c000745ee7984f73881c34ca0b774f4a77a5700cf96a9de6aa"
+    },
+    {
+      "path": "src/sat_sim/model_router.py",
+      "sha256": "6463309ccd1d8c6d91f87f778a0a9daee954e3aa0fa8b5d178d2a14934819ec4"
+    },
+    {
+      "path": "src/sat_sim/modifiers.py",
+      "sha256": "fa212bb180be9830eeaebfc2f98d9265729801dec55c95c0579affaab3ea445c"
+    },
+    {
+      "path": "src/sat_sim/module_replacements.py",
+      "sha256": "47e108a9605b2abf2d8ee22337126c90d25fd934fd76601c3c66a28113e2165d"
+    },
+    {
+      "path": "src/sat_sim/multi_rate_telemetry.py",
+      "sha256": "96c58ec07efcc6c6b3dddf26384d9c3338facebf511c9ccd4d6d1a141af6339b"
+    },
+    {
+      "path": "src/sat_sim/native_rw_preflight.py",
+      "sha256": "78cfde3a74056ff00ff70fc82bbcbb0dcbbc938bb9f5d0549a9d540d3b3c6037"
+    },
+    {
+      "path": "src/sat_sim/nl_aliases.py",
+      "sha256": "b93c64833033ba04094421af768e55a572aa08b0341bcf8e4ba558c672fce517"
+    },
+    {
+      "path": "src/sat_sim/nl_e2e_matrix.py",
+      "sha256": "fb18f631ad75e7b81fbe9a60a19d3905fd094d29210c33075188c70a197830f7"
+    },
+    {
+      "path": "src/sat_sim/nl_outputs.py",
+      "sha256": "08247635dc4a3e3d56609f8843ff34ff79df0fea0891123f64734fdfe5224035"
+    },
+    {
+      "path": "src/sat_sim/nl_rejection_matrix.py",
+      "sha256": "15a607a3148b772c4eb8eecbd0f335cc7069a9955d7447b719af09b7ccaaf11e"
+    },
+    {
+      "path": "src/sat_sim/nl_time.py",
+      "sha256": "65ad7388a8dd3ba976fe2f87aaf1b712aacbe85b81c3cfee3602d92b7305cc85"
+    },
+    {
+      "path": "src/sat_sim/object_scenario_coverage.py",
+      "sha256": "a758c3e8d6ed00ead80bf4d92fe13ec82b94de23a0612de78c24c1c6f69f543f"
+    },
+    {
+      "path": "src/sat_sim/observability.py",
+      "sha256": "f90eb2a972cd8d0576d7325b4095b181510739b7171170db25f6e1859047bdf3"
+    },
+    {
+      "path": "src/sat_sim/operator_contract.py",
+      "sha256": "1f1f16bf9fac10e4d183109a64485e1231a4c8565f3d322c3328a0696ba6d512"
+    },
+    {
+      "path": "src/sat_sim/orbit/__init__.py",
+      "sha256": "68ef2653548fa84d2dadfe44cd2e30004c996da7c6e1c5575f78da1d54a9b1ed"
+    },
+    {
+      "path": "src/sat_sim/orbit/atmosphere.py",
+      "sha256": "d607365fea512eb59c4a54639baca6e429c5e9b22e1d5eb44f6804c096dbfcfe"
+    },
+    {
+      "path": "src/sat_sim/orbit/basilisk_hf.py",
+      "sha256": "3b1a3598fca934f8be3a3a040211a364951f047747833f9fce61424928c997e2"
+    },
+    {
+      "path": "src/sat_sim/orbit/force_models.py",
+      "sha256": "942b5d7fb62429ff5630966a846bebfa4099d83af9fd81870e787121b067bb6a"
+    },
+    {
+      "path": "src/sat_sim/orbit/medium.py",
+      "sha256": "ca633b7f9185aaa5ee76136d30be84d25e6fe6e65deedffd0451929dcd0dc2ae"
+    },
+    {
+      "path": "src/sat_sim/orbit/numerical.py",
+      "sha256": "7cc0d8dd427bc810aae4058b99647f59872a7d1fbc17966f5652d6b795a7b733"
+    },
+    {
+      "path": "src/sat_sim/outputs/__init__.py",
+      "sha256": "683eff8d29900b98dfa83ba0f04be27cc469e153e00091fd750cf7204d68163e"
+    },
+    {
+      "path": "src/sat_sim/outputs/label_schema.py",
+      "sha256": "9aa60b4c2e132dd902a6e83fd10427ee092171991f8873c75aa0921500cc5b62"
+    },
+    {
+      "path": "src/sat_sim/outputs/standard_fields.py",
+      "sha256": "2b613490659c7f787024899834f06feb4761f721b654e2ac0dee6cdff4774d83"
+    },
+    {
+      "path": "src/sat_sim/outputs/summary_schema.py",
+      "sha256": "70af8894aea3f597bd0e9397c0d12aaae1b602c0df08c908d282c5177cfd0b63"
+    },
+    {
+      "path": "src/sat_sim/outputs/trace_schema.py",
+      "sha256": "bab5a34ca36672fd583f230e7712b0d6a254b07dc2060be032d9dba4420a6ce8"
+    },
+    {
+      "path": "src/sat_sim/outputs/writers.py",
+      "sha256": "b1919459365686ea9b96efc3252c899f8e835192d4f59b0b70e4a7c0f563d2ce"
+    },
+    {
+      "path": "src/sat_sim/parameter_consumption.py",
+      "sha256": "b9c6999a59322d3f4ed7870f2f11b8c6bb5744783e32e76682266095ab00bb16"
+    },
+    {
+      "path": "src/sat_sim/parameters/__init__.py",
+      "sha256": "360c244a6d7e9de0959283cd3eb9a07fad0e003176549246d03ca7fb142c406f"
+    },
+    {
+      "path": "src/sat_sim/parameters/provenance.py",
+      "sha256": "dd5195355025c196e2d84edf445f7ec2e4c4b5bae9ad412f5375157baffdafd7"
+    },
+    {
+      "path": "src/sat_sim/physical_couplings.py",
+      "sha256": "21fe35f3622e834ed6ca7adcc8f8db5f86bca9fc956409a30805fcf61b5f7d3a"
+    },
+    {
+      "path": "src/sat_sim/product_closure.py",
+      "sha256": "f1fd66576ee09c7d1e3ffeab8330a2875e039ce95c6c42dbb3d1259931b4db96"
+    },
+    {
+      "path": "src/sat_sim/provider_eval.py",
+      "sha256": "75b868a9949b25070c3a1bc0c37ce6326a06dd2bef8af8ffe9ec0b9606ad06a2"
+    },
+    {
+      "path": "src/sat_sim/real_llm_eval.py",
+      "sha256": "2b68286e75d8498957a4949431ea2d0c4e4597bd13f01a252c610f3a9d0416d3"
+    },
+    {
+      "path": "src/sat_sim/reason_codes.py",
+      "sha256": "de2d2ce73cc63d3ee8360f95df92f6c58171d03e7f4f7f0417ea54bb2066806d"
+    },
+    {
+      "path": "src/sat_sim/reference_orbits.py",
+      "sha256": "f15156b0c7d56aee046cce1eefd551ba21553f25792ff7f274ce189d18cde742"
+    },
+    {
+      "path": "src/sat_sim/registered_capability_execution.py",
+      "sha256": "ff4dfc6518fd6b4baaaf8dc44e7bfe729fbd62f05d010a4057f43eb6e612c023"
+    },
+    {
+      "path": "src/sat_sim/release_baseline.json",
+      "sha256": "751f79b00b7b1ce324dea4833d85437aab8adfc20d7339b22648f753fd731722"
+    },
+    {
+      "path": "src/sat_sim/release_closure.py",
+      "sha256": "090d776e0348ae3930efe80db519b6109a98be2f041b3fb2b7be07d5f3b7f8da"
+    },
+    {
+      "path": "src/sat_sim/release_manifest.json",
+      "sha256": "5bd03839b59563276d6164bd9440e5d75c4c15ae8e65469494634dab14e4d3a7"
+    },
+    {
+      "path": "src/sat_sim/reliability_acceptance.py",
+      "sha256": "31c0020e0635f77a017e6a912f608a7a1607cf8b6f69e57c13baab4eec9b8029"
+    },
+    {
+      "path": "src/sat_sim/reliability_soak.py",
+      "sha256": "bd36bd588b55d2a96daf5282eecf38b945f6b8fdff8f88f5ff901df00dd73a46"
+    },
+    {
+      "path": "src/sat_sim/remote_worker.py",
+      "sha256": "2dbc94b67648b9dc2e0b1e6363d2894a2709e2636d2efd4551e4f327a8f1a0d1"
+    },
+    {
+      "path": "src/sat_sim/reporting.py",
+      "sha256": "eb65744b288ab685a716acec38cde604078779c358cca78b03641e505ac7ceea"
+    },
+    {
+      "path": "src/sat_sim/run_bundle.py",
+      "sha256": "cdbfff655fb5a4624ae586fc125282ca80a729188f3a72a41be0f382e03ad142"
+    },
+    {
+      "path": "src/sat_sim/rw_actuator_contract.py",
+      "sha256": "6e64b7eb03cfc497ea57a5585115a8fdea2972f122e2c91b35deb2a22431cc7d"
+    },
+    {
+      "path": "src/sat_sim/rw_fault_scientific_closure.py",
+      "sha256": "e07a2abb647699c063f03bddbe93a56fc1ffa04095e61a07d75e5b5071496b89"
+    },
+    {
+      "path": "src/sat_sim/rw_jam_readiness.py",
+      "sha256": "0a0d4deeb53540c76b1c25430d5ff47a44c0a8245b7bb8382ce7fd01e3d97dc3"
+    },
+    {
+      "path": "src/sat_sim/scenario_templates.py",
+      "sha256": "9c596788c814db40611a3fc80002f568db4072bd27b04d5ebfc2fe7cc9a90e13"
+    },
+    {
+      "path": "src/sat_sim/scenarios.py",
+      "sha256": "f5b6f24ad8b5462b09454b0bd793b41bcd772a44b1292d1047e1a4532b4dc3eb"
+    },
+    {
+      "path": "src/sat_sim/schemas/__init__.py",
+      "sha256": "5b2cd6b54c53b33ba515900663448612b8e58d64dbbde726454e1cb46d21720d"
+    },
+    {
+      "path": "src/sat_sim/schemas/calibration_dataset_v34.schema.json",
+      "sha256": "2ff883592d58fea9700737e5f585db00bcb47cca8803f1baaedcac5904190520"
+    },
+    {
+      "path": "src/sat_sim/schemas/calibration_readiness_v34.schema.json",
+      "sha256": "aa52e9ef1ff20092a0955688d5fef4c9000fe00852ac2a03d01b25e285921a78"
+    },
+    {
+      "path": "src/sat_sim/schemas/calibration_registry_v34.schema.json",
+      "sha256": "0907cb76c8ba9227010bff9810201a2d24e51a135f87444fdb7b5f794b0614c7"
+    },
+    {
+      "path": "src/sat_sim/schemas/claim_report.schema.json",
+      "sha256": "be153d7c7fd078621b8f66dfeeb54e1954dc8a08c651edaa026dfafe9b4a78f1"
+    },
+    {
+      "path": "src/sat_sim/schemas/command_ack.schema.json",
+      "sha256": "52701f026e4cdaee05b95f02ee753db452cd2a5f659152710a775e471a3adfae"
+    },
+    {
+      "path": "src/sat_sim/schemas/dataset_expert_review.schema.json",
+      "sha256": "058dd026a94d14b19628ce5d8b286534a96179ff6aaf4d9e0a9522af475df61d"
+    },
+    {
+      "path": "src/sat_sim/schemas/dataset_manifest.schema.json",
+      "sha256": "0bf45796ea4f0514045e22914bbfdbb89713391e73767ec1b173df5ec43773b1"
+    },
+    {
+      "path": "src/sat_sim/schemas/diagnostic_feature_vector.schema.json",
+      "sha256": "991ca4a3420fd8209b4c8a0bf23cec07a5f5577188d61fb2132501efb5e01607"
+    },
+    {
+      "path": "src/sat_sim/schemas/diagnostic_mapping_bundle.schema.json",
+      "sha256": "150b9f32511c5292945dfb9754a647f4480a49b3b8a4828d3f9e66d7b57ec25f"
+    },
+    {
+      "path": "src/sat_sim/schemas/diagnostic_pair_validation.schema.json",
+      "sha256": "8a8b14271fc3c86265056a3ffdc3620b0039f088aae8fc74f8e499993a874f48"
+    },
+    {
+      "path": "src/sat_sim/schemas/diagnostic_pipeline.schema.json",
+      "sha256": "d4ba71ee7ec97f4f545b08d92c966fe7ccb1436b9d0e623a2a1c305e73eda8e7"
+    },
+    {
+      "path": "src/sat_sim/schemas/diagnostic_pipeline_runtime.schema.json",
+      "sha256": "46ac9b70e8871ca53e03c578dfccd6c6f0189288b6be22e69f79e29a58af1949"
+    },
+    {
+      "path": "src/sat_sim/schemas/diagnostic_signature.schema.json",
+      "sha256": "648cf57fb268a09aba8e65928f87115e5dbb9b61c0cd08d91766d8f540419dc2"
+    },
+    {
+      "path": "src/sat_sim/schemas/diagnostic_signature_review.schema.json",
+      "sha256": "02fbfb36b5acf16d34d814cf0f6bd1741b00cfded520592022d72817b4daaddf"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v28.schema.json",
+      "sha256": "e993a4dd4dc0dbc589a3821836f87b8ec64c9ad7e03dd77068e7ca56e419095c"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v29.schema.json",
+      "sha256": "19d4220241dece2a8f522beb0911111ab13e2e87f70a23b18b41c57f1c50586b"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v30.schema.json",
+      "sha256": "374815d2eda7f7323c0f6611e8102984e5ccca4ac93cf01706e1fc9e9afa46d9"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v31.schema.json",
+      "sha256": "e5a48a4b65b7d4066a63c5a4d520172887dedd83a7d66ed9c209b350bebfc747"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v32.schema.json",
+      "sha256": "5b6d4736481047bd0d9ccb26b62d2e1f98465ae8f142cdcfe92efc957666819b"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v33.schema.json",
+      "sha256": "b4f3582083847fea503d6f0fcdbdeceee50ad2a55ab780893e32b73ba900b325"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v34.schema.json",
+      "sha256": "1b0ffa9883cf3413e8962256b2173b51dde3f3e22ba74e90c988ba69078347ba"
+    },
+    {
+      "path": "src/sat_sim/schemas/environment_doctor_v35.schema.json",
+      "sha256": "6262bd208f80d56a37500f9205e4f961f08484204695c2eacac5355f3cae0c6e"
+    },
+    {
+      "path": "src/sat_sim/schemas/execution_attempt.schema.json",
+      "sha256": "307073c6f09e52bf146d178e0062963d1c66afe66f360b74e6b5346c4e0fbe67"
+    },
+    {
+      "path": "src/sat_sim/schemas/execution_plan.schema.json",
+      "sha256": "9021515bdf8b82a00a4bf3374a6ca4776b72596960a5f12b78d96dfe640654dd"
+    },
+    {
+      "path": "src/sat_sim/schemas/experience_lesson.schema.json",
+      "sha256": "1646480af8d1e786fb8a927cb87f1d2b97e8267ef0b485b50404e41f3b49d977"
+    },
+    {
+      "path": "src/sat_sim/schemas/experience_record.schema.json",
+      "sha256": "e398cbbd083c72489a4b824724ac36d0bfda181cabeccc492faedb73b6fcfb91"
+    },
+    {
+      "path": "src/sat_sim/schemas/experiment_record.schema.json",
+      "sha256": "1967859e36db43079f54bb1b54c57d4f74304fc698ff90a9fac05798d6c7f52f"
+    },
+    {
+      "path": "src/sat_sim/schemas/fault_experiment_template.schema.json",
+      "sha256": "a5a6782c7199b28f7ccc4dccc844a26a62a0a2a4e5d57c54af64fa9e0d4c08d7"
+    },
+    {
+      "path": "src/sat_sim/schemas/fault_mechanism.schema.json",
+      "sha256": "104d2bfaa690ffe7e6c92bb88d1b79ce1abc1bf44dfe8ea123e4cf4277e37163"
+    },
+    {
+      "path": "src/sat_sim/schemas/fault_severity_descriptor.schema.json",
+      "sha256": "fe3bb230d2e0d9e7de977bacb9ee236e12aae7fa1c935be34ccc2d97d043ee4e"
+    },
+    {
+      "path": "src/sat_sim/schemas/fault_severity_model.schema.json",
+      "sha256": "2182d486e9f0c63cfce59fdb45e2d0368fd00f4db550aef34d4b3a55ee37b81b"
+    },
+    {
+      "path": "src/sat_sim/schemas/golden_eval_report_v27.schema.json",
+      "sha256": "1906ddd9b0aca610bb8b8bd1e030469bf2c99ca4a7a49dfcf340804c598b5099"
+    },
+    {
+      "path": "src/sat_sim/schemas/golden_set_v27.schema.json",
+      "sha256": "ff6d52cff84d585c6f8b259e0e78c21372c1da21a35c697ca4908681d4b4ef1d"
+    },
+    {
+      "path": "src/sat_sim/schemas/interactive_session.schema.json",
+      "sha256": "5f62c7fb3bacaf218b71f997c34088b770b0edd2e8523590b91da44261343857"
+    },
+    {
+      "path": "src/sat_sim/schemas/object_scope.schema.json",
+      "sha256": "381bd8924f1b66087c687245b5f129175b7fd84b880759422357ae5696ee277f"
+    },
+    {
+      "path": "src/sat_sim/schemas/prepared_run.schema.json",
+      "sha256": "5d585c2e156dc41c5eb88ed3fe6221695d46d1fcbf33146ba3b1959ededd1a1f"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v28.schema.json",
+      "sha256": "ce17156116fb88967030fde29f7325cbee5defe936784132f5e65da3c2eacf73"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v29.schema.json",
+      "sha256": "09b2e01953ca602a73214b8d6d1631ba088c6c263fc8f762bb3a7d270e8d03d7"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v30.schema.json",
+      "sha256": "41b2f9740f7d78390c5fb33f68a33022bc48df32003127fed20e6195b9f36d9a"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v31.schema.json",
+      "sha256": "89fb4fffc2a67b18606531643f359dff17c36e7c4dfc49b9585a81b3028557c4"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v32.schema.json",
+      "sha256": "12527f5042189e001903a9255c1c3f6405a62891520d5b5d5d727c93c3b3a8b4"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v33.schema.json",
+      "sha256": "bcedfd6f98cb2d7528b96e7c002ebcbbc8070c37e7eed699d03eda9a8654835a"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v34.schema.json",
+      "sha256": "832f3b2c114883c9f375a986b5f909ba6ca190d27ea8892d83b3764d91fc846c"
+    },
+    {
+      "path": "src/sat_sim/schemas/release_closure_report_v35.schema.json",
+      "sha256": "70833227f55ca74cf9548883457d8bf350aae4d71c24506d69d455d2103dd194"
+    },
+    {
+      "path": "src/sat_sim/schemas/resolved_spec.schema.json",
+      "sha256": "8e8282986dda01fb6241e5810a29abf627cc6a613e0338a68bbd20207b2cc471"
+    },
+    {
+      "path": "src/sat_sim/schemas/run_record.schema.json",
+      "sha256": "8bd21210f80e1394081e1733e16a1bf8b50bdeb94d42ae4e498bbbedeff1ee17"
+    },
+    {
+      "path": "src/sat_sim/schemas/scenario_baseline.schema.json",
+      "sha256": "69f8af6c1408ba7aae9f27b529d78a3619d717df4543e3b6cb128d82034c6f72"
+    },
+    {
+      "path": "src/sat_sim/schemas/session_event.schema.json",
+      "sha256": "0fc0c98cef9a00cc01fa058e437f3fed5d13f3a64033bf18662002a6fd7117d1"
+    },
+    {
+      "path": "src/sat_sim/schemas/simulation_evidence_graph.schema.json",
+      "sha256": "b1befed59c5eedd5c6ff59dea8819e0de957a7d6a18b464832918e21e2ba61b6"
+    },
+    {
+      "path": "src/sat_sim/schemas/simulation_module_interface.schema.json",
+      "sha256": "e5d62098684fbb61b23315f9a902700d152f18ca3715a19b150e024a1830cc9d"
+    },
+    {
+      "path": "src/sat_sim/schemas/simulation_pair_validation.schema.json",
+      "sha256": "fa9d5ae6fb42b28c16495fb9fb0fb212b40d01cf4e0e13afce1b707461ea2be5"
+    },
+    {
+      "path": "src/sat_sim/schemas/simulation_ports.schema.json",
+      "sha256": "10ea230e11eb2150b829077b907473d9d42c5a832ef371520f947e2913ad4817"
+    },
+    {
+      "path": "src/sat_sim/schemas/task_spec.schema.json",
+      "sha256": "103e32e47141f6dfdf948b1a19d84add5b7521b727761f984a0f3c78d79b88d2"
+    },
+    {
+      "path": "src/sat_sim/schemas/task_spec_legacy_0_1.schema.json",
+      "sha256": "06b2ba8f43cc2f977c8522d78a69d0c16da65690e76d384eed67ba90dfa22f8b"
+    },
+    {
+      "path": "src/sat_sim/schemas/telecommand.schema.json",
+      "sha256": "8d8432538537d5db030cb520bc828222fa050d2cefb482f5df22e34d81765330"
+    },
+    {
+      "path": "src/sat_sim/schemas/telemetry_feature_contract.schema.json",
+      "sha256": "450d334b6c8764cc2c6bec9ca8208d9b2d6f2cb672aa35f7128d24581b5d2ba0"
+    },
+    {
+      "path": "src/sat_sim/schemas/telemetry_frame.schema.json",
+      "sha256": "13969014c83b9ebd431088209c817b93682963b13c188541055a31144c5fad4c"
+    },
+    {
+      "path": "src/sat_sim/schemas/validation_outcome.schema.json",
+      "sha256": "f34807561f83e476ea5b23f08de1fc49a5a031f7b4a763183b0d784435f17734"
+    },
+    {
+      "path": "src/sat_sim/script_exporter.py",
+      "sha256": "b4c30f1e31894db506194f4338083b7a950719c04c88564dc09a98e6fec25678"
+    },
+    {
+      "path": "src/sat_sim/security.py",
+      "sha256": "a22c1f78e2e9999df349b6340b6ceb3df76dcdfaa24c30db23d4914c39eb8042"
+    },
+    {
+      "path": "src/sat_sim/sft_data.py",
+      "sha256": "1dedadfd89d7d4e36f2ee20801bbdf4d43df499d5e0534f95e94b6599dfeedb2"
+    },
+    {
+      "path": "src/sat_sim/simulation_evidence_graph.py",
+      "sha256": "fd5061f6cc7ce93dfc428c7b07c72dcefa59590f2bf0b2c74360c6990339e57f"
+    },
+    {
+      "path": "src/sat_sim/simulation_fidelity.py",
+      "sha256": "c3e27876e80396601dcc5d6aabccc9b71b0662eda488ac6ff34f5d273cbe0db1"
+    },
+    {
+      "path": "src/sat_sim/simulation_ports.py",
+      "sha256": "6c5ed32668248500913d49062e93468989d283894ce2a667d66c468ab45dc633"
+    },
+    {
+      "path": "src/sat_sim/simulation_validation_agent.py",
+      "sha256": "b8bf18f7b91045d90ac23dd19eb11889ed48ac430a926a584c4b777a528503c1"
+    },
+    {
+      "path": "src/sat_sim/solvers/__init__.py",
+      "sha256": "d61a705c441a860fb866058e82b540c9426605d41cdcdc55f224b95cdfd94b72"
+    },
+    {
+      "path": "src/sat_sim/solvers/core.py",
+      "sha256": "79108525fd7aa8fa4c8ad75781867f3cf59ed10dd5ca4fb20f871138c7d9de1d"
+    },
+    {
+      "path": "src/sat_sim/source_coverage_completion.py",
+      "sha256": "e91728e11fd6f133a8a1fc0f7d75f434cbc18ca0546f87feafa63af0cd51316f"
+    },
+    {
+      "path": "src/sat_sim/source_grounded_eval.py",
+      "sha256": "30b5a9c2373207d72e67a6ad35250023c0dc0b6f2ff2ce7a8c4ed87833e2dcc3"
+    },
+    {
+      "path": "src/sat_sim/source_inventory.py",
+      "sha256": "143da02fa60586ed19d384f65d8840978b9e6eedba63d77ac82fd7240739f804"
+    },
+    {
+      "path": "src/sat_sim/source_native.py",
+      "sha256": "c1eef71c0d58d2dd120d06d5683dbe6068099817b4747cf08f08e408d0a996f6"
+    },
+    {
+      "path": "src/sat_sim/spacecraft/__init__.py",
+      "sha256": "7a16e0b96a2940b85b4edcfdff18e58d7c9c2e42ad0a9e8eb375d06e2d3a712d"
+    },
+    {
+      "path": "src/sat_sim/spacecraft/basilisk_6dof.py",
+      "sha256": "f50e724bb81a4582bad4aa3905aebe7ba64f61abaf5b9611baf540f8727a70c1"
+    },
+    {
+      "path": "src/sat_sim/sqlite_connections.py",
+      "sha256": "19e1cd72715686cfc818a65c1c19117080c46fe51ffc66ac2ba758d99af4eb09"
+    },
+    {
+      "path": "src/sat_sim/state/__init__.py",
+      "sha256": "a1847d73da9451d4106ee26b927bf979d0c7e76678c9da35c5ba2ab168bc5c06"
+    },
+    {
+      "path": "src/sat_sim/state/core.py",
+      "sha256": "a6106bdbbe5e1df0010c288d0680087cd545411ad2157959798edcb071228f72"
+    },
+    {
+      "path": "src/sat_sim/task_center.py",
+      "sha256": "c2f770061d2adb0bfe9b9ad753757f96c7370c3bc98af2f5484f0f903f7af735"
+    },
+    {
+      "path": "src/sat_sim/task_compiler.py",
+      "sha256": "4c9e9669091924afdbf87ecf1bd0fd449a7d5797bb0e910194835d08ec37248c"
+    },
+    {
+      "path": "src/sat_sim/task_models.py",
+      "sha256": "906344436887b2f61d37070bbf407ccb47e0ae16f2af36d4edf894bc8001dfa4"
+    },
+    {
+      "path": "src/sat_sim/task_runner.py",
+      "sha256": "68659a1458d2f3eb9a5ce7a6d8025f195d26c24a18e27f1c621b1e4a09947e25"
+    },
+    {
+      "path": "src/sat_sim/task_spec.py",
+      "sha256": "ff99dee33b2cfe8dbfb059d5afbce896e53aa65db785b579d1a19c94bf3d4210"
+    },
+    {
+      "path": "src/sat_sim/task_validator.py",
+      "sha256": "d61cdf05f81ecd897900222b6f5add35abaa1a23b7ee0421a54ee843a1015ccf"
+    },
+    {
+      "path": "src/sat_sim/taskspec_alignment.py",
+      "sha256": "8d6831e7ee76951c878eccc5ce8ed29eb1d6f2bd6ab75bb9bac2fe3f86dd2b53"
+    },
+    {
+      "path": "src/sat_sim/taskspec_pruning.py",
+      "sha256": "7924f2fe00ef50b62ba12c1576ad7dadc2c281476cb086be8c81d1d796300a0a"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contract_library.py",
+      "sha256": "504cdb9dc386982ee231a65999aad71312899c47f5de1ffb7bd6438e5b75a5f1"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contracts/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contracts/adcs/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contracts/adcs/rw_friction_increase.yaml",
+      "sha256": "9f7ff60e0931e381596700a5220fd59fcd43d662eb69066670b9572472d6803e"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contracts/adcs/rw_jam.yaml",
+      "sha256": "e648df2055b93ccb73c38a2f597e0c4d50ed693dab1ea92ccd8d60f7a34ac380"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contracts/adcs/rw_torque_authority_loss.yaml",
+      "sha256": "3bcc025b2e2ca185181afe260e2f7397d0bd7a971d207b27da57b7187d1394ca"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contracts/eps/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/sat_sim/telemetry_feature_contracts/eps/battery_capacity_loss.yaml",
+      "sha256": "a3a6013ce4b9d60fff1ae116b3e83a00afe470bd7d38372502b142b2a424729e"
+    },
+    {
+      "path": "src/sat_sim/telemetry_overview.py",
+      "sha256": "d084c56f6c953e3dc20caa6145dab4c401d21b4371e1c11b301a16441a609fa8"
+    },
+    {
+      "path": "src/sat_sim/thermal_environment.py",
+      "sha256": "fd9fb908c07da3695ad617fc4da5c5352bc64eb05a13b7e07bc89556fda0f72d"
+    },
+    {
+      "path": "src/sat_sim/thermal_quadrature.py",
+      "sha256": "4f1aece19287f72b3a1b44a2791a8f53309561803cb7085dcf5edac45615d0fc"
+    },
+    {
+      "path": "src/sat_sim/time_systems/__init__.py",
+      "sha256": "708aef5a0fa4df2e3a1b5ede4ab4ac9961718cbc643b5e1fe9408599214118b3"
+    },
+    {
+      "path": "src/sat_sim/time_systems/core.py",
+      "sha256": "7be7d60122c3e887df5554bb165c4fc509214fbdebee292d947b17e79304cda2"
+    },
+    {
+      "path": "src/sat_sim/unified_agent.py",
+      "sha256": "d58ed358667da2a58b6abd5c60a9469d34e977e0ca3185f34ee8c8bb569cefb3"
+    },
+    {
+      "path": "src/sat_sim/unified_execution.py",
+      "sha256": "90aa86ed054dce47000c372118888a4c5aa118abcffe2e96b784b2c0f288c5d9"
+    },
+    {
+      "path": "src/sat_sim/units/__init__.py",
+      "sha256": "4f84173726ef63209182d1f276bca26944f65c81ef4fd9c8bd4c198d9d5b60eb"
+    },
+    {
+      "path": "src/sat_sim/units/core.py",
+      "sha256": "d7c1aa7956cdd515b49692262e4b65f63e4df7b68ccfa69e2aab9c8d07e9186e"
+    },
+    {
+      "path": "src/sat_sim/validation/__init__.py",
+      "sha256": "2de841cd24d8cb096f714a5aa6b41dc5fe5cf97edc046d400814512754a6dd4e"
+    },
+    {
+      "path": "src/sat_sim/validation/cross_level_owner_audit.py",
+      "sha256": "b096cda9d65df20e8e9faaf0bedee31fa336df6b99f937532ebe2965dce01140"
+    },
+    {
+      "path": "src/sat_sim/validation/gates.py",
+      "sha256": "79d46d64da98b65e34d6cb965353f0457c48260369bcc8b2f8c124a172b5339b"
+    },
+    {
+      "path": "src/sat_sim/validation/layer_schema_contract.py",
+      "sha256": "d426e210fea31d46193e41deb4792c7bca74a208fe101448725e1d05b7ae5edc"
+    },
+    {
+      "path": "src/sat_sim/validation/native_capability_audit.py",
+      "sha256": "c2d7089ef02291b3d616d5d2a90bf9d88ea9e66d147a5b234d8d476d9a2a455e"
+    },
+    {
+      "path": "src/sat_sim/validation/parameter_surface_audit.py",
+      "sha256": "a0ff69ce334fbf9629f33ad15c432e9a406c5801c595db7f57ed91c700156da7"
+    },
+    {
+      "path": "src/sat_sim/validation/physical_checks.py",
+      "sha256": "4ca649677be160fa0daeb93be419813f83a5bb70a8d582709031de4cf7516565"
+    },
+    {
+      "path": "src/sat_sim/validation/rw_cross_level_semantics.py",
+      "sha256": "c47ae0bc193f7af5f95ceba1909b027a61c99ea45388c4efcd7a909ed9a5f012"
+    },
+    {
+      "path": "src/sat_sim/validation_outcome.py",
+      "sha256": "e6f1a8393a672ceddcd5ac347940a7c7569591030feafe76f0c3876a14befd52"
+    },
+    {
+      "path": "src/sat_sim/verification_matrix.py",
+      "sha256": "88e0d55f6f983d70aba5370a0aabdb68ca491ec0a3edb24bc16fbc4dbf5db47d"
+    },
+    {
+      "path": "src/sat_sim/visual_diagnostics.py",
+      "sha256": "3fc23c56444801b72e90a86400baf486d82ff936dd3cfab5af1518f02004f8f1"
+    },
+    {
+      "path": "src/sat_sim/visual_graph.py",
+      "sha256": "ab75c31cac86bdd8416245b0ecd6c0906b36737e1c3c444a4622baf3322f1d13"
+    },
+    {
+      "path": "src/sat_sim/visual_results.py",
+      "sha256": "22da52484d778c7a49242ad6589049c1611a18b3a170931ee552c92d583481e2"
+    },
+    {
+      "path": "src/sat_sim/visual_tuning.py",
+      "sha256": "d43bc0b9d5a2bf9e257265f8d8a46e8d51b9db36477ac3912e83a4d9223d87b7"
+    },
+    {
+      "path": "src/sat_sim/visualization.py",
+      "sha256": "c9d7ed1781140b8915e4dadfb5e2111dcc7ec313b099377d49d889caa3bb259b"
+    },
+    {
+      "path": "src/sat_sim/vllm_evidence_benchmark.py",
+      "sha256": "d702e0001f436c4696c3f32d149841159b1b84401c30b48fe0662769bad312a0"
+    },
+    {
+      "path": "src/sat_sim/web/app.js",
+      "sha256": "86152271fa09b819a17c66406a0ba027876062601d5f26febbcfd26d4588df80"
+    },
+    {
+      "path": "src/sat_sim/web/compact-workbench.css",
+      "sha256": "ed6bba464fcf4eb1bf38d98301a568cb20ac4147c7acacc49e2927720fe5113f"
+    },
+    {
+      "path": "src/sat_sim/web/compact-workbench.js",
+      "sha256": "77d65b54da0eade0f2fda2c9f273c2503fc2ce53fc9c8cb63bdb6c71b0aa89fc"
+    },
+    {
+      "path": "src/sat_sim/web/continuous.css",
+      "sha256": "3d6e2688d58aa56c37c873ae62284d04400d217a3a712a3e6dda81ae3d53b709"
+    },
+    {
+      "path": "src/sat_sim/web/continuous.js",
+      "sha256": "8217dc336952c1717425844821db5a438cb447934d6398e7c98af8e76ab96a9d"
+    },
+    {
+      "path": "src/sat_sim/web/index.html",
+      "sha256": "cf88aef9283759ca19b939ecc1db23d2d4b202f25bb574a4a70c9c6a166b3637"
+    },
+    {
+      "path": "src/sat_sim/web/styles.css",
+      "sha256": "baee071601faf7f62fb17a5ebc7c94848c995a6b98e994836cd26326891d2d5c"
+    },
+    {
+      "path": "src/sat_sim/whole_spacecraft_effects.py",
+      "sha256": "593497f8d12ac5df23918cbc1d8cdbb099595a50a3756a53aee06f66cd7933a9"
+    },
+    {
+      "path": "src/sat_sim/workbench_catalog.py",
+      "sha256": "2a5f53e675e4496c88937cca541804e7e4b1e53c9c8ea4fb79c081a5de1fe13e"
+    },
+    {
+      "path": "src/sat_sim/workbench_integration.py",
+      "sha256": "1c1201b3b2cc1e5233abe5f5951ad72c244f4f2fbff15b06e4c3f6e241806d72"
+    },
+    {
+      "path": "src/sat_sim_execution/__init__.py",
+      "sha256": "0ceec4eca1c8c986649e621e64d067f648d660e342966ff00b6cc377fee52cd2"
+    },
+    {
+      "path": "src/sat_sim_execution/contracts.py",
+      "sha256": "856eb8c96a2ac8cb83fef64d76f2baff337209b1ffee8dca4ddba03adfb6e1f8"
+    },
+    {
+      "path": "src/sat_sim_execution/errors.py",
+      "sha256": "11abf1e9b41e5b694a9d84047dd57dedcca3710cc673dc9173d0cc7d4943d08c"
+    },
+    {
+      "path": "src/sat_sim_execution/port.py",
+      "sha256": "6987fbc4f48730bbd7ace1db4d11c1917dc2d9ab0ee470d4829fdc836becca2c"
+    },
+    {
+      "path": "src/sat_sim_execution/registry.py",
+      "sha256": "d613266689545a89b3b2a40af4ff1670689bfea2d057f3b58a6f7eee153c5e57"
+    },
+    {
+      "path": "src/sat_sim_execution/result.py",
+      "sha256": "e8abe9a007fd05210a5ffc78661069715e40b6ace67b8055051c2fa196897c79"
+    },
+    {
+      "path": "src/sat_sim_kernel/__init__.py",
+      "sha256": "0b35cbb5d8162f0ef16f4c347475fa3a10178f13048ee2488e0ffb075aa5108a"
+    },
+    {
+      "path": "src/sat_sim_kernel/binding_ir.py",
+      "sha256": "c93c93bfd3c3c79c008b6bba87b79b24695b9d3ae8937e878e226d11d80a2d77"
+    },
+    {
+      "path": "src/sat_sim_kernel/errors.py",
+      "sha256": "6ea19e574e486fec224f38ee202a21558d9ee14be2f6ba348fb860917754599c"
+    },
+    {
+      "path": "src/sat_sim_kernel/identifiers.py",
+      "sha256": "b70dfcbb86d15ac0e2a5280be08dcf4e2c9334d722516c50876c0f5701314c06"
+    },
+    {
+      "path": "src/sat_sim_kernel/implementation_profile.py",
+      "sha256": "846246c3bb488cdd27d0af78ed9d0e223502d3e2b2033248059a90f2d7b5998d"
+    },
+    {
+      "path": "src/sat_sim_kernel/model_definition.py",
+      "sha256": "57272d81063f46e0e45db8300c79a665bebc66adf83f375e836dea177f42b2c7"
+    },
+    {
+      "path": "src/sat_sim_kernel/model_graph.py",
+      "sha256": "2ef02cc1e068c9324b44c929a846c589662ebdd28d3056e7e104cd66457ef5fb"
+    },
+    {
+      "path": "src/sat_sim_kernel/serialization.py",
+      "sha256": "c4324ecb59dfbad02ff7885af4ecb747b11325e4f8862fa6b39bc4bce5b167e8"
+    },
+    {
+      "path": "src/sat_sim_kernel/value_types.py",
+      "sha256": "e43d529f6fe28640b45f676942709efa540c46bf6c1ed9757bdd3e825663e01b"
+    },
+    {
+      "path": "src/sat_sim_ml/__init__.py",
+      "sha256": "e742e2aa0fb1eb80dfa9dcba1a836ad867b34d6b6dd037c3f81866bbf875cc20"
+    },
+    {
+      "path": "src/sat_sim_ml/attention.py",
+      "sha256": "e2e1df101667e590167971f231c66da20abcb5d7506fde6627b62065905499c3"
+    },
+    {
+      "path": "src/sat_sim_ml/bounded_numeric_parser.py",
+      "sha256": "31be2db668f2031782899ede408f470ea3173a050163446a1e09d61bcd6e04d3"
+    },
+    {
+      "path": "src/sat_sim_ml/data.py",
+      "sha256": "69e12e7289c31114a77eecdc08f0b5473fc5e96a11d9306b6500f9023f489e14"
+    },
+    {
+      "path": "src/sat_sim_ml/evaluation.py",
+      "sha256": "37f4419030e7c9ecab12c808d9a30ad0b4d0dd15643bb3e05dc221deb2a1d6b1"
+    },
+    {
+      "path": "src/sat_sim_ml/generation_control.py",
+      "sha256": "df5fd65d4d49ec8803535adcd85c49ba4d3c69e2cdfa6151bf49f8b9e27d70f0"
+    },
+    {
+      "path": "src/sat_sim_ml/guided_decoding.py",
+      "sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b"
+    },
+    {
+      "path": "src/sat_sim_ml/serving.py",
+      "sha256": "01c01b294b45a522b5007dd490f0df4ffd9065812938ac44e4a2aab4630253c7"
+    },
+    {
+      "path": "src/sat_sim_ml/training.py",
+      "sha256": "49f24ace74fa98f48c109db65de7bd2cf5f95ab5ebed39e5a35ff785e377e5b7"
+    },
+    {
+      "path": "src/sat_sim_model_assets/__init__.py",
+      "sha256": "ff882ce215f2735c6f8621563a887f6813d00e016d24ab17054607a14db6d68b"
+    },
+    {
+      "path": "src/sat_sim_model_assets/attitude_control.py",
+      "sha256": "6a4c704452c290296cf04f88a94e45388feb2d9853c5ab54d2f1d332a4cb2482"
+    },
+    {
+      "path": "src/sat_sim_model_assets/composite_digital_twin.py",
+      "sha256": "1f18b774d6f27f7d533f6eabb8114510491110d1ed9958e68ef66810e41a5625"
+    },
+    {
+      "path": "src/sat_sim_model_assets/contracts.py",
+      "sha256": "d0459595eebfe0c51a1820e87beebc1e156418ecf6b78f158c815a85cdafedfa"
+    },
+    {
+      "path": "src/sat_sim_model_assets/subsystem_verticals.py",
+      "sha256": "f60427c499ba5cae08869f5323e6921f1abb8775381e5e8030d58e4887f91552"
+    },
+    {
+      "path": "src/sat_sim_operations/__init__.py",
+      "sha256": "fc1d1c55d4b42abc09f671f4a3ced2084752b4ab70c4ed73668da999873f3d7b"
+    },
+    {
+      "path": "src/sat_sim_operations/contracts.py",
+      "sha256": "1dd6c4101a0c04159323025fefba160af47e58431d286f22cc40359463e5cd1a"
+    },
+    {
+      "path": "src/sat_sim_projection/__init__.py",
+      "sha256": "5ec034f1bc1b9c232263755726c19e3a5cb3b57e995d932104c9d3bed18915d3"
+    },
+    {
+      "path": "src/sat_sim_projection/contracts.py",
+      "sha256": "033201349299419c3f64502fb908a468ecc91f13d324e347157ea76e14b4a556"
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/dependency_links.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/entry_points.txt",
+      "sha256": "8ab90e9f283d75a81b103387d83c933c876bda6366f328a78107e0e92d6b417b"
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/PKG-INFO",
+      "sha256": "6a4c70c3de8add24a0da7d546cdca29fdcf87d12bc816b1dd2561577954e9a0f"
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/requires.txt",
+      "sha256": "eacbf9fdf740edba8e2f9450d0873e180b4a49f7000c904a6358f535da28ccd0"
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/SOURCES.txt",
+      "sha256": "fcd8f9a7b79264ff0ef9abb8ac251a299940db7460ce27ec99ebd86922ba55f7"
+    },
+    {
+      "path": "src/satellite_simulation_platform.egg-info/top_level.txt",
+      "sha256": "cd717b1fbedd2c9186d7ba2352055a89bcd160b2721d96bdaae2aff64601a983"
+    },
+    {
+      "path": "src/subsystems/__init__.py",
+      "sha256": "2ee640b9ba6b727c7160113752594b833ed259dec70fd2b472fa0bafbfda072a"
+    },
+    {
+      "path": "src/subsystems/adcs/__init__.py",
+      "sha256": "1841d8b094b59a47883545326f91ddbe830d20c51a41decaaec2015eb735c552"
+    },
+    {
+      "path": "src/subsystems/adcs/adcs_components_relationship.svg",
+      "sha256": "bcb9333ea51fb5ed80c62982d29605481f41c435d8a716207328bac27cc9e3b8"
+    },
+    {
+      "path": "src/subsystems/adcs/builder.py",
+      "sha256": "d753cc71d92cd63bbb6f6e3d51b4ab65857643fd21253c4b4bcfffe6d15df79c"
+    },
+    {
+      "path": "src/subsystems/adcs/constraints.py",
+      "sha256": "31d4fd637b3e87bc71f2574e178bc4bd1d534e9d132124eac8c733aaae53a095"
+    },
+    {
+      "path": "src/subsystems/adcs/degradation.py",
+      "sha256": "c4428d2176c55aa8c6fe4211a63d5038e82ddd081e1659617f7ae9631759c586"
+    },
+    {
+      "path": "src/subsystems/adcs/faults.py",
+      "sha256": "8f335fc56e64523776411abe09fb0b721a696b074305f405089540836ae1d4a8"
+    },
+    {
+      "path": "src/subsystems/adcs/model.py",
+      "sha256": "f9af6856e493d8a83083a1cd759fb4a89a95f4b2a2e3be7aecbc6c6ec592dfed"
+    },
+    {
+      "path": "src/subsystems/adcs/runner.py",
+      "sha256": "27d6ba26e69b5c453f40bfb57f2f2480286be886c047ad92bd85bca85a9a3f84"
+    },
+    {
+      "path": "src/subsystems/adcs/schemas.py",
+      "sha256": "2369859e84e42280c1caddc77bd0ccb8e5646cf01972a73855602c6083537aab"
+    },
+    {
+      "path": "src/subsystems/adcs/sensor_estimate.py",
+      "sha256": "b7a28b55054aa93c42a7796e302b65768bcc2bca60e175fca982223fa501c168"
+    },
+    {
+      "path": "src/subsystems/backend_registry.py",
+      "sha256": "93147da3d073bcd01da1814c6a49cc4c747a2e2d160196a63df2842e87492b93"
+    },
+    {
+      "path": "src/subsystems/basilisk_context.py",
+      "sha256": "7b1e836453600756c78813f8eadcceed92d64351e4221196763af188cb5481bd"
+    },
+    {
+      "path": "src/subsystems/comm_data/__init__.py",
+      "sha256": "752064e201893cf3603ad37f35cb647324bbc703f061d8d94514cae7435ebc0d"
+    },
+    {
+      "path": "src/subsystems/comm_data/builder.py",
+      "sha256": "94011ebf875b94747c04fe03c51d8bab97f946c7b989ef63540adea3939a049e"
+    },
+    {
+      "path": "src/subsystems/comm_data/degradation.py",
+      "sha256": "5162960dce3980ebcfeb01aeff498ed9d9105238768eebb3c33ab0462dec06c8"
+    },
+    {
+      "path": "src/subsystems/comm_data/faults.py",
+      "sha256": "656d5e8842f165bcbe86f1e31cbb754b318d6dafbbc717fa8208f3f4a349ff1f"
+    },
+    {
+      "path": "src/subsystems/comm_data/model.py",
+      "sha256": "82bfcb57bf09247cdb110fe3cadfe6e2cf7fea2fcae8109b802a40dc4a5f8417"
+    },
+    {
+      "path": "src/subsystems/comm_data/payload_contract.py",
+      "sha256": "fc1b5221975e027f493c01f2933d5b48396825b5e4ee2742d832ae52327f1faa"
+    },
+    {
+      "path": "src/subsystems/comm_data/runner.py",
+      "sha256": "7ac6bcbcf604b6fd4594833807279fbf1425a4f15b64e66b95f8caecd7fa98a1"
+    },
+    {
+      "path": "src/subsystems/comm_data/schemas.py",
+      "sha256": "4ff273db717676aee19be21eb572e989c7f3ef33ab50bb8acbf70becfe09fc81"
+    },
+    {
+      "path": "src/subsystems/degradation_base.py",
+      "sha256": "11776c49eea70458db0e5325080ab364495fd1d523bf063649e02472bb2e7df1"
+    },
+    {
+      "path": "src/subsystems/eps/__init__.py",
+      "sha256": "9b08fb157963db70ef8ce4cde2db1882e62d8225cd9fecf36e7565d9dde7bdd3"
+    },
+    {
+      "path": "src/subsystems/eps/builder.py",
+      "sha256": "adfcbcb95256e408b7c1c829645c96f796d54f640a00779872cd6fdb8e841f81"
+    },
+    {
+      "path": "src/subsystems/eps/degradation.py",
+      "sha256": "696066f7b1b73bfd39172738259e972e8677a78b57ca67384aef01290bbb22c4"
+    },
+    {
+      "path": "src/subsystems/eps/faults.py",
+      "sha256": "09c216a63670cf1db86d019cdc9f65c6e54de6c8e99e7dc9894c3367f8b95bec"
+    },
+    {
+      "path": "src/subsystems/eps/model.py",
+      "sha256": "28b917d5a1a132be1cbd188160d201fe295e64788931a9800c9376e87c8a3ab6"
+    },
+    {
+      "path": "src/subsystems/eps/power_budget.py",
+      "sha256": "fedb48e21d4ff835a599b70223932195308ad64b35996bdeb6465d24150cb667"
+    },
+    {
+      "path": "src/subsystems/eps/runner.py",
+      "sha256": "233ad2746d9c52f9d05e2533b107194d41989fefe63c7e3bb284179a4d09613b"
+    },
+    {
+      "path": "src/subsystems/eps/schemas.py",
+      "sha256": "9d32aec6568f0ec4873b08d4d5795d62e46be6c7ca3512650ae9dfcf79f4b291"
+    },
+    {
+      "path": "src/subsystems/fault_base.py",
+      "sha256": "0e20ae74f238e7e70ca7b117cb405e2e105c4f7ec21ab0748d2816884a574d70"
+    },
+    {
+      "path": "src/subsystems/payload/__init__.py",
+      "sha256": "224e6902f2987ecd84e76b9e81efaa8fa8501f7f839dea1cf4e254c278bfc871"
+    },
+    {
+      "path": "src/subsystems/payload/builder.py",
+      "sha256": "365a95c5567a5f1e8264f2b82d8f520f59f4e994e394ac2c10c18237ebafd29c"
+    },
+    {
+      "path": "src/subsystems/payload/degradation.py",
+      "sha256": "a47c6ea270cfd913197dc5e924226a675159009022853c51577b8b2a76f58f7e"
+    },
+    {
+      "path": "src/subsystems/payload/faults.py",
+      "sha256": "05e0723d88ae6b40d8785084cc78c7378a90b2c1de9604d206fa2e171434efe1"
+    },
+    {
+      "path": "src/subsystems/payload/model.py",
+      "sha256": "79e72cd6f8c8485769d703edcbc10bb62f29895aed44d46e4153b0663dba3146"
+    },
+    {
+      "path": "src/subsystems/payload/runner.py",
+      "sha256": "7581125c4b23fe8889f77013de6eca8cc94b75832535d592e8ba1b6a7c597c82"
+    },
+    {
+      "path": "src/subsystems/payload/schemas.py",
+      "sha256": "bf5edd2ca72bb520a18e0d883f4b125af4d7514cf15f713cef543f397c0a3100"
+    },
+    {
+      "path": "src/subsystems/propulsion/__init__.py",
+      "sha256": "919f007ca7756c85f91355ca847bcee75ffc1644c1ffd98ca4383931538ae8b3"
+    },
+    {
+      "path": "src/subsystems/propulsion/builder.py",
+      "sha256": "c91a7106006585d00fb4aaaa45e8ab9ac6f9e16d2dbecae57119862e5bdf09c3"
+    },
+    {
+      "path": "src/subsystems/propulsion/degradation.py",
+      "sha256": "384ff23b85ebebb6abf653a5017109b3b453260e9aa97b485bf0d46970cb61a5"
+    },
+    {
+      "path": "src/subsystems/propulsion/faults.py",
+      "sha256": "f4939cb2741f583927820922a905046603448cbdbed34c21fa8733a4e8dd2e94"
+    },
+    {
+      "path": "src/subsystems/propulsion/model.py",
+      "sha256": "8e17448a3eacf80c2c6ffc2beb566a2dd483927584dc527af620ecdf76e5784d"
+    },
+    {
+      "path": "src/subsystems/propulsion/runner.py",
+      "sha256": "15062ae765a40addb278426f285d50ac7ff578fedf0821c07a946475ea46eb0b"
+    },
+    {
+      "path": "src/subsystems/propulsion/schemas.py",
+      "sha256": "6c13ca63aaddedee0b5bc5d84ed2cf4464821ada3ba2c3aec8811ad2c9666aa8"
+    },
+    {
+      "path": "src/subsystems/runner_common.py",
+      "sha256": "a3ef157cf72488944c3d23f6ec281b35ff7692d25ee083ddb923a77eeb5d148b"
+    },
+    {
+      "path": "src/subsystems/runtime_fault_router.py",
+      "sha256": "0c9ed03c9cc829beac4ba70fe12a0dd668bc5a525e1f468863a9774e7e4a967b"
+    },
+    {
+      "path": "src/subsystems/runtime_injection.py",
+      "sha256": "5bd6bec18e0e750d613b5675eea8433fc13a6e22723506b58a9d50d99535ed6b"
+    },
+    {
+      "path": "src/subsystems/thermal/__init__.py",
+      "sha256": "460e9c40cb333b3a069938b6c3b0e460fd1d5d1754ecec3d519803b97904b544"
+    },
+    {
+      "path": "src/subsystems/thermal/basilisk_scheduled.py",
+      "sha256": "4766227b4f1371c35fe2be09fbca2e5ca48c217534cfbc71f1e29e3edecb6f08"
+    },
+    {
+      "path": "src/subsystems/thermal/builder.py",
+      "sha256": "0a3277c75ce2532e7eb615c369e3077a2fb843fcdb18bba65e1f9b4b31ff8ef4"
+    },
+    {
+      "path": "src/subsystems/thermal/control.py",
+      "sha256": "3913dafd5126122f130f18e3f9ef25cbb1d05a8ea127ac5e2151818ddf63b4d4"
+    },
+    {
+      "path": "src/subsystems/thermal/degradation.py",
+      "sha256": "edcfc28a3398927bac5068a0eb992fa665b36165e6d01958b4f9742d90076e22"
+    },
+    {
+      "path": "src/subsystems/thermal/faults.py",
+      "sha256": "bb868e6a823d099a7ef5d520fb9481060ad8ac32fe91a23ca32e4576ecbfb552"
+    },
+    {
+      "path": "src/subsystems/thermal/model.py",
+      "sha256": "74d3e55eed8e97a71cbf6494acead7494861d52ac41ba272669085b922e6c3f6"
+    },
+    {
+      "path": "src/subsystems/thermal/network.py",
+      "sha256": "88ad463aa57988cb7774287a25f1b2e1d2de933258d9260300443094009b6f53"
+    },
+    {
+      "path": "src/subsystems/thermal/network_config.py",
+      "sha256": "30581a9576c9f60c4d644d61aa0e4589569b53c7a14ff5caecd7dc42c72208c7"
+    },
+    {
+      "path": "src/subsystems/thermal/runner.py",
+      "sha256": "50ed6679d08418957fe5f25d34442ad4788aa493f4141d72c339a2fae486a769"
+    },
+    {
+      "path": "src/subsystems/thermal/schemas.py",
+      "sha256": "ded8d8f1661fee32ddad4d56a5662d22ba432ffd253e6b35e60dbca3d44a35ce"
+    },
+    {
+      "path": "src/subsystems/thermal/templates.py",
+      "sha256": "3041210931dc672d13e6d9f3a9ac1de49b5d60bd61672514a2f18fb7f732a25a"
+    },
+    {
+      "path": "src/subsystems/thermal/thermal_network.py",
+      "sha256": "93dbef8050c9311175b21860da1bb1a19e3853505e5b307eca3222252075adc4"
+    },
+    {
+      "path": "src/utils/logging.py",
+      "sha256": "1b702b2d6d795ff18cf1ef160aa0133a40d1f1a3d4cc37757f7c0a2df5d83f83"
+    },
+    {
+      "path": "src/utils/runtime_diagnostics.py",
+      "sha256": "c3537d25b7b0c3eb361fdd956bbedd99d286257f2980421d43fa1372b1f276f1"
+    },
+    {
+      "path": "src/validation/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/validation/legacy/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/validation/legacy/subsystems/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/validation/legacy/subsystems/adcs/fault_campaign.py",
+      "sha256": "cf9df069c699f116a53b0d1b3b57aa6dcb74014b22f50b867e17af7073bdc1e7"
+    },
+    {
+      "path": "src/validation/legacy/subsystems/eps/fault_campaign.py",
+      "sha256": "27d76b2dcacb318e70e8ed56f9ba0303a89a7cd9d13165ae3e184f13a61770bd"
+    },
+    {
+      "path": "src/validation/legacy/subsystems/fault_campaign.py",
+      "sha256": "86846ecd99fc422733c06766fa88a04742cf8e8ca5fc0e8d26def98ca2e9e0c9"
+    },
+    {
+      "path": "src/validation/legacy/subsystems/propulsion/fault_campaign.py",
+      "sha256": "7c6f276a6a48567ca3ff98413bf1c0cd1249e196cb3a0074293a3396e21103fe"
+    },
+    {
+      "path": "src/validation/legacy/subsystems/thermal/fault_campaign.py",
+      "sha256": "d0c98985e51b6f1be5a7f120d2aa07be8e3a7ff65240e42b50760680e57ac663"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/degradation_campaign.py",
+      "sha256": "48d58766b584ae2c411e796cc59b92fa86e58f178a7a116438f513253dff284a"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/degradation_config.py",
+      "sha256": "0358a13e87e98dfac8a76b4b23668fcd4f6d9c9aa144da13200a9342a6ca7837"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/fault_campaign.py",
+      "sha256": "d88e72c1321b85276da0c213caaf6637c8446e56f060ca315fa51e49053eb870"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/propulsion_unified_feasibility.py",
+      "sha256": "1dbe171533bf3d11a28594b8921b4106674c60ea3c60753e11d863f99d330478"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/qoi_profiles.py",
+      "sha256": "3ac5146ca92a79b11fc822ce9bc243a4229620bd136b26a87ce1e300314043d5"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/selective_unified_assembly.py",
+      "sha256": "5518392f7225f3908aeef5e5c17b548a6cfd99459bb5a0683914df56d51d1de4"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/selective_unified_campaign.py",
+      "sha256": "d42ae2cd6fdbecd583f31cbc9ed315421527ccecd697fea39f32deeb39e01b44"
+    },
+    {
+      "path": "src/validation/legacy/whole_spacecraft/selective_unified_endurance.py",
+      "sha256": "4cbaee10406fe48103365b478eeaa74675339040b6c7f9ccaf4bd519a1a781b1"
+    },
+    {
+      "path": "src/validation/uq_mission.py",
+      "sha256": "d225f333978e31f29795222fde3f5205f8a47963700f0eda58f5c52678407ff5"
+    },
+    {
+      "path": "src/whole_spacecraft/__init__.py",
+      "sha256": "39306a5138ac3ca66153e20ecf45592b3787a85d5ec991327213dee877b4daf0"
+    },
+    {
+      "path": "src/whole_spacecraft/_mission_gate.py",
+      "sha256": "16f5a27d919d4dd91e0a2ff880dd2cfa334559f59c03b3bc6147ee4950814422"
+    },
+    {
+      "path": "src/whole_spacecraft/_runtime_fault_injector.py",
+      "sha256": "fdd446aa3a54f34ff3ff38c71b43d1a25a00fce518352ef0ec8f39551a0c5259"
+    },
+    {
+      "path": "src/whole_spacecraft/builder.py",
+      "sha256": "b9033fdaedc8fa84b04a4fe51fd25d632e86e46e350d33ba2d179fe85f545871"
+    },
+    {
+      "path": "src/whole_spacecraft/degradation.py",
+      "sha256": "c94e2c6a00c80a7b7d939f7e780f21b627fe0b68dfad93347792a46d6715629e"
+    },
+    {
+      "path": "src/whole_spacecraft/faults.py",
+      "sha256": "4d6f87884269b9c9bc9a542741ec0ee1902348353605ed3922a3710d9c06c2e3"
+    },
+    {
+      "path": "src/whole_spacecraft/runner.py",
+      "sha256": "50d2e607a6c5b46441ae4e424b86b0c4cffa92eff62785cd9f7a24bf55ff284a"
+    },
+    {
+      "path": "src/whole_spacecraft/schemas.py",
+      "sha256": "fe47c9297dd7b7999686fda1ede3be0015fda7cbefedabee6ca3d633a9c90c87"
+    },
+    {
+      "path": "src/whole_spacecraft/task_cadence.py",
+      "sha256": "ca41124a18fbc22625e80e573a2ddbe005183cdd188ff0403258d3c3240a0a1c"
+    }
+  ]
+}

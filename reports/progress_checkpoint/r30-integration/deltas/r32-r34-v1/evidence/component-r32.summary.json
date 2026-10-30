@@ -1,0 +1,24 @@
+{
+  "schema_version": "sat-sim.public-derived-stage-summary.v1",
+  "derived_public_summary": true,
+  "raw_original_unchanged": true,
+  "source": {
+    "path": "reports/local_requirements_completion/requirements-r32-validation-evidence/completion.json",
+    "sha256": "59190a2392e15423e1f5552f0c486300951a3265057341a34857f2966e03640a"
+  },
+  "status": "TEST_INPUT_REVISION_PASS_PRODUCTION_UNCHANGED",
+  "application": "953972755f4188ae449ae29182bbe7963c429a5c41e3c19cbcb5e78af07eba1f",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "changed_tests": [
+    "tests/interactive/test_continuous_console_browser.py",
+    "tests/interactive/test_single_run_creator_ux.py",
+    "tests/test_capability_issue_closure.py",
+    "tests/test_external_gate_closure.py",
+    "tests/test_legacy_issue_closure.py",
+    "tests/test_web_workbench.py"
+  ],
+  "different_tests_passed": 21,
+  "production_unchanged": true,
+  "scope": "Six test-only navigation/support-copy/UTF8 repairs; old R30 full2267P/7F/6S preserved, not reclassified.",
+  "original_full_result": "2267PASS/7FAIL/6SKIP; original receipt preserved."
+}

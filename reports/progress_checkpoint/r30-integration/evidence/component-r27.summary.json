@@ -1,0 +1,104 @@
+{
+  "schema_version": "sat-sim.public-derived-evidence.v1",
+  "public_derivative": true,
+  "sources": [
+    {
+      "path": "reports/local_requirements_completion/nl-literal-grammar-r27-candidate/repair-report.json",
+      "sha256": "142686338380dfc9d7da85922130a63a71b3d235248613587e1f67f734384552",
+      "bytes": 41147
+    }
+  ],
+  "raw_original_copied": false,
+  "derivation": "Selected original facts only; full raw original with absolute environment paths remains local and unchanged.",
+  "status": "SCOPED_LITERAL_GRAMMAR_REGRESSION_PASS_NOT_FULL_QUALIFICATION",
+  "base_application": "b6f4f943235eb29900fcfd4f4ef41067744b7ebf217955db01fe939681a72f3d",
+  "application": "11d1e0cf07eb0d240360ebc4d11387bb2f978b46547cf58c6c59604d2bb7a501",
+  "source_changes": [
+    {
+      "path": "src/sat_sim/nl_time.py",
+      "before_sha256": "c99a9f46ea134777f44d465129259dab936eaabbfde6dfb70ac8f276aecccdb1",
+      "after_sha256": "65ad7388a8dd3ba976fe2f87aaf1b712aacbe85b81c3cfee3602d92b7305cc85"
+    },
+    {
+      "path": "src/sat_sim/agent_facade.py",
+      "before_sha256": "cd4c0ccb111f7d3d00733769bf1c629fa316c714e0674631c99aee5771c15bcc",
+      "after_sha256": "941fef0ee1c7d78ef75d221743456c1138e0cb3b0b8b2864205b371d09dccc74"
+    },
+    {
+      "path": "src/sat_sim/unified_agent.py",
+      "before_sha256": "6528a0962909c6616e29d13b0ae1601d2b565dfe8f3885e900439d3613e87f66",
+      "after_sha256": "d58ed358667da2a58b6abd5c60a9469d34e977e0ca3185f34ee8c8bb569cefb3"
+    },
+    {
+      "path": "tests/test_nl_literal_grammar_boundaries.py",
+      "before_sha256": null,
+      "after_sha256": "a536c66dfca21754dc979fe85a03eca527bc30633430c9b6f6ee55a1414d7842",
+      "new_file": true
+    }
+  ],
+  "original_test_files_unchanged": 273,
+  "distinct_test_nodes": 116,
+  "phases": [
+    {
+      "phase": "original-eight",
+      "counts": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "exit_code": 0,
+      "application_before": "11d1e0cf07eb0d240360ebc4d11387bb2f978b46547cf58c6c59604d2bb7a501",
+      "application_after": "11d1e0cf07eb0d240360ebc4d11387bb2f978b46547cf58c6c59604d2bb7a501",
+      "evidence": {
+        "junit.xml": "37af82fa6522ede116a198dd574fbc1460fdacc9109b2bc8fa9ea27a83ebd0e1",
+        "pytest.log": "4f21840453d28bef82e6253985c9e3185e79e7fa37a0fc1dd7554fa3807359e8",
+        "running.json": "b143dbded015d81d687c214d836f46d677a3d53db0191366020704da649f2b13",
+        "returned.json": "515b6b976267dbd0499b95fce08d2b8d754c71c5f54f4234bc4ea4612f1fa497"
+      }
+    },
+    {
+      "phase": "focused76",
+      "counts": {
+        "tests": 76,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "exit_code": 0,
+      "application_before": "11d1e0cf07eb0d240360ebc4d11387bb2f978b46547cf58c6c59604d2bb7a501",
+      "application_after": "11d1e0cf07eb0d240360ebc4d11387bb2f978b46547cf58c6c59604d2bb7a501",
+      "evidence": {
+        "junit.xml": "7692c7351f2339f992d265821b663e2144de3c2f7b1d2b055e20c2bf666a5b62",
+        "pytest.log": "f1d60db412148b162b5f4ab038cb343bc6d9c73885358d17ef9e9800fdd23657",
+        "running.json": "98cce149f93ecf9237678b9e2c941a910eb018db635d384234a9bbe8d5f915d1",
+        "returned.json": "0ef0165f74bef2f956d735263513d1bf771c1ff49b4a6a701bd3f92d537aa5a7"
+      }
+    },
+    {
+      "phase": "new-boundaries",
+      "counts": {
+        "tests": 32,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "exit_code": 0,
+      "application_before": "11d1e0cf07eb0d240360ebc4d11387bb2f978b46547cf58c6c59604d2bb7a501",
+      "application_after": "11d1e0cf07eb0d240360ebc4d11387bb2f978b46547cf58c6c59604d2bb7a501",
+      "evidence": {
+        "junit.xml": "67d042bc5b6116b326783efff9a77319e86786c8f78650fb196a5df489e07b90",
+        "pytest.log": "eea2f382c2dd28e981a8f98422e373329f0d80d3f68dcbd63ee1a1aa68d8142b",
+        "running.json": "5a98d1cb8e9840de97f243a9853c4f778c0516e6744cbfe5b6cc94007aab1fda",
+        "returned.json": "2126bc220bfd1459c56dc0e9ddc5bd285eed6c74b871dc1b31256bfbf850f543"
+      }
+    }
+  ],
+  "scope": [
+    "Chinese time/nominal-Wh labels accept complete immediately adjacent quantities while ASCII identifiers retain whole-name boundaries.",
+    "Local every-Q sampling and hyphenated Q-unit attributive simulation forms restored with complete units and bounded modifier words.",
+    "Bare event duration remains outside global mission duration; signed/scientific, invalid dimensions, negation, preservation and conflicting time protections retained.",
+    "Wh refinement authorization consumes the same typed nominal-capacity decision as provenance, avoiding a second contradictory alias boundary."
+  ],
+  "not_whole_r30_qualification": true
+}

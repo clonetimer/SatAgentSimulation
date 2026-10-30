@@ -1,0 +1,15 @@
+components
+integrated
+integration
+parameters
+sat_sim
+sat_sim_execution
+sat_sim_kernel
+sat_sim_ml
+sat_sim_model_assets
+sat_sim_operations
+sat_sim_projection
+subsystems
+utils
+validation
+whole_spacecraft

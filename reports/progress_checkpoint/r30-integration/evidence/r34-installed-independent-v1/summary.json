@@ -1,0 +1,70 @@
+{
+  "schema_version": "sanitized-independent-r34-installed-evidence-review.v1",
+  "is_sanitized_derivative": true,
+  "status": "PASS_SCOPED_EXISTING_EVIDENCE_REVIEW",
+  "at_utc": "2026-10-30T16:56:10.978400+00:00",
+  "source_application": "3e7d9a064f1411183b7d7e0b7d692e9bb48d54bb8c92019aa8840c114414338b",
+  "source_core": "89e3d4dfc72613d5a200cd3fb58a7c9906c2dbf7019b7a5f5bc20ace984899d5",
+  "scope": "Read-only cross-check of existing sealed installed-wheel/runtime/transport evidence; no new environment, service, model or native simulation run.",
+  "independent_read_hash_checks": {
+    "passed": 38,
+    "total": 38
+  },
+  "original_observed_counts": {
+    "frozen_source": 1490,
+    "runtime_required": 865,
+    "source_wheel_installed_equal": 867,
+    "live_project_imports": 246,
+    "network_checks": 24,
+    "captured_ws_frames": 10,
+    "stored_frames_per_stream": 11,
+    "bundle_files": 13
+  },
+  "wheel_sha256": "36f241558d1cfb662e5ab842fcbe60544492c29cabdbf257f115d388835485cf",
+  "matrix_sha256": "efb5b660e11b864319b0eb0379dddc40c7c31f96fc60c913c3e5eaec33f597dd",
+  "versions": {
+    "python_api": "3.12.12",
+    "uvicorn": "0.48.0",
+    "websockets": "17.4",
+    "python_transport_only": "3.10.20",
+    "wsproto_transport_only": "1.3.2"
+  },
+  "verified_boundaries": {
+    "matrix_source_configs_wheel_installed_same_bytes": true,
+    "default_auto_transport_no_injected_websockets15": true,
+    "all246_live_project_imports_from_owned_installed_wheel": true,
+    "all5_direct_api_requirements_owned": true,
+    "core_and_transitive_dependencies_shared_read_only": true,
+    "fully_dependency_isolated": false,
+    "python310_whole_physics_qualified": false,
+    "native_session_completed_worker_false_archive_sealed": true,
+    "received_ws_frame_range_s": [
+      0,
+      1.8
+    ],
+    "archive_stream_final_time_s": 2,
+    "native_duration_s": 2,
+    "native_official_project_proxy_module_counts": [
+      22,
+      26,
+      4
+    ],
+    "full_orbit_environment": "simplified",
+    "spacecraft_flight_validation": false,
+    "new_images_reviewed": 0,
+    "overall_release_qualification_claim": false,
+    "r30_gui_roundtrip_defect_closed": false
+  },
+  "limitations": [
+    "This audit reads/hashes sealed evidence only; no environment, service, simulation or model is started.",
+    "Actual default-auto Python3.12 API used owned websockets17.4, not private injected websockets15. Python3.10 evidence is only a separate wsproto handshake/echo server.",
+    "Project package imports and direct API distributions are owned; core/transitive dependencies still share Main .venv via .pth. This is not complete dependency isolation.",
+    "Two-second finite native smoke uses simplified fixed-Sun/point-mass/dipole environment and 22 official,26 project-native,4 engineering-proxy modules. No full-physics, flight, durability or Python3.10 numerical qualification.",
+    "Ten captured WS frames cover0..1.8s; archived streams contain11 frames through2s. The final runtime summary reports the last segment; it is not an independent trajectory accuracy benchmark.",
+    "No new visual inspection or browser GUI qualification is inherited from HTTP asset hashes. R30 GUI solver/provenance defect remains separate.",
+    "SHA/telemetry chains/seal prove local consistency, not signature authentication."
+  ],
+  "redaction": "Only exact counts, verdicts, versions and SHA identities derived from private original evidence. No absolute machine paths, sys.path/environment dumps, provider configuration, original full HTTP responses or full telemetry are included.",
+  "source_independent_report_sha256": "af09180d1c2d96e270418801d7eb2af73d997456accc15b6f2146315dcf5b50c",
+  "original_completion_sha256": "f9d3c3cb7db13d31e413b68b86ee193048ff77ddfa1f63b5b0133938e23f0c1e"
+}

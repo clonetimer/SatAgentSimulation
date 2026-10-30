@@ -1,0 +1,66 @@
+{
+  "status": "HISTORICAL_FINGERPRINT_INPUT_ARCHIVE_NOT_INSTALLATION_METADATA",
+  "files": [
+    {
+      "path": "fingerprint-support/dependency_links.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/dependency_links.txt",
+      "source": "src/satellite_simulation_platform.egg-info/dependency_links.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/entry_points.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/entry_points.txt",
+      "source": "src/satellite_simulation_platform.egg-info/entry_points.txt",
+      "sha256": "8ab90e9f283d75a81b103387d83c933c876bda6366f328a78107e0e92d6b417b",
+      "bytes": 125,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/PKG-INFO.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/PKG-INFO",
+      "source": "src/satellite_simulation_platform.egg-info/PKG-INFO",
+      "sha256": "6a4c70c3de8add24a0da7d546cdca29fdcf87d12bc816b1dd2561577954e9a0f",
+      "bytes": 20427,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": "PKG-INFO contains generic C:\\path\\to examples from README; retained exactly, not personal environment paths.",
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/requires.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/requires.txt",
+      "source": "src/satellite_simulation_platform.egg-info/requires.txt",
+      "sha256": "eacbf9fdf740edba8e2f9450d0873e180b4a49f7000c904a6358f535da28ccd0",
+      "bytes": 423,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/SOURCES.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/SOURCES.txt",
+      "source": "src/satellite_simulation_platform.egg-info/SOURCES.txt",
+      "sha256": "fcd8f9a7b79264ff0ef9abb8ac251a299940db7460ce27ec99ebd86922ba55f7",
+      "bytes": 42036,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/top_level.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/top_level.txt",
+      "source": "src/satellite_simulation_platform.egg-info/top_level.txt",
+      "sha256": "cd717b1fbedd2c9186d7ba2352055a89bcd160b2721d96bdaae2aff64601a983",
+      "bytes": 201,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    }
+  ],
+  "scope": "Six generated egg-info inputs are required to reproduce the historical source fingerprint. Do not install this metadata or use it as dependency authority. Fresh wheel metadata is generated in staging from current pyproject."
+}

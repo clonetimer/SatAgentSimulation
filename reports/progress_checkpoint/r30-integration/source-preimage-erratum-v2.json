@@ -1,0 +1,30 @@
+{
+  "schema_version": "sat-sim.raw-preimage-erratum.v2",
+  "status": "RAW_BASELINE_REQUIRED_PORTABLE_RELEASE_NOT_ESTABLISHED",
+  "created_at_utc": "2026-10-30T17:07:36.088752+00:00",
+  "supersedes_scope_of": [
+    "README.md reconstruction wording",
+    "deltas/r32-r34-v1/fingerprint-erratum.json portability precondition"
+  ],
+  "initial_manifest_preserved_sha256": "f687d52c4332ede4bfc2bf8a295e9bf97b1e046628fa1ba8c385f08ebc2dff28",
+  "root_application_raw_identity": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "head_reported_by_root": "d4db2d6a54cefc5c72738e9640111e85bbfb4470",
+  "root_readonly_git_observations": {
+    "App_inputs": 879,
+    "untracked_generated_egg_info_inputs": 6,
+    "tracked_inputs_with_worktree_raw_bytes_different_from_HEAD_blob": 839,
+    "interpretation": "Root reports most differences are CRLF/LF. Not every difference has been independently proved to be newline-only by this preparer."
+  },
+  "guarantee": "Exact existing Root4c raw byte preimages plus explicitly hashed source overlays reproduce the recorded candidate manifests. A matching Git commit alone does not supply that raw baseline.",
+  "not_guaranteed": "Fresh clone plus52 overlay files, even with the6 archived generated inputs, is not guaranteed to reproduce the same raw App across checkout/newline policies.",
+  "required_verification": [
+    "Recompute raw application-source-v1 and match the complete expected baseline before applying.",
+    "Verify every explicit before SHA, including non-App scripts/tests/docs. Stop on any mismatch.",
+    "Do not silently normalize839 files or force overwrite to make a hash claim.",
+    "Treat the6 archived egg-info text files as historical fingerprint inputs, never current installation metadata."
+  ],
+  "expanded839_file_snapshot_created": false,
+  "Git_commands_by_this_preparer": false,
+  "runtime_source_applied": false,
+  "scope": "Finite progress/review package; not a final portable release."
+}

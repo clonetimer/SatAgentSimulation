@@ -1,4 +1,11 @@
-"""Owned-process diagnostic; never attach to or modify the endurance process.
+"""用途：复制当前应用，在脚本自建进程中运行原生耐久驱动并记录节拍诊断。
+参数：--output-dir 指定 reports/local_requirements_completion 内的新目录；
+--wall-seconds 设置诊断时长，默认 60 s、至少 10 s；--inject-fsync-delay-s
+可为本次诊断注入非负 fsync 延迟，默认 0。
+输出：独立应用副本、原始剖析/节拍记录、日志与状态摘要；不接管既有耐久进程，
+诊断结果不能替代正式计时或崩溃持久性验收。
+
+Owned-process diagnostic; never attach to or modify the endurance process.
 
 Copies the frozen application and runs its original endurance driver. Python
 profiling records inclusive spans and original PaceObservation values in memory;

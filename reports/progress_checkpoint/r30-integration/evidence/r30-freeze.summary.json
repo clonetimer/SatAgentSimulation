@@ -1,0 +1,24 @@
+{
+  "schema_version": "sat-sim.public-derived-evidence.v1",
+  "public_derivative": true,
+  "sources": [
+    {
+      "path": "reports/local_requirements_completion/requirements-r30-integration-evidence/r30-freeze.json",
+      "sha256": "7fd3b748fb6823a459e7b1585665d3b9e1ee75115768cc70397578e7b43c4385",
+      "bytes": 974
+    }
+  ],
+  "raw_original_copied": false,
+  "derivation": "Selected original facts only; full raw original with absolute environment paths remains local and unchanged.",
+  "status": "FROZEN_PENDING_COMPLETE_QUALIFICATION",
+  "frozen_utc": "2026-10-30T15:45:26.027665+00:00",
+  "plan_sha256": "540eba4e35a76fd06f4cedb73c62ed6fc9fd76d6d01298ffa61e6403db5e56c1",
+  "frozen_input_count": 1489,
+  "frozen_inputs_sha256": "bdb41f09899e3b9e38b3f750ddf6f7278a40159e6e6523210d7e3c96b0f563db",
+  "application": "953972755f4188ae449ae29182bbe7963c429a5c41e3c19cbcb5e78af07eba1f",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "root_application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "root_application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "component_evidence_is_whole_candidate_qualification": false,
+  "historical_failures_relabelled": false
+}

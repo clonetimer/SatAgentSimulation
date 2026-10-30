@@ -1,0 +1,55 @@
+{
+  "status": "COMPONENT_TESTED_PENDING_WHOLE_CANDIDATE_INTEGRATION",
+  "sealed_utc": "2026-10-30T15:21:24.357386+00:00",
+  "candidate": "reports/local_requirements_completion/task-save-feedback-r28-candidate",
+  "application": "aa11ce3f0844da2825427efcdeaefe8c4fc485216208e54e239526f7c51c3afc",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "changed_files": [
+    {
+      "path": "src/sat_sim/web/app.js",
+      "before_sha256": "64f47a47eef41034ac64eac01f7625521f4e47f4ab905f5ad817d2901b81e4c5",
+      "after_sha256": "d793dfed45fa33fda694f320497e057da087dbe819c09ae2802152cd637de3b5",
+      "bytes": 507250
+    },
+    {
+      "path": "src/sat_sim/web/index.html",
+      "before_sha256": "58212085f09698ba55136e022e16ad399e272a5d32c5f4926790d10f35c9fd2a",
+      "after_sha256": "cf88aef9283759ca19b939ecc1db23d2d4b202f25bb574a4a70c9c6a166b3637",
+      "bytes": 135141
+    },
+    {
+      "path": "tests/test_task_save_feedback_browser.py",
+      "before_sha256": null,
+      "after_sha256": "1b7c81143ebe044b14b97e1bfbc1d54b5049f7f2695b053e7a33837ec0d8a91f",
+      "bytes": 4775
+    }
+  ],
+  "runs": [
+    {
+      "run": "r28-feedback-fixed-v3",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "junit_sha256": "2bf2b0af3c4d3b1df012ec9864963353756207d82bdc075d37e083e0d7b47ebd",
+      "state_sha256": "397135d8d0839b4a0513958933a6172409f3f6de09ff71886a1d52fd7115b02e"
+    },
+    {
+      "run": "r28-feedback-visual-v1",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "junit_sha256": "5f276a0c220e6b135f94a56821f0f1e61aa3378d27ad758b1a305acf5e5e51d6",
+      "state_sha256": "84101273ec45a9184f4cc29afb88e9d15379f11e81aaa963bf4336c5711e7640"
+    }
+  ],
+  "unique_current_production_passing_nodes": 2,
+  "patch_sha256": "a7e6abcdf8d68917a5903d617b89fdb71e18d4ef5189bd317dec62728b37504e",
+  "notes": [
+    "Current app is aa11; two functional browser tests pass, plus one current screenshot-producing repeat.",
+    "Baseline v1 update was hidden in a disclosure; v2 captured stale success while PUT held. Fixed-v1/v2 retained further interaction failures. No original test assertion was weakened.",
+    "The added held-PUT test captures pending-state values, completes its owned request and browser, then checks the captured values; this avoids teardown-only cancellation noise.",
+    "Current screenshots must be actually viewed before a visual-review claim."
+  ],
+  "root_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "full_release_or_endurance_claim": false
+}

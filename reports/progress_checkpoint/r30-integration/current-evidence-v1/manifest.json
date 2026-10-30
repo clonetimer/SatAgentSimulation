@@ -1,0 +1,30 @@
+{
+  "status": "SEALED_DERIVED_CURRENT_EVIDENCE_NOT_PROJECT_QUALIFICATION",
+  "files": [
+    {
+      "path": "api47.summary.json",
+      "sha256": "67b23f566eeecdeb5cfd743031b36787187a1ffad2ee1fd3e2de3747e115b1d4",
+      "bytes": 1867
+    },
+    {
+      "path": "browser37.summary.json",
+      "sha256": "2788ab1e192a034b6d1fbf9f5ee005a85046c74e31c9ff74f0a682faf84a2f6b",
+      "bytes": 1322
+    },
+    {
+      "path": "source-hash-index.json",
+      "sha256": "72865d8cf0246310e1014a709cfc8b7f975cfa3ea1dd750a9243934331631918",
+      "bytes": 1390
+    },
+    {
+      "path": "wheel59.summary.json",
+      "sha256": "a7f05c0f6858886a784af0838414c18e0b3e0a124c34a0d62eef6284cd11b14b",
+      "bytes": 1365
+    },
+    {
+      "path": "whitelist.json",
+      "sha256": "c4ed1c20469b62cc70609efe8a8a3a399047936b903acebb4851e5be2da00947",
+      "bytes": 1545
+    }
+  ]
+}

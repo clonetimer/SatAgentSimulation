@@ -1,0 +1,26 @@
+{
+  "schema_version": "sat-sim.public-current-evidence-summary.v1",
+  "derived_public_summary": true,
+  "raw_original_not_copied": true,
+  "application": "953972755f4188ae449ae29182bbe7963c429a5c41e3c19cbcb5e78af07eba1f",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "status": "PASS",
+  "source_completion": {
+    "path": "reports/local_requirements_completion/r30-wheel-installed-evidence-v2/completion.json",
+    "sha256": "538e21a90cf447f9caa21323ad7831e1b4d326293e9b7eb59c0222f0457a2ae5",
+    "bytes": 6683
+  },
+  "source_checks": {
+    "path": "reports/local_requirements_completion/r30-wheel-installed-evidence-v2/installed-checks.json",
+    "sha256": "193addfebf47d9bbe8f9ddd5c9e75227585fa07cca0b9ab31fa24e135f27bcc1",
+    "bytes": 138613
+  },
+  "installed_checks_passed": 59,
+  "wheel_sha256": "8f7dfec456504554ba6fd68a218a72a2f0e790a0f30ad1e4fd7758a03d4090ac",
+  "required_wheel_files": 864,
+  "installed_payload_files": 866,
+  "http_asset_checks": 8,
+  "frozen_inputs_unchanged": true,
+  "scope": "Installed wheel general CLI/export/native/HTTP checks with shared dependencies read-only. Interactive mode was not enabled in this59-check gate; it does not establish installed interactive/WS resource closure. That later R33 failure is preserved and R34 separately repairs it.",
+  "complete_dependency_isolation": false
+}

@@ -1,0 +1,74 @@
+{
+  "schema_version": "r30-real-gui-scoped-evidence-summary.v1",
+  "status": "INCOMPLETE_CANONICAL_ROUNDTRIP_DEFECT",
+  "overall_frontend_requirement_complete": false,
+  "at_utc": "2026-10-30T16:49:04.073501+00:00",
+  "source_application": "953972755f4188ae449ae29182bbe7963c429a5c41e3c19cbcb5e78af07eba1f",
+  "source_core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "scoped_successes": {
+    "new_real_gui_model_generation_and_download": {
+      "checks_passed": 12,
+      "checks_total": 12,
+      "model_used": true,
+      "model_execution_verified": true,
+      "frozen_create17_requests_sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+      "model_request_id": "chatcmpl-9e7d47ae3770430e99d1255a57408227",
+      "raw_response_sha256": "88cb24d7c22fbd2b09e235caa39fa7c087196b484678a769a58a00d1942d3034",
+      "raw_and_final_capacity_loss_fraction": 0.17,
+      "experience_reuse_enabled": false,
+      "model_calls": 1,
+      "downloaded_script_sha256": "27300f65eb91727a860f4270fcf4538ccbc591f069f1114fcff1857c4de15a53"
+    },
+    "downloaded_script_native_execution": {
+      "checks_passed": 19,
+      "checks_total": 19,
+      "duration_s": 12,
+      "csv_rows": 61,
+      "sample_s": 0.2,
+      "before_capacity_wh": 140,
+      "after_capacity_wh": 116.2,
+      "after_ratio": 0.83,
+      "physical_warning_count": 1,
+      "can_claim_high_fidelity": false,
+      "new_graph_plan_identity_bound_to_stdout_compiled_and_dataset": true
+    }
+  },
+  "distinct_plans": {
+    "agent_generation": "7f2ae11906253df4510bb8804331e47ef46af5b7ba1bb077920df14a0132f8f2",
+    "subsequent_graph_compile_export_and_native": "26b50b9b5f684f580de1357f0501df9e8389f3479ccd8211687bd06d71c68332",
+    "original_agent_plan_preserved_across_graph_compilation": false
+  },
+  "confirmed_defect": {
+    "preservation_assertions_false": [
+      "actual_case_canonical_solver_record_preserved",
+      "actual_case_original_provenance_fields_preserved",
+      "counterexample_full_solver_preserved",
+      "counterexample_provenance_field_preserved",
+      "counterexample_traceable_assumption_preserved",
+      "counterexample_pending_confirmation_preserved"
+    ],
+    "actual_provenance_sources_before": {
+      "agent_inferred": 113,
+      "legacy_migration": 1,
+      "user_explicit": 1
+    },
+    "actual_provenance_sources_after": {
+      "user_provided": 125
+    },
+    "actual_assumptions_count_after": 120,
+    "counterexample": "A supported nondefault solver, original field evidence, pending assumption and pending confirmation are lost on canonical -> form -> graph compilation. Simulation random_seed is retained.",
+    "minimal_fix_pending": true
+  },
+  "safety_and_scope": {
+    "root_and_r30_sources_unchanged": true,
+    "fresh_owned_test_browser_context": true,
+    "no_user_login_or_browser_profile": true,
+    "only_owned_preview_provider_config_changed": true,
+    "inference_probe_performed": false,
+    "parallel_cpu_load_not_quiet": true,
+    "not_r34_installed_evidence": true,
+    "not_arbitrary_prompt_accuracy": true,
+    "old_failures_retained": true
+  },
+  "public_export_policy": "This summary and three reviewed screenshots only. Provider configuration, environment, full telemetry, raw model response and full API response are excluded from this public package."
+}

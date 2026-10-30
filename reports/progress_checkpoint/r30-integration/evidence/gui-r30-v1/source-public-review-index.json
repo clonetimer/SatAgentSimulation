@@ -1,0 +1,28 @@
+{
+  "schema_version": "explicit-public-export-whitelist.v1",
+  "status": "INCOMPLETE_CANONICAL_ROUNDTRIP_DEFECT",
+  "scope": "Only exact listed files may be exported; no glob, directory upload or provider/environment/telemetry artifacts.",
+  "files": [
+    {
+      "path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/summary.json",
+      "sha256": "5ea307b6230e032a51ba8e4d2fc72db767feda02417a2bf19eb1dd3bb2b6a737",
+      "bytes": 3411
+    },
+    {
+      "path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/01-ready-exact-request-and-v5-provider.png",
+      "sha256": "d7ef8b3faf9d3f58e77b6f2c1ffb662df5a730a453f4495da9adbb1917c7c589",
+      "bytes": 222832
+    },
+    {
+      "path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/02-model-generation-visible-success.png",
+      "sha256": "4e9ab4f0329839c0d523d3060d72391d9e4e18e8e1647a793f81b1af071ddada",
+      "bytes": 220623
+    },
+    {
+      "path": "reports/local_requirements_completion/r30-real-ai-frontend-evidence/public-review/03-real-ui-script-download.png",
+      "sha256": "febd84dbfbb1cc99eda5337ebd7b8f321a9bdeb345d274f6c0f945d0d5bce400",
+      "bytes": 213394
+    }
+  ],
+  "total_bytes": 660260
+}

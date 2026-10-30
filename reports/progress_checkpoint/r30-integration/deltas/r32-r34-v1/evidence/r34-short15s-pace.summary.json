@@ -1,0 +1,31 @@
+{
+  "schema_version": "sat-sim.public-derived-stage-summary.v1",
+  "derived_public_summary": true,
+  "raw_original_unchanged": true,
+  "source": {
+    "path": "reports/local_requirements_completion/r34-pace-history-smoke-v1/progress.json",
+    "sha256": "51032871089300e4362be43b0737f516b27d6c295bdcf8fdcadab99ce7aa63d1"
+  },
+  "status": "SMOKE_COMPLETE_NOT_24H",
+  "application": "3e7d9a064f1411183b7d7e0b7d692e9bb48d54bb8c92019aa8840c114414338b",
+  "core": "89e3d4dfc72613d5a200cd3fb58a7c9906c2dbf7019b7a5f5bc20ace984899d5",
+  "requested_wall_s": 15,
+  "pace_span_s": 15.500124600017443,
+  "pace_samples": 31,
+  "first_ordinal": 0,
+  "missing_samples": 0,
+  "coverage": "COMPLETE",
+  "peak_ms": 0.660400022752583,
+  "public_terminal_peak_matches": true,
+  "full30min_windows": 0,
+  "archive": "SEALED",
+  "source_import_scope": "R34 source directory using the R34 installed API interpreter and its declared API environment, not installed-wheel code imports. All three actual source module paths and native child PYTHONPATH were R34.",
+  "source_and_assets_unchanged": true,
+  "runner_sha256": "f00d4f0564d9996a64b99e6f35cab7bfe5b1e449e32feb96b5c97b160ccdd39d",
+  "helper_sha256": "6fa7e13ad164d71676df383670af98795ae8476c1e3f0bc41e6752639c85af5b",
+  "raw_ledger_ref": {
+    "path": "reports/local_requirements_completion/r34-pace-history-smoke-v1/pace_history.jsonl",
+    "sha256": "a8e390dd0501863ac665cb0b8d8372da47ae58c4540df1bdb7f1b888f6336d9d"
+  },
+  "scope": "New owned15s native smoke; no GPU, no inherited uptime, no full30min/24h claim. Raw telemetry remains private."
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": "sat-sim.public-derived-evidence.v1",
+  "public_derivative": true,
+  "sources": [
+    {
+      "path": "reports/local_requirements_completion/r24-real-end-to-end-variations/state.json",
+      "sha256": "88085de13b4f829ca137ecef1e1c70ecf24b506b3d7006b1033c3c5d14912d82",
+      "bytes": 7320
+    }
+  ],
+  "raw_original_copied": false,
+  "derivation": "Selected original facts only; full raw original with absolute environment paths remains local and unchanged.",
+  "status": "FAILED_NO_SUBSTITUTION",
+  "application": "b6f4f943235eb29900fcfd4f4ef41067744b7ebf217955db01fe939681a72f3d",
+  "application_after": "b6f4f943235eb29900fcfd4f4ef41067744b7ebf217955db01fe939681a72f3d",
+  "source_unchanged": true,
+  "cases": [
+    {
+      "id": "create17",
+      "status": "FAILED",
+      "checks": {
+        "actual_model_verified": true,
+        "valid_compiled": true,
+        "no_template_fallback": true,
+        "raw_response_hash": true,
+        "raw_response_bound": true,
+        "raw_loss_fraction": true,
+        "raw_fraction_not_substituted": true,
+        "only_requested_fault": true,
+        "requested_parameters": true,
+        "requested_time": true,
+        "owned_script": true,
+        "script_exit_success": true,
+        "native_validation_pass": true,
+        "owned_trace": true,
+        "runtime_plan_matches_validated_plan": false
+      },
+      "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+      "actual_model_used": true,
+      "raw_response_sha256": "fbc3dd0255f4c8df3e1fb4b3736416c605dd9949f30c16b74aa7d892ae68ee9e"
+    }
+  ],
+  "interpretation": "Actual generation and native validation passed for create17, but runtime_plan_matches_validated_plan is false. The original pipeline remains FAILED_NO_SUBSTITUTION."
+}

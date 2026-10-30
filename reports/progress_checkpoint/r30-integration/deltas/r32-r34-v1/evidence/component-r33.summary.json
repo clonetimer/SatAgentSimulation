@@ -1,0 +1,27 @@
+{
+  "schema_version": "sat-sim.public-derived-stage-summary.v1",
+  "derived_public_summary": true,
+  "raw_original_unchanged": true,
+  "source": {
+    "path": "reports/local_requirements_completion/api-websocket-r33-distribution-evidence/completion.json",
+    "sha256": "d06c3845c58591221d133c1b951bf6276ac8784c266988f7098f53b34d8f6610"
+  },
+  "status": "DEPENDENCY_DECLARATIONS_PASS_INSTALLED_INTERACTIVE_RESOURCE_FAIL",
+  "application": "237d2e96c7ea301847fe01d7e15579b58b43d5f2e03b0f265282c89c32489d7a",
+  "core": "dd07488f80074d09bd793ab1df2e16c913794d758e62dbd43516ddef636b22c1",
+  "declaration_paths": [
+    "pyproject.toml",
+    "requirements-api.txt",
+    "requirements-lock.txt"
+  ],
+  "passed": [
+    "16 exclusive marker checks across three declarations and actual wheel metadata",
+    "uv-created own venv/API direct requirements including websockets17.4",
+    "Uvicorn0.48 actual default auto import",
+    "Python3.10.20 own wsproto1.3.2 real default-auto 101 handshake and echo"
+  ],
+  "failed": [
+    "Installed interactive-enabled create_app cannot read unshipped configs/interactive/realtime_capability_matrix.json; real native WS phase not reached"
+  ],
+  "scope": "Dependency marker checks and3.10 transport-only echo; installed interactive resource startup failure retained. Not a whole project pass."
+}

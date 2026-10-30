@@ -1,0 +1,23 @@
+{
+  "schema_version": "sat-sim.public-derived-stage-summary.v1",
+  "derived_public_summary": true,
+  "raw_original_unchanged": true,
+  "source": {
+    "path": "reports/local_requirements_completion/api-runtime-resources-r34-evidence/completion.json",
+    "sha256": "f9d3c3cb7db13d31e413b68b86ee193048ff77ddfa1f63b5b0133938e23f0c1e"
+  },
+  "status": "INSTALLED_API_RUNTIME_RESOURCE_AND_DEFAULT_WEBSOCKET_QUALIFICATION_PASS",
+  "application": "3e7d9a064f1411183b7d7e0b7d692e9bb48d54bb8c92019aa8840c114414338b",
+  "core": "89e3d4dfc72613d5a200cd3fb58a7c9906c2dbf7019b7a5f5bc20ace984899d5",
+  "frozen_inputs": 1490,
+  "frozen_inputs_sha256": "9dd170800002aff399aac28a570619b63c92e0821645492533ded2da10705a76",
+  "changed_paths": [
+    "pyproject.toml",
+    "src/sat_sim/interactive/command_catalog.py",
+    "tests/interactive/test_command_catalog.py",
+    "src/sat_sim/interactive/realtime_capability_matrix.json"
+  ],
+  "declared_dependency_marker_checks": 16,
+  "actual_network_checks": 24,
+  "scope": "Installed API resource/WS qualification only; full suite subsequently failed its dependency security evidence gate. Existing external configs mirror and explicit from_matrix remain supported."
+}

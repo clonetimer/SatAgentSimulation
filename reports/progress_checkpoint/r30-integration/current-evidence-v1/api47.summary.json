@@ -1,0 +1,41 @@
+{
+  "schema_version": "sat-sim.public-current-evidence-summary.v1",
+  "derived_public_summary": true,
+  "raw_original_not_copied": true,
+  "application": "953972755f4188ae449ae29182bbe7963c429a5c41e3c19cbcb5e78af07eba1f",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "status": "TWO_FRESH_API_MODEL_CASES_PASS_SCOPED",
+  "source_completion": {
+    "path": "reports/local_requirements_completion/r30-real-end-to-end-variations-v2/state.json",
+    "sha256": "fbb9408b2c0fe2c096c91f3efad0a37c5c3ea673e13b3c4db67b74dbd36ad69c",
+    "bytes": 13190
+  },
+  "checks_passed": 47,
+  "case_checks": [
+    {
+      "id": "create17",
+      "status": "PASS",
+      "checks": 22,
+      "actual_model_used": true,
+      "raw_response_sha256": "88cb24d7c22fbd2b09e235caa39fa7c087196b484678a769a58a00d1942d3034",
+      "trace_sha256": "e6f8436755fd150de1db8f25f0f03c7408f632b62acf096db6b62a12e98c6287"
+    },
+    {
+      "id": "refine42",
+      "status": "PASS",
+      "checks": 25,
+      "actual_model_used": true,
+      "raw_response_sha256": "3c22c7850642ed53d4dd52f47981c4d06beba15e69e81f08af8008738cfff1c8",
+      "trace_sha256": "9bd2f8c7ef7129592431e2c240021e62c5d8bdbd35877005f0a4fc6308eeb845"
+    }
+  ],
+  "independent_review": {
+    "path": "reports/local_requirements_completion/r30-real-end-to-end-variations-v2-independent-review.json",
+    "sha256": "25e905da0a3297f76dfe03f94e9eb98a0c0512917289992073e3fc39c8650274",
+    "bytes": 8473,
+    "status": "PASS_SCOPED_CASE_REVIEW",
+    "checks": 48
+  },
+  "scope": "Two fresh API model/script/native cases create17/refine42; not GUI, arbitrary-prompt accuracy, or overall frontend qualification. 47 owner checks and48 independent review checks cover the same two cases, not95 model samples.",
+  "GUI_roundtrip_retained_gap": "Canonical?form?graph fidelity gap is separate and pending R35."
+}

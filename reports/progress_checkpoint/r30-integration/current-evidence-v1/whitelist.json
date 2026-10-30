@@ -1,0 +1,43 @@
+{
+  "status": "EXACT_THREE_DERIVED_SUMMARIES_AND_SOURCE_HASH_INDEX",
+  "sources": [
+    {
+      "path": "reports/local_requirements_completion/r30-real-end-to-end-variations-v2/state.json",
+      "sha256": "fbb9408b2c0fe2c096c91f3efad0a37c5c3ea673e13b3c4db67b74dbd36ad69c",
+      "bytes": 13190
+    },
+    {
+      "path": "reports/local_requirements_completion/r30-real-end-to-end-variations-v2-independent-review.json",
+      "sha256": "25e905da0a3297f76dfe03f94e9eb98a0c0512917289992073e3fc39c8650274",
+      "bytes": 8473
+    },
+    {
+      "path": "reports/local_requirements_completion/r30-wheel-installed-evidence-v2/completion.json",
+      "sha256": "538e21a90cf447f9caa21323ad7831e1b4d326293e9b7eb59c0222f0457a2ae5",
+      "bytes": 6683
+    },
+    {
+      "path": "reports/local_requirements_completion/r30-wheel-installed-evidence-v2/installed-checks.json",
+      "sha256": "193addfebf47d9bbe8f9ddd5c9e75227585fa07cca0b9ab31fa24e135f27bcc1",
+      "bytes": 138613
+    },
+    {
+      "path": "reports/local_requirements_completion/requirements-r30-integrated-browser-evidence/completion.json",
+      "sha256": "243f1af0920238702ca8d1b2ae93fddda600c56982b6f7e97b04fe139c419532",
+      "bytes": 21096
+    }
+  ],
+  "payload_paths": [
+    "api47.summary.json",
+    "wheel59.summary.json",
+    "browser37.summary.json"
+  ],
+  "generated_paths": [
+    "source-hash-index.json",
+    "manifest.json",
+    "SEALED.json"
+  ],
+  "raw_originals_copied": false,
+  "no_environment_config_weights_raw_telemetry": true,
+  "no_secret_free_claim": true
+}

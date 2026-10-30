@@ -1,0 +1,304 @@
+{
+  "schema_version": "sat-sim.public-derived-evidence.v1",
+  "public_derivative": true,
+  "sources": [
+    {
+      "path": "reports/local_requirements_completion/r20-full-regression-v2-failure-triage.json",
+      "sha256": "98b8428c88647ff6cdb5ea16deb54010b11a4520f58520f54febfbecc2399912",
+      "bytes": 66176
+    }
+  ],
+  "raw_original_copied": false,
+  "derivation": "Selected original facts only; full raw original with absolute environment paths remains local and unchanged.",
+  "status": "FULL_SUITE_FAILED_TRIAGE_COMPLETE",
+  "counts": {
+    "tests": 2170,
+    "failures": 12,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 2152,
+    "warnings": 2
+  },
+  "application": "72daa676022d9e3afae6a154d067bacc8e70a428c067b16e88db3da1a60c4c4d",
+  "failure_groups": {
+    "time_literal_grammar_regression": 7,
+    "nominal_capacity_literal_boundary_regression": 1,
+    "script_governance_headers_and_inventory": 2,
+    "legacy_degradation_percentage_contract_regression": 1,
+    "browser_update_completion_condition": 1
+  },
+  "confirmed_environment_failure_count": 0,
+  "confirmed_support_failure_count": 0,
+  "failures": [
+    {
+      "node": "tests.test_agent_prompt_contract_closure::test_explicit_user_time_does_not_bind_fault_onset[\\u8fd0\\u884c20\\u79d2\\uff0c\\u6545\\u969c\\u57285\\u79d2\\u53d1\\u751f-expected0]",
+      "test_file": "tests/test_agent_prompt_contract_closure.py",
+      "original_outcome": "FAIL",
+      "group": "time_literal_grammar_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The shared nl_time label suffix rejects immediately adjacent digits for Chinese labels. Consequently explicit duration/sample requirements disappear, so mismatch rejection or semantic correction may never trigger. Legacy every-Q sampling and Q-unit adjective simulation forms are also absent.",
+      "source_evidence": [
+        "src/sat_sim/nl_time.py:30",
+        "src/sat_sim/nl_time.py:33",
+        "src/sat_sim/nl_time.py:35",
+        "src/sat_sim/capability_agent.py:379",
+        "src/sat_sim/capability_agent.py:683"
+      ],
+      "candidate_fix": "Use field-aware boundaries: permit complete signed/scientific quantities immediately after Chinese labels, keep strict ASCII identifier boundaries, add local every-Q sampling and Q-unit ... simulation grammar. Preserve complete units, no W/K scanning, negation, preservation and conflicts. Reuse the same parser for prompt checks and merge; do not substitute model answers or weaken mismatch rejection.",
+      "specific_cause": "Chinese run label immediately followed by 20/60 is rejected by (?![A-Za-z0-9_]); fault onset is correctly not a global duration but the legal duration is lost.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_agent_prompt_contract_closure::test_explicit_user_time_does_not_bind_fault_onset[\\u6545\\u969c\\u572820\\u79d2\\u53d1\\u751f\\uff0c\\u8fd0\\u884c60\\u79d2-expected1]",
+      "test_file": "tests/test_agent_prompt_contract_closure.py",
+      "original_outcome": "FAIL",
+      "group": "time_literal_grammar_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The shared nl_time label suffix rejects immediately adjacent digits for Chinese labels. Consequently explicit duration/sample requirements disappear, so mismatch rejection or semantic correction may never trigger. Legacy every-Q sampling and Q-unit adjective simulation forms are also absent.",
+      "source_evidence": [
+        "src/sat_sim/nl_time.py:30",
+        "src/sat_sim/nl_time.py:33",
+        "src/sat_sim/nl_time.py:35",
+        "src/sat_sim/capability_agent.py:379",
+        "src/sat_sim/capability_agent.py:683"
+      ],
+      "candidate_fix": "Use field-aware boundaries: permit complete signed/scientific quantities immediately after Chinese labels, keep strict ASCII identifier boundaries, add local every-Q sampling and Q-unit ... simulation grammar. Preserve complete units, no W/K scanning, negation, preservation and conflicts. Reuse the same parser for prompt checks and merge; do not substitute model answers or weaken mismatch rejection.",
+      "specific_cause": "Chinese run label immediately followed by 20/60 is rejected by (?![A-Za-z0-9_]); fault onset is correctly not a global duration but the legal duration is lost.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_agent_prompt_contract_closure::test_explicit_user_time_does_not_bind_fault_onset[Create a 30-second internal engineering simulation-expected2]",
+      "test_file": "tests/test_agent_prompt_contract_closure.py",
+      "original_outcome": "FAIL",
+      "group": "time_literal_grammar_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The shared nl_time label suffix rejects immediately adjacent digits for Chinese labels. Consequently explicit duration/sample requirements disappear, so mismatch rejection or semantic correction may never trigger. Legacy every-Q sampling and Q-unit adjective simulation forms are also absent.",
+      "source_evidence": [
+        "src/sat_sim/nl_time.py:30",
+        "src/sat_sim/nl_time.py:33",
+        "src/sat_sim/nl_time.py:35",
+        "src/sat_sim/capability_agent.py:379",
+        "src/sat_sim/capability_agent.py:683"
+      ],
+      "candidate_fix": "Use field-aware boundaries: permit complete signed/scientific quantities immediately after Chinese labels, keep strict ASCII identifier boundaries, add local every-Q sampling and Q-unit ... simulation grammar. Preserve complete units, no W/K scanning, negation, preservation and conflicts. Reuse the same parser for prompt checks and merge; do not substitute model answers or weaken mismatch rejection.",
+      "specific_cause": "No hyphenated attributive quantity plus simulation grammar: Create a 30-second internal engineering simulation is not recognized.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_agent_prompt_contract_closure::test_explicit_user_time_does_not_bind_fault_onset[\\u8fd0\\u884c1\\u5c0f\\u65f6\\uff0c\\u6bcf5\\u79d2\\u91c7\\u6837-expected4]",
+      "test_file": "tests/test_agent_prompt_contract_closure.py",
+      "original_outcome": "FAIL",
+      "group": "time_literal_grammar_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The shared nl_time label suffix rejects immediately adjacent digits for Chinese labels. Consequently explicit duration/sample requirements disappear, so mismatch rejection or semantic correction may never trigger. Legacy every-Q sampling and Q-unit adjective simulation forms are also absent.",
+      "source_evidence": [
+        "src/sat_sim/nl_time.py:30",
+        "src/sat_sim/nl_time.py:33",
+        "src/sat_sim/nl_time.py:35",
+        "src/sat_sim/capability_agent.py:379",
+        "src/sat_sim/capability_agent.py:683"
+      ],
+      "candidate_fix": "Use field-aware boundaries: permit complete signed/scientific quantities immediately after Chinese labels, keep strict ASCII identifier boundaries, add local every-Q sampling and Q-unit ... simulation grammar. Preserve complete units, no W/K scanning, negation, preservation and conflicts. Reuse the same parser for prompt checks and merge; do not substitute model answers or weaken mismatch rejection.",
+      "specific_cause": "Chinese attached digit duration is rejected and every-Q sampling syntax is missing; both duration_s and sample_s become absent.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_agent_prompt_contract_closure::test_model_duration_mismatch_is_rejected_without_template_replacement",
+      "test_file": "tests/test_agent_prompt_contract_closure.py",
+      "original_outcome": "FAIL",
+      "group": "time_literal_grammar_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The shared nl_time label suffix rejects immediately adjacent digits for Chinese labels. Consequently explicit duration/sample requirements disappear, so mismatch rejection or semantic correction may never trigger. Legacy every-Q sampling and Q-unit adjective simulation forms are also absent.",
+      "source_evidence": [
+        "src/sat_sim/nl_time.py:30",
+        "src/sat_sim/nl_time.py:33",
+        "src/sat_sim/nl_time.py:35",
+        "src/sat_sim/capability_agent.py:379",
+        "src/sat_sim/capability_agent.py:683"
+      ],
+      "candidate_fix": "Use field-aware boundaries: permit complete signed/scientific quantities immediately after Chinese labels, keep strict ASCII identifier boundaries, add local every-Q sampling and Q-unit ... simulation grammar. Preserve complete units, no W/K scanning, negation, preservation and conflicts. Reuse the same parser for prompt checks and merge; do not substitute model answers or weaken mismatch rejection.",
+      "specific_cause": "Attached run20 seconds is lost; wrong draft duration2 incorrectly returns ok and exported result.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_explicit_parameter_output_guards::test_requested_recording_period_is_not_silently_changed_to_step[0.2]",
+      "test_file": "tests/test_explicit_parameter_output_guards.py",
+      "original_outcome": "FAIL",
+      "group": "time_literal_grammar_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The shared nl_time label suffix rejects immediately adjacent digits for Chinese labels. Consequently explicit duration/sample requirements disappear, so mismatch rejection or semantic correction may never trigger. Legacy every-Q sampling and Q-unit adjective simulation forms are also absent.",
+      "source_evidence": [
+        "src/sat_sim/nl_time.py:30",
+        "src/sat_sim/nl_time.py:33",
+        "src/sat_sim/nl_time.py:35",
+        "src/sat_sim/capability_agent.py:379",
+        "src/sat_sim/capability_agent.py:683"
+      ],
+      "candidate_fix": "Use field-aware boundaries: permit complete signed/scientific quantities immediately after Chinese labels, keep strict ASCII identifier boundaries, add local every-Q sampling and Q-unit ... simulation grammar. Preserve complete units, no W/K scanning, negation, preservation and conflicts. Reuse the same parser for prompt checks and merge; do not substitute model answers or weaken mismatch rejection.",
+      "specific_cause": "Attached recording-period 1 second is lost; a candidate sample_s=.2 is incorrectly accepted despite the requested sample_s=1.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_model_schema_rejection_repair::test_failed_semantic_correction_retains_its_raw_response",
+      "test_file": "tests/test_model_schema_rejection_repair.py",
+      "original_outcome": "FAIL",
+      "group": "time_literal_grammar_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The shared nl_time label suffix rejects immediately adjacent digits for Chinese labels. Consequently explicit duration/sample requirements disappear, so mismatch rejection or semantic correction may never trigger. Legacy every-Q sampling and Q-unit adjective simulation forms are also absent.",
+      "source_evidence": [
+        "src/sat_sim/nl_time.py:30",
+        "src/sat_sim/nl_time.py:33",
+        "src/sat_sim/nl_time.py:35",
+        "src/sat_sim/capability_agent.py:379",
+        "src/sat_sim/capability_agent.py:683"
+      ],
+      "candidate_fix": "Use field-aware boundaries: permit complete signed/scientific quantities immediately after Chinese labels, keep strict ASCII identifier boundaries, add local every-Q sampling and Q-unit ... simulation grammar. Preserve complete units, no W/K scanning, negation, preservation and conflicts. Reuse the same parser for prompt checks and merge; do not substitute model answers or weaken mismatch rejection.",
+      "specific_cause": "Attached simulation20 seconds is lost, so initial wrong duration30 does not produce a mismatch; semantic correction is never needed and result incorrectly succeeds.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_p0_engineering_closure::test_provenance_distinguishes_user_explicit_from_agent_default_and_requires_confirmation",
+      "test_file": "tests/test_p0_engineering_closure.py",
+      "original_outcome": "FAIL",
+      "group": "nominal_capacity_literal_boundary_regression",
+      "category": "real_code_regression",
+      "confidence": "Strong",
+      "root_cause": "The nominal Wh helper applies the ASCII identifier suffix boundary to the Chinese alias too, so battery-capacity200Wh is not marked explicit and provenance becomes agent_inferred.",
+      "source_evidence": [
+        "src/sat_sim/agent_facade.py:392",
+        "src/sat_sim/agent_facade.py:399"
+      ],
+      "candidate_fix": "Allow a complete adjacent number for Chinese nominal-capacity labels while preserving strict identifier boundaries, unit completion, loss-percentage exclusion and negation. Keep user-explicit attribution for an actual 200Wh declaration; do not broadly match loss percentages.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_script_dependency_governance::test_non_production_scripts_are_consolidated_under_scripts",
+      "test_file": "tests/test_script_dependency_governance.py",
+      "original_outcome": "FAIL",
+      "group": "script_governance_headers_and_inventory",
+      "category": "real_repository_governance_failure",
+      "confidence": "Strong",
+      "root_cause": "Four existing scripts lack the required complete header and SCRIPT_INVENTORY entry, producing eight ERROR findings. This is not missing copied support: all 299 prepared supports match their hashes.",
+      "source_evidence": [
+        "scripts/analyze_native_timing.py",
+        "scripts/audit_registry_plot_contract.py",
+        "scripts/diagnose_native_timing.py",
+        "scripts/preview_compact_workbench.py",
+        "scripts/SCRIPT_INVENTORY.md"
+      ],
+      "candidate_fix": "Add purpose/parameters/output headers and register these four files without changing governance assertions or exclusions. Pinned R24 contains these source/inventory edits; full-suite qualification remains separate.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_script_dependency_governance::test_governance_scripts_are_standalone_and_scanner_uses_lock_without_resolution",
+      "test_file": "tests/test_script_dependency_governance.py",
+      "original_outcome": "FAIL",
+      "group": "script_governance_headers_and_inventory",
+      "category": "real_repository_governance_failure",
+      "confidence": "Strong",
+      "root_cause": "Four existing scripts lack the required complete header and SCRIPT_INVENTORY entry, producing eight ERROR findings. This is not missing copied support: all 299 prepared supports match their hashes.",
+      "source_evidence": [
+        "scripts/analyze_native_timing.py",
+        "scripts/audit_registry_plot_contract.py",
+        "scripts/diagnose_native_timing.py",
+        "scripts/preview_compact_workbench.py",
+        "scripts/SCRIPT_INVENTORY.md"
+      ],
+      "candidate_fix": "Add purpose/parameters/output headers and register these four files without changing governance assertions or exclusions. Pinned R24 contains these source/inventory edits; full-suite qualification remains separate.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_taskspec_compatibility::test_explicit_degradation_normalizes_percentage_magnitude",
+      "test_file": "tests/test_taskspec_compatibility.py",
+      "original_outcome": "FAIL",
+      "group": "legacy_degradation_percentage_contract_regression",
+      "category": "real_compatibility_contract_change",
+      "confidence": "Strong",
+      "root_cause": "Root normalized_unit_severity converted legacy values 1<n<=100 to percentages. R20 removed that helper and copies magnitude10 directly to degradation severity10; the existing legacy contract requires .1.",
+      "source_evidence": [
+        "root src/sat_sim/capability_agent.py:3542",
+        "root src/sat_sim/capability_agent.py:3773",
+        "r20 src/sat_sim/capability_agent.py:3860",
+        "tests/test_taskspec_compatibility.py:174"
+      ],
+      "candidate_fix": "Handle the legacy degradation percentage contract separately and explicitly if retained: a dedicated strict unit adapter for that legacy event shape, without restoring global fault clamping, invalid-value default1 or implicit changes to canonical loss fractions. Preserve original draft bytes and record unit conversion. This is not the same time/Wh helper and is intentionally excluded from R27.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    },
+    {
+      "node": "tests.test_workbench_task_identity_browser::test_task_details_cannot_change_editor_update_target",
+      "test_file": "tests/test_workbench_task_identity_browser.py",
+      "original_outcome": "FAIL",
+      "group": "browser_update_completion_condition",
+      "category": "browser_workflow_and_test_synchronization_failure",
+      "confidence": "Strong for incomplete completion predicate; actual wrong-target write not observed",
+      "root_cause": "saveCurrentTask can await previewForm before the PUT. A previous open-task or intermediate validation success notice remains visible, while the test waits for any success class. The proof is captured before a PUT occurs: writes=[] and both task versions1. This is not evidence of a write to B.",
+      "source_evidence": [
+        "src/sat_sim/web/app.js:7523",
+        "src/sat_sim/web/app.js:7739",
+        "src/sat_sim/web/app.js:3837",
+        "tests/test_workbench_task_identity_browser.py:73"
+      ],
+      "candidate_fix": "Clear or replace stale success state around the actual write and make a deterministic test hold/observe the PUT response or task version. Preserve the original exact task-A write and task-B unchanged assertions; no fixed sleeps, skip or weakening. Root is preparing isolated R28; reviewer does not rerun browser.",
+      "status_preserved": true,
+      "environment_failure_confirmed": false,
+      "copy_or_missing_support_failure_confirmed": false
+    }
+  ],
+  "skips_retained": [
+    {
+      "node": "tests.interactive.test_native_battery_custom_wheel::test_r9k_rebuilt_native_wheel_fresh_pid_battery_integrator_parity",
+      "reason": "Experimental custom-wheel profile unavailable; no native checkpoint qualification claimed"
+    },
+    {
+      "node": "tests.interactive.test_native_parent_death_fence::test_real_basilisk_subprocess_dies_when_parent_os_process_is_killed",
+      "reason": "Linux kernel PR_SET_PDEATHSIG only"
+    },
+    {
+      "node": "tests.interactive.test_supervised_continuous_native_runtime::test_native_worker_death_does_not_recreate_graph_or_retry_tc",
+      "reason": "SIGKILL direct-worker injection on POSIX"
+    },
+    {
+      "node": "tests.interactive.test_supervised_continuous_native_runtime::test_live_session_child_crash_preserves_active_sqlite_owner_fence",
+      "reason": "POSIX SIGKILL fault injection"
+    },
+    {
+      "node": "tests.interactive.test_windows_native_job::test_job_not_available_on_linux",
+      "reason": "tested by native Windows tests"
+    },
+    {
+      "node": "tests.test_guided_numeric_bounds::test_guided_numeric_bounds_reject_invalid_emitted_values",
+      "reason": "optional serving environment with lm-format-enforcer is not installed"
+    }
+  ],
+  "warnings_retained_count": 2,
+  "subsequent_component_passes_do_not_rewrite_this_full_result": true
+}

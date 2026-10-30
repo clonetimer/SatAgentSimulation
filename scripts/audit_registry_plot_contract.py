@@ -1,4 +1,9 @@
-"""Audit default-plot contracts in registry-synthesized chat datasets.
+"""用途：只读核对注册表生成对话数据集的已知提示格式与显式默认绘图约定。
+参数：--dataset-dir 指定数据集目录；--output 指定尚不存在的 JSON 报告路径。
+输出：带输入哈希、分割与逐记录检查结果的报告，以及标准输出摘要；不改写数据集，
+不评价任意对话意图或模型准确率。
+
+Audit default-plot contracts in registry-synthesized chat datasets.
 
 This checks the known prompt format and explicit default-plot instruction, not
 arbitrary conversational intent or model accuracy. It never rewrites a dataset.

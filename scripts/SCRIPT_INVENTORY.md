@@ -6,6 +6,10 @@
 
 | 脚本 | 类别 | 状态 | 处理结论 |
 |---|---|---|---|
+| `analyze_native_timing.py` | 既有节拍诊断分析 | active | 用途：只读关联漂移区间与实测调用耗时；参数：diagnostic_directory、--output、--threshold-ms（默认 200 ms）；输出：分析 JSON 与摘要，不改原始证据，不推断设备或 CPU 成因 |
+| `audit_registry_plot_contract.py` | 数据集显式绘图契约核对 | active | 用途：核对注册表生成数据的已知提示格式和默认绘图约定；参数：--dataset-dir、--output（新路径）；输出：输入哈希、分割及逐记录报告和摘要，不改数据集，不声称模型准确率 |
+| `diagnose_native_timing.py` | 独立进程原生节拍诊断 | active | 用途：复制应用并在自建进程运行诊断；参数：--output-dir、--wall-seconds（默认 60 s、至少 10 s）、--inject-fsync-delay-s（默认 0）；输出：副本、原始记录、日志与状态摘要，不接管既有耐久进程，不替代正式验收 |
+| `preview_compact_workbench.py` | 独立紧凑工作台预览 | active | 用途：准备独立预览副本并按需启动本地服务；参数：--port（默认自动）、--prepare-only、--native-runtime、--dependency-dir；输出：预览副本、preview-state.json 和 URL，不修改生产源码或主环境 |
 | `run_native_failure_recreation.py` | 原生异常与新建场景验收 | active | 只终止脚本自己新建的原生子进程，核验原始证据保留及新场景独立运行，不冒充断点续算 |
 | `benchmark_iss_oem.py` | 外部轨道参考对照 | active | 离线核验 NASA OEM 哈希、坐标系与时间，比较真实原生轨道残差；不冒充飞行标定 |
 | `check_sft_chunked_loss.py` | 微调损失等价验证 | active | 比较分块/完整损失及隐状态、输出头梯度，保留张量级证据 |

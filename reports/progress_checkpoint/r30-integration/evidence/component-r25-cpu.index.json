@@ -1,0 +1,286 @@
+{
+  "schema_version": "1.0.0",
+  "status": "PASS_CPU_GUIDED_SCALAR_CANDIDATE_NOT_LIVE_QUALIFIED",
+  "at_utc": "2026-10-30T15:09:43.474284+00:00",
+  "checks": {
+    "all57_real_cpu_tests_pass_without_skip": true,
+    "source_fingerprint_matches_passing_run": true,
+    "test_fingerprint_matches_passing_run": true,
+    "root_R22_R24_guarded_sources_unchanged": true,
+    "pristine_support_copies_unchanged": true,
+    "no_cuda_initialization_in_real_tokenizer_test": true,
+    "all352_current_taskspec_modes_checked": true,
+    "actual_local_tokenizer_files_match_verified_manifest": true,
+    "original_live_strict_failure_retained": true,
+    "same_idle_strict_failure_retained": true,
+    "setup_failure_and_prior55test_run_retained": true,
+    "normal_core_wrapper_passes_and_executes_all57_without_skip": true,
+    "prior_passing_source_snapshots_preserved": true
+  },
+  "nonempty_checks_all_bool": true,
+  "all_checks_pass": true,
+  "production_patch": {
+    "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/src/sat_sim_ml/guided_decoding.py",
+    "sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b"
+  },
+  "baseline_sha256": "4b0fc8e30efc9841d81d8902fcc9daacc6be08e7193af01f27c1244ed932510c",
+  "new_test": {
+    "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/tests/test_numeric_const_decode_contract.py",
+    "sha256": "4bcb97a4742e8e464635ea047df39ba22c30ee60be6984c2013142a92bead3ee"
+  },
+  "test_counts": {
+    "tests": 57,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "test_run": {
+    "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-3/result.json",
+    "sha256": "6dbb56db6e6dd7bd5607521cf74fab94450fc8de6d5ae756164a7a07976f6ac0"
+  },
+  "versions": {
+    "lm-format-enforcer": "0.11.3",
+    "transformers": "4.57.6",
+    "torch": "2.11.0+cu128",
+    "jsonschema": "4.26.0",
+    "pytest": "9.0.3"
+  },
+  "scope": "One isolated production guided_decoding.py patch plus new CPU regressions. No root/R24/R22 source, dependency, weight, existing environment or live-service changes. CPU-test variables were configured only in the new subprocess. Actual GPU structured revalidation is deferred to parent-coordinated integration/service replacement.",
+  "root_cause": {
+    "summary": "Installed LMFE0.11.3 passes numeric const directly to a string state. int.startswith fails; token-enforcer forces EOS and the existing premature-end guard safely rejects incomplete JSON. Explicit type does not cure it; the bounded numeric adapter is not its cause.",
+    "baseline_cpu_replay": {
+      "path": "reports/local_requirements_completion/r22-live-control-evidence/schema-attribution/cpu-parser-replay.json",
+      "sha256": "c53f871130d5f66a308fe38f4ad14c1272353b45f9ab58ba757fb3dde7f3166e"
+    },
+    "live_attribution": {
+      "path": "reports/local_requirements_completion/r22-live-control-evidence/control-scope-and-schema-attribution-review.json",
+      "sha256": "dc89273702eff7ea2bc0fdc55cf42bdf9919e3fc546159a7c1a6bcb0ba36e339"
+    },
+    "official_sources": [
+      {
+        "url": "https://github.com/noamgat/lm-format-enforcer/issues/183",
+        "summary": "Upstream open report reproduces scalar const crashes and invalid Python boolean spelling in enum."
+      },
+      {
+        "url": "https://github.com/noamgat/lm-format-enforcer/blob/main/lmformatenforcer/jsonschemaparser.py",
+        "summary": "Numeric enum is converted to text, whereas const native values go directly into StringParsingState."
+      }
+    ]
+  },
+  "fix": {
+    "decode_only": "Finite numeric const to singleton enum, intersecting an existing enum after validating compatibility with unchanged original siblings. No property/type/bound/composition is silently deleted.",
+    "contract_preservation": "Return original deep-copied schema and compute original schema_sha256; final validator continues to use original schema. Transformation visits schema positions only, not instance data in default/examples/property names.",
+    "safe_early_boundaries": [
+      "Boolean/null/array/object const: UNSUPPORTED_GUIDED_CONST_TYPE before tokenizer/model.",
+      "Boolean enum: UNSUPPORTED_GUIDED_BOOLEAN_ENUM before tokenizer/model.",
+      "Nonfinite number const: NONFINITE_GUIDED_NUMERIC_CONST.",
+      "Numeric const with same-node anyOf/allOf/oneOf/$ref: UNSUPPORTED_GUIDED_NUMERIC_CONST_COMPOSITION because LMFE can prioritize it over enum.",
+      "Contradictory const siblings: GUIDED_CONST_CONSTRAINT_CONTRADICTION. Conservative rejection applies even to a dead alternative in an otherwise viable schema. Unused unsupported definitions are likewise rejected; there is no general satisfiability solver."
+    ],
+    "covered_positive_modes": [
+      "typed/untyped finite numeric constants",
+      "existing enum intersection and bounds retained",
+      "separate anyOf constant branches",
+      "references to numeric const definitions",
+      "original mixed string/numeric strict schema in both property orders",
+      "real local tokenizer rejects wrong numeric output token before final validation",
+      "existing bounded numbers and maxItems0 guard",
+      "actual R24 TaskSpec constant/enum modes unchanged"
+    ]
+  },
+  "main_path_compatibility": {
+    "generator_source": {
+      "path": "reports/local_requirements_completion/requirements-r24-integrated-candidate/src/sat_sim/llm_backends.py",
+      "sha256": "a7c7064b2e637b4fbc5c6d2f5cc62d4f925b549d2fa55437d034e5ff80a39496"
+    },
+    "variant_count": 352,
+    "modes": "43 active real_llm_eval capabilities plus generic, 2 event modes x2 geometry x2 per-wheel modes. Each _decode_schema result equals its input and avoids new early rejections.",
+    "real_parser_cases": "whole_spacecraft.unified_native.v1 with forbid_events false/true, actual minimal TaskSpec JSON accepted by LMFE character parser.",
+    "initial_const_enum_inventory": {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/taskspec-const-enum-inventory.json",
+      "sha256": "994c081741c5a1bc4efc5dd2cd7a1a185cdc086a47a62adc2a0edc724a358eee"
+    },
+    "initial_inventory_boundary": "The initial explicit inventory lists88 bounded-geometry/per-wheel variants; the full352-mode compatibility is in the passing test run, not inferred from that subset."
+  },
+  "original_contract": {
+    "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/strict-original-and-decode-normalform.json",
+    "sha256": "a3c883cf755bf483a697ed3859d6c8c4c2e1a678a294477292915c34d3d51028"
+  },
+  "local_tokenizer_provenance": {
+    "manifest": {
+      "path": ".models/Qwen--Qwen2.5-Coder-1.5B-Instruct-provenance.json",
+      "sha256": "a8213ff226d85f8dfd7cf58e63fb829f29b1c5d6a9584fef4bf8267aa27abf38"
+    },
+    "files": [
+      {
+        "path": ".models/models/Qwen--Qwen2.5-Coder-1.5B-Instruct/snapshots/master/merges.txt",
+        "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+        "manifest_sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+      },
+      {
+        "path": ".models/models/Qwen--Qwen2.5-Coder-1.5B-Instruct/snapshots/master/tokenizer.json",
+        "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+        "manifest_sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+      },
+      {
+        "path": ".models/models/Qwen--Qwen2.5-Coder-1.5B-Instruct/snapshots/master/tokenizer_config.json",
+        "sha256": "959e7f1d9a1b7641a6d6ce05ca97b75c7894fcb66cbe5a040406458fb1128ee4",
+        "manifest_sha256": "959e7f1d9a1b7641a6d6ce05ca97b75c7894fcb66cbe5a040406458fb1128ee4"
+      },
+      {
+        "path": ".models/models/Qwen--Qwen2.5-Coder-1.5B-Instruct/snapshots/master/vocab.json",
+        "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+        "manifest_sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+      }
+    ],
+    "local_files_only": true,
+    "trust_remote_code": false,
+    "model_constructed": false,
+    "cuda_initialized_after": false
+  },
+  "limitations": [
+    "CPU grammar evidence is not a new actual GPU HTTP200 result. Both original live422 failures remain failures.",
+    "No complete JSON Schema coverage is claimed; unrelated LMFE features/compositions keep their existing limitations.",
+    "Existing SFT environment lacks pytest; the driver appended existing root pytest read-only after SFT ML libraries and disabled plugin autoload. No installation occurred.",
+    "All new test subprocess CPU affinity was0..3; no GPU requests were sent during the active R24 pipeline."
+  ],
+  "evidence": [
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/pre-wrapper-implementation-report.json",
+      "sha256": "e7c0aafde88934414f59606ac91f16b2f7b5cf40415da5b8cd1ecd6e973a06f7"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-1/pytest.log",
+      "sha256": "33f88eea2232cfa79307512198e034c0eb0541d3fd58c00d2b308935c5f2a683"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-1/result.json",
+      "sha256": "d5113d611dc67a7b4c8915f7d2671811cbdb319731db448f2539f08c4ed51a0d"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-1/tests.xml",
+      "sha256": "f2b2a805b12402afcb7090ed36cf0755f5de801e9bbdfcc99b1f6dd5f4be71a7"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-2/driver-source.py",
+      "sha256": "56001d5c0718bbcdde67d899592b0e8a713ab094978123ec529f6ed3e9ea4774"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-2/pytest.log",
+      "sha256": "9da68be3cbffe29789408de2597dddb8bfffc5f4f34010f263e0f745e1621ca7"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-2/result.json",
+      "sha256": "6204340283dac1106646e63523044eee5ba6defb022d43010a8b6d753c99a20d"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-2/test-source.py",
+      "sha256": "40a737eac0a793b64dd9b8037f307aad9a396e872dbfd5fbc4355fa4dfc8429f"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-2/tests.xml",
+      "sha256": "182d8911152d317167132a5a054dfe89ff0e82c76d2147398ea0881c333a92de"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-3/pytest.log",
+      "sha256": "3dc52cd1ef82081d8db9598419c1d70b8129777bfc09aa9af672dbc0ed1d7e20"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-3/result.json",
+      "sha256": "6dbb56db6e6dd7bd5607521cf74fab94450fc8de6d5ae756164a7a07976f6ac0"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/run-3/tests.xml",
+      "sha256": "96019db0618694fee2c08a1529b97599a64adff66f85f614f94c48bdc570cd94"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/setup-driver.py",
+      "sha256": "9d75f59c29600009febfcf85ecb4fb892545f408ee1e415fee88727993bac9cf"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/setup-missing-pytest.json",
+      "sha256": "f636d04146409ee8c062d30392ac83f4f47e2aee17c39e78770f35900a46584d"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/strict-original-and-decode-normalform.json",
+      "sha256": "a3c883cf755bf483a697ed3859d6c8c4c2e1a678a294477292915c34d3d51028"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/taskspec-const-enum-inventory.json",
+      "sha256": "994c081741c5a1bc4efc5dd2cd7a1a185cdc086a47a62adc2a0edc724a358eee"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/wrapper-tmp/test_numeric_const_grammar_in_0/numeric-const-worker.xml",
+      "sha256": "9340aaad859cb076c88890c4126f979ea3084addd86d4dab077ffd206081b42d"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/wrapper.log",
+      "sha256": "5992a94c5092474ccbd171f8cd593b5d6aa6fb09562d5204da4b3d153aa29897"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/wrapper.xml",
+      "sha256": "821902efe2deb0f5ca94633afc13a9dcf4e0ee17d69d3e6e1f5fbe3074685ea5"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/pytest.ini",
+      "sha256": "e9b4699ae8cb4f37465dcb100d022dfeb599a90145e0b657624bcb8c33d98c14"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/README.md",
+      "sha256": "fbdb8a435d04416f76843fec68d44fda377b8e0f38ff440ce9eb94b60318983e"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/run_cpu_regression.py",
+      "sha256": "09b26b44672cf9cbed472a0f5c1605fda5d312f6fab58998eda4103f873b88fc"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/source-before.json",
+      "sha256": "9fe5ff325c184122cac8f9a03b9de99bd01a177e614def5597905499d1085155"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/src/sat_sim_ml/__init__.py",
+      "sha256": "e742e2aa0fb1eb80dfa9dcba1a836ad867b34d6b6dd037c3f81866bbf875cc20"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/src/sat_sim_ml/bounded_numeric_parser.py",
+      "sha256": "31be2db668f2031782899ede408f470ea3173a050163446a1e09d61bcd6e04d3"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/src/sat_sim_ml/guided_decoding.py",
+      "sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/tests/numeric_const_decode_contract_worker.py",
+      "sha256": "6ea035c799b95193163451b23a09031825a6b90dd5cbf73d5e246d0898a86457"
+    },
+    {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/tests/test_numeric_const_decode_contract.py",
+      "sha256": "4bcb97a4742e8e464635ea047df39ba22c30ee60be6984c2013142a92bead3ee"
+    }
+  ],
+  "test_worker": {
+    "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/tests/numeric_const_decode_contract_worker.py",
+    "sha256": "6ea035c799b95193163451b23a09031825a6b90dd5cbf73d5e246d0898a86457"
+  },
+  "core_environment_compatibility": {
+    "wrapper": {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/tests/test_numeric_const_decode_contract.py",
+      "sha256": "4bcb97a4742e8e464635ea047df39ba22c30ee60be6984c2013142a92bead3ee"
+    },
+    "child_worker": {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/tests/numeric_const_decode_contract_worker.py",
+      "sha256": "6ea035c799b95193163451b23a09031825a6b90dd5cbf73d5e246d0898a86457"
+    },
+    "core_wrapper_xml": {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/wrapper.xml",
+      "sha256": "821902efe2deb0f5ca94633afc13a9dcf4e0ee17d69d3e6e1f5fbe3074685ea5"
+    },
+    "actual_child_xml": {
+      "path": "reports/local_requirements_completion/guided-scalar-r25-candidate/evidence/wrapper-tmp/test_numeric_const_grammar_in_0/numeric-const-worker.xml",
+      "sha256": "9340aaad859cb076c88890c4126f979ea3084addd86d4dab077ffd206081b42d"
+    },
+    "result": "Normal .venv wrapper1PASS; actual serving child57PASS,0SKIP. No ML packages installed into core env.",
+    "optional_absence_boundary": "No serving env => optional wrapper skip; serving env without local tokenizer manifest => only tokenizer check skipped. Current qualification requires0skip and observes0skip.",
+    "portable_source_target": "Wrapper uses integration target src first; worker discovers local tokenizer manifest from ancestors rather than hardcoding candidate directory depth."
+  }
+}

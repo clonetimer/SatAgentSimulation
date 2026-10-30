@@ -1,0 +1,95 @@
+{
+  "schema_version": "sat-sim.current-progress-index.v1",
+  "status": "SEALED_CURRENT_PROGRESS_NOT_RELEASE",
+  "created_at_utc": "2026-10-30T17:07:36.088752+00:00",
+  "current_entry": "CURRENT.md",
+  "files": [
+    {
+      "path": "package-manifest.initial.json",
+      "sha256": "f687d52c4332ede4bfc2bf8a295e9bf97b1e046628fa1ba8c385f08ebc2dff28",
+      "bytes": 14841
+    },
+    {
+      "path": "deltas/r32-r34-v1/SEALED.json",
+      "sha256": "877538ebd15edbf7d1e1639642d05e12283ad773c9360156a86647ef28947fc5",
+      "bytes": 585
+    },
+    {
+      "path": "deltas/r32-r34-v1/manifest.json",
+      "sha256": "1fffe3b68739eb5227925393a93e53b178b7dad93fb989f8d30683d156b12bad",
+      "bytes": 6115
+    },
+    {
+      "path": "deltas/r32-r34-v1/whitelist.json",
+      "sha256": "f7ffeae622a029da314eecec91810215b39785c3ce6725b90f515f9f158082c1",
+      "bytes": 14168
+    },
+    {
+      "path": "evidence/gui-r30-v1/source-public-review-index.json",
+      "sha256": "ea89919ae190c5f322b9224c08a9436da85f3101a58b6a1a5f95f537c73f7d8f",
+      "bytes": 1308
+    },
+    {
+      "path": "evidence/gui-r30-v1/relocations.json",
+      "sha256": "2be6248d7f48d1ec3e3e64a976c051aef903cb1933c51b3ac780b8dc97294aa5",
+      "bytes": 2832
+    },
+    {
+      "path": "evidence/r34-installed-independent-v1/summary.json",
+      "sha256": "6855334f5e137f7691e267a96bc4cac4b5fc17a0caee09e96dc956669562f16c",
+      "bytes": 3857
+    },
+    {
+      "path": "evidence/r34-installed-independent-v1/source-hash-index.json",
+      "sha256": "877c1b2e4f2ad07ac7d591e06339b041210fc9c338157facb6ccfd4ab25cfc2d",
+      "bytes": 1635
+    },
+    {
+      "path": "evidence/r34-installed-independent-v1/whitelist.json",
+      "sha256": "539d7d09b7bcc38f5cb01f60876cba61f1caf2cc6d85fea0900666f2685d0210",
+      "bytes": 773
+    },
+    {
+      "path": "current-evidence-v1/SEALED.json",
+      "sha256": "b8418611ce16d0d4f6dbcb457c93f1ed807a87e5542a937c92c0cdb17204a76b",
+      "bytes": 259
+    },
+    {
+      "path": "current-evidence-v1/manifest.json",
+      "sha256": "2648333acdf6edd0726487e566a7dc5107bc21cee76da7c45f0314015f1ae36f",
+      "bytes": 864
+    },
+    {
+      "path": "current-evidence-v1/whitelist.json",
+      "sha256": "c4ed1c20469b62cc70609efe8a8a3a399047936b903acebb4851e5be2da00947",
+      "bytes": 1545
+    },
+    {
+      "path": "source-preimage-erratum-v2.json",
+      "sha256": "0169d099fa7232b9d167a4bce62b3764d99d29bcdb482d200a5420626a49d14a",
+      "bytes": 1975
+    },
+    {
+      "path": "CURRENT.md",
+      "sha256": "4af7e3a2483bac3c13941cf2207e29d60f922f24f73d4b37cd5cf21576b109d7",
+      "bytes": 6038
+    },
+    {
+      "path": "encoding-repair-v1.json",
+      "sha256": "2db32a82130b385514b9eec8f111021824ab97d8f3880a0977bb95f6d3ca15d3",
+      "bytes": 2797
+    }
+  ],
+  "historical_initial_manifest_unchanged": true,
+  "current_readiness": "R34 full FAILED; R35 GUI/R36 security PENDING; new formal24h NOT_STARTED",
+  "three_r30_current_evidence_summaries": "current-evidence-v1/",
+  "base_raw_preimages_required": true,
+  "portable_release_claim": false,
+  "no_more_public_writes_by_this_preparer_expected_before_root_stage": true,
+  "no_git_or_push_by_preparer": true,
+  "prepublication_encoding_repair": {
+    "receipt": "encoding-repair-v1.json",
+    "sha256": "2db32a82130b385514b9eec8f111021824ab97d8f3880a0977bb95f6d3ca15d3",
+    "previous_unpublished_index_sha256": "32ecf2b0af83dc15e5aecb301ace013971ce30561598dee7d49aaf38da6f1d76"
+  }
+}

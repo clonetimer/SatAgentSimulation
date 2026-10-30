@@ -1,0 +1,38 @@
+{
+  "schema_version": "sat-sim.progress-checkpoint-status.v1",
+  "status": "LOCAL_CHECKPOINT_PREPARED_PENDING_R30_FINAL_QUALIFICATION",
+  "created_at_utc": "2026-10-30T15:53:24.288316+00:00",
+  "application": "953972755f4188ae449ae29182bbe7963c429a5c41e3c19cbcb5e78af07eba1f",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "root_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "root_head_reported_and_verified_by_parent": "d4db2d6a54cefc5c72738e9640111e85bbfb4470",
+  "same_application_gates": {
+    "full_regression": {
+      "status": "PENDING",
+      "latest_parent_report": "Still running; one failure observed, terminal result and full attribution pending."
+    },
+    "fresh_actual_model_pipeline": {
+      "status": "PENDING",
+      "latest_parent_report": "create22 PASS; refinement running. Overall final evidence pending."
+    },
+    "installed_wheel": {
+      "status": "PENDING"
+    },
+    "same_version_browser": {
+      "status": "PENDING"
+    }
+  },
+  "historical_r20_full": {
+    "passed": 2152,
+    "failed": 12,
+    "skipped": 6,
+    "warnings": 2,
+    "preserved": true
+  },
+  "historical_r24_pipeline": "FAILED_NO_SUBSTITUTION; runtime plan identity assertion false, preserved.",
+  "long_duration_pacing_scope": "Existing root endurance remains a separate frozen-source run; no R30 24-hour qualification claimed.",
+  "git_or_push_performed": false,
+  "root_source_applied": false,
+  "component_counts_are_not_a_same_app_total": true,
+  "content_check_scope": "Limited explicit allowlist and content/path checks; no secret-free claim."
+}

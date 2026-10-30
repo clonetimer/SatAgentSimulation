@@ -1,0 +1,111 @@
+{
+  "status": "CANONICAL_EXPORT_ENGINEERING_FIX_VERIFIED",
+  "validation_kind": "LOCAL_ENGINEERING_OFFLINE_REPLAY",
+  "container_dynamic_audit_performed": false,
+  "adversarial_audit_confirmed": false,
+  "source": "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-candidate",
+  "baseline_application": "b6f4f943235eb29900fcfd4f4ef41067744b7ebf217955db01fe939681a72f3d",
+  "application": "6253eab908e608d4e3c144058e416c6d6ea6cc4fd744f4c6133b0506b5ce196e",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "production_changes": [
+    "src/sat_sim/script_exporter.py"
+  ],
+  "overlay_files": [
+    {
+      "path": "src/sat_sim/script_exporter.py",
+      "action": "replace",
+      "before_sha256": "239c96e4a4d8357b3caa3eaa8c46f3af2b61bc365507017c9cddccbcecb60a0b",
+      "after_sha256": "b4c30f1e31894db506194f4338083b7a950719c04c88564dc09a98e6fec25678",
+      "overlay_path": "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\overlay\\src\\sat_sim\\script_exporter.py"
+    },
+    {
+      "path": "tests/test_exported_script_plan_identity.py",
+      "action": "replace",
+      "before_sha256": "2ca217ed02ac6e42403e997d9b93fb0fc7ce7d6eb6bdbd6798a547e506916fe8",
+      "after_sha256": "82458581d58653c45cf0a68ec59e1a0b8d014725481a8ff1aeaccf66c957b470",
+      "overlay_path": "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\overlay\\tests\\test_exported_script_plan_identity.py"
+    },
+    {
+      "path": "tests/test_exported_script_canonical_roundtrip.py",
+      "action": "add",
+      "before_sha256": null,
+      "after_sha256": "836324b9fd7f0e1af2fc9471883ca56e2859dd37564ee3385ea1151dca61be78",
+      "overlay_path": "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\overlay\\tests\\test_exported_script_canonical_roundtrip.py"
+    },
+    {
+      "path": "tests/fixtures/export_roundtrip/create17_task_spec.json",
+      "action": "add",
+      "before_sha256": null,
+      "after_sha256": "f1c0177d7412f239b8e3677439e86c293982c884216ef91aaf29bd48358a4723",
+      "overlay_path": "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\overlay\\tests\\fixtures\\export_roundtrip\\create17_task_spec.json"
+    }
+  ],
+  "finding": "Legacy adapter projection is expected internally; reconstructing the public canonical export from it silently lost original provenance and changed the no-edit plan identity.",
+  "fix": [
+    "Canonical input is embedded as canonical TASK_SPEC without repeated legacy alignment/pruning; unedited canonical/provenance remains exact.",
+    "Common legacy CLI aliases are adapted locally and only actual projected edits are merged; unchanged original public fields/history remain.",
+    "Generated per-field value fingerprints detect editable TASK_SPEC, external JSON and CLI changes. Changed values receive new explicit/derived evidence, replacing stale provenance. These hints are not signatures or a security boundary.",
+    "Actual runtime plan existence/integrity validation, attach_plan_metadata and explicit execution-plan hash binding remain mandatory; bad plans do not execute."
+  ],
+  "results": {
+    "targeted_pytest_passed": 29,
+    "new_pytest_cases": 9,
+    "related_pytest_passed": 20,
+    "offline_actual_ai_native_checks_passed": 21,
+    "no_edit_canonical_differences": 0,
+    "no_edit_plan_preserved": true,
+    "no_edit_resolved_preserved": true,
+    "original_plan_sha256": "d7499066174fc195d1ceb90e40df5da8dc613009d80bdfcfac16ce92592220c7"
+  },
+  "preserved_failures": [
+    {
+      "path": "before-roundtrip-proof.json",
+      "reason": "Actual copied AI artifact had 39 canonical differences and plan d749... -> 3453... with no user edits."
+    },
+    {
+      "path": "before.xml",
+      "reason": "Seven newly added canonical/provenance regressions fail on unchanged baseline exporter."
+    },
+    {
+      "path": "after-v1.xml",
+      "reason": "26 pass; old Python-file-edit expectation retained stale provenance. Expected runtime spec updated with an independent user_explicit assertion, hash comparisons retained."
+    },
+    {
+      "path": "after-v2.xml",
+      "reason": "28 pass; added modifier test setup incorrectly indexed a legacy_fault in the modifiers list."
+    },
+    {
+      "path": "final-targeted.xml",
+      "reason": "28 pass; modifier test setup used unsupported runtime_fault delivery enum; corrected to existing modifier enum."
+    },
+    {
+      "path": "related.xml",
+      "reason": "18 child-process ImportErrors: harness PYTHONPATH omitted candidate/src while parent pytest imports were correct. Corrected inherited child path; source not changed for retry."
+    }
+  ],
+  "scope_limits": [
+    "No model/GPU inference, root/R24/R23/R21/prototype source edits, service mutation, package installation or dependency edits.",
+    "Actual AI output was copied and replayed offline; this is not a fresh AI accuracy trial.",
+    "Native replay uses original 12-second physical scenario with only an explicitly recorded output-directory relocation; a second local run explicitly overrides mass/unit and output path.",
+    "Not a full-suite, endurance, container-isolated dynamic audit or physical-fidelity qualification."
+  ],
+  "references": {
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\base-provenance.json": "862fde71f216cd713db1ff5d6f2b981de55d1d4674f486fb8d8ed1f2623d627b",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\before-roundtrip-proof.json": "20f3bac669022f82584e4fca9f9d1ca2da40fa0e8b9a6681397a5004cc9bb2e2",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\before.xml": "e4932e3c6b36703b187512608e170222ccfbac4f8046ad5b2e0bcf33c5f5b343",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\before.log": "be586734a06b2f1e8a7d5b474b124e4224208e07b9e7b38b3a73c78b9065fa13",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\after-v1.xml": "7bc7122afad036468770eae25ae3fc20bd2bbf5b03425ddd95470c14ef59da0e",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\after-v2.xml": "d547dc0009a1a75e3eb17ef7844af7ecfd480d83a59864fd4c6c7c9bf0e8681a",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\final-targeted.xml": "27cfc553b900988b06d50789b96e1e7bf8d9ea898885777aedb29a7e02b044b8",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\final-targeted-v2.xml": "8d7514e92b321ddaee3b76a6cf0f916d27a210f1ee7dc28bc8f824959ff37d8f",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\related.xml": "1b896425697de36a6f6896791336bf3371954160f1cd330a6f1d05ed87a1b960",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\related-v2.xml": "4a08e0d65af50ddc87f3a071ccb752728784c565954e6c3b796ccf45cfba1427",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\final-v2.imports.json": "2c34a626d27efcb2c7b420c028a369a9f990ae13209492d84b3d971399708b54",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\related-v2.imports.json": "2c34a626d27efcb2c7b420c028a369a9f990ae13209492d84b3d971399708b54",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\after-roundtrip-proof.json": "5eca2d823f8985fafa2cc7e5db2f87bd319e023e5f92de09c4ed6f2728ab3afd",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\offline-native-v1\\report.json": "8d7c482bff58c6c358b625de9db1807ddd792e059b3bb387f57e4e64b8039853",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\overlay-manifest.json": "f13c50f5ab15a65a57fc159cb825c3d5a76f16f220d23e2d0192433be70b627b",
+    "reports\\local_requirements_completion\\script-canonical-roundtrip-r26-evidence\\overlay.patch": "7d83988b4339eedc26273b810a8216ac61fbd9cbff6b25a725c2b6a00da6d339"
+  },
+  "finished_utc": "2026-10-30T15:35:19.031996+00:00"
+}

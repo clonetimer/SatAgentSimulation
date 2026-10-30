@@ -1,0 +1,58 @@
+{
+  "schema_version": "sat-sim.public-derived-evidence.v1",
+  "public_derivative": true,
+  "sources": [
+    {
+      "path": "reports/local_requirements_completion/r28-feedback-evidence/actual-image-review.json",
+      "sha256": "262ca4f35cf37451566ee34a50a3dc7e73c1e0daff927c25d85536b8c603e238",
+      "bytes": 1892
+    },
+    {
+      "path": "reports/local_requirements_completion/r31-projection-evidence/visual-review.json",
+      "sha256": "96e2739ec6a2e90d22ebe191a715d6499085df29580a3c4c5eaf7167d6e7ee7e",
+      "bytes": 1583
+    }
+  ],
+  "raw_original_copied": false,
+  "derivation": "Selected original facts only; full raw original with absolute environment paths remains local and unchanged.",
+  "status": "THREE_WHITELISTED_ACTUAL_IMAGES_VIEWED",
+  "reviewer": "engineering_scope_review",
+  "method": "Actual local images opened with view_image, then copied byte-for-byte without image processing.",
+  "viewed_at_utc": "2026-10-30T15:53:24.288316+00:00",
+  "images": [
+    {
+      "path": "images/r28-pending-save.png",
+      "source": "reports/local_requirements_completion/r28-feedback-evidence/images/pending-save.png",
+      "sha256": "97b339164483d38bb8ff6fa021324d1c26d421ae58edcf2debbf9412d54d1e86",
+      "bytes": 142997,
+      "application": "aa11ce3f0844da2825427efcdeaefe8c4fc485216208e54e239526f7c51c3afc",
+      "copy_mode": "exact_bytes",
+      "actually_viewed_by_checkpoint_preparer": true,
+      "scope": "Actual browser UI protocol fixture screenshot, not fresh model/native/R30 qualification.",
+      "observations": "R28 actual screenshot: blocking write overlay is visible while PUT remains held. This is pending UI, not a completed-save or R30 execution claim."
+    },
+    {
+      "path": "images/r31-manual-source.png",
+      "source": "reports/local_requirements_completion/r31-projection-evidence/images/task-center-after-manual.png",
+      "sha256": "f87af2fd13b11e2b23ae47a0017e6a2433188d484e692c7afd1efc77240029ac",
+      "bytes": 209885,
+      "application": "72d7e1486dc712ec99815355bc9cd18c561768eb66753e38205c356d0d446a49",
+      "copy_mode": "exact_bytes",
+      "actually_viewed_by_checkpoint_preparer": true,
+      "scope": "Actual browser UI protocol fixture screenshot, not fresh model/native/R30 qualification.",
+      "observations": "R31 actual screenshot: task-center source label and edited-field badges identify manual loading, Update task is a visible primary action, and the history fixture is PREPARED."
+    },
+    {
+      "path": "images/r31-agent-source-after-undo.png",
+      "source": "reports/local_requirements_completion/r31-projection-evidence/images/agent-after-reset-undo.png",
+      "sha256": "293d152639f0ac68cfa2c1614b5c635f0316055521b2e1780d06987c8e952c2f",
+      "bytes": 201197,
+      "application": "72d7e1486dc712ec99815355bc9cd18c561768eb66753e38205c356d0d446a49",
+      "copy_mode": "exact_bytes",
+      "actually_viewed_by_checkpoint_preparer": true,
+      "scope": "Actual browser UI protocol fixture screenshot, not fresh model/native/R30 qualification.",
+      "observations": "R31 actual screenshot: after reset undo, Agent source/badges and value211 remain visible. This is a controlled UI protocol fixture, not a fresh actual-model response."
+    }
+  ],
+  "application_scope": "R28/R31 component screenshots; different App evidence is not added together or relabelled as final R30 browser qualification."
+}

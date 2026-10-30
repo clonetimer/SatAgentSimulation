@@ -1,0 +1,262 @@
+{
+  "schema_version": "1.0.0",
+  "status": "PASS_R25_LIVE_CONTROL_AND_ORIGINAL_STRICT_SCOPE",
+  "at_utc": "2026-10-30T15:19:24.297268+00:00",
+  "checks": {
+    "all37_raw_live_checks_pass": true,
+    "same_original_strict_body": true,
+    "three_strict200_same_original_hash_no_fallback": true,
+    "all_live_request_samples_keep_reservation": true,
+    "all_available_idle_samples_have_finished_last_worker": true,
+    "matching_process_after": true,
+    "same_weight_provenance_after": true,
+    "all_four_frozen_service_sources_unchanged": true,
+    "final_no_ghost_or_queue": true,
+    "prior_r22_failures_still422": true
+  },
+  "nonempty_checks_all_bool": true,
+  "all_checks_pass": true,
+  "original_schema_sha256": "160d14a844969bcbc4a66b74dde14d05267e4b467d51f818f697bd7f1640f0d2",
+  "original_request_source": {
+    "path": "reports/local_requirements_completion/r22-live-control-evidence/attempt-2/request-config.json",
+    "sha256": "54c040d409dcc6bd7eb05ce6c32fa3dddec1f22b23bea5aca8fc2361ef6acccc"
+  },
+  "strict_actual_responses": [
+    {
+      "label": "idle-original-strict",
+      "file": {
+        "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/idle-original-strict-response.json",
+        "sha256": "8c0b60c89eb22a1c18b1bd8cebe483418e9b8642a38ef0a5fceeb400bfc1f20c"
+      },
+      "http_status": 200,
+      "elapsed_s": 10.937000000034459,
+      "request_id": "chatcmpl-cb6953415aa2425b973c409dc19daf4d",
+      "prompt_tokens": 48,
+      "completion_tokens": 10,
+      "text": "{\"status\":\"ok\",\"value\":7}",
+      "original_schema_hash_matches": true,
+      "template_fallback_used": false
+    },
+    {
+      "label": "reuse-after-explicit-cancel",
+      "file": {
+        "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/reuse-after-explicit-cancel-response.json",
+        "sha256": "744ac5e892b2c91190fac7508b57cea060116ee79a66bdab6a5b0e660e455abb"
+      },
+      "http_status": 200,
+      "elapsed_s": 8.26500000001397,
+      "request_id": "chatcmpl-d6a951b2aaec4fe382b2f7470ce01ef1",
+      "prompt_tokens": 48,
+      "completion_tokens": 10,
+      "text": "{\"status\":\"ok\",\"value\":7}",
+      "original_schema_hash_matches": true,
+      "template_fallback_used": false
+    },
+    {
+      "label": "reuse-after-real-disconnect",
+      "file": {
+        "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/reuse-after-real-disconnect-response.json",
+        "sha256": "163923622a06c481367b2d8b96dfc973e23426ce5e4335bab4ce0c79d153346a"
+      },
+      "http_status": 200,
+      "elapsed_s": 8.328000000095926,
+      "request_id": "chatcmpl-e76f9c4791fe4e84b78948f372aeffa8",
+      "prompt_tokens": 48,
+      "completion_tokens": 10,
+      "text": "{\"status\":\"ok\",\"value\":7}",
+      "original_schema_hash_matches": true,
+      "template_fallback_used": false
+    }
+  ],
+  "raw_control_report": {
+    "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/report.json",
+    "sha256": "6fc765047054b1a85c31ed62bf47cdb9be880e9949fee8464235b117b3b915b4"
+  },
+  "owned_before": {
+    "path": "reports/local_requirements_completion/r25-live-control-evidence/current-model-owned-observation.json",
+    "sha256": "a1bb889ceaea20b053f11ea73734721b756d179446c9ffed10d51ba39ccbb0a6"
+  },
+  "owned_after": {
+    "path": "reports/local_requirements_completion/r25-live-control-evidence/post-control-current-model-owned-observation.json",
+    "sha256": "34d30f41be276f2ed22bec35fbf3e919ee895d5f47adef340c82f2bce7c26411"
+  },
+  "actual_service": {
+    "pid": 31632,
+    "creation": 1793373371.7319329
+  },
+  "running_sources": [
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/src/sat_sim_ml/generation_control.py",
+      "sha256": "df5fd65d4d49ec8803535adcd85c49ba4d3c69e2cdfa6151bf49f8b9e27d70f0",
+      "startup_expected_sha256": "df5fd65d4d49ec8803535adcd85c49ba4d3c69e2cdfa6151bf49f8b9e27d70f0"
+    },
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/src/sat_sim_ml/serving.py",
+      "sha256": "01c01b294b45a522b5007dd490f0df4ffd9065812938ac44e4a2aab4630253c7",
+      "startup_expected_sha256": "01c01b294b45a522b5007dd490f0df4ffd9065812938ac44e4a2aab4630253c7"
+    },
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/scripts/serve_modelscope_model.py",
+      "sha256": "faa0a478dcc443a9234478e7c831e910311bb64ef1b32be7fa633d0d2dd88b89",
+      "startup_expected_sha256": "faa0a478dcc443a9234478e7c831e910311bb64ef1b32be7fa633d0d2dd88b89"
+    },
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/src/sat_sim_ml/guided_decoding.py",
+      "sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b",
+      "startup_expected_sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b"
+    }
+  ],
+  "same_verified_weights": {
+    "engine": "transformers",
+    "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "attention_backend": "sat_cudnn_prefill",
+    "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+    "adapter_loaded": true,
+    "adapter_merged": true,
+    "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+    "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+  },
+  "counter_delta": {
+    "accepted": 5,
+    "rejected_busy": 1,
+    "completed": 3,
+    "failed": 0,
+    "cancelled": 2,
+    "timed_out": 0
+  },
+  "explicit_cancel_transport": {
+    "result": {
+      "status": 409,
+      "at_utc": "2026-10-30T15:18:11.304483+00:00",
+      "headers": {
+        "date": "Fri, 30 Oct 2026 15:18:10 GMT",
+        "server": "uvicorn",
+        "x-request-id": "chatcmpl-516ac9ea2a434a1596e1a38e984a2cef",
+        "content-length": "180",
+        "content-type": "application/json"
+      },
+      "body": {
+        "detail": {
+          "reason_code": "MODEL_REQUEST_CANCELLED",
+          "request_id": "chatcmpl-516ac9ea2a434a1596e1a38e984a2cef",
+          "cancel_reason": "client_cancelled",
+          "worker_may_still_be_running": false
+        }
+      },
+      "elapsed_s": 0.9220000000204891,
+      "raw_body_sha256": "a9faceb2816d29ae5bea8909df38bc6842c0c3609abcefe4f767c0d06d0e2914"
+    },
+    "transport_error": null,
+    "elapsed_since_cancel_s": 0.06300000008195639
+  },
+  "real_disconnect_transport": {
+    "at_utc": "2026-10-30T15:18:19.933604+00:00",
+    "local_host": "127.0.0.1",
+    "local_port": 56678,
+    "request_id": "chatcmpl-686d3d4c026f4b968282a20711931c22",
+    "transport": "real TCP HTTP/1.1 POST, shutdown(SHUT_RDWR) then close",
+    "cancel_endpoint_called": false,
+    "server_response_received": false
+  },
+  "observed_cancel_pending_worker_not_finished": true,
+  "timer": {
+    "implementation": "GetTickCount64()",
+    "resolution_s": 0.015625,
+    "note": "A measured0s busy response is below this timer resolution, not literal zero physical latency."
+  },
+  "previous_failures_retained": [
+    {
+      "path": "reports/local_requirements_completion/r22-live-control-evidence/attempt-2/reuse-after-explicit-cancel-response.json",
+      "sha256": "6f8aa6ccc3b411f8b1bd5315bfaf3e214eab3e2a8ac60d78583938362a702c7f"
+    },
+    {
+      "path": "reports/local_requirements_completion/r22-live-control-evidence/idle-same-strict-comparison.json",
+      "sha256": "c67bba40b16fa9d31f78aeaec6885fda652e4d43fe6e91c8e55c2c3a8a8c8f4e"
+    }
+  ],
+  "boundaries": [
+    "Same exact original strict schema, messages, model and max64; no threshold relaxation or model-answer substitution.",
+    "One single task-owned already-running GPU service, unchanged verified weights. No model/native start/stop by the verifier.",
+    "Default270s cooperative deadline retained from CPU tests; no270s GPU wait and no hard CUDA kill/latency promise.",
+    "This is service admission/cancel/disconnect/strict reuse evidence, not general TaskSpec accuracy, script/native pipeline, frontend, endurance or complete project qualification.",
+    "The separate R24 pipeline plan-identity failure and R22 raw failures are not reclassified by this result."
+  ],
+  "evidence": [
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/artifact-manifest.json",
+      "sha256": "d1f170182166315feb6e1a0252438e3149a1e29874ecedce76ccbc4d17006868"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/concurrent-busy-response.json",
+      "sha256": "8ee20a5703d724d6cf21996e39a72befbfc2320778dec5dc590df8832cec84a9"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/explicit-cancel-original-http-response.json",
+      "sha256": "fce5205ac3ee61e96ef6ea47dd5e5a1a984c0c071cc567e37a7119c61819ae13"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/explicit-cancel-real-token-observation.json",
+      "sha256": "739e1e524fe445387e68c93486fac652870caedf3c36fa3da502d5815c423869"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/explicit-cancel-response.json",
+      "sha256": "b36248811e494971e32cc8a1bb74a23653941dfd153e55dc5856cc96550795db"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/explicit-cancel-worker-finished.json",
+      "sha256": "ae7aaffe3664cc102ba25ef753641eb26acde430efad20f29ae2e01225b81720"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/final-health.json",
+      "sha256": "34d22f6b5bca19e3577cb17854a27f5d7a8231d8fb6524bf4de0445896a7d750"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/health-timeline.jsonl",
+      "sha256": "5141cf210db6160be26e11616bead9ece6a5a35c1e682ac297937237e03db261"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/idle-original-strict-response.json",
+      "sha256": "8c0b60c89eb22a1c18b1bd8cebe483418e9b8642a38ef0a5fceeb400bfc1f20c"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/real-disconnect-real-token-observation.json",
+      "sha256": "151ca9f211cb91e3a7064cb8488afc527cbc61f79d96426eeddc49eaa591e262"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/real-disconnect-worker-finished.json",
+      "sha256": "977bd16c21cae4d506e33c9e1251ed634987d852b09646faf803d184e0b411e2"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/real-http-disconnect.json",
+      "sha256": "a0490d27852dd74b88f30d39caab384ad88310ca55fc6658ccc57e9f0c7850e8"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/report.json",
+      "sha256": "6fc765047054b1a85c31ed62bf47cdb9be880e9949fee8464235b117b3b915b4"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/request-config.json",
+      "sha256": "54c040d409dcc6bd7eb05ce6c32fa3dddec1f22b23bea5aca8fc2361ef6acccc"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/reuse-after-explicit-cancel-response.json",
+      "sha256": "744ac5e892b2c91190fac7508b57cea060116ee79a66bdab6a5b0e660e455abb"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/reuse-after-real-disconnect-response.json",
+      "sha256": "163923622a06c481367b2d8b96dfc973e23426ce5e4335bab4ce0c79d153346a"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/attempt-1/verify_live_control.py",
+      "sha256": "423e4ce82071a6969589c59a6eaf3f42e8dad891432de498fe9f16a8bacfe16c"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/current-model-owned-observation.json",
+      "sha256": "a1bb889ceaea20b053f11ea73734721b756d179446c9ffed10d51ba39ccbb0a6"
+    },
+    {
+      "path": "reports/local_requirements_completion/r25-live-control-evidence/post-control-current-model-owned-observation.json",
+      "sha256": "34d30f41be276f2ed22bec35fbf3e919ee895d5f47adef340c82f2bce7c26411"
+    }
+  ]
+}

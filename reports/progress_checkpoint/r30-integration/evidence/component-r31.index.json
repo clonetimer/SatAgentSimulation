@@ -1,0 +1,191 @@
+{
+  "status": "COMPONENT_TESTED_PENDING_WHOLE_CANDIDATE_INTEGRATION",
+  "sealed_utc": "2026-10-30T15:42:47.653866+00:00",
+  "candidate": "reports/local_requirements_completion/task-projection-label-r31-candidate",
+  "baseline_candidate": "reports/local_requirements_completion/task-save-feedback-r28-candidate",
+  "baseline_application": "aa11ce3f0844da2825427efcdeaefe8c4fc485216208e54e239526f7c51c3afc",
+  "application": "72d7e1486dc712ec99815355bc9cd18c561768eb66753e38205c356d0d446a49",
+  "core": "137dcf2341765077aaace82352bb03f019352cdb3032cb0dcbb3d0cd5e635b9a",
+  "changed_files": [
+    {
+      "path": "src/sat_sim/web/app.js",
+      "before_sha256": "d793dfed45fa33fda694f320497e057da087dbe819c09ae2802152cd637de3b5",
+      "after_sha256": "86152271fa09b819a17c66406a0ba027876062601d5f26febbcfd26d4588df80",
+      "bytes": 507968
+    },
+    {
+      "path": "src/sat_sim/web/styles.css",
+      "before_sha256": "b14ee06bc55e790259e08a16e7557d33450a32b2f8bc52e8cca5ce7a66980c16",
+      "after_sha256": "baee071601faf7f62fb17a5ebc7c94848c995a6b98e994836cd26326891d2d5c",
+      "bytes": 118366
+    },
+    {
+      "path": "tests/test_task_projection_source_browser.py",
+      "before_sha256": null,
+      "after_sha256": "859949fe07c66aa7fc8312b2f37304dda265565824f4a3d60f5aedc8fde541f7",
+      "bytes": 11087
+    },
+    {
+      "path": "tests/test_workbench_accessibility_browser.py",
+      "before_sha256": "26c5f005edcfd5ca51382a2b90f2835a29633a3aa8797e533ca3d1dc223dcffa",
+      "after_sha256": "0ce7b41842640ac4193d6f31da9bd017367c09e6fd565a99ba5571c18aaf3edf",
+      "bytes": 9449
+    }
+  ],
+  "production_overlay_order": "Apply after R28 app.js/styles; preserve the R28 index.html and task-save feedback changes.",
+  "test_files_to_integrate": [
+    {
+      "path": "tests/test_task_projection_source_browser.py",
+      "before_sha256": null,
+      "after_sha256": "859949fe07c66aa7fc8312b2f37304dda265565824f4a3d60f5aedc8fde541f7",
+      "bytes": 11087
+    },
+    {
+      "path": "tests/test_workbench_accessibility_browser.py",
+      "before_sha256": "26c5f005edcfd5ca51382a2b90f2835a29633a3aa8797e533ca3d1dc223dcffa",
+      "after_sha256": "0ce7b41842640ac4193d6f31da9bd017367c09e6fd565a99ba5571c18aaf3edf",
+      "bytes": 9449
+    }
+  ],
+  "checks": {
+    "baseline_still_sealed_R28": true,
+    "candidate_application_matches_all_test_runs": true,
+    "root_application_unchanged": true,
+    "original_two_save_test_files_unchanged": true,
+    "all38_original_accessibility_assertions_retained": true,
+    "core_three_tests_pass": true,
+    "compact_accessibility_three_pass_after_real_keyboard_navigation": true,
+    "all_runs_prove_source_and_import_stability": true,
+    "four_visuals_actually_viewed": true,
+    "projection_proof_no_page_errors": true
+  },
+  "nonempty_checks_all_bool": true,
+  "all_checks_pass": true,
+  "runs": [
+    {
+      "run": "r31-projection-core-v1",
+      "tests": 3,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "reports/local_requirements_completion/r31-projection-core-v1/junit.xml",
+        "sha256": "c1762a857bd22ef9998fb021599402e79defeea48870214da9e13312f4659e8f"
+      },
+      "state": {
+        "path": "reports/local_requirements_completion/r31-projection-core-v1/pytest-returned.json",
+        "sha256": "b192297d9056637cc2dadd707eba9c2931553775cad48e9354f7a152234171b1"
+      },
+      "source_and_imports_stable": true
+    },
+    {
+      "run": "r31-projection-core-v2",
+      "tests": 3,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "reports/local_requirements_completion/r31-projection-core-v2/junit.xml",
+        "sha256": "39eb396deebad9ced90ba628d7e85ad0790ad199ccdedffd27b3f94fa95b50ef"
+      },
+      "state": {
+        "path": "reports/local_requirements_completion/r31-projection-core-v2/pytest-returned.json",
+        "sha256": "6cae72296fdcfbf06f0cc30cf1a44691d33da1707025f1ea586a88002a4916f2"
+      },
+      "source_and_imports_stable": true
+    },
+    {
+      "run": "r31-projection-core-v3",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "reports/local_requirements_completion/r31-projection-core-v3/junit.xml",
+        "sha256": "d5b8bc596a9ca15e7124e301fca48f4897bc56b2d68fbbd5f8c0c81a8d093c26"
+      },
+      "state": {
+        "path": "reports/local_requirements_completion/r31-projection-core-v3/pytest-returned.json",
+        "sha256": "277975293a0a7d04e825f62fed30e15c6328db56efb2a8c919400d59e8ce9a1c"
+      },
+      "source_and_imports_stable": true
+    },
+    {
+      "run": "r31-browser-compat-baseline-v1",
+      "tests": 12,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "reports/local_requirements_completion/r31-browser-compat-baseline-v1/junit.xml",
+        "sha256": "7c4c1f44b039adc111867aab76614efb0456006b6803ce45a7799cee43055e90"
+      },
+      "state": {
+        "path": "reports/local_requirements_completion/r31-browser-compat-baseline-v1/pytest-returned.json",
+        "sha256": "3d7969dd4cb3613ab6ffb575b79ae42426360dbf052a7fe495403668e6419e02"
+      },
+      "source_and_imports_stable": true
+    },
+    {
+      "run": "r31-browser-compat-fixed-v1",
+      "tests": 3,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "reports/local_requirements_completion/r31-browser-compat-fixed-v1/junit.xml",
+        "sha256": "4de8611ceb318226088f94b87059eba205fb871821ec22cda010369115139e50"
+      },
+      "state": {
+        "path": "reports/local_requirements_completion/r31-browser-compat-fixed-v1/pytest-returned.json",
+        "sha256": "126339cecf0ad0573cbd43af27de14ea5661c649c36dbf967b72c84748e3d277"
+      },
+      "source_and_imports_stable": true
+    },
+    {
+      "run": "r31-browser-compat-fixed-v2",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "reports/local_requirements_completion/r31-browser-compat-fixed-v2/junit.xml",
+        "sha256": "40f7f5488dc2a09c47003deca84f547f4a46188fa58597038fe2204e3c24f7a8"
+      },
+      "state": {
+        "path": "reports/local_requirements_completion/r31-browser-compat-fixed-v2/pytest-returned.json",
+        "sha256": "0c3503c7c02531a18992321bc69800f66c1efeecbeb238e50953aabeb7e3e374"
+      },
+      "source_and_imports_stable": true
+    }
+  ],
+  "unique_current_production_passing_nodes": 15,
+  "passing_count_boundary": "15 distinct nodes across core3, unchanged baseline extra11, and current accessibility3; overlaps deduplicated. This is not a fabricated single15PASS invocation. Physical execution browser test was not run here.",
+  "source_patch": {
+    "path": "reports/local_requirements_completion/r31-projection-evidence/source.patch",
+    "sha256": "62fba1456fb7e95a2bfb3052519b131ad20b9c9dbaf05bd1c0f5e856c7c0601a"
+  },
+  "projection_proof": {
+    "path": "reports/local_requirements_completion/r31-projection-core-v3/tmp/test_projection_sources_persis0/projection-source-proof.json",
+    "sha256": "359907c34290c2ef54d9ee70eee26b62d4c8a8018415dafa42a4fb31d5ee7d7c"
+  },
+  "visual_review": {
+    "path": "reports/local_requirements_completion/r31-projection-evidence/visual-review.json",
+    "sha256": "96e2739ec6a2e90d22ebe191a715d6499085df29580a3c4c5eaf7167d6e7ee7e"
+  },
+  "browser_regression_scope": {
+    "path": "reports/local_requirements_completion/r31-projection-evidence/browser-regression-scope.json",
+    "sha256": "6b299b5fded3ed37d9ed6ed8a0d98f86f0dbfa8d74936eff9e9b6ec6ca969225"
+  },
+  "notes": [
+    "Production modifications are only persistent projection source and dynamic field badge content. Changed paths/highlights and real Agent labels remain.",
+    "Clear/undo clears source; reset snapshot restores the source on reset undo.",
+    "New source test fixtures only intercept natural_language Agent parse and historical Run reads; form preview/save remains real TestClient behavior.",
+    "Core-v1 fixture incorrectly intercepted form parse and failed save expectation; retained. Core-v2 missed public reset disclosure and failed; retained. No original expectations were weakened.",
+    "Compact accessibility adaptation preserves38 original assertions and adds visible-reset check with real keyboard navigation.",
+    "All browser runs use installed Chrome through the ordinary uv .venv with actual source/import fingerprints. No GPU/model generation, native execution, dependency/environment installation or live-service mutation.",
+    "Old root/R28/R24/frozen sources and prior raw failures remain unchanged."
+  ],
+  "root_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "full_release_or_endurance_claim": false
+}

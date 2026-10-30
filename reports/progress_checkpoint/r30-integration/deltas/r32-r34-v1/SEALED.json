@@ -1,0 +1,10 @@
+{
+  "status": "SEALED_LOCAL_PROGRESS_DELTA_NOT_RELEASE",
+  "sealed_at_utc": "2026-10-30T17:14:57.741536+00:00",
+  "manifest_sha256": "1fffe3b68739eb5227925393a93e53b178b7dad93fb989f8d30683d156b12bad",
+  "whitelist_sha256": "f7ffeae622a029da314eecec91810215b39785c3ce6725b90f515f9f158082c1",
+  "no_further_writes_expected": true,
+  "formal24h_started": false,
+  "prepublication_encoding_repair_receipt_sha256": "2db32a82130b385514b9eec8f111021824ab97d8f3880a0977bb95f6d3ca15d3",
+  "previous_unpublished_seal_sha256": "5c3fc6774f30943f41d01fcf89247b6feb9d41fdbe7e6af255342eea79db62a0"
+}

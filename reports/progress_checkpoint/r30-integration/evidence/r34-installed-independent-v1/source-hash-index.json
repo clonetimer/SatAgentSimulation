@@ -1,0 +1,43 @@
+{
+  "schema_version": "sanitized-original-evidence-hash-references.v1",
+  "is_sanitized_derivative": true,
+  "scope": "Hash references only; original referenced files are not in this public whitelist.",
+  "references": [
+    {
+      "artifact_name": "r34-installed-independent-review.json",
+      "sha256": "af09180d1c2d96e270418801d7eb2af73d997456accc15b6f2146315dcf5b50c"
+    },
+    {
+      "artifact_name": "r34-installed-independent-hash-index.json",
+      "sha256": "3b5398107282eb18d5a938518761480e6bfd2da762477c0ce56c6f34d379e27e"
+    },
+    {
+      "artifact_name": "completion.json",
+      "sha256": "f9d3c3cb7db13d31e413b68b86ee193048ff77ddfa1f63b5b0133938e23f0c1e"
+    },
+    {
+      "artifact_name": "wheel-source-closure.json",
+      "sha256": "1dbf1e464b4e17d91177107df005d40811a260d97ef17901b70a076aa1788786"
+    },
+    {
+      "artifact_name": "actual-transport-report.json",
+      "sha256": "cf02fa0acffcf9ddde046c08e8c335d3a3b6db6d7ada35e4a749bbea3ed83271"
+    },
+    {
+      "artifact_name": "installed-api-server-proof.json",
+      "sha256": "21255e67a8d4489bff0e1266dcb04faae9c549283cf3c130a515d14f89089a60"
+    },
+    {
+      "artifact_name": "transport310-server-proof.json",
+      "sha256": "03e81483d1e07d9c3a66f9b962ad75d53603c7adf288568d71502e67df9ea095"
+    },
+    {
+      "artifact_name": "installed-wheel-api-proof.json",
+      "sha256": "cf78ab98b616e9f30c8dfc81e486c51a7e09369cb3adb1d9726d85e482b23726"
+    },
+    {
+      "artifact_name": "declaration-proof.json",
+      "sha256": "521178379dba22ec5a61fb1022e16fdff6de03b32e02ee091797c7d4b2fc92c4"
+    }
+  ]
+}

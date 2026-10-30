@@ -1,4 +1,12 @@
-"""Build and serve an isolated compact UI preview without changing production."""
+"""用途：创建独立紧凑工作台预览副本并按需提供本地 HTTP 服务，不修改生产源码。
+参数：--port 指定端口，默认 0 自动选择；--prepare-only 仅准备副本；
+--native-runtime 选择 supervised（默认）或 in-process；--dependency-dir
+可指定已有独立 websockets 依赖目录，不安装到主环境。
+输出：reports/local_requirements_completion 内的预览副本、preview-state.json
+和连接 URL；未指定 --prepare-only 时启动独立服务。
+
+Build and serve an isolated compact UI preview without changing production.
+"""
 from __future__ import annotations
 import argparse
 import hashlib

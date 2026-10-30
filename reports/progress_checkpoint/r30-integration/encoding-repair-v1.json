@@ -1,0 +1,62 @@
+{
+  "schema_version": "sat-sim.prepublication-encoding-repair.v1",
+  "status": "REPAIRED_DERIVED_DOCUMENTS_BEFORE_PUBLICATION",
+  "at_utc": "2026-10-30T17:14:57.729320+00:00",
+  "cause": "Chinese text embedded in a PowerShell-piped Python source was irreversibly encoded as literal ASCII question marks. This was a real generation error, not a terminal display problem.",
+  "private_original_archive": {
+    "path": "reports/local_requirements_completion/public-encoding-draft-r32-r34-v1",
+    "archive_manifest_sha256": "5512d9f22bfe5f93581b56630d8b6a6800b2d3282fb06d4ba6d6799b8fd6c535",
+    "original_drafts_not_uploaded": true
+  },
+  "documents": [
+    {
+      "path": "CURRENT.md",
+      "before_sha256": "4fc5afa4e9fd336c88b9909f7a5053bd3ccdbe67d47f9521cb5f9bd30d04a6b0",
+      "after_sha256": "4af7e3a2483bac3c13941cf2207e29d60f922f24f73d4b37cd5cf21576b109d7",
+      "before_bytes": 2959,
+      "after_bytes": 6038,
+      "before_literal_question_mark_runs": 217,
+      "after_literal_question_mark_runs": 0,
+      "after_CJK_characters": 1214,
+      "encoding": "UTF-8",
+      "write_method": "apply_patch direct UTF-8, no PowerShell stdin Unicode"
+    },
+    {
+      "path": "deltas/r32-r34-v1/README.md",
+      "before_sha256": "e83c34ed09e432e7caf719db5b519c38cc7f50aa202ecccbeaa7ca59111c265c",
+      "after_sha256": "f531d502d19dec6160305a8f2da17877aacf667e492eb92db03582b838c251eb",
+      "before_bytes": 1756,
+      "after_bytes": 4548,
+      "before_literal_question_mark_runs": 147,
+      "after_literal_question_mark_runs": 0,
+      "after_CJK_characters": 936,
+      "encoding": "UTF-8",
+      "write_method": "apply_patch direct UTF-8, no PowerShell stdin Unicode"
+    }
+  ],
+  "prior_metadata_archived": [
+    {
+      "path": "deltas/r32-r34-v1/whitelist.json",
+      "sha256": "698549e34bee2aa8090f9a72addeeb136c5515d37e0fe7c2c85298ee4df75eab"
+    },
+    {
+      "path": "deltas/r32-r34-v1/manifest.json",
+      "sha256": "4daf4c4ef30f8d2c98f2be7561477b46bc423e5115deb137ea518cc0d815ae6a"
+    },
+    {
+      "path": "deltas/r32-r34-v1/SEALED.json",
+      "sha256": "5c3fc6774f30943f41d01fcf89247b6feb9d41fdbe7e6af255342eea79db62a0"
+    },
+    {
+      "path": "current-index-v1.json",
+      "sha256": "32ecf2b0af83dc15e5aecb301ace013971ce30561598dee7d49aaf38da6f1d76"
+    }
+  ],
+  "metadata_resealed_for_new_document_bytes": true,
+  "source_or_tests_changed": false,
+  "initial_78_files_manifest_sha256": "f687d52c4332ede4bfc2bf8a295e9bf97b1e046628fa1ba8c385f08ebc2dff28",
+  "all_77_initial_payload_hashes_still_match": true,
+  "initial_manifest_changed": false,
+  "evidence_statuses_or_test_assertions_changed": false,
+  "scope": "Derived documentation encoding and dependent prepublication metadata only; source overlay payloads and frozen test/runtime evidence unchanged."
+}

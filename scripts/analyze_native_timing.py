@@ -1,4 +1,9 @@
-"""Attribute recorded drift episodes to measured call sites, not device causes.
+"""用途：只读分析既有原生节拍诊断记录，将漂移区间关联到实测调用耗时。
+参数：diagnostic_directory 指定已完成诊断目录；--output 指定 JSON 报告；
+--threshold-ms 设置漂移阈值，默认 200 ms。
+输出：分析 JSON 和标准输出摘要，不改写输入证据；包含式墙钟耗时不能证明设备或 CPU 成因。
+
+Attribute recorded drift episodes to measured call sites, not device causes.
 
 Reads completed diagnose_native_timing output without altering raw evidence.
 Inclusive wall-time spans include OS scheduling; they are not CPU-time proofs.

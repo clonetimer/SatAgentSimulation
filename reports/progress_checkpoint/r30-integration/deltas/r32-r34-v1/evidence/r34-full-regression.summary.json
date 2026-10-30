@@ -1,0 +1,27 @@
+{
+  "schema_version": "sat-sim.public-derived-stage-summary.v1",
+  "derived_public_summary": true,
+  "raw_original_unchanged": true,
+  "source": {
+    "path": "reports/local_requirements_completion/r34-full-regression-v1/junit.xml",
+    "sha256": "fa4ae2172fb0622e2bbd8e72db2d7a73528878499f3366f5d4e5d22ef0693886"
+  },
+  "status": "TERMINAL_FAILED_NOT_QUALIFIED",
+  "counts": {
+    "tests": 2283,
+    "passed": 2276,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 6
+  },
+  "warnings_reported_by_root": 2,
+  "elapsed_s_reported_by_root": 1365.1,
+  "nonpassing_nodes": [
+    {
+      "classname": "tests.test_r1_dependency_security_gate",
+      "name": "test_dependency_security_gate_current_project_evidence_is_within_policy"
+    }
+  ],
+  "attribution_reported_by_root": "Dependency security evidence compares the new dependency set against old88-item audit; fresh90-item audit also found Tornado issues. R36 dependency repair is pending.",
+  "relabelled_as_pass": false
+}

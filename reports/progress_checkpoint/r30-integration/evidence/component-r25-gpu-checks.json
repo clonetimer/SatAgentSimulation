@@ -1,0 +1,84 @@
+{
+  "status": "PASS_LIVE_GPU_HTTP_CONTROL_SCOPE",
+  "finished_at_utc": "2026-10-30T15:18:28.433348+00:00",
+  "wall_elapsed_s": 29.0,
+  "driver_sha256": "423e4ce82071a6969589c59a6eaf3f42e8dad891432de498fe9f16a8bacfe16c",
+  "checks": {
+    "task_owned_identity_prevalidated": true,
+    "initial_idle_exclusive_service": true,
+    "source_matches_startup_and_cpu_qualification": true,
+    "original_strict_request_exact_same_model_messages_schema64tokens": true,
+    "idle-original-strict_http200": true,
+    "idle-original-strict_strict_schema_actual_answer": true,
+    "idle-original-strict_actual_generation_no_template": true,
+    "idle-original-strict_same_live_weights": true,
+    "idle-original-strict_worker_finished": true,
+    "first_long_request_body_sent": true,
+    "explicit-cancel_actual_tokens_before_control": true,
+    "concurrent_request_fast429": true,
+    "concurrent429_did_not_queue_or_admit": true,
+    "explicit_cancel202": true,
+    "original_http_returns_after_cancel": true,
+    "original_http409_same_id": true,
+    "explicit-cancel_idle_only_with_matching_finished_worker": true,
+    "explicit-cancel_terminal_cancel_reason": true,
+    "reuse-after-explicit-cancel_http200": true,
+    "reuse-after-explicit-cancel_strict_schema_actual_answer": true,
+    "reuse-after-explicit-cancel_actual_generation_no_template": true,
+    "reuse-after-explicit-cancel_same_live_weights": true,
+    "reuse-after-explicit-cancel_worker_finished": true,
+    "real-disconnect_actual_tokens_before_control": true,
+    "real-disconnect_no_refund_while_worker_live": true,
+    "real-disconnect_idle_only_with_matching_finished_worker": true,
+    "real-disconnect_terminal_cancel_reason": true,
+    "reuse-after-real-disconnect_http200": true,
+    "reuse-after-real-disconnect_strict_schema_actual_answer": true,
+    "reuse-after-real-disconnect_actual_generation_no_template": true,
+    "reuse-after-real-disconnect_same_live_weights": true,
+    "reuse-after-real-disconnect_worker_finished": true,
+    "exactly_five_actual_requests_no_ghost": true,
+    "final_idle_available_no_queue": true,
+    "same_service_process_alive_after": true,
+    "running_sources_unchanged_after": true,
+    "historical_r11_observation_preserved": true
+  },
+  "nonempty_checks_all_bool": true,
+  "all_checks_pass": true,
+  "observed": {
+    "original_strict_request_sha256": "6cdfe50ad082166e4287d6619061ac27a1d893708346b55bf2de1d4c684faf77",
+    "idle_original_strict": "chatcmpl-cb6953415aa2425b973c409dc19daf4d",
+    "explicit_cancel_request_id": "chatcmpl-516ac9ea2a434a1596e1a38e984a2cef",
+    "reuse_after_explicit_cancel": "chatcmpl-d6a951b2aaec4fe382b2f7470ce01ef1",
+    "disconnect_request_id": "chatcmpl-686d3d4c026f4b968282a20711931c22",
+    "reuse_after_real_disconnect": "chatcmpl-e76f9c4791fe4e84b78948f372aeffa8",
+    "counter_delta": {
+      "accepted": 5,
+      "rejected_busy": 1,
+      "completed": 3,
+      "failed": 0,
+      "cancelled": 2,
+      "timed_out": 0
+    }
+  },
+  "source_before": [
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/src/sat_sim_ml/generation_control.py",
+      "sha256": "df5fd65d4d49ec8803535adcd85c49ba4d3c69e2cdfa6151bf49f8b9e27d70f0"
+    },
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/src/sat_sim_ml/serving.py",
+      "sha256": "01c01b294b45a522b5007dd490f0df4ffd9065812938ac44e4a2aab4630253c7"
+    },
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/scripts/serve_modelscope_model.py",
+      "sha256": "faa0a478dcc443a9234478e7c831e910311bb64ef1b32be7fa633d0d2dd88b89"
+    },
+    {
+      "path": "reports/local_requirements_completion/model-serving-r25-live-candidate/src/sat_sim_ml/guided_decoding.py",
+      "sha256": "b375fb89c9d154ac6c8a190532c8765b029ca3b8523d55de0479c6b67012ba2b"
+    }
+  ],
+  "error": null,
+  "identity_observation_sha256": "a1bb889ceaea20b053f11ea73734721b756d179446c9ffed10d51ba39ccbb0a6",
+  "scope": "Real R25 same-original-strict and model/GPU HTTP admission/cancel/disconnect/reuse only. Does not replace TaskSpec pipeline qualification, endurance, or hardware validation. Default270s deadline semantics remain CPU-controlled tested cooperative behavior, not a GPU hard kill."
+}

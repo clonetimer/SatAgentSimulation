@@ -1,0 +1,298 @@
+{
+  "schema_version": "sat-sim.public-versioned-delta-whitelist.v1",
+  "status": "EXACT_LIMITED_PATHS_R32_R33_R34_AND_FINGERPRINT_ERRATUM",
+  "created_at_utc": "2026-10-30T17:02:27.951492+00:00",
+  "baseline_initial_manifest_sha256": "f687d52c4332ede4bfc2bf8a295e9bf97b1e046628fa1ba8c385f08ebc2dff28",
+  "baseline_application": "953972755f4188ae449ae29182bbe7963c429a5c41e3c19cbcb5e78af07eba1f",
+  "target_application": "3e7d9a064f1411183b7d7e0b7d692e9bb48d54bb8c92019aa8840c114414338b",
+  "target_core": "89e3d4dfc72613d5a200cd3fb58a7c9906c2dbf7019b7a5f5bc20ace984899d5",
+  "ordered_overlay_steps": [
+    {
+      "order": 1,
+      "stage": "R32",
+      "path": "overlay/r32/tests/interactive/test_continuous_console_browser.py",
+      "target_relative_path": "tests/interactive/test_continuous_console_browser.py",
+      "before_sha256": "d09b58cdae3ee8e3a61249d922e14bb7de2108c4b7d1b851bc59e414032d2504",
+      "after_sha256": "da7c885713a948c2a28a9aae128caaef0f5615e0c0c92e1eb7acf6979f1a0d70",
+      "bytes": 23347,
+      "source": "reports/local_requirements_completion/requirements-r32-validation-candidate/tests/interactive/test_continuous_console_browser.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 2,
+      "stage": "R32",
+      "path": "overlay/r32/tests/interactive/test_single_run_creator_ux.py",
+      "target_relative_path": "tests/interactive/test_single_run_creator_ux.py",
+      "before_sha256": "e71a0ebc16058143e610aac7ede5cabb78fc7a48c58427526746f5f818a4871d",
+      "after_sha256": "3968836f2cf4866cb6260bea7381ed9d13957c5f08d25fd26aa5a08c25ef2007",
+      "bytes": 35333,
+      "source": "reports/local_requirements_completion/requirements-r32-validation-candidate/tests/interactive/test_single_run_creator_ux.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 3,
+      "stage": "R32",
+      "path": "overlay/r32/tests/test_capability_issue_closure.py",
+      "target_relative_path": "tests/test_capability_issue_closure.py",
+      "before_sha256": "6cf3e2a57b4b4012060fbed3311327e23249c5ade686efb67053a51121f2db99",
+      "after_sha256": "ebab25cb458b37ca717c8daad2b58387853b5b9e092d4520b3e6c9f7660e857f",
+      "bytes": 5865,
+      "source": "reports/local_requirements_completion/requirements-r32-validation-candidate/tests/test_capability_issue_closure.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 4,
+      "stage": "R32",
+      "path": "overlay/r32/tests/test_external_gate_closure.py",
+      "target_relative_path": "tests/test_external_gate_closure.py",
+      "before_sha256": "ada13b382923a21c3844ca6da3effc100e3546cfbeca5b7ff8ed9f3bcac735cc",
+      "after_sha256": "572107e68e191cafde419055fb5b2c48dbdb47e71921d08b407206798ff2dd73",
+      "bytes": 7090,
+      "source": "reports/local_requirements_completion/requirements-r32-validation-candidate/tests/test_external_gate_closure.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 5,
+      "stage": "R32",
+      "path": "overlay/r32/tests/test_legacy_issue_closure.py",
+      "target_relative_path": "tests/test_legacy_issue_closure.py",
+      "before_sha256": "96afa69899ef537afee5c2be8233b31e4814882d452a66ac9e75a6159793426a",
+      "after_sha256": "b99075941d5f22b455a97c643174968cbe7551421e856385c8d97127f867fa8b",
+      "bytes": 9651,
+      "source": "reports/local_requirements_completion/requirements-r32-validation-candidate/tests/test_legacy_issue_closure.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 6,
+      "stage": "R32",
+      "path": "overlay/r32/tests/test_web_workbench.py",
+      "target_relative_path": "tests/test_web_workbench.py",
+      "before_sha256": "3c0deb99ee7ca5bdc11d7e31fa43150efa2f9dbea7992f94b1c6e85d6b66aa5c",
+      "after_sha256": "312b72ee200440afd47331c0a2b0fc68dfe04d72a2a972acfabb9f814a1baac2",
+      "bytes": 37350,
+      "source": "reports/local_requirements_completion/requirements-r32-validation-candidate/tests/test_web_workbench.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 7,
+      "stage": "R33",
+      "path": "overlay/r33/pyproject.toml",
+      "target_relative_path": "pyproject.toml",
+      "before_sha256": "a3fa38a61b77ef70a0087a648ea97c488e8221502c41ab2abb51be0fba3e6c60",
+      "after_sha256": "751e3ab86464570735e82d88f65f832ff4a6e4b987456a280c2b801bebf4497f",
+      "bytes": 2160,
+      "source": "reports/local_requirements_completion/api-websocket-r33-distribution-candidate/pyproject.toml",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 8,
+      "stage": "R33",
+      "path": "overlay/r33/requirements-api.txt",
+      "target_relative_path": "requirements-api.txt",
+      "before_sha256": "972cd902cd1a2185f545bb1a9c9380d01280e64d0c01552a744814ef63ca065a",
+      "after_sha256": "db9084efd76ef69fe340211fdceac75d9e20a5bd975216b4028cd065de30d47d",
+      "bytes": 174,
+      "source": "reports/local_requirements_completion/api-websocket-r33-distribution-candidate/requirements-api.txt",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 9,
+      "stage": "R33",
+      "path": "overlay/r33/requirements-lock.txt",
+      "target_relative_path": "requirements-lock.txt",
+      "before_sha256": "744332822c18b53081fd465d787aacb830f2947ef58834cc14ce9399c197e752",
+      "after_sha256": "489a82389feb4dd7e230b77546d414b37586f733cf67a60013698b16af1aa2b5",
+      "bytes": 1637,
+      "source": "reports/local_requirements_completion/api-websocket-r33-distribution-candidate/requirements-lock.txt",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 10,
+      "stage": "R34",
+      "path": "overlay/r34/pyproject.toml",
+      "target_relative_path": "pyproject.toml",
+      "before_sha256": "751e3ab86464570735e82d88f65f832ff4a6e4b987456a280c2b801bebf4497f",
+      "after_sha256": "97545397d10e10dfda12b5069512c76c03d13f22b5643697588192ae7b35193b",
+      "bytes": 2195,
+      "source": "reports/local_requirements_completion/api-runtime-resources-r34-candidate/pyproject.toml",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 11,
+      "stage": "R34",
+      "path": "overlay/r34/src/sat_sim/interactive/command_catalog.py",
+      "target_relative_path": "src/sat_sim/interactive/command_catalog.py",
+      "before_sha256": "e0407f106fe159799fe6ece737da90f6e716f97c9c1945be882659f3c0f6e8c2",
+      "after_sha256": "ea8cf8dbb7924d33c599a1da68c6314ec4872912d2031635b54967dc4f4d9ccf",
+      "bytes": 4544,
+      "source": "reports/local_requirements_completion/api-runtime-resources-r34-candidate/src/sat_sim/interactive/command_catalog.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 12,
+      "stage": "R34",
+      "path": "overlay/r34/tests/interactive/test_command_catalog.py",
+      "target_relative_path": "tests/interactive/test_command_catalog.py",
+      "before_sha256": "2bebbdbe6464f6c8dd828d8c860e1ea484fe3c2a64cd7544300f11e3249aff59",
+      "after_sha256": "46bb24ee8f79d244b0266b1dedd908693cc64e317a3b6a177b6983982df797cd",
+      "bytes": 3821,
+      "source": "reports/local_requirements_completion/api-runtime-resources-r34-candidate/tests/interactive/test_command_catalog.py",
+      "copy_mode": "exact_bytes"
+    },
+    {
+      "order": 13,
+      "stage": "R34",
+      "path": "overlay/r34/src/sat_sim/interactive/realtime_capability_matrix.json",
+      "target_relative_path": "src/sat_sim/interactive/realtime_capability_matrix.json",
+      "before_sha256": null,
+      "after_sha256": "efb5b660e11b864319b0eb0379dddc40c7c31f96fc60c913c3e5eaec33f597dd",
+      "bytes": 7051,
+      "source": "reports/local_requirements_completion/api-runtime-resources-r34-candidate/src/sat_sim/interactive/realtime_capability_matrix.json",
+      "copy_mode": "exact_bytes"
+    }
+  ],
+  "historical_fingerprint_support": [
+    {
+      "path": "fingerprint-support/dependency_links.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/dependency_links.txt",
+      "source": "src/satellite_simulation_platform.egg-info/dependency_links.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/entry_points.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/entry_points.txt",
+      "source": "src/satellite_simulation_platform.egg-info/entry_points.txt",
+      "sha256": "8ab90e9f283d75a81b103387d83c933c876bda6366f328a78107e0e92d6b417b",
+      "bytes": 125,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/PKG-INFO.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/PKG-INFO",
+      "source": "src/satellite_simulation_platform.egg-info/PKG-INFO",
+      "sha256": "6a4c70c3de8add24a0da7d546cdca29fdcf87d12bc816b1dd2561577954e9a0f",
+      "bytes": 20427,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": "PKG-INFO contains generic C:\\path\\to examples from README; retained exactly, not personal environment paths.",
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/requires.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/requires.txt",
+      "source": "src/satellite_simulation_platform.egg-info/requires.txt",
+      "sha256": "eacbf9fdf740edba8e2f9450d0873e180b4a49f7000c904a6358f535da28ccd0",
+      "bytes": 423,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/SOURCES.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/SOURCES.txt",
+      "source": "src/satellite_simulation_platform.egg-info/SOURCES.txt",
+      "sha256": "fcd8f9a7b79264ff0ef9abb8ac251a299940db7460ce27ec99ebd86922ba55f7",
+      "bytes": 42036,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    },
+    {
+      "path": "fingerprint-support/top_level.txt",
+      "original_relative_path": "src/satellite_simulation_platform.egg-info/top_level.txt",
+      "source": "src/satellite_simulation_platform.egg-info/top_level.txt",
+      "sha256": "cd717b1fbedd2c9186d7ba2352055a89bcd160b2721d96bdaae2aff64601a983",
+      "bytes": 201,
+      "copy_mode": "exact_bytes_historical_fingerprint_only",
+      "absolute_path_examples": null,
+      "not_installation_metadata": true
+    }
+  ],
+  "derived_summary_source_refs": [
+    {
+      "path": "reports/local_requirements_completion/requirements-r32-validation-evidence/completion.json",
+      "sha256": "59190a2392e15423e1f5552f0c486300951a3265057341a34857f2966e03640a",
+      "bytes": 9230
+    },
+    {
+      "path": "reports/local_requirements_completion/requirements-r32-validation-evidence/overlay-manifest.json",
+      "sha256": "c6225886dadd2b937e1b9f9e8a9f21abc7d45df99e67fae1c0d43bb357392025",
+      "bytes": 1846
+    },
+    {
+      "path": "reports/local_requirements_completion/api-websocket-r33-distribution-evidence/completion.json",
+      "sha256": "d06c3845c58591221d133c1b951bf6276ac8784c266988f7098f53b34d8f6610",
+      "bytes": 11852
+    },
+    {
+      "path": "reports/local_requirements_completion/api-websocket-r33-distribution-evidence/preparation.json",
+      "sha256": "9789229bd61a47e0bd7f54b2bca0ca4019bfc6f87736322b7ceecfccca445122",
+      "bytes": 176440
+    },
+    {
+      "path": "reports/local_requirements_completion/api-runtime-resources-r34-evidence/completion.json",
+      "sha256": "f9d3c3cb7db13d31e413b68b86ee193048ff77ddfa1f63b5b0133938e23f0c1e",
+      "bytes": 16471
+    },
+    {
+      "path": "reports/local_requirements_completion/api-runtime-resources-r34-evidence/overlay-manifest.json",
+      "sha256": "917b80dcc0b1c288e13ff7bbfbf52f77f4265133751897dfcca47a772f4427a6",
+      "bytes": 1617
+    },
+    {
+      "path": "reports/local_requirements_completion/api-runtime-resources-r34-evidence/r34-frozen-inputs.json",
+      "sha256": "9dd170800002aff399aac28a570619b63c92e0821645492533ded2da10705a76",
+      "bytes": 239807
+    },
+    {
+      "path": "reports/local_requirements_completion/r34-full-regression-v1/junit.xml",
+      "sha256": "fa4ae2172fb0622e2bbd8e72db2d7a73528878499f3366f5d4e5d22ef0693886",
+      "bytes": 362941
+    },
+    {
+      "path": "reports/local_requirements_completion/r34-full-regression-v1/pytest-returned.json",
+      "sha256": "5adebffcade5be43b5322f933f8b0e3e10ca6602345048c240a58efd5bf535db",
+      "bytes": 2758
+    },
+    {
+      "path": "reports/local_requirements_completion/r34-pace-history-smoke-v1/progress.json",
+      "sha256": "51032871089300e4362be43b0737f516b27d6c295bdcf8fdcadab99ce7aa63d1",
+      "bytes": 80819
+    },
+    {
+      "path": "reports/local_requirements_completion/r34-pace-history-smoke-v1-independent-audit/report.json",
+      "sha256": "6ca7bb217ae1844a2b8229035a1376c38c67d6e3dd8facf33a061f2c2e4b766f",
+      "bytes": 2739
+    }
+  ],
+  "generated_paths": [
+    "README.md",
+    "fingerprint-erratum.json",
+    "fingerprint-support/archive-manifest.json",
+    "evidence/component-r32.summary.json",
+    "evidence/component-r33.summary.json",
+    "evidence/component-r34.summary.json",
+    "evidence/r34-full-regression.summary.json",
+    "evidence/r34-short15s-pace.summary.json",
+    "evidence/application-source-r34.json",
+    "evidence/runtime-source-r34.json",
+    "stage-status.json",
+    "manifest.json",
+    "SEALED.json"
+  ],
+  "raw_metadata_with_private_paths_not_copied": true,
+  "no_secret_free_claim": true,
+  "no_R35_R36_unfrozen_source_included": true,
+  "root_runtime_not_applied": true,
+  "git_or_push_by_preparer": false,
+  "prepublication_encoding_repair": {
+    "receipt": "../../encoding-repair-v1.json",
+    "sha256": "2db32a82130b385514b9eec8f111021824ab97d8f3880a0977bb95f6d3ca15d3",
+    "scope": "Derived README bytes only, no overlay/source/test changes"
+  }
+}
