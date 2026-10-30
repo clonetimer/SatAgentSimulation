@@ -127,7 +127,7 @@ parameters:
     required: false
     default: 0.2
     min: 1.0e-06
-    max: 10.0
+    max: 0.2
   simulation_seed:
     type: integer
     required: false

@@ -1,0 +1,196 @@
+{
+  "schema_version": "sat-modelscope-product-evaluation.v2",
+  "status": "PASS",
+  "evaluator_source_sha256": "2c0d6b3a86f623cc6a4458ae47036437d5c535abaa307739e25cec6dd58f1a92",
+  "max_repair_attempts": 0,
+  "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+  "source": {
+    "engine": "transformers",
+    "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "attention_backend": "sat_cudnn_prefill",
+    "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+    "adapter_loaded": true,
+    "adapter_merged": true,
+    "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+    "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+  },
+  "scope": "Actual production NL chain; no template fallback accepted.",
+  "cases": [
+    {
+      "case_id": "adcs_create",
+      "passed": true,
+      "checks": {
+        "actual_model_invocation": true,
+        "no_fallback": true,
+        "valid": true,
+        "compiled": true,
+        "capability": true,
+        "requested_outputs": true,
+        "requested_duration": true,
+        "generated_script_executed": true,
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "invocation_evidence": {
+        "schema_version": "sat-sim.model-invocation-evidence.v1",
+        "verified": true,
+        "backend": "openai_compatible",
+        "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "request_id": "chatcmpl-13945bd8df124b22bf6040e9934176f5",
+        "provider_response_id": "chatcmpl-13945bd8df124b22bf6040e9934176f5",
+        "prompt_sha256": "23cf60975db9f15759a8ac7e526108fce239fef824881edfb781b110c86d1654",
+        "response_sha256": "c3dd4c447755c7d8727a8cb735b4035104247d7e954bbd673d62225f49b52e48",
+        "structured_output_sha256": "7c5410eddc43e3cb4cae4b41e135994bb621595d118883f9638bdf536d469574",
+        "structured_output_kind": "json",
+        "usage": {
+          "prompt_tokens": 1947,
+          "completion_tokens": 460
+        },
+        "structured_generation": {
+          "enabled": true,
+          "method": "lm-format-enforcer",
+          "schema_sha256": "accfbe96da84eaff2e6f2979ded4647ea5dc9521b6cebc946e77e1b99a1ad948",
+          "answer_substitution": false,
+          "semantic_validation_required": true,
+          "numeric_bounds_at_decode": true,
+          "empty_arrays_at_decode": true,
+          "invalid_numeric_mantissa_digit_budget": 17,
+          "canonical_exponent_range": [
+            -324,
+            308
+          ]
+        },
+        "latency_ms": 52673.44,
+        "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+        "error": null
+      },
+      "script_sha256": "2658053c44b41b897b23e3d35f36329cea4bbda2018b559f79a462453954fc12",
+      "runtime_verification": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-ai-followup\\chain\\adcs_create\\runtime-verification.json"
+    },
+    {
+      "case_id": "adcs_refine",
+      "passed": true,
+      "checks": {
+        "actual_model_invocation": true,
+        "no_fallback": true,
+        "valid": true,
+        "compiled": true,
+        "capability": true,
+        "requested_outputs": true,
+        "requested_duration": true,
+        "generated_script_executed": true,
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "invocation_evidence": {
+        "schema_version": "sat-sim.model-invocation-evidence.v1",
+        "verified": true,
+        "backend": "openai_compatible",
+        "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "request_id": "chatcmpl-ccb74a60e8e94ce89295a83e49bf9dc4",
+        "provider_response_id": "chatcmpl-ccb74a60e8e94ce89295a83e49bf9dc4",
+        "prompt_sha256": "a92e2bfc7b2d5afefbe2a8f2e6978a7ee6d2c0ed8ed395c4d53567674c7e88d9",
+        "response_sha256": "bfe8e1aebd2622b4fe8b520479317c3eec1a1b6cdfa39ef98b19128e140102bd",
+        "structured_output_sha256": "47e1914d13e595258453e700ceba6833569b2a26ddd6ca1f0a507399271f8501",
+        "structured_output_kind": "json",
+        "usage": {
+          "prompt_tokens": 3272,
+          "completion_tokens": 486
+        },
+        "structured_generation": {
+          "enabled": true,
+          "method": "lm-format-enforcer",
+          "schema_sha256": "accfbe96da84eaff2e6f2979ded4647ea5dc9521b6cebc946e77e1b99a1ad948",
+          "answer_substitution": false,
+          "semantic_validation_required": true,
+          "numeric_bounds_at_decode": true,
+          "empty_arrays_at_decode": true,
+          "invalid_numeric_mantissa_digit_budget": 17,
+          "canonical_exponent_range": [
+            -324,
+            308
+          ]
+        },
+        "latency_ms": 63078.53,
+        "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+        "error": null
+      },
+      "script_sha256": "02b90ee91b7d7c7d5aa60a579d400af890a94697d4c37899859faf15df9dbc94",
+      "runtime_verification": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-ai-followup\\chain\\adcs_refine\\runtime-verification.json"
+    },
+    {
+      "case_id": "whole_create",
+      "passed": true,
+      "checks": {
+        "actual_model_invocation": true,
+        "no_fallback": true,
+        "valid": true,
+        "compiled": true,
+        "capability": true,
+        "requested_outputs": true,
+        "requested_duration": true,
+        "generated_script_executed": true,
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "invocation_evidence": {
+        "schema_version": "sat-sim.model-invocation-evidence.v1",
+        "verified": true,
+        "backend": "openai_compatible",
+        "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "request_id": "chatcmpl-5c343371b02a4c3d91549d2b5f721221",
+        "provider_response_id": "chatcmpl-5c343371b02a4c3d91549d2b5f721221",
+        "prompt_sha256": "fefa883a2dedb344a362f2ee8bed1115f6ebbadc2491ee873292a7017a584145",
+        "response_sha256": "66a73aa147c4210ff53cc1f432ef6e2b840ab4ddfb2c37a85429ab68714aa52c",
+        "structured_output_sha256": "8fd800c7b7ded79c25c88109766d43ef9018554883e6597800335f80d061c528",
+        "structured_output_kind": "json",
+        "usage": {
+          "prompt_tokens": 7385,
+          "completion_tokens": 870
+        },
+        "structured_generation": {
+          "enabled": true,
+          "method": "lm-format-enforcer",
+          "schema_sha256": "71f631a234441a5e3109a9d5d881b0e62705c7ed76a48720e41982f337c6f1f9",
+          "answer_substitution": false,
+          "semantic_validation_required": true,
+          "numeric_bounds_at_decode": true,
+          "empty_arrays_at_decode": true,
+          "invalid_numeric_mantissa_digit_budget": 17,
+          "canonical_exponent_range": [
+            -324,
+            308
+          ]
+        },
+        "latency_ms": 97435.43,
+        "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+        "error": null
+      },
+      "script_sha256": "68ced112bd8c21b661fe1e6950f45cfe012d876db2e3173f7ed7373f634bfdfe",
+      "runtime_verification": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-ai-followup\\chain\\whole_create\\runtime-verification.json"
+    }
+  ],
+  "model_source_unchanged": true,
+  "passed_cases": 3
+}

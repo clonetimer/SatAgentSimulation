@@ -1,0 +1,149 @@
+{
+  "status": "VERIFIED_SINGLE_CONFIGURED24H_INSTANCE_RUNNING_NOT_YET_QUALIFIED",
+  "observed_at_utc": "2026-10-30T05:24:51.855775+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "processes": [
+    {
+      "name": "launcher",
+      "pid": 82756,
+      "created": 1793337780.3809385,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "reports/local_requirements_completion/launch_hardware_bounded_r11_configured_endurance.py",
+        "--start"
+      ],
+      "parent_pid": 81104,
+      "alive": true
+    },
+    {
+      "name": "run-driver",
+      "pid": 22936,
+      "created": 1793337818.0322924,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "E:\\tmp\\SatAgentSimulation\\scripts\\run_native_endurance.py",
+        "--initial-configuration",
+        "E:\\tmp\\SatAgentSimulation\\configs\\interactive\\generic_leo_thermal_link_candidate.json",
+        "--output-dir",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-endurance\\endurance-24h",
+        "--wall-seconds",
+        "86430"
+      ],
+      "parent_pid": 73788,
+      "alive": true
+    },
+    {
+      "name": "native-worker",
+      "pid": 80520,
+      "created": 1793337824.415924,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "-c",
+        "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=22936, pipe_handle=1032)",
+        "--multiprocessing-fork"
+      ],
+      "parent_pid": 22936,
+      "alive": true
+    }
+  ],
+  "progress_snapshot": {
+    "schema_version": "sat-native-endurance-run.v3",
+    "status": "RUNNING",
+    "source_fingerprint_scheme": "runtime-and-validation-v6",
+    "source_provenance_before_sha256": "4897d972bb4c50dd441c80427f4ddfdddc56a7a9c583fc90bc06827443bf25a7",
+    "runtime_source_sha256_before": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+    "application_source_scheme": "application-source-v1",
+    "application_source_sha256_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+    "application_source_provenance_before_sha256": "5558e074f9e2b55a2f515402652385066079f1f710d74f20267be3ebfaabaa8e",
+    "runner_sha256": "58ac156f129e6d00457f87ae1791a782b7e1cb469903baf62dfb19c92e0018b0",
+    "initial_configuration_source": "E:\\tmp\\SatAgentSimulation\\configs\\interactive\\generic_leo_thermal_link_candidate.json",
+    "initial_configuration_input_sha256": "12c50af31f2f8a5764d81a6aceaecc7aa8fab0ddb94087a38a725d5e0e57c7f4",
+    "initial_configuration_normalized_sha256": "625e3717bd257ff59855858dab1f5f0a8cb7d952851a11bbe362222ff95919c4",
+    "requested_wall_seconds": 86430.0,
+    "process_id": 22936,
+    "scope": "Real Basilisk through local API handlers; no physics protocol double; no auto-resume.",
+    "started_at_utc": "2026-10-30T05:23:42.961581+00:00",
+    "manual_review_required": true,
+    "applied_task_spec_sha256": "1f100d763a44e16dcb899d7759e9dbf8749548c01e7b24d3837d6d3041825d02",
+    "session": {
+      "schema_version": "interactive.v1",
+      "session_id": "native-endurance",
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "state": "RUNNING",
+      "revision": 3,
+      "sim_time_s": 60.5,
+      "rate": 1.0,
+      "paced": true,
+      "worker_alive": true,
+      "archive_status": "NOT_READY",
+      "archive_error": null,
+      "terminal_error": null,
+      "pace_observation_count": 120,
+      "last_drift_s": 0.0003844000166282058,
+      "max_abs_drift_s": 0.0009643000084906816,
+      "timing_status": "GOOD",
+      "updated_at": "2026-10-30T05:24:48.413573Z"
+    },
+    "wall_observed_by_runner_s": 60.04700000002049,
+    "endurance": {
+      "schema_version": "sat-endurance-status.v1",
+      "session_id": "native-endurance",
+      "recording_status": "RECORDING",
+      "interval_s": 5.0,
+      "sample_count": 12,
+      "last_observation": {
+        "schema_version": "sat-continuous-observability.v1",
+        "sampled_at": "2026-10-30T05:24:43.503767+00:00",
+        "session_id": "native-endurance",
+        "session_state": "RUNNING",
+        "wall_elapsed_s": 59.15600000007544,
+        "sim_elapsed_s": 55.5,
+        "telemetry": {
+          "stream_id": "whole.continuous",
+          "status": "FRESH",
+          "lag_wall_s": 0.126245,
+          "last_sequence": 111,
+          "last_sim_time_s": 55.5,
+          "last_wall_time": "2026-10-30T05:24:43.377522+00:00",
+          "durable_frame_count": 224,
+          "durable_bytes": 1215107
+        },
+        "process": {
+          "available": true,
+          "pid": 80520,
+          "reason_code": null,
+          "resident_bytes": 294445056,
+          "cpu_time_s": 3.421875,
+          "process_state": "RUNNING_OR_EXITING",
+          "source": "WINDOWS_PROCESS_API",
+          "scope": "BASILISK_CHILD"
+        },
+        "disk": {
+          "available": true,
+          "free_bytes": 83678081024,
+          "total_bytes": 2048406843392,
+          "reserved_bytes": 67108864
+        },
+        "resume_supported": false,
+        "automatic_tc_replay_allowed": false
+      },
+      "alerts": {},
+      "reason_code": null,
+      "summary": null,
+      "evidence_available": true,
+      "native_resume_supported": false,
+      "automatic_tc_replay_allowed": false
+    },
+    "observed_at_utc": "2026-10-30T05:24:48.416576+00:00"
+  },
+  "short_negative_only_duration_failures": [
+    "driver_observed_at_least24h",
+    "driver_requested_at_least24h",
+    "independent_audit_review_eligible",
+    "independent_observed_running24h",
+    "original_driver_review_eligible"
+  ],
+  "prior_duration_credit_s": 0,
+  "goal_complete": false
+}

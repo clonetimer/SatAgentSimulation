@@ -37,7 +37,22 @@ def constrained_json_parser(schema,max_tokens):
     # The library's default 20-element heuristic must not truncate valid task
     # arrays. The existing token budget already bounds their possible length.
     config = CharacterLevelParserConfig(max_json_array_length=max_tokens)
-    return JsonSchemaParser(schema,config=config)
+    schema = copy.deepcopy(schema)
+    def equivalent_empty_arrays(value):
+        if isinstance(value, dict):
+            if value.get('type') == 'array' and value.get('maxItems') == 0:
+                # No item can exist, so its type is semantically irrelevant.
+                # Avoid LMFE forking an unconstrained item into seven identical
+                # empty-list branches, repeatedly multiplying parser work.
+                value['items'] = {'type':'null'}
+            for child in value.values():
+                equivalent_empty_arrays(child)
+        elif isinstance(value, list):
+            for child in value:
+                equivalent_empty_arrays(child)
+    equivalent_empty_arrays(schema)
+    from .bounded_numeric_parser import BoundedJsonParser
+    return BoundedJsonParser(JsonSchemaParser(schema,config=config))
 
 
 def prefix_constraint(tokenizer,schema,max_tokens):
@@ -71,4 +86,8 @@ def decoding_evidence(schema):
             'method':'lm-format-enforcer' if schema is not None else 'unconstrained',
             'schema_sha256':hashlib.sha256(json.dumps(schema,sort_keys=True).encode()).hexdigest()
                 if schema is not None else None,
-            'answer_substitution':False,'semantic_validation_required':True}
+            'answer_substitution':False,'semantic_validation_required':True,
+            'numeric_bounds_at_decode':schema is not None,
+            'empty_arrays_at_decode':schema is not None,
+            'invalid_numeric_mantissa_digit_budget':17 if schema is not None else None,
+            'canonical_exponent_range':[-324,308] if schema is not None else None}

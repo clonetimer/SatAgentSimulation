@@ -1,0 +1,453 @@
+{
+  "schema_version": "sat-independent-suite-warning-review.v1",
+  "status": "WARNINGS_REVIEWED_THIRD_PARTY_CPU_PROBE_FALLBACK_CONFIRMED",
+  "reviewed_at_utc": "2026-10-30T05:25:28.403Z",
+  "reviewer": "/root/ui_workflow_audit",
+  "method": "Read the unmodified full-suite warning summary and installed dependency/CPython sources. Ran only fresh-process loky CPU-count probes, recording subprocess arguments and thread exceptions in memory while retaining the original excepthook and warning output. Did not rerun tests, models, GPU inference or simulation. Did not change installed packages, source, tests, environment variables or warning filters.",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "source_files": [
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-qualification/full-suite.stdout.log",
+      "sha256": "f91d7530517340c46ce3224c6a8cc379007a4d7ad10cd62f01d06611bc04c912",
+      "size_bytes": 4889
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-qualification/full-suite.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-qualification/whole-suite.xml",
+      "sha256": "8f0cfb245c98f25eb6197deb39e8a0bfe21c5a5431d936b47c2e68b81eb52018",
+      "size_bytes": 308620
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-qualification/state.json",
+      "sha256": "53a2cf191f381c39e580afb0ccf489fc572177c29ef83f7b7c3b0d4f779b2244",
+      "size_bytes": 4156
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/continue_hardware_bounded_r11_qualification.py",
+      "sha256": "feb52ca75198b48e9918c2c6a23666417744010431aef32e743c7c13b77a3034",
+      "size_bytes": 7281
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/.venv/Lib/site-packages/joblib/externals/loky/backend/context.py",
+      "sha256": "44f759bf390493b880d2bb5d0082d21cdce5eb0b07a66e970fa20bdf4a3000f1",
+      "size_bytes": 14284
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/.venv/Lib/site-packages/joblib/parallel.py",
+      "sha256": "4a425893e7131c2f2832f654efd4835d5eb5219d746081db05886b1c1e3bc8cf",
+      "size_bytes": 86989
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/.venv/Lib/site-packages/sklearn/utils/_openmp_helpers.pyx",
+      "sha256": "06bc4b502852eca6ec42e6a9c89efa5f62b664d6532f13cf1e552a7e728bd743",
+      "size_bytes": 3220
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/.venv/Lib/site-packages/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py",
+      "sha256": "81c75d3e4a3653b8bd8a63572e7caba4af8414ed68dcbe4c1fad1b6c15d2a60d",
+      "size_bytes": 95119
+    },
+    {
+      "path": "C:/Users/Lookt/AppData/Roaming/uv/python/cpython-3.12.12-windows-x86_64-none/Lib/subprocess.py",
+      "sha256": "85d29b2bf0249f5436838298c9a60ee93508b1102e9ac43b001f8a7e7ae8f375",
+      "size_bytes": 88747
+    },
+    {
+      "path": "C:/Users/Lookt/AppData/Roaming/uv/python/cpython-3.12.12-windows-x86_64-none/Lib/threading.py",
+      "sha256": "846f450ae794e4aab823a163f8c71d27751148af33e91dd3de886686a4e8ebfb",
+      "size_bytes": 60200
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/src/sat_sim/rw_fault_scientific_closure.py",
+      "sha256": "e07a2abb647699c063f03bddbe93a56fc1ffa04095e61a07d75e5b5071496b89",
+      "size_bytes": 22145
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/tests/test_rw_fault_scientific_closure.py",
+      "sha256": "a46740312fc4f39ee2c52d01cc9bafc0dd4affc4a87e9d097b2be262f1635e86",
+      "size_bytes": 1885
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/tests/test_bsk_wheel_provenance.py",
+      "sha256": "c491d1ac68db7961d76dd8f9a9104972112983d7aeefc4de40993fbdae3061a4",
+      "size_bytes": 5723
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/.venv/Lib/site-packages/fastapi/testclient.py",
+      "sha256": "9c1bda0265fae9895d45e24d6573ce935b1fba8d90ea1b3c6cebc86827a9e8b4",
+      "size_bytes": 66
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/.venv/Lib/site-packages/starlette/testclient.py",
+      "sha256": "52a9e32222a492b368339cabf0357163de2ed7e80959d7f3e88299c5b8c4eb4c",
+      "size_bytes": 28356
+    },
+    {
+      "path": "C:/Users/Lookt/AppData/Roaming/uv/python/cpython-3.12.12-windows-x86_64-none/Lib/zipfile/__init__.py",
+      "sha256": "94c53aedba0b0f7d6f71bf8ec34973e666ee0c0e56e6800ff4c26d2e3951987a",
+      "size_bytes": 88998
+    }
+  ],
+  "installed_versions": {
+    "joblib": "1.5.3",
+    "scikit-learn": "1.9.0",
+    "fastapi": "0.139.2",
+    "starlette": "1.3.1",
+    "httpx": "0.28.1",
+    "pytest": "9.0.3"
+  },
+  "python_version": "3.12.12 (main, Dec  9 2025, 19:02:55) [MSC v.1944 64 bit (AMD64)]",
+  "original_suite_result": {
+    "collected_cases": 1983,
+    "passed": 1978,
+    "skipped": 5,
+    "warnings": 4,
+    "failures": 0,
+    "xml_attributes": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "5",
+      "tests": "1983",
+      "time": "1070.150",
+      "timestamp": "2026-10-30T13:00:11.183283+08:00",
+      "hostname": "DESKTOP-1E2E8R0"
+    },
+    "selected_test_results": [
+      {
+        "attributes": {
+          "classname": "tests.test_bsk_wheel_provenance",
+          "name": "test_record_content_tamper_rejected_even_if_manifest_sha_recomputed",
+          "time": "0.013"
+        },
+        "child_tags": []
+      },
+      {
+        "attributes": {
+          "classname": "tests.test_rw_fault_scientific_closure",
+          "name": "test_scientific_closure_generates_non_leaking_features_and_baselines",
+          "time": "8.268"
+        },
+        "child_tags": []
+      }
+    ],
+    "conclusion": "Keep the original outcome as 1978 passed, 5 skipped, 4 warnings. This review neither suppresses warnings nor converts skipped tests into passes."
+  },
+  "original_warning_summary": {
+    "stdout_log": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-qualification/full-suite.stdout.log",
+    "excerpt_starts_at_line": 29,
+    "excerpt": "============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\fastapi\\testclient.py:1\n  E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n    from starlette.testclient import TestClient as TestClient  # noqa\n\ntests/test_bsk_wheel_provenance.py::test_record_content_tamper_rejected_even_if_manifest_sha_recomputed\n  C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\zipfile\\__init__.py:1624: UserWarning: Duplicate name: 'Basilisk/__init__.py'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_rw_fault_scientific_closure.py::test_scientific_closure_generates_non_leaking_features_and_baselines\n  E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py:131: UserWarning: Could not find the number of physical cores for the following reason:\n  [WinError 2] 系统找不到指定的文件。\n  Returning the number of logical cores instead. You can silence this warning by setting LOKY_MAX_CPU_COUNT to the number of cores you want to use.\n    warnings.warn(\n\ntests/test_rw_fault_scientific_closure.py::test_scientific_closure_generates_non_leaking_features_and_baselines\n  E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\_pytest\\threadexception.py:58: PytestUnhandledThreadExceptionWarning: Exception in thread Thread-439 (_readerthread)\n  \n  Traceback (most recent call last):\n    File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\threading.py\", line 1075, in _bootstrap_inner\n      self.run()\n    File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\threading.py\", line 1012, in run\n      self._target(*self._args, **self._kwargs)\n    File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1599, in _readerthread\n      buffer.append(fh.read())\n                    ^^^^^^^^^\n    File \"<frozen codecs>\", line 322, in decode\n  UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbe in position 18: invalid start byte\n  \n  Enable tracemalloc to get traceback where the object was allocated.\n  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.\n    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1978 passed, 5 skipped, 4 warnings in 1070.18s (0:17:50)\n"
+  },
+  "warning_classification": [
+    {
+      "id": "W01",
+      "category": "StarletteDeprecationWarning",
+      "origin": ".venv/Lib/site-packages/fastapi/testclient.py:1 importing starlette.testclient",
+      "finding": "Installed Starlette warns that its httpx TestClient support is deprecated. This is a dependency maintenance warning from test transport import, not evidence that the production browser or API worker crashed.",
+      "evidence": "The exact warning is retained in full-suite stdout; FastAPI/Starlette source files and package versions are hash-bound below.",
+      "action_taken": "None; dependencies and locked environment were left unchanged."
+    },
+    {
+      "id": "W02",
+      "category": "UserWarning: Duplicate name: Basilisk/__init__.py",
+      "origin": "tests/test_bsk_wheel_provenance.py::test_record_content_tamper_rejected_even_if_manifest_sha_recomputed",
+      "finding": "The negative test intentionally appends a duplicate wheel member, then requires the wheel verifier to reject it with BSK_WHEEL_MISSING_OR_DUPLICATE_METADATA. Its XML testcase passed. The warning does not show that an installed production wheel was corrupted.",
+      "evidence": "The test source and CPython zipfile warning location are identified by the original warning summary; the test's passed XML record is retained.",
+      "action_taken": "None; the warning and original test result remain intact."
+    },
+    {
+      "id": "W03",
+      "category": "joblib/loky physical-core UserWarning",
+      "origin": ".venv/Lib/site-packages/joblib/externals/loky/backend/context.py:131",
+      "finding": "The installed Win32 probe first runs powershell.exe with Get-CimInstance, then attempts WMIC when the first path fails. PowerShell exists; Get-CimInstance reports PermissionDenied/HRESULT 0x80041003 in this environment. The WMIC executable is missing. The outer helper catches the failure, caches 'not found', warns, and returns the available logical-core count.",
+      "observed_returned_cpu_count": 20,
+      "actual_physical_core_count_established": false,
+      "action_taken": "No WMIC installation, permission elevation, LOKY_MAX_CPU_COUNT setting or warning suppression was performed."
+    },
+    {
+      "id": "W04",
+      "category": "PytestUnhandledThreadExceptionWarning",
+      "origin": "CPython subprocess.Popen._readerthread, Lib/subprocess.py:1598-1600",
+      "finding": "This is a real unhandled text-decoding exception in a child-command stderr reader. The hidden UTF8 minimal probe reproduces the historical signature exactly: invalid UTF8 byte 0xbe at position 18. The failing raw byte payload decodes as the PowerShell Get-CimInstance permission-denied message under CP936. WMIC fails at process creation and does not account for that reader payload.",
+      "original_thread_name": "Thread-439 (_readerthread)",
+      "reproduced_thread_name": "Thread-2 (_readerthread)",
+      "exact_original_and_reproduced_signature": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbe in position 18: invalid start byte",
+      "attribution": "Third-party physical-core detection subprocess text pipe, not a Basilisk integration worker, simulation state owner, HTTP request handler, frontend event loop or WebSocket reader.",
+      "qualification": "The original full-suite traceback does not include the subprocess owner arguments. Attribution is supported by matching installed call sites plus an isolated reproduction with the same hidden/UTF8 conditions and raw PowerShell diagnostic payload. The reproduction's thread target/owner introspection fields were already cleared by CPython and remain null in the raw evidence; no missing owner metadata was invented.",
+      "action_taken": "Original exception hook and warning output retained; no filter, error-tolerant decoder or dependency patch was applied."
+    }
+  ],
+  "installed_call_chain": [
+    {
+      "path": "src/sat_sim/rw_fault_scientific_closure.py",
+      "lines": "360-385",
+      "fact": "The scientific-closure test fits LogisticRegression, RandomForestClassifier(n_jobs=-1), and HistGradientBoostingClassifier analysis baselines."
+    },
+    {
+      "path": ".venv/Lib/site-packages/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py",
+      "lines": "524-526",
+      "fact": "The installed gradient-boosting fit path obtains effective OpenMP threads through _openmp_effective_n_threads()."
+    },
+    {
+      "path": ".venv/Lib/site-packages/sklearn/utils/_openmp_helpers.pyx",
+      "lines": "21-69",
+      "fact": "The default only_physical_cores=True path calls joblib.cpu_count when no overriding OpenMP thread setting is used."
+    },
+    {
+      "path": ".venv/Lib/site-packages/joblib/parallel.py",
+      "lines": "631-648",
+      "fact": "joblib.cpu_count delegates to loky.cpu_count with the same only_physical_cores option."
+    },
+    {
+      "path": ".venv/Lib/site-packages/joblib/externals/loky/backend/context.py",
+      "lines": "286-308",
+      "fact": "Win32 probe invokes PowerShell Get-CimInstance with capture_output=True,text=True and no explicit encoding; bare except then falls back to WMIC."
+    },
+    {
+      "path": ".venv/Lib/site-packages/joblib/externals/loky/backend/context.py",
+      "lines": "227-264;124-140",
+      "fact": "Probe errors become cached 'not found'; cpu_count warns on the first failure and returns aggregate logical availability."
+    },
+    {
+      "path": "C:/Users/Lookt/AppData/Roaming/uv/python/cpython-3.12.12-windows-x86_64-none/Lib/subprocess.py",
+      "lines": "361-380;875-877;1014-1024;1598-1621",
+      "fact": "With UTF8 mode, implicit text decoding uses UTF8. On Windows, stdout/stderr are TextIOWrapper pipes read by _readerthread helper threads."
+    },
+    {
+      "path": "reports/local_requirements_completion/continue_hardware_bounded_r11_qualification.py",
+      "lines": "49-60",
+      "fact": "The historical full-suite driver explicitly sets PYTHONUTF8=1 for its children and uses CREATE_NO_WINDOW on Windows. The diagnostic uses interpreter -X utf8 to select the same decoder without changing environment variables."
+    }
+  ],
+  "minimal_reproductions": {
+    "default_locale_inherited_console": {
+      "command_scope": "Initial default-locale fresh .venv CPU probe; no UTF8 switch or environment changes",
+      "returncode": 0,
+      "stdout_base64": "eyJzY29wZSI6ICJSZWFkLW9ubHkgZnJlc2gtcHJvY2VzcyBsb2t5IENQVSBwcm9iZSBvbmx5OyBvcmlnaW5hbCB0aHJlYWQgZXhjZXB0aG9vayByZXRhaW5lZDsgbm8gd2FybmluZyBmaWx0ZXJzIG9yIGVudmlyb25tZW50IGNoYW5nZXMiLCAicHl0aG9uX3ZlcnNpb24iOiAiMy4xMi4xMiAobWFpbiwgRGVjICA5IDIwMjUsIDE5OjAyOjU1KSBbTVNDIHYuMTk0NCA2NCBiaXQgKEFNRDY0KV0iLCAidXRmOF9tb2RlIjogMCwgImxvY2FsZV9lbmNvZGluZyI6ICJjcDkzNiIsICJweXRob251dGY4X2VudiI6IG51bGwsICJweXRob25pb2VuY29kaW5nX2VudiI6IG51bGwsICJsb2t5X21heF9jcHVfY291bnRfZW52IjogbnVsbCwgIm9zX2NwdV9jb3VudCI6IDIwLCAiY2FjaGVfYmVmb3JlIjogbnVsbCwgInJldHVybmVkX2NwdV9jb3VudCI6IDIwLCAiY2FsbHMiOiBbeyJhcmdzIjogWyJwb3dlcnNoZWxsLmV4ZSIsICItQ29tbWFuZCIsICIoR2V0LUNpbUluc3RhbmNlIiwgIi1DbGFzc05hbWUiLCAiV2luMzJfUHJvY2Vzc29yKS5OdW1iZXJPZkNvcmVzIl0sICJjYXB0dXJlX291dHB1dCI6IHRydWUsICJ0ZXh0IjogdHJ1ZSwgImVuY29kaW5nIjogbnVsbCwgImVycm9ycyI6IG51bGx9LCB7ImFyZ3MiOiBbIndtaWMiLCAiQ1BVIiwgIkdldCIsICJOdW1iZXJPZkNvcmVzIiwgIi9Gb3JtYXQ6Y3N2Il0sICJjYXB0dXJlX291dHB1dCI6IHRydWUsICJ0ZXh0IjogdHJ1ZSwgImVuY29kaW5nIjogbnVsbCwgImVycm9ycyI6IG51bGx9XSwgInRocmVhZF9ldmVudHMiOiBbXSwgImNhY2hlX2FmdGVyIjogIm5vdCBmb3VuZCJ9DQo=",
+      "stderr_base64": "RTpcdG1wXFNhdEFnZW50U2ltdWxhdGlvblwudmVudlxMaWJcc2l0ZS1wYWNrYWdlc1xqb2JsaWJcZXh0ZXJuYWxzXGxva3lcYmFja2VuZFxjb250ZXh0LnB5OjEzMTogVXNlcldhcm5pbmc6IENvdWxkIG5vdCBmaW5kIHRoZSBudW1iZXIgb2YgcGh5c2ljYWwgY29yZXMgZm9yIHRoZSBmb2xsb3dpbmcgcmVhc29uOg0KW1dpbkVycm9yIDJdIM+1zbPV0rK7tb3WuLaotcTOxLz+oaMNClJldHVybmluZyB0aGUgbnVtYmVyIG9mIGxvZ2ljYWwgY29yZXMgaW5zdGVhZC4gWW91IGNhbiBzaWxlbmNlIHRoaXMgd2FybmluZyBieSBzZXR0aW5nIExPS1lfTUFYX0NQVV9DT1VOVCB0byB0aGUgbnVtYmVyIG9mIGNvcmVzIHlvdSB3YW50IHRvIHVzZS4NCiAgd2FybmluZ3Mud2FybigNCiAgRmlsZSAiRTpcdG1wXFNhdEFnZW50U2ltdWxhdGlvblwudmVudlxMaWJcc2l0ZS1wYWNrYWdlc1xqb2JsaWJcZXh0ZXJuYWxzXGxva3lcYmFja2VuZFxjb250ZXh0LnB5IiwgbGluZSAyNDcsIGluIF9jb3VudF9waHlzaWNhbF9jb3Jlcw0KICAgIGNwdV9jb3VudF9waHlzaWNhbCA9IF9jb3VudF9waHlzaWNhbF9jb3Jlc193aW4zMigpDQogICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4NCiAgRmlsZSAiRTpcdG1wXFNhdEFnZW50U2ltdWxhdGlvblwudmVudlxMaWJcc2l0ZS1wYWNrYWdlc1xqb2JsaWJcZXh0ZXJuYWxzXGxva3lcYmFja2VuZFxjb250ZXh0LnB5IiwgbGluZSAyOTksIGluIF9jb3VudF9waHlzaWNhbF9jb3Jlc193aW4zMg0KICAgIGNwdV9pbmZvID0gc3VicHJvY2Vzcy5ydW4oDQogICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl4NCiAgRmlsZSAiPHN0cmluZz4iLCBsaW5lIDksIGluIHRyYWNlZF9ydW4NCiAgRmlsZSAiQzpcVXNlcnNcTG9va3RcQXBwRGF0YVxSb2FtaW5nXHV2XHB5dGhvblxjcHl0aG9uLTMuMTIuMTItd2luZG93cy14ODZfNjQtbm9uZVxMaWJcc3VicHJvY2Vzcy5weSIsIGxpbmUgNTQ4LCBpbiBydW4NCiAgICB3aXRoIFBvcGVuKCpwb3BlbmFyZ3MsICoqa3dhcmdzKSBhcyBwcm9jZXNzOg0KICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eDQogIEZpbGUgIkM6XFVzZXJzXExvb2t0XEFwcERhdGFcUm9hbWluZ1x1dlxweXRob25cY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcTGliXHN1YnByb2Nlc3MucHkiLCBsaW5lIDEwMjYsIGluIF9faW5pdF9fDQogICAgc2VsZi5fZXhlY3V0ZV9jaGlsZChhcmdzLCBleGVjdXRhYmxlLCBwcmVleGVjX2ZuLCBjbG9zZV9mZHMsDQogIEZpbGUgIkM6XFVzZXJzXExvb2t0XEFwcERhdGFcUm9hbWluZ1x1dlxweXRob25cY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcTGliXHN1YnByb2Nlc3MucHkiLCBsaW5lIDE1MzgsIGluIF9leGVjdXRlX2NoaWxkDQogICAgaHAsIGh0LCBwaWQsIHRpZCA9IF93aW5hcGkuQ3JlYXRlUHJvY2VzcyhleGVjdXRhYmxlLCBhcmdzLA0KICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4NCg==",
+      "stdout_sha256": "2caea67dfd82803d95005712fc5052c3ea107b9ee0a055527f3ae8e08a97b316",
+      "stderr_sha256": "1ac03f2f109ee17a31079fb3e55a2c2853db537b064641af99e0a038ed833d61",
+      "stdout_utf8": "{\"scope\": \"Read-only fresh-process loky CPU probe only; original thread excepthook retained; no warning filters or environment changes\", \"python_version\": \"3.12.12 (main, Dec  9 2025, 19:02:55) [MSC v.1944 64 bit (AMD64)]\", \"utf8_mode\": 0, \"locale_encoding\": \"cp936\", \"pythonutf8_env\": null, \"pythonioencoding_env\": null, \"loky_max_cpu_count_env\": null, \"os_cpu_count\": 20, \"cache_before\": null, \"returned_cpu_count\": 20, \"calls\": [{\"args\": [\"powershell.exe\", \"-Command\", \"(Get-CimInstance\", \"-ClassName\", \"Win32_Processor).NumberOfCores\"], \"capture_output\": true, \"text\": true, \"encoding\": null, \"errors\": null}, {\"args\": [\"wmic\", \"CPU\", \"Get\", \"NumberOfCores\", \"/Format:csv\"], \"capture_output\": true, \"text\": true, \"encoding\": null, \"errors\": null}], \"thread_events\": [], \"cache_after\": \"not found\"}\r\n",
+      "stderr_cp936": "E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py:131: UserWarning: Could not find the number of physical cores for the following reason:\r\n[WinError 2] 系统找不到指定的文件。\r\nReturning the number of logical cores instead. You can silence this warning by setting LOKY_MAX_CPU_COUNT to the number of cores you want to use.\r\n  warnings.warn(\r\n  File \"E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py\", line 247, in _count_physical_cores\r\n    cpu_count_physical = _count_physical_cores_win32()\r\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py\", line 299, in _count_physical_cores_win32\r\n    cpu_info = subprocess.run(\r\n               ^^^^^^^^^^^^^^^\r\n  File \"<string>\", line 9, in traced_run\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 548, in run\r\n    with Popen(*popenargs, **kwargs) as process:\r\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1026, in __init__\r\n    self._execute_child(args, executable, preexec_fn, close_fds,\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1538, in _execute_child\r\n    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,\r\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n",
+      "parsed_stdout": {
+        "scope": "Read-only fresh-process loky CPU probe only; original thread excepthook retained; no warning filters or environment changes",
+        "python_version": "3.12.12 (main, Dec  9 2025, 19:02:55) [MSC v.1944 64 bit (AMD64)]",
+        "utf8_mode": 0,
+        "locale_encoding": "cp936",
+        "pythonutf8_env": null,
+        "pythonioencoding_env": null,
+        "loky_max_cpu_count_env": null,
+        "os_cpu_count": 20,
+        "cache_before": null,
+        "returned_cpu_count": 20,
+        "calls": [
+          {
+            "args": [
+              "powershell.exe",
+              "-Command",
+              "(Get-CimInstance",
+              "-ClassName",
+              "Win32_Processor).NumberOfCores"
+            ],
+            "capture_output": true,
+            "text": true,
+            "encoding": null,
+            "errors": null
+          },
+          {
+            "args": [
+              "wmic",
+              "CPU",
+              "Get",
+              "NumberOfCores",
+              "/Format:csv"
+            ],
+            "capture_output": true,
+            "text": true,
+            "encoding": null,
+            "errors": null
+          }
+        ],
+        "thread_events": [],
+        "cache_after": "not found"
+      }
+    },
+    "utf8_inherited_console": {
+      "command_scope": "Fresh .venv Python -X utf8 -c; matches full-suite UTF8 decoder selection without changing environment variables",
+      "command_prefix": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8"
+      ],
+      "returncode": 0,
+      "stdout_utf8": "{\"scope\": \"Read-only fresh-process loky CPU probe only; original thread excepthook retained; no warning filters or environment changes\", \"python_version\": \"3.12.12 (main, Dec  9 2025, 19:02:55) [MSC v.1944 64 bit (AMD64)]\", \"utf8_mode\": 1, \"locale_encoding\": \"cp936\", \"pythonutf8_env\": null, \"pythonioencoding_env\": null, \"loky_max_cpu_count_env\": null, \"os_cpu_count\": 20, \"cache_before\": null, \"returned_cpu_count\": 20, \"calls\": [{\"args\": [\"powershell.exe\", \"-Command\", \"(Get-CimInstance\", \"-ClassName\", \"Win32_Processor).NumberOfCores\"], \"capture_output\": true, \"text\": true, \"encoding\": null, \"errors\": null, \"returncode\": 0, \"stdout\": \"\", \"stderr\": \"Get-CimInstance : \\u62d2\\u7edd\\u8bbf\\u95ee \\nAt line:1 char:2\\n+ (Get-CimInstance -ClassName Win32_Processor).NumberOfCores\\n+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\n    + CategoryInfo          : PermissionDenied: (root\\\\cimv2:Win32_Processor:String) [Get-CimInstance], CimException\\n    + FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand\\n \\n\"}, {\"args\": [\"wmic\", \"CPU\", \"Get\", \"NumberOfCores\", \"/Format:csv\"], \"capture_output\": true, \"text\": true, \"encoding\": null, \"errors\": null, \"exception_type\": \"FileNotFoundError\", \"exception_message\": \"[WinError 2] \\u7cfb\\u7edf\\u627e\\u4e0d\\u5230\\u6307\\u5b9a\\u7684\\u6587\\u4ef6\\u3002\"}], \"thread_events\": [], \"cache_after\": \"not found\"}\r\n",
+      "stderr_utf8": "E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py:131: UserWarning: Could not find the number of physical cores for the following reason:\r\n[WinError 2] 系统找不到指定的文件。\r\nReturning the number of logical cores instead. You can silence this warning by setting LOKY_MAX_CPU_COUNT to the number of cores you want to use.\r\n  warnings.warn(\r\n  File \"E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py\", line 247, in _count_physical_cores\r\n    cpu_count_physical = _count_physical_cores_win32()\r\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py\", line 299, in _count_physical_cores_win32\r\n    cpu_info = subprocess.run(\r\n               ^^^^^^^^^^^^^^^\r\n  File \"<string>\", line 10, in traced_run\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 548, in run\r\n    with Popen(*popenargs, **kwargs) as process:\r\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1026, in __init__\r\n    self._execute_child(args, executable, preexec_fn, close_fds,\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1538, in _execute_child\r\n    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,\r\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n",
+      "stdout_base64": "eyJzY29wZSI6ICJSZWFkLW9ubHkgZnJlc2gtcHJvY2VzcyBsb2t5IENQVSBwcm9iZSBvbmx5OyBvcmlnaW5hbCB0aHJlYWQgZXhjZXB0aG9vayByZXRhaW5lZDsgbm8gd2FybmluZyBmaWx0ZXJzIG9yIGVudmlyb25tZW50IGNoYW5nZXMiLCAicHl0aG9uX3ZlcnNpb24iOiAiMy4xMi4xMiAobWFpbiwgRGVjICA5IDIwMjUsIDE5OjAyOjU1KSBbTVNDIHYuMTk0NCA2NCBiaXQgKEFNRDY0KV0iLCAidXRmOF9tb2RlIjogMSwgImxvY2FsZV9lbmNvZGluZyI6ICJjcDkzNiIsICJweXRob251dGY4X2VudiI6IG51bGwsICJweXRob25pb2VuY29kaW5nX2VudiI6IG51bGwsICJsb2t5X21heF9jcHVfY291bnRfZW52IjogbnVsbCwgIm9zX2NwdV9jb3VudCI6IDIwLCAiY2FjaGVfYmVmb3JlIjogbnVsbCwgInJldHVybmVkX2NwdV9jb3VudCI6IDIwLCAiY2FsbHMiOiBbeyJhcmdzIjogWyJwb3dlcnNoZWxsLmV4ZSIsICItQ29tbWFuZCIsICIoR2V0LUNpbUluc3RhbmNlIiwgIi1DbGFzc05hbWUiLCAiV2luMzJfUHJvY2Vzc29yKS5OdW1iZXJPZkNvcmVzIl0sICJjYXB0dXJlX291dHB1dCI6IHRydWUsICJ0ZXh0IjogdHJ1ZSwgImVuY29kaW5nIjogbnVsbCwgImVycm9ycyI6IG51bGwsICJyZXR1cm5jb2RlIjogMCwgInN0ZG91dCI6ICIiLCAic3RkZXJyIjogIkdldC1DaW1JbnN0YW5jZSA6IFx1NjJkMlx1N2VkZFx1OGJiZlx1OTVlZSBcbkF0IGxpbmU6MSBjaGFyOjJcbisgKEdldC1DaW1JbnN0YW5jZSAtQ2xhc3NOYW1lIFdpbjMyX1Byb2Nlc3NvcikuTnVtYmVyT2ZDb3Jlc1xuKyAgfn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+XG4gICAgKyBDYXRlZ29yeUluZm8gICAgICAgICAgOiBQZXJtaXNzaW9uRGVuaWVkOiAocm9vdFxcY2ltdjI6V2luMzJfUHJvY2Vzc29yOlN0cmluZykgW0dldC1DaW1JbnN0YW5jZV0sIENpbUV4Y2VwdGlvblxuICAgICsgRnVsbHlRdWFsaWZpZWRFcnJvcklkIDogSFJFU1VMVCAweDgwMDQxMDAzLE1pY3Jvc29mdC5NYW5hZ2VtZW50LkluZnJhc3RydWN0dXJlLkNpbUNtZGxldHMuR2V0Q2ltSW5zdGFuY2VDb21tYW5kXG4gXG4ifSwgeyJhcmdzIjogWyJ3bWljIiwgIkNQVSIsICJHZXQiLCAiTnVtYmVyT2ZDb3JlcyIsICIvRm9ybWF0OmNzdiJdLCAiY2FwdHVyZV9vdXRwdXQiOiB0cnVlLCAidGV4dCI6IHRydWUsICJlbmNvZGluZyI6IG51bGwsICJlcnJvcnMiOiBudWxsLCAiZXhjZXB0aW9uX3R5cGUiOiAiRmlsZU5vdEZvdW5kRXJyb3IiLCAiZXhjZXB0aW9uX21lc3NhZ2UiOiAiW1dpbkVycm9yIDJdIFx1N2NmYlx1N2VkZlx1NjI3ZVx1NGUwZFx1NTIzMFx1NjMwN1x1NWI5YVx1NzY4NFx1NjU4N1x1NGVmNlx1MzAwMiJ9XSwgInRocmVhZF9ldmVudHMiOiBbXSwgImNhY2hlX2FmdGVyIjogIm5vdCBmb3VuZCJ9DQo=",
+      "stderr_base64": "RTpcdG1wXFNhdEFnZW50U2ltdWxhdGlvblwudmVudlxMaWJcc2l0ZS1wYWNrYWdlc1xqb2JsaWJcZXh0ZXJuYWxzXGxva3lcYmFja2VuZFxjb250ZXh0LnB5OjEzMTogVXNlcldhcm5pbmc6IENvdWxkIG5vdCBmaW5kIHRoZSBudW1iZXIgb2YgcGh5c2ljYWwgY29yZXMgZm9yIHRoZSBmb2xsb3dpbmcgcmVhc29uOg0KW1dpbkVycm9yIDJdIOezu+e7n+aJvuS4jeWIsOaMh+WumueahOaWh+S7tuOAgg0KUmV0dXJuaW5nIHRoZSBudW1iZXIgb2YgbG9naWNhbCBjb3JlcyBpbnN0ZWFkLiBZb3UgY2FuIHNpbGVuY2UgdGhpcyB3YXJuaW5nIGJ5IHNldHRpbmcgTE9LWV9NQVhfQ1BVX0NPVU5UIHRvIHRoZSBudW1iZXIgb2YgY29yZXMgeW91IHdhbnQgdG8gdXNlLg0KICB3YXJuaW5ncy53YXJuKA0KICBGaWxlICJFOlx0bXBcU2F0QWdlbnRTaW11bGF0aW9uXC52ZW52XExpYlxzaXRlLXBhY2thZ2VzXGpvYmxpYlxleHRlcm5hbHNcbG9reVxiYWNrZW5kXGNvbnRleHQucHkiLCBsaW5lIDI0NywgaW4gX2NvdW50X3BoeXNpY2FsX2NvcmVzDQogICAgY3B1X2NvdW50X3BoeXNpY2FsID0gX2NvdW50X3BoeXNpY2FsX2NvcmVzX3dpbjMyKCkNCiAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXg0KICBGaWxlICJFOlx0bXBcU2F0QWdlbnRTaW11bGF0aW9uXC52ZW52XExpYlxzaXRlLXBhY2thZ2VzXGpvYmxpYlxleHRlcm5hbHNcbG9reVxiYWNrZW5kXGNvbnRleHQucHkiLCBsaW5lIDI5OSwgaW4gX2NvdW50X3BoeXNpY2FsX2NvcmVzX3dpbjMyDQogICAgY3B1X2luZm8gPSBzdWJwcm9jZXNzLnJ1bigNCiAgICAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXg0KICBGaWxlICI8c3RyaW5nPiIsIGxpbmUgMTAsIGluIHRyYWNlZF9ydW4NCiAgRmlsZSAiQzpcVXNlcnNcTG9va3RcQXBwRGF0YVxSb2FtaW5nXHV2XHB5dGhvblxjcHl0aG9uLTMuMTIuMTItd2luZG93cy14ODZfNjQtbm9uZVxMaWJcc3VicHJvY2Vzcy5weSIsIGxpbmUgNTQ4LCBpbiBydW4NCiAgICB3aXRoIFBvcGVuKCpwb3BlbmFyZ3MsICoqa3dhcmdzKSBhcyBwcm9jZXNzOg0KICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eDQogIEZpbGUgIkM6XFVzZXJzXExvb2t0XEFwcERhdGFcUm9hbWluZ1x1dlxweXRob25cY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcTGliXHN1YnByb2Nlc3MucHkiLCBsaW5lIDEwMjYsIGluIF9faW5pdF9fDQogICAgc2VsZi5fZXhlY3V0ZV9jaGlsZChhcmdzLCBleGVjdXRhYmxlLCBwcmVleGVjX2ZuLCBjbG9zZV9mZHMsDQogIEZpbGUgIkM6XFVzZXJzXExvb2t0XEFwcERhdGFcUm9hbWluZ1x1dlxweXRob25cY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcTGliXHN1YnByb2Nlc3MucHkiLCBsaW5lIDE1MzgsIGluIF9leGVjdXRlX2NoaWxkDQogICAgaHAsIGh0LCBwaWQsIHRpZCA9IF93aW5hcGkuQ3JlYXRlUHJvY2VzcyhleGVjdXRhYmxlLCBhcmdzLA0KICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4NCg==",
+      "stdout_sha256": "6b01fa93023cff7ad55ba9f7722cefd12f695c1dadec46f1d95ecad1a4e3137f",
+      "stderr_sha256": "31dedbbf9333c6b993549131cb2fe2f96fcfd74ad2f9c75439b70f65bf463aaf",
+      "parsed_stdout": {
+        "scope": "Read-only fresh-process loky CPU probe only; original thread excepthook retained; no warning filters or environment changes",
+        "python_version": "3.12.12 (main, Dec  9 2025, 19:02:55) [MSC v.1944 64 bit (AMD64)]",
+        "utf8_mode": 1,
+        "locale_encoding": "cp936",
+        "pythonutf8_env": null,
+        "pythonioencoding_env": null,
+        "loky_max_cpu_count_env": null,
+        "os_cpu_count": 20,
+        "cache_before": null,
+        "returned_cpu_count": 20,
+        "calls": [
+          {
+            "args": [
+              "powershell.exe",
+              "-Command",
+              "(Get-CimInstance",
+              "-ClassName",
+              "Win32_Processor).NumberOfCores"
+            ],
+            "capture_output": true,
+            "text": true,
+            "encoding": null,
+            "errors": null,
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "Get-CimInstance : 拒绝访问 \nAt line:1 char:2\n+ (Get-CimInstance -ClassName Win32_Processor).NumberOfCores\n+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n    + CategoryInfo          : PermissionDenied: (root\\cimv2:Win32_Processor:String) [Get-CimInstance], CimException\n    + FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand\n \n"
+          },
+          {
+            "args": [
+              "wmic",
+              "CPU",
+              "Get",
+              "NumberOfCores",
+              "/Format:csv"
+            ],
+            "capture_output": true,
+            "text": true,
+            "encoding": null,
+            "errors": null,
+            "exception_type": "FileNotFoundError",
+            "exception_message": "[WinError 2] 系统找不到指定的文件。"
+          }
+        ],
+        "thread_events": [],
+        "cache_after": "not found"
+      }
+    },
+    "utf8_hidden_process": {
+      "command_scope": "Fresh .venv Python -X utf8 -c under CREATE_NO_WINDOW, reproducing full-suite hidden-process/UTF8 decoder conditions without changing environment variables",
+      "command_prefix": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8"
+      ],
+      "creationflags": 134217728,
+      "probe_source": "\nimport base64,json,locale,os,sys,threading,traceback\nfrom joblib.externals.loky.backend import context\ncalls=[];thread_events=[]\noriginal_run=context.subprocess.run\noriginal_hook=threading.excepthook\ndef traced_run(args,*positional,**kwargs):\n    call={'args':args,'capture_output':kwargs.get('capture_output'),'text':kwargs.get('text'),'encoding':kwargs.get('encoding'),'errors':kwargs.get('errors')};calls.append(call)\n    try:\n        result=original_run(args,*positional,**kwargs)\n        call.update(returncode=result.returncode,stdout=result.stdout,stderr=result.stderr)\n        return result\n    except Exception as exc:\n        call.update(exception_type=type(exc).__name__,exception_message=str(exc));raise\ndef traced_hook(args):\n    owner=getattr(getattr(args.thread,'_target',None),'__self__',None)\n    stream=(getattr(args.thread,'_args',()) or (None,))[0]\n    raw=getattr(args.exc_value,'object',b'')\n    event={'thread_name':args.thread.name,'target_name':getattr(getattr(args.thread,'_target',None),'__qualname__',None),'subprocess_args':getattr(owner,'args',None),'stream_encoding':getattr(stream,'encoding',None),'exception_type':args.exc_type.__name__,'exception_message':str(args.exc_value),'traceback':''.join(traceback.format_exception(args.exc_type,args.exc_value,args.exc_traceback))}\n    if isinstance(raw,bytes):event.update(decode_input_base64=base64.b64encode(raw).decode(),decode_input_cp936=raw.decode('cp936',errors='replace'))\n    thread_events.append(event)\n    original_hook(args)\ncontext.subprocess.run=traced_run\nthreading.excepthook=traced_hook\nresult={'scope':'Read-only fresh-process loky CPU probe only; original thread excepthook retained; no warning filters or environment changes','python_version':sys.version,'utf8_mode':sys.flags.utf8_mode,'locale_encoding':locale.getencoding(),'pythonutf8_env':os.environ.get('PYTHONUTF8'),'pythonioencoding_env':os.environ.get('PYTHONIOENCODING'),'loky_max_cpu_count_env':os.environ.get('LOKY_MAX_CPU_COUNT'),'os_cpu_count':os.cpu_count(),'cache_before':context.physical_cores_cache}\ntry:result['returned_cpu_count']=context.cpu_count(only_physical_cores=True)\nexcept Exception as exc:result['main_exception']={'type':type(exc).__name__,'message':str(exc),'traceback':traceback.format_exc()}\nresult.update(calls=calls,thread_events=thread_events,cache_after=context.physical_cores_cache)\nprint(json.dumps(result,ensure_ascii=True))\n",
+      "probe_source_sha256": "99b0194b7552b7002dbf83213caf8fbb9286c67c2d2454fb2c7579164276256b",
+      "returncode": 0,
+      "stdout_utf8": "{\"scope\": \"Read-only fresh-process loky CPU probe only; original thread excepthook retained; no warning filters or environment changes\", \"python_version\": \"3.12.12 (main, Dec  9 2025, 19:02:55) [MSC v.1944 64 bit (AMD64)]\", \"utf8_mode\": 1, \"locale_encoding\": \"cp936\", \"pythonutf8_env\": null, \"pythonioencoding_env\": null, \"loky_max_cpu_count_env\": null, \"os_cpu_count\": 20, \"cache_before\": null, \"returned_cpu_count\": 20, \"calls\": [{\"args\": [\"powershell.exe\", \"-Command\", \"(Get-CimInstance\", \"-ClassName\", \"Win32_Processor).NumberOfCores\"], \"capture_output\": true, \"text\": true, \"encoding\": null, \"errors\": null, \"returncode\": 0, \"stdout\": \"\", \"stderr\": null}, {\"args\": [\"wmic\", \"CPU\", \"Get\", \"NumberOfCores\", \"/Format:csv\"], \"capture_output\": true, \"text\": true, \"encoding\": null, \"errors\": null, \"exception_type\": \"FileNotFoundError\", \"exception_message\": \"[WinError 2] \\u7cfb\\u7edf\\u627e\\u4e0d\\u5230\\u6307\\u5b9a\\u7684\\u6587\\u4ef6\\u3002\"}], \"thread_events\": [{\"thread_name\": \"Thread-2 (_readerthread)\", \"target_name\": null, \"subprocess_args\": null, \"stream_encoding\": null, \"exception_type\": \"UnicodeDecodeError\", \"exception_message\": \"'utf-8' codec can't decode byte 0xbe in position 18: invalid start byte\", \"traceback\": \"Traceback (most recent call last):\\n  File \\\"C:\\\\Users\\\\Lookt\\\\AppData\\\\Roaming\\\\uv\\\\python\\\\cpython-3.12.12-windows-x86_64-none\\\\Lib\\\\threading.py\\\", line 1075, in _bootstrap_inner\\n    self.run()\\n  File \\\"C:\\\\Users\\\\Lookt\\\\AppData\\\\Roaming\\\\uv\\\\python\\\\cpython-3.12.12-windows-x86_64-none\\\\Lib\\\\threading.py\\\", line 1012, in run\\n    self._target(*self._args, **self._kwargs)\\n  File \\\"C:\\\\Users\\\\Lookt\\\\AppData\\\\Roaming\\\\uv\\\\python\\\\cpython-3.12.12-windows-x86_64-none\\\\Lib\\\\subprocess.py\\\", line 1599, in _readerthread\\n    buffer.append(fh.read())\\n                  ^^^^^^^^^\\n  File \\\"<frozen codecs>\\\", line 322, in decode\\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xbe in position 18: invalid start byte\\n\", \"decode_input_base64\": \"R2V0LUNpbUluc3RhbmNlIDogvty++LfDzsogDQrL+dTazrvWwyDQ0DoxINfWt/s6IDINCisgKEdldC1DaW1JbnN0YW5jZSAtQ2xhc3NOYW1lIFdpbjMyX1Byb2Nlc3NvcikuTnVtYmVyT2ZDb3Jlcw0KKyAgfn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+DQogICAgKyBDYXRlZ29yeUluZm8gICAgICAgICAgOiBQZXJtaXNzaW9uRGVuaWVkOiAocm9vdFxjaW12MjpXaW4zMl9Qcm9jZXNzb3I6U3RyaW5nKSBbR2V0LUNpbUluc3RhbmNlXSwgQ2ltRXhjZXB0aW9uDQogICAgKyBGdWxseVF1YWxpZmllZEVycm9ySWQgOiBIUkVTVUxUIDB4ODAwNDEwMDMsTWljcm9zb2Z0Lk1hbmFnZW1lbnQuSW5mcmFzdHJ1Y3R1cmUuQ2ltQ21kbGV0cy5HZXRDaW1JbnN0YW5jZUNvbW1hbmQNCiANCg==\", \"decode_input_cp936\": \"Get-CimInstance : \\u62d2\\u7edd\\u8bbf\\u95ee \\r\\n\\u6240\\u5728\\u4f4d\\u7f6e \\u884c:1 \\u5b57\\u7b26: 2\\r\\n+ (Get-CimInstance -ClassName Win32_Processor).NumberOfCores\\r\\n+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\r\\n    + CategoryInfo          : PermissionDenied: (root\\\\cimv2:Win32_Processor:String) [Get-CimInstance], CimException\\r\\n    + FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand\\r\\n \\r\\n\"}], \"cache_after\": \"not found\"}\r\n",
+      "stderr_utf8": "Exception in thread Thread-2 (_readerthread):\r\nTraceback (most recent call last):\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\threading.py\", line 1075, in _bootstrap_inner\r\n    self.run()\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\threading.py\", line 1012, in run\r\n    self._target(*self._args, **self._kwargs)\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1599, in _readerthread\r\n    buffer.append(fh.read())\r\n                  ^^^^^^^^^\r\n  File \"<frozen codecs>\", line 322, in decode\r\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xbe in position 18: invalid start byte\r\nE:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py:131: UserWarning: Could not find the number of physical cores for the following reason:\r\n[WinError 2] 系统找不到指定的文件。\r\nReturning the number of logical cores instead. You can silence this warning by setting LOKY_MAX_CPU_COUNT to the number of cores you want to use.\r\n  warnings.warn(\r\n  File \"E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py\", line 247, in _count_physical_cores\r\n    cpu_count_physical = _count_physical_cores_win32()\r\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"E:\\tmp\\SatAgentSimulation\\.venv\\Lib\\site-packages\\joblib\\externals\\loky\\backend\\context.py\", line 299, in _count_physical_cores_win32\r\n    cpu_info = subprocess.run(\r\n               ^^^^^^^^^^^^^^^\r\n  File \"<string>\", line 10, in traced_run\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 548, in run\r\n    with Popen(*popenargs, **kwargs) as process:\r\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1026, in __init__\r\n    self._execute_child(args, executable, preexec_fn, close_fds,\r\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1538, in _execute_child\r\n    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,\r\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n",
+      "stdout_base64": "eyJzY29wZSI6ICJSZWFkLW9ubHkgZnJlc2gtcHJvY2VzcyBsb2t5IENQVSBwcm9iZSBvbmx5OyBvcmlnaW5hbCB0aHJlYWQgZXhjZXB0aG9vayByZXRhaW5lZDsgbm8gd2FybmluZyBmaWx0ZXJzIG9yIGVudmlyb25tZW50IGNoYW5nZXMiLCAicHl0aG9uX3ZlcnNpb24iOiAiMy4xMi4xMiAobWFpbiwgRGVjICA5IDIwMjUsIDE5OjAyOjU1KSBbTVNDIHYuMTk0NCA2NCBiaXQgKEFNRDY0KV0iLCAidXRmOF9tb2RlIjogMSwgImxvY2FsZV9lbmNvZGluZyI6ICJjcDkzNiIsICJweXRob251dGY4X2VudiI6IG51bGwsICJweXRob25pb2VuY29kaW5nX2VudiI6IG51bGwsICJsb2t5X21heF9jcHVfY291bnRfZW52IjogbnVsbCwgIm9zX2NwdV9jb3VudCI6IDIwLCAiY2FjaGVfYmVmb3JlIjogbnVsbCwgInJldHVybmVkX2NwdV9jb3VudCI6IDIwLCAiY2FsbHMiOiBbeyJhcmdzIjogWyJwb3dlcnNoZWxsLmV4ZSIsICItQ29tbWFuZCIsICIoR2V0LUNpbUluc3RhbmNlIiwgIi1DbGFzc05hbWUiLCAiV2luMzJfUHJvY2Vzc29yKS5OdW1iZXJPZkNvcmVzIl0sICJjYXB0dXJlX291dHB1dCI6IHRydWUsICJ0ZXh0IjogdHJ1ZSwgImVuY29kaW5nIjogbnVsbCwgImVycm9ycyI6IG51bGwsICJyZXR1cm5jb2RlIjogMCwgInN0ZG91dCI6ICIiLCAic3RkZXJyIjogbnVsbH0sIHsiYXJncyI6IFsid21pYyIsICJDUFUiLCAiR2V0IiwgIk51bWJlck9mQ29yZXMiLCAiL0Zvcm1hdDpjc3YiXSwgImNhcHR1cmVfb3V0cHV0IjogdHJ1ZSwgInRleHQiOiB0cnVlLCAiZW5jb2RpbmciOiBudWxsLCAiZXJyb3JzIjogbnVsbCwgImV4Y2VwdGlvbl90eXBlIjogIkZpbGVOb3RGb3VuZEVycm9yIiwgImV4Y2VwdGlvbl9tZXNzYWdlIjogIltXaW5FcnJvciAyXSBcdTdjZmJcdTdlZGZcdTYyN2VcdTRlMGRcdTUyMzBcdTYzMDdcdTViOWFcdTc2ODRcdTY1ODdcdTRlZjZcdTMwMDIifV0sICJ0aHJlYWRfZXZlbnRzIjogW3sidGhyZWFkX25hbWUiOiAiVGhyZWFkLTIgKF9yZWFkZXJ0aHJlYWQpIiwgInRhcmdldF9uYW1lIjogbnVsbCwgInN1YnByb2Nlc3NfYXJncyI6IG51bGwsICJzdHJlYW1fZW5jb2RpbmciOiBudWxsLCAiZXhjZXB0aW9uX3R5cGUiOiAiVW5pY29kZURlY29kZUVycm9yIiwgImV4Y2VwdGlvbl9tZXNzYWdlIjogIid1dGYtOCcgY29kZWMgY2FuJ3QgZGVjb2RlIGJ5dGUgMHhiZSBpbiBwb3NpdGlvbiAxODogaW52YWxpZCBzdGFydCBieXRlIiwgInRyYWNlYmFjayI6ICJUcmFjZWJhY2sgKG1vc3QgcmVjZW50IGNhbGwgbGFzdCk6XG4gIEZpbGUgXCJDOlxcVXNlcnNcXExvb2t0XFxBcHBEYXRhXFxSb2FtaW5nXFx1dlxccHl0aG9uXFxjcHl0aG9uLTMuMTIuMTItd2luZG93cy14ODZfNjQtbm9uZVxcTGliXFx0aHJlYWRpbmcucHlcIiwgbGluZSAxMDc1LCBpbiBfYm9vdHN0cmFwX2lubmVyXG4gICAgc2VsZi5ydW4oKVxuICBGaWxlIFwiQzpcXFVzZXJzXFxMb29rdFxcQXBwRGF0YVxcUm9hbWluZ1xcdXZcXHB5dGhvblxcY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcXExpYlxcdGhyZWFkaW5nLnB5XCIsIGxpbmUgMTAxMiwgaW4gcnVuXG4gICAgc2VsZi5fdGFyZ2V0KCpzZWxmLl9hcmdzLCAqKnNlbGYuX2t3YXJncylcbiAgRmlsZSBcIkM6XFxVc2Vyc1xcTG9va3RcXEFwcERhdGFcXFJvYW1pbmdcXHV2XFxweXRob25cXGNweXRob24tMy4xMi4xMi13aW5kb3dzLXg4Nl82NC1ub25lXFxMaWJcXHN1YnByb2Nlc3MucHlcIiwgbGluZSAxNTk5LCBpbiBfcmVhZGVydGhyZWFkXG4gICAgYnVmZmVyLmFwcGVuZChmaC5yZWFkKCkpXG4gICAgICAgICAgICAgICAgICBeXl5eXl5eXl5cbiAgRmlsZSBcIjxmcm96ZW4gY29kZWNzPlwiLCBsaW5lIDMyMiwgaW4gZGVjb2RlXG5Vbmljb2RlRGVjb2RlRXJyb3I6ICd1dGYtOCcgY29kZWMgY2FuJ3QgZGVjb2RlIGJ5dGUgMHhiZSBpbiBwb3NpdGlvbiAxODogaW52YWxpZCBzdGFydCBieXRlXG4iLCAiZGVjb2RlX2lucHV0X2Jhc2U2NCI6ICJSMlYwTFVOcGJVbHVjM1JoYm1ObElEb2d2dHkrK0xmRHpzb2dEUXJMK2RUYXpydld3eURRMERveElOZld0L3M2SURJTkNpc2dLRWRsZEMxRGFXMUpibk4wWVc1alpTQXRRMnhoYzNOT1lXMWxJRmRwYmpNeVgxQnliMk5sYzNOdmNpa3VUblZ0WW1WeVQyWkRiM0psY3cwS0t5QWdmbjUrZm41K2ZuNStmbjUrZm41K2ZuNStmbjUrZm41K2ZuNStmbjUrZm41K2ZuNStmbjUrZm41K0RRb2dJQ0FnS3lCRFlYUmxaMjl5ZVVsdVptOGdJQ0FnSUNBZ0lDQWdPaUJRWlhKdGFYTnphVzl1UkdWdWFXVmtPaUFvY205dmRGeGphVzEyTWpwWGFXNHpNbDlRY205alpYTnpiM0k2VTNSeWFXNW5LU0JiUjJWMExVTnBiVWx1YzNSaGJtTmxYU3dnUTJsdFJYaGpaWEIwYVc5dURRb2dJQ0FnS3lCR2RXeHNlVkYxWVd4cFptbGxaRVZ5Y205eVNXUWdPaUJJVWtWVFZVeFVJREI0T0RBd05ERXdNRE1zVFdsamNtOXpiMlowTGsxaGJtRm5aVzFsYm5RdVNXNW1jbUZ6ZEhKMVkzUjFjbVV1UTJsdFEyMWtiR1YwY3k1SFpYUkRhVzFKYm5OMFlXNWpaVU52YlcxaGJtUU5DaUFOQ2c9PSIsICJkZWNvZGVfaW5wdXRfY3A5MzYiOiAiR2V0LUNpbUluc3RhbmNlIDogXHU2MmQyXHU3ZWRkXHU4YmJmXHU5NWVlIFxyXG5cdTYyNDBcdTU3MjhcdTRmNGRcdTdmNmUgXHU4ODRjOjEgXHU1YjU3XHU3YjI2OiAyXHJcbisgKEdldC1DaW1JbnN0YW5jZSAtQ2xhc3NOYW1lIFdpbjMyX1Byb2Nlc3NvcikuTnVtYmVyT2ZDb3Jlc1xyXG4rICB+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5cclxuICAgICsgQ2F0ZWdvcnlJbmZvICAgICAgICAgIDogUGVybWlzc2lvbkRlbmllZDogKHJvb3RcXGNpbXYyOldpbjMyX1Byb2Nlc3NvcjpTdHJpbmcpIFtHZXQtQ2ltSW5zdGFuY2VdLCBDaW1FeGNlcHRpb25cclxuICAgICsgRnVsbHlRdWFsaWZpZWRFcnJvcklkIDogSFJFU1VMVCAweDgwMDQxMDAzLE1pY3Jvc29mdC5NYW5hZ2VtZW50LkluZnJhc3RydWN0dXJlLkNpbUNtZGxldHMuR2V0Q2ltSW5zdGFuY2VDb21tYW5kXHJcbiBcclxuIn1dLCAiY2FjaGVfYWZ0ZXIiOiAibm90IGZvdW5kIn0NCg==",
+      "stderr_base64": "RXhjZXB0aW9uIGluIHRocmVhZCBUaHJlYWQtMiAoX3JlYWRlcnRocmVhZCk6DQpUcmFjZWJhY2sgKG1vc3QgcmVjZW50IGNhbGwgbGFzdCk6DQogIEZpbGUgIkM6XFVzZXJzXExvb2t0XEFwcERhdGFcUm9hbWluZ1x1dlxweXRob25cY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcTGliXHRocmVhZGluZy5weSIsIGxpbmUgMTA3NSwgaW4gX2Jvb3RzdHJhcF9pbm5lcg0KICAgIHNlbGYucnVuKCkNCiAgRmlsZSAiQzpcVXNlcnNcTG9va3RcQXBwRGF0YVxSb2FtaW5nXHV2XHB5dGhvblxjcHl0aG9uLTMuMTIuMTItd2luZG93cy14ODZfNjQtbm9uZVxMaWJcdGhyZWFkaW5nLnB5IiwgbGluZSAxMDEyLCBpbiBydW4NCiAgICBzZWxmLl90YXJnZXQoKnNlbGYuX2FyZ3MsICoqc2VsZi5fa3dhcmdzKQ0KICBGaWxlICJDOlxVc2Vyc1xMb29rdFxBcHBEYXRhXFJvYW1pbmdcdXZccHl0aG9uXGNweXRob24tMy4xMi4xMi13aW5kb3dzLXg4Nl82NC1ub25lXExpYlxzdWJwcm9jZXNzLnB5IiwgbGluZSAxNTk5LCBpbiBfcmVhZGVydGhyZWFkDQogICAgYnVmZmVyLmFwcGVuZChmaC5yZWFkKCkpDQogICAgICAgICAgICAgICAgICBeXl5eXl5eXl4NCiAgRmlsZSAiPGZyb3plbiBjb2RlY3M+IiwgbGluZSAzMjIsIGluIGRlY29kZQ0KVW5pY29kZURlY29kZUVycm9yOiAndXRmLTgnIGNvZGVjIGNhbid0IGRlY29kZSBieXRlIDB4YmUgaW4gcG9zaXRpb24gMTg6IGludmFsaWQgc3RhcnQgYnl0ZQ0KRTpcdG1wXFNhdEFnZW50U2ltdWxhdGlvblwudmVudlxMaWJcc2l0ZS1wYWNrYWdlc1xqb2JsaWJcZXh0ZXJuYWxzXGxva3lcYmFja2VuZFxjb250ZXh0LnB5OjEzMTogVXNlcldhcm5pbmc6IENvdWxkIG5vdCBmaW5kIHRoZSBudW1iZXIgb2YgcGh5c2ljYWwgY29yZXMgZm9yIHRoZSBmb2xsb3dpbmcgcmVhc29uOg0KW1dpbkVycm9yIDJdIOezu+e7n+aJvuS4jeWIsOaMh+WumueahOaWh+S7tuOAgg0KUmV0dXJuaW5nIHRoZSBudW1iZXIgb2YgbG9naWNhbCBjb3JlcyBpbnN0ZWFkLiBZb3UgY2FuIHNpbGVuY2UgdGhpcyB3YXJuaW5nIGJ5IHNldHRpbmcgTE9LWV9NQVhfQ1BVX0NPVU5UIHRvIHRoZSBudW1iZXIgb2YgY29yZXMgeW91IHdhbnQgdG8gdXNlLg0KICB3YXJuaW5ncy53YXJuKA0KICBGaWxlICJFOlx0bXBcU2F0QWdlbnRTaW11bGF0aW9uXC52ZW52XExpYlxzaXRlLXBhY2thZ2VzXGpvYmxpYlxleHRlcm5hbHNcbG9reVxiYWNrZW5kXGNvbnRleHQucHkiLCBsaW5lIDI0NywgaW4gX2NvdW50X3BoeXNpY2FsX2NvcmVzDQogICAgY3B1X2NvdW50X3BoeXNpY2FsID0gX2NvdW50X3BoeXNpY2FsX2NvcmVzX3dpbjMyKCkNCiAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXg0KICBGaWxlICJFOlx0bXBcU2F0QWdlbnRTaW11bGF0aW9uXC52ZW52XExpYlxzaXRlLXBhY2thZ2VzXGpvYmxpYlxleHRlcm5hbHNcbG9reVxiYWNrZW5kXGNvbnRleHQucHkiLCBsaW5lIDI5OSwgaW4gX2NvdW50X3BoeXNpY2FsX2NvcmVzX3dpbjMyDQogICAgY3B1X2luZm8gPSBzdWJwcm9jZXNzLnJ1bigNCiAgICAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXg0KICBGaWxlICI8c3RyaW5nPiIsIGxpbmUgMTAsIGluIHRyYWNlZF9ydW4NCiAgRmlsZSAiQzpcVXNlcnNcTG9va3RcQXBwRGF0YVxSb2FtaW5nXHV2XHB5dGhvblxjcHl0aG9uLTMuMTIuMTItd2luZG93cy14ODZfNjQtbm9uZVxMaWJcc3VicHJvY2Vzcy5weSIsIGxpbmUgNTQ4LCBpbiBydW4NCiAgICB3aXRoIFBvcGVuKCpwb3BlbmFyZ3MsICoqa3dhcmdzKSBhcyBwcm9jZXNzOg0KICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eDQogIEZpbGUgIkM6XFVzZXJzXExvb2t0XEFwcERhdGFcUm9hbWluZ1x1dlxweXRob25cY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcTGliXHN1YnByb2Nlc3MucHkiLCBsaW5lIDEwMjYsIGluIF9faW5pdF9fDQogICAgc2VsZi5fZXhlY3V0ZV9jaGlsZChhcmdzLCBleGVjdXRhYmxlLCBwcmVleGVjX2ZuLCBjbG9zZV9mZHMsDQogIEZpbGUgIkM6XFVzZXJzXExvb2t0XEFwcERhdGFcUm9hbWluZ1x1dlxweXRob25cY3B5dGhvbi0zLjEyLjEyLXdpbmRvd3MteDg2XzY0LW5vbmVcTGliXHN1YnByb2Nlc3MucHkiLCBsaW5lIDE1MzgsIGluIF9leGVjdXRlX2NoaWxkDQogICAgaHAsIGh0LCBwaWQsIHRpZCA9IF93aW5hcGkuQ3JlYXRlUHJvY2VzcyhleGVjdXRhYmxlLCBhcmdzLA0KICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4NCg==",
+      "stdout_sha256": "96c1ed2381334c36a6920242b7c3078dcd2c0eb903c3a404824fd6258a671483",
+      "stderr_sha256": "eec35ab9ca8397fa9176b26eecdd68ab832e8a134bb3e0d94e8dd70dc8c63d3b",
+      "parsed_stdout": {
+        "scope": "Read-only fresh-process loky CPU probe only; original thread excepthook retained; no warning filters or environment changes",
+        "python_version": "3.12.12 (main, Dec  9 2025, 19:02:55) [MSC v.1944 64 bit (AMD64)]",
+        "utf8_mode": 1,
+        "locale_encoding": "cp936",
+        "pythonutf8_env": null,
+        "pythonioencoding_env": null,
+        "loky_max_cpu_count_env": null,
+        "os_cpu_count": 20,
+        "cache_before": null,
+        "returned_cpu_count": 20,
+        "calls": [
+          {
+            "args": [
+              "powershell.exe",
+              "-Command",
+              "(Get-CimInstance",
+              "-ClassName",
+              "Win32_Processor).NumberOfCores"
+            ],
+            "capture_output": true,
+            "text": true,
+            "encoding": null,
+            "errors": null,
+            "returncode": 0,
+            "stdout": "",
+            "stderr": null
+          },
+          {
+            "args": [
+              "wmic",
+              "CPU",
+              "Get",
+              "NumberOfCores",
+              "/Format:csv"
+            ],
+            "capture_output": true,
+            "text": true,
+            "encoding": null,
+            "errors": null,
+            "exception_type": "FileNotFoundError",
+            "exception_message": "[WinError 2] 系统找不到指定的文件。"
+          }
+        ],
+        "thread_events": [
+          {
+            "thread_name": "Thread-2 (_readerthread)",
+            "target_name": null,
+            "subprocess_args": null,
+            "stream_encoding": null,
+            "exception_type": "UnicodeDecodeError",
+            "exception_message": "'utf-8' codec can't decode byte 0xbe in position 18: invalid start byte",
+            "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\threading.py\", line 1075, in _bootstrap_inner\n    self.run()\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\threading.py\", line 1012, in run\n    self._target(*self._args, **self._kwargs)\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\subprocess.py\", line 1599, in _readerthread\n    buffer.append(fh.read())\n                  ^^^^^^^^^\n  File \"<frozen codecs>\", line 322, in decode\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xbe in position 18: invalid start byte\n",
+            "decode_input_base64": "R2V0LUNpbUluc3RhbmNlIDogvty++LfDzsogDQrL+dTazrvWwyDQ0DoxINfWt/s6IDINCisgKEdldC1DaW1JbnN0YW5jZSAtQ2xhc3NOYW1lIFdpbjMyX1Byb2Nlc3NvcikuTnVtYmVyT2ZDb3Jlcw0KKyAgfn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+DQogICAgKyBDYXRlZ29yeUluZm8gICAgICAgICAgOiBQZXJtaXNzaW9uRGVuaWVkOiAocm9vdFxjaW12MjpXaW4zMl9Qcm9jZXNzb3I6U3RyaW5nKSBbR2V0LUNpbUluc3RhbmNlXSwgQ2ltRXhjZXB0aW9uDQogICAgKyBGdWxseVF1YWxpZmllZEVycm9ySWQgOiBIUkVTVUxUIDB4ODAwNDEwMDMsTWljcm9zb2Z0Lk1hbmFnZW1lbnQuSW5mcmFzdHJ1Y3R1cmUuQ2ltQ21kbGV0cy5HZXRDaW1JbnN0YW5jZUNvbW1hbmQNCiANCg==",
+            "decode_input_cp936": "Get-CimInstance : 拒绝访问 \r\n所在位置 行:1 字符: 2\r\n+ (Get-CimInstance -ClassName Win32_Processor).NumberOfCores\r\n+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (root\\cimv2:Win32_Processor:String) [Get-CimInstance], CimException\r\n    + FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand\r\n \r\n"
+          }
+        ],
+        "cache_after": "not found"
+      }
+    },
+    "comparison": [
+      "Default locale: utf8_mode=0, CP936 locale, physical probe fails and logical count 20 is returned, with no reader-thread UnicodeDecodeError.",
+      "UTF8 under the inherited tool console: count 20 is returned; PowerShell stderr decodes successfully and no thread event is observed. This non-reproduction is retained rather than relabeled a pass for reproducing the historical exception.",
+      "UTF8 plus CREATE_NO_WINDOW (134217728): exact byte/position UnicodeDecodeError occurs in _readerthread; the failing raw bytes are the CP936 PowerShell permission-denied message. Loky then encounters missing WMIC and returns 20; process returncode remains 0."
+    ],
+    "instrumentation_limits": "The wrappers only observed calls in fresh diagnostic processes and invoked original functions/hooks. They were not installed into the application, dependency files or full-suite process."
+  },
+  "program_resolution_at_review": {
+    "powershell.exe": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "wmic": null
+  },
+  "impact_assessment": {
+    "established": [
+      "The physical-core lookup did not yield a usable count through the installed loky Windows path; logical-core availability 20 was used by the CPU-count API.",
+      "The thread exception is genuine but belongs to CPU-probe command text decoding. No frontend/native physics thread failure appears in this traceback or in the isolated probe.",
+      "The scientific-closure testcase completed and wrote its required analysis artifacts according to its passed assertions; the full-suite process exited successfully with the four warnings preserved."
+    ],
+    "plausible_but_not_measured": [
+      "Logical-core fallback can change the CPU/OpenMP parallelism upper bound and analysis runtime or oversubscription behavior. The actual number of threads used by each fitted estimator was not measured here.",
+      "Concurrent CPU load or probe overhead could influence wall-clock timing. This review does not prove that all timing measurements were unaffected."
+    ],
+    "not_established": [
+      "A physically accurate core count, clean CPU-probe compatibility, zero unhandled background-thread exceptions, or warning-free execution.",
+      "The scientific diagnostic baselines are flight-qualified, unaffected in every numerical detail, or generalize beyond their existing declared validation scope.",
+      "All application threads and all possible simulations are failure-free merely because these specific warning sources were classified."
+    ],
+    "reporting_wording": "Report 1978 passed, 5 skipped, 4 warnings, including a reproduced third-party Windows CPU-probe text-decoding/physical-core fallback issue. Do not call the suite warning-free or silently remove the exception from the result."
+  },
+  "changes_made": {
+    "only_new_review_artifact": true,
+    "src_tests_dependencies_or_environment_modified": false,
+    "full_suite_or_model_rerun": false,
+    "warning_filters_or_thread_exception_suppression": false
+  }
+}

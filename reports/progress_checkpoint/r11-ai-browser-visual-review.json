@@ -1,0 +1,402 @@
+{
+  "schema_version": "sat-independent-actual-model-browser-image-review.v1",
+  "status": "INDEPENDENT_ACTUAL_IMAGE_REVIEW_PASS",
+  "reviewer": "/root/ui_workflow_audit",
+  "method": "Read-only verified-owner monitoring through terminal MODEL_BROWSER PASS, then individual direct visual inspection of every one of the 23 root PNG files at original resolution. Reviewed code/result targets, axes, plotted trajectories, legends, result-tab readability and model-provider wording. No model request, server start, workflow retry or simulation was initiated by this reviewer.",
+  "reviewed_at_utc": "2026-10-30T05:17:36.585411+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "source_report_sha256": {
+    "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/report.json": "aeeb96b524e76f0575287c4b3512bbf62827e8bca28060d663cbbdf149e616ba"
+  },
+  "wrapper_state": {
+    "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/state.json",
+    "sha256": "2e4d6e8ed397ddd1f7b15c4038b35553ea47abdc5bef150c144b1a431d9f30e2",
+    "terminal_status": "CHECKS_PASS_REQUIRES_INDEPENDENT_AND_VISUAL_REVIEW",
+    "application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+    "core_after": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+    "browser_returncode": 0,
+    "browser_driver_sha256": "18880f7d78428f0d41d2a1a98cbe6214f19d31d7da89f836e3db42e178409f8b",
+    "browser_driver_unchanged": true
+  },
+  "owner_monitoring": {
+    "pid": 70508,
+    "created": 1793336411.12959,
+    "identity_verified_live_before_terminal": true,
+    "observed_create_refine_child": 64248,
+    "observed_model_browser_child": 77804,
+    "same_owner_verified_running_repeatedly": true,
+    "owner_missing_at_terminal_observation": true,
+    "terminal_browser_report_status": "PASS",
+    "terminal_browser_step_returncode": 0,
+    "no_restarts_or_new_services": true,
+    "waits_seconds": [
+      45,
+      45,
+      45,
+      45,
+      30
+    ]
+  },
+  "source_report_summary": {
+    "status": "PASS",
+    "checks_total": 85,
+    "checks_true": 85,
+    "false_checks": [],
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "run_id": "generated_task_mvuiphao",
+    "page_errors": [],
+    "failed_responses": [],
+    "finished_at_utc": "2026-10-30T05:14:47.466636+00:00"
+  },
+  "viewed_images_count": 23,
+  "all_current_root_pngs_actually_viewed": true,
+  "viewed_images": [
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-curves-1366.png",
+      "sha256": "c3ae8c6bbe17c1091e8f607c39eae86e824052346443584857fdfe8a9d3e482d",
+      "width": 1366,
+      "height": 900,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The desktop result column displays the full plot with readable axes and non-empty trajectories.",
+        "The Curves tab label is fully visible and the canvas is not clipped by the result panel."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-curves-1920.png",
+      "sha256": "6569ecfec884d94c714fe62a767b290ab743802fa5bc23e198f17828cb2c4dfe",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The full chart canvas and time/normalized-axis labels are visible in the desktop result column.",
+        "A separate legend capture covers below-canvas content, rather than assuming it is visible in this canvas-focused image."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-curves-390.png",
+      "sha256": "a7ac19f91b27bc7c9f76d2f9ba3079207087a6cb77456f4e5cb601481f74c382",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The entire mobile plot frame, time-axis ticks from 0 to 20 seconds, normalized vertical ticks and non-empty blue/red trajectories are visible.",
+        "The Curves tab remains readable and the plot is not squeezed to zero height; surrounding content is scrolled to the plot target."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-curves-768.png",
+      "sha256": "078e648465955a76da26ee4e48433fe5237a1c38bfd758682183dba2cea5e8f4",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The full plot and 0-to-20-second time ticks are visible at tablet width.",
+        "The run card and selected Curves tab remain visible above the bounded chart region."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-legend-1366.png",
+      "sha256": "6f3e0d34153d2e6624065fb7ad0711bff54d09449e4739c073c5b50b7d659813",
+      "width": 1366,
+      "height": 900,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The legend lists orbital radius and x/y/z positions with units and min/max values; long labels wrap within the narrow result column.",
+        "Result tabs are fully visible; the image targets the legend rather than falsely claiming simultaneous full-canvas coverage."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-legend-1920.png",
+      "sha256": "8369aab9b2aef79b170c1c0b22441d80367c55cd00a1209c6f2febcf54b649c9",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The complete four-entry legend and normalized-trend explanation are visible in the result column.",
+        "Axes at the bottom of the partly scrolled plot remain distinguishable from the legend text."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-legend-390.png",
+      "sha256": "f8e1f2778b7cacd9d34d8697054bb3c6ae97415a4433f6308fd8fa27882521d3",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "All four selected orbital-channel legend entries are visible with names, units and min/max ranges wrapping inside the mobile panel.",
+        "The normalized-trend explanation is readable; the upper plot is intentionally partly scrolled out to reveal the legend."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-legend-768.png",
+      "sha256": "9ee4b98a1541031e7cadcc68792dda2dc702b67ad5af20b56487f4d75dfff024",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "Four color-coded orbital-channel legend entries and their numerical ranges are readable at tablet width.",
+        "Legend and chart content remain inside the result column, with no observed horizontal page overflow."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-native-result.png",
+      "sha256": "1728f1e515928423389fc263a04e6e9c947e59e59cc10f9d2262e7466df05388",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The 1600x1000 completed-run overview shows SUCCEEDED, PASS, VERIFIED and readable numeric metrics.",
+        "The result tab strip remains complete below the run card, with engineering assumptions disclosed through a collapsed section."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-result-1366.png",
+      "sha256": "7a39adb403fd659bf9d4fe18dfaa3e0a9468373f7d160d58f6aee7cb7a1bb6c5",
+      "width": 1366,
+      "height": 900,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The run card and result-tab labels are visible without the prior vertical tab clipping.",
+        "The overview is scrolled to lower metrics and validation coverage; partly scrolled preceding metric rows are not a truncated tab strip."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-result-1920.png",
+      "sha256": "b05608cc564b2e44015824e272fab50d99538f708de560ef4f56aad571f0e34c",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The run card, full tab strip, lower overview metrics and bounded validation disclosure are visible.",
+        "The main configuration summary shows 20 seconds and a 1-second sampling interval."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-result-390.png",
+      "sha256": "d5a9646938c5a8b195a9f35279fa6e4b2364944922b870ddcb832f03182276f2",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "Mobile run card shows generated_task_mvuiphao, SUCCEEDED, validation PASS and artifact integrity VERIFIED.",
+        "All result-tab labels are fully visible; overview fields and the partial-physical-coverage disclosure wrap inside the result panel.",
+        "The result target is now captured rather than just the page header."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-result-768.png",
+      "sha256": "706cc66ae737f6fb09108eef9721fcb4f09da63c605f38642cc9edb0adf22a45",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The actual run card, full result-tab strip, overview metrics and partial-physical-coverage disclosure are visible at tablet width.",
+        "The disclosure distinguishes passed validation from unassessed physics checks instead of claiming universal physical verification."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/generated-python-1366.png",
+      "sha256": "85f89648877d234f59d2670cc06941619270d6adc24a6d70e20524466402520f",
+      "width": 1366,
+      "height": 900,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The Python inspector, opening source lines, and Generate/Copy/Download controls are visible in the desktop viewport.",
+        "The source editor is bounded inside the inspector; the adjacent run panel correctly shows the pre-run empty state."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/generated-python-1920.png",
+      "sha256": "91fd110ffa4d82cc0b8faeebace5e3d715b573fc141a7f3242229216794379b7",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The graph contains a Python node connected to the runner, with generated_task.py and its source inspector visible.",
+        "Source preview and Generate/Copy/Download controls fit the right inspector without overlapping the result panel."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/generated-python-390.png",
+      "sha256": "64ebda18fd14620062ca1bddcd562e38bba28d381a0267c8761217feef4d18a3",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The mobile capture now includes the Python inspector title, generated_task.py status, source editor, and Generate/Copy/Download controls.",
+        "Code text remains within the editor boundary; horizontal source-line scrolling is internal to the code field.",
+        "The below-editor empty run state is appropriate to the pre-run phase."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/generated-python-768.png",
+      "sha256": "2f15dd968f0e08d3a39ee4e9be0db392e13703c8f290da1e3aed19451ca30d89",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The tablet capture includes the complete visible code-editor frame and all three action buttons.",
+        "The inspector is no longer outside the captured viewport; sidebar and editor columns remain separated."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/generated-python.png",
+      "sha256": "07d387f57ceab8fec003a23465f747be64972a25d818fc1ee50c4d81ba46f7f3",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The 1600x1000 capture visibly includes the code field, generated file name, and download controls.",
+        "Upper graph content is outside this scrolled capture, while the intended code target remains visible."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/model-settings-1366.png",
+      "sha256": "a689b55c4339b6152af4c67f9a4eee8b26f1a5d8d1be05c5bc8298821032bb31",
+      "width": 1366,
+      "height": 900,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The desktop modal exposes model and endpoint fields, successful probe text and the active saved ModelScope provider.",
+        "The built-in template no longer combines a full-test-passed claim with absent probe history; lower diagnostic content is in its scrollable region."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/model-settings-1920.png",
+      "sha256": "f0d884532dbf1d36ffb0b43c4bc5584e274e79442bb37a8feb2829dc7e6485f0",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The centered settings modal fits the desktop viewport with correctly separated built-in and ModelScope service statuses.",
+        "The active ModelScope card shows a recent full-test record; the built-in card instead states deterministic-template availability."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/model-settings-390.png",
+      "sha256": "42d9277655d5cfc26b5ae8d802f2fdf3da5d321c19b4795c97f5d962f6421383",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The modal uses single-column controls with visible title, close control, model-name field, discovery/save buttons, successful probe message and active-provider summary.",
+        "The built-in template is labeled as available, rather than full real-model testing.",
+        "The long native select label truncates within its control; the full model identifier is available in the separate model-name field and wrapped active-provider summary. Lower modal content continues below this capture."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/model-settings-768.png",
+      "sha256": "7e6f0e3bffe5b562aad7a86dd3a99c51f065950d4a425e5c05eaaf67e56f7eb5",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The settings modal fits the tablet viewport; model fields, actions, active-provider summary and both provider cards are visible.",
+        "The built-in card states that it does not call a model, while the ModelScope card retains its own successful recent test record."
+      ]
+    },
+    {
+      "path": "E:/tmp/SatAgentSimulation/reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/model-settings-real.png",
+      "sha256": "029ad3af147e907bda25fec1808ff48b308fd63e30e3ab504ee8c6723b4a4af7",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "Direct individual tools.view_image inspection with detail=original; no contact sheet or automated verdict substituted.",
+      "observations": [
+        "The 1600x1000 real-model settings capture shows the configured/discovered v8 model, local endpoint, successful full-probe text and active-provider banner.",
+        "The two provider cards use distinct template-availability versus tested-model-service language."
+      ]
+    }
+  ],
+  "findings": [],
+  "unresolved_findings": [],
+  "coverage": {
+    "settings_widths": [
+      390,
+      768,
+      1366,
+      1920
+    ],
+    "python_editor_target_visible_widths": [
+      390,
+      768,
+      1366,
+      1920
+    ],
+    "result_target_visible_widths": [
+      390,
+      768,
+      1366,
+      1920
+    ],
+    "full_curve_canvas_visible_widths": [
+      390,
+      768,
+      1366,
+      1920
+    ],
+    "legend_target_visible_widths": [
+      390,
+      768,
+      1366,
+      1920
+    ],
+    "result_tab_vertical_clipping_observed": false,
+    "template_and_actual_model_test_status_are_distinct": true,
+    "prior_App023_screenshots_reused_as_current_evidence": false
+  },
+  "scope_limits": [
+    "PASS applies to the captured regions, breakpoints and workflow of application 4cce6d... with Core59d0, not arbitrary configurations or a universal flawless-UI guarantee.",
+    "Full script execution and model-invocation claims come from the hash-bound production browser report; images alone do not prove model accuracy or physical fidelity.",
+    "The displayed legend covers four currently selected orbital channels. This review does not claim that all requested output fields were plotted simultaneously; the source report separately checks configured/requested fields and telemetry.",
+    "Curve and legend targets were captured after separate scrolling where required; partial chart visibility in a legend-focused capture is not presented as a full-canvas screenshot.",
+    "Mobile model-settings content below the captured fold was not claimed visible. The code, result, curve and legend targets specifically missing in the older App023 review are visibly covered here."
+  ]
+}

@@ -470,6 +470,7 @@
           <div class="chart-axis-note">横轴固定为仿真时间（time_s）；曲线按整星 / 分系统 / 部件层次选择，最多同时显示 4 条。</div>
           <div id="chartControls" class="chart-controls"></div>
           <div class="chart-window-controls" aria-label="曲线时间范围">
+            <label>纵轴显示 <select id="chartScaleMode" aria-label="曲线纵轴显示方式"><option value="trend">多参量趋势（分别归一化）</option><option value="absolute">原始数值（同单位比较）</option></select></label>
             <label>起点 / s <input id="chartTimeStart" type="number" step="any" inputmode="decimal" aria-label="曲线开始时间"></label>
             <label>终点 / s <input id="chartTimeEnd" type="number" step="any" inputmode="decimal" aria-label="曲线结束时间"></label>
             <button id="chartApplyWindowBtn" class="button button-secondary" type="button">应用范围</button>

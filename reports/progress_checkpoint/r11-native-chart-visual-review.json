@@ -1,0 +1,323 @@
+{
+  "schema_version": "sat-independent-actual-image-review.v1",
+  "status": "INDEPENDENT_ACTUAL_IMAGE_REVIEW_PASS",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "reviewed_at_utc": "2026-10-30T05:22:01.824243+00:00",
+  "reviewer": "/root/engineering_scope_review",
+  "reviewer_kind": "independent_agent_direct_visual_review",
+  "method": "Read the completed native-chart source report, verified the exact live owner identity while waiting, then directly viewed all 22 original root PNGs individually with tools.view_image(detail=original). No application, browser, model, simulation or test was launched or retried by this review.",
+  "source_report_sha256": {
+    "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/report.json": "5d11c70f72ac0a3329cc145ca940f0c4aa20d32bd18dbae0d43e69bd66c73bcb"
+  },
+  "qualification_state_sha256": "53a2cf191f381c39e580afb0ccf489fc572177c29ef83f7b7c3b0d4f779b2244",
+  "source_report_check_count": 76,
+  "monitoring_observation": {
+    "owner_pid": 69392,
+    "owner_created_exact": 1793336299.3555515,
+    "identity_verified_exact_while_running": true,
+    "terminal_state_observed": "CHECKS_PASS_INDEPENDENT_AND_VISUAL_REVIEW_PENDING",
+    "all_three_children_returned_zero": true
+  },
+  "viewed_images_count": 22,
+  "all_available_root_pngs_actually_viewed": true,
+  "viewed_images": [
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/engineering-input-sources.png",
+      "sha256": "de18efacb15b33608246db1cd4f8adf08df502ddcbbee218eb9008594987e0c9",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "Expanded engineering disclosure is actually visible: uncalibrated default/assumption status, SPICE/WMM UTC, thermal-environment assumptions and stated exclusions are readable.",
+        "The 120-item input-origin disclosure is expanded and its first parameter is visible; long text wraps within the result column. This viewport does not show every item simultaneously."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/live-curve-1600.png",
+      "sha256": "07084aa2e77a5476d48fc0a8dac924e6abeff90f7824d4c27a1b8f678f8e543e",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "Actual cyan pointing-error curve spans the plot from 0.0 to 3.4 seconds; the degree-labelled selector, axes and plot border are visible.",
+        "Below-plot radius, pointing-error and SOC cards fit; the caption distinguishes the recent live view from persistent history."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/live-curve-390.png",
+      "sha256": "8f1db1d10f6b57c034a7e4f26f7d4d6b99089fb6f0bb30577a8c210aee194ada",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The complete live canvas and both time-axis endpoints fit the phone width; the cyan curve is visibly drawn.",
+        "Continuation, single-step and stop/archive controls remain visible in the bottom toolbar without covering the chart."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/live-paused-1366.png",
+      "sha256": "19d7f7c424aa3d6a952e6392d74ccff9c4afb63c0776899e53d567176c54d65f",
+      "width": 1366,
+      "height": 768,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The paused status, 3.40-second simulation time, 1.0x rate and native PID 56556 are readable.",
+        "Continue, single-step and stop/archive controls are visible beside the separate creation and telecommand panels; no overlapping panel text is seen."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/live-paused-1920.png",
+      "sha256": "22fe2ce212dfa1e29445f747cf6aace7c2cb6c924ec3a2fb2a4954718ea821da",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The three-column creation/state/telecommand arrangement is visible, including paused status and the complete primary control row.",
+        "The recovery-readiness section explicitly states that it does not save a complete checkpoint or resume/replay; no automatic recovery claim is displayed."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/live-paused-390.png",
+      "sha256": "a98e4e5eb801d73346d3087860dfa29c514f74d5e51bf18ad326105c51279b0a",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The selected running-session state appears before creation controls; paused status and 3.40 seconds are above the fold.",
+        "The two-row mobile control toolbar fits the viewport. The horizontal navigation strip can extend beyond the viewport as a separate scrollable strip."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/live-paused-768.png",
+      "sha256": "e3a8665966a8712c3295e6e511d3f19b445b227519ddd4957dc6ebe8cba0caa5",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The paused state, rate, archive status and native PID fit in a two-column metric arrangement.",
+        "All five primary controls fit in the tablet panel with clear continuation, single-step and stop/archive labels."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/live-paused.png",
+      "sha256": "e13055a7555e7cdf9a358090db1123e8d4862fe098d9790b608db8a451f623bc",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The 1600-wide paused overview shows creation, state and telecommand panels without observed outer overflow.",
+        "Continue/single-step/stop controls are readable; unchanged native PID and the explicit recovery limitations remain visible."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/mobile-font-130.png",
+      "sha256": "86df8a3a7b8ca6503744249cc0fb2c754fe785d0e10677b8f0192e137b35bc0f",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The 130-percent font setting and theme/token controls are readable and remain within phone width.",
+        "Enlarged bottom controls wrap into two columns plus a full-width stop/archive button. This screenshot is a font/control view; it does not show the session metric card above the fold."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/mobile-settings-390.png",
+      "sha256": "dc8d7ffd28e2d745c5c04971c3c2f0a36f1d5f9fef6089c04859f2915a110a96",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "Expanded font, theme and API-token settings fit the phone header, and the close-settings button remains visible.",
+        "The native whole-spacecraft selection, template controls, validation button and run button are visible; labels wrap within the card."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-1366.png",
+      "sha256": "8e4d58dc2e6f985ae4e126fa9bceff886189f33f346dfc06c277033d8b7665be",
+      "width": 1366,
+      "height": 768,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The completed native result card shows SUCCEEDED, PASS and VERIFIED within the side panel.",
+        "Overview, curves, events, FMEA/evidence and artifacts tabs have fully visible label height; the former vertical clipping is not visible in this image."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-1920.png",
+      "sha256": "0dadc1a2dfbb6d2c2ec322c738cddb6a34a86c45d6de8d8966a6639c1c9e6bbb",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The desktop configuration and result columns fit; validation/run/export actions remain distinct and visible.",
+        "The overview shows connected/recorded runtime truth, pointing-error degrees, SOC ratio and stored-data bits, with no observed unit/label confusion."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-390.png",
+      "sha256": "ef0b65dfc4193262601046ed4afe8e7e9bd8d4a64ac6e32ddb49b7931eeecd1f",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The mobile object/template controls and validation/run buttons fit inside the main card above the lower content.",
+        "The completion message wraps the long run identifier within the panel; this screenshot is the creator view rather than a chart view."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-768.png",
+      "sha256": "ca0d0e68e2df527962204486aef626d322a81a85eb4f30c9fa5c209d9df3595c",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The tablet creator keeps the object header, model/template controls and validation/run actions within the available column.",
+        "Run-mode choices and the completed-run message wrap without overlapping the left capability navigation."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-curves-1366.png",
+      "sha256": "bcc9c0549124d50a104aca6c53d1768f8da83f4f83781da338e8e5fa14fc3d8f",
+      "width": 1366,
+      "height": 900,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The entire enlarged chart canvas is in the viewport, with visible descending blue and ascending red traces over 0?20 seconds.",
+        "The 0?100-percent per-variable normalization disclosure and all four real min/max legend entries are visible; overlapping normalized traces are not presented as equal absolute quantities."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-curves-1920.png",
+      "sha256": "ec41c259ca844db8302a64e16904b4661fad2ae121a1b414c12125e952172151",
+      "width": 1920,
+      "height": 1080,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The full 0?20-second canvas, range/scale controls and plot axes are visible at desktop width.",
+        "Per-variable normalization, the four field names and real min/max ranges are readable below the plotted traces."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-curves-390.png",
+      "sha256": "3376b52f1decd602493f8b8788302afc83b625c453ce608fa821c5b80c2b2722",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The whole phone-width canvas is actually visible with 0?20-second endpoints and 0?100-percent trend axes.",
+        "Normalization and the start of the real-range legend are visible below; the separate legend screenshot covers the remainder rather than claiming it is all shown here."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-curves-768.png",
+      "sha256": "7a6fbdde8e6680a01bb73a8651f21955bc48ffc742fd58c79616c49c366b67d2",
+      "width": 768,
+      "height": 1024,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The entire tablet canvas and visible red/blue traces fit, with complete time-axis endpoints.",
+        "All four real-range legend entries and the per-variable-normalization explanation are visible below the canvas."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-legend-390.png",
+      "sha256": "65a8c1917a5e0b11d8edc8a9d83e575d69e8324848707a1872e895d16ac8bcf3",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The phone legend view shows all four coloured field names and real min/max values with wrapped text inside the panel.",
+        "The explanation says the comparison is normalized to 0?100 percent and cannot compare different variables? absolute magnitudes. The chart top is outside this intentionally scrolled legend view."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline.png",
+      "sha256": "0cb991bab913eb34624bf2009c35358f11c44d5a2ba14ea29add892c4de466ea",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The 1600-wide creator and result overview show the completed native run and PASS/VERIFIED state without observed panel overlap.",
+        "Result-tab labels fit vertically; stored data uses bit, pointing error uses deg and SOC uses ratio."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/verified-history-1600.png",
+      "sha256": "233e692a5bb8e7d6a79e4b7debdb0d03da4004a29c01c261a229e2a9a73caebb",
+      "width": 1600,
+      "height": 1000,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The original-history query view shows selected radius and pointing-error fields, a 0?3.4-second interval and the 17 stored-sample/hash-verified/no-interpolation caption.",
+        "The complete cyan/purple history canvas and real min/max legends are visible; the normalization limitation is explicitly shown beneath them."
+      ]
+    },
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/verified-history-390.png",
+      "sha256": "79d27ce2e6b87b1b0a0ca169cbb590f1effe4bdeefe84fb00bfc8719513e965f",
+      "width": 390,
+      "height": 844,
+      "actually_viewed": true,
+      "visual_status": "PASS",
+      "view_method": "tools.view_image(detail=original), directly inspected as an individual original PNG in this agent turn",
+      "observations": [
+        "The whole history canvas fits above the mobile toolbar; selected radius/pointing-error fields and the 17-stored-sample/hash-verified caption are visible.",
+        "The wrapped real-value legend and normalization warning fit within the phone panel. This scrolled view does not claim the whole query form is simultaneously visible."
+      ]
+    }
+  ],
+  "findings": [],
+  "unresolved_findings": [],
+  "scope": "Visual layout and actual native offline/live/history chart screenshots from this bound r11 run only.",
+  "evidence_limitations": [
+    "These are the 22 actual captured states, not exhaustive proof of every UI state or interaction.",
+    "Screenshot inspection does not establish satellite-model physical accuracy, AI raw benchmark accuracy or actual24h reliability.",
+    "Normalized offline/history curves compare per-variable trends, not different variables? absolute values; the recorded views disclose real ranges.",
+    "Views focused on a scrolled chart, legend or font controls do not claim every other page element is simultaneously in the viewport."
+  ],
+  "actual24h_qualified": false,
+  "source_images_changed_or_generated_by_reviewer": false
+}

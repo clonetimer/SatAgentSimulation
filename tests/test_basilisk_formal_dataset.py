@@ -53,6 +53,21 @@ def test_signal_gate_children_pass_strict_taskspec_validation(tmp_path: Path) ->
     assert failures == {}
 
 
+def test_native_signal_factory_samples_supported_hardware_without_clamping(tmp_path: Path) -> None:
+    from sat_sim.capability_registry import get_capability
+    config = FaultDatasetFactoryConfig.from_json(Path("configs/integration/rw_native_validation.json"))
+    spec = build_fault_dataset_campaign(config)
+    assert spec['metadata']['case_parameter_sampling_policy'] == 'native_rw_hardware_bounded_v1'
+    assert spec['metadata']['native_rw_torque_sampling_range_nm'] == [.15, .2]
+    assert get_capability(config.capability_id).data['parameters']['rw_max_torque_nm']['max'] == .2
+    plan = expand_campaign_spec(spec, output_root=tmp_path / 'hardware-safe-plan')
+    from sat_sim.task_models import to_runtime_task_spec
+    for case in plan.cases:
+        values = to_runtime_task_spec(case.spec)['parameters']
+        assert .15 <= values['rw_max_torque_nm'] <= .2
+        assert values['rw_motor_current_limit_a'] * values['rw_motor_torque_constant_nm_per_a'] == pytest.approx(values['rw_max_torque_nm'])
+
+
 def test_campaign_top_level_does_not_require_capability_id() -> None:
     spec = {
         "schema_version": "0.1.0",

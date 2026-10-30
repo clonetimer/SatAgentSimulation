@@ -1,0 +1,128 @@
+{
+  "schema_version": "sat-progress-checkpoint.v2",
+  "created_at_utc": "2026-10-30T05:27:44.478439+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "overall_goal": "ACTIVE_UNPROVEN_ACTUAL24H_RUNNING",
+  "qualification_checks": 851,
+  "sealed_bundles": 10,
+  "actually_viewed_images": 45,
+  "scope": "Review snapshots plus four representative PNGs, complete junit and exact executed audit/launcher source copies. Raw model/training/native telemetry and remaining images stay local; early running observation is not actual24h qualification. Historical snapshots retained.",
+  "files": {
+    "hardware-bounded-r11-independent-review.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-independent-review.json",
+      "sha256": "71555c62a3eda75eee01869fab3634eca8e9860e1adfb44c4813376ab4728785",
+      "bytes": 204683
+    },
+    "r11-qualification-state.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-qualification/state.json",
+      "sha256": "53a2cf191f381c39e580afb0ccf489fc572177c29ef83f7b7c3b0d4f779b2244",
+      "bytes": 4156
+    },
+    "r11-whole-suite.xml": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-qualification/whole-suite.xml",
+      "sha256": "8f0cfb245c98f25eb6197deb39e8a0bfe21c5a5431d936b47c2e68b81eb52018",
+      "bytes": 308620
+    },
+    "r11-thermal-independent-review.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-thermal-independent-review.json",
+      "sha256": "0fa3c95d644f60a5c9b853a0921e35efdde097d1f1cd6cf0fe677f58d56e5d1b",
+      "bytes": 26646
+    },
+    "r11-ai-thermal-link-report.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-ai-followup/thermal-link/report.json",
+      "sha256": "addaf3a85b8fbe5536a4312311d812a289c80149f98724d9af47d0f6ec87b759",
+      "bytes": 17201
+    },
+    "r11-ai-battery-report.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-ai-followup/battery/report.json",
+      "sha256": "d91eaf620ff02601bba265269bc2ae4c2b0f1e735e136591b8d01c7bf6e3f7bb",
+      "bytes": 5679
+    },
+    "r11-ai-create-refine-report.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-ai-followup/chain/report.json",
+      "sha256": "4aaa727e79f3f6fd6ba2d9e97010298d3c3f07ea8105210f56af92aa40f8290e",
+      "bytes": 8531
+    },
+    "r11-ai-browser-report.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/report.json",
+      "sha256": "aeeb96b524e76f0575287c4b3512bbf62827e8bca28060d663cbbdf149e616ba",
+      "bytes": 14909
+    },
+    "r11-native-charts-report.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/report.json",
+      "sha256": "5d11c70f72ac0a3329cc145ca940f0c4aa20d32bd18dbae0d43e69bd66c73bcb",
+      "bytes": 66760
+    },
+    "r11-ai-browser-visual-review.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-ai-browser-visual-review.json",
+      "sha256": "a61c31e4934678e5a0e1e20a77fda509a3413fdd1f21fd2abf02a4bbfea55c4f",
+      "bytes": 22942
+    },
+    "r11-native-chart-visual-review.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-native-chart-visual-review.json",
+      "sha256": "1fd913db9a063bbc82b7987fdd4c23e2167c815c2ccdd425c4984a608c8596cb",
+      "bytes": 19173
+    },
+    "r11-engineering120-independent-review.json": {
+      "source": "reports/local_requirements_completion/generic-leo-engineering-r11-native120-artifact-review.json",
+      "sha256": "c19640251037c9f9ef7c9cf3ad459cda0862c09ad1c3d2df09682b994c252834",
+      "bytes": 22242
+    },
+    "r11-hardware-sampling-component-review.json": {
+      "source": "reports/local_requirements_completion/native-rw-hardware-policy-independent-review.json",
+      "sha256": "5ae379467c30d5b97368f9f80a75e48e2387b7f7543debec3834c9f6fbb1972b",
+      "bytes": 89221
+    },
+    "r11-suite-warnings-review.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-suite-warnings-review.json",
+      "sha256": "967d4dfc296ddc2776dd5827bdba5a6c79828fe28b4b0a895c498e9fb8aafed2",
+      "bytes": 55568
+    },
+    "r11-endurance-initial-observation.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-endurance-owned-observation.json",
+      "sha256": "33fe782bae20cad0639db938b9961e5df1246851a23a0215cec66132d39b1d6d",
+      "bytes": 6094
+    },
+    "r11-ten-second-negative-review.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-endurance/smoke-independent-review.json",
+      "sha256": "2cf81a0f4d40235bb04302a826280f469e9a4cd1502eedb543bd551f64896812",
+      "bytes": 8450
+    },
+    "r11-review-qualification.py": {
+      "source": "reports/local_requirements_completion/review_hardware_bounded_qualification_v2.py",
+      "sha256": "544d68e7e48b1dc68fa3b534bf1f56ea5a11dfb08f899f0aa7c933e21efc1e8b",
+      "bytes": 42348
+    },
+    "r11-launch-configured-endurance.py": {
+      "source": "reports/local_requirements_completion/launch_hardware_bounded_r11_configured_endurance.py",
+      "sha256": "8cd1fb4dd60b13d7e793be657873bdc8e48080864c87a3b933e44890e5f8eac1",
+      "bytes": 8773
+    },
+    "r11-review-endurance.py": {
+      "source": "reports/local_requirements_completion/review_completed_hardware_bounded_r11_endurance.py",
+      "sha256": "90b76ca23573b2f2ed643eecb00ec79575f94e83560e82957ed801948bb0095a",
+      "bytes": 11488
+    },
+    "r11-model-python-390.png": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/generated-python-390.png",
+      "sha256": "64ebda18fd14620062ca1bddcd562e38bba28d381a0267c8761217feef4d18a3",
+      "bytes": 56722
+    },
+    "r11-model-curves-390.png": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-ai-followup/browser/actual-model-curves-390.png",
+      "sha256": "a7ac19f91b27bc7c9f76d2f9ba3079207087a6cb77456f4e5cb601481f74c382",
+      "bytes": 96130
+    },
+    "r11-offline-curves-1920.png": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/offline-curves-1920.png",
+      "sha256": "ec41c259ca844db8302a64e16904b4661fad2ae121a1b414c12125e952172151",
+      "bytes": 158087
+    },
+    "r11-history-curves-390.png": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-visual-charts/verified-history-390.png",
+      "sha256": "79d27ce2e6b87b1b0a0ca169cbb590f1effe4bdeefe84fb00bfc8719513e965f",
+      "bytes": 65500
+    }
+  }
+}

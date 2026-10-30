@@ -406,6 +406,34 @@ def _explicit_time_requirements(text: str) -> dict[str, float]:
     return result
 
 
+def _request_forbids_all_events(text: str) -> bool:
+    """Recognize explicit absence of all three event kinds, not 'nominal' guesses."""
+    latest = text.rsplit("本轮补充指令：", 1)[-1]
+    return bool(re.search(
+        r"无(?:任何)?故障[、，,\s]*(?:无)?退化(?:或|及|和|[、，,\s])*(?:无)?约束(?:事件)?"
+        r"|\b(?:no|without)\s+(?:any\s+)?faults?\s*[,/]\s*(?:no\s+)?degradations?\s*(?:,?\s*(?:or|and)\s+|[,/]\s*)(?:no\s+)?constraints?\b",
+        latest, re.I))
+
+
+def _request_allows_custom_rw_geometry(text: str) -> bool:
+    """Leave unrequested optional mounting/axis overrides to registered defaults."""
+    if "本轮补充指令：" in text:
+        return True  # Preserve the supplied task's unchanged custom configuration.
+    latest = text.rsplit("本轮补充指令：", 1)[-1]
+    return bool(re.search(r"\brw_(?:axis|mount|geometry)|\b(?:geometry|mounting|pyramid|orthogonal|axes)\b"
+                         r"|几何|安装|布局|轴向|轮轴|轮距|金字塔|正交", latest, re.I))
+
+
+def _request_allows_per_wheel_overrides(text: str) -> bool:
+    if "本轮补充指令：" in text:
+        return True
+    latest = text.rsplit("本轮补充指令：", 1)[-1]
+    return bool(re.search(r"\brw\b|\brw_[\w]+_[0-3]\b|wheel|反作用轮|飞轮|动量轮|扭矩|最大力矩|力矩上限|摩擦|阻尼|\b(?:torque|friction|damping)\b"
+                         r"|per[_ -]?wheel|individual\s+wheel|\bRW[1-4]\b"
+                         r"|wheel\s*[1-4]|(?:first|second|third|fourth)\s+(?:reaction\s+)?wheel"
+                         r"|每轮|各轮|每个轮|独立.*轮|轮.*独立|分别.*轮|轮.*分别|轮[1-4一二三四]|[1-4一二三四]号?(?:反作用|飞|动量)?轮", latest, re.I))
+
+
 def _explicit_event_requirement_issues(
     spec: Mapping[str, Any], text: str, *, require_declaration: bool = False,
 ) -> list[ValidationIssue]:
@@ -418,6 +446,24 @@ def _explicit_event_requirement_issues(
 
     latest = text.rsplit("本轮补充指令：", 1)[-1]
     markers = list(re.finditer(r"(?:\bEvents\s*[:：]|事件配置\s*[:：]|事件为)\s*", latest, re.I))
+    if _request_forbids_all_events(latest):
+        issues = []
+        try:
+            if markers:
+                declared, _ = json.JSONDecoder().raw_decode(latest[markers[-1].end():].lstrip())
+                events = EventsSpec.model_validate(declared).model_dump(mode="json")
+                if any(events.values()):
+                    return [ValidationIssue("error", "$.request.events",
+                        "The request forbids all events but its Events JSON declares events.", "USER_EVENT_REQUIREMENTS_CONFLICT")]
+            actual = canonicalize_task_spec(spec)["events"]
+            if any(actual.get(kind) for kind in ("faults", "degradations", "constraints")):
+                issues.append(ValidationIssue("error", "$.events",
+                    "The user explicitly requested no faults, degradations or constraints; generated events are forbidden.",
+                    "USER_NO_EVENTS_MISMATCH"))
+        except (ValueError, TypeError, KeyError):
+            pass  # Existing validators below report malformed drafts/declarations.
+        if issues:
+            return issues
     if not markers:
         return [ValidationIssue(severity="error", path="$.request.events",
             code="USER_EVENT_REQUIREMENTS_MISSING",
@@ -2493,6 +2539,57 @@ class TextModelTaskSpecBackend:
         self.config = config
         self.last_call: LLMCallResult | None = None
         self.last_raw_output: str | None = None
+        self.rejected_call: LLMCallResult | None = None
+        self.schema_repair_attempted = False
+
+    def _rejected_schema_draft(
+        self, result: LLMCallResult, request: CapabilityAgentRequest,
+    ) -> tuple[dict[str, Any], ValidationResult] | None:
+        """Read a rejected answer only as correction input, never as a valid draft."""
+        if result.ok or result.metadata.get("status") != 422:
+            return None
+        config = self._grounded_config(request)
+        if config.structured_output != "json_schema" or not config.response_schema:
+            return None
+        try:
+            import jsonschema
+            detail = json.loads(result.raw_text)["detail"]
+            if detail.get("reason_code") != "MODEL_OUTPUT_OR_CONTEXT_REJECTED":
+                return None
+            draft = json.loads(detail["model_output"]["text"])
+            if not isinstance(draft, dict):
+                return None
+            validator = jsonschema.Draft202012Validator
+            validator.check_schema(config.response_schema)
+            errors = list(validator(config.response_schema).iter_errors(draft))
+        except (ValueError, KeyError, TypeError, jsonschema.SchemaError):
+            return None
+        if not errors:
+            # A different server-side rejection must not be bypassed locally.
+            return None
+
+        def feedback(error):
+            if error.validator == "anyOf" and error.context:
+                branches: dict[Any, list[Any]] = {}
+                for child in error.context:
+                    branches.setdefault(child.schema_path[0], []).extend(feedback(child))
+                # Prefer the matching representation over a short wrapper error
+                # such as "task_spec is required". This only selects feedback;
+                # the complete unchanged schema still gates the corrected draft.
+                return min(branches.values(), key=lambda items: (
+                    sum(e.validator in {"required", "additionalProperties", "const", "enum", "type"}
+                        for e in items), len(items),
+                ))
+            if error.context:
+                return [item for child in error.context for item in feedback(child)]
+            return [error]
+
+        issues = tuple(
+            ValidationIssue("error", "$" + "".join(f".{part}" for part in e.absolute_path),
+                            e.message[:512], "model_response_schema")
+            for error in errors for e in feedback(error)
+        )
+        return draft, ValidationResult(issues=issues[:24])
 
     def _grounded_config(self, request: CapabilityAgentRequest) -> LLMCallConfig:
         if self.config.structured_output!='json_schema' or self.config.backend not in {'openai_compatible','qwen','vllm'}:
@@ -2501,9 +2598,14 @@ class TextModelTaskSpecBackend:
         plan = plan_capability_for_request(request.request,allowed_capabilities=request.allowed_capabilities)
         if not plan.supported or not plan.selected_capability_id:
             return self.config
-        return replace(self.config,response_schema=taskspec_draft_response_schema(plan.selected_capability_id))
+        return replace(self.config,response_schema=taskspec_draft_response_schema(
+            plan.selected_capability_id, forbid_events=_request_forbids_all_events(request.request),
+            allow_geometry_overrides=_request_allows_custom_rw_geometry(request.request),
+            allow_per_wheel_overrides=_request_allows_per_wheel_overrides(request.request)))
 
     def draft_task_spec(self, *, request: CapabilityAgentRequest, context: Mapping[str, Any]) -> dict[str, Any]:
+        self.rejected_call = None
+        self.schema_repair_attempted = False
         prompt_builder = build_capability_json_prompt if self.config.structured_output in {'json_object', 'json_schema'} else build_capability_agent_prompt
         prompt = prompt_builder(
             request.request,
@@ -2521,6 +2623,18 @@ class TextModelTaskSpecBackend:
         self.last_call = result
         self.last_raw_output = result.raw_text
         if not result.ok:
+            rejected = self._rejected_schema_draft(result, request) if request.max_repair_attempts > 0 else None
+            if rejected is not None:
+                self.rejected_call = result
+                self.schema_repair_attempted = True
+                draft, validation = rejected
+                corrected = self.draft_task_spec_with_validation_errors(
+                    request=request, context=context, previous_draft=draft, validation=validation,
+                )
+                # Recheck locally even if an upstream service incorrectly returns HTTP 200.
+                import jsonschema
+                jsonschema.Draft202012Validator(self._grounded_config(request).response_schema).validate(corrected)
+                return corrected
             raise TaskSpecError(f"LLM backend {self.name} failed: {result.error or 'unknown error'}")
         return extract_task_spec_from_model_text(result.raw_text)
 
@@ -4176,6 +4290,23 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         return result
 
     backend: CapabilityAgentBackend | None = None
+
+    def record_rejected_model_call() -> None:
+        rejected = getattr(backend, "rejected_call", None)
+        if rejected is None or "model_call_rejected" in files:
+            return
+        rejected_path = output_dir / "model_call_rejected.json"
+        rejected_raw_path = output_dir / "raw_model_output_rejected.txt"
+        write_json(rejected_path, rejected.to_dict())
+        rejected_raw_path.write_text(rejected.raw_text, encoding="utf-8")
+        files["model_call_rejected"] = str(rejected_path)
+        files["raw_model_output_rejected"] = str(rejected_raw_path)
+        steps.append(CapabilityAgentStep(
+            "model_invocation_rejected", "failed",
+            "Preserved the schema-rejected response; it was used only as feedback for one constrained model correction.",
+            rejected.invocation_evidence(),
+        ))
+
     if request.draft_spec_path is not None:
         try:
             draft = load_model_draft(request.draft_spec_path)
@@ -4187,6 +4318,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         try:
             draft = backend.draft_task_spec(request=request, context=context)
         except Exception as exc:
+            record_rejected_model_call()
             raw_text = getattr(backend, "last_raw_output", None)
             call_result = getattr(backend, "last_call", None)
             if raw_text is not None:
@@ -4216,6 +4348,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 "模型未在超时或输出约束内返回可解析 TaskSpec，已使用规划器选定能力的确定性模板生成有效配置。",
                 {"backend": getattr(backend, "name", request.backend), "error": str(exc), "capability_id": plan.selected_capability_id},
             ))
+        record_rejected_model_call()
         raw_text = getattr(backend, "last_raw_output", None)
         call_result = getattr(backend, "last_call", None)
         if raw_text is not None:
@@ -4283,8 +4416,10 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         and request.draft_spec_path is None
         and request.backend != "template"
         and backend is not None
+        and not getattr(backend, "schema_repair_attempted", False)
         and hasattr(backend, "draft_task_spec_with_validation_errors")
     ):
+        pre_retry_call = getattr(backend, "last_call", None)
         try:
             retry_draft = backend.draft_task_spec_with_validation_errors(  # type: ignore[attr-defined]
                 request=request,
@@ -4316,6 +4451,18 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 {"ok_after_retry": retry_validation.ok},
             ))
         except Exception as exc:
+            retry_call = getattr(backend, "last_call", None)
+            if retry_call is not None and retry_call is not pre_retry_call:
+                retry_path = output_dir / "model_call_retry.json"
+                write_json(retry_path, retry_call.to_dict())
+                files["model_call_retry"] = str(retry_path)
+                retry_raw_path = output_dir / "raw_model_output_retry.txt"
+                retry_raw_path.write_text(retry_call.raw_text, encoding="utf-8")
+                files["raw_model_output_retry"] = str(retry_raw_path)
+                evidence = retry_call.invocation_evidence()
+                steps.append(CapabilityAgentStep("model_invocation_retry",
+                    "complete" if evidence.get("verified") else "failed",
+                    "Preserved the failed correction response before stopping or conservative local validation.", evidence))
             steps.append(CapabilityAgentStep(
                 "llm_validator_retry",
                 "skipped",

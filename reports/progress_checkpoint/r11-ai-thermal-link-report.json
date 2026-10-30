@@ -1,0 +1,442 @@
+{
+  "status": "PASS",
+  "request": "使用 whole_spacecraft.unified_native.v1 创建通用近地小卫星原生整星仿真脚本。Basilisk 后端，仿真20秒，步长0.2秒，记录周期1秒。environment_profile=spice_wmm，epoch_utc=2026-01-01T00:00:00Z。thermal_earth_ir_w_m2=234，thermal_earth_albedo=0.30。太阳翼—结构等效导热系数 solar_panel_structure_conductance_w_k=4.0 W/K；这是工程设计假设。输出 orbit.radius_m、eps.battery_soc、thermal.payload_temp_k、thermal.solar_panel_temp_k、thermal.structure_temp_k。无故障、退化或约束事件。",
+  "checks": {
+    "actual_model_execution": true,
+    "no_template_fallback": true,
+    "production_valid_and_compiled": true,
+    "raw_model_answer_explicit4w_not_parameter_substitution": true,
+    "requested_earth_flux_preserved": true,
+    "requested_spice_environment_preserved": true,
+    "requested_4w_conductance_preserved": true,
+    "requested_thermal_outputs_preserved": true,
+    "all_five_requested_outputs_selected": true,
+    "requested_time_preserved": true,
+    "actual_generated_script_executed": true,
+    "actual_exported_native_single4w_link": true,
+    "exported_dataset_has_all_requested_fields_and_time": true,
+    "exported_dataset_has_requested_sampling_grid": true,
+    "exported_dataset_values_finite": true,
+    "runtime_generated_spec_bound": true,
+    "runtime_execution_succeeded": true,
+    "runtime_validation_passed": true,
+    "runtime_physical_checks_passed": true,
+    "runtime_trace_present": true,
+    "runtime_numeric_outputs_finite": true,
+    "runtime_real_adapter": true,
+    "runtime_bundle_integrity": true,
+    "runtime_seal_bound": true,
+    "application_unchanged": true,
+    "source_unchanged": true
+  },
+  "source_before": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "source_root": "E:\\tmp\\SatAgentSimulation",
+  "actual_agent_module": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\unified_agent.py",
+  "pid": 25872,
+  "created": 1793336412.0554297,
+  "command": [
+    "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\run_hardware_bounded_r11_thermal_link_ai.py",
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-ai-followup\\thermal-link",
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\modelscope-v5-graph-v8-local-service\\providers.json"
+  ],
+  "started_at_utc": "2026-10-30T05:00:13.822363+00:00",
+  "scope": "One actual local ModelScope-derived LoRA production request; no reference-label or template replacement.",
+  "backend_identity": {
+    "backend": "openai_compatible",
+    "backend_class": "actual_model_service",
+    "model_backend_requested": true,
+    "actual_model_used": true,
+    "actual_model_execution_verified": true,
+    "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "base_url": "http://127.0.0.1:8031/v1",
+    "claim": "model_backed_generation_verified",
+    "invocation_evidence": {
+      "schema_version": "sat-sim.model-invocation-evidence.v1",
+      "verified": true,
+      "backend": "openai_compatible",
+      "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+      "request_id": "chatcmpl-6bc1b0413a0e48118e3c1bed0fb376cc",
+      "provider_response_id": "chatcmpl-6bc1b0413a0e48118e3c1bed0fb376cc",
+      "prompt_sha256": "19b569b14248fde794d5e55046eb2323652e634d669a7ccd1b5f226e6ff01769",
+      "response_sha256": "38c90fa22747bee69547499e6f15118afb413a7eb8e8feb2e94431cbb30886d0",
+      "structured_output_sha256": "40493c94c7e8e0f2841431b4fcefae1c5aaeff709b8f2ce47491d31102cb7c62",
+      "structured_output_kind": "json",
+      "usage": {
+        "prompt_tokens": 9063,
+        "completion_tokens": 1114
+      },
+      "structured_generation": {
+        "enabled": true,
+        "method": "lm-format-enforcer",
+        "schema_sha256": "2e5824077119a1f0adf88769901e6b637dc5e6bbf851fe6707d2fac7a9fe2af1",
+        "answer_substitution": false,
+        "semantic_validation_required": true,
+        "numeric_bounds_at_decode": true,
+        "empty_arrays_at_decode": true,
+        "invalid_numeric_mantissa_digit_budget": 17,
+        "canonical_exponent_range": [
+          -324,
+          308
+        ]
+      },
+      "latency_ms": 147050.94,
+      "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+      "error": null
+    }
+  },
+  "validation": {
+    "ok": true,
+    "error_count": 0,
+    "warning_count": 0,
+    "errors": [],
+    "warnings": []
+  },
+  "output_selection_scope": "Literal registry output names can be bound directly from the user request with explicit metadata; this is product workflow evidence, not standalone raw-model output accuracy. Raw model responses remain preserved.",
+  "explicit_output_bindings": {
+    "source": "user_literal_registry_field_names",
+    "fields": [
+      "eps.battery_soc",
+      "orbit.radius_m",
+      "thermal.payload_temp_k",
+      "thermal.solar_panel_temp_k",
+      "thermal.structure_temp_k"
+    ],
+    "raw_model_answer_preserved": true,
+    "selection_augmented_from_user_literals": true,
+    "physical_parameters_replaced": false
+  },
+  "final_raw_model_call_file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-ai-followup\\thermal-link\\actual\\model_call_retry.json",
+  "raw_model_answer_requested_conductance": 4.0,
+  "runtime_projection": {
+    "schema_version": "0.1.0",
+    "task_id": "generated_task",
+    "task_type": "whole_spacecraft",
+    "description": "",
+    "tags": [
+      "schema_form"
+    ],
+    "mission": {
+      "required_couplings": []
+    },
+    "simulation": {
+      "level": "whole_spacecraft",
+      "duration_s": 20.0,
+      "sample_s": 1.0,
+      "backend": "basilisk",
+      "time_base": "simulation_seconds",
+      "time_system": "UTC",
+      "seed": 0,
+      "solver": {
+        "method": "euler",
+        "step_s": 0.2,
+        "rtol": 1e-09,
+        "atol": 1e-12,
+        "include_endpoint": true
+      }
+    },
+    "target": {
+      "level": "whole_spacecraft",
+      "name": "whole_spacecraft",
+      "mode": "nominal"
+    },
+    "spacecraft": {
+      "mission": {
+        "configuration_source": "form_default"
+      }
+    },
+    "orbit_environment": {},
+    "parameters": {
+      "environment_profile": "spice_wmm",
+      "epoch_utc": "2026-01-01T00:00:00Z",
+      "thermal_earth_ir_w_m2": 234,
+      "thermal_earth_albedo": 0.3,
+      "solar_panel_structure_conductance_w_k": 4.0
+    },
+    "degradations": {},
+    "faults": [],
+    "modifiers": {
+      "faults": [],
+      "degradations": [],
+      "constraints": []
+    },
+    "outputs": {
+      "output_root": "datasets/generated_task",
+      "trace_format": "csv",
+      "include_summary": true,
+      "include_trace": true,
+      "include_labels": true,
+      "include_manifest": true,
+      "record_fields": [
+        "runtime_truth_status",
+        "coupling_integrity_pass",
+        "energy_bounds_pass",
+        "data_bounds_pass"
+      ],
+      "plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z",
+        "eps.battery_soc",
+        "thermal.payload_temp_k",
+        "thermal.solar_panel_temp_k",
+        "thermal.structure_temp_k"
+      ],
+      "telemetry_streams": [],
+      "fmea": {
+        "enabled": false,
+        "formats": [
+          "csv",
+          "json"
+        ]
+      }
+    },
+    "assurance": {
+      "fidelity_level": "declared_by_capability",
+      "claim_level": "analysis_only",
+      "validation_profile": "default",
+      "parameter_profile": "demo",
+      "allow_proxy": false
+    },
+    "validation": {},
+    "metadata": {
+      "repair_log": [
+        {
+          "action": "alias_override",
+          "source_path": "simulation.step_s",
+          "target_path": "simulation.solver.step_s",
+          "message": "Mapped alias simulation.step_s to simulation.solver.step_s",
+          "value": 0.2
+        },
+        {
+          "action": "alias_override",
+          "source_path": "simulation.step_s",
+          "target_path": "simulation.solver.step_s",
+          "message": "Mapped alias simulation.step_s to simulation.solver.step_s.",
+          "value": 0.2
+        }
+      ],
+      "taskspec_src_alignment": {
+        "schema_version": "s5.taskspec_src_alignment.v1",
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "repair_count": 1
+      },
+      "pruned_fields": [
+        "$.mission",
+        "$.assurance"
+      ],
+      "taskspec_pruning": {
+        "schema_version": "a4.taskspec_pruning.v1",
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "pruned_fields": [
+          "$.assurance",
+          "$.mission"
+        ],
+        "allowed_top_level_keys": [
+          "capability_id",
+          "degradations",
+          "description",
+          "faults",
+          "metadata",
+          "modifiers",
+          "orbit_environment",
+          "outputs",
+          "parameters",
+          "schema_version",
+          "simulation",
+          "spacecraft",
+          "tags",
+          "target",
+          "task_id",
+          "task_type",
+          "template",
+          "validation"
+        ]
+      },
+      "assurance": {
+        "fidelity_level": "declared_by_capability",
+        "claim_level": "analysis_only",
+        "validation_profile": "default",
+        "parameter_profile": "demo",
+        "allow_proxy": false
+      },
+      "mission": {
+        "required_couplings": []
+      },
+      "agent": {
+        "generated_by": "a1.capability_agent_mvp.v0",
+        "backend": "openai_compatible",
+        "request_sha256": "fafc87c7c6f489839b18406f2681586dbeda061d624d20207106f478986546a5",
+        "request_excerpt": "使用 whole_spacecraft.unified_native.v1 创建通用近地小卫星原生整星仿真脚本。Basilisk 后端，仿真20秒，步长0.2秒，记录周期1秒。environment_profile=spice_wmm，epoch_utc=2026-01-01T00:00:00Z。thermal_earth_ir_w_m2=234，thermal_earth_albedo=0.30。太阳翼—结构等效导热系数 solar_panel_structure_cond",
+        "facade_version": "v26.agent-facade.v2",
+        "request_text": "使用 whole_spacecraft.unified_native.v1 创建通用近地小卫星原生整星仿真脚本。Basilisk 后端，仿真20秒，步长0.2秒，记录周期1秒。environment_profile=spice_wmm，epoch_utc=2026-01-01T00:00:00Z。thermal_earth_ir_w_m2=234，thermal_earth_albedo=0.30。太阳翼—结构等效导热系数 solar_panel_structure_conductance_w_k=4.0 W/K；这是工程设计假设。输出 orbit.radius_m、eps.battery_soc、thermal.payload_temp_k、thermal.solar_panel_temp_k、thermal.structure_temp_k。无故障、退化或约束事件。",
+        "tool_policy_version": "v26.agent-tool-policy.v3",
+        "input_kind": "natural_language",
+        "model_route": {
+          "version": "v23.model-router.v1",
+          "input_kind": "natural_language",
+          "tier": "L2",
+          "backend": "openai_compatible",
+          "complexity_score": 11,
+          "detected_domains": [
+            "orbit",
+            "eps",
+            "thermal",
+            "payload"
+          ],
+          "signals": [
+            "long_request",
+            "multi_domain",
+            "workflow_or_coupling",
+            "multiple_event_cues",
+            "many_clauses"
+          ],
+          "reason_codes": [
+            "MODEL_ROUTE_L2",
+            "CAPABILITY_REGISTRY_AUTHORITATIVE"
+          ],
+          "fallback_backend": "openai_compatible",
+          "remote_available": false,
+          "provider_id": "local-modelscope",
+          "provider_location": "local",
+          "authority_boundary": "Capability Registry and deterministic guards remain authoritative."
+        },
+        "knowledge_policy": {
+          "policy_version": "v23.rag-boundary.v1",
+          "role": "advisory_only",
+          "allowed_uses": [
+            "retrieve_similar_examples",
+            "retrieve_user_and_developer_documentation",
+            "explain_parameters_and_validation_errors",
+            "provide_non_authoritative_candidate terminology"
+          ],
+          "forbidden_authority": [
+            "capability_support",
+            "effect_owner",
+            "builder_or_runner_binding",
+            "native_proxy_classification",
+            "parameter_profile",
+            "claim_level",
+            "qoi_observability_truth",
+            "runtime_injection_success"
+          ],
+          "authoritative_sources": [
+            "Capability Registry",
+            "Operator Contract",
+            "Parameter Registry",
+            "Validation Registry",
+            "Run evidence"
+          ],
+          "reason_code": "RAG_ADVISORY_ONLY",
+          "approved_experience_advisories": [],
+          "experience_influence": {
+            "lesson_ids": [],
+            "attribution": null
+          }
+        },
+        "requires_confirmation": false,
+        "confirmation_reasons": []
+      },
+      "explicit_output_bindings": {
+        "source": "user_literal_registry_field_names",
+        "fields": [
+          "eps.battery_soc",
+          "orbit.radius_m",
+          "thermal.payload_temp_k",
+          "thermal.solar_panel_temp_k",
+          "thermal.structure_temp_k"
+        ],
+        "raw_model_answer_preserved": true,
+        "selection_augmented_from_user_literals": true,
+        "physical_parameters_replaced": false
+      },
+      "canonical_task_spec_version": "1.0.0",
+      "canonical_assurance": {
+        "fidelity_level": "declared_by_capability",
+        "claim_level": "analysis_only",
+        "validation_profile": "default",
+        "parameter_profile": "demo",
+        "allow_proxy": false
+      },
+      "canonical_provenance": {
+        "fields": {
+          "task.id": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "simulation.duration_s": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "simulation.sample_s": {
+            "source": "legacy_migration",
+            "evidence": "$.simulation.sample_s"
+          },
+          "model.capability_id": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "simulation.level": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "parameters.values.environment_profile": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "parameters.values.epoch_utc": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "parameters.values.solar_panel_structure_conductance_w_k": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "parameters.values.thermal_earth_albedo": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          },
+          "parameters.values.thermal_earth_ir_w_m2": {
+            "source": "agent_inferred",
+            "evidence": "model-backed Agent generation pipeline"
+          }
+        },
+        "assumptions": [],
+        "pending_confirmations": [],
+        "migrated_from_version": "0.1.0"
+      },
+      "task_name": "generated_task",
+      "parameter_profile": "demo",
+      "claim_level": "analysis_only",
+      "validation_profile": "default"
+    },
+    "capability_id": "whole_spacecraft.unified_native.v1"
+  },
+  "actual_exported_native_link": [
+    {
+      "from_node": "solar_panel",
+      "to_node": "structure",
+      "conductance_w_per_k": 4.0
+    }
+  ],
+  "exported_dataset_trace": {
+    "path": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-ai-followup\\thermal-link\\actual\\datasets\\generated_task\\trace.csv",
+    "rows": 21,
+    "columns": [
+      "time_s",
+      "orbit.radius_m",
+      "orbit.position_m_x",
+      "orbit.position_m_y",
+      "orbit.position_m_z",
+      "eps.battery_soc",
+      "thermal.payload_temp_k",
+      "thermal.structure_temp_k",
+      "thermal.solar_panel_temp_k"
+    ]
+  },
+  "source_after": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "finished_at_utc": "2026-10-30T05:04:06.657221+00:00"
+}

@@ -1,0 +1,197 @@
+{
+  "schema_version": "generic-leo-r11-native120-independent-review.v2",
+  "status": "PASS_CURRENT120_FROZEN_APPLICATION_ENGINEERING_CASE",
+  "reviewed_at_utc": "2026-10-30T05:12:59.039731+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "checks": {
+    "actual_original_acceptance_driver_returned_zero": true,
+    "all_original_nine_engineering_checks_pass": true,
+    "all_current120_declared_inputs_have_sources_and_assumptions": true,
+    "all_current120_source_references_and_reasons_nonempty": true,
+    "all_current120_assumption_values_equal_actual_input": true,
+    "before_declared_configuration_matches_executed_input": true,
+    "sealed_input_bound_to_same120_input": true,
+    "new_parameter_origin_and_assumption_disclosed": true,
+    "actual_native_solar_panel_structure_link_2w_per_k": true,
+    "actual301_point_grid_0_to_600": true,
+    "native_truth_and_zero_message_errors": true,
+    "native_spice_and_declared_earth_flux": true,
+    "analysis_only_and_error_boundary_retained": true,
+    "seal_and_artifact_integrity_verified_now": true,
+    "frozen_app_and_core_match_before_after_and_now": true,
+    "original_driver_and_wrapper_unchanged": true,
+    "original_artifacts_unchanged_during_independent_review": true,
+    "exported_csv_matches_unchanged_original_selected_fields": true,
+    "full_native_telemetry_301_samples_finite": true,
+    "full_native_thermal_and_power_fields_present_and_finite": true,
+    "sealed_csv_and_full_telemetry_hashes_match": true,
+    "source_still_frozen_after_full_review": true,
+    "prior_failure_review_preserved": true,
+    "nonempty_bool_checks": true
+  },
+  "parameter_count": 120,
+  "trace_row_count": 301,
+  "csv_path": "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset/trace.csv",
+  "csv_sha256": "c242fd16944a209e42f86967ebacf5586b83c702e1a0cb540cfda4e9a991f286",
+  "execution_attempt_wall_seconds": [
+    16.484000000054948
+  ],
+  "outer_wrapper_wall_seconds": 20.390999999945052,
+  "configuration_sha256": "1fb9b14b883f3af628555907753ac80a96618d6d81a8a03a9a343f13693f3a87",
+  "source_driver_hashes": {
+    "reports/local_requirements_completion/run_generic_leo_acceptance.py": "2d970a09f5075a0a544dbf177bb0a8fa26d2439f7973a54196215994d08218b7",
+    "reports/local_requirements_completion/run_r11_generic_leo_native120_independent.py": "6ab39b6a61a12cd8519012858df48093ff8c8064167a0e28d46a66ad090dec70",
+    "src/sat_sim/scenario_templates.py": "9c596788c814db40611a3fc80002f568db4072bd27b04d5ebfc2fe7cc9a90e13",
+    "src/sat_sim/unified_agent.py": "978998b8fa74cd40d8af9c84c9ab5bf196e9656984c9bd977db5510500b9e0db",
+    "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml": "60237dbc984e61fb57890928507f9dd82d655fa6f2eb6fed6ea774e5c06208da"
+  },
+  "engineering_scope": {
+    "profile_id": "generic_leo_small_sat_v2_finite_earth_thermal",
+    "target": "通用近地小卫星工程仿真",
+    "parameter_basis": "配置值为声明的工程假设；来源及输入值逐项保存在 provenance 中。",
+    "validity": "适用于当前声明的近地轨道、硬件拓扑与已建模耦合；WMM2025 环境限于 2025—2029 年。默认 600 秒为起始瞬态参考，不保证整圈任务的温度及数据预算均满足约束。",
+    "error_boundary": "没有覆盖全部工况的统一精度上界；外部轨道残差与步长误差只对各自验证窗口成立。",
+    "thermal_boundary": "太阳直射、均匀地球红外及朗伯反照；机身六面等效暴露面积，太阳翼实际EPS法线与双面面积，扣除真实发电功率。光学参数为工程假设；234W/m²为全球年均参考，不是瞬时冷热边界。",
+    "excluded_effects": [
+      "大气阻力与长期轨道衰减",
+      "高于 J2 的地球引力谐项",
+      "局地天气、云层和地表反照分布",
+      "设备级热结构、CAD遮挡与相互辐射视因子",
+      "未登记的硬件故障机理"
+    ]
+  },
+  "new_parameter": {
+    "path": "parameters.values.solar_panel_structure_conductance_w_k",
+    "value": 2.0,
+    "source": {
+      "source": "user_provided",
+      "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_panel_structure_conductance_w_k",
+      "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+    },
+    "assumption": {
+      "path": "parameters.values.solar_panel_structure_conductance_w_k",
+      "value": 2.0,
+      "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+      "status": "accepted"
+    },
+    "actual_native_connections": [
+      {
+        "from_node": "solar_panel",
+        "to_node": "structure",
+        "conductance_w_per_k": 2.0
+      }
+    ]
+  },
+  "artifact_hashes": {
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/report.json": "ef459159d647a2451741e95518977b32a9ff5faa6a6173e47b80215aa7f8af1b",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/attempts/attempt_001/attempt.json": "c33057acd8a0b3b6bc321cc1f49bb745f407392f00bf8ce118d47e618335e428",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/attempts/attempt_001/execution_port.json": "cb3246b2640b3ec1b103e4888bdbb9b8c94d71b6eba1f464500a3f1e9797ef5a",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/attempts/attempt_001/runtime_diagnostics.json": "b7a9271b06914e358f4c95b630a10f59c1193445ff929af60a0044ea27b479c5",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/attempts/attempt_001/summary.json": "8de301ee637b4c5ec830188636644ff0f6feac3804f0ad3b80ab2c0c8feeb050",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/attempts/attempt_001/telemetry.jsonl": "c371fd068f17cf511af1f98286529069eeb85ecec2b524e6add2dd5a7ef97cf0",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/bundle_manifest.json": "27c3090f4c81e10c47e1f29b3e1cd7514a56893c933bbf45a53cb201536b9555",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/input/execution_plan.json": "549972aeb88e794a5ce64febd9989436553a589dd48f1a48560dba921c1ac305",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/input/parameter_consumption.json": "3ecc91980c7a42196be21b454176cfad24a81d20f86d395733908c336e61f0e8",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/input/provenance.json": "edf610585eb2edf187e628cbee9caf53b2317e6799b3fb56a87d56a86cf627f7",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/input/resolved_spec.json": "68c074f28f6cc43b3a231f1c09c07eafffeb79f1294a42d375fddc1cc92a8ebc",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/input/resolved_spec.yaml": "0606bcd3360864192ef0e02a3a00acf80e14736037b66b936257329cecba306d",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/input/task_spec.json": "9b67098d7ad15d15a2440a0d201d30dad43c6a1bf8a3c6b9c2621d9536b4d6c9",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/input/task_spec.yaml": "d7fd5d724b2813f7523e994a0822a6e4cade2f8ae529563083ac70d09def22bb",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/artifact_index.json": "77883199cbd37c63cb20a1a8429a460ef40a8db5dcea6b919251900d5fe2a1b1",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/assertions.json": "eeddcbc53e90f16dccb5e6252615cdb45a12af99a70ef7e6381c7daece653e25",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset/compiled_task.json": "ac524d8870d1e33eba3150224dfdc81329576062dc263e0bda7aebf754f053e9",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset/labels/run_labels.csv": "91a5c71da9f97879fb0fae19dd757f0dd14bb1cfe694316b52b0bbdcf41b314f",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset/manifest.json": "a13eca2c1c18cfdcd0ffcf7f9cf568d5f3fbce0853048ca0f5c6cf50730a71e1",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset/summary.json": "8de301ee637b4c5ec830188636644ff0f6feac3804f0ad3b80ab2c0c8feeb050",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset/task_spec.json": "9b67098d7ad15d15a2440a0d201d30dad43c6a1bf8a3c6b9c2621d9536b4d6c9",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset/trace.csv": "c242fd16944a209e42f86967ebacf5586b83c702e1a0cb540cfda4e9a991f286",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/dataset_write_result.json": "c105625ef9e402742d7f42f6a8eba6f318a6fa5695f40c4a0dd392ab1d135e8c",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/events.json": "21d85d01b818ee1868ca87e5c43a557e6be9a559ae2f3ad0295cbe1440831689",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/metrics.json": "7fa51c6738f9462b1e8812f823cb066f60643c4947fa0ae0c08b1008fd65e628",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/plot_manifest.json": "e80a7caae2aba2067cdc9f56373a7da2d5e5f541fb696c1802a7bb7523986970",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/report.html": "46ef373fecc410d12018d6cba7f1a7d79127576e064ac9d0be0dded0d89eaf0c",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/report_manifest.json": "1a8b47d612d32523c5249abb7b4f56570b35bbcfcda27d8c8b9ef28f14e3b14b",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/summary.json": "8de301ee637b4c5ec830188636644ff0f6feac3804f0ad3b80ab2c0c8feeb050",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/telemetry.csv": "eb58ecabaf3a7df6346a15715d5bc1ae63a7b700d4be8f3563266e8c838caa95",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/results/telemetry.jsonl": "c371fd068f17cf511af1f98286529069eeb85ecec2b524e6add2dd5a7ef97cf0",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/run_record.json": "1a26fab7f9d2aad8e86ea282af48ddcd1e1d1a9c0f2cea710a7d8cb371afde18",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/capability_contract.json": "7bd1c0d5490e3bb0d7a748224a1bd2d61449e469c37f9c783c722eb630818ac2",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/compiled_task.json": "ac524d8870d1e33eba3150224dfdc81329576062dc263e0bda7aebf754f053e9",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/dependency_versions.json": "089f9076fd4dfe5375473383502fb7b4f40af03af838e7f7dbf8d22ef4b84525",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/environment.json": "013814dc7c266d4779c6c1d821cdc334c2e796af48021373d52c561fb97502bd",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/execution_port.json": "cb3246b2640b3ec1b103e4888bdbb9b8c94d71b6eba1f464500a3f1e9797ef5a",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/execution_trace.json": "6dd021319773efa99f09ff1f097c17619c21120d88e683558dbe0fa701dfd983",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/prepared_run.json": "cf62d4b20da15aa08dcee5af4bf619acdc83c37749892fcf1202599f8f570bb3",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/reproducibility.json": "0ccb2b02e1aec626a1bfb114b2af1a44dbf38605568bce42fb1239c84a1c30b0",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/runtime/runtime_diagnostics.json": "9e66c5dc4a68871751ebaba771525e28a7c32cdb28bb658161210ea18e4efa42",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/SEALED.json": "0c6c043de4167d05a5143956c87d076629bc18587dd469ee2efcbd2651ed9161",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/validation/claim_report.json": "47df0a26d453249fc121d8299fd418491d7426a22859e8ba065d4fc22db26970",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/validation/validation_outcome.json": "17e665b03930fbda84d9a585c604192997c5fb9718fddc13baca3219ae00846b",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/task_spec.json": "1fb9b14b883f3af628555907753ac80a96618d6d81a8a03a9a343f13693f3a87",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/declared-input-before-execution.json": "1fb9b14b883f3af628555907753ac80a96618d6d81a8a03a9a343f13693f3a87",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/state.json": "7e5e37282fc21acf9d3d3909547015721b06d294914308c6e333b8a17775a7b6",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reports/local_requirements_completion/generic-leo-engineering-r11-native120/stdout.log": "6955a4e254690e77e940ad4b896bf1a6d8b589503114d26e574037e5add5c4b2"
+  },
+  "original_outer_failure_preserved": {
+    "path": "reports/local_requirements_completion/generic-leo-engineering-r11-native120/state.json",
+    "status": "FAIL_REQUIRES_REVIEW",
+    "error": {
+      "type": "FileNotFoundError",
+      "message": "[Errno 2] No such file or directory: 'E:\\\\tmp\\\\SatAgentSimulation\\\\reports\\\\local_requirements_completion\\\\generic-leo-engineering-r11-native120\\\\actual-case\\\\runs\\\\template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c\\\\results\\\\trace.csv'",
+      "traceback": "Traceback (most recent call last):\n  File \"E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\run_r11_generic_leo_native120_independent.py\", line 72, in main\n    with (bundle / 'results/trace.csv').open(encoding='utf-8-sig', newline='') as handle:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\Lib\\pathlib.py\", line 1013, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\tmp\\\\SatAgentSimulation\\\\reports\\\\local_requirements_completion\\\\generic-leo-engineering-r11-native120\\\\actual-case\\\\runs\\\\template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c\\\\results\\\\trace.csv'\n"
+    },
+    "interpretation": "Original physics acceptance driver returned zero and its nine checks passed. The outer evidence wrapper subsequently looked for results/trace.csv; the manifest identifies the actual CSV as results/dataset/trace.csv. This failed wrapper state, logs and driver remain unchanged. This separate review reads the manifest-indexed original dataset and performs no new physics execution."
+  },
+  "scope": "Current frozen application, unchanged generic LEO template, one600-second transient engineering run. This proves all120 declared inputs have source/assumption records and that this native case executes and seals; it does not prove full-orbit or all-day mission margins, all159 optional registry combinations, hardware calibration, universal error bounds, AI generation, whole-version qualification or actual24h endurance.",
+  "selected_csv_fields": [
+    "time_s",
+    "orbit.radius_m",
+    "orbit.position_m_x",
+    "orbit.position_m_y",
+    "orbit.position_m_z"
+  ],
+  "full_native_telemetry": {
+    "path": "reports/local_requirements_completion/generic-leo-engineering-r11-native120/actual-case/runs/template_generic_leo_small_sat_engineering_20261030T051016381241Z_2f86502c/attempts/attempt_001/telemetry.jsonl",
+    "sha256": "c371fd068f17cf511af1f98286529069eeb85ecec2b524e6add2dd5a7ef97cf0",
+    "rows": 301,
+    "required_physical_fields": [
+      "time_s",
+      "orbit.radius_m",
+      "eps.battery_soc",
+      "thermal.payload_temp_k",
+      "thermal.payload_earth_ir_heat_w",
+      "thermal.payload_albedo_heat_w"
+    ],
+    "numeric_cell_count": 65919,
+    "physical_ranges": {
+      "orbit.radius_m": {
+        "min": 6992546.566941022,
+        "max": 6993000.000000001
+      },
+      "eps.battery_soc": {
+        "min": 0.62,
+        "max": 0.699558665840071
+      },
+      "thermal.payload_temp_k": {
+        "min": 295.0,
+        "max": 301.42135872151715
+      },
+      "thermal.payload_earth_ir_heat_w": {
+        "min": 3.080266038994771,
+        "max": 3.190654006443952
+      },
+      "thermal.payload_albedo_heat_w": {
+        "min": 0.0,
+        "max": 0.47784805791219603
+      }
+    }
+  },
+  "prior_review_failure_preserved": {
+    "path": "reports/local_requirements_completion/generic-leo-engineering-r11-native120-independent-review.json",
+    "sha256": "1c235ae6b336063159a69b5f47331b5d7cc1d1be55176c84fac856157c51e73c",
+    "status": "INDEPENDENT_REVIEW_FAILED",
+    "cause": "The first added review expected five thermal-request fields in a generic template CSV. The unchanged generic template actually selects only orbit.radius_m and orbit.position_m_x/y/z. Its default CSV matches that contract; the sealed full-native telemetry separately contains finite SOC, temperatures and Earth-flux values. No input/output contract was changed and no physics was rerun."
+  }
+}

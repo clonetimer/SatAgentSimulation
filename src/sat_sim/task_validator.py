@@ -580,6 +580,17 @@ def validate_task_spec(spec: Mapping[str, Any], *, use_json_schema: bool = True)
                 if capability_id:
                     from .capability_registry import get_capability
                     capability_contract = get_capability(str(capability_id))
+                    if capability_id in {"whole_spacecraft.unified_native.v1", "subsystem.adcs_unified_native.v1"}:
+                        from .native_rw_preflight import validate_native_rw_settings
+                        values = runtime_spec.get("parameters")
+                        if isinstance(values, Mapping):
+                            try:
+                                validate_native_rw_settings(values)
+                            except (ValueError, TypeError) as exc:
+                                issues.append(_issue("error", "$.parameters",
+                                    f"{exc}. Use a consistent wheel configuration and geometry mode; "
+                                    "omit unrequested optional mounting/axis overrides, or supply complete unit axes for explicit custom geometry.",
+                                    "NATIVE_RW_GEOMETRY_INVALID"))
                     implementation = capability_contract.data.get("implementation") if isinstance(capability_contract.data.get("implementation"), Mapping) else {}
                     native_high_rate = bool(implementation.get("native_multi_rate_telemetry", False))
                     simulation = canonical.get("simulation") if isinstance(canonical.get("simulation"), Mapping) else {}

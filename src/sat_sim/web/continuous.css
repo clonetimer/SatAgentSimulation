@@ -102,3 +102,19 @@ body[data-active-view="continuous"] .sidebar-capabilities { display: none; }
   .continuous-hero { flex-direction: column; gap: 10px; padding: 18px 14px; }
   .continuous-hero-actions { flex-wrap: wrap; white-space: normal; }
 }
+#continuousHistoryChannels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  min-width: 0;
+}
+#continuousHistoryChannels label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+}
+#continuousHistoryChannels input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}

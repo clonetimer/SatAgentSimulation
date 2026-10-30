@@ -1,0 +1,231 @@
+{
+  "schema_version": "hardware-bounded-r11-thermal-independent-review.v1",
+  "status": "ACTUAL_MODEL_THERMAL_SCRIPT_AND_NATIVE_DATASET_INDEPENDENT_REVIEW_PASS",
+  "reviewed_at_utc": "2026-10-30T05:05:34.726823+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "checks": {
+    "terminal_scoped_report_pass": true,
+    "frozen_application_matches_before_after_current": true,
+    "frozen_core_matches_before_after_current": true,
+    "driver_and_wrapper_sha_match": true,
+    "same_original_user_request": true,
+    "original_response_bytes_and_hash_match": true,
+    "original_response_request_id_matches_all_records": true,
+    "structured_response_hash_matches_all_records": true,
+    "normalized_prompt_hash_matches_original_call": true,
+    "rebuilt_request_schema_hash_matches_original_call": true,
+    "original_response_satisfies_same_grounded_schema": true,
+    "no_unrequested_geometry_or_indexed_rw_overrides": true,
+    "no_answer_substitution_in_structured_generation": true,
+    "actual_local_model_invocation_verified": true,
+    "raw_and_product_requested_earth_flux_preserved": true,
+    "raw_and_product_spice_epoch_preserved": true,
+    "raw_and_product_requested_timing_preserved": true,
+    "exported_script_success_record_present": true,
+    "csv_exact_21_samples_0_to_20": true,
+    "csv_all_five_requested_fields_finite": true,
+    "exported_dataset_native_thermal_environment": true,
+    "sealed_bundle_native_thermal_environment": true,
+    "sealed_bundle_input_bound_to_actual_product": true,
+    "sealed_bundle_integrity_verified_now": true,
+    "sealed_manifest_hash_and_identity_match": true,
+    "runtime_execution_and_validation_pass": true,
+    "native_environment_asset_hashes_match": true,
+    "original_artifacts_unchanged_during_review": true,
+    "check_contract_nonempty_all_bool": true
+  },
+  "request_id": "chatcmpl-c2aaa47f3981476881ac5dff59d1f434",
+  "raw_response_sha256": "5931a022e772c5dadf9a5de910c12e394cc0612c0b5b9ab748d2cde2181356be",
+  "structured_response_sha256": "3514f66f7d4385564b1cdc358d73e34f263b36142d083058332fe0a9fc22acbc",
+  "grounded_schema_sha256": "2e5824077119a1f0adf88769901e6b637dc5e6bbf851fe6707d2fac7a9fe2af1",
+  "normalized_prompt_sha256": "e19227e0d19c8711bbed97bf77a0de6c7d4c68d491db090eb9f146ae8d0ecb76",
+  "prompt_hash_note": "Prompt evidence hashes UTF-8 text with normalized LF; artifact hashes separately preserve Windows CRLF bytes.",
+  "unrequested_rw_fields": [],
+  "schema_validation_errors": [],
+  "csv": {
+    "path": "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/datasets/generated_task/trace.csv",
+    "sha256": "df8f7de3f6a76d9cd549aacd1bb00e8242e9ce33aa0691d6f03cc6137cc0a4c9",
+    "rows": 21,
+    "time_start_s": 0.0,
+    "time_end_s": 20.0,
+    "required_fields": [
+      "orbit.radius_m",
+      "eps.battery_soc",
+      "thermal.payload_temp_k",
+      "thermal.payload_earth_ir_heat_w",
+      "thermal.payload_albedo_heat_w"
+    ],
+    "ranges": {
+      "orbit.radius_m": {
+        "min": 6992999.427946072,
+        "max": 6993000.000000001
+      },
+      "eps.battery_soc": {
+        "min": 0.62,
+        "max": 0.6223980549624238
+      },
+      "thermal.payload_temp_k": {
+        "min": 295.0,
+        "max": 295.2633237511414
+      },
+      "thermal.payload_earth_ir_heat_w": {
+        "min": 3.189131606379468,
+        "max": 3.190487038905911
+      },
+      "thermal.payload_albedo_heat_w": {
+        "min": 0.4256618953107029,
+        "max": 0.47784805791219603
+      }
+    }
+  },
+  "sealed_bundles": [
+    {
+      "path": "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef",
+      "ok": true,
+      "seal_sha256": "170b0c2ce99ca94b85b37074ae1c8e6a41861f53bf66127387cbc656a1f9c0a5",
+      "manifest_sha256": "c20acbd2e18c5f4181048bb42a66742726071ec2126fe219649079e7ec5adf57"
+    }
+  ],
+  "native_environment_assets": [
+    {
+      "path": "third_party/spice/de430.bsp",
+      "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+      "declared_sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+      "matches": true
+    },
+    {
+      "path": "third_party/spice/naif0012.tls",
+      "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+      "declared_sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+      "matches": true
+    },
+    {
+      "path": "third_party/spice/pck00010.tpc",
+      "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2",
+      "declared_sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2",
+      "matches": true
+    },
+    {
+      "path": "third_party/spice/gm_de431.tpc",
+      "sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b",
+      "declared_sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b",
+      "matches": true
+    },
+    {
+      "path": "third_party/wmm/WMM.COF",
+      "sha256": "dfa8597825af4e0b87ff4198a5b4fb661b3c49f4cd090cd0164e0259b075582f",
+      "declared_sha256": "dfa8597825af4e0b87ff4198a5b4fb661b3c49f4cd090cd0164e0259b075582f",
+      "matches": true
+    }
+  ],
+  "source_files": {
+    "reports/local_requirements_completion/run_thermal_ai_product_complete_dataset.py": "c0ce044337eceef81280c3be1b9097d737598b67d031aef8117b6b766e2a68b9",
+    "reports/local_requirements_completion/run_hardware_bounded_r11_real_thermal.py": "e5638392e7b53ad859b6319f091cfab69ba7e76351e7ed24364518d84018601a",
+    "scripts/run_native_endurance.py": "58ac156f129e6d00457f87ae1791a782b7e1cb469903baf62dfb19c92e0018b0",
+    "src/sat_sim/llm_backends.py": "3a21e51d225c712ee899055f9fd658b64d34309095ce4ee873048ca5570a3a32",
+    "src/sat_sim/capability_agent.py": "741a8d9815990e1c466addd9c6453ccd4c1fcc803792c884726d67fcf1df7bd0",
+    "src/sat_sim/unified_agent.py": "978998b8fa74cd40d8af9c84c9ab5bf196e9656984c9bd977db5510500b9e0db",
+    "src/sat_sim/run_bundle.py": "cdbfff655fb5a4624ae586fc125282ca80a729188f3a72a41be0f382e03ad142",
+    "src/sat_sim/bsk_engine/unified_native.py": "10d815bc49a296160c2b3e0ea8f7696087cc5bc4621df2097eecea9548d22c17",
+    "src/sat_sim/thermal_environment.py": "fd9fb908c07da3695ad617fc4da5c5352bc64eb05a13b7e07bc89556fda0f72d",
+    "src/sat_sim_ml/guided_decoding.py": "4b0fc8e30efc9841d81d8902fcc9daacc6be08e7193af01f27c1244ed932510c"
+  },
+  "artifact_hashes": {
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/agent_prompt.md": "11177b976c72c2de7280b0b4d11c3566c508419a52b87e69e3b9fe051fe4bd6f",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/agent_report.json": "b1294d9c16e287395a3579032046a7b0608fd95def03f80833a7e719b8248096",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/agent_tool_policy.json": "d0ef1bc939d0452cd8871e15e43c0d4ebdbf4a897f4aaf6add6ba1831e411267",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/capability_agent_report.json": "d886ac3a146581c42a7a926ce5b96c05e773b2268fb7449fcc637c40a0f323b6",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/capability_context.json": "a9c46e4cb3f385b5f70459e03a93c95c2db94860907253055c32e146ef5a75c2",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/capability_plan.json": "238970aaf615f3d4e9224157fa2224480d73bcfb3deb96db5f2020cc00bab1ef",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/compiled_task.json": "9ef3a3b38b17a0324158c6557b2c296519036ebfa73d9236f76c0d0662dfcd69",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/datasets/generated_task/compiled_task.json": "bb5570ff4e80eae94e5d41f5f2d9223aeda812d21158be1a05c568619a1777d1",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/datasets/generated_task/labels/run_labels.csv": "5bc01fdc1bc484f1e674388ab43c9ef7c5696b184ebe7ed6f82ba7dc132c0042",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/datasets/generated_task/manifest.json": "3661f86ef0723bfc5656af84853915c07044f09ac6168bca7b995e8fce14e29b",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/datasets/generated_task/summary.json": "584de9b81a753b05539c1795f18518f76106623a268f5fff3f067f474ce78c7e",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/datasets/generated_task/task_spec.json": "bb5da92d1a443239482ed93e47072c463ec0b15a0f4a3498646beeb5e5ffb655",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/datasets/generated_task/trace.csv": "df8f7de3f6a76d9cd549aacd1bb00e8242e9ce33aa0691d6f03cc6137cc0a4c9",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/execution_plan.json": "859a176d96267d2d7a92d1d1ea73921a42d7d12b1dfba898b8cd48a4e6c3d01d",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/experience_advisory.json": "8f311c537943bc1841e78f64ac81fbc6a9be2dd8d4e5fbd73e69b36a491e59d9",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/generated_simulation.py": "3a2d63511a8eb28606fdce6ee5aa58809c90be7acc9f4a2d809b015c22c11f43",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/generated_task.json": "5cb246fb2a2413292c140310b0f9d83edb20a8bb21e5961ba85f37b16dd691a8",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/generated_task.yaml": "ecbd636c6104e132459ff1f8102a3f29a82bb6bec3722f4a6e7b000acd3cba25",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/guard_report.json": "4074da90fe3f893d01ebfc1925c94cfcbc0d186fad0af5bce47caf09ba17f5ed",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/model_call.json": "00c8ed24ff447808e525f62ec45471fe436a32c4ac5311b75d5847a48c668e00",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/model_provider_route.json": "623677ac5fbad677ec602dde0981b3af680ce1144a7abc1589aeab258f25d956",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/model_route.json": "50f7a6a22cb84de247c0dee2e1ba373468e9defed46357709ad1241fd3e68b79",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/plan_validation.json": "1093210c13acc96dc38f28ab34ec3ee7f12cef0834c2c413ff43180b89fd27d0",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/rag_boundary.json": "8c1ac107b7bb23d638a3e29e853e75a3d9c8ad3ee82b0a11b3d59b74b4c2a1f1",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/raw_model_output.txt": "5931a022e772c5dadf9a5de910c12e394cc0612c0b5b9ab748d2cde2181356be",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/resolved_spec.json": "e9fccec92e00e54661a0706bd91322e56b18275be007eeef9478e7e4b7bebcc4",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/resolved_spec.yaml": "5cc34a6328a0fd1a10518e15456b3da35d3eb3b79d7543d48d04e2e78e01b61c",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/attempts/attempt_001/attempt.json": "0e404fb01753076c4fb68dae3d6038905235e940174a3046c23b8f3803b924db",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/attempts/attempt_001/execution_port.json": "e2f6c259865320c86ae82c59bc3f31b2f9b3dd67f24876c9c4700a0f89b6ff61",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/attempts/attempt_001/runtime_diagnostics.json": "b7a9271b06914e358f4c95b630a10f59c1193445ff929af60a0044ea27b479c5",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/attempts/attempt_001/summary.json": "53855dec4a5398e6f706bf3d09b2ff3933429d381ee259d428e21f019a9228eb",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/attempts/attempt_001/telemetry.jsonl": "502106adcf9ba8321e407fa9e0af6f513cfa43e68c2d5a8ca3fa089bd5a735e4",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/bundle_manifest.json": "c20acbd2e18c5f4181048bb42a66742726071ec2126fe219649079e7ec5adf57",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/input/execution_plan.json": "859a176d96267d2d7a92d1d1ea73921a42d7d12b1dfba898b8cd48a4e6c3d01d",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/input/parameter_consumption.json": "e634a36a4e297f87bee1b0e0fa1655c0c2b6d1ea18401c100d6f9677207d3432",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/input/provenance.json": "c2160051471ceabf7888d48355520866b84330200658df11af45bf12cee055a6",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/input/resolved_spec.json": "e9fccec92e00e54661a0706bd91322e56b18275be007eeef9478e7e4b7bebcc4",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/input/resolved_spec.yaml": "5cc34a6328a0fd1a10518e15456b3da35d3eb3b79d7543d48d04e2e78e01b61c",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/input/task_spec.json": "1f72120f97ab767486f591bf09666d5f04014afb1a299dc5753452a31ec515f1",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/input/task_spec.yaml": "784c35cddf17aa1e5be5b7c0166674cca2ffc2118dbbea16d512aab881a1bbbe",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/artifact_index.json": "aca8fef45ad3c15b01210bfc85f122f8eba63c949347778153219440d655e5d9",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/assertions.json": "eeddcbc53e90f16dccb5e6252615cdb45a12af99a70ef7e6381c7daece653e25",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/dataset/compiled_task.json": "9ef3a3b38b17a0324158c6557b2c296519036ebfa73d9236f76c0d0662dfcd69",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/dataset/labels/run_labels.csv": "5bc01fdc1bc484f1e674388ab43c9ef7c5696b184ebe7ed6f82ba7dc132c0042",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/dataset/manifest.json": "a8686793d85a8ace5364c479a8fc532911c650b296d562c6a92e1f13b20aaefe",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/dataset/summary.json": "53855dec4a5398e6f706bf3d09b2ff3933429d381ee259d428e21f019a9228eb",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/dataset/task_spec.json": "1f72120f97ab767486f591bf09666d5f04014afb1a299dc5753452a31ec515f1",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/dataset/trace.csv": "df8f7de3f6a76d9cd549aacd1bb00e8242e9ce33aa0691d6f03cc6137cc0a4c9",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/dataset_write_result.json": "0cc1b8e537c03d6046caf6846c63f1578b01d6f01cd40a4de3cd709a6f681227",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/events.json": "21d85d01b818ee1868ca87e5c43a557e6be9a559ae2f3ad0295cbe1440831689",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/metrics.json": "5629a9c222579d8e6f5f0f9362d3856d935e0a36f62f581ad3bf1d4449a3bad4",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/plot_manifest.json": "d3910df21373438a36fba351e67fd098c211f8d1496aeb85a2f771d6b5abea78",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/report.html": "ef28a38214069c0032895f3a51d53c3087f4f970610ba44505eb9430b7e14092",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/report_manifest.json": "1b98f606da2de86c7c2c13f3515d22ade34a356d73c5b53fe1903b9bcb9d071d",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/summary.json": "53855dec4a5398e6f706bf3d09b2ff3933429d381ee259d428e21f019a9228eb",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/telemetry.csv": "b0c2fcda40a08d47718295ff8152c51c8bf4c90b333d92d120fab087c5c59c52",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/results/telemetry.jsonl": "502106adcf9ba8321e407fa9e0af6f513cfa43e68c2d5a8ca3fa089bd5a735e4",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/run_record.json": "d51b453d06eb45fbd95a7a5f60fafbbd5fc7f3b9e4a94151a211c3baeec89492",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/capability_contract.json": "7bd1c0d5490e3bb0d7a748224a1bd2d61449e469c37f9c783c722eb630818ac2",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/compiled_task.json": "9ef3a3b38b17a0324158c6557b2c296519036ebfa73d9236f76c0d0662dfcd69",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/dependency_versions.json": "089f9076fd4dfe5375473383502fb7b4f40af03af838e7f7dbf8d22ef4b84525",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/environment.json": "90aecc12525a5b1195f22e6eea152ee3706a3438eab1480612485ee6d7041cab",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/execution_port.json": "e2f6c259865320c86ae82c59bc3f31b2f9b3dd67f24876c9c4700a0f89b6ff61",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/execution_trace.json": "52a73484594bdc8417f7c47a8fb8d65bca7f89ff76efb98ec2237c31ab33b0c4",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/prepared_run.json": "53f39e475354a93838d54cf7951979ede1dbd983886d857d738dc32aab28621a",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/reproducibility.json": "38bef6bc083c0f84fa123a26aec82d2b60a7ebe9119d81d33eab20bd1362f850",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/runtime/runtime_diagnostics.json": "9e66c5dc4a68871751ebaba771525e28a7c32cdb28bb658161210ea18e4efa42",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/SEALED.json": "170b0c2ce99ca94b85b37074ae1c8e6a41861f53bf66127387cbc656a1f9c0a5",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/validation/claim_report.json": "6aee16f3b3a88ecc3a55da7f54b790ab8152ddc854ff5578f55406420b5ce6d3",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification/generated_task_20261030T050003336123Z_fdca74ef/validation/validation_outcome.json": "6a15b2aa5f4ef26209a81512dd6727049fa6f232b5f08a4aad5a172a806bd005",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/runtime-verification.json": "0e48ad6ea6eff205008ff040915c6db173538a63415bed1bed3ddc63c1e7d957",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/script_export.json": "6cd6a8185eb04b87ed78526f9473660ae094430267d258b3be3844e2db9646ce",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/task_spec.json": "1f72120f97ab767486f591bf09666d5f04014afb1a299dc5753452a31ec515f1",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/task_spec.yaml": "784c35cddf17aa1e5be5b7c0166674cca2ffc2118dbbea16d512aab881a1bbbe",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/taskspec_migration.json": "858d58730ebb64ec4dae65a0c1079323236641c1cb5a7a9beb7fb66d27426fab",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/unified_agent_report.json": "dc9b23eec1e7db05a315acc103c398c3a658ffc9b1a5e2d2bf939c004697d6e5",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/user_request.txt": "9dc5b94b34d5ef6cbcd69da3702c9842baab651ca538c321f5f85f59cf31f81f",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/actual/validation.json": "1a07c88104353563e0a744b1f334b68f7f599cd72bda6e03d29c54eb04d859ba",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/report.json": "f34993e46379c4aa3b881278100cbc92ba86638f556a06d4c4ee07d5ac71716c",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/script.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/actual-request/script.stdout.log": "91a42717f9e4ba81a1d7ac9b7f9598a8d2ffdcd35f8eb3e7d986a9867aa851cd",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/state.json": "135f79c67efa5c84b89bee1dabb1904da42c1acc944feab89d57d0d96e095a6e",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reports/local_requirements_completion/hardware-bounded-r11-real-thermal/stdout.log": "661e2e4c8bb08bd60cc3215fc1f49a8cc44fa009cac7f41b549bb03822808d31"
+  },
+  "limits": {
+    "physical_coverage_status": "PARTIAL",
+    "unassessed_physical_checks": [
+      "orbit_altitude_sanity",
+      "fuel_monotonicity",
+      "data_conservation",
+      "quaternion_norm"
+    ],
+    "can_claim_flight_validity": false
+  },
+  "scope": "One original thermal production request under frozen App4cce6d46/Core59d0. Actual model response, generated script execution, and sealed native verification are checked independently. Literal requested output selection is a disclosed production transform, not raw-model benchmark accuracy. This is not whole-version, full-regression, AI-followup, diagnostic-promotion or actual-24h acceptance."
+}

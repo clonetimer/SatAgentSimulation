@@ -3936,10 +3936,7 @@
       const option = document.createElement('option');
       option.value = provider.provider_id;
       const location = provider.location === 'local' ? '本地' : (provider.location === 'remote' ? '在线' : '确定性');
-      const stateLabel = ({
-        FULL_TEST_PASSED: '完整测试通过', FULL_TEST_FAILED: '完整测试失败', ENDPOINT_REACHABLE: '仅端点可连接',
-        CONFIGURED_NOT_TESTED: '未完整测试', NOT_CONFIGURED: '未配置',
-      })[provider.availability_state] || provider.readiness?.status || '未知';
+      const stateLabel = providerStateLabel(provider);
       option.textContent = `${provider.label || provider.provider_id} · ${location} · ${stateLabel}`;
       option.disabled = provider.availability_state === 'FULL_TEST_FAILED' || provider.availability_state === 'NOT_CONFIGURED';
       select.appendChild(option);
@@ -3959,6 +3956,7 @@
   }
 
   function providerStateLabel(provider) {
+    if (provider.provider_id === 'local-template') return '内置模板可用';
     return ({
       FULL_TEST_PASSED: '完整测试通过', FULL_TEST_FAILED: '完整测试失败', ENDPOINT_REACHABLE: '服务可连接',
       CONFIGURED_NOT_TESTED: '已配置，未完整测试', NOT_CONFIGURED: '未配置',
@@ -4007,10 +4005,13 @@
       const name = document.createElement('strong');
       name.textContent = `${provider.label || provider.provider_id}${provider.provider_id === state.activeProviderId ? '（当前）' : ''}`;
       const meta = document.createElement('span');
-      meta.textContent = `${provider.model || '未指定模型'} · ${provider.base_url || '内置服务'}`;
+      const builtIn = provider.provider_id === 'local-template';
+      meta.textContent = builtIn ? '确定性规则 · 内置模板（不调用大模型）'
+        : `${provider.model || '未指定模型'} · ${provider.base_url || '内置服务'}`;
       const probe = provider.last_probe;
       const detail = document.createElement('small');
-      detail.textContent = probe?.tested_at ? `最近完整测试：${formatDateTime(probe.tested_at)}${probe.reason ? ` · ${probe.reason}` : ''}` : '尚无完整测试记录';
+      detail.textContent = builtIn ? '无需模型服务连通性或推理测试。'
+        : probe?.tested_at ? `最近完整测试：${formatDateTime(probe.tested_at)}${probe.reason ? ` · ${probe.reason}` : ''}` : '尚无完整测试记录';
       info.append(name, meta, detail);
       const side = document.createElement('div');
       side.className = 'provider-actions';
@@ -6102,8 +6103,13 @@
     const minX = windowRange?.start ?? Math.min(...times);
     const maxX = windowRange?.end ?? Math.max(...times);
     const allValues = series.flatMap((field) => rows.map((row) => row[field]).filter((value) => typeof value === 'number' && Number.isFinite(value)));
-    let minY = Math.min(...allValues);
-    let maxY = Math.max(...allValues);
+    const normalized = series.length > 1 && el('chartScaleMode')?.value !== 'absolute';
+    const ranges = new Map(series.map((field) => {
+      const values = rows.map((row) => row[field]).filter((value) => typeof value === 'number' && Number.isFinite(value));
+      return [field, { min: Math.min(...values), max: Math.max(...values) }];
+    }));
+    let minY = normalized ? 0 : Math.min(...allValues);
+    let maxY = normalized ? 100 : Math.max(...allValues);
     if (minY === maxY) { minY -= 1; maxY += 1; }
     const pad = { left: 48, right: 16, top: 16, bottom: 30 };
     const plotW = width - pad.left - pad.right;
@@ -6119,7 +6125,7 @@
       const yy = pad.top + (i / 4) * plotH;
       ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(width - pad.right, yy); ctx.stroke();
       const value = maxY - (i / 4) * (maxY - minY);
-      ctx.fillText(formatNumber(value), pad.left - 6, yy + 3);
+      ctx.fillText(normalized ? `${formatNumber(value)}%` : formatNumber(value), pad.left - 6, yy + 3);
     }
     ctx.textAlign = 'center';
     for (let i = 0; i <= 5; i += 1) {
@@ -6137,14 +6143,30 @@
         const value = row[field];
         if (typeof value !== 'number' || !Number.isFinite(value)) { started = false; return; }
         const xx = x(times[rowIndex]);
-        const yy = y(value);
+        const range = ranges.get(field);
+        const displayed = normalized ? (range.max === range.min ? 50 : 100 * (value - range.min) / (range.max - range.min)) : value;
+        const yy = y(displayed);
         if (!started) { ctx.moveTo(xx, yy); started = true; }
         else ctx.lineTo(xx, yy);
       });
       ctx.stroke();
     });
     const timeLabel = state.plotManifest?.time_axis?.label || '仿真时间';
-    el('chartLegend').textContent = `${timeLabel}（${timeField}） · ${series.map((field) => `${seriesDisplayLabel(field)}（${field}）`).join(' · ')}`;
+    const legend = el('chartLegend');
+    legend.replaceChildren();
+    const note = document.createElement('div');
+    note.textContent = `${timeLabel}（${timeField}） · ` + (normalized
+      ? '每条参量按当前时间窗分别归一化至 0–100%；常量显示在 50%。仅比较变化趋势，不能比较绝对大小；真实范围见下方。'
+      : '纵轴为原始数值；多条参量仅在单位一致时可比较。');
+    legend.appendChild(note);
+    series.forEach((field, index) => {
+      const range = ranges.get(field);
+      const item = document.createElement('div');
+      item.style.color = colors[index % colors.length];
+      const unit = state.metricMetadata?.[field]?.unit || seriesMetadata(field).unit || '';
+      item.textContent = `${seriesDisplayLabel(field)}（${field}） · 真实 min=${Number(range.min).toPrecision(12)}，max=${Number(range.max).toPrecision(12)} ${unit}`;
+      legend.appendChild(item);
+    });
   }
 
   function renderEventsResult() {
@@ -8369,6 +8391,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('telemetryChart').addEventListener('pointerup', onChartPointerUp);
     el('telemetryChart').addEventListener('pointercancel', clearChartDrag);
     el('chartApplyWindowBtn').addEventListener('click', applyChartTimeWindow);
+    el('chartScaleMode').addEventListener('change', drawChart);
     el('chartResetWindowBtn').addEventListener('click', resetChartTimeWindow);
     ['chartTimeStart', 'chartTimeEnd'].forEach((id) => el(id).addEventListener('keydown', (event) => {
       if (event.key === 'Enter') { event.preventDefault(); applyChartTimeWindow(); }

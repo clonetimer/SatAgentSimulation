@@ -1,0 +1,1705 @@
+{
+  "schema_version": "sat-native-browser-e2e.v1",
+  "status": "PASS",
+  "transport": "real_loopback_http",
+  "physics": "real_Basilisk_no_protocol_double",
+  "checks": {
+    "offline_ui_complete": true,
+    "offline_native_truth": true,
+    "offline_spice_environment": true,
+    "offline_real_trace": true,
+    "finite_earth_boundary_executed": true,
+    "native_earth_heat_recorded": true,
+    "offline_result_display": true,
+    "offline_runtime_state_readable": true,
+    "native_overview_units": true,
+    "storage_is_data_not_energy": true,
+    "internal_versions_hidden_from_overview": true,
+    "physical_coverage_disclosed": true,
+    "missing_conservation_not_passed": true,
+    "engineering_context_visible": true,
+    "engineering_inputs_traced": true,
+    "engineering_scope_preserved": true,
+    "thermal_boundary_disclosed_in_ui": true,
+    "engineering_parameter_sources_displayed": true,
+    "responsive_offline_1920": true,
+    "responsive_offline_1366": true,
+    "responsive_offline_768": true,
+    "responsive_offline_390": true,
+    "mobile_primary_action_above_fold": true,
+    "mobile_optional_settings_initially_collapsed": true,
+    "mobile_settings_remain_accessible": true,
+    "mobile_catalog_remains_accessible": true,
+    "offline_trend_scale_discloses_normalization_and_real_ranges": true,
+    "offline_original_numeric_scale_remains_available": true,
+    "offline-curves-1920_real_colored_curve_spans_plot": true,
+    "offline-curves-1920_whole_canvas_in_viewport": true,
+    "offline-curves-1366_real_colored_curve_spans_plot": true,
+    "offline-curves-1366_whole_canvas_in_viewport": true,
+    "offline-curves-768_real_colored_curve_spans_plot": true,
+    "offline-curves-768_whole_canvas_in_viewport": true,
+    "offline-curves-390_real_colored_curve_spans_plot": true,
+    "offline-curves-390_whole_canvas_in_viewport": true,
+    "mobile_ready_state_readable": true,
+    "mobile_creation_focuses_status_without_autoplay": true,
+    "live_pause_and_step": true,
+    "live_pause_state_readable": true,
+    "live_chart_visible": true,
+    "platform_fence_label": true,
+    "responsive_live-paused_1920": true,
+    "responsive_live-paused_1366": true,
+    "responsive_live-paused_768": true,
+    "responsive_live-paused_390": true,
+    "mobile_selected_session_state_above_fold": true,
+    "mobile_selected_session_precedes_creation": true,
+    "mobile_continuous_keyboard_order_matches_layout": true,
+    "mobile_live_controls_visible_without_scrolling": true,
+    "mobile_controls_have_one_live_owner": true,
+    "mobile_font_90_controls_and_width": true,
+    "mobile_font_100_controls_and_width": true,
+    "mobile_font_115_controls_and_width": true,
+    "mobile_font_130_controls_and_width": true,
+    "desktop_restores_original_control_slot": true,
+    "viewport_change_preserves_control_focus": true,
+    "live-curve-1600_real_colored_curve_spans_plot": true,
+    "live-curve-1600_whole_canvas_in_viewport": true,
+    "live-curve-390_real_colored_curve_spans_plot": true,
+    "live-curve-390_whole_canvas_in_viewport": true,
+    "visual_history_uses_exact_original_samples": true,
+    "verified-history-1600_real_colored_curve_spans_plot": true,
+    "verified-history-1600_whole_canvas_in_viewport": true,
+    "verified-history-390_real_colored_curve_spans_plot": true,
+    "verified-history-390_whole_canvas_in_viewport": true,
+    "live_archive_state_readable": true,
+    "live_archive_sealed": true,
+    "native_scheduling_policy_recorded": true,
+    "live_spice_environment": true,
+    "live_original_history": true,
+    "live_terminal": true,
+    "page_clean": true,
+    "http_clean": true,
+    "frozen_selected_source_unchanged": true,
+    "chart_driver_unchanged": true
+  },
+  "page_errors": [],
+  "failed_responses": [],
+  "core_before": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "scope": "Fresh actual native offline/live/history chart rendering during frozen-source qualification; independent final qualification remains pending; no physics double or data substitution.",
+  "driver_sha256": "e31a6f7355147db732a9c06461f2c1c64467b6b0d732a58e949b638f126d0059",
+  "health": {
+    "ok": true,
+    "api_version": "workbench-api.v1",
+    "workbench_version": "sidebar-observability-workbench.v1",
+    "workbench_available": true,
+    "runs_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-visual-charts\\runs",
+    "diagnostic_cases_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-visual-charts\\runs",
+    "queue": {
+      "ok": true,
+      "schema_version": "execution-queue.v1",
+      "database_path": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-visual-charts\\api\\execution_queue.sqlite3",
+      "states": {},
+      "worker_count": 1
+    },
+    "embedded_worker": true,
+    "features": {
+      "interactive": true
+    },
+    "auth": {
+      "mode": "disabled",
+      "enabled": false
+    },
+    "remote_worker_protocol": "remote-worker.v1",
+    "experiments": {
+      "schema_version": "experiment-center.v2",
+      "database": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-visual-charts\\api\\experiments.sqlite3",
+      "experiment_count": 0,
+      "run_count": 0,
+      "by_type": {}
+    },
+    "observability": {
+      "schema_version": "release.observability-health.v1",
+      "log_available": false
+    }
+  },
+  "offline_run_id": "template_generic_leo_small_sat_engineering_mvuiucw9",
+  "offline_environment": {
+    "profile": "spice_wmm",
+    "epoch_utc": "2026-01-01T00:00:00+00:00",
+    "ephemeris": "JPL_DE430_SPICE",
+    "gravity": "earth_J2_plus_sun_moon",
+    "magnetic_field": "WMM2025",
+    "assets": {
+      "spice": [
+        {
+          "name": "de430.bsp",
+          "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\de430.bsp",
+          "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+          "size_bytes": 119741440
+        },
+        {
+          "name": "naif0012.tls",
+          "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\naif0012.tls",
+          "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+          "size_bytes": 5257
+        },
+        {
+          "name": "pck00010.tpc",
+          "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\pck00010.tpc",
+          "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2",
+          "size_bytes": 126143
+        },
+        {
+          "name": "gm_de431.tpc",
+          "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\gm_de431.tpc",
+          "sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b",
+          "size_bytes": 6291
+        }
+      ],
+      "wmm": {
+        "name": "WMM.COF",
+        "path": "E:\\tmp\\SatAgentSimulation\\third_party\\wmm\\WMM.COF",
+        "sha256": "dfa8597825af4e0b87ff4198a5b4fb661b3c49f4cd090cd0164e0259b075582f",
+        "size_bytes": 4554
+      }
+    },
+    "spacecraft_flight_validation": false
+  },
+  "offline_trace_rows": 21,
+  "responsive_layouts": [
+    {
+      "phase": "offline",
+      "width": 1920,
+      "viewport_width": 1920,
+      "root_width": 1920,
+      "body_width": 1920,
+      "horizontal_scroll": 0
+    },
+    {
+      "phase": "offline",
+      "width": 1366,
+      "viewport_width": 1366,
+      "root_width": 1366,
+      "body_width": 1366,
+      "horizontal_scroll": 0
+    },
+    {
+      "phase": "offline",
+      "width": 768,
+      "viewport_width": 768,
+      "root_width": 768,
+      "body_width": 768,
+      "horizontal_scroll": 0
+    },
+    {
+      "phase": "offline",
+      "width": 390,
+      "viewport_width": 390,
+      "root_width": 390,
+      "body_width": 390,
+      "horizontal_scroll": 0
+    },
+    {
+      "phase": "live-paused",
+      "width": 1920,
+      "viewport_width": 1920,
+      "root_width": 1920,
+      "body_width": 1920,
+      "horizontal_scroll": 0
+    },
+    {
+      "phase": "live-paused",
+      "width": 1366,
+      "viewport_width": 1366,
+      "root_width": 1366,
+      "body_width": 1366,
+      "horizontal_scroll": 0
+    },
+    {
+      "phase": "live-paused",
+      "width": 768,
+      "viewport_width": 768,
+      "root_width": 768,
+      "body_width": 768,
+      "horizontal_scroll": 0
+    },
+    {
+      "phase": "live-paused",
+      "width": 390,
+      "viewport_width": 390,
+      "root_width": 390,
+      "body_width": 390,
+      "horizontal_scroll": 0
+    }
+  ],
+  "rendered_curve_observations": [
+    {
+      "phase": "offline-curves-1920",
+      "count": 6628,
+      "width": 1878,
+      "height": 562,
+      "span": 1576
+    },
+    {
+      "phase": "offline-curves-1366",
+      "count": 4649,
+      "width": 1324,
+      "height": 468,
+      "span": 1112
+    },
+    {
+      "phase": "offline-curves-768",
+      "count": 3057,
+      "width": 726,
+      "height": 532,
+      "span": 608
+    },
+    {
+      "phase": "offline-curves-390",
+      "count": 1990,
+      "width": 348,
+      "height": 439,
+      "span": 285
+    },
+    {
+      "phase": "live-curve-1600",
+      "count": 1138,
+      "width": 668,
+      "height": 263,
+      "span": 560
+    },
+    {
+      "phase": "live-curve-390",
+      "count": 615,
+      "width": 326,
+      "height": 263,
+      "span": 249
+    },
+    {
+      "phase": "verified-history-1600",
+      "count": 2035,
+      "width": 646,
+      "height": 263,
+      "span": 510
+    },
+    {
+      "phase": "verified-history-390",
+      "count": 1241,
+      "width": 360,
+      "height": 263,
+      "span": 266
+    }
+  ],
+  "mobile_font_layouts": [
+    {
+      "scale": "90",
+      "root_width": 390,
+      "control_bounds": {
+        "x": 10.796875,
+        "y": 750.421875,
+        "width": 368.40625,
+        "height": 84.578125
+      }
+    },
+    {
+      "scale": "100",
+      "root_width": 390,
+      "control_bounds": {
+        "x": 12,
+        "y": 740,
+        "width": 366,
+        "height": 94
+      }
+    },
+    {
+      "scale": "115",
+      "root_width": 390,
+      "control_bounds": {
+        "x": 13.796875,
+        "y": 724.421875,
+        "width": 362.40625,
+        "height": 108.078125
+      }
+    },
+    {
+      "scale": "130",
+      "root_width": 390,
+      "control_bounds": {
+        "x": 15.59375,
+        "y": 643.84375,
+        "width": 358.8125,
+        "height": 187.15625
+      }
+    }
+  ],
+  "visual_history_frame_count": 17,
+  "live_terminal_state": "COMPLETED",
+  "live_terminal_label": "已完成",
+  "live_detail": {
+    "schema_version": "interactive.v1",
+    "session_id": "native-browser-live",
+    "capability_id": "whole_spacecraft.unified_native.v1",
+    "state": "COMPLETED",
+    "revision": 6,
+    "sim_time_s": 3.4,
+    "rate": 1.0,
+    "paced": true,
+    "worker_alive": false,
+    "archive_status": "SEALED",
+    "archive_error": null,
+    "terminal_error": null,
+    "pace_observation_count": 16,
+    "last_drift_s": 0.0002182001480832696,
+    "max_abs_drift_s": 0.0007265000604093075,
+    "timing_status": "GOOD",
+    "updated_at": "2026-10-30T05:18:47.548616Z"
+  },
+  "live_runtime_result": {
+    "schema_version": "interactive-runtime-result.v1",
+    "session_id": "native-browser-live",
+    "capture_source": "SESSION_RUNTIME_FINALIZE",
+    "result": {
+      "persistent_instance": true,
+      "final_sim_time_s": 3.4,
+      "summary": {
+        "status": "complete",
+        "status_semantics_version": "v0.5.7.3",
+        "execution_status": "PASS",
+        "mission_status": "PASS",
+        "mission_bounds_scope": "all_published_runtime_samples",
+        "mission_bounds_sample_count": 18,
+        "overall_status": "PASS",
+        "mission_reason_codes": [],
+        "capability_id": "whole_spacecraft.unified_native.v1",
+        "engine": "basilisk_unified_native_runtime",
+        "orbital_environment": {
+          "profile": "spice_wmm",
+          "epoch_utc": "2026-01-01T00:00:00+00:00",
+          "ephemeris": "JPL_DE430_SPICE",
+          "gravity": "earth_J2_plus_sun_moon",
+          "magnetic_field": "WMM2025",
+          "assets": {
+            "spice": [
+              {
+                "name": "de430.bsp",
+                "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\de430.bsp",
+                "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+                "size_bytes": 119741440
+              },
+              {
+                "name": "naif0012.tls",
+                "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\naif0012.tls",
+                "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+                "size_bytes": 5257
+              },
+              {
+                "name": "pck00010.tpc",
+                "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\pck00010.tpc",
+                "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2",
+                "size_bytes": 126143
+              },
+              {
+                "name": "gm_de431.tpc",
+                "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\gm_de431.tpc",
+                "sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b",
+                "size_bytes": 6291
+              }
+            ],
+            "wmm": {
+              "name": "WMM.COF",
+              "path": "E:\\tmp\\SatAgentSimulation\\third_party\\wmm\\WMM.COF",
+              "sha256": "dfa8597825af4e0b87ff4198a5b4fb661b3c49f4cd090cd0164e0259b075582f",
+              "size_bytes": 4554
+            }
+          },
+          "spacecraft_flight_validation": false
+        },
+        "backend_type": "basilisk_native_mixed",
+        "runtime_truth_status": "instantiated_connected_recorded_unified",
+        "process_count": 1,
+        "task_count": 1,
+        "instantiated_module_count": 53,
+        "official_module_count": 23,
+        "project_native_module_count": 26,
+        "engineering_proxy_module_count": 4,
+        "external_module_count": 0,
+        "external_or_proxy_module_count": 4,
+        "connected_message_count": 60,
+        "recorder_count": 69,
+        "execution_segment_count": 17,
+        "execution_stops_s": [
+          3.4
+        ],
+        "trace_rows": 1,
+        "initial_pointing_error_deg": 9.427881895306228,
+        "final_pointing_error_deg": 9.427881895306228,
+        "adcs_closed_loop_improved": false,
+        "initial_orbit_radius_m": 6992999.983464243,
+        "final_orbit_radius_m": 6992999.983464243,
+        "runtime_message_read_error_count": 0,
+        "runtime_message_read_errors": [],
+        "thermal_environment": {
+          "model": "finite_spherical_earth_lambertian_v1",
+          "earth_ir_exitance_w_m2": 234.0,
+          "earth_albedo": 0.3,
+          "solar_irradiance_at_au_w_m2": 1361.0,
+          "radial_order": 16,
+          "azimuth_order": 64,
+          "quadrature_backend": "numba_nopython_float64_no_fastmath_no_parallel",
+          "quadrature_runtime": {
+            "numpy": "2.3.5",
+            "numba": "0.63.1",
+            "llvmlite": "0.46.0"
+          },
+          "geometry": "body_nodes_six_equal_faces_wing_actual_eps_normal_two_sides",
+          "panel_front_solar_absorptivity": 0.9,
+          "panel_back_solar_absorptivity": 0.35,
+          "panel_emissivity": "thermal_node_emissivity_both_sides",
+          "panel_area": "EPS_panelArea_each_side",
+          "electrical_energy": "actual_EPS_output_subtracted_from_front_absorbed_solar",
+          "radiator_geometry": "six_equal_faces_effective_area_times_view_factor_when_exposed",
+          "radiator_optics": "node_shortwave_absorptivity_and_radiator_IR_emissivity",
+          "coupling": "explicit_previous_tick_heat_same_as_network_conduction",
+          "assumptions": [
+            "Uniform global IR and albedo; no local weather, land or cloud maps.",
+            "Effective exposed surfaces; no CAD occlusion, cavities or mutual radiation.",
+            "Wing optical values are declared engineering assumptions, not measured hardware data.",
+            "234 W/m2 is a global annual mean, not an instantaneous hot/cold bound.",
+            "Radiator view_factor is treated as an effective exposed-area multiplier."
+          ],
+          "references": [
+            "https://llis.nasa.gov/lesson/693",
+            "https://www.nasa.gov/sites/default/files/atoms/files/std8070.1.pdf"
+          ]
+        },
+        "thermal_conduction_paths": [
+          {
+            "from_node": "battery",
+            "to_node": "structure",
+            "conductance_w_per_k": 0.5
+          },
+          {
+            "from_node": "battery",
+            "to_node": "electronics",
+            "conductance_w_per_k": 0.3
+          },
+          {
+            "from_node": "electronics",
+            "to_node": "structure",
+            "conductance_w_per_k": 0.8
+          },
+          {
+            "from_node": "electronics",
+            "to_node": "payload",
+            "conductance_w_per_k": 0.4
+          },
+          {
+            "from_node": "electronics",
+            "to_node": "adcs",
+            "conductance_w_per_k": 0.2
+          },
+          {
+            "from_node": "payload",
+            "to_node": "structure",
+            "conductance_w_per_k": 0.3
+          },
+          {
+            "from_node": "adcs",
+            "to_node": "structure",
+            "conductance_w_per_k": 0.4
+          },
+          {
+            "from_node": "solar_panel",
+            "to_node": "structure",
+            "conductance_w_per_k": 2.0
+          },
+          {
+            "from_node": "comm",
+            "to_node": "structure",
+            "conductance_w_per_k": 0.35
+          },
+          {
+            "from_node": "propulsion",
+            "to_node": "structure",
+            "conductance_w_per_k": 0.45
+          }
+        ],
+        "thermal_internal_power_accounting": {
+          "constant_internal_heat_w": 0.0,
+          "housekeeping_allocation": {
+            "battery": 0.1111111111111111,
+            "electronics": 0.4444444444444444,
+            "adcs": 0.16666666666666666,
+            "solar_panel": 0.2777777777777778
+          },
+          "housekeeping_source": "actual_bus_power_message",
+          "thermostats": "full_electrical_power_debited_from_native_battery; heat=electrical*efficiency",
+          "auxiliary_heater": "separate_PDU_controlled_load_heater_power_w",
+          "boundary": "unallocated_electrical_to_heat_fraction_outside_lumped_nodes; not_full_electromechanical_conservation"
+        },
+        "final_battery_soc": 0.6204008108260302,
+        "final_storage_bits": 3700000.0,
+        "energy_bounds_pass": true,
+        "data_bounds_pass": true,
+        "thermal_bounds_pass": true,
+        "coupling_integrity_pass": true,
+        "resource_feedback_closure_status": "PASS",
+        "resource_feedback_bridge_health": {
+          "adcs": {
+            "status": "PASS",
+            "sample_count": 19,
+            "valid_sample_count": 18,
+            "not_ready_sample_count": 1,
+            "error_count": 0,
+            "errors": [],
+            "power_min_w": 13.706550733890756,
+            "power_max_w": 20.554622892565703,
+            "power_span_w": 6.848072158674947,
+            "activity_min": 0.01066594208681723,
+            "activity_max": 0.05346639307853566,
+            "activity_span": 0.042800450991718426,
+            "positive_activity_sample_count": 18,
+            "positive_power_sample_count": 18,
+            "enabled_transition_observed": false,
+            "stimulus_observed": true,
+            "directional_response_pass": true,
+            "directional_violation_count": 0,
+            "directional_violations": []
+          },
+          "payload": {
+            "status": "PASS",
+            "sample_count": 19,
+            "valid_sample_count": 17,
+            "not_ready_sample_count": 2,
+            "error_count": 0,
+            "errors": [],
+            "power_min_w": 38.0,
+            "power_max_w": 38.0,
+            "power_span_w": 0.0,
+            "activity_min": 1.0,
+            "activity_max": 1.0,
+            "activity_span": 0.0,
+            "positive_activity_sample_count": 17,
+            "positive_power_sample_count": 17,
+            "enabled_transition_observed": false,
+            "stimulus_observed": true,
+            "directional_response_pass": true,
+            "directional_violation_count": 0,
+            "directional_violations": []
+          },
+          "comm": {
+            "status": "PASS",
+            "sample_count": 19,
+            "valid_sample_count": 17,
+            "not_ready_sample_count": 2,
+            "error_count": 0,
+            "errors": [],
+            "power_min_w": 0.0,
+            "power_max_w": 16.0,
+            "power_span_w": 16.0,
+            "activity_min": 0.0,
+            "activity_max": 1.0,
+            "activity_span": 1.0,
+            "positive_activity_sample_count": 15,
+            "positive_power_sample_count": 15,
+            "enabled_transition_observed": false,
+            "stimulus_observed": true,
+            "directional_response_pass": true,
+            "directional_violation_count": 0,
+            "directional_violations": []
+          },
+          "heater": {
+            "status": "PASS",
+            "sample_count": 19,
+            "valid_sample_count": 18,
+            "not_ready_sample_count": 1,
+            "error_count": 0,
+            "errors": [],
+            "power_min_w": 15.0,
+            "power_max_w": 15.0,
+            "power_span_w": 0.0,
+            "activity_min": 1.0,
+            "activity_max": 1.0,
+            "activity_span": 0.0,
+            "positive_activity_sample_count": 18,
+            "positive_power_sample_count": 18,
+            "enabled_transition_observed": false,
+            "stimulus_observed": true,
+            "directional_response_pass": true,
+            "directional_violation_count": 0,
+            "directional_violations": []
+          }
+        },
+        "causal_requirement_evidence_status": "NOT_REQUIRED",
+        "coupling_causality_status": "NOT_EVALUATED_PAIRED_RUN_REQUIRED",
+        "coupling_claim_scope": "single_run_wiring_numerics_conservation_and_response_observation_only",
+        "causal_requirement_evidence": {
+          "status": "NOT_REQUIRED",
+          "requirements": [],
+          "claim_scope": "no_explicit_causal_requirement_declared_for_this_run",
+          "paired_run_required_for_causal_pass": true
+        },
+        "pdu_payload_feedback_observed": false,
+        "pdu_comm_feedback_observed": false,
+        "adcs_dynamic_power_observed": true,
+        "payload_dynamic_power_observed": true,
+        "comm_dynamic_power_observed": true,
+        "heater_pdu_power_feedback_observed": false,
+        "propulsion_enabled": false,
+        "runtime_event_count": 0,
+        "fault_environment_episode_count": 0,
+        "physical_effect_verified_count": 0
+      },
+      "metadata": {
+        "runtime_manifest": {
+          "process": "UnifiedNativeProcess",
+          "task": "UnifiedNativeTask",
+          "instantiated_modules": [
+            {
+              "tag": "project_native_event_status",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "spice_ephemeris",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "spacecraft",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "reaction_wheels",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "eclipse",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "star_tracker",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "imu",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "coarse_sun_sensor",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_earth_horizon_sensor",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_sun_direction_sensor",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "magnetic_field",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "magnetometer",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_imu_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_star_tracker_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_sun_vector_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_adcs_sensor_fusion",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_rw_speed_fault_injector",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "inertial_guidance",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "attitude_error",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "mrp_feedback",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "rw_motor_torque",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_rw_command_fault_manager",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "solar_panel",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "bus_power",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "battery",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_payload_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_adcs_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_comm_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_heater_power_request",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_eps_pdu",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "project_power_data_mode_gate",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "payload_instrument",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "ground_location",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "spacecraft_antenna",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "ground_antenna",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "native_link_budget",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_native_rf_downlink_gate",
+              "source": "basilisk_project_native"
+            },
+            {
+              "tag": "native_downlink_handling",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "storage",
+              "source": "basilisk_official_native"
+            },
+            {
+              "tag": "project_adcs_control_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "project_payload_activity_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "project_comm_activity_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "project_heater_status_power_bridge",
+              "source": "engineering_proxy"
+            },
+            {
+              "tag": "thermal_network",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_adcs",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_battery",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_comm",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_electronics",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_payload",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_propulsion",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_solar_panel",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "thermal_node_structure",
+              "source": "project_deterministic_model"
+            },
+            {
+              "tag": "project_whole_parameter_event_controller",
+              "source": "basilisk_project_native"
+            }
+          ],
+          "connections": [
+            "reaction_wheels->spacecraft",
+            "spacecraft.scStateOutMsg->eclipse",
+            "spacecraft.scStateOutMsg->star_tracker",
+            "spacecraft.scStateOutMsg->imu",
+            "spacecraft.scStateOutMsg->coarse_sun_sensor",
+            "eclipse.eclipseOutMsgs[0]->coarse_sun_sensor",
+            "spacecraft.scStateOutMsg->project_earth_horizon_sensor",
+            "spacecraft.scStateOutMsg->project_sun_direction_sensor",
+            "sun_ephemeris->project_sun_direction_sensor",
+            "spacecraft.scStateOutMsg->magnetic_field",
+            "magnetic_field.envOutMsgs[0]->magnetometer",
+            "imu.sensorOutMsg->project_imu_fault_injector",
+            "star_tracker.sensorOutMsg->project_star_tracker_fault_injector",
+            "project_sun_direction_sensor.bodyOutMsg->project_sun_vector_fault_injector",
+            "project_star_tracker_fault_injector.starOutMsg->project_adcs_sensor_fusion",
+            "project_imu_fault_injector.imuOutMsg->project_adcs_sensor_fusion",
+            "magnetometer.tamDataOutMsg->project_adcs_sensor_fusion",
+            "project_sun_vector_fault_injector.vectorOutMsg->project_adcs_sensor_fusion",
+            "project_earth_horizon_sensor.directionOutMsg->project_adcs_sensor_fusion",
+            "reaction_wheels.rwSpeedOutMsg->project_rw_speed_fault_injector",
+            "project_adcs_sensor_fusion.attOutMsg->attitude_error",
+            "attitude_error.attGuidOutMsg->mrp_feedback",
+            "project_rw_speed_fault_injector.speedOutMsg->mrp_feedback",
+            "mrp_feedback.cmdTorqueOutMsg->rw_motor_torque",
+            "rw_motor_torque.rwMotorTorqueOutMsg->project_rw_command_fault_manager",
+            "reaction_wheels.rwSpeedOutMsg->project_rw_command_fault_manager",
+            "project_rw_command_fault_manager.commandOutMsg->reaction_wheels",
+            "eclipse.eclipseOutMsgs[0]->solar_panel",
+            "solar_panel.nodePowerOutMsg->battery",
+            "bus_power.nodePowerOutMsg->battery",
+            "battery.batPowerOutMsg->project_eps_pdu",
+            "battery.batPowerOutMsg->project_power_data_mode_gate",
+            "attitude_error.attGuidOutMsg->project_power_data_mode_gate",
+            "project_eps_pdu.payloadStatusOutMsg->project_power_data_mode_gate",
+            "project_eps_pdu.commStatusOutMsg->project_power_data_mode_gate",
+            "project_power_data_mode_gate.payloadCmdOutMsg->payload_instrument",
+            "spacecraft.scStateOutMsg->ground_location",
+            "spacecraft.scStateOutMsg->spacecraft_antenna",
+            "ground_location.currentGroundStateOutMsg->ground_antenna",
+            "spacecraft_antenna.antennaOutMsg->native_link_budget",
+            "ground_antenna.antennaOutMsg->native_link_budget",
+            "payload_instrument.nodeDataOutMsg->storage",
+            "ground_location.accessOutMsgs[0]->project_native_rf_downlink_gate",
+            "native_link_budget.linkBudgetOutPayload->project_native_rf_downlink_gate",
+            "project_power_data_mode_gate.downlinkStatusOutMsg->project_native_rf_downlink_gate",
+            "project_native_rf_downlink_gate.linkBudgetOutMsg->native_downlink_handling",
+            "native_downlink_handling.nodeDataOutMsg->storage",
+            "project_adcs_control_power_bridge.powerOutMsg->battery",
+            "project_payload_activity_power_bridge.powerOutMsg->battery",
+            "project_comm_activity_power_bridge.powerOutMsg->battery",
+            "project_heater_status_power_bridge.powerOutMsg->battery",
+            "project_rw_command_fault_manager.commandOutMsg->project_adcs_control_power_bridge",
+            "reaction_wheels.rwSpeedOutMsg->project_adcs_control_power_bridge",
+            "thermal_network.thermalStatusOutMsg->project_power_data_mode_gate",
+            "thermal_network.thermalStatusOutMsg->project_native_rf_downlink_gate",
+            "project_eps_pdu.heaterStatusOutMsg->thermal_network.heaters",
+            "thermal_network.heaters.electricalPowerOutMsg->battery",
+            "project_whole_parameter_event_controller->solar_panel.parameters",
+            "project_whole_parameter_event_controller->battery.parameters",
+            "project_whole_parameter_event_controller->thermal_network.radiators"
+          ],
+          "recorded_sources": [
+            "state",
+            "guid",
+            "rw",
+            "rw_measured",
+            "rw_command_raw",
+            "rw_command_applied",
+            "rw_effective_drag",
+            "rw_effective_torque_limit",
+            "rw_effective_speed_limit",
+            "star_raw",
+            "star",
+            "star_valid",
+            "imu_raw",
+            "imu",
+            "imu_bias",
+            "imu_noise",
+            "mag",
+            "sun_sensor",
+            "sun_vector_raw",
+            "sun_vector",
+            "sun_valid",
+            "fusion_source_mode",
+            "earth_sensor",
+            "earth_reference",
+            "eclipse",
+            "event_fault",
+            "event_degradation",
+            "event_constraint",
+            "battery",
+            "panel",
+            "bus_power",
+            "adcs_power",
+            "payload_power",
+            "downlink_power",
+            "heater_power",
+            "instrument",
+            "storage",
+            "temperature",
+            "thermal_status",
+            "ground_access",
+            "native_link_budget",
+            "gated_link_budget",
+            "downlink_handling",
+            "payload_status",
+            "downlink_status",
+            "safe_mode_status",
+            "pdu_payload_status",
+            "pdu_adcs_status",
+            "pdu_comm_status",
+            "pdu_heater_status",
+            "thermal_temp_battery",
+            "thermal_safe_battery",
+            "thermal_temp_electronics",
+            "thermal_safe_electronics",
+            "thermal_temp_payload",
+            "thermal_safe_payload",
+            "thermal_temp_adcs",
+            "thermal_safe_adcs",
+            "thermal_temp_structure",
+            "thermal_safe_structure",
+            "thermal_temp_solar_panel",
+            "thermal_safe_solar_panel",
+            "thermal_temp_comm",
+            "thermal_safe_comm",
+            "thermal_temp_propulsion",
+            "thermal_safe_propulsion",
+            "thermal_heater_electrical_battery",
+            "thermal_heater_electrical_electronics",
+            "sun_ephemeris"
+          ],
+          "excluded_runtime_categories": [
+            "external_solver",
+            "curve_only_proxy"
+          ]
+        },
+        "model_source_boundary": {
+          "official_basilisk_native": [
+            "spice_ephemeris",
+            "spacecraft",
+            "reaction_wheels",
+            "eclipse",
+            "star_tracker",
+            "imu",
+            "coarse_sun_sensor",
+            "magnetic_field",
+            "magnetometer",
+            "inertial_guidance",
+            "attitude_error",
+            "mrp_feedback",
+            "rw_motor_torque",
+            "solar_panel",
+            "bus_power",
+            "battery",
+            "payload_instrument",
+            "ground_location",
+            "spacecraft_antenna",
+            "ground_antenna",
+            "native_link_budget",
+            "native_downlink_handling",
+            "storage"
+          ],
+          "project_deterministic_model": [
+            "project_native_event_status",
+            "project_earth_horizon_sensor",
+            "project_sun_direction_sensor",
+            "project_imu_fault_injector",
+            "project_star_tracker_fault_injector",
+            "project_sun_vector_fault_injector",
+            "project_adcs_sensor_fusion",
+            "project_rw_speed_fault_injector",
+            "project_rw_command_fault_manager",
+            "project_payload_power_request",
+            "project_adcs_power_request",
+            "project_comm_power_request",
+            "project_heater_power_request",
+            "project_eps_pdu",
+            "project_power_data_mode_gate",
+            "project_native_rf_downlink_gate",
+            "thermal_network",
+            "thermal_node_adcs",
+            "thermal_node_battery",
+            "thermal_node_comm",
+            "thermal_node_electronics",
+            "thermal_node_payload",
+            "thermal_node_propulsion",
+            "thermal_node_solar_panel",
+            "thermal_node_structure",
+            "project_whole_parameter_event_controller"
+          ],
+          "engineering_proxy": [
+            "project_adcs_control_power_bridge",
+            "project_payload_activity_power_bridge",
+            "project_comm_activity_power_bridge",
+            "project_heater_status_power_bridge"
+          ],
+          "external_solver": [],
+          "basilisk_official_native": [
+            "spice_ephemeris",
+            "spacecraft",
+            "reaction_wheels",
+            "eclipse",
+            "star_tracker",
+            "imu",
+            "coarse_sun_sensor",
+            "magnetic_field",
+            "magnetometer",
+            "inertial_guidance",
+            "attitude_error",
+            "mrp_feedback",
+            "rw_motor_torque",
+            "solar_panel",
+            "bus_power",
+            "battery",
+            "payload_instrument",
+            "ground_location",
+            "spacecraft_antenna",
+            "ground_antenna",
+            "native_link_budget",
+            "native_downlink_handling",
+            "storage"
+          ],
+          "basilisk_project_native": [
+            "project_native_event_status",
+            "project_earth_horizon_sensor",
+            "project_sun_direction_sensor",
+            "project_imu_fault_injector",
+            "project_star_tracker_fault_injector",
+            "project_sun_vector_fault_injector",
+            "project_adcs_sensor_fusion",
+            "project_rw_speed_fault_injector",
+            "project_rw_command_fault_manager",
+            "project_payload_power_request",
+            "project_adcs_power_request",
+            "project_comm_power_request",
+            "project_heater_power_request",
+            "project_eps_pdu",
+            "project_power_data_mode_gate",
+            "project_native_rf_downlink_gate",
+            "thermal_network",
+            "thermal_node_adcs",
+            "thermal_node_battery",
+            "thermal_node_comm",
+            "thermal_node_electronics",
+            "thermal_node_payload",
+            "thermal_node_propulsion",
+            "thermal_node_solar_panel",
+            "thermal_node_structure",
+            "project_whole_parameter_event_controller"
+          ],
+          "external_or_proxy": [
+            "project_adcs_control_power_bridge",
+            "project_payload_activity_power_bridge",
+            "project_comm_activity_power_bridge",
+            "project_heater_status_power_bridge"
+          ]
+        },
+        "runtime_status_semantics": {
+          "legacy_status": "complete",
+          "execution_status": "PASS",
+          "mission_status": "PASS",
+          "overall_status": "PASS"
+        },
+        "modifiers_applied_by_adapter": true,
+        "fault_environment": {
+          "schema_version": "fault-environment.v1",
+          "style": "bsk_rl_style_no_gym_dependency",
+          "episode_count": 0,
+          "categories": {
+            "fault": 0,
+            "degradation": 0,
+            "constraint": 0
+          },
+          "episodes": []
+        },
+        "native_multi_rate_telemetry": {
+          "schema_version": "sat-sim.basilisk-recorder-groups.v1",
+          "recorder_mode": "basilisk_message_recorder_groups",
+          "same_writer_task": true,
+          "post_run_downsampling": false,
+          "groups": [
+            {
+              "stream_id": "whole.continuous",
+              "sample_s": 0.2,
+              "format": "csv",
+              "fields": [
+                "orbit.radius_m",
+                "adcs.pointing_error_deg",
+                "eps.battery_soc",
+                "adcs.rw.speed_rad_s_0",
+                "adcs.rw.speed_rad_s_1",
+                "adcs.rw.speed_rad_s_2",
+                "adcs.rw.effective_max_torque_nm_0"
+              ],
+              "task_name": "UnifiedNativeTask",
+              "recorder_sources": [
+                "adcs_power",
+                "battery",
+                "bus_power",
+                "downlink_handling",
+                "downlink_power",
+                "downlink_status",
+                "earth_reference",
+                "earth_sensor",
+                "eclipse",
+                "event_constraint",
+                "event_degradation",
+                "event_fault",
+                "fusion_source_mode",
+                "gated_link_budget",
+                "ground_access",
+                "guid",
+                "heater_power",
+                "imu",
+                "imu_bias",
+                "imu_noise",
+                "imu_raw",
+                "instrument",
+                "mag",
+                "native_link_budget",
+                "panel",
+                "payload_power",
+                "payload_status",
+                "pdu_adcs_status",
+                "pdu_comm_status",
+                "pdu_heater_status",
+                "pdu_payload_status",
+                "rw",
+                "rw_command_applied",
+                "rw_command_raw",
+                "rw_effective_drag",
+                "rw_effective_speed_limit",
+                "rw_effective_torque_limit",
+                "rw_measured",
+                "safe_mode_status",
+                "star",
+                "star_raw",
+                "star_valid",
+                "state",
+                "storage",
+                "sun_ephemeris",
+                "sun_sensor",
+                "sun_valid",
+                "sun_vector",
+                "sun_vector_raw",
+                "temperature",
+                "thermal_heater_electrical_battery",
+                "thermal_heater_electrical_electronics",
+                "thermal_safe_adcs",
+                "thermal_safe_battery",
+                "thermal_safe_comm",
+                "thermal_safe_electronics",
+                "thermal_safe_payload",
+                "thermal_safe_propulsion",
+                "thermal_safe_solar_panel",
+                "thermal_safe_structure",
+                "thermal_status",
+                "thermal_temp_adcs",
+                "thermal_temp_battery",
+                "thermal_temp_comm",
+                "thermal_temp_electronics",
+                "thermal_temp_payload",
+                "thermal_temp_propulsion",
+                "thermal_temp_solar_panel",
+                "thermal_temp_structure"
+              ],
+              "recorder_count": 69
+            }
+          ],
+          "streams": [
+            {
+              "stream_id": "whole.continuous",
+              "sample_s": 0.2,
+              "format": "csv",
+              "fields": [
+                "orbit.radius_m",
+                "adcs.pointing_error_deg",
+                "eps.battery_soc",
+                "adcs.rw.speed_rad_s_0",
+                "adcs.rw.speed_rad_s_1",
+                "adcs.rw.speed_rad_s_2",
+                "adcs.rw.effective_max_torque_nm_0"
+              ],
+              "rows": [
+                {
+                  "time_s": 3.4000000000000004,
+                  "orbit.radius_m": 6992999.983464243,
+                  "orbit.phase_rad": 0.0030083939780361332,
+                  "orbit.eclipse_factor": 1.0,
+                  "adcs.pointing_error_deg": 9.427881895306228,
+                  "adcs.body_rate_rad_s_x": 0.0039742192610609465,
+                  "adcs.body_rate_rad_s_y": -0.0006010353163225762,
+                  "adcs.body_rate_rad_s_z": -4.2276159352551655e-05,
+                  "adcs.sensor.raw_gyro_rad_s_x": 0.0039742192610609465,
+                  "adcs.sensor.raw_gyro_rad_s_y": -0.0006010353163225762,
+                  "adcs.sensor.raw_gyro_rad_s_z": -4.2276159352551655e-05,
+                  "adcs.sensor.raw_accel_m_s2_x": 0.0,
+                  "adcs.sensor.raw_accel_m_s2_y": 0.0,
+                  "adcs.sensor.raw_accel_m_s2_z": 0.0,
+                  "adcs.sensor.gyro_measured_rad_s_x": 0.0039742192610609465,
+                  "adcs.sensor.gyro_measured_rad_s_y": -0.0006010353163225762,
+                  "adcs.sensor.gyro_measured_rad_s_z": -4.2276159352551655e-05,
+                  "adcs.sensor.gyro_bias_rad_s_x": 0.0,
+                  "adcs.sensor.gyro_bias_rad_s_y": 0.0,
+                  "adcs.sensor.gyro_bias_rad_s_z": 0.0,
+                  "adcs.sensor.gyro_noise_rad_s_x": 0.0,
+                  "adcs.sensor.gyro_noise_rad_s_y": 0.0,
+                  "adcs.sensor.gyro_noise_rad_s_z": 0.0,
+                  "adcs.sensor.accel_measured_m_s2_x": 0.0,
+                  "adcs.sensor.accel_measured_m_s2_y": 0.0,
+                  "adcs.sensor.accel_measured_m_s2_z": 0.0,
+                  "adcs.sensor.accel_bias_m_s2_x": 0.0,
+                  "adcs.sensor.accel_bias_m_s2_y": 0.0,
+                  "adcs.sensor.accel_bias_m_s2_z": 0.0,
+                  "adcs.sensor.accel_noise_m_s2_x": 0.0,
+                  "adcs.sensor.accel_noise_m_s2_y": 0.0,
+                  "adcs.sensor.accel_noise_m_s2_z": 0.0,
+                  "adcs.sensor.gyro_bias_norm_rad_s": 0.0,
+                  "adcs.sensor.gyro_noise_norm_rad_s": 0.0,
+                  "adcs.rw.speed_rad_s_0": 18.32500279342075,
+                  "adcs.rw.speed_rad_s_1": 18.27472675001985,
+                  "adcs.rw.speed_rad_s_2": 32.35983037752252,
+                  "adcs.rw.measured_speed_rad_s_0": 18.32500279342075,
+                  "adcs.rw.measured_speed_rad_s_1": 18.27472675001985,
+                  "adcs.rw.measured_speed_rad_s_2": 32.35983037752252,
+                  "adcs.rw.command_torque_nm_0": 0.26312935400373927,
+                  "adcs.rw.command_torque_nm_1": -0.024523254968388458,
+                  "adcs.rw.command_torque_nm_2": 0.0005323803426076604,
+                  "adcs.rw.motor_current_a_0": 10.0,
+                  "adcs.rw.motor_current_a_1": -1.2261627484194229,
+                  "adcs.rw.motor_current_a_2": 0.02661901713038302,
+                  "adcs.control.applied_torque_nm_0": 0.2,
+                  "adcs.control.applied_torque_nm_1": -0.024523254968388458,
+                  "adcs.control.applied_torque_nm_2": 0.0005323803426076604,
+                  "adcs.rw.effective_drag_nms_0": 0.0,
+                  "adcs.rw.effective_drag_nms_1": 0.0,
+                  "adcs.rw.effective_drag_nms_2": 0.0,
+                  "adcs.rw.effective_max_torque_nm_0": 0.2,
+                  "adcs.rw.effective_max_torque_nm_1": 0.2,
+                  "adcs.rw.effective_max_torque_nm_2": 0.2,
+                  "adcs.rw.effective_torque_ratio_0": 1.0,
+                  "adcs.rw.effective_torque_ratio_1": 1.0,
+                  "adcs.rw.effective_torque_ratio_2": 1.0,
+                  "adcs.rw.effective_max_speed_rad_s_0": 0.0,
+                  "adcs.rw.effective_max_speed_rad_s_1": 0.0,
+                  "adcs.rw.effective_max_speed_rad_s_2": 0.0,
+                  "adcs.star_tracker.q0": 0.9966174204125029,
+                  "adcs.star_tracker.q1": 0.08209108278587385,
+                  "adcs.star_tracker.q2": -0.003703551597005146,
+                  "adcs.star_tracker.q3": 0.0010272112437939489,
+                  "adcs.star_tracker.raw_q0": 0.9966174204125029,
+                  "adcs.star_tracker.raw_q1": 0.08209108278587386,
+                  "adcs.star_tracker.raw_q2": -0.0037035515970051465,
+                  "adcs.star_tracker.raw_q3": 0.0010272112437939489,
+                  "adcs.star_tracker.valid": 1,
+                  "adcs.magnetometer.tesla_x": -6.701796715441227e-06,
+                  "adcs.magnetometer.tesla_y": 5.5333517729074215e-06,
+                  "adcs.magnetometer.tesla_z": 2.0791030353828905e-05,
+                  "adcs.sun_sensor.cosine_output": 0.2478591298422475,
+                  "adcs.sun_sensor.direction_b_x": 0.1729446803531962,
+                  "adcs.sun_sensor.direction_b_y": -0.9553291559275395,
+                  "adcs.sun_sensor.direction_b_z": -0.2396588019921339,
+                  "adcs.sun_sensor.raw_direction_b_x": 0.1729446803531962,
+                  "adcs.sun_sensor.raw_direction_b_y": -0.9553291559275395,
+                  "adcs.sun_sensor.raw_direction_b_z": -0.2396588019921339,
+                  "adcs.sun_sensor.valid": 1,
+                  "adcs.earth_sensor.direction_b_x": -0.9999839492245531,
+                  "adcs.earth_sensor.direction_b_y": -0.00065697987547418,
+                  "adcs.earth_sensor.direction_b_z": 0.005627581248555604,
+                  "adcs.fusion.source_mode": 3,
+                  "orbit.position_m_x": 6992952.823644854,
+                  "orbit.velocity_m_s_x": -27.750765569135336,
+                  "orbit.sun_position_m_x": 26074300848.342037,
+                  "orbit.position_m_y": 21037.620629916884,
+                  "orbit.velocity_m_s_y": 6187.507651949293,
+                  "orbit.sun_position_m_y": -132831344256.62697,
+                  "orbit.position_m_z": 14730.7001395639,
+                  "orbit.velocity_m_s_z": 4332.539232277895,
+                  "orbit.sun_position_m_z": -57579743096.691505,
+                  "label.fault_active": false,
+                  "label.degradation_active": false,
+                  "label.constraint_active": false,
+                  "event.active_effects": "",
+                  "adcs.event.active_effects": "",
+                  "eps.solar_array_power_w": 170.4020871468949,
+                  "eps.battery_energy_j": 357350.8670357934,
+                  "eps.battery_capacity_j": 576000.0,
+                  "eps.effective_battery_capacity_wh": 160.0,
+                  "eps.battery_capacity_ratio": 1.0,
+                  "eps.solar_array_efficiency_ratio": 1.0,
+                  "thermal.radiator_rejection_ratio": 1.0,
+                  "eps.battery_energy_wh": 99.26412973216483,
+                  "eps.battery_soc": 0.6204008108260302,
+                  "eps.net_power_w": 65.89490837378074,
+                  "eps.loads.adcs_power_w": 17.50717877311417,
+                  "eps.loads.payload_power_w": 38.0,
+                  "eps.loads.comm_power_w": 16.0,
+                  "eps.loads.heater_power_w": 15.0,
+                  "eps.pdu.payload_enabled": 1,
+                  "eps.pdu.adcs_enabled": 1,
+                  "eps.pdu.comm_enabled": 1,
+                  "eps.pdu.heater_enabled": 1,
+                  "payload.active": 1,
+                  "payload.generated_bps": 2500000.0,
+                  "payload.generated_data_bits": 500000.0,
+                  "comm.command_permitted": 1,
+                  "comm.geometric_access": 1,
+                  "comm.native_cnr": 606.5283792012596,
+                  "comm.gated_cnr": 606.5283792012596,
+                  "comm.active": 1,
+                  "comm.downlink_bps": 1500000.0,
+                  "comm.downlink_rate_bps": 1500000.0,
+                  "comm.attempted_rate_bps": 1500000.0,
+                  "comm.dropped_rate_bps": 0.0,
+                  "comm.ber": 3.4556330824791367e-178,
+                  "comm.per": 0.0,
+                  "comm.downlinked_bits": 300000.0,
+                  "label.power_safe_mode_engaged": false,
+                  "data.storage_bits": 3700000.0,
+                  "data.storage_capacity_bits": 6000000000.0,
+                  "data.net_baud_bps": 1000000.0,
+                  "thermal.safe": 1,
+                  "thermal.payload_temp_k": 292.04712399579074,
+                  "thermal.payload_temp_c": 18.897123995790764,
+                  "eps.loads.battery_thermostat_power_w": 0.0,
+                  "thermal.battery_temp_k": 290.0001937497604,
+                  "thermal.battery_safe": 1,
+                  "eps.loads.electronics_thermostat_power_w": 0.0,
+                  "thermal.electronics_temp_k": 294.9756702408344,
+                  "thermal.electronics_safe": 1,
+                  "thermal.payload_safe": 1,
+                  "thermal.adcs_temp_k": 293.02065802931327,
+                  "thermal.adcs_safe": 1,
+                  "thermal.structure_temp_k": 285.0047693290433,
+                  "thermal.structure_safe": 1,
+                  "thermal.solar_panel_temp_k": 298.5486554964592,
+                  "thermal.solar_panel_safe": 1,
+                  "thermal.comm_temp_k": 294.9850956554682,
+                  "thermal.comm_safe": 1,
+                  "thermal.propulsion_temp_k": 291.97148257568955,
+                  "thermal.propulsion_safe": 1,
+                  "propulsion.enabled": 0,
+                  "thermal.battery_temp_c": 16.85019374976042,
+                  "thermal.battery_heat_input_w": 17.0,
+                  "thermal.battery_radiator_rejected_w": 0.0,
+                  "thermal.battery_radiator_on": 0,
+                  "thermal.battery_direct_solar_heat_w": 6.4181981187226755,
+                  "thermal.battery_albedo_heat_w": 0.4466674156752847,
+                  "thermal.battery_earth_ir_heat_w": 4.820584356487513,
+                  "thermal.battery_electrical_extracted_w": 0.0,
+                  "thermal.electronics_temp_c": 21.825670240834427,
+                  "thermal.electronics_heat_input_w": 8.0,
+                  "thermal.electronics_radiator_rejected_w": 0.0,
+                  "thermal.electronics_radiator_on": 0,
+                  "thermal.electronics_direct_solar_heat_w": 11.552756613700817,
+                  "thermal.electronics_albedo_heat_w": 0.8040013482155124,
+                  "thermal.electronics_earth_ir_heat_w": 6.805530856217665,
+                  "thermal.electronics_electrical_extracted_w": 0.0,
+                  "thermal.payload_heat_input_w": 36.1,
+                  "thermal.payload_radiator_rejected_w": 0.0,
+                  "thermal.payload_radiator_on": 0,
+                  "thermal.payload_direct_solar_heat_w": 6.739108024658809,
+                  "thermal.payload_albedo_heat_w": 0.4690007864590489,
+                  "thermal.payload_earth_ir_heat_w": 3.1900925888520306,
+                  "thermal.payload_electrical_extracted_w": 0.0,
+                  "thermal.adcs_temp_c": 19.87065802931329,
+                  "thermal.adcs_heat_input_w": 18.742989018379472,
+                  "thermal.adcs_radiator_rejected_w": 0.0,
+                  "thermal.adcs_radiator_on": 0,
+                  "thermal.adcs_direct_solar_heat_w": 3.594190946484699,
+                  "thermal.adcs_albedo_heat_w": 0.25013375277815947,
+                  "thermal.adcs_earth_ir_heat_w": 2.3252230425410354,
+                  "thermal.adcs_electrical_extracted_w": 0.0,
+                  "thermal.structure_temp_c": 11.854769329043336,
+                  "thermal.structure_heat_input_w": 0.0,
+                  "thermal.structure_radiator_rejected_w": 0.0,
+                  "thermal.structure_radiator_on": 0,
+                  "thermal.structure_direct_solar_heat_w": 64.18198118722675,
+                  "thermal.structure_albedo_heat_w": 4.466674156752847,
+                  "thermal.structure_earth_ir_heat_w": 24.8118312466269,
+                  "thermal.structure_electrical_extracted_w": 0.0,
+                  "thermal.solar_panel_temp_c": 25.39865549645924,
+                  "thermal.solar_panel_heat_input_w": 5.0,
+                  "thermal.solar_panel_radiator_rejected_w": 0.0,
+                  "thermal.solar_panel_radiator_on": 0,
+                  "thermal.solar_panel_direct_solar_heat_w": 377.3189072538388,
+                  "thermal.solar_panel_albedo_heat_w": 53.49949331803475,
+                  "thermal.solar_panel_earth_ir_heat_w": 413.6455904900427,
+                  "thermal.solar_panel_electrical_extracted_w": 170.4020871468949,
+                  "thermal.comm_temp_c": 21.83509565546825,
+                  "thermal.comm_heat_input_w": 14.4,
+                  "thermal.comm_radiator_rejected_w": 0.0,
+                  "thermal.comm_radiator_on": 0,
+                  "thermal.comm_direct_solar_heat_w": 6.4181981187226755,
+                  "thermal.comm_albedo_heat_w": 0.4466674156752847,
+                  "thermal.comm_earth_ir_heat_w": 4.537020570811777,
+                  "thermal.comm_electrical_extracted_w": 0.0,
+                  "thermal.propulsion_temp_c": 18.821482575689572,
+                  "thermal.propulsion_heat_input_w": 0.0,
+                  "thermal.propulsion_radiator_rejected_w": 0.0,
+                  "thermal.propulsion_radiator_on": 0,
+                  "thermal.propulsion_direct_solar_heat_w": 8.022747648403344,
+                  "thermal.propulsion_albedo_heat_w": 0.5583342695941059,
+                  "thermal.propulsion_earth_ir_heat_w": 5.671275713514721,
+                  "thermal.propulsion_electrical_extracted_w": 0.0
+                }
+              ],
+              "recorder_sources": [
+                "adcs_power",
+                "battery",
+                "bus_power",
+                "downlink_handling",
+                "downlink_power",
+                "downlink_status",
+                "earth_reference",
+                "earth_sensor",
+                "eclipse",
+                "event_constraint",
+                "event_degradation",
+                "event_fault",
+                "fusion_source_mode",
+                "gated_link_budget",
+                "ground_access",
+                "guid",
+                "heater_power",
+                "imu",
+                "imu_bias",
+                "imu_noise",
+                "imu_raw",
+                "instrument",
+                "mag",
+                "native_link_budget",
+                "panel",
+                "payload_power",
+                "payload_status",
+                "pdu_adcs_status",
+                "pdu_comm_status",
+                "pdu_heater_status",
+                "pdu_payload_status",
+                "rw",
+                "rw_command_applied",
+                "rw_command_raw",
+                "rw_effective_drag",
+                "rw_effective_speed_limit",
+                "rw_effective_torque_limit",
+                "rw_measured",
+                "safe_mode_status",
+                "star",
+                "star_raw",
+                "star_valid",
+                "state",
+                "storage",
+                "sun_ephemeris",
+                "sun_sensor",
+                "sun_valid",
+                "sun_vector",
+                "sun_vector_raw",
+                "temperature",
+                "thermal_heater_electrical_battery",
+                "thermal_heater_electrical_electronics",
+                "thermal_safe_adcs",
+                "thermal_safe_battery",
+                "thermal_safe_comm",
+                "thermal_safe_electronics",
+                "thermal_safe_payload",
+                "thermal_safe_propulsion",
+                "thermal_safe_solar_panel",
+                "thermal_safe_structure",
+                "thermal_status",
+                "thermal_temp_adcs",
+                "thermal_temp_battery",
+                "thermal_temp_comm",
+                "thermal_temp_electronics",
+                "thermal_temp_payload",
+                "thermal_temp_propulsion",
+                "thermal_temp_solar_panel",
+                "thermal_temp_structure"
+              ],
+              "task_name": "UnifiedNativeTask",
+              "native_recorder": true
+            }
+          ]
+        },
+        "native_cpu_scheduling": {
+          "schema_version": "sat-native-cpu-scheduling.v1",
+          "pid": 56556,
+          "requested_policy": "prefer_performance",
+          "mode": "PERFORMANCE_CORES",
+          "applied": true,
+          "scope": "This owned worker only; no global power or process-priority changes.",
+          "allowed_affinity": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "selected_affinity": [
+            0,
+            3,
+            4,
+            7,
+            8,
+            10
+          ],
+          "reason": "HIGHEST_PERFORMANCE_CLASS_WITHIN_ALLOWED_AFFINITY"
+        }
+      },
+      "labels": {
+        "run_labels": [
+          {
+            "capability_id": "whole_spacecraft.unified_native.v1",
+            "engine": "basilisk_unified_native_runtime"
+          }
+        ],
+        "event_labels": [],
+        "fault_environment": {
+          "schema_version": "fault-environment.v1",
+          "style": "bsk_rl_style_no_gym_dependency",
+          "episode_count": 0,
+          "categories": {
+            "fault": 0,
+            "degradation": 0,
+            "constraint": 0
+          },
+          "episodes": []
+        }
+      }
+    },
+    "full_native_resume_supported": false
+  },
+  "live_continuous_status": {
+    "schema_version": "sat-continuous-status.v1",
+    "session": {
+      "schema_version": "interactive.v1",
+      "session_id": "native-browser-live",
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "state": "COMPLETED",
+      "revision": 6,
+      "sim_time_s": 3.4,
+      "rate": 1.0,
+      "paced": true,
+      "worker_alive": false,
+      "archive_status": "SEALED",
+      "archive_error": null,
+      "terminal_error": null,
+      "pace_observation_count": 16,
+      "last_drift_s": 0.0002182001480832696,
+      "max_abs_drift_s": 0.0007265000604093075,
+      "timing_status": "GOOD",
+      "updated_at": "2026-10-30T05:18:47.597569Z"
+    },
+    "telemetry_streams": [
+      "whole.continuous"
+    ],
+    "runtime_mode": "SUPERVISED_NATIVE_CHILD",
+    "native_child_pid": 56556,
+    "native_cpu_scheduling": {
+      "schema_version": "sat-native-cpu-scheduling.v1",
+      "pid": 56556,
+      "requested_policy": "prefer_performance",
+      "mode": "PERFORMANCE_CORES",
+      "applied": true,
+      "scope": "This owned worker only; no global power or process-priority changes.",
+      "allowed_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "selected_affinity": [
+        0,
+        3,
+        4,
+        7,
+        8,
+        10
+      ],
+      "reason": "HIGHEST_PERFORMANCE_CLASS_WITHIN_ALLOWED_AFFINITY"
+    },
+    "parent_death_fence": {
+      "supported": true,
+      "kind": "WINDOWS_JOB_KILL_ON_CLOSE",
+      "parent_pid": 79352
+    },
+    "last_reap": {
+      "child_pid": 56556,
+      "exitcode": 0,
+      "direct_child_join_observed": true,
+      "process_tree_quiescence_proven": false,
+      "native_resume_supported": false,
+      "automatic_tc_replay_allowed": false
+    },
+    "writer_epoch": 1,
+    "native_resume_supported": false,
+    "automatic_tc_replay_allowed": false,
+    "activate_native_queue_allowed": false
+  },
+  "live_history_frame_count": 18,
+  "core_after": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82"
+}

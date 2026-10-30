@@ -2,11 +2,11 @@
 
 本项目已经实际训练 ModelScope 来源的 `Qwen/Qwen2.5-Coder-1.5B-Instruct`，通过独立本地 HTTP 服务提供模型推理，再由平台将模型输出的 TaskSpec 校验、编译为仿真脚本并执行。模型原始回答和实际调用来源保留；模板回答不作为模型生成成功。
 
-当前 v5 已在声明的结构化生成与语义门禁条件下通过实际产品复验，并启用本地服务。最新判定见[需求验收状态](../reports/current_requirements_status.md)。原始冻结输入的 0/69 失败分数、训练来源和历史候选记录继续保留；本次启用不外推任意自然语言或无约束模型调用的准确率。项目整体仍等待独立 24 小时耐久与最终审查。
+v5 已在冻结 App4cce／Core59 的当前生产路径实际通过热环境、4 W/K 导热参数、电池容量损失、三项创建／修改和85项模型网页链路；851项独立总复核、10份原生封存现查及45张原图实际看图复核通过。原文、实际脚本、CSV和封存均保留独立证据，此前页签／文案及小屏取景问题已修复并复验。最新判定见[需求验收状态](../reports/current_requirements_status.md)。原始冻结输入的0/69失败分数、训练来源和历史候选记录继续保留；不外推任意自然语言或无约束模型调用的准确率。项目整体仍等待已启动的实际24小时耐久及终态复核。
 
 ## 当前本地服务与工作台
 
-服务已运行在 `http://127.0.0.1:8031/v1`，模型名为 `Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8`。已验证的客户端条件为 `json_schema`、300 秒超时、4096 输出 token、语义校验及错误拒绝；API Key 对该本机服务留空即可。提供的配置文件位于 `reports/local_requirements_completion/modelscope-v5-graph-v8-local-service/providers.json`，激活及健康证据位于同目录 `state.json`。
+服务使用 `http://127.0.0.1:8031/v1`，模型名为 `Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8`。当前复验条件为 `json_schema`、300 秒超时、4096 输出 token、语义校验及错误拒绝；API Key 对该本机服务留空即可。配置文件为 `reports/local_requirements_completion/modelscope-v5-graph-v8-local-service/providers.json`；新解码器启动与同一权重的健康记录为 `reports/local_requirements_completion/empty-array-efficient-v5-service/state.json`，现时存活与验收阶段以需求报告引用的进程观察和资格流程为准。
 
 在项目根目录用已有 uv 环境启动工作台：
 
@@ -56,7 +56,7 @@ uv pip check --python .venv-sft/Scripts/python.exe
 
 当前冻结数据目录为 `data/training/taskspec_lora_v5_current_prompt_event_aligned`：训练 588 条、验证 69 条，使用当前生产提示和明确的事件幅度。两集合的记录 ID、原始请求和语义场景族无重叠，文件哈希与 manifest 一致。它们是注册表合成合同样本，不是实际在轨遥测。原始 v3 失败和修订前数据均保留。
 
-新旧验证集保留相同的 69 个场景与时长；45 条业务请求文本相同，另 24 条补写默认故障幅度 `1.0`，生产提示包装也更新了。因此当前数据集成绩不等于原始冻结输入的同条件成绩。已准备独立补测入口 `reports/local_requirements_completion/evaluate_v5_original_frozen_inputs.py`，在当前评测和热工况复核完成后执行；它直接重放归档的 69 份完整输入载荷，仅改变模型名，不替换响应、标签或运行检查。
+新旧验证集保留相同的 69 个场景与时长；45 条业务请求文本相同，另 24 条补写默认故障幅度 `1.0`，生产提示包装也更新了。因此当前数据集成绩不等于原始冻结输入的同条件成绩。独立入口 `reports/local_requirements_completion/evaluate_v5_original_frozen_inputs.py` 已实际重放归档的 69 份完整输入载荷，仅改变模型名，不替换响应、标签或运行检查；结果为 **0/69，整批 FAIL**。此前“待重放”仅为历史准备状态，该失败分数不由当前产品路径通过记录覆盖。
 
 ## 训练复现
 
@@ -98,6 +98,11 @@ uv pip check --python .venv-sft/Scripts/python.exe
 
 候选结果审查通过并选择服务后，在“模型服务”设置选择 ModelScope，填写服务的 `/v1` 地址，发现模型、保存并运行完整探测。当前网页默认请求合同为超时 300 秒、最多输出 4096 token、`json_schema`。成功后用自然语言创建或修改任务，检查参数与事件，再生成和下载 Python。
 
-网页验收必须实际执行下载脚本，并验证原生遥测、结果判据及封存制品；仅看到代码或绿色探测提示不足以判定完整功能通过。独立入口为 `reports/local_requirements_completion/run_actual_modelscope_browser.py`，当前尚待候选模型验收后执行。
+网页验收必须实际执行下载脚本，并验证原生遥测、结果判据及封存制品；仅看到代码或绿色探测提示不足以判定完整功能通过。独立入口 `reports/local_requirements_completion/run_actual_modelscope_browser.py` 已实际执行；后续可视区域增强入口 `run_actual_modelscope_browser_visible_r11.py` 还要求代码／结果目标实际入镜，并补拍真实模型结果的曲线与图例。各次结果和源码版本分别记录。
 
-<!-- state: context_of_use=generic_LEO_small_satellite_engineering; channel_mode=markdown; audit_mode=workflow_reproduction; phase=candidate_evaluation_pending; evidence=training_complete_generation_pending; completion=unproven -->
+<!-- state: context_of_use=generic_LEO_small_satellite_engineering; channel_mode=markdown; audit_mode=workflow_reproduction; phase=production_qualification_PASS_actual24h_RUNNING; evidence=real_v5_product_stages_PASS_browser85_images45_independent851PASS; completion=unproven -->
+## 数值约束与纠错的补充说明（2026-10-30）
+
+结构化 JSON 生成不等于参数满足物理范围。当前服务在解码阶段增加标量数值边界门控，并在生成完成后继续执行完整 JSON Schema 校验；客户端对可解析的 Schema 拒绝响应最多请求模型纠错一次，保持相同约束，分别保存 `model_call_rejected.json`、`raw_model_output_rejected.txt` 与最终响应。不会通过钳位参数、放宽范围或替换回答获得通过结果。
+
+该修订已完成上述真实模型、原生脚本执行和完整应用复验；原始热环境失败、纠错仍失败、中文字符表传播缺陷和主动中止的部分回归均保留。当前验收状态以[需求报告](../reports/current_requirements_status.md)为准；协议测试、产品链路实测与原始模型准确率分别记录，整体24小时资格仍待完成。

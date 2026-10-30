@@ -2,4 +2,6 @@
 data/training/** -text
 data/reference/nasa_iss_oem/** -text
 configs/interactive/generic_leo_thermal_link_candidate.json -text
-reports/progress_checkpoint/*.json -text
+reports/progress_checkpoint/*.json -text whitespace=cr-at-eol
+reports/progress_checkpoint/*.xml -text whitespace=cr-at-eol
+reports/progress_checkpoint/*.py -text whitespace=cr-at-eol

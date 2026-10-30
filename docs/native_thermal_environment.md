@@ -1,5 +1,9 @@
 # 原生整星热环境的工程范围
 
+最新验收状态以[逐项需求报告](../reports/current_requirements_status.md)为准。2026-10-30 冻结应用为 `4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82`，物理／验证核心为 `59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe`。当前工程模板的 120 个有效输入已在 600 仿真秒原生场景中核对来源／假设和封存；其默认导热为 2 W/K，仅证明这个短场景，不继承为全天热裕量通过。
+
+显式太阳翼—结构 4 W/K 工程设计假设的三组全天工况及两步长独立复核分别见本地 `v9-three-day-environment-agent-review.json`、`thermal-link-v9-step-refinement-independent-review.json`。该 8400 秒窗口内的最大步长采样温差 `0.005073023338979965 K` 不是普适误差上限；三组均匀全球均值工况不代表局地冷热极限、硬件标定或实际墙钟 24 小时耐久。以下带旧指纹的阶段结论均为历史记录，原失败和原始数据保持不变。
+
 用途是通用近地小卫星的场景比较、热流与控制响应分析。实现位于 `sat_sim.bsk_engine.thermal_environment`，由统一原生运行图的实际热网络每步调用；温度仍由节点热容量、导热、辐射、内部功耗和加热器积分产生。离线、分段和实时模式共用此路径。
 
 太阳、地球红外和地球反照是主要轨道外热源，见 [NASA 地球轨道环境加热指南](https://llis.nasa.gov/lesson/693)。旧版本仅以日食因子缩放太阳热，不能作为本模型的热工况验收证据。
@@ -36,9 +40,9 @@ PDU 辅助加热器（默认 15 W）与电池/电子设备恒温加热器（默�
 
 审计状态：channel_mode=repository_report；audit_mode=verification_and_scoped_validation；阶段=电热账修复与 30 项回归通过，四组整圈完成且源码一致；名义两步长及较高参数情景通过，较低参数情景太阳翼最低 199.948742 K，低于 200 K 下限，任务失败；最大采样温度步长差 0.00994673 K。其后统一验证器补齐指标断言，比较器纳入 v5 绑定，物理模块未改；旧正式软实时八项通过仅保留为该修订证据，新绑定的正式资格待重跑。开放风险=默认配置缺少所测参数情景的热裕量，新版正式性能、独立 24 小时耐久、全工况与物理标定误差边界尚未建立；下一步=按当前证据裁决，历史 PASS 不继承。
 
-## 2026-10-29 当前源码复核（覆盖上述资格进度）
+## 2026-10-29 历史源码复核（仅覆盖当时资格进度）
 
-当前物理及验证源码 `0f8fb1d8a6df2ca647fbd81976349c60c8136279e497153fdbbefe6c6fa62b37` 已完成正式软实时八项资格。当前四组各 7200 秒的热轨迹位于 `reports/local_requirements_completion/thermal-review-finalization-v5-stage/cases/`，测量前后源码一致。重新读取原始 CSV 和 summary 的独立复核见 `thermal-finalization-v5-independent-review.json`；原始文件哈希保持不变。
+当时物理及验证源码 `0f8fb1d8a6df2ca647fbd81976349c60c8136279e497153fdbbefe6c6fa62b37` 已完成正式软实时八项资格。当时四组各 7200 秒的热轨迹位于 `reports/local_requirements_completion/thermal-review-finalization-v5-stage/cases/`，测量前后源码一致。重新读取原始 CSV 和 summary 的独立复核见 `thermal-finalization-v5-independent-review.json`；原始文件哈希保持不变。
 
 每组保留 361 个、每 20 秒的采样点。两种标称步长和较高全球均值情景通过任务边界；较低情景仍因太阳翼 199.948742 K 低于 200 K 下限而失败，原因码为 `THERMAL_LIMIT_EXCEEDED`。采样温度最大步长差为 0.009946728935 K；这是标称情景中的步长比较，不能用作较低情景的严格误差上界，更不能把负裕量改写为通过。未覆盖采样点之间的连续峰值保证，也未建立全工况或在轨标定误差上限。
 

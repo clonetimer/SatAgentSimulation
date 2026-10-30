@@ -1,0 +1,98 @@
+{
+  "status": "CHECKS_PASS_INDEPENDENT_AND_VISUAL_REVIEW_PENDING",
+  "pid": 69392,
+  "created": 1793336299.3555515,
+  "command": [
+    "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+    "reports/local_requirements_completion/continue_hardware_bounded_r11_qualification.py"
+  ],
+  "started_at_utc": "2026-10-30T04:58:19.748931+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "driver_sha256": "feb52ca75198b48e9918c2c6a23666417744010431aef32e743c7c13b77a3034",
+  "actual24h_started": false,
+  "children": [
+    {
+      "name": "full-suite",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "--basetemp=E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-qualification\\test-tmp",
+        "--junitxml=E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-qualification\\whole-suite.xml"
+      ],
+      "started_at_utc": "2026-10-30T05:00:10.363590+00:00",
+      "pid": 13708,
+      "created": 1793336410.3665292,
+      "returncode": 0,
+      "finished_at_utc": "2026-10-30T05:18:05.392548+00:00"
+    },
+    {
+      "name": "ai-followup",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\run_hardware_bounded_r11_ai_followup.py"
+      ],
+      "started_at_utc": "2026-10-30T05:00:10.814580+00:00",
+      "pid": 77532,
+      "created": 1793336410.8524268,
+      "returncode": 0,
+      "finished_at_utc": "2026-10-30T05:14:48.391020+00:00"
+    },
+    {
+      "name": "charts",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\verify_hardware_bounded_r11_charts.py"
+      ],
+      "started_at_utc": "2026-10-30T05:18:05.770887+00:00",
+      "pid": 76512,
+      "created": 1793337485.7756455,
+      "returncode": 0,
+      "finished_at_utc": "2026-10-30T05:18:48.771597+00:00"
+    }
+  ],
+  "last_verified_thermal_alive_at_utc": "2026-10-30T05:00:08.087898+00:00",
+  "thermal_state_sha256": "135f79c67efa5c84b89bee1dabb1904da42c1acc944feab89d57d0d96e095a6e",
+  "full_suite": {
+    "cases": 1983,
+    "passed": 1978,
+    "failures": [],
+    "skipped": [
+      {
+        "classname": "tests.interactive.test_native_battery_custom_wheel",
+        "name": "test_r9k_rebuilt_native_wheel_fresh_pid_battery_integrator_parity",
+        "time": "0.006"
+      },
+      {
+        "classname": "tests.interactive.test_native_parent_death_fence",
+        "name": "test_real_basilisk_subprocess_dies_when_parent_os_process_is_killed",
+        "time": "0.000"
+      },
+      {
+        "classname": "tests.interactive.test_supervised_continuous_native_runtime",
+        "name": "test_native_worker_death_does_not_recreate_graph_or_retry_tc",
+        "time": "0.000"
+      },
+      {
+        "classname": "tests.interactive.test_supervised_continuous_native_runtime",
+        "name": "test_live_session_child_crash_preserves_active_sqlite_owner_fence",
+        "time": "0.001"
+      },
+      {
+        "classname": "tests.interactive.test_windows_native_job",
+        "name": "test_job_not_available_on_linux",
+        "time": "0.001"
+      }
+    ],
+    "junit_sha256": "8f0cfb245c98f25eb6197deb39e8a0bfe21c5a5431d936b47c2e68b81eb52018"
+  },
+  "ai_state_sha256": "2e4d6e8ed397ddd1f7b15c4038b35553ea47abdc5bef150c144b1a431d9f30e2",
+  "chart_report_sha256": "5d11c70f72ac0a3329cc145ca940f0c4aa20d32bd18dbae0d43e69bd66c73bcb",
+  "application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core_after": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "tests_unchanged": true,
+  "driver_unchanged": true,
+  "finished_at_utc": "2026-10-30T05:18:49.193335+00:00"
+}

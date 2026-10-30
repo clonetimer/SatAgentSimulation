@@ -347,7 +347,9 @@ def _registry_parameter_type_schema(kind: str) -> dict[str, Any]:
     raise ValueError(f'UNSUPPORTED_REGISTRY_PARAMETER_TYPE:{kind}')
 
 
-def taskspec_draft_response_schema(capability_id: str | None = None) -> dict[str, Any]:
+def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_events: bool = False,
+                                 allow_geometry_overrides: bool = True,
+                                 allow_per_wheel_overrides: bool = True) -> dict[str, Any]:
     """Transport shape for the legacy/canonical/wrapped drafts we parse.
 
     Capability identity may be restored from an unambiguous registry binding
@@ -413,6 +415,11 @@ def taskspec_draft_response_schema(capability_id: str | None = None) -> dict[str
         contract = get_capability(capability_id).data
         parameter_properties = {}
         for name, descriptor in contract.get('parameters', {}).items():
+            if not allow_per_wheel_overrides and name.startswith('rw_') and name.endswith(('_0','_1','_2','_3')) and not name.startswith(('rw_axis_b_', 'rw_mount_b_')):
+                continue
+            if not allow_geometry_overrides and (name.startswith(('rw_axis_b_', 'rw_mount_b_'))
+                    or name in {'rw_geometry_mode', 'rw_mount_radius_m'}):
+                continue
             kind = descriptor.get('type')
             item = _registry_parameter_type_schema(str(kind))
             for source,target in [('enum','enum'),('items','items'),('min','minimum'),('max','maximum')]:
@@ -434,6 +441,20 @@ def taskspec_draft_response_schema(capability_id: str | None = None) -> dict[str
                 'legacy_degradations','campaign','simulation_extra','validation')}},
             'required':['capability_id'],'additionalProperties':False}
         canonical['required'].append('model')
+    if forbid_events:
+        empty_array = {'type':'array','maxItems':0}
+        empty_object = {'type':'object','properties':{},'additionalProperties':False}
+        empty_legacy = {'anyOf':[empty_array,empty_object]}
+        for kind in ('faults','degradations','constraints'):
+            legacy['properties'][kind] = copy.deepcopy(empty_array if kind == 'faults' else empty_legacy)
+        legacy['properties']['modifiers'] = {'type':'object','properties':{
+            kind:copy.deepcopy(empty_array if kind == 'faults' else empty_legacy)
+            for kind in ('faults','degradations','constraints')}, 'additionalProperties':False}
+        canonical['properties']['events'] = {'type':'object','properties':{
+            kind:copy.deepcopy(empty_array) for kind in ('faults','degradations','constraints')},
+            'additionalProperties':False}
+        if capability_id is not None:
+            canonical['properties']['model']['properties']['legacy_degradations'] = copy.deepcopy(empty_object)
     direct = {"anyOf": [legacy, canonical]}
     wrappers = [{"type": "object", "properties": {key: direct},
                  "required": [key], "additionalProperties": False}
