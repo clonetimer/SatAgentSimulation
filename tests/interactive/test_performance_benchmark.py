@@ -3,10 +3,13 @@ from __future__ import annotations
 import threading
 from typing import Any
 
+import pytest
+
 from sat_sim.interactive.performance import (
     benchmark_capacity,
     benchmark_command_latency,
     benchmark_long_sim,
+    benchmark_paced_session,
     benchmark_quantum,
     benchmark_slow_client,
     benchmark_telemetry,
@@ -53,6 +56,48 @@ def _factory(duration_s: float, quantum_s: float) -> ProbeRuntime:
     return ProbeRuntime()
 
 
+@pytest.mark.parametrize('measurement', ['quantum', 'long_sim'])
+@pytest.mark.parametrize('abort_fails', [False, True])
+def test_finalization_failure_cannot_become_successful_measurement(measurement, abort_fails):
+    original = RuntimeError('native finalization failed')
+    abort_calls = []
+
+    class FailingFinalization(ProbeRuntime):
+        def finalize(self):
+            raise original
+
+        def abort(self):
+            abort_calls.append(True)
+            if abort_fails:
+                raise RuntimeError('cleanup also failed')
+            super().abort()
+
+    factory = lambda duration, quantum: FailingFinalization()
+    with pytest.raises(RuntimeError) as caught:
+        if measurement == 'quantum':
+            benchmark_quantum(factory, samples=1)
+        else:
+            benchmark_long_sim(factory, sim_duration_s=.1, quantum_s=.1)
+    assert caught.value is original
+    assert abort_calls
+
+
+def test_advance_failure_is_preserved_when_best_effort_abort_also_fails():
+    original = RuntimeError('native step failed')
+
+    class FailingAdvance(ProbeRuntime):
+        def advance_to(self, stop_time_s):
+            raise original
+
+        def abort(self):
+            raise RuntimeError('cleanup also failed')
+
+    with pytest.raises(RuntimeError) as caught:
+        benchmark_long_sim(lambda duration, quantum: FailingAdvance(),
+                           sim_duration_s=.1, quantum_s=.1)
+    assert caught.value is original
+
+
 def _budget() -> dict:
     return {
         "schema_version": "interactive-performance-budget.v1",
@@ -97,3 +142,35 @@ def test_ci_profile_never_closes_formal_duration_gates() -> None:
     assert set(report["remaining_blockers"]) == {"drift_1x", "long_sim"}
     assert report["checks"]["drift_1x"]["duration_gate_s"] == 1800.0
     assert report["checks"]["long_sim"]["duration_gate_s"] == 14400.0
+
+
+def test_realtime_attainment_measures_execution_and_reports_finalization_separately():
+    import time
+    class SlowFinalizer(ProbeRuntime):
+        def finalize(self):
+            time.sleep(.25)
+            return super().finalize()
+    report = benchmark_paced_session(lambda *_:SlowFinalizer(), rate=1.,
+        wall_duration_s=.2, quantum_s=.1, session_id='slow-finalizer')
+    assert .85 < report['attainment_ratio'] < 1.15
+    assert report['end_to_end_wall_duration_s']-report['wall_duration_s'] > .2
+
+
+def test_capacity_budget_includes_live_peak_not_only_post_cleanup_rss(monkeypatch):
+    active = 0
+    class ResidentRuntime(ProbeRuntime):
+        def prepare(self):
+            nonlocal active
+            active += 1
+            super().prepare()
+        def finalize(self):
+            nonlocal active
+            active -= 1
+            return super().finalize()
+    monkeypatch.setattr('sat_sim.interactive.performance._resource_snapshot',
+        lambda:{'rss_bytes':100+active*1000, 'threads':1, 'fds':0, 'processes':1+active})
+    report = benchmark_capacity(lambda *_:ResidentRuntime(), duration_s=.2,
+                                quantum_s=.1, max_rss_bytes_at_four=3000)
+    assert report['status'] == 'FAIL'
+    assert report['cases'][-1]['rss_bytes'] == 100
+    assert report['cases'][-1]['rss_peak_bytes'] >= 4100

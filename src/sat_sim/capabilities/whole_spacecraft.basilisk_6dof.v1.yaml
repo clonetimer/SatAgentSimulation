@@ -27,7 +27,7 @@ implementation:
   basilisk_required: true
   accepted_task_backends:
   - basilisk
-  optional_dependency: bsk==2.11.0+satfix1
+  optional_dependency: bsk==2.11.0+satfix2
 modes:
   nominal:
     supported: true

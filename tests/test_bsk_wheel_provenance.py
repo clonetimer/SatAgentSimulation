@@ -1,4 +1,4 @@
-"""Issue #37: attest satfix1 provenance before any Basilisk wheel installation.
+"""Issue #37: attest satfix2 provenance before any Basilisk wheel installation.
 
 Synthetic archives here test validation logic only; they NEVER represent
 Basilisk physics. The release workflow separately downloads official wheels
@@ -28,23 +28,23 @@ from build_bsk_compat_wheels import (
 )
 
 SRC = "bsk-2.11.0-cp39-abi3-win_amd64.whl"
-TARGET = "bsk-2.11.0+satfix1-cp39-abi3-win_amd64.whl"
+TARGET = "bsk-2.11.0+satfix2-cp39-abi3-win_amd64.whl"
 
 
 def _make_wheel(root: Path, *, metadata=None, omit_record=False):
     dst = root / TARGET
     files = {
         "Basilisk/__init__.py": b"__version__ = '2.11.0'\n",
-        "bsk-2.11.0+satfix1.dist-info/METADATA": (
+        "bsk-2.11.0+satfix2.dist-info/METADATA": (
             metadata or (
-                "Metadata-Version: 2.3\nName: bsk\nVersion: 2.11.0+satfix1\n"
+                "Metadata-Version: 2.3\nName: bsk\nVersion: 2.11.0+satfix2\n"
                 + NEW_REQUIREMENT + "\n"
             )
         ).encode(),
-        "bsk-2.11.0+satfix1.dist-info/WHEEL":
+        "bsk-2.11.0+satfix2.dist-info/WHEEL":
             b"Wheel-Version: 1.0\nTag: cp39-abi3-win_amd64\n",
     }
-    record = "bsk-2.11.0+satfix1.dist-info/RECORD"
+    record = "bsk-2.11.0+satfix2.dist-info/RECORD"
     if not omit_record:
         buf = io.StringIO()
         writer = csv.writer(buf, lineterminator="\n")
@@ -70,7 +70,7 @@ def _make_report(root, wheel, **updates):
             "target": wheel.name,
             "target_sha256": sha256(wheel),
             "original_version": "2.11.0",
-            "patched_version": "2.11.0+satfix1",
+            "patched_version": "2.11.0+satfix2",
             "metadata_change": {"from": OLD_REQUIREMENT, "to": NEW_REQUIREMENT},
             "payload_file_count": 1,
             "payload_bytes_unchanged": True,
@@ -131,7 +131,7 @@ def test_missing_record_rejected(tmp_path):
 
 def test_mismatched_actual_wheel_metadata_rejected(tmp_path):
     wheel = _make_wheel(tmp_path, metadata=(
-        "Metadata-Version: 2.3\nName: bsk\nVersion: 2.11.0+satfix1\n"
+        "Metadata-Version: 2.3\nName: bsk\nVersion: 2.11.0+satfix2\n"
         + OLD_REQUIREMENT + "\n"
     ))
     _make_report(tmp_path, wheel)

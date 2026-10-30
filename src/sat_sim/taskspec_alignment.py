@@ -101,9 +101,9 @@ COMMON_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
         "simulation.sampling_interval_s",
         "simulation.sample_period_s",
         "simulation.time_step_s",
-        "simulation.step_s",
         "simulation.dt_s",
     ),
+    "simulation.solver.step_s": ("step_s", "simulation.step_s"),
     "outputs.output_root": (
         "output_root",
         "output_dir",
@@ -374,6 +374,7 @@ def alignment_catalog_for_contract(contract: Mapping[str, Any]) -> list[FieldAli
     rows = [
         FieldAlignment("simulation.duration_s", "simulation.duration_s", "duration_s", "s", COMMON_FIELD_ALIASES["simulation.duration_s"], 600.0, True),
         FieldAlignment("simulation.sample_s", "simulation.sample_s", "sample_s", "s", COMMON_FIELD_ALIASES["simulation.sample_s"], 60.0, True),
+        FieldAlignment("simulation.solver.step_s", "simulation.solver.step_s", "step_s", "s", COMMON_FIELD_ALIASES["simulation.solver.step_s"], None, False),
         FieldAlignment("outputs.output_root", "outputs.output_root", "output_root", None, COMMON_FIELD_ALIASES["outputs.output_root"], None, False),
     ]
     rows.extend(_parameter_alignments_from_contract(contract))

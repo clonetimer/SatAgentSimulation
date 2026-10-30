@@ -2,8 +2,15 @@
 
 > **完全新手？先不要从本 README 往下硬读。** 直接打开 [`START_HERE.md`](START_HERE.md)，然后按 [`docs/tutorials_zh/README.md`](docs/tutorials_zh/README.md) 的顺序做练习。教程从“启动平台并完成第一次运行”开始，不要求先理解 Capability / TaskSpec。
 
-> **建议状态：冻结为当前稳定工程基线。**  
-> V15 已形成“图形化建模 → 校验 → 生成可执行 Python → 运行 → 独立结果分析 / Scope 观察 → 导出可运行程序”的完整闭环。现阶段建议先用于真实任务，不再主动堆功能；后续只根据实际使用中暴露的问题做修复或针对性增强。
+使用 uv 安装当前开发环境：从仓库根目录运行 `python scripts/setup_uv.py`。已有完整缓存与资产时可加 `--offline`。逐项判定见[当前需求验收状态](reports/current_requirements_status.md)，过程及失败记录见[功能补齐记录](docs/functional_completion.md)；实际目标卫星的参数和遥测标定仍需对应工程数据。
+
+没有现成模型服务时，可按 [ModelScope 本地微调与脚本生成](docs/modelscope_local_training.md) 复现独立 GPU 环境、基座来源、训练和真实模型评测。本轮 v5 已训练完成，生成能力仍待验收。
+
+最新进展见 [2026-10-30 检查点](reports/progress_checkpoint/README.md)：生产完整回归 1936 通过、正式性能 8/8；热环境 AI 请求 HTTP 422，实际 24 小时耐久尚未完成，整体未验收。
+
+> **当前资格：功能补齐与复验中。历史通过记录不继承为本轮修改的验收结果。**
+>
+> V15 已形成“图形化建模 → 校验 → 生成可执行 Python → 运行 → 独立结果分析 / Scope 观察 → 导出可运行程序”的工程流程。当前适用于内部仿真与算法试验；用于具体卫星任务前，仍需核验对应参数、工况及实测残差。
 
 ## 1. V15 是什么
 
@@ -33,9 +40,19 @@ V15 的建模画布只负责建模。普通物理模块不会叠加曲线或大�
 
 实时会话可选 `continuous: true`，将同一个 Basilisk 整星实例按量子持续推进并保持遥控、遥测接口可用，直到显式停止；不是遥测循环播放。此模式仍需长期运行与恢复验收，不影响原有限时任务。参见 [持续卫星仿真指南](docs/guides_zh/13_持续卫星仿真指南.md)。
 
-> 主干收敛验收与安全边界：参见 [持续卫星仿真 Stable 集成验收](docs/guides_zh/14_持续卫星仿真Stable集成验收.md)。现有跨进程整星恢复仍为 **BLOCKED**，R9-K 定制电池 wheel 只经过单机原生跨进程试验，不能作为整星自动恢复发布。
+> 历史集成边界参见 [持续卫星仿真 Stable 集成验收](docs/guides_zh/14_持续卫星仿真Stable集成验收.md)。当前不支持跨进程整星状态续算；本轮按“异常中止后保留证据、重新创建场景”验收。历史 R9-K 定制电池试验不构成当前整星自动恢复支持。当前长测及模型验收以[功能补齐记录](docs/functional_completion.md)为准。
 
 ## 2. 当前适用范围
+
+推荐执行能力如下；这些标识对应后端注册表，页面按对象名称展示：
+
+| 仿真对象 | Capability ID |
+| --- | --- |
+| 整星 | `whole_spacecraft.unified_native.v1` |
+| 姿态控制分系统 | `subsystem.adcs_unified_native.v1` |
+| 电源分系统 | `subsystem.eps.unified_native.v1` |
+| 通信数据分系统 | `subsystem.comm_data.unified_native.v1` |
+| 推进分系统 | `subsystem.propulsion.unified_native.v1` |
 
 V15 适合作为：
 
@@ -65,54 +82,27 @@ V15 **不是**飞行软件、HIL 平台或认证级数字孪生。Basilisk 原�
 
 ## 4. 推荐安装方式
 
-### 4.1 已经有原 SAT 项目环境：推荐
+### 4.1 使用 uv 创建或更新当前环境：推荐
 
-这是最稳妥的方式。
-
-1. 解压 V15 到一个新的项目目录，例如：
-
-```text
-sat-platform-visual-composer-v15/
-```
-
-2. 保留原项目作为备份，并继续使用原项目已经验证过的 `.venv` / wheelhouse。
-
-3. 在 V15 根目录重新做 editable install，使虚拟环境指向 V15 源码。
-
-Linux/macOS 示例：
-
-```bash
-cd /path/to/sat-platform-visual-composer-v15
-source /path/to/original-sat/.venv/bin/activate
-python -m pip install --no-deps -e .
-python -m sat_sim.agent_cli doctor --require-api --strict-assets
-```
-
-启动：
-
-```bash
-VENV_DIR=/path/to/original-sat/.venv ./scripts/start_local.sh
-```
-
-浏览器打开：
-
-```text
-http://127.0.0.1:8000/
-```
-
-Windows PowerShell 示例：
+确保 `uv` 在 PATH 中，然后从仓库根目录执行：
 
 ```powershell
-cd C:\path\to\sat-platform-visual-composer-v15
-& C:\path\to\original-sat\.venv\Scripts\Activate.ps1
-python -m pip install --no-deps -e .
-python -m sat_sim.agent_cli doctor --require-api --strict-assets
-
-$env:VENV_DIR = "C:\path\to\original-sat\.venv"
+uv --version
+python scripts/setup_uv.py
 .\scripts\start_local_windows.ps1
 ```
 
-> 当前正式部署目标仍优先是 Ubuntu/Linux。Windows 脚本可用于开发和兼容验证。
+安装入口会在需要时创建 Python 3.12 的 `.venv`，核验固定官方 Basilisk wheel 的来源，构建仅修改发行元数据的 `satfix2` 变体，通过 uv 安装锁定依赖，获取环境资产，并执行依赖冲突与严格 doctor 检查。现有 `.venv` 会按当前锁定版本更新；旧环境的通过记录不作为更新后的验收结果。
+
+已有完整 uv 缓存、固定官方 wheel 和环境资产时，可以离线安装：
+
+```powershell
+python scripts/setup_uv.py --offline
+```
+
+缺失缓存或资产时，离线命令会失败并报告缺项。当前默认环境采用 Pillow 13 和 metadata-only `bsk==2.11.0+satfix2`；Basilisk 仿真代码、原生库和数据载荷与固定官方发行件相同。旧 `satfix1` 制品保留供历史对照。
+
+浏览器打开 `http://127.0.0.1:8000/`。Linux x86_64 可使用同一 uv 安装入口，再运行 `./scripts/start_local.sh`；本轮 Windows 安装与实际原生运行已实测，Linux 部署资格仍待独立复验。当前预编译安装入口不接受 macOS 或其他架构。
 
 ### 4.2 直接升级原 source-only 工程
 
@@ -135,26 +125,7 @@ UPGRADE_FROM_ORIGINAL.md
 
 ### 4.3 从零安装
 
-V15 源码包本身不包含完整离线 wheelhouse。若从零安装，请准备与 `requirements-lock.txt` 匹配的依赖，尤其是 Basilisk runtime。
-
-推荐先检查当前 Python：
-
-```bash
-python --version
-```
-
-支持范围：
-
-```text
-Python >=3.10,<3.14
-```
-
-然后创建环境并安装你单位/原项目保存的依赖。安装完成后，在 V15 根目录执行：
-
-```bash
-python -m pip install --no-deps -e .
-python -m sat_sim.agent_cli doctor --require-api --strict-assets
-```
+按 4.1 使用 uv 安装。首次安装需要网络以获取固定依赖和环境资产；源码包本身不包含完整离线 wheelhouse。仅安装源码而不更新依赖，不能证明满足当前锁定版本或安全检查。
 
 Basilisk 可单独检查：
 

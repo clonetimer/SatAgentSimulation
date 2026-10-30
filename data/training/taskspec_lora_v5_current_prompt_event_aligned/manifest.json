@@ -1,0 +1,44 @@
+{
+  "schema_version": "sat-taskspec-sft-data.v1",
+  "splits": {
+    "train": {
+      "path": "E:\\tmp\\SatAgentSimulation\\data\\training\\taskspec_lora_v5_current_prompt_event_aligned\\train.jsonl",
+      "sha256": "d526a9ab35113bec55f333051a3074b969e10b239a3c219a66639cd5b84054f7",
+      "count": 588,
+      "family_count": 48
+    },
+    "validation": {
+      "path": "E:\\tmp\\SatAgentSimulation\\data\\training\\taskspec_lora_v5_current_prompt_event_aligned\\validation.jsonl",
+      "sha256": "570894f6e9ae6afb7055e3ad9cb43568c4f54eef1f482645a467480d545b5673",
+      "count": 69,
+      "family_count": 6
+    }
+  },
+  "semantic_family_overlap": 0,
+  "formal_evaluation_request_overlap": 0,
+  "label_source": "synthetic_registry_contract_not_flight_data",
+  "default_output_policy": "shared_ui_agent_registry_v1",
+  "request_configuration_policy": "explicit_template_parameters_and_time_v1",
+  "request_event_policy": "explicit_runtime_normalized_events_v1",
+  "builder_source_sha256": "1dedadfd89d7d4e36f2ee20801bbdf4d43df499d5e0534f95e94b6599dfeedb2",
+  "prompt_and_guard_source_sha256": "a922257d72f29d639750b134624b4a850c98735c38ef3a538a9491c454aad4ce",
+  "formal_evaluation_manifest_sha256": "60021815c566ff39060d46bccfe002290180e3366eef14dde636c962fdb8737b",
+  "rejected": [
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "$.parameters: burn_start_s must not exceed duration_s"
+    },
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "$.parameters: burn_start_s must not exceed duration_s"
+    },
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "$.parameters: burn_start_s must not exceed duration_s"
+    }
+  ],
+  "student_model_accuracy": "NOT_EVALUATED"
+}

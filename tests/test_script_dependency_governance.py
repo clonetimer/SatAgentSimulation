@@ -39,6 +39,19 @@ def test_script_inventory_and_deprecated_policy_are_present() -> None:
     assert (ROOT / "scripts" / "deprecated" / "README.md").is_file()
 
 
+def test_managed_artifacts_are_excluded_but_misplaced_project_script_is_reported(tmp_path: Path) -> None:
+    module = _load_governance_module()
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.7.8"\n', encoding="utf-8")
+    for directory in (".cache", ".tmp", ".venv-offline-numba", "unmanaged"):
+        path = tmp_path / directory / "dependency.py"
+        path.parent.mkdir()
+        path.write_text("pass\n", encoding="utf-8")
+    report = module.run(tmp_path)
+    outside = [issue["path"] for issue in report["issues"]
+               if issue["code"] == "NON_PRODUCTION_SCRIPT_OUTSIDE_SCRIPTS"]
+    assert outside == ["unmanaged/dependency.py"]
+
+
 def test_dependencies_are_separated_and_exactly_pinned() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert pyproject["project"]["version"] == "0.7.8"
@@ -59,8 +72,8 @@ def test_dependencies_are_separated_and_exactly_pinned() -> None:
 
 def test_bootstrap_and_weekly_audit_tools_are_exactly_pinned() -> None:
     expected = {
-        "scripts/bootstrap_local.sh": ("pip==26.2.1", "setuptools==83.0.0", "wheel==0.46.2"),
-        "scripts/bootstrap_windows.ps1": ("pip==26.2.1", "setuptools==83.0.0", "wheel==0.46.2"),
+        "scripts/bootstrap_local.sh": ("pip==26.2.1", "setuptools==84.1.0", "wheel==0.46.2"),
+        "scripts/bootstrap_windows.ps1": ("pip==26.2.1", "setuptools==84.1.0", "wheel==0.46.2"),
         ".github/workflows/dependency-audit.yml": ("pip==26.2.1", "pip-audit==2.10.1"),
     }
     for relative, pins in expected.items():

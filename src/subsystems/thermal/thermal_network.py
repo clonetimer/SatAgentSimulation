@@ -45,6 +45,10 @@ class ThermalNetworkTraceRow:
     solar_heat_w: float
     radiation_heat_w: float
     thermal_safe: bool
+    direct_solar_heat_w: float = 0.0
+    albedo_heat_w: float = 0.0
+    earth_ir_heat_w: float = 0.0
+    electrical_extracted_w: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -182,6 +186,10 @@ class ThermalHeater(sysModel.SysModel):
 
         self.heaterOutMsg = messaging.DeviceStatusMsg()
         self.powerOutMsg = messaging.PowerNodeUsageMsg()
+        # Separate electrical consumption from deposited heat (efficiency < 1).
+        self.electricalPowerOutMsg = messaging.PowerNodeUsageMsg()
+        self.last_electrical_power_w = 0.0
+        self.last_heat_power_w = 0.0
 
     def set_node(self, node: ThermalNode) -> None:
         """Set the target thermal node (direct reference for float precision)."""
@@ -233,9 +241,14 @@ class ThermalHeater(sysModel.SysModel):
         self.heaterOutMsg.write(heater_msg, CurrentSimNanos, self.moduleID)
 
         scale = max(0.0, float(getattr(self, 'power_scale', 1.0)))
+        self.last_electrical_power_w = abs(self.params.power_w * scale) if self._heater_on else 0.0
+        self.last_heat_power_w = self.last_electrical_power_w * self.params.efficiency
         power_msg = messaging.PowerNodeUsageMsgPayload()
-        power_msg.netPower = -abs(self.params.power_w * self.params.efficiency * scale) if self._heater_on else 0.0
+        power_msg.netPower = -self.last_heat_power_w
         self.powerOutMsg.write(power_msg, CurrentSimNanos, self.moduleID)
+        electrical_msg = messaging.PowerNodeUsageMsgPayload()
+        electrical_msg.netPower = -self.last_electrical_power_w
+        self.electricalPowerOutMsg.write(electrical_msg, CurrentSimNanos, self.moduleID)
 
 
 class ThermalRadiator(sysModel.SysModel):
@@ -270,8 +283,6 @@ class ThermalRadiator(sysModel.SysModel):
         self.UpdateState(CurrentSimNanos)
 
     def compute_rejection(self, node_temp_k: float) -> float:
-        if node_temp_k <= self.params.min_temp_k:
-            return 0.0
         # A deployable radiator rejects heat only after its control state has
         # commanded deployment.  A fixed radiator is always physically present
         # and therefore does not depend on ``_radiator_on``.
@@ -517,6 +528,7 @@ class ThermalNetworkSysModel(sysModel.SysModel):
         self.radiators: dict[str, ThermalRadiator] = {}
         self.power_bridges: dict[str, ThermalPowerBridge] = {}
         self.solar_input: SolarHeatInput | None = None
+        self.radiative_environment = None
         self._last_ns: int | None = None
         self.trace: list[ThermalNetworkTraceRow] = []
         self.read_errors: list[str] = []
@@ -593,13 +605,15 @@ class ThermalNetworkSysModel(sysModel.SysModel):
         self._last_ns = CurrentSimNanos
 
         self._compute_conduction()
+        if self.radiative_environment is not None:
+            self.radiative_environment.apply(self, CurrentSimNanos)
         self._compute_radiation()
         self._compute_solar()
 
         for name, node in self.nodes.items():
             heater_on = self.heaters[name]._heater_on if name in self.heaters else False
             heater_power = (
-                self.heaters[name].params.power_w * self.heaters[name].params.efficiency
+                self.heaters[name].last_heat_power_w
                 if heater_on else 0.0
             )
             radiator_on = self.radiators[name]._radiator_on if name in self.radiators else False
@@ -619,6 +633,10 @@ class ThermalNetworkSysModel(sysModel.SysModel):
                 solar_heat_w=node._solar_heat_w,
                 radiation_heat_w=node._radiation_heat_w,
                 thermal_safe=node.thermal_safe,
+                direct_solar_heat_w=(self.radiative_environment.last_heat.get(name, {}).get('solar_heat_w', 0.) if self.radiative_environment else 0.),
+                albedo_heat_w=(self.radiative_environment.last_heat.get(name, {}).get('albedo_heat_w', 0.) if self.radiative_environment else 0.),
+                earth_ir_heat_w=(self.radiative_environment.last_heat.get(name, {}).get('earth_ir_heat_w', 0.) if self.radiative_environment else 0.),
+                electrical_extracted_w=(self.radiative_environment.last_heat.get(name, {}).get('electrical_extracted_w', 0.) if self.radiative_environment else 0.),
             ))
 
         for name, node in self.nodes.items():

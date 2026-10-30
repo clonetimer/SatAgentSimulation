@@ -315,6 +315,9 @@ class WholeSpacecraftCompositeDigitalTwinAdapter:
                 "data_status": summary.data_conservation_status,
                 "data_residual_bits": summary.data_balance_residual_bits,
                 "data_tolerance_bits": summary.data_balance_tolerance_bits,
+                "data_ordering_tolerance_bits": summary.data_balance_ordering_tolerance_bits,
+                "data_rounding_tolerance_bits": summary.data_balance_rounding_tolerance_bits,
+                "data_floating_tolerance_bits": summary.data_balance_floating_tolerance_bits,
             },
             "proxy_runtime_evidence": {
                 "status": summary.proxy_coupling_runtime_status,

@@ -443,7 +443,7 @@ def _score_capability(capability_id: str, request_text: str) -> CapabilityRouteC
         if unified_runtime_cues and (adcs_matches or adcs_fidelity_matches or adcs_closed_loop_matches):
             score += 80.0
             reasons.append("unified runtime + ADCS request")
-        if rw_matches:
+        if rw_matches and (adcs_matches or adcs_closed_loop_matches or adcs_fidelity_matches):
             score += 8.0
     elif capability_id == "whole_spacecraft.unified_native.v1":
         if matches:
@@ -586,6 +586,15 @@ def _score_capability(capability_id: str, request_text: str) -> CapabilityRouteC
     elif capability_id == "subsystem.eps.basic.v1":
         if eps_matches:
             score += 3.0
+        # A requested subsystem is not a battery-only task merely because
+        # the requested outputs mention battery SOC or capacity.
+        explicit_eps_subsystem = _contains_any(text, (
+            "eps subsystem", "\u7535\u6e90\u5206\u7cfb\u7edf", "\u7535\u6e90\u7cfb\u7edf"))
+        explicit_battery_component = _contains_any(text, (
+            "battery component", "\u7535\u6c60\u5355\u673a", "\u7535\u6c60\u7ec4\u4ef6"))
+        if explicit_eps_subsystem and not (whole_matches or coupled_cues or unified_runtime_cues or explicit_battery_component):
+            score += 12.0
+            reasons.append("explicit EPS subsystem scope takes priority over battery output keywords")
         if whole_matches and orbit_matches:
             score -= 2.0
             reasons.append("whole-spacecraft route preferred over EPS-only")
@@ -652,7 +661,7 @@ def _score_capability(capability_id: str, request_text: str) -> CapabilityRouteC
             score += 40
         if adcs_fidelity_matches:
             score += 30
-        if rw_matches:
+        if rw_matches and (adcs_matches or adcs_closed_loop_matches or adcs_fidelity_matches):
             score += 8
         if any(k in text for k in ("environmental torque", "gravity gradient", "magnetic torque", "sensor dropout", "star tracker", "gyro bias", "wheel momentum", "环境扰动", "飞轮动量", "星敏", "陀螺")):
             score += 25
@@ -794,6 +803,20 @@ def _detect_unsupported(request_text: str, selected_capability_id: str | None) -
     for domain, keywords in UNSUPPORTED_DOMAIN_KEYWORDS.items():
         raw_matches = _contains_any(request_text, keywords)
         matches = _filter_negated_matches(request_text, raw_matches)
+        # Capability-scoped implemented mechanisms are distinct from claims of
+        # flight accuracy or unimplemented force/thermal models. Keep the latter
+        # blockers; don't reject a genuine SPICE request before invoking the LLM.
+        if domain == 'high_fidelity_orbit' and selected_capability_id in {
+            'whole_spacecraft.unified_native.v1', 'subsystem.adcs_unified_native.v1',
+        }:
+            supported_cues = {'spice', 'spice ephemeris', 'spice 星历',
+                              'third-body', 'third body', 'third-body forces',
+                              '三体摄动', '第三体摄动'}
+            matches = tuple(match for match in matches if match not in supported_cues)
+        if domain == 'thermal_advanced' and selected_capability_id == 'whole_spacecraft.unified_native.v1':
+            matches = tuple(match for match in matches if match not in {
+                '热网络', 'thermal network', 'multi-node thermal',
+            })
         if not matches:
             continue
         exceptions = SUPPORTED_UNSUPPORTED_EXCEPTIONS.get(domain, ())

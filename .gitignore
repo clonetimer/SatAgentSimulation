@@ -5,6 +5,18 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .venv/
+.uv-cache/
+.cache/
+.tmp/
+.venv-sft/
+.venv-offline-numba/
+.models/
+training_runs/
+third_party/spice/
+third_party/wmm/
+third_party/gravity/
+third_party/wheels/*.parts/
+third_party/wheels/*.part
 venv/
 build/
 dist/
@@ -18,3 +30,6 @@ reports/local_*/
 *.log
 .DS_Store
 Thumbs.db
+.env
+.env.*
+!.env.example

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-用途：从固定官方地址获取已批准的 Basilisk 2.11.0 Wheel，并构建可审计的 metadata-only satfix1 离线包。
+用途：从固定官方地址获取已批准的 Basilisk 2.11.0 Wheel，并构建可审计的 metadata-only satfix2 离线包。
 参数：--platform 选择 linux、windows 或 all；--offline 仅使用已存在的官方 Wheel，不进行网络下载。
-输出：在 third_party/wheels 下生成 satfix1 Wheel、逐文件载荷一致性证据和 JSON 构建报告。
+输出：在 third_party/wheels 下生成 satfix2 Wheel、逐文件载荷一致性证据和 JSON 构建报告。
 """
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def main() -> int:
         originals.append(target)
         retrieval.append({"platform": key, "filename": item["filename"], "sha256": actual, "source_url": item["url"], "verified": True})
 
-    report_path = args.output_dir / "bsk_2.11.0_satfix1_build_report.json"
+    report_path = args.output_dir / "bsk_2.11.0_satfix2_build_report.json"
     command = [sys.executable, str(root / "scripts" / "build_bsk_compat_wheels.py"), *map(str, originals), "--output-dir", str(args.output_dir), "--report", str(report_path)]
     subprocess.run(command, cwd=root, check=True)
     build_report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -92,7 +92,7 @@ def main() -> int:
         "retrieval": retrieval,
         "compatibility_build": build_report,
     }
-    bundle_path = args.output_dir / "OFFLINE_BSK_BUNDLE_MANIFEST.json"
+    bundle_path = args.output_dir / "OFFLINE_BSK_BUNDLE_MANIFEST_satfix2.json"
     bundle_path.write_text(json.dumps(bundle_report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"status": "PASS", "manifest": str(bundle_path), "patched_wheels": [row["target"] for row in build_report["results"]]}, ensure_ascii=False, indent=2))
     return 0

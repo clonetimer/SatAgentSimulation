@@ -98,6 +98,10 @@ def test_native_supervised_worker_matches_real_inprocess_basilisk(tmp_path):
         assert isinstance(child, SupervisedContinuousNativeRuntime)
         rows, result = _real_samples(child, spec)
         assert child.child_pid != os.getpid()
+        scheduling = child.cpu_scheduling
+        assert scheduling["pid"] == child.child_pid
+        assert scheduling["mode"] in {"SYSTEM_DEFAULT", "PERFORMANCE_CORES"}
+        assert result["metadata"]["native_cpu_scheduling"] == scheduling
         evidence = child.last_reap
         assert evidence is not None
         assert evidence["direct_child_join_observed"] is True
@@ -232,6 +236,9 @@ def test_native_graph_is_not_created_before_parent_fence_handshake(monkeypatch):
 
     order = []
     original_parent = os.getppid()
+    monkeypatch.setattr(target, "configure_native_worker_scheduling", lambda: {
+        "pid":os.getpid(), "mode":"TEST_ONLY", "applied":False,
+    })
     monkeypatch.setattr(
         target, "arm_native_parent_death_fence",
         lambda pid: {"supported": True, "kind": "TEST_GUARD",

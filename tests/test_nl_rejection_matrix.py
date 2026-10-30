@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from sat_sim.capability_planner import plan_capability_for_request
 from sat_sim.nl_rejection_matrix import REJECTION_CASES
 from sat_sim.unified_agent import UnifiedAgentRequest, run_unified_agent
@@ -49,5 +51,12 @@ def test_subsystem_boundary_returns_structured_rejection_envelope(tmp_path) -> N
 
     assert result.ok is False
     assert result.compiled is None
-    assert result.task_spec["simulation"]["level"] == "component"
-    assert result.task_spec["metadata"]["planner"]["supported"] is False
+    # An unsupported FEM request must not produce a valid-looking component
+    # template. The structured rejection belongs in the authoritative plan.
+    assert not result.task_spec
+    assert not result.validation.ok
+    plan = json.loads((tmp_path/'capability_plan.json').read_text(encoding='utf-8'))
+    assert plan['supported'] is False
+    assert plan['selected_capability_id'] == 'subsystem.thermal.basic_lumped.v1'
+    assert any(item['domain']=='thermal_advanced' for item in plan['unsupported_requirements'])
+    assert not (tmp_path/'generated_simulation.py').exists()

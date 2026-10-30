@@ -22,13 +22,14 @@ from typing import Any, Iterable, Mapping, Sequence
 from pydantic import BaseModel, ConfigDict, Field
 
 from .agent_guards import PROFILE_RANK, evaluate_agent_guards
+from .assertions import evaluate_assertions
 from .effect_evidence import (
     EffectEvidenceClassification,
     evaluate_runtime_effect,
     get_effect_evidence_profile,
 )
 from .execution_planner import ResolvedSpec
-from .validation.physical_checks import evaluate_physical_validation
+from .validation.physical_checks import evaluate_physical_validation, physical_validation_options
 
 VALIDATION_OUTCOME_VERSION = "v26.validation-outcome.v1"
 CLAIM_REPORT_VERSION = "v26.claim-report.v1"
@@ -99,6 +100,40 @@ class ClaimReport(_Strict):
     limitations: list[str] = Field(default_factory=list)
     reason_codes: list[str] = Field(default_factory=list)
     evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+def physical_validation_check(physical: Mapping[str, Any]) -> ValidationCheck:
+    """Map a scoped physical report without turning absent evidence into PASS."""
+
+    status = str(physical.get("status", "not_evaluated")).lower()
+    coverage = str(physical.get("coverage_status", "NONE"))
+    if status == "fail":
+        result, reason = ValidationResult.FAIL, "PHYSICAL_VALIDATION_FAILED"
+        message = "One or more observed physical constraints or required evidence checks failed."
+    elif status == "inconclusive":
+        result, reason = ValidationResult.INCONCLUSIVE, "PHYSICAL_VALIDATION_EVIDENCE_MISSING"
+        message = "Explicitly requested physical checks lack sufficient input evidence."
+    elif status == "not_evaluated" or not physical.get("checks_run"):
+        result, reason = ValidationResult.NOT_EVALUATED, "PHYSICAL_VALIDATION_NOT_EVALUATED"
+        message = "No supported physical check had sufficient input evidence; no physical pass is claimed."
+    elif coverage == "PARTIAL":
+        result, reason = ValidationResult.PASS, "PHYSICAL_VALIDATION_PARTIAL"
+        message = "The observed subset of physical checks completed; missing checks remain unevaluated."
+    elif status == "warning":
+        result, reason = ValidationResult.PASS, "PHYSICAL_VALIDATION_WARNING"
+        message = "Observed physical checks completed with warnings."
+    else:
+        result, reason = ValidationResult.PASS, "PHYSICAL_VALIDATION_PASSED"
+        message = "All selected physical checks had input evidence and passed."
+    return ValidationCheck(
+        check_id="physical_validation", category="physical_validation", result=result,
+        reason_code=reason, message=message,
+        observed={"coverage_status": coverage, "checks_run": list(physical.get("checks_run") or [])},
+        evidence={key: physical.get(key) for key in (
+            "checks_missing", "check_results", "issues", "issue_count", "fail_count",
+            "warning_count", "issues_truncated", "omitted_issue_count", "issue_counts",
+        )},
+    )
 
 
 def _nested_get(payload: Mapping[str, Any], path: str) -> Any:
@@ -267,6 +302,39 @@ def _assertion_checks(spec: Mapping[str, Any], summary: Mapping[str, Any], rows:
     return checks
 
 
+def _acceptance_assertion_checks(spec: Mapping[str, Any], summary: Mapping[str, Any]) -> list[ValidationCheck]:
+    """Honor metric acceptance declarations in every caller, not just reports."""
+    model = spec.get("model") if isinstance(spec.get("model"), Mapping) else {}
+    validation = model.get("validation") if isinstance(model.get("validation"), Mapping) else {}
+    declared = validation.get("acceptance_assertions")
+    if declared is None:
+        return []
+    try:
+        evaluated = evaluate_assertions(summary, declared)
+    except (TypeError, ValueError) as exc:
+        return [ValidationCheck(
+            check_id="acceptance_assertions_format", category="acceptance_assertion",
+            result=ValidationResult.FAIL, reason_code="ACCEPTANCE_ASSERTIONS_INVALID",
+            message=str(exc), path="$.model.validation.acceptance_assertions",
+        )]
+    checks: list[ValidationCheck] = []
+    for index, item in enumerate(evaluated["results"]):
+        result = ValidationResult(item["status"])
+        reason = {
+            ValidationResult.PASS: "ACCEPTANCE_ASSERTION_PASSED",
+            ValidationResult.FAIL: "ACCEPTANCE_ASSERTION_FAILED",
+            ValidationResult.NOT_EVALUATED: "OPTIONAL_ACCEPTANCE_ASSERTION_NOT_EVALUATED",
+        }[result]
+        checks.append(ValidationCheck(
+            check_id=f"acceptance_assertion:{item['assertion_id']}", category="acceptance_assertion",
+            result=result, reason_code=reason, message=item["message"],
+            path=f"$.model.validation.acceptance_assertions[{index}]",
+            expected=item["expected"], observed=item["actual"],
+            evidence={"metric": item["metric"], "operator": item["operator"]},
+        ))
+    return checks
+
+
 def _modifier_payloads(summary: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     candidates: list[Any] = []
     events = summary.get("events") if isinstance(summary.get("events"), Mapping) else {}
@@ -419,31 +487,10 @@ def _injection_evidence(
     return out
 
 
-def evaluate_validation_outcome(
-    *,
-    spec: Mapping[str, Any],
-    resolved: ResolvedSpec,
-    summary: Mapping[str, Any] | None,
-    trace_rows: Iterable[Mapping[str, Any]] | None,
-    execution_status: ExecutionStatus = ExecutionStatus.SUCCEEDED,
-    execution_reason_code: str | None = None,
-) -> ValidationOutcome:
-    """Evaluate outputs, physical gates, runtime injection and assertions."""
-
+def runner_summary_validation_checks(summary: Mapping[str, Any] | None) -> list[ValidationCheck]:
+    """Apply the same declared runner/mission health gates in every execution mode."""
     summary_map = dict(summary or {})
-    rows = tuple(dict(row) for row in (trace_rows or ()))
-    if execution_status != ExecutionStatus.SUCCEEDED:
-        return ValidationOutcome(
-            execution_status=execution_status,
-            result=ValidationResult.NOT_EVALUATED,
-            reason_code=execution_reason_code or ("EXECUTION_CANCELLED" if execution_status == ExecutionStatus.CANCELLED else "EXECUTION_FAILED"),
-            limitations=["Mission and QoI validation were not evaluated because deterministic execution did not succeed."],
-        )
-
     checks: list[ValidationCheck] = []
-    present: list[str] = []
-    missing: list[str] = []
-
     # A runner can execute numerically while failing its mission contract.  Do
     # not allow output-presence and generic physical checks to turn an explicit
     # summary FAIL back into a ValidationOutcome PASS.
@@ -495,6 +542,13 @@ def evaluate_validation_outcome(
             message="Deterministic execution completed, but the mission contract failed.",
             observed=mission_status,
         ))
+    elif mission_status == "INCONCLUSIVE":
+        checks.append(ValidationCheck(
+            check_id="mission_status", category="mission_result",
+            result=ValidationResult.INCONCLUSIVE, reason_code="MISSION_REQUIREMENT_INCONCLUSIVE",
+            message="The simulation runner did not establish its mission contract.",
+            observed=mission_status,
+        ))
     resource_feedback_status = str(summary_map.get("resource_feedback_closure_status") or "").strip().upper()
     if resource_feedback_status in {"FAIL", "FAILED", "ERROR"}:
         checks.append(ValidationCheck(
@@ -504,6 +558,44 @@ def evaluate_validation_outcome(
             observed=resource_feedback_status,
             evidence={"bridges": dict(summary_map.get("resource_feedback_bridge_health") or {})},
         ))
+    acceptance_status = str(summary_map.get("acceptance_assertion_status") or "").strip().upper()
+    if acceptance_status in {"FAIL", "FAILED", "ERROR", "INCONCLUSIVE"}:
+        checks.append(ValidationCheck(
+            check_id="runner_acceptance_assertions", category="acceptance_assertion",
+            result=ValidationResult.INCONCLUSIVE if acceptance_status == "INCONCLUSIVE" else ValidationResult.FAIL,
+            reason_code="ACCEPTANCE_ASSERTIONS_INCONCLUSIVE" if acceptance_status == "INCONCLUSIVE" else "ACCEPTANCE_ASSERTION_FAILED",
+            message="The runner's recorded acceptance-assertion result did not pass.",
+            observed=acceptance_status,
+        ))
+    return checks
+
+
+def evaluate_validation_outcome(
+    *,
+    spec: Mapping[str, Any],
+    resolved: ResolvedSpec,
+    summary: Mapping[str, Any] | None,
+    trace_rows: Iterable[Mapping[str, Any]] | None,
+    execution_status: ExecutionStatus = ExecutionStatus.SUCCEEDED,
+    execution_reason_code: str | None = None,
+) -> ValidationOutcome:
+    """Evaluate outputs, physical gates, runtime injection and assertions."""
+
+    summary_map = dict(summary or {})
+    rows = tuple(dict(row) for row in (trace_rows or ()))
+    if execution_status != ExecutionStatus.SUCCEEDED:
+        return ValidationOutcome(
+            execution_status=execution_status,
+            result=ValidationResult.NOT_EVALUATED,
+            reason_code=execution_reason_code or ("EXECUTION_CANCELLED" if execution_status == ExecutionStatus.CANCELLED else "EXECUTION_FAILED"),
+            limitations=["Mission and QoI validation were not evaluated because deterministic execution did not succeed."],
+        )
+
+    checks: list[ValidationCheck] = []
+    present: list[str] = []
+    missing: list[str] = []
+
+    checks.extend(runner_summary_validation_checks(summary_map))
     causal_status = str(summary_map.get("causal_requirement_evidence_status") or "").strip().upper()
     required_couplings = list((spec.get("mission") or {}).get("required_couplings") or []) if isinstance(spec.get("mission"), Mapping) else []
     if causal_status in {"FAIL", "FAILED", "ERROR"}:
@@ -542,38 +634,14 @@ def evaluate_validation_outcome(
                 message=f"Required output {binding.requested_field!r} was not found in summary or telemetry.", expected=field,
             ))
 
-    model = spec.get("model") if isinstance(spec.get("model"), Mapping) else {}
-    validation_cfg = model.get("validation") if isinstance(model.get("validation"), Mapping) else {}
-    selected_checks = validation_cfg.get("physical_checks") or validation_cfg.get("checks")
     physical = evaluate_physical_validation(
-        rows,
-        summary=summary_map,
-        checks=selected_checks if isinstance(selected_checks, Sequence) and not isinstance(selected_checks, (str, bytes)) else None,
-        strict=bool(validation_cfg.get("strict_physical", validation_cfg.get("strict", False))),
+        rows, summary=summary_map, **physical_validation_options(spec),
     )
-    if physical.get("status") == "fail":
-        checks.append(ValidationCheck(
-            check_id="physical_validation", category="physical_validation",
-            result=ValidationResult.FAIL, reason_code="PHYSICAL_VALIDATION_FAILED",
-            message="One or more physical validation gates failed.", observed=physical.get("fail_count"),
-            evidence={"issues": physical.get("issues", [])},
-        ))
-    elif physical.get("status") == "warning":
-        checks.append(ValidationCheck(
-            check_id="physical_validation", category="physical_validation",
-            result=ValidationResult.PASS, reason_code="PHYSICAL_VALIDATION_WARNING",
-            message="Physical validation passed with warnings.", observed=physical.get("warning_count"),
-            evidence={"issues": physical.get("issues", [])},
-        ))
-    else:
-        checks.append(ValidationCheck(
-            check_id="physical_validation", category="physical_validation",
-            result=ValidationResult.PASS, reason_code="PHYSICAL_VALIDATION_PASSED",
-            message="Physical validation gates passed.",
-        ))
+    checks.append(physical_validation_check(physical))
 
     assertion_checks = _assertion_checks(spec, summary_map, rows)
     checks.extend(assertion_checks)
+    checks.extend(_acceptance_assertion_checks(spec, summary_map))
     injections = _injection_evidence(spec, resolved, summary_map, rows)
     for item in injections:
         checks.append(ValidationCheck(
@@ -602,6 +670,7 @@ def evaluate_validation_outcome(
         result = ValidationResult.PASS
         reason = "VALIDATION_PASSED"
     limitations: list[str] = []
+    limitations.extend(physical.get("limitations") or [])
     if missing:
         limitations.append("One or more required QoI fields were not observed.")
     if any(item.effect_result == ValidationResult.INCONCLUSIVE for item in injections):
@@ -745,6 +814,7 @@ __all__ = [
     "ValidationOutcome",
     "ClaimReport",
     "evaluate_validation_outcome",
+    "physical_validation_check",
     "build_claim_report",
     "validation_outcome_schema",
     "claim_report_schema",

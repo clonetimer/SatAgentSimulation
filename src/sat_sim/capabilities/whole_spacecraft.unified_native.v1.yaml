@@ -60,6 +60,45 @@ modes:
     - adcs_reaction_wheel_speed_limit
     - power_safe_mode_threshold
 parameters:
+  environment_profile:
+    type: string
+    default: simplified
+    enum: [simplified, spice_wmm]
+    description: Explicit reference environment or offline DE430, Earth J2, Sun/Moon gravity and WMM2025. No fallback.
+  epoch_utc:
+    type: string
+    default: '2026-01-01T00:00:00Z'
+    description: Timezone-qualified UTC epoch; WMM2025 profile is valid during 2025-2029.
+  spacecraft_mass_kg:
+    type: number
+    unit: kg
+    default: 100.0
+    min: 1.0
+    max: 2000.0
+  eccentricity:
+    type: number
+    unit: '1'
+    default: 0.001
+    min: 0.0
+    max: 0.999
+  raan_deg:
+    type: number
+    unit: deg
+    default: 0.0
+    min: 0.0
+    max: 360.0
+  arg_perigee_deg:
+    type: number
+    unit: deg
+    default: 0.0
+    min: 0.0
+    max: 360.0
+  initial_true_anomaly_rad:
+    type: number
+    unit: rad
+    default: 0.0
+    min: 0.0
+    max: 6.283185307179586
   initial_pointing_error_deg:
     type: number
     unit: deg
@@ -101,6 +140,7 @@ parameters:
     required: false
     default: 7000000.0
     min: 6478000.0
+    max: 100000000.0
   controller_k:
     type: number
     required: false
@@ -797,6 +837,46 @@ parameters:
     default: 3
     min: 0.000001
     max: 50
+  thermal_earth_ir_w_m2:
+    type: number
+    unit: W/m2
+    required: false
+    default: 234
+    min: 0
+    max: 1000
+    description: Uniform Earth outgoing IR; global annual mean assumption, not a hot/cold envelope.
+  thermal_earth_albedo:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.30
+    min: 0
+    max: 1
+    description: Uniform Lambertian Earth reflectance, without weather or land maps.
+  thermal_panel_front_absorptivity:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.90
+    min: 0
+    max: 1
+    description: Engineering assumption; must be at least the electrical solar efficiency.
+  thermal_panel_back_absorptivity:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.35
+    min: 0
+    max: 1
+    description: Engineering assumption for the back side shortwave absorptivity.
+  solar_panel_structure_conductance_w_k:
+    type: number
+    unit: W/K
+    required: false
+    default: 2.0
+    min: 0
+    max: 20
+    description: 太阳翼与结构之间的总等效导热系数；更改此值代表明确的物理热连接设计变更，未经真实硬件标定。
   payload_specific_heat_j_kg_k:
     type: number
     unit: J/(kg*K)
@@ -1012,6 +1092,9 @@ outputs:
   trace_fields:
   - time_s
   - orbit.radius_m
+  - orbit.position_m_*
+  - orbit.velocity_m_s_*
+  - orbit.sun_position_m_*
   - orbit.phase_rad
   - orbit.eclipse_factor
   - adcs.pointing_error_deg
@@ -1067,6 +1150,10 @@ outputs:
   - thermal.*_temp_k
   - thermal.*_safe
   - thermal.*_heat_input_w
+  - thermal.*_direct_solar_heat_w
+  - thermal.*_albedo_heat_w
+  - thermal.*_earth_ir_heat_w
+  - thermal.*_electrical_extracted_w
   qoi:
   - runtime_truth_status
   - official_module_count
@@ -1233,7 +1320,8 @@ operator:
     - label.*
     - event.*
   limitations:
-  - Current Sun/Earth ephemeris messages use a deterministic analytical setup rather than SPICE kernels.
+  - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
+  - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.
   - Project sensor fusion, event managers and mode gate are native SysModels but not official Basilisk modules.
   - Only effects listed in modes.*.effects are accepted by the unified runtime.
   - Propulsion is opt-in and currently supports one scheduled burn gated by battery SOC, safe mode and timed ignition/impulse events.

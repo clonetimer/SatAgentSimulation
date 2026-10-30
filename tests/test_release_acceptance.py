@@ -5,7 +5,7 @@ from pathlib import Path
 
 from sat_sim.bsk_engine.event_manager import parse_bsk_events
 from sat_sim.product_closure import product_capability_closure
-from sat_sim.scenario_templates import instantiate_scenario_template
+from sat_sim.scenario_templates import instantiate_scenario_template, list_scenario_templates
 from sat_sim.task_models import to_runtime_task_spec
 
 
@@ -39,7 +39,12 @@ def test_composite_fault_template_uses_modifier_delivery_and_preserves_ids() -> 
     ]
 
 
-def test_current_platform_acceptance_is_complete_and_sealed() -> None:
+def test_current_platform_claim_requires_complete_and_sealed_acceptance() -> None:
+    manifest = _json("src/sat_sim/release_manifest.json")
+    if manifest["target_revalidation_status"] == "NOT_REVALIDATED":
+        assert manifest["status"] == "IN_PROGRESS"
+        assert manifest["current_qualification"]["historical_evidence_inheritance"] == "DISALLOWED"
+        return  # No current Linux/vLLM qualification is declared.
     acceptance = _json("reports/platform_acceptance/platform_acceptance_summary.json")
     assert acceptance["status"] == "PASS"
     assert acceptance["target_os"] == "Linux"
@@ -57,7 +62,12 @@ def test_current_platform_acceptance_is_complete_and_sealed() -> None:
         assert checks[name]["passed"] is True
 
 
-def test_current_rw_evidence_is_approved_for_internal_engineering_use() -> None:
+def test_current_rw_approval_claim_requires_reviewed_evidence() -> None:
+    manifest = _json("src/sat_sim/release_manifest.json")
+    if manifest["current_qualification"]["rw_diagnostic_approval"] == "NOT_REVALIDATED":
+        assert manifest["engineering_closure_status"] == "IN_PROGRESS"
+        assert manifest["current_qualification"]["historical_evidence_inheritance"] == "DISALLOWED"
+        return  # Historical expert approval cannot qualify the current revision.
     readiness = _json("reports/rw_jam_readiness.json")
     index = _json("reports/rw_native_validation/astrograph_dataset_index.json")
     authorization = _json("reports/rw_a_level_approval_authorization.json")
@@ -82,7 +92,8 @@ def test_current_product_governance_and_release_manifest_are_consistent() -> Non
     assert len(closure["default_visible_capability_ids"]) == 43
     assert manifest["release_id"] == "SAT-SIM-0.7.8-ENGINEERING-BASELINE"
     assert manifest["release_version"] == "0.7.8"
-    assert manifest["scenario_template_count"] == 57
+    assert manifest["scenario_template_count"] == 58
+    assert manifest["scenario_template_count"] == list_scenario_templates()["count"]
     assert "reports/final_acceptance_report.md" in manifest["required_documents"]
     assert "reports/platform_acceptance/platform_acceptance_summary.json" in manifest[
         "runtime_generated_evidence"

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import io
 import json
+import os
 from pathlib import Path
 import zipfile
 
 from fastapi.testclient import TestClient
+from sat_sim import __version__
 
 from sat_sim.api import API_VERSION, WEB_WORKBENCH_VERSION, create_app
 from sat_sim.capability_registry import active_capability_ids
@@ -48,6 +50,22 @@ def test_presentation_catalog_has_one_whole_six_subsystems_and_24_components():
     assert whole["primary_capability_id"] == "whole_spacecraft.unified_native.v1"
 
 
+def test_optional_run_output_availability_uses_actual_artifacts(tmp_path):
+    root = tmp_path/'runs'/'optional-run'
+    root.mkdir(parents=True)
+    with _client(tmp_path) as client:
+        assert client.get('/runs/optional-run').json()['run']['available_outputs'] == {
+            'fmea':False, 'fault_traceability':False}
+        fmea = root/'results'/'dataset'/'fmea'
+        fmea.mkdir(parents=True)
+        (fmea/'fmea_manifest.json').write_text('{}',encoding='utf-8')
+        traceability = root/'results'/'dataset'/'traceability'
+        traceability.mkdir()
+        (traceability/'fault_traceability.json').write_text('{}',encoding='utf-8')
+        assert client.get('/runs/optional-run').json()['run']['available_outputs'] == {
+            'fmea':True, 'fault_traceability':True}
+
+
 def test_workbench_assets_fix_light_input_colors_and_add_task_center(tmp_path: Path):
     with _client(tmp_path) as client:
         health = client.get("/health")
@@ -84,7 +102,18 @@ def test_run_dataset_can_be_inspected_and_exported_as_zip(tmp_path: Path):
     (labels_root / "run_labels.json").write_text('{"status":"complete"}', encoding="utf-8")
     outside = tmp_path / "outside-secret.txt"
     outside.write_text("must-not-export", encoding="utf-8")
-    (dataset_root / "outside-link.txt").symlink_to(outside)
+    try:
+        (dataset_root / "outside-link.txt").symlink_to(outside)
+    except OSError as exc:
+        if os.name != 'nt' or exc.winerror != 1314:
+            raise
+        # Non-admin Windows still permits directory junctions. Exercise the
+        # same external-content boundary instead of skipping ZIP validation.
+        import _winapi
+        outside_dir = tmp_path / 'outside-assets'
+        outside_dir.mkdir()
+        (outside_dir / 'secret.txt').write_text('must-not-export', encoding='utf-8')
+        _winapi.CreateJunction(str(outside_dir), str(dataset_root / 'outside-link'))
 
     with _client(tmp_path) as client:
         description = client.get("/runs/run-dataset/dataset")
@@ -582,7 +611,7 @@ def test_v14_workbench_exposes_explicit_observer_sink_toolbox(tmp_path: Path):
     assert "observer_overlays" in js
     assert ".assembly-display-value" in css
     assert ".assembly-observer-workspace" in css
-    assert "0.15.0-graph-v15" in index
+    assert f'window.SAT_SIM_STATIC_VERSION = "{__version__}"' in index
 
 
 def test_v15_workbench_exposes_fast_modeling_layout_tools(tmp_path: Path):
@@ -615,7 +644,7 @@ def test_v15_workbench_exposes_fast_modeling_layout_tools(tmp_path: Path):
     assert "graphAutoLayout" in js
     assert ".assembly-selection-box" in css
     assert ".assembly-node.layout-selected" in css
-    assert "0.15.0-graph-v15" in index
+    assert f'window.SAT_SIM_STATIC_VERSION = "{__version__}"' in index
 
 
 def test_v15_layout_only_snapshot_ignores_coordinates_and_observers(tmp_path: Path):
@@ -739,7 +768,7 @@ def test_v13_workbench_keeps_model_nodes_clean_and_uses_explicit_scope(tmp_path:
     assert ".assembly-scope-chart" in css
     assert ".visual-node-result-badge" not in css
     assert ".visual-edge-value" not in css
-    assert "0.15.0-graph-v15" in index
+    assert f'window.SAT_SIM_STATIC_VERSION = "{__version__}"' in index
 
 
 def test_v12_workbench_exposes_constrained_quick_tuning_loop(tmp_path: Path):

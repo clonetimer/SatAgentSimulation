@@ -775,6 +775,7 @@ def to_runtime_task_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
         "include_labels": outputs.get("include_labels", True),
         "include_manifest": outputs.get("include_manifest", True),
         "record_fields": list(outputs.get("qoi") or []),
+        "plots": list(outputs.get("plots") or []),
         "telemetry_streams": [dict(item) for item in (outputs.get("telemetry_streams") or [])],
         "fmea": dict(outputs.get("fmea") or {}),
     }

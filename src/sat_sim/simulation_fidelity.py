@@ -11,7 +11,7 @@ import importlib.util
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
-ACCEPTED_BSK_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1"})
+ACCEPTED_BSK_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1", "2.11.0+satfix2"})
 FORMAL_BASILISK_CAPABILITIES = frozenset({
     "subsystem.adcs_unified_native.v1",
     "whole_spacecraft.unified_native.v1",

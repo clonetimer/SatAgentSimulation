@@ -18,6 +18,7 @@ from __future__ import annotations
 from utils.runtime_diagnostics import DiagnosticCategory, record_runtime_diagnostic
 
 import hashlib
+import copy
 import json
 import os
 import shlex
@@ -31,6 +32,11 @@ from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
 import yaml
+
+OPENAI_TASKSPEC_SYSTEM_PROMPT = (
+    'Generate one sat-sim TaskSpec only. Capability Registry data in the prompt is authoritative. '
+    'Do not invent capabilities, effects, Python code, imports, fidelity or claims.'
+)
 
 
 class LLMBackendError(RuntimeError):
@@ -51,6 +57,7 @@ class LLMCallConfig:
     seed: int | None = None
     max_output_tokens: int | None = None
     structured_output: str = "text"
+    response_schema: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -119,6 +126,7 @@ class LLMCallResult:
             "structured_output_sha256": structured_hash,
             "structured_output_kind": structured_kind,
             "usage": self.metadata.get("usage"),
+            "structured_generation": self.metadata.get("structured_generation"),
             "latency_ms": self.metadata.get("latency_ms"),
             "endpoint": self.metadata.get("endpoint") or self.metadata.get("base_url"),
             "error": self.error,
@@ -321,6 +329,118 @@ class OpenAIResponsesBackend:
             return LLMCallResult(False, self.name, "", len(prompt), _call_metadata(prompt, {"model": self.model, "base_url": self.base_url}, started=started), error=str(exc))
 
 
+def _registry_parameter_type_schema(kind: str) -> dict[str, Any]:
+    """Translate the registry's type notation without leaving untyped fields."""
+    if kind == 'bool':
+        kind = 'boolean'
+    if kind in {'number','integer','string','boolean','array','object','null'}:
+        return {'type':kind}
+    if kind.startswith('array[') and kind.endswith(']'):
+        return {'type':'array','items':_registry_parameter_type_schema(kind[6:-1])}
+    vector = {'type':'array','items':{'type':'number'},'minItems':3,'maxItems':3}
+    if kind == 'vector3':
+        return vector
+    if kind == 'vector3_or_number':
+        return {'anyOf':[{'type':'number'},vector]}
+    if kind == 'number_or_array[number]':
+        return {'anyOf':[{'type':'number'},{'type':'array','items':{'type':'number'}}]}
+    raise ValueError(f'UNSUPPORTED_REGISTRY_PARAMETER_TYPE:{kind}')
+
+
+def taskspec_draft_response_schema(capability_id: str | None = None) -> dict[str, Any]:
+    """Transport shape for the legacy/canonical/wrapped drafts we parse.
+
+    Capability identity may be restored from an unambiguous registry binding
+    by the existing normalizer. Full semantic validation remains mandatory
+    after parsing; this schema is never evidence of a valid simulation.
+    """
+    legacy = {
+        "type": "object",
+        "properties": {
+            "schema_version": {"type": "string"},
+            "task_id": {"type": "string"},
+            "task_type": {
+                "type": "string",
+                "enum": [
+                    "component",
+                    "subsystem",
+                    "orbit_environment",
+                    "whole_spacecraft",
+                    "campaign",
+                    "reference",
+                ],
+            },
+            "description": {"type": "string"},
+            "capability_id": {"type": "string"},
+            "target": {"type": "object"},
+            "simulation": {"type": "object"},
+            "spacecraft": {"type": "object"},
+            "mission": {"type": "object"},
+            "campaign": {"type": "object"},
+            "validation": {"type": "object"},
+            "assurance": {"type": "object"},
+            "parameters": {"type": "object"},
+            "orbit_environment": {"type": "object"},
+            "faults": {"type": "array"},
+            "degradations": {"type": ["array", "object"]},
+            "constraints": {"type": ["array", "object"]},
+            "modifiers": {"type": "object"},
+            "outputs": {"type": "object"},
+            "metadata": {"type": "object"},
+            "tags": {"type": "array"},
+        },
+        "required": [
+            "schema_version",
+            "task_id",
+            "task_type",
+            "target",
+            "simulation",
+            "outputs",
+        ],
+        "additionalProperties": False,
+    }
+    canonical = {
+        "type": "object",
+        "properties": {"schema_version": {"type": "string"}, **{
+            name: {"type": "object"} for name in (
+                "task", "simulation", "mission", "parameters", "events", "outputs",
+                "assurance", "model", "provenance", "metadata")}},
+        "required": ["schema_version", "task", "simulation", "outputs"],
+        "additionalProperties": False,
+    }
+    if capability_id is not None:
+        from .capability_registry import get_capability
+        contract = get_capability(capability_id).data
+        parameter_properties = {}
+        for name, descriptor in contract.get('parameters', {}).items():
+            kind = descriptor.get('type')
+            item = _registry_parameter_type_schema(str(kind))
+            for source,target in [('enum','enum'),('items','items'),('min','minimum'),('max','maximum')]:
+                if source in descriptor:
+                    item[target] = copy.deepcopy(descriptor[source])
+            parameter_properties[name] = item
+        parameters = {'type':'object','properties':parameter_properties,'additionalProperties':False}
+        legacy['properties']['schema_version'] = {'const':'0.1.0'}
+        legacy['properties']['capability_id'] = {'const':capability_id}
+        legacy['properties']['parameters'] = parameters
+        legacy['required'].append('capability_id')
+        canonical['properties']['schema_version'] = {'const':'1.0.0'}
+        canonical['properties']['parameters'] = {'type':'object','properties':{
+            'profile':{'type':'string'},'values':copy.deepcopy(parameters),'overrides':{'type':'array'}},
+            'additionalProperties':False}
+        canonical['properties']['model'] = {'type':'object','properties':{
+            'capability_id':{'const':capability_id},'config':copy.deepcopy(parameters),
+            **{name:{'type':'object'} for name in ('target','spacecraft','orbit_environment',
+                'legacy_degradations','campaign','simulation_extra','validation')}},
+            'required':['capability_id'],'additionalProperties':False}
+        canonical['required'].append('model')
+    direct = {"anyOf": [legacy, canonical]}
+    wrappers = [{"type": "object", "properties": {key: direct},
+                 "required": [key], "additionalProperties": False}
+                for key in ("task_spec", "taskspec", "TaskSpec", "spec")]
+    return {"anyOf": [legacy, canonical, *wrappers]}
+
+
 class OpenAIChatCompletionsBackend:
     """Generic OpenAI-compatible Chat Completions backend.
 
@@ -342,6 +462,7 @@ class OpenAIChatCompletionsBackend:
         seed: int | None = None,
         max_output_tokens: int | None = None,
         structured_output: str = "json_object",
+        response_schema: Mapping[str, Any] | None = None,
     ) -> None:
         if not model:
             raise LLMBackendError("openai-compatible backend requires a model name")
@@ -358,6 +479,7 @@ class OpenAIChatCompletionsBackend:
         if structured not in {"text", "json_object", "json_schema"}:
             raise LLMBackendError("openai-compatible backend supports text, json_object or json_schema structured output")
         self.structured_output = structured
+        self.response_schema = copy.deepcopy(dict(response_schema)) if response_schema is not None else None
 
     @staticmethod
     def _normalize_endpoint(base_url: str) -> str:
@@ -388,10 +510,7 @@ class OpenAIChatCompletionsBackend:
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "Generate one sat-sim TaskSpec only. Capability Registry data in the prompt is authoritative. "
-                        "Do not invent capabilities, effects, Python code, imports, fidelity or claims."
-                    ),
+                    "content": OPENAI_TASKSPEC_SYSTEM_PROMPT,
                 },
                 {"role": "user", "content": prompt},
             ],
@@ -406,48 +525,7 @@ class OpenAIChatCompletionsBackend:
         if self.structured_output == "json_object":
             body["response_format"] = {"type": "json_object"}
         elif self.structured_output == "json_schema":
-            task_spec_schema = {
-                "type": "object",
-                "properties": {
-                    "schema_version": {"type": "string"},
-                    "task_id": {"type": "string"},
-                    "task_type": {
-                        "type": "string",
-                        "enum": [
-                            "component",
-                            "subsystem",
-                            "orbit_environment",
-                            "whole_spacecraft",
-                            "campaign",
-                            "reference",
-                        ],
-                    },
-                    "description": {"type": "string"},
-                    "capability_id": {"type": "string"},
-                    "target": {"type": "object"},
-                    "simulation": {"type": "object"},
-                    "spacecraft": {"type": "object"},
-                    "parameters": {"type": "object"},
-                    "orbit_environment": {"type": "object"},
-                    "faults": {"type": "array"},
-                    "degradations": {"type": ["array", "object"]},
-                    "constraints": {"type": ["array", "object"]},
-                    "modifiers": {"type": "object"},
-                    "outputs": {"type": "object"},
-                    "metadata": {"type": "object"},
-                    "tags": {"type": "array"},
-                },
-                "required": [
-                    "schema_version",
-                    "task_id",
-                    "task_type",
-                    "capability_id",
-                    "target",
-                    "simulation",
-                    "outputs",
-                ],
-                "additionalProperties": False,
-            }
+            task_spec_schema = self.response_schema or taskspec_draft_response_schema()
             body["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {
@@ -478,6 +556,7 @@ class OpenAIChatCompletionsBackend:
                 "usage": payload.get("usage"),
                 "seed": self.seed,
                 "structured_output": self.structured_output,
+                "structured_generation": payload.get('sat_sim',{}).get('structured_generation'),
                 "authenticated": bool(api_key),
             }, started=started)
             if not text:
@@ -507,7 +586,9 @@ class OpenAIChatCompletionsBackend:
                 }, started=started), error=f"model context window exceeded: prompt is about {estimated_tokens} tokens; reduce the prompt or increase the LM Studio context window")
             # Some OpenAI-compatible local servers reject response_format even though they can obey
             # a prompt-only JSON contract. Retry once only when the error is not a context overflow.
-            if exc.code in {400, 422} and "response_format" in body:
+            rejected_output = any(reason in err_text for reason in (
+                'MODEL_OUTPUT_OR_CONTEXT_REJECTED','MODEL_GENERATION_FAILED'))
+            if exc.code in {400, 422} and "response_format" in body and not rejected_output:
                 fallback_body = dict(body)
                 fallback_body.pop("response_format", None)
                 fallback_body["messages"] = [
@@ -799,6 +880,7 @@ def make_text_llm_backend(config: LLMCallConfig) -> TextLLMBackend:
             seed=config.seed,
             max_output_tokens=config.max_output_tokens,
             structured_output=config.structured_output or "json_object",
+            response_schema=config.response_schema,
         )
     if config.backend == "deepseek":
         model = config.model or os.environ.get("SAT_SIM_DEEPSEEK_MODEL") or "deepseek-chat"

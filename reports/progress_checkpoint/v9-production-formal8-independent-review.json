@@ -1,0 +1,79 @@
+{
+  "status": "INSTALLED_SOURCE_FORMAL8_INDEPENDENT_REVIEW_PASS_NOT24H",
+  "at_utc": "2026-10-29T18:17:11.245424+00:00",
+  "application": "a56aac6787e3f50db721e86171f84997ee4910a64c0cbb930ff6d4499b436758",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "checks": {
+    "capacity": "PASS",
+    "command": "PASS",
+    "drift_1x": "PASS",
+    "long_sim": "PASS",
+    "quantum": "PASS",
+    "rates": "PASS",
+    "slow_client": "PASS",
+    "telemetry": "PASS"
+  },
+  "drift_1x": {
+    "absolute_drift_ms_max": 9.2045,
+    "absolute_drift_ms_p50": 0.4081,
+    "absolute_drift_ms_p95": 0.711715,
+    "achieved_rate": 1.0,
+    "attainment_ratio": 1.0,
+    "budget_ms": 200.0,
+    "duration_gate_s": 1800.0,
+    "end_to_end_wall_duration_s": 1800.634247,
+    "observation_count": 18000,
+    "rate_target": 1.0,
+    "sim_duration_s": 1800.0,
+    "status": "PASS",
+    "terminal_error": null,
+    "terminal_state": "COMPLETED",
+    "timing_scope": "paced_native_execution_excluding_finalization",
+    "wall_duration_s": 1800.000525
+  },
+  "rate10x": {
+    "absolute_drift_ms_max": 1.2091,
+    "absolute_drift_ms_p50": 0.4459,
+    "absolute_drift_ms_p95": 0.80107,
+    "achieved_rate": 9.999269,
+    "attainment_ratio": 0.999927,
+    "attainment_ratio_budget": 0.85,
+    "end_to_end_wall_duration_s": 5.603426,
+    "observation_count": 500,
+    "rate_target": 10.0,
+    "sim_duration_s": 50.0,
+    "status": "PASS",
+    "terminal_error": null,
+    "terminal_state": "COMPLETED",
+    "timing_scope": "paced_native_execution_excluding_finalization",
+    "wall_duration_s": 5.000365
+  },
+  "long_sim": {
+    "sim_duration_s": 14400.0,
+    "elapsed_s": 250.39045,
+    "rss_peak_bytes": 653103104,
+    "rss_peak_growth_bytes": 495562752,
+    "rss_growth_budget_bytes": 1073741824,
+    "rss_total_growth_bytes": -479232,
+    "fd_growth": 0,
+    "thread_growth": 0
+  },
+  "observed_first_to_last_live_rss_change_bytes": 199155712,
+  "input_sha256": {
+    "reports/local_requirements_completion/v9-production-qualification/formal-performance.json": "42668a3492173154f8bc1a8a91d4777de701fbfe54082ace5aef01ef9a91b673",
+    "reports/local_requirements_completion/v9-production-qualification/formal-performance.sources.before.json": "4897d972bb4c50dd441c80427f4ddfdddc56a7a9c583fc90bc06827443bf25a7",
+    "reports/local_requirements_completion/v9-production-qualification/formal-performance.sources.after.json": "4897d972bb4c50dd441c80427f4ddfdddc56a7a9c583fc90bc06827443bf25a7",
+    "reports/local_requirements_completion/v9-production-qualification/FORMAL_PERFORMANCE.log": "b9ae44ee5b3ee6292c1217eee1d27d5925a871979cacb54b38b8143d35d2d374",
+    "configs/interactive/performance_budget.json": "0b54f2d8ec95d1f5bc31d3c12122780a8fb20405ba20787305ff9213e9abd172",
+    "scripts/run_interactive_performance_benchmark.py": "726352781f42d7dbdd9f0f2c32ba016cc7118688c9a9d639378efa7b744e0ac4"
+  },
+  "limits": [
+    "Soft realtime measured under this workload, not a universal strict deadline guarantee.",
+    "Long_sim14400seconds is simulated time at unpaced execution; never actual4h wall endurance or24h qualification.",
+    "RSS increases while the child is live. Negative final net RSS includes child teardown and is not proof of bounded live memory or absence of leaks.",
+    "All recorded Windows fd samples are -1; reported fd_growth0 is an unsupported-platform fallback, not zero measured handle growth.",
+    "Formal profile uses documented default runtime parameters, including2W/K thermal link; explicit4W/K mission evidence is separately reviewed."
+  ],
+  "original_report_unchanged": true,
+  "qualified_24h_wallclock": false
+}

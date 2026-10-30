@@ -47,10 +47,21 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     whole = report["whole_spacecraft"]
     assert report["physics_validated_by_this_audit"] is False
     assert report["source_lookup_is_not_physical_proof"] is True
-    assert whole["continuous_initial_field_count"] == 156
+    assert whole["continuous_initial_field_count"] == 165
     assert len(whole["continuous_groups"]["propulsion"]) == 22
-    assert len(whole["continuous_groups"]["thermal"]) == 11
-    assert whole["registered_parameter_count"] == 147
+    assert len(whole["continuous_groups"]["thermal"]) == 16
+    assert whole["registered_parameter_count"] == 159
+    assert "solar_panel_structure_conductance_w_k" in whole["continuous_groups"]["thermal"]
+    integrated = next(c for c in report["capabilities"] if c["capability_id"] == "whole_spacecraft.unified_native.v1")
+    link = next(p for p in integrated["parameters"] if p["key"] == "solar_panel_structure_conductance_w_k")
+    assert link["continuous_initial_exposed"] is True
+    assert link["registry_unit"] == link["form_unit"] == "W/K"
+    assert link["physical_perturbation_verified_by_this_audit"] is False
+    for key in ('thermal_earth_ir_w_m2', 'thermal_earth_albedo',
+                'thermal_panel_front_absorptivity', 'thermal_panel_back_absorptivity'):
+        assert key in whole['continuous_groups']['thermal']
+        assert key not in whole['continuous_fields_without_source_lookup']
+        assert key not in whole['native_source_keys_missing_whole_registry']
     assert "rw_configuration" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_friction_mode" not in whole["native_source_keys_missing_whole_registry"]
     assert "gyro_base_noise_std_rad_s" in whole["native_source_keys_missing_whole_registry"]
@@ -58,7 +69,8 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert "rw_motor_torque_constant_nm_per_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
     assert len(whole["continuous_groups"]["adcs"]) == 101
-    assert len(whole["continuous_groups"]["orbit"]) == 8
+    assert len(whole["continuous_groups"]["orbit"]) == 12
+    assert {"environment_profile", "epoch_utc", "raan_deg", "arg_perigee_deg"}.issubset(whole["continuous_groups"]["orbit"])
     assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]
     assert "sun_sensor_fov_deg" in whole["continuous_groups"]["adcs"]
     assert "sun_sensor_fov_deg" not in whole["native_source_keys_missing_whole_registry"]

@@ -1,0 +1,9 @@
+{
+  "source_url": "https://nasa-public-data.s3.amazonaws.com/iss-coords/current/ISS_OEM/ISS.OEM_J2K_EPH.txt",
+  "source_kind": "NASA_operational_planning_ephemeris_not_raw_flight_telemetry",
+  "fetched_at_utc": "2026-10-26T01:53:59.334435+00:00",
+  "sha256": "4bbf55dc4a3a46205a421482e7595e1efcc9d68356425af4f54a2148bd355284",
+  "bytes": 717270,
+  "etag": "\"7924e418e8921289f88ae6e0eb00e78d\"",
+  "last_modified": "Sun, 25 Oct 2026 02:48:17 GMT"
+}

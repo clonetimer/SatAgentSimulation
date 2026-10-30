@@ -197,6 +197,12 @@ outputs:
     unit: ratio
   - name: eps.solar.effective_efficiency
     unit: ratio
+  - name: eps.solar.initial_array_power_w
+    unit: W
+  - name: eps.solar.final_array_power_w
+    unit: W
+  - name: eps.solar.min_array_power_w
+    unit: W
 conformance_tests:
 - test_solar_panel_duration_and_sample_control_trace
 - test_solar_panel_shadow_profile_controls_power
@@ -307,6 +313,9 @@ operator:
     verification: declared
   observability:
     qoi:
+    - qoi.eps.solar.initial_array_power_w
+    - qoi.eps.solar.final_array_power_w
+    - qoi.eps.solar.min_array_power_w
     - eps.solar.energy_generated_wh
     - eps.solar.max_array_power_w
     - eps.solar.mean_incidence_cos

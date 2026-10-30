@@ -63,6 +63,8 @@ jobs:
           print("R9K_CUSTOM_WHEEL_NATIVE_SWIG_ABI_LOADED")
           PY
       - name: Prove genuine native C++ battery protected-state cross-PID four-step parity
+        env:
+          SAT_SIM_REQUIRE_CUSTOM_BATTERY_WHEEL: "1"
         run: |
           python -m pytest -q -s \
             tests/interactive/test_native_battery_custom_wheel.py \

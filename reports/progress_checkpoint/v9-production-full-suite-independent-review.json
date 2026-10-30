@@ -1,0 +1,29 @@
+{
+  "status": "INSTALLED_FULL1936PASS5SKIP4WARN_INDEPENDENT_REVIEW_PASS_OTHER_STAGES_PENDING",
+  "at_utc": "2026-10-29T17:45:40.463367+00:00",
+  "application": "a56aac6787e3f50db721e86171f84997ee4910a64c0cbb930ff6d4499b436758",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "passed": 1936,
+  "skipped": 5,
+  "failures": 0,
+  "warnings": 4,
+  "required_native_tests_executed": [
+    "test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon",
+    "test_thermal_link_offline_form_contract_and_native_parameter_roundtrip",
+    "test_native_basilisk_reap_actual_adcs_child_before_r5_two_process_recovery"
+  ],
+  "additional_native_thermal_tests": 6,
+  "read_retry_tests": 3,
+  "warning_scope": [
+    "Starlette TestClient deprecation",
+    "Deliberate ZIP duplicate-name fixture",
+    "joblib physical-core discovery failure",
+    "That discovery subprocess reader UTF-8 decoding thread warning"
+  ],
+  "inputs_sha256": {
+    "reports/local_requirements_completion/v9-production-qualification/whole-suite.xml": "c363232b46262038d58c789bc136f98fceb4780a2799101704899c1080311f08",
+    "reports/local_requirements_completion/v9-production-qualification/FULL_WINDOWS_SUITE.log": "748f31abf8ac987aee8345acfed0aea80c51e8f3c6e7d2dd6913ed6c657f3181",
+    "reports/local_requirements_completion/v9-production-qualification/test-source-manifest.json": "31659e868f50592a6c7d3390d5fec17e548e568e9f5c4bec71c241b272af299f"
+  },
+  "scope": "Installed Root source full suite only; remaining formal/model/visual/endurance stages not inferred."
+}

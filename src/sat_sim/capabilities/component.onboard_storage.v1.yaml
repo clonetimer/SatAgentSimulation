@@ -162,12 +162,21 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: comm.storage.effective_capacity_bits
+    unit: bit
+    dtype: number
   summary:
   - name: qoi.comm.storage.final_stored_bits
     unit: bit
   - name: qoi.comm.storage.cumulative_overflow_bits
     unit: bit
   - name: qoi.comm.storage.cumulative_downlinked_bits
+    unit: bit
+  - name: qoi.comm.storage.initial_stored_bits
+    unit: bit
+  - name: qoi.comm.storage.max_stored_bits
+    unit: bit
+  - name: qoi.comm.storage.capacity_bits
     unit: bit
 validation:
   conformance_tests:

@@ -32,11 +32,26 @@ simulation_parameters:
   sample_s: {unit: s, required: true, min: 0.001}
 outputs:
   trace:
-  - {name: adcs.star_tracker.valid, unit: bool, dtype: bool}
-  - {name: adcs.star_tracker.sigma_x, unit: MRP, dtype: number}
-  - {name: adcs.star_tracker.drift_norm, unit: MRP, dtype: number}
+  - name: adcs.star_tracker.valid
+    unit: bool
+    dtype: bool
+  - name: adcs.star_tracker.sigma_x
+    unit: MRP
+    dtype: number
+  - name: adcs.star_tracker.drift_norm
+    unit: MRP
+    dtype: number
+  - name: adcs.star_tracker.sigma_y
+    unit: '1'
+    dtype: number
+  - name: adcs.star_tracker.sigma_z
+    unit: '1'
+    dtype: number
   summary:
-  - {name: adcs.star_tracker.valid_fraction, unit: ratio}
+  - name: adcs.star_tracker.valid_fraction
+    unit: ratio
+  - name: adcs.star_tracker.final_drift_norm
+    unit: MRP
 operator:
   owner: star_tracker
   effects:

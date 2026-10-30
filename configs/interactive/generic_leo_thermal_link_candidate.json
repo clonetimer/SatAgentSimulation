@@ -1,0 +1,9 @@
+{
+  "orbit": {
+    "environment_profile": "spice_wmm",
+    "epoch_utc": "2026-01-01T00:00:00Z"
+  },
+  "thermal": {
+    "solar_panel_structure_conductance_w_k": 4.0
+  }
+}

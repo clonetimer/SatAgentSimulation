@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 用途：校验恢复工作树中的强制 WMM/SPICE 资产，并按需校验可选离线 Basilisk 制品与当前运行时身份。
-参数：--require-offline-bsk 要求两个 satfix1 Wheel 和构建报告；--require-basilisk-runtime 要求当前 Python 可导入受支持的 Basilisk 2.11.0 运行时；--output 指定报告路径。
+参数：--require-offline-bsk 要求两个 satfix2 Wheel 和构建报告；--require-basilisk-runtime 要求当前 Python 可导入受支持的 Basilisk 2.11.0 运行时；--output 指定报告路径。
 输出：生成分层 third-party 校验 JSON；默认只以强制资产完整性决定退出码，不把可选离线 Wheel 缺失判为失败。
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-ACCEPTED_BSK_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1"})
+ACCEPTED_BSK_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1", "2.11.0+satfix2"})
 
 
 def sha256(path: Path) -> str:
@@ -61,7 +61,7 @@ def verify(root: Path, *, require_offline_bsk: bool, require_basilisk_runtime: b
         record: dict[str, Any] = {"path": relative, "required": required, "present": present}
         if not present:
             finding = {"path": relative, "error": "missing"}
-            if required or (require_offline_bsk and (relative.endswith(".whl") or relative.endswith("bsk_2.11.0_satfix1_build_report.json"))):
+            if required or (require_offline_bsk and (relative.endswith(".whl") or relative.endswith("bsk_2.11.0_satfix2_build_report.json"))):
                 mandatory_errors.append(finding)
             else:
                 optional_findings.append({**finding, "severity": "optional"})
@@ -82,7 +82,7 @@ def verify(root: Path, *, require_offline_bsk: bool, require_basilisk_runtime: b
     if require_basilisk_runtime and not runtime["ready"]:
         mandatory_errors.append({"path": "python:Basilisk", "error": "runtime_unavailable_or_unsupported", "details": runtime})
 
-    offline_candidates = [item for item in checked_files if item["path"].endswith(".whl") or item["path"].endswith("bsk_2.11.0_satfix1_build_report.json")]
+    offline_candidates = [item for item in checked_files if item["path"].endswith(".whl") or item["path"].endswith("bsk_2.11.0_satfix2_build_report.json")]
     offline_complete = bool(offline_candidates) and all(item["present"] for item in offline_candidates)
     status = "PASS" if not mandatory_errors else "FAIL"
     return {

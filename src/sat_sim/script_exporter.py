@@ -51,11 +51,15 @@ or scenario parameters.
 """
 
 import json
+import sys
 from pathlib import Path
 
 from sat_sim.task_spec import load_task_spec
 from sat_sim.task_validator import validate_task_spec
 from sat_sim.task_compiler import compile_task_spec
+from sat_sim.task_models import canonicalize_task_spec
+from sat_sim.execution_planner import plan_task_spec
+from sat_sim.validation_outcome import evaluate_validation_outcome
 from sat_sim.unified_execution import execute_compiled_task
 
 SPEC_PATH = Path({_quote_python_path(spec)})
@@ -63,13 +67,26 @@ OUTPUT_ROOT = {output_root_expr}
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     doc = load_task_spec(SPEC_PATH)
     validation = validate_task_spec(doc.data)
     validation.raise_for_errors()
     compiled = compile_task_spec(doc.data, validate=False)
+    canonical = canonicalize_task_spec(doc.data)
+    planning = plan_task_spec(canonical)
+    if not planning.ok or planning.resolved_spec is None:
+        print(json.dumps({{"ok": False, "planning": planning.to_dict()}}, indent=2, ensure_ascii=False))
+        return 1
     result = execute_compiled_task(compiled, task_spec=doc.data, output_root=OUTPUT_ROOT or compiled.outputs.get("output_root"), write_dataset=True)
-    print(json.dumps({{"ok": True, "task_id": compiled.task_id, "summary": result.summary, "dataset": result.dataset.to_dict() if result.dataset else None}}, indent=2, ensure_ascii=False))
-    return 0
+    outcome = evaluate_validation_outcome(spec=canonical, resolved=planning.resolved_spec,
+        summary=result.summary, trace_rows=result.trace_rows)
+    ok = outcome.result.value == "PASS"
+    print(json.dumps({{"ok": ok, "task_id": compiled.task_id, "summary": result.summary,
+        "validation_outcome": outcome.model_dump(mode="json"),
+        "dataset": result.dataset.to_dict() if result.dataset else None}}, indent=2, ensure_ascii=False))
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
@@ -164,9 +181,13 @@ an LLM and does not import capability adapter class paths directly.
 import argparse
 import copy
 import json
+import sys
 from typing import Any
 
 from sat_sim.task_compiler import compile_task_spec
+from sat_sim.task_models import canonicalize_task_spec
+from sat_sim.execution_planner import plan_task_spec
+from sat_sim.validation_outcome import evaluate_validation_outcome
 from sat_sim.taskspec_alignment import align_task_spec_to_source
 from sat_sim.unified_execution import execute_compiled_task
 {assembly_import}
@@ -239,11 +260,19 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
 {assembly_validation}    args = parse_args()
     task_spec = build_task_spec(args)
 {assembly_task_binding}    if args.show_task_spec:
         print(json.dumps(task_spec, indent=2, ensure_ascii=False))
     compiled = compile_task_spec(task_spec, validate=True)
+    canonical = canonicalize_task_spec(task_spec)
+    planning = plan_task_spec(canonical)
+    if not planning.ok or planning.resolved_spec is None:
+        print(json.dumps({{"ok": False, "planning": planning.to_dict()}}, indent=2, ensure_ascii=False))
+        return 1
     output_root = task_spec.get("outputs", {{}}).get("output_root") or args.output_root or {default_output!r}
     result = execute_compiled_task(
         compiled,
@@ -251,13 +280,14 @@ def main() -> int:
         output_root=output_root,
         write_dataset=True,
     )
-    status = str(result.summary.get("status") or "complete").strip().lower()
-    failed_statuses = {{"fail", "failed", "error", "inconclusive", "blocked"}}
-    ok = status not in failed_statuses and not status.startswith("fail")
+    outcome = evaluate_validation_outcome(spec=canonical, resolved=planning.resolved_spec,
+        summary=result.summary, trace_rows=result.trace_rows)
+    ok = outcome.result.value == "PASS"
     payload = {{
         "ok": ok,
         "capability_id": CAPABILITY_ID,
         "summary": result.summary,
+        "validation_outcome": outcome.model_dump(mode="json"),
         "dataset": result.dataset.to_dict() if result.dataset else None,
     }}
     print(json.dumps(payload, indent=2, ensure_ascii=False))

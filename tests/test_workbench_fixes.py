@@ -123,7 +123,7 @@ def test_llm_alias_repair_preserves_subsystem_and_provider_timeout_migrates():
     assert profile.max_output_tokens == 8000
 
 
-def test_model_timeout_uses_planner_template_fallback(monkeypatch, tmp_path):
+def test_model_timeout_fails_closed_without_template_substitution(monkeypatch, tmp_path):
     import sat_sim.capability_agent as capability_agent
 
     class TimeoutBackend:
@@ -142,7 +142,11 @@ def test_model_timeout_uses_planner_template_fallback(monkeypatch, tmp_path):
         allowed_capabilities=("component.reaction_wheel.v1",),
         model_timeout_s=180.0,
     ))
-    assert result.validation.ok
-    assert result.task_spec["capability_id"] == "component.reaction_wheel.v1"
-    assert result.task_spec["simulation"]["level"] == "component"
-    assert result.task_spec["metadata"]["agent"]["model_fallback_used"] is True
+    assert not result.ok
+    assert not result.validation.ok
+    assert result.compiled is None
+    assert result.script is None
+    assert result.task_spec['metadata']['llm_output_error']['policy'] == 'record_invalid_model_output_without_fallback'
+    assert not any(step.name == 'model_fallback' for step in result.steps)
+    assert 'llm_output_parse' in {issue.code for issue in result.validation.errors}
+    assert not (tmp_path/'generated_simulation.py').exists()

@@ -155,6 +155,15 @@ outputs:
   - name: adcs.reaction_wheel.damping_nms_0
     unit: N*m*s
     dtype: number
+  - name: adcs.reaction_wheel.num_wheels
+    unit: count
+    dtype: integer
+  - name: adcs.reaction_wheel.max_abs_speed_rad_s
+    unit: rad/s
+    dtype: number
+  - name: adcs.reaction_wheel.command_torque_nm_0
+    unit: N*m
+    dtype: number
   summary:
   - name: qoi.adcs.reaction_wheel.initial_speed_rad_s_0
     unit: rad/s
@@ -178,6 +187,10 @@ outputs:
     unit: N*m*s
   - name: qoi.adcs.reaction_wheel.effective_damping_nms_0
     unit: N*m*s
+  - name: qoi.adcs.reaction_wheel.min_speed_rad_s_0
+    unit: rad/s
+  - name: qoi.adcs.reaction_wheel.max_speed_rad_s_0
+    unit: rad/s
 simulation_module_interface:
   schema_version: sat-sim.module-interface.v1
   interface_id: sat-sim.interface.reaction-wheel-dynamics.v1
@@ -306,6 +319,8 @@ operator:
     verification: declared
   observability:
     qoi:
+    - qoi.adcs.reaction_wheel.min_speed_rad_s_0
+    - qoi.adcs.reaction_wheel.max_speed_rad_s_0
     - qoi.adcs.reaction_wheel.initial_speed_rad_s_0
     - qoi.adcs.reaction_wheel.final_speed_rad_s_0
     - qoi.adcs.reaction_wheel.max_abs_speed_rad_s
@@ -318,6 +333,9 @@ operator:
     - qoi.adcs.reaction_wheel.nominal_damping_nms_0
     - qoi.adcs.reaction_wheel.effective_damping_nms_0
     trace_fields:
+    - adcs.reaction_wheel.num_wheels
+    - adcs.reaction_wheel.max_abs_speed_rad_s
+    - adcs.reaction_wheel.command_torque_nm_0
     - task_id
     - case_id
     - time_s

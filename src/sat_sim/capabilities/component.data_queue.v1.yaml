@@ -149,12 +149,21 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: comm.data_queue.effective_capacity_bits
+    unit: bit
+    dtype: number
   summary:
   - name: qoi.comm.data_queue.final_queue_bits
     unit: bit
   - name: qoi.comm.data_queue.cumulative_dropped_bits
     unit: bit
   - name: qoi.comm.data_queue.cumulative_downlinked_bits
+    unit: bit
+  - name: qoi.comm.data_queue.initial_queue_bits
+    unit: bit
+  - name: qoi.comm.data_queue.max_queue_bits
+    unit: bit
+  - name: qoi.comm.data_queue.capacity_bits
     unit: bit
 validation:
   conformance_tests:

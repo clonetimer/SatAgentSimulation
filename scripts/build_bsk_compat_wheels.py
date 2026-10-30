@@ -2,10 +2,10 @@
 """Build the audited Basilisk 2.11.0 Pillow-compatibility wheels.
 
 用途：对官方 bsk 2.11.0 Wheel 只修改发行元数据，将 Pillow 上限从
-      ``<=12.2.0`` 放宽为 ``<13``，并将本地版本标记为
-      ``2.11.0+satfix1``；不修改任何 Basilisk Python、共享库或数据文件。
+      ``<=12.2.0`` 放宽为 ``>=13,<14``，并将本地版本标记为
+      ``2.11.0+satfix2``；不修改任何 Basilisk Python、共享库或数据文件。
 参数：一个或多个官方 bsk 2.11.0 Wheel 路径，以及可选 ``--output-dir``。
-输出：重算 RECORD 后的 ``bsk-2.11.0+satfix1-*.whl`` 和 JSON 构建报告。
+输出：重算 RECORD 后的 ``bsk-2.11.0+satfix2-*.whl`` 和 JSON 构建报告。
 """
 from __future__ import annotations
 
@@ -19,9 +19,9 @@ from pathlib import Path, PurePosixPath
 import zipfile
 
 ORIGINAL_VERSION = "2.11.0"
-PATCHED_VERSION = "2.11.0+satfix1"
+PATCHED_VERSION = "2.11.0+satfix2"
 OLD_REQUIREMENT = "Requires-Dist: pillow<=12.2.0,>=10.4.0"
-NEW_REQUIREMENT = "Requires-Dist: pillow<13,>=10.4.0"
+NEW_REQUIREMENT = "Requires-Dist: pillow<14,>=13.0.0"
 EXPECTED_ORIGINAL_SHA256 = {
     "bsk-2.11.0-cp39-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl":
         "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a",
@@ -160,7 +160,7 @@ def main() -> int:
         "results": results,
         "scope": "distribution metadata only; Basilisk payload bytes unchanged",
     }
-    report_path = args.report or args.output_dir / "bsk_2.11.0_satfix1_build_report.json"
+    report_path = args.report or args.output_dir / "bsk_2.11.0_satfix2_build_report.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))

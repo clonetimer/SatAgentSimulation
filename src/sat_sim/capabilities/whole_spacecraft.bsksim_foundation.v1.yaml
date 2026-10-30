@@ -23,7 +23,7 @@ implementation:
   - sat_sim.bsk_engine.recorder_registry
   uses_legacy_runner: false
   basilisk_required: true
-  optional_dependency: bsk==2.11.0+satfix1
+  optional_dependency: bsk==2.11.0+satfix2
   source_boundary: native_basilisk_modules_project_bsksim_style_orchestration
   mode: basilisk_native_foundation
   backend_type: basilisk_native

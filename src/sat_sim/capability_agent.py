@@ -24,8 +24,10 @@ from utils.runtime_diagnostics import DiagnosticCategory, record_runtime_diagnos
 import copy
 import hashlib
 import json
+import math
+import fnmatch
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
@@ -40,7 +42,7 @@ from .capability_registry import (
     resolve_capability_id_for_product,
 )
 from .model_governance import ordered_product_capability_ids
-from .llm_backends import LLMCallConfig, LLMCallResult, make_text_llm_backend
+from .llm_backends import LLMCallConfig, LLMCallResult, make_text_llm_backend, taskspec_draft_response_schema
 from .nl_outputs import resolve_output_intents
 from .script_exporter import ScriptExportResult, export_runner_script
 from .task_compiler import CompiledTask, compile_task_spec
@@ -373,6 +375,207 @@ def requested_health_mode(text: str) -> str:
     return "nominal"
 
 
+def _explicit_time_requirements(text: str) -> dict[str, float]:
+    """Extract only unambiguous user-supplied mission times, not fault onset times."""
+    latest = text.rsplit("本轮补充指令：", 1)[-1].lower()
+    number = r"([-+]?\d+(?:\.\d+)?)"
+    unit = r"(seconds?|secs?|minutes?|mins?|hours?|hrs?|秒|分钟|小时|s|m|h)"
+    units = {"秒":1.,"分钟":60.,"小时":3600.,"s":1.,"m":60.,"h":3600.}
+    patterns = {
+        "duration_s": [
+            rf"(?:仿真时长|总时长|时长|仿真|运行|模拟)\s*(?:改成|改为|设为|设置为|为|[:：])?\s*{number}\s*{unit}",
+            rf"\b(?:run|simulate|duration)\s*(?:for|of|is|[:=])?\s*{number}\s*{unit}\b",
+            rf"{number}\s*{unit}\s*(?:的)?(?:工程)?(?:仿真|模拟)",
+            rf"\b{number}\s*-\s*{unit}(?:\s+\w+){{0,4}}\s+simulation\b",
+        ],
+        "sample_s": [
+            rf"(?:采样间隔|输出间隔|采样周期|记录周期)\s*(?:为|设为|[:：])?\s*{number}\s*{unit}",
+            rf"(?:每|every)\s*{number}\s*{unit}\s*(?:采样|sample)",
+        ],
+        "step_s": [rf"(?:积分步长|仿真步长|步长)\s*(?:为|设为|[:：])?\s*{number}\s*{unit}"],
+    }
+    result = {}
+    for key, candidates in patterns.items():
+        for pattern in candidates:
+            match = re.search(pattern, latest)
+            if match:
+                raw_unit = match.group(2)
+                factor = units.get(raw_unit, 3600. if raw_unit.startswith(('hour','hr')) else 60. if raw_unit.startswith('min') else 1.)
+                result[key] = float(match.group(1))*factor
+                break
+    return result
+
+
+def _explicit_event_requirement_issues(
+    spec: Mapping[str, Any], text: str, *, require_declaration: bool = False,
+) -> list[ValidationIssue]:
+    """Check a user's explicit Events JSON; never repair it from a label/template.
+
+    Only the latest refinement instruction is actionable. Unstructured prose
+    remains subject to normal preview/review; no event semantics are guessed.
+    """
+    from .task_models import EventsSpec, canonicalize_task_spec
+
+    latest = text.rsplit("本轮补充指令：", 1)[-1]
+    markers = list(re.finditer(r"(?:\bEvents\s*[:：]|事件配置\s*[:：]|事件为)\s*", latest, re.I))
+    if not markers:
+        return [ValidationIssue(severity="error", path="$.request.events",
+            code="USER_EVENT_REQUIREMENTS_MISSING",
+            message="This contract requires an explicit Events JSON declaration.")] if require_declaration else []
+    try:
+        declared, _end = json.JSONDecoder().raw_decode(latest[markers[-1].end():].lstrip())
+        expected = EventsSpec.model_validate(declared).model_dump(mode="json", exclude_unset=True)
+        for kind, events in expected.items():
+            identifiers = [event["id"] for event in events]
+            if len(identifiers) != len(set(identifiers)):
+                raise ValueError(f"duplicate event ids in {kind}")
+    except (ValueError, TypeError, KeyError) as exc:
+        return [ValidationIssue(severity="error", path="$.request.events",
+            code="USER_EVENT_REQUIREMENTS_INVALID",
+            message=f"The explicit Events JSON is invalid; clarify it before generating a script: {exc}")]
+    try:
+        actual = canonicalize_task_spec(spec)["events"]
+    except (ValueError, TypeError, KeyError) as exc:
+        return [ValidationIssue(severity="error", path="$.events",
+            code="GENERATED_EVENT_PROJECTION_FAILED",
+            message=f"Cannot verify generated event semantics: {exc}")]
+
+    issues: list[ValidationIssue] = []
+
+    def compare(wanted: Any, observed: Any, path: str) -> None:
+        if isinstance(wanted, Mapping):
+            if isinstance(observed, Mapping):
+                # Additional registered defaults are allowed; every explicitly
+                # supplied nested parameter must still retain its value.
+                for key, value in wanted.items():
+                    if key not in observed:
+                        issues.append(ValidationIssue(severity="error", path=f"{path}.{key}",
+                            code="USER_EVENT_REQUIREMENT_MISMATCH",
+                            message="The model omitted an explicitly requested event field."))
+                    else:
+                        compare(value, observed[key], f"{path}.{key}")
+                return
+        elif isinstance(wanted, list):
+            if isinstance(observed, list) and len(wanted) == len(observed):
+                for index, (value, other) in enumerate(zip(wanted, observed, strict=True)):
+                    compare(value, other, f"{path}[{index}]")
+                return
+        elif isinstance(wanted, (int, float)) and not isinstance(wanted, bool):
+            if isinstance(observed, (int, float)) and not isinstance(observed, bool):
+                try:
+                    if math.isfinite(wanted) and math.isfinite(observed) and math.isclose(wanted, observed, rel_tol=1e-12, abs_tol=0.):
+                        return
+                except OverflowError:
+                    pass
+        elif type(wanted) is type(observed) and wanted == observed:
+            return
+        issues.append(ValidationIssue(severity="error", path=path,
+            code="USER_EVENT_REQUIREMENT_MISMATCH",
+            message=f"User explicitly requested {wanted!r}, but the model returned {observed!r}. Preserve the requested event value; do not substitute defaults."))
+
+    for kind in ("faults", "degradations", "constraints"):
+        wanted_rows, actual_rows = expected.get(kind, []), actual.get(kind, [])
+        wanted_ids = {event["id"] for event in wanted_rows}
+        actual_ids = {event["id"] for event in actual_rows}
+        if wanted_ids != actual_ids or len(actual_ids) != len(actual_rows):
+            issues.append(ValidationIssue(severity="error", path=f"$.events.{kind}",
+                code="USER_EVENT_REQUIREMENT_MISMATCH",
+                message=f"Explicit event ids {sorted(wanted_ids)!r} differ from generated ids {sorted(actual_ids)!r}; missing or additional events cannot be executed."))
+        indexed = {event["id"]: event for event in actual_rows}
+        for wanted in wanted_rows:
+            if wanted["id"] in indexed:
+                compare(wanted, indexed[wanted["id"]], f"$.events.{kind}[id={wanted['id']}]")
+    return issues
+
+
+def _registered_literal_assignments(text: str, declared: Mapping[str, Any]) -> dict[str, Any]:
+    """Parse only explicit registered key=literal input; never infer values."""
+    latest = text.rsplit('本轮补充指令：', 1)[-1]
+    expected = {}
+    for match in re.finditer(r'(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)\s*=\s*', latest):
+        name = match.group(1)
+        if name not in declared:
+            continue
+        remainder = latest[match.end():].lstrip()
+        try:
+            literal, end = json.JSONDecoder().raw_decode(remainder)
+            if end < len(remainder) and not re.match(r'[\s,，;；。]', remainder[end]):
+                raise ValueError('bare string, not a complete JSON number')
+        except (ValueError, TypeError):
+            token = re.match(r'[^\s,，;；。]+', remainder)
+            literal = token.group(0) if token else ''
+            if re.fullmatch(r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?', literal):
+                literal = float(literal)
+        expected[name] = literal
+    return expected
+
+
+def _requested_declared_output_fields(text: str, contract: Mapping[str, Any]) -> set[str]:
+    latest = text.rsplit('本轮补充指令：', 1)[-1]
+    output_contract = contract.get('outputs', {})
+    patterns = [item if isinstance(item,str) else item.get('name','')
+                for item in output_contract.get('trace_fields', output_contract.get('trace', []))
+                if isinstance(item,(str,Mapping))]
+    requested = set()
+    for match in re.finditer(r'(?<![\w.])[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+', latest):
+        name = match.group(0)
+        prefix = re.split(r'[,，;；。\n]', latest[:match.start()])[-1][-40:]
+        if re.search(r'不要|不输出|不需要|移除|删除|\b(?:exclude|omit|without)\b', prefix, re.I):
+            continue
+        if any(fnmatch.fnmatchcase(name,pattern) for pattern in patterns):
+            requested.add(name)
+    return requested
+
+
+def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str) -> list[ValidationIssue]:
+    """Validate user literals without ever writing model values or guessed intent."""
+    from .task_models import canonicalize_task_spec
+    cid = str(spec.get('capability_id') or _mapping(spec.get('model')).get('capability_id') or '')
+    if not cid:
+        return []
+    contract = get_capability(cid).data
+    canonical = canonicalize_task_spec(spec)
+    values = _mapping(canonical.get('parameters')).get('values', {})
+    expected = _registered_literal_assignments(text, contract.get('parameters', {}))
+
+    def same(a, b):
+        if type(a) in (int,float) and type(b) in (int,float):
+            return math.isfinite(a) and math.isfinite(b) and math.isclose(a,b,rel_tol=1e-12,abs_tol=0.)
+        if isinstance(a,list) and isinstance(b,list):
+            return len(a)==len(b) and all(same(x,y) for x,y in zip(a,b))
+        if isinstance(a,dict) and isinstance(b,dict):
+            return a.keys()==b.keys() and all(same(a[k],b[k]) for k in a)
+        return type(a) is type(b) and a==b
+
+    issues = [ValidationIssue(severity='error', path=f'$.parameters.{key}',
+        code='USER_PARAMETER_REQUIREMENT_MISMATCH',
+        message=f'Explicit user assignment {key}={wanted!r} is missing or differs from model value {values.get(key)!r}; preserve the requested value without substituting defaults.')
+        for key,wanted in expected.items() if key not in values or not same(wanted,values[key])]
+    requested_fields = _requested_declared_output_fields(text, contract)
+    outputs = _mapping(canonical.get('outputs'))
+    selected = [*outputs.get('plots', []), *outputs.get('qoi', [])]
+    for name in sorted(requested_fields):
+        if not any(fnmatch.fnmatchcase(name,pattern) for pattern in selected):
+            issues.append(ValidationIssue(severity='error',path='$.outputs',code='USER_OUTPUT_REQUIREMENT_MISMATCH',
+                message=f'Explicitly requested output {name!r} is missing from the model selection; include the declared field.'))
+    return issues
+
+
+def _validate_generated_draft(spec: Mapping[str, Any], request: CapabilityAgentRequest) -> ValidationResult:
+    validation = validate_task_spec(spec)
+    issues = list(validation.issues)
+    simulation = _mapping(spec.get("simulation"))
+    for key, expected in _explicit_time_requirements(request.request).items():
+        actual = _mapping(simulation.get('solver')).get('step_s', simulation.get('step_s')) if key=='step_s' else simulation.get(key)
+        if not isinstance(actual, (float,int)) or isinstance(actual,bool) or not math.isfinite(actual) or abs(float(actual)-expected)>1e-9:
+            issues.append(ValidationIssue(severity="error",path=f"$.simulation.{key}",
+                code="USER_TIME_REQUIREMENT_MISMATCH",message=f"User explicitly requested {key}={expected:g} s, but the model returned {actual!r}. Preserve the requested value exactly."))
+    if validation.ok:
+        issues.extend(_explicit_event_requirement_issues(spec, request.request))
+        issues.extend(_explicit_literal_requirement_issues(spec, request.request))
+    return ValidationResult(tuple(issues))
+
+
 def _extract_seconds(text: str, keywords: Sequence[str]) -> float | None:
     lower = text.lower()
     unit_map = {
@@ -604,6 +807,15 @@ def _synthesize_template(capability_id: str, template_file: str) -> dict[str, An
 
     contract = get_capability(capability_id)
     target_level = contract.target_level
+    from .form_schema import capability_output_defaults
+    default_outputs = capability_output_defaults(contract)
+    implementation = _mapping(contract.data.get("implementation"))
+    accepted_backends = implementation.get("accepted_task_backends")
+    backend = "selective_unified_basilisk_assembly"
+    if isinstance(accepted_backends, (list, tuple)):
+        choices = [str(item).strip() for item in accepted_backends if str(item).strip()]
+        if len(choices) == 1:
+            backend = choices[0]
     # Historical orbit contracts use ``target.level=integrated`` while the
     # public TaskSpec task type is ``orbit_environment``. Preserve both
     # representations so installed-package template synthesis satisfies the
@@ -654,7 +866,7 @@ def _synthesize_template(capability_id: str, template_file: str) -> dict[str, An
         "simulation": {
             "duration_s": duration_s,
             "sample_s": 10.0,
-            "backend": "selective_unified_basilisk_assembly",
+            "backend": backend,
         },
         "target": {"level": target_level, "name": target_name, "mode": mode},
         "parameters": parameters,
@@ -668,6 +880,7 @@ def _synthesize_template(capability_id: str, template_file: str) -> dict[str, An
             "include_labels": True,
             "include_manifest": True,
             "record_fields": trace_fields,
+            **default_outputs,
         },
         "metadata": {
             "template_source": "capability_registry_synthesized",
@@ -806,6 +1019,8 @@ def _summarize_contract(contract: CapabilityContract, *, allowed_dependency_capa
 def _compact_contract_summary(contract: CapabilityContract) -> dict[str, Any]:
     """Small LLM-facing contract for local models with 8K context windows."""
     data = contract.data
+    from .form_schema import capability_output_defaults
+    default_outputs = capability_output_defaults(contract)
     params: dict[str, Any] = {}
     raw_parameters = data.get("parameters") if isinstance(data.get("parameters"), Mapping) else {}
     for name, payload in raw_parameters.items():
@@ -817,18 +1032,25 @@ def _compact_contract_summary(contract: CapabilityContract) -> dict[str, Any]:
             row["description"] = description[:120]
         params[str(name)] = row
     modes = data.get("modes") if isinstance(data.get("modes"), Mapping) else {}
+    raw_outputs = _mapping(data.get("outputs"))
+    trace = raw_outputs.get("trace") or raw_outputs.get("trace_fields") or contract.operator_contract.observability.trace_fields
+    trace_names = [str(item.get("name")) if isinstance(item, Mapping) else str(item) for item in trace]
     effects: dict[str, list[str]] = {"faults": [], "degradations": [], "constraints": []}
     for mode_name, destination, key in (("fault", "faults", "fault_types"), ("degradation", "degradations", "degradation_types"), ("constraint", "constraints", "constraint_types")):
         payload = modes.get(mode_name) if isinstance(modes.get(mode_name), Mapping) else {}
-        values = payload.get(key) if isinstance(payload, Mapping) else []
+        values = (payload.get(key) or payload.get("effects")) if isinstance(payload, Mapping) else []
         if isinstance(values, list):
             effects[destination] = [str(item) for item in values[:24]]
     return {
         "capability_id": contract.capability_id,
-        "task_type": contract.target_level,
+        "task_type": "orbit_environment" if contract.target_level == "integrated" and contract.capability_id.startswith("orbit_environment.") else contract.target_level,
         "target": {"level": contract.target_level, "name": contract.target_name},
         "parameters": params,
         "effects": effects,
+        "outputs": {"trace": trace_names},
+        "default_summary_qoi": default_outputs['qoi'],
+        "default_trace_fields": default_outputs['plots'],
+        "accepted_task_backends": list(_mapping(data.get("implementation")).get("accepted_task_backends") or []),
         "required_simulation_fields": ["duration_s", "sample_s"],
         "subsystem_rule": (f"simulation.subsystem must be {contract.target_name}" if contract.target_level == "subsystem" else None),
     }
@@ -905,12 +1127,19 @@ def _prompt_candidate_capabilities(request_text: str, allowed: Sequence[str], *,
     return tuple(allowed[:max_candidates])
 
 
-def _example_for_prompt(capability_id: str | None) -> str:
+def _example_for_prompt(capability_id: str | None, *, omit_optional_parameters: bool = False) -> str:
     if not capability_id:
         return ""
     try:
         template = f"{capability_id.replace('.', '_')}_nominal.yaml"
         spec = _synthesize_template(capability_id, template)
+        # Authoring provenance is not a requested field in generated tasks.
+        spec.pop("metadata", None)
+        spec.pop("description", None)
+        if omit_optional_parameters and isinstance(spec.get('parameters'), dict):
+            declared = get_capability(capability_id).data.get('parameters', {})
+            spec['parameters'] = {key:value for key,value in spec['parameters'].items()
+                                  if isinstance(declared.get(key), Mapping) and declared[key].get('required') is True}
         if isinstance(spec.get("outputs"), dict):
             spec["outputs"].pop("record_fields", None)
         if spec.get("task_type") == "whole_spacecraft":
@@ -1028,9 +1257,16 @@ def build_capability_agent_prompt(
         context = capability_agent_context_payload(allowed_capabilities=prompt_capabilities, include_contracts=True)
         context["allowed_capabilities_authoritative"] = list(allowed)
         context["prompt_scope"] = "full"
+    requested_time = _explicit_time_requirements(request_text)
+    if requested_time:
+        context["requested_time"] = requested_time
+    if prompt_capabilities:
+        selected_contract = get_capability(prompt_capabilities[0]).data
+        context['requested_parameter_assignments'] = _registered_literal_assignments(request_text, selected_contract.get('parameters', {}))
+        context['requested_output_fields'] = sorted(_requested_declared_output_fields(request_text, selected_contract))
     context_json = json.dumps(context, separators=(",", ":"), ensure_ascii=False) if compact else json.dumps(context, indent=2, ensure_ascii=False)
     selected_capability = prompt_capabilities[0] if prompt_capabilities else None
-    canonical_example = _example_for_prompt(selected_capability)
+    canonical_example = _example_for_prompt(selected_capability, omit_optional_parameters=compact)
     for item in advisory_context:
         advisory = item.get("advisory") if isinstance(item, Mapping) else None
         outlines = (
@@ -1086,6 +1322,33 @@ def build_capability_agent_prompt(
             f"{provenance}; provenance-only, never output this comment -->\n"
         )
 
+    if compact:
+        return f"""# Satellite Simulation TaskSpec Generation
+Generate one TaskSpec, never code. Registry/planner are authoritative; examples/retrieval are advisory. Never invent capabilities, effects, parameters, outputs or claims. Reject unsupported requests; never substitute a partial capability.
+
+## User request
+{request_text}
+
+## Capability context
+```json
+{context_json}
+```
+{exposure_note}{boundary_note}{experience_note}
+## Output contract
+Return one YAML/JSON object, no Markdown or explanation. Use schema_version: {TASK_SPEC_VERSION}.
+Allowed top-level keys: schema_version, task_id, task_type, capability_id, target, simulation, spacecraft, parameters, orbit_environment, faults, degradations, constraints, modifiers, outputs, metadata, tags.
+Copy task_type and target level/name from the selected capability. target permits only level/name/mode. For whole_spacecraft include spacecraft.mission.template. Use duration_s, sample_s and solver.step_s for time, in seconds. If accepted_task_backends has one value, use it exactly. For subsystem set simulation.subsystem to the declared target name.
+Satisfy requested_time exactly. Use declared parameter names/defaults/units. Use only declared effects at requested times/severities, no extra events. Legacy fault keys: fault_id, target, target_type, fault_type, onset_time_s, duration_s, magnitude.
+For a new task, include required parameters and every user-specified parameter; omit unrelated optional defaults instead of copying the whole registry. Omitted optional values use registered defaults with provenance. For refinement, retain the supplied task's unchanged parameters. Never omit a requested parameter to shorten output.
+Emit every requested_parameter_assignments entry exactly under parameters and every requested_output_fields entry under outputs.plots. These are literal user inputs, not inferred defaults. Keep requested_time.sample_s separate from requested_time.step_s; the latter belongs in simulation.solver.step_s.
+Output keys: output_root, trace_format, qoi, plots, include_summary, include_trace, include_labels, include_manifest. For defaults, copy default_summary_qoi exactly (wildcards included) and use default_trace_fields for plots. Curves use only declared trace names. During refinement retain values the user did not ask to change.
+
+## Capability-specific example
+```yaml
+{canonical_example}
+```
+"""
+
     return f"""# Satellite Simulation TaskSpec Generation
 
 You are generating a TaskSpec for a satellite simulation toolchain. The user wants a runnable simulation script, but you must NOT write Python code. Generate a TaskSpec only. The local sat-sim tool will validate the TaskSpec and export deterministic capability-python code.
@@ -1116,14 +1379,14 @@ spacecraft:
   mission:
     template: <selected capability_id or scenario name>
 For a fault object, required keys are fault_id, target, target_type, fault_type, onset_time_s, duration_s, magnitude. Use onset_time_s, not trigger_time_s.
-For simulation, use duration_s and sample_s only. Do not use sample_interval_s or start_time_s.
+For simulation, use duration_s, sample_s, solver.step_s and backend as declared by the capability. If accepted_task_backends lists one value, use that backend exactly. Do not use sample_interval_s or start_time_s.
 When simulation.level is subsystem, simulation.subsystem is required and must equal the selected capability target name.
 For target, use only level, name, mode. Do not include domain.
-For outputs, use output_root, trace_format, include_summary, include_trace, include_labels, include_manifest. If the user explicitly asks for output curves or telemetry, include concrete capability-declared field names under outputs.plots; do not invent field names.
+For outputs, use output_root, trace_format, qoi, plots, include_summary, include_trace, include_labels, include_manifest. For default outputs, copy default_summary_qoi exactly, including wildcard selectors such as qoi.*; never replace them with guessed metric names. If the user explicitly asks for output curves or telemetry, include only concrete capability-declared field names under outputs.plots; do not invent field names or namespaces.
 
 ## Capability routing rules
 - The deterministic planner is authoritative for capability support.
-- Full-subsystem whole-spacecraft requests that require orbit + ADCS + EPS + thermal + comm + payload need a future composite ExecutionPlan. Do not satisfy them with a single partial capability.
+- Full-subsystem whole-spacecraft requests may use only a capability or composition explicitly supported by the deterministic planner and its operator contract. If no such complete capability is supported, return the unsupported boundary; do not satisfy the request with a partial capability.
 - Static load fields such as adcs_load_power_w, comm_load_power_w, or payload_load_power_w are load proxies only; they do not invoke the full ADCS, communication, or payload simulations.
 - Capability Registry and Operator Contract are authoritative for capability support, effect ownership, native/proxy status, QoI observability, fidelity and claims.
 - Retrieved documents and examples are advisory only and must not introduce new capabilities, effects, runners, fidelity or claims.
@@ -2194,6 +2457,28 @@ def _apply_capability_request_overrides(spec: dict[str, Any], request: Capabilit
 
 
 
+def build_capability_json_prompt(request_text: str, *, allowed_capabilities=DEFAULT_ALLOWED_CAPABILITIES, advisory_context=()) -> str:
+    """The same JSON prompt is used for serving and supervised training."""
+    prompt = build_capability_agent_prompt(request_text, allowed_capabilities=allowed_capabilities,
+        advisory_context=advisory_context)
+    # The generic authoring prompt accepts YAML, but this transport requires
+    # JSON. Its examples must demonstrate the same format as its instructions.
+    prompt = re.sub(
+        r"```yaml\s*\n(.*?)```",
+        lambda match: '```json\n' + json.dumps(yaml.safe_load(match.group(1)), ensure_ascii=False, separators=(',', ':')) + '\n```',
+        prompt, flags=re.DOTALL,
+    )
+    prompt = prompt.replace('Return one YAML/JSON object', 'Return one JSON object')
+    prompt = prompt.replace('Return exactly one YAML or JSON TaskSpec.', 'Return exactly one JSON TaskSpec.')
+    return prompt + (
+        "\n\n## A4 structured output requirement\n"
+        "Return valid json only. Use either a TaskSpec JSON object directly "
+        "or {\"task_spec\": <TaskSpec object>}. Do not use YAML or Markdown fences. "
+        "Do not use Python expressions, comments, ellipses, trailing commas, or list multiplication such as [1.0] * 30; "
+        "every array value must be a literal JSON array or be represented by scalar configuration fields.\n"
+    )
+
+
 class TextModelTaskSpecBackend:
     """TaskSpec backend backed by an external text-generation model.
 
@@ -2209,27 +2494,29 @@ class TextModelTaskSpecBackend:
         self.last_call: LLMCallResult | None = None
         self.last_raw_output: str | None = None
 
+    def _grounded_config(self, request: CapabilityAgentRequest) -> LLMCallConfig:
+        if self.config.structured_output!='json_schema' or self.config.backend not in {'openai_compatible','qwen','vllm'}:
+            return self.config
+        from .capability_planner import plan_capability_for_request
+        plan = plan_capability_for_request(request.request,allowed_capabilities=request.allowed_capabilities)
+        if not plan.supported or not plan.selected_capability_id:
+            return self.config
+        return replace(self.config,response_schema=taskspec_draft_response_schema(plan.selected_capability_id))
+
     def draft_task_spec(self, *, request: CapabilityAgentRequest, context: Mapping[str, Any]) -> dict[str, Any]:
-        prompt = build_capability_agent_prompt(
+        prompt_builder = build_capability_json_prompt if self.config.structured_output in {'json_object', 'json_schema'} else build_capability_agent_prompt
+        prompt = prompt_builder(
             request.request,
             allowed_capabilities=request.allowed_capabilities,
             advisory_context=request.advisory_context,
         )
-        if self.config.structured_output == "json_object":
-            prompt += (
-                "\n\n## A4 structured output requirement\n"
-                "Return valid json only. Use either a TaskSpec JSON object directly "
-                "or {\"task_spec\": <TaskSpec object>}. Do not use YAML or Markdown fences. "
-                "Do not use Python expressions, comments, ellipses, trailing commas, or list multiplication such as [1.0] * 30; "
-                "every array value must be a literal JSON array or be represented by scalar configuration fields.\n"
-            )
-        elif self.config.structured_output == "tool_call":
+        if self.config.structured_output == "tool_call":
             prompt += (
                 "\n\n## A4 structured output requirement\n"
                 "Call the generate_task_spec tool exactly once. Put the complete TaskSpec object "
                 "in the task_spec argument.\n"
             )
-        backend = make_text_llm_backend(self.config)
+        backend = make_text_llm_backend(self._grounded_config(request))
         result = backend.generate_text(prompt)
         self.last_call = result
         self.last_raw_output = result.raw_text
@@ -2251,19 +2538,21 @@ class TextModelTaskSpecBackend:
         planner/generator consistency gate prevents capability drift.
         """
 
-        prompt = build_capability_agent_prompt(
+        json_transport = self.config.structured_output in {'json_object', 'json_schema'}
+        prompt_builder = build_capability_json_prompt if json_transport else build_capability_agent_prompt
+        prompt = prompt_builder(
             request.request,
             allowed_capabilities=request.allowed_capabilities,
             advisory_context=request.advisory_context,
         )
         prompt += (
             "\n\n## Validator feedback for one-shot correction\n"
-            "The previous TaskSpec draft failed validation. Produce one corrected JSON/YAML TaskSpec. "
+            f"The previous TaskSpec draft failed validation. Produce one corrected {'JSON' if json_transport else 'JSON/YAML'} TaskSpec. "
             "Do not change capability_id, do not add unsupported effects, do not raise claim level, and do not relax thresholds.\n"
             f"Validation errors:\n```json\n{json.dumps(validation.to_dict(), indent=2, ensure_ascii=False)}\n```\n"
             f"Previous draft:\n```json\n{json.dumps(dict(previous_draft), indent=2, ensure_ascii=False)}\n```\n"
         )
-        backend = make_text_llm_backend(self.config)
+        backend = make_text_llm_backend(self._grounded_config(request))
         result = backend.generate_text(prompt)
         self.last_call = result
         self.last_raw_output = result.raw_text
@@ -2854,6 +3143,17 @@ def _project_external_draft_to_legacy(spec: Mapping[str, Any], request: Capabili
     canonical_like = bool(model or task or events or source.get("schema_version") == CANONICAL_TASK_SPEC_VERSION)
     if not canonical_like:
         return source
+    if source.get("schema_version") == CANONICAL_TASK_SPEC_VERSION:
+        # Complete canonical drafts already have an authoritative conversion.
+        # It preserves modifier-vs-legacy event delivery and avoids injecting
+        # the same fault through both legacy and modifier collections.
+        from .task_models import to_runtime_task_spec
+        try:
+            return to_runtime_task_spec(source)
+        except (ValueError, TypeError, KeyError):
+            # Incomplete model drafts still use the existing permissive
+            # projection below and must pass the normal semantic validator.
+            pass
 
     out: dict[str, Any] = {}
     capability_id = _external_draft_capability_id(source)
@@ -3200,7 +3500,7 @@ def _coerce_common_llm_aliases(spec: Mapping[str, Any], request: CapabilityAgent
                 sim.setdefault("subsystem", target_name)
     sim.setdefault("duration_s", (_extract_seconds(request.request, ["duration", "simulate", "simulation", "仿真", "时长", "运行"]) or _extract_seconds(request.request, ["持续"]) or 600.0))
     sim.setdefault("sample_s", _extract_seconds(request.request, ["sample", "sampling", "采样", "输出间隔", "间隔"]) or min(10.0, float(sim.get("duration_s") or 10.0)))
-    sim.setdefault("step_s", min(float(sim.get("sample_s") or 1.0), float(sim.get("step_s") or sim.get("sample_s") or 1.0)))
+    sim.setdefault("step_s", _mapping(sim.get('solver')).get('step_s', min(float(sim.get("sample_s") or 1.0), float(sim.get("sample_s") or 1.0))))
     if "random_seed" not in sim and "seed" in sim:
         sim["random_seed"] = sim.pop("seed")
     sim.setdefault("random_seed", 0)
@@ -3431,6 +3731,20 @@ def _normalize_external_draft(spec: Mapping[str, Any], request: CapabilityAgentR
         out["outputs"] = outputs
     out.setdefault("outputs", {})
     if isinstance(out["outputs"], dict):
+        cid = str(out.get('capability_id') or '')
+        if cid:
+            explicit_fields = sorted(_requested_declared_output_fields(request.request, get_capability(cid).data))
+            if explicit_fields:
+                # A literal registry field is a user-authored presentation
+                # selection, not a model-inferred physical value. Keep the raw
+                # model answer untouched and disclose this deterministic binding.
+                outputs = out['outputs']
+                outputs['plots'] = list(dict.fromkeys([*outputs.get('plots', []), *explicit_fields]))
+                out['metadata']['explicit_output_bindings'] = {
+                    'source':'user_literal_registry_field_names', 'fields':explicit_fields,
+                    'raw_model_answer_preserved':True, 'selection_augmented_from_user_literals':True,
+                    'physical_parameters_replaced':False,
+                }
         out["outputs"].setdefault("output_root", str(Path("datasets") / str(out.get("task_id", "generated"))))
         out["outputs"].setdefault("trace_format", "csv")
         out["outputs"].setdefault("include_summary", True)
@@ -3574,6 +3888,10 @@ def _template_fallback_for_planner_route(
     never executes model-authored Python.
     """
 
+    # A model's failure must remain a model failure. Only explicitly selected
+    # deterministic template mode may synthesize a replacement task.
+    if request.backend != "template" or request.draft_spec_path is not None:
+        return None
     if not selected_capability_id:
         return None
     try:
@@ -3682,7 +4000,8 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
     request_path.write_text(request.request, encoding="utf-8")
     files["user_request"] = str(request_path)
 
-    prompt_text = build_capability_agent_prompt(
+    prompt_builder = build_capability_json_prompt if request.model_structured_output in {'json_object', 'json_schema'} else build_capability_agent_prompt
+    prompt_text = prompt_builder(
         request.request,
         allowed_capabilities=request.allowed_capabilities,
         advisory_context=request.advisory_context,
@@ -3957,7 +4276,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 draft = fallback
 
     current = _normalize_external_draft(draft, request)
-    validation = validate_task_spec(current)
+    validation = _validate_generated_draft(current, request)
     if (
         not validation.ok
         and request.max_repair_attempts > 0
@@ -3986,7 +4305,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                     retry_evidence,
                 ))
             retry_current = _normalize_external_draft(retry_draft, request)
-            retry_validation = validate_task_spec(retry_current)
+            retry_validation = _validate_generated_draft(retry_current, request)
             if retry_validation.ok or len(retry_validation.errors) <= len(validation.errors):
                 current = retry_current
                 validation = retry_validation
@@ -4007,7 +4326,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
     while not validation.ok and repair_count < max(0, request.max_repair_attempts):
         current = _repair_capability_spec_once(current, validation, request)
         repair_count += 1
-        validation = validate_task_spec(current)
+        validation = _validate_generated_draft(current, request)
         steps.append(CapabilityAgentStep("repair", "complete" if validation.ok else "partial", f"Applied conservative repair attempt {repair_count}.", {"ok_after_repair": validation.ok}))
 
     if (
@@ -4021,12 +4340,12 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         fallback = _template_fallback_for_planner_route(request, context, selected_capability_id=plan.selected_capability_id)
         if fallback is not None:
             current = _normalize_external_draft(fallback, request)
-            validation = validate_task_spec(current)
+            validation = _validate_generated_draft(current, request)
             repair_count = 0
             while not validation.ok and repair_count < max(0, request.max_repair_attempts):
                 current = _repair_capability_spec_once(current, validation, request)
                 repair_count += 1
-                validation = validate_task_spec(current)
+                validation = _validate_generated_draft(current, request)
             steps.append(CapabilityAgentStep(
                 "planner_route_repair",
                 "complete" if validation.ok else "failed",

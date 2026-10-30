@@ -1,7 +1,7 @@
 /* Dedicated continuous whole-spacecraft workstation (R7 UI).
    Uses existing workbench palette, navigation, and typography. */
 body[data-active-view="continuous"] .sidebar-capabilities { display: none; }
-.continuous-view { min-height: calc(100vh - 72px); background: var(--bg); color: var(--text); }
+.continuous-view { min-height: calc(100vh - 72px); background: var(--bg); color: var(--text); container-type: inline-size; }
 .continuous-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 23px 24px; border-bottom: 1px solid var(--line); }
 .continuous-hero h1 { font-size: 23px; margin: 5px 0; }
 .continuous-hero p { color: var(--muted); line-height: 1.6; font-size: 12px; }
@@ -14,6 +14,7 @@ body[data-active-view="continuous"] .sidebar-capabilities { display: none; }
 .continuous-grid { display: grid; grid-template-columns: minmax(255px, 285px) minmax(370px, 1fr) minmax(250px, 295px); align-items: start; min-height: calc(100vh - 190px); }
 .continuous-sidebar, .continuous-main, .continuous-telecommand { display: flex; flex-direction: column; gap: 12px; padding: 15px; min-width: 0; }
 .continuous-sidebar { border-right: 1px solid var(--line); }
+.continuous-mobile-controls { display: none; }
 .continuous-telecommand { border-left: 1px solid var(--line); }
 .continuous-card { border: 1px solid var(--line); border-radius: 11px; padding: 16px; background: var(--panel); min-width: 0; }
 .continuous-card h2 { font-size: 14px; margin: 0 0 9px; }
@@ -64,11 +65,40 @@ body[data-active-view="continuous"] .sidebar-capabilities { display: none; }
   .continuous-hero-actions { flex-wrap: wrap; }
 }
 
+@media (max-width: 760px) {
+  .continuous-view[data-mobile-controls-active="true"] { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
+  .continuous-mobile-controls {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 24;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--panel); border-top: 1px solid var(--line);
+    box-shadow: 0 -5px 18px rgba(0,0,0,.10);
+  }
+  .continuous-mobile-controls .continuous-actions { margin: 0; gap: 6px; }
+  .continuous-mobile-controls .continuous-actions .button { flex: 1 1 94px; min-height: 44px; }
+  .continuous-mobile-controls .button:disabled {
+    background: var(--panel-2); border-color: var(--line); color: var(--muted);
+    box-shadow: none; opacity: .65;
+  }
+}
+
 /* Native model configuration stays collapsed until the operator edits it. */
 .continuous-native-config { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--bg); }
 .continuous-native-config > summary { cursor: pointer; font-size: 12px; font-weight: 650; line-height: 1.6; }
-.continuous-native-config-fields { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; margin: 10px 0; }
+.continuous-native-config-fields { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; margin: 10px 0; max-height: min(48vh, 480px); overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .continuous-native-config fieldset { border: 1px solid var(--line); border-radius: 6px; min-width: 0; padding: 9px; display: grid; gap: 8px; }
 .continuous-native-config legend { padding: 0 5px; font-size: 11px; font-weight: 600; }
 .continuous-native-config label { min-width: 0; overflow-wrap: anywhere; }
 .continuous-native-config input, .continuous-native-config select { width: 100%; max-width: 100%; box-sizing: border-box; }
+
+/* Sidebar space and UI zoom reduce this view's actual available width before
+   viewport media queries change. Reflow the cards without clipping controls. */
+@container (max-width: 1000px) {
+  .continuous-grid { grid-template-columns: minmax(0, 245px) minmax(0, 1fr); }
+  .continuous-telecommand { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+}
+@container (max-width: 650px) {
+  .continuous-grid { grid-template-columns: minmax(0, 1fr); }
+  .continuous-sidebar, .continuous-main, .continuous-telecommand { grid-column: auto; padding: 10px 14px; border: 0; }
+  .continuous-hero { flex-direction: column; gap: 10px; padding: 18px 14px; }
+  .continuous-hero-actions { flex-wrap: wrap; white-space: normal; }
+}

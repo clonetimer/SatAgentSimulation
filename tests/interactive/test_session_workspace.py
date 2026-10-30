@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+import pytest
 from pathlib import Path
 from typing import Any
 
@@ -54,6 +55,54 @@ def _spec(session_id: str, **updates) -> InteractiveSessionSpec:
     }
     values.update(updates)
     return InteractiveSessionSpec(**values)
+
+
+def test_runtime_result_is_atomic_immutable_and_does_not_enable_resume(tmp_path):
+    workspace = SessionWorkspace(tmp_path,_spec('runtime-result'))
+    result = {'summary':{'orbital_environment':{'profile':'spice_wmm','spacecraft_flight_validation':False}}}
+    workspace.write_runtime_result(result)
+    saved = json.loads((workspace.path/'runtime_result.json').read_text(encoding='utf-8'))
+    assert saved['result']==result
+    assert saved['full_native_resume_supported'] is False
+    assert not (workspace.path/'runtime_result.json.pending').exists()
+    with pytest.raises(ValueError,match='ALREADY_WRITTEN'):
+        workspace.write_runtime_result({'summary':'replacement'})
+    other = SessionWorkspace(tmp_path,_spec('nonfinite-result'))
+    with pytest.raises(ValueError):
+        other.write_runtime_result({'invalid':float('nan')})
+    assert not (other.path/'runtime_result.json').exists()
+    pending = other.path/'runtime_result.json.pending'
+    pending.write_text('previous interrupted write',encoding='utf-8')
+    with pytest.raises(ValueError,match='PENDING_EXISTS'):
+        other.write_runtime_result({'replacement':True})
+    assert pending.read_text(encoding='utf-8')=='previous interrupted write'
+
+
+@pytest.mark.parametrize('corrupt', ['artifact','manifest'])
+def test_runtime_result_api_checks_sealed_copy_before_returning(tmp_path,monkeypatch,corrupt):
+    """A control-plane fixture tests integrity rejection, not native physics."""
+    from fastapi.testclient import TestClient
+    from sat_sim.api import create_app
+    monkeypatch.setenv('SAT_SIM_INTERACTIVE_ENABLED','1')
+    app = create_app(runs_root=tmp_path/'runs',artifacts_root=tmp_path/'api',
+                     embedded_worker=False,auth_mode='disabled')
+    with TestClient(app) as client:
+        manager = app.state.interactive_manager
+        session = manager.create(_spec('api-result'),RecordingRuntime(),end_time_s=.3)
+        session.prepare()
+        session.start()
+        assert session.wait(5)
+        path = '/interactive/sessions/api-result/runtime-result'
+        response = client.get(path)
+        assert response.status_code==200,response.text
+        assert response.json()['result']['final_sim_time_s']==pytest.approx(.3)
+        assert response.json()['full_native_resume_supported'] is False
+        bundle = tmp_path/'api'/'interactive_sessions'/'api-result'/'run_bundle'
+        target = bundle/'interactive'/'runtime_result.json' if corrupt=='artifact' else bundle/'bundle_manifest.json'
+        target.write_text('{}',encoding='utf-8')
+        rejected = client.get(path)
+        assert rejected.status_code==409
+        assert rejected.json()['detail']['reason_code']=='RUNTIME_RESULT_INTEGRITY_FAILED'
 
 
 def test_workspace_persists_hash_chained_state_and_detects_tampering(tmp_path: Path) -> None:

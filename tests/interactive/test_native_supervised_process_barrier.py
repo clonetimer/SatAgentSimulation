@@ -45,10 +45,9 @@ def _child_worker(profile: str, ready_path: Path, artifact_dir: Path) -> None:
             ],
         }
         checkpoint = artifact_dir / "supervised-r5-checkpoint.json"
-        checkpoint.write_text(
-            json.dumps(wrapper, sort_keys=True), encoding="utf-8",
-        )
-        with checkpoint.open("rb") as handle:
+        with checkpoint.open("w", encoding="utf-8") as handle:
+            json.dump(wrapper, handle, sort_keys=True)
+            handle.flush()
             os.fsync(handle.fileno())
         checkpoint_sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
         write_child_ready(

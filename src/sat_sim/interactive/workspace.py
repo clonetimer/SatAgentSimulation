@@ -80,6 +80,28 @@ class SessionWorkspace:
             self._telemetry_sequence, self._telemetry_last_hash = self.telemetry_chain_tail(self.path)
             self._telemetry_total_bytes = telemetry_segments.total_logical_bytes(self.path)
 
+    def write_runtime_result(self, result: Any) -> None:
+        """Keep the runtime's actual final observation before sealing, once only."""
+        payload = {"schema_version":"interactive-runtime-result.v1", "session_id":self.path.name,
+                   "capture_source":"SESSION_RUNTIME_FINALIZE", "result":result,
+                   "full_native_resume_supported":False}
+        raw = json.dumps(payload,ensure_ascii=False,indent=2,allow_nan=False)+'\n'
+        target = self.path/'runtime_result.json'
+        staged = self.path/'runtime_result.json.pending'
+        with self._lock:
+            if target.exists():
+                raise ValueError('INTERACTIVE_RUNTIME_RESULT_ALREADY_WRITTEN')
+            if staged.exists():
+                raise ValueError('INTERACTIVE_RUNTIME_RESULT_PENDING_EXISTS')
+            try:
+                with staged.open('x',encoding='utf-8') as stream:
+                    stream.write(raw)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.replace(staged,target)
+            finally:
+                staged.unlink(missing_ok=True)
+
     def append_state(self, state: SessionState, revision: int, sim_time_s: float, reason_code: str) -> dict[str, Any]:
         with self._lock:
             payload = {

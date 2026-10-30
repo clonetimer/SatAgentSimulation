@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
 import json
 import os
 import threading
 import time
 from collections import deque
 from typing import Any, Literal
-from uuid import uuid4
 import sys
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -20,6 +20,7 @@ from .manager import InteractiveSessionManager
 from .command_catalog import CommandCatalog
 from .models import ActorRole, InteractiveSessionSpec, StreamGap, Telecommand
 from .runtime_factory import build_persistent_runtime
+from .continuous_initial_config import ContinuousInitialConfiguration, initial_configuration_catalog
 
 MAX_WEBSOCKET_MESSAGE_BYTES = 65_536
 MAX_WEBSOCKET_MESSAGES_PER_SECOND = 20
@@ -27,9 +28,6 @@ MAX_WEBSOCKET_MESSAGES_PER_SECOND = 20
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
-
-
-from .continuous_initial_config import ContinuousInitialConfiguration, initial_configuration_catalog
 
 
 class ContinuousCreateBody(_Strict):
@@ -202,7 +200,9 @@ def create_interactive_router(
                 "simulation": {
                     "duration_s": body.initial_horizon_s,
                     "sample_s": body.quantum_s,
-                    "solver": {"step_s": min(body.quantum_s, 0.2)},
+                    # Recorders execute on dynamics ticks. A 0.5 s period must
+                    # use 0.1 s ticks; 0.2 s ticks silently record every 0.6 s.
+                    "solver": {"step_s": 0.1 if body.quantum_s == 0.5 else min(body.quantum_s, 0.2)},
                 },
                 "parameters": {"values": native_values},
                 "outputs": {"telemetry_streams": [{
@@ -251,6 +251,7 @@ def create_interactive_router(
                              runtime.__class__.__name__ == "SupervisedContinuousNativeRuntime"
                              else "IN_PROCESS_NATIVE"),
             "native_child_pid": getattr(runtime, "child_pid", None),
+            "native_cpu_scheduling": getattr(runtime, "cpu_scheduling", None),
             "parent_death_fence": getattr(runtime, "parent_death_fence", None),
             "last_reap": getattr(runtime, "last_reap", None),
             "writer_epoch": session._command_mailbox.writer_epoch,
@@ -387,6 +388,29 @@ def create_interactive_router(
             session_id=session_id, action=body.action,
         )
         return session.snapshot()
+
+    @router.get("/sessions/{session_id}/runtime-result")
+    def runtime_result(session_id: str):
+        session = get_session(session_id)
+        workspace = session._workspace
+        if workspace is None:
+            raise HTTPException(404, detail={"reason_code":"RUNTIME_RESULT_NOT_AVAILABLE"})
+        bundle = workspace.path/'run_bundle'
+        path = bundle/'interactive'/'runtime_result.json'
+        if not path.is_file() or not (bundle/'SEALED.json').is_file():
+            raise HTTPException(404, detail={"reason_code":"RUNTIME_RESULT_NOT_AVAILABLE"})
+        try:
+            seal = json.loads((bundle/'SEALED.json').read_text(encoding='utf-8'))
+            manifest_bytes = (bundle/'bundle_manifest.json').read_bytes()
+            if hashlib.sha256(manifest_bytes).hexdigest()!=seal['bundle_manifest_sha256']:
+                raise ValueError('MANIFEST_HASH_MISMATCH')
+            expected = json.loads(manifest_bytes)['files']['interactive/runtime_result.json']
+            raw = path.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=expected['sha256'] or len(raw)!=expected['size_bytes']:
+                raise ValueError('RUNTIME_RESULT_HASH_MISMATCH')
+            return json.loads(raw)
+        except (OSError,ValueError,KeyError,TypeError) as exc:
+            raise HTTPException(409,detail={"reason_code":"RUNTIME_RESULT_INTEGRITY_FAILED","message":str(exc)}) from exc
 
     @router.get("/sessions/{session_id}/checkpoint/coverage")
     def checkpoint_coverage(session_id: str, request: Request):

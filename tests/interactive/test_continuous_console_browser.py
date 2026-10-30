@@ -80,6 +80,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
     )
     with TestClient(app) as client, playwright_module.sync_playwright() as p:
         browser = p.chromium.launch(headless=True,
+                                    executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"),
                                     args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
             page = browser.new_page(viewport={"width": 1600, "height": 1050},
@@ -164,10 +165,12 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#continuousPaced").check()
             page.locator("#continuousCreateForm button[type=submit]").click()
             page.wait_for_function(
-                "() => document.querySelector('#continuousState').textContent === 'READY'",
+                "() => document.querySelector('#continuousState').dataset.state === 'READY'",
                 timeout=15000,
             )
             assert len(running) == 1
+            assert page.locator("#continuousState").inner_text() == "准备就绪"
+            assert page.locator("#continuousState").get_attribute("title") == "READY"
             original = client.get("/interactive/continuous/sessions/browser-r7d/configuration")
             assert original.status_code == 200, original.text
             assert original.json()["native_initial_values"]["orbit_radius_m"] == 7200000.
@@ -256,9 +259,11 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousRecoveryAuditBtn").is_disabled()
             page.locator("[data-continuous-action='pause']").click()
             page.wait_for_function(
-                "() => document.querySelector('#continuousState').textContent === 'PAUSED'",
+                "() => document.querySelector('#continuousState').dataset.state === 'PAUSED'",
                 timeout=12000,
             )
+            assert page.locator("#continuousState").inner_text() == "已暂停"
+            assert page.locator("#continuousState").get_attribute("title") == "PAUSED"
             # A paused session permits verified historical retrieval from
             # durable workspace, not from the browser's 280-frame replay ring.
             page.locator("#continuousHistoryPanel > summary").click()
@@ -292,7 +297,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousRecoveryOwners .continuous-log-item").count() == 12
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
-                "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
+                "() => document.querySelector('#continuousState').dataset.state === 'COMPLETED'",
                 timeout=15000,
             )
             assert not page.locator("#continuousStartBtn").is_enabled()
@@ -304,7 +309,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator('[data-native-key="rw_initial_speed_rad_s_3"]').fill("77")
             page.locator("#continuousCreateForm button[type=submit]").click()
             page.wait_for_function(
-                "() => document.querySelector('#continuousState').textContent === 'READY'",
+                "() => document.querySelector('#continuousState').dataset.state === 'READY'",
                 timeout=15000,
             )
             rw4_option = page.locator("#continuousRw4SignalOption")
@@ -321,7 +326,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousSignal").input_value() == "adcs.rw.speed_rad_s_3"
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
-                "() => document.querySelector('#continuousState').textContent === 'COMPLETED'",
+                "() => document.querySelector('#continuousState').dataset.state === 'COMPLETED'",
                 timeout=15000,
             )
             assert failures == [], failures

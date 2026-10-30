@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify provenance and integrity of locally rebuilt Basilisk compatibility wheels.
 
-用途：检验 bsk==2.11.0+satfix1 来自固定官方发行件，仅改变依赖元数据且所有 Wheel RECORD 哈希有效。
+用途：检验 bsk==2.11.0+satfix2 来自固定官方发行件，仅改变依赖元数据且所有 Wheel RECORD 哈希有效。
 参数：--wheelhouse 指定目录，--platform 指定 linux_x86_64 或 windows_x86_64（默认检测宿主）。
 输出：验证失败则抛出异常、拒绝安装；成功时输出仅包含已批准文件名和 SHA-256 的结构化结果。
 """
@@ -21,7 +21,7 @@ from build_bsk_compat_wheels import (
     PATCHED_VERSION, ORIGINAL_VERSION, sha256,
 )
 
-REPORT = "bsk_2.11.0_satfix1_build_report.json"
+REPORT = "bsk_2.11.0_satfix2_build_report.json"
 WHEEL_PLATFORMS = {
     "windows_x86_64": "win_amd64",
     "linux_x86_64": "manylinux_2_27_x86_64",

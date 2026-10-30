@@ -297,6 +297,9 @@ def _strip_unit_suffix(parts: list[str]) -> list[str]:
     return core + axis_tail
 
 OUTPUT_LABEL_OVERRIDES: dict[str, str] = {
+    "comm.downlinked_bits": "本记录间隔下行数据量",
+    "payload.generated_data_bits": "本记录间隔载荷产数",
+    "comm.geometric_access": "地面几何可见性",
     "time_s": "仿真时间", "t_s": "仿真时间", "times": "仿真时间", "utc": "UTC时间",
     "sample_index": "采样序号", "task_id": "任务标识", "case_id": "工况标识",
     "status": "运行状态", "mode": "运行模式", "domain": "数据领域", "qoi": "质量指标",
@@ -306,6 +309,9 @@ OUTPUT_LABEL_OVERRIDES: dict[str, str] = {
     "adcs.sensor.*": "传感器全部曲线", "adcs.fsw.*": "飞行软件全部曲线", "adcs.rw.*": "反作用轮全部曲线",
     "environment.force_torque.*": "环境力与力矩全部曲线", "reactionWheelStateEffector.*": "反作用轮状态全部曲线",
     "spacecraft.scStateOutMsg.*": "航天器状态全部曲线",
+    "final_storage_bits": "最终存储数据量",
+    "final_pointing_error_deg": "最终姿态指向误差",
+    "final_battery_soc": "最终电池荷电状态",
     "qoi.adcs.initial_pointing_error_deg": "初始姿态指向误差",
     "qoi.adcs.final_pointing_error_deg": "最终姿态指向误差",
     "qoi.adcs.max_pointing_error_deg": "最大姿态指向误差",
@@ -368,6 +374,13 @@ PLOT_METADATA_FIELDS = {
 
 def output_label(name: str) -> str:
     raw = str(name).strip()
+    heat_match = re.fullmatch(r'thermal\.(battery|electronics|payload|adcs|structure|solar_panel|comm|propulsion)_(direct_solar_heat_w|albedo_heat_w|earth_ir_heat_w|electrical_extracted_w)', raw)
+    if heat_match:
+        node = {'battery':'电池', 'electronics':'电子设备', 'payload':'载荷', 'adcs':'姿态控制',
+                'structure':'结构', 'solar_panel':'太阳翼', 'comm':'通信', 'propulsion':'推进'}[heat_match[1]]
+        quantity = {'direct_solar_heat_w':'直射太阳净热功率', 'albedo_heat_w':'地球反照热功率',
+                    'earth_ir_heat_w':'地球红外热功率', 'electrical_extracted_w':'已扣除发电功率'}[heat_match[2]]
+        return node + quantity
     if raw in OUTPUT_LABEL_OVERRIDES:
         return OUTPUT_LABEL_OVERRIDES[raw]
     wildcard = raw.endswith(".*")
@@ -417,6 +430,11 @@ UNIT_HINTS = {
 }
 
 PARAMETER_LABELS = {
+    "thermal_earth_ir_w_m2": "地球红外出射度",
+    "thermal_earth_albedo": "地球均匀反照率",
+    "thermal_panel_front_absorptivity": "太阳翼正面短波吸收率",
+    "thermal_panel_back_absorptivity": "太阳翼背面短波吸收率",
+    "solar_panel_structure_conductance_w_k": "太阳翼—结构等效导热系数",
     "initial_attitude_error_deg": "初始姿态误差",
     "initial_rate_deg_s": "初始角速度",
     "target_mode": "姿态目标模式",
@@ -679,6 +697,8 @@ def _fallback_description(name: str, payload: Mapping[str, Any], label: str) -> 
 
 
 def _field_importance(capability_id: str, name: str) -> str:
+    if name in {"environment_profile", "epoch_utc"}:
+        return "common"
     if capability_id == "subsystem.adcs_fidelity.v1":
         return "common" if name in ADCS_COMMON_PARAMETERS else "advanced"
     tokens = set(name.lower().split("_"))
@@ -970,6 +990,9 @@ _OUTPUT_SUBSYSTEM_PREFIXES: tuple[tuple[str, str, str], ...] = (
 )
 
 _TRACE_PATTERN_EXPANSIONS: dict[str, tuple[str, ...]] = {
+    **{f'thermal.*_{field}': tuple(f'thermal.{node}_{field}' for node in
+        ('battery', 'electronics', 'payload', 'adcs', 'structure', 'solar_panel', 'comm', 'propulsion'))
+       for field in ('direct_solar_heat_w', 'albedo_heat_w', 'earth_ir_heat_w', 'electrical_extracted_w')},
     "adcs.body_rate_rad_s_*": tuple(f"adcs.body_rate_rad_s_{axis}" for axis in "xyz"),
     "adcs.rw.speed_rad_s_*": tuple(f"adcs.rw.speed_rad_s_{index}" for index in range(3)),
     "adcs.star_tracker.q*": tuple(f"adcs.star_tracker.q{index}" for index in range(4)),
@@ -1010,6 +1033,8 @@ def _explicit_output_rows(contract: Any, key: str) -> list[Any]:
 
 
 def _expand_trace_name(name: str) -> tuple[str, ...]:
+    if name in {"orbit.position_m_*", "orbit.velocity_m_s_*", "orbit.sun_position_m_*"}:
+        return tuple(name.replace("*",axis) for axis in "xyz")
     if not any(token in name for token in ("*", "?", "[")):
         return (name,)
     return _TRACE_PATTERN_EXPANSIONS.get(name, ())
@@ -1110,6 +1135,12 @@ def _default_plots(contract: Any) -> list[str]:
     return [item["name"] for item in _output_options(contract, "trace", observability.trace_fields)[:4]]
 
 
+def capability_output_defaults(capability: Any) -> dict[str, list[str]]:
+    """One default output policy shared by UI, prompts and synthetic SFT labels."""
+    contract = get_capability(capability) if isinstance(capability,str) else capability
+    return {"qoi":_default_qoi(contract),"plots":_default_plots(contract)}
+
+
 def _capability_display_name(capability_id: str, fallback: str) -> str:
     try:
         for item in workbench_presentation_catalog().get("objects", []):
@@ -1182,7 +1213,7 @@ def _default_form(contract: Any) -> dict[str, Any]:
         "events": {"faults": [], "degradations": [], "constraints": []},
         "outputs": {
             "output_root": f"runs/{task_id}", "trace_format": "csv",
-            "qoi": _default_qoi(contract), "plots": _default_plots(contract),
+            **capability_output_defaults(contract),
             "telemetry_streams": [], "fmea": {"enabled": False, "formats": ["csv", "json"]},
             "include_summary": True, "include_trace": True, "include_labels": True, "include_manifest": True,
         },
@@ -1196,6 +1227,25 @@ def _default_form(contract: Any) -> dict[str, Any]:
 
 def _parameter_sections(contract: Any, fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
     parameter_fields = [item for item in fields if item["path"].startswith("parameters.")]
+    if contract.capability_id == "whole_spacecraft.unified_native.v1":
+        from .interactive.continuous_initial_config import initial_configuration_catalog
+
+        groups = initial_configuration_catalog()["groups"]
+        assigned: set[str] = set()
+        sections = []
+        for group in groups:
+            names = {field["name"] for field in group["fields"]}
+            paths = [field["path"] for field in parameter_fields if field["path"].split(".")[-1] in names]
+            if paths:
+                assigned.update(paths)
+                sections.append({"id": f"parameters_{group['group']}", "title": group["label"],
+                                 "description": "展开配置该子系统参数；搜索可直接定位字段。",
+                                 "field_paths": paths, "parameter_group": group["group"]})
+        remaining = [field["path"] for field in parameter_fields if field["path"] not in assigned]
+        if remaining:
+            sections.insert(0, {"id": "parameters_general", "title": "整星公共参数", "description": "环境与公共模型配置。",
+                                "field_paths": remaining, "parameter_group": "general"})
+        return sections
     if contract.target_level != "subsystem" or contract.capability_id not in SUBSYSTEM_PARAMETER_GROUPS:
         return [{"id": "parameters", "title": "模型参数", "description": "常用参数默认显示，专业参数可按需展开。", "field_paths": [item["path"] for item in parameter_fields]}]
     sections: list[dict[str, Any]] = []
@@ -1332,6 +1382,14 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
         value = task_spec.get(key)
         if isinstance(value, Mapping):
             _deep_merge(form_data[key], value)
+    # Carry analysis scope through template -> form -> preview -> run. Do not
+    # copy old model-invocation/approval metadata into a newly edited form.
+    source_metadata = _mapping(task_spec.get('metadata'))
+    retained_metadata = {key: copy.deepcopy(source_metadata[key])
+                         for key in ('engineering_scope', 'scenario_template')
+                         if isinstance(source_metadata.get(key), Mapping)}
+    if retained_metadata:
+        form_data['metadata'] = retained_metadata
     form_data["capability_id"] = capability_id
     form_data["model"]["capability_id"] = capability_id
     events = form_data.setdefault("events", {})
@@ -1348,7 +1406,7 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
         "form_data": form_data,
         "projected_field_paths": [item["path"] for item in schema["fields"]],
         "projection_is_lossless": False,
-        "projection_note": "The form contains registered editable fields; canonical-only provenance and model internals remain in the TaskSpec editor.",
+        "projection_note": "The form retains engineering scope and template lineage; submitted values receive new form-origin records. Edit the TaskSpec directly to preserve custom canonical-only provenance.",
     }
 
 

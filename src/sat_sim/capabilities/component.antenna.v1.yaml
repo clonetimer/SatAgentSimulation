@@ -95,6 +95,18 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: comm.antenna.off_boresight_deg
+    unit: deg
+    dtype: number
+  - name: comm.antenna.effective_peak_gain_dbi
+    unit: dBi
+    dtype: number
+  - name: comm.antenna.gain_dbi
+    unit: dBi
+    dtype: number
+  - name: comm.antenna.pointing_loss_db
+    unit: dB
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

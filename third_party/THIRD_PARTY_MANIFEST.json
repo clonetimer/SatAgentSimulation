@@ -1,0 +1,90 @@
+{
+  "schema_version": "sat-sim.third-party-manifest.v1",
+  "status": "PASS_MANDATORY_ASSETS_EXTERNAL_BSK_POLICY",
+  "generated_at_utc": "2026-10-28T08:51:11.993805+00:00",
+  "runtime_dependency_mode": "external_python_environment",
+  "scope": "Public environmental reference data; not spacecraft calibration or flight validation.",
+  "files": [
+    {
+      "path": "third_party/spice/de430.bsp",
+      "source_url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp",
+      "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+      "size_bytes": 119741440,
+      "upstream_md5": "91e21181f6a96edbfeb1ff5a419ce095",
+      "upstream_digest_checked": true,
+      "required": true
+    },
+    {
+      "path": "third_party/spice/naif0012.tls",
+      "source_url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls",
+      "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+      "size_bytes": 5257,
+      "upstream_md5": null,
+      "upstream_digest_checked": false,
+      "required": true
+    },
+    {
+      "path": "third_party/spice/pck00010.tpc",
+      "source_url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00010.tpc",
+      "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2",
+      "size_bytes": 126143,
+      "upstream_md5": null,
+      "upstream_digest_checked": false,
+      "required": true
+    },
+    {
+      "path": "third_party/spice/gm_de431.tpc",
+      "source_url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/gm_de431.tpc",
+      "sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b",
+      "size_bytes": 6291,
+      "upstream_md5": null,
+      "upstream_digest_checked": false,
+      "required": true
+    },
+    {
+      "path": "third_party/spice/de-403-masses.tpc",
+      "source_url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/de-403-masses.tpc",
+      "sha256": "5cd68fcd3f59ddc21ed8bbad3a341126b8e092a29ac8f0ae585db718af8e7468",
+      "size_bytes": 1992,
+      "upstream_md5": null,
+      "upstream_digest_checked": false,
+      "required": true
+    },
+    {
+      "path": "third_party/wmm/WMM.COF",
+      "source_url": "https://raw.githubusercontent.com/AVSLab/basilisk/6c1511f5385dccaa73c9ae24522a74adc24fe623/supportData/MagneticField/WMM2025.COF",
+      "sha256": "dfa8597825af4e0b87ff4198a5b4fb661b3c49f4cd090cd0164e0259b075582f",
+      "size_bytes": 4554,
+      "upstream_md5": "a1b6402dd23658d15affb0f31babccc7",
+      "upstream_digest_checked": true,
+      "required": true
+    },
+    {
+      "path": "third_party/gravity/GGM03S-J2-only.txt",
+      "source_url": "https://raw.githubusercontent.com/AVSLab/basilisk/6c1511f5385dccaa73c9ae24522a74adc24fe623/supportData/LocalGravData/GGM03S-J2-only.txt",
+      "sha256": "10ddd728da136442f347621b0dbb710b3bef2948ad3d4f83c4eed9242376f079",
+      "size_bytes": 647,
+      "upstream_md5": "08e8b083c473e8f5261628e1531a38e8",
+      "upstream_digest_checked": true,
+      "required": true
+    },
+    {
+      "path": "third_party/wheels/bsk-2.11.0+satfix2-cp39-abi3-win_amd64.whl",
+      "required": false,
+      "sha256": "881f39463708c975c6aac2b9cfb2348d1a33eece0e6390847ef93d1710badc4e",
+      "digest_scope": "local artifact identity; not independent build approval"
+    },
+    {
+      "path": "third_party/wheels/bsk-2.11.0+satfix2-cp39-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "required": false,
+      "sha256": null,
+      "digest_scope": "local artifact identity; not independent build approval"
+    },
+    {
+      "path": "third_party/wheels/bsk_2.11.0_satfix2_build_report.json",
+      "required": false,
+      "sha256": "4492651f93ddbb4af2dddbf648fc7860566974461deab22fddad563714d9156d",
+      "digest_scope": "local artifact identity; not independent build approval"
+    }
+  ]
+}

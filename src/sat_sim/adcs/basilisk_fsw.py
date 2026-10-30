@@ -21,7 +21,7 @@ from sat_sim.frames import vector_norm
 
 BASILISK_ADCS_FSW_SCHEMA_VERSION = "bsk_adcs1.basilisk_adcs_fsw.v1"
 BASILISK_REQUIRED_VERSION_NOTE = (
-    "Runtime acceptance requires bsk 2.11.0 or the metadata-only 2.11.0+satfix1 variant; "
+    "Runtime acceptance requires bsk 2.11.0 or metadata-only 2.11.0+satfix1 / 2.11.0+satfix2; "
     "offline wheels are optional and the active Python environment is the source of runtime identity."
 )
 

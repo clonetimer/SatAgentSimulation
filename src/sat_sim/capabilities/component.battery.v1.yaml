@@ -182,6 +182,8 @@ outputs:
     unit: ratio
   - name: qoi.eps.battery.effective_discharge_efficiency
     unit: ratio
+  - name: qoi.eps.battery.effective_capacity_wh
+    unit: Wh
 validation:
   conformance_tests:
   - test_battery_duration_and_sample_control_trace
@@ -279,6 +281,7 @@ operator:
     verification: declared
   observability:
     qoi:
+    - qoi.eps.battery.effective_capacity_wh
     - qoi.eps.battery.initial_soc
     - qoi.eps.battery.final_soc
     - qoi.eps.battery.min_soc

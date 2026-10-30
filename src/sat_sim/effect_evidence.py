@@ -168,6 +168,31 @@ def _event_parameters(event: Mapping[str, Any] | None) -> Mapping[str, Any]:
     return parameters if isinstance(parameters, Mapping) else {}
 
 
+def _resource_remaining_ratio(event: Mapping[str, Any] | None, default: Any) -> Any:
+    """Resolve declared resource loss without reading the observed response.
+
+    Explicit physical parameters precede scalar magnitude/severity, matching
+    native event semantics. Missing declarations retain the profile default.
+    """
+    parameters = _event_parameters(event)
+    for name in ('remaining_capacity_ratio', 'remaining_efficiency_ratio',
+                 'remaining_rejection_ratio', 'remaining_ratio'):
+        if name in parameters:
+            return parameters[name]
+    for name, divisor in (('loss_fraction', 1.), ('loss_pct', 100.)):
+        if name in parameters:
+            value = _number(parameters[name])
+            return 1. - value / divisor if value is not None else None
+    if isinstance(event, Mapping):
+        value = event.get('magnitude')
+        if value is None:
+            value = event.get('severity')
+        if value is not None:
+            number = _number(value)
+            return 1. - number if number is not None else None
+    return default
+
+
 def _template_value(value: Any, event: Mapping[str, Any] | None) -> Any:
     if not isinstance(value, str) or "{" not in value:
         return value
@@ -199,6 +224,8 @@ def _assertion_result(
     expected_value = assertion.get("value")
     if parameter_name is not None:
         expected_value = _event_parameters(event).get(str(parameter_name), assertion.get("default_value"))
+    if assertion.get('value_source') == 'resource_remaining_ratio':
+        expected_value = _resource_remaining_ratio(event, assertion.get('default_value'))
     if expected_value is not None:
         expected_value = _template_value(expected_value, event)
         try:

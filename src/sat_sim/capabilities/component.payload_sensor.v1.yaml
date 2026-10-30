@@ -100,6 +100,24 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: payload.sensor.pointing_error_deg
+    unit: deg
+    dtype: number
+  - name: payload.sensor.cloud_fraction
+    unit: '1'
+    dtype: number
+  - name: payload.sensor.generated_bits
+    unit: bit
+    dtype: number
+  - name: payload.sensor.quality_score
+    unit: '1'
+    dtype: number
+  - name: payload.sensor.effective_data_rate_bps
+    unit: bit/s
+    dtype: number
+  - name: payload.sensor.cumulative_generated_bits
+    unit: bit
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

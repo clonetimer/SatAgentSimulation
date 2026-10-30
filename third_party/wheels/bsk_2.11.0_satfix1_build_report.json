@@ -1,0 +1,21 @@
+{
+  "schema_version": "sat-sim.bsk-compat-wheel-build.v1",
+  "status": "PASS",
+  "results": [
+    {
+      "source": "bsk-2.11.0-cp39-abi3-win_amd64.whl",
+      "source_sha256": "5558268290474206a1a600c6bbf1847ed02e2c99c10a062e1d98a38076f58eb0",
+      "target": "bsk-2.11.0+satfix1-cp39-abi3-win_amd64.whl",
+      "target_sha256": "918f43aefa3cb06171eb0f574621e3a43f2b6ccb02f1e5ebd3774668a06e94cc",
+      "original_version": "2.11.0",
+      "patched_version": "2.11.0+satfix1",
+      "metadata_change": {
+        "from": "Requires-Dist: pillow<=12.2.0,>=10.4.0",
+        "to": "Requires-Dist: pillow<13,>=10.4.0"
+      },
+      "payload_file_count": 1149,
+      "payload_bytes_unchanged": true
+    }
+  ],
+  "scope": "distribution metadata only; Basilisk payload bytes unchanged"
+}

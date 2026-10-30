@@ -7,6 +7,7 @@ solvers and curve-only proxies.
 from __future__ import annotations
 
 import math
+from bisect import bisect_left
 from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
@@ -254,10 +255,17 @@ def _overlay_exact_thermal_trace(rows: list[dict[str, Any]], thermal_network: An
         by_node.setdefault(str(getattr(item, "node_name", "")), []).append(item)
     for items in by_node.values():
         items.sort(key=lambda item: float(getattr(item, "time_s", 0.0)))
+    node_times = {name: [float(getattr(item, 'time_s', 0.)) for item in items] for name, items in by_node.items()}
     for row in rows:
         time_s = float(row.get("time_s", 0.0))
         for node_name, items in by_node.items():
-            nearest = min(items, key=lambda item: abs(float(getattr(item, "time_s", 0.0)) - time_s))
+            times = node_times[node_name]
+            insertion = bisect_left(times, time_s)
+            candidates = (max(0, insertion-1), min(insertion, len(times)-1))
+            nearest_time = min((times[index] for index in candidates), key=lambda value: abs(value-time_s))
+            # min() previously selected the first stable occurrence on ties,
+            # including repeated recorder timestamps. Preserve that behavior.
+            nearest = items[bisect_left(times, nearest_time)]
             if abs(float(getattr(nearest, "time_s", 0.0)) - time_s) > tolerance_s:
                 continue
             temp_k = float(getattr(nearest, "temp_k", 0.0))
@@ -271,6 +279,8 @@ def _overlay_exact_thermal_trace(rows: list[dict[str, Any]], thermal_network: An
             row[f"thermal.{node_name}_radiator_on"] = int(
                 bool(getattr(nearest, "radiator_on", False))
             )
+            for heat_field in ('direct_solar_heat_w', 'albedo_heat_w', 'earth_ir_heat_w', 'electrical_extracted_w'):
+                row[f"thermal.{node_name}_{heat_field}"] = float(getattr(nearest, heat_field, 0.))
         if "thermal.payload_temp_k" in row:
             row["thermal.payload_temp_k"] = float(row.get("thermal.payload_temp_k", row["thermal.payload_temp_k"]))
             row["thermal.payload_temp_c"] = float(row["thermal.payload_temp_k"]) - 273.15
@@ -308,6 +318,18 @@ def _active_event_ratio(
     return ratio
 
 
+class _RecorderSnapshot:
+    """One read-only view per extraction; SWIG field arrays are copied once."""
+    def __init__(self, recorder):
+        self._recorder = recorder
+        self._fields = {}
+
+    def __getattr__(self, name):
+        if name not in self._fields:
+            self._fields[name] = getattr(self._recorder, name)
+        return self._fields[name]
+
+
 def _build_unified_rows(
     recorder_map: Mapping[str, Any],
     cfg: "UnifiedRuntimeConfig",
@@ -316,6 +338,7 @@ def _build_unified_rows(
     start_index: int = 0,
 ) -> list[dict[str, Any]]:
     from Basilisk.utilities import macros  # type: ignore
+    recorder_map = {name: _RecorderSnapshot(recorder) for name, recorder in recorder_map.items()}
     rows: list[dict[str, Any]] = []
     times = recorder_map["state"].times()
     if start_index < 0 or start_index > len(times):
@@ -413,6 +436,11 @@ def _build_unified_rows(
             "adcs.earth_sensor.direction_b_z": float(recorder_map["earth_sensor"].tam_S[index][2]),
             "adcs.fusion.source_mode": int(recorder_map["fusion_source_mode"].deviceStatus[index]),
         }
+        for axis, component in enumerate('xyz'):
+            row[f'orbit.position_m_{component}'] = float(position[axis])
+            row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
+            if 'sun_ephemeris' in recorder_map:
+                row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         for wheel_index in range(3, wheel_count):
             torque_constant = float(cfg.values.get(
@@ -498,6 +526,10 @@ def _build_unified_rows(
                 "thermal.payload_temp_c": float(recorder_map["thermal_temp_payload"].deviceStatus[index]) - 273.15,
             })
             for thermal_node_name in ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion"):
+                heater_key = f"thermal_heater_electrical_{thermal_node_name}"
+                if heater_key in recorder_map:
+                    row[f"eps.loads.{thermal_node_name}_thermostat_power_w"] = max(
+                        0.0, -float(recorder_map[heater_key].netPower[index]))
                 temp_key = f"thermal_temp_{thermal_node_name}"
                 safe_key = f"thermal_safe_{thermal_node_name}"
                 if temp_key in recorder_map:
@@ -530,6 +562,17 @@ def _build_unified_rows(
     return rows
 
 
+def validate_native_sampling(step_s: float, sample_s: float) -> None:
+    """Native recorders run on dynamics ticks; never round their cadence up."""
+    if not (math.isfinite(step_s) and math.isfinite(sample_s)) or step_s < 1.0e-4:
+        raise ValueError('NATIVE_SAMPLING_INVALID: step_s must be finite and at least 0.0001 s')
+    # Match Basilisk macros.sec2nano, including its nearest-nanosecond rounding.
+    step_ns = int(step_s * 1e9 + .5)
+    sample_ns = int(sample_s * 1e9 + .5)
+    if sample_ns < step_ns or sample_ns % step_ns:
+        raise ValueError('NATIVE_SAMPLING_MISALIGNED: sample_s must be an integer multiple of step_s')
+
+
 @dataclass(frozen=True)
 class UnifiedRuntimeConfig:
     capability_id: str
@@ -548,6 +591,11 @@ class UnifiedRuntimeConfig:
     # Only the trusted local native Vizard exporter may set this. Not a TaskSpec
     # parameter or HTTP API path. Disabled in persistent/interactive sessions.
     vizard_save_file: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_native_sampling(self.step_s, self.sample_s)
+        for stream in self.telemetry_streams:
+            validate_native_sampling(self.step_s, float(stream.get('sample_s', self.sample_s)))
 
 
 class UnifiedNativeRuntime:
@@ -586,6 +634,12 @@ class UnifiedNativeRuntime:
         self._test_only_fresh_native_graph_probe = _test_only_fresh_native_graph_probe
 
     def run(self) -> SimulationResult:
+        from .orbital_environment import NativeOrbitalEnvironment
+        with NativeOrbitalEnvironment(self.config.values, self.config.duration_s) as environment:
+            self._orbital_environment = environment
+            return self._run()
+
+    def _run(self) -> SimulationResult:
         from Basilisk.architecture import messaging  # type: ignore
         from .project_native_modules import (
             AdcsSensorFusion,
@@ -664,13 +718,13 @@ class UnifiedNativeRuntime:
         gravity_factory = simIncludeGravBody.gravBodyFactory()
         earth = gravity_factory.createEarth()
         earth.isCentralBody = True
-        gravity_factory.addBodiesTo(sc)
+        self._orbital_environment.configure_gravity(gravity_factory, earth, sc, add)
         elements = orbitalMotion.ClassicElements()
         elements.a = float(values.get("orbit_radius_m", 7_000_000.0))
         elements.e = float(values.get("eccentricity", 0.001))
         elements.i = math.radians(float(values.get("inclination_deg", 35.0)))
-        elements.Omega = 0.0
-        elements.omega = 0.0
+        elements.Omega = math.radians(float(values.get('raan_deg', 0.0)))
+        elements.omega = math.radians(float(values.get('arg_perigee_deg', 0.0)))
         elements.f = float(values.get("initial_true_anomaly_rad", 0.0))
         position, velocity = orbitalMotion.elem2rv(earth.mu, elements)
         sc.hub.r_CN_NInit = position
@@ -860,6 +914,9 @@ class UnifiedNativeRuntime:
         earth_payload.VelocityVector = [0.0, 0.0, 0.0]
         earth_payload.PlanetName = "earth"
         earth_msg = messaging.SpicePlanetStateMsg().write(earth_payload)
+        ephemeris = self._orbital_environment.ephemeris_messages()
+        if ephemeris is not None:
+            sun_msg, earth_msg = ephemeris
 
         eclipse_model = eclipse.Eclipse()
         eclipse_model.sunInMsg.subscribeTo(sun_msg)
@@ -1009,11 +1066,13 @@ class UnifiedNativeRuntime:
         connected("spacecraft.scStateOutMsg", "project_sun_direction_sensor")
         connected("sun_ephemeris", "project_sun_direction_sensor")
 
-        magnetic = magneticFieldCenteredDipole.MagneticFieldCenteredDipole()
-        magnetic.planetRadius = 6_371_200.0
-        magnetic.g10 = -30_926e-9
-        magnetic.g11 = -2_318e-9
-        magnetic.h11 = 5_817e-9
+        magnetic = self._orbital_environment.magnetic_model(earth_msg)
+        if magnetic is None:
+            magnetic = magneticFieldCenteredDipole.MagneticFieldCenteredDipole()
+            magnetic.planetRadius = 6_371_200.0
+            magnetic.g10 = -30_926e-9
+            magnetic.g11 = -2_318e-9
+            magnetic.h11 = 5_817e-9
         magnetic.addSpacecraftToModel(sc.scStateOutMsg)
         add(magnetic, "magnetic_field", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "magnetic_field")
@@ -1507,7 +1566,10 @@ class UnifiedNativeRuntime:
                 build_nominal_thermal_network_config,
             )
             base_thermal_cfg = build_nominal_thermal_network_config()
-            thermal_nodes = dict(base_thermal_cfg.nodes)
+            # Internal dissipation must be funded by actual EPS messages. The
+            # standalone network defaults otherwise duplicate active-load heat.
+            thermal_nodes = {name: replace(node, internal_heat_w=0.0)
+                             for name, node in base_thermal_cfg.nodes.items()}
             # Add explicit communication and propulsion nodes so local thermal
             # margins are not hidden inside the electronics/payload temperatures.
             thermal_nodes["comm"] = ThermalNodeParams(
@@ -1541,6 +1603,7 @@ class UnifiedNativeRuntime:
                 "payload_radiator_area_m2": (.25, 0., 5.),
                 "battery_heater_power_w": (12., 0., 100.),
                 "battery_heater_setpoint_k": (286., 240., 310.),
+                "solar_panel_structure_conductance_w_k": (2., 0., 20.),
             }
             thermal_operator = {key: float(values.get(key, default))
                                 for key, (default, _, _) in thermal_fields.items()}
@@ -1568,7 +1631,13 @@ class UnifiedNativeRuntime:
                 power_w=thermal_operator["battery_heater_power_w"],
                 setpoint_k=thermal_operator["battery_heater_setpoint_k"],
             )
-            conduction_paths = list(base_thermal_cfg.conduction_paths) + [
+            # Replace the existing link, rather than adding a parallel hidden
+            # conductance. The original 2 W/K remains the compatibility default.
+            conduction_paths = [
+                replace(path, conductance_w_per_k=thermal_operator["solar_panel_structure_conductance_w_k"])
+                if {path.from_node, path.to_node} == {"solar_panel", "structure"} else path
+                for path in base_thermal_cfg.conduction_paths
+            ] + [
                 ThermalConductionPath("comm", "structure", float(values.get("comm_structure_conductance_w_k", 0.35))),
                 ThermalConductionPath("propulsion", "structure", float(values.get("propulsion_structure_conductance_w_k", 0.45))),
             ]
@@ -1578,10 +1647,16 @@ class UnifiedNativeRuntime:
                 conduction_paths=conduction_paths,
                 radiators=thermal_radiators,
                 heaters=thermal_heaters,
+                solar_panels=None,  # Native finite-Earth boundary supplies external heat below.
                 duration_s=max(cfg.duration_s, cfg.step_s),
                 step_s=cfg.step_s,
             )
             thermal_inputs = [
+                # Traceable housekeeping allocation; fractions sum to one.
+                (sink.nodePowerOutMsg, 2./18., "battery", "bus_battery"),
+                (sink.nodePowerOutMsg, 8./18., "electronics", "bus_electronics"),
+                (sink.nodePowerOutMsg, 3./18., "adcs", "bus_adcs"),
+                (sink.nodePowerOutMsg, 5./18., "solar_panel", "bus_solar_panel"),
                 (adcs_power_bridge.powerOutMsg, 0.90, "adcs", "adcs_control"),
                 (payload_power_bridge.powerOutMsg, 0.95, "payload", "payload_activity"),
                 (comm_power_bridge.powerOutMsg, 0.90, "comm", "comm_downlink"),
@@ -1597,16 +1672,27 @@ class UnifiedNativeRuntime:
                 thermal_network_cfg=thermal_cfg,
             )
             attach_thermal_network_graph_to_task(sim, task_name, thermal_graph)
+            from .thermal_environment import NativeThermalEnvironment
+            thermal_graph.network.radiative_environment = NativeThermalEnvironment(
+                spacecraft_msg=sc.scStateOutMsg, sun_msg=sun_msg, earth_msg=earth_msg,
+                eclipse_msg=eclipse_model.eclipseOutMsgs[0], panel=panel,
+                earth_ir_exitance_w_m2=values.get('thermal_earth_ir_w_m2', 234.),
+                earth_albedo=values.get('thermal_earth_albedo', .30),
+                panel_front_absorptivity=values.get('thermal_panel_front_absorptivity', .90),
+                panel_back_absorptivity=values.get('thermal_panel_back_absorptivity', .35),
+            )
             instantiated.append({"tag": "thermal_network", "source": "project_deterministic_model"})
             for name in sorted(thermal_graph.nodes):
                 instantiated.append({"tag": f"thermal_node_{name}", "source": "project_deterministic_model"})
             for heater in thermal_graph.heaters.values():
                 heater.subscribe_enable(pdu.heaterStatusOutMsg)
+                battery.addPowerNodeToModel(heater.electricalPowerOutMsg)
             gate.subscribe_thermal_status(thermal_graph.network.thermalStatusOutMsg)
             rf_gate.thermalStatusInMsg.subscribeTo(thermal_graph.network.thermalStatusOutMsg)
             connected("thermal_network.thermalStatusOutMsg", "project_power_data_mode_gate")
             connected("thermal_network.thermalStatusOutMsg", "project_native_rf_downlink_gate")
             connected("project_eps_pdu.heaterStatusOutMsg", "thermal_network.heaters")
+            connected("thermal_network.heaters.electricalPowerOutMsg", "battery")
 
             parameter_events = WholeSpacecraftParameterEventController(
                 cfg.events, battery=battery, solar_panel=panel, thermal=thermal_graph.network
@@ -1681,6 +1767,8 @@ class UnifiedNativeRuntime:
             for thermal_node_name, thermal_node in whole_modules["thermal_graph"].nodes.items():
                 messages[f"thermal_temp_{thermal_node_name}"] = thermal_node.tempOutMsg
                 messages[f"thermal_safe_{thermal_node_name}"] = thermal_node.thermalStatusOutMsg
+            for name, heater in whole_modules["thermal_graph"].heaters.items():
+                messages[f"thermal_heater_electrical_{name}"] = heater.electricalPowerOutMsg
             if "propulsion_controller" in whole_modules:
                 messages.update({
                     "propulsion_fuel": whole_modules["propulsion_fuel_tank"].fuelTankOutMsg,
@@ -1690,6 +1778,8 @@ class UnifiedNativeRuntime:
                 messages["propulsion_power"] = whole_modules["propulsion_power_bridge"].powerOutMsg
                 for thruster_index, thruster_msg in enumerate(whole_modules["propulsion_thrusters"].thrusterOutMsgs):
                     messages[f"propulsion_thruster_{thruster_index}"] = thruster_msg
+        if ephemeris is not None:
+            messages['sun_ephemeris'] = sun_msg
         for name, message in messages.items():
             recorder = message.recorder(macros.sec2nano(cfg.sample_s))
             sim.AddModelToTask(task_name, recorder, None, 1)
@@ -1824,6 +1914,21 @@ class UnifiedNativeRuntime:
         segment_count = 0
         previous_stop_s = 0.0
         last_live_rows: list[dict[str, Any]] = []
+        # Native recorders are cleared between controlled segments. Preserve
+        # all-history mission bounds in constant memory before each clear.
+        history_bounds = {"energy": True, "data": True, "thermal": True}
+        history_sample_count = 0
+
+        def observe_mission_bounds(observed_rows):
+            nonlocal history_sample_count
+            if cfg.adcs_only:
+                return
+            for row in observed_rows:
+                history_sample_count += 1
+                history_bounds["energy"] &= 0.0 <= row["eps.battery_energy_j"] <= row["eps.battery_capacity_j"] + 1e-6
+                history_bounds["data"] &= 0.0 <= row["data.storage_bits"] <= row["data.storage_capacity_bits"] + 1e-6
+                history_bounds["thermal"] &= row.get("thermal.safe", 1) == 1
+
         if cfg.execution_controller is not None:
             cfg.execution_controller.runtime_prepared()
             emitted_count = 0
@@ -1955,6 +2060,7 @@ class UnifiedNativeRuntime:
                 )
                 if not cfg.adcs_only:
                     _overlay_exact_thermal_trace(live_rows, whole_modules["thermal"], tolerance_s=max(cfg.step_s, cfg.sample_s) + 1.0e-9)
+                observe_mission_bounds(live_rows)
                 if live_rows:
                     last_live_rows = live_rows
                 cfg.execution_controller.runtime_advanced(stop_time_s, tuple(live_rows))
@@ -2010,6 +2116,8 @@ class UnifiedNativeRuntime:
             })
         native_multi_rate = {**group_manifest(recorder_groups), "streams": native_streams}
 
+        if not history_sample_count:
+            observe_mission_bounds(rows)
         final = rows[-1]
         bridge_health: dict[str, dict[str, Any]] = {}
         runtime_read_errors: list[str] = []
@@ -2037,9 +2145,9 @@ class UnifiedNativeRuntime:
         data_bounds = True
         thermal_bounds = True
         if not cfg.adcs_only:
-            energy_bounds = all(0.0 <= row["eps.battery_energy_j"] <= row["eps.battery_capacity_j"] + 1e-6 for row in rows)
-            data_bounds = all(0.0 <= row["data.storage_bits"] <= row["data.storage_capacity_bits"] + 1e-6 for row in rows)
-            thermal_bounds = all(int(row.get("thermal.safe", 1)) == 1 for row in rows)
+            energy_bounds = history_bounds["energy"]
+            data_bounds = history_bounds["data"]
+            thermal_bounds = history_bounds["thermal"]
             if not energy_bounds:
                 mission_reason_codes.append("ENERGY_BOUNDS_FAILED")
             if not data_bounds:
@@ -2072,10 +2180,13 @@ class UnifiedNativeRuntime:
             "status_semantics_version": "v0.5.7.3",
             "execution_status": execution_status,
             "mission_status": mission_status,
+            "mission_bounds_scope": "all_published_runtime_samples",
+            "mission_bounds_sample_count": history_sample_count,
             "overall_status": overall_status,
             "mission_reason_codes": mission_reason_codes,
             "capability_id": cfg.capability_id,
             "engine": "basilisk_unified_native_runtime",
+            "orbital_environment": self._orbital_environment.evidence(),
             "backend_type": "basilisk_native_mixed",
             "runtime_truth_status": "instantiated_connected_recorded_unified",
             "process_count": 1,
@@ -2102,6 +2213,21 @@ class UnifiedNativeRuntime:
         if not cfg.adcs_only:
             resource_status = "FAIL" if any(health.get("status") == "FAIL" for health in bridge_health.values()) else "PASS"
             summary.update({
+                "thermal_environment": whole_modules["thermal"].radiative_environment.evidence(),
+                "thermal_conduction_paths": [
+                    {"from_node": path.from_node, "to_node": path.to_node,
+                     "conductance_w_per_k": path.conductance_w_per_k}
+                    for path in whole_modules["thermal"].config.conduction_paths
+                ],
+                "thermal_internal_power_accounting": {
+                    "constant_internal_heat_w": 0.0,
+                    "housekeeping_allocation": {"battery": 2./18., "electronics": 8./18.,
+                                                "adcs": 3./18., "solar_panel": 5./18.},
+                    "housekeeping_source": "actual_bus_power_message",
+                    "thermostats": "full_electrical_power_debited_from_native_battery; heat=electrical*efficiency",
+                    "auxiliary_heater": "separate_PDU_controlled_load_heater_power_w",
+                    "boundary": "unallocated_electrical_to_heat_fraction_outside_lumped_nodes; not_full_electromechanical_conservation",
+                },
                 "final_battery_soc": final["eps.battery_soc"],
                 "final_storage_bits": final["data.storage_bits"],
                 "energy_bounds_pass": energy_bounds,
@@ -2224,6 +2350,13 @@ class _BaseUnifiedAdapter:
         for key, default in (("duration_s", 120.0), ("step_s", 0.2), ("sample_s", 2.0)):
             if _sim_number(spec, key, default) <= 0.0:
                 issues.append(ValidationIssue("error", f"$.simulation.{key}", "must be a positive number", "range"))
+        try:
+            validate_native_sampling(_sim_number(spec, 'step_s', .2), _sim_number(spec, 'sample_s', 2.))
+            for stream in _mapping(spec.get('outputs')).get('telemetry_streams', ()):
+                if isinstance(stream, Mapping):
+                    validate_native_sampling(_sim_number(spec, 'step_s', .2), float(stream.get('sample_s', _sim_number(spec, 'sample_s', 2.))))
+        except (ValueError, TypeError) as exc:
+            issues.append(ValidationIssue('error', '$.simulation.sample_s', str(exc), 'native_sampling'))
         if not self.adcs_only:
             values = _parameter_values(spec)
             propulsion_enabled = bool(

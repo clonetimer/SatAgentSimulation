@@ -35,11 +35,32 @@ simulation_parameters:
   sample_s: {unit: s, required: true, min: 0.001}
 outputs:
   trace:
-  - {name: adcs.imu.gyro_x_rad_s, unit: rad/s, dtype: number}
-  - {name: adcs.imu.accel_x_m_s2, unit: "m/s^2", dtype: number}
+  - name: adcs.imu.gyro_x_rad_s
+    unit: rad/s
+    dtype: number
+  - name: adcs.imu.accel_x_m_s2
+    unit: m/s^2
+    dtype: number
+  - name: adcs.imu.gyro_y_rad_s
+    unit: rad/s
+    dtype: number
+  - name: adcs.imu.gyro_z_rad_s
+    unit: rad/s
+    dtype: number
+  - name: adcs.imu.accel_y_m_s2
+    unit: m/s^2
+    dtype: number
+  - name: adcs.imu.accel_z_m_s2
+    unit: m/s^2
+    dtype: number
+  - name: adcs.imu.effective_gyro_bias_x_rad_s
+    unit: rad/s
+    dtype: number
   summary:
-  - {name: adcs.imu.gyro_error_norm_rad_s, unit: rad/s}
-  - {name: adcs.imu.accel_error_norm_m_s2, unit: "m/s^2"}
+  - name: adcs.imu.gyro_error_norm_rad_s
+    unit: rad/s
+  - name: adcs.imu.accel_error_norm_m_s2
+    unit: m/s^2
 operator:
   owner: imu
   effects:

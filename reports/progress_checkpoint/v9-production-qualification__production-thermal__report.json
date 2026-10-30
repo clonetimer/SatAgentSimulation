@@ -1,0 +1,42 @@
+{
+  "status": "FAIL",
+  "request": "使用 whole_spacecraft.unified_native.v1 创建通用近地小卫星原生整星仿真脚本。Basilisk 后端，仿真20秒，步长0.2秒，记录周期1秒。environment_profile=spice_wmm，epoch_utc=2026-01-01T00:00:00Z。thermal_earth_ir_w_m2=234，thermal_earth_albedo=0.30。输出轨道半径、电池SOC、载荷温度及 thermal.payload_earth_ir_heat_w、thermal.payload_albedo_heat_w。无故障、退化或约束事件。",
+  "checks": {
+    "actual_model_execution": false,
+    "no_template_fallback": true,
+    "production_valid_and_compiled": false,
+    "source_unchanged": true
+  },
+  "source_before": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "started_at_utc": "2026-10-29T18:16:46.476128+00:00",
+  "scope": "One actual local ModelScope-derived LoRA production request; no reference-label or template replacement.",
+  "backend_identity": {
+    "backend": "openai_compatible",
+    "backend_class": "actual_model_service",
+    "model_backend_requested": true,
+    "actual_model_used": null,
+    "actual_model_execution_verified": false,
+    "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "base_url": "http://127.0.0.1:8031/v1",
+    "claim": "model_backend_requested_not_verified",
+    "invocation_evidence": null
+  },
+  "validation": {
+    "ok": false,
+    "error_count": 1,
+    "warning_count": 0,
+    "errors": [
+      {
+        "severity": "error",
+        "path": "$.model_output",
+        "code": "llm_output_parse",
+        "message": "LLM TaskSpec draft could not be parsed: LLM backend openai_compatible failed: HTTP 422"
+      }
+    ],
+    "warnings": []
+  },
+  "output_selection_scope": "Literal registry output names can be bound directly from the user request with explicit metadata; this is product workflow evidence, not standalone raw-model output accuracy. Raw model responses remain preserved.",
+  "explicit_output_bindings": null,
+  "source_after": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "finished_at_utc": "2026-10-29T18:20:38.006295+00:00"
+}

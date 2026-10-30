@@ -134,6 +134,27 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: comm.link_budget.slant_range_m
+    unit: m
+    dtype: number
+  - name: comm.link_budget.effective_rate_bps
+    unit: bit/s
+    dtype: number
+  - name: comm.link_budget.ebn0_db
+    unit: dB
+    dtype: number
+  - name: comm.link_budget.fspl_db
+    unit: dB
+    dtype: number
+  - name: comm.link_budget.ber
+    unit: null
+    dtype: number
+  - name: comm.link_budget.effective_misc_loss_db
+    unit: dB
+    dtype: number
+  - name: comm.link_budget.effective_noise_temp_k
+    unit: K
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

@@ -1,0 +1,53 @@
+{
+  "scope": "Selected local review snapshots; raw telemetry, model outputs, PNGs and referenced local artifacts are not uploaded. Overall UNPROVEN.",
+  "files": [
+    {
+      "snapshot": "v9-production-qualification__state.json",
+      "original_local_path": "reports/local_requirements_completion/v9-production-qualification/state.json",
+      "sha256": "4cc836ed6e61c1b9390df1bf982e8561c9e416bf3e63ddb4ac982dd9ecb7f321",
+      "bytes": 9907
+    },
+    {
+      "snapshot": "v9-production-qualification__production-thermal__report.json",
+      "original_local_path": "reports/local_requirements_completion/v9-production-qualification/production-thermal/report.json",
+      "sha256": "4d6e6c7f970a2cb86899a03b919817b722c313b733ae3e6ff1ae3c99c3061e54",
+      "bytes": 2136
+    },
+    {
+      "snapshot": "v9-production-full-suite-independent-review.json",
+      "original_local_path": "reports/local_requirements_completion/v9-production-full-suite-independent-review.json",
+      "sha256": "e1ecebadced9059e299afcfdbf7ce5af287889d755554746190a6a08f0ce32a8",
+      "bytes": 1600
+    },
+    {
+      "snapshot": "v9-production-formal8-independent-review.json",
+      "original_local_path": "reports/local_requirements_completion/v9-production-formal8-independent-review.json",
+      "sha256": "4ae032ff859310789cf4e311c609526771d1cf7dc136a52d22a3233232e22918",
+      "bytes": 3723
+    },
+    {
+      "snapshot": "v9-three-day-environment-agent-review.json",
+      "original_local_path": "reports/local_requirements_completion/v9-three-day-environment-agent-review.json",
+      "sha256": "528ef9cc9939f684c47118aeeb13c7b3032da3874bc4a1dd649645483531838f",
+      "bytes": 6764
+    },
+    {
+      "snapshot": "v9-production-layout19-agent-visual-review.json",
+      "original_local_path": "reports/local_requirements_completion/v9-production-layout19-agent-visual-review.json",
+      "sha256": "aca6711268b982454760202a39bcde1cd079a3f4609ad3f3165aaed51316b833",
+      "bytes": 4769
+    },
+    {
+      "snapshot": "v9-production-browser-bundle-independent-review.json",
+      "original_local_path": "reports/local_requirements_completion/v9-production-browser-bundle-independent-review.json",
+      "sha256": "30f30d3ca8bb4d6b760d78fa01788e2a168b1759104f38d189ff59fee6433f93",
+      "bytes": 2154
+    },
+    {
+      "snapshot": "v9-real-model-new-parameter-independent-review.json",
+      "original_local_path": "reports/local_requirements_completion/v9-real-model-new-parameter-independent-review.json",
+      "sha256": "7903fb0f294405556939dd21806273aea6aeb9c911b16ebbd52b0ec1e9e64085",
+      "bytes": 3054
+    }
+  ]
+}

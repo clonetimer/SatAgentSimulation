@@ -12,6 +12,7 @@ Basilisk checkpoint or a proof that an interrupted spacecraft can restart.
 from __future__ import annotations
 
 import multiprocessing as mp
+import copy
 import os
 import secrets
 import sys
@@ -20,6 +21,7 @@ from typing import Any
 
 from .models import InteractiveSessionSpec, Telecommand
 from .native_parent_death_fence import arm_native_parent_death_fence
+from .native_cpu_scheduling import configure_native_worker_scheduling
 
 _SCHEMA = "sat-native-owner-rpc.v1"
 _OPERATIONS = frozenset({
@@ -39,6 +41,7 @@ def _native_process_main(
         # objects. Linux delivers SIGKILL to this exact child when its actual
         # parent exits, even if the runtime is inside a native integration.
         parent_fence = arm_native_parent_death_fence(expected_parent_pid)
+        cpu_scheduling = configure_native_worker_scheduling()
         # Two-phase startup is deliberate: the child announces its identity
         # BEFORE creating a Basilisk C++ graph. The parent must successfully
         # install its Windows Job or verify the Linux pdeathsig handshake and
@@ -52,6 +55,7 @@ def _native_process_main(
             "payload": {
                 "ready": True, "native_resume_supported": False,
                 "parent_death_fence": parent_fence,
+                "cpu_scheduling": cpu_scheduling,
                 "automatic_tc_replay_allowed": False,
             },
         })
@@ -144,6 +148,7 @@ class SupervisedContinuousNativeRuntime:
         self._last_reap: dict[str, Any] | None = None
         self._parent_death_fence: dict[str, object] | None = None
         self._windows_job: Any = None
+        self._cpu_scheduling: dict[str, object] | None = None
 
     @property
     def current_time_s(self) -> float:
@@ -160,6 +165,10 @@ class SupervisedContinuousNativeRuntime:
     @property
     def last_reap(self) -> dict[str, Any] | None:
         return dict(self._last_reap) if self._last_reap is not None else None
+
+    @property
+    def cpu_scheduling(self) -> dict[str, object] | None:
+        return copy.deepcopy(self._cpu_scheduling)
 
     def _reap(self, *, force: bool) -> None:
         process = self._process
@@ -291,6 +300,16 @@ class SupervisedContinuousNativeRuntime:
             }
         else:
             self._parent_death_fence = dict(fence)
+        scheduling = ready_record.get("cpu_scheduling")
+        if (not isinstance(scheduling, dict)
+                or scheduling.get("schema_version") != "sat-native-cpu-scheduling.v1"
+                or scheduling.get("pid") != proc.pid
+                or scheduling.get("mode") not in {"SYSTEM_DEFAULT", "PERFORMANCE_CORES"}
+                or type(scheduling.get("applied")) is not bool):
+            self._faulted = True
+            self._reap(force=True)
+            raise RuntimeError("SUPERVISED_NATIVE_CPU_POLICY_HANDSHAKE_INVALID")
+        self._cpu_scheduling = dict(scheduling)
         ready = self._rpc("prepare", None)
         if ready is not None:
             self._faulted = True
@@ -331,6 +350,8 @@ class SupervisedContinuousNativeRuntime:
         self._reap(force=False)
         if self._last_reap is None or self._last_reap["exitcode"] != 0:
             raise RuntimeError("SUPERVISED_NATIVE_FINALIZE_CHILD_EXIT_UNCLEAN")
+        if isinstance(result, dict):
+            result.setdefault("metadata", {})["native_cpu_scheduling"] = self.cpu_scheduling
         return result
 
     def abort(self) -> None:

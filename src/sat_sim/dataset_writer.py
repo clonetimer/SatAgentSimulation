@@ -18,6 +18,8 @@ from .fault_traceability import build_fault_traceability, write_fault_traceabili
 
 
 TRACE_UNITS: dict[str, str] = {
+    "comm.downlinked_bits": "bit",
+    "payload.generated_data_bits": "bit",
     "time_s": "s",
     "battery_storage_j": "J",
     "battery_soc": "1",
@@ -176,6 +178,11 @@ TRACE_UNITS: dict[str, str] = {
     "orbit.force.total_norm_m_s2": "m/s^2",
 }
 TRACE_UNITS.update(_STANDARD_FIELD_UNITS)
+TRACE_UNITS.update({f'thermal.{node}_{field}': 'W'
+    for node in ('battery', 'electronics', 'payload', 'adcs', 'structure', 'solar_panel', 'comm', 'propulsion')
+    for field in ('direct_solar_heat_w', 'albedo_heat_w', 'earth_ir_heat_w', 'electrical_extracted_w')})
+TRACE_UNITS.update({f'eps.loads.{node}_thermostat_power_w': 'W'
+                    for node in ('battery', 'electronics')})
 TRACE_UNITS.update({
     "propulsion.burn.active": "bool",
     "propulsion.thrust_n": "N",
@@ -223,14 +230,20 @@ def _rows_to_dicts(rows: Iterable[Any]) -> list[dict[str, Any]]:
     return out
 
 
-def _filter_rows(rows: Sequence[dict[str, Any]], fields: Sequence[str] | None) -> list[dict[str, Any]]:
+def _filter_rows(
+    rows: Sequence[dict[str, Any]], fields: Sequence[str] | None,
+    *, plots: Sequence[str] | None = None,
+) -> list[dict[str, Any]]:
     if not fields:
         return list(rows)
-    wanted = list(fields)
-    filtered: list[dict[str, Any]] = []
-    for row in rows:
-        filtered.append({key: row.get(key) for key in wanted if key in row})
-    return filtered
+    import fnmatch
+    patterns = [*fields, *(plots or [])]
+    observed = dict.fromkeys(key for row in rows for key in row)
+    # A selected curve needs its independent coordinate in the exported data.
+    # Match only observed fields; never fabricate values for missing patterns.
+    wanted = [key for key in observed if key in {'time_s', 'utc'} or
+              any(fnmatch.fnmatchcase(key, pattern) for pattern in patterns)]
+    return [{key: row[key] for key in wanted if key in row} for row in rows]
 
 
 def write_trace_csv(path: str | Path, rows: Sequence[Mapping[str, Any]]) -> Path:
@@ -469,8 +482,8 @@ def write_task_dataset(
     summary_dict = dataclass_to_dict(summary)
     if not isinstance(summary_dict, Mapping):
         summary_dict = {"value": summary_dict}
-    rows = _rows_to_dicts(trace_rows)
-    rows = _filter_rows(rows, compiled.outputs.get("record_fields"))
+    all_rows = _rows_to_dicts(trace_rows)
+    rows = _filter_rows(all_rows, compiled.outputs.get("record_fields"), plots=compiled.outputs.get("plots"))
 
     files: dict[str, str] = {}
     task_spec_path = output_root / "task_spec.json"
@@ -519,7 +532,7 @@ def write_task_dataset(
         else:
             multi_rate = write_multi_rate_telemetry(
                 output_root=output_root,
-                rows=rows,
+                rows=all_rows,
                 base_sample_s=float(compiled.simulation.get("sample_s") or 0.0),
                 streams=telemetry_streams,
             )

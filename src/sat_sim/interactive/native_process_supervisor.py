@@ -18,6 +18,7 @@ import os
 import secrets
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any, Sequence
@@ -141,8 +142,17 @@ class DirectChildSupervisor:
         nonce = secrets.token_hex(32)
         env = dict(os.environ)
         env["SAT_R7_DIRECT_CHILD_NONCE"] = nonce
+        command = list(argv)
+        if (os.name == "nt"
+                and Path(command[0]).resolve() == Path(sys.executable).resolve()
+                and sys.prefix != sys.base_prefix):
+            # Windows venv python.exe is a redirector that starts another PID.
+            # Hold the real interpreter process while retaining venv discovery;
+            # accepting a descendant's READY would not prove direct-child death.
+            command[0] = sys._base_executable
+            env["__PYVENV_LAUNCHER__"] = sys.executable
         child = subprocess.Popen(
-            list(argv), cwd=str(cwd) if cwd is not None else None,
+            command, cwd=str(cwd) if cwd is not None else None,
             env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=(os.name == "posix"),
@@ -165,8 +175,14 @@ class DirectChildSupervisor:
             return self._ready
         deadline = time.monotonic() + timeout_s
         while True:
-            if self.ready_path.is_file():
-                doc = json.loads(self.ready_path.read_text(encoding="utf-8"))
+            try:
+                ready_text = self.ready_path.read_text(encoding="utf-8")
+            except (FileNotFoundError, PermissionError):
+                # Publication or Windows sharing can temporarily prevent a read.
+                # Keep the original deadline and held-child checks below.
+                ready_text = None
+            if ready_text is not None:
+                doc = json.loads(ready_text)
                 if (not isinstance(doc, dict) or set(doc) != {
                     "schema_version", "run_nonce", "pid", "profile",
                     "checkpoint_ns", "checkpoint_sha256",
@@ -200,8 +216,8 @@ class DirectChildSupervisor:
             raise ValueError("SUPERVISOR_BARRIER_NO_READY_HANDSHAKE")
         if self._child.poll() is not None:
             raise RuntimeError("SUPERVISOR_CHILD_DIED_BEFORE_TERMINATION_REQUEST")
-        sig = signal.SIGKILL if force else signal.SIGTERM
         if os.name == "posix":
+            sig = signal.SIGKILL if force else signal.SIGTERM
             os.killpg(self._child.pid, sig)
         else:
             if force:

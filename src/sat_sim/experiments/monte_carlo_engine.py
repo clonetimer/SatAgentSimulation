@@ -7,7 +7,22 @@ from typing import Any, Mapping, Sequence
 
 from sat_sim.experiment_manager import EXPERIMENT_SCHEMA_VERSION, _set_path, validate_sweep_paths
 from sat_sim.task_models import canonicalize_task_spec
+from sat_sim.capability_registry import get_capability
 from .statistics import summarize_numeric_samples
+
+
+def _record_derived_input(spec, path, value, evidence):
+    provenance = spec.setdefault('provenance', {})
+    provenance.setdefault('fields', {})[path] = {
+        'source': 'resolver_derived', 'evidence': evidence,
+        'note': 'Generated from the declared experiment recipe; not hardware calibration evidence.',
+    }
+    assumptions = provenance.setdefault('assumptions', [])
+    for item in assumptions:
+        if item.get('path') == path:
+            item.update(value=copy.deepcopy(value), reason=evidence)
+            return
+    assumptions.append({'path':path, 'value':copy.deepcopy(value), 'reason':evidence, 'status':'accepted'})
 
 
 def _as_float(value: Any, *, default: float = 0.0) -> float:
@@ -58,6 +73,9 @@ def expand_monte_carlo(
     prevents users or models from sampling unsupported fields.
     """
     canonical = canonicalize_task_spec(base_task_spec)
+    capability_id = canonical.get('model', {}).get('capability_id')
+    uses_parameter_seed = bool(capability_id and
+        'simulation_seed' in get_capability(capability_id).data.get('parameters', {}))
     if not dispersions:
         raise ValueError("Monte Carlo experiment requires at least one dispersion")
     if sample_count < 1:
@@ -70,6 +88,7 @@ def expand_monte_carlo(
     paths = list(dispersions)
     variants: list[dict[str, Any]] = []
     sampled_values: dict[str, list[Any]] = {path: [] for path in paths}
+    used_simulation_seeds: set[int] = set()
     for index in range(int(sample_count)):
         spec = copy.deepcopy(canonical)
         parameters: dict[str, Any] = {}
@@ -82,8 +101,22 @@ def expand_monte_carlo(
                 _set_path(spec, "model.config." + path.removeprefix("parameters.values."), value)
             elif path.startswith("model.config."):
                 _set_path(spec, "parameters.values." + path.removeprefix("model.config."), value)
-        simulation_seed = seed_rng.randrange(0, 2**32)
+            origin_path = 'parameters.values.' + path.removeprefix('model.config.') if path.startswith('model.config.') else path
+            _record_derived_input(spec, origin_path, value,
+                f'Monte Carlo parameter draw; seed={int(seed)}, sample={index}, path={path}, distribution={dispersions[path]}')
+        # The native RNG contract is signed 31-bit. Sample in that domain,
+        # rather than drawing uint32 then wrapping/replacing the requested seed.
+        simulation_seed = seed_rng.randrange(1, 2**31)
+        while simulation_seed in used_simulation_seeds:
+            simulation_seed = seed_rng.randrange(1, 2**31)
+        used_simulation_seeds.add(simulation_seed)
         spec["simulation"]["random_seed"] = simulation_seed
+        seed_evidence = f'Monte Carlo noise seed; algorithm=python_random_unique_u31_v1, seed={int(seed)}, sample={index}'
+        _record_derived_input(spec, 'simulation.random_seed', simulation_seed, seed_evidence)
+        if uses_parameter_seed:
+            spec['parameters']['values']['simulation_seed'] = simulation_seed
+            spec['model']['config']['simulation_seed'] = simulation_seed
+            _record_derived_input(spec, 'parameters.values.simulation_seed', simulation_seed, seed_evidence)
         solver = spec["simulation"].get("solver")
         if isinstance(solver, dict):
             solver["deterministic_seed"] = simulation_seed
@@ -96,6 +129,7 @@ def expand_monte_carlo(
             "seed": int(seed),
             "parameter_seed": int(seed),
             "simulation_seed": simulation_seed,
+            "simulation_seed_algorithm": "python_random_unique_u31_v1",
             "sample_index": index,
             "parameters": copy.deepcopy(parameters),
             "dispersions": copy.deepcopy(dict(dispersions)),

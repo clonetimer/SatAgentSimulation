@@ -610,7 +610,7 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
             },
         ))
 
-    if not backend_result.task_spec:
+    if not backend_result.task_spec or not backend_result.validation.ok:
         validation = backend_result.validation
         empty_guard = AgentGuardReport(False, tool_policy=agent_tool_policy_payload())
         reason_codes = tuple(sorted({item.code for item in validation.errors} | {"AGENT_BACKEND_FAILED"}))

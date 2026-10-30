@@ -70,13 +70,13 @@ try {
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
         "-m", "pip", "install", "--upgrade",
-        "pip==26.2.1", "setuptools==83.0.0", "wheel==0.46.2"
+        "pip==26.2.1", "setuptools==84.1.0", "wheel==0.46.2"
     ) -Step "更新 Python 构建工具"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
         (Join-Path $Root "scripts\ensure_basilisk_runtime.py"),
-        "--require-satfix1"
-    ) -Step "核验官方 SHA-256，构建 metadata-only satfix1 并安装真实 Basilisk 原生运行时"
+        "--require-satfix2"
+    ) -Step "核验官方 SHA-256，构建 metadata-only satfix2 并安装真实 Basilisk 原生运行时"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
         "-m", "pip", "install", "--find-links", $Wheelhouse, "-c", $Constraints, "-e", ".[api,dev]"
@@ -87,7 +87,7 @@ try {
     ) -Step "检查 API 与 NumPy 依赖"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(
-        "-c", "from Basilisk.architecture import messaging; from Basilisk.simulation import spacecraft, simpleBattery; import importlib.metadata as m; assert m.version('bsk') == '2.11.0+satfix1'; assert spacecraft.Spacecraft is not None and simpleBattery.SimpleBattery is not None; print('BASILISK_NATIVE_WINDOWS_SMOKE_PASS')"
+        "-c", "from Basilisk.architecture import messaging; from Basilisk.simulation import spacecraft, simpleBattery; import importlib.metadata as m; assert m.version('bsk') == '2.11.0+satfix2'; assert spacecraft.Spacecraft is not None and simpleBattery.SimpleBattery is not None; print('BASILISK_NATIVE_WINDOWS_SMOKE_PASS')"
     ) -Step "安装运行依赖后验证真实 Basilisk C++ 模块"
 
     Invoke-CheckedNative -Executable $VenvPython -Arguments @(

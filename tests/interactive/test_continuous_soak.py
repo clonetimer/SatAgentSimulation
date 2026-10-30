@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import json
 import os
-import resource
 import time
 from pathlib import Path
 
+import psutil
 import pytest
 
 from sat_sim.bsk_engine.unified_native import WHOLE_UNIFIED_CAPABILITY_ID
@@ -23,10 +23,17 @@ from sat_sim.interactive import telemetry_segments
 
 
 def _current_rss_kib() -> int:
-    for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
-        if line.startswith("VmRSS:"):
-            return int(line.split()[1])
-    raise RuntimeError("VmRSS unavailable on Linux")
+    return psutil.Process().memory_info().rss // 1024
+
+
+def _peak_rss_kib() -> int:
+    memory = psutil.Process().memory_info()
+    if hasattr(memory, "peak_wset"):
+        # Windows exposes the OS-recorded peak working set in bytes. Do not
+        # replace the peak with a single current-RSS observation.
+        return memory.peak_wset // 1024
+    import resource
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
 
 def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_path) -> None:
@@ -49,7 +56,7 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
             "simulation": {
                 "duration_s": 1.0,
                 "sample_s": 0.5,
-                "solver": {"step_s": 0.2},
+                "solver": {"step_s": 0.1},
             },
             "parameters": {"values": {}},
             "outputs": {"telemetry_streams": [
@@ -65,7 +72,7 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
     assert end_time is None
     workspace = SessionWorkspace(tmp_path, spec)
     session = InteractiveSession(spec, runtime, end_time_s=end_time, workspace=workspace)
-    initial_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    initial_rss = _peak_rss_kib()
     initial_current_rss = _current_rss_kib()
     try:
         session.prepare()
@@ -100,7 +107,7 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
         assert session.command_acks(command.command_id)[-1].state is CommandState.ACKED
         assert frames[-1].sim_time_s >= target_s
         before_archive_rss = _current_rss_kib()
-        before_archive_peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        before_archive_peak = _peak_rss_kib()
         summary = session.stop()
         assert summary["summary"]["execution_segment_count"] >= int(2 * target_s)
         assert len(summary["summary"]["execution_stops_s"]) == 1
@@ -131,8 +138,8 @@ def test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon(tmp_pat
             assert SessionWorkspace.inspect(workspace.path).valid
             assert verify_run_bundle(workspace.path / "run_bundle")["ok"]
         after_archive_rss = _current_rss_kib()
-        peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        # Linux ru_maxrss is KiB, and the allowed extra 1 GiB is deliberately lenient.
+        peak_rss = _peak_rss_kib()
+        # Both platform readings use KiB; preserve the existing 1 GiB bound.
         assert peak_rss - initial_rss < 1024 * 1024
         print(
             f"CONTINUOUS_SOAK_OK sim_time_s={session.current_time_s:.1f} "

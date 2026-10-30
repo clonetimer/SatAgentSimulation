@@ -131,6 +131,16 @@ def test_parameter_consumption_blocks_unknown_parameter_and_canonical_value_wins
 
 def test_agent_provenance_records_parameter_and_event_parameter_paths() -> None:
     spec = instantiate_scenario_template("whole_spacecraft_unified_native_fault_chain", task_id="v0566_provenance")
+    path = "parameters.values.initial_soc"
+    recorded = deepcopy(spec["provenance"]["fields"][path])
+    preserved = _canonical_provenance(
+        spec,
+        AgentFacadeRequest(request="create a fault case", backend="openai_compatible"),
+    )
+    assert preserved["provenance"]["fields"][path] == recorded
+    # Model-inferred attribution applies to fields without declared provenance;
+    # an existing form-origin record must survive later Agent processing.
+    spec.pop("provenance", None)
     enriched = _canonical_provenance(
         spec,
         AgentFacadeRequest(request="create a fault case", backend="openai_compatible"),

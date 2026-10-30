@@ -21,7 +21,7 @@ def test_real_basilisk_scheduled_payload_heat_capacity_ab() -> None:
     spec = yaml.safe_load(
         Path("examples/whole_spacecraft_unified_native_nominal.yaml").read_text(encoding="utf-8")
     )
-    spec["simulation"].update({"duration_s": 45., "step_s": .2, "sample_s": .5})
+    spec["simulation"].update({"duration_s": 45., "step_s": .1, "sample_s": .5})
     spec["parameters"].update({
         "initial_payload_temp_k": 280.,
         "payload_power_w": 180.,

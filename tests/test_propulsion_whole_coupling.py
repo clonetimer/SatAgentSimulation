@@ -25,8 +25,8 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
     result = adapter.run(spec, contract.data)
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
     assert result.summary["propulsion_enabled"] is True
-    assert result.summary["official_module_count"] == 23
-    assert result.summary["project_native_module_count"] == 22
+    assert result.summary["official_module_count"] == 24
+    assert result.summary["project_native_module_count"] == 27
     assert result.summary["external_or_proxy_module_count"] == 5
     assert result.summary["propellant_used_kg"] > 0.0
     assert result.summary["max_total_thrust_n"] > 0.0
@@ -37,6 +37,12 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
     assert "propulsion_thrusters" in result.metadata["model_source_boundary"]["basilisk_official_native"]
     project_modules = set(result.metadata["model_source_boundary"]["basilisk_project_native"])
     proxy_modules = set(result.metadata["model_source_boundary"]["external_or_proxy"])
+    official_modules = set(result.metadata["model_source_boundary"]["basilisk_official_native"])
+    assert len(official_modules) == result.summary["official_module_count"]
+    assert len(project_modules) == result.summary["project_native_module_count"]
+    assert "native_link_budget" in official_modules
+    assert {"thermal_node_comm", "thermal_node_propulsion", "thermal_node_structure",
+            "project_earth_horizon_sensor", "project_sun_direction_sensor"} <= project_modules
     assert "project_propulsion_burn_controller" in project_modules
     assert "project_propulsion_activity_power_bridge" in proxy_modules
     assert "project_heater_status_power_bridge" in proxy_modules
@@ -52,8 +58,8 @@ def test_propulsion_burn_changes_orbit_relative_to_same_no_burn_baseline() -> No
     radius_delta = burn_result.summary["final_orbit_radius_m"] - base_result.summary["final_orbit_radius_m"]
     assert abs(radius_delta) > 0.1
     assert base_result.summary["propulsion_enabled"] is False
-    assert base_result.summary["official_module_count"] == 21
-    assert base_result.summary["project_native_module_count"] == 21
+    assert base_result.summary["official_module_count"] == 22
+    assert base_result.summary["project_native_module_count"] == 26
 
 
 def test_native_thruster_direction_ab_changes_trajectory_without_changing_fuel_rate() -> None:
@@ -65,7 +71,7 @@ def test_native_thruster_direction_ab_changes_trajectory_without_changing_fuel_r
     This is a behavioral perturbation test, not proof of flight calibration.
     """
     baseline = _spec()
-    baseline["simulation"].update({"duration_s": 35., "step_s": .2, "sample_s": .5})
+    baseline["simulation"].update({"duration_s": 35., "step_s": .1, "sample_s": .5})
     baseline["parameters"]["values"].update({
         "initial_soc": .9, "propulsion_min_burn_soc": .05,
         "propulsion_burn_start_s": 5., "propulsion_burn_on_time_s": 8.,

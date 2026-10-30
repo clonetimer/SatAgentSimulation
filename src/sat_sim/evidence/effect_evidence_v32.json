@@ -676,15 +676,15 @@
           "id": "capacity_ratio_matches_requested_value",
           "field": "eps.battery_capacity_ratio",
           "operator": "eq",
-          "value_parameter": "remaining_capacity_ratio",
           "default_value": 0.5,
           "scope": "active_all",
-          "tolerance": 1e-09
+          "tolerance": 1e-09,
+          "value_source": "resource_remaining_ratio"
         },
         {
-          "id": "capacity_ratio_is_reduced",
+          "id": "capacity_ratio_does_not_increase",
           "field": "eps.battery_capacity_ratio",
-          "operator": "lt",
+          "operator": "le",
           "value": 1.0,
           "scope": "active_all",
           "tolerance": 1e-12
@@ -711,15 +711,15 @@
           "id": "solar_efficiency_ratio_matches_requested_value",
           "field": "eps.solar_array_efficiency_ratio",
           "operator": "eq",
-          "value_parameter": "remaining_efficiency_ratio",
           "default_value": 0.5,
           "scope": "active_all",
-          "tolerance": 1e-09
+          "tolerance": 1e-09,
+          "value_source": "resource_remaining_ratio"
         },
         {
-          "id": "solar_efficiency_ratio_is_reduced",
+          "id": "solar_efficiency_ratio_does_not_increase",
           "field": "eps.solar_array_efficiency_ratio",
-          "operator": "lt",
+          "operator": "le",
           "value": 1.0,
           "scope": "active_all",
           "tolerance": 1e-12
@@ -746,15 +746,15 @@
           "id": "radiator_ratio_matches_requested_value",
           "field": "thermal.radiator_rejection_ratio",
           "operator": "eq",
-          "value_parameter": "remaining_rejection_ratio",
           "default_value": 0.5,
           "scope": "active_all",
-          "tolerance": 1e-09
+          "tolerance": 1e-09,
+          "value_source": "resource_remaining_ratio"
         },
         {
-          "id": "radiator_ratio_is_reduced",
+          "id": "radiator_ratio_does_not_increase",
           "field": "thermal.radiator_rejection_ratio",
-          "operator": "lt",
+          "operator": "le",
           "value": 1.0,
           "scope": "active_all",
           "tolerance": 1e-12

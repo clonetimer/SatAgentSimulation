@@ -52,6 +52,44 @@ modes:
     effects:
     - adcs_reaction_wheel_speed_limit
 parameters:
+  environment_profile:
+    type: string
+    default: simplified
+    enum: [simplified, spice_wmm]
+    description: Explicit reference environment or offline DE430, Earth J2, Sun/Moon gravity and WMM2025. No fallback.
+  epoch_utc:
+    type: string
+    default: '2026-01-01T00:00:00Z'
+  spacecraft_mass_kg:
+    type: number
+    unit: kg
+    default: 100.0
+    min: 1.0
+    max: 2000.0
+  eccentricity:
+    type: number
+    unit: '1'
+    default: 0.001
+    min: 0.0
+    max: 0.999
+  raan_deg:
+    type: number
+    unit: deg
+    default: 0.0
+    min: 0.0
+    max: 360.0
+  arg_perigee_deg:
+    type: number
+    unit: deg
+    default: 0.0
+    min: 0.0
+    max: 360.0
+  initial_true_anomaly_rad:
+    type: number
+    unit: rad
+    default: 0.0
+    min: 0.0
+    max: 6.283185307179586
   initial_pointing_error_deg:
     type: number
     unit: deg
@@ -72,6 +110,7 @@ parameters:
     required: false
     default: 7000000.0
     min: 6478000.0
+    max: 100000000.0
   controller_k:
     type: number
     required: false
@@ -124,6 +163,9 @@ outputs:
   trace_fields:
   - time_s
   - orbit.radius_m
+  - orbit.position_m_*
+  - orbit.velocity_m_s_*
+  - orbit.sun_position_m_*
   - orbit.phase_rad
   - orbit.eclipse_factor
   - adcs.pointing_error_deg

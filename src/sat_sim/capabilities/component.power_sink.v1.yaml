@@ -95,6 +95,12 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: eps.power_sink.nominal_demand_w
+    unit: W
+    dtype: number
+  - name: eps.power_sink.demand_w
+    unit: W
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

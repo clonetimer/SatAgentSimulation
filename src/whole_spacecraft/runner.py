@@ -283,6 +283,31 @@ def _first_last_recorder_value(recorder: Any | None, field: str) -> tuple[float,
     return values[0], values[-1]
 
 
+def _storage_rounding_budget_bits(storage: Any, dynamics_probe: Any, recorder: Any) -> float:
+    """Bound native integer-bit rounding over the measured storage interval.
+
+    Basilisk v2.11.0 ``SimpleStorageUnit::integrateDataStatus`` rounds each
+    subscribed node's ``baudRate * dt`` separately before adding it to int64
+    storage. Each rounding contributes at most 0.5 bit. Use actual scheduler
+    activations and connected inputs, rather than a fitted residual tolerance.
+    Capacity clipping is not rounding and is deliberately not covered here.
+    Source: AVSLab/basilisk tag v2.11.0, simulation/onboardDataHandling/
+    storageUnit/simpleStorageUnit.cpp.
+    """
+
+    if type(storage).__name__ != "SimpleStorageUnit":
+        return 0.0
+    times = _recorder_times_s(recorder)
+    if len(times) < 2:
+        return 0.0
+    first_ns, last_ns = round(times[0] * 1e9), round(times[-1] * 1e9)
+    updates = sum(
+        first_ns < int(value) <= last_ns
+        for value in dynamics_probe.update_times_ns
+    )
+    return 0.5 * len(storage.nodeDataUseInMsgs) * updates
+
+
 def _native_downlink_sample(recorders: dict[str, Any], index: int) -> dict[str, float]:
     rec = recorders.get("downlink")
     node_rec = recorders.get("downlink_node")
@@ -721,15 +746,22 @@ def _execute_whole_spacecraft_graph(
         integrated_payload_generated_bits,
         abs(data_storage_delta_bits) + data_balance_removed_bits,
     )
-    # The physical tolerance covers at most two dynamics ticks of source-rate
-    # ordering.  Add only a one-bit/relative floating-point cushion so a residual
-    # sitting on that deterministic boundary is not failed by sub-bit RF/ARQ
-    # accumulation round-off.
-    data_balance_tolerance_bits = max(
+    # Keep scheduling, native integer quantization and floating-point budgets
+    # separate and disclose each. The raw residual remains unchanged.
+    data_balance_ordering_tolerance_bits = max(
         1.0,
         2.0 * max((max(0.0, value) for value in payload_rate_values), default=0.0)
         * max(0.1, float(structure_cfg.adcs_dyn_step_s)),
-    ) + max(1.0, 1.0e-9 * data_balance_scale_bits)
+    )
+    data_balance_rounding_tolerance_bits = _storage_rounding_budget_bits(
+        graph.storage, graph.task_cadence_probes["dynamics"], conservation_storage_rec
+    )
+    data_balance_floating_tolerance_bits = max(1.0, 1.0e-9 * data_balance_scale_bits)
+    data_balance_tolerance_bits = (
+        data_balance_ordering_tolerance_bits
+        + data_balance_rounding_tolerance_bits
+        + data_balance_floating_tolerance_bits
+    )
     data_balance_relative_error = abs(data_balance_residual_bits) / max(
         1.0,
         integrated_payload_generated_bits,
@@ -1013,6 +1045,9 @@ def _execute_whole_spacecraft_graph(
         data_balance_residual_bits=data_balance_residual_bits,
         data_balance_relative_error=data_balance_relative_error,
         data_balance_tolerance_bits=data_balance_tolerance_bits,
+        data_balance_ordering_tolerance_bits=data_balance_ordering_tolerance_bits,
+        data_balance_rounding_tolerance_bits=data_balance_rounding_tolerance_bits,
+        data_balance_floating_tolerance_bits=data_balance_floating_tolerance_bits,
         data_conservation_status=data_conservation_status,
         eps_to_thermal_electrical_energy_j=eps_to_thermal_electrical_energy_j,
         eps_to_thermal_heat_energy_j=eps_to_thermal_heat_energy_j,

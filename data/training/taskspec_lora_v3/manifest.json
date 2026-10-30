@@ -1,0 +1,41 @@
+{
+  "schema_version": "sat-taskspec-sft-data.v1",
+  "splits": {
+    "train": {
+      "path": "data\\training\\taskspec_lora_v3\\train.jsonl",
+      "sha256": "59ea04a73d73046958459be6721262e56f89d4b76e2a13060ecb437a8976e33a",
+      "count": 576,
+      "family_count": 48
+    },
+    "validation": {
+      "path": "data\\training\\taskspec_lora_v3\\validation.jsonl",
+      "sha256": "a122fa69ab94d9eb206d95f2e8a060985803c05241741d87ffebbc855071c4a2",
+      "count": 69,
+      "family_count": 6
+    }
+  },
+  "semantic_family_overlap": 0,
+  "formal_evaluation_request_overlap": 0,
+  "label_source": "synthetic_registry_contract_not_flight_data",
+  "default_output_policy": "shared_ui_agent_registry_v1",
+  "request_configuration_policy": "explicit_template_parameters_and_time_v1",
+  "formal_evaluation_manifest_sha256": "60021815c566ff39060d46bccfe002290180e3366eef14dde636c962fdb8737b",
+  "rejected": [
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "$.parameters: burn_start_s must not exceed duration_s"
+    },
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "$.parameters: burn_start_s must not exceed duration_s"
+    },
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "$.parameters: burn_start_s must not exceed duration_s"
+    }
+  ],
+  "student_model_accuracy": "NOT_EVALUATED"
+}

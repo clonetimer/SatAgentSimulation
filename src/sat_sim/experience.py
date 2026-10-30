@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sqlite3
+from .sqlite_connections import connect
 import tempfile
 import zipfile
 from datetime import datetime, timezone
@@ -174,7 +175,7 @@ class ExperienceStore:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        db = sqlite3.connect(self.database_path, timeout=30.0, isolation_level=None)
+        db = connect(self.database_path, timeout=30.0, isolation_level=None)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys=ON")
         db.execute("PRAGMA journal_mode=WAL")
@@ -306,7 +307,17 @@ class ExperienceStore:
             with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as handle:
                 handle.write(value)
                 temporary = Path(handle.name)
-            os.replace(temporary, target)
+            try:
+                # Publish a complete immutable object atomically without ever
+                # replacing an existing digest. Hard links work on NTFS without
+                # symlink privileges and avoid Windows reader/rename races.
+                os.link(temporary, target)
+            except FileExistsError:
+                pass  # The identical digest was published by another writer.
+            finally:
+                temporary.unlink(missing_ok=True)
+        if _sha256(target.read_bytes()) != digest:
+            raise ValueError(f'EXPERIENCE_OBJECT_HASH_MISMATCH: {digest}')
         with self._connect() as db:
             db.execute(
                 "INSERT OR IGNORE INTO artifacts(sha256,size_bytes,media_type,created_at) VALUES(?,?,?,?)",
@@ -893,7 +904,7 @@ class ExperienceStore:
         archive.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory() as temporary:
             snapshot = Path(temporary) / "experience.sqlite3"
-            with self._connect() as source, sqlite3.connect(snapshot) as target:
+            with self._connect() as source, connect(snapshot) as target:
                 source.backup(target)
             with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
                 bundle.write(snapshot, "experience.sqlite3")

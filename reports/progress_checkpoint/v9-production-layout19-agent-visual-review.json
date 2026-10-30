@@ -1,0 +1,39 @@
+{
+  "status": "ACTUAL19_INSTALLED_LAYOUT_IMAGES_VIEWED_CONTROLS_PASS_CURVE_VISUAL_REVIEW_PENDING",
+  "at_utc": "2026-10-29T17:45:40.467385+00:00",
+  "application": "a56aac6787e3f50db721e86171f84997ee4910a64c0cbb930ff6d4499b436758",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "rendered_image_sha256": {
+    "reports/local_requirements_completion/thermal-link-v9-production-native-browser/font-settings-390-font100.png": "df77a5f5fb4bfb3435400a05f784bffe07eaf4f2d83f4d97926da8add163451f",
+    "reports/local_requirements_completion/thermal-link-v9-production-native-browser/font-settings-390-font130.png": "79ad70830b0d84075658ba39844ff8735b3be6bcadd0309ba95b2decc689a593",
+    "reports/local_requirements_completion/thermal-link-v9-production-native-browser/thermal-link-1366-font100.png": "aa53d257c4cdf825e38e2e689fb83f6957832fa9b85b8c8e7d28a892b7e16f48",
+    "reports/local_requirements_completion/thermal-link-v9-production-native-browser/thermal-link-1366-font130.png": "4333ade448707353ed3edb560cb41476fc9dd28814afa7811803e4cf77c82a22",
+    "reports/local_requirements_completion/thermal-link-v9-production-native-browser/thermal-link-390-font100.png": "6c8e4550e17debc56cce5be19f69772edbf29091737175b31babfb83d994538c",
+    "reports/local_requirements_completion/thermal-link-v9-production-native-browser/thermal-link-390-font130.png": "7ff9baf2352f2c42e3caca77a2063e6e2eca02b50dd2aabb0d31e3b13fd6e759",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/engineering-input-sources.png": "6ecc5fb254df8cf7effd177c0955660c578c013a1f521ab362ba4d16384cf785",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/live-paused-1366.png": "7503f3c8ddc72151a7ce3722d6b1d3702ff1cae7c1bc692cfd310150b942b896",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/live-paused-1920.png": "421599d126db21576b2d7deeff624a42a1dd24d3941a6df907b07bfe1d9e5093",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/live-paused-390.png": "cd58ff3cf68856a127aa601b5c16af12f81e15d647c0813410b63198fa98331b",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/live-paused-768.png": "d0f395e40e7cc0accab50f085e47ad0f2587fe64203f89e14d13cb4984e6e771",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/live-paused.png": "e73b30db103a05a1944448a91db712ba9a5f712f603193c252b0675ea4cd1ffb",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/mobile-font-130.png": "86df8a3a7b8ca6503744249cc0fb2c754fe785d0e10677b8f0192e137b35bc0f",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/mobile-settings-390.png": "f4307a54bd7d9e27c1e4c9e50044882d0907cee7ded5d63fdc41b5b365e26431",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/offline-1366.png": "521e0207cd05de5adba80b49be4ce82f94fdc3edbd0b45db6d9c41da97d28ab7",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/offline-1920.png": "23562bf2ed8c2ccc1827dc922347def4967fcb84f799c8b89c07c4d04518fd4f",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/offline-390.png": "ba2cec762e1e1b2c027862a677cee744d991b2b14fb5414bb4ba85a9f9bf040c",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/offline-768.png": "32fa6a14ef9ff2efb462b16244093147080aaa94b08bcc212231de18eeceaef7",
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/offline.png": "a29482830c06281f784cce597a9af64c1f2932918e62fbc182f5f82b85a21cc7"
+  },
+  "report_sha256": {
+    "reports/local_requirements_completion/v9-production-qualification/native-browser/report.json": "bec9f4d690636af5f167660d9b529a75c7837d3bfb37e26acd0bf2f331b85a5c",
+    "reports/local_requirements_completion/thermal-link-v9-production-native-browser/report.json": "a6557258dd5801265f421e8213cedca82b3ede15cf3d8e7608c12d0e1165de1a"
+  },
+  "observations": [
+    "Offline and continuous layouts inspected at desktop/tablet/mobile widths.",
+    "100/130 percent thermal-control and mobile-setting text/input layout inspected.",
+    "No body horizontal overflow or overlapping primary controls observed in these frames; mobile navigation is internally scrollable.",
+    "Live and history curves are outside these initial viewport shots; separate actual-curve followup remains required."
+  ],
+  "actual_model_editor_images_pending": true,
+  "scope": "Actual image inspection only for these19closed screenshots; not all UI states, chart rendering, AI accuracy or24h qualification."
+}

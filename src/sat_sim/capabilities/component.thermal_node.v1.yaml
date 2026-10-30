@@ -105,6 +105,24 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: thermal.node.power_w
+    unit: W
+    dtype: number
+  - name: thermal.node.temp_k
+    unit: K
+    dtype: number
+  - name: thermal.node.measured_temp_k
+    unit: K
+    dtype: number
+  - name: thermal.node.temp_c
+    unit: degC
+    dtype: number
+  - name: thermal.node.effective_tau_s
+    unit: s
+    dtype: number
+  - name: thermal.node.effective_heat_gain_k_per_w
+    unit: K/W
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

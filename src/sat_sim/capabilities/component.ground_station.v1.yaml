@@ -114,6 +114,18 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: ground_station.elevation_deg
+    unit: deg
+    dtype: number
+  - name: ground_station.slant_range_m
+    unit: m
+    dtype: number
+  - name: ground_station.min_elevation_deg
+    unit: deg
+    dtype: number
+  - name: ground_station.max_range_m
+    unit: m
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

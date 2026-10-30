@@ -1,0 +1,200 @@
+{
+  "status": "AGENT_REVIEW_THREE_SIMULATED_DAYS_PASS_FOR_EXPLICIT_G4_ASSUMPTION",
+  "at_utc": "2026-10-29T17:21:27.441115+00:00",
+  "cases": [
+    {
+      "review": "reports\\local_requirements_completion\\thermal-link-v9-environment-campaign\\nominal-independent-review.json",
+      "review_sha256": "2ac3fa529296a3fc5358d1c60d8928c77e26c5a1317ce19c6cf3b0b086b91167",
+      "sim_s": 86402.5,
+      "samples": 172806,
+      "solar_panel_min_k": 203.569225754009,
+      "thermal_extrema": {
+        "battery": {
+          "min_k": 273.9389990410136,
+          "max_k": 290.00716713839694,
+          "min_at_s": 50028.5,
+          "max_at_s": 146.0
+        },
+        "electronics": {
+          "min_k": 263.9217431279079,
+          "max_k": 295.0,
+          "min_at_s": 43736.5,
+          "max_at_s": 0.0
+        },
+        "payload": {
+          "min_k": 277.12182968053963,
+          "max_k": 300.98149034606047,
+          "min_at_s": 3115.0,
+          "max_at_s": 1355.0
+        },
+        "adcs": {
+          "min_k": 265.2749166566375,
+          "max_k": 293.7445159677152,
+          "min_at_s": 38174.0,
+          "max_at_s": 557.0
+        },
+        "structure": {
+          "min_k": 232.65701740306503,
+          "max_k": 285.0637306430509,
+          "min_at_s": 37590.5,
+          "max_at_s": 30.500000000000004
+        },
+        "solar_panel": {
+          "min_k": 203.569225754009,
+          "max_k": 300.0,
+          "min_at_s": 30938.000000000004,
+          "max_at_s": 0.0
+        },
+        "comm": {
+          "min_k": 238.269247656697,
+          "max_k": 295.0,
+          "min_at_s": 38140.0,
+          "max_at_s": 0.0
+        },
+        "propulsion": {
+          "min_k": 236.55896982104343,
+          "max_k": 292.0,
+          "min_at_s": 37978.0,
+          "max_at_s": 0.0
+        }
+      },
+      "soc_range": [
+        0.458641300825508,
+        1.0
+      ],
+      "raw_trace_sha256": "ab0e68a4123a30755430299b3c3dc249251b31798162f510300bebfbecf91f2d",
+      "source_core": "09e946510cb2585f5bde9357406522eabdc3659269528f781ee0ae5714a8912a",
+      "source_application": "70de7cde1dd7156a5ce12cf3da7fe4a4c3b41de722a4223c9659b54d3f7c9250"
+    },
+    {
+      "review": "reports\\local_requirements_completion\\thermal-link-v9-environment-campaign\\lower-global-mean-independent-review.json",
+      "review_sha256": "1fe60ae29848855a3faec0c77cd9622c6a8744c06a88a82600730656906469a6",
+      "sim_s": 86402.5,
+      "samples": 172806,
+      "solar_panel_min_k": 202.44785052889873,
+      "thermal_extrema": {
+        "battery": {
+          "min_k": 272.54747336912465,
+          "max_k": 290.0038071786766,
+          "min_at_s": 50012.0,
+          "max_at_s": 121.50000000000001
+        },
+        "electronics": {
+          "min_k": 262.5705571479703,
+          "max_k": 295.0,
+          "min_at_s": 43699.0,
+          "max_at_s": 0.0
+        },
+        "payload": {
+          "min_k": 276.8582988236625,
+          "max_k": 300.8917407489755,
+          "min_at_s": 3120.5,
+          "max_at_s": 1342.0
+        },
+        "adcs": {
+          "min_k": 263.8915824527031,
+          "max_k": 293.70968962786225,
+          "min_at_s": 38155.0,
+          "max_at_s": 541.0
+        },
+        "structure": {
+          "min_k": 231.3033211856188,
+          "max_k": 285.0583027729063,
+          "min_at_s": 37590.5,
+          "max_at_s": 28.5
+        },
+        "solar_panel": {
+          "min_k": 202.44785052889873,
+          "max_k": 300.0,
+          "min_at_s": 30943.000000000004,
+          "max_at_s": 0.0
+        },
+        "comm": {
+          "min_k": 236.84974702977613,
+          "max_k": 295.0,
+          "min_at_s": 38121.5,
+          "max_at_s": 0.0
+        },
+        "propulsion": {
+          "min_k": 235.07458427526296,
+          "max_k": 292.0,
+          "min_at_s": 37936.5,
+          "max_at_s": 0.0
+        }
+      },
+      "soc_range": [
+        0.4584093563810636,
+        1.0
+      ],
+      "raw_trace_sha256": "0422aeef15738dbd00702c50507dbae19eb3d1e6745334c87bef86f2b1fa1a1c",
+      "source_core": "09e946510cb2585f5bde9357406522eabdc3659269528f781ee0ae5714a8912a",
+      "source_application": "70de7cde1dd7156a5ce12cf3da7fe4a4c3b41de722a4223c9659b54d3f7c9250"
+    },
+    {
+      "review": "reports\\local_requirements_completion\\thermal-link-v9-environment-campaign\\higher-global-mean-independent-review.json",
+      "review_sha256": "90b4e3edf92bc614e5a7e71acd999eae32cea7948b106b21b10aa6ab913712d1",
+      "sim_s": 86401.0,
+      "samples": 172803,
+      "solar_panel_min_k": 204.6641066844626,
+      "thermal_extrema": {
+        "battery": {
+          "min_k": 275.29155130053033,
+          "max_k": 290.01106279721034,
+          "min_at_s": 50041.5,
+          "max_at_s": 168.5
+        },
+        "electronics": {
+          "min_k": 265.226193960434,
+          "max_k": 295.0,
+          "min_at_s": 37952.5,
+          "max_at_s": 0.0
+        },
+        "payload": {
+          "min_k": 277.38417393201075,
+          "max_k": 301.7942711759763,
+          "min_at_s": 3109.0,
+          "max_at_s": 12203.0
+        },
+        "adcs": {
+          "min_k": 266.6170378386348,
+          "max_k": 293.7802256284063,
+          "min_at_s": 38190.0,
+          "max_at_s": 563.5
+        },
+        "structure": {
+          "min_k": 233.9739086502764,
+          "max_k": 285.069535528687,
+          "min_at_s": 37590.5,
+          "max_at_s": 32.0
+        },
+        "solar_panel": {
+          "min_k": 204.6641066844626,
+          "max_k": 300.0,
+          "min_at_s": 30933.500000000004,
+          "max_at_s": 0.0
+        },
+        "comm": {
+          "min_k": 239.64690209110836,
+          "max_k": 295.0,
+          "min_at_s": 38155.5,
+          "max_at_s": 0.0
+        },
+        "propulsion": {
+          "min_k": 237.99759977622105,
+          "max_k": 292.0,
+          "min_at_s": 38012.0,
+          "max_at_s": 0.0
+        }
+      },
+      "soc_range": [
+        0.458878800825508,
+        1.0
+      ],
+      "raw_trace_sha256": "25bd24228b2f9b3d38d98318eee4348c0977073a2c8bc6b7060ca99a5c61cf85",
+      "source_core": "09e946510cb2585f5bde9357406522eabdc3659269528f781ee0ae5714a8912a",
+      "source_application": "70de7cde1dd7156a5ce12cf3da7fe4a4c3b41de722a4223c9659b54d3f7c9250"
+    }
+  ],
+  "qualified_24h_wallclock": false,
+  "scope": "Three predeclared global-mean deterministic engineering sensitivity cases, independently checked raw streams and seals; not local hot/cold extremes, hardware calibration or probability UQ. UI source differs only by previously reviewed registry/form/control-plane/presentation files."
+}

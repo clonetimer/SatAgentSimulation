@@ -387,10 +387,15 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
                     "model.capability_id": {"source": "user_provided", "evidence": "form"},
                     **{
                         f"parameters.values.{name}": {
-                            "source": "form_default",
-                            "evidence": f"Capability Registry default: {capability_id}.parameters.{name}",
+                            "source": "form_default" if name in defaulted_parameters else "user_provided",
+                            "evidence": (
+                                f"Capability Registry default: {capability_id}.parameters.{name}"
+                                if name in defaulted_parameters else
+                                f"Submitted form configuration value; registry contract: {capability_id}.parameters.{name}"
+                            ),
+                            "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence.",
                         }
-                        for name in defaulted_parameters
+                        for name in values
                     },
                     **{
                         f"model.{name}": {
@@ -405,10 +410,14 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
                         {
                             "path": f"parameters.values.{name}",
                             "value": values[name],
-                            "reason": f"Applied registered default from {capability_id}",
+                            "reason": (
+                                f"Applied registered default from {capability_id}; engineering assumption, not a hardware measurement."
+                                if name in defaulted_parameters else
+                                "Submitted engineering configuration; independent source evidence was not attached to this form."
+                            ),
                             "status": "accepted",
                         }
-                        for name in defaulted_parameters
+                        for name in values
                     ],
                     *[
                         {
@@ -759,6 +768,31 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
     )
     return payload
 
+def _refinement_requests_parameter(name: str, instruction: str, capability_id: str) -> bool:
+    """Do not let a regenerated draft reset parameters during a small edit."""
+    from .agent_facade import _EXPLICIT_PARAMETER_ALIASES
+    from .form_schema import PARAMETER_LABELS
+
+    aliases = {name, name.replace('_', ' ')}
+    aliases.update(_EXPLICIT_PARAMETER_ALIASES.get(f'parameters.values.{name}', ()))
+    if label := PARAMETER_LABELS.get(name):
+        aliases.add(label)
+    descriptor = get_capability(capability_id).data.get('parameters', {}).get(name, {})
+    if isinstance(descriptor, Mapping):
+        aliases.update(str(descriptor[key]) for key in ('label', 'title') if descriptor.get(key))
+    for clause in re.split(r'[,，;；。\n]|\band\b|并(?:且)?', instruction, flags=re.IGNORECASE):
+        if re.search(r'保留|保持|不变|不要修改|不修改|\b(?:keep|preserve|unchanged)\b', clause, re.IGNORECASE):
+            continue
+        if not re.search(r'改|设|调|增|减|换|变|=|\b(?:set|change|adjust|increase|decrease|replace)\b', clause, re.IGNORECASE):
+            continue
+        for alias in aliases:
+            # An identifier must not match part of a different parameter name.
+            pattern = r'(?<![A-Za-z0-9_])' + re.escape(alias) + r'(?![A-Za-z0-9_])'
+            if re.search(pattern, clause, re.IGNORECASE):
+                return True
+    return False
+
+
 def _merge_natural_language_refinement(
     base_task_spec: Mapping[str, Any],
     candidate_task_spec: Mapping[str, Any],
@@ -803,14 +837,15 @@ def _merge_natural_language_refinement(
             out.setdefault("simulation", {})["random_seed"] = int(match.group(1))
             changed.append("simulation.random_seed")
 
-    # Only accept generated parameter values when the model respected the current
-    # capability.  Unknown keys are never introduced into the existing contract.
+    # Same capability alone is insufficient: an unrelated edit must not replace
+    # previously selected hardware parameters with the model example's defaults.
     if same_capability:
         base_values = out.setdefault("parameters", {}).setdefault("values", {})
         candidate_values = candidate.get("parameters", {}).get("values", {})
         if isinstance(base_values, dict) and isinstance(candidate_values, Mapping):
             for key in tuple(base_values):
-                if key in candidate_values and candidate_values[key] != base_values[key]:
+                if (key in candidate_values and candidate_values[key] != base_values[key]
+                        and _refinement_requests_parameter(key, text, base_capability)):
                     base_values[key] = copy.deepcopy(candidate_values[key])
                     changed.append(f"parameters.values.{key}")
 
@@ -1033,10 +1068,14 @@ def run_unified_agent(request: UnifiedAgentRequest) -> UnifiedAgentResult:
         effective_request_text = request.request_text
         if request.base_task_spec is not None:
             base = canonicalize_task_spec(request.base_task_spec)
+            prompt_base = copy.deepcopy(base)
+            # Keep the real base intact for the merge. Machine provenance can
+            # dominate the model context and must not be regenerated as physics.
+            prompt_base.pop("metadata", None)
             effective_request_text = (
                 "这是一次基于现有 TaskSpec 的多轮补充。请输出完整、更新后的 TaskSpec；"
                 "保留用户未要求修改的能力、参数、事件和输出，不要凭空增加故障或退化。\n"
-                f"现有 TaskSpec：\n{json.dumps(base, ensure_ascii=False)}\n"
+                f"现有 TaskSpec：\n{json.dumps(prompt_base, ensure_ascii=False)}\n"
                 f"本轮补充指令：\n{request.request_text}"
             )
         facade = run_agent(AgentFacadeRequest(

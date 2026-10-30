@@ -33,6 +33,13 @@ EXEMPT_TOP_LEVEL = {
     "build",
     "dist",
     ".venv",
+    ".uv-cache",
+    ".cache",
+    ".tmp",
+    ".venv-offline-numba",
+    ".venv-sft",
+    ".models",
+    "training_runs",
     "venv",
     ".sat_sim_api",
     ".pytest_cache",
@@ -47,7 +54,7 @@ BAD_NAME_PATTERNS = (
 REQUIRED_HEADER_MARKERS = ("用途", "参数", "输出")
 PINNED_BOOTSTRAP_TOOLS = {
     "pip": "26.2.1",
-    "setuptools": "83.0.0",
+    "setuptools": "84.1.0",
     "wheel": "0.46.2",
 }
 BOOTSTRAP_PIN_TARGETS = (

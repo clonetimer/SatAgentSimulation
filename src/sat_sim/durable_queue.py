@@ -17,6 +17,7 @@ from typing import Any, Iterable
 from uuid import uuid4
 
 from .run_bundle import RunStatus, finalize_interrupted_run, recover_interrupted_run
+from .sqlite_connections import connect
 
 QUEUE_SCHEMA_VERSION = "execution-queue.v1"
 TERMINAL_STATES = {"SUCCEEDED", "FAILED", "CANCELLED", "TIMED_OUT"}
@@ -140,7 +141,7 @@ class DurableExecutionQueue:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database_path, timeout=30.0, isolation_level=None)
+        connection = connect(self.database_path, timeout=30.0, isolation_level=None)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("PRAGMA synchronous=FULL")

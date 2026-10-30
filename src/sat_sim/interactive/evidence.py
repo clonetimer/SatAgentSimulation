@@ -12,13 +12,15 @@ from typing import Any
 
 from sat_sim.run_bundle import verify_run_bundle
 from sat_sim.task_spec import spec_sha256
-from sat_sim.validation.physical_checks import evaluate_physical_validation
+from sat_sim.validation.physical_checks import evaluate_physical_validation, physical_validation_options
 from sat_sim.validation_outcome import (
     ClaimReport,
     ExecutionStatus,
     ValidationCheck,
     ValidationOutcome,
     ValidationResult,
+    physical_validation_check,
+    runner_summary_validation_checks,
 )
 
 from .models import InteractiveSessionSpec, SessionState, Telecommand
@@ -110,12 +112,29 @@ def _acked_effect_windows(
     return results
 
 
+def _runtime_summary(root: Path) -> Mapping[str, Any] | None:
+    path = root / "runtime_result.json"
+    if not path.exists():
+        return None
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("INTERACTIVE_RUNTIME_RESULT_INVALID")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping) or not isinstance(payload.get("result"), Mapping):
+        raise ValueError("INTERACTIVE_RUNTIME_RESULT_INVALID")
+    summary = payload["result"].get("summary")
+    if summary is not None and not isinstance(summary, Mapping):
+        raise ValueError("INTERACTIVE_RUNTIME_SUMMARY_INVALID")
+    return summary
+
+
 def _validation(
     state: SessionState, trace_rows: list[dict[str, Any]], effect_windows: list[dict[str, Any]],
     *, physical_override: dict[str, Any] | None = None,
+    task_spec: Mapping[str, Any] | None = None,
+    runtime_summary: Mapping[str, Any] | None = None,
 ) -> ValidationOutcome:
     physical = physical_override if physical_override is not None else evaluate_physical_validation(
-        trace_rows, summary={}, strict=False
+        trace_rows, summary={}, **physical_validation_options(task_spec)
     )
     checks = [ValidationCheck(
         check_id="workspace_terminal_state", category="runtime_health",
@@ -124,13 +143,8 @@ def _validation(
         message="Interactive session reached a sealable terminal state." if state is SessionState.COMPLETED else "Only completed interactive sessions may be sealed.",
         observed=state.value,
     )]
-    physical_failed = str(physical.get("status", "")).lower() == "fail"
-    checks.append(ValidationCheck(
-        check_id="physical_validation", category="physical_validation",
-        result=ValidationResult.FAIL if physical_failed else ValidationResult.PASS,
-        reason_code="PHYSICAL_VALIDATION_FAILED" if physical_failed else "PHYSICAL_VALIDATION_PASSED",
-        message="Interactive trace physical constraints were evaluated.", evidence={"physical_validation": physical},
-    ))
+    checks.append(physical_validation_check(physical))
+    checks.extend(runner_summary_validation_checks(runtime_summary))
     for item in effect_windows:
         result = ValidationResult.PASS if item["result"] == "PASS" else ValidationResult.INCONCLUSIVE
         checks.append(ValidationCheck(
@@ -148,11 +162,13 @@ def _validation(
     return ValidationOutcome(
         execution_status=ExecutionStatus.SUCCEEDED if state is SessionState.COMPLETED else ExecutionStatus.FAILED,
         result=result, reason_code=reason, checks=checks, physical_validation=physical,
-        evidence_present=["state_hash_chain", "command_hash_chain", "telemetry_hash_chain", "interactive_trace"],
+        evidence_present=["state_hash_chain", "command_hash_chain", "telemetry_hash_chain", "interactive_trace"]
+            + (["runtime_summary"] if runtime_summary else []),
         limitations=[
             "Soft-realtime internal engineering simulation only.",
             "Command effect windows establish temporal association, not hardware or flight causality.",
-        ],
+        ] + list(physical.get("limitations") or [])
+            + ([] if runtime_summary else ["No runtime mission summary was supplied; no mission-result pass is inferred from technical completion."]),
     )
 
 
@@ -204,7 +220,8 @@ def seal_interactive_workspace(path: str | Path) -> dict[str, Any]:
 
     trace = _trace_rows(telemetry)
     effects = _acked_effect_windows(commands, telemetry, spec.quantum_s)
-    validation = _validation(state, trace, effects)
+    validation = _validation(state, trace, effects, task_spec=spec.task_spec, runtime_summary=_runtime_summary(root))
+    _write_json(root / "validation_outcome.json", validation.model_dump(mode="json"))
     if validation.result is not ValidationResult.PASS:
         raise ValueError(f"INTERACTIVE_VALIDATION_NOT_PASS:{validation.reason_code}")
     trace_hash = semantic_trace_hash(trace)
@@ -242,7 +259,7 @@ def seal_interactive_workspace(path: str | Path) -> dict[str, Any]:
     _write_json(bundle / "validation" / "claim_report.json", claims.model_dump(mode="json"))
     _write_json(bundle / "results" / "command_effect_windows.json", {"schema_version": "interactive-command-effects.v1", "commands": effects})
     _write_json(bundle / "results" / "semantic_trace.json", {"schema_version": "interactive-semantic-trace.v1", "sha256": trace_hash, "rows": trace})
-    for name in ("session_spec.json", "state_events.jsonl", "command_events.jsonl", "telemetry.jsonl", "telemetry_manifest.json"):
+    for name in ("session_spec.json", "state_events.jsonl", "command_events.jsonl", "telemetry.jsonl", "telemetry_manifest.json", "runtime_result.json"):
         source = root / name
         if source.exists():
             target = bundle / "interactive" / name

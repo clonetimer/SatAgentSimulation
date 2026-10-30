@@ -14,6 +14,8 @@ adapter:
   script_export: true
   runtime_run: true
 implementation:
+  accepted_task_backends:
+  - python
   model_modules:
   - sat_sim.coupled.propulsion_orbit_attitude
   - sat_sim.orbit.medium

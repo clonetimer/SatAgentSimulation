@@ -28,7 +28,7 @@ from .unified_agent import normalize_form_task_spec
 from .unified_execution import execute_compiled_task
 
 ACCEPTANCE_SCHEMA_VERSION = "sat-sim.internal-capability-acceptance.v2"
-ACCEPTED_BSK_RUNTIME_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1"})
+ACCEPTED_BSK_RUNTIME_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1", "2.11.0+satfix2"})
 
 SIX_ACTIVE_INTERNAL_CAPABILITIES: tuple[str, ...] = (
     "reference.public_satellite_case.v1",

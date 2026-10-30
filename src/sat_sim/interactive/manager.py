@@ -519,7 +519,7 @@ class InteractiveSession:
                 continue
             try:
                 previous_time_s = self.current_time_s
-                rows = self._advance()
+                self._advance()
                 if self.spec.paced:
                     observation = self._clock.pace_to(self.current_time_s)
                     with self._pace_lock:
@@ -551,6 +551,8 @@ class InteractiveSession:
         try:
             if self._workspace is not None:
                 self._archive_status = "SEALING"
+                if self.state is SessionState.COMPLETED:
+                    self._workspace.write_runtime_result(self._runtime_summary)
                 self._workspace.finalize_telemetry()
                 if self.state is SessionState.COMPLETED:
                     from .evidence import seal_interactive_workspace

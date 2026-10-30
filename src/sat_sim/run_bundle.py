@@ -405,19 +405,92 @@ def _bundle_manifest(root: Path, record: RunRecord) -> dict[str, Any]:
 
 
 def verify_run_bundle(bundle_root: str | Path) -> dict[str, Any]:
-    root = Path(bundle_root)
+    from pathlib import PurePosixPath, PureWindowsPath
+
+    try:
+        root = Path(bundle_root).resolve()
+    except (OSError, ValueError, RuntimeError):
+        return {"ok": False, "reason_code": "RUN_BUNDLE_INTEGRITY_FAILED", "issues": [{"code": "RUN_BUNDLE_ROOT_UNREADABLE"}]}
     manifest_path = root / "bundle_manifest.json"
     if not manifest_path.exists():
         return {"ok": False, "reason_code": "RUN_BUNDLE_MANIFEST_MISSING", "issues": []}
-    manifest = _read_json(manifest_path)
     issues: list[dict[str, Any]] = []
-    for relative, expected in (manifest.get("files") or {}).items():
+    try:
+        if manifest_path.is_symlink() or not manifest_path.is_file():
+            raise ValueError("manifest must be a regular bundle file")
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+        if (
+            not isinstance(manifest, dict)
+            or not isinstance(manifest.get("run_id"), str)
+            or not manifest["run_id"]
+            or not isinstance(manifest.get("files"), dict)
+            or not manifest["files"]
+        ):
+            raise ValueError("invalid manifest object")
+    except (OSError, ValueError):
+        return {"ok": False, "reason_code": "RUN_BUNDLE_INTEGRITY_FAILED", "issues": [{"code": "RUN_BUNDLE_MANIFEST_INVALID"}]}
+    seal_path = root / "SEALED.json"
+    try:
+        if seal_path.is_symlink():
+            raise ValueError("seal must be a regular bundle file")
+        if not seal_path.is_file():
+            issues.append({"code": "RUN_BUNDLE_SEAL_MISSING"})
+        else:
+            seal = _read_json(seal_path)
+            if not isinstance(seal, dict):
+                raise ValueError("invalid seal object")
+            if seal.get("bundle_manifest_sha256") != hashlib.sha256(manifest_bytes).hexdigest():
+                issues.append({"code": "RUN_BUNDLE_SEAL_HASH_MISMATCH"})
+            if not manifest.get("run_id") or seal.get("run_id") != manifest.get("run_id"):
+                issues.append({"code": "RUN_BUNDLE_SEAL_RUN_ID_MISMATCH"})
+    except (OSError, ValueError):
+        issues.append({"code": "RUN_BUNDLE_SEAL_INVALID"})
+    for relative, expected in manifest["files"].items():
+        # Validate the portable manifest spelling before touching a target.
+        # Backslashes/drives/ADS must not gain a different meaning on Windows.
+        if (
+            not isinstance(relative, str)
+            or not relative
+            or "\\" in relative
+            or ":" in relative
+            or any(ord(character) < 32 for character in relative)
+            or PurePosixPath(relative).is_absolute()
+            or PureWindowsPath(relative).drive
+            or any(part in {"", ".", ".."} or part.endswith((".", " ")) for part in relative.split("/"))
+        ):
+            issues.append({"code": "RUN_BUNDLE_ARTIFACT_PATH_INVALID", "path": relative})
+            continue
+        if (
+            not isinstance(expected, dict)
+            or not isinstance(expected.get("sha256"), str)
+            or re.fullmatch(r"[0-9a-fA-F]{64}", expected["sha256"]) is None
+            or (
+                "size_bytes" in expected
+                and (type(expected["size_bytes"]) is not int or expected["size_bytes"] < 0)
+            )
+        ):
+            issues.append({"code": "RUN_BUNDLE_ARTIFACT_ENTRY_INVALID", "path": relative})
+            continue
         path = root / relative
-        if not path.exists():
+        try:
+            resolved_path = path.resolve(strict=True)
+            if not resolved_path.is_relative_to(root):
+                issues.append({"code": "RUN_BUNDLE_ARTIFACT_OUTSIDE_BUNDLE", "path": relative})
+                continue
+            if not resolved_path.is_file():
+                issues.append({"code": "RUN_BUNDLE_ARTIFACT_NOT_FILE", "path": relative})
+                continue
+            if "size_bytes" in expected and resolved_path.stat().st_size != expected["size_bytes"]:
+                issues.append({"code": "RUN_BUNDLE_ARTIFACT_SIZE_MISMATCH", "path": relative})
+            actual = _sha256_file(resolved_path)
+        except FileNotFoundError:
             issues.append({"code": "RUN_BUNDLE_ARTIFACT_MISSING", "path": relative})
             continue
-        actual = _sha256_file(path)
-        if actual != expected.get("sha256"):
+        except (OSError, ValueError, RuntimeError):
+            issues.append({"code": "RUN_BUNDLE_ARTIFACT_UNREADABLE", "path": relative})
+            continue
+        if actual != expected["sha256"].lower():
             issues.append({"code": "RUN_BUNDLE_ARTIFACT_HASH_MISMATCH", "path": relative, "expected": expected.get("sha256"), "actual": actual})
     return {"ok": not issues, "reason_code": "RUN_BUNDLE_VERIFIED" if not issues else "RUN_BUNDLE_INTEGRITY_FAILED", "issues": issues, "manifest": manifest}
 

@@ -13,7 +13,7 @@ def _spec(task_id: str, *, duration_s: float = 3.0, values: dict | None = None) 
         "simulation": {
             "level": "whole_spacecraft",
             "duration_s": duration_s,
-            "step_s": 0.2,
+            "step_s": 0.1,
             "sample_s": 0.5,
             "backend": "basilisk",
         },
@@ -122,7 +122,7 @@ def test_run_bundle_records_execution_validation_and_overall_status(tmp_path: Pa
     from sat_sim.scenario_templates import instantiate_scenario_template
 
     spec = instantiate_scenario_template("whole_spacecraft_unified_native", task_id="v0565_bundle_hot")
-    spec["simulation"].update({"duration_s": 3.0, "step_s": 0.2, "sample_s": 0.5})
+    spec["simulation"].update({"duration_s": 3.0, "step_s": 0.1, "sample_s": 0.5})
     spec.setdefault("parameters", {}).setdefault("values", {}).update({
         "initial_soc": 0.8,
         "initial_payload_temp_k": 339.0,

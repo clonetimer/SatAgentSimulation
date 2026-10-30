@@ -34,12 +34,28 @@ simulation_parameters:
   sample_s: {unit: s, required: true, min: 0.001}
 outputs:
   trace:
-  - {name: adcs.cmg.wheel_speed_rad_s, unit: rad/s, dtype: number}
-  - {name: adcs.cmg.gimbal_angle_rad, unit: rad, dtype: number}
-  - {name: adcs.cmg.wheel_momentum_nms, unit: "N*m*s", dtype: number}
+  - name: adcs.cmg.wheel_speed_rad_s
+    unit: rad/s
+    dtype: number
+  - name: adcs.cmg.gimbal_angle_rad
+    unit: rad
+    dtype: number
+  - name: adcs.cmg.wheel_momentum_nms
+    unit: N*m*s
+    dtype: number
+  - name: adcs.cmg.commanded_gimbal_rate_rad_s
+    unit: rad/s
+    dtype: number
+  - name: adcs.cmg.commanded_wheel_torque_nm
+    unit: N*m
+    dtype: number
   summary:
-  - {name: adcs.cmg.final_wheel_speed_rad_s, unit: rad/s}
-  - {name: adcs.cmg.max_abs_momentum_nms, unit: "N*m*s"}
+  - name: adcs.cmg.final_wheel_speed_rad_s
+    unit: rad/s
+  - name: adcs.cmg.max_abs_momentum_nms
+    unit: N*m*s
+  - name: adcs.cmg.final_gimbal_angle_rad
+    unit: rad
 operator:
   owner: cmg
   effects:

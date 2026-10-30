@@ -98,6 +98,18 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: thermal.heater.node_temp_k
+    unit: K
+    dtype: number
+  - name: thermal.heater.power_w
+    unit: W
+    dtype: number
+  - name: thermal.heater.effective_max_power_w
+    unit: W
+    dtype: number
+  - name: thermal.heater.temperature_error_k
+    unit: K
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

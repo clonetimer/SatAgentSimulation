@@ -24,7 +24,7 @@ from sat_sim.frames import vector_norm
 from sat_sim.orbit.medium import EARTH_MU_M3_S2, EARTH_RADIUS_M
 
 BASILISK_ORBIT_HF_SCHEMA_VERSION = "bsk_orb1.basilisk_orbit_hf.v1"
-BASILISK_REQUIRED_VERSION_NOTE = "Accepted runtime identities are official bsk==2.11.0 or project metadata-only bsk==2.11.0+satfix1; runtime import and distribution identity are verified separately from offline Wheel availability"
+BASILISK_REQUIRED_VERSION_NOTE = "Accepted runtime identities are official bsk==2.11.0 or project metadata-only bsk==2.11.0+satfix1 / bsk==2.11.0+satfix2; runtime import and distribution identity are verified separately from offline Wheel availability"
 SUPPORTED_CENTRAL_BODIES = {"earth", "mars"}
 DEFAULT_EPOCH_UTC = "2026-01-01T00:00:00Z"
 DEFAULT_J2_COEFFICIENT_RELATIVE_PATH = "supportData/LocalGravData/GGM03S-J2-only.csv"

@@ -22,13 +22,26 @@ class NativeOrbitInitial(_Strict):
     spacecraft_inertia_xx_kg_m2: float = Field(default=100., gt=0., le=10000., description="Basilisk Spacecraft.hub.IHubPntBc_B 机体系主惯量 Ixx（kg·m²），不自动由质量推算")
     spacecraft_inertia_yy_kg_m2: float = Field(default=80., gt=0., le=10000., description="Basilisk Spacecraft.hub.IHubPntBc_B 机体系主惯量 Iyy（kg·m²）")
     spacecraft_inertia_zz_kg_m2: float = Field(default=60., gt=0., le=10000., description="Basilisk Spacecraft.hub.IHubPntBc_B 机体系主惯量 Izz（kg·m²）")
-    orbit_radius_m: float = Field(default=7_000_000., ge=6_500_000., le=20_000_000.)
-    eccentricity: float = Field(default=.001, ge=0., le=.2)
+    orbit_radius_m: float = Field(default=7_000_000., ge=6_500_000., le=100_000_000.)
+    eccentricity: float = Field(default=.001, ge=0., lt=1.)
     inclination_deg: float = Field(default=35., ge=0., le=180.)
+    raan_deg: float = Field(default=0., ge=0., le=360.)
+    arg_perigee_deg: float = Field(default=0., ge=0., le=360.)
     initial_true_anomaly_rad: float = Field(default=0., ge=0., le=6.283185307179586)
+    environment_profile: Literal['simplified', 'spice_wmm'] = 'simplified'
+    epoch_utc: str = '2026-01-01T00:00:00Z'
+
+    @field_validator('epoch_utc')
+    @classmethod
+    def validate_epoch(cls, value):
+        from sat_sim.bsk_engine.orbital_environment import parse_epoch
+        parse_epoch(value)
+        return value
 
     @model_validator(mode="after")
     def validate_principal_inertia(self):
+        if self.orbit_radius_m * (1. - self.eccentricity) <= 6_378_137.:
+            raise ValueError('NATIVE_ORBIT_PERIGEE_INTERSECTS_EARTH')
         xx, yy, zz = (self.spacecraft_inertia_xx_kg_m2,
                       self.spacecraft_inertia_yy_kg_m2,
                       self.spacecraft_inertia_zz_kg_m2)
@@ -327,6 +340,11 @@ class NativePropulsionInitial(_Strict):
 class NativeThermalInitial(_Strict):
     """Project thermal network executed inside the Basilisk task, not BSK-native."""
 
+    thermal_earth_ir_w_m2: float = Field(default=234., ge=0., le=1000., description="地球均匀红外出射度（W/m²）；默认是全球年均假设，不是瞬时冷热边界")
+    thermal_earth_albedo: float = Field(default=.30, ge=0., le=1., description="地球均匀朗伯反照率；不包含云层及地表分布")
+    thermal_panel_front_absorptivity: float = Field(default=.90, ge=0., le=1., description="太阳翼正面短波吸收率，工程假设；须不小于发电效率")
+    thermal_panel_back_absorptivity: float = Field(default=.35, ge=0., le=1., description="太阳翼背面短波吸收率，工程假设")
+
     payload_thermal_mass_kg: float = Field(default=3., gt=0., le=50., description="载荷热节点质量（kg），参与热容量 m×cp，项目热网络")
     payload_specific_heat_j_kg_k: float = Field(default=600., gt=0., le=3000., description="载荷热节点比热容（J/(kg·K)），项目热网络")
     payload_thermal_emissivity: float = Field(default=.75, ge=0., le=1., description="载荷节点辐射率 0–1，项目热网络")
@@ -339,6 +357,7 @@ class NativeThermalInitial(_Strict):
     initial_propulsion_temp_k: float = Field(default=292., ge=220., le=350., description="推进热节点初始温度（K），项目热网络")
     comm_structure_conductance_w_k: float = Field(default=.35, ge=0., le=5., description="通信—结构导热系数（W/K），项目热网络")
     propulsion_structure_conductance_w_k: float = Field(default=.45, ge=0., le=5., description="推进—结构导热系数（W/K），项目热网络")
+    solar_panel_structure_conductance_w_k: float = Field(default=2., ge=0., le=20., description="太阳翼—结构总等效导热系数（W/K），实际热网络连接；默认保留既有 2 W/K。增加此值代表明确的物理热连接设计变更，非硬件标定")
 
 
 class ContinuousInitialConfiguration(_Strict):
@@ -408,6 +427,7 @@ _UNITS = {
     "star_tracker_mount_pitch_deg": "deg",
     "star_tracker_mount_roll_deg": "deg",
     "orbit_radius_m": "m", "eccentricity": "1", "inclination_deg": "deg",
+    "raan_deg": "deg", "arg_perigee_deg": "deg", "environment_profile": "枚举", "epoch_utc": "UTC",
     "initial_true_anomaly_rad": "rad",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",
     "rw_geometry_mode": "枚举",
@@ -482,9 +502,12 @@ _UNITS = {
     "payload_thermal_mass_kg": "kg", "payload_specific_heat_j_kg_k": "J/(kg·K)",
     "payload_thermal_emissivity": "1", "payload_radiator_area_m2": "m²",
     "battery_heater_power_w": "W", "battery_heater_setpoint_k": "K",
+    "thermal_earth_ir_w_m2": "W/m²", "thermal_earth_albedo": "1",
+    "thermal_panel_front_absorptivity": "1", "thermal_panel_back_absorptivity": "1",
     "initial_payload_temp_k": "K", "initial_comm_temp_k": "K",
     "initial_propulsion_temp_k": "K", "comm_structure_conductance_w_k": "W/K",
     "propulsion_structure_conductance_w_k": "W/K",
+    "solar_panel_structure_conductance_w_k": "W/K",
 }
 
 

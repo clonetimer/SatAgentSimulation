@@ -226,7 +226,7 @@ class ProviderProbeBody(_Strict):
 
 
 class LocalModelDiscoveryBody(_Strict):
-    service_type: Literal["ollama", "lmstudio", "vllm", "openai_compatible"]
+    service_type: Literal["ollama", "lmstudio", "vllm", "modelscope", "openai_compatible"]
     provider_id: str | None = None
     base_url: str | None = None
     api_key: str | None = Field(default=None, max_length=4096)
@@ -234,7 +234,7 @@ class LocalModelDiscoveryBody(_Strict):
 
 
 class LocalModelServiceBody(_Strict):
-    service_type: Literal["ollama", "lmstudio", "vllm", "openai_compatible"]
+    service_type: Literal["ollama", "lmstudio", "vllm", "modelscope", "openai_compatible"]
     provider_id: str | None = None
     label: str | None = None
     base_url: str | None = None
@@ -464,6 +464,10 @@ def _run_payload(root: Path) -> dict[str, Any]:
         "events": _json(root / "results" / "events.json"),
         "assertions": _json(root / "results" / "assertions.json"),
         "plot_manifest": _json(root / "results" / "plot_manifest.json"),
+        "available_outputs": {
+            "fmea": (root / "results" / "dataset" / "fmea" / "fmea_manifest.json").is_file(),
+            "fault_traceability": (root / "results" / "dataset" / "traceability" / "fault_traceability.json").is_file(),
+        },
         "sealed": (root / "SEALED.json").exists(),
         "integrity": verify_run_bundle(root) if (root / "bundle_manifest.json").exists() else None,
     }
@@ -497,7 +501,7 @@ def _metric_presentation_payload(root: Path, payload: dict[str, Any]) -> tuple[d
     for key in metric_values:
         metadata.setdefault(str(key), {
             "label_zh": output_label(str(key)),
-            "unit": None,
+            "unit": {"final_storage_bits": "bit", "final_pointing_error_deg": "deg", "final_battery_soc": "ratio"}.get(str(key)),
             "description_zh": "该指标来自本次运行结果；技术字段用于日志、接口与数据导出。",
             "technical_name": str(key),
         })
@@ -995,6 +999,7 @@ def create_app(
             "diagnostic_cases_root": str(diagnostic_root),
             "queue": execution_queue.health(),
             "embedded_worker": bool(queue_worker),
+            "features": {"interactive": interactive_manager is not None},
             "auth": {"mode": auth_manager.mode, "enabled": auth_manager.enabled},
             "remote_worker_protocol": REMOTE_WORKER_PROTOCOL_VERSION,
             "experiments": experiment_store.health(),
@@ -1453,13 +1458,14 @@ def create_app(
         return {
             "ok": True, "config_path": str(provider_config_path), "providers": local,
             "active_provider_id": catalog.get("active_provider_id"),
-            "supported_service_types": ["ollama", "lmstudio", "vllm", "openai_compatible"],
+            "supported_service_types": ["ollama", "lmstudio", "vllm", "modelscope", "openai_compatible"],
             "secret_values_exposed": False,
         }
 
     @app.post("/models/local-services/discover")
     def discover_local_model_service(body: LocalModelDiscoveryBody) -> dict[str, Any]:
         defaults = {
+            "modelscope": ("local-modelscope", "ModelScope 微调模型", "openai_compatible", "http://127.0.0.1:8031/v1"),
             "ollama": ("local-ollama", "本地 Ollama", "openai_compatible", "http://127.0.0.1:11434/v1"),
             "lmstudio": ("local-lmstudio", "本地 LM Studio", "openai_compatible", "http://127.0.0.1:1234/v1"),
             "vllm": ("local-vllm", "本地 vLLM / Qwen", "vllm", "http://127.0.0.1:8001/v1"),
@@ -1483,6 +1489,7 @@ def create_app(
     @app.post("/models/local-services")
     def configure_local_model_service(body: LocalModelServiceBody) -> dict[str, Any]:
         defaults = {
+            "modelscope": ("local-modelscope", "ModelScope 微调模型", "openai_compatible", "http://127.0.0.1:8031/v1"),
             "ollama": ("local-ollama", "本地 Ollama", "openai_compatible", "http://127.0.0.1:11434/v1"),
             "lmstudio": ("local-lmstudio", "本地 LM Studio", "openai_compatible", "http://127.0.0.1:1234/v1"),
             "vllm": ("local-vllm", "本地 vLLM / Qwen", "vllm", "http://127.0.0.1:8001/v1"),
@@ -1498,9 +1505,10 @@ def create_app(
         config_payload = _provider_config_payload()
         rows = config_payload.get("providers", [])
         rows = [item for item in rows if isinstance(item, dict) and item.get("provider_id") != provider_id]
-        default_timeout = 300.0 if body.service_type == "lmstudio" else 180.0
-        default_max_tokens = 2048 if body.service_type == "lmstudio" else 4000
-        default_structured_output = "json_schema" if body.service_type == "lmstudio" else "json_object"
+        structured_local = body.service_type in {"lmstudio", "modelscope"}
+        default_timeout = 300.0 if structured_local else 180.0
+        default_max_tokens = {"lmstudio": 2048, "modelscope": 4096}.get(body.service_type, 4000)
+        default_structured_output = "json_schema" if structured_local else "json_object"
         rows.append({
             "provider_id": provider_id,
             "label": body.label or default_label,

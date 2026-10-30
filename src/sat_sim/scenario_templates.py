@@ -134,6 +134,27 @@ _TEMPLATES = [
     ),
 
     _template(
+        "generic_leo_small_sat_engineering", "通用近地小卫星工程场景（SPICE/WMM）", "通用工程场景", "whole_spacecraft",
+        "whole_spacecraft.unified_native.v1", "100 kg 参考小卫星、约 622 km 半长轴高度、35° 轨道倾角；采用可追溯工程假设与原生多分系统耦合。",
+        duration_s=600., recommended=True,
+        patch={
+            "simulation": {"step_s": .2, "sample_s": 2.},
+            "parameters": {"values": {"environment_profile": "spice_wmm", "epoch_utc": "2026-01-01T00:00:00Z",
+                "spacecraft_mass_kg": 100., "orbit_radius_m": 7000000., "eccentricity": .001, "inclination_deg": 35.,
+                "thermal_earth_ir_w_m2": 234., "thermal_earth_albedo": .30,
+                "thermal_panel_front_absorptivity": .90, "thermal_panel_back_absorptivity": .35}},
+            "metadata": {"engineering_scope": {
+                "profile_id": "generic_leo_small_sat_v2_finite_earth_thermal",
+                "target": "通用近地小卫星工程仿真",
+                "parameter_basis": "配置值为声明的工程假设；来源及输入值逐项保存在 provenance 中。",
+                "validity": "适用于当前声明的近地轨道、硬件拓扑与已建模耦合；WMM2025 环境限于 2025—2029 年。默认 600 秒为起始瞬态参考，不保证整圈任务的温度及数据预算均满足约束。",
+                "error_boundary": "没有覆盖全部工况的统一精度上界；外部轨道残差与步长误差只对各自验证窗口成立。",
+                "thermal_boundary": "太阳直射、均匀地球红外及朗伯反照；机身六面等效暴露面积，太阳翼实际EPS法线与双面面积，扣除真实发电功率。光学参数为工程假设；234W/m²为全球年均参考，不是瞬时冷热边界。",
+                "excluded_effects": ["大气阻力与长期轨道衰减", "高于 J2 的地球引力谐项", "局地天气、云层和地表反照分布", "设备级热结构、CAD遮挡与相互辐射视因子", "未登记的硬件故障机理"],
+            }},
+        },
+    ),
+    _template(
         "whole_spacecraft_unified_native", "整星统一Basilisk运行图", "统一原生运行图", "whole_spacecraft",
         "whole_spacecraft.unified_native.v1", "官方Basilisk模块与项目自研SysModel在同一Process/Task中完成轨道、ADCS、电源、数据和热控消息耦合。",
         duration_s=120.0,

@@ -6,6 +6,8 @@ tests/interactive/test_unified_segmented_execution.py gate.
 """
 from __future__ import annotations
 
+import os
+
 import json
 from urllib.parse import parse_qs, urlsplit
 
@@ -90,7 +92,7 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
     calls = []
     parse_calls = []
     with _client(tmp_path) as client, pw.sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        browser = p.chromium.launch(headless=True, executable_path=os.environ.get('SAT_SIM_BROWSER_EXECUTABLE'), args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
             page = browser.new_page(viewport={"width": 1480, "height": 950}, locale="zh-CN")
             errors = []
@@ -280,7 +282,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
         assert parsed["ok"] is True
         payloads["ui-a"]["task_spec"] = parsed["result"]["task_spec"]
         payloads["ui-a"]["task_spec"]["task"]["name"] = payloads["ui-a"]["name"]
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        browser = p.chromium.launch(headless=True, executable_path=os.environ.get('SAT_SIM_BROWSER_EXECUTABLE'), args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
             page = browser.new_page(viewport={"width": 1480, "height": 950}, locale="zh-CN")
             errors = []
@@ -373,6 +375,9 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
             # Drag horizontally across the canvas plot area; the selection
             # must zoom to actual loaded time points, not modify backend data.
             canvas = page.locator("#telemetryChart")
+            # Mouse coordinates do not auto-scroll like locator.click().
+            # Bring the plot into view before measuring the drag geometry.
+            canvas.scroll_into_view_if_needed()
             bounds = canvas.bounding_box()
             assert bounds is not None
             y = bounds["y"] + bounds["height"] * 0.55
@@ -441,7 +446,7 @@ def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_pat
     executed_requests = []
     telemetry_requests = []
     with _client(tmp_path) as client, pw.sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        browser = p.chromium.launch(headless=True, executable_path=os.environ.get('SAT_SIM_BROWSER_EXECUTABLE'), args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:
             page = browser.new_page(viewport={"width": 1480, "height": 950}, locale="zh-CN")
             errors = []

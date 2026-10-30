@@ -21,6 +21,27 @@ def test_monte_carlo_expansion_is_seed_reproducible():
     assert first[0]["task_spec"]["metadata"]["experiment_variant"]["seed"] == 42
 
 
+def test_native_mc_seeds_match_runtime_domain_and_parameter_origin():
+    spec = instantiate_scenario_template('generic_leo_small_sat_engineering')
+    base_soc = spec['parameters']['values']['initial_soc']
+    variants = expand_monte_carlo(spec,
+        {'parameters.values.initial_soc':{'distribution':'uniform','min':.45,'max':.8}},
+        sample_count=64,seed=77)
+    seeds = [variant['simulation_seed'] for variant in variants]
+    assert len(set(seeds)) == 64
+    assert all(1 <= seed <= 2147483647 for seed in seeds)
+    for variant in variants:
+        task = variant['task_spec']
+        assert task['simulation']['random_seed'] == variant['simulation_seed']
+        assert task['parameters']['values']['simulation_seed'] == variant['simulation_seed']
+        path = 'parameters.values.initial_soc'
+        assert task['provenance']['fields'][path]['source'] == 'resolver_derived'
+        assumption = next(item for item in task['provenance']['assumptions'] if item['path'] == path)
+        assert assumption['value'] == variant['parameters'][path]
+        assert task['metadata']['experiment_variant']['simulation_seed_algorithm'] == 'python_random_unique_u31_v1'
+    assert spec['parameters']['values']['initial_soc'] == base_soc
+
+
 def test_experiment_store_creates_monte_carlo_records(tmp_path: Path):
     spec = instantiate_scenario_template("whole_nominal", task_id="mc_store_base")
     store = ExperimentStore(tmp_path / "experiments.sqlite3")

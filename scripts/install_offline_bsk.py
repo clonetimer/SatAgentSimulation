@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Install only the explicitly attested Basilisk 2.11.0+satfix1 binary wheel.
+"""Install only the explicitly attested Basilisk 2.11.0+satfix2 binary wheel.
 
-用途：对平台匹配的本地 satfix1 Basilisk wheel 逐文件验证 SHA-256/RECORD 后再离线安装。
+用途：对平台匹配的本地 satfix2 Basilisk wheel 逐文件验证 SHA-256/RECORD 后再离线安装。
 参数：--wheelhouse 指定本地目录，--check-only 仅核对不修改环境，--report 输出审计 JSON。
 输出：成功打印已验证的 wheel 来源与实际 bsk 版本；原生模块导入须在 NumPy 等依赖安装后进行。
 """
@@ -32,7 +32,7 @@ def main() -> int:
             "--force-reinstall", record["wheel_path"],
         ], check=True)
         installed = version("bsk")
-        if installed != "2.11.0+satfix1":
+        if installed != "2.11.0+satfix2":
             raise RuntimeError("BSK_INSTALL_VERSION_MISMATCH:" + installed)
         # Native C++ import requires numpy, which is installed during the
         # NEXT bootstrap phase. Importing it here after --no-deps is unsafe

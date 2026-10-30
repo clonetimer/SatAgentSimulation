@@ -66,7 +66,7 @@ def test_capability_dependency_identity_matches_project_lock() -> None:
     ):
         contract = get_capability(capability_id)
         implementation = contract.data["implementation"]
-        assert implementation["optional_dependency"] == "bsk==2.11.0+satfix1"
+        assert implementation["optional_dependency"] == "bsk==2.11.0+satfix2"
         assert implementation["uses_legacy_runner"] is False
 
 
@@ -133,13 +133,13 @@ def test_trace_quality_distinguishes_report_only_and_native_telemetry() -> None:
 
 
 def test_runtime_policy_accepts_official_and_satfix1_without_offline_bundle() -> None:
-    assert ACCEPTED_BSK_RUNTIME_VERSIONS == {"2.11.0", "2.11.0+satfix1"}
+    assert ACCEPTED_BSK_RUNTIME_VERSIONS == {"2.11.0", "2.11.0+satfix1", "2.11.0+satfix2"}
     manifest = json.loads((ROOT / "third_party" / "THIRD_PARTY_MANIFEST.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "PASS_MANDATORY_ASSETS_EXTERNAL_BSK_POLICY"
     assert manifest["runtime_dependency_mode"] == "external_python_environment"
     optional_bsk = [
         row for row in manifest["files"]
-        if row["path"].endswith(".whl") or row["path"].endswith("bsk_2.11.0_satfix1_build_report.json")
+        if row["path"].endswith(".whl") or row["path"].endswith("bsk_2.11.0_satfix2_build_report.json")
     ]
     assert optional_bsk
     assert all(row["required"] is False for row in optional_bsk)

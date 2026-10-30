@@ -6,6 +6,7 @@
   const state = {
     active: false, timer: null, refreshBusy: false,
     selectedId: null, snapshot: null, policy: null, metrics: null, endurance: null, recovery: null,
+    focusSelectedStatus: false,
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
     rwConfiguration: null,
@@ -13,6 +14,15 @@
     history: null,
   };
   const terminal = new Set(['COMPLETED', 'ABORTED', 'FAILED', 'INTERRUPTED']);
+  const sessionStateLabels = {
+    READY: '准备就绪', PREPARING: '准备中', RUNNING: '运行中', PAUSED: '已暂停',
+    STOPPING: '停止中', STOPPED: '已停止', COMPLETED: '已完成',
+    ABORTED: '已中止', FAILED: '失败', INTERRUPTED: '已中断',
+  };
+  const archiveStateLabels = {
+    NOT_CONFIGURED: '未配置归档', NOT_READY: '尚未归档', SEALING: '封存中',
+    SEALED: '已封存', FAILED: '归档失败', NOT_APPLICABLE: '不适用',
+  };
   const valueText = (val, digits = 3) => {
     const n = Number(val);
     return Number.isFinite(n) ? n.toFixed(digits) : '—';
@@ -40,6 +50,13 @@
   function setText(id, text) {
     const node = $(id);
     if (node) node.textContent = String(text);
+  }
+  function setStatusText(id, raw, labels, empty) {
+    const node = $(id);
+    if (!node) return;
+    node.dataset.state = raw || '';
+    node.title = raw || '';
+    node.textContent = raw ? (labels[raw] || `未知状态（${raw}）`) : empty;
   }
   function notice(text, error = false) {
     const target = $('continuousNotice');
@@ -71,6 +88,7 @@
       );
       node.addEventListener('click', () => {
         state.selectedId = session.session_id;
+        state.focusSelectedStatus = true;
         state.snapshot = null;
         state.metrics = null;
         state.recovery = null;
@@ -273,22 +291,59 @@
     link.click();
     URL.revokeObjectURL(url);
   }
+  function syncSessionColumnOrder() {
+    const grid = document.querySelector('#continuousView .continuous-grid');
+    if (!grid) return;
+    const primary = grid.querySelector('.continuous-main');
+    const sidebar = grid.querySelector('.continuous-sidebar');
+    const first = window.matchMedia('(max-width: 850px)').matches && state.selectedId ? primary : sidebar;
+    // Reorder DOM as well as presentation, so keyboard and reading order agree.
+    if (first && grid.firstElementChild !== first) grid.insertBefore(first, grid.firstElementChild);
+    const session = state.snapshot?.session;
+    const mobileControlsActive = window.matchMedia('(max-width: 760px)').matches && Boolean(session) && !terminal.has(session.state);
+    const mobileSlot = $('continuousMobileControls');
+    const toolbar = $('continuousSessionToolbar');
+    const slot = mobileControlsActive ? mobileSlot : $('continuousSessionActionSlot');
+    const focused = toolbar.contains(document.activeElement) ? document.activeElement : null;
+    mobileSlot.classList.toggle('hidden', !mobileControlsActive);
+    if (toolbar.parentElement !== slot) {
+      slot.appendChild(toolbar);
+      if (focused) focused.focus({preventScroll:true});
+    }
+    $('continuousView').dataset.mobileControlsActive = String(mobileControlsActive);
+  }
   function renderStatus() {
     const info = state.snapshot;
     const session = info?.session;
+    syncSessionColumnOrder();
+    if (state.focusSelectedStatus && session?.session_id === state.selectedId) {
+      state.focusSelectedStatus = false;
+      if (state.active && window.matchMedia('(max-width: 850px)').matches) {
+        requestAnimationFrame(() => {
+          const heading = $('continuousStatusHeading');
+          heading.focus({preventScroll:true});
+          heading.scrollIntoView({block:'start'});
+        });
+      }
+    }
     const live = Boolean(session) && !terminal.has(session.state);
     const mode = info?.runtime_mode || state.policy?.mode || '未连接';
     setText('continuousRuntimeMode', mode === 'SUPERVISED_NATIVE_CHILD'
       ? '原生独立进程' : '原生进程内');
-    setText('continuousState', session?.state || '未选择');
+    setStatusText('continuousState', session?.state, sessionStateLabels, '未选择');
     setText('continuousSimTime', valueText(session?.sim_time_s, 2) + ' s');
     setText('continuousLiveRate', valueText(session?.rate || 1, 1) + '×');
-    setText('continuousArchive', session?.archive_status || '—');
+    setStatusText('continuousArchive', session?.archive_status, archiveStateLabels, '—');
     setText('continuousChildPid', info?.native_child_pid ?? '进程内运行 / 未启动');
     setText('continuousWriterEpoch', info?.writer_epoch ?? '—');
     const fence = info?.parent_death_fence;
+    const fenceLabel = fence?.kind === 'WINDOWS_JOB_KILL_ON_CLOSE'
+      ? 'Windows 作业对象父进程退出保护：已安装'
+      : fence?.kind === 'LINUX_PR_SET_PDEATHSIG_SIGKILL'
+        ? 'Linux 内核父进程死亡栅栏：已安装'
+        : '操作系统父进程退出保护：已安装';
     setText('continuousParentFence', fence?.supported
-      ? 'Linux 内核父进程死亡栅栏：已安装'
+      ? fenceLabel
       : (mode === 'SUPERVISED_NATIVE_CHILD' ? '未证明有操作系统父进程死亡保护' : '进程内模式：不适用子进程死亡保护'));
     setText('continuousErrorDetail', session?.terminal_error || session?.archive_error || '');
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
@@ -731,7 +786,7 @@
       if (field.disabled) return;
       const group = field.dataset.nativeGroup;
       initial_configuration[group] ||= {};
-      const value = field.type === 'checkbox' ? field.checked : (field.tagName === 'SELECT' ? field.value : Number(field.value));
+      const value = field.type === 'checkbox' ? field.checked : (field.type === 'number' ? Number(field.value) : field.value);
       initial_configuration[group][field.dataset.nativeKey] = value;
     });
     const body = {
@@ -747,6 +802,7 @@
         method: 'POST', body: JSON.stringify(body),
       });
       state.selectedId = result.session_id;
+      state.focusSelectedStatus = true;
       state.metrics = null;
       state.endurance = null;
       state.recovery = null;
@@ -1082,6 +1138,7 @@
       button.addEventListener('click', () => control(button.dataset.continuousAction));
     });
     window.addEventListener('resize', () => {
+      syncSessionColumnOrder();
       if (state.active) { renderChart(); renderVerifiedHistory(); }
     });
     changeOperation();

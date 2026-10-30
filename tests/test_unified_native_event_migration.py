@@ -179,10 +179,18 @@ def test_thermal_degradation_changes_recorder_temperature_against_nominal() -> N
     assert float(degraded_20["thermal.payload_radiator_rejected_w"]) < float(
         nominal_20["thermal.payload_radiator_rejected_w"]
     )
-    # The 10-second active interval is intentionally short relative to the
-    # payload thermal time constant.  Require the physically correct direction,
-    # while the direct radiator-power evidence above proves the commanded loss.
-    assert float(degraded_20["thermal.payload_temp_k"]) > float(nominal_20["thermal.payload_temp_k"])
+    # The radiator deploys at the same 340 K boundary as payload protection.
+    # Reduced rejection increases peak temperature, then changes load-shedding
+    # timing. Comparing one later temperature would confuse that feedback with
+    # the direct heat-rejection effect. Keep the original near-trip scenario.
+    nominal_active = _during(nominal, 4., 22.)
+    degraded_active = _during(degraded, 4., 22.)
+    assert max(row["thermal.payload_temp_k"] for row in degraded_active) > max(
+        row["thermal.payload_temp_k"] for row in nominal_active
+    )
+    assert any(row["eps.loads.payload_power_w"] == 0. for row in degraded_active)
+    assert any(a["eps.loads.payload_power_w"] != b["eps.loads.payload_power_w"]
+               for a, b in zip(nominal_active, degraded_active))
 
 
 def test_unmigrated_effect_and_invalid_wheel_are_rejected() -> None:

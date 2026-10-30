@@ -6,6 +6,17 @@
 
 | 脚本 | 类别 | 状态 | 处理结论 |
 |---|---|---|---|
+| `run_native_failure_recreation.py` | 原生异常与新建场景验收 | active | 只终止脚本自己新建的原生子进程，核验原始证据保留及新场景独立运行，不冒充断点续算 |
+| `benchmark_iss_oem.py` | 外部轨道参考对照 | active | 离线核验 NASA OEM 哈希、坐标系与时间，比较真实原生轨道残差；不冒充飞行标定 |
+| `check_sft_chunked_loss.py` | 微调损失等价验证 | active | 比较分块/完整损失及隐状态、输出头梯度，保留张量级证据 |
+| `inspect_sft_data.py` | 微调序列审计 | active | 使用实际 tokenizer 检查长度与监督 token，不截断或静默丢弃样本 |
+| `build_sft_dataset.py` | 微调数据构建 | active | 注册模板标签经 schema/compile 校验；按语义族隔离训练与验证，排除正式评测请求 |
+| `train_modelscope_lora.py` | ModelScope GPU LoRA | active | 校验模型/数据摘要，使用 completion-only loss，保存 checkpoint/显存/损失证据 |
+| `serve_modelscope_model.py` | 本机模型推理 | active | 校验基座和适配器摘要；仅 loopback 提供真实 GPU 推理，无模板替代 |
+| `fetch_sft_model.py` | ModelScope 基座获取 | active | 只获取模型权重/配置/分词器，保存逐文件摘要，不执行远程模型代码 |
+| `fetch_torch_wheel.py` | 微调 CUDA 环境 | active | 从官方索引解析确切 wheel，分段下载并核对官方 SHA-256 |
+| `setup_uv.py` | uv 完整安装 | active | 安装固定依赖和官方校验 wheel；预取离线环境资产并运行严格 doctor |
+| `fetch_environment_assets.py` | 轨道环境资产 | active | 从固定 NAIF/Basilisk 来源下载、校验并记录 SPICE、WMM2025 和 J2 资产；运行时不联网 |
 | `apply_basilisk211_battery_checkpoint.py` | Basilisk 原生 C++ 源码补丁 | active | 仅对确切 v2.11.0 提交进行版本锁定的 SimpleBattery C++ 状态导入/导出补丁；禁止更改 stock wheel 或宣称恢复验收 |\n| `inspect_continuous_recovery.py` | 持续仿真恢复证据审计 | active | 验证中断会话来源哈希、最后持久化遥测时刻并显式标注不支持原生物理状态无损续跑；只读检查 |
 | `archive_continuous_telemetry.py` | 持续遥测离线归档 | active | 对已结束会话执行压缩前后 SHA-256 校验的离线 gzip 归档、跨段完整性检查与显式失败恢复；不处理在线状态 |
 | `audit_a4r_dc2_run_bundles.py` | A4R-DC2 evidence audit | active | Audits Composite Digital Twin Run Bundle adapter, legacy flags, manifests, and SHA-256 evidence |
@@ -82,6 +93,12 @@
 | `verify_source_package.py` | 发布审计 | active | 保留并统一文件头与入口 |
 | `assess_rw_jam_readiness.py` | RW 准备度 | active | 基于合同、原生门和具名审批证据执行 fail-closed 准备度判定 |
 | `audit_object_scenario_coverage.py` | 全对象覆盖治理 | active | 审计 31 个产品对象、候选场景、主能力、脚本导出与直接效果证据覆盖 |
+
+| `evaluate_modelscope_taskspec.py` | AI 模型独立验收 | active | 真实服务生成、场景族隔离、语义检查与脚本执行；无标签回填 |
+| `check_sft_attention.py` | 微调注意力核验 | active | CUDA BF16 注意力数值、梯度与因果性；不签发任务精度通过 |
+| `run_native_browser_e2e.py` | 原生浏览器验收 | active | 真实 HTTP、Chromium、原生离线 Run 与实时会话控制；无物理协议桩 |
+| `run_native_endurance.py` | 原生墙钟耐久试验 | active | 真实 Basilisk、连续墙钟及独立观测；24h 仅供人工评估，不自动批准恢复 |
+| `audit_capability_output_surfaces.py` | 组件输出审计 | active | 真实注册执行链的默认工况输出与合同对照，不自动改合同或生成标签 |
 
 ## 交叉检查结论
 

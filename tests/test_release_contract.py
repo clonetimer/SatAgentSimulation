@@ -43,6 +43,31 @@ def test_v0546_release_manifest_counts_match_runtime_catalogs() -> None:
     assert manifest["active_agent_capability_count"] == len(active_capability_ids())
     assert manifest["scenario_template_count"] == templates["count"]
     assert templates["count"] == len(templates["templates"])
+    assert any(item["template_id"] == "generic_leo_small_sat_engineering" for item in templates["templates"])
+
+
+def test_current_qualification_cannot_inherit_historical_pass_declarations() -> None:
+    manifest = release_manifest()
+    current = manifest["current_qualification"]
+    historical = manifest["historical_baseline_declarations"]
+
+    assert manifest["status"] == current["status"] == "IN_PROGRESS"
+    assert current["historical_evidence_inheritance"] == "DISALLOWED"
+    assert current["deployment_target"] == "Ubuntu"
+    assert current["local_evidence_platform"] == "Windows"
+    assert manifest["target_revalidation_status"] == "NOT_REVALIDATED"
+    assert manifest["formal_capacity_baseline_status"] == "NOT_REVALIDATED"
+    assert manifest["dependency_security_gate_status"] == "CURRENT_LOCK_OSV_88_AUDITED_ZERO_VULNERABILITIES"
+    audit = json.loads((ROOT / "reports/dependency_audit.json").read_text(encoding="utf-8"))
+    assert audit["status"] == "PASS" and audit["vulnerability_count"] == 0
+    assert audit["dependency_count"] == 88
+    assert manifest["reliability_soak_status"] == "PENDING_CURRENT_SOURCE"
+    assert manifest["reliability_soak_task_count"] == 0
+    assert historical["reliability_soak_status"] == "PASS"
+    assert historical["reliability_soak_task_count"] == 1100
+    # Evidence obligations remain available even while results are absent.
+    assert "reports/platform_acceptance/platform_acceptance_summary.json" in manifest["runtime_generated_evidence"]
+    assert "reports/vllm_acceptance/vllm_acceptance_report.json" in manifest["required_documents"]
 
 
 def test_v0546_bsksim_adapters_preserve_canonical_solver_step() -> None:

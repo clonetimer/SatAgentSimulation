@@ -20,10 +20,11 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.16.1-thermal-param-ab">
-  <link rel="stylesheet" href="/assets/continuous.css?v=0.16.0-r7-ui">
+  <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
+  <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
 </head>
-<body>
+<body data-active-view="creator">
+  <a class="skip-link" href="#mainContent">跳转到主要内容</a>
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
@@ -33,7 +34,8 @@
           <div class="brand-subtitle">TaskSpec · Basilisk · Evidence</div>
         </div>
       </div>
-      <div class="topbar-tools">
+      <button id="toggleMobileToolsBtn" class="button secondary small mobile-workbench-toggle" type="button" aria-controls="workbenchTools" aria-expanded="false" data-closed-label="界面设置" data-open-label="收起设置">界面设置</button>
+      <div id="workbenchTools" class="topbar-tools" data-mobile-expanded="false">
         <label class="theme-control font-scale-control" title="调节整个工作台的字体和控件显示大小">
           <span aria-hidden="true">Aa</span>
           <select id="fontScaleSelect" aria-label="界面字体大小">
@@ -78,7 +80,8 @@
           <button class="nav-button" data-view="logs" type="button"><span>≡</span><b>运行日志</b></button>
           <button id="openModelSettingsBtn" class="nav-button" type="button"><span>◇</span><b>模型服务</b></button>
         </nav>
-        <section class="sidebar-capabilities" aria-label="仿真对象目录">
+        <button id="toggleMobileCatalogBtn" class="button secondary mobile-workbench-toggle mobile-catalog-toggle" type="button" aria-controls="mobileCatalogPanel" aria-expanded="false" data-closed-label="选择仿真对象" data-open-label="收起仿真对象">选择仿真对象</button>
+        <section id="mobileCatalogPanel" class="sidebar-capabilities" data-mobile-expanded="false" aria-label="仿真对象目录">
         <div class="panel-header">
           <div>
             <h1>仿真能力</h1>
@@ -88,7 +91,7 @@
         <div class="search-row">
           <label class="search-box">
             <span aria-hidden="true">⌕</span>
-            <input id="capabilitySearch" type="search" placeholder="搜索整星、分系统、故障…" autocomplete="off">
+            <input id="capabilitySearch" name="capability_search" type="search" placeholder="搜索整星、分系统、故障…" autocomplete="off" aria-label="搜索仿真能力">
           </label>
           <select id="levelFilter" aria-label="能力层级">
             <option value="all">全部层级</option>
@@ -103,7 +106,7 @@
         </section>
 
       </aside>
-      <div class="app-content">
+      <div id="mainContent" class="app-content" tabindex="-1">
 
 
     <main id="creatorView" class="workspace app-view">
@@ -131,13 +134,17 @@
         </div>
 
         <div class="tabbar" role="tablist" aria-label="任务创建方式">
-          <button class="tab active" data-tab="form" role="tab" aria-selected="true">Schema 表单</button>
-          <button class="tab" data-tab="graph" role="tab" aria-selected="false">图形组装</button>
-          <button class="tab" data-tab="agent" role="tab" aria-selected="false">自然语言</button>
-          <button class="tab" data-tab="taskspec" role="tab" aria-selected="false">TaskSpec</button>
+          <button id="creatorFormTabButton" class="tab active" data-tab="form" type="button" role="tab" aria-controls="formTab" aria-selected="true" tabindex="0">参数表单</button>
+          <button id="creatorGraphTabButton" class="tab" data-tab="graph" type="button" role="tab" aria-controls="graphTab" aria-selected="false" tabindex="-1">图形组装</button>
+          <button id="creatorAgentTabButton" class="tab" data-tab="agent" type="button" role="tab" aria-controls="agentTab" aria-selected="false" tabindex="-1">自然语言</button>
+          <button id="creatorTaskSpecTabButton" class="tab" data-tab="taskspec" type="button" role="tab" aria-controls="taskspecTab" aria-selected="false" tabindex="-1">TaskSpec</button>
         </div>
 
         <div id="notice" class="notice hidden" role="status"></div>
+        <div id="resetUndoNotice" class="notice reset-undo-notice hidden" role="status" aria-live="polite">
+          <span>已恢复默认配置。</span>
+          <button id="undoResetFormBtn" class="button button-ghost" type="button">撤销恢复默认</button>
+        </div>
         <section id="simulationModeChooser" class="workflow-explainer" aria-label="仿真运行方式">
           <div class="single-run-heading">
             <div><strong>运行方式</strong><span>从当前仿真配置选择单次执行、限时实时或持续实时。切换实时模式不会自动启动。</span></div>
@@ -182,7 +189,7 @@
           <p id="singleRunProgress" class="single-run-progress" role="status" aria-live="polite">请选择左侧仿真对象。运行后可在右侧结果面板或运行中心查看记录。</p>
         </section>
 
-        <div id="formTab" class="tab-content active" data-panel="form">
+        <div id="formTab" class="tab-content active" data-panel="form" role="tabpanel" aria-labelledby="creatorFormTabButton">
           <section id="agentChangePanel" class="agent-change-panel hidden" aria-live="polite">
             <div><strong id="agentChangeTitle">Agent 已更新表单</strong><span id="agentChangeDetail"></span></div>
             <div class="agent-change-actions">
@@ -231,7 +238,7 @@
           </section>
         </div>
 
-        <div id="graphTab" class="tab-content" data-panel="graph">
+        <div id="graphTab" class="tab-content" data-panel="graph" role="tabpanel" aria-labelledby="creatorGraphTabButton">
           <section class="graph-workbench" aria-label="图形化仿真组装器">
             <div class="graph-toolbar">
               <div>
@@ -397,7 +404,7 @@
           </section>
         </div>
 
-        <div id="agentTab" class="tab-content" data-panel="agent">
+        <div id="agentTab" class="tab-content" data-panel="agent" role="tabpanel" aria-labelledby="creatorAgentTabButton">
           <section class="agent-compose">
             <div class="section-heading">
               <div><h3>自然语言创建 TaskSpec</h3><p>Agent 只能使用已注册能力，不生成任意 Python。</p></div>
@@ -411,10 +418,11 @@
               <button id="clearAgentConversationBtn" class="button button-ghost" type="button">清空对话</button>
               <button id="agentParseBtn" class="button button-primary" type="button">生成并校验</button>
             </div>
+            <p id="agentGenerationStatus" class="agent-generation-status" role="status" aria-live="polite"></p>
           </section>
         </div>
 
-        <div id="taskspecTab" class="tab-content" data-panel="taskspec">
+        <div id="taskspecTab" class="tab-content" data-panel="taskspec" role="tabpanel" aria-labelledby="creatorTaskSpecTabButton">
           <section class="json-workbench">
             <div class="section-heading">
               <div><h3>Canonical TaskSpec</h3><p>预览、校验或直接编辑结构化任务。</p></div>
@@ -646,6 +654,7 @@
         <strong>原生自动恢复：关闭</strong>
         <span>异常执行的遥控不会自动重放；只有全新的会话可以重新创建原生计算图。</span>
       </section>
+      <div id="continuousMobileControls" class="continuous-mobile-controls hidden"></div>
       <div class="continuous-grid">
         <aside class="continuous-sidebar">
           <section class="continuous-card">
@@ -669,10 +678,15 @@
                     <label>主惯量 Ixx（kg·m²）<input data-native-group="orbit" data-native-key="spacecraft_inertia_xx_kg_m2" type="number" min="0.001" max="10000" step="any" value="100" required></label>
                     <label>主惯量 Iyy（kg·m²）<input data-native-group="orbit" data-native-key="spacecraft_inertia_yy_kg_m2" type="number" min="0.001" max="10000" step="any" value="80" required></label>
                     <label>主惯量 Izz（kg·m²）<input data-native-group="orbit" data-native-key="spacecraft_inertia_zz_kg_m2" type="number" min="0.001" max="10000" step="any" value="60" required></label>
-                    <label>轨道半长轴（m）<input data-native-group="orbit" data-native-key="orbit_radius_m" type="number" min="6500000" max="20000000" step="1000" value="7000000" required></label>
-                    <label>偏心率<input data-native-group="orbit" data-native-key="eccentricity" type="number" min="0" max="0.2" step="0.001" value="0.001" required></label>
+                    <label>轨道半长轴（m）<input data-native-group="orbit" data-native-key="orbit_radius_m" type="number" min="6500000" max="100000000" step="1000" value="7000000" required></label>
+                    <label>偏心率<input data-native-group="orbit" data-native-key="eccentricity" type="number" min="0" max="0.999" step="0.001" value="0.001" required></label>
                     <label>倾角（°）<input data-native-group="orbit" data-native-key="inclination_deg" type="number" min="0" max="180" step="0.1" value="35" required></label>
+                    <label>升交点赤经（°）<input data-native-group="orbit" data-native-key="raan_deg" type="number" min="0" max="360" step="any" value="0" required></label>
+                    <label>近地点幅角（°）<input data-native-group="orbit" data-native-key="arg_perigee_deg" type="number" min="0" max="360" step="any" value="0" required></label>
                     <label>初始真近点角（rad）<input data-native-group="orbit" data-native-key="initial_true_anomaly_rad" type="number" min="0" max="6.283185307179586" step="any" value="0" required></label>
+                    <label>空间环境<select data-native-group="orbit" data-native-key="environment_profile"><option value="simplified">简化参考环境</option><option value="spice_wmm">星历、J2 与 WMM2025（需离线数据）</option></select></label>
+                    <label>UTC 历元<input data-native-group="orbit" data-native-key="epoch_utc" type="text" value="2026-01-01T00:00:00Z" required></label>
+                    <p class="continuous-muted">星历环境包含地球 J2、日月引力和随时间变化的太阳位置。WMM2025 工况限定为 2025—2029 年；近地点须高于地表。同进程只允许一个星历环境会话。环境数据不代表目标卫星已完成标定。</p>
                   </fieldset>
                   <fieldset><legend>ADCS 与反作用轮</legend>
                     <details><summary>磁强计原生安装与校准（展开配置）</summary>
@@ -867,6 +881,11 @@
                   </fieldset>
                   <fieldset><legend>热控分系统 · 项目热网络</legend>
                     <p class="continuous-muted">热控为与 Basilisk 仿真任务耦合运行的项目确定性热网络，非官方 Basilisk 原生热模块；温度单位为开尔文。</p>
+                    <p class="continuous-muted">地球红外与反照率采用均匀地球假设；默认值表示全球年均条件，不代表瞬时冷热边界。太阳翼吸收率为工程假设，正面吸收率须不小于发电效率。</p>
+                    <label>地球红外出射度（W/m²）<input data-native-group="thermal" data-native-key="thermal_earth_ir_w_m2" type="number" min="0" max="1000" step="any" value="234" required></label>
+                    <label>地球反照率（0–1）<input data-native-group="thermal" data-native-key="thermal_earth_albedo" type="number" min="0" max="1" step="any" value="0.30" required></label>
+                    <label>太阳翼正面短波吸收率（0–1）<input data-native-group="thermal" data-native-key="thermal_panel_front_absorptivity" type="number" min="0" max="1" step="any" value="0.90" required></label>
+                    <label>太阳翼背面短波吸收率（0–1）<input data-native-group="thermal" data-native-key="thermal_panel_back_absorptivity" type="number" min="0" max="1" step="any" value="0.35" required></label>
                     <p class="continuous-muted">载荷热容量由质量 × 比热容给出；散热器、加热器均为本项目热网络中的真实调度节点。</p>
                     <label>载荷热节点质量（kg）<input data-native-group="thermal" data-native-key="payload_thermal_mass_kg" type="number" min="0.001" max="50" step="any" value="3" required></label>
                     <label>载荷节点比热容（J/(kg·K)）<input data-native-group="thermal" data-native-key="payload_specific_heat_j_kg_k" type="number" min="0.001" max="3000" step="any" value="600" required></label>
@@ -879,6 +898,7 @@
                     <label>推进设备初始温度（K）<input data-native-group="thermal" data-native-key="initial_propulsion_temp_k" type="number" min="220" max="350" step="any" value="292" required></label>
                     <label>通信—结构导热系数（W/K）<input data-native-group="thermal" data-native-key="comm_structure_conductance_w_k" type="number" min="0" max="5" step="any" value="0.35" required></label>
                     <label>推进—结构导热系数（W/K）<input data-native-group="thermal" data-native-key="propulsion_structure_conductance_w_k" type="number" min="0" max="5" step="any" value="0.45" required></label>
+                    <label>太阳翼—结构导热系数（W/K）<input data-native-group="thermal" data-native-key="solar_panel_structure_conductance_w_k" type="number" min="0" max="20" step="any" value="2" required></label>
                   </fieldset>
                   <fieldset><legend>通信数据分系统</legend>
                     <label>存储单机容量（bit）<input data-native-group="comm_data" data-native-key="storage_capacity_bits" type="number" min="1" max="100000000000" step="1" value="6000000000" required></label>
@@ -901,7 +921,7 @@
         </aside>
         <div class="continuous-main">
           <section class="continuous-card">
-            <div class="section-heading compact"><h2>运行与安全状态</h2><span id="continuousRuntimeMode" class="status-chip status-muted">未就绪</span></div>
+            <div class="section-heading compact"><h2 id="continuousStatusHeading" tabindex="-1">运行与安全状态</h2><span id="continuousRuntimeMode" class="status-chip status-muted">未就绪</span></div>
             <div class="continuous-metrics">
               <div><span>会话状态</span><strong id="continuousState">未选择</strong></div>
               <div><span>仿真时间</span><strong id="continuousSimTime">0.00 s</strong></div>
@@ -914,12 +934,14 @@
               <span id="continuousParentFence">父进程死亡保护：检查中</span>
               <span id="continuousErrorDetail"></span>
             </div>
-            <div class="continuous-actions" role="toolbar" aria-label="持续仿真会话控制">
+            <div id="continuousSessionActionSlot">
+            <div id="continuousSessionToolbar" class="continuous-actions" role="toolbar" aria-label="持续仿真会话控制">
               <button id="continuousStartBtn" class="button button-primary" type="button" data-continuous-action="start">▶ 启动</button>
               <button class="button button-secondary" type="button" data-continuous-action="pause">Ⅱ 暂停</button>
               <button class="button button-secondary" type="button" data-continuous-action="resume">▷ 继续</button>
               <button class="button button-secondary" type="button" data-continuous-action="step">↦ 单步</button>
               <button class="button button-ghost" type="button" data-continuous-action="stop">■ 停止并归档</button>
+            </div>
             </div>
           </section>
           <section class="continuous-card" aria-label="原生中断恢复准入">
@@ -1142,11 +1164,11 @@
   <div id="modelSettingsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modelSettingsTitle">
     <section class="modal-card model-settings-card">
       <div class="modal-header">
-        <div><div class="eyebrow">LLM Provider</div><h2 id="modelSettingsTitle">大模型服务设置</h2><p>支持 Ollama、LM Studio、vLLM 和其他 OpenAI-compatible 本地服务。</p></div>
+        <div><div class="eyebrow">LLM Provider</div><h2 id="modelSettingsTitle">大模型服务设置</h2><p>支持 ModelScope 本地模型、Ollama、LM Studio、vLLM 和其他 OpenAI-compatible 服务。</p></div>
         <button id="closeModelSettingsBtn" class="icon-button" type="button" aria-label="关闭">×</button>
       </div>
       <div class="model-settings-grid">
-        <label><span>服务类型</span><select id="localModelType"><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option><option value="vllm">vLLM / Qwen</option><option value="openai_compatible">其他 OpenAI 兼容服务</option></select></label>
+        <label><span>服务类型</span><select id="localModelType"><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option><option value="vllm">vLLM / Qwen</option><option value="modelscope">ModelScope 微调模型</option><option value="openai_compatible">其他 OpenAI 兼容服务</option></select></label>
         <label><span>服务地址</span><input id="localModelBaseUrl" type="text" value="http://127.0.0.1:11434/v1"></label>
         <label><span>模型名称</span><input id="localModelName" type="text" placeholder="例如 qwen3:8b 或 Qwen/Qwen3-32B"></label>
         <label><span>自动发现的模型</span><select id="localModelDiscovered"><option value="">点击“自动发现模型”</option></select></label>
@@ -1182,8 +1204,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
-  <script>window.SAT_SIM_STATIC_VERSION = "0.16.1-thermal-param-ab";</script>
-  <script src="/assets/app.js?v=0.16.1-thermal-param-ab" defer></script>
-  <script src="/assets/continuous.js?v=0.16.1-rw-native-controls" defer></script>
+  <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
+  <script src="/assets/app.js?v=0.7.8" defer></script>
+  <script src="/assets/continuous.js?v=0.7.8" defer></script>
 </body>
 </html>

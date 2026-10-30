@@ -79,7 +79,8 @@ def build_persistent_runtime(
         max(_simulation_number(task_spec, "duration_s", spec.max_sim_time_s), spec.quantum_s),
         spec.max_sim_time_s,
     )
-    step_s = max(_simulation_number(task_spec, "step_s", min(spec.quantum_s, 0.2)), 1e-4)
+    default_step_s = 0.1 if spec.quantum_s == 0.5 else min(spec.quantum_s, 0.2)
+    step_s = _simulation_number(task_spec, "step_s", default_step_s)
     if step_s > spec.quantum_s:
         raise ValueError("simulation step_s must not exceed interactive quantum_s")
     values = _values(task_spec)

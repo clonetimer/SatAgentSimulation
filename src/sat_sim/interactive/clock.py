@@ -13,10 +13,12 @@ class PaceObservation:
     requested_sleep_s: float
     actual_sleep_s: float
     drift_s: float
+    wall_time_s: float | None = None
+    sim_time_s: float | None = None
 
 
 class SoftRealtimeClock:
-    def __init__(self, rate: float = 1.0, *, monotonic: Callable[[], float] = time.monotonic, sleeper: Callable[[float], None] = time.sleep) -> None:
+    def __init__(self, rate: float = 1.0, *, monotonic: Callable[[], float] = time.perf_counter, sleeper: Callable[[float], None] = time.sleep) -> None:
         self._monotonic = monotonic
         self._sleeper = sleeper
         self._rate = self._validate_rate(rate)
@@ -50,5 +52,6 @@ class SoftRealtimeClock:
         if requested:
             self._sleeper(requested)
         after = self._monotonic()
-        return PaceObservation(requested, max(0.0, after - before), after - due)
+        return PaceObservation(requested, max(0.0, after - before), after - due,
+                               after, float(target_sim_time_s))
 

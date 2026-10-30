@@ -1,0 +1,597 @@
+{
+  "schema_version": "sat-taskspec-sft-data.v1",
+  "splits": {
+    "train": {
+      "path": "data\\training\\taskspec_lora_v4_event_contract\\train.jsonl",
+      "sha256": "aefff5f87d212810fc4eee3ba1bac6514600382921d39767b0831db6699d27b0",
+      "count": 489,
+      "family_count": 48
+    },
+    "validation": {
+      "path": "data\\training\\taskspec_lora_v4_event_contract\\validation.jsonl",
+      "sha256": "22ac80383de3dbd3e22a8a0eda6fafb1a610d8614d1195be25c41aa1d99ab82d",
+      "count": 57,
+      "family_count": 6
+    }
+  },
+  "semantic_family_overlap": 0,
+  "formal_evaluation_request_overlap": 0,
+  "label_source": "synthetic_registry_contract_not_flight_data",
+  "default_output_policy": "shared_ui_agent_registry_v1",
+  "request_configuration_policy": "explicit_template_parameters_and_time_v1",
+  "request_event_policy": "explicit_runtime_normalized_events_v1",
+  "formal_evaluation_manifest_sha256": "60021815c566ff39060d46bccfe002290180e3366eef14dde636c962fdb8737b",
+  "rejected": [
+    {
+      "template_id": "component_reaction_wheel_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_reaction_wheel_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_reaction_wheel_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_battery_cycle",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_battery_cycle",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_battery_cycle",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_solar_panel_generation",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_solar_panel_generation",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_solar_panel_generation",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_thermal_node_response",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_thermal_node_response",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_thermal_node_response",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_data_queue",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_data_queue",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_data_queue",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_payload_sensor",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_payload_sensor",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_payload_sensor",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "orbit_leo_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'orbit_environm...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "orbit_leo_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'orbit_environm...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "orbit_leo_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'orbit_environm...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "payload_observation",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'subsystem', 's...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "payload_observation",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'subsystem', 's...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "payload_observation",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'subsystem', 's...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "orbit_adcs_coupled",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "orbit_adcs_coupled",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "orbit_adcs_coupled",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "maneuver_orbit_attitude",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "power_thermal_orbit_coupled",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "power_thermal_orbit_coupled",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "power_thermal_orbit_coupled",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "comm_payload_mission",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "comm_payload_mission",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "comm_payload_mission",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_battery_loss",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_battery_loss",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_battery_loss",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_rw_jam",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_rw_jam",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_rw_jam",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_payload_off",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_payload_off",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_payload_off",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_comm_loss",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_comm_loss",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_comm_loss",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_thermal_fault",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_thermal_fault",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_thermal_fault",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_eol",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_eol",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_eol",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_mixed",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_mixed",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "whole_mixed",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'whole_spacecra...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_antenna_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_antenna_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_antenna_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_ground_station_access",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_ground_station_access",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_ground_station_access",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_heater_switch",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_heater_switch",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_heater_switch",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_link_budget_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_link_budget_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_link_budget_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_onboard_storage_fill",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_onboard_storage_fill",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_onboard_storage_fill",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_payload_instrument",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_payload_instrument",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_payload_instrument",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_power_sink_profile",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_power_sink_profile",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_power_sink_profile",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_radiator_rejection",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_radiator_rejection",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_radiator_rejection",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_transmitter_downlink",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_transmitter_downlink",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_transmitter_downlink",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_cmg_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_cmg_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_cmg_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_imu_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_imu_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_imu_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_magnetometer_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_magnetometer_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_magnetometer_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_mtb_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_mtb_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_mtb_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_pdu_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_pdu_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_pdu_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_star_tracker_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_star_tracker_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_star_tracker_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_sun_sensor_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_sun_sensor_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_sun_sensor_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_fuel_tank_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_fuel_tank_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_fuel_tank_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_thruster_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_thruster_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "template_id": "component_thruster_nominal",
+      "duration_s": 30.0,
+      "reason": "1 validation error for CanonicalTaskSpec\nsimulation\n  Value error, solver.step_s must not exceed sample_s [type=value_error, input_value={'level': 'component', 'd...nclude_endpoint': True}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    }
+  ],
+  "student_model_accuracy": "NOT_EVALUATED"
+}

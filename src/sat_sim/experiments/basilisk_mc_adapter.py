@@ -189,11 +189,15 @@ class _UnifiedControllerCase:
     storage_capacity_bits: float = 6_000_000_000.0
     initial_payload_temp_k: float = 295.0
     events: tuple[Any, ...] = field(default_factory=tuple)
+    native_values: dict[str, Any] = field(default_factory=dict)
+    required_couplings: tuple[str, ...] = ()
+    telemetry_streams: tuple[dict[str, Any], ...] = ()
     trace_rows: list[dict[str, Any]] = field(default_factory=list)
     retained_summary: dict[str, Any] = field(default_factory=dict)
 
     def _values(self) -> dict[str, Any]:
         return {
+            **copy.deepcopy(self.native_values),
             "simulation_seed": int(self.simulation_seed),
             "initial_pointing_error_deg": float(self.initial_pointing_error_deg),
             "orbit_radius_m": float(self.orbit_radius_m),
@@ -223,12 +227,14 @@ class _UnifiedControllerCase:
         adcs_only = self.capability_id == "subsystem.adcs_unified_native.v1"
         cfg = UnifiedRuntimeConfig(
             capability_id=self.capability_id,
-            duration_s=max(float(self.duration_s), 1e-6),
-            step_s=max(float(self.step_s), 1e-6),
-            sample_s=max(float(self.sample_s), float(self.step_s), 1e-6),
+            duration_s=float(self.duration_s),
+            step_s=float(self.step_s),
+            sample_s=float(self.sample_s),
             adcs_only=adcs_only,
             values=self._values(),
             events=tuple(self.events),
+            required_couplings=tuple(self.required_couplings),
+            telemetry_streams=tuple(self.telemetry_streams),
         )
         result = UnifiedNativeRuntime(cfg).run()
         rows = [dict(row) for row in result.trace_rows]
@@ -328,6 +334,9 @@ def _case_defaults(base_task_spec: Mapping[str, Any], capability_id: str) -> dic
     for key in list(defaults):
         if key in values and key not in {"capability_id", "events"}:
             defaults[key] = values[key]
+    defaults['native_values'] = copy.deepcopy(values)
+    defaults['required_couplings'] = tuple(_mapping(base_task_spec.get('mission')).get('required_couplings') or ())
+    defaults['telemetry_streams'] = tuple(copy.deepcopy(_mapping(base_task_spec.get('outputs')).get('telemetry_streams') or ()))
     return defaults
 
 
@@ -569,6 +578,11 @@ def execute_basilisk_controller_variants(
     if not variants:
         raise ValueError("at least one Monte Carlo variant is required")
 
+    from sat_sim.task_validator import validate_task_spec
+    validate_task_spec(base_task_spec).raise_for_errors()
+    for variant in variants:
+        validate_task_spec(variant['task_spec']).raise_for_errors()
+
     timeout_s = (
         float(controller_timeout_s)
         if controller_timeout_s is not None
@@ -620,6 +634,10 @@ def execute_basilisk_controller_variants(
                 f"official Basilisk Controller exceeded controller_timeout_s={timeout_s}"
             ) from exc
 
+        if archive_dir is not None:
+            worker_archive.mkdir(parents=True, exist_ok=True)
+            (worker_archive/'controller_worker_stdout.log').write_text(completed.stdout or '', encoding='utf-8')
+            (worker_archive/'controller_worker_stderr.log').write_text(completed.stderr or '', encoding='utf-8')
         payload: dict[str, Any] = {}
         if response_path.is_file():
             try:
@@ -629,7 +647,9 @@ def execute_basilisk_controller_variants(
             except (OSError, json.JSONDecodeError):
                 payload = {}
         if completed.returncode != 0 or payload.get("status") != "PASS":
-            detail = payload.get("error_message") or completed.stderr[-4000:] or completed.stdout[-4000:]
+            detail = '\n'.join(str(part) for part in (
+                payload.get('error_message'), (completed.stderr or '')[-4000:], (completed.stdout or '')[-2000:]
+            ) if part)
             raise RuntimeError(
                 f"isolated Basilisk Monte Carlo worker failed with code {completed.returncode}: {detail}"
             )

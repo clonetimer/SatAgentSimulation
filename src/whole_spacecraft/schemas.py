@@ -347,6 +347,9 @@ class WholeSpacecraftSummary:
     data_balance_residual_bits: float = 0.0
     data_balance_relative_error: float = 0.0
     data_balance_tolerance_bits: float = 0.0
+    data_balance_ordering_tolerance_bits: float = 0.0
+    data_balance_rounding_tolerance_bits: float = 0.0
+    data_balance_floating_tolerance_bits: float = 0.0
     data_conservation_status: str = "UNKNOWN"
     eps_to_thermal_electrical_energy_j: float = 0.0
     eps_to_thermal_heat_energy_j: float = 0.0

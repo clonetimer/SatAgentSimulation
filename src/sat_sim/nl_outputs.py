@@ -156,6 +156,10 @@ def _declared_or_alias_fields(value: str, fields: Sequence[str]) -> list[str]:
         return []
     if raw in fields:
         return [raw]
+    if not any(token in raw for token in ('*','?','[')) and any(fnmatch.fnmatchcase(raw,name) for name in fields):
+        # A concrete recorder name covered by a registry pattern stays concrete.
+        # Replacing it with the pattern broadens the user's output selection.
+        return [raw]
     matching = [
         name for name in fields
         if fnmatch.fnmatchcase(raw, name) or fnmatch.fnmatchcase(name, raw)

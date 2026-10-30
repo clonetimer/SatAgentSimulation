@@ -1,0 +1,198 @@
+{
+  "status": "FAILED_REQUIRES_REVIEW",
+  "started_at_utc": "2026-10-29T17:21:44.437264+00:00",
+  "pid": 59940,
+  "created": 1793294504.0541227,
+  "command": [
+    "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+    "reports/local_requirements_completion/qualify_v9_production.py"
+  ],
+  "expected_core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "expected_application": "a56aac6787e3f50db721e86171f84997ee4910a64c0cbb930ff6d4499b436758",
+  "runner_sha256": "d4359528836b9e0045a5f75f4684fc680b34c49992d60ff59f410166a5ccda25",
+  "integration_state_sha256": "9e690db6294807f64940f1c18fa0f5e034741e967958736c04f4d4a16834ef0c",
+  "steps": [
+    {
+      "name": "FULL_WINDOWS_SUITE",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "--basetemp=E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\test-tmp",
+        "--junitxml=E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\whole-suite.xml"
+      ],
+      "started_at_utc": "2026-10-29T17:21:44.675900+00:00",
+      "pid": 516,
+      "created": 1793294504.679639,
+      "last_verified_alive_at_utc": "2026-10-29T17:34:55.206933+00:00",
+      "returncode": 0,
+      "finished_at_utc": "2026-10-29T17:35:00.209839+00:00"
+    },
+    {
+      "name": "NATIVE_BROWSER",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "scripts/run_native_browser_e2e.py",
+        "--output-dir",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\native-browser"
+      ],
+      "started_at_utc": "2026-10-29T17:35:00.732668+00:00",
+      "script_sha256_before": "e80443b420505a6b0ad10721058ad33a786b3d621ead1c5d384f5653309dd433",
+      "pid": 8328,
+      "created": 1793295300.7362888,
+      "last_verified_alive_at_utc": "2026-10-29T17:35:25.773694+00:00",
+      "returncode": 0,
+      "finished_at_utc": "2026-10-29T17:35:30.776540+00:00",
+      "script_unchanged": true,
+      "report": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\native-browser\\report.json",
+      "report_sha256": "bec9f4d690636af5f167660d9b529a75c7837d3bfb37e26acd0bf2f331b85a5c",
+      "report_status": "PASS"
+    },
+    {
+      "name": "FAILURE_RECREATION",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "scripts/run_native_failure_recreation.py",
+        "--output-dir",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\failure-recreation"
+      ],
+      "started_at_utc": "2026-10-29T17:35:31.360494+00:00",
+      "script_sha256_before": "49e508c6333d743ae7daabf31a4498d686d598587977dceadfaff0babbf979a9",
+      "pid": 34780,
+      "created": 1793295331.3692808,
+      "last_verified_alive_at_utc": "2026-10-29T17:35:41.397831+00:00",
+      "returncode": 0,
+      "finished_at_utc": "2026-10-29T17:35:46.399770+00:00",
+      "script_unchanged": true,
+      "report": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\failure-recreation\\report.json",
+      "report_sha256": "6edb127069d00579367460f80b918921e32331d4f989cf44c4cec92d9d41daf8",
+      "report_status": "PASS"
+    },
+    {
+      "name": "THERMAL_CONTROL_BROWSER",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\verify_v9_production_thermal_link.py"
+      ],
+      "started_at_utc": "2026-10-29T17:35:46.943809+00:00",
+      "script_sha256_before": "31d6267bcb4fb3d45fbcff368158958f6de260b967de5cd339963380fb522bf9",
+      "pid": 67248,
+      "created": 1793295346.9598165,
+      "last_verified_alive_at_utc": "2026-10-29T17:36:06.999945+00:00",
+      "returncode": 0,
+      "finished_at_utc": "2026-10-29T17:36:12.003513+00:00",
+      "script_unchanged": true,
+      "report": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\thermal-link-v9-production-native-browser\\report.json",
+      "report_sha256": "a6557258dd5801265f421e8213cedca82b3ede15cf3d8e7608c12d0e1165de1a",
+      "report_status": "ACTUAL_UI_TO_NATIVE_THERMAL_LINK_AND_LAYOUT_PASS_REVIEW_PENDING"
+    },
+    {
+      "name": "FORMAL_PERFORMANCE",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "scripts/run_interactive_performance_benchmark.py",
+        "--profile",
+        "formal",
+        "--environment-profile",
+        "spice_wmm",
+        "--output",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\formal-performance.json"
+      ],
+      "started_at_utc": "2026-10-29T17:36:12.498049+00:00",
+      "script_sha256_before": "726352781f42d7dbdd9f0f2c32ba016cc7118688c9a9d639378efa7b744e0ac4",
+      "pid": 51692,
+      "created": 1793295372.506488,
+      "last_verified_alive_at_utc": "2026-10-29T18:12:43.785169+00:00",
+      "returncode": 0,
+      "finished_at_utc": "2026-10-29T18:12:48.786996+00:00",
+      "script_unchanged": true,
+      "report": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\formal-performance.json",
+      "report_sha256": "42668a3492173154f8bc1a8a91d4777de701fbfe54082ace5aef01ef9a91b673",
+      "report_status": "PASS"
+    },
+    {
+      "name": "REAL_MODEL_CREATE_REFINE",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "scripts/evaluate_modelscope_taskspec.py",
+        "--model",
+        "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "--base-url",
+        "http://127.0.0.1:8031",
+        "--dataset-dir",
+        "E:\\tmp\\SatAgentSimulation\\data\\training\\taskspec_lora_v5_current_prompt_event_aligned",
+        "--product-chain",
+        "--max-repair-attempts",
+        "1",
+        "--output-dir",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\production-chain"
+      ],
+      "started_at_utc": "2026-10-29T18:12:49.634782+00:00",
+      "script_sha256_before": "2c0d6b3a86f623cc6a4458ae47036437d5c535abaa307739e25cec6dd58f1a92",
+      "pid": 70420,
+      "created": 1793297569.6403148,
+      "last_verified_alive_at_utc": "2026-10-29T18:16:39.791366+00:00",
+      "returncode": 0,
+      "finished_at_utc": "2026-10-29T18:16:44.794242+00:00",
+      "script_unchanged": true,
+      "report": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\production-chain\\report.json",
+      "report_sha256": "8e3ff8916317555d1253cd62cc1c4cbd90997f85bd83cf29eddc82ed1f71ba31",
+      "report_status": "PASS"
+    },
+    {
+      "name": "REAL_MODEL_THERMAL",
+      "command": [
+        "E:\\tmp\\SatAgentSimulation\\.venv\\Scripts\\python.exe",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\run_thermal_ai_product_complete_dataset.py",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\production-thermal",
+        "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\modelscope-v5-graph-v8-local-service\\providers.json"
+      ],
+      "started_at_utc": "2026-10-29T18:16:45.297262+00:00",
+      "script_sha256_before": "c0ce044337eceef81280c3be1b9097d737598b67d031aef8117b6b766e2a68b9",
+      "pid": 51808,
+      "created": 1793297805.3116088,
+      "last_verified_alive_at_utc": "2026-10-29T18:20:35.476312+00:00",
+      "returncode": 1,
+      "finished_at_utc": "2026-10-29T18:20:40.478349+00:00",
+      "script_unchanged": true,
+      "report": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\v9-production-qualification\\production-thermal\\report.json",
+      "report_sha256": "4d6e6c7f970a2cb86899a03b919817b722c313b733ae3e6ff1ae3c99c3061e54",
+      "report_status": "FAIL"
+    }
+  ],
+  "scope": "Fresh installed-source checks. Formal timing uses its documented default runtime parameters; G4 mission validity comes from explicit design scenarios and separate configured endurance.",
+  "qualified_24h_wallclock": false,
+  "agent_visual_review_pending": true,
+  "full_suite": {
+    "passed": 1936,
+    "skipped": 5,
+    "failures": 0,
+    "junit_sha256": "c363232b46262038d58c789bc136f98fceb4780a2799101704899c1080311f08"
+  },
+  "model_health": {
+    "ok": true,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "source": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+    }
+  },
+  "providers_sha256": "bbf43c0bed720864752f74609c0916dfe4ae9157ff98265ab5a5a38a3f6915dc",
+  "error": {
+    "type": "RuntimeError",
+    "message": "QUALIFICATION_REPORT_NOT_PASS:REAL_MODEL_THERMAL"
+  },
+  "test_sources_unchanged": true,
+  "runner_unchanged": true,
+  "core_after": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "application_after": "a56aac6787e3f50db721e86171f84997ee4910a64c0cbb930ff6d4499b436758",
+  "source_unchanged": true,
+  "finished_at_utc": "2026-10-29T18:20:40.757428+00:00"
+}

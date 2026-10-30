@@ -31,13 +31,15 @@ ENVIRONMENT_REPORT_VERSION = "sat-sim.environment-doctor.v1"
 RELEASE_REPORT_VERSION = "sat-sim.release-closure-report.v1"
 EXPECTED_NUMPY_VERSION = "2.2.6" if sys.version_info < (3, 11) else "2.3.5"
 
-ACCEPTED_BSK_RUNTIME_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1"})
+ACCEPTED_BSK_RUNTIME_VERSIONS = frozenset({"2.11.0", "2.11.0+satfix1", "2.11.0+satfix2"})
 
 EXPECTED_DISTRIBUTIONS: dict[str, tuple[str, str]] = {
-    "bsk": ("Basilisk", "2.11.0+satfix1"),
+    "bsk": ("Basilisk", "2.11.0+satfix2"),
     "colorama": ("colorama", "0.4.6"),
     "sgp4": ("sgp4", "2.25"),
     "numpy": ("numpy", EXPECTED_NUMPY_VERSION),
+    "numba": ("numba", "0.63.1"),
+    "llvmlite": ("llvmlite", "0.46.0"),
     "pydantic": ("pydantic", "2.13.4"),
     "PyYAML": ("yaml", "6.0.3"),
     "jsonschema": ("jsonschema", "4.26.0"),

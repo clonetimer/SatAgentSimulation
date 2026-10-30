@@ -34,11 +34,24 @@ simulation_parameters:
   sample_s: {unit: s, required: true, min: 0.001}
 outputs:
   trace:
-  - {name: propulsion.fuel_tank.propellant_mass_kg, unit: kg, dtype: number}
-  - {name: propulsion.fuel_tank.pressure_pa, unit: Pa, dtype: number}
+  - name: propulsion.fuel_tank.propellant_mass_kg
+    unit: kg
+    dtype: number
+  - name: propulsion.fuel_tank.pressure_pa
+    unit: Pa
+    dtype: number
+  - name: propulsion.fuel_tank.commanded_mass_flow_kg_s
+    unit: kg/s
+    dtype: number
   summary:
-  - {name: propulsion.fuel_tank.final_mass_kg, unit: kg}
-  - {name: propulsion.fuel_tank.consumed_mass_kg, unit: kg}
+  - name: propulsion.fuel_tank.final_mass_kg
+    unit: kg
+  - name: propulsion.fuel_tank.consumed_mass_kg
+    unit: kg
+  - name: propulsion.fuel_tank.initial_mass_kg
+    unit: kg
+  - name: propulsion.fuel_tank.final_pressure_pa
+    unit: Pa
 operator:
   owner: fuel_tank
   effects:

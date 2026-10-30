@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-用途：确保正式仿真使用已批准的 Basilisk 运行时，必要时获取官方 Wheel、校验并安装 metadata-only satfix1。
+用途：确保正式仿真使用已批准的 Basilisk 运行时，必要时获取官方 Wheel、校验并安装 metadata-only satfix2。
 参数：--check-only 仅检查；--report 写入机器可读状态 JSON。
 输出：打印安装/验证状态；成功返回 0，运行时仍不可用返回 2；不修改 Basilisk 仿真二进制载荷。
 """
@@ -51,12 +51,12 @@ def main() -> int:
     parser.add_argument("--wheel", type=Path, help="Install a local approved bsk wheel with --no-deps before other methods.")
     parser.add_argument("--skip-pip-no-deps", action="store_true", help="Skip the first python -m pip install bsk --no-deps attempt.")
     parser.add_argument(
-        "--require-satfix1", action="store_true",
-        help="For release/Windows installation: require an attested metadata-only 2.11.0+satfix1 wheel.",
+        "--require-satfix2", action="store_true",
+        help="For release/Windows installation: require an attested metadata-only 2.11.0+satfix2 wheel.",
     )
     args = parser.parse_args()
-    if args.require_satfix1 and args.wheel:
-        parser.error("--require-satfix1 does not permit arbitrary --wheel overrides")
+    if args.require_satfix2 and args.wheel:
+        parser.error("--require-satfix2 does not permit arbitrary --wheel overrides")
 
     before = inspect_basilisk_runtime()
     report: dict[str, object] = {
@@ -68,16 +68,16 @@ def main() -> int:
         "status": "PASS" if before.ready else "BLOCKED",
     }
     try:
-        if args.require_satfix1:
-            report["distribution_policy"] = "AUDITED_METADATA_ONLY_SATFIX1"
+        if args.require_satfix2:
+            report["distribution_policy"] = "AUDITED_METADATA_ONLY_SATFIX2"
             if args.check_only:
                 report["status"] = (
-                    "PASS" if before.ready and before.version == "2.11.0+satfix1"
+                    "PASS" if before.ready and before.version == "2.11.0+satfix2"
                     else "BLOCKED"
                 )
                 report["reason"] = (
                     "installed_version_checked_only_not_installer_provenance"
-                    if report["status"] == "PASS" else "SATFIX1_REQUIRED"
+                    if report["status"] == "PASS" else "SATFIX2_REQUIRED"
                 )
             else:
                 wheelhouse = ROOT / "third_party" / "wheels"
@@ -107,7 +107,7 @@ def main() -> int:
                     sys.executable, str(ROOT / "scripts" / "install_offline_bsk.py"),
                     "--wheelhouse", str(wheelhouse),
                 ], cwd=ROOT, check=True)
-                report["action"] = "install_verified_satfix1_metadata_only"
+                report["action"] = "install_verified_satfix2_metadata_only"
         elif not before.ready and not args.check_only:
             attempts: list[dict[str, object]] = []
             report["attempts"] = attempts
@@ -135,12 +135,12 @@ def main() -> int:
         report["after"] = after.to_dict()
         report["status"] = (
             "PASS" if after.ready and (
-                not args.require_satfix1 or after.version == "2.11.0+satfix1"
+                not args.require_satfix2 or after.version == "2.11.0+satfix2"
             ) else "BLOCKED"
         )
         if report["status"] != "PASS":
             report["reason"] = (
-                "SATFIX1_REQUIRED" if after.ready and args.require_satfix1
+                "SATFIX2_REQUIRED" if after.ready and args.require_satfix2
                 else after.reason
             )
     except Exception as exc:

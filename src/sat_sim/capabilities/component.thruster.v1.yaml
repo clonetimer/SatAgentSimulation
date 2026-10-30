@@ -33,11 +33,26 @@ simulation_parameters:
   sample_s: {unit: s, required: true, min: 0.001}
 outputs:
   trace:
-  - {name: propulsion.thruster.cumulative_impulse_ns, unit: "N*s", dtype: number}
-  - {name: propulsion.thruster.cumulative_propellant_kg, unit: kg, dtype: number}
+  - name: propulsion.thruster.cumulative_impulse_ns
+    unit: N*s
+    dtype: number
+  - name: propulsion.thruster.cumulative_propellant_kg
+    unit: kg
+    dtype: number
+  - name: propulsion.thruster.on_time_s
+    unit: s
+    dtype: number
+  - name: propulsion.thruster.effective_thrust_n
+    unit: null
+    dtype: number
+  - name: propulsion.thruster.effective_isp_s
+    unit: s
+    dtype: number
   summary:
-  - {name: propulsion.thruster.total_impulse_ns, unit: "N*s"}
-  - {name: propulsion.thruster.propellant_used_kg, unit: kg}
+  - name: propulsion.thruster.total_impulse_ns
+    unit: N*s
+  - name: propulsion.thruster.propellant_used_kg
+    unit: kg
 operator:
   owner: thruster
   effects:

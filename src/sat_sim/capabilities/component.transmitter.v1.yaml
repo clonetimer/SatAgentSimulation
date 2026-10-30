@@ -115,6 +115,30 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: comm.transmitter.tx_power_w
+    unit: W
+    dtype: number
+  - name: comm.transmitter.power_draw_w
+    unit: W
+    dtype: number
+  - name: comm.transmitter.effective_rate_bps
+    unit: bit/s
+    dtype: number
+  - name: comm.transmitter.requested_rate_bps
+    unit: bit/s
+    dtype: number
+  - name: comm.transmitter.available_power_w
+    unit: W
+    dtype: number
+  - name: comm.transmitter.effective_max_tx_power_w
+    unit: W
+    dtype: number
+  - name: comm.transmitter.effective_max_rate_bps
+    unit: bit/s
+    dtype: number
+  - name: comm.transmitter.efficiency
+    unit: null
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

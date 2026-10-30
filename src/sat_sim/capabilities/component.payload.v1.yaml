@@ -123,6 +123,24 @@ outputs:
   - name: label.health_state
     unit: enum
     dtype: string
+  - name: payload.instrument.power_w
+    unit: W
+    dtype: number
+  - name: payload.instrument.heat_w
+    unit: W
+    dtype: number
+  - name: payload.instrument.generated_bps
+    unit: bit/s
+    dtype: number
+  - name: payload.instrument.generated_bits
+    unit: bit
+    dtype: number
+  - name: payload.instrument.cumulative_data_bits
+    unit: bit
+    dtype: number
+  - name: payload.instrument.effective_rate_factor
+    unit: '1'
+    dtype: number
   summary:
   - name: qoi.*
     unit: mixed

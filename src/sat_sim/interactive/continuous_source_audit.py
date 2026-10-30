@@ -187,6 +187,41 @@ def _command_ledger(root: Path, session_id: str) -> dict[str, Any]:
         conn.close()
 
 
+def audit_telemetry_sampling(root: Path, period_s: float, stream_id: str = 'whole.continuous') -> dict[str, Any]:
+    """Check every original frame, including rotated/compressed segments."""
+    if not math.isfinite(period_s) or period_s <= 0:
+        raise ValueError('SOURCE_TELEMETRY_PERIOD_INVALID')
+    period_ns = int(period_s * 1e9 + .5)
+    if period_ns <= 0:
+        raise ValueError('SOURCE_TELEMETRY_PERIOD_INVALID')
+    count = off_grid = unexpected_intervals = 0
+    previous_ns = None
+    min_interval_ns = max_interval_ns = None
+    for entry in SessionWorkspace.iter_telemetry(root):
+        frame = entry['frame']
+        if frame['stream'] != stream_id:
+            continue
+        time_s = float(frame['sim_time_s'])
+        if not math.isfinite(time_s) or time_s < 0:
+            raise ValueError('SOURCE_TELEMETRY_TIME_INVALID')
+        time_ns = int(time_s * 1e9 + .5)
+        count += 1
+        off_grid += time_ns % period_ns != 0
+        if previous_ns is not None:
+            interval_ns = time_ns - previous_ns
+            unexpected_intervals += interval_ns != period_ns
+            min_interval_ns = interval_ns if min_interval_ns is None else min(min_interval_ns, interval_ns)
+            max_interval_ns = interval_ns if max_interval_ns is None else max(max_interval_ns, interval_ns)
+        previous_ns = time_ns
+    return {
+        'status': 'PASS' if count > 1 and not off_grid and not unexpected_intervals else 'NOT_SATISFIED',
+        'stream_id': stream_id, 'declared_period_s': period_s, 'frames_checked': count,
+        'off_grid_frame_count': off_grid, 'unexpected_interval_count': unexpected_intervals,
+        'min_interval_s': min_interval_ns * 1e-9 if min_interval_ns is not None else None,
+        'max_interval_s': max_interval_ns * 1e-9 if max_interval_ns is not None else None,
+    }
+
+
 def audit_original_sources(
     workspace: Path, *, first_sample_utc: datetime, last_sample_utc: datetime,
     evidence_last_sim_time_s: float,
@@ -212,7 +247,14 @@ def audit_original_sources(
             and state["last_sim_time_s"] + 1e-7 < evidence_last_sim_time_s):
         raise ValueError("SOURCE_TERMINAL_SIM_BEHIND_EVIDENCE")
     command = _command_ledger(root, root.name)
+    period_s = float(original['quantum_s'])
+    for stream in original.get('task_spec', {}).get('outputs', {}).get('telemetry_streams', ()):
+        if stream.get('stream_id') == 'whole.continuous':
+            period_s = float(stream['sample_s'])
+    sampling = audit_telemetry_sampling(root, period_s)
     warnings = []
+    if sampling['status'] != 'PASS':
+        warnings.append('ORIGINAL_TELEMETRY_SAMPLING_NOT_SATISFIED')
     if state["observed_window_interruption"]:
         warnings.append("ORIGINAL_STATE_PAUSED_OR_INTERRUPTED_IN_WINDOW")
     if command["sqlite_writer_state"] != "RELEASED":
@@ -222,11 +264,11 @@ def audit_original_sources(
     if not command["tc_all_acked"]:
         warnings.append("ORIGINAL_TC_NOT_ALL_ACKED")
     return {
-        "schema_version": "sat-continuous-original-source-audit.v1",
+        "schema_version": "sat-continuous-original-source-audit.v2",
         "session_id": root.name,
         "status": "CONSISTENT" if not warnings else "WARNING",
         "reason_codes": warnings,
-        "state": state, "tc_ledger": command,
+        "state": state, "tc_ledger": command, 'telemetry_sampling': sampling,
         "native_resume_supported": False,
         "automatic_tc_replay_allowed": False,
     }

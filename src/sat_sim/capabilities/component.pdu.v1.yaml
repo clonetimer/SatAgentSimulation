@@ -32,11 +32,25 @@ simulation_parameters:
   sample_s: {unit: s, required: true, min: 0.001}
 outputs:
   trace:
-  - {name: eps.pdu.requested_power_w, unit: W, dtype: number}
-  - {name: eps.pdu.delivered_power_w, unit: W, dtype: number}
-  - {name: eps.pdu.shed_count, unit: count, dtype: integer}
+  - name: eps.pdu.requested_power_w
+    unit: W
+    dtype: number
+  - name: eps.pdu.delivered_power_w
+    unit: W
+    dtype: number
+  - name: eps.pdu.shed_count
+    unit: count
+    dtype: integer
+  - name: eps.pdu.effective_bus_max_w
+    unit: W
+    dtype: number
   summary:
-  - {name: eps.pdu.delivered_power_w, unit: W}
+  - name: eps.pdu.delivered_power_w
+    unit: W
+  - name: eps.pdu.requested_power_w
+    unit: W
+  - name: eps.pdu.shed_count
+    unit: count
 operator:
   owner: pdu
   effects:

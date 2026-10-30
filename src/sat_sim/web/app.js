@@ -10,6 +10,7 @@
     schema: null,
     formData: null,
     taskSpec: null,
+    hasTaskSpecContext: false,
     planning: null,
     activeRunId: null,
     activeRun: null,
@@ -37,6 +38,7 @@
     runCompareResult: null,
     runCompareRequestId: 0,
     changedPaths: new Set(),
+    formSectionOpen: new Map(),
     agentBeforeForm: null,
     executionState: null,
     pollTimer: null,
@@ -46,8 +48,11 @@
     activeProviderId: "local-template",
     tasks: [],
     activeTaskCenterId: null,
+    taskDetailsTaskId: null,
+    taskDetailsRequestId: 0,
     experimentBaseSpec: null,
     agentHistory: [],
+    agentGenerating: false,
     formErrors: new Map(),
     discoveredModels: [],
     activeView: "creator",
@@ -649,6 +654,14 @@
     const select = el('themeSelect');
     if (select) select.value = safePreference;
     requestAnimationFrame(drawChart);
+  }
+
+  function setMobileDisclosure(buttonId, panelId, expanded) {
+    const button = el(buttonId);
+    const panel = el(panelId);
+    panel.dataset.mobileExpanded = String(expanded);
+    button.setAttribute('aria-expanded', String(expanded));
+    button.textContent = expanded ? button.dataset.openLabel : button.dataset.closedLabel;
   }
 
   function initTheme() {
@@ -1799,7 +1812,7 @@
       return false;
     }
     const result = payload.result || {};
-    state.taskSpec = result.task_spec || null; state.planning = result.planning || null; syncTaskSpecEditor();
+    state.taskSpec = result.task_spec || null; state.hasTaskSpecContext ||= Boolean(state.taskSpec); state.planning = result.planning || null; syncTaskSpecEditor();
     if (!payload.ok) {
       const issues = [...(result.validation?.errors || []), ...(result.guards?.issues || []), ...(result.planning?.validation?.errors || [])];
       graphSetStatus(`TaskSpec 编译失败：${issues.map(formatValidationIssue).join('；') || '未通过能力边界校验'}`, 'error'); return false;
@@ -3253,7 +3266,7 @@
       return false;
     }
     const result = payload.result || {};
-    state.taskSpec = result.task_spec || null; state.planning = result.planning || null; syncTaskSpecEditor();
+    state.taskSpec = result.task_spec || null; state.hasTaskSpecContext ||= Boolean(state.taskSpec); state.planning = result.planning || null; syncTaskSpecEditor();
     if (!payload.ok) {
       const issues = [...(result.validation?.errors || []), ...(result.guards?.issues || []), ...(result.planning?.validation?.errors || [])];
       assemblySetStatus(`父 Capability TaskSpec 编译失败：${issues.map(formatValidationIssue).join('；') || '未通过能力边界校验'}`, 'error');
@@ -3515,6 +3528,7 @@
 
   function clearFieldErrors() {
     state.formErrors = new Map();
+    $all('.form-field [aria-invalid]').forEach((node) => { node.removeAttribute('aria-invalid'); node.removeAttribute('aria-errormessage'); });
     $all('.form-field.field-error').forEach((node) => node.classList.remove('field-error'));
     $all('.field-error-message').forEach((node) => node.remove());
     el('formValidationSummary')?.classList.add('hidden');
@@ -3534,6 +3548,13 @@
       wrapper.appendChild(error);
     }
     error.textContent = message;
+    error.id = `field-error-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+    wrapper.querySelectorAll('input, select, textarea').forEach((input) => {
+      input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-errormessage', error.id);
+    });
+    for (let parent = wrapper.parentElement; parent; parent = parent.parentElement) {
+      if (parent.tagName === 'DETAILS') parent.open = true;
+    }
   }
 
   function formatValidationIssue(item) {
@@ -3731,21 +3752,26 @@
     showNotice('已撤销最近一次 Agent/TaskSpec 表单同步。', 'success');
   }
 
-  async function projectTaskSpecToForm(taskSpec, source = 'Agent') {
+  async function projectTaskSpecToForm(taskSpec, source = 'Agent', isCurrent = () => true) {
     const capabilityId = taskSpec?.model?.capability_id;
     if (!capabilityId) throw new Error('TaskSpec 未声明 capability_id');
-    if (capabilityId !== state.selectedCapabilityId) await selectCapability(capabilityId);
-    const before = clone(state.formData || state.schema.default_form);
     const payload = await api(`/forms/capabilities/${encodeURIComponent(capabilityId)}/project`, {
       method: 'POST',
       body: JSON.stringify({ task_spec: taskSpec }),
     });
     const projected = payload.projection?.form_data;
     if (!projected) throw new Error('表单投影未返回 form_data');
+    if (!isCurrent()) return null;
+    if (capabilityId !== state.selectedCapabilityId) {
+      const selected = await selectCapability(capabilityId, null, isCurrent);
+      if (selected === false || state.selectedCapabilityId !== capabilityId) return null;
+    }
+    const before = clone(state.formData || state.schema.default_form);
     state.agentBeforeForm = before;
     state.formData = clone(projected);
     state.changedPaths = formDiffPaths(before, state.formData);
     state.taskSpec = clone(taskSpec);
+    state.hasTaskSpecContext = true;
     renderForm();
     renderEffectSelect();
     renderEvents();
@@ -3771,6 +3797,7 @@
     true: '是', false: '否', nominal: '标称', medium: '中等保真',
     basic: '基础保真', high: '高保真', low: '低保真', available: '可用',
     unavailable: '不可用',
+    instantiated_connected_recorded_unified: '已连接并记录',
   };
 
   function localizedValue(value) {
@@ -3818,12 +3845,19 @@
   }
 
   function switchTab(name) {
+    let activeButton = null;
     $all('.tab').forEach((button) => {
       const active = button.dataset.tab === name;
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', String(active));
+      button.tabIndex = active ? 0 : -1;
+      if (active) activeButton = button;
     });
-    $all('.tab-content').forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === name));
+    $all('.tab-content').forEach((panel) => {
+      const active = panel.dataset.panel === name;
+      if (!active && panel.contains(document.activeElement)) activeButton?.focus();
+      panel.classList.toggle('active', active);
+    });
     if (name === 'graph') requestAnimationFrame(() => {
       if (state.graphComposerMode === 'assembly') assemblyRender();
       else graphInitialize(false);
@@ -4000,22 +4034,44 @@
   }
 
   const LOCAL_MODEL_DEFAULTS = {
+    modelscope: 'http://127.0.0.1:8031/v1',
     ollama: 'http://127.0.0.1:11434/v1',
     lmstudio: 'http://127.0.0.1:1234/v1',
     vllm: 'http://127.0.0.1:8001/v1',
     openai_compatible: 'http://127.0.0.1:8000/v1',
   };
 
+  let modelSettingsInvoker = null;
   function openModelSettings() {
+    modelSettingsInvoker = document.activeElement;
     el('modelSettingsModal').classList.remove('hidden');
     renderModelProviderList();
+    el('modelSettingsModal').querySelector('button, input, select, textarea')?.focus();
   }
 
   function closeModelSettings() {
     el('modelSettingsModal').classList.add('hidden');
+    if (modelSettingsInvoker?.isConnected) modelSettingsInvoker.focus();
   }
 
+  document.addEventListener('keydown', (event) => {
+    const modal = el('modelSettingsModal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeModelSettings(); return; }
+    if (event.key !== 'Tab') return;
+    const controls = [...modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+      .filter((node) => !node.disabled && node.getClientRects().length);
+    if (!controls.length) return;
+    const first = controls[0], last = controls[controls.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+      event.preventDefault(); first.focus();
+    }
+  });
+
   const LOCAL_PROVIDER_IDS = {
+    modelscope: 'local-modelscope',
     ollama: 'local-ollama',
     lmstudio: 'local-lmstudio',
     vllm: 'local-vllm',
@@ -4228,6 +4284,7 @@
       state.schema = null;
       state.formData = null;
       state.taskSpec = null;
+      state.hasTaskSpecContext = false;
       state.planning = null;
       state.activeTaskCenterId = null;
       updateTaskEditState();
@@ -4253,19 +4310,23 @@
     }
   }
 
-  async function selectCapability(capabilityId, objectOverride = null) {
+  async function selectCapability(capabilityId, objectOverride = null, isCurrent = () => true) {
     if (capabilityId === state.selectedCapabilityId && state.schema && !objectOverride) return;
+    const mobileCatalogHadFocus = el('mobileCatalogPanel').contains(document.activeElement);
+    clearResetUndo();
     const capabilityChanged = capabilityId !== state.selectedCapabilityId;
     clearNotice();
     showBusy('读取能力 Schema', capabilityId);
     try {
       const payload = await api(`/forms/capabilities/${encodeURIComponent(capabilityId)}`);
+      if (!isCurrent()) return false;
       const object = objectOverride || presentationObjectForCapability(capabilityId);
       state.selectedObjectId = object?.object_id || state.selectedObjectId || capabilityId;
       state.selectedCapabilityId = capabilityId;
       if (capabilityChanged) clearVisualRunOverlay();
       state.schema = payload.form_schema;
       state.formData = clone(state.schema.default_form);
+      state.hasTaskSpecContext = false;
       state.outputPlotQuery = '';
       state.outputPlotSelectedOnly = false;
       state.taskSpec = null;
@@ -4304,6 +4365,10 @@
       }
       renderGraphPalette();
       if (document.querySelector('.tab.active')?.dataset.tab === 'graph') renderGraph();
+      if (window.matchMedia('(max-width: 760px)').matches) {
+        setMobileDisclosure('toggleMobileCatalogBtn', 'mobileCatalogPanel', false);
+        if (mobileCatalogHadFocus) el('toggleMobileCatalogBtn').focus();
+      }
     } catch (error) {
       showNotice(`读取能力失败：${error.message}`, 'error');
     } finally {
@@ -4466,6 +4531,10 @@
         if (['number_or_array[number]','vector3_or_number'].includes(field.widget)) input.placeholder='输入单值，或 [1, 2, 3]';
       }
       input.dataset.path=field.path;
+      const fieldId = `field-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+      input.id=fieldId; heading.id=`${fieldId}-label`; description.id=`${fieldId}-description`;
+      input.setAttribute('aria-labelledby',heading.id); input.setAttribute('aria-describedby',description.id);
+      if (field.required) input.setAttribute('aria-required','true');
       const current=getPath(state.formData,field.path);
       if (input.type==='checkbox') input.checked=Boolean(current); else input.value=displayFieldValue(current ?? field.default ?? '',field);
       const commit=()=>{
@@ -4497,10 +4566,21 @@
         return !query || haystack.includes(query);
       });
       if (!filtered.length) return;
-      const card=document.createElement('section'); card.className='schema-section';
-      const header=document.createElement('div'); header.className='section-heading compact';
+      const collapsible=Boolean(section.parameter_group) && section.parameter_group !== 'general';
+      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section';
+      if (collapsible) {
+        card.classList.add('parameter-section');
+        const key=`${state.schema.capability.capability_id}:${section.id}`;
+        const changed=filtered.some((field)=>state.changedPaths.has(field.path));
+        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? section.parameter_group === 'orbit');
+        card.addEventListener('toggle',()=>{
+          if (!query && !showAdvanced && !changed) state.formSectionOpen.set(key,card.open);
+        });
+      }
+      const header=document.createElement(collapsible ? 'summary' : 'div'); header.className='section-heading compact';
       const titleWrap=document.createElement('div'); const title=document.createElement('h3'); title.textContent=section.title || section.id; const desc=document.createElement('p'); desc.textContent=section.description || '';
       titleWrap.append(title,desc); header.appendChild(titleWrap); card.appendChild(header);
+      if (collapsible) { const count=document.createElement('span'); count.className='parameter-count'; count.textContent=`${filtered.length} 项`; header.appendChild(count); }
       const common=document.createElement('div'); common.className='dynamic-form-grid';
       const advanced=document.createElement('details'); advanced.className='advanced-fields'; advanced.open=showAdvanced || Boolean(query);
       const summary=document.createElement('summary'); summary.textContent='专业参数（按需展开）'; const advancedGrid=document.createElement('div'); advancedGrid.className='dynamic-form-grid'; advanced.append(summary,advancedGrid);
@@ -5037,6 +5117,7 @@
       return false;
     }
     const result=payload.result; state.taskSpec=result.task_spec || null; state.planning=result.planning || null; syncTaskSpecEditor();
+    if (payload.ok && state.taskSpec) state.hasTaskSpecContext = true;
     if (!payload.ok) {
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
       showValidationIssues(errors,'TaskSpec 校验失败');
@@ -5061,20 +5142,51 @@
 
   async function parseNaturalLanguage() {
     const text=el('agentInput').value.trim(); if (!text) throw new Error('请输入仿真需求');
-    const refine=Boolean(el('agentRefineCurrent')?.checked && state.taskSpec);
+    // A manual form edit invalidates the cached TaskSpec. Rebuild that edited
+    // configuration before refinement; never silently turn it into creation.
+    // A pristine initial form still permits the first instruction to select a
+    // different capability, rather than locking it to the default spacecraft.
+    const hasEditedForm=Boolean(state.formData && state.schema?.default_form
+      && JSON.stringify(state.formData)!==JSON.stringify(state.schema.default_form));
+    const refine=Boolean(el('agentRefineCurrent')?.checked && (state.taskSpec || state.hasTaskSpecContext || hasEditedForm));
+    if (refine && !state.taskSpec) {
+      const valid=await previewForm();
+      if (!valid || !state.taskSpec) {
+        showNotice('当前配置未通过校验，未向模型提交增量修改。请返回参数配置修正错误。', 'error');
+        return false;
+      }
+    }
+    const refinementBase=refine ? clone(state.taskSpec) : null;
     state.agentHistory.push({role:'user',text}); renderAgentConversation();
+    const generationContext = () => JSON.stringify({
+      capability:state.selectedCapabilityId, form:state.formData, task:state.taskSpec,
+      editor:el('taskSpecEditor').value, input:el('agentInput').value,
+      refine:el('agentRefineCurrent')?.checked, provider:el('agentBackend').value,
+      routing:el('agentRoutingMode').value, history:state.agentHistory,
+      taskCenter:state.activeTaskCenterId, run:state.activeRunId,
+    });
+    const requestedContext = generationContext();
+    const isCurrent = () => generationContext() === requestedContext;
+    const discardStale = () => {
+      showNotice('生成期间配置或需求已更新，旧回答未应用。请按当前内容重新生成。', 'warning');
+      return false;
+    };
     const payload=await api('/tasks/parse',{method:'POST',body:JSON.stringify({
-      input_kind:'natural_language',request_text:text,base_task_spec:refine?state.taskSpec:null,
+      input_kind:'natural_language',request_text:text,base_task_spec:refinementBase,
       backend:'auto',local_backend:'template',provider_id:el('agentBackend').value || state.activeProviderId || 'local-template',
       routing_mode:el('agentRoutingMode').value || 'auto',compile_if_valid:true,
     })});
-    const generatedTaskSpec=payload.result.task_spec || null; state.taskSpec=generatedTaskSpec; state.planning=payload.result.planning || null; syncTaskSpecEditor();
+    if (!isCurrent()) return discardStale();
+    const generatedTaskSpec=payload.result.task_spec || null;
     if (payload.ok) {
-      const capabilityId=generatedTaskSpec?.model?.capability_id; const changedCount=await projectTaskSpecToForm(generatedTaskSpec,refine?'Agent 多轮补充':'Agent');
+      const capabilityId=generatedTaskSpec?.model?.capability_id; const changedCount=await projectTaskSpecToForm(generatedTaskSpec,refine?'Agent 多轮补充':'Agent',isCurrent);
+      if (changedCount === null) return discardStale();
+      state.planning=payload.result.planning || null;
       const provider=payload.result.route?.provider_id || el('agentBackend').value || 'local-template';
       const response=`已${refine?'更新':'生成'} ${generatedTaskSpec?.task?.name || capabilityId || 'TaskSpec'}；Provider=${provider}；同步 ${changedCount} 组表单差异。`;
       state.agentHistory.push({role:'assistant',text:response}); renderAgentConversation(); el('agentInput').value=''; showNotice(response,'success');
     } else {
+      state.taskSpec=generatedTaskSpec; state.planning=payload.result.planning || null; syncTaskSpecEditor();
       const errors=[...(payload.result.validation?.errors || []),...(payload.result.guards?.issues || [])]; const message=errors.map(formatValidationIssue).join('；') || '需求未通过能力边界校验';
       state.agentHistory.push({role:'assistant',text:`未通过：${message}`}); renderAgentConversation(); showValidationIssues(errors,message);
     }
@@ -5095,6 +5207,7 @@
     const spec = taskSpecFromEditor();
     const payload = await api('/tasks/validate', { method: 'POST', body: JSON.stringify({ task_spec: spec }) });
     state.taskSpec = payload.task_spec || spec;
+    if (payload.ok) state.hasTaskSpecContext = true;
     syncTaskSpecEditor();
     if (payload.ok) showNotice('TaskSpec Schema、语义和能力边界校验通过。', 'success');
     else {
@@ -5394,16 +5507,18 @@
       showBusy('读取运行制品', runId);
     }
     try {
-      const [runPayload, metricsPayload, eventsPayload, plotsPayload, telemetryPayload, artifactsPayload, datasetPayload, fmeaPayload, traceabilityPayload] = await Promise.all([
-        api(`/runs/${encodeURIComponent(runId)}`),
+      const runPayload = await api(`/runs/${encodeURIComponent(runId)}`);
+      if (requestId !== state.runLoadRequestId) return false;
+      const availability = runPayload.run?.available_outputs;
+      const [metricsPayload, eventsPayload, plotsPayload, telemetryPayload, artifactsPayload, datasetPayload, fmeaPayload, traceabilityPayload] = await Promise.all([
         api(`/runs/${encodeURIComponent(runId)}/metrics`).catch(() => ({ metrics: {} })),
         api(`/runs/${encodeURIComponent(runId)}/events`).catch(() => ({ events: null })),
         api(`/runs/${encodeURIComponent(runId)}/plots`).catch(() => ({ plot_manifest: null })),
         api(`/runs/${encodeURIComponent(runId)}/telemetry?limit=2000`).catch(() => ({ rows: [] })),
         api(`/runs/${encodeURIComponent(runId)}/artifacts`).catch(() => ({ artifacts: [] })),
         api(`/runs/${encodeURIComponent(runId)}/dataset`).catch(() => ({ dataset: null })),
-        api(`/runs/${encodeURIComponent(runId)}/fmea`).catch(() => ({ table: null, manifest: null })),
-        api(`/runs/${encodeURIComponent(runId)}/fault-traceability`).catch(() => ({ traceability: null })),
+        availability?.fmea === false ? { table: null, manifest: null } : api(`/runs/${encodeURIComponent(runId)}/fmea`).catch(() => ({ table: null, manifest: null })),
+        availability?.fault_traceability === false ? { traceability: null } : api(`/runs/${encodeURIComponent(runId)}/fault-traceability`).catch(() => ({ traceability: null })),
       ]);
       if (requestId !== state.runLoadRequestId) return false;
       // Finite-run charts must span the entire trace, not silently show only
@@ -5521,6 +5636,7 @@
       details.appendChild(item);
     });
     card.append(titleRow, details);
+    renderRunEngineeringContext(card, run);
     const runStatus = String(record.status || '').toUpperCase();
     const failureReason = state.executionState?.run_id === technicalRunId ? state.executionState?.error : null;
     const recordedError = run.failure_reason || record.error || record.error_message || record.message || failureReason;
@@ -5532,6 +5648,95 @@
         : `本次运行状态：${runStatus}。运行记录未提供具体原因；请查看制品与诊断包。`;
       card.appendChild(failure);
     }
+  }
+
+  function renderRunEngineeringContext(card, run) {
+    const spec = run.task_spec;
+    if (!spec) return;
+    const section = document.createElement('section');
+    section.className = 'run-engineering-context';
+    section.setAttribute('aria-label', '工程假设与适用范围');
+    const title = document.createElement('strong');
+    title.textContent = '工程假设与适用范围';
+    const profile = spec.parameters?.profile || spec.assurance?.parameter_profile || '未记录';
+    const profileLabels = { demo: '默认/假设参数（未标定）', engineering_estimate: '工程估计', ground_calibrated: '地面标定', flight_correlated: '飞行关联' };
+    const summary = document.createElement('p');
+    summary.textContent = `参数证据：${profileLabels[profile] || profile}。用途与误差范围以本次记录中的依据为准。`;
+    section.append(title, summary);
+    const scope = spec.metadata?.engineering_scope;
+    if (scope) {
+      [scope.target, scope.parameter_basis, scope.validity, scope.error_boundary, scope.thermal_boundary].filter(Boolean).forEach((text) => {
+        const line = document.createElement('p');
+        line.textContent = String(text);
+        section.appendChild(line);
+      });
+      if (Array.isArray(scope.excluded_effects) && scope.excluded_effects.length) {
+        const exclusions = document.createElement('p');
+        exclusions.textContent = `本场景未建模：${scope.excluded_effects.join('；')}。`;
+        section.appendChild(exclusions);
+      }
+    }
+    const errorScope = document.createElement('p');
+    errorScope.textContent = '当前未声明覆盖全部近地轨道工况的统一精度上界；数值误差与外部参考残差需按各自的验证窗口解读。';
+    section.appendChild(errorScope);
+    const environment = run.summary?.orbital_environment;
+    if (environment) {
+      const description = document.createElement('p');
+      description.textContent = `实际轨道环境：${environment.profile}；UTC 历元：${environment.epoch_utc || '未记录'}。`;
+      section.appendChild(description);
+    }
+    const assumptions = spec.provenance?.assumptions || [];
+    const fields = spec.provenance?.fields || {};
+    const disclosure = document.createElement('details');
+    disclosure.className = 'run-input-assumptions';
+    const heading = document.createElement('summary');
+    heading.textContent = `输入参数来源与假设（${assumptions.length} 项）`;
+    disclosure.appendChild(heading);
+    if (assumptions.length) {
+      const list = document.createElement('ul');
+      list.className = 'run-assumption-list';
+      assumptions.forEach((assumption) => {
+        const row = document.createElement('li');
+        const label = document.createElement('strong');
+        label.textContent = `${assumption.path} = ${JSON.stringify(assumption.value)}`;
+        const source = fields[assumption.path];
+        const evidence = document.createElement('span');
+        evidence.textContent = [assumption.reason, source?.evidence, source?.note].filter(Boolean).join(' · ');
+        row.append(label, evidence);
+        list.appendChild(row);
+      });
+      disclosure.appendChild(list);
+    } else {
+      const empty = document.createElement('p');
+      empty.textContent = '本次记录没有逐参数假设说明；可在 TaskSpec 的 provenance 中补充依据。';
+      disclosure.appendChild(empty);
+    }
+    section.appendChild(disclosure);
+    const limitations = run.claim_report?.limitations || [];
+    if (limitations.length) {
+      const list = document.createElement('ul');
+      list.className = 'run-model-limitations';
+      limitations.forEach((limitation) => {
+        const item = document.createElement('li');
+        item.textContent = String(limitation);
+        list.appendChild(item);
+      });
+      section.appendChild(list);
+    }
+    if (spec.parameters?.overrides?.length) {
+      const overrides = document.createElement('p');
+      overrides.textContent = `另有 ${spec.parameters.overrides.length} 项参数覆盖；实际生效值见解析配置与运行制品。`;
+      section.appendChild(overrides);
+    }
+    const overview = document.createElement('details');
+    overview.className = 'run-engineering-disclosure';
+    const overviewHeading = document.createElement('summary');
+    overviewHeading.textContent = `工程假设与适用范围 · ${profileLabels[profile] || profile}`;
+    const body = document.createElement('div');
+    while (section.firstChild) body.appendChild(section.firstChild);
+    overview.append(overviewHeading, body);
+    section.appendChild(overview);
+    card.appendChild(section);
   }
 
   async function reuseActiveRunConfiguration() {
@@ -5572,13 +5777,15 @@
       'schema_version', 'fidelity_level', 'model_family', 'can_claim_high_fidelity',
       'reason_high_fidelity_still_blocked', 'task_id', 'case_id', 'run_id',
       'status', 'mode', 'domain', 'backend', 'adapter_id', 'capability_id',
+      'status_semantics_version', 'mission_bounds_scope', 'mission_bounds_sample_count',
     ]);
     const available=Object.keys(state.metrics).filter((key)=>!internalKeys.has(key));
-    const requested=(state.requestedQoi || []).filter((key)=>Object.hasOwn(state.metrics,key));
+    const requested=(state.requestedQoi || []).filter((key)=>available.includes(key));
     const preferred=[
       'mission_success_score', 'qoi.adcs.final_pointing_error_deg', 'qoi.adcs.max_pointing_error_deg',
       'qoi.adcs.settled_time_s', 'battery_soc', 'energy_conservation_status', 'data_conservation_status',
       'attitude_error_deg', 'thermal_temp_c', 'payload_generated_bps', 'downlink_delivered_bps',
+      'final_pointing_error_deg', 'final_battery_soc', 'final_storage_bits',
       'runtime_fault_triggered_count',
     ];
     const ordered=[...requested,...preferred.filter((key)=>available.includes(key)),...available];
@@ -5618,6 +5825,29 @@
     text.style.marginTop = '4px';
     if (validation.reason_code) text.title=`原因码：${validation.reason_code}`;
     card.append(strong, text);
+    const physical = validation.physical_validation;
+    if (physical && Object.keys(physical).length) {
+      const coverage = document.createElement('div');
+      coverage.className = 'validation-coverage';
+      coverage.dataset.coverage = physical.coverage_status || 'UNKNOWN';
+      const labels = {
+        soc_bounds:'电量上下限', thermal_bounds:'温度范围', orbit_altitude_sanity:'轨道高度',
+        fuel_monotonicity:'推进剂单调性', data_conservation:'数据守恒', quaternion_norm:'四元数归一',
+        pointing_convergence:'指向收敛', energy_balance_proxy:'功率与推力非负',
+      };
+      const observed = physical.checks_run || [];
+      const missing = physical.checks_missing || [];
+      const stateLabel = {COMPLETE:'完整', PARTIAL:'部分', NONE:'未评估'}[physical.coverage_status];
+      coverage.textContent = stateLabel
+        ? `物理检查覆盖：${stateLabel}（已执行 ${observed.length} 项）。`
+        : '物理检查覆盖：历史报告未记录，无法确认。';
+      if (missing.length) coverage.textContent += `未评估：${missing.map(name => labels[name] || name).join('、')}。`;
+      if (physical.issue_count) {
+        coverage.textContent += `警告 ${physical.warning_count || 0} 条，失败 ${physical.fail_count || 0} 条。`;
+        if (physical.issues_truncated) coverage.textContent += `详细位置保留 ${(physical.issues || []).length} 条样本，其余位置可从原始遥测复核。`;
+      }
+      card.appendChild(coverage);
+    }
   }
 
   function numericSeries() {
@@ -6279,6 +6509,15 @@
 
   async function loadInteractiveAvailability() {
     try {
+      const health = await api('/health');
+      if (!health.features?.interactive) {
+        state.interactiveAvailable = false;
+        state.interactiveSessions = [];
+        state.interactiveCommandCatalog = [];
+        el('interactiveNavButton').classList.add('hidden');
+        el('continuousNavButton')?.classList.add('hidden');
+        return;
+      }
       const [sessions, catalog] = await Promise.all([api('/interactive/sessions'), api('/interactive/commands/catalog')]);
       state.interactiveAvailable = true;
       state.interactiveSessions = sessions.sessions || [];
@@ -7373,16 +7612,20 @@
   }
 
   function closeTaskDetails() {
+    state.taskDetailsTaskId = null;
+    state.taskDetailsRequestId += 1;
     el('taskDetailsModal').classList.add('hidden');
   }
 
   async function openTaskDetails(taskId) {
-    state.activeTaskCenterId = taskId;
+    const requestId = ++state.taskDetailsRequestId;
     const [taskPayload, versionPayload, runPayload] = await Promise.all([
       api(`/task-center/tasks/${encodeURIComponent(taskId)}`),
       api(`/task-center/tasks/${encodeURIComponent(taskId)}/versions`),
       api(`/task-center/tasks/${encodeURIComponent(taskId)}/runs`),
     ]);
+    if (requestId !== state.taskDetailsRequestId) return;
+    state.taskDetailsTaskId = taskId;
     const task = taskPayload.task || {};
     el('taskDetailsTitle').textContent = task.name || taskId;
     el('taskDetailsSummary').textContent = `当前 V${task.current_version || 1} · ${task.version_count || 1} 个版本 · ${task.run_count || 0} 次运行${task.baseline_version ? ` · 基线 V${task.baseline_version}` : ''}`;
@@ -7451,8 +7694,9 @@
   }
 
   async function cloneActiveTask() {
-    if (!state.activeTaskCenterId) return;
-    const payload = await api(`/task-center/tasks/${encodeURIComponent(state.activeTaskCenterId)}/clone`, {
+    const taskId = state.taskDetailsTaskId;
+    if (!taskId) return;
+    const payload = await api(`/task-center/tasks/${encodeURIComponent(taskId)}/clone`, {
       method: 'POST', body: JSON.stringify({}),
     });
     closeTaskDetails();
@@ -7786,10 +8030,60 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('faultCatalogModal').classList.remove('hidden');
   }
 
+  function clearResetUndo() {
+    state.resetUndoSnapshot = null;
+    el('resetUndoNotice')?.classList.add('hidden');
+  }
+
+  function resetUndoStillCurrent() {
+    const snapshot = state.resetUndoSnapshot;
+    return snapshot && snapshot.capabilityId === state.selectedCapabilityId
+      && state.formData === snapshot.expectedFormIdentity
+      && JSON.stringify(state.formData) === snapshot.expectedFormJson
+      && state.activeTaskCenterId === null
+      && el('taskSpecEditor').value === snapshot.expectedEditorText;
+  }
+
+  function undoResetForm() {
+    const snapshot = state.resetUndoSnapshot;
+    if (!snapshot) return;
+    if (!resetUndoStillCurrent()) {
+      clearResetUndo();
+      el('resetFormBtn').focus();
+      showNotice('当前配置已继续修改，本次撤销未执行；你的新改动已保留。', 'warning');
+      return;
+    }
+    state.formData = clone(snapshot.formData);
+    state.taskSpec = clone(snapshot.taskSpec);
+    state.hasTaskSpecContext = snapshot.hasTaskSpecContext;
+    state.planning = clone(snapshot.planning);
+    state.changedPaths = new Set(snapshot.changedPaths);
+    state.agentBeforeForm = clone(snapshot.agentBeforeForm);
+    state.activeTaskCenterId = snapshot.activeTaskCenterId;
+    clearResetUndo();
+    updateTaskEditState();
+    renderAgentChangePanel();
+    renderForm();
+    renderEvents();
+    renderOutputs();
+    syncTaskSpecEditor();
+    el('taskSpecEditor').value = snapshot.editorText;
+    el('resetFormBtn').focus();
+    showNotice('已还原之前的配置。', 'success');
+  }
+
   function resetForm() {
     if (!state.schema) return;
+    const snapshot = resetUndoStillCurrent() ? state.resetUndoSnapshot : {
+      capabilityId: state.selectedCapabilityId, formData: clone(state.formData),
+      taskSpec: clone(state.taskSpec), planning: clone(state.planning),
+      hasTaskSpecContext: state.hasTaskSpecContext,
+      changedPaths: [...state.changedPaths], agentBeforeForm: clone(state.agentBeforeForm),
+      activeTaskCenterId: state.activeTaskCenterId, editorText: el('taskSpecEditor').value,
+    };
     state.formData = clone(state.schema.default_form);
     state.taskSpec = null;
+    state.hasTaskSpecContext = false;
     state.planning = null;
     state.changedPaths = new Set();
     state.agentBeforeForm = null;
@@ -7800,10 +8094,18 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     renderEvents();
     renderOutputs();
     syncTaskSpecEditor();
+    snapshot.expectedFormIdentity = state.formData;
+    snapshot.expectedFormJson = JSON.stringify(state.formData);
+    snapshot.expectedEditorText = el('taskSpecEditor').value;
+    state.resetUndoSnapshot = snapshot;
+    el('resetUndoNotice').classList.remove('hidden');
     showNotice('表单已恢复为能力注册表默认值。', 'success');
   }
 
   function bindEvents() {
+    [['toggleMobileToolsBtn', 'workbenchTools'], ['toggleMobileCatalogBtn', 'mobileCatalogPanel']].forEach(([buttonId, panelId]) => {
+      el(buttonId).addEventListener('click', () => setMobileDisclosure(buttonId, panelId, el(buttonId).getAttribute('aria-expanded') !== 'true'));
+    });
     el('themeSelect').addEventListener('change', (event) => applyTheme(event.target.value));
     el('fontScaleSelect').addEventListener('change', (event) => applyFontScale(event.target.value));
     el('expandRunPanelBtn').addEventListener('click', toggleRunResultsExpanded);
@@ -7999,6 +8301,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('effectKind').addEventListener('change', renderEffectSelect);
     el('addEffectBtn').addEventListener('click', addEffect);
     el('resetFormBtn').addEventListener('click', resetForm);
+    el('undoResetFormBtn').addEventListener('click', undoResetForm);
     el('saveTaskBtn').addEventListener('click', async () => {
       showBusy('保存仿真任务', '写入任务中心');
       try { await saveCurrentTask('new'); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
@@ -8038,8 +8341,18 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('clearAgentConversationBtn').addEventListener('click', () => { state.agentHistory=[]; renderAgentConversation(); });
     el('agentParseBtn').addEventListener('click', async () => {
-      showBusy('Agent 正在解析需求', '检索能力并生成受约束 TaskSpec');
-      try { await parseNaturalLanguage(); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
+      if (state.agentGenerating) return;
+      state.agentGenerating = true;
+      const button = el('agentParseBtn');
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      el('agentGenerationStatus').textContent = '正在生成并校验；可继续查看仿真结果或调整界面。';
+      try { await parseNaturalLanguage(); } catch (error) { showNotice(error.message, 'error'); } finally {
+        state.agentGenerating = false;
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        el('agentGenerationStatus').textContent = '';
+      }
     });
     el('applyJsonToFormBtn').addEventListener('click', async () => {
       showBusy('同步 TaskSpec 到表单', '校验能力并投影 Registry 字段');
@@ -8140,7 +8453,23 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('closeFaultCatalogBtn').addEventListener('click', () => el('faultCatalogModal').classList.add('hidden'));
     el('faultCatalogModal').addEventListener('click', event => { if (event.target === el('faultCatalogModal')) el('faultCatalogModal').classList.add('hidden'); });
     el('closeExperimentComparisonBtn').addEventListener('click', () => el('experimentComparisonPanel').classList.add('hidden'));
-    $all('.tab').forEach((button) => button.addEventListener('click', () => switchTab(button.dataset.tab)));
+    $all('.tab').forEach((button) => {
+      button.addEventListener('click', () => switchTab(button.dataset.tab));
+      button.addEventListener('keydown', (event) => {
+        if (event.altKey || event.ctrlKey || event.metaKey) return;
+        const tabs = $all('.tab');
+        const index = tabs.indexOf(button);
+        let target = null;
+        if (event.key === 'ArrowRight') target = tabs[(index + 1) % tabs.length];
+        if (event.key === 'ArrowLeft') target = tabs[(index + tabs.length - 1) % tabs.length];
+        if (event.key === 'Home') target = tabs[0];
+        if (event.key === 'End') target = tabs[tabs.length - 1];
+        if (!target) return;
+        event.preventDefault();
+        switchTab(target.dataset.tab);
+        target.focus();
+      });
+    });
     $all('.result-tab').forEach((button) => button.addEventListener('click', () => switchResultTab(button.dataset.resultTab)));
     window.addEventListener('resize', () => {
       if (document.querySelector('.result-tab.active')?.dataset.resultTab === 'charts') drawChart();

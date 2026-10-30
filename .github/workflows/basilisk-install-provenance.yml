@@ -1,4 +1,4 @@
-name: Attested legacy Basilisk satfix1 and clean bootstrap (security release blocked)
+name: Attested Basilisk satfix2 and clean bootstrap
 
 on:
   pull_request:
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
-      - name: Download SHA-pinned official Basilisk and rebuild metadata-only satfix1
+      - name: Download SHA-pinned official Basilisk and rebuild metadata-only satfix2
         shell: bash
         run: |
           python scripts/fetch_official_bsk_and_build_offline_bundle.py --platform "$BSK_WHEEL_PLATFORM"
@@ -66,7 +66,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          python scripts/ensure_basilisk_runtime.py --require-satfix1
+          python scripts/ensure_basilisk_runtime.py --require-satfix2
           python -m pip install --find-links third_party/wheels -c constraints.txt -e ".[api]"
       - name: Verify actual installed native Basilisk module and pin
         shell: bash
@@ -81,9 +81,9 @@ jobs:
           from Basilisk.architecture import messaging
           from Basilisk.simulation import simpleBattery, spacecraft
           from Basilisk.utilities import macros
-          assert importlib.metadata.version("bsk") == "2.11.0+satfix1"
+          assert importlib.metadata.version("bsk") == "2.11.0+satfix2"
           assert not hasattr(simpleBattery, "SimpleBatteryCheckpointState"), (
-              "Production satfix1 MUST NOT bundle the experimental R9-K ABI"
+              "Production satfix2 MUST NOT bundle the experimental R9-K ABI"
           )
           bat = simpleBattery.SimpleBattery()
           bat.storageCapacity = 1000.0
@@ -105,10 +105,10 @@ jobs:
       - name: Archive manifest and attested metadata-only compatibility wheel
         uses: actions/upload-artifact@v7
         with:
-          name: sat-bsk211-satfix1-${{ matrix.wheel_platform }}-py${{ matrix.python }}
+          name: sat-bsk211-satfix2-${{ matrix.wheel_platform }}-py${{ matrix.python }}
           path: |
-            third_party/wheels/bsk-2.11.0+satfix1-*.whl
-            third_party/wheels/bsk_2.11.0_satfix1_build_report.json
-            third_party/wheels/OFFLINE_BSK_BUNDLE_MANIFEST.json
+            third_party/wheels/bsk-2.11.0+satfix2-*.whl
+            third_party/wheels/bsk_2.11.0_satfix2_build_report.json
+            third_party/wheels/OFFLINE_BSK_BUNDLE_MANIFEST_satfix2.json
           if-no-files-found: error
           retention-days: 7

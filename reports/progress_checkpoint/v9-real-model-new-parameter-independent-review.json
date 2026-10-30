@@ -1,0 +1,41 @@
+{
+  "status": "INDEPENDENT_ACTUAL_MODEL_RAW4W_SCRIPT_NATIVE_AND_DURATION_REVIEW_PASS",
+  "at_utc": "2026-10-29T16:55:46.526586+00:00",
+  "application": "a56aac6787e3f50db721e86171f84997ee4910a64c0cbb930ff6d4499b436758",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "scope": "One scenario, two actual model calls including one allowed validator correction; not first-attempt accuracy, raw69 score, production promotion or24h evidence.",
+  "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+  "actual_model_request_ids": [
+    "chatcmpl-cf4ffdca79994e2ebca99c776ff7c278",
+    "chatcmpl-7eb143d627244111a28ff58b7d0f44ed"
+  ],
+  "raw_final_response_sha256": "38c90fa22747bee69547499e6f15118afb413a7eb8e8feb2e94431cbb30886d0",
+  "raw_answer_conductance_w_k": 4.0,
+  "actual_native_links": [
+    {
+      "from_node": "solar_panel",
+      "to_node": "structure",
+      "conductance_w_per_k": 4.0
+    }
+  ],
+  "actual_duration_s": 20.0,
+  "sample_s": 1.0,
+  "step_s": 0.2,
+  "exported_sample_count": 21,
+  "maximum_grid_roundoff_s": 1.7763568394002505e-15,
+  "bundle_verified": true,
+  "bundle_manifest_sha256": "dc636019f1b787fba9f2aa3b7e2be10554b2bc2ccccbf34c41df30d4eb5efdc7",
+  "input_file_sha256": {
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/report.json": "c540e1feb293a7fcf034da8de6343f964fd34064caf79c48f3450602a556dc69",
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/actual/raw_model_output.txt": "55c2806607b207d14adedd810df1b6ff1356aff611765f37582a3a079ab7bb9b",
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/actual/model_call.json": "f6791dbb393a106219f08313c70956e4d93f6ed7b9c28df0fb0d34880367bb1c",
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/actual/model_call_retry.json": "dfe05a6b7d27b794658732e27bea37962c39aaa75cc38922c7d0c2835ccc3300",
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/actual/task_spec.json": "1b1e6c1d404a42a5b821b8038b8802f9835d6056713b4c0942f92286a6f16f50",
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/script.stdout.log": "e74efdf58977765feef71638c8cf1310bab5b7d7ef8011fcd50fcc2de8440da3",
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/actual/datasets/generated_task/trace.csv": "a8423df1b2b240dde2bbe38945678ee463c0b306f267b458bb721932ba6b6a91",
+    "reports/local_requirements_completion/thermal-link-v9-real-model-new-parameter/actual/runtime-verification.json": "ea22a8ea6716d0605f2f69bdf24e139bf9229070eed2f056f5df0be77303b347"
+  },
+  "driver_edit_disclosure": "v9-thermal-link-model-driver-edit-disclosure/state.json",
+  "driver_edit_scope": "Duration assertion changed after module load. This reviewer independently checks final raw model20s, actual TaskSpec20s and native0..20s grid; the modified driver did not run unchanged.",
+  "originals_unchanged": true
+}

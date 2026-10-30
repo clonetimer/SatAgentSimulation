@@ -190,6 +190,8 @@ def main() -> int:
         "--strict",
         "--no-deps",
         "--disable-pip",
+        "--cache-dir",
+        str(root / ".cache" / "pip-audit"),
         "--progress-spinner",
         "off",
         "--timeout",

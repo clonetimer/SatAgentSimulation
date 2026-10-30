@@ -1,0 +1,36 @@
+{
+  "status": "INSTALLED_BROWSER_AND_RECREATION_SEALED_BUNDLES_INDEPENDENTLY_VERIFIED",
+  "at_utc": "2026-10-29T17:47:07.706043+00:00",
+  "bundles": [
+    {
+      "path": "reports\\local_requirements_completion\\v9-production-qualification\\native-browser\\api\\interactive_sessions\\native-browser-live\\run_bundle",
+      "manifest_sha256": "5b30031510a0eaf6f151947d2bb9e92410a6d56c3040ab2e93c2bf06c047809c",
+      "seal_sha256": "4e6a02f1a0c9bc2b849b3ed88d9c079774a0a867d1945e7f9baffd91f6235439",
+      "verified_files": 13,
+      "reason": "RUN_BUNDLE_VERIFIED"
+    },
+    {
+      "path": "reports\\local_requirements_completion\\v9-production-qualification\\native-browser\\runs\\template_generic_leo_small_sat_engineering_mvttq3zo",
+      "manifest_sha256": "3983cb92b840a3a70dc8130dd8df3f36a3618660a2d783968208cb4bb8163ca9",
+      "seal_sha256": "0088dab5499cdab67e75fd0a0ec82d5c6c8052f5bdf0c3cb67e3c832d0cba659",
+      "verified_files": 41,
+      "reason": "RUN_BUNDLE_VERIFIED"
+    },
+    {
+      "path": "reports\\local_requirements_completion\\v9-production-qualification\\failure-recreation\\api\\interactive_sessions\\fresh-native-scene\\run_bundle",
+      "manifest_sha256": "d8fc634d008f65e086f453547935dc01530aec43d5f601938ca74f62e9206cde",
+      "seal_sha256": "f450d560cdb990e3982e49066afd88f68a0c3907867710c98584cf791435c643",
+      "verified_files": 13,
+      "reason": "RUN_BUNDLE_VERIFIED"
+    },
+    {
+      "path": "reports\\local_requirements_completion\\thermal-link-v9-production-native-browser\\api\\interactive_sessions\\browser-thermal-link-4w\\run_bundle",
+      "manifest_sha256": "9e3c0ce890d2a17ba90189ceaaccaa11ebad03cb72b3ab252c4fa4ea79584f60",
+      "seal_sha256": "4f657c77be2d57ffca6a20132c77755a5033610cbf29107341835dea146a9116",
+      "verified_files": 13,
+      "reason": "RUN_BUNDLE_VERIFIED"
+    }
+  ],
+  "scope": "Independent filesystem integrity of actual installed offline run plus three continuous browser/recreation seals. All four manifests and seals hashed and unchanged; no new physics process or24h claim.",
+  "revised_at_utc": "2026-10-29T17:48:25.828409+00:00"
+}

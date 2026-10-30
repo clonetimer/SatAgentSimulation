@@ -158,3 +158,21 @@ def test_official_controller_applies_whole_spacecraft_soc_to_recorder(tmp_path: 
     assert check["recorder_verified"] is True
     assert check["sensitivity_observed"] is True
     assert "final_battery_soc" in report["output_statistics"]
+
+
+def test_official_controller_preserves_base_environment_and_orbit_geometry(tmp_path: Path):
+    spec = _short_template('generic_leo_small_sat_engineering')
+    spec['parameters']['values'].update(eccentricity=.02, raan_deg=37., arg_perigee_deg=22., spacecraft_mass_kg=120.)
+    variants = expand_monte_carlo(spec,
+        {'parameters.values.initial_soc':{'distribution':'uniform','min':.45,'max':.8}},
+        sample_count=2,seed=77)
+    report = execute_basilisk_controller_variants(spec, variants, archive_dir=tmp_path/'advanced',thread_count=1)
+    assert report['controller_invoked'] is True
+    assert report['failure_count'] == 0
+    for row in report['runs']:
+        summary = row['summary']
+        assert summary['orbital_environment']['profile'] == 'spice_wmm'
+        assert summary['orbital_environment']['epoch_utc'].startswith('2026-01-01')
+        assert summary['controller_applied_parameters']['parameters.values.spacecraft_mass_kg'] == 120.
+        # A dropped eccentricity would initialize the old default circular-ish orbit.
+        assert row['trace_rows'][0]['orbit.radius_m'] == pytest.approx(7_000_000.*(1.-.02),abs=1e-6)

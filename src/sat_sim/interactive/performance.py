@@ -6,7 +6,6 @@ the frozen 30-minute wall-clock and four-hour simulated-time gates.
 from __future__ import annotations
 
 import math
-import statistics
 import threading
 import time
 from collections.abc import Callable
@@ -54,11 +53,18 @@ def _resource_snapshot() -> dict[str, int]:
     import psutil
 
     process = psutil.Process()
-    return {
-        "rss_bytes": int(process.memory_info().rss),
-        "threads": int(process.num_threads()),
-        "fds": int(process.num_fds()) if hasattr(process, "num_fds") else -1,
-    }
+    snapshot = {'rss_bytes':0, 'threads':0, 'fds':0 if hasattr(process, 'num_fds') else -1, 'processes':0}
+    for owned in [process, *process.children(recursive=True)]:
+        try:
+            with owned.oneshot():
+                snapshot['rss_bytes'] += int(owned.memory_info().rss)
+                snapshot['threads'] += int(owned.num_threads())
+                if snapshot['fds'] >= 0:
+                    snapshot['fds'] += int(owned.num_fds())
+                snapshot['processes'] += 1
+        except psutil.NoSuchProcess:
+            continue  # An owned child exited during this snapshot.
+    return snapshot
 
 
 def _finish_runtime(runtime: PersistentSimulationRuntime, *, abort: bool = False) -> None:
@@ -70,6 +76,9 @@ def _finish_runtime(runtime: PersistentSimulationRuntime, *, abort: bool = False
                 runtime.abort()
             except Exception:
                 pass
+            # Cleanup is best effort; a failed finalization must still fail
+            # the measurement instead of returning a successful verdict.
+            raise
 
 
 def benchmark_quantum(factory: RuntimeFactory, *, samples: int, max_utilization: float = 1.0) -> dict[str, Any]:
@@ -153,11 +162,18 @@ def benchmark_paced_session(
         raise TimeoutError(f"paced benchmark timed out at rate={rate}")
     elapsed = time.perf_counter() - started
     observations = session.pace_observations()
+    end_to_end_elapsed = elapsed
+    if observations and all(item.wall_time_s is not None and item.sim_time_s is not None for item in observations):
+        first, last = observations[0], observations[-1]
+        epoch = first.wall_time_s - first.sim_time_s/rate - first.drift_s
+        elapsed = last.wall_time_s - epoch
     drift_ms = [abs(item.drift_s) * 1000.0 for item in observations]
     achieved_rate = session.current_time_s / elapsed if elapsed else 0.0
     return {
         "rate_target": rate,
         "wall_duration_s": round(elapsed, 6),
+        "end_to_end_wall_duration_s": round(end_to_end_elapsed, 6),
+        "timing_scope": 'paced_native_execution_excluding_finalization',
         "sim_duration_s": session.current_time_s,
         "observation_count": len(observations),
         "absolute_drift_ms_p50": round(percentile(drift_ms, 50.0), 6),
@@ -340,24 +356,50 @@ def benchmark_capacity(
     for concurrency in (1, 2, 4):
         before = _resource_snapshot()
         sessions: list[InteractiveSession] = []
+        samples = [before]
+        monitor_errors: list[Exception] = []
+        stop_monitor = threading.Event()
+
+        def monitor():
+            try:
+                while not stop_monitor.wait(.02):
+                    samples.append(_resource_snapshot())
+            except Exception as exc:
+                monitor_errors.append(exc)
+
+        monitor_thread = threading.Thread(target=monitor, name='sat-capacity-resource-monitor', daemon=True)
+        monitor_thread.start()
         started = time.perf_counter()
-        for index in range(concurrency):
-            runtime = factory(duration_s, quantum_s)
-            spec = _session_spec(f"perf-capacity-{concurrency}-{index}", duration_s, quantum_s, rate=10.0, paced=False)
-            session = InteractiveSession(spec, runtime, end_time_s=duration_s)
-            session.prepare()
-            sessions.append(session)
-        for session in sessions:
-            session.start()
-        completed_rows = [session.wait(120.0) for session in sessions]
+        try:
+            for index in range(concurrency):
+                runtime = factory(duration_s, quantum_s)
+                spec = _session_spec(f"perf-capacity-{concurrency}-{index}", duration_s, quantum_s, rate=10.0, paced=False)
+                session = InteractiveSession(spec, runtime, end_time_s=duration_s)
+                sessions.append(session)
+                session.prepare()
+            samples.append(_resource_snapshot())
+            for session in sessions:
+                session.start()
+            completed_rows = [session.wait(120.0) for session in sessions]
+        finally:
+            stop_monitor.set()
+            monitor_thread.join(timeout=5.)
+            for session in sessions:
+                if session.state not in {SessionState.COMPLETED, SessionState.FAILED, SessionState.ABORTED, SessionState.INTERRUPTED}:
+                    session.abort()
+                    session.wait(10.)
+        if monitor_errors:
+            raise RuntimeError('CAPACITY_RESOURCE_MEASUREMENT_FAILED') from monitor_errors[0]
         completed = all(completed_rows)
         elapsed = time.perf_counter() - started
         after = _resource_snapshot()
+        samples.append(after)
+        peak_rss = max(item['rss_bytes'] for item in samples)
         states = [session.state.value for session in sessions]
         passed = (
             completed
             and all(session.state is SessionState.COMPLETED for session in sessions)
-            and (concurrency < 4 or after["rss_bytes"] <= max_rss_bytes_at_four)
+            and (concurrency < 4 or peak_rss <= max_rss_bytes_at_four)
         )
         cases.append({
             "concurrency": concurrency,
@@ -368,6 +410,8 @@ def benchmark_capacity(
             "aggregate_sim_rate": round(concurrency * duration_s / elapsed, 6) if elapsed else None,
             "rss_delta_bytes": after["rss_bytes"] - before["rss_bytes"],
             "rss_bytes": after["rss_bytes"],
+            "rss_peak_bytes": peak_rss,
+            "resource_scope": 'parent_and_recursive_children',
             "rss_budget_bytes_at_concurrency_4": max_rss_bytes_at_four,
             "thread_delta": after["threads"] - before["threads"],
             "fd_delta": after["fds"] - before["fds"] if before["fds"] >= 0 else None,
@@ -411,7 +455,7 @@ def benchmark_long_sim(
     thread_growth = samples[-1]["threads"] - before["threads"]
     fd_growth = samples[-1]["fds"] - before["fds"] if before["fds"] >= 0 else 0
     passed = (
-        total_growth <= max_rss_growth_bytes
+        max(rss_values)-before['rss_bytes'] <= max_rss_growth_bytes
         and thread_growth <= max_thread_growth
         and fd_growth <= max_fd_growth
     )
@@ -423,6 +467,8 @@ def benchmark_long_sim(
         "achieved_unpaced_sim_rate": round(sim_duration_s / elapsed, 6),
         "rss_initial_bytes": before["rss_bytes"],
         "rss_peak_bytes": max(rss_values),
+        "rss_peak_growth_bytes": max(rss_values)-before['rss_bytes'],
+        "resource_scope": 'parent_and_recursive_children',
         "rss_total_growth_bytes": total_growth,
         "rss_tail_growth_bytes": tail_growth,
         "rss_growth_budget_bytes": max_rss_growth_bytes,
@@ -441,6 +487,7 @@ def run_performance_benchmark(
     budget: dict[str, Any],
     *,
     formal: bool,
+    progress: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     limits = budget["mvp"]
     profile = {
@@ -453,44 +500,58 @@ def run_performance_benchmark(
         "long_sim_s": 14400.0 if formal else 60.0,
     }
     started_at = datetime.now(timezone.utc).isoformat()
+
+    def measure(name, function, *args, **kwargs):
+        if progress is not None:
+            progress({'check':name, 'state':'RUNNING', 'final_verdict':False})
+        try:
+            result = function(*args, **kwargs)
+        except BaseException as exc:
+            if progress is not None:
+                progress({'check':name, 'state':'ERROR', 'error':str(exc), 'final_verdict':False})
+            raise
+        if progress is not None:
+            progress({'check':name, 'state':'MEASURED', 'measurement':result, 'final_verdict':False})
+        return result
+
     checks = {
-        "quantum": benchmark_quantum(
+        "quantum": measure('quantum', benchmark_quantum,
             factory,
             samples=profile["quantum_samples"],
             max_utilization=float(limits["quantum_compute_p95_max_utilization_at_1x"]),
         ),
-        "rates": benchmark_rates(
+        "rates": measure('rates', benchmark_rates,
             factory,
             wall_s_per_rate=profile["rate_wall_s"],
             quantum_s=0.1,
             min_attainment_ratio=float(limits["rate_min_attainment_ratio"]),
         ),
-        "drift_1x": benchmark_paced_session(
+        "drift_1x": measure('drift_1x', benchmark_paced_session,
             factory,
             rate=1.0,
             wall_duration_s=profile["drift_wall_s"],
             quantum_s=0.1,
             session_id="perf-drift-1x",
         ),
-        "command": benchmark_command_latency(
+        "command": measure('command', benchmark_command_latency,
             factory,
             samples=profile["command_samples"],
             budget_ms=float(limits["command_receive_to_queue_p95_ms"]),
             effect_max_quanta=int(limits["command_effect_max_quanta"]),
         ),
-        "telemetry": benchmark_telemetry(
+        "telemetry": measure('telemetry', benchmark_telemetry,
             duration_s=profile["telemetry_wall_s"],
             delivery_budget_ms=float(limits["telemetry_delivery_p95_ms_at_10hz"]),
             min_aggregate_fps=float(limits["telemetry_aggregate_min_frames_per_second"]),
         ),
-        "slow_client": benchmark_slow_client(),
-        "capacity": benchmark_capacity(
+        "slow_client": measure('slow_client', benchmark_slow_client),
+        "capacity": measure('capacity', benchmark_capacity,
             factory,
             duration_s=profile["capacity_sim_s"],
             quantum_s=0.5,
             max_rss_bytes_at_four=int(limits["max_process_rss_bytes_at_concurrency_4"]),
         ),
-        "long_sim": benchmark_long_sim(
+        "long_sim": measure('long_sim', benchmark_long_sim,
             factory,
             sim_duration_s=profile["long_sim_s"],
             quantum_s=1.0,

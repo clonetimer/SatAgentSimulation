@@ -32,10 +32,26 @@ simulation_parameters:
   sample_s: {unit: s, required: true, min: 0.001}
 outputs:
   trace:
-  - {name: adcs.magnetometer.field_x_t, unit: T, dtype: number}
-  - {name: adcs.magnetometer.field_norm_t, unit: T, dtype: number}
+  - name: adcs.magnetometer.field_x_t
+    unit: T
+    dtype: number
+  - name: adcs.magnetometer.field_norm_t
+    unit: T
+    dtype: number
+  - name: adcs.magnetometer.field_y_t
+    unit: T
+    dtype: number
+  - name: adcs.magnetometer.field_z_t
+    unit: T
+    dtype: number
+  - name: adcs.magnetometer.effective_bias_x_t
+    unit: T
+    dtype: number
   summary:
-  - {name: adcs.magnetometer.error_norm_t, unit: T}
+  - name: adcs.magnetometer.error_norm_t
+    unit: T
+  - name: adcs.magnetometer.field_norm_t
+    unit: T
 operator:
   owner: magnetometer
   effects:

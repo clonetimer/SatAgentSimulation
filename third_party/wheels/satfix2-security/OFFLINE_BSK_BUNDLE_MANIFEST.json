@@ -1,0 +1,52 @@
+{
+  "schema_version": "sat-sim.bsk-offline-bundle.v1",
+  "status": "PASS",
+  "official_release": {
+    "version": "2.11.0",
+    "source_commit": "6c1511f5385dccaa73c9ae24522a74adc24fe623",
+    "source_tag": "v2.11.0",
+    "pypi_project": "https://pypi.org/project/bsk/2.11.0/",
+    "files": {
+      "linux_x86_64": {
+        "filename": "bsk-2.11.0-cp39-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+        "url": "https://files.pythonhosted.org/packages/80/84/8fedfa36aae20953d6a087cfbfd3fb6da2391b2f6a518ecd2aa29bb8d846/bsk-2.11.0-cp39-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+        "sha256": "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a"
+      },
+      "windows_x86_64": {
+        "filename": "bsk-2.11.0-cp39-abi3-win_amd64.whl",
+        "url": "https://files.pythonhosted.org/packages/f9/b8/11bb1a7cc9ac88f94ae15ba78b3b509b6b8a32a62c42e431a311e91bd078/bsk-2.11.0-cp39-abi3-win_amd64.whl",
+        "sha256": "5558268290474206a1a600c6bbf1847ed02e2c99c10a062e1d98a38076f58eb0"
+      }
+    }
+  },
+  "retrieval": [
+    {
+      "platform": "windows_x86_64",
+      "filename": "bsk-2.11.0-cp39-abi3-win_amd64.whl",
+      "sha256": "5558268290474206a1a600c6bbf1847ed02e2c99c10a062e1d98a38076f58eb0",
+      "source_url": "https://files.pythonhosted.org/packages/f9/b8/11bb1a7cc9ac88f94ae15ba78b3b509b6b8a32a62c42e431a311e91bd078/bsk-2.11.0-cp39-abi3-win_amd64.whl",
+      "verified": true
+    }
+  ],
+  "compatibility_build": {
+    "schema_version": "sat-sim.bsk-compat-wheel-build.v1",
+    "status": "PASS",
+    "results": [
+      {
+        "source": "bsk-2.11.0-cp39-abi3-win_amd64.whl",
+        "source_sha256": "5558268290474206a1a600c6bbf1847ed02e2c99c10a062e1d98a38076f58eb0",
+        "target": "bsk-2.11.0+satfix2-cp39-abi3-win_amd64.whl",
+        "target_sha256": "881f39463708c975c6aac2b9cfb2348d1a33eece0e6390847ef93d1710badc4e",
+        "original_version": "2.11.0",
+        "patched_version": "2.11.0+satfix2",
+        "metadata_change": {
+          "from": "Requires-Dist: pillow<=12.2.0,>=10.4.0",
+          "to": "Requires-Dist: pillow<14,>=13.0.0"
+        },
+        "payload_file_count": 1149,
+        "payload_bytes_unchanged": true
+      }
+    ],
+    "scope": "distribution metadata only; Basilisk payload bytes unchanged"
+  }
+}

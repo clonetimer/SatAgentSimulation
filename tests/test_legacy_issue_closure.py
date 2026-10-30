@@ -154,7 +154,8 @@ def test_workbench_assets_explain_roles_and_preserve_new_task_semantics(tmp_path
         css = client.get("/assets/styles.css").text
     assert "不启动仿真" in index
     assert "任务中心" in index and "可复用" in index
-    assert "运行中心" in index and "执行记录" in index
+    assert "运行中心" in index and "运行记录" in index
+    assert 'id="singleRunResultsBtn"' in index
     assert "当前编辑配置" in index and "任务中心已保存的任务" in index
     assert "基于当前配置继续补充" in index
     assert "另存为新任务" in index and "更新已打开任务" in index

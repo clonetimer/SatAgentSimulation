@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 from pathlib import Path
 
 from sat_sim.model_providers import ModelProviderRegistry
@@ -61,6 +62,60 @@ def test_v0539_refinement_preserves_subsystem_and_adds_output_plots() -> None:
     assert "adcs.pointing.error_deg" in refined["outputs"]["plots"]
     assert "outputs.plots" in changed
     assert refined["metadata"]["natural_language_patch_ops"]
+
+
+def test_time_and_output_refinement_preserves_custom_hardware_parameters():
+    base = _base_adcs_spec()
+    base['parameters']['values'].update({'controller_k': 7.25, 'controller_p': 42.})
+    candidate = copy.deepcopy(base)
+    candidate['parameters']['values'].update({'controller_k': 3.5, 'controller_p': 30.})
+    refined, changed = _merge_natural_language_refinement(
+        base, candidate, '把仿真时长改成30秒，并追加输出陀螺角速度，保留原有能力和轮速输出。')
+    assert refined['simulation']['duration_s'] == 30.
+    assert refined['parameters']['values'] == base['parameters']['values']
+    assert not any(path.startswith('parameters.values.') for path in changed)
+
+
+def test_parameter_refinement_applies_only_requested_parameter():
+    base = _base_adcs_spec()
+    base['parameters']['values'].update({'controller_k': 7.25, 'controller_p': 42.})
+    candidate = copy.deepcopy(base)
+    candidate['parameters']['values'].update({'controller_k': 5., 'controller_p': 30.})
+    refined, changed = _merge_natural_language_refinement(
+        base, candidate, 'Set controller_k to 5 and keep controller_p unchanged.')
+    assert refined['parameters']['values']['controller_k'] == 5.
+    assert refined['parameters']['values']['controller_p'] == 42.
+    assert 'parameters.values.controller_k' in changed
+    assert 'parameters.values.controller_p' not in changed
+
+
+def test_parameter_refinement_accepts_display_label():
+    base = _base_adcs_spec()
+    candidate = copy.deepcopy(base)
+    candidate['parameters']['values']['target_mode'] = 'sun'
+    refined, _ = _merge_natural_language_refinement(base, candidate, '把姿态目标模式改成对日定向')
+    assert refined['parameters']['values']['target_mode'] == 'sun'
+
+
+def test_native_refinement_keeps_custom_controller_and_compiles():
+    from sat_sim.form_schema import capability_form_schema
+    from sat_sim.unified_agent import normalize_form_task_spec
+    from sat_sim.task_validator import validate_task_spec
+    from sat_sim.task_compiler import compile_task_spec
+
+    base = canonicalize_task_spec(normalize_form_task_spec(
+        capability_form_schema('subsystem.adcs_unified_native.v1')['default_form']))
+    base['parameters']['values']['controller_k'] = 7.25
+    candidate = copy.deepcopy(base)
+    candidate['parameters']['values']['controller_k'] = 3.5
+    refined, _ = _merge_natural_language_refinement(
+        base, candidate, '把仿真时长改成30秒，并追加输出陀螺角速度，保留原有能力和轮速输出。')
+    assert refined['parameters']['values']['controller_k'] == 7.25
+    assert refined['simulation']['duration_s'] == 30.
+    assert any('gyro' in field for field in refined['outputs']['plots'])
+    validate_task_spec(refined).raise_for_errors()
+    compiled = compile_task_spec(refined)
+    assert compiled.metadata['capability_id'] == 'subsystem.adcs_unified_native.v1'
 
 
 def test_v0539_template_multiturn_refinement_is_runnable() -> None:

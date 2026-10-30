@@ -12,116 +12,20 @@ import json
 import os
 import shutil
 from collections import deque
-from dataclasses import replace
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from sat_sim.run_bundle import verify_run_bundle
 from sat_sim.task_spec import spec_sha256
-from sat_sim.validation.physical_checks import (
-    check_soc_bounds, check_thermal_bounds, check_orbit_altitude_sanity,
-    check_data_conservation, check_quaternion_norm, check_energy_balance_proxy,
-    evaluate_physical_validation, PhysicalValidationIssue,
-)
+from sat_sim.validation.physical_checks import PhysicalValidationAccumulator, physical_validation_options
 from sat_sim.validation_outcome import ValidationResult
 
 from .models import InteractiveSessionSpec, SessionState
 from .workspace import SessionWorkspace
 from . import telemetry_segments
 
-_MAX_PHYSICAL_ISSUES = 2048
-
-
-class _StreamingPhysicalChecks:
-    """Same per-row HF-8 gates, with cross-row fuel and pointing state retained."""
-
-    _local_checks = (
-        check_soc_bounds, check_thermal_bounds, check_orbit_altitude_sanity,
-        check_data_conservation, check_quaternion_norm, check_energy_balance_proxy,
-    )
-
-    def __init__(self) -> None:
-        self.count = 0
-        self.issues: list[PhysicalValidationIssue] = []
-        self.last_fuel: float | None = None
-        self.pointing_count = 0
-        self.first_pointing: float | None = None
-        self.last_pointing: float | None = None
-        self.min_pointing: float | None = None
-        self.last_pointing_index = 0
-        self.last_pointing_key = ""
-
-    def _push(self, issue: PhysicalValidationIssue, index: int) -> None:
-        if len(self.issues) >= _MAX_PHYSICAL_ISSUES:
-            raise ValueError("CONTINUOUS_PHYSICAL_ISSUE_LIMIT_EXCEEDED")
-        self.issues.append(replace(issue, path=issue.path.replace("trace[0]", f"trace[{index}]")))
-
-    def add(self, row: dict[str, Any]) -> None:
-        import math
-        index = self.count
-        self.count += 1
-        for checker in self._local_checks:
-            for issue in checker([row]):
-                self._push(issue, index)
-        # Like HF-8, fuel and pointing use non-bool finite numeric fields only.
-        for key in set(("propulsion.propellant.remaining_kg", "propellant_remaining_kg")):
-            raw = row.get(key)
-            if isinstance(raw, bool) or not isinstance(raw, (int, float)):
-                continue
-            value = float(raw)
-            if not math.isfinite(value):
-                continue
-            if value < -1e-9:
-                self._push(PhysicalValidationIssue(
-                    "fail", "fuel_monotonicity", f"trace[0].{key}",
-                    "propellant remaining must be non-negative", value, ">= 0 kg",
-                ), index)
-            if self.last_fuel is not None and value > self.last_fuel + 1e-9:
-                self._push(PhysicalValidationIssue(
-                    "fail", "fuel_monotonicity", f"trace[0].{key}",
-                    "propellant remaining must be monotonic non-increasing",
-                    value, f"<= previous {self.last_fuel}",
-                ), index)
-            self.last_fuel = value
-        for key in set(("adcs.pointing_error_deg", "attitude.pointing_error_deg")):
-            raw = row.get(key)
-            if isinstance(raw, bool) or not isinstance(raw, (int, float)):
-                continue
-            value = float(raw)
-            if not math.isfinite(value):
-                continue
-            self.pointing_count += 1
-            if self.first_pointing is None:
-                self.first_pointing = value
-                self.min_pointing = value
-            self.last_pointing = value
-            self.min_pointing = min(self.min_pointing, value)
-            self.last_pointing_index = index
-            self.last_pointing_key = key
-
-    def result(self) -> dict[str, Any]:
-        if (self.pointing_count >= 3 and self.first_pointing is not None
-                and self.last_pointing > self.first_pointing * 1.05
-                and self.last_pointing > self.min_pointing + 0.1):
-            self._push(PhysicalValidationIssue(
-                "warning", "pointing_convergence",
-                f"trace[0].{self.last_pointing_key}",
-                "pointing error did not show convergence over the run",
-                self.last_pointing, f"initial {self.first_pointing} deg",
-            ), self.last_pointing_index)
-        template = evaluate_physical_validation([], summary={}, strict=False)
-        errors = sum(issue.severity == "fail" for issue in self.issues)
-        warnings = sum(issue.severity == "warning" for issue in self.issues)
-        template.update({
-            "status": "fail" if errors else "warning" if warnings else "pass",
-            "gate_status": "fail" if errors else "warning" if warnings else "pass",
-            "trace_row_count": self.count,
-            "fail_count": errors, "warning_count": warnings,
-            "issue_count": len(self.issues),
-            "issues": [issue.to_dict() for issue in self.issues],
-        })
-        return template
+class _StreamingPhysicalChecks(PhysicalValidationAccumulator):
+    """Compatibility name for the shared memory-bounded physical validator."""
 
 
 def _effect_records(commands: list[dict[str, Any]], quantum_s: float) -> list[dict[str, Any]]:
@@ -142,10 +46,11 @@ def _effect_records(commands: list[dict[str, Any]], quantum_s: float) -> list[di
 
 def _write_semantic_trace_and_effects(
     telemetry_path: Path, trace_path: Path, commands: list[dict[str, Any]], quantum_s: float,
+    *, task_spec: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any], list[dict[str, Any]]]:
     from .evidence import _canonical
 
-    checks = _StreamingPhysicalChecks()
+    checks = _StreamingPhysicalChecks(**physical_validation_options(task_spec))
     effects = _effect_records(commands, quantum_s)
     sorted_indices = sorted(range(len(effects)), key=lambda i: effects[i]["window"][0])
     next_index = 0
@@ -207,7 +112,7 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
 
     from .evidence import (
         INTERACTIVE_BUNDLE_VERSION, _now, _canonical, _sha256_bytes,
-        _sha256_file, _write_json, _claim_report, _validation,
+        _sha256_file, _write_json, _claim_report, _validation, _runtime_summary,
     )
 
     root = Path(path).resolve()
@@ -238,9 +143,11 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
     commands = SessionWorkspace.inspect_hash_chain(root / "command_events.jsonl")
     trace_path = staging / "results" / "semantic_trace.json"
     trace_hash, physical, effects = _write_semantic_trace_and_effects(
-        root / "telemetry.jsonl", trace_path, commands, spec.quantum_s
+        root / "telemetry.jsonl", trace_path, commands, spec.quantum_s, task_spec=spec.task_spec
     )
-    validation = _validation(state, [], effects, physical_override=physical)
+    validation = _validation(state, [], effects, physical_override=physical, task_spec=spec.task_spec,
+        runtime_summary=_runtime_summary(root))
+    _write_json(root / "validation_outcome.json", validation.model_dump(mode="json"))
     if validation.result is not ValidationResult.PASS:
         raise ValueError(f"INTERACTIVE_VALIDATION_NOT_PASS:{validation.reason_code}")
     claims = _claim_report(validation, spec, trace_hash)
@@ -275,7 +182,7 @@ def seal_continuous_workspace(path: str | Path) -> dict[str, Any]:
         "schema_version": "interactive-command-effects.v1", "commands": effects,
     })
     for name in (
-        "session_spec.json", "state_events.jsonl", "command_events.jsonl",
+        "session_spec.json", "state_events.jsonl", "command_events.jsonl", "runtime_result.json",
         "telemetry.jsonl", "telemetry_manifest.json",
     ):
         source = root / name

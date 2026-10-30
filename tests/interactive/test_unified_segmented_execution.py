@@ -19,7 +19,7 @@ def _run(stops: tuple[float, ...]):
     return UnifiedNativeRuntime(UnifiedRuntimeConfig(
         capability_id=ADCS_UNIFIED_CAPABILITY_ID,
         duration_s=2.0,
-        step_s=0.2,
+        step_s=0.1,
         sample_s=0.5,
         adcs_only=True,
         values={"initial_pointing_error_deg": 8.0},
@@ -33,6 +33,7 @@ def test_unified_adcs_presegmented_execution_matches_legacy_single_segment() -> 
     segmented = _run((0.5, 1.0, 1.5, 2.0))
     assert single.summary["execution_segment_count"] == 1
     assert segmented.summary["execution_segment_count"] == 4
+    assert [row['time_s'] for row in single.trace_rows] == pytest.approx([0., .5, 1., 1.5, 2.])
     assert [row["time_s"] for row in segmented.trace_rows] == [row["time_s"] for row in single.trace_rows]
     for left, right in zip(segmented.trace_rows, single.trace_rows, strict=True):
         assert left.keys() == right.keys()
@@ -55,7 +56,7 @@ def test_unified_whole_spacecraft_segmented_execution_matches_single_segment() -
         return UnifiedNativeRuntime(UnifiedRuntimeConfig(
             capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
             duration_s=2.0,
-            step_s=0.2,
+            step_s=0.1,
             sample_s=0.5,
             adcs_only=False,
             values={},
@@ -66,6 +67,7 @@ def test_unified_whole_spacecraft_segmented_execution_matches_single_segment() -
     single = run(())
     segmented = run((0.5, 1.0, 1.5, 2.0))
     assert single.summary["overall_status"] == segmented.summary["overall_status"]
+    assert [row['time_s'] for row in single.trace_rows] == pytest.approx([0., .5, 1., 1.5, 2.])
     assert [row["time_s"] for row in segmented.trace_rows] == [row["time_s"] for row in single.trace_rows]
     for left, right in zip(segmented.trace_rows, single.trace_rows, strict=True):
         for key in left:
@@ -75,14 +77,15 @@ def test_unified_whole_spacecraft_segmented_execution_matches_single_segment() -
                 assert left[key] == right[key]
 
 
-def test_default_whole_spacecraft_context_remains_persistent_between_external_advances() -> None:
+@pytest.mark.parametrize('environment_profile', ['simplified', 'spice_wmm'])
+def test_default_whole_spacecraft_context_remains_persistent_between_external_advances(environment_profile) -> None:
     config = UnifiedRuntimeConfig(
         capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
         duration_s=2.0,
-        step_s=0.2,
+        step_s=0.1,
         sample_s=0.5,
         adcs_only=False,
-        values={},
+        values={'environment_profile':environment_profile, 'epoch_utc':'2026-01-01T00:00:00Z'},
         events=(),
     )
     runtime = UnifiedPersistentRuntime(config)
@@ -108,7 +111,7 @@ def test_default_whole_spacecraft_context_remains_persistent_between_external_ad
 
 def test_unified_persistent_runtime_abort_releases_waiting_worker() -> None:
     runtime = UnifiedPersistentRuntime(UnifiedRuntimeConfig(
-        capability_id=ADCS_UNIFIED_CAPABILITY_ID, duration_s=2.0, step_s=0.2,
+        capability_id=ADCS_UNIFIED_CAPABILITY_ID, duration_s=2.0, step_s=0.1,
         sample_s=0.5, adcs_only=True, values={}, events=(),
     ))
     runtime.prepare()

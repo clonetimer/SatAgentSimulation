@@ -134,7 +134,7 @@ class Phase3HReadinessAssessment(BaseModel):
     assessment_sha256: str = ""
 
 
-def inspect_basilisk_runtime(*, approved_versions: tuple[str, ...] = ("2.11.0", "2.11.0+satfix1")) -> BasiliskRuntimeEvidence:
+def inspect_basilisk_runtime(*, approved_versions: tuple[str, ...] = ("2.11.0", "2.11.0+satfix1", "2.11.0+satfix2")) -> BasiliskRuntimeEvidence:
     try:
         version = importlib.metadata.version("bsk")
     except importlib.metadata.PackageNotFoundError:

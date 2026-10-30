@@ -1,6 +1,8 @@
 """Event parsing and categorization for BSKSim-style scenarios."""
 from __future__ import annotations
 
+import math
+
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -33,6 +35,22 @@ def parse_bsk_events(spec: Mapping[str, Any]) -> tuple[BSKEventSpec, ...]:
             duration = float(item.get("duration_s") or 0.0)
             end = None if duration < 0.0 else float(start or 0.0) + duration
         effect = item.get("effect") or item.get("type") or item.get(f"{category}_type") or "unspecified"
+        params = dict(params)
+        if effect in {"eps_battery_capacity_loss", "solar_panel_efficiency_loss", "thermal_radiator_rejection_loss"}:
+            magnitude = item.get("magnitude")
+            if magnitude is None:
+                magnitude = item.get("severity")
+            if magnitude is not None:
+                if (isinstance(magnitude, bool) or not isinstance(magnitude, (int, float))
+                        or not math.isfinite(magnitude) or not 0.0 <= magnitude <= 1.0):
+                    raise ValueError("LOSS_MAGNITUDE_MUST_BE_FINITE_FRACTION_IN_0_1")
+                # Typed effect parameters retain their established precedence.
+                # Otherwise scalar loss is translated to the physical fraction
+                # consumed by both native parameter-event controllers.
+                if not any(key in params for key in (
+                        "remaining_capacity_ratio", "remaining_efficiency_ratio", "remaining_rejection_ratio",
+                        "remaining_ratio", "loss_fraction", "loss_pct")):
+                    params["remaining_ratio"] = 1.0 - float(magnitude)
         event_id = str(
             item.get("id")
             or item.get("event_id")

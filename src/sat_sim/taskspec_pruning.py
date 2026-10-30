@@ -25,6 +25,9 @@ COMMON_TOP_LEVEL_KEYS = {
     "target",
     "simulation",
     "outputs",
+    # Shared post-run assertions and required physical checks apply to every
+    # capability. They are not whole-spacecraft-only configuration pollution.
+    "validation",
     "metadata",
     "modifiers",
     "faults",
