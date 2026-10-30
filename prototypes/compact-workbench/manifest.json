@@ -2,13 +2,13 @@
   "schema_version": "sat-compact-ui-prototype.v1",
   "status": "ISOLATED_CANDIDATE_NOT_PRODUCTION",
   "base_application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
-  "candidate_application": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
+  "candidate_application": "c5525864003ed15c6f0a276cfa7422ba3c6f58d8020a647366e6f9c6f5850964",
   "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
   "files": [
     {
       "path": "web/index.html",
       "target": "src/sat_sim/web/index.html",
-      "sha256": "3ddaf8c06b29fe6cf1cf8f5b346e64219f72d8565b7dd7d864a2af6f253d3b65"
+      "sha256": "e83b3cb1cbf6fe980a19c7948b200ccf2064192737cf2af4fb36a778ccdeb455"
     },
     {
       "path": "web/app.js",
@@ -25,5 +25,7 @@
       "target": "src/sat_sim/web/compact-workbench.js",
       "sha256": "1c093abb663007f41ca292abdab0292f51e936f07f1c2705cd24b76ea761acf2"
     }
-  ]
+  ],
+  "browser_test_application_before_whitespace_cleanup": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
+  "whitespace_cleanup": "Only trailing whitespace on HTML lines removed; parsed element/attribute/nonempty-text token sequence exactly identical. Prior22 browser checks remain scoped evidence of unchanged behavior; current runtime assets separately verified."
 }

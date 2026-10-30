@@ -114,13 +114,13 @@
       <section class="panel editor-panel">
         <div class="editor-toolbar">
           <div>
-            
+
             <h2 id="selectedCapabilityName">请选择仿真能力</h2>
             <details class="capability-about"><summary>模型说明</summary><p id="selectedCapabilitySummary">查看当前模型的适用范围。</p></details>
           </div>
 <div class="toolbar-actions creator-primary-actions">            <button id="previewBtn" class="button button-secondary" type="button" title="只执行 Schema、语义、能力兼容和执行计划检查，不启动仿真">校验配置</button>
             <button id="runBtn" class="button button-primary" type="button">运行仿真</button>
-          
+
         <details id="creatorMoreActions" class="creator-more-actions">
           <summary>更多操作</summary><div class="creator-secondary-actions">
             <label class="variant-control">场景模板
@@ -192,7 +192,7 @@
             </div>
           </div>
           <p id="singleRunProgress" class="single-run-progress" role="status" aria-live="polite">请选择左侧仿真对象。运行后可在右侧结果面板或运行中心查看记录。</p>
-        
+
 </details>
 
         <div id="formTab" class="tab-content active" data-panel="form" role="tabpanel" aria-labelledby="creatorFormTabButton">
@@ -221,7 +221,7 @@
               <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
             </div>
             <div id="eventList" class="event-list"></div>
-          
+
 </details>
           <details id="compactOutputs" class="form-section">
 <summary class="compact-section-summary">输出与曲线 <span id="compactOutputCount" class="compact-count"></span></summary>
@@ -244,7 +244,7 @@
                 <div class="inline-checks"><label><input id="fmeaFormatCsv" type="checkbox" value="csv"><span>CSV</span></label><label><input id="fmeaFormatJson" type="checkbox" value="json"><span>JSON</span></label></div>
               </section>
             </div>
-          
+
 </details>
         </div>
 
@@ -452,10 +452,10 @@
           <div class="run-header-actions">
             <button id="expandRunPanelBtn" class="icon-button" type="button" title="扩展结果栏" aria-label="扩展结果栏" aria-pressed="false">⇔</button>
             <button id="fullscreenRunPanelBtn" class="icon-button" type="button" title="全屏显示运行结果" aria-label="全屏显示运行结果" aria-pressed="false">⛶</button>
-            
-            
+
+
             <button id="exportDatasetBtn" class="button button-primary hidden" type="button">导出数据集</button>
-            
+
             <button id="cancelRunBtn" class="button button-danger hidden" type="button">取消运行</button>
             <details id="resultMoreActions" class="creator-more-actions result-more-actions"><summary>更多</summary><div class="creator-secondary-actions"><button id="reuseRunConfigBtn" class="button button-secondary hidden" type="button" title="复制本次 Run 保存的配置到新建表单，不运行、不修改历史记录">复用此配置</button><button id="openRunReportBtn" class="button button-ghost hidden" type="button">查看报告</button><button id="downloadRunDiagnosticBtn" class="button button-ghost hidden" type="button">诊断包</button></div></details><button id="refreshRunsBtn" class="icon-button" type="button" title="刷新运行列表" aria-label="刷新运行列表">↻</button>
           </div>

@@ -1,7 +1,7 @@
 {
   "status": "SCOPED_CANDIDATE_BROWSER_AND_VISUAL_REVIEW_PASS",
   "scope": "Creation and run-result UI only; not complete production regression, all real-time views, formal timing or actual24h qualification. Final source snapshot bound after browser run; preview replays same candidate application fingerprint.",
-  "application": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
+  "application": "c5525864003ed15c6f0a276cfa7422ba3c6f58d8020a647366e6f9c6f5850964",
   "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
   "original_ids_retained": 474,
   "candidate_static_ids": 481,
@@ -58,5 +58,11 @@
     "server_pid": 86228,
     "server_creation": 1793358559.4654007
   },
-  "preserved_failure": "review-compact-v2/report.json records the real help-summary overlap failure. V4 terminal encoding/readability defect corrected before final source snapshot."
+  "preserved_failure": "review-compact-v2/report.json records the real help-summary overlap failure. V4 terminal encoding/readability defect corrected before final source snapshot.",
+  "browser_application_before_whitespace_cleanup": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
+  "whitespace_cleanup": {
+    "html_lines": 8,
+    "meaningful_dom_tokens_equal": true,
+    "interaction_js_css_unchanged": true
+  }
 }
