@@ -63,6 +63,7 @@
   "whitespace_cleanup": {
     "html_lines": 8,
     "meaningful_dom_tokens_equal": true,
-    "interaction_js_css_unchanged": true
+    "interaction_js_css_unchanged": true,
+    "line_endings_normalized_to_lf": true
   }
 }

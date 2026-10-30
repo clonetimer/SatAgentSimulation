@@ -27,5 +27,5 @@
     }
   ],
   "browser_test_application_before_whitespace_cleanup": "54f3d7e53bc19ae84d0d97b9659509acf77ac11f7293e2653354aa279a6e9964",
-  "whitespace_cleanup": "Only trailing whitespace on HTML lines removed; parsed element/attribute/nonempty-text token sequence exactly identical. Prior22 browser checks remain scoped evidence of unchanged behavior; current runtime assets separately verified."
+  "whitespace_cleanup": "Trailing spaces on8 HTML lines removed and HTML line endings normalized to LF; parsed element/attribute/nonempty-text sequence identical. Prior22 browser checks remain scoped evidence of unchanged behavior; current runtime assets separately verified."
 }

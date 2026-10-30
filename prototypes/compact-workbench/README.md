@@ -31,6 +31,6 @@
 
 原始迭代记录在本地保留：v2帮助条因flex收缩被输入框遮挡，已通过修复布局解决，没有强制点击绕过；构建过程中一次终端编码令新增文案变成问号，已修复，并增加可读标签检查。首版按钮统计误计关闭details中的控件，v2统计改为检查折叠祖先和裁剪范围，旧报告不覆盖。
 
-发布后的格式检查补充清理了HTML的8行行尾空白；元素、属性和非空文本的解析序列完全一致，JS/CSS未变。manifest同时保留原22项浏览器检查对应的应用指纹及清理后的当前候选指纹，不将旧记录改写成另一次原生运行。
+发布后的格式检查补充清理了HTML的8行行尾空白，并将该HTML的换行统一为LF；元素、属性和非空文本的解析序列完全一致，JS/CSS未变。manifest同时保留原22项浏览器检查对应的应用指纹及清理后的当前候选指纹，不将旧记录改写成另一次原生运行。
 
 设计使用`frontend-design`两遍式流程和`awesome-design-md`中的Linear/IBM参考。采用[Carbon表单的渐进披露](https://www.carbondesignsystem.com/building-blocks/core/patterns/forms)与[Grafana的图表聚焦](https://grafana.com/docs/grafana/latest/visualizations/dashboards/use-dashboards/)，未复制品牌页面。设计取舍见[DESIGN.md](DESIGN.md)。
