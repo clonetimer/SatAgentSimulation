@@ -1,0 +1,18 @@
+{
+  "status": "RUNNING_PREFIX37_AS_OF_SNAPSHOT_NOT_FINAL_SCORE",
+  "captured_utc": "2026-10-30T22:47:16.708195+00:00",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "frozen_total_cases": 69,
+  "prefix_completed": 37,
+  "model_posts_in_prefix": 37,
+  "raw_current_semantic_pass": 25,
+  "raw_legacy_strict_pass": 0,
+  "final_current_semantic_pass": 0,
+  "compiled": 37,
+  "generated_script_attempted": 0,
+  "sealed_runtime_attempted": 0,
+  "source_state_snapshot_sha256": "e0d7b35010962386a507c6caaa9371a06c383562a007eb659cc5b5db74a66231",
+  "known_issue": "12ADCS raw answers changed requested gyro_noise_std_rad_s1e-5 to1e-15; AI quality is not complete.",
+  "scope": "First37case snapshot only; current run may progress later. No final percentage/score, no inheritance of old0/69 verdict, no execution PASS for unrun cases."
+}

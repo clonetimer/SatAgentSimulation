@@ -1,0 +1,18 @@
+# Preserve exact bytes for hash-bound datasets, reference inputs and review snapshots.
+data/training/** -text
+data/reference/nasa_iss_oem/** -text
+configs/interactive/generic_leo_thermal_link_candidate.json -text
+reports/progress_checkpoint/*.json -text whitespace=cr-at-eol
+reports/progress_checkpoint/*.xml -text whitespace=cr-at-eol
+reports/progress_checkpoint/*.py -text whitespace=cr-at-eol
+prototypes/compact-workbench/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r30-integration/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r43-integration/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/*.patch -text whitespace=-blank-at-eol
+reports/progress_checkpoint/r19-event-intent-candidate/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r19-event-intent-candidate/*.patch -text whitespace=-blank-at-eol
+reports/progress_checkpoint/r19-event-intent-candidate/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r19-event-intent-candidate/*.patch -text whitespace=-blank-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/*.patch -text whitespace=-blank-at-eol

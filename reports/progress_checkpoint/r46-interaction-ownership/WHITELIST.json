@@ -1,0 +1,250 @@
+{
+  "status": "R46_PUBLIC_PROGRESS_UPDATED_FOR_ROOT_REVIEW_NOT_PUBLISHED_OR_FINAL_RELEASE",
+  "updated_utc": "2026-10-30T23:22:43.722224+00:00",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "source_frozen_inputs_sha256": "6413c6a6f40b36a9fc915aff7c96fe70c313167115d84a56619ff2c15445acb7",
+  "prior_whitelist_sha256": "8eed446f8b2424d1e7879647565bb1961fec083bdf2e55bb566ae2b0b94e07c2",
+  "gui_public_allowlist_sha256": "1e93ca125cca08325699668fce01d924ac809173ebd8d40ee185cf68b5ae4888",
+  "files": [
+    {
+      "destination": "AI-QUALITY-ASOF.json",
+      "sha256": "829e10df3e3e5adeef87148f6da0195a5e511f5b66fcea7337147c16ff2ac246",
+      "bytes": 965,
+      "category": "derived_scoped_public_summary"
+    },
+    {
+      "destination": "ENDURANCE-ASOF.json",
+      "category": "derived_real_endurance_running_snapshot_not_qualification",
+      "sha256": "7c575582d8b4c910e731737d4e8512e0de5f0ac82ebd2177565ff877a8f73286",
+      "bytes": 747
+    },
+    {
+      "destination": "FULL-RESULT.json",
+      "sha256": "febbae01c3c79e0a45a336b7e7d515da7fdbd3c8d399ece7f9b18bd33110c97c",
+      "bytes": 654,
+      "source": "reports/local_requirements_completion/r46-full-terminal-disposition-v1.json",
+      "category": "root_terminal_full_proof"
+    },
+    {
+      "destination": "INSTALLED-WHEEL.json",
+      "sha256": "5bb468b6540ee880d2765fbd9f02eb14f80f601a81fd825754bb9ddb9563d0b8",
+      "bytes": 1148,
+      "category": "derived_scoped_public_summary"
+    },
+    {
+      "destination": "README.md",
+      "sha256": "1f631a06d8d44e3957c7fadfc7c27fbab442ff123ccee20bfa1d286863e34815",
+      "bytes": 2814,
+      "category": "derived_public_document",
+      "source": "reports/progress_checkpoint/r46-interaction-ownership/README.md"
+    },
+    {
+      "destination": "dist/satellite_simulation_platform-0.7.8-py3-none-any.whl",
+      "sha256": "79743f6a9ea10e8e93bed465b7710faa7d6b92d70bf469730e24b6a80d2d0894",
+      "bytes": 2709003,
+      "source": "reports/local_requirements_completion/r46-wheel-readonly-mirror-v1/satellite_simulation_platform-0.7.8-py3-none-any.whl",
+      "category": "verified_installed_candidate_wheel_not_final_release"
+    },
+    {
+      "destination": "history/README.pre-final.md",
+      "sha256": "8c7f216414117707661c2ecaf214a07e00f2bc38a9bfc2badf383e647eee3566",
+      "bytes": 2285,
+      "category": "exact_historical_bytes"
+    },
+    {
+      "destination": "history/WHITELIST.pre-final.json",
+      "sha256": "8eed446f8b2424d1e7879647565bb1961fec083bdf2e55bb566ae2b0b94e07c2",
+      "bytes": 6197,
+      "category": "exact_historical_bytes"
+    },
+    {
+      "destination": "history/current_requirements_status.pre-current-r46.md",
+      "sha256": "78f500985e2cd3d07c99f3ce3462b4833eef50389fc559a8ec7457ce426855f9",
+      "bytes": 3598,
+      "category": "exact_historical_bytes"
+    },
+    {
+      "destination": "history/gitattributes.pre-r46",
+      "sha256": "fbc86e5592209e0b17f8a600484876740899fd6f97085ee6f64d6613e47548b3",
+      "bytes": 1315,
+      "category": "exact_historical_bytes"
+    },
+    {
+      "destination": "history/public-summary.pre-final.json",
+      "sha256": "00f951efa6947988171168c40d7d50c1406ba786d77983f3f880dffcf62b366c",
+      "bytes": 8687,
+      "category": "exact_historical_bytes"
+    },
+    {
+      "destination": "history/root-README.pre-current-r46.md",
+      "sha256": "1fa5057eae22607136eb0f3ac6db221db73871b0dd5a419bc9076b5cf4ba9f03",
+      "bytes": 21363,
+      "category": "exact_historical_bytes"
+    },
+    {
+      "destination": "public-summary.json",
+      "sha256": "6e9fba6d3dbc3e151c73756fa13ed819ff548ee082dcff1b51387a60442437ef",
+      "bytes": 12478,
+      "category": "derived_public_document",
+      "source": "reports/progress_checkpoint/r46-interaction-ownership/public-summary.json"
+    },
+    {
+      "destination": "real-ai-gui/create17-01-ready.png",
+      "sha256": "1ccbe04b9c8bc16470d4918d155a9bb7ac3c8be4e66a688808e71bf5123052b1",
+      "bytes": 176840,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/create17-01-ready.png",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "real-ai-gui/public-summary.json",
+      "sha256": "279b419702ae49941aae278c385b5fafd8c29ed5f3776948f575108d7a99c578",
+      "bytes": 1588,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/public-summary.json",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "real-ai-gui/refine42-02-generated.png",
+      "sha256": "5b3bb9fe85d71a995cd3fcf116b9b6966d7c3a5d7c8d36187e0fff24eca00e7d",
+      "bytes": 179343,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/refine42-02-generated.png",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "real-ai-gui/web-run/eps_battery_capacity_ratio-desktop.png",
+      "sha256": "b01eced84c7e08009c48ea67d0e54a685644f6458454ef918f24ab08cc91714e",
+      "bytes": 241114,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/web-run/eps_battery_capacity_ratio-desktop.png",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "real-ai-gui/web-run/eps_battery_capacity_ratio-narrow.png",
+      "sha256": "e206bda9d1486d250fa644d5366424828f228296a9aeeef0467e0998192feadc",
+      "bytes": 62075,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/web-run/eps_battery_capacity_ratio-narrow.png",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "real-ai-gui/web-run/eps_effective_battery_capacity_wh-desktop.png",
+      "sha256": "1539a528862a73be1fd8546d63036721ec2b116d70b5ad587cb6cf3d3d83c078",
+      "bytes": 241088,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/web-run/eps_effective_battery_capacity_wh-desktop.png",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "real-ai-gui/web-run/eps_effective_battery_capacity_wh-narrow.png",
+      "sha256": "35cc0652bc2ba07c101380f5f92bef31f4158b2c95242ea81ad973726d136098",
+      "bytes": 62039,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/web-run/eps_effective_battery_capacity_wh-narrow.png",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "real-ai-gui/web-run/overview-physical-warning42-desktop.png",
+      "sha256": "054b8f4ddd57fab583ad4d7b68458a0f34c5dcc20b527816ae80672801662f01",
+      "bytes": 246025,
+      "source": "reports/local_requirements_completion/r46-real-ai-frontend-evidence-v1/web-run/overview-physical-warning42-desktop.png",
+      "category": "approved_actual_gui_allowlist"
+    },
+    {
+      "destination": "screenshots/01-single-agent-answer.png",
+      "sha256": "52c84d79bd9ee192720fa577f8862e45b0b4f37fe8d630dbe3f2aac28719463e",
+      "bytes": 142642,
+      "category": "actual_protocol_browser_image",
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_pending_generation_has_on0/first-answer-finished.png",
+      "actually_viewed": true,
+      "scope": "MockAgent/delayedHTTP protocol fixture,0model/native"
+    },
+    {
+      "destination": "screenshots/02-shared-pending-controls.png",
+      "sha256": "246c77df4f74c8a07748eb6a73311022008bf631c15b9e2bdf80cc8c761c7be4",
+      "bytes": 141982,
+      "category": "actual_protocol_browser_image",
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_pending_generation_has_on1/pending-after-second-action.png",
+      "actually_viewed": true,
+      "scope": "MockAgent/delayedHTTP protocol fixture,0model/native"
+    },
+    {
+      "destination": "screenshots/03-stale-zip-blocked.png",
+      "sha256": "20f4f700d173cd82a2dc865ea4d6a017388519eb96810b2f1b177982d8a89d80",
+      "bytes": 157795,
+      "category": "actual_protocol_browser_image",
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_program_zip_response_cann0/after-stale-a-zip-completion.png",
+      "actually_viewed": true,
+      "scope": "MockAgent/delayedHTTP protocol fixture,0model/native"
+    },
+    {
+      "destination": "screenshots/04-stale-assembly-compile-blocked.png",
+      "sha256": "ec5c1289629794f13f50b76e20fbcd7242acf04a8f9a7bdf62e2ebe1286203ea",
+      "bytes": 181654,
+      "category": "actual_protocol_browser_image",
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_assembly_compile_response0/assembly-after-obsolete-compile.png",
+      "actually_viewed": true,
+      "scope": "MockAgent/delayedHTTP protocol fixture,0model/native"
+    },
+    {
+      "destination": "screenshots/05-stale-assembly-python-blocked.png",
+      "sha256": "3a7f2530b1a99404132402a5379c7073b440fee53709fb569ba0a1b4d357a391",
+      "bytes": 181838,
+      "category": "actual_protocol_browser_image",
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_assembly_python_response_0/assembly-after-obsolete-python.png",
+      "actually_viewed": true,
+      "scope": "MockAgent/delayedHTTP protocol fixture,0model/native"
+    },
+    {
+      "destination": "source-overlay/src/sat_sim/web/app.js",
+      "sha256": "a60519ef3051d050abc996b90eddada246bed978fb01f886a9a86ab80258cf33",
+      "bytes": 511404,
+      "category": "authorized_three_path_source_delta",
+      "source": "reports/local_requirements_completion/requirements-r46-interaction-ownership-candidate/src/sat_sim/web/app.js",
+      "baseline_before_sha256": "7223b5d282329b289c5ab3a75586dd26ce08fa2833909d25f8d47c4e702b88da",
+      "path": "src/sat_sim/web/app.js"
+    },
+    {
+      "destination": "source-overlay/tests/test_agent_run_generation_ownership_browser.py",
+      "sha256": "4e1575872cba26bb63174d9d0169bccc0b718bd8298a5905d876c49c73e86570",
+      "bytes": 7509,
+      "category": "authorized_three_path_source_delta",
+      "source": "reports/local_requirements_completion/requirements-r46-interaction-ownership-candidate/tests/test_agent_run_generation_ownership_browser.py",
+      "baseline_before_sha256": null,
+      "path": "tests/test_agent_run_generation_ownership_browser.py"
+    },
+    {
+      "destination": "source-overlay/tests/test_program_export_snapshot_browser.py",
+      "sha256": "4a0b84690f20a28af16f2b678ebde24b617670d2c0019b12b8112492b1a85f3c",
+      "bytes": 41211,
+      "category": "authorized_three_path_source_delta",
+      "source": "reports/local_requirements_completion/requirements-r46-interaction-ownership-candidate/tests/test_program_export_snapshot_browser.py",
+      "baseline_before_sha256": null,
+      "path": "tests/test_program_export_snapshot_browser.py"
+    }
+  ],
+  "payload_count": 28,
+  "payload_bytes": 5346319,
+  "manifest_excluded_from_payload_count_and_bytes": true,
+  "external_modified_files": [
+    {
+      "path": "README.md",
+      "before_sha256": "1fa5057eae22607136eb0f3ac6db221db73871b0dd5a419bc9076b5cf4ba9f03",
+      "after_sha256": "baedb3976b208f4172cf760a4c1d66707fb88844cd9c1be2b9f7b52f5cd6edeb",
+      "after_bytes": 19242,
+      "historical_preimage": "reports/progress_checkpoint/r46-interaction-ownership/history/root-README.pre-current-r46.md"
+    },
+    {
+      "path": "reports/current_requirements_status.md",
+      "before_sha256": "78f500985e2cd3d07c99f3ce3462b4833eef50389fc559a8ec7457ce426855f9",
+      "after_sha256": "85fbc10d035a2d3a6f315b0cd534a792e1c55f8331563565d64954cecffccb18",
+      "after_bytes": 2480,
+      "historical_preimage": "reports/progress_checkpoint/r46-interaction-ownership/history/current_requirements_status.pre-current-r46.md"
+    },
+    {
+      "path": ".gitattributes",
+      "before_sha256": "fbc86e5592209e0b17f8a600484876740899fd6f97085ee6f64d6613e47548b3",
+      "after_sha256": "6c181e00144c641612c0dad66fee7118a1fd460b5e52ed2ef3db37828718e7d1",
+      "after_bytes": 1399,
+      "historical_preimage": "reports/progress_checkpoint/r46-interaction-ownership/history/gitattributes.pre-r46"
+    }
+  ],
+  "source_delta_unchanged": "3paths relative frozenR45; exactbeforeSHA/new-file absence required; no Rootruntime/source overwrite",
+  "limits": "29protocol cases and2realGUI calls/3short native executions are separate.69RUNNING prefix37 only;new24NOT_STARTED;toolbar density remains known UI work. No publishedR43 mutation/Git actions.",
+  "prior_root_review_whitelist_sha256": "b64f71065fe8661ca3de31080f9ee1663d1caacb9a930b4a99281165a490d621"
+}

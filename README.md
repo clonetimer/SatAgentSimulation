@@ -1,22 +1,12 @@
-# SAT 卫星仿真平台 · Visual Composer V15
+# SAT卫星仿真平台 · Visual Composer V15
 
-> **完全新手？先不要从本 README 往下硬读。** 直接打开 [`START_HERE.md`](START_HERE.md)，然后按 [`docs/tutorials_zh/README.md`](docs/tutorials_zh/README.md) 的顺序做练习。教程从“启动平台并完成第一次运行”开始，不要求先理解 Capability / TaskSpec。
+新手从[START_HERE.md](START_HERE.md)开始。uv环境入口为 `python scripts/setup_uv.py`，已有完整缓存可加 `--offline`。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
-使用 uv 安装当前开发环境：从仓库根目录运行 `python scripts/setup_uv.py`。已有完整缓存与资产时可加 `--offline`。逐项判定见[当前需求验收状态](reports/current_requirements_status.md)，过程及失败记录见[功能补齐记录](docs/functional_completion.md)；实际目标卫星的参数和遥测标定仍需对应工程数据。
+当前独立候选 **R46** 已实际完成全量 **2427通过、0失败、6跳过、2警告**，29项交互回归，以及2次新模型请求、3次短native执行和11张实际看图复核。独立uv环境和已验证wheel见[R46进展包](reports/progress_checkpoint/r46-interaction-ownership/README.md)；它尚未自动替换仓库Root运行时，后续安装/结构章节仍面向仓库现有源码。
 
-界面精简的第一版已在隔离候选完成创建/结果区验证，支持独立本机预览，见[界面候选与对比图](docs/compact_workbench_ui.md)。它尚未替换正在进行耐久验收的生产版本，不影响现有实例；其余页面与AI故障生成仍在补齐。
+整体仍在验收：69条AI基准RUNNING，固定前37条raw current25/37、legacy strict0、final current0且未执行，12条ADCS有`1e-5→1e-15`量级错误，不能称AI质量已过。新正式24h已于北京时间2026-10-31 06:50从零启动，终态待验；物理warning1/42、旧DEGRADED峰值和工程假设保留，不声称飞行/硬件标定或全部高保真。图形工具栏正在独立候选中继续精简。
 
-没有现成模型服务时，可按 [ModelScope 本地微调与脚本生成](docs/modelscope_local_training.md) 复现独立 GPU 环境、基座来源、训练和真实模型评测。本地v5的既有热环境、导热参数、电池容量损失及网页链路通过；新增纯自然语言17%故障请求因事件结构错误及纠错超时被拒绝执行，仍待修复。训练入口已加入数据合同预检，旧基准题面/标签冲突与严格0/69失败均保留，见[本轮实测发现](reports/timing_and_ai_contract_findings.md)。
-
-最新进展见 [2026-10-30 检查点](reports/progress_checkpoint/README.md)：冻结版本完整回归 **1978通过、0失败、5跳过、4警告**；模型网页85项、原生曲线76项、独立851项及45张实际看图复核通过。新的4 W/K配置实际24小时耐久已从零启动，尚未取得终态资格，目标仍为进行中。
-
-该实例现已实际观测超过4小时，历史最大漂移约2.48秒，状态为`DEGRADED`。前14400仿真秒的57602条遥测记录通过链路、采样、八节点温限和SOC复核；这不是24小时终态或全步严格实时资格，见[本轮记录](reports/progress_checkpoint/r11-4h-evidence-manifest.json)。此前[2小时30分钟记录](reports/progress_checkpoint/r11-2h30m-evidence-manifest.json)与[1小时记录](reports/progress_checkpoint/r11-1h-endurance-observation.json)中的峰值和所有原始结论继续保留。
-
-该实例现已实际观测超过4小时，历史最大漂移约2.48秒，状态为`DEGRADED`。前14400仿真秒的57602条遥测记录通过链路、采样、八节点温限和SOC复核；这不是24小时终态或全步严格实时资格，见[本轮记录](reports/progress_checkpoint/r11-4h-evidence-manifest.json)。此前[2小时30分钟记录](reports/progress_checkpoint/r11-2h30m-evidence-manifest.json)与[1小时记录](reports/progress_checkpoint/r11-1h-endurance-observation.json)中的峰值和所有原始结论继续保留。
-
-> **当前资格：本轮生产功能和可视化验收通过；实际24小时耐久及其终态复核仍在进行。历史分数与失败证据保留。**
->
-> V15 已形成“图形化建模 → 校验 → 生成可执行 Python → 运行 → 独立结果分析 / Scope 观察 → 导出可运行程序”的工程流程。当前适用于内部仿真与算法试验；用于具体卫星任务前，仍需核验对应参数、工况及实测残差。
+本README此前原文见[历史快照](reports/progress_checkpoint/r46-interaction-ownership/history/root-README.pre-current-r46.md)；R43—R45已发表证据及历史失败保持原样。最新分范围数据、源码增量前像要求和待完成事项以当前验收状态为准。
 
 ## 1. V15 是什么
 

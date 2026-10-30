@@ -1,0 +1,245 @@
+{
+  "status": "IN_PROGRESS_R46_FULL_AND_SCOPED_GUI_PASS_AI_QUALITY_AND_NEW24H_UNFINISHED",
+  "at_utc": "2026-10-30T21:30:07.378840+00:00",
+  "source_application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "baseline_application": "780d9d0b0e6a3e6e3d0e32f1a479f68ae759b7900e66a48d3c4d49ecabac3356",
+  "baseline": "requirements-r45-navigation-complete-candidate frozen1498",
+  "source_frozen_files": 1500,
+  "source_frozen_manifest_sha256": "6413c6a6f40b36a9fc915aff7c96fe70c313167115d84a56619ff2c15445acb7",
+  "source_overlay_manifest_sha256": "13f6539adc3d34b35fc70c3afda0a4089e80a637be924986939ff9126813ec21",
+  "component_completion_sha256": "92b3302f47012c03586ae17d5492f56a6796e42dbbefc42ab10e476763a509dc",
+  "source_changes": [
+    {
+      "path": "src/sat_sim/web/app.js",
+      "before_sha256": "7223b5d282329b289c5ab3a75586dd26ce08fa2833909d25f8d47c4e702b88da",
+      "after_sha256": "a60519ef3051d050abc996b90eddada246bed978fb01f886a9a86ab80258cf33",
+      "bytes": 511404,
+      "destination": "source-overlay/src/sat_sim/web/app.js"
+    },
+    {
+      "path": "tests/test_agent_run_generation_ownership_browser.py",
+      "before_sha256": null,
+      "after_sha256": "4e1575872cba26bb63174d9d0169bccc0b718bd8298a5905d876c49c73e86570",
+      "bytes": 7509,
+      "destination": "source-overlay/tests/test_agent_run_generation_ownership_browser.py"
+    },
+    {
+      "path": "tests/test_program_export_snapshot_browser.py",
+      "before_sha256": null,
+      "after_sha256": "4a0b84690f20a28af16f2b678ebde24b617670d2c0019b12b8112492b1a85f3c",
+      "bytes": 41211,
+      "destination": "source-overlay/tests/test_program_export_snapshot_browser.py"
+    }
+  ],
+  "validation": {
+    "final_selected_regression": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "warnings": 1,
+      "console_seconds": 222.45,
+      "original_cases": 24,
+      "new_cases": 5
+    },
+    "final_junit_sha256": "0498ac218b33879d010795c10eadaa7c89a62280b89b88f808621b2e10e08056",
+    "r46_full_suite": {
+      "status": "FULL_R46_WINDOWS_ENGINEERING_REGRESSION_PASS",
+      "at_utc": "2026-10-30T22:29:54.568104+00:00",
+      "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+      "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+      "total": 2433,
+      "passed": 2427,
+      "failed": 0,
+      "skipped": 6,
+      "warnings": 2,
+      "pytest_duration_s": 1596.07,
+      "junit_sha256": "20291e19f55275db6105a93ba1572e34b1a1933189e201054d009c9fb2ac9109",
+      "returned_sha256": "08dcc7b6af1912a2e16baab2dfa18d16964f15393ba73e4c7dab3dfadff2d328",
+      "source_and_imports_stable": true,
+      "not69_or24h_qualification": true
+    },
+    "r46_installed_wheel": "SCOPED_PASS_SEE_INSTALLED-WHEEL.json",
+    "r46_real_model_gui": {
+      "status": "SCOPED_R46_INSTALLED_AI_GUI_NATIVE_WEB_PASS",
+      "fresh_model_requests": 2,
+      "native_scripts": 2,
+      "web_native_runs": 1,
+      "driver_checks": 94,
+      "post_checks": 17,
+      "source_images_actually_viewed": 11,
+      "public_copied_images": 7,
+      "warning_counts": [
+        1,
+        42
+      ],
+      "strict": false,
+      "can_claim_high_fidelity": false,
+      "public_summary": "real-ai-gui/public-summary.json",
+      "private_completion_sha256": "196c16d7df554e2cad833c1e765e522a4a62c31f6f48b925f509c605453c574f"
+    },
+    "r46_69_case_qualification": {
+      "status": "RUNNING_PREFIX37_AS_OF_SNAPSHOT_NOT_FINAL_SCORE",
+      "captured_utc": "2026-10-30T22:47:16.708195+00:00",
+      "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+      "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+      "frozen_total_cases": 69,
+      "prefix_completed": 37,
+      "model_posts_in_prefix": 37,
+      "raw_current_semantic_pass": 25,
+      "raw_legacy_strict_pass": 0,
+      "final_current_semantic_pass": 0,
+      "compiled": 37,
+      "generated_script_attempted": 0,
+      "sealed_runtime_attempted": 0,
+      "source_state_snapshot_sha256": "e0d7b35010962386a507c6caaa9371a06c383562a007eb659cc5b5db74a66231",
+      "known_issue": "12ADCS raw answers changed requested gyro_noise_std_rad_s1e-5 to1e-15; AI quality is not complete.",
+      "scope": "First37case snapshot only; current run may progress later. No final percentage/score, no inheritance of old0/69 verdict, no execution PASS for unrun cases."
+    },
+    "scope": "R46same-source scopes are separate:full2433collected;29protocol-interaction cases;2actual model calls/3short native executions.69quality and new24h remain unfinished.",
+    "non_additive": "The earlier7PASS and27PASS are intermediate revisions and are not added to final29. Old R45full2422PASS/6SKIP/2WARN belongs to another production App.",
+    "protocol_fixture_regression": {
+      "passed": 29,
+      "model_gpu_native_executions": 0,
+      "new_cases": 5,
+      "original_cases": 24,
+      "fixture_screenshot_count": 5,
+      "scope": "The original screenshots/ folder is synchronization protocol-fixture evidence, not actual model/native output."
+    },
+    "new_formal_24h": {
+      "status": "RUNNING_NOT_QUALIFIED",
+      "started_at_utc": "2026-10-30T22:50:06.906163+00:00",
+      "old_duration_inherited": false,
+      "hardware_exclusive": false,
+      "actual_native_and_awake_verified": true,
+      "asof_file": "ENDURANCE-ASOF.json",
+      "first_asset_read_sharing_preflight_failure_preserved": true,
+      "all_original_asset_sha256_matched": true
+    }
+  },
+  "red_green": [
+    {
+      "window": "Agent→Run / Run implicit→Agent",
+      "red": "Each sent2parse requests, pushed2user messages and discarded first answer.",
+      "green": "Exactly1parse/1user/1assistant, first answer37W applied; no Run before answer, implicit Run makes1 deliberately blocked execution request only after valid commit."
+    },
+    {
+      "window": "Flow ZIP",
+      "red": "After B57W applied, old A37WZIP actually downloaded and reported success.",
+      "green": "No obsolete download/success; current B canonical remains intact."
+    },
+    {
+      "window": "Assembly compile",
+      "red": "B57s was replaced in the editor by the late A37s compile even though ZIP was blocked.",
+      "green": "Full B editor string retained; obsolete compilation rejected before TaskSpec/planning assignment."
+    },
+    {
+      "window": "Assembly Python / cached download",
+      "red": "After B57s, late A37s Python was marked fresh and public cached download returned A37s.",
+      "green": "Old code rejected; explicit current B57s generation/download succeeds with byte-exact CPU response code."
+    }
+  ],
+  "retained_product_red_receipts": [
+    {
+      "path": "reports/local_requirements_completion/r46-agent-run-before-v1/junit.xml",
+      "sha256": "4400390b37771fce9a9f771304d93f901af1ae296effd34b898ee87c9d4f52bb",
+      "tests": 2,
+      "failures": 2
+    },
+    {
+      "path": "reports/local_requirements_completion/r46-zip-snapshot-before-v2/junit.xml",
+      "sha256": "48d7df6604bd986cb2812da280ea908b8864239f9315cf57ac6f93cd9432ae87",
+      "tests": 1,
+      "failures": 1
+    },
+    {
+      "path": "reports/local_requirements_completion/r46-assembly-snapshot-before-v2/junit.xml",
+      "sha256": "66e23d9cca239f5de22932f8e9211592ba9fd9fc09674ab83d8fbb634c0b0493",
+      "tests": 1,
+      "failures": 1
+    },
+    {
+      "path": "reports/local_requirements_completion/r46-assembly-python-before-v1/junit.xml",
+      "sha256": "ca4db5b4fa667df2437259986acc7be4dc6721f9df9a88027dba9f1800c4bdea",
+      "tests": 1,
+      "failures": 1
+    }
+  ],
+  "retained_harness_failures": [
+    "ZIP-before-v1 route-callback readiness assertion failed before product oracle.",
+    "Assembly-before-v1 CSS selector JavaScript SyntaxError failed before product oracle."
+  ],
+  "static_review": {
+    "path": "reports/local_requirements_completion/r46-interaction-ownership-evidence/output-ownership-postpatch-static-review.json",
+    "sha256": "af0d30c4053165dfc852371cd1950004c57c6f03d070cccc3b992e677beb3959",
+    "scope": "Independent static control-flow review only, not another test run;715 production Python files byte-identical."
+  },
+  "images": [
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_pending_generation_has_on0/first-answer-finished.png",
+      "destination": "screenshots/01-single-agent-answer.png",
+      "sha256": "52c84d79bd9ee192720fa577f8862e45b0b4f37fe8d630dbe3f2aac28719463e",
+      "bytes": 142642,
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_pending_generation_has_on1/pending-after-second-action.png",
+      "destination": "screenshots/02-shared-pending-controls.png",
+      "sha256": "246c77df4f74c8a07748eb6a73311022008bf631c15b9e2bdf80cc8c761c7be4",
+      "bytes": 141982,
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_program_zip_response_cann0/after-stale-a-zip-completion.png",
+      "destination": "screenshots/03-stale-zip-blocked.png",
+      "sha256": "20f4f700d173cd82a2dc865ea4d6a017388519eb96810b2f1b177982d8a89d80",
+      "bytes": 157795,
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_assembly_compile_response0/assembly-after-obsolete-compile.png",
+      "destination": "screenshots/04-stale-assembly-compile-blocked.png",
+      "sha256": "ec5c1289629794f13f50b76e20fbcd7242acf04a8f9a7bdf62e2ebe1286203ea",
+      "bytes": 181654,
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_assembly_python_response_0/assembly-after-obsolete-python.png",
+      "destination": "screenshots/05-stale-assembly-python-blocked.png",
+      "sha256": "3a7f2530b1a99404132402a5379c7073b440fee53709fb569ba0a1b4d357a391",
+      "bytes": 181838,
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "copy_status": "COPIED_EXACT"
+    }
+  ],
+  "exclusions": [
+    "No environment/weights/provider config/raw actual prompts or full telemetry/database.",
+    "Only3R45-relative source files; no full1500snapshot; Rootruntime remains unchanged.",
+    "Wheel copied from exact read-only mirror; candidate is IN_PROGRESS, not final release."
+  ],
+  "apply_policy": "Exact raw R45 beforeSHA required; this is a layered delta, not a fresh-clone patch. New tests require absence. Root runtime remains old App4c. Do not remove Root extras; historical egg-info and CRLF/raw preimages stay as in prior progress checkpoint.",
+  "copied_utc": "2026-10-30T21:35:23.549291+00:00",
+  "validation_as_of_utc": "2026-10-30T22:47:16.708195+00:00",
+  "copy_scope": "Root authorized initial10payload plus actualGUI allowlist8, read-only wheel mirror, derived full/installation/as-of summaries and exact historical entry snapshots. No publishedR43 package or runtime/source modification.",
+  "updated_utc": "2026-10-30T23:22:43.722224+00:00",
+  "historical_pending_snapshot": "history/public-summary.pre-final.json",
+  "fixture_screenshots_note": "All5existing screenshots/ images are mocked-Agent/delayed-HTTP protocol fixtures. Real model/native screenshots are separately under real-ai-gui/.",
+  "remaining_ui": "Graph toolbar still dense and retains implementation/version copy; separate limited R48 candidate is planned. R46source remains frozen.",
+  "old_root_instance_as_of": {
+    "wall_s": 62304,
+    "state": "RUNNING",
+    "timing": "DEGRADED",
+    "max_abs_drift_s": 2.8543958999216557,
+    "not_new24h_qualification": true
+  },
+  "initial_validation_as_of_utc": "2026-10-30T21:30:07.378840+00:00"
+}

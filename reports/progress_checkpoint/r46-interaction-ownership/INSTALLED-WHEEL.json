@@ -1,0 +1,21 @@
+{
+  "status": "SCOPED_OWNED_INSTALLED_WHEEL_PASS_NOT_FINAL_RELEASE",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "owned_environment": "90applicable dependencies plus1project distribution;91total",
+  "build_staging_isolated": true,
+  "all_recorded_build_and_installed_checks_true": true,
+  "wheel": {
+    "path": "dist/satellite_simulation_platform-0.7.8-py3-none-any.whl",
+    "sha256": "79743f6a9ea10e8e93bed465b7710faa7d6b92d70bf469730e24b6a80d2d0894",
+    "bytes": 2709003
+  },
+  "private_build_proof_sha256": "b5afc67533a8dfd53ffbd68d80ba10bbb418a444afec5d5dfbb82a8da6120eb8",
+  "private_installed_proof_sha256": "23b209d4c7286dc740e86ffad8eb920cb3be92b78a13fdac4c8a42b9638f0c20",
+  "mirror_proof_sha256": "7f90637c9bebcba036e8f8673ed2db2da1725af186d5b3d000411ccfdc9d9f74",
+  "limits": [
+    "Windows/Python3.12 owned environment scope only.",
+    "Candidate wheel is IN_PROGRESS;69AI quality and new24h qualification are unfinished.",
+    "No environment/weights/provider/raw telemetry copied."
+  ]
+}

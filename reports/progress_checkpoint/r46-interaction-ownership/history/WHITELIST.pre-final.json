@@ -1,0 +1,112 @@
+{
+  "status": "ROOT_APPROVED_FINITE_DELTA_COPIED_PENDING_FINAL_QUALIFICATION",
+  "copied_utc": "2026-10-30T21:35:23.549291+00:00",
+  "package": "reports/progress_checkpoint/r46-interaction-ownership",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "baseline": "Frozen R45 application780d; exact beforeSHA required, layered delta only.",
+  "approved_proposal": "reports/local_requirements_completion/r46-interaction-ownership-evidence/public-delta-proposed-whitelist.json",
+  "approved_proposal_sha256": "c1f05584f54ca98cc258dfef02ab5ed5396c05bc02d1abd9b3696ae470c2ab14",
+  "source_frozen_inputs_sha256": "6413c6a6f40b36a9fc915aff7c96fe70c313167115d84a56619ff2c15445acb7",
+  "payload_count": 10,
+  "payload_bytes": 1377007,
+  "manifest_excluded_from_payload_count_and_bytes": true,
+  "files": [
+    {
+      "source": "reports/local_requirements_completion/requirements-r46-interaction-ownership-candidate/src/sat_sim/web/app.js",
+      "destination": "source-overlay/src/sat_sim/web/app.js",
+      "category": "authorized_three_path_source_delta",
+      "sha256": "a60519ef3051d050abc996b90eddada246bed978fb01f886a9a86ab80258cf33",
+      "bytes": 511404,
+      "copy_status": "COPIED_EXACT",
+      "baseline_before_sha256": "7223b5d282329b289c5ab3a75586dd26ce08fa2833909d25f8d47c4e702b88da",
+      "path": "src/sat_sim/web/app.js"
+    },
+    {
+      "source": "reports/local_requirements_completion/requirements-r46-interaction-ownership-candidate/tests/test_agent_run_generation_ownership_browser.py",
+      "destination": "source-overlay/tests/test_agent_run_generation_ownership_browser.py",
+      "category": "authorized_three_path_source_delta",
+      "sha256": "4e1575872cba26bb63174d9d0169bccc0b718bd8298a5905d876c49c73e86570",
+      "bytes": 7509,
+      "copy_status": "COPIED_EXACT",
+      "baseline_before_sha256": null,
+      "path": "tests/test_agent_run_generation_ownership_browser.py"
+    },
+    {
+      "source": "reports/local_requirements_completion/requirements-r46-interaction-ownership-candidate/tests/test_program_export_snapshot_browser.py",
+      "destination": "source-overlay/tests/test_program_export_snapshot_browser.py",
+      "category": "authorized_three_path_source_delta",
+      "sha256": "4a0b84690f20a28af16f2b678ebde24b617670d2c0019b12b8112492b1a85f3c",
+      "bytes": 41211,
+      "copy_status": "COPIED_EXACT",
+      "baseline_before_sha256": null,
+      "path": "tests/test_program_export_snapshot_browser.py"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_pending_generation_has_on0/first-answer-finished.png",
+      "destination": "screenshots/01-single-agent-answer.png",
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "sha256": "52c84d79bd9ee192720fa577f8862e45b0b4f37fe8d630dbe3f2aac28719463e",
+      "bytes": 142642,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_pending_generation_has_on1/pending-after-second-action.png",
+      "destination": "screenshots/02-shared-pending-controls.png",
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "sha256": "246c77df4f74c8a07748eb6a73311022008bf631c15b9e2bdf80cc8c761c7be4",
+      "bytes": 141982,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_program_zip_response_cann0/after-stale-a-zip-completion.png",
+      "destination": "screenshots/03-stale-zip-blocked.png",
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "sha256": "20f4f700d173cd82a2dc865ea4d6a017388519eb96810b2f1b177982d8a89d80",
+      "bytes": 157795,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_assembly_compile_response0/assembly-after-obsolete-compile.png",
+      "destination": "screenshots/04-stale-assembly-compile-blocked.png",
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "sha256": "ec5c1289629794f13f50b76e20fbcd7242acf04a8f9a7bdf62e2ebe1286203ea",
+      "bytes": 181654,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/local_requirements_completion/r46-browser-regression-v2/tmp/test_assembly_python_response_0/assembly-after-obsolete-python.png",
+      "destination": "screenshots/05-stale-assembly-python-blocked.png",
+      "category": "actual_protocol_browser_image",
+      "actually_viewed": true,
+      "sha256": "3a7f2530b1a99404132402a5379c7073b440fee53709fb569ba0a1b4d357a391",
+      "bytes": 181838,
+      "copy_status": "COPIED_EXACT"
+    },
+    {
+      "source": "reports/progress_checkpoint/r46-interaction-ownership/README.md",
+      "destination": "README.md",
+      "category": "derived_public_document",
+      "sha256": "8c7f216414117707661c2ecaf214a07e00f2bc38a9bfc2badf383e647eee3566",
+      "bytes": 2285,
+      "copy_status": "DERIVED_DESCRIPTION_UPDATED_UNDER_ROOT_AUTHORIZATION",
+      "approved_pre_update_sha256": "1970c2abe32088f048ee320fda2860163822a5f2268846bd3c39d95afd62e0e0",
+      "approved_pre_update_bytes": 2245
+    },
+    {
+      "source": "reports/progress_checkpoint/r46-interaction-ownership/public-summary.json",
+      "destination": "public-summary.json",
+      "category": "derived_public_document",
+      "sha256": "00f951efa6947988171168c40d7d50c1406ba786d77983f3f880dffcf62b366c",
+      "bytes": 8687,
+      "copy_status": "DERIVED_DESCRIPTION_UPDATED_UNDER_ROOT_AUTHORIZATION",
+      "approved_pre_update_sha256": "13829afa3038202f6bc906db578ce89d735c5b0f5a9752f8a7132423f5973589",
+      "approved_pre_update_bytes": 8425
+    }
+  ],
+  "limits": "29CPU/browser PASS only; full/wheel/actual-model-GUI/69 remain PENDING as of original summary timestamp.0model/GPU/native executions in this delta. No old package/runtime/Git mutation."
+}

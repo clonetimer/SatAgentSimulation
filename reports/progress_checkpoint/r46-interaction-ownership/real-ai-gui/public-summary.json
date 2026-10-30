@@ -1,0 +1,43 @@
+{
+  "status": "SCOPED_R46_INSTALLED_AI_GUI_NATIVE_WEB_PASS",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "driver_checks_passed": 94,
+  "fresh_requests": 2,
+  "native_scripts_executed": 2,
+  "web_native_runs": 1,
+  "trace_samples_each": 61,
+  "simulation_time_s": [
+    0,
+    12
+  ],
+  "sample_s": 0.2,
+  "capacity_wh": {
+    "nominal": 140,
+    "create17_fault": 116.2,
+    "refine42_fault": 81.2
+  },
+  "refine_capacity_ratio": 0.58,
+  "warning_counts": [
+    1,
+    42
+  ],
+  "can_claim_high_fidelity": false,
+  "original_plan_preserved": true,
+  "raw_text_roundtrip_preserved": true,
+  "refine_unrequested_configuration_preserved": true,
+  "desktop_and_narrow_charts_viewed": true,
+  "retained_R43_historical_first_attempt": {
+    "model_create_passed": true,
+    "driver_navigation_failed": true,
+    "retry_authorized_explicitly": true,
+    "not_relabelled": true
+  },
+  "limits": [
+    "Two exact frozen GUI requests and one12-second native scenario at two fault magnitudes; no broad model quality claim.",
+    "Native PASS retains physical warning1/42, strict=false and can_claim_high_fidelity=false.",
+    "No new24h/flight/hardware/Ubuntu qualification; independent root full regression is not inferred complete here.",
+    "Original R30/R35 evidence and first R43 driver failure remain historical failures."
+  ],
+  "private_completion_sha256": "196c16d7df554e2cad833c1e765e522a4a62c31f6f48b925f509c605453c574f"
+}

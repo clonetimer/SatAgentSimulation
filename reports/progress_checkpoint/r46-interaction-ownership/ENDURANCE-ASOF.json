@@ -1,0 +1,13 @@
+{
+  "status": "ACTUAL_NEW_R46_ENDURANCE_RUNNING_AWAKE_ACTIVE_NOT_QUALIFIED",
+  "at_utc": "2026-10-30T23:21:05.699767+00:00",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "started_at_utc": "2026-10-30T22:50:06.906163+00:00",
+  "wall_observed_s": 1850.328000000096,
+  "old_duration_inherited": false,
+  "hardware_exclusive": false,
+  "earliest_full_24h_qualification": "After full86400 actual pace span, windows, gaps, mission and sealed evidence review; not by uptime alone.",
+  "first_preflight_failure_retained": "r46-endurance-first-preflight-failure-v1.json",
+  "actual_native_and_awake_owner_verified": true
+}

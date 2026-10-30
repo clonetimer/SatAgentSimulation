@@ -1,0 +1,16 @@
+{
+  "status": "FULL_R46_WINDOWS_ENGINEERING_REGRESSION_PASS",
+  "at_utc": "2026-10-30T22:29:54.568104+00:00",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "total": 2433,
+  "passed": 2427,
+  "failed": 0,
+  "skipped": 6,
+  "warnings": 2,
+  "pytest_duration_s": 1596.07,
+  "junit_sha256": "20291e19f55275db6105a93ba1572e34b1a1933189e201054d009c9fb2ac9109",
+  "returned_sha256": "08dcc7b6af1912a2e16baab2dfa18d16964f15393ba73e4c7dab3dfadff2d328",
+  "source_and_imports_stable": true,
+  "not69_or24h_qualification": true
+}
