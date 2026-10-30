@@ -1,0 +1,256 @@
+{
+  "status": "TIMING_DEGRADED_RETAINED_DELAY_STAGE_LOCALIZED_CAUSE_NOT_PROVEN",
+  "observed_at_utc": "2026-10-30T06:20:45.164317+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "native_pid": 80520,
+  "native_created": 1793337824.415924,
+  "closed_segment": {
+    "path": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-endurance\\endurance-24h\\api\\interactive_sessions\\native-endurance\\telemetry_segments\\segment-00000001.jsonl",
+    "bytes": 67108564,
+    "sha256": "c1e02b353e5543b93042461154fbfc0dc675bb2bc2227d82296791655270204b",
+    "records": 12666,
+    "frames_by_stream": {
+      "runtime.trace": 6333,
+      "whole.continuous": 6333
+    },
+    "sim_range_s": [
+      0.0,
+      3166.0
+    ]
+  },
+  "journal_checks": {
+    "closed_segment_hash_matches_index_and_second_read": true,
+    "global_hash_chain_and_sequence": true,
+    "per_stream_half_second_sampling": true,
+    "projected_values_match_native_values": true,
+    "earlier_fixed_prefix_matches_current_closed_segment": true,
+    "same_native_identity": true
+  },
+  "temperature_violations": 0,
+  "nonfinite_temperature_values": 0,
+  "thermal_bounds_k": {
+    "battery": [
+      220.0,
+      320.0
+    ],
+    "electronics": [
+      220.0,
+      330.0
+    ],
+    "payload": [
+      220.0,
+      340.0
+    ],
+    "adcs": [
+      210.0,
+      350.0
+    ],
+    "structure": [
+      200.0,
+      370.0
+    ],
+    "solar_panel": [
+      200.0,
+      390.0
+    ],
+    "comm": [
+      230.0,
+      335.0
+    ],
+    "propulsion": [
+      220.0,
+      350.0
+    ]
+  },
+  "thermal_extrema_k": {
+    "battery": [
+      283.4156269711953,
+      290.00716713839694
+    ],
+    "electronics": [
+      272.3345895997617,
+      295.0
+    ],
+    "payload": [
+      277.12182968053963,
+      300.98149034606047
+    ],
+    "adcs": [
+      278.2182850428818,
+      293.7445159677152
+    ],
+    "structure": [
+      243.507382387566,
+      285.0637306430509
+    ],
+    "solar_panel": [
+      208.31730326102243,
+      300.0
+    ],
+    "comm": [
+      260.0546705127422,
+      295.0
+    ],
+    "propulsion": [
+      261.4005168990347,
+      292.0
+    ]
+  },
+  "soc_range": [
+    0.458641300825508,
+    0.6995702283832933
+  ],
+  "largest_runtime_publication_gaps_s": [
+    [
+      2.066646,
+      3989,
+      "2026-10-30T05:57:01.863563+00:00",
+      "2026-10-30T05:57:03.930209+00:00",
+      1994.0000000000002,
+      1994.5000000000002
+    ],
+    [
+      1.07132,
+      3994,
+      "2026-10-30T05:57:04.364304+00:00",
+      "2026-10-30T05:57:05.435624+00:00",
+      1996.5000000000002,
+      1997.0000000000002
+    ],
+    [
+      0.970559,
+      5663,
+      "2026-10-30T06:10:58.872369+00:00",
+      "2026-10-30T06:10:59.842928+00:00",
+      2831.0,
+      2831.5
+    ],
+    [
+      0.650473,
+      5333,
+      "2026-10-30T06:08:13.864039+00:00",
+      "2026-10-30T06:08:14.514512+00:00",
+      2666.0,
+      2666.5
+    ],
+    [
+      0.613957,
+      2303,
+      "2026-10-30T05:42:58.862622+00:00",
+      "2026-10-30T05:42:59.476579+00:00",
+      1151.0,
+      1151.5
+    ],
+    [
+      0.591261,
+      1565,
+      "2026-10-30T05:36:49.862496+00:00",
+      "2026-10-30T05:36:50.453757+00:00",
+      782.0,
+      782.5
+    ],
+    [
+      0.542177,
+      3468,
+      "2026-10-30T05:52:41.372700+00:00",
+      "2026-10-30T05:52:41.914877+00:00",
+      1733.5,
+      1734.0
+    ],
+    [
+      0.539958,
+      2770,
+      "2026-10-30T05:46:52.368073+00:00",
+      "2026-10-30T05:46:52.908031+00:00",
+      1384.5,
+      1385.0
+    ]
+  ],
+  "largest_native_to_projection_publication_gaps_s": [
+    [
+      2.054219,
+      3988,
+      "2026-10-30T05:57:01.863563+00:00",
+      "2026-10-30T05:57:03.917782+00:00",
+      1994.0000000000002
+    ],
+    [
+      1.06075,
+      3993,
+      "2026-10-30T05:57:04.364304+00:00",
+      "2026-10-30T05:57:05.425054+00:00",
+      1996.5000000000002
+    ],
+    [
+      0.115914,
+      3636,
+      "2026-10-30T05:54:05.879544+00:00",
+      "2026-10-30T05:54:05.995458+00:00",
+      1818.0
+    ],
+    [
+      0.115033,
+      5939,
+      "2026-10-30T06:13:17.362824+00:00",
+      "2026-10-30T06:13:17.477857+00:00",
+      2969.5
+    ],
+    [
+      0.114192,
+      6060,
+      "2026-10-30T06:14:17.866658+00:00",
+      "2026-10-30T06:14:17.980850+00:00",
+      3030.0
+    ],
+    [
+      0.114044,
+      1455,
+      "2026-10-30T05:35:55.363846+00:00",
+      "2026-10-30T05:35:55.477890+00:00",
+      727.5
+    ],
+    [
+      0.113941,
+      2909,
+      "2026-10-30T05:48:02.369342+00:00",
+      "2026-10-30T05:48:02.483283+00:00",
+      1454.5
+    ],
+    [
+      0.11361,
+      607,
+      "2026-10-30T05:28:51.366359+00:00",
+      "2026-10-30T05:28:51.479969+00:00",
+      303.5
+    ]
+  ],
+  "localization": "The largest measured publication delay is after runtime.advance_to returns and runtime.trace is published, before whole.continuous publication. The source interval includes synchronous durable journal append/flush/fsync, projected-field selection and OS/Python thread scheduling. Existing timestamps do not separate these causes.",
+  "pacing_at_observation": {
+    "last_drift_s": 0.0004534999607130885,
+    "max_abs_drift_s": 1.5674959999741986,
+    "timing_status": "DEGRADED",
+    "pace_observation_count": 6825
+  },
+  "measurement_boundary": "Publication gaps use UTC timestamps and are not substitutes for monotonic SoftRealtimeClock drift observations or a full-run P95 measurement.",
+  "contract": {
+    "claim": "soft_realtime",
+    "original_30min_p95_budget_ms": 200,
+    "overload_policy": "Expose drift and gaps, reduce effective pace when required, and never skip a physical integration step.",
+    "whole24h_p95": "NOT_MEASURED_BY_THIS_REVIEW",
+    "all_step_strict_realtime_qualified": false
+  },
+  "source_sha256": {
+    "src/sat_sim/interactive/manager.py": "d3699e2f69ed1521ac846d515b32c07644a78c5f08b8de0630ad936a11cd7fbc",
+    "src/sat_sim/interactive/workspace.py": "68a57700a9686756f3c109da017cb7c6b7b6e971783134c51e3174801217238f",
+    "src/sat_sim/interactive/clock.py": "fbfbcc712e24971c007d0c0aca32a2c33f63895842f4d762cb0f624ca98815dc",
+    "configs/interactive/performance_budget.json": "0b54f2d8ec95d1f5bc31d3c12122780a8fb20405ba20787305ff9213e9abd172",
+    "reports/local_requirements_completion/review_r11_closed_segment_timing.py": "13c3c8a2a35df708eb19fd10f0fbe898e92be13b834679db677c4b90d1d3dbe8"
+  },
+  "reference_bounds_sha256": "2ac3fa529296a3fc5358d1c60d8928c77e26c5a1317ce19c6cf3b0b086b91167",
+  "originals_modified": false,
+  "native_restarted": false,
+  "cause": "UNPROVEN",
+  "goal_complete": false,
+  "scope": "First closed segment only. Preserves historical timing degradation; does not qualify whole mission, future thermal margins, complete24h duration, or all-step hard realtime. No process suspension, debugger, priority/affinity change, TC or restart."
+}

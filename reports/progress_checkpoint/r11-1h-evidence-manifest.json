@@ -1,0 +1,41 @@
+{
+  "schema_version": "sat-progress-checkpoint.v2",
+  "created_at_utc": "2026-10-30T06:25:02.078928+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "overall_goal": "ACTIVE_UNPROVEN_ACTUAL24H_RUNNING_TIMING_DEGRADED",
+  "native_pid": 80520,
+  "native_created": 1793337824.415924,
+  "wall_observed_s": 3632.954000000027,
+  "historical_max_drift_s": 1.5674959999741986,
+  "all_step_strict_realtime_qualified": false,
+  "cause": "UNPROVEN",
+  "files": {
+    "r11-1h-endurance-observation.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-endurance-1h-owned-observation.json",
+      "sha256": "b0710ce39cf3eb49d425275ad51c10cd4218c1f57850cac31059ea0ff8264233",
+      "bytes": 5883
+    },
+    "r11-first-closed-segment-review.json": {
+      "source": "reports/local_requirements_completion/r11-first-closed-segment-timing-and-physics-review.json",
+      "sha256": "e33a489588432c4552930a62d2d57a5b9829093036434e6d52d5b73762d7c8f7",
+      "bytes": 7212
+    },
+    "r11-task-awake-request-observation.json": {
+      "source": "reports/local_requirements_completion/r11-task-awake-request-independent-observation.json",
+      "sha256": "d1abd6243fea01acb638dcb849eccd32103b6f73d8a3262f069162b61203af69",
+      "bytes": 1098
+    },
+    "r11-task-awake-request-source.py": {
+      "source": "reports/local_requirements_completion/hold_r11_endurance_awake.py",
+      "sha256": "72c6fa17f6bbb56e0af2b917db7f1b57452fdd78d2bfcad660eaba1a3b31838a",
+      "bytes": 4199
+    },
+    "r11-first-closed-segment-review-source.py": {
+      "source": "reports/local_requirements_completion/review_r11_closed_segment_timing.py",
+      "sha256": "13c3c8a2a35df708eb19fd10f0fbe898e92be13b834679db677c4b90d1d3dbe8",
+      "bytes": 8331
+    }
+  },
+  "scope": "One-hour ongoing observation plus first closed segment and task-scoped awake-request evidence. Does not replace original qualification, erase timing spikes, qualify whole-run P95, or certify24h. No production source or native restart."
+}

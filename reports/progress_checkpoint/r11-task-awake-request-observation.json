@@ -1,0 +1,24 @@
+{
+  "status": "TASK_SCOPED_SYSTEM_AWAKE_REQUEST_VERIFIED",
+  "observed_at_utc": "2026-10-30T05:47:42.739445+00:00",
+  "helper_pid": 46364,
+  "helper_created": 1793339200.2216158,
+  "native_pid": 80520,
+  "native_created": 1793337824.415924,
+  "helper_initial_driver_sha256": "72c6fa17f6bbb56e0af2b917db7f1b57452fdd78d2bfcad660eaba1a3b31838a",
+  "helper_current_driver_sha256": "72c6fa17f6bbb56e0af2b917db7f1b57452fdd78d2bfcad660eaba1a3b31838a",
+  "native_alive": true,
+  "request_active": true,
+  "confirmed_flags_hex": "0x80000001",
+  "observed_power_plan_sleep_timeout_s": {
+    "ac": 7200,
+    "dc": 180
+  },
+  "prior_observed_ac_line_status": 1,
+  "prior_observed_battery_percent": 98,
+  "persistent_power_policy_changed": false,
+  "scope": "Legacy per-thread system-awake request only; no display request, global scheme edits or native restart. Explicit user sleep/power-off is not prevented. Auto release follows this exact native/launcher lifetime or task deadline.",
+  "progress_status": "RUNNING",
+  "wall_observed_s": 1430.969000000041,
+  "goal_complete": false
+}
