@@ -1,0 +1,62 @@
+{
+  "status": "PASS",
+  "scope": "Real lock contention and exception-release checks; not timing qualification",
+  "events": [
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_wait",
+      "start_ns": 725413960171000,
+      "end_ns": 725413960171900,
+      "thread_id": 77936
+    },
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_hold",
+      "start_ns": 725413960171900,
+      "end_ns": 725414011482100,
+      "thread_id": 77936
+    },
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_wait",
+      "start_ns": 725413961096400,
+      "end_ns": 725414011530000,
+      "thread_id": 80076
+    },
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_hold",
+      "start_ns": 725414011530000,
+      "end_ns": 725414011541500,
+      "thread_id": 80076
+    },
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_wait",
+      "start_ns": 725414011636300,
+      "end_ns": 725414011636800,
+      "thread_id": 77936
+    },
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_hold",
+      "start_ns": 725414011636800,
+      "end_ns": 725414011645700,
+      "thread_id": 77936
+    },
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_wait",
+      "start_ns": 725414011648500,
+      "end_ns": 725414011648700,
+      "thread_id": 77936
+    },
+    {
+      "kind": "lock",
+      "stage": "workspace.lock_hold",
+      "start_ns": 725414011648700,
+      "end_ns": 725414011649400,
+      "thread_id": 77936
+    }
+  ]
+}

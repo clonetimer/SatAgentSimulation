@@ -1,0 +1,277 @@
+{
+  "status": "DIAGNOSTIC_CAPTURED_NOT_QUALIFIED",
+  "scope": "Isolated native diagnostic, not production qualification.",
+  "started_utc": "2026-10-30T10:08:55.369976+00:00",
+  "application_sha256": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "driver_sha256": "58ac156f129e6d00457f87ae1791a782b7e1cb469903baf62dfb19c92e0018b0",
+  "diagnostic_sha256": "8ca33627932dbd667b1e0f3e125222a6be539b120f839663f26acd9cf0eecd04",
+  "scheduling": {
+    "pid": 66132,
+    "creation": 1793354932.7439475,
+    "original_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "selected_affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "scope": "Only this diagnostic process and newly spawned children; not exclusive physical resource isolation."
+  },
+  "source_copy_byte_identical": true,
+  "requested_wall_s": 60.0,
+  "read_only_shared_assets": [
+    {
+      "path": "E:\\tmp\\SatAgentSimulation\\third_party\\gravity\\GGM03S-J2-only.txt",
+      "sha256": "10ddd728da136442f347621b0dbb710b3bef2948ad3d4f83c4eed9242376f079"
+    },
+    {
+      "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\de-403-masses.tpc",
+      "sha256": "5cd68fcd3f59ddc21ed8bbad3a341126b8e092a29ac8f0ae585db718af8e7468"
+    },
+    {
+      "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\de430.bsp",
+      "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1"
+    },
+    {
+      "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\gm_de431.tpc",
+      "sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b"
+    },
+    {
+      "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\naif0012.tls",
+      "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b"
+    },
+    {
+      "path": "E:\\tmp\\SatAgentSimulation\\third_party\\spice\\pck00010.tpc",
+      "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2"
+    },
+    {
+      "path": "E:\\tmp\\SatAgentSimulation\\third_party\\wmm\\WMM.COF",
+      "sha256": "dfa8597825af4e0b87ff4198a5b4fb661b3c49f4cd090cd0164e0259b075582f"
+    }
+  ],
+  "injected_delay_s": 0,
+  "native_status": "SMOKE_COMPLETE_NOT_24H",
+  "failed_responses": [],
+  "injection": [],
+  "summary": {
+    "events": 2665,
+    "overflow": false,
+    "stages": {
+      "clock.py:pace_to": {
+        "count": 121,
+        "p95_ms": 473.3674,
+        "max_ms": 476.27,
+        "total_ms": 56551.4513
+      },
+      "continuous_endurance.py:_finalize/real_fsync": {
+        "count": 1,
+        "p95_ms": 1.8507,
+        "max_ms": 1.8507,
+        "total_ms": 1.8507
+      },
+      "continuous_endurance.py:_sample/real_fsync": {
+        "count": 61,
+        "p95_ms": 13.2806,
+        "max_ms": 22.1299,
+        "total_ms": 313.4133
+      },
+      "continuous_endurance.py:start/real_fsync": {
+        "count": 1,
+        "p95_ms": 2.5466,
+        "max_ms": 2.5466,
+        "total_ms": 2.5466
+      },
+      "manager.py:_advance": {
+        "count": 121,
+        "p95_ms": 44.6322,
+        "max_ms": 116.1535,
+        "total_ms": 3906.0899
+      },
+      "manager.py:_write_heartbeat": {
+        "count": 4,
+        "p95_ms": 6.849085,
+        "max_ms": 6.9433,
+        "total_ms": 23.1117
+      },
+      "security.py:log/real_fsync": {
+        "count": 10,
+        "p95_ms": 4.67897,
+        "max_ms": 4.8344,
+        "total_ms": 28.2578
+      },
+      "supervised_native_runtime.py:_rpc": {
+        "count": 123,
+        "p95_ms": 27.85767000000001,
+        "max_ms": 7189.5264,
+        "total_ms": 9830.214
+      },
+      "supervised_native_runtime.py:advance_to": {
+        "count": 121,
+        "p95_ms": 25.602,
+        "max_ms": 103.1575,
+        "total_ms": 2548.8085
+      },
+      "telemetry_bus.py:publish": {
+        "count": 244,
+        "p95_ms": 0.19882499999999992,
+        "max_ms": 0.5811,
+        "total_ms": 27.6537
+      },
+      "telemetry_segments.py:copy_logical/write": {
+        "count": 2,
+        "p95_ms": 0.50387,
+        "max_ms": 0.5212,
+        "total_ms": 0.6958
+      },
+      "workspace.py:_canonical": {
+        "count": 275,
+        "p95_ms": 0.32341000000000003,
+        "max_ms": 0.8034,
+        "total_ms": 44.9698
+      },
+      "workspace.py:append_state": {
+        "count": 10,
+        "p95_ms": 6.606495000000001,
+        "max_ms": 6.8877,
+        "total_ms": 45.818599999999996
+      },
+      "workspace.py:append_state/__exit__": {
+        "count": 10,
+        "p95_ms": 0.006550000000000001,
+        "max_ms": 0.007,
+        "total_ms": 0.0504
+      },
+      "workspace.py:append_state/flush": {
+        "count": 10,
+        "p95_ms": 0.24988,
+        "max_ms": 0.2506,
+        "total_ms": 1.4271
+      },
+      "workspace.py:append_state/real_fsync": {
+        "count": 10,
+        "p95_ms": 4.74807,
+        "max_ms": 4.7955,
+        "total_ms": 33.076299999999996
+      },
+      "workspace.py:append_state/write": {
+        "count": 10,
+        "p95_ms": 0.00962,
+        "max_ms": 0.0098,
+        "total_ms": 0.0791
+      },
+      "workspace.py:append_telemetry": {
+        "count": 244,
+        "p95_ms": 7.032914999999999,
+        "max_ms": 41.811,
+        "total_ms": 1284.568
+      },
+      "workspace.py:append_telemetry/__exit__": {
+        "count": 244,
+        "p95_ms": 0.007685,
+        "max_ms": 0.0203,
+        "total_ms": 1.1948
+      },
+      "workspace.py:append_telemetry/flush": {
+        "count": 244,
+        "p95_ms": 0.139535,
+        "max_ms": 0.3173,
+        "total_ms": 12.3236
+      },
+      "workspace.py:append_telemetry/real_fsync": {
+        "count": 244,
+        "p95_ms": 4.80722,
+        "max_ms": 40.7775,
+        "total_ms": 945.1095
+      },
+      "workspace.py:append_telemetry/write": {
+        "count": 244,
+        "p95_ms": 0.2527049999999999,
+        "max_ms": 0.3909,
+        "total_ms": 21.7321
+      },
+      "workspace.py:finalize_telemetry": {
+        "count": 1,
+        "p95_ms": 121.7569,
+        "max_ms": 121.7569,
+        "total_ms": 121.7569
+      },
+      "workspace.py:finalize_telemetry/__exit__": {
+        "count": 1,
+        "p95_ms": 0.0051,
+        "max_ms": 0.0051,
+        "total_ms": 0.0051
+      },
+      "workspace.py:finalize_telemetry/write": {
+        "count": 244,
+        "p95_ms": 0.25454499999999997,
+        "max_ms": 2.6614,
+        "total_ms": 20.3869
+      },
+      "workspace.py:telemetry_write_statistics/__exit__": {
+        "count": 61,
+        "p95_ms": 0.0176,
+        "max_ms": 0.0754,
+        "total_ms": 0.4333
+      },
+      "workspace.py:write_runtime_result/__exit__": {
+        "count": 1,
+        "p95_ms": 0.0052,
+        "max_ms": 0.0052,
+        "total_ms": 0.0052
+      },
+      "workspace.py:write_runtime_result/flush": {
+        "count": 1,
+        "p95_ms": 0.0044,
+        "max_ms": 0.0044,
+        "total_ms": 0.0044
+      },
+      "workspace.py:write_runtime_result/real_fsync": {
+        "count": 1,
+        "p95_ms": 2.8541,
+        "max_ms": 2.8541,
+        "total_ms": 2.8541
+      },
+      "workspace.py:write_runtime_result/write": {
+        "count": 1,
+        "p95_ms": 0.2937,
+        "max_ms": 0.2937,
+        "total_ms": 0.2937
+      }
+    },
+    "pacing_samples": 121,
+    "abs_drift_p95_ms": 0.9037000127136707,
+    "abs_drift_p99_ms": 1.279760035686194,
+    "abs_drift_max_ms": 2.5932000717148185,
+    "scope": "Inclusive spans overlap. Instrumentation adds overhead. Short-run samples do not qualify a 30-minute or 24-hour window."
+  },
+  "root_application_unchanged": true,
+  "candidate_application_unchanged": true,
+  "shared_assets_unchanged": true,
+  "timing.jsonl_sha256": "70851a119a4e753658ce6aa5acbeb8cf6ea41501f44551c884dda6d7fd48e5c0",
+  "pacing.jsonl_sha256": "5757b9eb520bbc33a4733e22f8ea19b9d76e04f1f79637c5e4df6deb3d1b611e"
+}

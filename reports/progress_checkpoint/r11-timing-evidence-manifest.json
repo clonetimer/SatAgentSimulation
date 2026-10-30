@@ -1,0 +1,47 @@
+{
+  "schema_version": "sat-progress-evidence-manifest.v1",
+  "captured_at_utc": "2026-10-30T10:16:48.750030+00:00",
+  "scope": "Instrument diagnostics only; actual24h and production tail-latency resolution remain pending. Raw failures preserved. Full telemetry/profiles remain local; source and summaries permit review but do not replace those raw artifacts.",
+  "files": [
+    {
+      "path": "r11-timing-diagnostics-review.json",
+      "sha256": "b146faf8c6eca71a7827fc5d684646de38fc4b8579a733c9e0b759d071bce0c5",
+      "bytes": 4105
+    },
+    {
+      "path": "r11-timing-diagnostics-review-v1-failed.json",
+      "sha256": "7c94c5e153bd9b182e57ff80e7a22e740657eb5044567667f388086442bb7b48",
+      "bytes": 3908
+    },
+    {
+      "path": "r11-public-timing-entry-review.json",
+      "sha256": "7ad1dc40e0e9e9f5bdd7a5c88a6ef09f491f325541121455df7ae4a6bd186e77",
+      "bytes": 1507
+    },
+    {
+      "path": "r11-timing-injected-diagnostic.json",
+      "sha256": "3ce58e21382793a3e3fdd1954fd6a0dd3988891b2a8e856d197f147ac3d73521",
+      "bytes": 8413
+    },
+    {
+      "path": "r11-timing-baseline-diagnostic.json",
+      "sha256": "c91ff19b5e07ad78b071de06da65bf27851383a1319cac71388ac6e492218388",
+      "bytes": 8210
+    },
+    {
+      "path": "r11-public-timing-entry-diagnostic.json",
+      "sha256": "065d5de228b8fbd657a9d6d329d936ae982dcead60a9bb4407166fdc65e49ab7",
+      "bytes": 7756
+    },
+    {
+      "path": "r11-timing-lock-check.json",
+      "sha256": "d3449b937b9f24501b9dedc2168c67bb613150b574df91c7b69587d1c07bfa55",
+      "bytes": 1519
+    },
+    {
+      "path": "r11-timing-review-source.py",
+      "sha256": "cf8052980ce7bf61888b5fd6adb034661b09672aaefe7900e0bc97ec1b87740e",
+      "bytes": 7030
+    }
+  ]
+}

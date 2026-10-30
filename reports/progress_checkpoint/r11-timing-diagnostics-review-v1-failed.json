@@ -1,0 +1,90 @@
+{
+  "status": "FAIL",
+  "scope": "Instrument reliability and deterministic native-prefix check only. No tail-latency fix or formal timing qualification.",
+  "cases": [
+    {
+      "case": "r11-timing-diagnostic-smoke-v3",
+      "checks": {
+        "timing.jsonl_hash": true,
+        "pacing.jsonl_hash": true,
+        "span_order_valid": true,
+        "profile_not_truncated": true,
+        "event_count": true,
+        "all_pace_observations": true,
+        "pace_grid": true,
+        "monotonic_pace_wall": true,
+        "p95_recomputed": true,
+        "maximum_recomputed": true,
+        "maximum_matches_session": true,
+        "source_and_assets_unchanged": true,
+        "native_smoke_complete": true,
+        "sealed_no_terminal_error": true,
+        "no_false_24h_pass": true,
+        "wrapper_bug_explicit": true,
+        "injected_delay_recorded": true,
+        "injected_delay_measured": true,
+        "real_fsync_separated_from_injected_sleep": true,
+        "telemetry_count": true,
+        "native_grid": false,
+        "raw_to_projected_values_match": true,
+        "telemetry_hash_chain_valid": true
+      },
+      "passed": false,
+      "artifact_sha256": {
+        "timing.jsonl": "2ce4889faa09469696f040c4d92e46401139d24d685ea66ab5e7291981e444a5",
+        "pacing.jsonl": "e7ead7a5dbbc39e94ac28bffb755b723d38217036f77cd26f658e8ddec3ac23b",
+        "telemetry.jsonl": "cca95edb1081d0fb30c437ce498ca463ff5ea8e1b85e8f796cd94975c1a5ebb2",
+        "diagnostic.json": "3ce58e21382793a3e3fdd1954fd6a0dd3988891b2a8e856d197f147ac3d73521",
+        "native-progress.json": "28b602e1155121e808bb6538e4b0e1806d59d41498426831ff51eeeaaf68ead9"
+      },
+      "raw_wrapper_status": "FAILED",
+      "native_status": "SMOKE_COMPLETE_NOT_24H",
+      "pacing_samples": 31,
+      "p95_ms": 854.1540000587702,
+      "max_ms": 1562.1471999911591
+    },
+    {
+      "case": "r11-timing-diagnostic-baseline-v4",
+      "checks": {
+        "timing.jsonl_hash": true,
+        "pacing.jsonl_hash": true,
+        "span_order_valid": true,
+        "profile_not_truncated": true,
+        "event_count": true,
+        "all_pace_observations": true,
+        "pace_grid": true,
+        "monotonic_pace_wall": true,
+        "p95_recomputed": true,
+        "maximum_recomputed": true,
+        "maximum_matches_session": true,
+        "source_and_assets_unchanged": true,
+        "native_smoke_complete": true,
+        "sealed_no_terminal_error": true,
+        "no_false_24h_pass": true,
+        "wrapper_complete": true,
+        "no_injection": true,
+        "telemetry_count": true,
+        "native_grid": false,
+        "raw_to_projected_values_match": true,
+        "telemetry_hash_chain_valid": true
+      },
+      "passed": false,
+      "artifact_sha256": {
+        "timing.jsonl": "70851a119a4e753658ce6aa5acbeb8cf6ea41501f44551c884dda6d7fd48e5c0",
+        "pacing.jsonl": "5757b9eb520bbc33a4733e22f8ea19b9d76e04f1f79637c5e4df6deb3d1b611e",
+        "telemetry.jsonl": "b7d97f1b722913f64d47315a1fe25c51f2b1122c0a3f58c1e1b47b0e073f6bbb",
+        "diagnostic.json": "c91ff19b5e07ad78b071de06da65bf27851383a1319cac71388ac6e492218388",
+        "native-progress.json": "0e5e02b257d38189d37bc00d6fece581d6399958cc1d2fd77d8fbc85bd6bc9ff"
+      },
+      "raw_wrapper_status": "DIAGNOSTIC_CAPTURED_NOT_QUALIFIED",
+      "native_status": "SMOKE_COMPLETE_NOT_24H",
+      "pacing_samples": 121,
+      "p95_ms": 0.9037000127136707,
+      "max_ms": 2.5932000717148185
+    }
+  ],
+  "common_native_prefix_identical": true,
+  "common_native_samples": 32,
+  "failure_disclosure": "v1/v2 startup failed; v3 raw wrapper status remains FAILED because original CLI exited0. Raw native v3 independently sealed successfully; v4 wrapper handles zero exit correctly.",
+  "reviewer_sha256": "9e8e41c62f8a9c79e9d458a4e6620e9405017e9dfbb372fb323a4c00370f7873"
+}
