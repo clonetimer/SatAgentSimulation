@@ -1,0 +1,11 @@
+{
+  "status": "COORDINATOR_PREPARATION_ASSERTION_CORRECTED_NOT_NATIVE_FAILURE",
+  "observed_at_utc": "2026-10-30T09:36:52.952631+00:00",
+  "first_attempt": "String-template preparation expected two identical assertion lines; source contains one, so preparation stopped before creating the new driver. The following invocation reported missing driver.",
+  "observed_assertion_occurrences": 1,
+  "correction": "Explicit copy and patch created the4h replay; production source and original8400 review remained unchanged. Only existing telemetry was replayed; no physical simulation restart.",
+  "original_driver_sha256": "362a710818ea75869ea5b0eb9eeb858576f0c171354ffe605f73c9c3c4fa53e7",
+  "corrected_driver_sha256": "68700a7226094b4187ef133b88d55759db19992c4e8921cc34fd328f6cd9ccbc",
+  "native_restarted": false,
+  "production_source_modified": false
+}

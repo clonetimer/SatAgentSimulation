@@ -8,9 +8,9 @@
 
 最新进展见 [2026-10-30 检查点](reports/progress_checkpoint/README.md)：冻结版本完整回归 **1978通过、0失败、5跳过、4警告**；模型网页85项、原生曲线76项、独立851项及45张实际看图复核通过。新的4 W/K配置实际24小时耐久已从零启动，尚未取得终态资格，目标仍为进行中。
 
-该实例现已观测超过2小时30分钟，历史最大漂移约1.92秒，状态为`DEGRADED`。前8400仿真秒的33602条遥测记录通过链路、采样、八节点温限和SOC复核；这不是24小时终态或全步严格实时资格，见[本轮记录](reports/progress_checkpoint/r11-2h30m-evidence-manifest.json)。此前[1小时记录](reports/progress_checkpoint/r11-1h-endurance-observation.json)中的约1.57秒峰值按原样保留。
+该实例现已实际观测超过4小时，历史最大漂移约2.48秒，状态为`DEGRADED`。前14400仿真秒的57602条遥测记录通过链路、采样、八节点温限和SOC复核；这不是24小时终态或全步严格实时资格，见[本轮记录](reports/progress_checkpoint/r11-4h-evidence-manifest.json)。此前[2小时30分钟记录](reports/progress_checkpoint/r11-2h30m-evidence-manifest.json)与[1小时记录](reports/progress_checkpoint/r11-1h-endurance-observation.json)中的峰值和所有原始结论继续保留。
 
-该实例现已观测超过2小时30分钟，历史最大漂移约1.92秒，状态为`DEGRADED`。前8400仿真秒的33602条遥测记录通过链路、采样、八节点温限和SOC复核；这不是24小时终态或全步严格实时资格，见[本轮记录](reports/progress_checkpoint/r11-2h30m-evidence-manifest.json)。此前[1小时记录](reports/progress_checkpoint/r11-1h-endurance-observation.json)中的约1.57秒峰值按原样保留。
+该实例现已实际观测超过4小时，历史最大漂移约2.48秒，状态为`DEGRADED`。前14400仿真秒的57602条遥测记录通过链路、采样、八节点温限和SOC复核；这不是24小时终态或全步严格实时资格，见[本轮记录](reports/progress_checkpoint/r11-4h-evidence-manifest.json)。此前[2小时30分钟记录](reports/progress_checkpoint/r11-2h30m-evidence-manifest.json)与[1小时记录](reports/progress_checkpoint/r11-1h-endurance-observation.json)中的峰值和所有原始结论继续保留。
 
 > **当前资格：本轮生产功能和可视化验收通过；实际24小时耐久及其终态复核仍在进行。历史分数与失败证据保留。**
 >

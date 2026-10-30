@@ -1,0 +1,244 @@
+{
+  "status": "DURABLE_PREFIX_PHYSICAL_BOUNDS_PASS_ONLY_NOT24H",
+  "observed_at_utc": "2026-10-30T09:30:26.412598+00:00",
+  "native_pid": 80520,
+  "native_created": 1793337824.415924,
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "diagnostic_scheduling": {
+    "reviewer_pid": 13700,
+    "reviewer_priority_before": 32,
+    "reviewer_priority_during_review": 16384,
+    "reviewer_affinity_before": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "reviewer_affinity_during_review": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "observed_native_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "native_priority_or_affinity_modified": false,
+    "scope": "Only this read-only replay process is deprioritized/pinned to other logical CPUs where available. Shared physical resources remain; no exclusive-core guarantee."
+  },
+  "source_still_frozen": true,
+  "explicit_current_design_assumption_w_k": 4.0,
+  "original2w_record_preserved": true,
+  "original2w_comparison_point": {
+    "independent_report": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\graph-containment-v8-day-forecast-thermal-independent-review.json",
+    "mission_status": "FAIL",
+    "first_unsafe_time_s": 7294.0,
+    "solar_panel_temp_k": 199.9959303939145
+  },
+  "current_prefix": {
+    "record_count": 57602,
+    "counts": {
+      "runtime.trace": 28801,
+      "whole.continuous": 28801
+    },
+    "thermal_extrema_k": {
+      "battery": [
+        277.32659538232355,
+        290.00716713839694
+      ],
+      "electronics": [
+        265.2765109346234,
+        295.0
+      ],
+      "payload": [
+        277.12182968053963,
+        300.98149034606047
+      ],
+      "adcs": [
+        266.8541316534302,
+        293.7445159677152
+      ],
+      "structure": [
+        233.46995214348135,
+        285.0637306430509
+      ],
+      "solar_panel": [
+        203.83411250490684,
+        300.0
+      ],
+      "comm": [
+        240.01142428793523,
+        295.0
+      ],
+      "propulsion": [
+        238.68704792639096,
+        292.0
+      ]
+    },
+    "thermal_violation_counts": {
+      "battery": 0,
+      "electronics": 0,
+      "payload": 0,
+      "adcs": 0,
+      "structure": 0,
+      "solar_panel": 0,
+      "comm": 0,
+      "propulsion": 0
+    },
+    "declared_unsafe_counts": {
+      "battery": 0,
+      "electronics": 0,
+      "payload": 0,
+      "adcs": 0,
+      "structure": 0,
+      "solar_panel": 0,
+      "comm": 0,
+      "propulsion": 0
+    },
+    "nonfinite_temperature_count": 0,
+    "safe_flag_disagreement_count": 0,
+    "soc_range": [
+      0.458641300825508,
+      1.0
+    ],
+    "selected_native_snapshots": {
+      "7294.0": {
+        "sim_time_s": 7294.0,
+        "thermal_k": {
+          "battery": 282.5205206158013,
+          "electronics": 272.65449070609975,
+          "payload": 297.3950401180515,
+          "adcs": 275.74232232898254,
+          "structure": 246.38945410204158,
+          "solar_panel": 206.1727057066076,
+          "comm": 252.94832916366124,
+          "propulsion": 251.07515331866583
+        },
+        "eps_battery_soc": 0.7811839970878496
+      },
+      "14400.0": {
+        "sim_time_s": 14400.0,
+        "thermal_k": {
+          "battery": 277.32659538232355,
+          "electronics": 265.2765109346234,
+          "payload": 292.14089423810435,
+          "adcs": 266.8541316534302,
+          "structure": 233.86900003993966,
+          "solar_panel": 221.5104270661885,
+          "comm": 240.01142428793523,
+          "propulsion": 238.68704792639096
+        },
+        "eps_battery_soc": 0.633740004637216
+      }
+    },
+    "last_entry_hash": "5af9168feb8ac4af14753d35a1c2c4d5f91391b23fb839021b4a92a7db87ce68",
+    "last_sim_time_s": 14400.0
+  },
+  "declared_thermal_bounds_k": {
+    "battery": [
+      220.0,
+      320.0
+    ],
+    "electronics": [
+      220.0,
+      330.0
+    ],
+    "payload": [
+      220.0,
+      340.0
+    ],
+    "adcs": [
+      210.0,
+      350.0
+    ],
+    "structure": [
+      200.0,
+      370.0
+    ],
+    "solar_panel": [
+      200.0,
+      390.0
+    ],
+    "comm": [
+      230.0,
+      335.0
+    ],
+    "propulsion": [
+      220.0,
+      350.0
+    ]
+  },
+  "closed_segments_at_start": [
+    {
+      "bytes": 67108564,
+      "filename": "segment-00000001.jsonl",
+      "sha256": "c1e02b353e5543b93042461154fbfc0dc675bb2bc2227d82296791655270204b"
+    },
+    {
+      "bytes": 67106042,
+      "filename": "segment-00000002.jsonl",
+      "sha256": "711e26cd20aa25793554f337877f9db4e5c5cf115814b07653438dbe44e6eed6"
+    },
+    {
+      "bytes": 67105637,
+      "filename": "segment-00000003.jsonl",
+      "sha256": "b361c30e1627cfeb465261d851a4118d2059900ec7f512c6087ec69a196693d5"
+    },
+    {
+      "bytes": 67107036,
+      "filename": "segment-00000004.jsonl",
+      "sha256": "2cc836a22039d1bf3c09b6fc32cd26cb254fdfa48c33d39af2d351d2e56ed725"
+    }
+  ],
+  "verified_early_prefix_entry_hash": "40b8d896aa30d647dd8e04fde400b8f5c9c1b1918314a79b7c4b246e928c0bb0",
+  "source_artifact_sha256": {
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\hardware-bounded-r11-endurance\\endurance-24h\\api\\interactive_sessions\\native-endurance\\session_spec.json": "18f26915bdf526fd3bfbddf682ed435d457f3874a72189440fa5dfcf08f182b5",
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\thermal-link-v9-environment-campaign\\nominal-independent-review.json": "2ac3fa529296a3fc5358d1c60d8928c77e26c5a1317ce19c6cf3b0b086b91167",
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\graph-containment-v8-day-forecast-thermal-independent-review.json": "b4421dbe576c2de5f670402e704cbfe0381e99ad57959bb8240eca3c8050f6d1",
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\r11-durable-first1000-independent-prefix-review.json": "5b654e65e494c52c50e63bb06e3f2b474829bdb3a1c3fb74a511f8ef689f3954",
+    "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\review_r11_prefix_through14400.py": "68700a7226094b4187ef133b88d55759db19992c4e8921cc34fd328f6cd9ccbc",
+    "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\interactive\\telemetry_segments.py": "ec67e453df53df108de837b08a913d5e48fe49a90f0960b752c8d61ad9e04450"
+  },
+  "method": "Two bounded logical replays through projected frame14400s, well behind the live append point. Existing iterator verifies global hash/sequence and completed closed-file checksums. End entry hash/count equality binds the same prefix across both reads; no live EOF consumed.",
+  "scope": "Only the current distinct4W/K run through14400 simulation seconds. Not a whole mission, future margin, hardware calibration, uniform error bound, full-run timing percentile or24h uptime verdict. Does not rewrite or relabel the original2W/K failure.",
+  "timing_at_initial_progress_snapshot": {
+    "last_drift_s": 0.00030910002533346415,
+    "max_abs_drift_s": 2.475574899930507,
+    "timing_status": "DEGRADED"
+  },
+  "native_restarted": false,
+  "originals_modified": false,
+  "goal_complete": false
+}

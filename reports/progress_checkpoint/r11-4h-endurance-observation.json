@@ -1,0 +1,138 @@
+{
+  "status": "VERIFIED_SAME_NATIVE_AT_LEAST4H_TIMING_DEGRADED_NOT24H",
+  "observed_at_utc": "2026-10-30T09:33:49.799143+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "source_still_frozen": true,
+  "processes": [
+    {
+      "role": "native",
+      "pid": 80520,
+      "created": 1793337824.415924,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "-c",
+        "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=22936, pipe_handle=1032)",
+        "--multiprocessing-fork"
+      ],
+      "alive": true
+    },
+    {
+      "role": "launcher",
+      "pid": 82756,
+      "created": 1793337780.3809385,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "reports/local_requirements_completion/launch_hardware_bounded_r11_configured_endurance.py",
+        "--start"
+      ],
+      "alive": true
+    },
+    {
+      "role": "awake-request",
+      "pid": 46364,
+      "created": 1793339200.2216158,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "reports/local_requirements_completion/hold_r11_endurance_awake.py"
+      ],
+      "alive": true
+    }
+  ],
+  "progress_snapshot": {
+    "schema_version": "sat-native-endurance-run.v3",
+    "status": "RUNNING",
+    "source_fingerprint_scheme": "runtime-and-validation-v6",
+    "source_provenance_before_sha256": "4897d972bb4c50dd441c80427f4ddfdddc56a7a9c583fc90bc06827443bf25a7",
+    "runtime_source_sha256_before": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+    "application_source_scheme": "application-source-v1",
+    "application_source_sha256_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+    "application_source_provenance_before_sha256": "5558e074f9e2b55a2f515402652385066079f1f710d74f20267be3ebfaabaa8e",
+    "runner_sha256": "58ac156f129e6d00457f87ae1791a782b7e1cb469903baf62dfb19c92e0018b0",
+    "initial_configuration_source": "E:\\tmp\\SatAgentSimulation\\configs\\interactive\\generic_leo_thermal_link_candidate.json",
+    "initial_configuration_input_sha256": "12c50af31f2f8a5764d81a6aceaecc7aa8fab0ddb94087a38a725d5e0e57c7f4",
+    "initial_configuration_normalized_sha256": "625e3717bd257ff59855858dab1f5f0a8cb7d952851a11bbe362222ff95919c4",
+    "requested_wall_seconds": 86430.0,
+    "process_id": 22936,
+    "scope": "Real Basilisk through local API handlers; no physics protocol double; no auto-resume.",
+    "started_at_utc": "2026-10-30T05:23:42.961581+00:00",
+    "manual_review_required": true,
+    "applied_task_spec_sha256": "1f100d763a44e16dcb899d7759e9dbf8749548c01e7b24d3837d6d3041825d02",
+    "session": {
+      "schema_version": "interactive.v1",
+      "session_id": "native-endurance",
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "state": "RUNNING",
+      "revision": 3,
+      "sim_time_s": 14995.0,
+      "rate": 1.0,
+      "paced": true,
+      "worker_alive": true,
+      "archive_status": "NOT_READY",
+      "archive_error": null,
+      "terminal_error": null,
+      "pace_observation_count": 29989,
+      "last_drift_s": 0.00037159991916269064,
+      "max_abs_drift_s": 2.475574899930507,
+      "timing_status": "DEGRADED",
+      "updated_at": "2026-10-30T09:33:43.092514Z"
+    },
+    "wall_observed_by_runner_s": 14994.734999999986,
+    "endurance": {
+      "schema_version": "sat-endurance-status.v1",
+      "session_id": "native-endurance",
+      "recording_status": "RECORDING",
+      "interval_s": 5.0,
+      "sample_count": 2988,
+      "last_observation": {
+        "schema_version": "sat-continuous-observability.v1",
+        "sampled_at": "2026-10-30T09:33:39.237994+00:00",
+        "session_id": "native-endurance",
+        "session_state": "RUNNING",
+        "wall_elapsed_s": 14994.890000000014,
+        "sim_elapsed_s": 14991.0,
+        "telemetry": {
+          "stream_id": "whole.continuous",
+          "status": "FRESH",
+          "lag_wall_s": 0.358657,
+          "last_sequence": 29982,
+          "last_sim_time_s": 14991.000000000002,
+          "last_wall_time": "2026-10-30T09:33:38.879337+00:00",
+          "durable_frame_count": 59966,
+          "durable_bytes": 320137070
+        },
+        "process": {
+          "available": true,
+          "pid": 80520,
+          "reason_code": null,
+          "resident_bytes": 65544192,
+          "cpu_time_s": 169.34375,
+          "process_state": "RUNNING_OR_EXITING",
+          "source": "WINDOWS_PROCESS_API",
+          "scope": "BASILISK_CHILD"
+        },
+        "disk": {
+          "available": true,
+          "free_bytes": 83335843840,
+          "total_bytes": 2048406843392,
+          "reserved_bytes": 67108864
+        },
+        "resume_supported": false,
+        "automatic_tc_replay_allowed": false
+      },
+      "alerts": {},
+      "reason_code": null,
+      "summary": null,
+      "evidence_available": true,
+      "native_resume_supported": false,
+      "automatic_tc_replay_allowed": false
+    },
+    "observed_at_utc": "2026-10-30T09:33:43.097040+00:00"
+  },
+  "wall_observed_s": 14994.734999999986,
+  "task_awake_request_active": true,
+  "physical_prefix_review": "r11-durable-prefix-through14400-physical-review.json",
+  "physical_prefix_review_sha256": "adc2a4689b3f6fcfae2a40c15cfd279c66b41b9201a4bbcb157957763adb02df",
+  "goal_complete": false,
+  "scope": "Same-native actual4h observation and separately verified simulation0..14400 physical prefix only. Not final mission, whole-run P95, strict realtime, or24h qualification."
+}

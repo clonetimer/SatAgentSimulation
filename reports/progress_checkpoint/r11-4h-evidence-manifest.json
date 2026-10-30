@@ -1,0 +1,34 @@
+{
+  "schema_version": "sat-progress-checkpoint.v2",
+  "created_at_utc": "2026-10-30T09:36:52.959628+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "core": "59d0f3613c8f21e267d8c2fd7886bb3af6a4be71a32f521d3e8b4646133a9cbe",
+  "overall_goal": "ACTIVE_UNPROVEN_ACTUAL24H_RUNNING_TIMING_DEGRADED",
+  "native_pid": 80520,
+  "native_created": 1793337824.415924,
+  "wall_observed_s": 14994.734999999986,
+  "historical_max_drift_s": 2.475574899930507,
+  "files": {
+    "r11-4h-endurance-observation.json": {
+      "source": "reports/local_requirements_completion/hardware-bounded-r11-endurance-4h-owned-observation.json",
+      "sha256": "f485828eaa0c914eaed86f3889f17cb97aa855f5dcda6ae48e4b02fd4c1468b0",
+      "bytes": 5904
+    },
+    "r11-prefix-through14400-physical-review.json": {
+      "source": "reports/local_requirements_completion/r11-durable-prefix-through14400-physical-review.json",
+      "sha256": "adc2a4689b3f6fcfae2a40c15cfd279c66b41b9201a4bbcb157957763adb02df",
+      "bytes": 7618
+    },
+    "r11-prefix-through14400-review-source.py": {
+      "source": "reports/local_requirements_completion/review_r11_prefix_through14400.py",
+      "sha256": "68700a7226094b4187ef133b88d55759db19992c4e8921cc34fd328f6cd9ccbc",
+      "bytes": 10021
+    },
+    "r11-4h-review-preparation-note.json": {
+      "source": "reports/local_requirements_completion/r11-4h-review-preparation-note.json",
+      "sha256": "8cc21ef19ef7fbdf258378d5a6a41eef4120242d775bedec587909a7ff26f279",
+      "bytes": 862
+    }
+  },
+  "scope": "Same-native actual4h observation and verified physical prefix through14400sim seconds only. Preserves old2W failure and timing degradation. Does not qualify whole-run P95, final mission, hardware calibration or24h. No production source changes or native restart."
+}
