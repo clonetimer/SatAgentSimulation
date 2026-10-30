@@ -1,0 +1,562 @@
+{
+  "status": "ANALYZED_NOT_FORMAL_QUALIFICATION",
+  "scope": "Recorded call-site wall times include scheduling. An fsync span alone cannot establish physical disk, OS, GIL or device root cause. Inclusive spans overlap; do not sum them. Episode threshold is a locator, not a new maximum-drift acceptance criterion.",
+  "raw_wrapper_status": "DIAGNOSTIC_CAPTURED_NOT_QUALIFIED",
+  "known_zero_exit_wrapper_bug": false,
+  "artifact_sha256": {
+    "timing.jsonl": "1530cf0a40bcd2f3ea5f576b4fde3ef51f3e12b19a9f58e8a45cb2ec27b731a1",
+    "pacing.jsonl": "39116422bfdc0671d49d5e85ab492f31271ed492ee1c7dfd17621a4c0250b271",
+    "diagnostic.json": "c5cdc0b84a2a4a86a4f6af90b07e7a11691d0bec583915ad74b214d385735c63",
+    "native-run/progress.json": "24312a4ab715582ffc49b62707789443e8e57de0c3e47ab2b7e369a86d320a29"
+  },
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "pacing_samples": 3621,
+  "threshold_ms": 200,
+  "all_samples_p95_ms": 0.9410999482497573,
+  "all_samples_p99_ms": 3.479059948585928,
+  "maximum_abs_drift_ms": 1275.9651000378653,
+  "complete_30min_windows": [
+    {
+      "start_monotonic_s": 725443.5454688,
+      "duration_s": 1800,
+      "samples": 3601,
+      "p95_ms": 0.9405999444425106,
+      "p99_ms": 3.4793999511748552,
+      "max_ms": 1275.9651000378653
+    }
+  ],
+  "episodes": [
+    {
+      "first_sim_time_s": 184.0,
+      "last_sim_time_s": 184.5,
+      "samples": 2,
+      "peak_sim_time_s": 184.0,
+      "peak_signed_drift_ms": 750.2306000096723,
+      "window_start_ns": 725626545429900,
+      "window_end_ns": 725627795240500,
+      "peak_step_advance_ms": 29.3465,
+      "peak_step_measured_site_union_ms": 27.119,
+      "peak_step_uninstrumented_residual_ms": 2.2275,
+      "peak_step_gap_from_previous_pace_ms": 0.1321,
+      "peak_sleep_overshoot_ms": 750.2306000096723,
+      "observed_location_not_root_cause": "CLOCK_SLEEP_OVERRUN_OBSERVED",
+      "worker_blocking_sites": [
+        {
+          "stage": "supervised_native_runtime.py:advance_to",
+          "thread_id": 29144,
+          "span_ms": 19.5593,
+          "overlap_ms": 19.5593,
+          "start_ns": 725626545805700,
+          "end_ns": 725626565365000
+        },
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 3.8832,
+          "overlap_ms": 3.8832,
+          "start_ns": 725626566961600,
+          "end_ns": 725626570844800
+        },
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 2.8874,
+          "overlap_ms": 2.8874,
+          "start_ns": 725626571861600,
+          "end_ns": 725626574749000
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.1733,
+          "overlap_ms": 0.1733,
+          "start_ns": 725626566757400,
+          "end_ns": 725626566930700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.0675,
+          "overlap_ms": 0.0675,
+          "start_ns": 725626571781200,
+          "end_ns": 725626571848700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.0048,
+          "overlap_ms": 0.0048,
+          "start_ns": 725626571768900,
+          "end_ns": 725626571773700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.0031,
+          "overlap_ms": 0.0031,
+          "start_ns": 725626566944100,
+          "end_ns": 725626566947200
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.0028,
+          "overlap_ms": 0.0028,
+          "start_ns": 725626565527200,
+          "end_ns": 725626565530000
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.0024,
+          "overlap_ms": 0.0024,
+          "start_ns": 725626571113800,
+          "end_ns": 725626571116200
+        }
+      ],
+      "concurrent_activity_not_proof_of_causality": []
+    },
+    {
+      "first_sim_time_s": 1084.0,
+      "last_sim_time_s": 1085.0,
+      "samples": 3,
+      "peak_sim_time_s": 1084.0,
+      "peak_signed_drift_ms": 1242.6947000203654,
+      "window_start_ns": 726526545264000,
+      "window_end_ns": 726528287716100,
+      "peak_step_advance_ms": 45.0388,
+      "peak_step_measured_site_union_ms": 42.1891,
+      "peak_step_uninstrumented_residual_ms": 2.8497,
+      "peak_step_gap_from_previous_pace_ms": 0.3451,
+      "peak_sleep_overshoot_ms": 1242.6947000203654,
+      "observed_location_not_root_cause": "CLOCK_SLEEP_OVERRUN_OBSERVED",
+      "worker_blocking_sites": [
+        {
+          "stage": "supervised_native_runtime.py:advance_to",
+          "thread_id": 29144,
+          "span_ms": 36.0528,
+          "overlap_ms": 36.0528,
+          "start_ns": 726526545886700,
+          "end_ns": 726526581939500
+        },
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 2.9947,
+          "overlap_ms": 2.9947,
+          "start_ns": 726526583657000,
+          "end_ns": 726526586651700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 2.1824,
+          "overlap_ms": 2.1824,
+          "start_ns": 726526587982500,
+          "end_ns": 726526590164900
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.185,
+          "overlap_ms": 0.185,
+          "start_ns": 726526583437700,
+          "end_ns": 726526583622700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.149,
+          "overlap_ms": 0.149,
+          "start_ns": 726526587816700,
+          "end_ns": 726526587965700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.0056,
+          "overlap_ms": 0.0056,
+          "start_ns": 726526587802800,
+          "end_ns": 726526587808400
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.0037,
+          "overlap_ms": 0.0037,
+          "start_ns": 726526582103800,
+          "end_ns": 726526582107500
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.0036,
+          "overlap_ms": 0.0036,
+          "start_ns": 726526583634600,
+          "end_ns": 726526583638200
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.0032,
+          "overlap_ms": 0.0032,
+          "start_ns": 726526587048600,
+          "end_ns": 726526587051800
+        }
+      ],
+      "concurrent_activity_not_proof_of_causality": []
+    },
+    {
+      "first_sim_time_s": 1406.5,
+      "last_sim_time_s": 1407.5,
+      "samples": 3,
+      "peak_sim_time_s": 1406.5,
+      "peak_signed_drift_ms": 1275.9651000378653,
+      "window_start_ns": 726849045276400,
+      "window_end_ns": 726850820959100,
+      "peak_step_advance_ms": 1775.5175,
+      "peak_step_measured_site_union_ms": 1772.724,
+      "peak_step_uninstrumented_residual_ms": 2.7935,
+      "peak_step_gap_from_previous_pace_ms": 0.1125,
+      "peak_sleep_overshoot_ms": 0.006900052540004253,
+      "observed_location_not_root_cause": "RECORDED_WORKER_CALL_SITE_OVERRUN_OBSERVED",
+      "worker_blocking_sites": [
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 1750.9616,
+          "overlap_ms": 1750.9616,
+          "start_ns": 726849066537700,
+          "end_ns": 726850817499300
+        },
+        {
+          "stage": "supervised_native_runtime.py:advance_to",
+          "thread_id": 29144,
+          "span_ms": 19.2646,
+          "overlap_ms": 19.2646,
+          "start_ns": 726849045641100,
+          "end_ns": 726849064905700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 1.499,
+          "overlap_ms": 1.499,
+          "start_ns": 726850819268100,
+          "end_ns": 726850820767100
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.2093,
+          "overlap_ms": 0.2093,
+          "start_ns": 726849066297700,
+          "end_ns": 726849066507000
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.1665,
+          "overlap_ms": 0.1665,
+          "start_ns": 726850817807100,
+          "end_ns": 726850817973600
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.0792,
+          "overlap_ms": 0.0792,
+          "start_ns": 726850819173700,
+          "end_ns": 726850819252900
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.0057,
+          "overlap_ms": 0.0057,
+          "start_ns": 726850819159200,
+          "end_ns": 726850819164900
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.0035,
+          "overlap_ms": 0.0035,
+          "start_ns": 726849066517300,
+          "end_ns": 726849066520800
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.0034,
+          "overlap_ms": 0.0034,
+          "start_ns": 726849065066700,
+          "end_ns": 726849065070100
+        }
+      ],
+      "concurrent_activity_not_proof_of_causality": [
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 76592,
+          "span_ms": 1290.8647,
+          "overlap_ms": 1290.8647,
+          "start_ns": 726849527003900,
+          "end_ns": 726850817868600
+        },
+        {
+          "stage": "continuous_endurance.py:_sample/real_fsync",
+          "thread_id": 76592,
+          "span_ms": 3.8206,
+          "overlap_ms": 1.3577,
+          "start_ns": 726850819601400,
+          "end_ns": 726850823422000
+        }
+      ]
+    },
+    {
+      "first_sim_time_s": 1752.0,
+      "last_sim_time_s": 1752.0,
+      "samples": 1,
+      "peak_sim_time_s": 1752.0,
+      "peak_signed_drift_ms": 625.9050000226125,
+      "window_start_ns": 727194545631600,
+      "window_end_ns": 727195670899300,
+      "peak_step_advance_ms": 1125.0733,
+      "peak_step_measured_site_union_ms": 1122.7963,
+      "peak_step_uninstrumented_residual_ms": 2.277,
+      "peak_step_gap_from_previous_pace_ms": 0.1438,
+      "peak_sleep_overshoot_ms": 0.007500057108700275,
+      "observed_location_not_root_cause": "RECORDED_WORKER_CALL_SITE_OVERRUN_OBSERVED",
+      "worker_blocking_sites": [
+        {
+          "stage": "supervised_native_runtime.py:advance_to",
+          "thread_id": 29144,
+          "span_ms": 1106.2549,
+          "overlap_ms": 1106.2549,
+          "start_ns": 727194546034900,
+          "end_ns": 727195652289800
+        },
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 12.8016,
+          "overlap_ms": 12.8016,
+          "start_ns": 727195653809600,
+          "end_ns": 727195666611200
+        },
+        {
+          "stage": "workspace.py:append_telemetry/real_fsync",
+          "thread_id": 29144,
+          "span_ms": 2.8628,
+          "overlap_ms": 2.8628,
+          "start_ns": 727195667805900,
+          "end_ns": 727195670668700
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.2097,
+          "overlap_ms": 0.2097,
+          "start_ns": 727195653574800,
+          "end_ns": 727195653784500
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.0895,
+          "overlap_ms": 0.0895,
+          "start_ns": 727195667700100,
+          "end_ns": 727195667789600
+        },
+        {
+          "stage": "workspace.py:append_telemetry/write",
+          "thread_id": 29144,
+          "span_ms": 0.0053,
+          "overlap_ms": 0.0053,
+          "start_ns": 727195667687100,
+          "end_ns": 727195667692400
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.0029,
+          "overlap_ms": 0.0029,
+          "start_ns": 727195652446200,
+          "end_ns": 727195652449100
+        },
+        {
+          "stage": "workspace.py:append_telemetry/flush",
+          "thread_id": 29144,
+          "span_ms": 0.0029,
+          "overlap_ms": 0.0029,
+          "start_ns": 727195653793000,
+          "end_ns": 727195653795900
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 29144,
+          "span_ms": 0.0027,
+          "overlap_ms": 0.0027,
+          "start_ns": 727195666931400,
+          "end_ns": 727195666934100
+        }
+      ],
+      "concurrent_activity_not_proof_of_causality": [
+        {
+          "stage": "continuous_endurance.py:_sample/real_fsync",
+          "thread_id": 76592,
+          "span_ms": 3.0603,
+          "overlap_ms": 3.0603,
+          "start_ns": 727195128152900,
+          "end_ns": 727195131213200
+        },
+        {
+          "stage": "workspace.lock_wait",
+          "thread_id": 76592,
+          "span_ms": 0.0033,
+          "overlap_ms": 0.0033,
+          "start_ns": 727195126491200,
+          "end_ns": 727195126494500
+        }
+      ]
+    }
+  ],
+  "stage_statistics": {
+    "clock.py:pace_to": {
+      "count": 3621,
+      "p95_ms": 473.5923,
+      "max_ms": 1696.9373
+    },
+    "continuous_endurance.py:_finalize/real_fsync": {
+      "count": 1,
+      "p95_ms": 1.58,
+      "max_ms": 1.58
+    },
+    "continuous_endurance.py:_sample/real_fsync": {
+      "count": 1786,
+      "p95_ms": 11.867925,
+      "max_ms": 15.066
+    },
+    "continuous_endurance.py:start/real_fsync": {
+      "count": 1,
+      "p95_ms": 2.9427,
+      "max_ms": 2.9427
+    },
+    "manager.py:_advance": {
+      "count": 3621,
+      "p95_ms": 46.9477,
+      "max_ms": 1775.5175
+    },
+    "manager.py:_write_heartbeat": {
+      "count": 121,
+      "p95_ms": 14.6359,
+      "max_ms": 154.4554
+    },
+    "security.py:log/real_fsync": {
+      "count": 10,
+      "p95_ms": 4.743734999999999,
+      "max_ms": 5.1468
+    },
+    "supervised_native_runtime.py:_rpc": {
+      "count": 3623,
+      "p95_ms": 29.161029999999947,
+      "max_ms": 7726.038
+    },
+    "supervised_native_runtime.py:advance_to": {
+      "count": 3621,
+      "p95_ms": 29.0322,
+      "max_ms": 1106.2549
+    },
+    "telemetry_bus.py:publish": {
+      "count": 7244,
+      "p95_ms": 0.19886999999999988,
+      "max_ms": 1.6884
+    },
+    "telemetry_segments.py:copy_logical/write": {
+      "count": 37,
+      "p95_ms": 0.8603999999999995,
+      "max_ms": 0.9512
+    },
+    "workspace.lock_hold": {
+      "count": 9159,
+      "p95_ms": 15.03242,
+      "max_ms": 2901.6853
+    },
+    "workspace.lock_wait": {
+      "count": 9159,
+      "p95_ms": 0.0049,
+      "max_ms": 1290.8647
+    },
+    "workspace.py:_canonical": {
+      "count": 7626,
+      "p95_ms": 0.33765,
+      "max_ms": 1.9658
+    },
+    "workspace.py:append_state": {
+      "count": 127,
+      "p95_ms": 14.574539999999999,
+      "max_ms": 154.4044
+    },
+    "workspace.py:append_state/flush": {
+      "count": 127,
+      "p95_ms": 0.22571,
+      "max_ms": 0.3957
+    },
+    "workspace.py:append_state/real_fsync": {
+      "count": 127,
+      "p95_ms": 13.13206,
+      "max_ms": 152.8823
+    },
+    "workspace.py:append_state/write": {
+      "count": 127,
+      "p95_ms": 0.01057,
+      "max_ms": 0.3657
+    },
+    "workspace.py:append_telemetry": {
+      "count": 7244,
+      "p95_ms": 15.1789,
+      "max_ms": 1752.6004
+    },
+    "workspace.py:append_telemetry/flush": {
+      "count": 7244,
+      "p95_ms": 0.183,
+      "max_ms": 4.1839
+    },
+    "workspace.py:append_telemetry/real_fsync": {
+      "count": 7244,
+      "p95_ms": 13.234779999999999,
+      "max_ms": 1750.9616
+    },
+    "workspace.py:append_telemetry/write": {
+      "count": 7244,
+      "p95_ms": 0.2845949999999996,
+      "max_ms": 10.984
+    },
+    "workspace.py:finalize_telemetry": {
+      "count": 1,
+      "p95_ms": 2901.7116,
+      "max_ms": 2901.7116
+    },
+    "workspace.py:finalize_telemetry/write": {
+      "count": 7244,
+      "p95_ms": 0.0933,
+      "max_ms": 3.2788
+    },
+    "workspace.py:write_runtime_result/flush": {
+      "count": 1,
+      "p95_ms": 0.0037,
+      "max_ms": 0.0037
+    },
+    "workspace.py:write_runtime_result/real_fsync": {
+      "count": 1,
+      "p95_ms": 3.1081,
+      "max_ms": 3.1081
+    },
+    "workspace.py:write_runtime_result/write": {
+      "count": 1,
+      "p95_ms": 0.2768,
+      "max_ms": 0.2768
+    }
+  },
+  "analyzer_sha256": "cbf40b28f316b5b72e08742a0222bd1db147a624c8063ba849a7d02571aad0f2"
+}

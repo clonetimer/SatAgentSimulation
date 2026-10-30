@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "checks": {
+    "real_cli_rejects_before_training": true,
+    "no_training_output_created": true,
+    "duplicate_rejected": true,
+    "cross_split_id_overlap_rejected": true,
+    "within_split_duplicate_rejected": true,
+    "empty_rejected": true,
+    "empty_not_vacuous_pass": true
+  },
+  "scope": "Real CLI rejects known conflicting dataset without invoking training; deliberate invalid fixtures test ID/empty-split checks. No GPU model training.",
+  "cli_sha256": "6861820888f8f539dfa443d10792ac8661db6f2f718cffa77033191e2c27048f",
+  "auditor_sha256": "c13d2e6ce228d4625137b56d2ede5e45bfb8d2352948761340fe075dc69de321",
+  "cli_rejection_stderr": "usage: train_modelscope_lora.py [-h] [--dataset-dir DATASET_DIR]\n                                [--base-manifest BASE_MANIFEST]\n                                [--output-dir OUTPUT_DIR] [--epochs EPOCHS]\n                                [--max-length MAX_LENGTH]\n                                [--loss-chunk-tokens LOSS_CHUNK_TOKENS]\n                                [--attention-backend {cudnn,auto}]\n                                [--smoke-longest] [--rank RANK]\n                                [--gradient-accumulation GRADIENT_ACCUMULATION]\n                                [--learning-rate LEARNING_RATE] [--seed SEED]\n                                [--max-steps MAX_STEPS] [--resume RESUME]\ntrain_modelscope_lora.py: error: registry dataset contract conflicts detected before training: 645/645 failing records; run scripts/audit_registry_plot_contract.py for the full read-only report\n"
+}

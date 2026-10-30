@@ -58,6 +58,18 @@ uv pip check --python .venv-sft/Scripts/python.exe
 
 新旧验证集保留相同的 69 个场景与时长；45 条业务请求文本相同，另 24 条补写默认故障幅度 `1.0`，生产提示包装也更新了。因此当前数据集成绩不等于原始冻结输入的同条件成绩。独立入口 `reports/local_requirements_completion/evaluate_v5_original_frozen_inputs.py` 已实际重放归档的 69 份完整输入载荷，仅改变模型名，不替换响应、标签或运行检查；结果为 **0/69，整批 FAIL**。此前“待重放”仅为历史准备状态，该失败分数不由当前产品路径通过记录覆盖。
 
+## 训练前的数据合同检查
+
+`scripts/train_modelscope_lora.py`现在在调用GPU训练函数前检查注册表合成数据的默认曲线合同与训练/验证ID分离。可先单独保存只读报告：
+
+```powershell
+.venv/Scripts/python.exe scripts/audit_registry_plot_contract.py --dataset-dir data/training/taskspec_lora_v5_current_prompt_event_aligned --output reports/modelscope_dataset_contract.json
+```
+
+输出必须是新文件。此检查只覆盖已知注册表提示格式、默认曲线约定及ID分离，不代表完整数据质量或模型准确率。当前v5的588训练/69验证记录共657条通过，原v3的576训练/69验证记录共645条均因该合同问题被拒绝；旧数据未修改。CLI控制流已实际检查：冲突数据在调用训练前退出，当前数据能进入训练函数；该检查使用记录器代替训练函数，没有重新训练GPU模型。
+
+原始v5重放的严格0/69 FAIL仍保留。新增只读复核确认，这69条旧提示要求`default_trace_fields`用于曲线，规范化参考标签却为空列表；65份可解析回答在这一字段上遵循了提示，其中54份只在此字段与标签不同，11份还有求解器或幅度差异，4份不可解析。不能把0/69直接解释为全部物理参数错误，也不能据此声称已取得另一准确率或免除其余错误。当前对齐数据通过合同检查不等于任意提示泛化已经证明。
+
 ## 训练复现
 
 在仓库根目录运行，使用全新输出目录保留原始 v5 制品：

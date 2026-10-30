@@ -1,0 +1,42 @@
+{
+  "case": "r11-timing-full-window-v5",
+  "checks": {
+    "timing.jsonl_hash": true,
+    "pacing.jsonl_hash": true,
+    "span_order_valid": true,
+    "profile_not_truncated": true,
+    "event_count": true,
+    "all_pace_observations": true,
+    "pace_grid": true,
+    "monotonic_pace_wall": true,
+    "p95_recomputed": true,
+    "maximum_recomputed": true,
+    "maximum_matches_session": true,
+    "source_and_assets_unchanged": true,
+    "native_smoke_complete": true,
+    "sealed_no_terminal_error": true,
+    "no_false_24h_pass": true,
+    "wrapper_complete": true,
+    "no_injection": true,
+    "telemetry_count": true,
+    "native_grid": true,
+    "raw_to_projected_values_match": true,
+    "telemetry_hash_chain_valid": true
+  },
+  "passed": true,
+  "artifact_sha256": {
+    "timing.jsonl": "1530cf0a40bcd2f3ea5f576b4fde3ef51f3e12b19a9f58e8a45cb2ec27b731a1",
+    "pacing.jsonl": "39116422bfdc0671d49d5e85ab492f31271ed492ee1c7dfd17621a4c0250b271",
+    "telemetry.jsonl": "aa9639c949f837f1bab17989be685290a21f81999847e9a3ea9402b580aef4d1",
+    "diagnostic.json": "c5cdc0b84a2a4a86a4f6af90b07e7a11691d0bec583915ad74b214d385735c63",
+    "native-progress.json": "24312a4ab715582ffc49b62707789443e8e57de0c3e47ab2b7e369a86d320a29"
+  },
+  "raw_wrapper_status": "DIAGNOSTIC_CAPTURED_NOT_QUALIFIED",
+  "native_status": "SMOKE_COMPLETE_NOT_24H",
+  "pacing_samples": 3621,
+  "p95_ms": 0.9410999482497573,
+  "max_ms": 1275.9651000378653,
+  "scope": "Independent full raw diagnostic replay; measured window only, not production formal qualification or actual24h.",
+  "native_samples": 3622,
+  "analyzer_sha256": "cbf40b28f316b5b72e08742a0222bd1db147a624c8063ba849a7d02571aad0f2"
+}

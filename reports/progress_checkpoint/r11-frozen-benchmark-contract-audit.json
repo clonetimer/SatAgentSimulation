@@ -1,0 +1,2088 @@
+{
+  "status": "READ_ONLY_CONTRACT_AUDIT_COMPLETE",
+  "observed_at_utc": "2026-10-30T10:26:35.114371+00:00",
+  "scope": "Preserves original strict0/69 FAIL, raw requests, answers, labels and evaluator. No alternative pass rate; no wrong answer executed, no model retrained. Identifies prompt-label conflicts separately from remaining generation differences.",
+  "original_score": {
+    "passed": 0,
+    "total": 69,
+    "status": "FAIL"
+  },
+  "cases": [
+    {
+      "id": "0fe48d150fb74b33c082e639f2341c53ae535b298636dfeafa6ee732e23b70e6",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "782dd3735e20e8026a2f058e86ec671b8d4e835fed6276d7898d10a0fd8fbcb2",
+      "input_messages_sha256": "2026be9f3adfaf3bc41b7ac7da076bf51132160beebfdb2d40e1d50946beed0f",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "1f94a318fee312ec038d6f3c720e8b706a01e59289ea0b62fe23ade229a585b6",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "4d6de0f89fb75e8c2030727272aa056d60e780e88a0166e4fad262f95bd4f68d",
+      "input_messages_sha256": "266dd9d29a207899a68675628b774f9a57ae4d8dabd3c57a7644d6249d4670ff",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "2636a65899f96ff9be7cccd9d980a07f88588c7394b39b4bb87e2a62fb9f6114",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "28897270e4fcb4fb5cdd2fb1810f5398be4d4462a500f8fa9eeabc60a8847085",
+      "input_messages_sha256": "1c843eaea2dee608a9a1aa4fd9708eef0c42b66264556ee62c5117af467129d1",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "3fb4423aa33446fbbc84f21b7542dcb17888e1d3c677280fab903909ba32b563",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "ac24419cf0898e66ab4b797f862199666b212ed3a3ee8a62d6fe518ea64f1acd",
+      "input_messages_sha256": "43bc231efb8bc0aab1f887f8385361831bc3124367c3c2de66ad776e02163bee",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "72b9681ba49313cb037f6ba42bda94141c6e639af72a5d8b2de1bb1c8126ca54",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "24a3d62d4472f9da36475c0ee04ac28e0e3d89ee568e6495b7b159dacdda8ce1",
+      "input_messages_sha256": "7d186d193d39b8b375cb5987b51f7adc47f1d6f4be36e7fb48081a5f69e5529b",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "93b94eb1c4c788ec2ccdc83668fbec64e8a1d4535fe1b552f69709cd8f36f4f8",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "0c66d86df1926f53506522c58d7fb06ddb3d19c073aba5a63070d416aaa510a2",
+      "input_messages_sha256": "3c5556688374f180ed0019a495e055e18f5ca2d2e8fd200cc6502a57832910a4",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "980463071964daf79709f2b2738092b978287a93315ddda9838aa47b8f577f9b",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "91f7c07c1deb1b96eb95cb93b4496459bf10ee9c04e07920220c602527e215c0",
+      "input_messages_sha256": "74a5ce32bdbd1a4c9b220c446faebebd6bdd2bb8f734f5c3a4675bc3881ff4e2",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "9b4b7f712aa6bd658e26e658075a2054b13aa8b06bfb54cb0fae0a476d5edd37",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "a5739a25b661e69356ed9b6c137a65ba016cb75797c500727a132b18ec42f96c",
+      "input_messages_sha256": "7c28e91acc930a676e3a23fe51847e71c9940c81f9a21eae7bcc99f0bb1a02e2",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "a35c1cdab9316a26fa133aed539cfd33b657adf4e8be733a6472762fae241de0",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "9c05ea0e8e8ec37b9181d752f4c343a3564374568919dcbb91bb2e4cdaff2514",
+      "input_messages_sha256": "ed87e5aed5282c5c3e5c160014dff76293a7f5d66c44d254afe8aea4f668147c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "b61b5fc51ea4414b971a08bb8027f5e2c471ead5c4d01071ba91d71e62783eb7",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "0050beb5f5430823cd8e19c32788f3f98e07c156c48794419c5d74178eba4ec1",
+      "input_messages_sha256": "b1db59b10bfa2d82a0f87e62fe13671297f4bae11797d0da93adf9a8f1e814b6",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "bbac83bc2452a752d676eb00053bb39943cc1bf98fdde1bee201d7e630ae5537",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "a2a88cfe843fb4a7e985bfeec7c4f3a04465b50770228f9de4352475a748ea34",
+      "input_messages_sha256": "46ff4d1b91149a49f3ae2a0fa1dc3a5adc5ef06437282570c3d63f1a153e8494",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "d59be2b82d50b9a5b51fcfd2931349ca86e4f6e03e3b140935885634dd961b38",
+      "family": "component.thermal_node.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "016228192060dc41aca7087e75d045099104f1c75106dbd28d492e4087bfca43",
+      "input_messages_sha256": "460fb2e6df7b754dab147bd1c36d8789c2f106732f4be75cb5b6e105282803d4",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "thermal.node.power_w",
+        "thermal.node.temp_k",
+        "thermal.node.measured_temp_k",
+        "thermal.node.temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "thermal.node.power_w",
+            "thermal.node.temp_k",
+            "thermal.node.measured_temp_k",
+            "thermal.node.temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "11e363f59f235900a6c9b133935b8bf37739c560b75544e25df6c7ffcc06ec8d",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "329cf401b44ba3097c7d3bad4b9f2adaafb1e5067d7ec34ea36f2aa30b5568f9",
+      "input_messages_sha256": "838e6d386a642f3f400d29ae0586561aab0fa2738daf3a5bb1e9a65609d6c03b",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "3247c7d31bd933e90e587d3dee98227ed8cb19f058a54708105710d4bae466d6",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "d66410f4f8a387ea16efb971e0a5c7755fe3aa1056d79a561309139f7d54f31d",
+      "input_messages_sha256": "af3397fa431fcbaf5bf42fb7e423a6f42c99b453b95ec57e869a1ac045a38cb6",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "7be66c388229ef153738d042fd76a08f28e9e28b721e2f85c21bd4c3bef2d60c",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "28579e8425afc7775a33d52a5fbe5e019a4244290c01757e0661456197c58491",
+      "input_messages_sha256": "9353d5482d6ae91bd112aab8aef908b2099394d6f5b5cb556589d47decd675e3",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "847794877ef290a8479c260e241464e2d743c83c0c5132f564013210af93b9d0",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "26749a3016343a705cc3dae863cddbe90cc996456194c934e468e3bbebc5640e",
+      "input_messages_sha256": "a7d87e9f2d5824ec5b87d9ca99a5986cce43759215601c985caed806d8476259",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "parse_error": {
+        "type": "JSONDecodeError",
+        "message": "Expecting ',' delimiter: line 1 column 2057 (char 2056)"
+      }
+    },
+    {
+      "id": "864054555d6a91efdb2cc54f4d9c9c19c43520c4e93daebd0c3ef2dc9d6acb51",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "e92854cc1f464d9b74ddceb9802f9c0ce6e5ec3c0f01231557531fd2ccb3e8c1",
+      "input_messages_sha256": "1137448f85701cd750de2be0b43f4a9ee94ffd861147d603de9e7fa89a78e86c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "8c31784f328b622934387719a152d3e197ed947fc3b663d32c024625e5a34ddb",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "cb0a8e57b5ef609f081db9c3c37ae3218b6cb3ca6cdfa92910bc4a0c54e978c4",
+      "input_messages_sha256": "5ca7a86db2b06808b815cfc441d7d04a28c284271e3269e2e2fe6c4d43fc7c86",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "parse_error": {
+        "type": "JSONDecodeError",
+        "message": "Expecting ',' delimiter: line 1 column 2058 (char 2057)"
+      }
+    },
+    {
+      "id": "927bdbe0620f01684235d6f188d494d15bb6be3ce2314268b0528cda15b4719e",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "24b67663b3dfc604e8875c7ce87e27bb02db6a275637b2a555b9bdc6e93295cf",
+      "input_messages_sha256": "0a220212292ab06d8447f94d2f89e8fdadc3d1f96b55f10ec204c7746b626b9d",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "parse_error": {
+        "type": "JSONDecodeError",
+        "message": "Expecting ',' delimiter: line 1 column 2194 (char 2193)"
+      }
+    },
+    {
+      "id": "9bbcf33674f8d43f8decbf755136277b6f4e67fed0cd4d80f9243a54bde01bde",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "ce70b3547c136c92fc6a0e0bc2a2b032c2289f24eec45f491597fdecba1ed72f",
+      "input_messages_sha256": "31e20fa6883c9944dad338e58b14c1aaa4a465f1eef40aa87bde3af081fbf814",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "parse_error": {
+        "type": "JSONDecodeError",
+        "message": "Expecting ',' delimiter: line 1 column 2058 (char 2057)"
+      }
+    },
+    {
+      "id": "c383a1eaf5942ea8b77e428a03a183366e1fec5d5628221cdf6b44b3f4a889d2",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "27f29c9676eafa15f761e2ab0554775e023b0df14cdf4e8ef083547eeab09e76",
+      "input_messages_sha256": "7d4cb14f65833a37c63d20956039bca989b487a05e8007677fb15d38eb6493db",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "c9b12070072d133ba5d72c9d93be0ff8ed5e20ac5d83181deacbe8d8450d235a",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "a04991cd50976fcfca5ab45cc5eb272f4eae81080de9ca6fe208bec14f1941c8",
+      "input_messages_sha256": "1d36971514c3eb5f70af3ae0a22a000f36cda84eb322c49d417fe90e9f3e9254",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "d91082383505851c4bc39a963f3c75d1c5afbe5f1028b10e95f78d8a8f07cb15",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "eb8afc7420bda330cc2988c4d9b3ff0631536f785bca78185953d5b00bf13620",
+      "input_messages_sha256": "652355fc26b0653e6d30723d3c7d2aaa7f8e00f298024fe8451d0745f2b2d0f1",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "f8ddd66c23e0db626db97f3e7281aeca0c0f1fa006ef42d4e901ecb539ab6401",
+      "family": "subsystem.adcs_unified_native.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "cef9439cae45153a7ad7cb7bf389ed89239f9e1fe3271a61990b6a40e2e91c46",
+      "input_messages_sha256": "3023e4eb8154dd7cda5f275a0bcbb822421d356cb21d804f6dce4b578673ca0d",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.radius_m",
+        "orbit.position_m_x",
+        "orbit.position_m_y",
+        "orbit.position_m_z"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.radius_m",
+            "orbit.position_m_x",
+            "orbit.position_m_y",
+            "orbit.position_m_z"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "0a9c6f1a1fe3042499f4a145684d2389fa86eadcac5290d2777ca450ac850851",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "29ad83fba084d0dd6f1f7d27c21d94d805b9e56c3d54a529bee8bc548f9062e2",
+      "input_messages_sha256": "f4ed0f331b31e6111c8e95d25f3ae6d7196fc969e359f170661cbe5de00b9b30",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "simulation.solver",
+          "actual": null,
+          "expected": {
+            "method": "euler",
+            "step_s": 10.0,
+            "rtol": 1e-09,
+            "atol": 1e-12,
+            "include_endpoint": true
+          }
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "1db8b61ebec14ab02f29f804f348f51fb50cb725f3d93fa53778c669cfe7cc86",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "1e336c540c317bac19d746af76c565387cabf726ddc194a29f0c72f89db8335f",
+      "input_messages_sha256": "b03dc45897bc37c6827b73485a9653a93187a6c6742be33001207b151675bbb6",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "events.faults[0].magnitude",
+          "actual": 0.0,
+          "expected": 1.0
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "24c8d88e6ce48bb122e0c6f1039b87ac059b84620e8afa11b58dfe88b0450048",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "2837cfafc8026b9326bbd5390ce3d76b085393d0a4aac30d7eaecc473154c913",
+      "input_messages_sha256": "ae1c9df135590050d98bdb961bd118ff6c5b566cc77a98017e97a04a6866bf2b",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "simulation.solver",
+          "actual": null,
+          "expected": {
+            "method": "euler",
+            "step_s": 10.0,
+            "rtol": 1e-09,
+            "atol": 1e-12,
+            "include_endpoint": true
+          }
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "35b20298530e3163e94f48edbb3b4f6a0a502609a089e1a5165fa4c592e494b8",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "d6b808427c8e45f22394edeef72d757c33c076efa100af72f0bb2ca46988ab90",
+      "input_messages_sha256": "f968a12b2e350f08fb9690ff3d7d3818fa3b0637f41e37310748340f0367b61c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "59674afcce9836da0eec8173728c8c6b1e966eaf3f7cac61d1a4b9157861679c",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "2871815e7ca73333b1368f870dc114650cc483656b50981d1d614c3e70f7cd14",
+      "input_messages_sha256": "ce72f445d622722dee7c78f9e8e5c5a5b7dd803a1e452881a97bcf5e31dc5aab",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "6318168e664824bcb1c0719a63ddab2c2b6c3fd82dfea307db25eb5f03f40388",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "386d4333cf27a29e3de62acfd4fdbcbe47f4259c5ad033e167c6753f423b63a9",
+      "input_messages_sha256": "ac0dd2639876ccc927a32b2e6cd474d56201ea48392cd3ef343ad5b3b1240ede",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "events.faults[0].magnitude",
+          "actual": 0.0,
+          "expected": 1.0
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "860a7ab53448f47c8057c0eba5fc021d35efe2fd8ed975942446658c18e3c229",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "4ed71235c72863969ae8dd997ef172973c8588e3ac833481d3545caa56ef5d36",
+      "input_messages_sha256": "d1a184f67925481378bc2d0524634bbfb698eda74a8d9f8eb7407c598186feb6",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "events.faults[0].magnitude",
+          "actual": 0.0,
+          "expected": 1.0
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "91a4fb9f15a7c5c2e837f07504a85e5bd4063fcec2a531b0fcb878877c48a599",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "74cbeac386dff7ff49d984dba3ce6a855557fd47af726b9b6fde9c86a2a4d42e",
+      "input_messages_sha256": "f788f355a8b3c332534c308b16353fd2169e253dade17fd3f4aaf9060afb838c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "9e5ed28095dd1e496d7e837c8cfa97d4602dd3f69521c07bdcd4c64f5b1d5d77",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "20eda5e86dd6476901b8a91d86f2324c2943c0883e68c6a821d3b48cda2af1ba",
+      "input_messages_sha256": "a8d183e47dd6971b0531666f57750e4291cdabcfad5ad7782712f979d817929a",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "dbe869473f11ddd5f26ba3487549455871365faf53e28b8609429b94b70ed404",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "c8bae1357b774e8fbb308f103d0ecee453f3e6baf2ab47105114b3b16f21deae",
+      "input_messages_sha256": "f43a6a4f1549c5f6b52a2f1c085e52ebdb8f705b729d101324971efc75c1894c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "events.faults[0].magnitude",
+          "actual": 0.0,
+          "expected": 1.0
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "e6559f7235ff51527aa58ed3c30ef72ba16f7fa2d67a32e20c0602806f07693e",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "6e556a713e483e35eab3a812cdd61a3b7b4bd1354e65039cc83e1ebbe441bed4",
+      "input_messages_sha256": "68877df1a78e388c173cba44fc973850d823c48341eed9a0038ac1f4c4c4a22c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "events.faults[0].magnitude",
+          "actual": 0.0,
+          "expected": 1.0
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "ec1215fb38631c928b52e2766c261e06932807dd795c7bfcec4452b54298860f",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|adcs_rw_jamming",
+      "original_passed": false,
+      "response_sha256": "58e7ff94cd5d5629dfe552e71e67fd81ce2eff085bb67d48a0c0177b41e214d2",
+      "input_messages_sha256": "3069388d0246eb1c9338ce4fc093f5df53427618d50b27b63f60b43339dd76d6",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "simulation.solver",
+          "actual": null,
+          "expected": {
+            "method": "euler",
+            "step_s": 10.0,
+            "rtol": 1e-09,
+            "atol": 1e-12,
+            "include_endpoint": true
+          }
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "2deb4f30f0a18ee661fab54e095c7583ec0f2b97ce9db7962832691d7256e087",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "99aa50a372c17581ebe62c628ca08b46bae5f51f32941277f550d49b885c31d0",
+      "input_messages_sha256": "a849a41b0070850d108d5c268e85c6cf2f6dc59ec8254cfa23f76b85396a0ca5",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "3f3055095947e67198ad8f64905125483ac829eb89d9f107630dc4e5591aea7e",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "aa2c3c618a13695f87200267d36fbb90166b17dac2a94a37d345a074a0dd9673",
+      "input_messages_sha256": "49264ba63619ba4c276f2a16ca380620b46bffb653c92d3fc1455d4585fee93a",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "40ff1592256f556c67acd4d828072b32ddf00de2f1016e8ed5b0a800f9805fd3",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "6f6a6602865d0880902d134e592d1792344a0440825b5cf1c36a0dcd749a5fac",
+      "input_messages_sha256": "28d28977708991b7625282ed763452bc944b528f9a07b20b8bc161248126fe17",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "simulation.solver",
+          "actual": null,
+          "expected": {
+            "method": "euler",
+            "step_s": 10.0,
+            "rtol": 1e-09,
+            "atol": 1e-12,
+            "include_endpoint": true
+          }
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "4d9c18430bcc385bed35b27510c465e37221e683d0c719b88b98457042888c9c",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "fa4b6886f9d794be6e0c8cb91481ca907a7d276fe41f23c212bc2a49d7605ac6",
+      "input_messages_sha256": "68c680fe34368f9734beaef12dfb34c648f734fdf2fed89d7cc5079388014e2a",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "63e077b4b156d41ed454f4d94ec75262f9857dd817ecb862b95df49d19fb640a",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "6baa54e64b35f4f7e046c63a33cbd1f0e620a8560b82749b7cc384eb2c400309",
+      "input_messages_sha256": "5b6f70add1fd5c16bf5ac8455d9b68a767c43041582bf7955ff65506371002c3",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "simulation.solver",
+          "actual": null,
+          "expected": {
+            "method": "euler",
+            "step_s": 10.0,
+            "rtol": 1e-09,
+            "atol": 1e-12,
+            "include_endpoint": true
+          }
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "71601761b7e0f7a1acd10713eba61f5e0c8fe6d054ce9905d742750f0534f986",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "49f6e36a12bd1f958b3b4af558fe92b0e0771eb12a1c80019025ecc6c9f04ab9",
+      "input_messages_sha256": "14e0ca3ba33f58282bf578652fb40a80b6b834c6961636b1dd1c61870d3fa2e4",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "8447995c0b2099ff1eb278d43504bc42304b8fc86446e8871a4195fb2b48e426",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "79f8d95957d1525ba18a025d21971539cc68d64621d82e9609fb7fd8e39a9da2",
+      "input_messages_sha256": "b458685d28c07c22a4f6ca77fe24077a2ba29fe6939e9fbff499adc5e2da031f",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "8b97ed2c6a176028a897021e92e810e34c3f3689a2469682a474febc95707f1d",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "805ca692c53c04f4072d6f8b9c4d70ec08219d78dbb170a78d66787d2c25bbf7",
+      "input_messages_sha256": "78b1042dab240c645937ed717b51d399f47e7cf6e21fa2b2c2ec8edc17033a9a",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "8eccea70790598a2feeab4b88e53c54e5ba3c607242d276146b25e97b3da69c7",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "9a9076e5a59dc2bd7b5b799099e590ce26d3efe9d4f4070a087a98427197a67d",
+      "input_messages_sha256": "b1a7aa6da385e73eb5df7fa00c643af03de13a7ca3f025bb431aec2a16e2ac0e",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "a92fdf8a4024a1b3584754775deaa50d71348e142fd36ec0fef3378a161e2d05",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "2c70096c7c4fa5316846159c38a8401af34e63ab26a13a4eb8ddc68cc5a2ab95",
+      "input_messages_sha256": "befc3f4d9579d082915acdb7237b49719ceea34bebf28f724cfd9d0ddd705a85",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "simulation.solver",
+          "actual": null,
+          "expected": {
+            "method": "euler",
+            "step_s": 10.0,
+            "rtol": 1e-09,
+            "atol": 1e-12,
+            "include_endpoint": true
+          }
+        },
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "d281b45c67023369953afd5780f261328c059aaa59d20d720ff51aa7b1fe6e05",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "67a3ff8a015030cf3d227cbbbaa540723dd2920d08634400c0878fc10406b1a2",
+      "input_messages_sha256": "df521a87d7f677a4ca414a82a1e80ca5464cb046aaea71ebbd2767ecb4aa4870",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "f23beb63b79a42581f907bd7c02ff9e09ea6db93bde46d658b905c96de066a8c",
+      "family": "whole_spacecraft.composite_digital_twin.v1|fault|eps_battery_capacity_loss",
+      "original_passed": false,
+      "response_sha256": "1044b6f371e974f8b8bbf3e6230f4db53328a245897413b8d8a341f818eeb829",
+      "input_messages_sha256": "bb7e96e2e686cbc865c004d9ef3d9e396f5ba5e303e7a41003cb269000c6646c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "01b72b58efbcdd906f164fe32d513669c5f325c8ca1be7e13572fed50ad078d9",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "65294f81ef67b6f5fd4637404b68988d6179aa3a2dc1ed78765ee1ed7671ed71",
+      "input_messages_sha256": "213bbb9e7562f7ba1ecd8371949c3ab536520904aeb1d966c70db3845000b02e",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "164b7b43e65f76ea59eef47ceda1688db1fa804fdd581626c6d8f772389ec930",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "2d45349d3ba3f2d74f874ecb519ffd84492af1dc70bcc300f5e1ce268b575815",
+      "input_messages_sha256": "ef2dd94daf2618fddbb97d3d4f233cf96da3902276ce18207d63154136cf7acc",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "22463ec76ae414b7c1da4e9ed09556dae630245f2e1a2816fe3a7e9c966d7478",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "65768f3026ce90f0f08032a29c160c31773a9fcc23a71b92b33008bb2027b916",
+      "input_messages_sha256": "6291d7834afa007187c5d7fb794f78c55c17871e343fff9136e68ea40ddda055",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "480c07aad1c33331b2d352a6ae12882291dcb0ed555893af0d2c65b857308e64",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "53d7e1b5a163effb8841af11ef074edcc2421af4cca4871d8b69258df0ab8e12",
+      "input_messages_sha256": "153040d7f1b391b6fe405b8615f52b16a966a368f82b28b054de33e62081f8e1",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "541e6cd5fe51c9190e5b4d7039e92671706c81ff5def016c8f19a8410bea9c3c",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "2942b5a05e2718074e14bb2a0a977d30111c3a8cdd3465c8d715c9faaf4c9eaf",
+      "input_messages_sha256": "7dfb72ef859bfb9a4b5d5015b88760c28917552b9a0b458871accdb097ac2bff",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "5969f52f1359c7ffd10564d5acd5ed541b2f8d4ac918be16589f35133c9cc72f",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "95106685ba66da47c5cb754cc2a9101b60e2d0efcee2c56527fda7a74c162daa",
+      "input_messages_sha256": "96d8ada4a94bb25bd855f1ea793b85b58d18ecc0a00470f1b31b39da6df97953",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "5a45a6de336c4ada3204b45ae5ef8d5fdd08be5b4ec26217a2b81ac96ff154e3",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "8cffbfaf20ca7021193140414d6473a6b5fd8d4eb3187936ef966f257f7e8656",
+      "input_messages_sha256": "4a0d7aa44003c2a2017035b47eac832c67761bac7bcd6e1d90c6e071616d1ee6",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "68a5264219e96018891f5c67601272a5ad7e241f07be473025dc0c4948256b0b",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "8019032a139e6746207551c7d48a70055dacf30c1679f557bee64ee44cd8218a",
+      "input_messages_sha256": "21f18fc444fe798fea9a9527ea2543370fb92530bd62de4cd24011e601aeb81d",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "a06d42b0442583c21f9cb0cdf4aa23fa87f2f8bc668d6bf93d630e9c414a55d9",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "8ac13a35c0e1fc1fafe91b4feb69a8d4428e5d59010274628af6c50c16422b92",
+      "input_messages_sha256": "191486999ade8bea40b5ae795ec01048518b5c398f3202e54cc4bd8e8864aae0",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "aea82f36c6ed68eb333adae89705569282f548d3f8e1ec40063c6f792a24277d",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "34f9a9f8c4a31ba1dd5841d72d1a4b473f8bf2b391d046ba89a274c93f425c5f",
+      "input_messages_sha256": "cfba34b37c7fb9ed82270db33a350c3282ce0dbdad97193f29d765db4c3272ad",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "c6bbcf4d2a7c7b0a080c0d8b2123a7e2ccce68b853baf1095113450990f1b78c",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "4d294b0b2ab6c3f17cc333fa87ed8824f012c6f0ff835de70d371f91788235d5",
+      "input_messages_sha256": "772fc91fba4df8b6c83db5211501ae9c7017c207406b7f248f47e0867fa7a57d",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "cf0431a58115c150b259a1c6525dd75853d79be8aa39761e8494c451effea52d",
+      "family": "whole_spacecraft.composite_digital_twin.v1|mixed|payload_instrument_off|solar_panel_efficiency_loss_20pct",
+      "original_passed": false,
+      "response_sha256": "55772b60018d46258a442634527377cd69714248da00f11fd4e9a147e02b8e48",
+      "input_messages_sha256": "1ac1223d1d3a823879c4a797b7448fbeaa43d99dcf38d34a8a428f5f5116eb63",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "battery_storage_j",
+        "battery_soc",
+        "net_power_w",
+        "battery_temp_c"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "battery_storage_j",
+            "battery_soc",
+            "net_power_w",
+            "battery_temp_c"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "018bc1b9341bf56c72f4cc9c7ca6d74b9d1e26109d4ee5c5a941fde5bf6e5e82",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "dec8d2a11e4f9cfa9a4a5c94837f309c9600d9d1314c8fd8f1bc90be16181b89",
+      "input_messages_sha256": "f25f1551afe274db362ea1edb0582c8a228714b0184d23ad822ccb8cecdb26cd",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "1dcc3ed9c2c25de9649bca8d79c1ee8724270bd962e469cf3e2ed7b46171c602",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "3369c82cf40c2ee6d0c5ccbd4e6f0329885c333eaa35ed68d6e84325b65d968e",
+      "input_messages_sha256": "184fb16cf59f66a8cb09b599162de2e7df395d8e83c1ccd4d1058c6786a2a15c",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "4d50d73fdc0fd8d8df228ab90b8c43a7706da9ba9e804c062296bed02bbb62ff",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "d363da254c6eaa12fcf220fc3c590f4b884aeb2147c74b0e30fdbfd07ebbeac4",
+      "input_messages_sha256": "2128f6e37437c51496e7021e7d116d365d6926decdba4e8395cb3a14449bd049",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "5a54edf08bdd4b49be08108d5cddc2ea3dea25c0b30954066c2452fde1d985c3",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "87df0c7d23188c8632967a3f8a3b205bca29538d68b0924567c3204a2d194ff0",
+      "input_messages_sha256": "57f5e2e53d3982ff36b70472064781a2144dcdfcaf0425d42ea23cc76ca1fe06",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "7a91ea294a78846fd484983aa3f364ef9e334890db13f9bf973445d0d65941bf",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "4f889f0d6856704c3caaaa7917357309c84c658ecadd105dabb1d43180c92a1e",
+      "input_messages_sha256": "1e9022630a9869b18e9bdc55a5e08f20563beaa363f98b7bd6109edf4145eda6",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "7af425d03ab3e63f383ca298162638ab1df9ebee174cb5df9c101979e0c74d97",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "f046e22295e4d958cb5f9a6620ce540a16b4c7270a73c878be129f1f91373cca",
+      "input_messages_sha256": "56574c80925b3389978a39927295582106ee04e4c2e575488941f6811bf8f5ad",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "9aea4f33c58e1eab7aaee3c1571b601f6ef60faad045785d6c4a197083880ad5",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "33cc97bd6b03c43e4ec6ab76ad288e28e2403fcd42833d647ab7914f1914a5bc",
+      "input_messages_sha256": "51978a58bd9715a63a7c4331776b51d51b9a8bce625f83428c3707fff0b70b49",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "bf946e8d0a4c1036e5a639dfa791795f2c03383f191d8a435f2d6b1d0c2dcf3a",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "538ba4eb7fc089069d909686a96d03298c8987d748bdae7afd81f5e8d393bbaa",
+      "input_messages_sha256": "cd50041ee60771caa9d31ee4c34eb8f14137f2f8d2e7dc638ef4c8240866573e",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    },
+    {
+      "id": "cfdb2a5c6dbcb0c82eabb239888bb8bea2ecd9b591182a506cbeb1e4b6029491",
+      "family": "whole_spacecraft.maneuver_orbit_attitude.v1|nominal",
+      "original_passed": false,
+      "response_sha256": "a8ea692f02477dacab3409ba3e26394baf6116ce8f65fbfa14181345f3fd52ca",
+      "input_messages_sha256": "1ec35ca5c95f9b76319eef7bb2cd0f0d58b12911304d9fae8aa16e9324a735df",
+      "prompt_instructs_registered_default_plots": true,
+      "prompt_default_plots": [
+        "orbit.r_bn_n_m_x",
+        "orbit.r_bn_n_m_y",
+        "orbit.r_bn_n_m_z",
+        "orbit.v_bn_n_m_s_x"
+      ],
+      "normalized_label_plots": [],
+      "prompt_label_plot_conflict": true,
+      "differences": [
+        {
+          "path": "outputs.plots",
+          "actual": [
+            "orbit.r_bn_n_m_x",
+            "orbit.r_bn_n_m_y",
+            "orbit.r_bn_n_m_z",
+            "orbit.v_bn_n_m_s_x"
+          ],
+          "expected": []
+        }
+      ],
+      "actual_plots_follow_prompt_default": true
+    }
+  ],
+  "category_counts": {
+    "prompt_label_plot_conflict": 69,
+    "parseable_actual_plots_follow_prompt_default": 65,
+    "only_plot_label_difference": 54,
+    "parse_or_projection_error": 4,
+    "other_label_differences": 11
+  },
+  "non_plot_difference_path_counts": {
+    "simulation.solver": 6,
+    "events.faults[0].magnitude": 5
+  },
+  "source_sha256": {
+    "data\\training\\taskspec_lora_v3\\validation.jsonl": "a122fa69ab94d9eb206d95f2e8a060985803c05241741d87ffebbc855071c4a2",
+    "reports\\local_requirements_completion\\v5-original-input-response-diagnosis.json": "43354f3debe4e55e88d89897ffe1b25f074cafb7496b96718007c992c03b6f98",
+    "reports\\local_requirements_completion\\current-prompt-legacy-input-evaluation-v5\\all-validation-registry\\report.json": "948194bf07d30a8bd0c0b98c2202cf603f7b4ccc91a6fc88ce8ffa9318b29830",
+    "src\\sat_sim\\task_models.py": "906344436887b2f61d37070bbf407ccb47e0ae16f2af36d4edf894bc8001dfa4"
+  },
+  "source_inputs_unchanged": true,
+  "auditor_sha256": "6ec0012d9b21f50ae56c16037be15ee53b95a572771a6f344d286081a82e43bb",
+  "interpretation": "All frozen prompts instruct default_trace_fields for plots while normalized labels expect empty plots. The65 parseable answers follow that instruction. This contract conflict makes the original strict pass count unsuitable as a standalone estimate of semantic generalization.54 cases differ only on that field;11 also differ elsewhere;4 are unparseable. Those remaining differences are not excused or rescored, and broader AI generalization remains unmeasured."
+}

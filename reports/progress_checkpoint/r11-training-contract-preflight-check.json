@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "scope": "CLI preflight control-flow test with training replaced by a recorder; no GPU training performed. Real old/current dataset files checked unchanged.",
+  "checks": {
+    "old_conflicting_data_rejected": true,
+    "rejection_before_training_called": true,
+    "current_contract_allows_training_entry": true
+  },
+  "cli_sha256": "6861820888f8f539dfa443d10792ac8661db6f2f718cffa77033191e2c27048f",
+  "auditor_sha256": "c13d2e6ce228d4625137b56d2ede5e45bfb8d2352948761340fe075dc69de321",
+  "test_preparation_failure": "First test compared a Windows path string with forward-slash literal and failed after the expected training recorder call. Corrected comparison uses resolved Path equality; implementation unchanged."
+}

@@ -1,0 +1,27 @@
+{
+  "status": "FAIL_SCOPED_CONTRACT",
+  "scope": "Summary only; original645 failing record details remain local. Does not replace the complete report.",
+  "source_sha256": {
+    "train": {
+      "path": "E:\\tmp\\SatAgentSimulation\\data\\training\\taskspec_lora_v3\\train.jsonl",
+      "sha256": "59ea04a73d73046958459be6721262e56f89d4b76e2a13060ecb437a8976e33a"
+    },
+    "validation": {
+      "path": "E:\\tmp\\SatAgentSimulation\\data\\training\\taskspec_lora_v3\\validation.jsonl",
+      "sha256": "a122fa69ab94d9eb206d95f2e8a060985803c05241741d87ffebbc855071c4a2"
+    }
+  },
+  "canonicalizer_sha256": "906344436887b2f61d37070bbf407ccb47e0ae16f2af36d4edf894bc8001dfa4",
+  "inputs_unchanged": true,
+  "split_ids_disjoint": true,
+  "splits_nonempty": true,
+  "records": 645,
+  "passing_records": 0,
+  "failing_records": 645,
+  "split_counts": {
+    "train": 576,
+    "validation": 69
+  },
+  "auditor_sha256": "c13d2e6ce228d4625137b56d2ede5e45bfb8d2352948761340fe075dc69de321",
+  "full_local_report_sha256": "502c946117f87663d78eab92fe9d3d67692db5315b665cc41a6bf9ad7d13d5ca"
+}

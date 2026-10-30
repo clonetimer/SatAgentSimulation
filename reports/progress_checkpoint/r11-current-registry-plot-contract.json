@@ -1,0 +1,27 @@
+{
+  "status": "PASS_SCOPED_CONTRACT",
+  "scope": "Known registry-synthesized default-telemetry prompts only. Checks the explicit plot instruction against normalized labels and ID split separation; not complete dataset quality, arbitrary-intent validity, or model accuracy. Does not alter historical scores, labels or model outputs.",
+  "source_sha256": {
+    "train": {
+      "path": "E:\\tmp\\SatAgentSimulation\\data\\training\\taskspec_lora_v5_current_prompt_event_aligned\\train.jsonl",
+      "sha256": "d526a9ab35113bec55f333051a3074b969e10b239a3c219a66639cd5b84054f7"
+    },
+    "validation": {
+      "path": "E:\\tmp\\SatAgentSimulation\\data\\training\\taskspec_lora_v5_current_prompt_event_aligned\\validation.jsonl",
+      "sha256": "570894f6e9ae6afb7055e3ad9cb43568c4f54eef1f482645a467480d545b5673"
+    }
+  },
+  "canonicalizer_sha256": "906344436887b2f61d37070bbf407ccb47e0ae16f2af36d4edf894bc8001dfa4",
+  "inputs_unchanged": true,
+  "split_ids_disjoint": true,
+  "splits_nonempty": true,
+  "records": 657,
+  "passing_records": 657,
+  "failing_records": 0,
+  "split_counts": {
+    "train": 588,
+    "validation": 69
+  },
+  "failures": [],
+  "auditor_sha256": "c13d2e6ce228d4625137b56d2ede5e45bfb8d2352948761340fe075dc69de321"
+}

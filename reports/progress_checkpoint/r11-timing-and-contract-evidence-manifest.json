@@ -1,0 +1,79 @@
+{
+  "schema_version": "sat-progress-evidence-manifest.v1",
+  "captured_at_utc": "2026-10-30T10:46:39.305316+00:00",
+  "scope": "Completed diagnostic timing; dataset preflight; newly failed natural-language fault request. No production tail fix, no model promotion, no actual24h pass. Original failures retained.",
+  "files": [
+    {
+      "path": "r11-timing-full-window-review.json",
+      "sha256": "bdae47e4b4338cd5d776adc29cbd2984b205040d7b895705fdb287e7d4efaccf",
+      "bytes": 1714,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-timing-full-window-attribution.json",
+      "sha256": "d78129bdba50a2e426468b6739a467505ee0c826b78ede1e419f39c9d5973936",
+      "bytes": 17799,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-timing-attribution-validation.json",
+      "sha256": "447ef8bf58a994ee17a0fdb8b817720e7a58079fc533242c160a07d27e77121c",
+      "bytes": 755,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-frozen-benchmark-contract-audit.json",
+      "sha256": "3983dfaf31f63936b39dd20024d04637181478f02bafe6f4a3a6b1fd68e7db34",
+      "bytes": 75057,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-current-registry-plot-contract.json",
+      "sha256": "0626168a0f321dd117a56c6623d0de6964d8cb50b320293c2f79a1bc26de6172",
+      "bytes": 1266,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-training-contract-preflight-check.json",
+      "sha256": "c5f1c00030c105569e32dd557a7aa34548a2f7b03774670d83273d42dac5810a",
+      "bytes": 757,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-training-contract-cli-and-negatives.json",
+      "sha256": "5f3674febea319e224d99a05ce719adc49f348f95847d009dd49dfd21e0dbfbe",
+      "bytes": 1595,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-natural-loss-variations-failed.json",
+      "sha256": "aa9c7b375837135dfb1f831bcf42d33c3691fe6b452a0e47a2aa04b16b84e507",
+      "bytes": 4784,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-natural-loss-requests-frozen.json",
+      "sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+      "bytes": 871,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-frozen-benchmark-auditor-source.py",
+      "sha256": "6ec0012d9b21f50ae56c16037be15ee53b95a572771a6f344d286081a82e43bb",
+      "bytes": 6791,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-natural-loss-variation-driver.py",
+      "sha256": "1eec0e373cd9de4305b99e858e9666a93a42344732e19bbceee6ffef88ea2e38",
+      "bytes": 10590,
+      "kind": "raw_snapshot"
+    },
+    {
+      "path": "r11-original-registry-plot-contract-summary.json",
+      "sha256": "cad80d0b49f2e53050301b1f4ad8ff47642a1c1dd6e65c244cf4685f0b0299c5",
+      "bytes": 1107,
+      "kind": "derived_summary"
+    }
+  ]
+}

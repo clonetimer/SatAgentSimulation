@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "checks": {
+    "injected_one_episode": true,
+    "injected_site_largest": true,
+    "injected_duration_recorded": true,
+    "injected_location": true,
+    "coverage_does_not_double_count": true,
+    "interval_union_overlaps": true,
+    "interval_union_empty": true,
+    "baseline_no_false_episode": true,
+    "baseline_no_false_full_window": true,
+    "wrapper_failure_retained": true,
+    "tampered_timing_rejected": true,
+    "pacing_count_rejected": true,
+    "unfinished_native_rejected": true
+  },
+  "analyzer_sha256": "cbf40b28f316b5b72e08742a0222bd1db147a624c8063ba849a7d02571aad0f2",
+  "scope": "Actual native diagnostic traces and deliberate negative copies; no production performance qualification."
+}

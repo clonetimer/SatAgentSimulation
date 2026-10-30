@@ -4,12 +4,15 @@
 输出：safetensors 适配器、训练/验证损失、显存峰值和来源摘要；不签发任务成功声明。
 """
 import argparse
+import json
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'scripts'))
 sys.path.insert(0,str(ROOT/'src'))
 from sat_sim_ml.training import train  # noqa: E402
+from audit_registry_plot_contract import audit  # noqa: E402
 
 
 def main():
@@ -33,6 +36,16 @@ def main():
         parser.error('positive epochs/rank/accumulation and max-length >= 256 are required')
     if args.loss_chunk_tokens < 1 or (args.smoke_longest and args.max_steps <= 0):
         parser.error('positive loss-chunk-tokens required; smoke-longest requires positive max-steps')
+    try:
+        contract = audit(args.dataset_dir.resolve())
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        parser.error(f'registry dataset contract preflight failed: {exc}')
+    if contract['status'] != 'PASS_SCOPED_CONTRACT':
+        parser.error('registry dataset contract conflicts detected before training: '
+                     f"{contract['failing_records']}/{contract['records']} failing records; "
+                     'run scripts/audit_registry_plot_contract.py for the full read-only report')
+    print(json.dumps({'dataset_contract_preflight':contract['status'],
+                      'records':contract['records'],'source_sha256':contract['source_sha256']}),flush=True)
     train(args)
     return 0
 

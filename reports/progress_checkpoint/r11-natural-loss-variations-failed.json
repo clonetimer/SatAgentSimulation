@@ -1,0 +1,120 @@
+{
+  "status": "FAILED_NO_SUBSTITUTION",
+  "scope": "Two new natural-language engineering cases, not arbitrary-prompt accuracy. No event JSON supplied; no label or parameter substitution; wrong cases are not executed.",
+  "started_at_utc": "2026-10-30T10:30:19.807629+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "process": {
+    "pid": 8332,
+    "creation": 1793356217.5430193,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "source_sha256": "1eec0e373cd9de4305b99e858e9666a93a42344732e19bbceee6ffef88ea2e38",
+  "requests_sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+  "model_health": {
+    "ok": true,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "source": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+    }
+  },
+  "measurement_context": "Concurrent with original native80520 and isolated timing native31520. This GPU/model/script job is additional disclosed load; timing capture is diagnostic, not an exclusive formal benchmark.",
+  "cases": [
+    {
+      "id": "create17",
+      "status": "FAILED",
+      "started_at_utc": "2026-10-30T10:30:19.809317+00:00",
+      "checks": {
+        "actual_model_verified": true,
+        "valid_compiled": false
+      },
+      "backend_identity": {
+        "backend": "openai_compatible",
+        "backend_class": "actual_model_service",
+        "model_backend_requested": true,
+        "actual_model_used": true,
+        "actual_model_execution_verified": true,
+        "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+        "base_url": "http://127.0.0.1:8031/v1",
+        "claim": "model_backed_generation_verified",
+        "invocation_evidence": {
+          "schema_version": "sat-sim.model-invocation-evidence.v1",
+          "verified": true,
+          "backend": "openai_compatible",
+          "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+          "request_id": "chatcmpl-d2bea6a1645c4ed3a688cec8c55b805c",
+          "provider_response_id": "chatcmpl-d2bea6a1645c4ed3a688cec8c55b805c",
+          "prompt_sha256": "b0311c64a5672a359483637d712ef7b9cf7c18eff95f3cda20a55c399ee194b8",
+          "response_sha256": "0287b930b544386fc44d40721ce4b26134a18226d5e77e60da0bcae7fbd690f8",
+          "structured_output_sha256": "9a2b06a3396660c8c72d96fea8a55e226793a3871c3132322fa880aca21693ad",
+          "structured_output_kind": "json",
+          "usage": {
+            "prompt_tokens": 7624,
+            "completion_tokens": 1685
+          },
+          "structured_generation": {
+            "enabled": true,
+            "method": "lm-format-enforcer",
+            "schema_sha256": "71f631a234441a5e3109a9d5d881b0e62705c7ed76a48720e41982f337c6f1f9",
+            "answer_substitution": false,
+            "semantic_validation_required": true,
+            "numeric_bounds_at_decode": true,
+            "empty_arrays_at_decode": true,
+            "invalid_numeric_mantissa_digit_budget": 17,
+            "canonical_exponent_range": [
+              -324,
+              308
+            ]
+          },
+          "latency_ms": 186533.41,
+          "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+          "error": null
+        }
+      },
+      "validation": {
+        "ok": false,
+        "error_count": 1,
+        "warning_count": 1,
+        "errors": [
+          {
+            "severity": "error",
+            "path": "$.events[0].effect",
+            "code": "event_effect",
+            "message": "effect 'unknown' is not migrated into this unified runtime"
+          }
+        ],
+        "warnings": [
+          {
+            "severity": "warning",
+            "path": "$.schema_version",
+            "code": "TASKSPEC_LEGACY_MIGRATED",
+            "message": "Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0."
+          }
+        ]
+      }
+    }
+  ],
+  "error": {
+    "type": "AssertionError",
+    "message": "valid_compiled"
+  },
+  "application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "source_unchanged": true,
+  "requests_unchanged": true,
+  "finished_at_utc": "2026-10-30T10:38:29.211413+00:00"
+}
