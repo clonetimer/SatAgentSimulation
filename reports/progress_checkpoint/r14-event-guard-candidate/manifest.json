@@ -1,0 +1,120 @@
+{
+  "scope": "Isolated candidate and failed actual-model replay; never production acceptance. Raw snapshots preserved.",
+  "files": [
+    {
+      "path": "candidate.patch",
+      "sha256": "b422537bae74be5ed224420c0702fc9521a2498b0b4b70c08385c4b78eac55e6",
+      "bytes": 9944
+    },
+    {
+      "path": "interrupted-test-processes.json",
+      "sha256": "fc6effcbfc4ca6f340061b00d50c747e97b4308c675c0fa47e1a1f2c43e13acc",
+      "bytes": 2217
+    },
+    {
+      "path": "original-endurance-progress.json",
+      "sha256": "8527757b1438e39a964c0e75e6a4e525c303694a720bdf05b5cbc72a8ce5b938",
+      "bytes": 3722
+    },
+    {
+      "path": "owned-endurance-observation.json",
+      "sha256": "63fcfcefdf6d2382ecee025a8b74301213353734fb29777087511b6110d64d48",
+      "bytes": 848
+    },
+    {
+      "path": "prefix-probe-source.py",
+      "sha256": "da43f70fd171f30a12dd2d42194cc1a0672fb7b81a32369c5c473fae94c421b6",
+      "bytes": 3400
+    },
+    {
+      "path": "prefix-protocol-probe.json",
+      "sha256": "767ecce0a91aedf7cc3c57889732d4d7445ba26f657e4b583d79b4df19b92e01",
+      "bytes": 965
+    },
+    {
+      "path": "r13-failed-state.json",
+      "sha256": "202c55531984199f316c4f017d375a08cb60510f44a7ac7abf3f2120256dfc91",
+      "bytes": 5042
+    },
+    {
+      "path": "r13-model-call.json",
+      "sha256": "01146b85205b808521aa5d4038154f675d71437ec5f39fc4dbec64421f20927b",
+      "bytes": 8077
+    },
+    {
+      "path": "r13-normalized-task-spec.json",
+      "sha256": "441208a27f5c933400fd77efe5cf5882da34f8e45ff2cf6109265e77b54dbf12",
+      "bytes": 35295
+    },
+    {
+      "path": "r13-protocol-junit.xml",
+      "sha256": "f08d66507cc387d804e6116b0ae836a84eec991794ba03d5e604e4d022e72a9c",
+      "bytes": 5989
+    },
+    {
+      "path": "r14-failed-state.json",
+      "sha256": "fb86e39572a4ff46456ed751cf5548a381de5c9fc93f0601ea0c4e2e8d43588a",
+      "bytes": 5204
+    },
+    {
+      "path": "r14-first-model-call.json",
+      "sha256": "d10c6e1a010464d31215630cd71683b9e3c658dc726accd0e33e4a176ffce013",
+      "bytes": 8077
+    },
+    {
+      "path": "r14-outcome-independent-review.json",
+      "sha256": "af78f50c3558312af580b835d23037f8d6bb9ac6869954cddf4aff4a0aa1e51e",
+      "bytes": 595
+    },
+    {
+      "path": "r14-regression-junit.xml",
+      "sha256": "ebccc0eada980ad898327621474db2865325b6785f29bf21547b8049c47a5ce9",
+      "bytes": 16146
+    },
+    {
+      "path": "r14-timeout-model-call.json",
+      "sha256": "328ce8ccf4ec675db51866a2075743b712a18a376907424e3f3e959d376e2560",
+      "bytes": 1077
+    },
+    {
+      "path": "r14-validation.json",
+      "sha256": "0994e1021bea1f6a42146705c660e22b74b3a2d6079ffc272d5d5e8496908115",
+      "bytes": 558
+    },
+    {
+      "path": "README.md",
+      "sha256": "b1d52b1dc828fe0ff6ad6da64f12b3ce2ad9df27e871f1264c529283a1097cf0",
+      "bytes": 978
+    },
+    {
+      "path": "real-replay-source.py",
+      "sha256": "459e60aa946ce2f052f0ba1e2157decc65bc0f0a59c56ab06a9d197e31f73d55",
+      "bytes": 11377
+    },
+    {
+      "path": "requests.frozen.json",
+      "sha256": "dfe9281ddd8d36819946f811ff1f0c18517d10e67e4d2fec877d4600d37851fd",
+      "bytes": 871
+    },
+    {
+      "path": "scoped-independent-review.json",
+      "sha256": "3fe7d42d2bef2026071ff4191b69a4fd1153859edd11dacd98b7611cae15d4d7",
+      "bytes": 1349
+    },
+    {
+      "path": "scoped-review-source.py",
+      "sha256": "336c2f1a051423a03ba356106e12ca9b639817337ff5807fa9745cd5ee4919bd",
+      "bytes": 4354
+    },
+    {
+      "path": "test_natural_battery_loss_guard.py",
+      "sha256": "6a8180384c6de5d2bd9e677a289784deb4b9b56a0cb23e2d80513ab0612a0ed2",
+      "bytes": 2986
+    },
+    {
+      "path": "test_typed_event_draft_candidate.py",
+      "sha256": "9ac296074648720caf0ba720fec56f3ac642197bd890a2a05ea9668eb4be46a6",
+      "bytes": 4037
+    }
+  ]
+}

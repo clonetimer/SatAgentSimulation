@@ -1,0 +1,27 @@
+{
+  "observed_at_utc": "2026-10-30T11:52:07.275070+00:00",
+  "application": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "original_progress_sha256": "8527757b1438e39a964c0e75e6a4e525c303694a720bdf05b5cbc72a8ce5b938",
+  "wall_observed_s": 23294.313000000082,
+  "max_abs_drift_s": 2.5371086000232026,
+  "status": "RUNNING",
+  "runtime_health": null,
+  "identity": {
+    "native": {
+      "pid": 80520,
+      "creation": 1793337824.415924,
+      "live": true
+    },
+    "launcher": {
+      "pid": 82756,
+      "creation": 1793337780.3809385,
+      "live": true
+    },
+    "awake": {
+      "pid": 46364,
+      "creation": 1793339200.2216158,
+      "live": true
+    }
+  },
+  "context": "Concurrent diagnostic, model, browser and regression work disclosed; not a quiet-load performance qualification."
+}

@@ -1,0 +1,30 @@
+{
+  "status": "SCOPED_EVIDENCE_PASS_NOT_PRODUCT_ACCEPTANCE",
+  "observed_at_utc": "2026-10-30T11:49:30.343826+00:00",
+  "scope": "Actual r13 failure and protocol/guard regression evidence only. R14 real generation and execution remain independently adjudicated; this does not promote the candidate.",
+  "checks": {
+    "frozen_request_bytes": true,
+    "r13_archived_failed": true,
+    "r13_actual_model_verified": true,
+    "r13_raw_bytes_bound": true,
+    "r13_two_raw_faults": true,
+    "r13_correct_battery_literal": true,
+    "r13_extra_payload_fault": true,
+    "r13_raw_nominal_mode": true,
+    "r13_normalized_events_empty": true,
+    "r13_product_validation_passed": true,
+    "r13_independent_driver_rejected": true,
+    "r13_refinement_not_run": true,
+    "new_guard_rejects_extra_raw_fault": true,
+    "new_guard_rejects_cleared_normalized_faults": true,
+    "guard_did_not_mutate_raw": true,
+    "r13-pytest-finish-diagnostic_counts": true,
+    "r13-pytest-finish-diagnostic_terminal_exit_zero": true,
+    "r14-natural-guard-unit_counts": true,
+    "r14-natural-guard-unit_terminal_exit_zero": true,
+    "r14-natural-guard-regression-v2_counts": true,
+    "r14-natural-guard-regression-v2_terminal_exit_zero": true,
+    "production_application_unchanged": true,
+    "candidate_application_bound": true
+  }
+}

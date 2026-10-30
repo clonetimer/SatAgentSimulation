@@ -6,3 +6,7 @@ reports/progress_checkpoint/*.json -text whitespace=cr-at-eol
 reports/progress_checkpoint/*.xml -text whitespace=cr-at-eol
 reports/progress_checkpoint/*.py -text whitespace=cr-at-eol
 prototypes/compact-workbench/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/*.patch -text whitespace=-blank-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r14-event-guard-candidate/*.patch -text whitespace=-blank-at-eol

@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "scope": "CPU decoder protocol fixtures only; the archived model answer is never replaced or executed. No semantic model accuracy or production qualification.",
+  "cases": [
+    {
+      "case": "archived_missing_discriminator",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4215,
+      "peak_branches": 7
+    },
+    {
+      "case": "protocol_fixture_explicit_discriminator",
+      "expected": true,
+      "accepted": true,
+      "rejected_at": null,
+      "peak_branches": 7
+    },
+    {
+      "case": "unsupported_effect",
+      "expected": false,
+      "accepted": false,
+      "rejected_at": 4230,
+      "peak_branches": 7
+    }
+  ],
+  "elapsed_s": 1.1496736999833956,
+  "schema_bytes": 388052,
+  "process": {
+    "pid": 39412,
+    "creation": 1793359859.671008,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  }
+}

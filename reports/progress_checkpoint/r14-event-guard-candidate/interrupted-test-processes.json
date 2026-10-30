@@ -1,0 +1,63 @@
+{
+  "at_utc": "2026-10-30T11:39:40.500706+00:00",
+  "processes": [
+    {
+      "pid": 11596,
+      "creation": 1793359206.0380387,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_guided_model_constraints.py",
+        "tests/test_explicit_no_event_constraints.py",
+        "tests/test_json_transport_prompt_alignment.py",
+        "tests/test_agent_prompt_contract_closure.py",
+        "tests/test_native_rw_geometry_preflight.py",
+        "-q"
+      ],
+      "cpu": {
+        "user": 266.375,
+        "system": 794.96875,
+        "children_user": 0.0,
+        "children_system": 0.0
+      },
+      "io": {
+        "read_count": 4353,
+        "write_count": 79,
+        "read_bytes": 44964718,
+        "write_bytes": 164,
+        "other_count": 35306300,
+        "other_bytes": 4663895
+      },
+      "status": "INTERRUPTED_WITHOUT_FINAL_SUMMARY",
+      "reason": "Displayed 100% but continued sustained CPU and tens of millions of other I/O operations. No authoritative final pytest summary. Replaced with a stage-recording, timed-stack diagnostic; no production process touched."
+    },
+    {
+      "pid": 77484,
+      "creation": 1793359294.9791045,
+      "command": [
+        "C:\\Users\\Lookt\\AppData\\Roaming\\uv\\python\\cpython-3.12.12-windows-x86_64-none\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_typed_event_draft_candidate.py",
+        "-q"
+      ],
+      "cpu": {
+        "user": 294.140625,
+        "system": 678.234375,
+        "children_user": 0.0,
+        "children_system": 0.0
+      },
+      "io": {
+        "read_count": 1710,
+        "write_count": 33,
+        "read_bytes": 10982126,
+        "write_bytes": 83,
+        "other_count": 27324211,
+        "other_bytes": 788958
+      },
+      "status": "INTERRUPTED_WITHOUT_FINAL_SUMMARY",
+      "reason": "Displayed 100% but continued sustained CPU and tens of millions of other I/O operations. No authoritative final pytest summary. Replaced with a stage-recording, timed-stack diagnostic; no production process touched."
+    }
+  ]
+}

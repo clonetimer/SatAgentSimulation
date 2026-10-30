@@ -1,0 +1,30 @@
+{
+  "ok": false,
+  "backend": "openai_compatible",
+  "raw_text": "",
+  "prompt_chars": 33269,
+  "metadata": {
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+    "prompt_sha256": "a07a2d60e602f956c6ffef0ac2da88154f29f5d3b2d3746c4b1e838e66b299f2",
+    "latency_ms": 300020.32
+  },
+  "invocation_evidence": {
+    "schema_version": "sat-sim.model-invocation-evidence.v1",
+    "verified": false,
+    "backend": "openai_compatible",
+    "model_id": "Qwen2.5-Coder-1.5B-SatAgent-v5-guided-graph-v8",
+    "request_id": "local-f1e9a5ae605c8bae52162dc9",
+    "provider_response_id": null,
+    "prompt_sha256": "a07a2d60e602f956c6ffef0ac2da88154f29f5d3b2d3746c4b1e838e66b299f2",
+    "response_sha256": null,
+    "structured_output_sha256": null,
+    "structured_output_kind": null,
+    "usage": null,
+    "structured_generation": null,
+    "latency_ms": 300020.32,
+    "endpoint": "http://127.0.0.1:8031/v1/chat/completions",
+    "error": "timed out"
+  },
+  "error": "timed out"
+}

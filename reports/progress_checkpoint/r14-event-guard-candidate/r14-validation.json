@@ -1,0 +1,21 @@
+{
+  "ok": false,
+  "error_count": 1,
+  "warning_count": 1,
+  "errors": [
+    {
+      "severity": "error",
+      "path": "$.events",
+      "code": "USER_NATURAL_EVENT_REQUIREMENT_MISMATCH",
+      "message": "The user explicitly requested only one fault; extra or missing events are forbidden."
+    }
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "path": "$.schema_version",
+      "code": "TASKSPEC_LEGACY_MIGRATED",
+      "message": "Legacy TaskSpec '0.1.0' accepted through deterministic migration to 1.0.0."
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "status": "FAILURE_AND_REJECTION_EVIDENCE_VERIFIED",
+  "scope": "Verifies an actual generation failure and candidate rejection, never product acceptance.",
+  "checks": {
+    "failure_retained": true,
+    "one_stage_only": true,
+    "create_failed": true,
+    "actual_model_verified": true,
+    "compilation_rejected": true,
+    "intent_error_present": true,
+    "retry_timed_out": true,
+    "retry_not_claimed_verified": true,
+    "no_script_export": true,
+    "requests_unchanged": true,
+    "candidate_source_unchanged": true,
+    "production_source_unchanged": true
+  }
+}
