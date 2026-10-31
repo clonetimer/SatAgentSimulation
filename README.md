@@ -4,7 +4,7 @@
 
 当前独立候选 **R46** 已实际完成全量 **2427通过、0失败、6跳过、2警告**，29项交互回归，以及2次新模型请求、3次短native执行和11张实际看图复核。独立uv环境和已验证wheel见[R46进展包](reports/progress_checkpoint/r46-interaction-ownership/README.md)；它尚未自动替换仓库Root运行时，后续安装/结构章节仍面向仓库现有源码。
 
-整体仍在验收：69条AI基准RUNNING，固定前37条raw current25/37、legacy strict0、final current0且未执行，12条ADCS有`1e-5→1e-15`量级错误，不能称AI质量已过。新正式24h已于北京时间2026-10-31 06:50从零启动，终态待验；物理warning1/42、旧DEGRADED峰值和工程假设保留，不声称飞行/硬件标定或全部高保真。图形工具栏正在独立候选中继续精简。
+整体仍在验收：69条AI复验已结束，原严格评分0/69保留；按当前默认输出单独诊断，原回答54/69匹配，12条陀螺噪声量级错误、3条遗漏明确配置，均未进入执行。见[最终分类](reports/progress_checkpoint/r46-original69-result/README.md)。AI参数约束正在独立R47候选中修复。新正式24h已于北京时间2026-10-31 06:50从零启动，终态待验；物理warning1/42、旧DEGRADED峰值和工程假设保留，不声称飞行/硬件标定或全部高保真。图形工具栏正在独立R48候选中继续精简。
 
 本README此前原文见[历史快照](reports/progress_checkpoint/r46-interaction-ownership/history/root-README.pre-current-r46.md)；R43—R45已发表证据及历史失败保持原样。最新分范围数据、源码增量前像要求和待完成事项以当前验收状态为准。
 

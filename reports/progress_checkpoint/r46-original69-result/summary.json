@@ -1,0 +1,25 @@
+{
+  "status": "TERMINAL_69_ACTUAL_FIRST_RESPONSES_READONLY_CLASSIFIED_NO_RESCORING",
+  "at_utc": "2026-10-30T23:28:18.936374+00:00",
+  "application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "state_sha256": "03adba04c1d7511ef5251a1b21fbb74a6f7440fba2ec41ad3336e22713aa7840",
+  "model_posts": 69,
+  "schema_valid": 69,
+  "compiled": 69,
+  "raw_current_diagnostic": {
+    "raw_current_pass": 54,
+    "explicit_gyro_noise_wrong_value": 12,
+    "explicit_configuration_33_parameters_missing": 3
+  },
+  "legacy_strict_pass": 0,
+  "final_current_exact_pass": 0,
+  "script_attempts": 0,
+  "sealed_runtime_attempts": 0,
+  "tool_session86918_exit_code_collected": 1,
+  "not_run_is_never_pass": true,
+  "source_diffs_and_original_labels_not_changed": true,
+  "driver_glue_defect_not_reached": "CompiledTask has no parameters field; sealed d7ba runner would KeyError if runtime eligibility passed. No execution was reached; this is not a physical-model failure.",
+  "no_new_model_or_native_calls": true,
+  "private_case_differences_sha256": "7ac71862067210651b601c32d1e310d6ee44a5f8ec3a92d8cb94949f6977e59b"
+}
