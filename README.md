@@ -100,24 +100,18 @@ python scripts/setup_uv.py --offline
 
 浏览器打开 `http://127.0.0.1:8000/`。Linux x86_64 可使用同一 uv 安装入口，再运行 `./scripts/start_local.sh`；本轮 Windows 安装与实际原生运行已实测，Linux 部署资格仍待独立复验。当前预编译安装入口不接受 macOS 或其他架构。
 
-### 4.2 直接升级原 source-only 工程
+### 4.2 更新已有工程
 
-如果你不想创建新目录，可使用随 V15 提供的累计补丁：
+已有 Git 工作副本时，先提交或备份个人修改，再从仓库根目录执行：
 
-```bash
-cd /path/to/your/original-sat-project
-patch -p1 < sat-platform-original-to-v15.patch
+```powershell
+git pull --ff-only
+python scripts/setup_uv.py
 ```
 
-或者使用 `sat-platform-original-to-v15-overlay.zip`，把 `overlay/` 内的文件按相对路径覆盖到原项目根目录。
+原工程仅有源码时，先备份个人修改，再以[本仓库当前源码](https://github.com/clonetimer/SatAgentSimulation)作为项目根目录，按 4.1 安装。不要将完整源码目录嵌套到旧工程内；旧 `.venv` 也需由 uv 按当前锁定依赖更新后再使用。
 
-如果原项目中已有你自己的修改，请先创建 Git 分支或完整备份，再应用补丁。
-
-详细说明见：
-
-```text
-UPGRADE_FROM_ORIGINAL.md
-```
+[原工程迁移说明](UPGRADE_FROM_ORIGINAL.md)记录的是历史 V15 迁移流程。当前仓库不提供其中提及的旧累计补丁和覆盖包；它们不代表本次最终集成代码。
 
 ### 4.3 从零安装
 
@@ -135,7 +129,7 @@ python scripts/ensure_basilisk_runtime.py --check-only
 python scripts/ensure_basilisk_runtime.py --wheel /path/to/bsk-2.11.0.whl
 ```
 
-> `scripts/bootstrap_local.sh` / `bootstrap_windows.ps1` 面向带 `third_party/wheels` 与 `constraints.txt` 的完整部署包。如果你使用的是 source-only V15 ZIP，请优先复用原环境或自行提供对应 wheelhouse。
+> `scripts/bootstrap_local.sh` / `bootstrap_windows.ps1` 面向自行备齐 wheelhouse 的历史部署流程；当前源码安装请使用 4.1 的 uv 入口和校验步骤。
 
 ## 5. 启动工作台
 
@@ -603,12 +597,9 @@ python run_simulation.py
 
 因为 V15 是源码树，不包含你单独保存的 Basilisk、Pillow 等大型 wheel。Basilisk 一个 wheel 本身就可能超过 80 MiB。
 
-## Q2：应该把 V15 整个目录放进旧 SAT 项目吗？
+## Q2：更新旧 SAT 工程时，应该把新源码目录放进去吗？
 
-不要嵌套。推荐二选一：
-
-- 把 V15 解压成新的项目根目录，复用旧 `.venv`；
-- 在旧项目根目录应用 `sat-platform-original-to-v15.patch` / overlay。
+不要嵌套。按 4.2 更新现有 Git 工作副本，或将当前源码单独作为项目根目录，再使用 uv 更新环境。旧补丁或未经更新的 `.venv` 不构成本次集成的安装验证。
 
 ## Q3：拖动节点后为什么不需要重新生成 Python？
 
