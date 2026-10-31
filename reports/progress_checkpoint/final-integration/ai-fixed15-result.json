@@ -1,0 +1,840 @@
+{
+  "status": "PASS_ALL15_FUNCTIONAL_TRIAL",
+  "started_at_utc": "2026-10-31T02:43:10.542701+00:00",
+  "plan_sha256": "cfd9713a17e46fdf28c7cc55f3ecbfc741b8d76d78e2223de092c1ec18351df8",
+  "source_application": "1afdbb862e09951bfbbf5207fd9397d8284ccb3c180faa2649e6c88e323741d6",
+  "selected": 15,
+  "model_posts": 15,
+  "functional_passed": 15,
+  "pending": 0,
+  "cases": [
+    {
+      "id": "11e363f59f235900a6c9b133935b8bf37739c560b75544e25df6c7ffcc06ec8d",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 77548
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-f1df1b897ce542ce8ed69b55eaf4107e",
+      "script_sha256": "479b3fca3ceb79a544969466f840bd8ced0ce203ca4abaeeedf7b54f3b88f990",
+      "finished_at_utc": "2026-10-31T02:44:24.642001+00:00"
+    },
+    {
+      "id": "3247c7d31bd933e90e587d3dee98227ed8cb19f058a54708105710d4bae466d6",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 85904
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-5c99b5f3370548ab9bc679f5179d5fa7",
+      "script_sha256": "1f4fc2b56059753eafc35c399bddc80db05c15d011e23b218481e34582719775",
+      "finished_at_utc": "2026-10-31T02:45:36.808170+00:00"
+    },
+    {
+      "id": "7be66c388229ef153738d042fd76a08f28e9e28b721e2f85c21bd4c3bef2d60c",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 60232
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-759630dcd81a4ac0b713e5d4a49cd38d",
+      "script_sha256": "3ceda0b6d4a7692a48d05f5c6f29076a2d3b65d72ad8ec1137ee4ce6e4e6a31f",
+      "finished_at_utc": "2026-10-31T02:46:47.145128+00:00"
+    },
+    {
+      "id": "847794877ef290a8479c260e241464e2d743c83c0c5132f564013210af93b9d0",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 87468
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-a72483bfe1924de9a3e9bf3767684b2d",
+      "script_sha256": "814767fd7bb3642dc402560814eb72f6500936ec2d047ab4b7a454ddea4d643b",
+      "finished_at_utc": "2026-10-31T02:48:00.120308+00:00"
+    },
+    {
+      "id": "864054555d6a91efdb2cc54f4d9c9c19c43520c4e93daebd0c3ef2dc9d6acb51",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 88680
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-ac5a5ba1cedf441db819273581cde888",
+      "script_sha256": "3910eb8ef5544563a0c7daed3741f0f88dc5a99ddbee34cae4cbd323874f2d1c",
+      "finished_at_utc": "2026-10-31T02:49:25.934006+00:00"
+    },
+    {
+      "id": "8c31784f328b622934387719a152d3e197ed947fc3b663d32c024625e5a34ddb",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 26588
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-7f2daf2b4e5344fbae85a84f2cd920fd",
+      "script_sha256": "371b5ae89fe9632dcbac8797d9a5371d390cb49f9e6e83a85b309a730d77627b",
+      "finished_at_utc": "2026-10-31T02:50:44.526537+00:00"
+    },
+    {
+      "id": "927bdbe0620f01684235d6f188d494d15bb6be3ce2314268b0528cda15b4719e",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 24408
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-fa5ceb3b1fca47b1878ca4c58d5ea452",
+      "script_sha256": "ce4a6ade49e6eafa5241da8efa345fe239d6c252a358d23ba6e0189d9f86e22e",
+      "finished_at_utc": "2026-10-31T02:52:10.851963+00:00"
+    },
+    {
+      "id": "9bbcf33674f8d43f8decbf755136277b6f4e67fed0cd4d80f9243a54bde01bde",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 1008
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-67518cc3a08b4f7bbd2f5d9b62f5f1b1",
+      "script_sha256": "018641525a22eabaa95fddb4fd5731d79c11bdded2b7d4d56402b8a0d9ee1c3c",
+      "finished_at_utc": "2026-10-31T02:53:30.491036+00:00"
+    },
+    {
+      "id": "c383a1eaf5942ea8b77e428a03a183366e1fec5d5628221cdf6b44b3f4a889d2",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 45692
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-28c2d505bdf343dbbe61b1dfd15627fc",
+      "script_sha256": "9dfa38244f6881586cc30cae5afce2768320235e77e6d487d90732ff259f5fc7",
+      "finished_at_utc": "2026-10-31T02:54:48.367562+00:00"
+    },
+    {
+      "id": "c9b12070072d133ba5d72c9d93be0ff8ed5e20ac5d83181deacbe8d8450d235a",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 78128
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-d8be1c2439064c6b91aff28b762dd269",
+      "script_sha256": "acc14eb964ff620982a9355ef89d70419d2eeb3129ee724d3ab9a28c5548329a",
+      "finished_at_utc": "2026-10-31T02:56:09.642043+00:00"
+    },
+    {
+      "id": "d91082383505851c4bc39a963f3c75d1c5afbe5f1028b10e95f78d8a8f07cb15",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 73672
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-835c5e46f19f460f8cfb3e6c5f8d5647",
+      "script_sha256": "e042429a4338cb7c01ac7c6164f37fc26bdf99ae0ff3335f0ad5897434184d5b",
+      "finished_at_utc": "2026-10-31T02:57:33.318373+00:00"
+    },
+    {
+      "id": "f8ddd66c23e0db626db97f3e7281aeca0c0f1fa006ef42d4e901ecb539ab6401",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 76936
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-65727372bd3b417aa9dabd81e29f2942",
+      "script_sha256": "7ad286fc0e4924d58201f4d72912b97b65019011a451493d41d2fc2ee2d2c6c8",
+      "finished_at_utc": "2026-10-31T02:58:51.131523+00:00"
+    },
+    {
+      "id": "22463ec76ae414b7c1da4e9ed09556dae630245f2e1a2816fe3a7e9c966d7478",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": false,
+        "events": true,
+        "outputs": true
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 36916
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-ec11e28f06c94f3c904fe94e704f8159",
+      "script_sha256": "ba9d0d194f56c71117b827cd9feb2c1396e70e263d4e2acb625483a9372f9a46",
+      "finished_at_utc": "2026-10-31T03:00:45.190204+00:00"
+    },
+    {
+      "id": "480c07aad1c33331b2d352a6ae12882291dcb0ed555893af0d2c65b857308e64",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": false,
+        "events": true,
+        "outputs": true
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 43832
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-48f09ac451fe4988b07eca1756d1ba6b",
+      "script_sha256": "f4363b719f50f1fe63b3a2e9992e75326bdefeef5f2cdadff98130de48cb3a2f",
+      "finished_at_utc": "2026-10-31T03:02:35.041966+00:00"
+    },
+    {
+      "id": "c6bbcf4d2a7c7b0a080c0d8b2123a7e2ccce68b853baf1095113450990f1b78c",
+      "status": "PASS",
+      "stage": "terminal",
+      "model_posts": 1,
+      "original_script_attempted": true,
+      "sealed_runtime_attempted": true,
+      "legacy_strict_checks": {
+        "actual_model_source": true,
+        "no_template_fallback": true,
+        "response_hash": true,
+        "completed": true,
+        "json_object": true,
+        "registry_valid": true,
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": false
+      },
+      "legacy_strict_pass": false,
+      "raw_current_checks": {
+        "model": true,
+        "simulation": true,
+        "parameters": true,
+        "events": true,
+        "outputs": true
+      },
+      "final_exact_current_checks": {
+        "model": false,
+        "simulation": true,
+        "parameters": false,
+        "events": true,
+        "outputs": true
+      },
+      "original_script_process": {
+        "returncode": 0,
+        "timed_out": false,
+        "pid": 88272
+      },
+      "runtime_checks": {
+        "runtime_generated_spec_bound": true,
+        "runtime_execution_succeeded": true,
+        "runtime_validation_passed": true,
+        "runtime_physical_checks_passed": true,
+        "runtime_trace_present": true,
+        "runtime_numeric_outputs_finite": true,
+        "runtime_real_adapter": true,
+        "runtime_bundle_integrity": true,
+        "runtime_seal_bound": true
+      },
+      "model_request_id": "chatcmpl-378f9756be97486cb0b180faea39cab8",
+      "script_sha256": "f734f543d836bdbea429f73a0f701deaced855030626a59cf94f3d6e42c2fe8c",
+      "finished_at_utc": "2026-10-31T03:04:24.177304+00:00"
+    }
+  ],
+  "old_strict_scores_unchanged": true,
+  "scope": "New fixed failure-case functional trial; legacy/current raw/final exact diagnostics remain separate.",
+  "finished_at_utc": "2026-10-31T03:04:24.182837+00:00"
+}

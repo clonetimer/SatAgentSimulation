@@ -60,6 +60,7 @@ def test_vulnerable_versions_are_absent_from_current_dependency_inputs() -> None
         "filelock==3.31.1",
         "msgpack==1.2.1",
         "wheel==0.45.1",
+        "tornado==6.5.10",
     ):
         assert vulnerable not in combined
 
@@ -78,8 +79,8 @@ def test_safe_versions_are_locked_and_constraints_cover_transitive_pillow() -> N
     ):
         assert pin in lock
     assert "pillow==13.0.0" in constraints
-    assert "tornado==6.5.10" in lock
-    assert "tornado==6.5.10" in constraints
+    assert "tornado==6.6" in lock
+    assert "tornado==6.6" in constraints
     assert "urllib3==2.8.0" in lock
     assert "urllib3==2.8.0" in constraints
 

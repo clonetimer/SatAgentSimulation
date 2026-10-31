@@ -274,6 +274,12 @@ class InteractiveSession:
     def allowed_telemetry_streams(self) -> tuple[str, ...]:
         return tuple(item[0] for item in self._telemetry_stream_specs)
 
+    @property
+    def telemetry_catalog(self) -> tuple[dict[str, Any], ...]:
+        """Configured stream contracts, with no worker state or execution side effects."""
+        return tuple({"stream_id": stream_id, "sample_s": sample_s, "fields": fields}
+                     for stream_id, sample_s, fields in self._telemetry_stream_specs)
+
     def submit_command(self, command: Telecommand) -> CommandAck:
         if not isinstance(command, Telecommand):
             raise TypeError("only a confirmed Telecommand can be submitted")

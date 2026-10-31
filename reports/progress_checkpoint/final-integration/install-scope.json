@@ -1,0 +1,45 @@
+{
+  "status": "FINAL_PROJECT_WHEEL_INSTALLED_SCOPED_PASS",
+  "application": "abd2445435a1c1ed6ca05ac357c321a12d6b93f6c075c772c4a4e8f0ae7d93fe",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "frozen_manifest_sha256": "424fd405cc1100ae4e41bcaf9202f005c786c16b7fab22c0446ea498785676b7",
+  "source_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate",
+  "environment_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\final-release-environment\\venv",
+  "wheel": {
+    "path": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\final-owned-install-v1\\dist\\satellite_simulation_platform-0.7.8-py3-none-any.whl",
+    "sha256": "eb110097e73547570e8219d4812aaf6ac47131f52efc2aa7d2040d0a9be2a4bb"
+  },
+  "checks": {
+    "root4c_core59_before": true,
+    "final_frozen_before": true,
+    "all_required_runtime_payload_present": true,
+    "wheel_python_floor": true,
+    "three_historical_nonruntime_sources_explicit": true,
+    "new_canonical_transport_shipped": true,
+    "every_wheel_payload_exact_installed": true,
+    "source_frozen_including_egg_info_unchanged_after": true,
+    "source_app_core_unchanged_after": true,
+    "root4c_core59_unchanged_after": true
+  },
+  "matched_source_wheel_installed_payloads": 869,
+  "installed_environment_checks": {
+    "owned_full_python312": true,
+    "no_main_sft_sys_path": true,
+    "no_system_site_packages": true,
+    "no_shared_pth": true,
+    "unique_distribution_metadata_names": true,
+    "complete90deps_plus_optional_one_project": true,
+    "all90_dependency_metadata_owned_exact": true,
+    "project_metadata_owned_floor": true,
+    "own_project_sat_sim": true,
+    "own_project_sat_sim.api": true,
+    "own_project_sat_sim.canonical_transport": true,
+    "own_project_sat_sim.form_schema": true,
+    "own_project_sat_sim.unified_agent": true,
+    "own_project_sat_sim.script_exporter": true,
+    "own_project_sat_sim.release_closure": true,
+    "own_project_sat_sim.interactive.command_catalog": true,
+    "no_model_framework_loaded": true
+  },
+  "build_proof_sha256": "062989583a0020dd61cf00450448ec6b38cc3ad5af3439b30748025cb8f658e0"
+}

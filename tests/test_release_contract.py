@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import tomllib
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 
 import sat_sim
 from sat_sim.adapters.subsystem_adcs_bsksim import adcs_config_from_task_spec
@@ -57,10 +60,11 @@ def test_current_qualification_cannot_inherit_historical_pass_declarations() -> 
     assert current["local_evidence_platform"] == "Windows"
     assert manifest["target_revalidation_status"] == "NOT_REVALIDATED"
     assert manifest["formal_capacity_baseline_status"] == "NOT_REVALIDATED"
-    assert manifest["dependency_security_gate_status"] == "CURRENT_LOCK_OSV_88_AUDITED_ZERO_VULNERABILITIES"
+    assert manifest["dependency_security_gate_status"] == "CURRENT_LOCK_OSV_AUDITED_ZERO_VULNERABILITIES"
     audit = json.loads((ROOT / "reports/dependency_audit.json").read_text(encoding="utf-8"))
     assert audit["status"] == "PASS" and audit["vulnerability_count"] == 0
-    assert audit["dependency_count"] == 88
+    assert type(manifest["dependency_security_audited_count"]) is int
+    assert manifest["dependency_security_audited_count"] == audit["dependency_count"] == 91
     assert manifest["reliability_soak_status"] == "PENDING_CURRENT_SOURCE"
     assert manifest["reliability_soak_task_count"] == 0
     assert historical["reliability_soak_status"] == "PASS"
@@ -68,6 +72,67 @@ def test_current_qualification_cannot_inherit_historical_pass_declarations() -> 
     # Evidence obligations remain available even while results are absent.
     assert "reports/platform_acceptance/platform_acceptance_summary.json" in manifest["runtime_generated_evidence"]
     assert "reports/vllm_acceptance/vllm_acceptance_report.json" in manifest["required_documents"]
+
+
+def test_current_dependency_security_claim_matches_locked_pins_and_raw_audit() -> None:
+    """Bind the current count to all locked branches and the saved OSV input.
+
+    Markers are deliberately not evaluated: the current audit covers all 91
+    locked pins, while the owned Windows environment installs 90 applicable
+    distributions. Only the already disclosed metadata-only BSK alias applies.
+    """
+    def pins(text: str) -> Counter:
+        result = Counter()
+        for line in text.splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            requirement = Requirement(line.strip())
+            specifiers = list(requirement.specifier)
+            assert requirement.url is None and not requirement.extras
+            assert len(specifiers) == 1 and specifiers[0].operator == "=="
+            assert "*" not in specifiers[0].version
+            result[(canonicalize_name(requirement.name), specifiers[0].version)] += 1
+        return result
+
+    manifest = release_manifest()
+    audit = json.loads((ROOT / "reports/dependency_audit.json").read_text(encoding="utf-8"))
+    assert audit["status"] == "PASS" and audit["return_code"] == 0
+    assert audit["tool"] == "pip-audit" and audit["vulnerability_service"] == "osv"
+    assert audit["vulnerability_count"] == 0
+    assert audit["requirements"] == "reports/security/all-platforms-audit-requirements.txt"
+    assert audit["audit_requirements"] == "reports/security/pip_audit_raw_requirements.txt"
+    assert audit["raw_output"] == "reports/security/pip_audit_raw.json"
+    locked = pins((ROOT / "requirements-lock.txt").read_text(encoding="utf-8"))
+    audit_input = pins((ROOT / audit["requirements"]).read_text(encoding="utf-8"))
+    assert locked == audit_input
+    assert all(count == 1 for count in locked.values())
+
+    aliases = json.loads((ROOT / "configs/security/dependency_audit_aliases.json").read_text(encoding="utf-8"))["aliases"]
+    alias_map = {}
+    applied = []
+    for alias in aliases:
+        installed = pins(alias["installed_requirement"])
+        target = pins(alias["audit_requirement"])
+        assert sum(installed.values()) == sum(target.values()) == 1
+        installed_pin, audit_pin = next(iter(installed)), next(iter(target))
+        alias_map[installed_pin] = audit_pin
+        if installed_pin in locked:
+            applied.append(alias)
+    assert audit["aliases_applied"] == applied
+    expected = Counter()
+    for pin, count in locked.items():
+        expected[alias_map.get(pin, pin)] += count
+    prepared = pins((ROOT / audit["audit_requirements"]).read_text(encoding="utf-8"))
+    assert prepared == expected
+
+    raw = json.loads((ROOT / audit["raw_output"]).read_text(encoding="utf-8"))
+    rows = raw["dependencies"]
+    observed = Counter((canonicalize_name(row["name"]), row["version"]) for row in rows)
+    assert observed == prepared
+    assert all(count == 1 for count in observed.values())
+    assert all(isinstance(row["vulns"], list) and not row["vulns"] for row in rows)
+    assert not raw["fixes"]
+    assert len(rows) == sum(locked.values()) == audit["dependency_count"] == manifest["dependency_security_audited_count"] == 91
 
 
 def test_v0546_bsksim_adapters_preserve_canonical_solver_step() -> None:

@@ -240,7 +240,8 @@
   "formal_capacity_baseline_status": "NOT_REVALIDATED",
   "reliability_soak_status": "PENDING_CURRENT_SOURCE",
   "reliability_soak_task_count": 0,
-  "dependency_security_gate_status": "CURRENT_LOCK_OSV_88_AUDITED_ZERO_VULNERABILITIES",
+  "dependency_security_gate_status": "CURRENT_LOCK_OSV_AUDITED_ZERO_VULNERABILITIES",
+  "dependency_security_audited_count": 91,
   "target_revalidation_status": "NOT_REVALIDATED",
   "current_qualification": {
     "status": "IN_PROGRESS",

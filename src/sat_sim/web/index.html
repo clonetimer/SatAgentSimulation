@@ -22,6 +22,7 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=compact1">
 </head>
 <body data-active-view="creator">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -109,15 +110,20 @@
       <div id="mainContent" class="app-content" tabindex="-1">
 
 
-    <main id="creatorView" class="workspace app-view">
+    <main id="creatorView" class="workspace app-view compact-empty-results">
       <section class="panel editor-panel">
         <div class="editor-toolbar">
           <div>
-            <div class="eyebrow">当前能力</div>
+
             <h2 id="selectedCapabilityName">请选择仿真能力</h2>
-            <p id="selectedCapabilitySummary">表单由 Capability Registry 自动生成。</p>
+            <details class="capability-about"><summary>模型说明</summary><p id="selectedCapabilitySummary">查看当前模型的适用范围。</p></details>
           </div>
-          <div class="toolbar-actions">
+<div class="toolbar-actions creator-primary-actions">            <button id="previewBtn" class="button button-secondary" type="button" title="只执行 Schema、语义、能力兼容和执行计划检查，不启动仿真">校验配置</button>
+            <button id="runBtn" class="button button-primary" type="button">运行仿真</button>
+            <button id="updateTaskBtn" class="button button-ghost hidden" type="button">更新任务</button>
+
+        <details id="creatorMoreActions" class="creator-more-actions">
+          <summary>更多操作</summary><div class="creator-secondary-actions">
             <label class="variant-control">场景模板
               <select id="scenarioTemplateSelect" aria-label="中文场景模板"><option value="">选择模板…</option></select>
             </label>
@@ -125,12 +131,10 @@
             <label id="variantControl" class="variant-control hidden">模型/场景
               <select id="variantSelect" aria-label="模型或场景变体"></select>
             </label>
-            <button id="saveTaskBtn" class="button button-ghost" type="button">另存为新任务</button>
-            <button id="updateTaskBtn" class="button button-ghost hidden" type="button">更新已打开任务</button>
+            <button id="saveTaskBtn" class="button button-ghost" type="button">保存为新任务</button>
             <button id="resetFormBtn" class="button button-ghost" type="button">恢复默认</button>
-            <button id="previewBtn" class="button button-secondary" type="button" title="只执行 Schema、语义、能力兼容和执行计划检查，不启动仿真">校验与预览</button>
-            <button id="runBtn" class="button button-primary" type="button">运行仿真</button>
-          </div>
+</div>
+        </details></div>
         </div>
 
         <div class="tabbar" role="tablist" aria-label="任务创建方式">
@@ -147,16 +151,17 @@
         </div>
         <section id="simulationModeChooser" class="workflow-explainer" aria-label="仿真运行方式">
           <div class="single-run-heading">
-            <div><strong>运行方式</strong><span>从当前仿真配置选择单次执行、限时实时或持续实时。切换实时模式不会自动启动。</span></div>
+            <div><strong>运行方式</strong><span>先选方式，再确认启动。</span></div>
           </div>
           <div class="single-run-shortcuts" aria-label="选择仿真运行方式">
-            <button type="button" class="button button-primary" id="modeFiniteRunBtn">单次离线仿真（当前）</button>
-            <button type="button" class="button button-secondary" id="modeBoundedRealtimeBtn">限时实时 · 审核当前整星配置</button>
-            <button type="button" class="button button-secondary" id="modeContinuousRealtimeBtn">持续实时 · 审核当前整星配置</button>
+            <button type="button" class="button button-primary" id="modeFiniteRunBtn">离线仿真</button>
+            <button type="button" class="button button-secondary" id="modeBoundedRealtimeBtn">限时实时</button>
+            <button type="button" class="button button-secondary" id="modeContinuousRealtimeBtn">持续实时</button>
           </div>
-          <p id="simulationModeChooserStatus" class="continuous-muted" role="status">实时配置复用目前仅适用于原生整星正常工况；分系统与单机请使用相应的已有独立入口。实时模式不自动运行。</p>
+          <p id="simulationModeChooserStatus" class="continuous-muted" role="status">实时入口支持原生整星正常工况，审核后确认启动。</p>
         </section>
-        <section id="singleRunGuide" class="workflow-explainer single-run-guide" aria-label="单次仿真三步操作">
+        <details id="singleRunGuide" class="workflow-explainer single-run-guide" aria-label="单次仿真三步操作">
+<summary class="compact-section-summary">操作指南</summary>
           <div class="single-run-heading">
             <div><strong>单次仿真 · 从配置到结果</strong><span>有限时长任务，执行一次后形成独立 Run Bundle；不同于持续卫星仿真。</span></div>
             <span id="singleRunReadiness" class="single-run-readiness" role="status" aria-live="polite">检查 Basilisk 环境中…</span>
@@ -187,7 +192,8 @@
             </div>
           </div>
           <p id="singleRunProgress" class="single-run-progress" role="status" aria-live="polite">请选择左侧仿真对象。运行后可在右侧结果面板或运行中心查看记录。</p>
-        </section>
+
+</details>
 
         <div id="formTab" class="tab-content active" data-panel="form" role="tabpanel" aria-labelledby="creatorFormTabButton">
           <section id="agentChangePanel" class="agent-change-panel hidden" aria-live="polite">
@@ -204,9 +210,10 @@
           <div id="formSearchEmpty" class="single-run-search-empty hidden" role="status">未找到匹配参数。请尝试其他关键词，或清空搜索框。</div>
           <div id="formValidationSummary" class="inline-validation hidden" aria-live="polite"></div>
           <form id="dynamicForm" class="dynamic-form" autocomplete="off"></form>
-          <section class="form-section">
+          <details id="compactEvents" class="form-section">
+<summary class="compact-section-summary">事件 <span id="compactEventCount" class="compact-count">无</span></summary>
             <div class="section-heading">
-              <div><h3>故障、退化与运行约束</h3><p>故障表示异常失效，退化表示性能逐步下降，运行约束表示正常物理边界或状态事件。</p></div>
+              <div><h3>添加事件</h3><p>选择事件类型，设置生效时间和幅度。</p></div>
             </div>
             <div class="event-add-row">
               <select id="effectKind"><option value="fault">故障</option><option value="degradation">退化</option><option value="constraint">运行约束</option></select>
@@ -214,10 +221,12 @@
               <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
             </div>
             <div id="eventList" class="event-list"></div>
-          </section>
-          <section class="form-section">
+
+</details>
+          <details id="compactOutputs" class="form-section">
+<summary class="compact-section-summary">输出与曲线 <span id="compactOutputCount" class="compact-count"></span></summary>
             <div class="section-heading">
-              <div><h3>输出与曲线</h3><p>选择需要写入结果摘要和纵轴曲线清单的可观测量。仿真时间（time_s）自动作为横轴，不需要勾选；sample_index、task_id、case_id 属于运行元数据，不作为物理曲线。</p></div>
+              <div><h3>输出与曲线</h3><p>选择记录量；曲线横轴为仿真时间。</p></div>
             </div>
             <div class="output-grid">
               <div><h4>QoI（摘要指标）</h4><div id="qoiOptions" class="check-grid"></div></div>
@@ -235,44 +244,58 @@
                 <div class="inline-checks"><label><input id="fmeaFormatCsv" type="checkbox" value="csv"><span>CSV</span></label><label><input id="fmeaFormatJson" type="checkbox" value="json"><span>JSON</span></label></div>
               </section>
             </div>
-          </section>
+
+</details>
         </div>
 
         <div id="graphTab" class="tab-content" data-panel="graph" role="tabpanel" aria-labelledby="creatorGraphTabButton">
           <section class="graph-workbench" aria-label="图形化仿真组装器">
             <div class="graph-toolbar">
               <div>
-                <div class="eyebrow">Visual Composer · Rapid Graph Programming</div>
-                <h3>像 Simulink 一样组装，直接形成可运行程序</h3>
-                <p>V15 继续保持建模画布只负责建模，并补齐多选、框选、对齐、等间距、自动布局与观察器复制粘贴：快速拖拽、自动匹配、生成代码、构建并运行；完整结果统一在结果界面查看。需要局部观察时，显式放置 Scope、Display 或 To Workspace 观察器，而不是让普通模块承担结果展示。</p>
+                <h3>图形组装</h3>
+                <p>连接模块，生成脚本后运行。</p>
                 <div class="graph-mode-switch" role="tablist" aria-label="图形编辑模式">
                   <button id="graphFlowModeBtn" class="graph-mode-button active" type="button" aria-pressed="true">任务流程</button>
-                  <button id="graphAssemblyModeBtn" class="graph-mode-button" type="button" aria-pressed="false">多模块装配 · V15</button><span class="graph-mode-compat">兼容既有 V8–V14 装配工程</span>
+                  <button id="graphAssemblyModeBtn" class="graph-mode-button" type="button" aria-pressed="false">多模块装配</button>
                 </div>
               </div>
-              <div id="graphFlowToolbarActions" class="toolbar-actions graph-toolbar-actions">
+              <div id="graphFlowToolbarActions" class="toolbar-actions graph-toolbar-actions compact-graph-actions">
+                <div class="compact-graph-primary" role="group" aria-label="任务流程主操作">
+                  <button id="graphValidateBtn" class="button button-secondary" type="button">校验图</button>
+                  <button id="graphGenerateCodeBtn" class="button button-secondary" type="button">生成 Python</button>
+                  <button id="graphRunBtn" class="button button-primary" type="button">构建并运行</button>
+                </div>
+                <div class="compact-graph-secondary">
+                <details id="graphEditActions" class="compact-graph-disclosure">
+                  <summary>编辑</summary>
+                  <div class="compact-graph-action-panel" role="group" aria-label="流程编辑操作">
                 <button id="graphUndoBtn" class="button button-ghost" type="button" disabled title="撤销图编辑（Ctrl/Cmd+Z）">撤销</button>
                 <button id="graphRedoBtn" class="button button-ghost" type="button" disabled title="重做图编辑（Ctrl/Cmd+Shift+Z）">重做</button>
+                <button id="graphAutoWireBtn" class="button button-ghost" type="button">自动布线</button>
+                <button id="graphAutoLayoutBtn" class="button button-ghost" type="button">自动布局</button>
+                <button id="graphClearBtn" class="button button-ghost" type="button">清空画布</button>
+                <button id="graphResetBtn" class="button button-ghost" type="button">恢复基础流程</button>
+                  </div>
+                </details>
+                <details id="graphProjectActions" class="compact-graph-disclosure">
+                  <summary>工程</summary>
+                  <div class="compact-graph-action-panel" role="group" aria-label="流程工程与导出">
                 <button id="graphSaveDraftBtn" class="button button-ghost" type="button">保存草稿</button>
                 <button id="graphLoadDraftBtn" class="button button-ghost" type="button">加载草稿</button>
                 <button id="graphExportProjectBtn" class="button button-ghost" type="button">导出工程</button>
                 <button id="graphImportProjectBtn" class="button button-ghost" type="button">导入工程</button>
                 <input id="graphImportProjectInput" class="hidden" type="file" accept="application/json,.json,.satgraph.json">
-                <button id="graphClearBtn" class="button button-ghost" type="button">清空画布</button>
-                <button id="graphResetBtn" class="button button-ghost" type="button">恢复基础流程</button>
-                <button id="graphAutoWireBtn" class="button button-ghost" type="button">自动布线</button>
-                <button id="graphAutoLayoutBtn" class="button button-ghost" type="button">自动布局</button>
-                <button id="graphValidateBtn" class="button button-secondary" type="button">校验图</button>
-                <button id="graphGenerateCodeBtn" class="button button-secondary" type="button">生成 Python</button>
                 <button id="graphResultOverlayBtn" class="button button-ghost" type="button" disabled>查看运行结果</button>
                 <button id="graphTuneBtn" class="button button-secondary" type="button">快速调参</button>
                 <button id="graphExportProgramBtn" class="button button-secondary" type="button">导出可运行程序包</button>
-                <button id="graphRunBtn" class="button button-primary" type="button">构建并运行</button>
+                  </div>
+                </details>
+                </div>
               </div>
             </div>
             <section id="visualTuningPanel" class="visual-tuning-panel hidden" aria-live="polite">
               <div class="visual-tuning-heading">
-                <div><strong>快速调参 · V12</strong><span>选择 1–3 个注册数值参数，以目标 QoI 自动扫描；最多 12 个 Run Bundle。</span></div>
+                <div><strong>快速调参</strong><span>选择 1–3 个注册数值参数，以目标 QoI 自动扫描；最多 12 个 Run Bundle。</span></div>
                 <button id="visualTuningCloseBtn" class="button button-ghost" type="button">收起</button>
               </div>
               <div class="visual-tuning-objective">
@@ -325,27 +348,41 @@
             </div>
 
             <div id="graphAssemblyComposer" class="hidden">
-              <div class="assembly-toolbar">
+              <div class="assembly-toolbar compact-graph-actions">
+                <div class="compact-graph-primary" role="group" aria-label="装配主操作">
+                  <button id="assemblyValidateBtn" class="button button-secondary" type="button">校验装配</button>
+                  <button id="assemblyGenerateCodeBtn" class="button button-secondary" type="button">生成 Python</button>
+                  <button id="assemblyRunBtn" class="button button-primary" type="button">构建并运行</button>
+                </div>
+                <div class="compact-graph-secondary">
+                <details id="assemblyEditActions" class="compact-graph-disclosure">
+                  <summary>编辑</summary>
+                  <div class="compact-graph-action-panel" role="group" aria-label="装配编辑操作">
+                    <button id="assemblyRestoreBtn" class="button button-ghost" type="button">恢复注册连线</button>
+                    <div class="assembly-edit-toolbar" role="group" aria-label="建模布局工具">
+                      <span id="assemblySelectionSummary" class="assembly-selection-summary">未选择 · Shift/Ctrl 多选 · 空白处拖框选择</span>
+                      <button id="assemblyAutoLayoutBtn" class="button button-ghost" type="button">自动布局</button>
+                      <button id="assemblyAlignLeftBtn" class="button button-ghost" type="button">左对齐</button>
+                      <button id="assemblyAlignTopBtn" class="button button-ghost" type="button">顶对齐</button>
+                      <button id="assemblyDistributeHBtn" class="button button-ghost" type="button">水平等距</button>
+                      <button id="assemblyDistributeVBtn" class="button button-ghost" type="button">垂直等距</button>
+                      <button id="assemblyCopyObserversBtn" class="button button-ghost" type="button" title="仅复制显式观察器；物理模块受合同约束不能复制">复制观察器</button>
+                      <button id="assemblyPasteObserversBtn" class="button button-ghost" type="button">粘贴</button>
+                    </div>
+                  </div>
+                </details>
+                <details id="assemblyProjectActions" class="compact-graph-disclosure">
+                  <summary>工程</summary>
+                  <div class="compact-graph-action-panel" role="group" aria-label="装配工程与导出">
                 <label class="assembly-select-field"><span>注册装配</span><select id="assemblyCapabilitySelect" aria-label="注册式多模块装配"></select></label>
                 <button id="assemblyLoadBtn" class="button button-secondary" type="button">加载装配</button>
-                <button id="assemblyRestoreBtn" class="button button-ghost" type="button">恢复注册连线</button>
-                <button id="assemblyValidateBtn" class="button button-secondary" type="button">校验装配</button>
-                <button id="assemblyGenerateCodeBtn" class="button button-secondary" type="button">生成 Python</button>
                 <button id="assemblyCompareBtn" class="button button-secondary" type="button">与基线对比</button>
                 <button id="assemblyTuneBtn" class="button button-secondary" type="button">快速调参</button>
                 <button id="assemblyResultOverlayBtn" class="button button-ghost" type="button" disabled>查看运行结果</button>
                 <button id="assemblyExportProgramBtn" class="button button-secondary" type="button">导出可运行程序包</button>
-                <button id="assemblyRunBtn" class="button button-primary" type="button">构建并运行</button>
-              </div>
-              <div class="assembly-edit-toolbar" role="toolbar" aria-label="建模布局工具">
-                <span id="assemblySelectionSummary" class="assembly-selection-summary">未选择 · Shift/Ctrl 多选 · 空白处拖框选择</span>
-                <button id="assemblyAutoLayoutBtn" class="button button-ghost" type="button">自动布局</button>
-                <button id="assemblyAlignLeftBtn" class="button button-ghost" type="button">左对齐</button>
-                <button id="assemblyAlignTopBtn" class="button button-ghost" type="button">顶对齐</button>
-                <button id="assemblyDistributeHBtn" class="button button-ghost" type="button">水平等距</button>
-                <button id="assemblyDistributeVBtn" class="button button-ghost" type="button">垂直等距</button>
-                <button id="assemblyCopyObserversBtn" class="button button-ghost" type="button" title="仅复制显式观察器；物理模块受合同约束不能复制">复制观察器</button>
-                <button id="assemblyPasteObserversBtn" class="button button-ghost" type="button">粘贴</button>
+                  </div>
+                </details>
+                </div>
               </div>
               <div id="assemblyStatus" class="graph-status" role="status">从“快速开始”选择模板即可得到可运行装配；也可以拖模块到画布。端口匹配和运行前校验由后端自动完成。</div>
               <section id="assemblyComparePanel" class="assembly-compare-panel hidden" aria-live="polite">
@@ -407,7 +444,7 @@
         <div id="agentTab" class="tab-content" data-panel="agent" role="tabpanel" aria-labelledby="creatorAgentTabButton">
           <section class="agent-compose">
             <div class="section-heading">
-              <div><h3>自然语言创建 TaskSpec</h3><p>Agent 只能使用已注册能力，不生成任意 Python。</p></div>
+              <div><h3>描述仿真需求</h3><p>描述对象、时长与工况，生成后检查配置。</p></div>
             </div>
             <div id="agentConversation" class="agent-conversation" aria-live="polite"><div class="agent-conversation-empty">可连续补充条件；后续指令将基于当前 TaskSpec 修改，而不是重新开始。</div></div>
             <textarea id="agentInput" rows="6" placeholder="例如：创建完整六分系统整星仿真，运行60秒，20秒载荷关机，30秒通信中断，输出姿态误差、电池SOC、温度和下行数据率。"></textarea>
@@ -438,20 +475,20 @@
 
       <aside id="creatorRunPanel" class="panel run-panel" aria-label="运行与结果">
         <div class="panel-header run-header">
-          <div><h2>运行与结果</h2><p>独立于建模节点的 Run Bundle 结果界面</p></div>
+          <div><h2>运行与结果</h2><p>状态、曲线与运行记录</p></div>
           <div class="run-header-actions">
             <button id="expandRunPanelBtn" class="icon-button" type="button" title="扩展结果栏" aria-label="扩展结果栏" aria-pressed="false">⇔</button>
             <button id="fullscreenRunPanelBtn" class="icon-button" type="button" title="全屏显示运行结果" aria-label="全屏显示运行结果" aria-pressed="false">⛶</button>
-            <button id="reuseRunConfigBtn" class="button button-secondary hidden" type="button" title="复制本次 Run 保存的配置到新建表单，不运行、不修改历史记录">复用此配置</button>
-            <button id="openRunReportBtn" class="button button-ghost hidden" type="button">查看报告</button>
+
+
             <button id="exportDatasetBtn" class="button button-primary hidden" type="button">导出数据集</button>
-            <button id="downloadRunDiagnosticBtn" class="button button-ghost hidden" type="button">诊断包</button>
+
             <button id="cancelRunBtn" class="button button-danger hidden" type="button">取消运行</button>
-            <button id="refreshRunsBtn" class="icon-button" type="button" title="刷新运行列表" aria-label="刷新运行列表">↻</button>
+            <details id="resultMoreActions" class="creator-more-actions result-more-actions"><summary>更多</summary><div class="creator-secondary-actions"><button id="reuseRunConfigBtn" class="button button-secondary hidden" type="button" title="复制本次 Run 保存的配置到新建表单，不运行、不修改历史记录">复用此配置</button><button id="openRunReportBtn" class="button button-ghost hidden" type="button">查看报告</button><button id="downloadRunDiagnosticBtn" class="button button-ghost hidden" type="button">诊断包</button></div></details><button id="refreshRunsBtn" class="icon-button" type="button" title="刷新运行列表" aria-label="刷新运行列表">↻</button>
           </div>
         </div>
         <div id="activeRunCard" class="active-run empty-state">
-          <div class="empty-icon">◇</div>
+          <div class="empty-icon" data-compact-empty-results>◇</div>
           <strong>尚未选择运行</strong>
           <span>完成仿真后将在这里展示状态、指标和曲线。</span>
         </div>
@@ -467,19 +504,19 @@
           <div id="validationCard" class="validation-card"></div>
         </div>
         <div id="resultCharts" class="result-content" data-result-panel="charts">
-          <div class="chart-axis-note">横轴固定为仿真时间（time_s）；曲线按整星 / 分系统 / 部件层次选择，最多同时显示 4 条。</div>
-          <div id="chartControls" class="chart-controls"></div>
-          <div class="chart-window-controls" aria-label="曲线时间范围">
+          <div class="chart-axis-note">横轴为仿真时间，最多显示4条曲线。</div>
+          <details class="compact-chart-selection"><summary class="compact-section-summary">选择曲线</summary><div id="chartControls" class="chart-controls"></div></details>
+          <details class="compact-chart-options"><summary class="compact-section-summary" id="compactChartOptionsLabel">归一化趋势 · 时间与显示</summary><div class="chart-window-controls" aria-label="曲线时间范围">
             <label>纵轴显示 <select id="chartScaleMode" aria-label="曲线纵轴显示方式"><option value="trend">多参量趋势（分别归一化）</option><option value="absolute">原始数值（同单位比较）</option></select></label>
             <label>起点 / s <input id="chartTimeStart" type="number" step="any" inputmode="decimal" aria-label="曲线开始时间"></label>
             <label>终点 / s <input id="chartTimeEnd" type="number" step="any" inputmode="decimal" aria-label="曲线结束时间"></label>
             <button id="chartApplyWindowBtn" class="button button-secondary" type="button">应用范围</button>
             <button id="chartResetWindowBtn" class="button button-ghost" type="button">恢复全程</button>
-          </div>
+          </div></details>
           <div id="chartWindowStatus" class="chart-window-status" role="status" aria-live="polite">选择运行后可查看曲线时窗。</div>
           <p id="chartTelemetryCoverage" class="chart-axis-note" role="status">加载结果后显示本次曲线覆盖范围和是否抽样；概览不替代完整数据集。</p>
           <div class="chart-frame chart-drag-frame"><canvas id="telemetryChart" width="760" height="360" aria-label="遥测曲线，可用鼠标从左向右拖选时间范围"></canvas><div id="chartDragSelection" class="chart-drag-selection hidden" aria-hidden="true"></div></div>
-          <div class="chart-drag-help">鼠标按住曲线横向拖动框选时间段；“恢复全程”可退出局部缩放。框选只改变浏览器显示，不修改原始遥测。</div>
+          <div class="chart-drag-help">拖动曲线可缩放时间范围，不修改原始数据。</div>
           <div id="chartLegend" class="chart-legend"></div>
         </div>
         <div id="resultEvents" class="result-content" data-result-panel="events"><div id="resultEventList" class="timeline"></div></div>
@@ -574,12 +611,13 @@
               </optgroup>
             </select></label>
             <div id="interactiveCapabilityHint" class="interactive-scope-hint">整星会话共享同一时钟和状态，可控制姿轨控、能源与通信数传并观察跨系统影响。</div>
+            <p id="interactiveRuntimePolicy" class="continuous-muted" role="status">正在读取服务器创建能力…</p>
             <button id="interactiveImportOfflineConfigBtn" class="button button-secondary" type="button">复用离线整星修改参数</button>
             <p id="interactiveOfflineConfigStatus" class="continuous-muted" role="status">仅支持将当前离线整星的可兼容修改项导入实时整星；不会自动启动。</p>
             <div class="interactive-form-grid">
-              <label>时长 / s（限时模式；持续模式用于初始化）<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
+              <label>时长 / s（持续模式为初始化时长）<input id="interactiveDuration" type="number" min="1" max="86400" step="1" value="60"></label>
               <label class="toggle-label"><input id="interactiveContinuous" type="checkbox"><span>持续运行（手动停止）</span></label>
-              <label>量子 / s<select id="interactiveQuantum"><option>0.1</option><option selected>0.5</option><option>1</option></select></label>
+              <label>推进步长 / s<select id="interactiveQuantum"><option>0.1</option><option selected>0.5</option><option>1</option></select></label>
               <label>初始倍速<select id="interactiveInitialRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
               <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>
             </div>
@@ -596,6 +634,7 @@
             <div><span>漂移</span><strong id="interactiveDrift">0 ms</strong></div>
           </div>
           <div class="interactive-controls" role="toolbar" aria-label="会话控制">
+            <button id="interactiveOpenContinuousBtn" class="button button-secondary hidden" type="button">在持续控制台查看</button>
             <button id="interactiveStartBtn" class="icon-button" type="button" title="启动" aria-label="启动">▶</button>
             <button id="interactivePauseBtn" class="icon-button" type="button" title="暂停" aria-label="暂停">Ⅱ</button>
             <button id="interactiveResumeBtn" class="icon-button" type="button" title="继续" aria-label="继续">▷</button>
@@ -613,6 +652,7 @@
               </div>
             </div>
             <div class="interactive-chart"><canvas id="interactiveTelemetryChart" width="960" height="320"></canvas></div>
+            <p class="continuous-muted">各曲线按自身范围归一化；下方显示原始数值。</p>
             <div id="interactiveLatestValues" class="interactive-latest-values"></div>
           </section>
           <section class="interactive-section">
@@ -643,7 +683,7 @@
       <header class="continuous-hero">
         <div><div class="eyebrow">Continuous Basilisk Native · TC / TM Control</div>
           <h1>持续卫星仿真</h1>
-          <p>保持同一个原生整星状态持续推进。遥控按仿真时刻执行，遥测实时更新；异常会话默认禁止自动恢复。</p></div>
+          <p>遥控按仿真时刻执行，遥测实时更新。</p></div>
         <div class="continuous-hero-actions">
           <span id="continuousConnectionBadge" class="status-chip status-muted" role="status">尚未连接</span>
           <button id="continuousRefreshBtn" class="button button-secondary" type="button">刷新状态</button>
@@ -662,6 +702,7 @@
             <div class="section-heading compact"><h2>创建持续会话</h2></div>
             <p class="continuous-muted">无需编写脚本。后端固定使用已注册的 Basilisk 原生整星能力。</p>
             <form id="continuousCreateForm" autocomplete="off">
+              <p id="continuousCreationPolicy" class="continuous-muted" role="status">正在读取服务器创建能力…</p>
               <button id="continuousImportOfflineConfigBtn" class="button button-secondary" type="button">从当前离线整星配置导入修改项</button>
               <p id="continuousOfflineConfigStatus" class="continuous-muted" role="status">导入前核对差异与实时支持范围；不会自动创建会话。</p>
               <label>会话标识<input id="continuousSessionId" maxlength="128" pattern="[A-Za-z0-9][A-Za-z0-9_.:-]*" required value="satellite-continuous-1"></label>
@@ -670,7 +711,7 @@
               <label>初始化时长（非运行上限）<input id="continuousHorizon" type="number" min="1" max="86400" step="1" value="60" required></label>
               <label class="toggle-label"><input id="continuousPaced" type="checkbox" checked><span>墙钟节拍（软实时）</span></label>
               <details class="continuous-native-config">
-                <summary>运行前配置：整星、分系统与已接入的单机参数（点击展开）</summary>
+                <summary>运行前配置</summary>
                 <p class="continuous-muted">仅调整整星原生 Basilisk 计算图中已有的模型参数。创建会话后冻结配置；不支持任意新增/移除硬件或独立运行单机。默认值与现有模型相同。</p>
                 <div class="continuous-native-config-fields">
                   <fieldset><legend>轨道与整星</legend>
@@ -908,7 +949,7 @@
                 </div>
               </details>
               <p id="continuousInitialConfigStatus" class="continuous-muted">仅当前新会话可设置；创建后无法修改已有模型实例。</p>
-              <button class="button button-primary" type="submit">创建原生持续会话</button>
+              <button class="button button-primary" type="submit">创建会话</button>
             </form>
           </section>
           <section class="continuous-card">
@@ -1005,6 +1046,7 @@
           </section>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>实时整星遥测</h2><span id="continuousGapBadge" class="status-chip status-muted">未订阅</span></div>
+            <label class="continuous-signal">会话遥测流<select id="continuousStream" aria-label="持续会话遥测流"></select></label>
             <label class="continuous-signal">监测参量<select id="continuousSignal"><option value="orbit.radius_m">轨道半径 / m</option><option value="adcs.pointing_error_deg">姿态指向误差 / °</option><option value="eps.battery_soc">蓄电池荷电状态</option><option value="adcs.rw.speed_rad_s_0">RW1 实测原生轮速 / rad/s</option><option value="adcs.rw.speed_rad_s_1">RW2 实测原生轮速 / rad/s</option><option value="adcs.rw.speed_rad_s_2">RW3 实测原生轮速 / rad/s</option><option id="continuousRw4SignalOption" value="adcs.rw.speed_rad_s_3" hidden disabled>RW4 实测原生轮速 / rad/s（仅四轮构型）</option><option value="adcs.rw.effective_max_torque_nm_0">RW1 命令有效限幅 / N·m</option></select></label>
             <canvas id="continuousChart" class="continuous-chart" width="950" height="265" role="img" aria-label="最近的原生遥测趋势"></canvas>
             <div class="continuous-metrics continuous-last">
@@ -1157,7 +1199,7 @@
 
   <div id="faultCatalogModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="faultCatalogTitle">
     <section class="modal-card experiment-card">
-      <div class="modal-header"><div><div class="eyebrow">Fault Environment</div><h2 id="faultCatalogTitle">故障、退化与运行约束目录</h2><p>目录来自故障环境状态机与证据合同，供工作台和 Agent 共同使用。</p></div><button id="closeFaultCatalogBtn" class="icon-button" type="button">×</button></div>
+      <div class="modal-header"><div><div class="eyebrow">Fault Environment</div><h2 id="faultCatalogTitle">添加事件目录</h2><p>目录来自故障环境状态机与证据合同，供工作台和 Agent 共同使用。</p></div><button id="closeFaultCatalogBtn" class="icon-button" type="button">×</button></div>
       <div id="faultCatalogList" class="experiment-list"></div>
     </section>
   </div>
@@ -1208,5 +1250,6 @@
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/app.js?v=0.7.8" defer></script>
   <script src="/assets/continuous.js?v=0.7.8" defer></script>
+  <script src="/assets/compact-workbench.js?v=compact1" defer></script>
 </body>
 </html>

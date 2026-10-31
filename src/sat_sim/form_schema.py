@@ -12,7 +12,8 @@ import re
 from typing import Any, Mapping
 
 from .capability_registry import active_capability_ids, get_capability
-from .task_models import CANONICAL_TASK_SPEC_VERSION, CanonicalTaskSpec
+from .canonical_transport import task_spec_json
+from .task_models import CANONICAL_TASK_SPEC_VERSION, CanonicalTaskSpec, canonicalize_task_spec
 from .workbench_catalog import workbench_presentation_catalog
 
 FORM_SCHEMA_VERSION = "sat-sim.capability-form-schema.v2"
@@ -1372,6 +1373,7 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
 
     if not isinstance(task_spec, Mapping):
         raise TypeError("task_spec must be a mapping")
+    task_spec = canonicalize_task_spec(task_spec)
     declared = str(_mapping(task_spec.get("model")).get("capability_id") or "")
     if declared and declared != capability_id:
         raise ValueError(f"TaskSpec capability_id {declared!r} does not match requested form {capability_id!r}")
@@ -1382,8 +1384,9 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
         value = task_spec.get(key)
         if isinstance(value, Mapping):
             _deep_merge(form_data[key], value)
-    # Carry analysis scope through template -> form -> preview -> run. Do not
-    # copy old model-invocation/approval metadata into a newly edited form.
+    # Keep the editable metadata view concise. The canonical context below
+    # retains the full history; validation and planning are always rerun and
+    # no approval or compiled-result cache is accepted by this projection.
     source_metadata = _mapping(task_spec.get('metadata'))
     retained_metadata = {key: copy.deepcopy(source_metadata[key])
                          for key in ('engineering_scope', 'scenario_template')
@@ -1400,13 +1403,21 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
     for key in ("qoi", "plots"):
         value = outputs.get(key)
         outputs[key] = list(value) if isinstance(value, (list, tuple)) else []
+    # This is a validated TaskSpec input, not a trusted compiler/plan cache.
+    # Keep it alongside the editable view so undo/load snapshots retain the
+    # same base. It contains neither another form nor a projection context.
+    form_data["_canonical_projection"] = {
+        "schema_version": "sat-sim.canonical-form-context.v1",
+        "task_spec": copy.deepcopy(task_spec),
+        "task_spec_json": task_spec_json(task_spec),
+    }
     return {
         "schema_version": FORM_SCHEMA_VERSION,
         "capability_id": capability_id,
         "form_data": form_data,
         "projected_field_paths": [item["path"] for item in schema["fields"]],
-        "projection_is_lossless": False,
-        "projection_note": "The form retains engineering scope and template lineage; submitted values receive new form-origin records. Edit the TaskSpec directly to preserve custom canonical-only provenance.",
+        "projection_is_lossless": True,
+        "projection_note": "Canonical context is retained and revalidated; only actual form value changes receive new field provenance and a new execution plan.",
     }
 
 

@@ -69,7 +69,7 @@ def _lmstudio_pass(base_url: str = "http://127.0.0.1:1234/v1") -> dict:
 
 
 def test_release_identity_is_v0570() -> None:
-    manifest = json.loads((Path(__file__).resolve().parents[1] / "src/sat_sim/release_manifest.json").read_text())
+    manifest = json.loads((Path(__file__).resolve().parents[1] / "src/sat_sim/release_manifest.json").read_text(encoding="utf-8"))
     assert RELEASE_VERSION == manifest["release_version"]
     assert RELEASE_ID == manifest["release_id"]
 

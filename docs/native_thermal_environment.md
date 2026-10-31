@@ -34,6 +34,8 @@
 
 原生整星集成将所有节点的常量内部热源置零，实际 EPS 总线耗电按 battery 2/18、electronics 8/18、adcs 3/18、solar_panel 5/18 分配为热。它是总和为一的工程假设，不是设备标定。载荷只接收实际载荷用电的 95%，不额外增加 standalone 配置的 25 W。其他既有桥接效率为 ADCS 90%、通信 90%、推进 85%；未分配份额在集总节点边界之外，不声称完整机电能量闭合。
 
+电池容量突降可能使 SimpleBattery 的储能状态被新容量上限裁剪，超出部分不再作为模型可用储能跟踪；它没有转换成上述用电转热项或故障热源。该状态差不代表等量瞬时发热，`energy_bounds_pass` 和 `energy_balance_proxy` 也不是这一过程的守恒证明。容量、SOC 和未跟踪能量去向的适用边界及官方参考见[原生资源损失事件说明](native_resource_loss_events.md#容量突降储能与-soc-的边界)。
+
 PDU 辅助加热器（默认 15 W）与电池/电子设备恒温加热器（默认 12/8 W）是独立负载。后两者的实际开关、故障功率比例及完整电功率现在进入原生电池用电消息，节点入热为电功率乘 95% 效率。追踪字段 `eps.loads.battery_thermostat_power_w` 和 `eps.loads.electronics_thermostat_power_w` 单位 W。独立热网络配置不变；这次修订发生在整星耦合主路径。
 
 旧四组整圈结果因含重复/未计量热源而被当前验收替代，原始数据保持。新证据路径为 `reports/local_requirements_completion/thermal-energy-corrected-full-cycle/`。

@@ -1,12 +1,12 @@
-# SAT卫星仿真平台 · Visual Composer V15
+# SAT卫星仿真平台
 
 新手从[START_HERE.md](START_HERE.md)开始。uv环境入口为 `python scripts/setup_uv.py`，已有完整缓存可加 `--offline`。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
-后端验收候选 **R46** 已完成全量 **2427通过、0失败、6跳过、2警告**，29项交互回归及两个真实AI场景；见[R46进展包](reports/progress_checkpoint/r46-interaction-ownership/README.md)。界面候选 **R48** 已精简工具栏及文案，57项定向检查通过，桌面和窄屏预览可打开 http://127.0.0.1:56148 ，见[对比图与源码增量](reports/progress_checkpoint/r48-compact-toolbar/README.md)。Root代码尚未替换，正式耐久使用独立R46源码，后续安装/结构章节仍面向Root源码。
+最终集成已合入实际项目源码，全量 **2500通过、0失败、6跳过、2警告**。独立 uv 环境的安装包完成两个真实 AI 创建/修改场景、脚本下载、3次原生运行及曲线验收。当前本机安装态入口为 http://127.0.0.1:56149 ，常规启动地址仍为 `http://127.0.0.1:8000/`。见[最终集成结果与实测图](reports/progress_checkpoint/final-integration/README.md)。
 
-整体仍在验收：69条AI复验已结束，原严格评分0/69保留；按当前默认输出单独诊断，原回答54/69匹配，12条陀螺噪声量级错误、3条遗漏明确配置，均未进入执行。见[最终分类](reports/progress_checkpoint/r46-original69-result/README.md)。AI参数约束正在独立R47候选中修复。新正式24h已于北京时间2026-10-31 06:50从零启动，终态待验；物理warning1/42、旧DEGRADED峰值和工程假设保留，不声称飞行/硬件标定或全部高保真。图形工具栏正在独立R48候选中继续精简。
+AI 显式参数约束已修复：15个历史失败用例以15次真实首答完成原始脚本执行和密封结果复核。旧69条严格评分0/69、原回答诊断54/69及[历史失败分类](reports/progress_checkpoint/r46-original69-result/README.md)全部保留，本次不是新的69/69。界面已收纳低频操作、精简工具栏与文案；设计与交互证据见[R48记录](reports/progress_checkpoint/r48-compact-toolbar/README.md)。
 
-本README此前原文见[历史快照](reports/progress_checkpoint/r46-interaction-ownership/history/root-README.pre-current-r46.md)；R43—R45已发表证据及历史失败保持原样。最新分范围数据、源码增量前像要求和待完成事项以当前验收状态为准。
+整体仍为 **ACTIVE / UNPROVEN**：新24h耐久于北京时间2026-10-31 06:50从零启动，终态待验；旧实例约20.5小时记录不能计为通过。工程假设、物理警告1/42及部分物理覆盖说明保留，适用范围为通用近地小卫星工程仿真。此前进展包及历史失败保持原样，逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
 ## 1. V15 是什么
 

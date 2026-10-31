@@ -1,10 +1,10 @@
 {
   "schema_version": "sat-sim.dependency-audit.v2",
   "release_version": "0.7.8",
-  "generated_at_utc": "2026-10-28T08:44:06.894226+00:00",
+  "generated_at_utc": "2026-10-30T17:37:12.052509+00:00",
   "status": "PASS",
-  "requirements": "requirements-lock.txt",
-  "audit_requirements": "reports/local_requirements_completion/dependency-audit-security-upgraded-osv-raw_requirements.txt",
+  "requirements": "reports/security/all-platforms-audit-requirements.txt",
+  "audit_requirements": "reports/security/pip_audit_raw_requirements.txt",
   "aliases_applied": [
     {
       "installed_requirement": "bsk==2.11.0+satfix2",
@@ -20,7 +20,7 @@
     "-m",
     "pip_audit",
     "--requirement",
-    "<PROJECT_ROOT>/reports/local_requirements_completion/dependency-audit-security-upgraded-osv-raw_requirements.txt",
+    "<PROJECT_ROOT>/reports/security/pip_audit_raw_requirements.txt",
     "--format",
     "json",
     "--vulnerability-service",
@@ -35,12 +35,12 @@
     "--timeout",
     "20",
     "--output",
-    "<PROJECT_ROOT>/reports/local_requirements_completion/dependency-audit-security-upgraded-osv-raw.json"
+    "<PROJECT_ROOT>/reports/security/pip_audit_raw.json"
   ],
   "return_code": 0,
-  "dependency_count": 88,
+  "dependency_count": 91,
   "vulnerability_count": 0,
-  "raw_output": "reports/local_requirements_completion/dependency-audit-security-upgraded-osv-raw.json",
+  "raw_output": "reports/security/pip_audit_raw.json",
   "stdout": "",
   "stderr": "WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies\nWARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes\nNo known vulnerabilities found\n"
 }

@@ -27,6 +27,58 @@ def _client(tmp_path):
     return TestClient(app)
 
 
+def _reveal_with_keyboard(page, selector, tmp_path, label):
+    """Open real disclosure summaries before exercising their original controls."""
+    proof_path = tmp_path / "r32-navigation-proof.json"
+    records = json.loads(proof_path.read_text(encoding="utf-8")) if proof_path.exists() else []
+
+    def snapshot(stage):
+        proof = page.locator(selector).evaluate("""(node) => {
+            const details=[]; for(let p=node.parentElement;p;p=p.parentElement) {
+                if(p.tagName==='DETAILS') details.push({id:p.id,open:p.open,summary:p.querySelector(':scope > summary')?.textContent});
+            }
+            return {textContent:node.textContent,innerText:node.innerText,details,
+                checkVisibility:typeof node.checkVisibility==='function' ? node.checkVisibility() : null};
+        }""")
+        proof.update(label=label + "-" + stage, selector=selector,
+                     playwright_visible=page.locator(selector).is_visible())
+        records.append(proof)
+        proof_path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    snapshot("before")
+    # These existing public toggles now also own desktop disclosure state.
+    # Open the containing panel before the original native-details traversal.
+    for panel_id, button_id in (("workbenchTools", "toggleMobileToolsBtn"),
+                                ("mobileCatalogPanel", "toggleMobileCatalogBtn")):
+        inside_panel = page.locator(selector).evaluate(
+            "(node, id) => Boolean(node.closest('#' + id))", panel_id)
+        panel = page.locator('#' + panel_id)
+        if inside_panel and not panel.is_visible():
+            button = page.locator('#' + button_id)
+            button.focus()
+            button.press("Enter")
+            panel.wait_for(state="visible")
+    for _ in range(10):
+        closed = page.locator(selector).evaluate("""(node) => {
+            const all=[...document.querySelectorAll('details')], found=[];
+            for(let p=node.parentElement;p;p=p.parentElement) {
+                if(p.tagName==='DETAILS' && !p.open) found.push(all.indexOf(p));
+            }
+            return found.reverse();
+        }""")
+        if not closed:
+            break
+        index = closed[0]
+        summary = page.locator("details").nth(index).locator(":scope > summary")
+        assert summary.is_visible()
+        summary.focus()
+        assert summary.evaluate("(node) => document.activeElement === node")
+        summary.press("Enter")
+        page.wait_for_function("(index) => document.querySelectorAll('details')[index].open", arg=index)
+    assert page.locator(selector).is_visible()
+    snapshot("after")
+
+
 def test_single_run_readiness_never_claims_a_physical_run_passed(tmp_path):
     with _client(tmp_path) as client:
         resp = client.get("/workbench/single-run/readiness")
@@ -123,8 +175,10 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#singleRunGuide[data-stage='configure']").wait_for(timeout=30000)
             assert page.locator("#singleRunGuide .single-run-step").count() == 3
+            _reveal_with_keyboard(page, "#singleRunReadiness", tmp_path, "model-readiness-menu")
             assert "Basilisk" in page.locator("#singleRunReadiness").inner_text()
             assert page.locator("#runBtn").is_enabled()
+            _reveal_with_keyboard(page, "#singleRunConfigSummary", tmp_path, "single-run-guide")
             assert "运行时长" in page.locator("#singleRunConfigSummary").inner_text()
             assert "结果输出" in page.locator("#singleRunConfigSummary").inner_text()
 
@@ -214,6 +268,7 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             # The fidelity ADCS variant (not the unified whole-spacecraft
             # variant) exposes the vector3_or_number gyro bias event field.
             # This is UI-only validation, not acceptance of proxy physics.
+            _reveal_with_keyboard(page, "#levelFilter", tmp_path, "catalog-level-filter")
             page.locator("#levelFilter").select_option("subsystem")
             page.locator("#capabilityList [data-object-id='subsystem.adcs']").click()
             page.wait_for_function(
@@ -222,8 +277,10 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             )
             fidelity_option = page.locator("#variantSelect option[value='subsystem.adcs_fidelity.v1']")
             if fidelity_option.count() == 0:
+                _reveal_with_keyboard(page, "#showCompatibilityCapabilities", tmp_path, "catalog-compatibility")
                 page.locator("#showCompatibilityCapabilities").check()
                 fidelity_option.wait_for(timeout=20000)
+            _reveal_with_keyboard(page, "#variantSelect", tmp_path, "model-variant-menu")
             page.locator("#variantSelect").select_option("subsystem.adcs_fidelity.v1")
             page.wait_for_function(
                 "() => [...document.querySelectorAll('#effectSelect option')].some(o => o.value === 'adcs_gyro_bias_step')",
@@ -358,6 +415,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
             page.locator(".result-tab[data-result-tab='charts']").click()
             assert "4 / 4" in page.locator("#chartWindowStatus").inner_text()
 
+            _reveal_with_keyboard(page, "#chartTimeStart", tmp_path, "chart-time-menu")
             page.locator("#chartTimeStart").fill("1")
             page.locator("#chartTimeEnd").fill("2")
             page.locator("#chartApplyWindowBtn").click()
@@ -393,6 +451,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
 
             # Historical canonical TaskSpec is projected back into a fresh
             # editable form. This action does not create or rerun a Run.
+            _reveal_with_keyboard(page, "#reuseRunConfigBtn", tmp_path, "result-more-menu")
             assert page.locator("#reuseRunConfigBtn").is_visible()
             page.once("dialog", lambda dialog: dialog.accept())
             page.locator("#reuseRunConfigBtn").click()

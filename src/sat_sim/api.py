@@ -19,10 +19,12 @@ import zipfile
 from time import monotonic
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal, Mapping
+from typing import Any, ClassVar, Literal, Mapping
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from .canonical_transport import CanonicalTransportError, parse_canonical_transport, task_spec_json
 
 from .agent_guards import agent_tool_policy_payload, evaluate_agent_guards
 from .capability_registry import capability_summary_payload
@@ -87,6 +89,58 @@ _MAX_TELEMETRY_ROWS = 5000
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    _normalize_task_spec_objects: ClassVar[bool] = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def bind_canonical_text(cls, value):
+        if not isinstance(value, Mapping):
+            return value
+        result = dict(value)
+        for field in ("task_spec", "base_task_spec"):
+            text_field = field + "_json"
+            if text_field not in cls.model_fields:
+                continue
+            if text_field in result:
+                result[field] = parse_canonical_transport(result.get(field), result[text_field])
+            elif result.get(field) is not None and cls._normalize_task_spec_objects:
+                result[field] = parse_canonical_transport(result[field])
+        return result
+
+
+def _with_canonical_text(value: Any) -> Any:
+    """Add text beside TaskSpec documents without modifying their opaque contents."""
+    if isinstance(value, list):
+        return [_with_canonical_text(item) for item in value]
+    if not isinstance(value, Mapping):
+        return value
+    # A TaskSpec's metadata may contain historical raw answers or other specs.
+    # Those are document contents, never response envelopes to rewrite.
+    if "simulation" in value and ("task" in value or "task_id" in value) and "schema_version" in value:
+        return dict(value)
+    result = {key: _with_canonical_text(item) for key, item in value.items()}
+    for field in ("task_spec", "base_task_spec"):
+        if field in value:
+            result.pop(field + "_json", None)
+        document = value.get(field)
+        if not isinstance(document, Mapping) or "simulation" not in document:
+            continue
+        version = document.get("schema_version")
+        complete_v1 = version == "1.0.0" and isinstance(document.get("task"), Mapping)
+        declared_legacy = version in (None, "0.1") and isinstance(document.get("task_id"), str) and bool(document["task_id"].strip())
+        if not (complete_v1 or declared_legacy):
+            continue
+        try:
+            text = task_spec_json(document)
+        except CanonicalTransportError as exc:
+            # Invalid drafts keep their actual validation errors and receive
+            # no promise of a valid canonical transport document.
+            if exc.reason_code == "CANONICAL_TRANSPORT_SCHEMA_INVALID":
+                continue
+            raise
+        result[field] = document
+        result[field + "_json"] = text
+    return result
 
 
 class TaskCreateBody(_Strict):
@@ -94,7 +148,9 @@ class TaskCreateBody(_Strict):
     request_text: str = ""
     form_data: dict[str, Any] | None = None
     task_spec: dict[str, Any] | None = None
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     base_task_spec: dict[str, Any] | None = None
+    base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     patch: dict[str, Any] | None = None
     backend: str = "auto"
     local_backend: str = "template"
@@ -116,10 +172,12 @@ class TaskCreateBody(_Strict):
 
 class TaskBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
 
 
 class ScriptExportBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
 
 
 class GraphCompileBody(_Strict):
@@ -138,20 +196,27 @@ class AssemblyCompileBody(_Strict):
 class AssemblyScriptExportBody(_Strict):
     assembly_graph: dict[str, Any]
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     require_all_bindings: bool = True
 
 
 class ProgramExportBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     visual_graph: dict[str, Any] | None = None
     assembly_graph: dict[str, Any] | None = None
     require_all_bindings: bool = True
 
 
 class VisualDiagnoseBody(_Strict):
+    # A read-only diagnostic may contain only a capability/context fragment.
+    # Explicit text still takes the canonical boundary; ordinary fragments do
+    # not become default migrated executable documents.
+    _normalize_task_spec_objects: ClassVar[bool] = False
     error_text: str = Field(default="", max_length=20_000)
     reason_code: str | None = Field(default=None, max_length=200)
     task_spec: dict[str, Any] | None = None
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     visual_graph: dict[str, Any] | None = None
     assembly_graph: dict[str, Any] | None = None
 
@@ -172,10 +237,12 @@ class VisualObserverExportBody(_Strict):
 
 class VisualTuningOptionsBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
 
 
 class VisualTuningPlanBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     parameters: dict[str, list[float | int]]
     objective_metric: str = Field(min_length=1, max_length=300)
     direction: Literal["minimize", "maximize"] = "minimize"
@@ -189,6 +256,7 @@ class VisualTuningRankBody(_Strict):
 
 class RunCreateBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     run_id: str | None = None
     supersedes_run_id: str | None = None
     execute: bool = False
@@ -205,6 +273,7 @@ class RunExecuteBody(_Strict):
 
 class FormProjectionBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
 
 
 class CancelBody(_Strict):
@@ -248,6 +317,7 @@ class LocalModelServiceBody(_Strict):
 
 class TaskCenterSaveBody(_Strict):
     task_spec: dict[str, Any]
+    task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     task_id: str | None = None
     name: str | None = None
     source: str = "workbench"
@@ -279,6 +349,7 @@ class ScenarioTemplateInstantiateBody(_Strict):
 class ExperimentCreateBody(_Strict):
     name: str = Field(min_length=1, max_length=300)
     base_task_spec: dict[str, Any]
+    base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     sweep: dict[str, list[Any]] = Field(default_factory=dict)
     assertions: list[dict[str, Any]] = Field(default_factory=list)
     experiment_type: str = Field(default="sweep", max_length=40)
@@ -287,10 +358,12 @@ class ExperimentCreateBody(_Strict):
 
 class ExperimentOptionsBody(_Strict):
     base_task_spec: dict[str, Any]
+    base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
 
 
 class ExperimentPlanBody(_Strict):
     base_task_spec: dict[str, Any]
+    base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     sweep: dict[str, list[Any]] = Field(default_factory=dict)
     assertions: list[dict[str, Any]] = Field(default_factory=list)
     experiment_type: str = Field(default="sweep", max_length=40)
@@ -730,11 +803,19 @@ def create_app(
             if queue_worker is not None:
                 queue_worker.stop()
 
+    class CanonicalJSONResponse(JSONResponse):
+        def render(self, content: Any) -> bytes:
+            try:
+                return super().render(_with_canonical_text(content))
+            except CanonicalTransportError as exc:
+                raise HTTPException(status_code=422, detail={"reason_code": exc.reason_code, "message": str(exc)}) from exc
+
     app = FastAPI(
         title="Satellite Simulation Agent API",
         version=API_VERSION,
         description="Local-first deterministic TaskSpec, planning, execution, evidence and Web workbench API.",
         lifespan=lifespan,
+        default_response_class=CanonicalJSONResponse,
     )
     app.state.execution_queue = execution_queue
     app.state.queue_worker = queue_worker
@@ -1743,8 +1824,10 @@ def create_app(
     def experiment_dispersion_options(body: dict[str, Any]) -> dict[str, Any]:
         try:
             base_task_spec = body.get("base_task_spec") if isinstance(body, dict) else None
-            if not isinstance(base_task_spec, dict):
-                raise ValueError("base_task_spec is required")
+            base_task_spec = (
+                parse_canonical_transport(base_task_spec, body["base_task_spec_json"])
+                if "base_task_spec_json" in body else parse_canonical_transport(base_task_spec)
+            )
             options = dispersion_parameter_options(base_task_spec)
             return {"ok": True, "schema_version": "scenario.experiment-center.v2", "count": len(options), "options": options}
         except Exception as exc:
@@ -2467,6 +2550,11 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
     def save_task_center_task(body: TaskCenterSaveBody) -> dict[str, Any]:
         try:
             canonical = canonicalize_task_spec(body.task_spec)
+            if body.task_id and canonical["task"]["id"] != body.task_id:
+                canonical["task"]["id"] = body.task_id
+                canonical.setdefault("provenance", {}).setdefault("fields", {})["task.id"] = {
+                    "source": "resolver_derived", "evidence": "Task center copy identity from the explicit task_id request parameter",
+                }
             validation = validate_task_spec(canonical)
             record = task_center.save(
                 canonical,

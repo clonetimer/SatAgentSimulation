@@ -1,5 +1,7 @@
 # Basilisk 2.11.0+satfix1 来源与 Windows 安装校验（#38 精简移植）
 
+> 当前兼容范围（R36）：项目要求 Python 3.11～3.13；Tornado 固定为官方 6.6，修复本轮新增的三项安全公告。此前 Python 3.10 的 wsproto 握手与回显记录仅为历史传输证据，不代表当前整包支持。本页带日期的 satfix1、旧漏洞数与安装记录保留为历史材料；当前依赖与审计结果以锁文件及本轮新报告为准，不能继承历史“零漏洞”结论。
+
 ## 1. 两种 Basilisk wheel 不能混淆
 
 当前项目 `pyproject.toml`、`constraints.txt`、`requirements.txt` 固定 `bsk==2.11.0+satfix1`。仓库里的 `scripts/build_bsk_compat_wheels.py` 经审计**只对经过官方 SHA-256 核验的 Basilisk 2.11.0 wheel 修改分发元数据**：
@@ -23,7 +25,7 @@
 
 ## 3. Windows 非程序员安装路径（源码工作区）
 
-在 Windows PowerShell 中，打开项目根目录，先确认安装了 **64 位 Python 3.11**（项目可用版本 3.10～3.13），然后：
+在 Windows PowerShell 中，打开项目根目录，先确认安装了 **64 位 Python 3.11**（项目可用版本 3.11～3.13），然后：
 
 ```powershell
 # 首次安装

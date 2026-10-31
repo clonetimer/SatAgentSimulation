@@ -176,6 +176,7 @@ class CapabilityAgentRequest:
     output_root: str | Path | None = None
     script_output: str | Path | None = None
     max_repair_attempts: int = 2
+    compile_if_valid: bool = True
     run_task: bool = False
     dry_run: bool = False
     # A2 real-model integration options.  ``command`` is the recommended
@@ -376,34 +377,9 @@ def requested_health_mode(text: str) -> str:
 
 
 def _explicit_time_requirements(text: str) -> dict[str, float]:
-    """Extract only unambiguous user-supplied mission times, not fault onset times."""
-    latest = text.rsplit("本轮补充指令：", 1)[-1].lower()
-    number = r"([-+]?\d+(?:\.\d+)?)"
-    unit = r"(seconds?|secs?|minutes?|mins?|hours?|hrs?|秒|分钟|小时|s|m|h)"
-    units = {"秒":1.,"分钟":60.,"小时":3600.,"s":1.,"m":60.,"h":3600.}
-    patterns = {
-        "duration_s": [
-            rf"(?:仿真时长|总时长|时长|仿真|运行|模拟)\s*(?:改成|改为|设为|设置为|为|[:：])?\s*{number}\s*{unit}",
-            rf"\b(?:run|simulate|duration)\s*(?:for|of|is|[:=])?\s*{number}\s*{unit}\b",
-            rf"{number}\s*{unit}\s*(?:的)?(?:工程)?(?:仿真|模拟)",
-            rf"\b{number}\s*-\s*{unit}(?:\s+\w+){{0,4}}\s+simulation\b",
-        ],
-        "sample_s": [
-            rf"(?:采样间隔|输出间隔|采样周期|记录周期)\s*(?:为|设为|[:：])?\s*{number}\s*{unit}",
-            rf"(?:每|every)\s*{number}\s*{unit}\s*(?:采样|sample)",
-        ],
-        "step_s": [rf"(?:积分步长|仿真步长|步长)\s*(?:为|设为|[:：])?\s*{number}\s*{unit}"],
-    }
-    result = {}
-    for key, candidates in patterns.items():
-        for pattern in candidates:
-            match = re.search(pattern, latest)
-            if match:
-                raw_unit = match.group(2)
-                factor = units.get(raw_unit, 3600. if raw_unit.startswith(('hour','hr')) else 60. if raw_unit.startswith('min') else 1.)
-                result[key] = float(match.group(1))*factor
-                break
-    return result
+    """Read the same complete, dimensioned time bindings used by refinement."""
+    from .nl_time import parse_time_bindings
+    return parse_time_bindings(text).requirements
 
 
 def _request_forbids_all_events(text: str) -> bool:
@@ -413,6 +389,35 @@ def _request_forbids_all_events(text: str) -> bool:
         r"无(?:任何)?故障[、，,\s]*(?:无)?退化(?:或|及|和|[、，,\s])*(?:无)?约束(?:事件)?"
         r"|\b(?:no|without)\s+(?:any\s+)?faults?\s*[,/]\s*(?:no\s+)?degradations?\s*(?:,?\s*(?:or|and)\s+|[,/]\s*)(?:no\s+)?constraints?\b",
         latest, re.I))
+
+
+def _request_requires_single_fault(text: str) -> bool:
+    """A count bound from explicit prose or the actual supplied refinement base.
+
+    No effect, magnitude or onset is inferred or supplied to the decoder.
+    Requests naming other event kinds retain the general transport schema.
+    """
+    latest = text.rsplit('本轮补充指令：', 1)[-1]
+    if re.search(r'退化|约束|\b(?:degradations?|constraints?)\b', latest, re.I):
+        return False
+    for match in re.finditer(r'只(?:添加|注入|设置)?(?:这)?(?:一个|1个)故障|\b(?:only one|a single) fault\b', latest, re.I):
+        prefix = re.split(r'[，。；;\n]', latest[:match.start()])[-1]
+        if not re.search(r'不要|禁止|\b(?:not|never)\b', prefix, re.I):
+            return True
+    if '本轮补充指令：' not in text or not re.search(
+            r'不要添加其他事件|不添加其他事件|\bno (?:other|additional) events\b', latest, re.I):
+        return False
+    head = text.rsplit('本轮补充指令：', 1)[0]
+    marker = '现有 TaskSpec：'
+    if marker not in head:
+        return False
+    try:
+        base, _ = json.JSONDecoder().raw_decode(head.rsplit(marker, 1)[-1].lstrip())
+        from .task_models import canonicalize_task_spec
+        events = canonicalize_task_spec(base)['events']
+        return len(events['faults']) == 1 and not events['degradations'] and not events['constraints']
+    except (ValueError, TypeError, KeyError):
+        return False
 
 
 def _request_allows_custom_rw_geometry(text: str) -> bool:
@@ -535,25 +540,9 @@ def _explicit_event_requirement_issues(
 
 
 def _registered_literal_assignments(text: str, declared: Mapping[str, Any]) -> dict[str, Any]:
-    """Parse only explicit registered key=literal input; never infer values."""
-    latest = text.rsplit('本轮补充指令：', 1)[-1]
-    expected = {}
-    for match in re.finditer(r'(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)\s*=\s*', latest):
-        name = match.group(1)
-        if name not in declared:
-            continue
-        remainder = latest[match.end():].lstrip()
-        try:
-            literal, end = json.JSONDecoder().raw_decode(remainder)
-            if end < len(remainder) and not re.match(r'[\s,，;；。]', remainder[end]):
-                raise ValueError('bare string, not a complete JSON number')
-        except (ValueError, TypeError):
-            token = re.match(r'[^\s,，;；。]+', remainder)
-            literal = token.group(0) if token else ''
-            if re.fullmatch(r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?', literal):
-                literal = float(literal)
-        expected[name] = literal
-    return expected
+    """Shared strict user-literal requirements; never infer or replace values."""
+    from .explicit_parameters import explicit_parameter_assignments
+    return explicit_parameter_assignments(text, declared)
 
 
 def _requested_declared_output_fields(text: str, contract: Mapping[str, Any]) -> set[str]:
@@ -573,31 +562,102 @@ def _requested_declared_output_fields(text: str, contract: Mapping[str, Any]) ->
     return requested
 
 
-def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str) -> list[ValidationIssue]:
+def _natural_battery_loss_requirement_issues(spec: Mapping[str, Any], text: str) -> list[ValidationIssue]:
+    """Validate a narrowly explicit prose literal; never modify a model answer.
+
+    Supports one battery-capacity-loss percentage, including 'from X% to Y%'.
+    Unrecognized, negated and multi-event prose remains outside this checker.
+    Values come only from the latest user instruction, never benchmark labels.
+    """
+    from .task_models import canonicalize_task_spec
+
+    latest = text.rsplit('本轮补充指令：', 1)[-1]
+    if re.search(r'(?:\bEvents\s*[:：]|事件配置\s*[:：]|事件为)', latest, re.I):
+        return []  # The existing explicit-JSON checker owns this contract.
+    number = r'(?:\d+(?:\.\d*)?|\.\d+)'
+    pattern = (r'(?:电池\s*容量|battery\s+capacity)\s*(?:损失|loss)\s*'
+               rf'(?:(?:从|from)\s*{number}\s*[%％]\s*(?:改为|变为|调整为|更改为|to)\s*'
+               r'|(?:为|of|is|=)?\s*)'
+               rf'(?P<percent>{number})\s*[%％]')
+    matches = list(re.finditer(pattern, latest, re.I))
+    if len(matches) != 1:
+        return []
+    match = matches[0]
+    prefix = re.split(r'[，。；;\n]', latest[:match.start()])[-1]
+    if re.search(r'不要|不添加|取消|\b(?:remove|without|no)\b', prefix, re.I):
+        return []
+    wanted = float(match.group('percent')) / 100.0
+    if not 0.0 <= wanted <= 1.0:
+        return [ValidationIssue('error', '$.request.events',
+            'Battery-capacity loss must be between 0% and 100%; clarify the user request.',
+            'USER_NATURAL_EVENT_REQUIREMENT_INVALID')]
+    actual = canonicalize_task_spec(spec)['events']
+    faults = actual.get('faults', [])
+    matching = [event for event in faults if event.get('effect') == 'eps_battery_capacity_loss']
+    issues = []
+    if len(matching) != 1:
+        issues.append(ValidationIssue('error', '$.events.faults',
+            f'The latest user instruction explicitly requests battery-capacity loss of {wanted:g}. '
+            'Generate exactly one eps_battery_capacity_loss fault with that magnitude; '
+            f'the model returned effects {[event.get("effect") for event in faults]!r}. '
+            'This checker has not changed the model answer.', 'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
+    else:
+        value = matching[0].get('magnitude')
+        if type(value) not in (int, float) or not math.isfinite(value) or not math.isclose(value, wanted, rel_tol=1e-12, abs_tol=0.):
+            issues.append(ValidationIssue('error', '$.events.faults.magnitude',
+                f'The user explicitly requested loss fraction {wanted:g}, but the model returned {value!r}. '
+                'Regenerate the requested value; no answer substitution is permitted.',
+                'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
+        times = list(re.finditer(rf'第\s*(?P<seconds>{number})\s*秒', latest))
+        if len(times) == 1:
+            wanted_time = float(times[0].group('seconds'))
+            value = matching[0].get('start_s')
+            if type(value) not in (int, float) or not math.isfinite(value) or not math.isclose(value, wanted_time, rel_tol=1e-12, abs_tol=0.):
+                issues.append(ValidationIssue('error', '$.events.faults.start_s',
+                    f'The user explicitly requested fault onset {wanted_time:g} s, but the model returned {value!r}.',
+                    'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
+    if _request_requires_single_fault(text):
+        if sum(len(actual.get(kind, [])) for kind in ('faults', 'degradations', 'constraints')) != 1:
+            issues.append(ValidationIssue('error', '$.events',
+                'The user explicitly requested only one fault; extra or missing events are forbidden.',
+                'USER_NATURAL_EVENT_REQUIREMENT_MISMATCH'))
+    return issues
+
+
+def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str, *, capability_id: str | None = None, check_outputs: bool = True) -> list[ValidationIssue]:
     """Validate user literals without ever writing model values or guessed intent."""
     from .task_models import canonicalize_task_spec
-    cid = str(spec.get('capability_id') or _mapping(spec.get('model')).get('capability_id') or '')
+    from .explicit_parameters import ExplicitParameterError, same_literal
+    cid = capability_id or str(spec.get('capability_id') or _mapping(spec.get('model')).get('capability_id') or '')
     if not cid:
         return []
     contract = get_capability(cid).data
-    canonical = canonicalize_task_spec(spec)
-    values = _mapping(canonical.get('parameters')).get('values', {})
-    expected = _registered_literal_assignments(text, contract.get('parameters', {}))
-
-    def same(a, b):
-        if type(a) in (int,float) and type(b) in (int,float):
-            return math.isfinite(a) and math.isfinite(b) and math.isclose(a,b,rel_tol=1e-12,abs_tol=0.)
-        if isinstance(a,list) and isinstance(b,list):
-            return len(a)==len(b) and all(same(x,y) for x,y in zip(a,b))
-        if isinstance(a,dict) and isinstance(b,dict):
-            return a.keys()==b.keys() and all(same(a[k],b[k]) for k in a)
-        return type(a) is type(b) and a==b
+    try:
+        expected = _registered_literal_assignments(text, contract.get('parameters', {}))
+    except ExplicitParameterError as exc:
+        return [ValidationIssue('error', '$.request', str(exc), 'USER_PARAMETER_REQUIREMENT_INVALID')]
+    # Match the public runtime adapter: nonempty parameters.values is the
+    # authoritative carrier; model.config is only the empty/absent fallback.
+    # Read before default insertion so an omission cannot be filled and pass.
+    parameters = _mapping(spec.get('parameters'))
+    carriers = ([_mapping(parameters.get('values')) or _mapping(_mapping(spec.get('model')).get('config'))]
+                if spec.get('schema_version') == '1.0.0' or 'values' in parameters else [parameters])
 
     issues = [ValidationIssue(severity='error', path=f'$.parameters.{key}',
         code='USER_PARAMETER_REQUIREMENT_MISMATCH',
-        message=f'Explicit user assignment {key}={wanted!r} is missing or differs from model value {values.get(key)!r}; preserve the requested value without substituting defaults.')
-        for key,wanted in expected.items() if key not in values or not same(wanted,values[key])]
+        message=f'Explicit user assignment {key}={wanted!r} is missing or differs in the model parameter carriers; preserve the requested value without substituting defaults.')
+        for key,wanted in expected.items()
+        if not any(key in values for values in carriers)
+        or any(key in values and not same_literal(wanted, values[key]) for values in carriers)]
+    # The pre-default guard owns raw parameters only. Canonical migration also
+    # validates events, so leave malformed events to the normal validator rather
+    # than raising while checking an unrelated parameter requirement.
+    if not check_outputs:
+        return issues
     requested_fields = _requested_declared_output_fields(text, contract)
+    if not requested_fields:
+        return issues
+    canonical = canonicalize_task_spec(spec)
     outputs = _mapping(canonical.get('outputs'))
     selected = [*outputs.get('plots', []), *outputs.get('qoi', [])]
     for name in sorted(requested_fields):
@@ -611,14 +671,26 @@ def _validate_generated_draft(spec: Mapping[str, Any], request: CapabilityAgentR
     validation = validate_task_spec(spec)
     issues = list(validation.issues)
     simulation = _mapping(spec.get("simulation"))
-    for key, expected in _explicit_time_requirements(request.request).items():
+    try:
+        times = _explicit_time_requirements(request.request)
+    except ValueError as exc:
+        times = {}
+        issues.append(ValidationIssue("error", "$.request", str(exc), "USER_TIME_REQUIREMENT_INVALID"))
+    for key, expected in times.items():
         actual = _mapping(simulation.get('solver')).get('step_s', simulation.get('step_s')) if key=='step_s' else simulation.get(key)
         if not isinstance(actual, (float,int)) or isinstance(actual,bool) or not math.isfinite(actual) or abs(float(actual)-expected)>1e-9:
             issues.append(ValidationIssue(severity="error",path=f"$.simulation.{key}",
                 code="USER_TIME_REQUIREMENT_MISMATCH",message=f"User explicitly requested {key}={expected:g} s, but the model returned {actual!r}. Preserve the requested value exactly."))
     if validation.ok:
         issues.extend(_explicit_event_requirement_issues(spec, request.request))
+        issues.extend(_natural_battery_loss_requirement_issues(spec, request.request))
         issues.extend(_explicit_literal_requirement_issues(spec, request.request))
+    if request.compile_if_valid and not any(issue.severity == 'error' for issue in issues):
+        # Compatibility exports must also wait for the execution plan.
+        from .execution_planner import plan_task_spec
+        planning = plan_task_spec(spec)
+        issues.extend(ValidationIssue('error', issue.path, issue.message, issue.code)
+                      for issue in planning.validation.errors)
     return ValidationResult(tuple(issues))
 
 
@@ -1091,6 +1163,8 @@ def _compact_contract_summary(contract: CapabilityContract) -> dict[str, Any]:
         "capability_id": contract.capability_id,
         "task_type": "orbit_environment" if contract.target_level == "integrated" and contract.capability_id.startswith("orbit_environment.") else contract.target_level,
         "target": {"level": contract.target_level, "name": contract.target_name},
+        "event_target_default": contract.target_name,
+        "event_target_prefixes": list(data.get('event_target_prefixes') or []),
         "parameters": params,
         "effects": effects,
         "outputs": {"trace": trace_names},
@@ -1369,6 +1443,13 @@ def build_capability_agent_prompt(
         )
 
     if compact:
+        event_count_note = ('The user explicitly requires exactly one fault. Use target.mode=fault, '
+            'one fault in a single event carrier, and no extra events. Choose its declared type, '
+            'magnitude and time from the user request; do not copy the nominal example mode. '
+            'For legacy faults use fault_type, target, onset_time_s and magnitude. Do not emit '
+            'severity or duplicate type/time aliases alongside those fields. Put the legacy '
+            'event in top-level faults and leave modifiers.faults empty.\n'
+            if _request_requires_single_fault(request_text) else '')
         return f"""# Satellite Simulation TaskSpec Generation
 Generate one TaskSpec, never code. Registry/planner are authoritative; examples/retrieval are advisory. Never invent capabilities, effects, parameters, outputs or claims. Reject unsupported requests; never substitute a partial capability.
 
@@ -1381,10 +1462,13 @@ Generate one TaskSpec, never code. Registry/planner are authoritative; examples/
 ```
 {exposure_note}{boundary_note}{experience_note}
 ## Output contract
+{event_count_note}
 Return one YAML/JSON object, no Markdown or explanation. Use schema_version: {TASK_SPEC_VERSION}.
 Allowed top-level keys: schema_version, task_id, task_type, capability_id, target, simulation, spacecraft, parameters, orbit_environment, faults, degradations, constraints, modifiers, outputs, metadata, tags.
 Copy task_type and target level/name from the selected capability. target permits only level/name/mode. For whole_spacecraft include spacecraft.mission.template. Use duration_s, sample_s and solver.step_s for time, in seconds. If accepted_task_backends has one value, use it exactly. For subsystem set simulation.subsystem to the declared target name.
 Satisfy requested_time exactly. Use declared parameter names/defaults/units. Use only declared effects at requested times/severities, no extra events. Legacy fault keys: fault_id, target, target_type, fault_type, onset_time_s, duration_s, magnitude.
+Event magnitude/severity is a fraction in [0,1]. For a requested loss of P%, emit P/100 as magnitude, not P, not the remaining fraction, and not an exponent-shifted approximation. Fault onset_time_s is in seconds. Preserve these user quantities exactly.
+Use event_target_default for each event target unless the selected capability declares event_target_prefixes. Do not guess a subsystem target from an effect-name prefix; event ownership must pass the execution planner.
 For a new task, include required parameters and every user-specified parameter; omit unrelated optional defaults instead of copying the whole registry. Omitted optional values use registered defaults with provenance. For refinement, retain the supplied task's unchanged parameters. Never omit a requested parameter to shorten output.
 Emit every requested_parameter_assignments entry exactly under parameters and every requested_output_fields entry under outputs.plots. These are literal user inputs, not inferred defaults. Keep requested_time.sample_s separate from requested_time.step_s; the latter belongs in simulation.solver.step_s.
 Output keys: output_root, trace_format, qoi, plots, include_summary, include_trace, include_labels, include_manifest. For defaults, copy default_summary_qoi exactly (wildcards included) and use default_trace_fields for plots. Curves use only declared trace names. During refinement retain values the user did not ask to change.
@@ -2600,8 +2684,13 @@ class TextModelTaskSpecBackend:
             return self.config
         return replace(self.config,response_schema=taskspec_draft_response_schema(
             plan.selected_capability_id, forbid_events=_request_forbids_all_events(request.request),
+            constrain_events=requested_health_mode(request.request) != 'nominal',
+            single_fault=_request_requires_single_fault(request.request),
+            single_fault_carrier='faults',
             allow_geometry_overrides=_request_allows_custom_rw_geometry(request.request),
-            allow_per_wheel_overrides=_request_allows_per_wheel_overrides(request.request)))
+            allow_per_wheel_overrides=_request_allows_per_wheel_overrides(request.request),
+            parameter_assignments=_registered_literal_assignments(request.request,
+                get_capability(plan.selected_capability_id).data.get('parameters', {}))))
 
     def draft_task_spec(self, *, request: CapabilityAgentRequest, context: Mapping[str, Any]) -> dict[str, Any]:
         self.rejected_call = None
@@ -3539,15 +3628,6 @@ def _coerce_common_llm_aliases(spec: Mapping[str, Any], request: CapabilityAgent
             except (KeyError, StopIteration, TypeError, ValueError):
                 pass
 
-    def normalized_unit_severity(value: Any) -> float:
-        try:
-            numeric = float(value)
-        except (TypeError, ValueError):
-            return 1.0
-        if 1.0 < numeric <= 100.0:
-            numeric /= 100.0
-        return min(1.0, max(0.0, numeric))
-
     # Normalize task_type aliases commonly invented by LLMs.
     task_type = out.get("task_type")
     if isinstance(task_type, str):
@@ -3702,7 +3782,7 @@ def _coerce_common_llm_aliases(spec: Mapping[str, Any], request: CapabilityAgent
             if not isinstance(item, Mapping):
                 continue
             fault = dict(item)
-            if "onset_time_s" not in fault or float(fault.get("onset_time_s") or 0.0) == 0.0:
+            if "onset_time_s" not in fault:
                 for alias in ("trigger_time_s", "fault_time_s", "injection_time_s", "start_time_s", "time_s"):
                     if alias in fault:
                         fault["onset_time_s"] = fault.get(alias)
@@ -3723,7 +3803,9 @@ def _coerce_common_llm_aliases(spec: Mapping[str, Any], request: CapabilityAgent
             # persistent.  Preserve explicit positive duration from the model.
             if "duration_s" not in fault:
                 fault["duration_s"] = -1
-            fault["magnitude"] = normalized_unit_severity(fault.get("magnitude", 1.0))
+            # Alias projection must not convert percentages, clamp invalid
+            # values or replace malformed model output with a physical default.
+            fault["magnitude"] = fault.get("magnitude", fault.get("severity", 1.0))
             _strip_keys(fault, {"fault_id", "target", "target_type", "fault_type", "onset_time_s", "duration_s", "magnitude", "parameters", "label"})
             normalized_faults.append(fault)
         out["faults"] = normalized_faults
@@ -3759,6 +3841,41 @@ def _coerce_common_llm_aliases(spec: Mapping[str, Any], request: CapabilityAgent
                 if not isinstance(item, Mapping):
                     continue
                 start = float(item.get("onset_time_s", item.get("start_s", 0.0)) or 0.0)
+                severity = item.get("severity", item.get("magnitude", 1.0))
+                # Preserve the existing v0.1 degradation-magnitude unit rule:
+                # (1,100] denotes percent; [0,1] already denotes a ratio.
+                # This is a traceable legacy-unit conversion, never a clamp
+                # and never applied to canonical severity or physical faults.
+                if (str(spec.get("schema_version")) == "0.1.0"
+                        and target_mode == "degradation" and "severity" not in item
+                        and "magnitude" in item and "unit" not in item
+                        and not isinstance(severity, bool)):
+                    try:
+                        numeric_magnitude = float(severity)
+                    except (ValueError, TypeError, OverflowError):
+                        numeric_magnitude = math.nan
+                    if math.isfinite(numeric_magnitude) and 1.0 < numeric_magnitude <= 100.0:
+                        source_magnitude = severity
+                        severity = numeric_magnitude / 100.0
+                        metadata = dict(out.get("metadata") or {})
+                        prior_conversions = metadata.get("legacy_unit_conversions")
+                        if isinstance(prior_conversions, list):
+                            conversions = copy.deepcopy(prior_conversions)
+                        elif "legacy_unit_conversions" in metadata:
+                            conversions = [{"record_kind": "preserved_untyped_input",
+                                            "value": copy.deepcopy(prior_conversions)}]
+                        else:
+                            conversions = []
+                        conversions.append({
+                            "contract": "v0.1.degradation.magnitude.percent_above_one",
+                            "event_index": index,
+                            "source_field": "magnitude", "source_value": source_magnitude,
+                            "source_unit": "percent", "target_field": "severity",
+                            "target_unit": "ratio", "target_value": severity,
+                            "clamped": False,
+                        })
+                        metadata["legacy_unit_conversions"] = conversions
+                        out["metadata"] = metadata
                 promoted.append({
                     "modifier_id": str(
                         item.get("modifier_id")
@@ -3770,9 +3887,7 @@ def _coerce_common_llm_aliases(spec: Mapping[str, Any], request: CapabilityAgent
                     type_key: explicit_effect,
                     "onset_time_s": start,
                     "duration_s": item.get("duration_s", -1.0),
-                    "severity": normalized_unit_severity(
-                        item.get("severity", item.get("magnitude", 1.0))
-                    ),
+                    "severity": severity,
                     "parameters": {
                         **catalog_event_parameters,
                         **dict(item.get("parameters") or {}),
@@ -4114,12 +4229,37 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
     request_path.write_text(request.request, encoding="utf-8")
     files["user_request"] = str(request_path)
 
+    try:
+        _explicit_time_requirements(request.request)
+    except ValueError as exc:
+        validation = ValidationResult((ValidationIssue("error", "$.request", str(exc), "USER_TIME_REQUIREMENT_INVALID"),))
+        files["validation"] = str(write_json(output_dir / "validation.json", validation.to_dict()))
+        steps.append(CapabilityAgentStep("input_time_validation", "failed", str(exc), validation.to_dict()))
+        files["capability_agent_report"] = str(output_dir / "capability_agent_report.json")
+        result = CapabilityScriptGenerationResult(False, request, {}, validation,
+            output_dir=output_dir, files=files, steps=tuple(steps))
+        write_json(files["capability_agent_report"], result.to_dict())
+        return result
+
     prompt_builder = build_capability_json_prompt if request.model_structured_output in {'json_object', 'json_schema'} else build_capability_agent_prompt
-    prompt_text = prompt_builder(
-        request.request,
-        allowed_capabilities=request.allowed_capabilities,
-        advisory_context=request.advisory_context,
-    )
+    try:
+        prompt_text = prompt_builder(
+            request.request,
+            allowed_capabilities=request.allowed_capabilities,
+            advisory_context=request.advisory_context,
+        )
+    except ValueError as exc:
+        from .explicit_parameters import ExplicitParameterError
+        if not isinstance(exc, ExplicitParameterError):
+            raise
+        validation = ValidationResult((ValidationIssue('error', '$.request', str(exc), 'USER_PARAMETER_REQUIREMENT_INVALID'),))
+        files['validation'] = str(write_json(output_dir / 'validation.json', validation.to_dict()))
+        steps.append(CapabilityAgentStep('input_parameter_validation', 'failed', str(exc), validation.to_dict()))
+        files['capability_agent_report'] = str(output_dir / 'capability_agent_report.json')
+        result = CapabilityScriptGenerationResult(False, request, {}, validation,
+            output_dir=output_dir, files=files, steps=tuple(steps))
+        write_json(files['capability_agent_report'], result.to_dict())
+        return result
     prompt_path = output_dir / "agent_prompt.md"
     prompt_path.write_text(prompt_text, encoding="utf-8")
     files["agent_prompt"] = str(prompt_path)
@@ -4251,7 +4391,9 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 },
             },
         }
-        validation = ValidationResult((ValidationIssue("error", "$.model_output", f"LLM TaskSpec draft could not be parsed: {exc}", "llm_output_parse"),))
+        from .explicit_parameters import ExplicitParameterError
+        code = 'USER_PARAMETER_REQUIREMENT_INVALID' if isinstance(exc, ExplicitParameterError) else 'llm_output_parse'
+        validation = ValidationResult((ValidationIssue("error", "$.model_output", f"LLM TaskSpec draft could not be parsed: {exc}", code),))
         task_yaml = output_dir / DEFAULT_TASK_YAML
         task_json = output_dir / "generated_task.json"
         validation_json = output_dir / "validation.json"
@@ -4329,6 +4471,9 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 call_path = output_dir / "model_call.json"
                 write_json(call_path, call_result.to_dict())
                 files["model_call"] = str(call_path)
+            from .explicit_parameters import ExplicitParameterError
+            if isinstance(exc, ExplicitParameterError):
+                return _return_draft_failure(exc=exc, backend_name=getattr(backend, 'name', request.backend))
             fallback = _template_fallback_for_planner_route(request, context, selected_capability_id=plan.selected_capability_id) if plan.selected_capability_id else None
             if fallback is None:
                 return _return_draft_failure(exc=exc, backend_name=getattr(backend, "name", request.backend))
@@ -4368,6 +4513,11 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
             ))
         steps.append(CapabilityAgentStep("draft", "complete", f"Generated TaskSpec draft with backend={backend.name}.", {"capability_id": _external_draft_capability_id(draft), "backend": backend.name}))
 
+    # Provider-independent raw guard precedes route replacement and all default
+    # insertion. Never let a template or local repair supply an omitted literal.
+    raw_parameter_issues = [issue for issue in _explicit_literal_requirement_issues(
+        draft, request.request, capability_id=plan.selected_capability_id, check_outputs=False)
+        if issue.code in {'USER_PARAMETER_REQUIREMENT_INVALID', 'USER_PARAMETER_REQUIREMENT_MISMATCH'}]
     if request.draft_spec_path is None and request.backend != "template" and plan.supported and plan.selected_capability_id:
         draft_capability_id = _external_draft_capability_id(draft)
         explicit_selected = re.search(
@@ -4393,7 +4543,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 },
             ))
             draft_capability_id = plan.selected_capability_id
-        if draft_capability_id != plan.selected_capability_id:
+        if draft_capability_id != plan.selected_capability_id and not raw_parameter_issues:
             fallback = _template_fallback_for_planner_route(request, context, selected_capability_id=plan.selected_capability_id)
             if fallback is not None:
                 steps.append(CapabilityAgentStep(
@@ -4408,10 +4558,15 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 ))
                 draft = fallback
 
+    # Check the original returned parameters before aliases/defaults are filled.
+    # Keep these failures sticky through every provider and local repair path.
     current = _normalize_external_draft(draft, request)
     validation = _validate_generated_draft(current, request)
+    if raw_parameter_issues:
+        validation = ValidationResult(tuple([*validation.issues, *raw_parameter_issues]))
     if (
         not validation.ok
+        and not raw_parameter_issues
         and request.max_repair_attempts > 0
         and request.draft_spec_path is None
         and request.backend != "template"
@@ -4470,7 +4625,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
                 {"error": str(exc)},
             ))
     repair_count = 0
-    while not validation.ok and repair_count < max(0, request.max_repair_attempts):
+    while not validation.ok and not raw_parameter_issues and repair_count < max(0, request.max_repair_attempts):
         current = _repair_capability_spec_once(current, validation, request)
         repair_count += 1
         validation = _validate_generated_draft(current, request)
@@ -4478,6 +4633,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
 
     if (
         not validation.ok
+        and not raw_parameter_issues
         and request.max_repair_attempts > 0
         and request.draft_spec_path is None
         and request.backend != "template"
@@ -4529,7 +4685,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
     script_result: ScriptExportResult | None = None
     run_result: TaskRunResult | None = None
     ok = False
-    if validation.ok:
+    if validation.ok and request.compile_if_valid:
         compiled = compile_task_spec(current, validate=False)
         compiled_json = output_dir / "compiled_task.json"
         write_json(compiled_json, compiled.to_dict())
@@ -4551,6 +4707,10 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         elif request.run_task and request.dry_run:
             steps.append(CapabilityAgentStep("run", "skipped", "dry_run=True; generated task was not executed."))
         ok = True
+    elif validation.ok:
+        ok = True
+        steps.append(CapabilityAgentStep('draft_only', 'complete',
+            'Validated the draft; compilation/export is deferred to the product planning gate.'))
     else:
         steps.append(CapabilityAgentStep("validate", "failed", "Draft TaskSpec did not pass validation.", validation.to_dict()))
 

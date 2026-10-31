@@ -9,7 +9,7 @@
     focusSelectedStatus: false,
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
-    rwConfiguration: null,
+    rwConfiguration: null, telemetryStream: null, telemetryCatalog: [], creationPolicy: null,
     commandContracts: [], catalogLoading: false,
     history: null,
   };
@@ -70,6 +70,65 @@
     if (className) node.className = className;
     return node;
   }
+  function resetTelemetrySelection() {
+    state.telemetry = []; state.history = null; state.lastTelemetrySeq = -1; state.gap = null;
+    setText('continuousHistoryStatus', '已切换会话或遥测流；需要重新查询原始历史。');
+    renderChart(); renderVerifiedHistory();
+  }
+  function selectSession(sessionId) {
+    state.selectedId = sessionId;
+    state.focusSelectedStatus = true;
+    state.snapshot = null; state.metrics = null; state.recovery = null; state.endurance = null;
+    state.events = []; state.acks = []; state.lastEventSeq = -1;
+    state.rwConfiguration = null; state.telemetryStream = null; state.telemetryCatalog = [];
+    resetTelemetrySelection();
+    refresh();
+  }
+  function renderCreationPolicy(policy) {
+    state.creationPolicy = policy;
+    const support = policy?.creation?.find(row => row.capability_id === 'whole_spacecraft.unified_native.v1' && row.continuous);
+    const button = $('continuousCreateForm')?.querySelector('button[type="submit"]');
+    if (button) button.disabled = !support?.supported;
+    setText('continuousCreationPolicy', support?.supported
+      ? '当前服务支持持续原生整星创建（' + policy.mode + '）；不会转换为限时或自动启动。'
+      : '创建不可用：' + (support?.reason_code || 'CAPABILITY_CATALOG_UNAVAILABLE'));
+  }
+  function renderStreamContract(info) {
+    const catalog = info.telemetry_catalog || [];
+    if (!catalog.length) throw new Error('SESSION_TELEMETRY_CATALOG_EMPTY');
+    state.telemetryCatalog = catalog;
+    if (!catalog.some(row => row.stream_id === state.telemetryStream)) {
+      state.telemetryStream = (catalog.find(row => row.stream_id === 'whole.continuous')
+        || [...catalog].sort((a,b) => a.sample_s-b.sample_s)[0]).stream_id;
+      resetTelemetrySelection();
+    }
+    const select = $('continuousStream');
+    select.replaceChildren();
+    catalog.forEach(row => {
+      const option = element('option', row.stream_id + ' / ' + row.sample_s + ' s');
+      option.value = row.stream_id; select.append(option);
+    });
+    select.value = state.telemetryStream;
+    const fields = catalog.find(row => row.stream_id === state.telemetryStream).fields || [];
+    const signal = $('continuousSignal');
+    fields.forEach(field => {
+      if (![...signal.options].some(option => option.value === field)) {
+        const option = element('option', field); option.value = field; signal.append(option);
+      }
+    });
+    [...signal.options].forEach(option => { option.disabled = !fields.includes(option.value); });
+    if (!fields.includes(signal.value)) signal.value = fields[0] || '';
+    const channels = $('continuousHistoryChannels');
+    fields.forEach(field => {
+      if (![...channels.querySelectorAll('input')].some(input => input.value === field)) {
+        const label = element('label'); const input = element('input');
+        input.type = 'checkbox'; input.value = field; label.append(input, document.createTextNode(field)); channels.append(label);
+      }
+    });
+    channels.querySelectorAll('input').forEach(input => {
+      input.disabled = !fields.includes(input.value); if (input.disabled) input.checked = false;
+    });
+  }
   function renderSessionList(sessions) {
     const target = $('continuousSessionList');
     target.replaceChildren();
@@ -86,25 +145,7 @@
         element('strong', session.session_id),
         element('span', session.state + ' · ' + valueText(session.sim_time_s, 1) + ' s'),
       );
-      node.addEventListener('click', () => {
-        state.selectedId = session.session_id;
-        state.focusSelectedStatus = true;
-        state.snapshot = null;
-        state.metrics = null;
-        state.recovery = null;
-        state.endurance = null;
-        state.telemetry = [];
-        state.history = null;
-        setText("continuousHistoryStatus", "已切换会话；需要重新查询历史。");
-        state.events = [];
-        state.acks = [];
-        state.lastTelemetrySeq = -1;
-        state.lastEventSeq = -1;
-        state.gap = null;
-        state.rwConfiguration = null;
-        renderChart();
-        refresh().catch((e) => notice('会话读取失败：' + e.message, true));
-      });
+      node.addEventListener('click', () => selectSession(session.session_id));
       target.append(node);
     });
   }
@@ -526,6 +567,7 @@
 
   async function queryVerifiedHistory() {
     const sessionId = state.selectedId;
+    const streamId = state.telemetryStream;
     state.history = null;
     renderVerifiedHistory();
     if (!sessionId) {
@@ -552,9 +594,9 @@
     setText('continuousHistoryStatus', '正在读取并核验留存遥测的哈希链…');
     try {
       const response = await api('/interactive/sessions/'
-        + encodeURIComponent(sessionId) + '/telemetry-history/whole.continuous?'
+        + encodeURIComponent(sessionId) + '/telemetry-history/' + encodeURIComponent(streamId) + '?'
         + query.toString());
-      if (sessionId !== state.selectedId) return;
+      if (sessionId !== state.selectedId || streamId !== state.telemetryStream) return;
       state.history = { ...response, selectedFields: fields };
       setText('continuousHistoryStatus', response.frame_count
         + ' 条真实留存采样；时间窗 ' + start_s + '～' + end_s
@@ -562,7 +604,7 @@
         + (response.gaps?.length ? ' 检出序号缺口 ' + response.gaps.length + ' 处。' : ''));
       renderVerifiedHistory();
     } catch (error) {
-      if (sessionId !== state.selectedId) return;
+      if (sessionId !== state.selectedId || streamId !== state.telemetryStream) return;
       const help = error.message === 'HISTORY_TOO_MANY_SAMPLES_NARROW_WINDOW'
         ? '此窗口内超过 3000 条记录，请缩小起止时间。'
         : error.message === 'HISTORY_REQUIRES_PAUSED_OR_TERMINAL_SESSION'
@@ -590,7 +632,8 @@
     if (!state.active || state.refreshBusy) return;
     state.refreshBusy = true;
     try {
-      const overview = await api('/interactive/continuous/overview');
+      const [overview, creationPolicy] = await Promise.all([api('/interactive/continuous/overview'), api('/interactive/capabilities')]);
+      renderCreationPolicy(creationPolicy);
       state.policy = overview;
       const sessions = overview.sessions || [];
       if (!state.selectedId && sessions.length) state.selectedId = sessions[0].session_id;
@@ -604,10 +647,14 @@
       renderSessionList(sessions);
       renderInterrupted(overview.interrupted_workspaces || []);
       if (!state.selectedId) { state.metrics = null; state.endurance = null; state.recovery = null; renderStatus(); renderObservability(); renderEndurance(); renderRecovery(); return; }
-      const id = encodeURIComponent(state.selectedId);
-      const [info, tm, events, acks, metrics, endurance, nativeConfig] = await Promise.all([
-        api('/interactive/continuous/sessions/' + id + '/status'),
-        api('/interactive/sessions/' + id + '/telemetry/whole.continuous?after_sequence=' + state.lastTelemetrySeq),
+      const selectedId = state.selectedId;
+      const id = encodeURIComponent(selectedId);
+      const info = await api('/interactive/continuous/sessions/' + id + '/status');
+      if (selectedId !== state.selectedId) return;
+      renderStreamContract(info);
+      const selectedStream = state.telemetryStream;
+      const [tm, events, acks, metrics, endurance, nativeConfig] = await Promise.all([
+        api('/interactive/sessions/' + id + '/telemetry/' + encodeURIComponent(selectedStream) + '?after_sequence=' + state.lastTelemetrySeq),
         api('/interactive/sessions/' + id + '/events?after_sequence=' + state.lastEventSeq),
         api('/interactive/sessions/' + id + '/commands'),
         api('/interactive/continuous/sessions/' + id + '/observability'),
@@ -616,7 +663,7 @@
           ? api('/interactive/continuous/sessions/' + id + '/configuration')
           : Promise.resolve(null),
       ]);
-      if (info.session.session_id !== state.selectedId) return;
+      if (info.session.session_id !== state.selectedId || selectedStream !== state.telemetryStream) return;
       if (nativeConfig) {
         state.rwConfiguration =
           nativeConfig.native_initial_values?.rw_configuration || 'orthogonal_3';
@@ -648,6 +695,7 @@
       renderLog('continuousEventList', state.events, (e) => e.state + ' · ' + (e.reason_code || ''));
       renderLog('continuousAckList', state.acks, (a) => a.command_id + ' · ' + a.state);
     } catch (error) {
+      renderCreationPolicy(null);
       setText('continuousConnectionBadge', '连接异常');
       notice('持续会话状态读取失败：' + error.message, true);
     } finally {
@@ -798,10 +846,15 @@
       initial_horizon_s: Number($('continuousHorizon').value),
     };
     try {
+      const policy = await api('/interactive/capabilities');
+      renderCreationPolicy(policy);
+      const support = policy.creation?.find(row => row.capability_id === 'whole_spacecraft.unified_native.v1' && row.continuous);
+      if (!support?.supported) throw new Error(support?.reason_code || 'CAPABILITY_CATALOG_UNAVAILABLE');
       const result = await api('/interactive/continuous/sessions', {
         method: 'POST', body: JSON.stringify(body),
       });
       state.selectedId = result.session_id;
+      state.telemetryStream = null;
       state.focusSelectedStatus = true;
       state.metrics = null;
       state.endurance = null;
@@ -1108,6 +1161,12 @@
   }
   function initialize() {
     $('continuousCreateForm')?.addEventListener('submit', createSession);
+    $('continuousStream')?.addEventListener('change', () => {
+      state.telemetryStream = $('continuousStream').value;
+      resetTelemetrySelection();
+      if (state.snapshot) renderStreamContract(state.snapshot);
+      refresh();
+    });
     $('continuousCommandForm')?.addEventListener('submit', sendCommand);
     $('continuousRefreshBtn')?.addEventListener('click', () => refresh());
     $('continuousOperation')?.addEventListener('change', changeOperation);
@@ -1149,6 +1208,6 @@
     renderChart();
     renderVerifiedHistory();
   }
-  window.SatContinuousConsole = { enter, exit, applyNativeConfiguration };
+  window.SatContinuousConsole = { enter, exit, applyNativeConfiguration, selectSession };
   document.addEventListener('DOMContentLoaded', initialize);
 })();

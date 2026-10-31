@@ -1,0 +1,151 @@
+{
+  "at_utc": "2026-10-31T03:52:01.363254+00:00",
+  "scope": "Exact evidence payload bytes; actual production source is committed at repository paths. Local source fingerprint uses raw local bytes; Git text normalization is distinct.",
+  "files": [
+    {
+      "path": "ai-first-responses/11e363f59f235900a6c9b133935b8bf37739c560b75544e25df6c7ffcc06ec8d.txt",
+      "sha256": "6f2ff250d42e7a71b97789b0ddfe950b677cb58ef758a39e8dcc50fda2f4e65b",
+      "bytes": 1875
+    },
+    {
+      "path": "ai-first-responses/22463ec76ae414b7c1da4e9ed09556dae630245f2e1a2816fe3a7e9c966d7478.txt",
+      "sha256": "27effdd8d239e4e321bf2a90ecebb468d2342dcb22dd6908d4de8ace03662aac",
+      "bytes": 2806
+    },
+    {
+      "path": "ai-first-responses/3247c7d31bd933e90e587d3dee98227ed8cb19f058a54708105710d4bae466d6.txt",
+      "sha256": "8793dbb35f4ec40021fb7a200d27952d915f78dd74325778e41465964faeca47",
+      "bytes": 1874
+    },
+    {
+      "path": "ai-first-responses/480c07aad1c33331b2d352a6ae12882291dcb0ed555893af0d2c65b857308e64.txt",
+      "sha256": "d7277dfff7be01011515da405c0581d828bfcc6065c1febb50c664b526ba795c",
+      "bytes": 2802
+    },
+    {
+      "path": "ai-first-responses/7be66c388229ef153738d042fd76a08f28e9e28b721e2f85c21bd4c3bef2d60c.txt",
+      "sha256": "1635f5c6c1353932d7a60beb313f9ac7875b6218e6c9cc3e7f1da134013f8ddf",
+      "bytes": 1875
+    },
+    {
+      "path": "ai-first-responses/847794877ef290a8479c260e241464e2d743c83c0c5132f564013210af93b9d0.txt",
+      "sha256": "8793dbb35f4ec40021fb7a200d27952d915f78dd74325778e41465964faeca47",
+      "bytes": 1874
+    },
+    {
+      "path": "ai-first-responses/864054555d6a91efdb2cc54f4d9c9c19c43520c4e93daebd0c3ef2dc9d6acb51.txt",
+      "sha256": "1635f5c6c1353932d7a60beb313f9ac7875b6218e6c9cc3e7f1da134013f8ddf",
+      "bytes": 1875
+    },
+    {
+      "path": "ai-first-responses/8c31784f328b622934387719a152d3e197ed947fc3b663d32c024625e5a34ddb.txt",
+      "sha256": "6f2ff250d42e7a71b97789b0ddfe950b677cb58ef758a39e8dcc50fda2f4e65b",
+      "bytes": 1875
+    },
+    {
+      "path": "ai-first-responses/927bdbe0620f01684235d6f188d494d15bb6be3ce2314268b0528cda15b4719e.txt",
+      "sha256": "0ab875ba0bf3b78a4a86bf4b6340ad89653800e8c314b3e11b2fb182d1202d23",
+      "bytes": 1874
+    },
+    {
+      "path": "ai-first-responses/9bbcf33674f8d43f8decbf755136277b6f4e67fed0cd4d80f9243a54bde01bde.txt",
+      "sha256": "1635f5c6c1353932d7a60beb313f9ac7875b6218e6c9cc3e7f1da134013f8ddf",
+      "bytes": 1875
+    },
+    {
+      "path": "ai-first-responses/c383a1eaf5942ea8b77e428a03a183366e1fec5d5628221cdf6b44b3f4a889d2.txt",
+      "sha256": "0ab875ba0bf3b78a4a86bf4b6340ad89653800e8c314b3e11b2fb182d1202d23",
+      "bytes": 1874
+    },
+    {
+      "path": "ai-first-responses/c6bbcf4d2a7c7b0a080c0d8b2123a7e2ccce68b853baf1095113450990f1b78c.txt",
+      "sha256": "070702fd89ecad1d23460025f492f379a5308f7af890ee0b684cc0e99cc1ae3c",
+      "bytes": 2804
+    },
+    {
+      "path": "ai-first-responses/c9b12070072d133ba5d72c9d93be0ff8ed5e20ac5d83181deacbe8d8450d235a.txt",
+      "sha256": "6f2ff250d42e7a71b97789b0ddfe950b677cb58ef758a39e8dcc50fda2f4e65b",
+      "bytes": 1875
+    },
+    {
+      "path": "ai-first-responses/d91082383505851c4bc39a963f3c75d1c5afbe5f1028b10e95f78d8a8f07cb15.txt",
+      "sha256": "8793dbb35f4ec40021fb7a200d27952d915f78dd74325778e41465964faeca47",
+      "bytes": 1874
+    },
+    {
+      "path": "ai-first-responses/f8ddd66c23e0db626db97f3e7281aeca0c0f1fa006ef42d4e901ecb539ab6401.txt",
+      "sha256": "0ab875ba0bf3b78a4a86bf4b6340ad89653800e8c314b3e11b2fb182d1202d23",
+      "bytes": 1874
+    },
+    {
+      "path": "ai-fixed15-independent-review.json",
+      "sha256": "905f1d527b2f67e6080039b15fecc430de1ff2aed5b9cfb9061a95e84340c4ea",
+      "bytes": 954
+    },
+    {
+      "path": "ai-fixed15-result.json",
+      "sha256": "3cc84106ea5f665a6524c84fc88302aab8a39593637eebd128301a66814e289f",
+      "bytes": 27648
+    },
+    {
+      "path": "create17-model-call.json",
+      "sha256": "3d62c7e0c30f61b0944e4e4150dfc1f25f6454846886b09ae77cc0b1eecd407f",
+      "bytes": 8163
+    },
+    {
+      "path": "first-full-failures.json",
+      "sha256": "0d3537fd106a26b2ea502ab28c6b1f9b95c0026aea2fbb956f1b6c17d14d8e5f",
+      "bytes": 54971
+    },
+    {
+      "path": "full-junit.xml",
+      "sha256": "332172c5ab4dc03a44b6b847e58e9fb5e36d960b89c3a8a216e8ba21fb255b06",
+      "bytes": 397928
+    },
+    {
+      "path": "full-returned.json",
+      "sha256": "d847eb7715a2d01832d5df7b85b887524900c294fa1dc5c58fb8e14de01f833d",
+      "bytes": 2793
+    },
+    {
+      "path": "images/eps_battery_capacity_ratio-narrow.png",
+      "sha256": "05bb1793935777460874e212267907404dc631a1ea4a9ee54c1e133f707d00d1",
+      "bytes": 61819
+    },
+    {
+      "path": "images/eps_effective_battery_capacity_wh-desktop.png",
+      "sha256": "7733d64884424dd7a733429a6d0aa1d4c4f54825bf2bacda9570ec96355b1fc4",
+      "bytes": 236720
+    },
+    {
+      "path": "images/overview-physical-warning42-desktop.png",
+      "sha256": "f9e5ad75f77bec727e1d8f5cbb795a7ba8ee569daa66d98f53a8abaa7bd2642e",
+      "bytes": 241259
+    },
+    {
+      "path": "install-scope.json",
+      "sha256": "04cb32471da540c290437e21245ce3f25f63396ff08aa11e531f4d3e69f07d91",
+      "bytes": 2276
+    },
+    {
+      "path": "installed-gui-result.json",
+      "sha256": "11f677462a2e47261f5000fffed810de5115dfe2868d59db4ba56c55fba6c9d4",
+      "bytes": 21020
+    },
+    {
+      "path": "README.md",
+      "sha256": "1f7b34c2ff9ace351fa0b3328f746281d8737d46ad51af2bada4ae632c3a4a1c",
+      "bytes": 2476
+    },
+    {
+      "path": "refine42-model-call.json",
+      "sha256": "4ea826f645bb968df76a654a3fdb2c64d2de8e2ec9535d534e99115f1aee7456",
+      "bytes": 8249
+    },
+    {
+      "path": "source-adoption.json",
+      "sha256": "9f9f6c51dbf4c9122850af7a986fbd303f16bbcc4e6a6033726ec25a3d7102f8",
+      "bytes": 883
+    }
+  ]
+}

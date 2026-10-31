@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -18,17 +19,19 @@ import yaml
 
 from .agent_facade import AgentFacadeRequest, AgentFacadeResult, AgentFacadeStep, run_agent
 from .agent_guards import AgentGuardReport, evaluate_agent_guards
-from .capability_agent import requested_health_mode
+from .capability_agent import CapabilityAgentRequest, _validate_generated_draft, requested_health_mode
 from .capability_registry import get_capability
+from .canonical_transport import parse_canonical_transport
 from .model_router import ModelRouteConfig, ModelRouteDecision, RAG_BOUNDARY_POLICY, route_model
 from .model_providers import ModelProviderRegistry
 from .nl_outputs import apply_output_intents_to_spec
+from .nl_time import parse_time_bindings
 from .reason_codes import ReasonCode
 from .script_exporter import ScriptExportResult, export_runner_script
 from .task_compiler import CompiledTask, compile_task_spec
 from .task_models import CANONICAL_TASK_SPEC_VERSION, canonicalize_task_spec
 from .task_spec import spec_sha256, write_json
-from .task_validator import ValidationResult, validate_task_spec
+from .task_validator import ValidationIssue, ValidationResult, validate_task_spec
 from .execution_planner import PlanningResult, attach_plan_metadata, plan_task_spec
 from .coupling_requirements import attach_required_couplings
 
@@ -239,10 +242,202 @@ def _mode_for_form_events(
     return derived
 
 
+def _projection_leaf_paths(value: Any, path: str) -> list[str]:
+    if isinstance(value, Mapping) and value:
+        return [leaf for key, child in value.items() for leaf in _projection_leaf_paths(child, f"{path}.{key}" if path else str(key))]
+    if isinstance(value, list) and value:
+        return [leaf for index, child in enumerate(value) for leaf in _projection_leaf_paths(child, f"{path}[{index}]")]
+    return [path]
+
+
+def _projection_list_alignment(before: list[Any], after: list[Any]) -> dict[int, int]:
+    """Track unique event IDs; plain arrays retain positional field identity."""
+    if all(isinstance(item, Mapping) and item.get("id") is not None for item in [*before, *after]):
+        old_ids = [str(item["id"]) for item in before]
+        new_ids = [str(item["id"]) for item in after]
+        if len(set(old_ids)) == len(old_ids) and len(set(new_ids)) == len(new_ids):
+            new_indices = {value: index for index, value in enumerate(new_ids)}
+            return {index: new_indices[value] for index, value in enumerate(old_ids) if value in new_indices}
+    # Equal numeric values do not prove identity (for example x/y/z axes).
+    # Changed or shifted positions receive new leaf evidence instead of moving
+    # a possibly unrelated calibration/source record to an equal value.
+    return {index: index for index in range(min(len(before), len(after)))}
+
+
+def _projection_tokens(path: str) -> tuple[str, ...]:
+    return tuple(re.sub(r"\[(\d+)\]", r".\1", path).split("."))
+
+
+def _projection_overlap(left: str, right: str) -> bool:
+    a, b = _projection_tokens(left), _projection_tokens(right)
+    return a[:len(b)] == b or b[:len(a)] == a
+
+
+def _projection_relocate(path: str, before: Any, after: Any) -> str | None:
+    """Move indexed evidence with its event/value, never with a reused index."""
+    tokens = _projection_tokens(path)
+    rendered = ""
+    moved = False
+    for token in tokens:
+        if isinstance(before, list) and isinstance(after, list) and token.isdigit():
+            old_index = int(token)
+            new_index = _projection_list_alignment(before, after).get(old_index)
+            if new_index is None:
+                return None
+            rendered += f"[{new_index}]"
+            moved |= new_index != old_index
+            before, after = before[old_index], after[new_index]
+        elif isinstance(before, Mapping) and isinstance(after, Mapping) and token in before and token in after:
+            rendered += ("." if rendered else "") + token
+            before, after = before[token], after[token]
+        else:
+            # Arbitrary descriptive assumption paths remain descriptive; only
+            # indexed paths whose former element disappeared are retired above.
+            return path
+    return rendered if moved else path
+
+
+def _projection_lookup(value: Any, path: str) -> Any:
+    for token in _projection_tokens(path):
+        if isinstance(value, list) and token.isdigit() and int(token) < len(value):
+            value = value[int(token)]
+        elif isinstance(value, Mapping) and token in value:
+            value = value[token]
+        else:
+            return None
+    return value
+
+
+def _projection_merge(original: Any, before: Any, after: Any, path: str = "") -> tuple[Any, list[str]]:
+    """Apply view deltas only; registered defaults displayed in the view aren't edits."""
+    if isinstance(before, Mapping) and isinstance(after, Mapping):
+        result = copy.deepcopy(dict(original)) if isinstance(original, Mapping) else {}
+        changes: list[str] = []
+        for key in sorted(set(before) | set(after)):
+            child_path = f"{path}.{key}" if path else str(key)
+            if key not in after:
+                result.pop(key, None)
+                changes.append(child_path)
+            elif key not in before:
+                result[key] = copy.deepcopy(after[key])
+                changes.extend(_projection_leaf_paths(after[key], child_path))
+            elif before[key] != after[key]:
+                result[key], nested = _projection_merge(result.get(key), before[key], after[key], child_path)
+                changes.extend(nested)
+        return result, changes
+    if isinstance(before, list) and isinstance(after, list):
+        alignment = _projection_list_alignment(before, after)
+        reverse = {new: old for old, new in alignment.items()}
+        structural = len(before) != len(after) or alignment != {index: index for index in range(len(before))}
+        changes = [path] if structural else []
+        result = []
+        for index, child in enumerate(after):
+            child_path = f"{path}[{index}]"
+            old_index = reverse.get(index)
+            if old_index is None:
+                result.append(copy.deepcopy(child))
+                changes.extend(_projection_leaf_paths(child, child_path))
+            else:
+                original_child = original[old_index] if isinstance(original, list) and old_index < len(original) else before[old_index]
+                merged, nested = _projection_merge(original_child, before[old_index], child, child_path) if before[old_index] != child else (copy.deepcopy(original_child), [])
+                result.append(merged)
+                changes.extend(nested)
+        return result, changes
+    return copy.deepcopy(after), [path]
+
+
+def _restore_projected_form(src: dict[str, Any], request: UnifiedAgentRequest) -> dict[str, Any]:
+    from .form_schema import task_spec_to_form_data
+
+    context = src.pop("_canonical_projection")
+    if (not isinstance(context, Mapping) or set(context) != {"schema_version", "task_spec", "task_spec_json"}
+            or context.get("schema_version") != "sat-sim.canonical-form-context.v1"
+            or not isinstance(context.get("task_spec"), Mapping)):
+        raise ValueError("FORM_PROJECTION_CONTEXT_INVALID")
+    # Same schema boundary as the public TaskSpec editor. Never accept a
+    # client-supplied plan, baseline form, fingerprint or validation decision.
+    base = parse_canonical_transport(context["task_spec"], context["task_spec_json"])
+    capability = str(_mapping(base.get("model")).get("capability_id") or "")
+    submitted_ids = [src.get("capability_id"), _mapping(src.get("model")).get("capability_id")]
+    if not capability or any(value and value != capability for value in submitted_ids):
+        raise ValueError("FORM_PROJECTION_CAPABILITY_MISMATCH")
+    before = task_spec_to_form_data(capability, base)["form_data"]
+    before.pop("_canonical_projection")
+    if request.task_id is not None:
+        src.setdefault("task", {})["id"] = request.task_id
+    if request.output_root is not None:
+        src.setdefault("outputs", {})["output_root"] = str(request.output_root)
+    # capability_id is a form alias, not a second editable canonical binding.
+    before.pop("capability_id", None)
+    src.pop("capability_id", None)
+    merged, edited_paths = _projection_merge(base, before, src)
+    edited = set(edited_paths)
+    derived: set[str] = set()
+    simulation = merged.get("simulation")
+    if isinstance(simulation, dict) and isinstance(simulation.get("solver"), dict):
+        step_changed = "simulation.step_s" in edited
+        solver_changed = "simulation.solver.step_s" in edited
+        if step_changed and solver_changed and simulation.get("step_s") != simulation["solver"].get("step_s"):
+            raise ValueError("FORM_PROJECTION_STEP_CONFLICT")
+        if step_changed and not solver_changed:
+            simulation["solver"]["step_s"] = simulation["step_s"]
+            derived.add("simulation.solver.step_s")
+        elif solver_changed and not step_changed:
+            simulation["step_s"] = simulation["solver"]["step_s"]
+            derived.add("simulation.step_s")
+    out = canonicalize_task_spec(merged)
+    _, changed_paths = _projection_merge(base, base, out)
+    # Input casting/default restoration that doesn't change a canonical value
+    # is not a new user statement and must not change the plan identity.
+    if not changed_paths:
+        return base
+    provenance = out.setdefault("provenance", {})
+    old_fields = copy.deepcopy(provenance.setdefault("fields", {}))
+    fields = {}
+    for path, record in old_fields.items():
+        relocated = _projection_relocate(path, base, out)
+        if relocated is not None:
+            fields[relocated] = record
+    provenance["fields"] = fields
+    structural = {path for path in changed_paths if isinstance(_projection_lookup(out, path), list)}
+    # Preserve aggregate-origin evidence at the retained indexed leaves before
+    # changing the aggregate's structural record to a mixed/derived description.
+    for path in structural:
+        if path in old_fields:
+            for leaf in _projection_leaf_paths(_projection_lookup(base, path), path):
+                relocated = _projection_relocate(leaf, base, out)
+                if relocated is not None:
+                    fields.setdefault(relocated, copy.deepcopy(old_fields[path]))
+    for path in changed_paths:
+        if path.startswith("provenance."):
+            continue
+        for previous in list(fields):
+            old_tokens, changed_tokens = _projection_tokens(previous), _projection_tokens(path)
+            if path not in structural and old_tokens[:len(changed_tokens)] == changed_tokens:
+                del fields[previous]
+        is_derived = path in derived or path in structural or path not in edited
+        fields[path] = {
+            "source": "resolver_derived" if is_derived else "user_explicit",
+            "evidence": f"Schema form {'list structure update; indexed values retain their origins' if path in structural else 'normalization' if is_derived else 'value edit'}: {path}",
+            "note": "Supersedes prior evidence for this changed value; unchanged field provenance is retained.",
+        }
+    for assumption in provenance.get("assumptions", []):
+        path = str(assumption.get("path") or "")
+        relocated = _projection_relocate(path, base, out) if path else path
+        removed = relocated is None
+        assumption["path"] = "removed:" + path if removed else relocated
+        if removed or (path and any((_projection_tokens(relocated) == _projection_tokens(changed) if changed in structural else _projection_overlap(relocated, changed)) for changed in changed_paths)):
+            assumption["status"] = "rejected"
+            assumption["reason"] = "Superseded by explicit form edit; previous value retained for traceability. " + str(assumption.get("reason") or "")
+    return canonicalize_task_spec(out)
+
+
 def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) -> dict[str, Any]:
     src = copy.deepcopy(dict(form))
+    if "_canonical_projection" in src:
+        return _restore_projected_form(src, request)
     if src.get("schema_version") == CANONICAL_TASK_SPEC_VERSION:
-        out = canonicalize_task_spec(src)
+        return canonicalize_task_spec(src)
     else:
         model_src = _nested(src, "model")
         capability_id = str(model_src.get("capability_id") or src.get("capability_id") or "").strip()
@@ -329,6 +524,7 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
                 "sample_s": sample_s,
                 "random_seed": sim_src.get("random_seed", src.get("random_seed", 0)),
                 "backend": sim_src.get("backend", "selective_unified_basilisk_assembly"),
+                **{key: copy.deepcopy(sim_src[key]) for key in ("solver", "time_base", "time_system") if key in sim_src},
                 **({"epoch_utc": sim_src.get("epoch_utc")} if sim_src.get("epoch_utc") else {}),
             },
             "mission": _mapping(src.get("mission")),
@@ -507,15 +703,9 @@ def _normalize_direct_input(request: UnifiedAgentRequest) -> tuple[dict[str, Any
         if request.task_spec is None:
             raise ValueError("task_spec input requires task_spec")
         out = canonicalize_task_spec(request.task_spec)
-        metadata = out.setdefault("metadata", {})
-        metadata["agent"] = {
-            **_mapping(metadata.get("agent")),
-            "unified_agent_version": UNIFIED_AGENT_VERSION,
-            "input_kind": "task_spec",
-            "registry_authority": True,
-            "rag_policy": RAG_BOUNDARY_POLICY["policy_version"],
-        }
-        return canonicalize_task_spec(out), ReasonCode.TASKSPEC_INPUT_NORMALIZED.value
+        # Input mode is recorded in the request/report, not by rewriting an
+        # existing document's model-invocation/source history on validation.
+        return out, ReasonCode.TASKSPEC_INPUT_NORMALIZED.value
     if request.input_kind == "patch":
         if request.base_task_spec is None or request.patch is None:
             raise ValueError("patch input requires base_task_spec and patch")
@@ -568,28 +758,12 @@ def _stable_validation_reason_codes(validation: ValidationResult) -> list[str]:
 
 
 _REFINEMENT_EFFECT_INTENT_RE = re.compile(
-    r"故障|失效|卡滞|堵转|异常|退化|漂移|噪声增加|偏置|中断|关机|fault|failure|degrad|jam|stuck|bias|dropout|loss",
+    r"故障|失效|卡滞|堵转|异常|退化|漂移|噪声增加|偏置|中断|关机|损失|衰减|fault|failure|degrad|jam|stuck|bias|dropout|loss",
     re.IGNORECASE,
 )
 _REFINEMENT_OUTPUT_INTENT_RE = re.compile(r"输出|曲线|指标|qoi|trace|plot|遥测", re.IGNORECASE)
 _REFINEMENT_ASSURANCE_INTENT_RE = re.compile(r"保真|声明等级|验证配置|参数配置|claim|fidelity|assurance", re.IGNORECASE)
 _REFINEMENT_NAME_RE = re.compile(r"(?:命名为|名称(?:改)?为|叫做|任务名(?:改)?为)\s*[“\"']?([^”\"'，。\n]+)", re.IGNORECASE)
-
-
-def _time_value_seconds(text: str, patterns: tuple[str, ...]) -> float | None:
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if not match:
-            continue
-        value = float(match.group(1))
-        unit = (match.group(2) or "秒").lower()
-        if unit in {"分钟", "分", "min", "mins", "minute", "minutes"}:
-            value *= 60.0
-        elif unit in {"小时", "时", "h", "hr", "hour", "hours"}:
-            value *= 3600.0
-        return value
-    return None
-
 
 
 _CRITICAL_LOCKED_PATHS = (
@@ -770,7 +944,7 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
 
 def _refinement_requests_parameter(name: str, instruction: str, capability_id: str) -> bool:
     """Do not let a regenerated draft reset parameters during a small edit."""
-    from .agent_facade import _EXPLICIT_PARAMETER_ALIASES
+    from .agent_facade import _EXPLICIT_PARAMETER_ALIASES, _requests_nominal_battery_capacity
     from .form_schema import PARAMETER_LABELS
 
     aliases = {name, name.replace('_', ' ')}
@@ -780,10 +954,14 @@ def _refinement_requests_parameter(name: str, instruction: str, capability_id: s
     descriptor = get_capability(capability_id).data.get('parameters', {}).get(name, {})
     if isinstance(descriptor, Mapping):
         aliases.update(str(descriptor[key]) for key in ('label', 'title') if descriptor.get(key))
-    for clause in re.split(r'[,，;；。\n]|\band\b|并(?:且)?', instruction, flags=re.IGNORECASE):
-        if re.search(r'保留|保持|不变|不要修改|不修改|\b(?:keep|preserve|unchanged)\b', clause, re.IGNORECASE):
+    for clause in re.split(r'[,，;；。\n]|\b(?:and|but)\b|并(?:且)?|(?<!不)但(?:是)?', instruction, flags=re.IGNORECASE):
+        if re.search(r"保留|保持|不变|不要|不把|不将|不修改|不改变|不更改|\b(?:keep|preserve|unchanged|do\s+not|don't|must\s+not|should\s+not|not\s+(?:change|set|adjust|modify))\b", clause, re.IGNORECASE):
             continue
         if not re.search(r'改|设|调|增|减|换|变|=|\b(?:set|change|adjust|increase|decrease|replace)\b', clause, re.IGNORECASE):
+            continue
+        if name == 'battery_capacity_wh':
+            if _requests_nominal_battery_capacity(clause):
+                return True
             continue
         for alias in aliases:
             # An identifier must not match part of a different parameter name.
@@ -791,6 +969,86 @@ def _refinement_requests_parameter(name: str, instruction: str, capability_id: s
             if re.search(pattern, clause, re.IGNORECASE):
                 return True
     return False
+
+
+def _merge_refinement_events(base: Mapping[str, Any], candidate: Mapping[str, Any], text: str) -> dict[str, Any]:
+    """Keep existing event identity and all properties not requested by this edit."""
+    from .agent_facade import _effect_intent_state
+    clauses = []
+    for clause in re.split(r'[,，;；。\n]|\b(?:and|but)\b|并(?:且)?', text, flags=re.I):
+        if re.search(r'保留|保持|不变|\b(?:keep|preserve|unchanged)\b', clause, re.I):
+            continue
+        if _effect_intent_state(clause) == 'explicit_negative':
+            clauses.append(clause)
+        elif not re.search(r"不要|不把|不将|不修改|不改变|\b(?:do\s+not|don't)\b", clause, re.I) and _REFINEMENT_EFFECT_INTENT_RE.search(clause):
+            if re.search(r'改|设|调|添加|新增|注入|删除|移除|取消|[=\d]|\b(?:set|change|adjust|add|inject|remove|delete)\b', clause, re.I):
+                clauses.append(clause)
+    original = copy.deepcopy(dict(base.get('events') or {}))
+    if not clauses:
+        return original
+    intent = '\n'.join(clauses)
+    proposed = copy.deepcopy(dict(candidate.get('events') or {}))
+    topology = bool(re.search(r'添加|新增|注入|删除|移除|取消|\b(?:add|inject|remove|delete|replace)\b', intent, re.I)
+                    or any(_effect_intent_state(clause) == 'explicit_negative' for clause in clauses))
+    from .nl_time import NUMBER
+    amount_connector = r'(?:改为|改成|设置为|设为|为|=|:|：|to|is)?'
+    magnitude = bool(re.search(r'%', intent) or re.search(
+        rf'(?:幅度|强度|程度|比例|severity|magnitude|scale|损失|衰减|loss|drop|reduction)\s*{amount_connector}\s*{NUMBER}\s*(?=$|[，,;；。\n])', intent, re.I))
+    onset = bool(re.search(r'时刻|发生时间|开始时间|起始|第\s*[-+\d.eE]+\s*(?:秒|分钟|小时)|onset|start_s|start\s+time|\bat\s+[-+\d.eE]+', intent, re.I))
+    duration = bool(re.search(r'持续|时长|duration|end_s|end\s+time', intent, re.I))
+    result = copy.deepcopy(proposed if topology else original)
+    for category in ('faults', 'degradations', 'constraints'):
+        old = list(original.get(category) or [])
+        new = list(proposed.get(category) or [])
+        if not topology and len(old) != len(new):
+            raise ValueError(f'An event-value edit cannot change {category} membership')
+        merged = []
+        for event in (new if topology else old):
+            before = next((item for item in old if item.get('id') == event.get('id')), None) if topology else event
+            after = event if topology else next((item for item in new if item.get('id') == event.get('id')), None)
+            if after is None and len(old) == len(new) == 1:
+                after = new[0]
+            if before is None:
+                merged.append(copy.deepcopy(after))  # Explicitly added event.
+                continue
+            if after is None:
+                raise ValueError(f'Missing candidate for existing event {before.get("id")!r}')
+            if after.get('effect') != before.get('effect') or after.get('target') != before.get('target'):
+                raise ValueError('Changing an existing event type/target requires an explicit remove/add operation')
+            updated = copy.deepcopy(before)
+            selected = len(old) == 1 or str(before.get('id')) in intent or str(before.get('effect')) in intent or bool(re.search(r'全部|所有|\ball\b', intent, re.I))
+            if selected:
+                if not topology and not (magnitude or onset or duration or any(key in intent for key in after.get('parameters', {}))):
+                    raise ValueError('Specify which existing event property should change')
+                for key in ('magnitude', 'scale') if magnitude else ():
+                    if key in after:
+                        updated[key] = copy.deepcopy(after[key])
+                if onset:
+                    updated['start_s'] = after['start_s']
+                if duration:
+                    if 'end_s' in after:
+                        updated['end_s'] = after['end_s']
+                    else:
+                        updated.pop('end_s', None)
+                parameters = updated.setdefault('parameters', {})
+                for key, value in after.get('parameters', {}).items():
+                    if re.search(r'(?<![A-Za-z0-9_])' + re.escape(key) + r'(?![A-Za-z0-9_])', intent, re.I):
+                        parameters[key] = copy.deepcopy(value)
+            merged.append(updated)
+        result[category] = merged
+    return result
+
+
+def _refinement_prompt_projection(base: Mapping[str, Any]) -> dict[str, Any]:
+    """Present physics to the model; retain full provenance in the real base.
+
+    Machine field histories are not fields the model should regenerate. Only
+    this deep-copy projection drops them; merge/validation still use the base.
+    """
+    prompt_base = copy.deepcopy(dict(base))
+    prompt_base.pop('metadata', None)
+    prompt_base.pop('provenance', None)
+    return prompt_base
 
 
 def _merge_natural_language_refinement(
@@ -816,20 +1074,19 @@ def _merge_natural_language_refinement(
     candidate_capability = str(candidate.get("model", {}).get("capability_id") or "")
     same_capability = base_capability == candidate_capability
 
-    duration = _time_value_seconds(text, (
-        r"(?:仿真时长|运行时长|持续时间|运行时间|仿真时间)\D{0,16}(\d+(?:\.\d+)?)\s*(秒|s|sec|分钟|分|min|小时|时|h)?",
-        r"(?:运行|仿真)\s*(\d+(?:\.\d+)?)\s*(秒|s|sec|分钟|分|min|小时|时|h)",
-    ))
-    sample = _time_value_seconds(text, (
-        r"(?:输出采样间隔|采样间隔|采样周期|输出间隔)\D{0,16}(\d+(?:\.\d+)?)\s*(秒|s|sec|分钟|分|min)?",
-    ))
-    step = _time_value_seconds(text, (
-        r"(?:积分步长|仿真步长|计算步长|步长)\D{0,16}(\d+(?:\.\d+)?)\s*(秒|s|sec)?",
-    ))
-    for key, value in (("duration_s", duration), ("sample_s", sample), ("step_s", step)):
-        if value is not None:
-            out.setdefault("simulation", {})[key] = value
+    times = parse_time_bindings(text)
+    simulation = out.setdefault("simulation", {})
+    for key, value in times.preserved.items():
+        actual = simulation.get("solver", {}).get("step_s", simulation.get(key)) if key == "step_s" else simulation.get(key)
+        if actual is None or not math.isclose(float(actual), value, rel_tol=1e-12, abs_tol=0.):
+            raise ValueError(f"Preserved {key}={value:g} s differs from the current task value {actual!r}")
+    for key, value in times.updates.items():
+        if simulation.get(key) != value:
+            simulation[key] = value
             changed.append(f"simulation.{key}")
+        if key == "step_s" and simulation.setdefault("solver", {}).get("step_s") != value:
+            simulation["solver"]["step_s"] = value
+            changed.append("simulation.solver.step_s")
 
     if re.search(r"随机种子|random\s*seed|seed", text, re.IGNORECASE):
         match = re.search(r"(?:随机种子|random\s*seed|seed)\D{0,8}(-?\d+)", text, re.IGNORECASE)
@@ -849,11 +1106,15 @@ def _merge_natural_language_refinement(
                     base_values[key] = copy.deepcopy(candidate_values[key])
                     changed.append(f"parameters.values.{key}")
 
-    if _REFINEMENT_EFFECT_INTENT_RE.search(text):
-        candidate_events = candidate.get("events")
-        if isinstance(candidate_events, Mapping):
-            out["events"] = copy.deepcopy(dict(candidate_events))
-            changed.append("events")
+    refined_events = _merge_refinement_events(base, candidate, text)
+    if refined_events != out.get('events'):
+        out['events'] = refined_events
+        changed.append('events')
+        nonempty = [key for key in ('faults', 'degradations', 'constraints') if refined_events.get(key)]
+        mode = 'nominal'
+        if nonempty:
+            mode = {'faults':'fault','degradations':'degradation','constraints':'constraint'}[nonempty[0]] if len(nonempty) == 1 else 'mixed'
+        out.setdefault('model', {}).setdefault('target', {})['mode'] = mode
 
     if _REFINEMENT_OUTPUT_INTENT_RE.search(text):
         before_outputs = copy.deepcopy(out.get("outputs"))
@@ -901,6 +1162,41 @@ def _merge_natural_language_refinement(
     return canonicalize_task_spec(out), sorted(set(changed))
 
 
+_FINAL_REFINEMENT_FILES = frozenset({
+    "compiled_task", "generated_script", "script_export", "plan_validation",
+    "resolved_spec_json", "resolved_spec_yaml", "execution_plan",
+})
+
+
+def _refinement_failure(
+    facade: AgentFacadeResult, request: UnifiedAgentRequest, output_dir: Path, error: ValueError,
+) -> AgentFacadeResult:
+    """Retain the draft and model evidence, but expose no failed final task or script."""
+    issue = ValidationIssue("error", "$.refinement", str(error), "NATURAL_LANGUAGE_REFINEMENT_INVALID")
+    validation = ValidationResult(tuple(facade.validation.issues) + (issue,))
+    files = {key: value for key, value in facade.files.items() if key not in _FINAL_REFINEMENT_FILES}
+    for key in ("task_spec_json", "task_spec_yaml"):
+        if key in files:
+            files["refinement_candidate_" + key] = files.pop(key)
+    files["refinement_failure"] = str(write_json(output_dir / "refinement_failure.json", {
+        "validation": validation.to_dict(),
+        "base_task_spec_sha256": spec_sha256(request.base_task_spec or {}),
+        "candidate_task_spec": facade.task_spec,
+        "instruction": request.request_text,
+        "scope": "Unaccepted refinement draft; no final compilation or execution.",
+    }))
+    files["validation"] = str(write_json(output_dir / "validation.json", validation.to_dict()))
+    step = AgentFacadeStep("natural_language_refinement_guard", "failed", str(error),
+                           reason_codes=(issue.code,))
+    result = AgentFacadeResult(**{**facade.__dict__, "ok": False, "task_spec": {},
+        "validation": validation, "compiled": None, "script": None, "planning": None,
+        "run_result": None, "run_bundle_result": None, "files": files,
+        "steps": facade.steps + (step,),
+        "reason_codes": tuple(dict.fromkeys((*facade.reason_codes, issue.code)))})
+    write_json(output_dir / "agent_report.json", result.to_dict())
+    return result
+
+
 def _rebuild_refined_facade(
     facade: AgentFacadeResult,
     refined: dict[str, Any],
@@ -910,7 +1206,8 @@ def _rebuild_refined_facade(
 ) -> AgentFacadeResult:
     task_yaml = output_dir / "task_spec.yaml"
     task_yaml.write_text(yaml.safe_dump(refined, sort_keys=False, allow_unicode=True), encoding="utf-8")
-    validation = validate_task_spec(refined)
+    validation = _validate_generated_draft(refined, CapabilityAgentRequest(
+        request=request.request_text, compile_if_valid=False))
     guards = evaluate_agent_guards(refined)
     planning: PlanningResult | None = None
     compiled: CompiledTask | None = None
@@ -922,7 +1219,7 @@ def _rebuild_refined_facade(
         script_path = Path(request.script_output) if request.script_output else output_dir / "generated_simulation.py"
         script = export_runner_script(task_yaml, script_path, kind="capability-python", output_root=request.output_root)
 
-    files = dict(facade.files)
+    files = {key: value for key, value in facade.files.items() if key not in _FINAL_REFINEMENT_FILES}
     files["task_spec_yaml"] = str(task_yaml)
     files["task_spec_json"] = str(write_json(output_dir / "task_spec.json", refined))
     files["validation"] = str(write_json(output_dir / "validation.json", validation.to_dict()))
@@ -948,7 +1245,7 @@ def _rebuild_refined_facade(
         "natural_language_refinement_guard",
         "complete" if ok else "failed",
         "Locked the current capability and applied only bounded incremental changes.",
-        reason_codes=("NATURAL_LANGUAGE_REFINEMENT_APPLIED", "REFINEMENT_CAPABILITY_LOCKED"),
+        reason_codes=("NATURAL_LANGUAGE_REFINEMENT_APPLIED" if ok else "NATURAL_LANGUAGE_REFINEMENT_REJECTED", "REFINEMENT_CAPABILITY_LOCKED"),
         payload={"changed_paths": changed_paths},
     )
     planning_issue_codes = tuple(item.code for item in planning.validation.issues) if planning is not None else ()
@@ -964,7 +1261,7 @@ def _rebuild_refined_facade(
     )
     preserved_steps = tuple(item for item in facade.steps if item.name not in {"canonicalize", "guard", "plan", "compile"})
     refined_reason_codes = tuple(dict.fromkeys([
-        "NATURAL_LANGUAGE_REFINEMENT_APPLIED",
+        "NATURAL_LANGUAGE_REFINEMENT_APPLIED" if ok else "NATURAL_LANGUAGE_REFINEMENT_REJECTED",
         "REFINEMENT_CAPABILITY_LOCKED",
         *(item.code for item in validation.issues),
         *(item.code for item in guards.issues),
@@ -1068,10 +1365,9 @@ def run_unified_agent(request: UnifiedAgentRequest) -> UnifiedAgentResult:
         effective_request_text = request.request_text
         if request.base_task_spec is not None:
             base = canonicalize_task_spec(request.base_task_spec)
-            prompt_base = copy.deepcopy(base)
+            prompt_base = _refinement_prompt_projection(base)
             # Keep the real base intact for the merge. Machine provenance can
             # dominate the model context and must not be regenerated as physics.
-            prompt_base.pop("metadata", None)
             effective_request_text = (
                 "这是一次基于现有 TaskSpec 的多轮补充。请输出完整、更新后的 TaskSpec；"
                 "保留用户未要求修改的能力、参数、事件和输出，不要凭空增加故障或退化。\n"
@@ -1087,6 +1383,8 @@ def run_unified_agent(request: UnifiedAgentRequest) -> UnifiedAgentResult:
             output_root=request.output_root,
             script_output=request.script_output,
             max_repair_attempts=request.max_repair_attempts,
+            compile_if_valid=request.compile_if_valid and request.base_task_spec is None,
+            user_instruction=request.request_text if request.base_task_spec is not None else None,
             model_command=effective_command,
             model_name=effective_model,
             model_base_url=effective_base_url,
@@ -1101,10 +1399,14 @@ def run_unified_agent(request: UnifiedAgentRequest) -> UnifiedAgentResult:
             knowledge_policy=knowledge_policy,
         ))
         if request.base_task_spec is not None and facade.task_spec:
-            refined_spec, changed_paths = _merge_natural_language_refinement(
-                request.base_task_spec, facade.task_spec, request.request_text,
-            )
-            facade = _rebuild_refined_facade(facade, refined_spec, changed_paths, request, output_dir)
+            try:
+                refined_spec, changed_paths = _merge_natural_language_refinement(
+                    request.base_task_spec, facade.task_spec, request.request_text,
+                )
+            except ValueError as exc:
+                facade = _refinement_failure(facade, request, output_dir, exc)
+            else:
+                facade = _rebuild_refined_facade(facade, refined_spec, changed_paths, request, output_dir)
         files = {
             **facade.files,
             "model_route": str(output_dir / "model_route.json"),
@@ -1117,7 +1419,7 @@ def run_unified_agent(request: UnifiedAgentRequest) -> UnifiedAgentResult:
             *route.reason_codes,
             ReasonCode.RAG_ADVISORY_ONLY.value,
             *(["EXPERIENCE_ADVISORY_PRESENTED"] if experience_advisory["lesson_ids"] else []),
-            *( ["NATURAL_LANGUAGE_REFINEMENT_APPLIED"] if request.base_task_spec is not None else [] ),
+            *( ["NATURAL_LANGUAGE_REFINEMENT_APPLIED"] if request.base_task_spec is not None and facade.ok else [] ),
             *facade.reason_codes,
         ]))
         result = UnifiedAgentResult(

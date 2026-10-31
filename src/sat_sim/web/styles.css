@@ -245,7 +245,7 @@ html[data-theme="light"] .chart-toggle.active { color: #174e76; }
 .agent-change-panel span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
 .agent-change-actions { display: flex; gap: 7px; flex-shrink: 0; }
 .form-field.agent-changed { position: relative; padding: 8px; margin: -8px; border-radius: 9px; background: rgba(100, 169, 255, .08); box-shadow: inset 0 0 0 1px rgba(100, 169, 255, .31); }
-.form-field.agent-changed::after { content: "Agent"; position: absolute; right: 7px; top: 5px; color: var(--accent-2); font-size: 8px; font-weight: 750; letter-spacing: .05em; }
+.form-field.agent-changed::after { content: attr(data-change-source); position: absolute; right: 7px; top: 5px; color: var(--accent-2); font-size: 8px; font-weight: 750; letter-spacing: .05em; }
 .event-card.agent-changed,
 .check-option.agent-changed { border-color: rgba(100, 169, 255, .42); background: rgba(100, 169, 255, .07); }
 .execution-progress { display: grid; gap: 9px; }

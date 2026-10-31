@@ -1,0 +1,64 @@
+{
+  "started": "2026-10-31T03:24:16.918350+00:00",
+  "source": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate",
+  "tests": [
+    "tests"
+  ],
+  "application_before": "abd2445435a1c1ed6ca05ac357c321a12d6b93f6c075c772c4a4e8f0ae7d93fe",
+  "root_application_before": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "process": {
+    "pid": 38420,
+    "creation": 1793417056.480408,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "scope": "Ordinary uv-environment engineering regression; no container audit claim.",
+  "initial_import_origins": [
+    {
+      "module": "sat_sim",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim\\__init__.py"
+    },
+    {
+      "module": "sat_sim.agent_facade",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim\\agent_facade.py"
+    },
+    {
+      "module": "sat_sim.unified_agent",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim\\unified_agent.py"
+    },
+    {
+      "module": "sat_sim.script_exporter",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim\\script_exporter.py"
+    },
+    {
+      "module": "sat_sim.interactive.api",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim\\interactive\\api.py"
+    },
+    {
+      "module": "sat_sim.interactive.runtime_factory",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim\\interactive\\runtime_factory.py"
+    },
+    {
+      "module": "sat_sim_ml.serving",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim_ml\\serving.py"
+    },
+    {
+      "module": "sat_sim_ml.generation_control",
+      "file": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate\\src\\sat_sim_ml\\generation_control.py"
+    }
+  ],
+  "exit_code": 0,
+  "finished": "2026-10-31T03:49:08.776308+00:00",
+  "application_after": "abd2445435a1c1ed6ca05ac357c321a12d6b93f6c075c772c4a4e8f0ae7d93fe",
+  "root_application_after": "4cce6d46062a27bc310cc168c1d9587a458c56b4692bd60cf2c60548c2698f82",
+  "foreign_final_imports": [],
+  "source_and_imports_stable": true
+}

@@ -1,0 +1,14 @@
+{
+  "status": "VERIFIED_FINAL_SOURCE_ADOPTED",
+  "at_utc": "2026-10-31T03:49:30.734961+00:00",
+  "application": "abd2445435a1c1ed6ca05ac357c321a12d6b93f6c075c772c4a4e8f0ae7d93fe",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "paths_copied": 94,
+  "files_deleted": 0,
+  "gates": {
+    "reports\\local_requirements_completion\\final-integrated-full-regression-v2\\pytest-returned.json": "d847eb7715a2d01832d5df7b85b887524900c294fa1dc5c58fb8e14de01f833d",
+    "reports\\local_requirements_completion\\final-real-ai-frontend-evidence-v2\\state.json": "11f677462a2e47261f5000fffed810de5115dfe2868d59db4ba56c55fba6c9d4",
+    "reports\\local_requirements_completion\\final-owned-install-v1\\build-install-proof.json": "062989583a0020dd61cf00450448ec6b38cc3ad5af3439b30748025cb8f658e0"
+  },
+  "independent_endurance_owners_unchanged": true
+}

@@ -12,6 +12,14 @@ from sat_sim.form_schema import capability_form_schema
 from sat_sim.unified_agent import normalize_form_task_spec
 
 
+def _open_settings(page):
+    if not page.locator('#fontScaleSelect').is_visible():
+        button = page.locator('#toggleMobileToolsBtn')
+        button.focus()
+        button.press('Enter')
+        page.locator('#fontScaleSelect').wait_for(state='visible')
+
+
 @pytest.mark.parametrize('change_during', ['none', 'generation', 'projection', 'error'])
 def test_pending_generation_keeps_controls_usable_and_preserves_newer_edits(tmp_path, change_during):
     playwright = pytest.importorskip('playwright.sync_api')
@@ -50,7 +58,7 @@ def test_pending_generation_keeps_controls_usable_and_preserves_newer_edits(tmp_
 
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
-        page.wait_for_selector('.capability-card.active')
+        page.wait_for_selector('.capability-card.active', state='attached')
         initial_editor = page.locator('#taskSpecEditor').input_value()
         page.locator('#creatorAgentTabButton').click()
         page.locator('#agentRefineCurrent').uncheck()
@@ -61,6 +69,7 @@ def test_pending_generation_keeps_controls_usable_and_preserves_newer_edits(tmp_
         assert page.locator('#agentParseBtn').get_attribute('aria-busy') == 'true'
         assert not page.locator('#busyOverlay').is_visible()
         # Use pointer/keyboard controls; an overlay cannot intercept these.
+        _open_settings(page)
         font = page.locator('#fontScaleSelect')
         original = font.input_value()
         font.click()

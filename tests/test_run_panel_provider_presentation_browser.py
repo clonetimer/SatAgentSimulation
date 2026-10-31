@@ -14,6 +14,14 @@ from sat_sim.run_bundle import execute_prepared_run, prepare_run
 from sat_sim.unified_agent import normalize_form_task_spec
 
 
+def _open_settings(page):
+    if not page.locator('#fontScaleSelect').is_visible():
+        button = page.locator('#toggleMobileToolsBtn')
+        button.focus()
+        button.press('Enter')
+        page.locator('#fontScaleSelect').wait_for(state='visible')
+
+
 def test_completed_run_tabs_and_builtin_provider_status_remain_readable(tmp_path):
     playwright = pytest.importorskip('playwright.sync_api')
     executable = os.environ.get('SAT_SIM_BROWSER_EXECUTABLE')
@@ -56,6 +64,7 @@ def test_completed_run_tabs_and_builtin_provider_status_remain_readable(tmp_path
             page.wait_for_function("() => document.querySelector('#activeRunCard')?.textContent.includes('VERIFIED')")
             for width,height,scale in [(1366,900,'100'), (1366,768,'100'), (768,1024,'100'), (1920,1080,'130')]:
                 page.set_viewport_size({'width':width, 'height':height})
+                _open_settings(page)
                 page.locator('#fontScaleSelect').select_option(scale)
                 page.locator('.result-tabs').scroll_into_view_if_needed()
                 page.evaluate('() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
@@ -110,6 +119,7 @@ def test_completed_run_tabs_and_builtin_provider_status_remain_readable(tmp_path
                     page.locator('.result-tab[data-result-tab="overview"]').click()
                     assert page.locator('#resultOverview').is_visible()
             page.set_viewport_size({'width':1366, 'height':900})
+            _open_settings(page)
             page.locator('#fontScaleSelect').select_option('100')
             page.locator('#openModelSettingsBtn').click()
             page.locator('#modelSettingsModal').wait_for(state='visible')

@@ -1,0 +1,781 @@
+{
+  "status": "PASS_SCOPED_TWO_FRESH_GUI_CASES_ORIGINAL_PLAN_NATIVE_WEB_CURVES",
+  "started_at_utc": "2026-10-31T03:35:09.296268+00:00",
+  "cases": [
+    {
+      "id": "create17",
+      "status": "PASS_SCOPED_CASE",
+      "checks": {
+        "gui_exact_text_provider_refine": true,
+        "model_idle_before_case": true,
+        "gui_http200_exact_request_no_cache": true,
+        "create_has_no_refinement_base": true,
+        "response_canonical_text_exact_typed_document": true,
+        "actual_model_used_verified_no_template": true,
+        "actual_raw_bound_and_requested_loss_no_substitution": true,
+        "experience_disabled_no_advisories": true,
+        "only_requested_fault_and_onset": true,
+        "graph_export_http200": true,
+        "canonical_text_survives_graph_and_export": true,
+        "noedit_typed_full_canonical_preserved": true,
+        "original_plan_preserved_noedit": true,
+        "browser_download_matches_export": true,
+        "downloaded_script_original_typed_task": true,
+        "one_inference_this_case_worker_finished": true,
+        "native_downloaded_script_exit0": true,
+        "original_plan_stdout_compiled_dataset_identity": true,
+        "61_finite_samples_0_to12": true,
+        "original_140_capacity_fault_ratio_assertions": true,
+        "native_pass_retains_original_physical_warnings": true
+      },
+      "request_id": "chatcmpl-75ca66d6ef194fb597adb134ba4931ad",
+      "raw_response_sha256": "88cb24d7c22fbd2b09e235caa39fa7c087196b484678a769a58a00d1942d3034",
+      "original_plan_sha256": "7f2ae11906253df4510bb8804331e47ef46af5b7ba1bb077920df14a0132f8f2",
+      "download_sha256": "227d4d968d4110ee191dd163d8dbc2f9b8bd91ac224ad5d82df2ff8d67764379",
+      "trace_sha256": "e6f8436755fd150de1db8f25f0f03c7408f632b62acf096db6b62a12e98c6287"
+    },
+    {
+      "id": "refine42",
+      "status": "PASS_SCOPED_CASE",
+      "checks": {
+        "gui_exact_text_provider_refine": true,
+        "model_idle_before_case": true,
+        "gui_http200_exact_request_no_cache": true,
+        "refine_original_base_text_exact": true,
+        "response_canonical_text_exact_typed_document": true,
+        "actual_model_used_verified_no_template": true,
+        "actual_raw_bound_and_requested_loss_no_substitution": true,
+        "experience_disabled_no_advisories": true,
+        "only_requested_fault_and_onset": true,
+        "refine_preserves_parameters": true,
+        "refine_preserves_simulation": true,
+        "refine_preserves_outputs": true,
+        "refine_preserves_model": true,
+        "refine_preserves_mission": true,
+        "refine_preserves_assurance": true,
+        "refine_preserves_other_fault_fields": true,
+        "graph_export_http200": true,
+        "canonical_text_survives_graph_and_export": true,
+        "noedit_typed_full_canonical_preserved": true,
+        "original_plan_preserved_noedit": true,
+        "browser_download_matches_export": true,
+        "downloaded_script_original_typed_task": true,
+        "one_inference_this_case_worker_finished": true,
+        "native_downloaded_script_exit0": true,
+        "original_plan_stdout_compiled_dataset_identity": true,
+        "61_finite_samples_0_to12": true,
+        "original_140_capacity_fault_ratio_assertions": true,
+        "native_pass_retains_original_physical_warnings": true
+      },
+      "request_id": "chatcmpl-bda7a17fb3ef408298878d521503f126",
+      "raw_response_sha256": "3c22c7850642ed53d4dd52f47981c4d06beba15e69e81f08af8008738cfff1c8",
+      "original_plan_sha256": "d98adaf0e3b7d5c791c65270ed5d86353698c4340205fb297ec6277371d63780",
+      "download_sha256": "2b1354a96aee34f81c4ce8ade8aba211897754c2872dfb11a5452eb4db389cce",
+      "trace_sha256": "9bd2f8c7ef7129592431e2c240021e62c5d8bdbd35877005f0a4fc6308eeb845"
+    }
+  ],
+  "checks": {
+    "source_app_core_before": true,
+    "sealed_inputs_before": true,
+    "actual_owned_preview_listener": true,
+    "actual_installed_imports_present": true,
+    "actual_imported_project_files_match_frozen_source": true,
+    "wheel_sha": true,
+    "source_wheel_installed_payloads": true,
+    "http_asset_index.html": true,
+    "http_asset_app.js": true,
+    "http_asset_styles.css": true,
+    "http_asset_continuous.js": true,
+    "http_asset_continuous.css": true,
+    "http_asset_compact-workbench.js": true,
+    "http_asset_compact-workbench.css": true,
+    "web_run_worker_available_before_model_calls": true,
+    "same_owned_v5_idle": true,
+    "preview_provider_config_is_owned": true,
+    "exact_original_frozen_request_file": true,
+    "one_fresh_browser_context": true,
+    "web_owned_runs_root_and_active_worker": true,
+    "web_real_run_button_submitted_original_refine_text": true,
+    "web_prepared_original_plan_bound": true,
+    "web_native_terminal_sealed_integrity": true,
+    "web_original_refine_plan_prepared_input_compiled_dataset": true,
+    "web_warning42_not_discarded_no_high_fidelity_claim": true,
+    "web_actual61_samples_0to12_step_point2": true,
+    "web_http_curve_values_equal_original_csv_and_downloaded_refine": true,
+    "web_actual140_to81point2_and_point58": true,
+    "web_warning42_visible_in_real_overview": true,
+    "web_legend_actual_min_max_eps.effective_battery_capacity_wh": true,
+    "web_ui_time_window0_to12_eps.effective_battery_capacity_wh": true,
+    "web_curve_rendered_in_desktop_eps.effective_battery_capacity_wh": true,
+    "web_curve_rendered_in_narrow_eps.effective_battery_capacity_wh": true,
+    "web_legend_actual_min_max_eps.battery_capacity_ratio": true,
+    "web_ui_time_window0_to12_eps.battery_capacity_ratio": true,
+    "web_curve_rendered_in_desktop_eps.battery_capacity_ratio": true,
+    "web_curve_rendered_in_narrow_eps.battery_capacity_ratio": true,
+    "no_browser_page_errors": true,
+    "exactly_two_gui_model_parse_submissions": true,
+    "model_slot_idle_at_end": true,
+    "source_app_core_unchanged_after": true,
+    "all_frozen_input_bytes_unchanged_after": true,
+    "r30_original_failure_unchanged": true
+  },
+  "screenshots": [
+    {
+      "path": "create17-01-ready.png",
+      "sha256": "1ccbe04b9c8bc16470d4918d155a9bb7ac3c8be4e66a688808e71bf5123052b1"
+    },
+    {
+      "path": "create17-02-generated.png",
+      "sha256": "6b3bcffd10afc8cb5c27cf28c23d94141c0885d8ec47c056e7cf0c5b27feb064"
+    },
+    {
+      "path": "create17-03-download.png",
+      "sha256": "bd4363448f0b1870f4ee58570c40e6d5456de4a74c7aa63f187ccf204337c87d"
+    },
+    {
+      "path": "refine42-01-ready.png",
+      "sha256": "0d2fabc583dce6b490fd6136533f98571465b3559396ed4739081545a76f2a28"
+    },
+    {
+      "path": "refine42-02-generated.png",
+      "sha256": "13ac75070462cf1e8714163f28fac5056343c6f9338e16477ae1a8e4921e0563"
+    },
+    {
+      "path": "refine42-03-download.png",
+      "sha256": "583146c857c18ca6c90b25c813b65d8e395d7a86de4b37bd83861b43029c2a3e"
+    },
+    {
+      "path": "web-run\\overview-physical-warning42-desktop.png",
+      "sha256": "f9e5ad75f77bec727e1d8f5cbb795a7ba8ee569daa66d98f53a8abaa7bd2642e"
+    },
+    {
+      "path": "web-run\\eps_effective_battery_capacity_wh-desktop.png",
+      "sha256": "7733d64884424dd7a733429a6d0aa1d4c4f54825bf2bacda9570ec96355b1fc4"
+    },
+    {
+      "path": "web-run\\eps_effective_battery_capacity_wh-narrow.png",
+      "sha256": "1573917b6f8b1a4ee38ecfbd500c2ab96437bc1e6cf6fe38353155188fb718ed"
+    },
+    {
+      "path": "web-run\\eps_battery_capacity_ratio-desktop.png",
+      "sha256": "58049185c63ae704bff7ac4c678c63c02a6463ced2ed3b843d4987c6ff3ebc04"
+    },
+    {
+      "path": "web-run\\eps_battery_capacity_ratio-narrow.png",
+      "sha256": "05bb1793935777460874e212267907404dc631a1ea4a9ee54c1e133f707d00d1"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/styles.css"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/continuous.css"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/compact-workbench.css"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/app.js"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/continuous.js"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/compact-workbench.js"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/status"
+    },
+    {
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "method": "GET",
+      "path": "/release"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/workbench/single-run/readiness"
+    },
+    {
+      "method": "GET",
+      "path": "/models/providers"
+    },
+    {
+      "method": "GET",
+      "path": "/task-center/tasks"
+    },
+    {
+      "method": "GET",
+      "path": "/scenario-templates"
+    },
+    {
+      "method": "GET",
+      "path": "/experiments"
+    },
+    {
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "method": "GET",
+      "path": "/interactive/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/interactive/commands/catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/interactive/capabilities"
+    },
+    {
+      "method": "GET",
+      "path": "/forms/capabilities"
+    },
+    {
+      "method": "GET",
+      "path": "/forms/capabilities/whole_spacecraft.unified_native.v1"
+    },
+    {
+      "method": "GET",
+      "path": "/visual-composer/assemblies"
+    },
+    {
+      "method": "GET",
+      "path": "/visual-composer/module-library"
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/parse"
+    },
+    {
+      "method": "POST",
+      "path": "/forms/capabilities/whole_spacecraft.unified_native.v1/project"
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/compile-graph"
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/export-script"
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/parse"
+    },
+    {
+      "method": "POST",
+      "path": "/forms/capabilities/whole_spacecraft.unified_native.v1/project"
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/compile-graph"
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/export-script"
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/compile-graph"
+    },
+    {
+      "method": "POST",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/execution"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj"
+    },
+    {
+      "method": "GET",
+      "path": "/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/metrics"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/events"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/plots"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/telemetry"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/artifacts"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/dataset"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/fault-traceability"
+    },
+    {
+      "method": "GET",
+      "path": "/runs/generated_task_mvvustaj/telemetry/overview"
+    },
+    {
+      "method": "POST",
+      "path": "/visual-composer/run-overlay"
+    }
+  ],
+  "page_errors": [],
+  "application": "abd2445435a1c1ed6ca05ac357c321a12d6b93f6c075c772c4a4e8f0ae7d93fe",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "source_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\requirements-final-integrated-candidate",
+  "driver_sha256": "60dcc8a0d433f724317ba9bea1cfc26cf173b79f099f6dd2631dc217b91ed012",
+  "scope": "Two original frozen GUI requests in one fresh owned browser context; no template, response mocking, cache reuse, prompt rewrite or automatic retry.",
+  "measurement_scope": "Concurrent root workloads may exist; no quiet performance claim.",
+  "model_before": {
+    "ok": true,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-r47-explicit-literals",
+    "source": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+    },
+    "busy": false,
+    "available": true,
+    "max_active": 1,
+    "max_waiting_requests": 0,
+    "active_count": 0,
+    "queued_count": 0,
+    "requests": [],
+    "counts": {
+      "accepted": 15,
+      "rejected_busy": 0,
+      "completed": 15,
+      "failed": 0,
+      "cancelled": 0,
+      "timed_out": 0
+    },
+    "last_terminal": {
+      "request_id": "chatcmpl-378f9756be97486cb0b180faea39cab8",
+      "phase": "finishing",
+      "underlying_phase": "finishing",
+      "elapsed_total_s": 95.65600000007544,
+      "queue_wait_s": 0.0,
+      "prompt_tokens": 3706,
+      "generated_tokens": 847,
+      "first_token_latency_s": 9.76500000001397,
+      "last_progress_age_s": 0.0,
+      "deadline_remaining_s": 174.34399999992456,
+      "cancel_pending": false,
+      "cancel_reason": null,
+      "terminal_reason": "completed",
+      "worker_started": true,
+      "worker_finished": true
+    },
+    "request_deadline_s": 270.0,
+    "deadline_semantics": "cooperative; current native/CUDA pass may overrun",
+    "closed": false
+  },
+  "phase": "WEB_RUN",
+  "web_run": {
+    "status": "PASS_SCOPED_WEB_NATIVE_AND_REAL_CURVES",
+    "checks_scope": "One actual same-page Run after refinement; no new model call.",
+    "run_id": "generated_task_mvvustaj",
+    "bundle": "E:\\tmp\\SatAgentSimulation\\reports\\local_requirements_completion\\final-owned-installed-data-v1\\runs\\generated_task_mvvustaj",
+    "original_plan_sha256": "d98adaf0e3b7d5c791c65270ed5d86353698c4340205fb297ec6277371d63780",
+    "raw_csv_sha256": "70fdddd24a69d01d18643c74eb8fe741143e791d97ede8d18ce10eb3462dbc34",
+    "warning_count": 42,
+    "actual_rows": 61,
+    "actual_curve_fields": [
+      "eps.effective_battery_capacity_wh",
+      "eps.battery_capacity_ratio"
+    ],
+    "desktop_and_narrow_pngs_require_manual_review": true
+  },
+  "cpu_percent": [
+    36.4,
+    45.8,
+    43.5,
+    41.7,
+    41.0,
+    41.8,
+    43.1,
+    38.5,
+    47.4,
+    37.7,
+    44.1,
+    39.6,
+    40.5,
+    40.9,
+    49.5,
+    43.1,
+    43.7,
+    37.4,
+    51.4,
+    39.4,
+    45.6,
+    38.9,
+    53.5,
+    48.9,
+    47.4,
+    45.6,
+    41.6,
+    46.0,
+    45.2,
+    39.9,
+    46.6,
+    44.1,
+    41.2,
+    41.3,
+    39.1,
+    43.4,
+    49.4,
+    46.2,
+    49.1,
+    44.8,
+    51.2,
+    42.0,
+    44.1,
+    43.0,
+    64.1,
+    63.4,
+    47.8,
+    41.2,
+    46.7,
+    44.3,
+    42.3,
+    47.5,
+    52.8,
+    40.2,
+    41.8,
+    48.1,
+    40.0,
+    44.8,
+    39.6,
+    47.2,
+    48.0,
+    39.5,
+    36.5,
+    41.8,
+    46.7,
+    71.2,
+    58.6,
+    85.5,
+    58.4,
+    59.1,
+    43.3,
+    45.2,
+    51.4,
+    37.6,
+    35.4,
+    47.3,
+    36.3,
+    40.9,
+    35.8,
+    44.5,
+    49.0,
+    47.5,
+    39.0,
+    34.8,
+    46.0,
+    46.6,
+    41.9,
+    45.2,
+    38.2,
+    40.5,
+    43.7,
+    47.2,
+    43.1,
+    45.3,
+    38.6,
+    38.0,
+    43.3,
+    45.4,
+    43.2,
+    51.5,
+    50.8,
+    38.1,
+    40.3,
+    56.4,
+    48.6,
+    44.8,
+    40.2,
+    48.1,
+    43.6,
+    48.8,
+    50.2,
+    44.4,
+    46.3,
+    55.7,
+    56.3,
+    52.3,
+    45.4,
+    50.8,
+    54.7,
+    59.5,
+    43.1,
+    40.6,
+    41.3,
+    37.0,
+    44.2,
+    46.1,
+    37.8,
+    48.5,
+    48.0,
+    49.3,
+    40.2,
+    44.6,
+    40.5,
+    44.3,
+    64.4,
+    59.4,
+    64.6,
+    52.8,
+    51.7,
+    67.5,
+    62.8,
+    64.6,
+    61.1,
+    46.1,
+    51.7,
+    43.9,
+    48.9,
+    39.8,
+    44.5,
+    46.1,
+    50.8,
+    42.5,
+    46.3,
+    51.7,
+    53.7,
+    39.0,
+    48.2,
+    55.4,
+    44.7,
+    53.4,
+    57.3,
+    65.0,
+    56.3,
+    46.8,
+    53.4,
+    56.5,
+    42.4,
+    64.6,
+    70.5,
+    39.3,
+    46.8,
+    47.9,
+    47.1,
+    45.6,
+    44.8,
+    39.7,
+    57.2,
+    44.4
+  ],
+  "model_terminal_observation": {
+    "ok": true,
+    "model": "Qwen2.5-Coder-1.5B-SatAgent-v5-r47-explicit-literals",
+    "source": {
+      "engine": "transformers",
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "attention_backend": "sat_cudnn_prefill",
+      "base_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+      "adapter_loaded": true,
+      "adapter_merged": true,
+      "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+      "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b"
+    },
+    "busy": false,
+    "available": true,
+    "max_active": 1,
+    "max_waiting_requests": 0,
+    "active_count": 0,
+    "queued_count": 0,
+    "requests": [],
+    "counts": {
+      "accepted": 17,
+      "rejected_busy": 0,
+      "completed": 17,
+      "failed": 0,
+      "cancelled": 0,
+      "timed_out": 0
+    },
+    "last_terminal": {
+      "request_id": "chatcmpl-bda7a17fb3ef408298878d521503f126",
+      "phase": "finishing",
+      "underlying_phase": "finishing",
+      "elapsed_total_s": 159.95300000009593,
+      "queue_wait_s": 0.0,
+      "prompt_tokens": 11179,
+      "generated_tokens": 1704,
+      "first_token_latency_s": 6.76500000001397,
+      "last_progress_age_s": 0.0,
+      "deadline_remaining_s": 110.04699999990407,
+      "cancel_pending": false,
+      "cancel_reason": null,
+      "terminal_reason": "completed",
+      "worker_started": true,
+      "worker_finished": true
+    },
+    "request_deadline_s": 270.0,
+    "deadline_semantics": "cooperative; current native/CUDA pass may overrun",
+    "closed": false
+  },
+  "model_slot_idle_at_end": true,
+  "finished_at_utc": "2026-10-31T03:41:09.143707+00:00"
+}

@@ -222,12 +222,12 @@ def run_environment_doctor(
     """Inspect the runtime without downloading or mutating model assets."""
 
     checks: list[ReleaseCheck] = []
-    py_ok = (3, 10) <= sys.version_info < (3, 14)
+    py_ok = (3, 11) <= sys.version_info < (3, 14)
     checks.append(_check(
         "python.version",
         "Python version",
         CheckStatus.PASS if py_ok else CheckStatus.FAIL,
-        f"Python {platform.python_version()} detected; project supports Python 3.10 through 3.13.",
+        f"Python {platform.python_version()} detected; project supports Python 3.11 through 3.13.",
         evidence={"version": platform.python_version(), "executable": sys.executable},
     ))
 

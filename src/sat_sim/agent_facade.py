@@ -31,8 +31,9 @@ from .dataset_writer import DatasetWriteResult
 from .run_bundle import RunExecutionResult, execute_prepared_run, prepare_run
 from .execution_planner import PlanningResult, attach_plan_metadata, plan_task_spec
 from .task_spec import write_json
-from .task_validator import ValidationResult, validate_task_spec
+from .task_validator import ValidationIssue, ValidationResult, validate_task_spec
 from .nl_outputs import apply_output_intents_to_spec
+from .nl_aliases import EXPLICIT_PARAMETER_ALIASES as _EXPLICIT_PARAMETER_ALIASES
 
 AGENT_FACADE_VERSION = "v26.agent-facade.v2"
 
@@ -101,6 +102,8 @@ class AgentFacadeRequest:
     output_root: str | Path | None = None
     script_output: str | Path | None = None
     max_repair_attempts: int = 2
+    compile_if_valid: bool = True
+    user_instruction: str | None = None
     auto_run: bool = False
     dry_run: bool = False
     model_command: str | None = None
@@ -181,8 +184,9 @@ def _write_yaml(path: Path, payload: Mapping[str, Any]) -> Path:
 
 
 _EXPLICIT_NEGATIVE_EFFECT_RE = re.compile(
-    r"(?:不|不要|无需|禁止|不添加|不注入|不设置|没有|无)(?:任何)?(?:故障|失效|异常|退化|漂移|偏置|噪声增加)"
-    r"|(?:nominal|no|without)\s+(?:faults?|failures?|degradations?|anomalies?)",
+    r"(?:(?:不|不要|无需|禁止|不添加|不注入|不设置|没有|无)(?:任何)?(?:故障|失效|异常|退化|漂移|偏置|噪声增加)"
+    r"|(?:nominal|no|without)\s+(?:faults?|failures?|degradations?|anomalies?))"
+    r"(?:\s*(?:或|和|及|、|/|or\b|and\b)\s*(?:故障|失效|异常|退化|漂移|偏置|噪声增加|faults?|failures?|degradations?|anomalies?))*",
     re.IGNORECASE,
 )
 _EXPLICIT_POSITIVE_EFFECT_RE = re.compile(
@@ -212,10 +216,25 @@ _RPM_TARGET_CUE_RE = re.compile(
 
 def _effect_intent_state(request_text: str) -> str:
     """Classify event intent without destructively guessing from missing keywords."""
-    text = request_text or ""
-    if _EXPLICIT_NEGATIVE_EFFECT_RE.search(text):
+    text = (request_text or "").rsplit('本轮补充指令：', 1)[-1]
+    # Exclusions apply to *other* events, not to an explicitly requested fault.
+    # Mask the complete exclusion so its word 'fault' is not a positive cue.
+    text = re.sub(
+        r'(?:其余|其他|其它|额外)(?:均|都)?(?:无|没有|不添加|不注入)(?:任何)?(?:故障|失效|异常|退化)'
+        r'|(?:不|不要)(?:再)?(?:添加|注入)(?:其他|其它|额外)(?:故障|失效|异常|退化|事件)'
+        r'|\b(?:no|without)\s+(?:other|additional|extra)\s+(?:faults?|failures?|degradations?|events?)\b'
+        r'|\b(?:no|without)\s+(?:faults?|failures?|degradations?)\s+(?:except|other than)\b',
+        ' ', text, flags=re.I)
+    negative = bool(_EXPLICIT_NEGATIVE_EFFECT_RE.search(text))
+    positive_probe = _EXPLICIT_NEGATIVE_EFFECT_RE.sub(' ', text)
+    positive = bool(_EXPLICIT_POSITIVE_EFFECT_RE.search(positive_probe)
+                    or _EFFECT_DOMAIN_CHANGE_RE.search(positive_probe)
+                    or re.search(r'\bbattery\s+capacity\s+(?:loss|drop|reduction)\b', positive_probe, re.I))
+    if negative and positive:
+        return "unconfirmed"  # Contradictory instructions must not erase events.
+    if negative:
         return "explicit_negative"
-    if _EXPLICIT_POSITIVE_EFFECT_RE.search(text) or _EFFECT_DOMAIN_CHANGE_RE.search(text):
+    if positive:
         return "explicit_positive"
     return "unconfirmed"
 
@@ -239,6 +258,20 @@ def _event_collections(payload: Mapping[str, Any]) -> list[tuple[str, list[Any]]
     elif isinstance(legacy_degradations, list) and legacy_degradations:
         collections.append(("degradations", legacy_degradations))
     return collections
+
+
+def _event_preservation_issues(before: Mapping[str, Any], after: Mapping[str, Any], request_text: str) -> list[ValidationIssue]:
+    """Reject event loss/value changes across product transformations."""
+    if _effect_intent_state(request_text) == 'explicit_negative':
+        return []  # Explicit removal remains separately logged by the sanitizer.
+    previous = canonicalize_task_spec(before)['events']
+    current = canonicalize_task_spec(after)['events']
+    if previous != current:
+        return [ValidationIssue('error', '$.events',
+            'Product transformations changed model event semantics. Preserve the generated '
+            'event values or reject the draft; never silently change the physical scenario.',
+            'MODEL_EVENT_PRESERVATION_MISMATCH')]
+    return []
 
 
 def _sanitize_generated_draft(spec: Mapping[str, Any], request_text: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -298,27 +331,8 @@ def _sanitize_generated_draft(spec: Mapping[str, Any], request_text: str) -> tup
             "event_paths": [path for path, _ in collections],
         })
 
-    def repair_list(items: Any, path: str) -> None:
-        if not isinstance(items, list):
-            return
-        for index, item in enumerate(items):
-            if not isinstance(item, dict):
-                continue
-            for key in ("magnitude", "severity"):
-                value = item.get(key)
-                if isinstance(value, (int, float)) and not isinstance(value, bool) and value < 0:
-                    item[key] = 0.0
-                    repairs.append({"path": f"{path}.{index}.{key}", "action": "clamped_to_zero", "original": value})
-
-    events = out.get("events") if isinstance(out.get("events"), dict) else {}
-    repair_list(events.get("faults"), "events.faults")
-    repair_list(events.get("degradations"), "events.degradations")
-    repair_list(events.get("constraints"), "events.constraints")
-    repair_list(out.get("faults"), "faults")
-    modifiers = out.get("modifiers") if isinstance(out.get("modifiers"), dict) else {}
-    repair_list(modifiers.get("faults"), "modifiers.faults")
-    repair_list(modifiers.get("degradations"), "modifiers.degradations")
-    repair_list(modifiers.get("constraints"), "modifiers.constraints")
+    # Physical magnitudes belong to the model answer. Invalid values must be
+    # rejected by validation, never silently clamped into a different scenario.
 
     model = out.get("model") if isinstance(out.get("model"), dict) else {}
     capability_id = str(model.get("capability_id") or out.get("capability_id") or "")
@@ -365,19 +379,6 @@ def _scalar(value: Any, default: float) -> float:
         return default
 
 
-_EXPLICIT_PARAMETER_ALIASES: dict[str, tuple[str, ...]] = {
-    "simulation.duration_s": ("仿真时间", "运行时间", "持续时间", "duration", "run time"),
-    "parameters.values.battery_capacity_wh": ("电池容量", "battery capacity"),
-    "parameters.values.initial_soc": ("初始soc", "初始荷电状态", "initial soc", "state of charge"),
-    "parameters.values.solar_power_w": ("太阳翼功率", "太阳阵列功率", "solar power"),
-    "parameters.values.payload_power_w": ("载荷功耗", "载荷功率", "payload power"),
-    "parameters.values.storage_capacity_bits": ("存储容量", "storage capacity"),
-    "parameters.values.transmitter_baud_bps": ("数据率", "码率", "baud", "data rate"),
-    "parameters.values.thermal_step_s": ("热控步长", "热仿真步长", "thermal step"),
-    "parameters.values.orb_env_step_s": ("轨道环境步长", "环境步长", "orbit environment step"),
-    "parameters.values.adcs_dyn_step_s": ("动力学步长", "姿态动力学步长", "dynamics step"),
-    "parameters.values.adcs_fsw_step_s": ("控制周期", "飞控周期", "fsw step", "control period"),
-}
 _CRITICAL_PHYSICAL_PARAMETER_PATHS = frozenset({
     "parameters.values.battery_capacity_wh",
     "parameters.values.initial_soc",
@@ -388,7 +389,30 @@ _CRITICAL_PHYSICAL_PARAMETER_PATHS = frozenset({
 })
 
 
+def _requests_nominal_battery_capacity(request_text: str) -> bool:
+    """A dimensionless capacity-loss amount is not an energy-capacity assignment."""
+    from .nl_time import NUMBER, literal_label_pattern
+    latest = str(request_text or "").rsplit("本轮补充指令：", 1)[-1]
+    aliases = literal_label_pattern((r"battery_capacity_wh", r"(?:标称)?电池(?:标称)?容量", r"标称容量", r"(?:nominal\s+)?battery\s+capacity"))
+    connector = r"(?:改为|改成|设置为|设为|调整为|从|为|是|=|:|：|to|from|is)?"
+    unit_end = r"(?![A-Za-z0-9_/^²³]|\s*(?:[/^]|\bper\b))"
+    binding = re.compile(rf"(?P<name>{aliases})\s*{connector}\s*(?P<value>{NUMBER})\s*(?P<unit>(?:kwh|mwh|wh|千瓦时|毫瓦时|瓦时|%){unit_end})?", re.I)
+    for clause in re.split(r"[,，;；。\n]|并(?:且)?|\band\b", latest, flags=re.I):
+        if re.search(r"不要|不把|不将|不修改|不改变|不更改|\b(?:do\s+not|don't|not)\b", clause, re.I):
+            continue
+        for match in binding.finditer(clause):
+            if match['unit'] == '%':
+                continue
+            tail = clause[match.end():]
+            if not match['unit'] and re.match(r"[A-Za-z%/]|\s*[/^]", tail):
+                continue
+            return True
+    return False
+
+
 def _request_explicitly_sets(path: str, request_text: str) -> bool:
+    if path == "parameters.values.battery_capacity_wh":
+        return _requests_nominal_battery_capacity(request_text)
     text = (request_text or "").lower()
     aliases = _EXPLICIT_PARAMETER_ALIASES.get(path, ())
     for alias in aliases:
@@ -486,7 +510,7 @@ def _canonical_provenance(spec: dict[str, Any], request: AgentFacadeRequest) -> 
         elif path == "task.id" and request.task_id:
             source = "user_explicit"
             evidence = "explicit Agent task_id argument"
-        elif _request_explicitly_sets(path, request.request):
+        elif _request_explicitly_sets(path, request.user_instruction if request.user_instruction is not None else request.request):
             source = "user_explicit"
             evidence = "numeric value found next to a parameter alias in the user request"
         elif request.backend == "template":
@@ -549,6 +573,8 @@ def _model_fallback_used(backend_result: Any) -> bool:
 def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
     output_dir = Path(request.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    # The model sees the base TaskSpec, but its machine fields are not new user intent.
+    semantic_text = request.user_instruction if request.user_instruction is not None else request.request
     files: dict[str, str] = {}
     steps: list[AgentFacadeStep] = [
         AgentFacadeStep("tool_policy", "complete", "Loaded semantic Agent tool whitelist.", payload=agent_tool_policy_payload())
@@ -565,6 +591,7 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
         output_root=request.output_root,
         script_output=request.script_output,
         max_repair_attempts=request.max_repair_attempts,
+        compile_if_valid=False,
         run_task=False,
         dry_run=True,
         model_command=request.model_command,
@@ -624,7 +651,7 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
         write_json(report_path, result.to_dict())
         return result
 
-    sanitized_draft, sanitizer_repairs = _sanitize_generated_draft(backend_result.task_spec, request.request)
+    sanitized_draft, sanitizer_repairs = _sanitize_generated_draft(backend_result.task_spec, semantic_text)
     if _model_fallback_used(backend_result):
         safety = sanitized_draft.setdefault("metadata", {}).setdefault("agent_safety", {})
         safety.update({
@@ -637,15 +664,15 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
         })
     migration = migrate_legacy_task_spec(sanitized_draft) if sanitized_draft.get("schema_version") != CANONICAL_TASK_SPEC_VERSION else None
     canonical = canonicalize_task_spec(sanitized_draft)
-    canonical, attached_couplings = attach_required_couplings(canonical, request.request)
-    semantic_repairs = _apply_request_semantics(canonical, request.request)
+    canonical, attached_couplings = attach_required_couplings(canonical, semantic_text)
+    semantic_repairs = _apply_request_semantics(canonical, semantic_text)
     if attached_couplings:
         semantic_repairs.append({
             "path": "mission.required_couplings",
             "action": "attached_physical_causal_requirements",
             "coupling_ids": list(attached_couplings),
         })
-    canonical, output_resolution = apply_output_intents_to_spec(canonical, request.request)
+    canonical, output_resolution = apply_output_intents_to_spec(canonical, semantic_text)
     output_repairs: list[dict[str, Any]] = []
     if output_resolution.fields:
         output_repairs.append({
@@ -679,6 +706,10 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
         ))
     canonical = _canonical_provenance(canonical, request)
     validation = validate_task_spec(canonical)
+    from .capability_agent import _natural_battery_loss_requirement_issues
+    validation = ValidationResult(tuple(validation.issues)
+        + tuple(_event_preservation_issues(backend_result.task_spec, canonical, semantic_text))
+        + tuple(_natural_battery_loss_requirement_issues(canonical, semantic_text)))
     guards = evaluate_agent_guards(canonical)
     steps.append(AgentFacadeStep(
         "canonicalize",
@@ -736,7 +767,7 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
                 "execution_plan_sha256": planning.execution_plan.plan_sha256 if planning.execution_plan else None,
             },
         ))
-        if planning.ok:
+        if planning.ok and request.compile_if_valid:
             compiled = attach_plan_metadata(compile_task_spec(canonical, validate=False), planning)
             files["compiled_task"] = str(write_json(output_dir / "compiled_task.json", compiled.to_dict()))
             script_path = Path(request.script_output) if request.script_output else output_dir / "generated_simulation.py"
@@ -805,6 +836,8 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
                 ))
             elif request.auto_run:
                 steps.append(AgentFacadeStep("run", "skipped", "dry_run=True; execution was not started."))
+        elif planning.ok:
+            steps.append(AgentFacadeStep("compile", "deferred", "Draft validated; the caller must merge and validate the final TaskSpec before export."))
         else:
             steps.append(AgentFacadeStep("compile", "blocked", "V24 plan validation blocked compilation."))
     else:
@@ -814,7 +847,7 @@ def run_agent(request: AgentFacadeRequest) -> AgentFacadeResult:
     planning_codes = {item.code for item in planning.validation.issues} if planning else set()
     step_reason_codes = {code for step in steps for code in step.reason_codes}
     reason_codes = tuple(sorted({item.code for item in validation.issues} | {item.code for item in guards.issues} | planning_codes | step_reason_codes))
-    ok = validation.ok and guards.ok and planning is not None and planning.ok and compiled is not None
+    ok = validation.ok and guards.ok and planning is not None and planning.ok and (compiled is not None or not request.compile_if_valid)
     report_path = output_dir / "agent_report.json"
     files["agent_report"] = str(report_path)
     result = AgentFacadeResult(

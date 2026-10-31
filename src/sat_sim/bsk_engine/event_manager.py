@@ -21,6 +21,13 @@ def _event_iter(spec: Mapping[str, Any]) -> list[tuple[str, Mapping[str, Any]]]:
         for item in modifiers.get(category, []) or []:
             if isinstance(item, Mapping):
                 out.append((category[:-1], item))
+    # Runtime conversion retains legacy-fault delivery in top-level arrays.
+    # These declarations must reach the same native controllers and evidence
+    # as canonical/modifier events, rather than silently running nominally.
+    for category in ("faults", "degradations", "constraints"):
+        items = spec.get(category)
+        if isinstance(items, Sequence) and not isinstance(items, (str, bytes)):
+            out.extend((category[:-1], item) for item in items if isinstance(item, Mapping))
     return out
 
 

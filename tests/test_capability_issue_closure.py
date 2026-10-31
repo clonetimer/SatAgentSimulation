@@ -59,13 +59,13 @@ def test_workbench_uses_light_sections_and_manifest_only_chart_controls(tmp_path
         js = client.get("/assets/app.js").text
         css = client.get("/assets/styles.css").text
     assert "task_id 标识可保存、可复用的任务配置" in index
-    assert "横轴固定为仿真时间（time_s）" in index
+    assert "横轴为仿真时间" in index
     assert 'html[data-theme="light"] .schema-section' in css
     assert "rgba(252, 254, 255, .98)" in css
     assert "strict_requested_plots" not in js  # policy comes from the manifest, not a UI fallback
     assert "(state.plotManifest?.series || []).map" in js
     assert "output-hierarchy-toolbar" in js
-    assert "输出层级" in index
+    assert "输出与曲线" in index
     assert "[...preferred, ...available]" not in js
     assert "sample_index', 'task_id', 'case_id'" in js
 

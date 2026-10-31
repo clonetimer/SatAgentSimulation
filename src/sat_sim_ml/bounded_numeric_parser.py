@@ -12,8 +12,35 @@ import re
 
 from lmformatenforcer.characterlevelparser import CharacterLevelParser, UnionParser, ForceStopParser
 from lmformatenforcer.jsonschemaparser import (
-    JsonSchemaParser, NumberParsingState, ObjectParsingState, ListParsingState,
+    JsonSchemaParser, NumberParsingState, ObjectParsingState, ListParsingState, StringParsingState,
 )
+from lmformatenforcer.consts import WHITESPACE_CHARACTERS
+
+
+class FiniteJsonLiteralParser(CharacterLevelParser):
+    """One complete JSON spelling of an already validated finite const value.
+
+    This filters token prefixes only: it never appends text to a model answer.
+    A compound literal includes its own brackets, keys and escaped strings, so
+    unsupported LMFE tuple/object intersections cannot leak alternate values.
+    """
+    def __init__(self, root, literal, index=0):
+        super().__init__(root.config)
+        self.root, self.literal, self.index = root, literal, index
+
+    def add_character(self, character):
+        if self.index == 0 and character in WHITESPACE_CHARACTERS:
+            return self
+        if self.index >= len(self.literal) or self.literal[self.index] != character:
+            raise ValueError('GUIDED_CONST_INVALID_PREFIX')
+        return FiniteJsonLiteralParser(self.root, self.literal, self.index + 1)
+
+    def get_allowed_characters(self):
+        next_character = self.literal[self.index:self.index + 1]
+        return next_character + (WHITESPACE_CHARACTERS if self.index == 0 else '')
+
+    def can_end(self):
+        return self.index == len(self.literal)
 
 
 def numeric_variants(schema):
@@ -100,9 +127,14 @@ class BoundedNumber(NumberParsingState):
         return self._suffixes
 
 
-def bind_numbers(parser):
+def bind_numbers(parser, literal_parsers=None):
+    literal_parsers = literal_parsers or {}
+    if isinstance(parser, StringParsingState) and parser.allowed_strings and len(parser.allowed_strings) == 1:
+        literal = literal_parsers.get(parser.allowed_strings[0])
+        if literal is not None:
+            return FiniteJsonLiteralParser(parser.root, literal)
     if isinstance(parser, UnionParser):
-        return UnionParser([bind_numbers(p) for p in parser.parsers])
+        return UnionParser([bind_numbers(p, literal_parsers) for p in parser.parsers])
     if not isinstance(parser, JsonSchemaParser):
         return parser
     parser = copy(parser)
@@ -114,6 +146,9 @@ def bind_numbers(parser):
             parser.object_stack = parser.object_stack[:i + 1] + [ForceStopParser(allow_whitespace=True)]
             break
     for i, item in enumerate(parser.object_stack):
+        if isinstance(item, (StringParsingState, UnionParser)):
+            parser.object_stack[i] = bind_numbers(item, literal_parsers)
+            continue
         if not isinstance(item, NumberParsingState) or isinstance(item, BoundedNumber):
             continue
         schema = parser.context.model_class
@@ -132,12 +167,31 @@ def bind_numbers(parser):
             bounded.__dict__.update(item.__dict__)
             bounded.bound_schemas = variants
             parser.object_stack[i] = bounded
+    if parser.object_stack and isinstance(parser.object_stack[-1], UnionParser):
+        def alternatives(item):
+            if isinstance(item, UnionParser):
+                return [arm for child in item.parsers for arm in alternatives(child)]
+            return [item]
+        arms = alternatives(parser.object_stack[-1])
+        if (any(isinstance(arm, FiniteJsonLiteralParser) for arm in arms) and
+                any(isinstance(arm, (ListParsingState, ObjectParsingState)) for arm in arms)):
+            # A list arm pushes an item state while consuming '['. LMFE's
+            # later top-of-stack union split then misses the original union,
+            # mixing that item with an unrelated finite-literal arm. Fork
+            # before consuming a character so every arm owns its entire stack.
+            branches = []
+            for arm in arms:
+                branch = copy(parser)
+                branch.object_stack = parser.object_stack[:-1] + [arm]
+                branches.append(bind_numbers(branch, literal_parsers))
+            return UnionParser(branches)
     return parser
 
 
 class BoundedJsonParser(CharacterLevelParser):
-    def __init__(self, delegate):
-        self.delegate = bind_numbers(delegate)
+    def __init__(self, delegate, literal_parsers=None):
+        self.literal_parsers = literal_parsers or {}
+        self.delegate = bind_numbers(delegate, self.literal_parsers)
 
     @property
     def config(self):
@@ -161,7 +215,7 @@ class BoundedJsonParser(CharacterLevelParser):
         update(self.delegate)
 
     def add_character(self, character):
-        return BoundedJsonParser(self.delegate.add_character(character))
+        return BoundedJsonParser(self.delegate.add_character(character), self.literal_parsers)
 
     def get_allowed_characters(self):
         return self.delegate.get_allowed_characters()

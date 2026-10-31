@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import re
 from urllib.parse import urlsplit
 
 from fastapi.testclient import TestClient
@@ -48,7 +49,7 @@ def test_task_details_cannot_change_editor_update_target(tmp_path):
 
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
-        page.wait_for_selector('.capability-card.active')
+        page.wait_for_selector('.capability-card.active', state='attached')
         tasks_nav = page.locator('.nav-button[data-view="tasks"]')
         creator_nav = page.locator('.nav-button[data-view="creator"]')
         tasks_nav.click()
@@ -98,6 +99,25 @@ def test_task_details_cannot_change_editor_update_target(tmp_path):
         assert 'identity-task-A' in page.locator('#updateTaskBtn').get_attribute('title')
         assert duration.input_value() == '123'
         proof['clone_paths'] = clones
+        (tmp_path/'task-identity-proof.json').write_text(json.dumps(proof, ensure_ascii=False, indent=2), encoding='utf-8')
+        # Loading B replaces both the form's canonical base and edit owner.
+        # Undo must restore A's edited view/context and owner together.
+        tasks_nav.click()
+        page.locator('#taskTableBody tr').filter(has=page.locator('.task-id').filter(has_text=re.compile(r'^identity-task-B$'))).get_by_role('button', name='编辑', exact=True).click()
+        page.wait_for_function("()=>document.querySelector('[data-path=\"simulation.duration_s\"]')?.value === '240'")
+        page.locator('#undoAgentChangesBtn').click()
+        page.locator('#previewBtn').click()
+        page.wait_for_function("()=>document.querySelector('#busyOverlay').classList.contains('hidden')")
+        restored = json.loads(page.locator('#taskSpecEditor').input_value())
+        assert restored['task']['id'] == 'identity-task-A'
+        assert restored['simulation']['duration_s'] == 123
+        assert 'identity-task-A' in page.locator('#updateTaskBtn').get_attribute('title')
+        page.locator('#updateTaskBtn').click()
+        page.wait_for_function("()=>document.querySelector('#notice').textContent.includes('已生成新版本')")
+        assert [row['path'] for row in writes] == ['/task-center/tasks/identity-task-A'] * 2
+        assert writes[-1]['body']['task_spec'] == restored
+        assert client.get('/task-center/tasks/identity-task-B').json()['task']['current_version'] == 1
+        proof['after_load_undo_writes'] = writes
         (tmp_path/'task-identity-proof.json').write_text(json.dumps(proof, ensure_ascii=False, indent=2), encoding='utf-8')
         assert not errors
         browser.close()

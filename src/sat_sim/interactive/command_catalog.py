@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from importlib.resources import as_file, files
 from pathlib import Path
 from typing import Any
 
@@ -68,8 +69,10 @@ class CommandCatalog:
 
     @classmethod
     def default(cls) -> "CommandCatalog":
-        root = Path(__file__).resolve().parents[3]
-        return cls.from_matrix(root / "configs" / "interactive" / "realtime_capability_matrix.json")
+        """Use the packaged runtime contract; source configs retain a checked mirror."""
+        resource = files(__package__).joinpath("realtime_capability_matrix.json")
+        with as_file(resource) as path:
+            return cls.from_matrix(path)
 
     def get(self, operation: str) -> CommandContract:
         try:

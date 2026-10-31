@@ -6,6 +6,7 @@ real Basilisk physics and TC/TM runs have independent native CI gates.
 from __future__ import annotations
 
 import os
+import json
 import time
 from urllib.parse import urlsplit
 
@@ -61,6 +62,44 @@ class UiProtocolDouble:
         return None
 
 
+def _navigation_snapshot(page, selector, label, tmp_path, records):
+    proof = page.locator(selector).evaluate("""(node) => {
+        const details=[]; for(let p=node.parentElement;p;p=p.parentElement) {
+            if(p.tagName==='DETAILS') details.push({id:p.id,open:p.open,summary:p.querySelector(':scope > summary')?.textContent});
+        }
+        return {textContent:node.textContent,innerText:node.innerText,details,
+            checkVisibility:typeof node.checkVisibility==='function' ? node.checkVisibility() : null};
+    }""")
+    proof.update(label=label, selector=selector, playwright_visible=page.locator(selector).is_visible())
+    records.append(proof)
+    (tmp_path / "r32-navigation-proof.json").write_text(json.dumps(records,ensure_ascii=False,indent=2),encoding="utf-8")
+    return proof
+
+
+def _reveal_with_keyboard(page, selector, label, tmp_path, records):
+    """Follow real disclosure summaries; never set .open or force an action."""
+    _navigation_snapshot(page, selector, label + "-before", tmp_path, records)
+    for _ in range(10):
+        closed = page.locator(selector).evaluate("""(node) => {
+            const all=[...document.querySelectorAll('details')], found=[];
+            for(let p=node.parentElement;p;p=p.parentElement) {
+                if(p.tagName==='DETAILS' && !p.open) found.push({index:all.indexOf(p),id:p.id});
+            }
+            return found.reverse();
+        }""")
+        if not closed:
+            break
+        index = closed[0]["index"]
+        summary = page.locator("details").nth(index).locator(":scope > summary")
+        assert summary.is_visible()
+        summary.focus()
+        assert summary.evaluate("(node) => document.activeElement === node")
+        summary.press("Enter")
+        page.wait_for_function("(index) => document.querySelectorAll('details')[index].open", arg=index)
+    assert page.locator(selector).is_visible()
+    return _navigation_snapshot(page, selector, label + "-after", tmp_path, records)
+
+
 def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkeypatch):
     playwright_module = pytest.importorskip("playwright.sync_api")
     monkeypatch.setenv("SAT_SIM_INTERACTIVE_ENABLED", "1")
@@ -86,6 +125,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page = browser.new_page(viewport={"width": 1600, "height": 1050},
                                     locale="zh-CN")
             failures = []
+            navigation_records = []
             page.on("pageerror", lambda exc: failures.append(str(exc)))
             def route_request(route):
                 request = route.request
@@ -111,6 +151,10 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             # same approved native value into each realtime UI. Browser test
             # checks only UI/API wiring; it never claims physical equivalence.
             page.locator("#singleRunGuide[data-stage='configure']").wait_for(timeout=30000)
+            catalog_toggle = page.locator("#toggleMobileCatalogBtn")
+            if catalog_toggle.get_attribute("aria-expanded") != "true":
+                catalog_toggle.focus()
+                catalog_toggle.press("Enter")
             page.locator("#capabilityList [data-object-id='whole_spacecraft']").click()
             offline_orbit = page.locator("#dynamicForm [data-path='parameters.values.orbit_radius_m']")
             offline_orbit.wait_for(state="attached", timeout=20000)
@@ -180,8 +224,15 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert original.json()["native_initial_values"]["rw_max_torque_nm"] == .08
             assert "rw_initial_speed_rad_s_3" not in original.json()["native_initial_values"]
             assert original.json()["editable_after_prepare"] is False
+            folded_proof = _navigation_snapshot(page, "#continuousInitialConfigStatus", "created-form-folded", tmp_path, navigation_records)
+            assert any(item["id"] == "compactContinuousCreate" and not item["open"] for item in folded_proof["details"])
+            assert "配置在模型创建后不可修改" in folded_proof["textContent"]
+            assert folded_proof["innerText"] == ""
+            _reveal_with_keyboard(page, "#continuousInitialConfigStatus", "created-form-status", tmp_path, navigation_records)
             assert "配置在模型创建后不可修改" in page.locator("#continuousInitialConfigStatus").inner_text()
+            _reveal_with_keyboard(page, "#continuousWriterEpoch", "runtime-diagnostics", tmp_path, navigation_records)
             assert page.locator("#continuousWriterEpoch").inner_text() == "1"
+            _reveal_with_keyboard(page, "#continuousEnduranceInterval", "endurance-menu", tmp_path, navigation_records)
             page.locator("#continuousEnduranceInterval").select_option("1")
             page.locator("#continuousEnduranceStart").click()
             page.wait_for_function(
@@ -266,7 +317,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousState").get_attribute("title") == "PAUSED"
             # A paused session permits verified historical retrieval from
             # durable workspace, not from the browser's 280-frame replay ring.
-            page.locator("#continuousHistoryPanel > summary").click()
+            _reveal_with_keyboard(page, "#continuousHistoryQueryBtn", "history-menu", tmp_path, navigation_records)
             page.locator("#continuousHistoryStart").fill("0")
             page.locator("#continuousHistoryEnd").fill("60")
             page.locator("#continuousHistoryQueryBtn").click()
@@ -286,6 +337,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert raw.json()["exact_original_samples"] is True
             assert raw.json()["frame_count"] > 0
             assert raw.json()["source"] == "hash_verified_append_only_workspace"
+            _reveal_with_keyboard(page, "#continuousRecoveryAuditBtn", "recovery-menu", tmp_path, navigation_records)
             page.locator("#continuousRecoveryAuditBtn").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousRecoveryVerdict').textContent === 'BLOCKED'",
@@ -304,6 +356,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
 
             # New four-wheel session: RW4 selector stays disabled until real
             # stream-shaped data arrives, then can be chosen for the chart.
+            _reveal_with_keyboard(page, "#continuousSessionId", "new-rw4-session-form", tmp_path, navigation_records)
             page.locator("#continuousSessionId").fill("browser-rw4")
             page.locator('[data-native-key="rw_configuration"]').select_option("pyramid_4")
             page.locator('[data-native-key="rw_initial_speed_rad_s_3"]').fill("77")

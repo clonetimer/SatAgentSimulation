@@ -259,7 +259,8 @@ def test_workbench_exposes_graphical_composer_and_codegen_controls(tmp_path: Pat
     assert 'id="assemblyCapabilitySelect"' in index
     assert 'id="assemblyGenerateCodeBtn"' in index
     assert "图形组装" in index
-    assert "多模块装配 · V15" in index
+    assert ">多模块装配</button>" in index
+    assert "多模块装配 · V15" not in index
     assert 'id="assemblyModuleLibrary"' in index
     assert 'id="assemblyLibrarySummary"' in index
     assert ".graph-canvas" in css
@@ -391,7 +392,7 @@ def test_v9_workbench_exposes_rapid_graph_programming_controls(tmp_path: Path):
         "assemblyCompatibleOnly",
     ):
         assert f'id="{control_id}"' in index
-    assert "像 Simulink 一样组装，直接形成可运行程序" in index
+    assert "连接模块，生成脚本后运行。" in index
     assert "assembly-quick-template" in css
     assert "assemblyApplyQuickTemplate" in js
     assert "postDownloadEndpoint('/tasks/export-program'" in js
@@ -632,7 +633,8 @@ def test_v15_workbench_exposes_fast_modeling_layout_tools(tmp_path: Path):
         "assemblySelectionSummary",
     ):
         assert f'id="{control_id}"' in index
-    assert "多模块装配 · V15" in index
+    assert ">多模块装配</button>" in index
+    assert "多模块装配 · V15" not in index
     assert "assemblyBeginMarquee" in js
     assert "assemblyStartItemDrag" in js
     assert "assemblyAutoLayout" in js
@@ -781,7 +783,8 @@ def test_v12_workbench_exposes_constrained_quick_tuning_loop(tmp_path: Path):
     assert 'id="visualTuningPanel"' in index
     assert 'id="visualTuningObjective"' in index
     assert 'id="visualTuningApplyBestBtn"' in index
-    assert "快速调参 · V12" in index
+    assert "<strong>快速调参</strong>" in index
+    assert "快速调参 · V12" not in index
     assert "/visual-composer/tuning-options" in js
     assert "/visual-composer/tuning-plan" in js
     assert "/visual-composer/tuning-rank" in js

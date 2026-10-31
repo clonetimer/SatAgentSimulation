@@ -1,6 +1,64 @@
 (() => {
   'use strict';
 
+  const canonicalTexts = new WeakMap();
+  let taskSpecEditorSync = null;
+
+  function equivalentJSONValues(left, right) {
+    if (left === right) return true;
+    if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+    if (Array.isArray(left) !== Array.isArray(right)) return false;
+    const a = Object.keys(left).sort(); const b = Object.keys(right).sort();
+    return a.length === b.length && a.every((key, index) => key === b[index] && equivalentJSONValues(left[key], right[key]));
+  }
+
+  function isTaskSpecDocument(value) {
+    return value && typeof value === 'object' && value.simulation && (value.task || value.task_id) && value.schema_version;
+  }
+
+  function rememberCanonicalTexts(value) {
+    if (!value || typeof value !== 'object' || isTaskSpecDocument(value)) return;
+    for (const field of ['task_spec', 'base_task_spec']) {
+      const document = value[field]; const text = value[`${field}_json`];
+      if (document && typeof document === 'object' && text !== undefined) {
+        if (typeof text !== 'string' || !equivalentJSONValues(JSON.parse(text), document)) throw new Error('服务返回的 TaskSpec 文本与对象不一致。');
+        canonicalTexts.set(document, text);
+      }
+    }
+    Object.values(value).forEach(rememberCanonicalTexts);
+  }
+
+  function canonicalText(document) {
+    const text = canonicalTexts.get(document);
+    if (text !== undefined) {
+      if (!equivalentJSONValues(JSON.parse(text), document)) throw new Error('配置已改变，不能复用旧的 TaskSpec 文本；请重新校验。');
+      return text;
+    }
+    return JSON.stringify(document, null, 2);
+  }
+
+  function apiBody(value) {
+    const visit = (item) => {
+      if (!item || typeof item !== 'object' || isTaskSpecDocument(item)) return item;
+      if (Array.isArray(item)) return item.map(visit);
+      const result = Object.fromEntries(Object.entries(item).map(([key, child]) => [key, visit(child)]));
+      for (const field of ['task_spec', 'base_task_spec']) {
+        const document = item[field];
+        if (document && typeof document === 'object' && !Object.prototype.hasOwnProperty.call(item, `${field}_json`)) {
+          const text = canonicalTexts.get(document);
+          if (text !== undefined) result[`${field}_json`] = canonicalText(document);
+        }
+      }
+      return result;
+    };
+    return JSON.stringify(visit(value));
+  }
+
+  function requestErrorMessage(detail, fallback) {
+    if (Array.isArray(detail)) return detail.map((item) => item.msg || item.message || item.code || '').filter(Boolean).join('；') || fallback;
+    return typeof detail === 'string' ? detail : (detail?.message || detail?.reason_code || fallback);
+  }
+
   const state = {
     catalog: [],
     presentationCatalog: null,
@@ -40,6 +98,8 @@
     changedPaths: new Set(),
     formSectionOpen: new Map(),
     agentBeforeForm: null,
+    agentBeforeTaskCenterId: null,
+    formProjectionSource: null,
     executionState: null,
     pollTimer: null,
     themeMedia: null,
@@ -65,6 +125,8 @@
     singleRunSubmitting: false,
     showCompatibilityCapabilities: false,
     interactiveAvailable: false,
+    interactivePolicy: null,
+    interactiveSelectionVersion: 0,
     interactivePreparedNativeValues: null,
     interactiveSessions: [],
     interactiveSession: null,
@@ -85,6 +147,7 @@
     graphCode: '',
     graphCodeFilename: 'simulation.py',
     graphGeneratedSnapshot: '',
+    graphGeneratedContext: '',
     graphHistory: [],
     graphHistoryIndex: -1,
     graphHistoryApplying: false,
@@ -107,6 +170,7 @@
     assemblyCode: '',
     assemblyCodeFilename: 'assembly.py',
     assemblyGeneratedSnapshot: '',
+    assemblyGeneratedContext: '',
     graphCodeDiff: null,
     assemblyCodeDiff: null,
     visualDiagnostics: null,
@@ -153,7 +217,7 @@
     if (progress) progress.textContent = message;
     const runButton = el('runBtn');
     if (runButton) {
-      runButton.disabled = Boolean(state.singleRunSubmitting) || !state.schema;
+      runButton.disabled = Boolean(state.singleRunSubmitting || state.agentGenerating) || !state.schema;
       runButton.textContent = state.singleRunSubmitting ? '正在提交…' : '运行仿真';
     }
     const validate = el('singleRunValidateBtn');
@@ -238,17 +302,26 @@
     }
     if (!response.ok) {
       const detail = payload && payload.detail ? payload.detail : payload;
-      const message = typeof detail === 'string' ? detail : (detail?.message || detail?.reason_code || response.statusText);
+      const message = requestErrorMessage(detail, response.statusText);
       const error = new Error(message || `HTTP ${response.status}`);
       error.status = response.status;
       error.payload = payload;
       throw error;
     }
+    rememberCanonicalTexts(payload);
     return payload;
   }
 
   function clone(value) {
-    return JSON.parse(JSON.stringify(value));
+    const result = JSON.parse(JSON.stringify(value));
+    const transfer = (before, after) => {
+      if (!before || !after || typeof before !== 'object' || typeof after !== 'object') return;
+      const text = canonicalTexts.get(before);
+      if (text !== undefined && equivalentJSONValues(JSON.parse(text), after)) canonicalTexts.set(after, text);
+      Object.keys(after).forEach((key) => transfer(before[key], after[key]));
+    };
+    transfer(value, result);
+    return result;
   }
 
   function codeDiffSummary(before, after) {
@@ -340,7 +413,7 @@
     try {
       const payload = await api('/visual-composer/diagnose', {
         method: 'POST',
-        body: JSON.stringify({
+        body: apiBody({
           error_text: String(errorText),
           reason_code: reasonCode || null,
           task_spec: visual.taskSpec || null,
@@ -395,7 +468,7 @@
     try {
       const payload = await api('/visual-composer/run-overlay', {
         method: 'POST',
-        body: JSON.stringify({
+        body: apiBody({
           run_id: runId,
           visual_graph: visual.mode === 'flow' ? visual.graph : null,
           assembly_graph: visual.mode === 'assembly' ? visual.assemblyGraph : null,
@@ -527,7 +600,7 @@
 
   async function openVisualTuning(mode) {
     const context = await prepareVisualTuning(mode);
-    const payload = await api('/visual-composer/tuning-options', { method: 'POST', body: JSON.stringify({ task_spec: context.taskSpec }) });
+    const payload = await api('/visual-composer/tuning-options', { method: 'POST', body: apiBody({ task_spec: context.taskSpec }) });
     const tuning = payload.tuning || {};
     if (!(tuning.parameters || []).length) throw new Error('当前 Capability 没有可用于快速调参的注册数值参数。');
     if (!(tuning.objectives || []).length) throw new Error('当前 Capability 没有可用于排序的注册 QoI。');
@@ -570,19 +643,19 @@
     state.visualTuningSelections.forEach((item) => { parameters[item.path] = parseVisualTuningValues(item.values); });
     const objectiveMetric = el('visualTuningObjective').value;
     const direction = el('visualTuningDirection').value;
-    const planPayload = await api('/visual-composer/tuning-plan', { method: 'POST', body: JSON.stringify({ task_spec: context.taskSpec, parameters, objective_metric: objectiveMetric, direction }) });
+    const planPayload = await api('/visual-composer/tuning-plan', { method: 'POST', body: apiBody({ task_spec: context.taskSpec, parameters, objective_metric: objectiveMetric, direction }) });
     const plan = planPayload.plan;
     state.visualTuningRunning = true;
     state.visualTuningContext = context;
     state.visualTuningResult = { variantCount: plan.variant_count, completed: 0, objectiveMetric, direction, message: `正在创建 ${plan.variant_count} 个受约束候选…` };
     renderVisualTuning();
     try {
-      const created = await api('/experiments', { method: 'POST', body: JSON.stringify({ name: `Visual tuning · ${context.taskSpec?.task?.name || context.taskSpec?.task?.id || 'simulation'}`, base_task_spec: context.taskSpec, sweep: plan.sweep, assertions: [], experiment_type: 'sweep' }) });
+      const created = await api('/experiments', { method: 'POST', body: apiBody({ name: `Visual tuning · ${context.taskSpec?.task?.name || context.taskSpec?.task?.id || 'simulation'}`, base_task_spec: context.taskSpec, sweep: plan.sweep, assertions: [], experiment_type: 'sweep' }) });
       const experimentId = created.experiment?.experiment_id; if (!experimentId) throw new Error('调参实验未返回 experiment_id');
       state.visualTuningExperimentId = experimentId;
-      await api(`/experiments/${encodeURIComponent(experimentId)}/launch`, { method: 'POST', body: JSON.stringify({ max_attempts: 2, hard_timeout: true }) });
+      await api(`/experiments/${encodeURIComponent(experimentId)}/launch`, { method: 'POST', body: apiBody({ max_attempts: 2, hard_timeout: true }) });
       await waitForVisualTuningExperiment(experimentId);
-      const ranking = await api('/visual-composer/tuning-rank', { method: 'POST', body: JSON.stringify({ experiment_id: experimentId, objective_metric: objectiveMetric, direction }) });
+      const ranking = await api('/visual-composer/tuning-rank', { method: 'POST', body: apiBody({ experiment_id: experimentId, objective_metric: objectiveMetric, direction }) });
       state.visualTuningResult = { ...ranking, objectiveMetric, direction, bestApplied: false, message: ranking.best ? '扫描完成，最优候选已叠加；应用参数后即可作为当前模型继续生成/运行。' : '扫描完成，但没有可排序的成功 Run。' };
       state.visualTuningBestRunId = ranking.best?.run_id || null;
       if (ranking.best?.run_id) {
@@ -1036,7 +1109,8 @@
   }
 
   function graphCodeIsFresh() {
-    return Boolean(state.graphCode && state.graphGeneratedSnapshot === graphFormSnapshot());
+    return Boolean(state.graphCode && state.graphGeneratedSnapshot === graphFormSnapshot()
+      && state.graphGeneratedContext === visualCompilationSnapshot('flow'));
   }
 
   function graphSetStatus(message, type = '') {
@@ -1798,14 +1872,22 @@
     return { ok: errors.length === 0, errors: [...new Set(errors)], warnings, topologicalOrder: topo };
   }
 
-  async function graphCompile({ requireCode = true, requireRun = true, announce = true } = {}) {
+  async function graphCompile({ requireCode = true, requireRun = true, announce = true, operation = null } = {}) {
     const structural = graphValidateStructure({ requireCode, requireRun });
     if (!structural.ok) { graphSetStatus(`图校验失败：${structural.errors.join('；')}`, 'error'); return false; }
     if (!validateClientForm({ show: false })) { graphSetStatus('参数校验失败；请检查时间步长和必填参数。', 'error'); return false; }
+    const requestedForm = clone(state.formData);
+    const requestedGraph = graphSerialize();
+    const requestedCapability = state.selectedCapabilityId;
+    const requestedCompilation = visualCompilationSnapshot('flow');
     const payload = await api('/tasks/compile-graph', {
       method: 'POST',
-      body: JSON.stringify({ graph: graphSerialize(), form_data: state.formData, require_code: requireCode, require_run: requireRun }),
+      body: apiBody({ graph: requestedGraph, form_data: requestedForm, require_code: requireCode, require_run: requireRun }),
     });
+    if (visualCompilationSnapshot('flow') !== requestedCompilation || state.selectedCapabilityId !== requestedCapability || !deepEqual(state.formData, requestedForm) || !deepEqual(graphSerialize(), requestedGraph)) {
+      graphSetStatus('校验期间配置或图已更新；请重新校验。', 'warning');
+      return false;
+    }
     if (!payload.graph_validation?.ok) {
       const issues = payload.graph_validation?.errors || payload.graph_validation?.issues || [];
       graphSetStatus(`后端拓扑校验失败：${issues.map((item) => item.message || item.code).join('；') || '未知拓扑错误'}`, 'error');
@@ -1818,35 +1900,46 @@
       graphSetStatus(`TaskSpec 编译失败：${issues.map(formatValidationIssue).join('；') || '未通过能力边界校验'}`, 'error'); return false;
     }
     const nodes = result.planning?.execution_plan?.nodes?.length || result.planning?.plan?.nodes?.length || 0;
-    const topo = (payload.graph_validation?.topological_order || []).map((id) => GRAPH_BLOCK_META[state.graphNodes.find((node) => node.id === id)?.type]?.title || id).join(' → ');
-    if (announce) graphSetStatus(`端口类型与拓扑已通过后端校验；${topo || '图已编译'}${nodes ? `；执行计划 ${nodes} 节点` : ''}。`, 'success');
+    state.graphCompilationNote = formCompilationNote(result, requestedForm);
+    operation?.commit();
+    if (announce) graphSetStatus(`图已校验${nodes ? `；${nodes} 个节点` : ''}。${state.graphCompilationNote}`, 'success');
     renderGraph(); return true;
   }
 
-  async function graphGenerateCodeFromTaskSpec() {
+  async function graphGenerateCodeFromTaskSpec(operation = null) {
     if (!state.taskSpec) throw new Error('请先编译 TaskSpec');
-    const payload = await api('/tasks/export-script', { method: 'POST', body: JSON.stringify({ task_spec: state.taskSpec }) });
+    if (operation && !operation.isCurrent()) throw new Error('生成期间配置已更新；请重新生成 Python。');
+    const requestedCompilation = visualCompilationSnapshot('flow');
+    const requestedSpec = operation ? operation.taskSpec() : clone(state.taskSpec);
+    const requestedSnapshot = graphFormSnapshot();
+    const payload = await api('/tasks/export-script', { method: 'POST', body: apiBody({ task_spec: requestedSpec }) });
+    if (visualCompilationSnapshot('flow') !== requestedCompilation || (operation && !operation.isCurrent()) || !deepEqual(state.taskSpec, requestedSpec) || graphFormSnapshot() !== requestedSnapshot) throw new Error('生成期间配置已更新；请重新生成 Python。');
     const nextCode = payload.code || '';
     state.graphCodeDiff = codeDiffSummary(state.graphCode, nextCode);
-    state.graphCode = nextCode; state.graphCodeFilename = payload.filename || 'simulation.py'; state.graphGeneratedSnapshot = graphFormSnapshot(); renderGraph();
-    graphSetStatus(`已生成可执行 Python：${state.graphCodeFilename}。拓扑已校验，代码仍走现有 sat_sim 编译与执行链。`, 'success');
+    state.graphCode = nextCode; state.graphCodeFilename = payload.filename || 'simulation.py'; state.graphGeneratedSnapshot = graphFormSnapshot(); state.graphGeneratedContext = requestedCompilation; renderGraph();
+    graphSetStatus(`已生成可执行 Python：${state.graphCodeFilename}。${state.graphCompilationNote || ''}`, 'success');
     return payload;
   }
 
   async function graphGeneratePython() {
-    const ok = await graphCompile({ requireCode: true, requireRun: false, announce: false }); if (!ok) return false;
-    await graphGenerateCodeFromTaskSpec(); return true;
+    const operation = visualCompileOperation('flow');
+    const ok = await graphCompile({ requireCode: true, requireRun: false, announce: false, operation }); if (!ok) return false;
+    await graphGenerateCodeFromTaskSpec(operation); return true;
   }
 
   async function graphCopyCode() {
     if (!graphCodeIsFresh()) { const ok = await graphGeneratePython(); if (!ok) return; }
+    if (!graphCodeIsFresh()) throw new Error('配置已更新；请重新生成 Python。');
+    const context = visualCompilationSnapshot('flow');
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(state.graphCode);
     else { const preview = el('graphInspector')?.querySelector('.graph-code-preview'); if (!preview) throw new Error('没有可复制的代码'); preview.focus(); preview.select(); document.execCommand('copy'); }
+    if (visualCompilationSnapshot('flow') !== context) { graphSetStatus('配置已更新；刚才复制的代码不代表当前配置。', 'warning'); return; }
     graphSetStatus('Python 代码已复制到剪贴板。', 'success');
   }
 
   async function graphDownloadCode() {
     if (!graphCodeIsFresh()) { const ok = await graphGeneratePython(); if (!ok) return; }
+    if (!graphCodeIsFresh()) throw new Error('配置已更新；请重新生成 Python。');
     const blob = new Blob([state.graphCode], { type: 'text/x-python;charset=utf-8' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = state.graphCodeFilename || 'simulation.py'; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     graphSetStatus(`已下载 ${anchor.download}。`, 'success');
   }
@@ -1881,7 +1974,8 @@
   }
 
   function assemblyCodeIsFresh() {
-    return Boolean(state.assemblyCode && state.assemblyGeneratedSnapshot === assemblySnapshot());
+    return Boolean(state.assemblyCode && state.assemblyGeneratedSnapshot === assemblySnapshot()
+      && state.assemblyGeneratedContext === visualCompilationSnapshot('assembly'));
   }
 
   function assemblyInvalidateCompiledState({ clearCode = false } = {}) {
@@ -1933,7 +2027,7 @@
     state.assemblyCatalog.forEach((item) => {
       const option = document.createElement('option');
       option.value = item.parent_capability_id;
-      const contractTag = item.port_contract_source === 'explicit-v5' ? 'V5显式端口' : 'V4兼容推断';
+      const contractTag = item.port_contract_source === 'explicit-v5' ? '显式端口' : '兼容端口';
       const replaceableTag = Number(item.replaceable_module_count || 0) ? ` · ${item.replaceable_module_count} 可替换槽位` : '';
       option.textContent = `${item.name || item.parent_capability_id} · ${item.module_count} 模块 / ${item.port_count || 0} 端口 / ${item.binding_count} 连线 · ${contractTag}${replaceableTag}`;
       select.appendChild(option);
@@ -2062,7 +2156,7 @@
     if (select) select.value = capabilityId;
     assemblyRender();
     const portContract = state.assemblyContract.simulation_ports || {};
-    const contractLabel = portContract.source === 'explicit-v5' ? '显式 V5 simulation_ports' : 'V4 field_mappings 兼容推断';
+    const contractLabel = portContract.source === 'explicit-v5' ? '显式端口合同' : '兼容端口映射';
     const contractWarnings = portContract.validation?.warnings?.length || 0;
     const replaceableCount = Number(state.assemblyContract.replaceable_module_count || 0);
     assemblySetStatus(
@@ -3214,7 +3308,7 @@
       const fingerprint = document.createElement('code'); fingerprint.className = 'assembly-contract-fingerprint'; fingerprint.textContent = `ports ${String(portContract.fingerprint || '').slice(0, 16)}… · modules ${String(replacementContract.fingerprint || '').slice(0, 16)}…`;
       const note = document.createElement('p'); note.textContent = portContract.source === 'explicit-v5'
         ? '正式端口合同与模块库支持 source-native 模块真实插入：候选必须满足 allow-list、payload/unit、timing、direct-feedthrough 与 fan-in/fan-out 兼容性；实际选择被绑定进 TaskSpec 并在运行前复核。'
-        : '该能力仍使用 V4 field_mappings 兼容推断；可运行，但 不会据此开放内部模块插拔。';
+        : '该能力使用兼容端口映射；可运行，但不开放内部模块插拔。';
       section.append(title, stats, fingerprint, note); container.appendChild(section);
     }
     if (state.assemblyCode) {
@@ -3249,17 +3343,26 @@
     requestAnimationFrame(assemblyDrawEdges);
   }
 
-  async function assemblyCompile({ announce = true } = {}) {
+  async function assemblyCompile({ announce = true, operation = null } = {}) {
     if (!state.assemblyGraph || !state.assemblyContract) {
       assemblySetStatus('请先加载一个注册装配。', 'error'); return false;
     }
     const parentId = state.assemblyContract.parent_capability_id;
-    if (state.selectedCapabilityId !== parentId || !state.formData) await selectCapability(parentId);
+    if (state.selectedCapabilityId !== parentId || !state.formData) {
+      const beforeSelection = visualCompilationSnapshot('assembly');
+      const selected = await selectCapability(parentId, null, () => visualCompilationSnapshot('assembly') === beforeSelection);
+      if (selected === false) { assemblySetStatus('校验期间配置已更新；请重新校验。', 'warning'); return false; }
+    }
     if (!validateClientForm({ show: false })) { assemblySetStatus('参数校验失败；请检查当前父 Capability 表单。', 'error'); return false; }
+    const requestedCompilation = visualCompilationSnapshot('assembly');
     const payload = await api('/tasks/compile-assembly', {
       method: 'POST',
-      body: JSON.stringify({ assembly_graph: state.assemblyGraph, form_data: state.formData, require_all_bindings: true }),
+      body: apiBody({ assembly_graph: state.assemblyGraph, form_data: state.formData, require_all_bindings: true }),
     });
+    if (visualCompilationSnapshot('assembly') !== requestedCompilation) {
+      assemblySetStatus('校验期间配置或装配已更新；请重新校验。', 'warning');
+      return false;
+    }
     if (!payload.assembly_validation?.ok) {
       const issues = payload.assembly_validation?.errors || payload.assembly_validation?.issues || [];
       assemblySetStatus(`装配校验失败：${issues.map((item) => item.message || item.code).join('；') || '未知装配错误'}`, 'error');
@@ -3273,9 +3376,10 @@
       return false;
     }
     const validation = payload.assembly_validation || {};
+    operation?.commit();
     const feedback = validation.feedback_groups?.length ? `；识别 ${validation.feedback_groups.length} 个注册反馈组` : '';
     if (announce) {
-      const source = validation.port_contract_source === 'explicit-v5' ? '显式 V5 端口合同' : 'legacy-inferred 兼容合同';
+      const source = validation.port_contract_source === 'explicit-v5' ? '显式端口合同' : '兼容端口合同';
       const solver = (validation.solver_policies || []).join(', ') || 'parent-owned';
       const replacements = Number(validation.replacement_count || 0);
       assemblySetStatus(`装配已通过后端校验：${validation.node_count} 模块 / ${validation.edge_count} bindings${feedback}；${source}；replacements=${replacements}；solver=${solver}；runtime owner=${parentId}`, 'success');
@@ -3284,12 +3388,17 @@
     return true;
   }
 
-  async function assemblyGenerateCodeFromTaskSpec() {
+  async function assemblyGenerateCodeFromTaskSpec(operation = null) {
     if (!state.taskSpec || !state.assemblyGraph) throw new Error('请先编译装配 TaskSpec');
+    if (operation && !operation.isCurrent()) throw new Error('生成期间配置已更新；请重新生成装配 Python。');
+    const requestedCompilation = visualCompilationSnapshot('assembly');
+    const requestedSpec = operation ? operation.taskSpec() : clone(state.taskSpec);
+    const requestedGraph = clone(state.assemblyGraph);
     const payload = await api('/tasks/export-assembly-script', {
       method: 'POST',
-      body: JSON.stringify({ assembly_graph: state.assemblyGraph, task_spec: state.taskSpec, require_all_bindings: true }),
+      body: apiBody({ assembly_graph: requestedGraph, task_spec: requestedSpec, require_all_bindings: true }),
     });
+    if (visualCompilationSnapshot('assembly') !== requestedCompilation || (operation && !operation.isCurrent())) throw new Error('生成期间配置已更新；请重新生成装配 Python。');
     if (!payload.ok) {
       const issues = [...(payload.assembly_validation?.errors || []), ...(payload.assembly_task_binding?.errors || [])];
       throw new Error(issues.map((item) => item.message || item.code).join('；') || '装配脚本导出失败');
@@ -3299,6 +3408,7 @@
     state.assemblyCode = nextCode;
     state.assemblyCodeFilename = payload.filename || 'assembly.py';
     state.assemblyGeneratedSnapshot = assemblySnapshot();
+    state.assemblyGeneratedContext = requestedCompilation;
     assemblyRender();
     const replacementCount = Number(payload.provenance?.replacement_count || 0);
     assemblySetStatus(`已生成 ${state.assemblyCodeFilename}。运行前会重新校验装配图、端口/模块合同 fingerprint 与 TaskSpec 模块选择；当前 replacements=${replacementCount}。`, 'success');
@@ -3306,25 +3416,30 @@
   }
 
   async function assemblyGeneratePython() {
-    const ok = await assemblyCompile({ announce: false });
+    const operation = visualCompileOperation('assembly');
+    const ok = await assemblyCompile({ announce: false, operation });
     if (!ok) return false;
-    await assemblyGenerateCodeFromTaskSpec();
+    await assemblyGenerateCodeFromTaskSpec(operation);
     return true;
   }
 
   async function assemblyCopyCode() {
     if (!assemblyCodeIsFresh()) { const ok = await assemblyGeneratePython(); if (!ok) return; }
+    if (!assemblyCodeIsFresh()) throw new Error('配置已更新；请重新生成装配 Python。');
+    const context = visualCompilationSnapshot('assembly');
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(state.assemblyCode);
     else {
       const preview = el('assemblyInspector')?.querySelector('.assembly-code-preview');
       if (!preview) throw new Error('没有可复制的装配代码');
       preview.focus(); preview.select(); document.execCommand('copy');
     }
+    if (visualCompilationSnapshot('assembly') !== context) { assemblySetStatus('配置已更新；刚才复制的代码不代表当前配置。', 'warning'); return; }
     assemblySetStatus('装配 Python 已复制到剪贴板。', 'success');
   }
 
   async function assemblyDownloadCode() {
     if (!assemblyCodeIsFresh()) { const ok = await assemblyGeneratePython(); if (!ok) return; }
+    if (!assemblyCodeIsFresh()) throw new Error('配置已更新；请重新生成装配 Python。');
     const blob = new Blob([state.assemblyCode], { type: 'text/x-python;charset=utf-8' });
     const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
     anchor.href = url; anchor.download = state.assemblyCodeFilename || 'assembly.py'; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -3338,23 +3453,60 @@
   }
 
   async function graphExportProgram() {
-    const ok = await graphCompile({ requireCode: true, requireRun: true, announce: false });
+    const operation = visualCompileOperation('flow');
+    const ok = await graphCompile({ requireCode: true, requireRun: true, announce: false, operation });
     if (!ok) return false;
-    await postDownloadEndpoint('/tasks/export-program', { task_spec: state.taskSpec, visual_graph: graphSerialize() }, visualProgramFallbackFilename());
+    const isCurrent = operation.isCurrent;
+    if (!isCurrent()) throw new Error('配置已更新，旧程序包未下载；请按当前配置重新导出。');
+    await postDownloadEndpoint('/tasks/export-program', { task_spec: operation.taskSpec(), visual_graph: graphSerialize() }, visualProgramFallbackFilename(), isCurrent);
+    if (!isCurrent()) { graphSetStatus('配置已更新；刚才的导出不代表当前配置。', 'warning'); return false; }
     graphSetStatus('已导出可运行程序包：包含 Python 入口、TaskSpec、manifest、README 与 Windows/Linux 启动脚本。', 'success');
     return true;
   }
 
   async function assemblyExportProgram() {
-    const ok = await assemblyCompile({ announce: false });
+    const operation = visualCompileOperation('assembly');
+    const ok = await assemblyCompile({ announce: false, operation });
     if (!ok) return false;
+    const isCurrent = operation.isCurrent;
+    if (!isCurrent()) throw new Error('配置已更新，旧程序包未下载；请按当前配置重新导出。');
     await postDownloadEndpoint(
       '/tasks/export-program',
-      { task_spec: state.taskSpec, assembly_graph: state.assemblyGraph, require_all_bindings: true },
+      { task_spec: operation.taskSpec(), assembly_graph: clone(state.assemblyGraph), require_all_bindings: true },
       visualProgramFallbackFilename(),
+      isCurrent,
     );
+    if (!isCurrent()) { assemblySetStatus('配置已更新；刚才的导出不代表当前配置。', 'warning'); return false; }
     assemblySetStatus('已导出可运行装配程序包：包含生成 Python、TaskSpec、assembly_graph、合同指纹 manifest 与启动脚本。', 'success');
     return true;
+  }
+
+  function visualProgramContextSnapshot(mode) {
+    return JSON.stringify({
+      capability: state.selectedCapabilityId, owner: state.activeTaskCenterId,
+      mode: state.graphComposerMode, configuration: currentVisualSnapshot(mode),
+    });
+  }
+
+  function visualCompileOperation(mode) {
+    let completedSnapshot = null;
+    let compiledSpec = null;
+    return {
+      // Called in the compile commit's synchronous turn. The awaiting caller
+      // must check THIS operation's A witness, never recapture a later B.
+      commit() { completedSnapshot = visualCompilationSnapshot(mode); compiledSpec = clone(state.taskSpec); },
+      isCurrent() { return completedSnapshot !== null && visualCompilationSnapshot(mode) === completedSnapshot; },
+      taskSpec() { return clone(compiledSpec); },
+    };
+  }
+
+  function visualCompilationSnapshot(mode) {
+    return JSON.stringify({
+      configuration: visualProgramContextSnapshot(mode),
+      graph: mode === 'assembly' ? state.assemblyGraph : graphSerialize(),
+      task: state.taskSpec ? canonicalText(state.taskSpec) : null,
+      editor: el('taskSpecEditor').value,
+    });
   }
 
   function assemblyBaselineGraph() {
@@ -3371,7 +3523,7 @@
   async function compileAssemblyGraph(graph) {
     const payload = await api('/tasks/compile-assembly', {
       method: 'POST',
-      body: JSON.stringify({ assembly_graph: graph, form_data: state.formData, require_all_bindings: true }),
+      body: apiBody({ assembly_graph: graph, form_data: state.formData, require_all_bindings: true }),
     });
     if (!payload.ok || !payload.assembly_validation?.ok || !payload.result?.task_spec) {
       const issues = [
@@ -3389,7 +3541,7 @@
     const runId = `${raw}_${role}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
     const payload = await api('/runs', {
       method: 'POST',
-      body: JSON.stringify({ task_spec: taskSpec, run_id: runId, execute: true, execution_mode: 'async', max_attempts: 2 }),
+      body: apiBody({ task_spec: taskSpec, run_id: runId, execute: true, execution_mode: 'async', max_attempts: 2 }),
     });
     return payload.prepared_run?.run_id || payload.execution_state?.run_id || runId;
   }
@@ -3499,7 +3651,7 @@
       assemblyRenderComparison();
       const [baselineExecution, currentExecution] = await Promise.all([waitForComparisonRun(baselineRunId, 'baseline'), waitForComparisonRun(currentRunId, 'current')]);
       const metrics = await comparisonMetricSelection(baselineRunId, currentRunId);
-      const compared = await api('/runs/compare', { method: 'POST', body: JSON.stringify({ run_ids: [baselineRunId, currentRunId], metrics }) });
+      const compared = await api('/runs/compare', { method: 'POST', body: apiBody({ run_ids: [baselineRunId, currentRunId], metrics }) });
       state.assemblyComparison = {
         status: 'done', baselineRunId, currentRunId, baselineState: baselineExecution.state, currentState: currentExecution.state, comparison: compared.comparison || {}, stale: assemblySnapshot() !== submittedSnapshot,
       };
@@ -3720,15 +3872,21 @@
     return changed;
   }
 
-  function renderAgentChangePanel(source = 'Agent') {
+  function projectionChangeBadge() {
+    return /^Agent(?:\s|$)/.test(state.formProjectionSource || '') ? 'Agent' : '载入';
+  }
+
+  function renderAgentChangePanel() {
     const panel = el('agentChangePanel');
     if (!panel) return;
+    panel.dataset.projectionSource = state.formProjectionSource || '';
     const count = state.changedPaths.size;
     if (!count) {
       panel.classList.add('hidden');
+      el('agentChangeTitle').textContent = '';
       return;
     }
-    el('agentChangeTitle').textContent = `${source} 已更新表单`;
+    el('agentChangeTitle').textContent = `${state.formProjectionSource || 'TaskSpec'} 已更新表单`;
     el('agentChangeDetail').textContent = `${count} 组字段或配置发生变化；蓝色区域为本次差异。`;
     panel.classList.remove('hidden');
   }
@@ -3736,6 +3894,8 @@
   function clearAgentChanges() {
     state.changedPaths = new Set();
     state.agentBeforeForm = null;
+    state.agentBeforeTaskCenterId = null;
+    state.formProjectionSource = null;
     renderForm();
     renderEvents();
     renderOutputs();
@@ -3745,9 +3905,11 @@
   function undoAgentChanges() {
     if (!state.agentBeforeForm) return;
     state.formData = clone(state.agentBeforeForm);
+    state.activeTaskCenterId = state.agentBeforeTaskCenterId;
     state.taskSpec = null;
     state.planning = null;
     clearAgentChanges();
+    updateTaskEditState();
     syncTaskSpecEditor();
     showNotice('已撤销最近一次 Agent/TaskSpec 表单同步。', 'success');
   }
@@ -3757,10 +3919,11 @@
     if (!capabilityId) throw new Error('TaskSpec 未声明 capability_id');
     const payload = await api(`/forms/capabilities/${encodeURIComponent(capabilityId)}/project`, {
       method: 'POST',
-      body: JSON.stringify({ task_spec: taskSpec }),
+      body: apiBody({ task_spec: taskSpec }),
     });
     const projected = payload.projection?.form_data;
     if (!projected) throw new Error('表单投影未返回 form_data');
+    if (payload.projection?.projection_is_lossless !== true || !projected._canonical_projection) throw new Error('当前服务无法保留完整 TaskSpec；请使用 TaskSpec 编辑器，避免丢失来源或求解设置。');
     if (!isCurrent()) return null;
     if (capabilityId !== state.selectedCapabilityId) {
       const selected = await selectCapability(capabilityId, null, isCurrent);
@@ -3768,6 +3931,8 @@
     }
     const before = clone(state.formData || state.schema.default_form);
     state.agentBeforeForm = before;
+    state.agentBeforeTaskCenterId = state.activeTaskCenterId;
+    state.formProjectionSource = source;
     state.formData = clone(projected);
     state.changedPaths = formDiffPaths(before, state.formData);
     state.taskSpec = clone(taskSpec);
@@ -3776,7 +3941,7 @@
     renderEffectSelect();
     renderEvents();
     renderOutputs();
-    renderAgentChangePanel(source);
+    renderAgentChangePanel();
     syncTaskSpecEditor();
     switchTab('form');
     return state.changedPaths.size;
@@ -3862,6 +4027,14 @@
       if (state.graphComposerMode === 'assembly') assemblyRender();
       else graphInitialize(false);
     });
+    if (name === 'taskspec' && !state.taskSpec && state.formData && !el('taskSpecEditor').value.trim() && !taskSpecEditorSync) {
+      const editor = el('taskSpecEditor');
+      editor.disabled = true;
+      taskSpecEditorSync = previewForm().catch((error) => showNotice(error.message, 'error')).finally(() => {
+        editor.disabled = false;
+        taskSpecEditorSync = null;
+      });
+    }
   }
 
   function switchResultTab(name) {
@@ -3974,7 +4147,7 @@
   async function probeSavedProvider(providerId) {
     const diagnostics = el('localModelDiagnostics');
     const probe = await api(`/models/providers/${encodeURIComponent(providerId)}/probe`, {
-      method: 'POST', body: JSON.stringify({ timeout_s: 30, include_taskspec_probe: true }),
+      method: 'POST', body: apiBody({ timeout_s: 30, include_taskspec_probe: true }),
     });
     diagnostics.textContent = JSON.stringify(probe, null, 2);
     diagnostics.classList.remove('hidden');
@@ -4088,7 +4261,7 @@
     diagnostics.classList.add('hidden');
     const payload = await api('/models/local-services/discover', {
       method: 'POST',
-      body: JSON.stringify({
+      body: apiBody({
         service_type: serviceType,
         base_url: el('localModelBaseUrl').value.trim() || LOCAL_MODEL_DEFAULTS[serviceType],
         api_key: el('localModelApiKey').value || null,
@@ -4128,7 +4301,7 @@
     status.className = 'model-status';
     const payload = await api('/models/local-services', {
       method: 'POST',
-      body: JSON.stringify({
+      body: apiBody({
         service_type: serviceType,
         base_url: el('localModelBaseUrl').value.trim() || LOCAL_MODEL_DEFAULTS[serviceType],
         model,
@@ -4138,7 +4311,7 @@
     const providerId = payload.provider_id;
     const probe = await api(`/models/providers/${encodeURIComponent(providerId)}/probe`, {
       method: 'POST',
-      body: JSON.stringify({ timeout_s: 30, include_taskspec_probe: true }),
+      body: apiBody({ timeout_s: 30, include_taskspec_probe: true }),
     });
     const taskProbe = probe.taskspec_probe;
     const message = probe.ok
@@ -4336,11 +4509,14 @@
       updateTaskEditState();
       state.changedPaths = new Set();
       state.agentBeforeForm = null;
+      state.agentBeforeTaskCenterId = null;
+      state.formProjectionSource = null;
       renderAgentChangePanel();
       const variant = object?.variants?.find((item) => item.capability_id === capabilityId);
       el('selectedCapabilityName').textContent = object
-        ? `${object.name_zh}${object.variants.length > 1 && variant ? ` · ${variant.name_zh}` : ''}`
+        ? object.name_zh
         : (state.schema.capability.name || capabilityId);
+      el('selectedCapabilityName').title = variant?.name_zh || capabilityId;
       const baseSummary = object?.summary_zh || state.schema.capability.summary || `${levelLabel(state.schema.capability.level)} · ${state.schema.capability.target}`;
       const governanceSummary = variant
         ? `运行后端：${variant.backend_type || '未声明'}；产品等级：${variant.recommended ? '推荐' : (variant.product_tier || variant.lifecycle_status || '未声明')}${variant.requires_allow_proxy ? '；需要允许兼容/代理路径' : ''}`
@@ -4380,6 +4556,7 @@
   function customFieldShell(field) {
     const wrapper = document.createElement('div');
     wrapper.className = `form-field form-field-wide structured-parameter-editor${state.changedPaths.has(field.path) ? ' agent-changed' : ''}`;
+    wrapper.dataset.changeSource = projectionChangeBadge();
     wrapper.dataset.fieldPath = field.path;
     const heading = document.createElement('div'); heading.className = 'field-label'; heading.textContent = field.label || field.path;
     if (field.required) { const required=document.createElement('span'); required.className='required'; required.textContent='*'; heading.appendChild(required); }
@@ -4503,6 +4680,7 @@
       if (field.widget === 'sample_profile_editor') return createSampleProfileEditor(field);
       const wrapper = document.createElement('label');
       wrapper.className = `form-field${state.changedPaths.has(field.path) ? ' agent-changed' : ''}`;
+      wrapper.dataset.changeSource = projectionChangeBadge();
       wrapper.dataset.fieldPath = field.path;
       const heading = document.createElement('span'); heading.className = 'field-label'; heading.textContent = field.label || field.path;
       if (field.required) { const required=document.createElement('span'); required.className='required'; required.textContent='*'; heading.appendChild(required); }
@@ -5094,8 +5272,24 @@
   }
 
   function syncTaskSpecEditor() {
-    const value = state.taskSpec || state.formData || {};
-    el('taskSpecEditor').value = JSON.stringify(value, null, 2);
+    // A form/context is not itself a Canonical TaskSpec. Fetch its validated
+    // current view when the JSON tab is opened instead of exposing the form
+    // envelope (or showing an older canonical base as the edited document).
+    const editor = el('taskSpecEditor');
+    const text = state.taskSpec ? canonicalText(state.taskSpec) : '';
+    if (editor.value !== text) {
+      editor.value = text;
+      // A replaced document may be indented after a single-line paste. Do not
+      // retain that old horizontal offset and make the new text look empty.
+      editor.setSelectionRange(0, 0);
+      editor.scrollTop = 0;
+      editor.scrollLeft = 0;
+    }
+  }
+
+  function formCompilationNote(result, form) {
+    const base = form?._canonical_projection?.task_spec;
+    return base ? (deepEqual(base, result.task_spec) ? '配置未改，来源及求解设置已保留。' : '已按实际修改更新来源并重新规划。') : '';
   }
 
   async function previewForm() {
@@ -5108,11 +5302,8 @@
     // async request is in flight; never attach the response to a newer form.
     const requestedCapabilityId = state.selectedCapabilityId;
     const requestedForm = JSON.stringify(state.formData);
-    const payload=await api('/tasks/parse',{method:'POST',body:JSON.stringify({input_kind:'form',form_data:state.formData,compile_if_valid:true})});
+    const payload=await api('/tasks/parse',{method:'POST',body:apiBody({input_kind:'form',form_data:state.formData,compile_if_valid:true})});
     if (state.selectedCapabilityId !== requestedCapabilityId || JSON.stringify(state.formData) !== requestedForm) {
-      state.taskSpec = null;
-      state.planning = null;
-      syncTaskSpecEditor();
       updateSingleRunGuide('configure', '校验期间配置发生变化；旧校验结果已丢弃，请重新校验。');
       showNotice('校验期间配置已更新，请重新执行“校验与预览”。', 'warning');
       return false;
@@ -5126,7 +5317,7 @@
     } else {
       clearFieldErrors();
       const nodes=result.planning?.execution_plan?.nodes?.length || result.planning?.plan?.nodes?.length || 0;
-      showNotice(`校验通过：Schema、语义、能力兼容和执行计划均有效${nodes?`；计划包含 ${nodes} 个节点`:''}。尚未启动仿真。`,'success');
+      showNotice(`校验通过${nodes?`；${nodes} 个计划节点`:''}。${formCompilationNote(result, state.formData)}尚未启动仿真。`,'success');
       updateSingleRunGuide('validated', `配置校验通过${nodes?` · ${nodes} 个执行节点`:''}，尚未运行。请点击“运行仿真”。`);
       // Do not unexpectedly move beginners from their configuration form
       // into the expert-only TaskSpec JSON tab just after validation.
@@ -5141,7 +5332,33 @@
     container.scrollTop=container.scrollHeight;
   }
 
-  async function parseNaturalLanguage() {
+  let agentGenerationPromise = null;
+
+  function setAgentBusy(busy) {
+    state.agentGenerating = busy;
+    const button = el('agentParseBtn');
+    button.disabled = busy;
+    if (busy) button.setAttribute('aria-busy', 'true');
+    else button.removeAttribute('aria-busy');
+    el('agentGenerationStatus').textContent = busy ? '正在生成并校验；可继续查看仿真结果或调整界面。' : '';
+    el('runBtn').disabled = Boolean(busy || state.singleRunSubmitting) || !state.schema;
+  }
+
+  function parseNaturalLanguage() {
+    if (agentGenerationPromise) return agentGenerationPromise;
+    // Both the Agent button and Run's implicit generation own this same lease,
+    // including refinement preflight and the final form projection.
+    setAgentBusy(true);
+    const owned = parseNaturalLanguageRequest().finally(() => {
+      if (agentGenerationPromise !== owned) return;
+      agentGenerationPromise = null;
+      setAgentBusy(false);
+    });
+    agentGenerationPromise = owned;
+    return owned;
+  }
+
+  async function parseNaturalLanguageRequest() {
     const text=el('agentInput').value.trim(); if (!text) throw new Error('请输入仿真需求');
     // A manual form edit invalidates the cached TaskSpec. Rebuild that edited
     // configuration before refinement; never silently turn it into creation.
@@ -5172,7 +5389,7 @@
       showNotice('生成期间配置或需求已更新，旧回答未应用。请按当前内容重新生成。', 'warning');
       return false;
     };
-    const payload=await api('/tasks/parse',{method:'POST',body:JSON.stringify({
+    const payload=await api('/tasks/parse',{method:'POST',body:apiBody({
       input_kind:'natural_language',request_text:text,base_task_spec:refinementBase,
       backend:'auto',local_backend:'template',provider_id:el('agentBackend').value || state.activeProviderId || 'local-template',
       routing_mode:el('agentRoutingMode').value || 'auto',compile_if_valid:true,
@@ -5196,8 +5413,10 @@
 
   function taskSpecFromEditor() {
     try {
-      const value = JSON.parse(el('taskSpecEditor').value);
+      const text = el('taskSpecEditor').value;
+      const value = JSON.parse(text);
       if (!value || typeof value !== 'object') throw new Error('TaskSpec 必须是 JSON 对象');
+      canonicalTexts.set(value, text);
       return value;
     } catch (error) {
       throw new Error(`JSON 解析失败：${error.message}`);
@@ -5206,7 +5425,7 @@
 
   async function validateEditor() {
     const spec = taskSpecFromEditor();
-    const payload = await api('/tasks/validate', { method: 'POST', body: JSON.stringify({ task_spec: spec }) });
+    const payload = await api('/tasks/validate', { method: 'POST', body: apiBody({ task_spec: spec }) });
     state.taskSpec = payload.task_spec || spec;
     if (payload.ok) state.hasTaskSpecContext = true;
     syncTaskSpecEditor();
@@ -5220,7 +5439,7 @@
 
   async function syncEditorToForm() {
     const spec = taskSpecFromEditor();
-    const payload = await api('/tasks/validate', { method: 'POST', body: JSON.stringify({ task_spec: spec }) });
+    const payload = await api('/tasks/validate', { method: 'POST', body: apiBody({ task_spec: spec }) });
     if (!payload.ok) {
       const issues = [...(payload.validation?.errors || []), ...(payload.guards?.issues || [])];
       throw new Error(issues.map((item) => item.message || item.code).join('；') || 'TaskSpec 校验失败');
@@ -5316,7 +5535,7 @@
     if (!state.activeRunId) return;
     const payload = await api(`/runs/${encodeURIComponent(state.activeRunId)}/cancel`, {
       method: 'POST',
-      body: JSON.stringify({ reason: 'user_requested_from_workbench' }),
+      body: apiBody({ reason: 'user_requested_from_workbench' }),
     });
     state.executionState = payload.execution_state || state.executionState;
     renderExecutionProgress(state.executionState);
@@ -5328,6 +5547,10 @@
     // simultaneous top-toolbar and graph-run submit. Release after the
     // backend returns a run_id: polling a long-running job is not submission.
     if (state.singleRunSubmitting) return;
+    if (state.agentGenerating) {
+      showNotice('AI 正在生成并校验；完成后再运行当前配置。', 'warning');
+      return;
+    }
     state.singleRunSubmitting = true;
     updateSingleRunGuide('submitting', '正在检查配置并提交单次仿真；请勿重复点击。');
     clearNotice();
@@ -5336,7 +5559,14 @@
     let submittedRunId = null;
     try {
       const activeTab = document.querySelector('.tab.active')?.dataset.tab;
-      if (activeTab === 'agent' && !state.taskSpec) await parseNaturalLanguage();
+      if (activeTab === 'agent' && !state.taskSpec) {
+        // An implicit Agent request has the same editable/cancellable UI as
+        // the explicit button. Do not cover it with Run's preparation overlay.
+        hideBusy();
+        const valid = await parseNaturalLanguage();
+        if (!valid || !state.taskSpec) return;
+        showBusy('正在准备仿真', '校验 TaskSpec 与生成执行计划');
+      }
       else if (activeTab === 'taskspec') {
         state.taskSpec = taskSpecFromEditor();
         const valid = await validateEditor();
@@ -5344,15 +5574,21 @@
       } else if (activeTab === 'graph') {
         clearVisualDiagnostics();
         if (state.graphComposerMode === 'assembly') {
-          const valid = await assemblyCompile({ announce: false });
+          const operation = visualCompileOperation('assembly');
+          const valid = await assemblyCompile({ announce: false, operation });
           if (!valid) return;
-          if (!assemblyCodeIsFresh()) await assemblyGenerateCodeFromTaskSpec();
-          visualRunContext = { mode: 'assembly', taskSpec: clone(state.taskSpec), assemblyGraph: clone(state.assemblyGraph), snapshot: assemblySnapshot() };
+          if (!operation.isCurrent()) throw new Error('配置已更新；请重新构建并运行。');
+          if (!assemblyCodeIsFresh()) await assemblyGenerateCodeFromTaskSpec(operation);
+          if (!operation.isCurrent()) throw new Error('配置已更新；请重新构建并运行。');
+          visualRunContext = { mode: 'assembly', taskSpec: operation.taskSpec(), assemblyGraph: clone(state.assemblyGraph), snapshot: assemblySnapshot() };
         } else {
-          const valid = await graphCompile({ requireCode: true, requireRun: true, announce: false });
+          const operation = visualCompileOperation('flow');
+          const valid = await graphCompile({ requireCode: true, requireRun: true, announce: false, operation });
           if (!valid) return;
-          if (!graphCodeIsFresh()) await graphGenerateCodeFromTaskSpec();
-          visualRunContext = { mode: 'flow', taskSpec: clone(state.taskSpec), graph: graphSerialize(), snapshot: graphFormSnapshot() };
+          if (!operation.isCurrent()) throw new Error('配置已更新；请重新构建并运行。');
+          if (!graphCodeIsFresh()) await graphGenerateCodeFromTaskSpec(operation);
+          if (!operation.isCurrent()) throw new Error('配置已更新；请重新构建并运行。');
+          visualRunContext = { mode: 'flow', taskSpec: operation.taskSpec(), graph: graphSerialize(), snapshot: graphFormSnapshot() };
         }
       } else if (!state.taskSpec) {
         const valid = await previewForm();
@@ -5365,7 +5601,7 @@
       const requestedId = state.taskSpec?.task?.id ? `${state.taskSpec.task.id}_${Date.now().toString(36)}` : null;
       const payload = await api('/runs', {
         method: 'POST',
-        body: JSON.stringify({
+        body: apiBody({
           task_spec: state.taskSpec,
           run_id: requestedId,
           execute: true,
@@ -5482,6 +5718,7 @@
       state.traceability = null;
       state.plotManifest = null;
       state.telemetry = [];
+      state.telemetryOverview = null;
       state.artifacts = [];
       state.dataset = null;
       state.selectedSeries = [];
@@ -5493,6 +5730,7 @@
       el('chartControls').replaceChildren();
       el('chartLegend').textContent = '';
       el('chartWindowStatus').textContent = '正在读取当前 Run 的遥测记录…';
+      el('chartTelemetryCoverage').textContent = '尚未加载所选 Run 的遥测覆盖信息。';
       syncChartWindowControls();
       drawChart();
       el('resultEventList').replaceChildren();
@@ -6385,22 +6623,23 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  async function postDownloadEndpoint(path, body, fallbackFilename = 'download.zip') {
+  async function postDownloadEndpoint(path, body, fallbackFilename = 'download.zip', isCurrent = null) {
     const authHeaders = state.apiToken ? { Authorization: `Bearer ${state.apiToken}` } : {};
     const response = await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify(body || {}),
+      body: apiBody(body || {}),
     });
     if (!response.ok) {
       const contentType = response.headers.get('content-type') || '';
       let detail = null;
       try { detail = contentType.includes('application/json') ? await response.json() : await response.text(); } catch (_) { detail = null; }
       const payload = detail?.detail || detail;
-      const message = typeof payload === 'string' ? payload : (payload?.message || payload?.reason_code || `HTTP ${response.status}`);
+      const message = requestErrorMessage(payload, `HTTP ${response.status}`);
       throw new Error(message);
     }
     const blob = await response.blob();
+    if (isCurrent && !isCurrent()) throw new Error('配置已更新，旧程序包未下载；请按当前配置重新导出。');
     const disposition = response.headers.get('content-disposition') || '';
     const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
     const basicMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
@@ -6540,7 +6779,9 @@
         el('continuousNavButton')?.classList.add('hidden');
         return;
       }
-      const [sessions, catalog] = await Promise.all([api('/interactive/sessions'), api('/interactive/commands/catalog')]);
+      state.interactiveAvailable = true;
+      const [sessions, catalog, policy] = await Promise.all([api('/interactive/sessions'), api('/interactive/commands/catalog'), api('/interactive/capabilities')]);
+      state.interactivePolicy = policy;
       state.interactiveAvailable = true;
       state.interactiveSessions = sessions.sessions || [];
       state.interactiveCommandCatalog = catalog.commands || [];
@@ -6550,10 +6791,16 @@
       renderInteractiveCapabilityHint();
       renderInteractiveCommandTargets();
     } catch (error) {
-      state.interactiveAvailable = false;
-      el('interactiveNavButton').classList.add('hidden');
-      el('continuousNavButton')?.classList.add('hidden');
-      if (['interactive', 'continuous'].includes(state.activeView)) switchView('creator');
+      state.interactivePolicy = null;
+      if (state.interactiveAvailable) {
+        el('interactiveNavButton').classList.remove('hidden');
+        el('continuousNavButton')?.classList.remove('hidden');
+        renderInteractiveCreationPolicy();
+        interactiveNotice(`能力目录读取失败：${error.message}`, 'error');
+      } else {
+        el('interactiveNavButton').classList.add('hidden');
+        el('continuousNavButton')?.classList.add('hidden');
+      }
     }
   }
 
@@ -6582,7 +6829,7 @@
       title.textContent = session.session_id;
       const meta = document.createElement('span');
       const scopeLabel = session.capability_id === 'whole_spacecraft.unified_native.v1' ? '整星' : '分系统独立';
-      meta.textContent = `${scopeLabel} · ${session.state} · ${Number(session.sim_time_s).toFixed(3)} s · ${session.rate}x`;
+      meta.textContent = `${scopeLabel} · ${session.continuous ? '持续' : '限时'} · ${session.state} · ${Number(session.sim_time_s).toFixed(3)} s · ${session.rate}x`;
       button.append(title, meta);
       button.addEventListener('click', () => selectInteractiveSession(session.session_id));
       container.appendChild(button);
@@ -6596,9 +6843,12 @@
   }
 
   async function selectInteractiveSession(sessionId) {
+    const selectionVersion = ++state.interactiveSelectionVersion;
     closeInteractiveSocket(false);
     const snapshot = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}`);
+    if (selectionVersion !== state.interactiveSelectionVersion) return;
     state.interactiveSession = snapshot;
+    interactiveNotice(`当前查看会话 ${snapshot.session_id}。`);
     state.interactiveFrames = {};
     state.interactiveGaps = {};
     state.interactiveEvents = [];
@@ -6607,7 +6857,7 @@
     renderInteractiveCommandTargets();
     await refreshInteractiveDetails();
     renderInteractiveSessions();
-    connectInteractiveSocket();
+    if (selectionVersion === state.interactiveSelectionVersion) connectInteractiveSocket();
   }
 
   function interactiveDescriptor() {
@@ -6615,6 +6865,25 @@
     const selected = state.interactiveSessions.find(item => item.session_id === sessionId);
     const capabilityId = selected?.capability_id || state.interactiveSession?.capability_id || el('interactiveCapability').value;
     return INTERACTIVE_CAPABILITIES[capabilityId] || INTERACTIVE_CAPABILITIES[el('interactiveCapability').value];
+  }
+
+  function interactiveCreationSupport(capabilityId, continuous) {
+    return state.interactivePolicy?.creation?.find(item => item.capability_id === capabilityId && item.continuous === continuous);
+  }
+
+  function renderInteractiveCreationPolicy() {
+    const support = interactiveCreationSupport(el('interactiveCapability').value, Boolean(el('interactiveContinuous')?.checked));
+    const allowed = Boolean(state.interactiveAvailable && support?.supported);
+    el('createInteractiveSessionBtn').disabled = !allowed;
+    const node = el('interactiveRuntimePolicy');
+    if (node) {
+      node.dataset.allowed = String(allowed);
+      node.textContent = !support ? '服务器能力目录尚未取得，暂不能创建；请刷新或检查连接。'
+        : allowed ? `当前服务支持此创建方式（${state.interactivePolicy.mode}）。不会自动启动或转换运行方式。`
+        : support.reason_code === 'SUPERVISED_NATIVE_ONLY_WHOLE_CONTINUOUS'
+          ? '当前服务为监督式独立原生进程，仅支持持续整星。限时与独立分系统需切换支持它们的服务；不会自动转换为持续。'
+          : `当前服务不支持此组合：${support.reason_code}。请明确选择受支持的能力与运行方式。`;
+    }
   }
 
   function renderInteractiveCapabilityHint() {
@@ -6625,6 +6894,7 @@
       ? '整星会话共享同一时钟和状态，可控制姿轨控、能源与通信数传并观察跨系统影响。'
       : '独立分系统会话用于专项调试，不包含完整整星耦合；一般任务建议选择“整星”。';
     hint.classList.toggle('is-subsystem', descriptor.scope !== 'whole');
+    renderInteractiveCreationPolicy();
   }
 
   async function chooseSimulationCreateMode(mode) {
@@ -6640,6 +6910,11 @@
     }
     if (state.selectedCapabilityId !== 'whole_spacecraft.unified_native.v1') {
       status.textContent = '此快捷入口需要先在左侧选择“原生整星”模型。单机／分系统仍可使用现有运行入口，不做跨能力参数猜测。';
+      return false;
+    }
+    const support = interactiveCreationSupport('whole_spacecraft.unified_native.v1', mode === 'continuous');
+    if (!support?.supported) {
+      status.textContent = `当前服务不支持所选运行方式：${support?.reason_code || '能力目录尚未取得'}。请切换支持此方式的服务；当前配置未转换。`;
       return false;
     }
     if (mode === 'bounded') {
@@ -6681,7 +6956,7 @@
     status.textContent = '正在核对离线配置和实时原生参数边界…';
     try {
       const review = await api('/interactive/continuous/configuration/preview-from-finite', {
-        method: 'POST', body: JSON.stringify({ form_data: state.formData }),
+        method: 'POST', body: apiBody({ form_data: state.formData }),
       });
       if (!review.eligible) {
         const issues = (review.blocked || [])
@@ -6717,17 +6992,23 @@
   }
 
   async function createInteractiveSession() {
+    state.interactivePolicy = await api('/interactive/capabilities');
+    renderInteractiveCreationPolicy();
+    const support = interactiveCreationSupport(el('interactiveCapability').value, Boolean(el('interactiveContinuous')?.checked));
+    if (!support?.supported) throw new Error(support?.reason_code || 'INTERACTIVE_CAPABILITY_CATALOG_UNAVAILABLE');
     const capabilityId = el('interactiveCapability').value;
     const descriptor = INTERACTIVE_CAPABILITIES[capabilityId];
     const duration = Number(el('interactiveDuration').value);
     const quantum = Number(el('interactiveQuantum').value);
     const rate = Number(el('interactiveInitialRate').value);
+    // The default 0.5 s cadence must divide into complete native steps.
+    const integrationStep = quantum === 0.5 ? 0.1 : Math.min(quantum, 0.2);
     const sessionId = `live-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
     const spec = {
       session_id: sessionId,
       capability_id: capabilityId,
       task_spec: {
-        simulation: { duration_s: duration, sample_s: quantum, solver: { step_s: Math.min(quantum, 0.2) } },
+        simulation: { duration_s: duration, sample_s: quantum, solver: { step_s: integrationStep } },
         parameters: { values: capabilityId === 'whole_spacecraft.unified_native.v1'
           ? structuredClone(state.interactivePreparedNativeValues || {}) : {} },
         outputs: { telemetry_streams: descriptor.streams.map((stream) => ({
@@ -6744,7 +7025,7 @@
       continuous: Boolean(el('interactiveContinuous')?.checked),
       max_sim_time_s: duration,
     };
-    const created = await api('/interactive/sessions', { method: 'POST', body: JSON.stringify(spec) });
+    const created = await api('/interactive/sessions', { method: 'POST', body: apiBody(spec) });
     await loadInteractiveSessions();
     await selectInteractiveSession(created.session_id);
     interactiveNotice(`会话 ${created.session_id} 已就绪。`);
@@ -6752,6 +7033,7 @@
 
   function renderInteractiveSnapshot() {
     const snapshot = state.interactiveSession;
+    el('interactiveOpenContinuousBtn')?.classList.toggle('hidden', !snapshot?.continuous);
     el('interactiveState').textContent = snapshot?.state || '未选择';
     el('interactiveState').title = snapshot?.terminal_error || '';
     const archiveLabels = {
@@ -6784,7 +7066,7 @@
     if ((action === 'stop' || action === 'abort') && !confirm('确认停止当前实时会话并归档？')) return;
     const sessionId = state.interactiveSession.session_id;
     state.interactiveSession = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}/control`, {
-      method: 'POST', body: JSON.stringify({ action, ...extra }),
+      method: 'POST', body: apiBody({ action, ...extra }),
     });
     renderInteractiveSnapshot();
     await refreshInteractiveDetails();
@@ -6793,9 +7075,11 @@
   async function refreshInteractiveDetails() {
     if (!state.interactiveSession) return;
     const id = encodeURIComponent(state.interactiveSession.session_id);
+    const selectionVersion = state.interactiveSelectionVersion;
     const [snapshot, events, acks] = await Promise.all([
       api(`/interactive/sessions/${id}`), api(`/interactive/sessions/${id}/events`), api(`/interactive/sessions/${id}/commands`),
     ]);
+    if (selectionVersion !== state.interactiveSelectionVersion || id !== encodeURIComponent(state.interactiveSession?.session_id)) return;
     state.interactiveSession = snapshot;
     state.interactiveEvents = events.events || [];
     state.interactiveAcks = acks.acks || [];
@@ -6844,13 +7128,14 @@
   }
 
   function connectInteractiveSocket() {
-    if (!state.interactiveSession || !state.interactiveAvailable) return;
+    if (!state.interactiveSession || !state.interactiveAvailable || !state.interactiveSession.telemetry_streams?.length) return;
     closeInteractiveSocket(false);
     const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const id = encodeURIComponent(state.interactiveSession.session_id);
     const socket = new WebSocket(`${scheme}//${location.host}/interactive/sessions/${id}/telemetry`, websocketProtocols());
     state.interactiveSocket = socket;
     socket.addEventListener('open', () => {
+      if (state.interactiveSocket !== socket) { socket.close(1000, 'CLIENT_NAVIGATION'); return; }
       el('interactiveConnectionBadge').className = 'status-chip status-ok';
       el('interactiveConnectionBadge').innerHTML = '<span class="status-dot"></span>已连接';
       const streams = Array.from(el('interactiveStream').options).map(option => option.value).filter(Boolean);
@@ -6862,6 +7147,7 @@
       socket.send(JSON.stringify({ action: 'subscribe', streams, after_sequences: afterSequences }));
     });
     socket.addEventListener('message', (event) => {
+      if (state.interactiveSocket !== socket) return;
       const message = JSON.parse(event.data);
       if (message.type === 'telemetry') acceptInteractiveFrame(message.payload);
       if (message.type === 'gap') {
@@ -6874,14 +7160,20 @@
         renderInteractiveEvents();
       }
       if (message.type === 'heartbeat') {
-        state.interactiveSession = message.payload;
+        state.interactiveSession = { ...state.interactiveSession, ...message.payload };
         renderInteractiveSnapshot();
       }
     });
-    socket.addEventListener('close', () => {
-      if (state.interactiveSocket === socket) state.interactiveSocket = null;
+    socket.addEventListener('close', (event) => {
+      if (state.interactiveSocket !== socket) return;
+      state.interactiveSocket = null;
       el('interactiveConnectionBadge').className = 'status-chip status-warn';
       el('interactiveConnectionBadge').innerHTML = '<span class="status-dot"></span>已断开';
+      if (event.code === 1008) {
+        interactiveNotice(`遥测订阅被服务端拒绝：${event.reason || 'POLICY_VIOLATION'}；请刷新会话目录后重试。`, 'error');
+        el('interactiveConnectionBadge').textContent = '订阅被拒绝';
+        return;
+      }
       const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
       if (!terminal && state.activeView === 'interactive') {
         clearTimeout(state.interactiveReconnectTimer);
@@ -6914,15 +7206,24 @@
     objectSelect.replaceChildren();
     const capabilityId = state.interactiveSessions.find(item => item.session_id === state.interactiveSession?.session_id)?.capability_id;
     const descriptor = INTERACTIVE_CAPABILITIES[capabilityId] || interactiveDescriptor();
-    descriptor?.streams.forEach((stream) => {
+    const streams = state.interactiveSession?.telemetry_catalog || [];
+    streams.forEach((stream) => {
       const option = document.createElement('option');
-      option.value = stream.id; option.textContent = stream.label; streamSelect.appendChild(option);
+      option.value = stream.stream_id;
+      option.textContent = `${stream.stream_id} · ${stream.sample_s} s`;
+      streamSelect.appendChild(option);
     });
-    descriptor?.telemetryGroups.forEach((group) => {
+    if (!streams.length && state.interactiveSession) {
+      interactiveNotice('会话未公开可订阅的遥测流；不推测流名，请检查服务端会话目录。', 'error');
+    }
+    if (Array.from(streamSelect.options).some(option => option.value === currentStream)) streamSelect.value = currentStream;
+    const actualFields = new Set(streams.find(item => item.stream_id === streamSelect.value)?.fields || []);
+    descriptor?.telemetryGroups.filter(group => group.fields.some(field => actualFields.has(field))).forEach((group) => {
       const option = document.createElement('option');
       option.value = group.id; option.textContent = group.label; objectSelect.appendChild(option);
     });
-    if (Array.from(streamSelect.options).some(option => option.value === currentStream)) streamSelect.value = currentStream;
+    const configured = document.createElement('option');
+    configured.value = 'configured'; configured.textContent = '当前流全部字段'; objectSelect.appendChild(configured);
     if (Array.from(objectSelect.options).some(option => option.value === currentObject)) objectSelect.value = currentObject;
     renderInteractiveTelemetry();
   }
@@ -6935,7 +7236,9 @@
     el('interactiveGapBadge').textContent = gap ? `缺口 ${gap.dropped_count}` : '无缺口';
     const latest = frames[frames.length - 1]?.values || {};
     const group = interactiveDescriptor()?.telemetryGroups.find(item => item.id === el('interactiveTelemetryObject').value);
-    const visibleFields = group?.fields || Object.keys(latest);
+    const visibleFields = el('interactiveTelemetryObject').value === 'configured'
+      ? state.interactiveSession?.telemetry_catalog?.find(item => item.stream_id === stream)?.fields || Object.keys(latest)
+      : group?.fields || Object.keys(latest);
     const values = el('interactiveLatestValues');
     values.replaceChildren();
     visibleFields.filter(name => Object.hasOwn(latest, name)).forEach((name) => {
@@ -6947,7 +7250,11 @@
         ? '—' : (typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value));
       item.append(label, strong); values.appendChild(item);
     });
-    if (!frames.length) values.innerHTML = '<div class="empty-state"><strong>等待遥测数据</strong></div>';
+    if (!frames.length) {
+      const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
+      values.textContent = terminal ? '会话已结束；当前流尚无可用缓冲遥测，请检查归档或原始历史。'
+        : state.interactiveSession?.state === 'READY' ? '会话已就绪，启动后产生真实遥测。' : '等待当前会话的真实遥测数据。';
+    }
     drawInteractiveChart(frames, visibleFields);
   }
 
@@ -7080,7 +7387,7 @@
       actor_role: contract.required_role,
       execute_at_sim_time_s: Number(el('interactiveCommandTime').value || session.sim_time_s),
     };
-    const ack = await api(`/interactive/sessions/${encodeURIComponent(session.session_id)}/commands`, { method: 'POST', body: JSON.stringify(payload) });
+    const ack = await api(`/interactive/sessions/${encodeURIComponent(session.session_id)}/commands`, { method: 'POST', body: apiBody(payload) });
     interactiveNotice(`${ack.command_id}: ${ack.state}`, ack.state === 'REJECTED' ? 'error' : 'success');
     await refreshInteractiveDetails();
   }
@@ -7108,7 +7415,7 @@
       }).catch((error) => interactiveNotice(error.message, 'error'));
       clearInterval(state.interactivePollTimer);
       state.interactivePollTimer = setInterval(() => {
-        loadInteractiveSessions().then(refreshInteractiveDetails).catch(() => null);
+        loadInteractiveSessions().then(refreshInteractiveDetails).catch(error => interactiveNotice(`会话读取失败：${error.message}`, 'error'));
       }, 500);
     } else {
       clearInterval(state.interactivePollTimer);
@@ -7418,7 +7725,7 @@
       if (seq !== state.runCompareRequestId) return false;
       const selectedMetrics = comparableRunMetrics(entries.map((entry) => entry.metrics));
       const comparisonPayload = await api('/runs/compare', {
-        method: 'POST', body: JSON.stringify({ run_ids: ids, metrics: selectedMetrics }),
+        method: 'POST', body: apiBody({ run_ids: ids, metrics: selectedMetrics }),
       });
       if (seq !== state.runCompareRequestId) return false;
       const comparison = comparisonPayload.comparison || {};
@@ -7524,6 +7831,7 @@
   }
 
   async function saveCurrentTask(mode = 'new') {
+    clearNotice();
     if (!state.formData && !state.taskSpec) throw new Error('请先选择可执行的仿真对象');
     if (!state.taskSpec) { const ok=await previewForm(); if (!ok) throw new Error('TaskSpec 未通过校验，不能保存到任务中心'); }
     if (mode === 'update' && !state.activeTaskCenterId) throw new Error('当前未打开任务中心中的任务；请使用“另存为新任务”。');
@@ -7532,9 +7840,12 @@
     else {
       const base=String(spec.task?.id || 'simulation_task').replace(/[^A-Za-z0-9_.-]+/g,'_').slice(0,72) || 'simulation_task';
       taskId=`${base}_${Date.now().toString(36)}`;
-      spec.task={...(spec.task || {}),id:taskId};
+      // The server applies this explicit new identity after validating the
+      // unchanged canonical text/object pair; no stale text follows a mutation.
     }
-    const payload=await api(target,{method,body:JSON.stringify({
+    // Validation may show success, but the task write is still outstanding.
+    clearNotice();
+    const payload=await api(target,{method,body:apiBody({
       task_spec:spec,task_id:taskId,source:'web_workbench',status:'READY',force_new_version:mode==='update',
       change_summary:mode==='update'?'工作台更新已打开任务':'从工作台另存为新任务',
     })});
@@ -7691,7 +8002,7 @@
       restore.textContent = '恢复为新版本';
       restore.addEventListener('click', async () => {
         await api(`/task-center/tasks/${encodeURIComponent(taskId)}/versions/${version.version}/restore`, {
-          method: 'POST', body: JSON.stringify({ change_summary: `从 V${version.version} 恢复` }),
+          method: 'POST', body: apiBody({ change_summary: `从 V${version.version} 恢复` }),
         });
         await openTaskDetails(taskId);
         await loadTasks();
@@ -7719,7 +8030,7 @@
     const taskId = state.taskDetailsTaskId;
     if (!taskId) return;
     const payload = await api(`/task-center/tasks/${encodeURIComponent(taskId)}/clone`, {
-      method: 'POST', body: JSON.stringify({}),
+      method: 'POST', body: apiBody({}),
     });
     closeTaskDetails();
     await loadTasks();
@@ -7749,7 +8060,7 @@
     try {
       const payload = await api(`/task-center/tasks/${encodeURIComponent(taskId)}/run`, {
         method: 'POST',
-        body: JSON.stringify({ max_attempts: 2, hard_timeout: true }),
+        body: apiBody({ max_attempts: 2, hard_timeout: true }),
       });
       const runId = payload.prepared_run?.run_id || payload.execution_state?.run_id;
       if (!runId) throw new Error('未返回 run_id');
@@ -7810,7 +8121,7 @@
 
   async function applyScenarioTemplate() {
     const templateId=el('scenarioTemplateSelect').value; if (!templateId) throw new Error('请先选择场景模板');
-    const payload=await api(`/scenario-templates/${encodeURIComponent(templateId)}/instantiate`,{method:'POST',body:JSON.stringify({})});
+    const payload=await api(`/scenario-templates/${encodeURIComponent(templateId)}/instantiate`,{method:'POST',body:apiBody({})});
     await projectTaskSpecToForm(payload.task_spec,'场景模板'); state.activeTaskCenterId=null; updateTaskEditState(); state.planning=payload.planning;
     showNotice(`已应用场景模板：${state.scenarioTemplates.find((item)=>item.template_id===templateId)?.name || templateId}`,'success');
   }
@@ -7852,9 +8163,9 @@
     if (!capabilityId) { select.replaceChildren(new Option('基础任务缺少能力标识','')); return; }
     let payload;
     try {
-      payload=await api('/experiments/options',{method:'POST',body:JSON.stringify({base_task_spec: state.experimentBaseSpec})});
+      payload=await api('/experiments/options',{method:'POST',body:apiBody({base_task_spec: state.experimentBaseSpec})});
     } catch (error) {
-      payload=await api('/experiments/dispersion-options',{method:'POST',body:JSON.stringify({base_task_spec: state.experimentBaseSpec})});
+      payload=await api('/experiments/dispersion-options',{method:'POST',body:apiBody({base_task_spec: state.experimentBaseSpec})});
     }
     const fields=(payload.dispersion_options || payload.options || []).filter((field)=>{
       const path=String(field.path || ''); const type=String(field.type || '');
@@ -7941,7 +8252,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
 
   async function previewExperimentPlan() {
     const request = buildExperimentPayload();
-    const payload = await api('/experiments/plan', { method: 'POST', body: JSON.stringify({ ...request, preview_limit: 8 }) });
+    const payload = await api('/experiments/plan', { method: 'POST', body: apiBody({ ...request, preview_limit: 8 }) });
     const box = el('experimentPlanPreview');
     box.classList.remove('hidden');
     box.textContent = JSON.stringify({
@@ -7957,7 +8268,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     const request = buildExperimentPayload();
     const payload = await api('/experiments', {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: apiBody(request),
     });
     closeExperimentModal();
     switchView('experiments');
@@ -7989,7 +8300,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       actions.className = 'toolbar-actions';
       const launch = document.createElement('button');
       launch.className = 'button button-primary'; launch.textContent = '启动批量运行';
-      launch.addEventListener('click', async () => { await api(`/experiments/${experiment.experiment_id}/launch`, { method: 'POST', body: JSON.stringify({}) }); await loadExperiments(); });
+      launch.addEventListener('click', async () => { await api(`/experiments/${experiment.experiment_id}/launch`, { method: 'POST', body: apiBody({}) }); await loadExperiments(); });
       const detail = document.createElement('button');
       detail.className = 'button button-secondary'; detail.textContent = '查看对比';
       detail.addEventListener('click', () => showExperimentComparison(experiment.experiment_id));
@@ -8081,6 +8392,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     state.planning = clone(snapshot.planning);
     state.changedPaths = new Set(snapshot.changedPaths);
     state.agentBeforeForm = clone(snapshot.agentBeforeForm);
+    state.agentBeforeTaskCenterId = snapshot.agentBeforeTaskCenterId ?? null;
+    state.formProjectionSource = snapshot.formProjectionSource || null;
     state.activeTaskCenterId = snapshot.activeTaskCenterId;
     clearResetUndo();
     updateTaskEditState();
@@ -8101,6 +8414,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       taskSpec: clone(state.taskSpec), planning: clone(state.planning),
       hasTaskSpecContext: state.hasTaskSpecContext,
       changedPaths: [...state.changedPaths], agentBeforeForm: clone(state.agentBeforeForm),
+      agentBeforeTaskCenterId: state.agentBeforeTaskCenterId,
+      formProjectionSource: state.formProjectionSource,
       activeTaskCenterId: state.activeTaskCenterId, editorText: el('taskSpecEditor').value,
     };
     state.formData = clone(state.schema.default_form);
@@ -8109,6 +8424,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     state.planning = null;
     state.changedPaths = new Set();
     state.agentBeforeForm = null;
+    state.agentBeforeTaskCenterId = null;
+    state.formProjectionSource = null;
     state.activeTaskCenterId = null;
     updateTaskEditState();
     renderAgentChangePanel();
@@ -8363,18 +8680,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('clearAgentConversationBtn').addEventListener('click', () => { state.agentHistory=[]; renderAgentConversation(); });
     el('agentParseBtn').addEventListener('click', async () => {
-      if (state.agentGenerating) return;
-      state.agentGenerating = true;
-      const button = el('agentParseBtn');
-      button.disabled = true;
-      button.setAttribute('aria-busy', 'true');
-      el('agentGenerationStatus').textContent = '正在生成并校验；可继续查看仿真结果或调整界面。';
-      try { await parseNaturalLanguage(); } catch (error) { showNotice(error.message, 'error'); } finally {
-        state.agentGenerating = false;
-        button.disabled = false;
-        button.removeAttribute('aria-busy');
-        el('agentGenerationStatus').textContent = '';
-      }
+      try { await parseNaturalLanguage(); } catch (error) { showNotice(error.message, 'error'); }
     });
     el('applyJsonToFormBtn').addEventListener('click', async () => {
       showBusy('同步 TaskSpec 到表单', '校验能力并投影 Registry 字段');
@@ -8420,6 +8726,12 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('logLevelFilter').addEventListener('change', () => loadLogs().catch(() => null));
     el('logSearch').addEventListener('input', () => { clearTimeout(state.logSearchTimer); state.logSearchTimer = setTimeout(() => loadLogs().catch(() => null), 250); });
     el('refreshInteractiveBtn').addEventListener('click', () => loadInteractiveSessions().catch(error => interactiveNotice(error.message, 'error')));
+    el('interactiveOpenContinuousBtn')?.addEventListener('click', () => {
+      if (!state.interactiveSession?.continuous) return;
+      window.SatContinuousConsole?.selectSession(state.interactiveSession.session_id);
+      switchView('continuous');
+    });
+    el('interactiveContinuous')?.addEventListener('change', renderInteractiveCreationPolicy);
     el('interactiveCapability').addEventListener('change', () => {
       state.interactivePreparedNativeValues = null;
       el('interactiveOfflineConfigStatus').textContent = '会话范围已修改，之前导入的整星配置已清除，请按需重新审核导入。';
@@ -8440,7 +8752,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveStepBtn').addEventListener('click', () => interactiveControl('step', { quanta: 1 }).catch(error => interactiveNotice(error.message, 'error')));
     el('interactiveStopBtn').addEventListener('click', () => interactiveControl('stop').catch(error => interactiveNotice(error.message, 'error')));
     el('interactiveRate').addEventListener('change', event => interactiveControl('rate', { rate: Number(event.target.value) }).catch(error => interactiveNotice(error.message, 'error')));
-    el('interactiveStream').addEventListener('change', renderInteractiveTelemetry);
+    el('interactiveStream').addEventListener('change', renderInteractiveStreams);
     el('interactiveTelemetryObject').addEventListener('change', renderInteractiveTelemetry);
     el('interactiveCommandTarget').addEventListener('change', renderInteractiveCommandOperations);
     el('interactiveCommandOperation').addEventListener('change', renderInteractiveCommandForm);

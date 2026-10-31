@@ -347,15 +347,74 @@ def _registry_parameter_type_schema(kind: str) -> dict[str, Any]:
     raise ValueError(f'UNSUPPORTED_REGISTRY_PARAMETER_TYPE:{kind}')
 
 
+def _event_draft_schemas(contract: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Require parseable event discriminators, without supplying user values.
+
+    Legacy aliases remain accepted at the parser boundary. Generated drafts
+    use the selected registry's public effect names; validation stays mandatory.
+    """
+    legacy_items, canonical_items = {}, {}
+    for plural, mode, type_key in (
+        ('faults', 'fault', 'fault_type'),
+        ('degradations', 'degradation', 'degradation_type'),
+        ('constraints', 'constraint', 'constraint_type'),
+    ):
+        mode_contract = contract.get('modes', {}).get(mode, {})
+        effects = mode_contract.get('effects') or mode_contract.get(mode + '_types') or []
+        effect = {'type': 'string', 'minLength': 1}
+        if effects:
+            effect['enum'] = list(dict.fromkeys(str(value) for value in effects))
+        common = {name: {'type': 'string'} for name in (
+            'target', 'target_path', 'target_type', 'label', 'implementation')}
+        common.update({name: {'type': 'number', 'minimum': 0, 'maximum': 1}
+                       for name in ('magnitude', 'severity')})
+        common.update({name: {'type': 'number', 'minimum': 0}
+                       for name in ('onset_time_s', 'start_time_s', 'scale')})
+        common['duration_s'] = {'type': 'number', 'minimum': -1}
+        common['parameters'] = {'type': 'object', 'properties': {'scenario': copy.deepcopy(effect)}}
+        common.update({name: copy.deepcopy(effect) for name in (type_key, 'modifier_type', 'type')})
+        common.update({name: {'type': 'string'} for name in (mode + '_id', 'modifier_id')})
+        alternatives = []
+        for discriminator in (type_key, 'modifier_type', 'type', 'parameters'):
+            properties = copy.deepcopy(common)
+            if discriminator == 'parameters':
+                properties['parameters']['required'] = ['scenario']
+            alternatives.append({'type': 'object', 'properties': properties,
+                                 'required': [discriminator], 'additionalProperties': False})
+        legacy_items[plural] = {'anyOf': alternatives}
+        canonical_properties = {
+            'id': {'type': 'string', 'minLength': 1},
+            'target': {'type': 'string', 'minLength': 1}, 'effect': copy.deepcopy(effect),
+            'start_s': {'type': 'number', 'minimum': 0},
+            'end_s': {'anyOf': [{'type': 'number', 'exclusiveMinimum': 0}, {'type': 'null'}]},
+            'magnitude': {'anyOf': [copy.deepcopy(common['magnitude']), {'type': 'null'}]},
+            'scale': {'anyOf': [copy.deepcopy(common['scale']), {'type': 'null'}]},
+            'implementation': {'enum': ['auto', 'native', 'proxy']},
+            'delivery': {'enum': ['modifier', 'legacy_fault', 'legacy_degradation',
+                                  'runtime_parameter', 'runtime_constraint']},
+            'target_type': {'type': ['string', 'null']}, 'label': {'type': ['string', 'null']},
+            'parameters': {'type': 'object'}, 'event_type': {'const': mode},
+        }
+        canonical_items[plural] = {'type': 'object', 'properties': canonical_properties,
+                                   'required': ['id', 'target', 'effect'], 'additionalProperties': False}
+    return legacy_items, canonical_items
+
+
 def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_events: bool = False,
+                                 constrain_events: bool = False,
+                                 single_fault: bool = False,
+                                 single_fault_carrier: str = 'auto',
                                  allow_geometry_overrides: bool = True,
-                                 allow_per_wheel_overrides: bool = True) -> dict[str, Any]:
+                                 allow_per_wheel_overrides: bool = True,
+                                 parameter_assignments: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Transport shape for the legacy/canonical/wrapped drafts we parse.
 
     Capability identity may be restored from an unambiguous registry binding
     by the existing normalizer. Full semantic validation remains mandatory
     after parsing; this schema is never evidence of a valid simulation.
     """
+    if single_fault_carrier not in {'auto', 'faults', 'modifiers'}:
+        raise ValueError('UNSUPPORTED_SINGLE_FAULT_CARRIER')
     legacy = {
         "type": "object",
         "properties": {
@@ -426,6 +485,12 @@ def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_e
                 if source in descriptor:
                     item[target] = copy.deepcopy(descriptor[source])
             parameter_properties[name] = item
+        if parameter_assignments:
+            from .explicit_parameters import ExplicitParameterError, constrain_parameter_schema
+            for name, value in parameter_assignments.items():
+                if name not in parameter_properties:
+                    raise ExplicitParameterError(f'Explicit parameter is unavailable in this decoder contract: {name}')
+                parameter_properties[name] = constrain_parameter_schema(parameter_properties[name], value)
         parameters = {'type':'object','properties':parameter_properties,'additionalProperties':False}
         legacy['properties']['schema_version'] = {'const':'0.1.0'}
         legacy['properties']['capability_id'] = {'const':capability_id}
@@ -441,6 +506,18 @@ def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_e
                 'legacy_degradations','campaign','simulation_extra','validation')}},
             'required':['capability_id'],'additionalProperties':False}
         canonical['required'].append('model')
+        if (constrain_events or single_fault) and not forbid_events:
+            old_events, new_events = _event_draft_schemas(contract)
+            for kind, items in old_events.items():
+                array = {'type': 'array', 'items': copy.deepcopy(items)}
+                legacy['properties'][kind] = (array if kind == 'faults' else
+                    {'anyOf': [array, {'type': 'object'}]})
+            legacy['properties']['modifiers'] = {'type': 'object', 'properties': {
+                kind: {'type': 'array', 'items': copy.deepcopy(items)}
+                for kind, items in old_events.items()}, 'additionalProperties': False}
+            canonical['properties']['events'] = {'type': 'object', 'properties': {
+                kind: {'type': 'array', 'items': copy.deepcopy(items)}
+                for kind, items in new_events.items()}, 'additionalProperties': False}
     if forbid_events:
         empty_array = {'type':'array','maxItems':0}
         empty_object = {'type':'object','properties':{},'additionalProperties':False}
@@ -455,11 +532,92 @@ def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_e
             'additionalProperties':False}
         if capability_id is not None:
             canonical['properties']['model']['properties']['legacy_degradations'] = copy.deepcopy(empty_object)
-    direct = {"anyOf": [legacy, canonical]}
+    # MissionSpec declares a string list. Typing this known field avoids
+    # unconstrained empty-array parser forks without excluding extension keys.
+    mission = {'type': 'object', 'properties': {
+        'required_couplings': {'type': 'array', 'items': {'type': 'string'}}}}
+    legacy['properties']['mission'] = copy.deepcopy(mission)
+    canonical['properties']['mission'] = copy.deepcopy(mission)
+    alternatives = [legacy, canonical]
+    if single_fault and not forbid_events and capability_id is not None:
+        # Full object alternatives are intentional: LM-format-enforcer does not
+        # merge sibling constraints into nested anyOf branches. Restrict count
+        # from the user's explicit instruction, never constrain answer values.
+        empty = {'type': 'array', 'maxItems': 0}
+        empty_object = {'type': 'object', 'properties': {}, 'additionalProperties': False}
+        fault_target = {'type': 'object', 'properties': {
+            'level': {'type': 'string'}, 'name': {'type': 'string'}, 'mode': {'const': 'fault'}},
+            'required': ['mode'], 'additionalProperties': False}
+        for kind in ('degradations', 'constraints'):
+            legacy['properties'][kind] = {'anyOf': [copy.deepcopy(empty), copy.deepcopy(empty_object)]}
+            legacy['properties']['modifiers']['properties'][kind] = copy.deepcopy(empty)
+            canonical['properties']['events']['properties'][kind] = copy.deepcopy(empty)
+        legacy['properties']['target'] = copy.deepcopy(fault_target)
+        # Prefer one unambiguous spelling in generated legacy faults. The broad
+        # parser/default transport still accepts aliases; generation must not
+        # emit both severity and magnitude with contradictory values.
+        fault_fields = copy.deepcopy(old_events['faults']['anyOf'][0]['properties'])
+        for alias in ('severity', 'modifier_type', 'type', 'start_time_s', 'target_path'):
+            fault_fields.pop(alias, None)
+        fault_fields['parameters'] = {'type': 'object'}
+        event_target = str(contract.get('target') or '')
+        if event_target and not contract.get('event_target_prefixes'):
+            fault_fields['target'] = {'type': 'string', 'enum': [event_target]}
+        fault_item = {'type': 'object', 'properties': fault_fields,
+                      'required': ['fault_type', 'target', 'onset_time_s', 'magnitude'],
+                      'additionalProperties': False}
+        legacy['properties']['faults']['items'] = copy.deepcopy(fault_item)
+        legacy['properties']['modifiers']['properties']['faults']['items'] = copy.deepcopy(fault_item)
+        canonical['properties']['model']['properties']['target'] = copy.deepcopy(fault_target)
+        canonical['properties']['model']['required'].append('target')
+        canonical['properties']['model']['properties']['legacy_degradations'] = copy.deepcopy(empty_object)
+        canonical_faults = canonical['properties']['events']['properties']['faults']
+        if event_target and not contract.get('event_target_prefixes'):
+            canonical_faults['items']['properties']['target'] = {'type': 'string', 'enum': [event_target]}
+        canonical_faults.update({'minItems': 1, 'maxItems': 1})
+        canonical['properties']['events']['required'] = ['faults']
+        canonical['required'].append('events')
+        top, modifier = copy.deepcopy(legacy), copy.deepcopy(legacy)
+        top['properties']['faults'].update({'minItems': 1, 'maxItems': 1})
+        top['required'].append('faults')
+        top['properties']['modifiers']['properties']['faults'] = copy.deepcopy(empty)
+        modifier['properties']['faults'] = copy.deepcopy(empty)
+        modifier['properties']['modifiers']['properties']['faults'].update({'minItems': 1, 'maxItems': 1})
+        modifier['properties']['modifiers']['required'] = ['faults']
+        modifier['required'].append('modifiers')
+        alternatives = ([top, modifier, canonical] if single_fault_carrier == 'auto' else
+                        [top, canonical] if single_fault_carrier == 'faults' else [modifier, canonical])
+    if parameter_assignments:
+        if capability_id is None:
+            raise ValueError('Explicit parameter binding requires a registered capability')
+        required = list(parameter_assignments)
+        # Bind after event alternatives are finalized so single-fault branches
+        # cannot restore a canonical object with no authoritative parameter carrier.
+        bound_alternatives = []
+        for alternative in alternatives:
+            if alternative is not canonical:
+                alternative['required'].append('parameters')
+                alternative['properties']['parameters']['required'] = required
+                bound_alternatives.append(alternative)
+                continue
+            # Every present carrier keeps its const constraints; each branch
+            # additionally requires the carrier the runtime will actually use.
+            values_branch = copy.deepcopy(canonical)
+            values_branch['required'].append('parameters')
+            values_branch['properties']['parameters']['required'] = ['values']
+            values_branch['properties']['parameters']['properties']['values']['required'] = required
+            config_branch = copy.deepcopy(canonical)
+            config_branch['properties']['model']['required'].append('config')
+            config_branch['properties']['model']['properties']['config']['required'] = required
+            # model.config is the runtime fallback only for empty/absent values.
+            config_branch['properties']['parameters']['properties']['values']['const'] = {}
+            bound_alternatives.extend([values_branch, config_branch])
+        alternatives = bound_alternatives
+    direct = {"anyOf": alternatives}
     wrappers = [{"type": "object", "properties": {key: direct},
                  "required": [key], "additionalProperties": False}
                 for key in ("task_spec", "taskspec", "TaskSpec", "spec")]
-    return {"anyOf": [legacy, canonical, *wrappers]}
+    return {"anyOf": [*alternatives, *wrappers]}
 
 
 class OpenAIChatCompletionsBackend:

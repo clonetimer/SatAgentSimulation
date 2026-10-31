@@ -1,0 +1,24 @@
+{
+  "status": "INDEPENDENT_FIXED15_FIRST_RESPONSE_ORIGINAL_SCRIPT_SEALED_RUNTIME_PASS",
+  "at_utc": "2026-10-31T03:07:20.832892+00:00",
+  "source_application": "1afdbb862e09951bfbbf5207fd9397d8284ccb3c180faa2649e6c88e323741d6",
+  "model_posts": 15,
+  "unique_actual_response_ids": 15,
+  "raw_current_five_domain_pass": 15,
+  "original_scripts_exit0": 15,
+  "sealed_runs_all_checks_pass": 15,
+  "legacy_strict_pass_separate": 0,
+  "final_exact_current_pass_separate": 0,
+  "adapters": {
+    "capability.registered_adapter": 12,
+    "basilisk.composite_digital_twin_graph": 3
+  },
+  "physical_coverage": {
+    "PARTIAL": 15
+  },
+  "no_repair_extra_post_or_answer_replacement": true,
+  "old_R46_original69_scores_not_changed": true,
+  "not_a_new69_score": true,
+  "report_sha256": "3cc84106ea5f665a6524c84fc88302aab8a39593637eebd128301a66814e289f",
+  "observed_physical_checks_only_not_full_fidelity_or_flight_qualification": true
+}

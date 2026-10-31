@@ -29,6 +29,10 @@ def test_model_settings_fit_the_viewport_at_large_font_and_restore_focus(tmp_pat
                 headers={'content-type':response.headers.get('content-type','application/octet-stream')})
         page.route('https://workbench.test/**',proxy)
         page.goto('https://workbench.test/',wait_until='networkidle')
+        settings_toggle = page.locator('#toggleMobileToolsBtn')
+        if settings_toggle.get_attribute('aria-expanded') != 'true':
+            settings_toggle.focus()
+            settings_toggle.press('Enter')
         page.locator('#fontScaleSelect').select_option('130')
         page.set_viewport_size({'width':width,'height':height})
         page.locator('#openModelSettingsBtn').click()

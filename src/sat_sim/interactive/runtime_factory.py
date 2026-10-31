@@ -26,6 +26,32 @@ APPROVED_CAPABILITY_IDS = frozenset({
 })
 
 
+def runtime_support_reason(capability_id: str, continuous: bool, *, supervised: bool | None = None) -> str | None:
+    """Pure deployment policy shared by creation and read-only discovery."""
+    if supervised is None:
+        supervised = os.environ.get("SAT_SIM_SUPERVISED_NATIVE_RUNTIME") == "1"
+    if supervised and (capability_id != WHOLE_UNIFIED_CAPABILITY_ID or not continuous):
+        return "SUPERVISED_NATIVE_ONLY_WHOLE_CONTINUOUS"
+    if capability_id not in APPROVED_CAPABILITY_IDS:
+        return "INTERACTIVE_CAPABILITY_NOT_APPROVED"
+    if continuous and capability_id != WHOLE_UNIFIED_CAPABILITY_ID:
+        return "CONTINUOUS_MODE_REQUIRES_WHOLE_UNIFIED_RUNTIME"
+    return None
+
+
+def runtime_capability_catalog() -> dict[str, Any]:
+    supervised = os.environ.get("SAT_SIM_SUPERVISED_NATIVE_RUNTIME") == "1"
+    return {
+        "schema_version": "interactive-runtime-capabilities.v1",
+        "mode": "SUPERVISED_NATIVE_CHILD" if supervised else "IN_PROCESS_NATIVE",
+        "creation": [{
+            "capability_id": capability_id, "continuous": continuous,
+            "supported": runtime_support_reason(capability_id, continuous, supervised=supervised) is None,
+            "reason_code": runtime_support_reason(capability_id, continuous, supervised=supervised),
+        } for capability_id in sorted(APPROVED_CAPABILITY_IDS) for continuous in (False, True)],
+    }
+
+
 def _mapping(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -64,16 +90,12 @@ def build_persistent_runtime(
     """
     if supervised is None:
         supervised = os.environ.get("SAT_SIM_SUPERVISED_NATIVE_RUNTIME") == "1"
+    reason = runtime_support_reason(spec.capability_id, spec.continuous, supervised=supervised)
+    if reason:
+        raise ValueError(reason)
     if supervised:
-        if spec.capability_id != WHOLE_UNIFIED_CAPABILITY_ID or not spec.continuous:
-            raise ValueError("SUPERVISED_NATIVE_ONLY_WHOLE_CONTINUOUS")
         from .supervised_native_runtime import SupervisedContinuousNativeRuntime
         return SupervisedContinuousNativeRuntime(spec), None
-
-    if spec.capability_id not in APPROVED_CAPABILITY_IDS:
-        raise ValueError("INTERACTIVE_CAPABILITY_NOT_APPROVED")
-    if spec.continuous and spec.capability_id != WHOLE_UNIFIED_CAPABILITY_ID:
-        raise ValueError("CONTINUOUS_MODE_REQUIRES_WHOLE_UNIFIED_RUNTIME")
     task_spec = spec.task_spec
     duration_s = min(
         max(_simulation_number(task_spec, "duration_s", spec.max_sim_time_s), spec.quantum_s),

@@ -7,7 +7,7 @@ name = "satellite-simulation-platform"
 version = "0.7.8"
 description = "Basilisk-based satellite simulation platform with a constrained TaskSpec Agent."
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 dependencies = [
   "bsk==2.11.0+satfix2",
   "colorama==0.4.6",
@@ -28,6 +28,8 @@ api = [
   "fastapi==0.139.2",
   "starlette==1.3.1",
   "uvicorn==0.48.0",
+  "websockets==17.4; python_version >= '3.11'",
+  "wsproto==1.3.2; python_version < '3.11'",
   "httpx==0.28.1",
 ]
 dev = [
@@ -54,6 +56,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "sat_sim" = ["release_manifest.json", "release_baseline.json", "web/*.html", "web/*.css", "web/*.js"]
+"sat_sim.interactive" = ["*.json"]
 "sat_sim.schemas" = ["*.json"]
 "sat_sim.capabilities" = ["*.yaml", "*.yml"]
 "sat_sim.evals" = ["*.json"]

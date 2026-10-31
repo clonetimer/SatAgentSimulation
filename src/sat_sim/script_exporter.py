@@ -9,6 +9,8 @@ from __future__ import annotations
 from utils.runtime_diagnostics import DiagnosticCategory, record_runtime_diagnostic
 
 import json
+import copy
+import hashlib
 import pprint
 import shlex
 from dataclasses import dataclass, asdict
@@ -37,11 +39,166 @@ def _quote_python_path(path: Path) -> str:
     return repr(str(path))
 
 
+def exported_task_field_fingerprints(spec: Mapping[str, Any]) -> dict[str, str]:
+    """Remember field values without embedding a second editable TaskSpec.
+
+    These are edit-detection hints in a trusted local script, not signatures or
+    an authorization boundary. Lists are atomic fields, as in TaskSpec patches.
+    """
+    from .task_models import canonicalize_task_spec
+    def walk(value: Any, path: str = "") -> dict[str, str]:
+        if isinstance(value, Mapping):
+            result: dict[str, str] = {}
+            for key, child in value.items():
+                if not path and key in {"provenance", "schema_version"}:
+                    continue
+                result.update(walk(child, f"{path}.{key}" if path else str(key)))
+            return result
+        encoded = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+        return {path: hashlib.sha256(encoded.encode("utf-8")).hexdigest()}
+    return walk(canonicalize_task_spec(spec))
+
+
+def _set_export_path(data: dict[str, Any], path: str, value: Any) -> None:
+    parts = path.split(".")
+    for part in parts[:-1]:
+        if not isinstance(data.get(part), dict):
+            data[part] = {}
+        data = data[part]
+    data[parts[-1]] = value
+
+
+def _merge_projection_changes(original: Any, before: Any, after: Any) -> Any:
+    """Apply only edited projection fields; do not re-migrate public history."""
+    if isinstance(before, Mapping) and isinstance(after, Mapping):
+        result = copy.deepcopy(dict(original)) if isinstance(original, Mapping) else {}
+        for key in set(before) | set(after):
+            if key not in after:
+                result.pop(key, None)
+            elif key not in before:
+                result[key] = copy.deepcopy(after[key])
+            elif before[key] != after[key]:
+                result[key] = _merge_projection_changes(result.get(key), before[key], after[key])
+        return result
+    return copy.deepcopy(after)
+
+
+def build_exported_task_spec(
+    task_spec: Mapping[str, Any], *, duration_s: float | None = None,
+    sample_s: float | None = None, output_root: str | None = None,
+    overrides: Any = (), field_sha256: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Preserve canonical identity, adapting explicit legacy CLI paths locally."""
+    from .task_models import canonicalize_task_spec, to_runtime_task_spec, SimulationSpec, OutputSpec
+    from .taskspec_alignment import align_task_spec_to_source
+
+    canonical = canonicalize_task_spec(task_spec)
+    derived_paths: set[str] = set()
+    for path, value in (("simulation.duration_s", duration_s), ("simulation.sample_s", sample_s), ("outputs.output_root", output_root)):
+        if value is not None:
+            _set_export_path(canonical, path, str(value) if path == "outputs.output_root" else float(value))
+    for item in overrides or ():
+        if "=" not in item:
+            raise SystemExit(f"--set expects dotted.path=value, got {item!r}")
+        path, raw = item.split("=", 1)
+        path = path.strip()
+        if not path:
+            raise SystemExit(f"--set path cannot be empty: {item!r}")
+        try:
+            value = json.loads(raw)
+        except (ValueError, TypeError):
+            value = raw
+        parts = path.split(".")
+        head, second = parts[0], parts[1] if len(parts) > 1 else ""
+        public_path = (
+            head in {"task", "model", "events", "mission", "assurance", "provenance"}
+            or (head == "metadata" and second not in {"task_name", "parameter_profile", "claim_level", "validation_profile", "fidelity_level", "parameter_registry_id", "parameter_registry_hash"})
+            or (head == "parameters" and second in {"values", "profile", "overrides", "registry_id", "registry_hash"})
+            or (head == "simulation" and second in SimulationSpec.model_fields)
+            or (head == "outputs" and second in OutputSpec.model_fields)
+        )
+        if public_path:
+            _set_export_path(canonical, path, value)
+            continue
+        # Compatibility examples: parameters.X, task_id, simulation.seed,
+        # outputs.record_fields and modifiers.faults keep their 0.1 meanings.
+        before_runtime = to_runtime_task_spec(canonical)
+        edited = copy.deepcopy(before_runtime)
+        _set_export_path(edited, path, value)
+        aligned = align_task_spec_to_source(edited, fill_defaults=True)
+        if not aligned.repairs:
+            previous = edited.get("metadata", {})
+            if "taskspec_src_alignment" in previous:
+                aligned.task_spec["metadata"]["taskspec_src_alignment"] = copy.deepcopy(previous["taskspec_src_alignment"])
+            else:
+                aligned.task_spec.get("metadata", {}).pop("taskspec_src_alignment", None)
+        for default_path in aligned.normalized_defaults:
+            if default_path.startswith("parameters."):
+                suffix = default_path.removeprefix("parameters.")
+                derived_paths.update({"parameters.values." + suffix, "model.config." + suffix})
+            else:
+                derived_paths.add(default_path)
+        derived_paths.update({"metadata.normalized_defaults", "metadata.repair_log", "metadata.taskspec_src_alignment"})
+        before_projection = canonicalize_task_spec(before_runtime)
+        after_projection = canonicalize_task_spec(aligned.task_spec)
+        # Migration mirrors runtime parameters into model.config; that mirror
+        # must not become a second public edit when values is authoritative.
+        after_projection["model"]["config"] = before_projection["model"]["config"]
+        if not canonical.get("parameters", {}).get("values") and before_projection["parameters"]["values"]:
+            canonical["parameters"]["values"] = copy.deepcopy(before_projection["parameters"]["values"])
+            derived_paths.update("parameters.values." + key for key in canonical["parameters"]["values"])
+        canonical = _merge_projection_changes(canonical, before_projection, after_projection)
+    canonical = canonicalize_task_spec(canonical)
+    if field_sha256 is not None:
+        current = exported_task_field_fingerprints(canonical)
+        provenance = canonical.setdefault("provenance", {}).setdefault("fields", {})
+        for path in sorted(set(field_sha256) | set(current)):
+            if field_sha256.get(path) == current.get(path):
+                continue
+            derived = any(path == prefix or path.startswith(prefix + ".") for prefix in derived_paths)
+            entry = {
+                "source": "resolver_derived" if derived else "user_explicit",
+                "evidence": f"Generated script {'normalization' if derived else 'local override'}: {path}; value SHA256 {field_sha256.get(path, 'absent')} -> {current.get(path, 'absent')}",
+                "note": "Supersedes prior evidence for the changed value; unchanged field provenance is retained.",
+            }
+            for previous in list(provenance):
+                if previous.startswith(path + "."):
+                    del provenance[previous]
+                elif path.startswith(previous + "."):
+                    provenance[previous] = dict(entry)
+            provenance[path] = entry
+    return canonicalize_task_spec(canonical)
+
+
+def _prepare_export_payload(spec: Mapping[str, Any], contract: Mapping[str, Any], output_root: str | Path | None, *, assembly: bool = False) -> dict[str, Any]:
+    from .task_models import canonicalize_task_spec, is_canonical_task_spec, to_runtime_task_spec
+    if is_canonical_task_spec(spec):
+        canonical = canonicalize_task_spec(spec)
+    else:
+        from .taskspec_alignment import align_task_spec_to_source
+        payload = align_task_spec_to_source(to_runtime_task_spec(spec), capability=contract, fill_defaults=True).task_spec
+        try:
+            from .taskspec_pruning import prune_task_spec_for_capability
+            payload = prune_task_spec_for_capability(payload).task_spec
+        except Exception as exc:
+            record_runtime_diagnostic(
+                code="ASSEMBLY_SCRIPT_EXPORT_PRUNING_FALLBACK" if assembly else "SCRIPT_EXPORT_PRUNING_FALLBACK",
+                category=DiagnosticCategory.AGENT_NORMALIZATION_FALLBACK,
+                location="src/sat_sim/script_exporter.py:_prepare_export_payload", exception=exc, strict=False,
+            )
+        canonical = canonicalize_task_spec(payload)
+    return build_exported_task_spec(canonical, output_root=str(output_root) if output_root is not None else None,
+        field_sha256=exported_task_field_fingerprints(canonical))
+
+
 def export_python_runner(spec_path: str | Path, output_path: str | Path, *, output_root: str | Path | None = None) -> ScriptExportResult:
     spec = Path(spec_path)
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     output_root_expr = repr(str(output_root)) if output_root is not None else "None"
+    from .task_spec import load_task_spec
+    field_hashes = exported_task_field_fingerprints(load_task_spec(spec).data) if spec.is_file() else None
+    field_hash_literal = pprint.pformat(field_hashes, width=100)
     content = f'''#!/usr/bin/env python3
 """Generated TaskSpec runner.
 
@@ -57,13 +214,14 @@ from pathlib import Path
 from sat_sim.task_spec import load_task_spec
 from sat_sim.task_validator import validate_task_spec
 from sat_sim.task_compiler import compile_task_spec
-from sat_sim.task_models import canonicalize_task_spec
-from sat_sim.execution_planner import plan_task_spec
+from sat_sim.execution_planner import plan_task_spec, attach_plan_metadata, validate_execution_plan
+from sat_sim.script_exporter import build_exported_task_spec
 from sat_sim.validation_outcome import evaluate_validation_outcome
 from sat_sim.unified_execution import execute_compiled_task
 
 SPEC_PATH = Path({_quote_python_path(spec)})
 OUTPUT_ROOT = {output_root_expr}
+EXPORTED_FIELD_SHA256 = {field_hash_literal}
 
 
 def main() -> int:
@@ -71,19 +229,27 @@ def main() -> int:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     doc = load_task_spec(SPEC_PATH)
-    validation = validate_task_spec(doc.data)
+    canonical = build_exported_task_spec(doc.data, output_root=OUTPUT_ROOT, field_sha256=EXPORTED_FIELD_SHA256)
+    validation = validate_task_spec(canonical)
     validation.raise_for_errors()
-    compiled = compile_task_spec(doc.data, validate=False)
-    canonical = canonicalize_task_spec(doc.data)
+    compiled = compile_task_spec(canonical, validate=False)
     planning = plan_task_spec(canonical)
-    if not planning.ok or planning.resolved_spec is None:
+    if not planning.ok or planning.resolved_spec is None or planning.execution_plan is None:
         print(json.dumps({{"ok": False, "planning": planning.to_dict()}}, indent=2, ensure_ascii=False))
         return 1
-    result = execute_compiled_task(compiled, task_spec=doc.data, output_root=OUTPUT_ROOT or compiled.outputs.get("output_root"), write_dataset=True)
+    plan_validation = validate_execution_plan(planning.execution_plan, planning.resolved_spec)
+    if not plan_validation.ok:
+        print(json.dumps({{"ok": False, "planning": planning.to_dict(),
+            "plan_validation": plan_validation.to_dict()}}, indent=2, ensure_ascii=False))
+        return 1
+    compiled = attach_plan_metadata(compiled, planning)
+    result = execute_compiled_task(compiled, task_spec=canonical, execution_plan_sha256=planning.execution_plan.plan_sha256, output_root=OUTPUT_ROOT or compiled.outputs.get("output_root"), write_dataset=True)
     outcome = evaluate_validation_outcome(spec=canonical, resolved=planning.resolved_spec,
         summary=result.summary, trace_rows=result.trace_rows)
     ok = outcome.result.value == "PASS"
     print(json.dumps({{"ok": ok, "task_id": compiled.task_id, "summary": result.summary,
+        "execution_plan_sha256": planning.execution_plan.plan_sha256,
+        "resolved_spec_sha256": planning.resolved_spec.resolved_spec_sha256,
         "validation_outcome": outcome.model_dump(mode="json"),
         "dataset": result.dataset.to_dict() if result.dataset else None}}, indent=2, ensure_ascii=False))
     return 0 if ok else 1
@@ -149,7 +315,10 @@ def _generate_capability_python_script(
 
     capability_id = str(contract_data.get("capability_id", payload.get("capability_id", "")))
     source_binding = public_source_binding_payload(contract_data)
+    from .task_models import canonicalize_task_spec
+    payload = canonicalize_task_spec(payload)
     task_spec_literal = pprint.pformat(dict(payload), width=100, sort_dicts=False)
+    field_hash_literal = pprint.pformat(exported_task_field_fingerprints(payload), width=100)
     source_binding_literal = pprint.pformat(dict(source_binding), width=100, sort_dicts=False)
     source_comment = _source_binding_comment(source_binding)
     assembly_literal = pprint.pformat(dict(assembly_graph), width=100, sort_dicts=False) if assembly_graph is not None else "None"
@@ -179,16 +348,15 @@ an LLM and does not import capability adapter class paths directly.
 """
 
 import argparse
-import copy
 import json
 import sys
 from typing import Any
 
 from sat_sim.task_compiler import compile_task_spec
 from sat_sim.task_models import canonicalize_task_spec
-from sat_sim.execution_planner import plan_task_spec
+from sat_sim.execution_planner import plan_task_spec, attach_plan_metadata, validate_execution_plan
 from sat_sim.validation_outcome import evaluate_validation_outcome
-from sat_sim.taskspec_alignment import align_task_spec_to_source
+from sat_sim.script_exporter import build_exported_task_spec
 from sat_sim.unified_execution import execute_compiled_task
 {assembly_import}
 CAPABILITY_ID = {capability_id!r}
@@ -201,52 +369,25 @@ ASSEMBLY_GRAPH = {assembly_literal}
 # ---------------------------------------------------------------------------
 # Edit TASK_SPEC values directly, or override them at runtime with:
 #   --duration-s 3600 --sample-s 30 --output-root datasets/my_run
-#   --set parameters.capacity_bits=8000000 --set parameters.generated_bps=2000
+#   --set parameters.values.capacity_bits=8000000  (canonical path)
+#   --set parameters.capacity_bits=8000000         (legacy runtime alias)
 #
-# Scenario modifiers live under TASK_SPEC["modifiers"]. They are not standalone
+# Edit the public canonical TASK_SPEC, including parameters.values and events.
+# Legacy --set modifiers.* paths remain accepted; modifiers are not standalone
 # runnable capabilities. Example:
 #   modifiers.faults=[{{"target":"eps.battery","fault_type":"capacity_drop","onset_time_s":120,"severity":0.2}}]
 TASK_SPEC = {task_spec_literal}
+# Generated edit-detection hints, not signatures or an authorization boundary.
+EXPORTED_FIELD_SHA256 = {field_hash_literal}
 
 
 # ---------------------------------------------------------------------------
 # Runtime helpers
 # ---------------------------------------------------------------------------
-def _parse_value(text: str) -> Any:
-    try:
-        return json.loads(text)
-    except Exception:
-        return text
-
-
-def _set_path(data: dict[str, Any], dotted_path: str, value: Any) -> None:
-    cur = data
-    parts = dotted_path.split(".")
-    for part in parts[:-1]:
-        nxt = cur.get(part)
-        if not isinstance(nxt, dict):
-            nxt = {{}}
-            cur[part] = nxt
-        cur = nxt
-    cur[parts[-1]] = value
-
-
 def build_task_spec(args: argparse.Namespace) -> dict[str, Any]:
-    spec = copy.deepcopy(TASK_SPEC)
-    if args.duration_s is not None:
-        _set_path(spec, "simulation.duration_s", float(args.duration_s))
-    if args.sample_s is not None:
-        _set_path(spec, "simulation.sample_s", float(args.sample_s))
-    if args.output_root is not None:
-        _set_path(spec, "outputs.output_root", str(args.output_root))
-    for item in args.set or []:
-        if "=" not in item:
-            raise SystemExit(f"--set expects dotted.path=value, got {{item!r}}")
-        path, raw = item.split("=", 1)
-        if not path.strip():
-            raise SystemExit(f"--set path cannot be empty: {{item!r}}")
-        _set_path(spec, path.strip(), _parse_value(raw))
-    return align_task_spec_to_source(spec, fill_defaults=True).task_spec
+    return build_exported_task_spec(TASK_SPEC, duration_s=args.duration_s,
+        sample_s=args.sample_s, output_root=args.output_root, overrides=args.set,
+        field_sha256=EXPORTED_FIELD_SHA256)
 
 
 def parse_args() -> argparse.Namespace:
@@ -270,13 +411,20 @@ def main() -> int:
     compiled = compile_task_spec(task_spec, validate=True)
     canonical = canonicalize_task_spec(task_spec)
     planning = plan_task_spec(canonical)
-    if not planning.ok or planning.resolved_spec is None:
+    if not planning.ok or planning.resolved_spec is None or planning.execution_plan is None:
         print(json.dumps({{"ok": False, "planning": planning.to_dict()}}, indent=2, ensure_ascii=False))
         return 1
+    plan_validation = validate_execution_plan(planning.execution_plan, planning.resolved_spec)
+    if not plan_validation.ok:
+        print(json.dumps({{"ok": False, "planning": planning.to_dict(),
+            "plan_validation": plan_validation.to_dict()}}, indent=2, ensure_ascii=False))
+        return 1
+    compiled = attach_plan_metadata(compiled, planning)
     output_root = task_spec.get("outputs", {{}}).get("output_root") or args.output_root or {default_output!r}
     result = execute_compiled_task(
         compiled,
         task_spec=task_spec,
+        execution_plan_sha256=planning.execution_plan.plan_sha256,
         output_root=output_root,
         write_dataset=True,
     )
@@ -286,6 +434,8 @@ def main() -> int:
     payload = {{
         "ok": ok,
         "capability_id": CAPABILITY_ID,
+        "execution_plan_sha256": planning.execution_plan.plan_sha256,
+        "resolved_spec_sha256": planning.resolved_spec.resolved_spec_sha256,
         "summary": result.summary,
         "validation_outcome": outcome.model_dump(mode="json"),
         "dataset": result.dataset.to_dict() if result.dataset else None,
@@ -311,7 +461,6 @@ def export_capability_python_runner(spec_path: str | Path, output_path: str | Pa
     from .capability_registry import get_capability
     from .task_spec import load_task_spec
     from .task_models import to_runtime_task_spec
-    from .taskspec_alignment import align_task_spec_to_source
 
     spec = Path(spec_path)
     out = Path(output_path)
@@ -321,23 +470,7 @@ def export_capability_python_runner(spec_path: str | Path, output_path: str | Pa
     if not isinstance(capability_id, str) or not capability_id.strip():
         raise ValueError("capability-python export requires TaskSpec capability_id")
     contract = get_capability(capability_id)
-    payload = dict(payload)
-    if output_root is not None:
-        outputs = dict(payload.get("outputs") or {})
-        outputs["output_root"] = str(output_root)
-        payload["outputs"] = outputs
-    payload = align_task_spec_to_source(payload, capability=contract.data, fill_defaults=True).task_spec
-    try:
-        from .taskspec_pruning import prune_task_spec_for_capability
-        payload = prune_task_spec_for_capability(payload).task_spec
-    except Exception as exc:
-        record_runtime_diagnostic(
-            code='SCRIPT_EXPORT_PRUNING_FALLBACK',
-            category=DiagnosticCategory.AGENT_NORMALIZATION_FALLBACK,
-            location='src/sat_sim/script_exporter.py:export_capability_python_runner:01',
-            exception=exc,
-            strict=False,
-        )
+    payload = _prepare_export_payload(doc.data, contract.data, output_root, assembly=False)
     content = _generate_capability_python_script(payload, contract.data)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(content, encoding="utf-8")
@@ -371,7 +504,6 @@ def export_assembly_python_runner(
     from .capability_registry import get_capability
     from .task_spec import load_task_spec
     from .task_models import to_runtime_task_spec
-    from .taskspec_alignment import align_task_spec_to_source
 
     spec = Path(spec_path)
     out = Path(output_path)
@@ -397,23 +529,7 @@ def export_assembly_python_runner(
         messages = "; ".join(str(item.get("message") or item.get("code")) for item in assembly_task_binding.get("errors", [])[:8])
         raise ValueError(f"assembly TaskSpec binding validation failed: {messages}")
     contract = get_capability(capability_id)
-    payload = dict(payload)
-    if output_root is not None:
-        outputs = dict(payload.get("outputs") or {})
-        outputs["output_root"] = str(output_root)
-        payload["outputs"] = outputs
-    payload = align_task_spec_to_source(payload, capability=contract.data, fill_defaults=True).task_spec
-    try:
-        from .taskspec_pruning import prune_task_spec_for_capability
-        payload = prune_task_spec_for_capability(payload).task_spec
-    except Exception as exc:
-        record_runtime_diagnostic(
-            code="ASSEMBLY_SCRIPT_EXPORT_PRUNING_FALLBACK",
-            category=DiagnosticCategory.AGENT_NORMALIZATION_FALLBACK,
-            location="src/sat_sim/script_exporter.py:export_assembly_python_runner:01",
-            exception=exc,
-            strict=False,
-        )
+    payload = _prepare_export_payload(doc.data, contract.data, output_root, assembly=True)
     # Visual observer annotations (for example Scope probes) are project/UI data,
     # not part of the physical assembly runtime.  Validate the submitted graph
     # above, but deliberately omit observers from the generated runner so adding
@@ -451,6 +567,8 @@ def export_runner_script(spec_path: str | Path, output_path: str | Path, *, kind
 __all__ = [
     "ScriptExportResult",
     "ScriptKind",
+    "exported_task_field_fingerprints",
+    "build_exported_task_spec",
     "export_python_runner",
     "export_shell_runner",
     "export_capability_python_runner",

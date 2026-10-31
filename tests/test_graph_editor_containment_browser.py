@@ -9,6 +9,14 @@ import pytest
 from sat_sim.api import create_app
 
 
+def _open_settings(page):
+    if not page.locator('#fontScaleSelect').is_visible():
+        button = page.locator('#toggleMobileToolsBtn')
+        button.focus()
+        button.press('Enter')
+        page.locator('#fontScaleSelect').wait_for(state='visible')
+
+
 @pytest.mark.parametrize('font_scale', ['100','130'])
 def test_graph_export_and_viewport_changes_keep_editor_content_inside_panel(tmp_path,font_scale):
     playwright=pytest.importorskip('playwright.sync_api')
@@ -30,7 +38,8 @@ def test_graph_export_and_viewport_changes_keep_editor_content_inside_panel(tmp_
                     headers={'content-type':result.headers.get('content-type','application/octet-stream')})
             page.route('https://workbench.test/**',proxy)
             page.goto('https://workbench.test/',wait_until='networkidle')
-            page.wait_for_selector('.capability-card.active')
+            page.wait_for_selector('.capability-card.active', state='attached')
+            _open_settings(page)
             page.locator('#fontScaleSelect').select_option(font_scale)
             page.locator('#previewBtn').click()
             page.wait_for_function("document.querySelector('#notice').className.includes('success')")

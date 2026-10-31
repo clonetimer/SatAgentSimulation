@@ -109,6 +109,22 @@ def create_interactive_router(
         except KeyError as exc:
             raise HTTPException(404, detail={"reason_code": "INTERACTIVE_SESSION_NOT_FOUND"}) from exc
 
+    def session_metadata(session):
+        return {
+            **session.snapshot().model_dump(mode="json"),
+            "continuous": session.spec.continuous,
+            "telemetry_streams": session.allowed_telemetry_streams,
+            "telemetry_catalog": session.telemetry_catalog,
+            "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if
+                             session.runtime.__class__.__name__ == "SupervisedContinuousNativeRuntime"
+                             else "IN_PROCESS_NATIVE"),
+        }
+
+    @router.get("/capabilities")
+    def interactive_capabilities():
+        from .runtime_factory import runtime_capability_catalog
+        return {**runtime_capability_catalog(), "enabled": manager.enabled}
+
     @router.post("/sessions", status_code=201)
     def create_session(spec: InteractiveSessionSpec, request: Request):
         principal = request.state.principal
@@ -125,7 +141,7 @@ def create_interactive_router(
 
     @router.get("/sessions")
     def list_sessions():
-        return {"sessions": manager.snapshots()}
+        return {"sessions": [session_metadata(manager.get(row.session_id)) for row in manager.snapshots()]}
 
     @router.get("/continuous/overview")
     def continuous_overview():
@@ -247,6 +263,7 @@ def create_interactive_router(
             "schema_version": "sat-continuous-status.v1",
             "session": session.snapshot(),
             "telemetry_streams": session.allowed_telemetry_streams,
+            "telemetry_catalog": session.telemetry_catalog,
             "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if
                              runtime.__class__.__name__ == "SupervisedContinuousNativeRuntime"
                              else "IN_PROCESS_NATIVE"),
@@ -354,7 +371,7 @@ def create_interactive_router(
 
     @router.get("/sessions/{session_id}")
     def read_session(session_id: str):
-        return get_session(session_id).snapshot()
+        return session_metadata(get_session(session_id))
 
     @router.post("/sessions/{session_id}/control")
     def control_session(session_id: str, body: SessionControlBody, request: Request):

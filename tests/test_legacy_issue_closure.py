@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import math
+import re
 import urllib.error
 from pathlib import Path
 
@@ -158,7 +159,8 @@ def test_workbench_assets_explain_roles_and_preserve_new_task_semantics(tmp_path
     assert 'id="singleRunResultsBtn"' in index
     assert "当前编辑配置" in index and "任务中心已保存的任务" in index
     assert "基于当前配置继续补充" in index
-    assert "另存为新任务" in index and "更新已打开任务" in index
+    assert re.search(r'<button\b[^>]*\bid="saveTaskBtn"[^>]*>保存为新任务</button>', index)
+    assert re.search(r'<button\b[^>]*\bid="updateTaskBtn"[^>]*>更新任务</button>', index)
     assert "Date.now().toString(36)" in js
     assert "field-error-message" in js
     assert "object_editor" in js

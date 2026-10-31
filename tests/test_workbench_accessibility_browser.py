@@ -9,6 +9,15 @@ from sat_sim.api import create_app
 from sat_sim.form_schema import capability_form_schema
 
 
+def _open_public_disclosure(page, button_id, visible_control):
+    """Use the same public keyboard control on desktop and phone layouts."""
+    if not page.locator(visible_control).is_visible():
+        button = page.locator('#' + button_id)
+        button.focus()
+        button.press('Enter')
+        page.locator(visible_control).wait_for(state='visible')
+
+
 def test_whole_form_groups_cover_every_field_once():
     schema = capability_form_schema('whole_spacecraft.unified_native.v1')
     paths = [path for section in schema['sections'] for path in section.get('field_paths', [])]
@@ -54,6 +63,8 @@ def test_mobile_disclosures_preserve_controls_catalog_selection_and_focus(tmp_pa
         assert not page.locator('#capabilitySearch').is_visible()
         assert catalog.evaluate('(node) => node === document.activeElement')
         page.set_viewport_size({'width':1366,'height':768})
+        _open_public_disclosure(page, 'toggleMobileToolsBtn', '#fontScaleSelect')
+        _open_public_disclosure(page, 'toggleMobileCatalogBtn', '#capabilitySearch')
         assert page.locator('#fontScaleSelect').is_visible()
         assert page.locator('#capabilitySearch').is_visible()
         browser.close()
@@ -83,7 +94,7 @@ def test_disclosure_values_errors_and_modal_keyboard(tmp_path):
 
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
-        page.wait_for_selector('.capability-card.active')
+        page.wait_for_selector('.capability-card.active', state='attached')
         page.keyboard.press('Tab')
         assert page.locator('.skip-link').evaluate('(node) => node === document.activeElement')
         page.keyboard.press('Enter')
@@ -101,6 +112,7 @@ def test_disclosure_values_errors_and_modal_keyboard(tmp_path):
         canvas.wait_for(state='visible')
         canvas.focus()
         assert canvas.evaluate('(node) => getComputedStyle(node).outlineStyle') == 'solid'
+        _open_public_disclosure(page, 'toggleMobileToolsBtn', '#themeSelect')
         for control in ('themeSelect', 'fontScaleSelect', 'apiTokenInput'):
             field = page.locator('#'+control)
             field.focus()
@@ -125,13 +137,22 @@ def test_disclosure_values_errors_and_modal_keyboard(tmp_path):
         search.fill('')
         assert page.locator('[data-path="simulation.duration_s"]').input_value() == '123'
         # Reset has a one-step undo; repeating reset must retain the first edit.
-        page.locator('#resetFormBtn').click()
+        # The public menu closes after an outside action such as undo; reopen
+        # it by keyboard for every later reset, as a user must in compact mode.
+        def reset_through_public_menu():
+            if page.locator('#creatorMoreActions').get_attribute('open') is None:
+                page.locator('#creatorMoreActions > summary').focus()
+                page.keyboard.press('Enter')
+            assert page.locator('#resetFormBtn').is_visible()
+            page.locator('#resetFormBtn').click()
+
+        reset_through_public_menu()
         assert page.locator('[data-path="simulation.duration_s"]').input_value() != '123'
-        page.locator('#resetFormBtn').click()
+        reset_through_public_menu()
         page.locator('#undoResetFormBtn').click()
         assert page.locator('[data-path="simulation.duration_s"]').input_value() == '123'
         # An undo must not silently overwrite edits made after reset.
-        page.locator('#resetFormBtn').click()
+        reset_through_public_menu()
         edited = page.locator('[data-path="simulation.duration_s"]')
         edited.fill('77')
         edited.dispatch_event('change')
