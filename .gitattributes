@@ -17,3 +17,4 @@ reports/progress_checkpoint/r19-event-intent-candidate/*.patch -text whitespace=
 reports/progress_checkpoint/r14-event-guard-candidate/** -text whitespace=cr-at-eol
 reports/progress_checkpoint/r14-event-guard-candidate/*.patch -text whitespace=-blank-at-eol
 reports/progress_checkpoint/r46-interaction-ownership/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/r48-compact-toolbar/** -text whitespace=cr-at-eol

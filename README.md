@@ -2,7 +2,7 @@
 
 新手从[START_HERE.md](START_HERE.md)开始。uv环境入口为 `python scripts/setup_uv.py`，已有完整缓存可加 `--offline`。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
-当前独立候选 **R46** 已实际完成全量 **2427通过、0失败、6跳过、2警告**，29项交互回归，以及2次新模型请求、3次短native执行和11张实际看图复核。独立uv环境和已验证wheel见[R46进展包](reports/progress_checkpoint/r46-interaction-ownership/README.md)；它尚未自动替换仓库Root运行时，后续安装/结构章节仍面向仓库现有源码。
+后端验收候选 **R46** 已完成全量 **2427通过、0失败、6跳过、2警告**，29项交互回归及两个真实AI场景；见[R46进展包](reports/progress_checkpoint/r46-interaction-ownership/README.md)。界面候选 **R48** 已精简工具栏及文案，57项定向检查通过，桌面和窄屏预览可打开 http://127.0.0.1:56148 ，见[对比图与源码增量](reports/progress_checkpoint/r48-compact-toolbar/README.md)。Root代码尚未替换，正式耐久使用独立R46源码，后续安装/结构章节仍面向Root源码。
 
 整体仍在验收：69条AI复验已结束，原严格评分0/69保留；按当前默认输出单独诊断，原回答54/69匹配，12条陀螺噪声量级错误、3条遗漏明确配置，均未进入执行。见[最终分类](reports/progress_checkpoint/r46-original69-result/README.md)。AI参数约束正在独立R47候选中修复。新正式24h已于北京时间2026-10-31 06:50从零启动，终态待验；物理warning1/42、旧DEGRADED峰值和工程假设保留，不声称飞行/硬件标定或全部高保真。图形工具栏正在独立R48候选中继续精简。
 

@@ -1,0 +1,29 @@
+{
+  "status": "OLD_ORIGINAL_INSTANCE_PROCESS_MISSING_NO_TERMINAL_REPORT",
+  "observed_at_utc": "2026-10-31T02:11:37.036357+00:00",
+  "last_progress_observed_at_utc": "2026-10-31T01:52:45.396286+00:00",
+  "last_session_updated_at": "2026-10-31T01:52:45.391690Z",
+  "last_recorded_wall_s": 73737.032,
+  "last_recorded_sim_time_s": 73737.5,
+  "historical_peak_s": 3.2433190000010654,
+  "progress_status_stale": "RUNNING",
+  "actual_process_alive": {
+    "80520": false,
+    "22936": false,
+    "82756": false,
+    "73788": false,
+    "46364": false
+  },
+  "original_tool_session48200": "UNKNOWN_PROCESS_ID_ON_POLL",
+  "cause": "UNDETERMINED; no exit code or final report is available. Do not infer crash/OS kill/operator stop.",
+  "not_24h_qualified": true,
+  "no_restart_or_state_resume": true,
+  "progress_sha256": "9ef4869d785af68c3f686cb101b702aa11e0c1060f56f2f871ea878b28f41291",
+  "new_independent_instance": {
+    "pid": 88400,
+    "creation": 1793400609.1013694,
+    "alive_exact_birth": true,
+    "old_wall_inherited": false
+  },
+  "raw_progress_and_files_preserved": true
+}

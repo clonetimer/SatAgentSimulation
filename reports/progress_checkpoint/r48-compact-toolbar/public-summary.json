@@ -1,0 +1,49 @@
+{
+  "status": "FROZEN_R48_SCOPED_UI_VERIFICATION_PASS_NOT_FULL_SUITE_OR_GOAL_QUALIFICATION",
+  "at_utc": "2026-10-31T02:05:25.025533+00:00",
+  "application": "852bf787a765f4e35bc8cfc05efb760282e31bbfa9eab3d94558facbaea742fc",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "baseline_application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "source_files": 1501,
+  "frozen_sha256": "e49b952f863f94902e0ead485fd31003ad5370e3f902f4fed99e7ef5b8f0975b",
+  "unchanged_production_python_files": 715,
+  "original_id_controls_preserved_exact": 224,
+  "new_disclosures_only": 4,
+  "unchanged_existing_program_export_oracles": true,
+  "results": [
+    {
+      "out": "r48-browser-regression-v1",
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0,
+      "junit_sha256": "1544f80493cadbbf14f13f3bf7b5995755fec89259866b9da9bfd54374525d39",
+      "returned_sha256": "be42cfc9ffc8a3109a7a4d7df3aa35b62c61059dd1e3aa5abe1d338c4199d4a0"
+    },
+    {
+      "out": "r48-workbench-static-v2",
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "junit_sha256": "c47256fd5e119781101db0f37cccad7b514ad0b8d020406146e66f48a8ef7f26",
+      "returned_sha256": "f4707bc557f6934f8529f2d0368846901c30cd43ec06701f1211dde8bb157569"
+    }
+  ],
+  "distinct_scoped_passed": 57,
+  "actual_model_requests": 0,
+  "actual_native_executions": 0,
+  "earlier_failures_retained": [
+    "r48-toolbar-visible-v1:wrong newlywritten import-feedback phrase2FAIL",
+    "r48-workbench-static-v1:2obsolete copy expectationsFAIL;functionalcontrolassertionsretained"
+  ],
+  "scope": "ActualChromeCPUprotocol and existingworkbenchstatic/API; R46full2427P belongs to baselineApp. R48 only57scopedtests; no newAIaccuracyorphysicsclaims.",
+  "preview": {
+    "url": "http://127.0.0.1:56148",
+    "all7_http_assets_match": true,
+    "desktop_and_narrow_actual_http_chrome": true,
+    "page_errors": 0,
+    "not_R48_installed_wheel": true,
+    "http_proof_sha256": "750383630f715b07146c8833f5d9b724a5d19f8b59d83ac694568d2b09202572",
+    "browser_proof_sha256": "0ad9ab209589447260a415287744a47c46cd0208d78e7a28828c6de09fbf89e5"
+  },
+  "screenshots_viewed": 6
+}

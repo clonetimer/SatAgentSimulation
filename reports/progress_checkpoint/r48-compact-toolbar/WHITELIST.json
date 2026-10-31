@@ -1,0 +1,106 @@
+{
+  "status": "R48_REVIEWED_BOUNDED_PROGRESS_NOT_FINAL_RELEASE",
+  "at_utc": "2026-10-31T02:08:45.267879+00:00",
+  "application": "852bf787a765f4e35bc8cfc05efb760282e31bbfa9eab3d94558facbaea742fc",
+  "core": "e81bf1cf29c413deee9597995470db1faf6b999a2c94279ad2f5a92b3c92939e",
+  "baseline_application": "aab77d74447ac8fde745e08d70765b3b278f7ac84fcdb927610fee9f4168f2b9",
+  "files": [
+    {
+      "destination": "README.md",
+      "sha256": "840be332020e1533ab9b32c273e603f7378ba464571ba4766e290ccdc5a8b5cb",
+      "bytes": 2177,
+      "category": "derived_public_document"
+    },
+    {
+      "destination": "public-summary.json",
+      "sha256": "3638f6784f2cc523574997ee0857fa58676e990ff4a40fac8b78c4d52c953fab",
+      "bytes": 2231,
+      "category": "derived_public_document"
+    },
+    {
+      "destination": "screenshots/01-before-flow.png",
+      "sha256": "07de5d77207b1cf4a9cb79b4569b6db0ddc0caf8e0071a1acf2afd3eb7afe044",
+      "bytes": 205915,
+      "category": "actual_viewed_cpu_ui_image_not_physics"
+    },
+    {
+      "destination": "screenshots/02-after-flow.png",
+      "sha256": "a608335c386a42bfc14d57ed57fb5aa92d3ec32a022be96b8e9e4ecdd141b212",
+      "bytes": 194773,
+      "category": "actual_viewed_cpu_ui_image_not_physics"
+    },
+    {
+      "destination": "screenshots/03-after-assembly.png",
+      "sha256": "8258028c3fa685dfa7ee14d65ad166d511cca1b1407d1921b73a650cb71a532f",
+      "bytes": 204526,
+      "category": "actual_viewed_cpu_ui_image_not_physics"
+    },
+    {
+      "destination": "screenshots/04-project-keyboard-narrow.png",
+      "sha256": "9e07c4fd535f2e8193b7ea908cfe20f1c20c63a658292e76f691440852ae59d2",
+      "bytes": 66905,
+      "category": "actual_viewed_cpu_ui_image_not_physics"
+    },
+    {
+      "destination": "screenshots/05-live-desktop.png",
+      "sha256": "42750570358d0033010e38c868fc513e53fd45f51c6f1f942c48b104b82f8cbc",
+      "bytes": 196863,
+      "category": "actual_viewed_cpu_ui_image_not_physics"
+    },
+    {
+      "destination": "screenshots/06-live-narrow.png",
+      "sha256": "c5b6c3cb0e6d90091f61ea7cf5413b00ad5331bb4ed216eea0c93a60a884e367",
+      "bytes": 64777,
+      "category": "actual_viewed_cpu_ui_image_not_physics"
+    },
+    {
+      "destination": "source-overlay/src/sat_sim/web/app.js",
+      "sha256": "cfcc5fda1a63f222c4a2e94f571e2888c388fc159d0cac0c9a28aa953882ee2a",
+      "bytes": 511340,
+      "category": "source_delta",
+      "before_sha256": "a60519ef3051d050abc996b90eddada246bed978fb01f886a9a86ab80258cf33"
+    },
+    {
+      "destination": "source-overlay/src/sat_sim/web/compact-workbench.css",
+      "sha256": "d4bcef4b084f5090cfb37285d7768532390ff3a529f5d3ada1cedd5a3220908e",
+      "bytes": 15904,
+      "category": "source_delta",
+      "before_sha256": "0f1489069ea7fc64e862f0cbd41fb99211ffbcc531d311e9f68123c4b27c82d8"
+    },
+    {
+      "destination": "source-overlay/src/sat_sim/web/compact-workbench.js",
+      "sha256": "58a25a5c3a53efcf1fe9e841df1684ebb4744dc03690714974c3a33186e39370",
+      "bytes": 10483,
+      "category": "source_delta",
+      "before_sha256": "b79df5fa34644535342188bd92acb0c530e398fce12aba3132570a38424ff725"
+    },
+    {
+      "destination": "source-overlay/src/sat_sim/web/index.html",
+      "sha256": "329801637eeaf24564352ea0667207163729c81fb1a900a58e7353b7f585d15a",
+      "bytes": 136632,
+      "category": "source_delta",
+      "before_sha256": "f6d95ac9feb63ee9875a050733cfae7623cf229fd2f3cdad34ed1acc76f1bd56"
+    },
+    {
+      "destination": "source-overlay/tests/test_compact_graph_toolbar_browser.py",
+      "sha256": "d5d6b4a0c7aad61ea9435c59204ca15bda83a5a3779d9ed9832d26ac0cfe83be",
+      "bytes": 10454,
+      "category": "source_delta",
+      "before_sha256": null
+    },
+    {
+      "destination": "source-overlay/tests/test_program_export_snapshot_browser.py",
+      "sha256": "9eb1634f3273d7123de79abf628bc13f2c8357f63ba24e0e18b9ee9520a4ed9a",
+      "bytes": 41422,
+      "category": "source_delta",
+      "before_sha256": "4a0b84690f20a28af16f2b678ebde24b617670d2c0019b12b8112492b1a85f3c"
+    },
+    {
+      "destination": "source-overlay/tests/test_web_workbench.py",
+      "sha256": "72590e2aeeccb338e3dd90d52618e44890d735ab35dbc8bd80a21ea65136b843",
+      "bytes": 37510,
+      "category": "source_delta",
+      "before_sha256": "312b72ee200440afd47331c0a2b0fc68dfe04d72a2a972acfabb9f814a1baac2"
+    }
+  ]
+}
