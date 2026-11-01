@@ -1,0 +1,66 @@
+{
+  "execution_plan_sha256": "45d1b2a010ade021fb7f7d82bbb00125a375804f9ff4606d7270bc0a17dcdf89",
+  "execution_status": "SUCCEEDED",
+  "files": {
+    "input/execution_plan.json": {
+      "sha256": "946c2046c7f5aa68e588398ae3485e433e9d18d6bc4a091dd41f5704b472e9e6",
+      "size_bytes": 325
+    },
+    "input/interactive_session_spec.json": {
+      "sha256": "9a6c0512ec2e8dc0f3ef8aa2d3ae5bedcbe46d6d3b8269dc0e29bd501fbee741",
+      "size_bytes": 1461
+    },
+    "input/task_spec.json": {
+      "sha256": "678f0a3dccd4043bfde2add2dac82ea39bc108db3beadab5206d20659ad6ac5f",
+      "size_bytes": 737
+    },
+    "interactive/runtime_result.json": {
+      "sha256": "a90cd33923d591356128d2c1cc32c5c2ddd2b232236bac77e336dc96e5e77858",
+      "size_bytes": 49952
+    },
+    "interactive/session_spec.json": {
+      "sha256": "014c111234860293e7da3f5de79fa369398ea3a4408d40385c61eab7fe9fc7e2",
+      "size_bytes": 1731
+    },
+    "interactive/state_events.jsonl": {
+      "sha256": "bcb850e96b09f770783481064d2f0b00e75fed772497a9a610f53206274131ce",
+      "size_bytes": 2328382
+    },
+    "interactive/telemetry.jsonl": {
+      "sha256": "7c304efa54043aa7b7896271bedb2788c3893f9f2f32b23426b6808094130282",
+      "size_bytes": 1806013364
+    },
+    "interactive/telemetry_manifest.json": {
+      "sha256": "54a8c9b86e4bb23515c4ab07a4d81400c8799cc55c8661652d413060e54a8d8a",
+      "size_bytes": 5380
+    },
+    "results/command_effect_windows.json": {
+      "sha256": "210d192a5586525d46921558bc46a56f093ac568070d09eed822f25e22b29ad2",
+      "size_bytes": 79
+    },
+    "results/semantic_trace.json": {
+      "sha256": "7db6e593c80796352984f7ca8344fd6d0126756fefb03b1277d849f51a5be520",
+      "size_bytes": 1507680403
+    },
+    "run_record.json": {
+      "sha256": "f7b4282e1b153d69e8a2ade0b048a7d44b29ff085cb9a7337fcab31d3bb08cc5",
+      "size_bytes": 783
+    },
+    "validation/claim_report.json": {
+      "sha256": "c70daaab4101029a4ac461470ea1ebdb3c4ed763fe71a76186460a8991be2c88",
+      "size_bytes": 1242
+    },
+    "validation/validation_outcome.json": {
+      "sha256": "10fe5848eac2d6fd57428136e96decdb919b14d846ec0372aa86141fa704f23c",
+      "size_bytes": 1371836
+    }
+  },
+  "overall_status": "PASS",
+  "run_id": "native-endurance",
+  "schema_version": "interactive-run-bundle.v1",
+  "sealed_at": "2026-10-31T22:55:12.234060Z",
+  "status": "SUCCEEDED",
+  "task_id": "native-endurance",
+  "validation_result": "PASS",
+  "validation_status": "PASS"
+}

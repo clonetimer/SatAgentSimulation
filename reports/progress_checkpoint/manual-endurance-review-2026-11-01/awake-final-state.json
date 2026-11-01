@@ -1,0 +1,16 @@
+{
+  "schema_version": "sat-task-awake.v1",
+  "owner_pid": 88400,
+  "owner_creation_time": 1793400609.1013694,
+  "helper_pid": 22672,
+  "helper_creation_time": 1793468819.344666,
+  "helper_sha256": "2773bd4a3f9f49cbeb486a58e84ec7b8979191cf9a583c57b998e768ce345d39",
+  "permanent_power_plan_changed": false,
+  "owner_signalled_or_controlled": false,
+  "started_at_utc": "2026-10-31T17:46:59.445866+00:00",
+  "status": "OWNER_EXITED",
+  "cycles": 9107,
+  "thread_id": 40020,
+  "execution_state_released": true,
+  "observed_at_utc": "2026-10-31T22:50:53.723902+00:00"
+}

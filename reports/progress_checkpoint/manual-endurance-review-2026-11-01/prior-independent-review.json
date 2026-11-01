@@ -1,0 +1,181 @@
+{
+  "status": "ORIGINAL_AUTOMATIC_NOT_QUALIFIED_PRESERVED_MANUAL_TERMINAL_EVIDENCE_REVIEW_REQUIRED",
+  "at_utc": "2026-11-01T01:42:43.714221+00:00",
+  "original_auto_status": "NOT_QUALIFIED",
+  "checks": {
+    "seal_manifest_digest": true,
+    "manifest_succeeded": true,
+    "manifest_validation_pass": true,
+    "bundle_file:input/execution_plan.json": true,
+    "bundle_file:input/interactive_session_spec.json": true,
+    "bundle_file:input/task_spec.json": true,
+    "bundle_file:interactive/runtime_result.json": true,
+    "bundle_file:interactive/session_spec.json": true,
+    "bundle_file:interactive/state_events.jsonl": true,
+    "bundle_file:interactive/telemetry.jsonl": true,
+    "bundle_file:interactive/telemetry_manifest.json": true,
+    "bundle_file:results/command_effect_windows.json": true,
+    "bundle_file:results/semantic_trace.json": true,
+    "bundle_file:run_record.json": true,
+    "bundle_file:validation/claim_report.json": true,
+    "bundle_file:validation/validation_outcome.json": true,
+    "endurance_chain_and_summary_binding": true,
+    "summary_content_digest": true,
+    "running_wall_at_least24h": true,
+    "running_duration_recomputed": true,
+    "endurance_no_alerts_or_pause": true,
+    "original_state_chain_completed": true,
+    "terminal_before_summary_finalized": true,
+    "terminal_sim_matches_last_sample": true,
+    "terminal_within_one_sampling_interval_after_last_sample": true,
+    "all_declared_sealed_payloads_match": true,
+    "original_sampler_terminal_completed": false
+  },
+  "recomputed_running_wall_s": 86426.17200000002,
+  "sampler_last_state": "STOPPING",
+  "last_sample_at": "2026-10-31T22:50:51.960743+00:00",
+  "source_terminal_event": {
+    "entry_hash": "c907399edf44d49153779c8e9dc8bcee77b81c3b9ef7f9f8a38ee18ffdc6e8be",
+    "previous_hash": "4dc6a73b83dae8f520eae5ef0f15d8e7e65ebb4ebb760b495e62e6d770643765",
+    "reason_code": "OK",
+    "revision": 5,
+    "schema_version": "interactive-state-event.v1",
+    "sequence": 5767,
+    "session_id": "native-endurance",
+    "sim_time_s": 86430.5,
+    "state": "COMPLETED",
+    "wall_time": "2026-10-31T22:50:52.775414+00:00"
+  },
+  "summary_completed_at": "2026-10-31T22:50:52.799460+00:00",
+  "terminal_after_last_sample_s": 0.814671,
+  "endurance_samples": 17241,
+  "state_events": 5768,
+  "sealed_payloads": [
+    {
+      "path": "input/execution_plan.json",
+      "sha256": "946c2046c7f5aa68e588398ae3485e433e9d18d6bc4a091dd41f5704b472e9e6",
+      "bytes": 325
+    },
+    {
+      "path": "input/interactive_session_spec.json",
+      "sha256": "9a6c0512ec2e8dc0f3ef8aa2d3ae5bedcbe46d6d3b8269dc0e29bd501fbee741",
+      "bytes": 1461
+    },
+    {
+      "path": "input/task_spec.json",
+      "sha256": "678f0a3dccd4043bfde2add2dac82ea39bc108db3beadab5206d20659ad6ac5f",
+      "bytes": 737
+    },
+    {
+      "path": "interactive/runtime_result.json",
+      "sha256": "a90cd33923d591356128d2c1cc32c5c2ddd2b232236bac77e336dc96e5e77858",
+      "bytes": 49952
+    },
+    {
+      "path": "interactive/session_spec.json",
+      "sha256": "014c111234860293e7da3f5de79fa369398ea3a4408d40385c61eab7fe9fc7e2",
+      "bytes": 1731
+    },
+    {
+      "path": "interactive/state_events.jsonl",
+      "sha256": "bcb850e96b09f770783481064d2f0b00e75fed772497a9a610f53206274131ce",
+      "bytes": 2328382
+    },
+    {
+      "path": "interactive/telemetry.jsonl",
+      "sha256": "7c304efa54043aa7b7896271bedb2788c3893f9f2f32b23426b6808094130282",
+      "bytes": 1806013364
+    },
+    {
+      "path": "interactive/telemetry_manifest.json",
+      "sha256": "54a8c9b86e4bb23515c4ab07a4d81400c8799cc55c8661652d413060e54a8d8a",
+      "bytes": 5380
+    },
+    {
+      "path": "results/command_effect_windows.json",
+      "sha256": "210d192a5586525d46921558bc46a56f093ac568070d09eed822f25e22b29ad2",
+      "bytes": 79
+    },
+    {
+      "path": "results/semantic_trace.json",
+      "sha256": "7db6e593c80796352984f7ca8344fd6d0126756fefb03b1277d849f51a5be520",
+      "bytes": 1507680403
+    },
+    {
+      "path": "run_record.json",
+      "sha256": "f7b4282e1b153d69e8a2ade0b048a7d44b29ff085cb9a7337fcab31d3bb08cc5",
+      "bytes": 783
+    },
+    {
+      "path": "validation/claim_report.json",
+      "sha256": "c70daaab4101029a4ac461470ea1ebdb3c4ed763fe71a76186460a8991be2c88",
+      "bytes": 1242
+    },
+    {
+      "path": "validation/validation_outcome.json",
+      "sha256": "10fe5848eac2d6fd57428136e96decdb919b14d846ec0372aa86141fa704f23c",
+      "bytes": 1371836
+    }
+  ],
+  "telemetry_stream_counts": {
+    "runtime.trace": 172862,
+    "whole.continuous": 172862
+  },
+  "observed_physical_ranges": {
+    "runtime.trace::eps.battery_soc": {
+      "min": 0.458641300825508,
+      "max": 1.0,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.adcs_temp_c": {
+      "min": -7.875083343362462,
+      "max": 20.59451596771521,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.battery_temp_c": {
+      "min": 0.7889990410135965,
+      "max": 16.85716713839696,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.comm_temp_c": {
+      "min": -34.88075234330299,
+      "max": 21.850000000000023,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.electronics_temp_c": {
+      "min": -9.22825687209206,
+      "max": 21.850000000000023,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.payload_temp_c": {
+      "min": 3.9718296805396562,
+      "max": 27.83149034606049,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.propulsion_temp_c": {
+      "min": -36.591030178956544,
+      "max": 18.850000000000023,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.solar_panel_temp_c": {
+      "min": -69.58077424599097,
+      "max": 26.850000000000023,
+      "samples": 172862
+    },
+    "runtime.trace::thermal.structure_temp_c": {
+      "min": -40.49298259693495,
+      "max": 11.91373064305094,
+      "samples": 172862
+    },
+    "whole.continuous::eps.battery_soc": {
+      "min": 0.458641300825508,
+      "max": 1.0,
+      "samples": 172862
+    }
+  },
+  "limitations": [
+    "Original periodic observer ended before recording COMPLETED. The original sampler qualification is not changed or passed.",
+    "This review uses independently bound original state-chain and sealed mission evidence; it does not manufacture a final observation or alter raw records.",
+    "Raw physical warning counts and PARTIAL coverage remain. No flight qualification, hardware calibration or hard-real-time claim."
+  ]
+}

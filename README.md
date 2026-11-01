@@ -2,11 +2,11 @@
 
 新手从[START_HERE.md](START_HERE.md)开始。uv环境入口为 `python scripts/setup_uv.py`，已有完整缓存可加 `--offline`。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
-最终集成已合入实际项目源码，全量 **2500通过、0失败、6跳过、2警告**。独立 uv 环境的安装包完成两个真实 AI 创建/修改场景、脚本下载、3次原生运行及曲线验收。当前本机安装态入口为 http://127.0.0.1:56149 ，常规启动地址仍为 `http://127.0.0.1:8000/`。见[最终集成结果与实测图](reports/progress_checkpoint/final-integration/README.md)。
+已交付的最终集成版本全量 **2500通过、0失败、6跳过、2警告**。独立 uv 环境的安装包完成两个真实 AI 创建/修改场景、脚本下载、3次原生运行及曲线验收。安装态实测地址为 http://127.0.0.1:56149 ，常规启动地址为 `http://127.0.0.1:8000/`。见[最终集成结果与实测图](reports/progress_checkpoint/final-integration/README.md)。后续未发布的终态采样修复全量为2504通过、3失败、5跳过，尚未形成新发布。
 
 AI 显式参数约束已修复：15个历史失败用例以15次真实首答完成原始脚本执行和密封结果复核。旧69条严格评分0/69、原回答诊断54/69及[历史失败分类](reports/progress_checkpoint/r46-original69-result/README.md)全部保留，本次不是新的69/69。界面已收纳低频操作、精简工具栏与文案；设计与交互证据见[R48记录](reports/progress_checkpoint/r48-compact-toolbar/README.md)。
 
-整体仍为 **ACTIVE / UNPROVEN**：新24h耐久于北京时间2026-10-31 06:50从零启动，终态待验；旧实例约20.5小时记录不能计为通过。工程假设、物理警告1/42及部分物理覆盖说明保留，适用范围为通用近地小卫星工程仿真。此前进展包及历史失败保持原样，逐项结论见[当前验收状态](reports/current_requirements_status.md)。
+本轮按**阶段性交付收口**：用户选择原始证据复核验收，不再重跑24小时。实际连续运行86426.172秒，48个固定窗口及16927个滚动窗口满足既定预算，13项密封载荷完整。原自动结果仍为 **NOT_QUALIFIED**（周期观察漏采完成终态），独立复核结论和边界见[24小时复核报告](reports/progress_checkpoint/manual-endurance-review-2026-11-01/README.md)。4.070秒漂移峰值、131731条逐采样物理警告与部分覆盖保留，不作硬实时或硬件标定承诺。旧约20.5小时实例不计通过；本地修复与3项回归失败留待独立维护，整体目标不标记为全部完成。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
 ## 1. V15 是什么
 

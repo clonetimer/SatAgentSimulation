@@ -1,0 +1,65 @@
+{
+  "scope": "Small evidence attachments and separate original-evidence acceptance; original automatic NOT_QUALIFIED retained. Large raw traces stay local.",
+  "files": [
+    {
+      "path": "acceptance.json",
+      "bytes": 14762,
+      "sha256": "194f5146de2aac846e1d7d4b8eacd36a55f45dcec04ce4d3fc4e16e3374e6eb3"
+    },
+    {
+      "path": "awake-final-state.json",
+      "bytes": 582,
+      "sha256": "b40888f05b0b81847c87f50b722caed83f762c612b5d4340ed85043a3467e29d"
+    },
+    {
+      "path": "awake-maintenance-incident.json",
+      "bytes": 2292,
+      "sha256": "ce40bb4e40befd03c2b447e11afbd6489cf9f1cf65829089a078093c484214e6"
+    },
+    {
+      "path": "latest-full-junit.xml",
+      "bytes": 407984,
+      "sha256": "d316671fe1f5ff9cdc2af34829e0ccb866a46d081aa149d57888658141ab9d92"
+    },
+    {
+      "path": "latest-full-returned.json",
+      "bytes": 2065,
+      "sha256": "7b0641a09d2dfa2e523c6061cc1b9fa0a629b081ca89aa223a88e1ba6daa9124"
+    },
+    {
+      "path": "original-bundle-manifest.json",
+      "bytes": 2514,
+      "sha256": "29fd6f3a30b48afac9e473cf83332a5ad856377cdb85a011f3c2dbd8f1f25f5b"
+    },
+    {
+      "path": "original-pace-audit.json",
+      "bytes": 20547,
+      "sha256": "b3762168732611d891bea464753eacab2019bd2f1a0eca462dadf506976c0a8f"
+    },
+    {
+      "path": "original-summary.json",
+      "bytes": 879,
+      "sha256": "e2eede0eb1e68ccdb4094b81a1e3c580cca89c28abf1052b383062b5a3b9331b"
+    },
+    {
+      "path": "physical-validation-summary.json",
+      "bytes": 6236,
+      "sha256": "abe58934519c0503abe89382b47549fb4499cf29fd17618e110e6ed3e425af08"
+    },
+    {
+      "path": "prior-independent-review.json",
+      "bytes": 6633,
+      "sha256": "5e45455e01c8b2b64c0f75fdfbf7a6971d0b272ffb0186f05da8c4a17252daa3"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5431,
+      "sha256": "81bf85f0d8dfd24fc5f56db981dd252f3c4b713405655b3684464ab80e5b7120"
+    },
+    {
+      "path": "verify_original.py",
+      "bytes": 10768,
+      "sha256": "d1aa6e3d6a44ee7d9970d691ab3edf49d8ddeece5fba26741b4da364461910d7"
+    }
+  ]
+}

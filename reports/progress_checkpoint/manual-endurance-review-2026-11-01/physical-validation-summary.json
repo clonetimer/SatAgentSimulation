@@ -1,0 +1,191 @@
+{
+  "source": "reports/local_requirements_completion/r46-native-endurance-24h-v1/api/interactive_sessions/native-endurance/validation_outcome.json",
+  "source_sha256": "10fe5848eac2d6fd57428136e96decdb919b14d846ec0372aa86141fa704f23c",
+  "warning_count": 131731,
+  "fail_count": 0,
+  "issue_counts": [
+    {
+      "check_id": "soc_bounds",
+      "count": 31597,
+      "first_issue": {
+        "check_id": "soc_bounds",
+        "limit": "warning outside [0.02, 0.98]",
+        "message": "battery SOC is near an operational boundary",
+        "path": "trace[23708].eps.battery_soc",
+        "severity": "warning",
+        "value": 0.9800252784170728
+      },
+      "last_issue": {
+        "check_id": "soc_bounds",
+        "limit": "warning outside [0.02, 0.98]",
+        "message": "battery SOC is near an operational boundary",
+        "path": "trace[164277].eps.battery_soc",
+        "severity": "warning",
+        "value": 0.9800458801724273
+      },
+      "severity": "warning"
+    },
+    {
+      "check_id": "thermal_bounds",
+      "count": 100134,
+      "first_issue": {
+        "check_id": "thermal_bounds",
+        "limit": "[-60.0, 90.0] degC",
+        "message": "temperature is outside nominal engineering warning envelope",
+        "path": "trace[2547].thermal.solar_panel_temp_c",
+        "severity": "warning",
+        "value": -60.002255570644934
+      },
+      "last_issue": {
+        "check_id": "thermal_bounds",
+        "limit": "[213.14999999999998, 363.15] K",
+        "message": "temperature is outside nominal engineering warning envelope",
+        "path": "trace[168309].thermal.solar_panel_temp_k",
+        "severity": "warning",
+        "value": 213.0883075289446
+      },
+      "severity": "warning"
+    }
+  ],
+  "checks_missing": [
+    "orbit_altitude_sanity",
+    "fuel_monotonicity",
+    "data_conservation",
+    "quaternion_norm"
+  ],
+  "check_results": {
+    "data_conservation": {
+      "evaluated": false,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 1,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "status": "NOT_EVALUATED",
+      "valid_row_count": 0,
+      "valid_sample_count": 0
+    },
+    "energy_balance_proxy": {
+      "evaluated": true,
+      "fields_observed": [
+        "eps.loads.adcs_power_w",
+        "eps.loads.comm_power_w",
+        "eps.loads.heater_power_w",
+        "eps.loads.payload_power_w",
+        "eps.solar_array_power_w"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 1,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "status": "PASS",
+      "valid_row_count": 172862,
+      "valid_sample_count": 864310
+    },
+    "fuel_monotonicity": {
+      "evaluated": false,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 2,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "status": "NOT_EVALUATED",
+      "valid_row_count": 0,
+      "valid_sample_count": 0
+    },
+    "orbit_altitude_sanity": {
+      "evaluated": false,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 1,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "status": "NOT_EVALUATED",
+      "valid_row_count": 0,
+      "valid_sample_count": 0
+    },
+    "pointing_convergence": {
+      "evaluated": true,
+      "fields_observed": [
+        "adcs.pointing_error_deg"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 3,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "status": "PASS",
+      "valid_row_count": 172862,
+      "valid_sample_count": 172862
+    },
+    "quaternion_norm": {
+      "evaluated": false,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 1,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "status": "NOT_EVALUATED",
+      "valid_row_count": 0,
+      "valid_sample_count": 0
+    },
+    "soc_bounds": {
+      "evaluated": true,
+      "fields_observed": [
+        "eps.battery_soc"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 31597,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 1,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "status": "WARNING",
+      "valid_row_count": 172862,
+      "valid_sample_count": 172862
+    },
+    "thermal_bounds": {
+      "evaluated": true,
+      "fields_observed": [
+        "thermal.adcs_safe",
+        "thermal.adcs_temp_c",
+        "thermal.adcs_temp_k",
+        "thermal.battery_safe",
+        "thermal.battery_temp_c",
+        "thermal.battery_temp_k",
+        "thermal.comm_safe",
+        "thermal.comm_temp_c",
+        "thermal.comm_temp_k",
+        "thermal.electronics_safe",
+        "thermal.electronics_temp_c",
+        "thermal.electronics_temp_k",
+        "thermal.payload_safe",
+        "thermal.payload_temp_c",
+        "thermal.payload_temp_k",
+        "thermal.propulsion_safe",
+        "thermal.propulsion_temp_c",
+        "thermal.propulsion_temp_k",
+        "thermal.safe",
+        "thermal.solar_panel_safe",
+        "thermal.solar_panel_temp_c",
+        "thermal.solar_panel_temp_k",
+        "thermal.structure_safe",
+        "thermal.structure_temp_c",
+        "thermal.structure_temp_k"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 100134,
+      "invalid_sample_count": 0,
+      "minimum_samples_per_field": 1,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "status": "WARNING",
+      "valid_row_count": 172862,
+      "valid_sample_count": 4321550
+    }
+  },
+  "scope": "Exact selected fields from original validation outcome; omitted large per-sample issue array."
+}
