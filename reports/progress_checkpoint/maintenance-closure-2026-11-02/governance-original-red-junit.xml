@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.269" timestamp="2026-11-02T01:08:28.962704+08:00" hostname="DESKTOP-1E2E8R0"><testcase classname="tests.test_script_dependency_governance" name="test_governance_does_not_enumerate_exempt_artifact_trees" time="0.024"><failure message="AssertionError: exempt artifact tree was enumerated&#10;assert not True&#10; +  where True = any(&lt;generator object test_governance_does_not_enumerate_exempt_artifact_trees.&lt;locals&gt;.guarded_scandir.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002C9DD8EA340&gt;)">tmp_path = WindowsPath('E:/tmp/SatAgentSimulation/reports/local_requirements_completion/governance-pruning-red-v2/tmp/test_governance_does_not_enume0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002C9DD8D69C0&gt;
+
+    def test_governance_does_not_enumerate_exempt_artifact_trees(tmp_path: Path, monkeypatch) -&gt; None:
+        module = _load_governance_module()
+        (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.7.8"\n', encoding="utf-8")
+        managed = [tmp_path / name for name in ("reports", ".models", ".venv-sft", "third_party")]
+        for directory in managed:
+            directory.mkdir()
+            (directory / "ignored.py").write_text("pass\n", encoding="utf-8")
+        (tmp_path / "unmanaged/reports").mkdir(parents=True)
+        (tmp_path / "unmanaged/dependency.py").write_text("pass\n", encoding="utf-8")
+        (tmp_path / "unmanaged/reports/nested.py").write_text("pass\n", encoding="utf-8")
+        original_scandir = os.scandir
+        def guarded_scandir(path):
+            resolved = Path(path).resolve()
+            assert not any(resolved.is_relative_to(p) for p in managed), "exempt artifact tree was enumerated"
+            return original_scandir(path)
+        monkeypatch.setattr(os, "scandir", guarded_scandir)
+&gt;       report = module.run(tmp_path)
+                 ^^^^^^^^^^^^^^^^^^^^
+
+tests\test_script_dependency_governance.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\check_script_dependency_governance.py:140: in run
+    for path in root.rglob("*"):
+                ^^^^^^^^^^^^^^^
+C:\Users\Lookt\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\pathlib.py:1109: in rglob
+    for p in selector.select_from(self):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lookt\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\pathlib.py:237: in _select_from
+    for p in successor_select(starting_point, scandir):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lookt\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\pathlib.py:204: in _select_from
+    with scandir(parent_path) as scandir_it:
+         ^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lookt\AppData\Roaming\uv\python\cpython-3.12.12-windows-x86_64-none\Lib\pathlib.py:1063: in _scandir
+    return os.scandir(self)
+           ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('E:/tmp/SatAgentSimulation/reports/local_requirements_completion/governance-pruning-red-v2/tmp/test_governance_does_not_enume0/.models')
+
+    def guarded_scandir(path):
+        resolved = Path(path).resolve()
+&gt;       assert not any(resolved.is_relative_to(p) for p in managed), "exempt artifact tree was enumerated"
+E       AssertionError: exempt artifact tree was enumerated
+E       assert not True
+E        +  where True = any(&lt;generator object test_governance_does_not_enumerate_exempt_artifact_trees.&lt;locals&gt;.guarded_scandir.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002C9DD8EA340&gt;)
+
+tests\test_script_dependency_governance.py:69: AssertionError</failure></testcase></testsuite></testsuites>

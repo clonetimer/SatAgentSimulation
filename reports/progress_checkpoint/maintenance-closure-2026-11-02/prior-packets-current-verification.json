@@ -1,0 +1,10 @@
+{
+  "final-integration": {
+    "payloads_verified": 29,
+    "manifest_sha256": "4f9f0b80dcdd6c4a45126d2c22e9a061f5ecd893cca92e34c92786878ee78aff"
+  },
+  "manual-endurance-review-2026-11-01": {
+    "payloads_verified": 12,
+    "manifest_sha256": "6aa3a1934f5768a08a3992488f1aa3c213e71d39255f4541738f188c305af9e9"
+  }
+}

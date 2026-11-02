@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -50,6 +51,28 @@ def test_managed_artifacts_are_excluded_but_misplaced_project_script_is_reported
     outside = [issue["path"] for issue in report["issues"]
                if issue["code"] == "NON_PRODUCTION_SCRIPT_OUTSIDE_SCRIPTS"]
     assert outside == ["unmanaged/dependency.py"]
+
+
+def test_governance_does_not_enumerate_exempt_artifact_trees(tmp_path: Path, monkeypatch) -> None:
+    module = _load_governance_module()
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.7.8"\n', encoding="utf-8")
+    managed = [tmp_path / name for name in ("reports", ".models", ".venv-sft", "third_party")]
+    for directory in managed:
+        directory.mkdir()
+        (directory / "ignored.py").write_text("pass\n", encoding="utf-8")
+    (tmp_path / "unmanaged/reports").mkdir(parents=True)
+    (tmp_path / "unmanaged/dependency.py").write_text("pass\n", encoding="utf-8")
+    (tmp_path / "unmanaged/reports/nested.py").write_text("pass\n", encoding="utf-8")
+    original_scandir = os.scandir
+    def guarded_scandir(path):
+        resolved = Path(path).resolve()
+        assert not any(resolved.is_relative_to(p) for p in managed), "exempt artifact tree was enumerated"
+        return original_scandir(path)
+    monkeypatch.setattr(os, "scandir", guarded_scandir)
+    report = module.run(tmp_path)
+    outside = {issue["path"] for issue in report["issues"]
+               if issue["code"] == "NON_PRODUCTION_SCRIPT_OUTSIDE_SCRIPTS"}
+    assert outside == {"unmanaged/dependency.py", "unmanaged/reports/nested.py"}
 
 
 def test_dependencies_are_separated_and_exactly_pinned() -> None:

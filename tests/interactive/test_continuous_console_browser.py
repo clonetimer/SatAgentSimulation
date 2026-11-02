@@ -181,9 +181,11 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#continuousState").inner_text() == "未选择"
             page.get_by_text("已连接服务器遥控目录：10 类指令", exact=False).wait_for(timeout=15000)
             assert page.locator("#continuousOperation option").count() == 10
-            assert page.locator("#continuousCommandSubmit").is_enabled()
+            # A catalogue alone is insufficient without a selected session.
+            assert page.locator("#continuousCommandSubmit").is_disabled()
             # The same backend command catalogue drives the continuous console.
             page.locator("#continuousOperation").select_option("eps.load.set")
+            assert page.locator("#continuousCommandSubmit").is_disabled()
             assert page.locator("#continuousCatalogFields [data-command-field='load_id']").count() == 1
             assert page.locator("#continuousCatalogFields [data-command-field='enabled']").count() == 1
             assert "subsystem.eps" in page.locator("#continuousCommandHelp").inner_text()
@@ -215,6 +217,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert len(running) == 1
             assert page.locator("#continuousState").inner_text() == "准备就绪"
             assert page.locator("#continuousState").get_attribute("title") == "READY"
+            assert page.locator("#continuousCommandSubmit").is_enabled()
             original = client.get("/interactive/continuous/sessions/browser-r7d/configuration")
             assert original.status_code == 200, original.text
             assert original.json()["native_initial_values"]["orbit_radius_m"] == 7200000.
@@ -353,6 +356,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 timeout=15000,
             )
             assert not page.locator("#continuousStartBtn").is_enabled()
+            page.locator("#continuousOperation").select_option("eps.load.set")
+            assert page.locator("#continuousCommandSubmit").is_disabled()
 
             # New four-wheel session: RW4 selector stays disabled until real
             # stream-shaped data arrives, then can be chosen for the chart.
@@ -377,11 +382,151 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             )
             page.locator("#continuousSignal").select_option("adcs.rw.speed_rad_s_3")
             assert page.locator("#continuousSignal").input_value() == "adcs.rw.speed_rad_s_3"
+            with page.expect_response(lambda response: response.url.endswith("/endurance/status")):
+                page.locator("#continuousRefreshBtn").click()
+            assert page.locator("#continuousSignal").input_value() == "adcs.rw.speed_rad_s_3"
             page.locator("[data-continuous-action='stop']").click()
             page.wait_for_function(
                 "() => document.querySelector('#continuousState').dataset.state === 'COMPLETED'",
                 timeout=15000,
             )
             assert failures == [], failures
+        finally:
+            browser.close()
+
+
+@pytest.mark.parametrize("catalog_available", [True, False])
+def test_command_availability_when_catalog_arrives_after_session(
+    tmp_path, monkeypatch, catalog_available,
+):
+    """Delay real HTTP routing, not product state; no native physics claim."""
+    pw = pytest.importorskip("playwright.sync_api")
+    monkeypatch.setenv("SAT_SIM_INTERACTIVE_ENABLED", "1")
+    monkeypatch.delenv("SAT_SIM_SUPERVISED_NATIVE_RUNTIME", raising=False)
+    monkeypatch.setattr("sat_sim.interactive.api.build_persistent_runtime",
+                        lambda spec: (UiProtocolDouble(), None))
+    app = create_app(artifacts_root=tmp_path/"api", runs_root=tmp_path/"runs",
+                     embedded_worker=False, auth_mode="disabled")
+    with TestClient(app) as client, pw.sync_playwright() as p:
+        created = client.post("/interactive/continuous/sessions", json={
+            "session_id": "late-catalog", "quantum_s": .2, "rate": 1.,
+            "paced": True, "initial_horizon_s": 60.,
+        })
+        assert created.status_code == 201, created.text
+        browser = p.chromium.launch(headless=True,
+            executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"))
+        try:
+            page = browser.new_page(viewport={"width": 1600, "height": 1050})
+            page.on("dialog", lambda dialog: dialog.accept())
+            held = []
+            held_commands = []
+            delay_catalog = False
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                if delay_catalog and url.path == "/interactive/commands/catalog":
+                    held.append(route)
+                    return
+                if request.method == "POST" and url.path.endswith("/commands"):
+                    held_commands.append(route)
+                    return
+                response = client.request(request.method, url.path+("?"+url.query if url.query else ""),
+                    content=request.post_data_buffer,
+                    headers={k:v for k,v in request.headers.items() if k in ("content-type", "accept")})
+                route.fulfill(status=response.status_code, body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")})
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
+            delay_catalog = True
+            page.locator("#continuousNavButton").click(timeout=30000)
+            page.wait_for_function("() => document.querySelector('#continuousState').dataset.state === 'READY'")
+            assert held, "Catalogue request must still be pending after READY rendering"
+            # READY must not override a pending/unavailable command catalogue.
+            assert page.locator("#continuousCommandSubmit").is_disabled()
+            if catalog_available:
+                response = client.get("/interactive/commands/catalog")
+                held.pop().fulfill(status=200, body=response.content,
+                                   headers={"content-type": "application/json"})
+                pw.expect(page.locator("#continuousCommandSubmit")).to_be_enabled()
+                page.locator("#continuousExecuteAt").fill("0")
+                page.locator("#continuousCommandSubmit").click()
+                pw.expect(page.locator("#continuousCommandSubmit")).to_be_disabled()
+                assert len(held_commands) == 1
+                page.locator("#continuousOperation").select_option("eps.load.set")
+                # Changing fields cannot re-enable a command still in flight.
+                assert page.locator("#continuousCommandSubmit").is_disabled()
+                pending = held_commands.pop()
+                request = pending.request
+                response = client.post(urlsplit(request.url).path,
+                    content=request.post_data_buffer, headers={"content-type":"application/json"})
+                pending.fulfill(status=response.status_code, body=response.content,
+                                headers={"content-type":"application/json"})
+                pw.expect(page.locator("#continuousCommandSubmit")).to_be_enabled()
+                page.locator("[data-continuous-action='stop']").click()
+                page.wait_for_function("() => document.querySelector('#continuousState').dataset.state === 'COMPLETED'")
+                page.locator("#continuousOperation").select_option("eps.load.set")
+                assert page.locator("#continuousCommandSubmit").is_disabled()
+            else:
+                held.pop().fulfill(status=503, body='{"detail":"catalog unavailable"}',
+                                   headers={"content-type": "application/json"})
+                pw.expect(page.locator("#continuousCommandCatalogStatus")).to_contain_text("遥控目录不可用")
+                page.locator("#continuousOperation").select_option("adcs.target.set")
+                assert page.locator("#continuousCommandSubmit").is_disabled()
+        finally:
+            browser.close()
+
+
+def test_fourth_wheel_catalog_does_not_enable_unobserved_channel(tmp_path, monkeypatch):
+    """A configured channel is not a measurement; delay its first HTTP response."""
+    pw = pytest.importorskip("playwright.sync_api")
+    monkeypatch.setenv("SAT_SIM_INTERACTIVE_ENABLED", "1")
+    monkeypatch.delenv("SAT_SIM_SUPERVISED_NATIVE_RUNTIME", raising=False)
+    monkeypatch.setattr("sat_sim.interactive.api.build_persistent_runtime",
+                        lambda spec: (UiProtocolDouble(rw4=True), None))
+    app = create_app(artifacts_root=tmp_path/"api", runs_root=tmp_path/"runs",
+                     embedded_worker=False, auth_mode="disabled")
+    with TestClient(app) as client, pw.sync_playwright() as p:
+        created = client.post("/interactive/continuous/sessions", json={
+            "session_id":"rw4-before-tm", "quantum_s":.2, "rate":1., "paced":True,
+            "initial_horizon_s":60., "initial_configuration":{"adcs":{"rw_configuration":"pyramid_4"}},
+        })
+        assert created.status_code == 201, created.text
+        browser = p.chromium.launch(headless=True,
+            executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"))
+        try:
+            page = browser.new_page(viewport={"width":1600,"height":1050})
+            page.on("dialog", lambda dialog: dialog.accept())
+            pending = []
+            hold_telemetry = True
+            def proxy(route):
+                request = route.request; url = urlsplit(request.url)
+                if hold_telemetry and "/rw4-before-tm/telemetry/" in url.path:
+                    pending.append(route); return
+                response = client.request(request.method,url.path+("?"+url.query if url.query else ""),
+                    content=request.post_data_buffer,headers={"content-type":"application/json"})
+                route.fulfill(status=response.status_code,body=response.content,
+                              headers={"content-type":response.headers.get("content-type","application/json")})
+            page.route("https://workbench.test/**",proxy)
+            page.goto("https://workbench.test/",wait_until="domcontentloaded")
+            page.locator("#continuousNavButton").click(timeout=30000)
+            page.wait_for_function("() => document.querySelector('#continuousStream').options.length > 0")
+            # Contract has arrived, but no frame has reached this page yet.
+            assert page.locator("#continuousRw4SignalOption").evaluate("el => el.disabled")
+            assert pending
+            hold_telemetry = False
+            for route in pending:
+                url=urlsplit(route.request.url)
+                response=client.get(url.path+("?"+url.query if url.query else ""))
+                route.fulfill(status=response.status_code,body=response.content,
+                              headers={"content-type":"application/json"})
+            page.wait_for_function("() => document.querySelector('#continuousState').dataset.state === 'READY'")
+            assert page.locator("#continuousRw4SignalOption").evaluate("el => el.disabled")
+            page.locator("#continuousStartBtn").click()
+            page.wait_for_function("() => !document.querySelector('#continuousRw4SignalOption').disabled")
+            page.locator("#continuousSignal").select_option("adcs.rw.speed_rad_s_3")
+            assert page.locator("#continuousSignal").input_value() == "adcs.rw.speed_rad_s_3"
+            page.locator("[data-continuous-action='stop']").click()
+            page.wait_for_function("() => document.querySelector('#continuousState').dataset.state === 'COMPLETED'")
         finally:
             browser.close()

@@ -257,6 +257,19 @@ class EnduranceRecorder:
                 self._error = type(exc).__name__ + ": " + str(exc)[:300]
                 self._alert("ENDURANCE_RECORDER_ERROR")
         finally:
+            # A stop signal can arrive after the session becomes terminal but
+            # before the next periodic sample. Persist that actual transition;
+            # never infer completion from a stop request or rewrite prior rows.
+            if (self._error is None and self._last is not None
+                    and self.session.state in TERMINAL
+                    and self._last["observation"]["session_state"]
+                    not in {state.value for state in TERMINAL}):
+                try:
+                    self._sample()
+                except Exception as exc:
+                    with self._lock:
+                        self._error = type(exc).__name__ + ": " + str(exc)[:300]
+                        self._alert("ENDURANCE_RECORDER_ERROR")
             self._finalize()
 
     def _finalize(self) -> None:

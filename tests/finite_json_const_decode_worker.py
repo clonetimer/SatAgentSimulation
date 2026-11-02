@@ -52,6 +52,7 @@ def main():
     def digest(path):
         return hashlib.sha256(path.read_bytes()).hexdigest()
     before = {str(path): digest(path) for path in guarded}
+    tokenizer_fixture = {}
 
     def accepts(schema, text):
         state = constrained_json_parser(schema, 512)
@@ -244,6 +245,9 @@ def main():
         def test_actual_local_tokenizer_honors_finite_prefix_and_eos(self):
             import torch
             from transformers import AutoTokenizer
+            from functools import lru_cache
+            from unittest.mock import patch
+            from lmformatenforcer.integrations import transformers as lmfe_transformers
             self.assertFalse(torch.cuda.is_initialized())
             manifest = json.loads((workspace / '.models/Qwen--Qwen2.5-Coder-1.5B-Instruct-provenance.json').read_text(encoding='utf-8'))
             tokenizer = AutoTokenizer.from_pretrained(manifest['snapshot'], local_files_only=True, trust_remote_code=False)
@@ -263,14 +267,26 @@ def main():
                         return False
                     sent.append(token)
                 return tokenizer.eos_token_id in hook(0, sent)
-            self.assertTrue(path(text))
-            self.assertFalse(path(text.replace('true', 'false', 1)))
-            self.assertFalse(path(text.replace('1e-05', '1e-15', 1)))
-            schema = {'anyOf': [{'type': 'array', 'items': {'type': 'null'}, 'minItems': 2, 'maxItems': 2},
-                                {'const': []}]}
-            self.assertTrue(path('[]'))
-            self.assertTrue(path('[null,null]'))
-            self.assertFalse(path('[null]'))
+            # Reuse only real tokenizer preprocessing, as LMFE recommends.
+            # Every prefix_constraint call still constructs its own parser,
+            # TokenEnforcer and request state. No allowed-token result is mocked
+            # or reused across schemas. First call builds the actual vocabulary.
+            build_data = lru_cache(maxsize=1)(lmfe_transformers.build_token_enforcer_tokenizer_data)
+            with patch.object(lmfe_transformers, 'build_token_enforcer_tokenizer_data', build_data):
+                self.assertTrue(path(text))
+                self.assertFalse(path(text.replace('true', 'false', 1)))
+                self.assertFalse(path(text.replace('1e-05', '1e-15', 1)))
+                schema = {'anyOf': [{'type': 'array', 'items': {'type': 'null'}, 'minItems': 2, 'maxItems': 2},
+                                    {'const': []}]}
+                self.assertTrue(path('[]'))
+                self.assertTrue(path('[null,null]'))
+                self.assertFalse(path('[null]'))
+            info = build_data.cache_info()
+            self.assertEqual(info.misses, 1)
+            self.assertEqual(info.hits, 5)
+            tokenizer_fixture.update(actual_preprocessing_builds=info.misses,
+                                     reused_preprocessing=info.hits,
+                                     fresh_parser_per_path=True)
             self.assertFalse(torch.cuda.is_initialized())
 
     stream = io.StringIO()
@@ -283,6 +299,7 @@ def main():
         'versions': {name: importlib.metadata.version(name) for name in ('lm-format-enforcer', 'transformers', 'torch', 'jsonschema')},
         'sources_before': before, 'sources_after': after, 'source_bytes_unchanged': before == after,
         'audit': audit_counts, 'cuda_initialized': torch.cuda.is_initialized(),
+        'tokenizer_fixture': tokenizer_fixture,
         'worker_sha256': digest(Path(__file__).resolve()),
         'scope': 'CPU actual LMFE and local tokenizer only; no model construction, weights, HTTP/native runs, service control or environment installation.'}
     args.report.parent.mkdir(parents=True, exist_ok=True)

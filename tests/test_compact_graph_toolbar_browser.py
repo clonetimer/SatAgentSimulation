@@ -1,7 +1,9 @@
-"""Actual Chrome: bounded toolbar layout and public native disclosure controls.
+"""Actual Chrome regression of current toolbar and public disclosure controls.
 
-R46 static assets are replayed for the limited before images; Python backend
-files are identical. Candidate uses its actual assets. No model/native calls.
+Historical before/after comparisons remain in the frozen R48 evidence packet.
+This portable regression requires only the current checkout, no local candidate
+directories. All current layout, keyboard and project roundtrip checks remain.
+No model/native calls.
 """
 from pathlib import Path
 import hashlib
@@ -21,17 +23,15 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
     if not executable:
         pytest.skip('Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium')
     source=Path(create_app.__code__.co_filename).resolve().parents[2]
-    baseline=source.parent/'requirements-r46-interaction-ownership-candidate'
-    assert baseline.is_dir()
     app=create_app(runs_root=tmp_path/'runs',artifacts_root=tmp_path/'api',embedded_worker=False,auth_mode='disabled')
-    facts={'scope':'Actual Chrome/CPU TestClient only. R46 asset replay before; no model/native execution.',
+    facts={'scope':'Actual Chrome/CPU TestClient over current checkout only; no model/native execution.',
            'viewport':[width,height],'font':font,'phases':{},'errors':[],'requests':[]}
     def save():
         (tmp_path/'toolbar.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     with TestClient(app) as client,playwright.sync_playwright() as pw:
         browser=pw.chromium.launch(headless=True,executable_path=executable)
         try:
-            for phase,asset_root in [('before',baseline/'src/sat_sim/web'),('after',source/'src/sat_sim/web')]:
+            for phase,asset_root in [('after',source/'src/sat_sim/web')]:
                 context=browser.new_context(viewport={'width':width,'height':height},accept_downloads=True)
                 page=context.new_page(); page.on('pageerror',lambda error:facts['errors'].append(str(error)))
                 phase_facts={'assets':{},'modes':{}}; facts['phases'][phase]=phase_facts
@@ -67,8 +67,6 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     phase_facts['modes'][mode]={'visible_buttons':visible_buttons,'geometry':geometry,'keyboard_groups':{}}
                     page.screenshot(path=str(tmp_path/f'{phase}-{mode}-{width}-font{font}.png'))
                     save()
-                    if phase=='before':
-                        continue
                     expected_main=['graphValidateBtn','graphGenerateCodeBtn','graphRunBtn'] if mode=='flow' else ['assemblyValidateBtn','assemblyGenerateCodeBtn','assemblyRunBtn']
                     assert visible_buttons==expected_main
                     assert page.evaluate('() => document.documentElement.scrollWidth <= innerWidth+1')

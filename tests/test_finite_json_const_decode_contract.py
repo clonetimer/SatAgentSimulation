@@ -34,3 +34,6 @@ def test_finite_json_constants_in_actual_serving_environment(tmp_path):
     assert result['source_bytes_unchanged'] is True
     assert result['cuda_initialized'] is False
     assert result['audit']['socket'] == result['audit']['weights'] == 0
+    assert result['tokenizer_fixture']['actual_preprocessing_builds'] == 1
+    assert result['tokenizer_fixture']['reused_preprocessing'] == 5
+    assert result['tokenizer_fixture']['fresh_parser_per_path'] is True

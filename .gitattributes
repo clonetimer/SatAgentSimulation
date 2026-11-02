@@ -21,3 +21,8 @@ reports/progress_checkpoint/r48-compact-toolbar/** -text whitespace=cr-at-eol
 reports/progress_checkpoint/final-integration/** -text whitespace=cr-at-eol
 reports/progress_checkpoint/manual-endurance-review-2026-11-01/** -text whitespace=cr-at-eol
 reports/progress_checkpoint/manual-endurance-review-2026-11-01/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/maintenance-closure-2026-11-02/** -text whitespace=cr-at-eol
+# Raw pytest tracebacks retain their original trailing spaces as evidence.
+reports/progress_checkpoint/maintenance-closure-2026-11-02/*.xml -text whitespace=cr-at-eol,-blank-at-eol
+# Raw pytest tracebacks retain their original trailing spaces as evidence.
+reports/progress_checkpoint/maintenance-closure-2026-11-02/*.xml -text whitespace=cr-at-eol,-blank-at-eol

@@ -1,0 +1,8 @@
+{
+  "purpose": "Revert only RW4 fix temporarily to validate DOM-property regression oracle; restore exact current bytes in finally.",
+  "before_sha256": "3858cd168937361983b91e823f8260db084460ddd970f76ebf52c435162326fe",
+  "old_sha256": "0e62115ff4031d377d688fd227e47d90fc407f3bdfac22224cc76f848a314ddc",
+  "exit_code": 1,
+  "restored_sha256": "3858cd168937361983b91e823f8260db084460ddd970f76ebf52c435162326fe",
+  "restored_exact": true
+}

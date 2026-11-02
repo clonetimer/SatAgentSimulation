@@ -36,7 +36,7 @@ def test_completed_run_tabs_and_builtin_provider_status_remain_readable(tmp_path
     assert execution.validation.result.value == 'PASS'
     app = create_app(runs_root=runs_root, artifacts_root=tmp_path/'artifacts',
         embedded_worker=False, auth_mode='disabled')
-    observations, errors, violations = [], [], []
+    observations, errors, violations, requests = [], [], [], []
     with TestClient(app) as client, playwright.sync_playwright() as pw:
         # Saving configuration does not contact or probe this test endpoint.
         response = client.post('/models/local-services', json={
@@ -53,14 +53,20 @@ def test_completed_run_tabs_and_builtin_provider_status_remain_readable(tmp_path
             result = client.request(request.method, url.path+('?'+url.query if url.query else ''),
                 content=request.post_data_buffer,
                 headers={k:v for k,v in request.headers.items() if k in ('content-type','accept')})
+            requests.append({'method':request.method, 'path':url.path, 'status':result.status_code,
+                             'error':result.text[:1000] if result.status_code >= 400 else None})
             route.fulfill(status=result.status_code, body=result.content,
                 headers={k:v for k,v in result.headers.items() if k.lower() in
                     ('content-type','content-security-policy','x-content-type-options','referrer-policy')})
 
         try:
             page.route('https://workbench.test/**', proxy)
-            page.goto('https://workbench.test/', wait_until='networkidle')
-            page.locator('#runList .run-list-item').first.click()
+            # Background health/model polling makes network-idle unrelated to
+            # readiness. Wait for the real configured workbench and target run.
+            page.goto('https://workbench.test/', wait_until='domcontentloaded')
+            page.locator('#singleRunGuide[data-stage="configure"]').wait_for(timeout=30000)
+            page.locator('#capabilityList .capability-card.active').wait_for(state='attached',timeout=30000)
+            page.locator('#runList .run-list-item').filter(has_text=prepared.run_id).click()
             page.wait_for_function("() => document.querySelector('#activeRunCard')?.textContent.includes('VERIFIED')")
             for width,height,scale in [(1366,900,'100'), (1366,768,'100'), (768,1024,'100'), (1920,1080,'130')]:
                 page.set_viewport_size({'width':width, 'height':height})
@@ -142,5 +148,19 @@ def test_completed_run_tabs_and_builtin_provider_status_remain_readable(tmp_path
             (tmp_path/'presentation-proof.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2),encoding='utf-8')
             assert not violations, violations
             assert not errors
+        except BaseException as error:
+            # Diagnostics must not mask the original navigation/API failure.
+            failure = {'primary_error':{'type':type(error).__name__,'message':str(error)},
+                       'page_errors':errors, 'requests':requests, 'url':page.url}
+            if not page.is_closed():
+                try:
+                    failure['active_run_text']=page.locator('#activeRunCard').text_content(timeout=1000)
+                    failure['body_text']=page.locator('body').inner_text(timeout=1000)[:5000]
+                    page.screenshot(path=str(tmp_path/'presentation-failure.png'),timeout=1500)
+                except Exception as diagnostic_error:
+                    failure['diagnostic_error']=str(diagnostic_error)
+            (tmp_path/'presentation-failure.json').write_text(
+                json.dumps(failure,ensure_ascii=False,indent=2),encoding='utf-8')
+            raise
         finally:
             browser.close()

@@ -1,0 +1,184 @@
+{
+  "status": "PASS_ACTUAL_INSTALLED_NATIVE_WEB_NOT24H",
+  "scope": "Actual installed API/Chrome/Basilisk with one fresh owned scene and EPS telecommand; no model generation; not24h evidence",
+  "at_utc": "2026-11-01T16:06:19.053921+00:00",
+  "errors": [],
+  "checks": {
+    "source_is_final_installed_wheel": true,
+    "continuous_asset_exact_current_source": true,
+    "spice_and_4W_per_K_applied": true,
+    "narrow_page_no_horizontal_overflow": true,
+    "terminal_command_submit_disabled": true,
+    "actual_EPS_command_acked": true,
+    "last_actual_observer_completed": true,
+    "short_run_not24h": true,
+    "native_mission_sealed_pass": true,
+    "no_page_errors": true,
+    "no_new_model_requests": true
+  },
+  "model_before": {
+    "accepted": 17,
+    "rejected_busy": 0,
+    "completed": 17,
+    "failed": 0,
+    "cancelled": 0,
+    "timed_out": 0
+  },
+  "session": {
+    "session_id": "maintenance-native-web",
+    "state": "COMPLETED",
+    "sim_time_s": 13.0,
+    "archive_status": "SEALED",
+    "terminal_error": null
+  },
+  "commands": [
+    {
+      "command_id": "tc-5b8ef8d9-9a88-488c-a042-e8115f970612",
+      "session_id": "maintenance-native-web",
+      "session_revision": 2,
+      "operation": "eps.load.set",
+      "target": "subsystem.eps",
+      "parameters": {
+        "load_id": "heater",
+        "enabled": true
+      },
+      "actor_id": "browser-operator",
+      "actor_role": "operator",
+      "execute_at_sim_time_s": 1
+    }
+  ],
+  "acks": [
+    {
+      "schema_version": "interactive.v1",
+      "command_id": "tc-5b8ef8d9-9a88-488c-a042-e8115f970612",
+      "session_id": "maintenance-native-web",
+      "state": "RECEIVED",
+      "reason_code": "OK",
+      "detail": "",
+      "sim_time_s": null,
+      "sequence": 0,
+      "timestamp": "2026-11-01T16:06:58.944414Z"
+    },
+    {
+      "schema_version": "interactive.v1",
+      "command_id": "tc-5b8ef8d9-9a88-488c-a042-e8115f970612",
+      "session_id": "maintenance-native-web",
+      "state": "VALIDATED",
+      "reason_code": "OK",
+      "detail": "",
+      "sim_time_s": null,
+      "sequence": 1,
+      "timestamp": "2026-11-01T16:06:58.952959Z"
+    },
+    {
+      "schema_version": "interactive.v1",
+      "command_id": "tc-5b8ef8d9-9a88-488c-a042-e8115f970612",
+      "session_id": "maintenance-native-web",
+      "state": "QUEUED",
+      "reason_code": "QUEUED",
+      "detail": "",
+      "sim_time_s": null,
+      "sequence": 2,
+      "timestamp": "2026-11-01T16:06:58.975198Z"
+    },
+    {
+      "schema_version": "interactive.v1",
+      "command_id": "tc-5b8ef8d9-9a88-488c-a042-e8115f970612",
+      "session_id": "maintenance-native-web",
+      "state": "EXECUTING",
+      "reason_code": "OK",
+      "detail": "",
+      "sim_time_s": 0.5,
+      "sequence": 3,
+      "timestamp": "2026-11-01T16:07:06.049308Z"
+    },
+    {
+      "schema_version": "interactive.v1",
+      "command_id": "tc-5b8ef8d9-9a88-488c-a042-e8115f970612",
+      "session_id": "maintenance-native-web",
+      "state": "ACKED",
+      "reason_code": "OK",
+      "detail": "",
+      "sim_time_s": 1.0,
+      "sequence": 4,
+      "timestamp": "2026-11-01T16:07:06.136097Z"
+    }
+  ],
+  "endurance_summary": {
+    "alerts": {},
+    "automatic_tc_replay_allowed": false,
+    "completed_at": "2026-11-01T16:07:20.341345+00:00",
+    "eligible_for_manual_24h_review": false,
+    "final_evidence_hash": "6254fc260212fe220f372e7f2e1916109e59cbb8cf42d1625e57c24a14617707",
+    "interval_target_s": 1.0,
+    "max_sample_gap_wall_s": 1.047000000020489,
+    "max_telemetry_lag_wall_s": 2.267448,
+    "min_free_disk_bytes": 62357426176,
+    "native_resume_supported": false,
+    "observed_pause_after_run": false,
+    "observed_running_wall_s": 12.187000000034459,
+    "observed_wall_span_s": 17.32799999997951,
+    "qualified_24h_wallclock": false,
+    "reason_code": null,
+    "recording_status": "FINISHED",
+    "rss_first_bytes": 322818048,
+    "rss_last_bytes": 309968896,
+    "rss_peak_bytes": 323223552,
+    "samples": 18,
+    "schema_version": "sat-endurance-summary.v1",
+    "session_id": "maintenance-native-web",
+    "sim_progress_s": 13.0,
+    "summary_sha256": "f59916b274fc02aba3c3e48b8dce6771175e46ebb6494d5658d3b31fead93036"
+  },
+  "last_observer": {
+    "entry_hash": "6254fc260212fe220f372e7f2e1916109e59cbb8cf42d1625e57c24a14617707",
+    "observation": {
+      "automatic_tc_replay_allowed": false,
+      "disk": {
+        "available": true,
+        "free_bytes": 62357426176,
+        "reserved_bytes": 67108864,
+        "total_bytes": 2048406843392
+      },
+      "process": {
+        "available": false,
+        "cpu_time_s": null,
+        "pid": null,
+        "process_state": null,
+        "reason_code": "NO_LIVE_PROCESS_HANDLE",
+        "resident_bytes": null,
+        "scope": "BASILISK_CHILD",
+        "source": "UNAVAILABLE"
+      },
+      "resume_supported": false,
+      "sampled_at": "2026-11-01T16:07:20.332882+00:00",
+      "schema_version": "sat-continuous-observability.v1",
+      "session_id": "maintenance-native-web",
+      "session_state": "COMPLETED",
+      "sim_elapsed_s": 13.0,
+      "telemetry": {
+        "durable_bytes": 292191,
+        "durable_frame_count": 54,
+        "lag_wall_s": 2.267448,
+        "last_sequence": 26,
+        "last_sim_time_s": 13.0,
+        "last_wall_time": "2026-11-01T16:07:18.065434+00:00",
+        "status": "TERMINAL",
+        "stream_id": "whole.continuous"
+      },
+      "wall_elapsed_s": 46.75
+    },
+    "previous_hash": "7657fda1eee9a310e62915f655b48b3f4be1ab3a0069dafe4075909f26d2ee9c",
+    "schema_version": "sat-endurance-sample.v1",
+    "sequence": 17
+  },
+  "bundle_manifest_sha256": "0187185bdcd6e397d955f4b74c7a5bfc31362d61834c13915125903ab7a6cd8f",
+  "model_after": {
+    "accepted": 17,
+    "rejected_busy": 0,
+    "completed": 17,
+    "failed": 0,
+    "cancelled": 0,
+    "timed_out": 0
+  }
+}

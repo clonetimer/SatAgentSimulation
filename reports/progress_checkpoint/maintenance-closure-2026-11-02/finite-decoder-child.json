@@ -1,0 +1,37 @@
+{
+  "status": "PASS_CPU_CONST_GRAMMAR_ONLY",
+  "tests_run": 17,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "test_log": "test_actual_local_tokenizer_honors_finite_prefix_and_eos (__main__.main.<locals>.FiniteConstTests.test_actual_local_tokenizer_honors_finite_prefix_and_eos) ... ok\ntest_bool_is_not_numeric_and_sibling_contradictions_fail_early (__main__.main.<locals>.FiniteConstTests.test_bool_is_not_numeric_and_sibling_contradictions_fail_early) ... ok\ntest_composition_fails_closed_while_parent_union_of_consts_works (__main__.main.<locals>.FiniteConstTests.test_composition_fails_closed_while_parent_union_of_consts_works) ... ok\ntest_exact_object_const_does_not_allow_key_value_mutation (__main__.main.<locals>.FiniteConstTests.test_exact_object_const_does_not_allow_key_value_mutation) ... ok\ntest_heterogeneous_array_union_keeps_each_branch_stack (__main__.main.<locals>.FiniteConstTests.test_heterogeneous_array_union_keeps_each_branch_stack) ... ok\ntest_local_definition_const_and_marker_collision_are_safe (__main__.main.<locals>.FiniteConstTests.test_local_definition_const_and_marker_collision_are_safe) ... ok\ntest_nested_escaped_string_is_constrained_as_json_text (__main__.main.<locals>.FiniteConstTests.test_nested_escaped_string_is_constrained_as_json_text) ... ok\ntest_numeric_const_path_still_preserves_type_bounds_and_enum (__main__.main.<locals>.FiniteConstTests.test_numeric_const_path_still_preserves_type_bounds_and_enum) ... ok\ntest_object_properties_and_array_items_use_exact_const (__main__.main.<locals>.FiniteConstTests.test_object_properties_and_array_items_use_exact_const) ... ok\ntest_prefix_cannot_end_and_invalid_character_is_rejected (__main__.main.<locals>.FiniteConstTests.test_prefix_cannot_end_and_invalid_character_is_rejected) ... ok\ntest_recursive_nonfinite_values_and_non_json_keys_are_rejected (__main__.main.<locals>.FiniteConstTests.test_recursive_nonfinite_values_and_non_json_keys_are_rejected) ... ok\ntest_registered_vector_const_survives_transport_object_unions (__main__.main.<locals>.FiniteConstTests.test_registered_vector_const_survives_transport_object_unions) ... ok\ntest_size_and_depth_boundaries_fail_explicitly (__main__.main.<locals>.FiniteConstTests.test_size_and_depth_boundaries_fail_explicitly) ... ok\ntest_top_level_supported_constants (__main__.main.<locals>.FiniteConstTests.test_top_level_supported_constants) ... ok\ntest_two_finite_array_branches_keep_shared_prefixes (__main__.main.<locals>.FiniteConstTests.test_two_finite_array_branches_keep_shared_prefixes) ... ok\ntest_typed_constants_with_sibling_constraints (__main__.main.<locals>.FiniteConstTests.test_typed_constants_with_sibling_constraints) ... ok\ntest_unconstrained_boolean_enum_remains_explicitly_unsupported (__main__.main.<locals>.FiniteConstTests.test_unconstrained_boolean_enum_remains_explicitly_unsupported) ... ok\n\n----------------------------------------------------------------------\nRan 17 tests in 61.347s\n\nOK\n",
+  "python": "E:\\tmp\\SatAgentSimulation\\.venv-sft\\Scripts\\python.exe",
+  "versions": {
+    "lm-format-enforcer": "0.11.3",
+    "transformers": "4.57.6",
+    "torch": "2.11.0+cu128",
+    "jsonschema": "4.26.0"
+  },
+  "sources_before": {
+    "E:\\tmp\\SatAgentSimulation\\src\\sat_sim_ml\\guided_decoding.py": "77807136a64cd2a4a9ebcaa158be244adb72149a60a4e65681f61a9641116030",
+    "E:\\tmp\\SatAgentSimulation\\src\\sat_sim_ml\\bounded_numeric_parser.py": "8c888ffba0c84085168cea7e0200f1c2ef0683a50e72db76917bab8ca041c9fa"
+  },
+  "sources_after": {
+    "E:\\tmp\\SatAgentSimulation\\src\\sat_sim_ml\\guided_decoding.py": "77807136a64cd2a4a9ebcaa158be244adb72149a60a4e65681f61a9641116030",
+    "E:\\tmp\\SatAgentSimulation\\src\\sat_sim_ml\\bounded_numeric_parser.py": "8c888ffba0c84085168cea7e0200f1c2ef0683a50e72db76917bab8ca041c9fa"
+  },
+  "source_bytes_unchanged": true,
+  "audit": {
+    "socket": 0,
+    "weights": 0,
+    "os_version_queries": 0
+  },
+  "cuda_initialized": false,
+  "tokenizer_fixture": {
+    "actual_preprocessing_builds": 1,
+    "reused_preprocessing": 5,
+    "fresh_parser_per_path": true
+  },
+  "worker_sha256": "439926e0ce7471e9c5178c106c578ac8acdca2a014b3e23f365b6c55d2ebeaaf",
+  "scope": "CPU actual LMFE and local tokenizer only; no model construction, weights, HTTP/native runs, service control or environment installation."
+}

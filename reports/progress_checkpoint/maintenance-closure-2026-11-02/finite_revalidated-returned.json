@@ -1,0 +1,64 @@
+{
+  "started": "2026-11-01T15:57:31.040685+00:00",
+  "source": "E:\\tmp\\SatAgentSimulation",
+  "tests": [
+    "tests/test_finite_json_const_decode_contract.py"
+  ],
+  "application_before": "c1e78f413430cf846a96023ecbf000d97f1fa156f59dea38dd59f5c96cabf70e",
+  "root_application_before": "c1e78f413430cf846a96023ecbf000d97f1fa156f59dea38dd59f5c96cabf70e",
+  "process": {
+    "pid": 37508,
+    "creation": 1793548650.2011197,
+    "affinity": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "scope": "Ordinary uv-environment engineering regression; no container audit claim.",
+  "initial_import_origins": [
+    {
+      "module": "sat_sim",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\__init__.py"
+    },
+    {
+      "module": "sat_sim.agent_facade",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\agent_facade.py"
+    },
+    {
+      "module": "sat_sim.unified_agent",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\unified_agent.py"
+    },
+    {
+      "module": "sat_sim.script_exporter",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\script_exporter.py"
+    },
+    {
+      "module": "sat_sim.interactive.api",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\interactive\\api.py"
+    },
+    {
+      "module": "sat_sim.interactive.runtime_factory",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim\\interactive\\runtime_factory.py"
+    },
+    {
+      "module": "sat_sim_ml.serving",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim_ml\\serving.py"
+    },
+    {
+      "module": "sat_sim_ml.generation_control",
+      "file": "E:\\tmp\\SatAgentSimulation\\src\\sat_sim_ml\\generation_control.py"
+    }
+  ],
+  "exit_code": 0,
+  "finished": "2026-11-01T15:59:03.663066+00:00",
+  "application_after": "c1e78f413430cf846a96023ecbf000d97f1fa156f59dea38dd59f5c96cabf70e",
+  "root_application_after": "c1e78f413430cf846a96023ecbf000d97f1fa156f59dea38dd59f5c96cabf70e",
+  "foreign_final_imports": [],
+  "source_and_imports_stable": true
+}

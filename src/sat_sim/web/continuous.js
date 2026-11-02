@@ -10,7 +10,7 @@
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
     rwConfiguration: null, telemetryStream: null, telemetryCatalog: [], creationPolicy: null,
-    commandContracts: [], catalogLoading: false,
+    commandContracts: [], catalogLoading: false, commandSending: false,
     history: null,
   };
   const terminal = new Set(['COMPLETED', 'ABORTED', 'FAILED', 'INTERRUPTED']);
@@ -81,6 +81,7 @@
     state.snapshot = null; state.metrics = null; state.recovery = null; state.endurance = null;
     state.events = []; state.acks = []; state.lastEventSeq = -1;
     state.rwConfiguration = null; state.telemetryStream = null; state.telemetryCatalog = [];
+    updateCommandAvailability();
     resetTelemetrySelection();
     refresh();
   }
@@ -92,6 +93,15 @@
     setText('continuousCreationPolicy', support?.supported
       ? '当前服务支持持续原生整星创建（' + policy.mode + '）；不会转换为限时或自动启动。'
       : '创建不可用：' + (support?.reason_code || 'CAPABILITY_CATALOG_UNAVAILABLE'));
+  }
+  function hasFourthWheelTelemetry() {
+    return state.rwConfiguration === 'pyramid_4'
+      && state.telemetryCatalog.find(row => row.stream_id === state.telemetryStream)
+        ?.fields.includes('adcs.rw.speed_rad_s_3')
+      && state.telemetry.some(frame => {
+        const value = frame.values?.['adcs.rw.speed_rad_s_3'];
+        return typeof value === 'number' && Number.isFinite(value);
+      });
   }
   function renderStreamContract(info) {
     const catalog = info.telemetry_catalog || [];
@@ -116,7 +126,10 @@
         const option = element('option', field); option.value = field; signal.append(option);
       }
     });
-    [...signal.options].forEach(option => { option.disabled = !fields.includes(option.value); });
+    [...signal.options].forEach(option => {
+      option.disabled = !fields.includes(option.value)
+        || (option.id === 'continuousRw4SignalOption' && !hasFourthWheelTelemetry());
+    });
     if (!fields.includes(signal.value)) signal.value = fields[0] || '';
     const channels = $('continuousHistoryChannels');
     fields.forEach(field => {
@@ -397,8 +410,7 @@
           : !['READY', 'RUNNING', 'PAUSED'].includes(session.state)
       );
     });
-    $('continuousCommandForm').querySelector('button[type=submit]').disabled =
-      !live || !['READY', 'RUNNING', 'PAUSED'].includes(session.state);
+    updateCommandAvailability();
   }
   function renderLog(id, rows, formatter) {
     const node = $(id);
@@ -432,12 +444,7 @@
     // actual stream frame contains the native fourth-wheel speed channel.
     const rw4Option = $('continuousRw4SignalOption');
     if (rw4Option) {
-      const hasRw4Telemetry = state.rwConfiguration === 'pyramid_4' &&
-        state.telemetry.some((frame) => {
-        const value = frame.values?.['adcs.rw.speed_rad_s_3'];
-        // Missing/null TM is not a physical zero-speed measurement.
-        return typeof value === 'number' && Number.isFinite(value);
-      });
+      const hasRw4Telemetry = hasFourthWheelTelemetry();
       rw4Option.disabled = !hasRw4Telemetry;
       rw4Option.hidden = !hasRw4Telemetry;
       if (!hasRw4Telemetry && $('continuousSignal').value === rw4Option.value) {
@@ -898,10 +905,17 @@
   const commandContract = () => state.commandContracts.find(
     (item) => item.operation === $('continuousOperation').value
   );
+  function updateCommandAvailability() {
+    const session = state.snapshot?.session;
+    $('continuousCommandSubmit').disabled = !(session
+      && session.session_id === state.selectedId
+      && ['READY', 'RUNNING', 'PAUSED'].includes(session.state)
+      && commandContract() && !state.catalogLoading && !state.commandSending);
+  }
   async function loadCommandCatalog() {
     if (state.catalogLoading) return;
     state.catalogLoading = true;
-    $('continuousCommandSubmit').disabled = true;
+    updateCommandAvailability();
     setText('continuousCommandCatalogStatus', '正在从后端获取已注册命令…');
     try {
       const payload = await api('/interactive/commands/catalog');
@@ -923,11 +937,12 @@
       changeOperation();
     } catch (error) {
       state.commandContracts = [];
-      $('continuousCommandSubmit').disabled = true;
+      updateCommandAvailability();
       setText('continuousCommandCatalogStatus', '遥控目录不可用，发送已禁用：' + error.message);
       notice('获取服务器遥控目录失败：' + error.message, true);
     } finally {
       state.catalogLoading = false;
+      updateCommandAvailability();
     }
   }
   function changeOperation() {
@@ -977,7 +992,7 @@
         host.append(label);
       });
     }
-    $('continuousCommandSubmit').disabled = !contract;
+    updateCommandAvailability();
     setText('continuousCommandHelp', contract
       ? ('控制对象：' + contract.target + ' · 权限：' + contract.required_role
         + ' · 执行后观测：' + (contract.effect_fields || []).join('、'))
@@ -1067,7 +1082,8 @@
     };
     if (!confirm('确认发送遥控 ' + contract.operation + '，预定在仿真 '
       + when.toFixed(2) + ' 秒执行？')) return;
-    $('continuousCommandSubmit').disabled = true;
+    state.commandSending = true;
+    updateCommandAvailability();
     try {
       const ack = await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/commands', {
         method: 'POST', body: JSON.stringify(command),
@@ -1078,7 +1094,8 @@
     } catch (error) {
       notice('遥控发送失败：' + error.message, true);
     } finally {
-      $('continuousCommandSubmit').disabled = !commandContract();
+      state.commandSending = false;
+      updateCommandAvailability();
     }
   }
   function applyNativeConfiguration(grouped) {

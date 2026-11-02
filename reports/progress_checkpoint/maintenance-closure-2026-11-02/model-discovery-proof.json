@@ -1,0 +1,45 @@
+{
+  "status": "INSTALLED_API_TO_EXISTING_REAL_MODEL_DISCOVERY_PASS",
+  "response": {
+    "ok": true,
+    "discovery": {
+      "provider_id": "local-modelscope",
+      "ok": true,
+      "status": "READY",
+      "reason": "\u6a21\u578b\u5217\u8868\u8bfb\u53d6\u6210\u529f\u3002",
+      "endpoint": "http://127.0.0.1:8033/v1/models",
+      "latency_ms": 294.15,
+      "models": [
+        "Qwen2.5-Coder-1.5B-SatAgent-v5-r47-explicit-literals"
+      ],
+      "configured_model": "Qwen2.5-Coder-1.5B-SatAgent-v5-r47-explicit-literals",
+      "configured_model_found": true,
+      "attempts": [
+        {
+          "url": "http://127.0.0.1:8033/v1/models",
+          "http_status": 200,
+          "latency_ms": 294.15,
+          "model_count": 1
+        }
+      ],
+      "secret_values_exposed": false
+    }
+  },
+  "model_counts_before": {
+    "accepted": 17,
+    "rejected_busy": 0,
+    "completed": 17,
+    "failed": 0,
+    "cancelled": 0,
+    "timed_out": 0
+  },
+  "model_counts_after": {
+    "accepted": 17,
+    "rejected_busy": 0,
+    "completed": 17,
+    "failed": 0,
+    "cancelled": 0,
+    "timed_out": 0
+  },
+  "no_new_model_requests": true
+}

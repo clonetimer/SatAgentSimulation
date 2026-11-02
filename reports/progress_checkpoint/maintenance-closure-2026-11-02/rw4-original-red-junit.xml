@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="6.884" timestamp="2026-11-01T23:23:42.004976+08:00" hostname="DESKTOP-1E2E8R0"><testcase classname="tests.interactive.test_continuous_console_browser" name="test_fourth_wheel_catalog_does_not_enable_unobserved_channel" time="5.465"><failure message="AssertionError: assert False&#10; +  where False = evaluate('el =&gt; el.disabled')&#10; +    where evaluate = &lt;Locator frame=&lt;Frame name= url='https://workbench.test/'&gt; selector='#continuousRw4SignalOption'&gt;.evaluate&#10; +      where &lt;Locator frame=&lt;Frame name= url='https://workbench.test/'&gt; selector='#continuousRw4SignalOption'&gt; = locator('#continuousRw4SignalOption')&#10; +        where locator = &lt;Page url='https://workbench.test/'&gt;.locator">tmp_path = WindowsPath('E:/tmp/SatAgentSimulation/reports/local_requirements_completion/rw4-catalog-red-v2/tmp/test_fourth_wheel_catalog_does0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000261E1AB9EB0&gt;
+
+    def test_fourth_wheel_catalog_does_not_enable_unobserved_channel(tmp_path, monkeypatch):
+        """A configured channel is not a measurement; delay its first HTTP response."""
+        pw = pytest.importorskip("playwright.sync_api")
+        monkeypatch.setenv("SAT_SIM_INTERACTIVE_ENABLED", "1")
+        monkeypatch.delenv("SAT_SIM_SUPERVISED_NATIVE_RUNTIME", raising=False)
+        monkeypatch.setattr("sat_sim.interactive.api.build_persistent_runtime",
+                            lambda spec: (UiProtocolDouble(rw4=True), None))
+        app = create_app(artifacts_root=tmp_path/"api", runs_root=tmp_path/"runs",
+                         embedded_worker=False, auth_mode="disabled")
+        with TestClient(app) as client, pw.sync_playwright() as p:
+            created = client.post("/interactive/continuous/sessions", json={
+                "session_id":"rw4-before-tm", "quantum_s":.2, "rate":1., "paced":True,
+                "initial_horizon_s":60., "initial_configuration":{"adcs":{"rw_configuration":"pyramid_4"}},
+            })
+            assert created.status_code == 201, created.text
+            browser = p.chromium.launch(headless=True,
+                executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"))
+            try:
+                page = browser.new_page(viewport={"width":1600,"height":1050})
+                page.on("dialog", lambda dialog: dialog.accept())
+                pending = []
+                hold_telemetry = True
+                def proxy(route):
+                    request = route.request; url = urlsplit(request.url)
+                    if hold_telemetry and "/rw4-before-tm/telemetry/" in url.path:
+                        pending.append(route); return
+                    response = client.request(request.method,url.path+("?"+url.query if url.query else ""),
+                        content=request.post_data_buffer,headers={"content-type":"application/json"})
+                    route.fulfill(status=response.status_code,body=response.content,
+                                  headers={"content-type":response.headers.get("content-type","application/json")})
+                page.route("https://workbench.test/**",proxy)
+                page.goto("https://workbench.test/",wait_until="domcontentloaded")
+                page.locator("#continuousNavButton").click(timeout=30000)
+                page.wait_for_function("() =&gt; document.querySelector('#continuousStream').options.length &gt; 0")
+                # Contract has arrived, but no frame has reached this page yet.
+&gt;               assert page.locator("#continuousRw4SignalOption").evaluate("el =&gt; el.disabled")
+E               AssertionError: assert False
+E                +  where False = evaluate('el =&gt; el.disabled')
+E                +    where evaluate = &lt;Locator frame=&lt;Frame name= url='https://workbench.test/'&gt; selector='#continuousRw4SignalOption'&gt;.evaluate
+E                +      where &lt;Locator frame=&lt;Frame name= url='https://workbench.test/'&gt; selector='#continuousRw4SignalOption'&gt; = locator('#continuousRw4SignalOption')
+E                +        where locator = &lt;Page url='https://workbench.test/'&gt;.locator
+
+tests\interactive\test_continuous_console_browser.py:515: AssertionError</failure></testcase></testsuite></testsuites>

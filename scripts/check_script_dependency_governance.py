@@ -137,14 +137,18 @@ def run(root: Path) -> dict[str, Any]:
         _issue(issues, "LEGACY_TOOLS_DIRECTORY_PRESENT", "tools", "脚本仍散落在 tools 目录。")
 
     outside_scripts: list[str] = []
-    for path in root.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in SCRIPT_SUFFIXES:
+    # Apply the existing top-level policy before traversing managed trees.
+    # Filtering after rglob still enumerates environments, weights and reports.
+    for top in root.iterdir():
+        if top.name in EXEMPT_TOP_LEVEL:
             continue
-        relative = path.relative_to(root)
-        if relative.parts[0] in EXEMPT_TOP_LEVEL:
-            continue
-        outside_scripts.append(relative.as_posix())
-        _issue(issues, "NON_PRODUCTION_SCRIPT_OUTSIDE_SCRIPTS", relative.as_posix(), "非生产脚本必须迁移到 scripts。")
+        candidates = top.rglob("*") if top.is_dir() and not top.is_symlink() else (top,)
+        for path in candidates:
+            if not path.is_file() or path.suffix.lower() not in SCRIPT_SUFFIXES:
+                continue
+            relative = path.relative_to(root)
+            outside_scripts.append(relative.as_posix())
+            _issue(issues, "NON_PRODUCTION_SCRIPT_OUTSIDE_SCRIPTS", relative.as_posix(), "非生产脚本必须迁移到 scripts。")
 
     script_files: list[str] = []
     script_hashes: dict[str, str] = {}
