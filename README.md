@@ -2,6 +2,8 @@
 
 新手从[START_HERE.md](START_HERE.md)开始。uv环境入口为 `python scripts/setup_uv.py`，已有完整缓存可加 `--offline`。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
+**其他机器使用微调AI：**模型权重单独通过Release分发，运行 `python scripts/model_release.py install` 自动获取和校验，再用锁定的GPU环境执行 `scripts/model_release.py serve`。无需重新训练；本机推理要求兼容NVIDIA GPU，无GPU可配置远程模型服务。完整步骤见[模型下载与部署](docs/model_distribution.md)。下文2516项为既有功能验收基线，新增模型分发检查单独记录。
+
 本次约定范围内的功能开发与本地验收已完成。当前 **2516 项用例完整分段覆盖：2511 通过、5 跳过、未解决失败 0、遗漏 0**；不是一次单命令全绿，原失败记录与两项独立复验均保留。最新修复已在独立 uv 环境构建安装，869 项运行载荷逐字节一致，真实原生网页流程 11 项检查通过。详见[最终验收报告与实测图](reports/progress_checkpoint/maintenance-closure-2026-11-02/README.md)。安装态实测地址为 http://127.0.0.1:56149 （不保证后台服务持续在线），常规启动地址为 `http://127.0.0.1:8000/`。
 
 AI 显式参数约束已修复：15个历史失败用例以15次真实首答完成原始脚本执行和密封结果复核。旧69条严格评分0/69、原回答诊断54/69及[历史失败分类](reports/progress_checkpoint/r46-original69-result/README.md)全部保留，本次不是新的69/69。界面已收纳低频操作、精简工具栏与文案；设计与交互证据见[R48记录](reports/progress_checkpoint/r48-compact-toolbar/README.md)。

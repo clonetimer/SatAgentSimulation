@@ -2,6 +2,8 @@
 
 本项目已经实际训练 ModelScope 来源的 `Qwen/Qwen2.5-Coder-1.5B-Instruct`，通过独立本地 HTTP 服务提供模型推理，再由平台将模型输出的 TaskSpec 校验、编译为仿真脚本并执行。模型原始回答和实际调用来源保留；模板回答不作为模型生成成功。
 
+**其他机器直接使用已训练模型：**优先按[模型下载与部署](model_distribution.md)执行 `python scripts/model_release.py install`，再在锁定GPU环境执行 `scripts/model_release.py serve`。下面的原始 `training_runs/...` 路径用于开发机器和训练复现，源码检出不会附带该目录；自动安装器会生成新机器自己的路径，无需重新训练。
+
 当前v5已完成15次真实首答的原始脚本执行、密封结果复核，以及另2次安装态真实创建/修改模型调用和3次原生运行。本次维护未改变AI实现，未重新训练或增加模型推理；新安装态服务发现与当前原生网页流程另行核验。原文、实际脚本、CSV、封存及历史阶段检查均保留。最新判定见[需求验收状态](../reports/current_requirements_status.md)和[最终验收报告](../reports/progress_checkpoint/maintenance-closure-2026-11-02/README.md)。旧69例的严格0/69、原回答诊断54/69及最终对象严格比较0/69继续保留；15例通过不是新的69/69，不外推任意自然语言准确率。24小时已按用户选择的原始证据复核方式验收，原自动NOT_QUALIFIED不改写。
 
 ## 当前本地服务与工作台

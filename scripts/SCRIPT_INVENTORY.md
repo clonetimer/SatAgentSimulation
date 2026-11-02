@@ -17,6 +17,7 @@
 | `build_sft_dataset.py` | 微调数据构建 | active | 注册模板标签经 schema/compile 校验；按语义族隔离训练与验证，排除正式评测请求 |
 | `train_modelscope_lora.py` | ModelScope GPU LoRA | active | 校验模型/数据摘要，使用 completion-only loss，保存 checkpoint/显存/损失证据 |
 | `serve_modelscope_model.py` | 本机模型推理 | active | 校验基座和适配器摘要；仅 loopback 提供真实 GPU 推理，无模板替代 |
+| `model_release.py` | 已训练模型分发与启动 | active | install/check/serve；核对发布包及固定基座哈希，安全解包并生成本机路径配置，支持已有制品离线安装；启动沿用现有CUDA服务，不反序列化训练参数 |
 | `fetch_sft_model.py` | ModelScope 基座获取 | active | 只获取模型权重/配置/分词器，保存逐文件摘要，不执行远程模型代码 |
 | `fetch_torch_wheel.py` | 微调 CUDA 环境 | active | 从官方索引解析确切 wheel，分段下载并核对官方 SHA-256 |
 | `setup_uv.py` | uv 完整安装 | active | 安装固定依赖和官方校验 wheel；预取离线环境资产并运行严格 doctor |

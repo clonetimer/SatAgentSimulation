@@ -1,5 +1,9 @@
 # 第一次使用
 
+## 需要微调AI辅助建模
+
+拉取源码不包含模型权重。先运行 `python scripts/model_release.py install` 下载并校验已训练适配器和基座，再按[模型下载与部署](docs/model_distribution.md)准备CUDA环境、启动服务并在工作台配置。无需重新训练；没有兼容NVIDIA GPU时可连接另行提供的远程模型服务。普通仿真不依赖微调模型。
+
 ## 不写代码：原有单次仿真（有限时长）
 
 启动工作台（详见 [README 第 5 节](README.md)），在浏览器打开 `http://127.0.0.1:8000/`。

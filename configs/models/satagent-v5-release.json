@@ -1,0 +1,163 @@
+{
+  "schema_version": "sat-model-release.v1",
+  "release_id": "satagent-v5-r47-20261102",
+  "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-r47-explicit-literals",
+  "archive": {
+    "url": "https://github.com/clonetimer/SatAgentSimulation/releases/download/satagent-v5-r47-20261102/satagent-v5-r47-lora.zip",
+    "bytes": 72205734,
+    "sha256": "fbf405b0b396f3cd7aea1858bc3e841f94723d56c0531c70675fc5fa3ef6a9dd"
+  },
+  "payload": [
+    {
+      "path": "LICENSE",
+      "bytes": 11343,
+      "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+    },
+    {
+      "path": "MODEL_CARD.md",
+      "bytes": 1951,
+      "sha256": "9b765922bcdf1df540831011cb00b46812aad59203652f96260be03297c6c537"
+    },
+    {
+      "path": "base-lock.json",
+      "bytes": 1871,
+      "sha256": "afa731d154bc26dc617389449d6f3af76822d8a8109156d913c9d254f54d0e96"
+    },
+    {
+      "path": "model/adapter/README.md",
+      "bytes": 5336,
+      "sha256": "fe8f668a07d7f114c86593ae8b56340d877882f5f8a29062ca35b3e9a25ba081"
+    },
+    {
+      "path": "model/adapter/adapter_config.json",
+      "bytes": 1174,
+      "sha256": "95bae512fe7b24258c2ccf8c6acc2039730ec1773408232f95493bff27ec7f5c"
+    },
+    {
+      "path": "model/adapter/adapter_model.safetensors",
+      "bytes": 73911112,
+      "sha256": "c72d08c6aa573929275c3de244a6a511fa4b3809e1cfabdb5d5007afb21c8547"
+    },
+    {
+      "path": "model/adapter/added_tokens.json",
+      "bytes": 629,
+      "sha256": "f0acedf99e19ec0a5b797ffbd0b94328172ccd90f7f385bbc521cda2701b03ab"
+    },
+    {
+      "path": "model/adapter/chat_template.jinja",
+      "bytes": 2561,
+      "sha256": "8aa40ce145adb73cb3a75194dc0224702a95850ec5275cabb728496bbd749fc6"
+    },
+    {
+      "path": "model/adapter/merges.txt",
+      "bytes": 1671853,
+      "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+    },
+    {
+      "path": "model/adapter/special_tokens_map.json",
+      "bytes": 644,
+      "sha256": "57255613bbe23c9497211ca68561ff429a51e871dbaf5a59998fa4c8f7fe168a"
+    },
+    {
+      "path": "model/adapter/tokenizer.json",
+      "bytes": 11421896,
+      "sha256": "9c5ae00e602b8860cbd784ba82a8aa14e8feecec692e7076590d014d7b7fdafa"
+    },
+    {
+      "path": "model/adapter/tokenizer_config.json",
+      "bytes": 4892,
+      "sha256": "4449ee16182d9a6638119b751661ef85fa506d21369722986b353166c31ed9b8"
+    },
+    {
+      "path": "model/adapter/training_args.bin",
+      "bytes": 6033,
+      "sha256": "ef4c1c3786c69301f4f2a5cfc5813cf4ea2c58e783b89fc1a3f605c8ae5f0161"
+    },
+    {
+      "path": "model/adapter/vocab.json",
+      "bytes": 2776833,
+      "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+    },
+    {
+      "path": "model/training_provenance.json",
+      "bytes": 4127,
+      "sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1"
+    }
+  ],
+  "base": {
+    "model_id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "revision": "master",
+    "snapshot_content_sha256": "fb19c9a21b1e203a3ec4e7f91257df1375ace9db3c2f014b79fbecb18b5952a6",
+    "files": [
+      {
+        "path": "config.json",
+        "sha256": "88f9a17863c05fb313515d2ff74b1098e0c35579f99068e32beda00618508ae0",
+        "bytes": 660,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/config.json"
+      },
+      {
+        "path": "configuration.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "bytes": 2,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/configuration.json"
+      },
+      {
+        "path": "generation_config.json",
+        "sha256": "1a628a5775bc69cde01c6749a531150ca4d3189652c618a174f7077923acf3b1",
+        "bytes": 242,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/generation_config.json"
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+        "bytes": 11343,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/LICENSE"
+      },
+      {
+        "path": "merges.txt",
+        "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+        "bytes": 1671839,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/merges.txt"
+      },
+      {
+        "path": "model.safetensors",
+        "sha256": "c1b9b30e907950516ba3c646bdf570d8084c25a6410a0cdca80cf04b11bc13a8",
+        "bytes": 3087467144,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/model.safetensors"
+      },
+      {
+        "path": "README.md",
+        "sha256": "a8504fd3e1247c90e4fe640d84df963237134bf29db02b0de7d502eed6c93c33",
+        "bytes": 5258,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/README.md"
+      },
+      {
+        "path": "tokenizer.json",
+        "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+        "bytes": 7031645,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/tokenizer.json"
+      },
+      {
+        "path": "tokenizer_config.json",
+        "sha256": "959e7f1d9a1b7641a6d6ce05ca97b75c7894fcb66cbe5a040406458fb1128ee4",
+        "bytes": 7305,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/tokenizer_config.json"
+      },
+      {
+        "path": "vocab.json",
+        "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+        "bytes": 2776833,
+        "url": "https://modelscope.cn/models/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/master/vocab.json"
+      }
+    ]
+  },
+  "training_provenance_sha256": "c55345cce5158bee40cc03effb87a774c3fa2d5dae453193ef210cacbc4c40a1",
+  "dataset_manifest_sha256": "3c6dc224073f7e3b8589f87e5e58f68e211fa74638474c86f67a60646e9b031b",
+  "source_commit_before_distribution": "ec14671395714e6045e25f2d8dd5f2e90377c2dc",
+  "gpu_requirement": "Compatible NVIDIA CUDA; actual validation environment torch2.11.0+cu128 / RTX5060 Laptop",
+  "limits": [
+    "Constrained create/refine; original69strict0/69 retained; not general language accuracy.",
+    "Original adapter metadata paths are historical only; installer explicitly supplies relocated base and adapter paths.",
+    "training_args.bin is retained as inert hash-bound provenance, never unpickled by the installer/server."
+  ]
+}
