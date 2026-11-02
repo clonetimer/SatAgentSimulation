@@ -1,0 +1,522 @@
+{
+  "ok": false,
+  "request_id": "e6acd7df6b94413281d4b50573c4cf17",
+  "result": {
+    "ok": false,
+    "unified_agent_version": "v24.unified-agent.v3",
+    "request": {
+      "input_kind": "natural_language",
+      "request_text": "创建一个整星正常仿真，运行2秒，采样间隔0.5秒，积分步长0.1秒，无故障，输出默认曲线。",
+      "form_data": null,
+      "task_spec": null,
+      "base_task_spec": null,
+      "patch": null,
+      "output_dir": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17",
+      "examples_dir": "examples",
+      "backend": "auto",
+      "local_backend": "template",
+      "remote_backend": null,
+      "model_command": null,
+      "model_name": null,
+      "model_base_url": null,
+      "model_api_key_env": "OPENAI_API_KEY",
+      "model_timeout_s": 60.0,
+      "model_temperature": null,
+      "model_seed": null,
+      "model_max_output_tokens": null,
+      "model_structured_output": "json_object",
+      "provider_id": "local-modelscope",
+      "provider_config_path": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\model_providers.json",
+      "routing_mode": "auto",
+      "task_id": null,
+      "output_root": null,
+      "script_output": null,
+      "max_repair_attempts": 2,
+      "compile_if_valid": true,
+      "experience_reuse_enabled": false,
+      "experience_store_root": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\experiences",
+      "experience_tenant_id": null,
+      "experience_project_id": null
+    },
+    "route": {
+      "version": "v23.model-router.v1",
+      "input_kind": "natural_language",
+      "tier": "L2",
+      "backend": "openai_compatible",
+      "complexity_score": 4,
+      "detected_domains": [],
+      "signals": [
+        "workflow_or_coupling",
+        "event_cue",
+        "many_clauses"
+      ],
+      "reason_codes": [
+        "MODEL_ROUTE_L2",
+        "CAPABILITY_REGISTRY_AUTHORITATIVE"
+      ],
+      "fallback_backend": "openai_compatible",
+      "remote_available": false,
+      "provider_id": "local-modelscope",
+      "provider_location": "local",
+      "authority_boundary": "Capability Registry and deterministic guards remain authoritative."
+    },
+    "task_spec": {},
+    "task_spec_sha256": null,
+    "validation": {
+      "ok": false,
+      "error_count": 1,
+      "warning_count": 0,
+      "errors": [
+        {
+          "severity": "error",
+          "path": "$.request",
+          "code": "capability_planner",
+          "message": "No allowed capability matched the request with sufficient confidence."
+        }
+      ],
+      "warnings": []
+    },
+    "guards": {
+      "ok": false,
+      "issues": [],
+      "allowed_claims": [],
+      "forbidden_claims": [],
+      "tool_policy": {
+        "policy_version": "v26.agent-tool-policy.v3",
+        "allowed_tools": [
+          "list_capabilities",
+          "get_capability_contract",
+          "get_taskspec_schema",
+          "validate_taskspec",
+          "migrate_taskspec",
+          "resolve_taskspec",
+          "build_execution_plan",
+          "validate_execution_plan",
+          "compile_taskspec",
+          "export_reproducible_script",
+          "prepare_registered_run",
+          "commit_execution_plan",
+          "run_registered_simulation",
+          "inspect_run_artifacts",
+          "verify_run_bundle",
+          "evaluate_validation_outcome",
+          "build_claim_report"
+        ],
+        "forbidden_tools": [
+          "write_arbitrary_python",
+          "execute_arbitrary_python",
+          "import_private_module",
+          "construct_basilisk_object_directly",
+          "modify_simulation_source_code",
+          "write_basilisk_output_message"
+        ],
+        "arbitrary_code_execution": false,
+        "private_api_access": false,
+        "direct_basilisk_object_construction": false
+      }
+    },
+    "compiled": null,
+    "script": null,
+    "facade_result": {
+      "ok": false,
+      "agent_facade_version": "v26.agent-facade.v2",
+      "task_spec_version": "1.0.0",
+      "backend_identity": {
+        "backend": "openai_compatible",
+        "backend_class": "actual_model_service",
+        "model_backend_requested": true,
+        "actual_model_used": null,
+        "actual_model_execution_verified": false,
+        "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-r47-explicit-literals",
+        "base_url": "http://127.0.0.1:8033/v1",
+        "claim": "model_backend_requested_not_verified",
+        "invocation_evidence": null
+      },
+      "request": {
+        "request": "创建一个整星正常仿真，运行2秒，采样间隔0.5秒，积分步长0.1秒，无故障，输出默认曲线。",
+        "output_dir": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17",
+        "examples_dir": "examples",
+        "backend": "openai_compatible",
+        "draft_spec_path": null,
+        "allowed_capabilities": [
+          "subsystem.adcs_unified_native.v1",
+          "subsystem.comm_data.unified_native.v1",
+          "subsystem.eps.unified_native.v1",
+          "subsystem.propulsion.unified_native.v1",
+          "whole_spacecraft.unified_native.v1",
+          "component.antenna.v1",
+          "component.battery.v1",
+          "component.cmg.v1",
+          "component.data_queue.v1",
+          "component.fuel_tank.v1",
+          "component.ground_station.v1",
+          "component.heater.v1",
+          "component.imu.v1",
+          "component.link_budget.v1",
+          "component.magnetometer.v1",
+          "component.mtb.v1",
+          "component.onboard_storage.v1",
+          "component.payload.v1",
+          "component.payload_sensor.v1",
+          "component.pdu.v1",
+          "component.power_sink.v1",
+          "component.radiator.v1",
+          "component.reaction_wheel.v1",
+          "component.solar_panel.v1",
+          "component.star_tracker.v1",
+          "component.sun_sensor.v1",
+          "component.thermal_node.v1",
+          "component.thruster.v1",
+          "component.transmitter.v1",
+          "orbit_environment.orbit_fidelity.v1",
+          "subsystem.adcs_fidelity.v1",
+          "subsystem.comm.basic_ground_pass.v1",
+          "subsystem.comm_data.source_native.v1",
+          "subsystem.eps.basic.v1",
+          "subsystem.eps.source_native.v1",
+          "subsystem.payload.source_native.v1",
+          "subsystem.thermal.basic_lumped.v1",
+          "subsystem.thermal.source_native.v1",
+          "whole_spacecraft.comm_payload_mission_coupled.v1",
+          "whole_spacecraft.composite_digital_twin.v1",
+          "whole_spacecraft.maneuver_orbit_attitude.v1",
+          "whole_spacecraft.orbit_adcs_fidelity.v1",
+          "whole_spacecraft.power_thermal_orbit_coupled.v1"
+        ],
+        "task_id": null,
+        "output_root": null,
+        "script_output": null,
+        "max_repair_attempts": 2,
+        "compile_if_valid": true,
+        "user_instruction": null,
+        "auto_run": false,
+        "dry_run": false,
+        "model_command": null,
+        "model_name": "Qwen2.5-Coder-1.5B-SatAgent-v5-r47-explicit-literals",
+        "model_base_url": "http://127.0.0.1:8033/v1",
+        "model_api_key_env": "SAT_SIM_RUNTIME_LOCAL_MODELSCOPE_API_KEY",
+        "model_timeout_s": 300.0,
+        "model_temperature": null,
+        "model_seed": null,
+        "model_max_output_tokens": 4096,
+        "model_structured_output": "json_schema",
+        "input_kind": "natural_language",
+        "model_route": {
+          "version": "v23.model-router.v1",
+          "input_kind": "natural_language",
+          "tier": "L2",
+          "backend": "openai_compatible",
+          "complexity_score": 4,
+          "detected_domains": [],
+          "signals": [
+            "workflow_or_coupling",
+            "event_cue",
+            "many_clauses"
+          ],
+          "reason_codes": [
+            "MODEL_ROUTE_L2",
+            "CAPABILITY_REGISTRY_AUTHORITATIVE"
+          ],
+          "fallback_backend": "openai_compatible",
+          "remote_available": false,
+          "provider_id": "local-modelscope",
+          "provider_location": "local",
+          "authority_boundary": "Capability Registry and deterministic guards remain authoritative."
+        },
+        "knowledge_policy": {
+          "policy_version": "v23.rag-boundary.v1",
+          "role": "advisory_only",
+          "allowed_uses": [
+            "retrieve_similar_examples",
+            "retrieve_user_and_developer_documentation",
+            "explain_parameters_and_validation_errors",
+            "provide_non_authoritative_candidate terminology"
+          ],
+          "forbidden_authority": [
+            "capability_support",
+            "effect_owner",
+            "builder_or_runner_binding",
+            "native_proxy_classification",
+            "parameter_profile",
+            "claim_level",
+            "qoi_observability_truth",
+            "runtime_injection_success"
+          ],
+          "authoritative_sources": [
+            "Capability Registry",
+            "Operator Contract",
+            "Parameter Registry",
+            "Validation Registry",
+            "Run evidence"
+          ],
+          "reason_code": "RAG_ADVISORY_ONLY",
+          "approved_experience_advisories": [],
+          "experience_influence": {
+            "lesson_ids": [],
+            "attribution": null
+          }
+        }
+      },
+      "task_spec": {},
+      "validation": {
+        "ok": false,
+        "error_count": 1,
+        "warning_count": 0,
+        "errors": [
+          {
+            "severity": "error",
+            "path": "$.request",
+            "code": "capability_planner",
+            "message": "No allowed capability matched the request with sufficient confidence."
+          }
+        ],
+        "warnings": []
+      },
+      "guards": {
+        "ok": false,
+        "issues": [],
+        "allowed_claims": [],
+        "forbidden_claims": [],
+        "tool_policy": {
+          "policy_version": "v26.agent-tool-policy.v3",
+          "allowed_tools": [
+            "list_capabilities",
+            "get_capability_contract",
+            "get_taskspec_schema",
+            "validate_taskspec",
+            "migrate_taskspec",
+            "resolve_taskspec",
+            "build_execution_plan",
+            "validate_execution_plan",
+            "compile_taskspec",
+            "export_reproducible_script",
+            "prepare_registered_run",
+            "commit_execution_plan",
+            "run_registered_simulation",
+            "inspect_run_artifacts",
+            "verify_run_bundle",
+            "evaluate_validation_outcome",
+            "build_claim_report"
+          ],
+          "forbidden_tools": [
+            "write_arbitrary_python",
+            "execute_arbitrary_python",
+            "import_private_module",
+            "construct_basilisk_object_directly",
+            "modify_simulation_source_code",
+            "write_basilisk_output_message"
+          ],
+          "arbitrary_code_execution": false,
+          "private_api_access": false,
+          "direct_basilisk_object_construction": false
+        }
+      },
+      "compiled": null,
+      "script": null,
+      "run_result": null,
+      "run_bundle_result": null,
+      "planning": null,
+      "output_dir": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17",
+      "files": {
+        "capability_context": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\capability_context.json",
+        "user_request": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\user_request.txt",
+        "agent_prompt": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\agent_prompt.md",
+        "capability_plan": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\capability_plan.json",
+        "generated_task_yaml": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\generated_task.yaml",
+        "generated_task_json": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\generated_task.json",
+        "validation": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\validation.json",
+        "capability_agent_report": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\capability_agent_report.json",
+        "agent_report": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\agent_report.json"
+      },
+      "steps": [
+        {
+          "name": "tool_policy",
+          "status": "complete",
+          "message": "Loaded semantic Agent tool whitelist.",
+          "reason_codes": [],
+          "payload": {
+            "policy_version": "v26.agent-tool-policy.v3",
+            "allowed_tools": [
+              "list_capabilities",
+              "get_capability_contract",
+              "get_taskspec_schema",
+              "validate_taskspec",
+              "migrate_taskspec",
+              "resolve_taskspec",
+              "build_execution_plan",
+              "validate_execution_plan",
+              "compile_taskspec",
+              "export_reproducible_script",
+              "prepare_registered_run",
+              "commit_execution_plan",
+              "run_registered_simulation",
+              "inspect_run_artifacts",
+              "verify_run_bundle",
+              "evaluate_validation_outcome",
+              "build_claim_report"
+            ],
+            "forbidden_tools": [
+              "write_arbitrary_python",
+              "execute_arbitrary_python",
+              "import_private_module",
+              "construct_basilisk_object_directly",
+              "modify_simulation_source_code",
+              "write_basilisk_output_message"
+            ],
+            "arbitrary_code_execution": false,
+            "private_api_access": false,
+            "direct_basilisk_object_construction": false
+          }
+        },
+        {
+          "name": "backend.context",
+          "status": "complete",
+          "message": "Loaded capability contracts for Agent use.",
+          "reason_codes": [],
+          "payload": {
+            "capabilities": [
+              "subsystem.adcs_unified_native.v1",
+              "subsystem.comm_data.unified_native.v1",
+              "subsystem.eps.unified_native.v1",
+              "subsystem.propulsion.unified_native.v1",
+              "whole_spacecraft.unified_native.v1",
+              "component.antenna.v1",
+              "component.battery.v1",
+              "component.cmg.v1",
+              "component.data_queue.v1",
+              "component.fuel_tank.v1",
+              "component.ground_station.v1",
+              "component.heater.v1",
+              "component.imu.v1",
+              "component.link_budget.v1",
+              "component.magnetometer.v1",
+              "component.mtb.v1",
+              "component.onboard_storage.v1",
+              "component.payload.v1",
+              "component.payload_sensor.v1",
+              "component.pdu.v1",
+              "component.power_sink.v1",
+              "component.radiator.v1",
+              "component.reaction_wheel.v1",
+              "component.solar_panel.v1",
+              "component.star_tracker.v1",
+              "component.sun_sensor.v1",
+              "component.thermal_node.v1",
+              "component.thruster.v1",
+              "component.transmitter.v1",
+              "orbit_environment.orbit_fidelity.v1",
+              "subsystem.adcs_fidelity.v1",
+              "subsystem.comm.basic_ground_pass.v1",
+              "subsystem.comm_data.source_native.v1",
+              "subsystem.eps.basic.v1",
+              "subsystem.eps.source_native.v1",
+              "subsystem.payload.source_native.v1",
+              "subsystem.thermal.basic_lumped.v1",
+              "subsystem.thermal.source_native.v1",
+              "whole_spacecraft.comm_payload_mission_coupled.v1",
+              "whole_spacecraft.composite_digital_twin.v1",
+              "whole_spacecraft.maneuver_orbit_attitude.v1",
+              "whole_spacecraft.orbit_adcs_fidelity.v1",
+              "whole_spacecraft.power_thermal_orbit_coupled.v1"
+            ]
+          }
+        },
+        {
+          "name": "backend.prompt",
+          "status": "complete",
+          "message": "Wrote capability-constrained prompt for an external LLM.",
+          "reason_codes": [],
+          "payload": {}
+        },
+        {
+          "name": "backend.plan",
+          "status": "boundary",
+          "message": "No allowed capability matched the request with sufficient confidence.",
+          "reason_codes": [],
+          "payload": {
+            "selected_capability_id": null,
+            "supported": false,
+            "recommended_action": "clarify_or_decline",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "name": "backend.validate",
+          "status": "failed",
+          "message": "Planner boundary prevented unsupported TaskSpec generation.",
+          "reason_codes": [],
+          "payload": {
+            "ok": false,
+            "error_count": 1,
+            "warning_count": 0,
+            "errors": [
+              {
+                "severity": "error",
+                "path": "$.request",
+                "code": "capability_planner",
+                "message": "No allowed capability matched the request with sufficient confidence."
+              }
+            ],
+            "warnings": []
+          }
+        }
+      ],
+      "reason_codes": [
+        "AGENT_BACKEND_FAILED",
+        "capability_planner"
+      ]
+    },
+    "files": {
+      "capability_context": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\capability_context.json",
+      "user_request": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\user_request.txt",
+      "agent_prompt": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\agent_prompt.md",
+      "capability_plan": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\capability_plan.json",
+      "generated_task_yaml": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\generated_task.yaml",
+      "generated_task_json": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\generated_task.json",
+      "validation": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\validation.json",
+      "capability_agent_report": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\capability_agent_report.json",
+      "agent_report": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\agent_report.json",
+      "model_route": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\model_route.json",
+      "rag_boundary": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\rag_boundary.json",
+      "experience_advisory": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\experience_advisory.json",
+      "model_provider_route": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\model_provider_route.json",
+      "unified_agent_report": "E:\\tmp\\SatAgentSimulation\\reports\\local_model_distribution\\fresh-api\\tasks\\e6acd7df6b94413281d4b50573c4cf17\\unified_agent_report.json"
+    },
+    "reason_codes": [
+      "MODEL_ROUTE_L2",
+      "CAPABILITY_REGISTRY_AUTHORITATIVE",
+      "RAG_ADVISORY_ONLY",
+      "AGENT_BACKEND_FAILED",
+      "capability_planner"
+    ],
+    "rag_boundary": {
+      "policy_version": "v23.rag-boundary.v1",
+      "role": "advisory_only",
+      "allowed_uses": [
+        "retrieve_similar_examples",
+        "retrieve_user_and_developer_documentation",
+        "explain_parameters_and_validation_errors",
+        "provide_non_authoritative_candidate terminology"
+      ],
+      "forbidden_authority": [
+        "capability_support",
+        "effect_owner",
+        "builder_or_runner_binding",
+        "native_proxy_classification",
+        "parameter_profile",
+        "claim_level",
+        "qoi_observability_truth",
+        "runtime_injection_success"
+      ],
+      "authoritative_sources": [
+        "Capability Registry",
+        "Operator Contract",
+        "Parameter Registry",
+        "Validation Registry",
+        "Run evidence"
+      ],
+      "reason_code": "RAG_ADVISORY_ONLY"
+    },
+    "planning": null
+  }
+}

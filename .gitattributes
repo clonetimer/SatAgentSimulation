@@ -24,5 +24,9 @@ reports/progress_checkpoint/manual-endurance-review-2026-11-01/** -text whitespa
 reports/progress_checkpoint/maintenance-closure-2026-11-02/** -text whitespace=cr-at-eol
 # Raw pytest tracebacks retain their original trailing spaces as evidence.
 reports/progress_checkpoint/maintenance-closure-2026-11-02/*.xml -text whitespace=cr-at-eol,-blank-at-eol
+reports/progress_checkpoint/model-distribution-2026-11-02/** -text whitespace=cr-at-eol
+reports/progress_checkpoint/model-distribution-2026-11-02/*.xml -text whitespace=cr-at-eol,-blank-at-eol
+# Preserve the model's original whitespace and Windows text-write bytes.
+reports/progress_checkpoint/model-distribution-2026-11-02/raw_model_output.txt -text whitespace=-blank-at-eol
 # Raw pytest tracebacks retain their original trailing spaces as evidence.
 reports/progress_checkpoint/maintenance-closure-2026-11-02/*.xml -text whitespace=cr-at-eol,-blank-at-eol

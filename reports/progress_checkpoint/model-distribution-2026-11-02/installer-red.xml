@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.231" timestamp="2026-11-02T14:16:12.359953+08:00" hostname="DESKTOP-1E2E8R0"><testcase classname="tests.test_model_release_distribution" name="test_offline_install_relocates_paths_and_existing_base_verifier_accepts" time="0.009"><failure message="AssertionError: Model distribution installer is not implemented&#10;assert False&#10; +  where False = is_file()&#10; +    where is_file = WindowsPath('E:/tmp/SatAgentSimulation/scripts/model_release.py').is_file">release = {'archive': WindowsPath('E:/tmp/SatAgentSimulation/reports/local_model_distribution/red-tmp/test_offline_install_reloc...tes': 15, 'path': 'LICENSE', 'sha256': '164af7d64565df9b8413f343f085c1c397914fbdafca7c4ffd4d188373aac7d8'}], ...}, ...}
+
+    def test_offline_install_relocates_paths_and_existing_base_verifier_accepts(release):
+&gt;       m = module()
+            ^^^^^^^^
+
+tests\test_model_release_distribution.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def module():
+&gt;       assert SCRIPT.is_file(), 'Model distribution installer is not implemented'
+E       AssertionError: Model distribution installer is not implemented
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('E:/tmp/SatAgentSimulation/scripts/model_release.py').is_file
+
+tests\test_model_release_distribution.py:17: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,9 @@
+{
+  "input_kind": "natural_language",
+  "request_text": "创建一个整星正常仿真，运行2秒，采样间隔0.5秒，积分步长0.1秒，无故障，输出默认曲线。",
+  "backend": "auto",
+  "provider_id": "local-modelscope",
+  "routing_mode": "auto",
+  "compile_if_valid": true,
+  "experience_reuse_enabled": false
+}

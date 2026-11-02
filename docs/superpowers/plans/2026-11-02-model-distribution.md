@@ -30,20 +30,20 @@
 
 Files: scripts/model_release.py; tests/test_model_release_distribution.py.
 
-- [ ] Write behavioral tests over real files and local HTTP; watch missing feature fail.
-- [ ] Implement install/check/serve and run the focused tests, serving/data contracts and governance checks.
-- [ ] Record red/green and any rulings in reports/local_model_distribution/ledger.md.
+- [x] Write behavioral tests over real files and local HTTP; watch missing feature fail.
+- [x] Implement install/check/serve and run the focused tests, serving/data contracts and governance checks.
+- [x] Record red/green and any rulings in reports/local_model_distribution/ledger.md.
 
 ## Task 2: Reproducible model package and release lock
 
 Files: configs/models/satagent-v5-release.json; docs/model_distribution.md; README.md; START_HERE.md; docs/modelscope_local_training.md.
 
-- [ ] Verify all original adapter/base hashes and prepare deterministic ZIP, model card and license.
-- [ ] Produce committed lock with exact archive/payload/base identities and public URLs.
-- [ ] Test real package install in a fresh checkout and actual CUDA load/generate/execute, preserving old service restoration details.
+- [x] Verify all original adapter/base hashes and prepare deterministic ZIP, model card and license.
+- [x] Produce committed lock with exact archive/payload/base identities and public URLs.
+- [x] Test real package install in a fresh checkout and actual CUDA load/generate/execute, preserving old service restoration details.
 
 ## Task 3: Cloud distribution and final verification
 
-- [ ] Commit reviewed source/docs/lock and push; create a new non-overwriting GitHub release.
-- [ ] Upload exact package and lock, verify server digest and unauthenticated download/install/check.
-- [ ] Publish compact validation evidence and verify remote main, clean tree, and usable user commands.
+- [x] Commit reviewed source/docs/lock and push; create a new non-overwriting GitHub release.
+- [x] Upload exact package and lock, verify server digest and unauthenticated download/install/check.
+- [x] Publish compact validation evidence and verify remote main, clean tree, and usable user commands (evidence commit follows the model-release implementation commit).
