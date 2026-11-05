@@ -104,6 +104,23 @@ def _load_calibration(config: ModelRouteConfig) -> dict[str, Any] | None:
     return {"status": "loaded", "source": str(path), "payload": dict(payload)}
 
 
+def _coerce_int(value: Any, default: int) -> tuple[int, bool]:
+    try:
+        return int(value), True
+    except (TypeError, ValueError, OverflowError):
+        return int(default), False
+
+
+def _coerce_float(value: Any, default: float) -> tuple[float, bool]:
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return float(default), False
+    if number != number or number in {float("inf"), float("-inf")}:
+        return float(default), False
+    return number, True
+
+
 def _calibrated_tier(
     *,
     heuristic_tier: ModelTier,
@@ -120,8 +137,14 @@ def _calibrated_tier(
     payload = calibration.get("payload")
     if not isinstance(payload, Mapping):
         return heuristic_tier, None
-    default_min_samples = max(1, int(payload.get("min_samples") or 10))
-    default_min_gain = max(0.0, float(payload.get("min_success_rate_gain") or 0.10))
+    raw_default_min_samples, default_samples_valid = _coerce_int(
+        payload.get("min_samples"), 10
+    )
+    raw_default_min_gain, default_gain_valid = _coerce_float(
+        payload.get("min_success_rate_gain"), 0.10
+    )
+    default_min_samples = max(1, raw_default_min_samples)
+    default_min_gain = max(0.0, raw_default_min_gain)
     candidates: list[tuple[int, str, Mapping[str, Any]]] = []
     signal_set = set(str(item) for item in signals)
     domain_set = set(domains)
@@ -147,13 +170,31 @@ def _calibrated_tier(
         }
     candidates.sort(key=lambda item: (-item[0], item[1]))
     _, segment_id, segment = candidates[0]
-    sample_count = int(segment.get("sample_count") or 0)
-    min_samples = max(1, int(segment.get("min_samples") or default_min_samples))
-    l1_success = float(segment.get("l1_success_rate") or 0.0)
-    l2_success = float(segment.get("l2_success_rate") or 0.0)
-    rates_valid = 0.0 <= l1_success <= 1.0 and 0.0 <= l2_success <= 1.0
+    sample_count, sample_count_valid = _coerce_int(segment.get("sample_count"), 0)
+    raw_min_samples, min_samples_valid = _coerce_int(
+        segment.get("min_samples"), default_min_samples
+    )
+    min_samples = max(1, raw_min_samples)
+    l1_success, l1_rate_valid = _coerce_float(segment.get("l1_success_rate"), 0.0)
+    l2_success, l2_rate_valid = _coerce_float(segment.get("l2_success_rate"), 0.0)
+    rates_valid = (
+        l1_rate_valid
+        and l2_rate_valid
+        and 0.0 <= l1_success <= 1.0
+        and 0.0 <= l2_success <= 1.0
+    )
     gain = l2_success - l1_success
-    min_gain = max(0.0, float(segment.get("min_success_rate_gain") or default_min_gain))
+    raw_min_gain, min_gain_valid = _coerce_float(
+        segment.get("min_success_rate_gain"), default_min_gain
+    )
+    min_gain = max(0.0, raw_min_gain)
+    numeric_fields_valid = (
+        default_samples_valid
+        and default_gain_valid
+        and sample_count_valid
+        and min_samples_valid
+        and min_gain_valid
+    )
     recommended = str(segment.get("recommended_tier") or "").upper()
     evidence_sha256 = str(segment.get("evaluation_sha256") or "")
     evidence_valid = (
@@ -162,7 +203,8 @@ def _calibrated_tier(
     )
     matched_budget = segment.get("matched_budget") is True
     accepted = (
-        sample_count >= min_samples
+        numeric_fields_valid
+        and sample_count >= min_samples
         and rates_valid
         and evidence_valid
         and matched_budget
@@ -187,6 +229,7 @@ def _calibrated_tier(
         "matched_budget": matched_budget,
         "evaluation_sha256": evidence_sha256 or None,
         "rates_valid": rates_valid,
+        "numeric_fields_valid": numeric_fields_valid,
         "evidence_valid": evidence_valid,
     }
     if not accepted:
