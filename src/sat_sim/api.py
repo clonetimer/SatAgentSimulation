@@ -856,6 +856,8 @@ def create_app(
     app.state.queue_worker = queue_worker
     app.state.task_center = task_center
     app.state.experiment_store = experiment_store
+    app.state.agent_operation_store = agent_operation_store
+    app.state.agent_experiment_tools = agent_experiment_tools
     app.state.experience_store = experience_store
     app.state.experience_lessons = experience_lessons
     app.state.provider_config_path = provider_config_path
