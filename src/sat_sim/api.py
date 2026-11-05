@@ -805,6 +805,7 @@ def create_app(
     )
     agent_max_launch_runs = int(os.getenv("SAT_SIM_AGENT_MAX_LAUNCH_RUNS") or "12")
     agent_max_execution_attempts = int(os.getenv("SAT_SIM_AGENT_MAX_EXECUTION_ATTEMPTS") or "24")
+    agent_operation_lease_s = float(os.getenv("SAT_SIM_AGENT_OPERATION_LEASE_S") or "600")
     experience_store = ExperienceStore(artifact_root / "experiences")
     experience_lessons = ExperienceLessonService(experience_store)
     provider_config_path = Path(os.getenv("SAT_SIM_MODEL_PROVIDERS_FILE") or artifact_root / "model_providers.json").resolve()
@@ -1143,6 +1144,7 @@ def create_app(
             operation_id=operation_id,
             operation_kind="launch_experiment",
             request_payload=request_payload,
+            lease_seconds=agent_operation_lease_s,
         )
         if reservation.state == "REPLAY":
             replay = dict(reservation.result or {})
@@ -1164,11 +1166,31 @@ def create_app(
                 "replayed": True,
                 "reconciliation": agent_launch_snapshot(experiment_id, operation_id),
             }
+        if reservation.state == "RECONCILE":
+            if not agent_operation_store.resume_reconciliation(
+                operation_id,
+                lease_seconds=agent_operation_lease_s,
+            ):
+                return {
+                    "ok": False,
+                    "operation_id": operation_id,
+                    "operation_state": "IN_PROGRESS",
+                    "replayed": True,
+                    "reconciliation": agent_launch_snapshot(experiment_id, operation_id),
+                }
 
         launched: list[dict[str, Any]] = []
         recovered: list[dict[str, Any]] = []
         try:
             for member in experiment_store.members(experiment_id):
+                if not agent_operation_store.heartbeat(
+                    operation_id,
+                    lease_seconds=agent_operation_lease_s,
+                ):
+                    raise AgentToolError(
+                        "AGENT_OPERATION_LEASE_LOST",
+                        "launch operation lease was lost before the next side effect",
+                    )
                 variant_index = int(member["variant_index"])
                 run_id = f"{experiment_id}_v{variant_index + 1:03d}"
                 if member.get("run_id"):
@@ -1247,6 +1269,14 @@ def create_app(
                     "source": source,
                     "execution_state": state,
                 })
+                if not agent_operation_store.heartbeat(
+                    operation_id,
+                    lease_seconds=agent_operation_lease_s,
+                ):
+                    raise AgentToolError(
+                        "AGENT_OPERATION_LEASE_LOST",
+                        "launch operation lease was lost after queue submission",
+                    )
 
             reconciliation = agent_launch_snapshot(experiment_id, operation_id)
             result = {
@@ -2104,6 +2134,60 @@ def create_app(
                 operation_id,
             )
         return response
+
+    @app.post("/agent/operations/{operation_id}/reconcile")
+    def reconcile_agent_operation(operation_id: str) -> dict[str, Any]:
+        try:
+            payload = agent_operation_store.get(operation_id)
+        except AgentToolError as exc:
+            raise HTTPException(status_code=422, detail=exc.to_dict()) from exc
+        if payload is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "AGENT_OPERATION_NOT_FOUND", "message": "operation not found"},
+            )
+        if payload.get("operation_state") == "SUCCEEDED":
+            return {"ok": True, **payload, "replayed": True}
+        if payload.get("operation_kind") != "launch_experiment":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason_code": "AGENT_OPERATION_NOT_RECONCILABLE",
+                    "message": "only launch_experiment operations support active reconciliation",
+                },
+            )
+        request = payload.get("request") if isinstance(payload.get("request"), dict) else {}
+        experiment_id = str(request.get("experiment_id") or "")
+        if not experiment_id:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "reason_code": "AGENT_OPERATION_REQUEST_MISSING",
+                    "message": "persisted launch request is missing experiment_id",
+                },
+            )
+        if payload.get("operation_state") == "PENDING":
+            if not agent_operation_store.claim_reconciliation(operation_id):
+                return JSONResponse(
+                    status_code=409,
+                    content={
+                        "detail": {
+                            "reason_code": "AGENT_OPERATION_STILL_ACTIVE",
+                            "message": "operation lease has not expired; query status and do not retry yet",
+                            "operation_id": operation_id,
+                            "lease_expires_at": payload.get("lease_expires_at"),
+                        },
+                        "reconciliation": agent_launch_snapshot(experiment_id, operation_id),
+                    },
+                )
+        return launch_agent_experiment(
+            operation_id=operation_id,
+            experiment_id=experiment_id,
+            max_attempts=int(request.get("max_attempts") or 1),
+            hard_timeout=bool(request.get("hard_timeout", True)),
+            max_run_count=int(request.get("max_run_count") or 1),
+            max_execution_attempts=int(request.get("max_execution_attempts") or 1),
+        )
 
     @app.post("/agent/experiments/{experiment_id}/launch")
     def agent_launch_experiment(experiment_id: str, body: AgentExperimentLaunchBody) -> dict[str, Any]:
