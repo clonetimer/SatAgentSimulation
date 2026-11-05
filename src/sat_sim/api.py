@@ -2477,7 +2477,12 @@ def create_app(
     @app.post("/agent/goals")
     def create_agent_goal(body: AgentGoalCreateBody) -> dict[str, Any]:
         try:
-            canonical = canonicalize_task_spec(body.base_task_spec)
+            source_spec = (
+                parse_canonical_transport(body.base_task_spec, body.base_task_spec_json)
+                if body.base_task_spec_json is not None
+                else body.base_task_spec
+            )
+            canonical = canonicalize_task_spec(source_spec)
             options = experiment_design_options(canonical)
             registered = {
                 str(item.get("path"))
