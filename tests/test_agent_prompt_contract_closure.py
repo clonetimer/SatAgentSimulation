@@ -163,6 +163,8 @@ def test_real_model_timeout_is_counted_as_failed_first_answer(monkeypatch, tmp_p
     first_attempt = json.loads(
         (tmp_path / "timeout-out" / "first_attempt.json").read_text(encoding="utf-8")
     )
+    assert first_attempt["first_answer_eligible"] is True
+    assert first_attempt["first_answer_pass"] is False
     assert first_attempt["eligible_unrepaired_first_answer"] is True
     assert first_attempt["validation_ok"] is False
     assert first_attempt["draft_parse_or_schema_failed"] is True
