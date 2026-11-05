@@ -574,6 +574,14 @@ def agent_experiment_tool_surface(
                 "deterministic": True,
                 "causal_claims_verified": False,
             },
+            {
+                "name": "interpret_experiment_evidence",
+                "effect": "read",
+                "deterministic_validation": True,
+                "model_optional": True,
+                "causal_claims_verified": False,
+                "next_experiments_are_proposals_only": True,
+            },
         ],
         "forbidden": [
             "launch_without_budget_reservation",
