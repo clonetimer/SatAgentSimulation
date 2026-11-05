@@ -489,6 +489,7 @@ class ExperienceLessonEvaluateBody(_Strict):
     baseline_metrics: dict[str, float]
     candidate_metrics: dict[str, float]
     evaluation_evidence: dict[str, Any]
+    require_evidence_objects: bool = False
 
 
 class ExperienceLessonReviewBody(_Strict):
@@ -4133,6 +4134,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
                 baseline_metrics=body.baseline_metrics,
                 candidate_metrics=body.candidate_metrics,
                 evaluation_evidence=body.evaluation_evidence,
+                require_evidence_objects=body.require_evidence_objects,
             )
             return {"ok": True, "evaluation": evaluation}
         except KeyError as exc:
