@@ -389,3 +389,61 @@ def test_goal_deterministic_interpretation_does_not_consume_model_budget(tmp_pat
     assert response.json()["analysis_operation"]["result"]["analysis"]["mode"] == "deterministic"
     assert response.json()["budget"]["committed"]["model_calls"] == 0
     assert response.json()["budget"]["remaining"]["model_calls"] == 0
+
+
+def test_partial_evidence_interpretation_does_not_advance_running_goal(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    partial = {
+        "schema_version": "agent-experiment-evidence.v1",
+        "experiment_id": "partial-exp",
+        "evidence_ready": False,
+        "complete": False,
+        "runs": [],
+        "comparisons": [],
+        "warnings": [{"code": "RUN_NOT_ASSIGNED"}],
+        "claim_policy": {
+            "causal_explanation": "Not verified by this evidence package alone.",
+        },
+    }
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: partial)
+
+    _, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 1, "execution_attempts": 1, "model_calls": 0},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "partial:create",
+            "name": "partial",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "阶段性分析",
+        },
+    )
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+    launched = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/launch",
+        json={
+            "operation_id": "partial:launch",
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 1,
+            "max_execution_attempts": 1,
+        },
+    )
+    assert launched.status_code == 200
+    assert launched.json()["goal"]["status"] == "RUNNING"
+
+    interpreted = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/interpret",
+        json={
+            "operation_id": "partial:interpret",
+            "question": "当前有什么证据",
+            "mode": "deterministic",
+        },
+    )
+    assert interpreted.status_code == 200
+    assert interpreted.json()["goal"]["status"] == "RUNNING"
+    assert interpreted.json()["analysis_operation"]["result"]["evidence"]["complete"] is False
