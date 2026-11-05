@@ -1131,6 +1131,7 @@ def create_app(
                 f"launch reserves {attempt_capacity} attempts; Agent global limit is {agent_max_execution_attempts}",
             )
 
+        lease_owner = uuid4().hex
         request_payload = {
             "schema_version": "agent-experiment-launch.v1",
             "operation_kind": "launch_experiment",
@@ -1147,6 +1148,7 @@ def create_app(
             operation_kind="launch_experiment",
             request_payload=request_payload,
             lease_seconds=agent_operation_lease_s,
+            lease_owner=lease_owner,
         )
         if reservation.state == "REPLAY":
             replay = dict(reservation.result or {})
@@ -1171,6 +1173,7 @@ def create_app(
         if reservation.state == "RECONCILE":
             if not agent_operation_store.resume_reconciliation(
                 operation_id,
+                lease_owner=lease_owner,
                 lease_seconds=agent_operation_lease_s,
             ):
                 return {
@@ -1187,6 +1190,7 @@ def create_app(
             for member in experiment_store.members(experiment_id):
                 if not agent_operation_store.heartbeat(
                     operation_id,
+                    lease_owner=lease_owner,
                     lease_seconds=agent_operation_lease_s,
                 ):
                     raise AgentToolError(
@@ -1273,6 +1277,7 @@ def create_app(
                 })
                 if not agent_operation_store.heartbeat(
                     operation_id,
+                    lease_owner=lease_owner,
                     lease_seconds=agent_operation_lease_s,
                 ):
                     raise AgentToolError(
@@ -1297,7 +1302,15 @@ def create_app(
                 "reconciliation": reconciliation,
                 "replayed": False,
             }
-            agent_operation_store.complete(operation_id, result)
+            if not agent_operation_store.complete(
+                operation_id,
+                result,
+                lease_owner=lease_owner,
+            ):
+                raise AgentToolError(
+                    "AGENT_OPERATION_LEASE_LOST",
+                    "launch operation lost ownership before completion",
+                )
             return result
         except Exception as exc:
             agent_operation_store.require_reconciliation(
@@ -1307,6 +1320,7 @@ def create_app(
                     "message": str(exc),
                     "experiment_id": experiment_id,
                 },
+                lease_owner=lease_owner,
             )
             raise
 
