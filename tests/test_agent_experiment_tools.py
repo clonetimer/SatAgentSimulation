@@ -62,6 +62,11 @@ def test_create_experiment_is_idempotent_for_same_operation(tmp_path):
     }
     first = tools.create_experiment(**kwargs)
     second = tools.create_experiment(**kwargs)
+    operation = tools.operation_store.get(kwargs["operation_id"])
+
+    assert operation is not None
+    assert operation["operation_state"] == "SUCCEEDED"
+    assert operation["result"]["experiment_id"] == first["experiment_id"]
 
     assert first["ok"] is True
     assert first["replayed"] is False
@@ -153,7 +158,11 @@ def test_agent_experiment_api_is_idempotent_and_budgeted(tmp_path, monkeypatch):
         "sweep": {"simulation.duration_s": [10, 20]},
     }
     first = client.post("/agent/experiments", json=body)
+    status = client.get("/agent/operations/api:create:1")
     second = client.post("/agent/experiments", json=body)
+    assert status.status_code == 200
+    assert status.json()["operation_state"] == "SUCCEEDED"
+    assert status.json()["result"]["experiment_id"] == first.json()["experiment_id"]
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json()["experiment_id"] == second.json()["experiment_id"]
@@ -172,3 +181,7 @@ def test_agent_experiment_api_is_idempotent_and_budgeted(tmp_path, monkeypatch):
     budget = client.post("/agent/experiments", json=too_many)
     assert budget.status_code == 422
     assert budget.json()["detail"]["reason_code"] == "AGENT_EXPERIMENT_VARIANT_BUDGET_EXCEEDED"
+
+    missing = client.get("/agent/operations/api:missing")
+    assert missing.status_code == 404
+    assert missing.json()["detail"]["reason_code"] == "AGENT_OPERATION_NOT_FOUND"
