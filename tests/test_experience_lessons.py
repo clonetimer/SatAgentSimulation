@@ -826,3 +826,88 @@ def test_refinement_advisory_uses_single_explicit_base_effect(tmp_path):
     assert advisory["lesson_ids"] == [wanted.lesson_id]
     assert other.lesson_id not in advisory["lesson_ids"]
     assert result is not None
+
+
+def test_strict_evaluation_requires_stored_evidence_objects(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    source = _source(store)
+    service = ExperienceLessonService(store)
+    lesson, _ = service.compile(
+        [source.experience_id],
+        scope=SCOPE,
+        actor="compiler-a",
+    )
+
+    case_hash = service.store_evaluation_artifact({
+        "schema_version": "test.case-results.v1",
+        "cases": [{"case_id": "held-out-1", "passed": True}],
+    })
+    metrics_hash = service.store_evaluation_artifact({
+        "schema_version": "test.metrics.v1",
+        "baseline": {"primary_score": 0.8},
+        "candidate": {"primary_score": 0.9},
+    })
+
+    evaluation = service.evaluate(
+        lesson.lesson_id,
+        scope=SCOPE,
+        evaluator="evaluator-a",
+        held_out_case_ids=("held-out-1",),
+        baseline_metrics={
+            "primary_score": 0.8,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        candidate_metrics={
+            "primary_score": 0.9,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        evaluation_evidence={
+            "runner": "strict-held-out-runner",
+            "case_result_sha256": case_hash,
+            "metrics_source_sha256": metrics_hash,
+        },
+        require_evidence_objects=True,
+    )
+    assert evaluation["passed"] is True
+    assert evaluation["evaluation_evidence"]["objects_verified"] is True
+
+
+def test_strict_evaluation_rejects_missing_evidence_objects(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    source = _source(store)
+    service = ExperienceLessonService(store)
+    lesson, _ = service.compile(
+        [source.experience_id],
+        scope=SCOPE,
+        actor="compiler-a",
+    )
+
+    with pytest.raises(ValueError, match="EVALUATION_EVIDENCE_OBJECT_MISSING"):
+        service.evaluate(
+            lesson.lesson_id,
+            scope=SCOPE,
+            evaluator="evaluator-a",
+            held_out_case_ids=("held-out-1",),
+            baseline_metrics={
+                "primary_score": 0.8,
+                "safety_regressions": 0,
+                "physical_regressions": 0,
+                "backward_regressions": 0,
+            },
+            candidate_metrics={
+                "primary_score": 0.9,
+                "safety_regressions": 0,
+                "physical_regressions": 0,
+                "backward_regressions": 0,
+            },
+            evaluation_evidence={
+                "runner": "strict-held-out-runner",
+                "case_result_sha256": "a" * 64,
+                "metrics_source_sha256": "b" * 64,
+            },
+            require_evidence_objects=True,
+        )
