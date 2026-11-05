@@ -257,6 +257,20 @@ def test_interpret_api_model_output_is_still_validated(tmp_path, monkeypatch):
 
     evidence = _evidence()
     monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence)
+    provider_path = tmp_path / "providers.json"
+    provider_path.write_text(json.dumps({
+        "providers": [{
+            "provider_id": "test-evidence-provider",
+            "label": "test",
+            "backend": "openai_compatible",
+            "location": "local",
+            "tier": "L2",
+            "model": "fake-model",
+            "base_url": "http://127.0.0.1:9999/v1",
+            "enabled": True,
+        }]
+    }), encoding="utf-8")
+    monkeypatch.setenv("SAT_SIM_MODEL_PROVIDERS_FILE", str(provider_path))
 
     invalid = _valid_payload()
     invalid["comparisons"][0]["delta"] = 7.0
@@ -285,9 +299,7 @@ def test_interpret_api_model_output_is_still_validated(tmp_path, monkeypatch):
         json={
             "question": "解释结果",
             "mode": "model",
-            "backend": "openai_compatible",
-            "model": "fake-model",
-            "base_url": "http://127.0.0.1:9999/v1",
+            "provider_id": "test-evidence-provider",
         },
     )
     assert response.status_code == 422
@@ -304,6 +316,20 @@ def test_interpret_api_model_can_only_propose_registered_parameter(tmp_path, mon
 
     evidence = _evidence()
     monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence)
+    provider_path = tmp_path / "providers.json"
+    provider_path.write_text(json.dumps({
+        "providers": [{
+            "provider_id": "test-evidence-provider",
+            "label": "test",
+            "backend": "openai_compatible",
+            "location": "local",
+            "tier": "L2",
+            "model": "fake-model",
+            "base_url": "http://127.0.0.1:9999/v1",
+            "enabled": True,
+        }]
+    }), encoding="utf-8")
+    monkeypatch.setenv("SAT_SIM_MODEL_PROVIDERS_FILE", str(provider_path))
 
     payload = _valid_payload()
     payload["next_experiments"] = [{
@@ -338,9 +364,7 @@ def test_interpret_api_model_can_only_propose_registered_parameter(tmp_path, mon
         json={
             "question": "下一步怎么验证",
             "mode": "model",
-            "backend": "openai_compatible",
-            "model": "fake-model",
-            "base_url": "http://127.0.0.1:9999/v1",
+            "provider_id": "test-evidence-provider",
         },
     )
     assert response.status_code == 200
