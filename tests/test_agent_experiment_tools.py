@@ -328,3 +328,98 @@ def test_agent_launch_operation_id_conflict_is_rejected(tmp_path, monkeypatch):
     assert rejected.status_code == 409
     assert rejected.json()["detail"]["reason_code"] == "OPERATION_ID_CONFLICT"
     assert len(app.state.execution_queue.list_jobs(limit=10)["jobs"]) == 1
+
+
+def test_reconcile_refuses_active_launch_lease_then_resumes_expired_operation(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from sat_sim.api import create_app
+
+    monkeypatch.setenv("SAT_SIM_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("SAT_SIM_AGENT_OPERATION_LEASE_S", "600")
+    app = create_app(embedded_worker=False)
+    client = TestClient(app)
+
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "lease:create",
+            "name": "lease recovery",
+            "base_task_spec": _spec(),
+            "sweep": {"simulation.duration_s": [10]},
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_id"]
+
+    request = {
+        "schema_version": "agent-experiment-launch.v1",
+        "operation_kind": "launch_experiment",
+        "experiment_id": experiment_id,
+        "max_attempts": 1,
+        "hard_timeout": True,
+        "max_run_count": 1,
+        "max_execution_attempts": 1,
+        "reserved_run_capacity": 1,
+        "reserved_attempt_capacity": 1,
+    }
+    reservation, _ = app.state.agent_operation_store.reserve_payload(
+        operation_id="lease:launch",
+        operation_kind="launch_experiment",
+        request_payload=request,
+        lease_seconds=600,
+    )
+    assert reservation.state == "NEW"
+
+    active = client.post("/agent/operations/lease:launch/reconcile")
+    assert active.status_code == 409
+    assert active.json()["detail"]["reason_code"] == "AGENT_OPERATION_STILL_ACTIVE"
+    assert app.state.execution_queue.list_jobs(limit=10)["jobs"] == []
+
+    with app.state.agent_operation_store._connect() as connection:
+        connection.execute(
+            "UPDATE agent_operations SET lease_expires_at = ? WHERE operation_id = ?",
+            ("2000-01-01T00:00:00+00:00", "lease:launch"),
+        )
+
+    recovered = client.post("/agent/operations/lease:launch/reconcile")
+    assert recovered.status_code == 200
+    payload = recovered.json()
+    assert payload["operation_state"] == "SUCCEEDED"
+    assert payload["launched_count"] == 1
+    assert payload["reconciliation"]["all_assigned"] is True
+    jobs = app.state.execution_queue.list_jobs(limit=10)["jobs"]
+    assert len(jobs) == 1
+    assert jobs[0]["metadata"]["agent_operation_id"] == "lease:launch"
+
+    status = client.get("/agent/operations/lease:launch")
+    assert status.status_code == 200
+    assert status.json()["operation_state"] == "SUCCEEDED"
+    assert status.json()["request"]["experiment_id"] == experiment_id
+
+
+def test_operation_store_migrates_request_and_lease_columns(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "legacy.sqlite"
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE agent_operations (
+                operation_id TEXT PRIMARY KEY,
+                input_sha256 TEXT NOT NULL,
+                operation_kind TEXT NOT NULL,
+                state TEXT NOT NULL,
+                result_json TEXT,
+                error_json TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
+    store = AgentOperationStore(path)
+    with store._connect() as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(agent_operations)").fetchall()}
+    assert "request_json" in columns
+    assert "lease_expires_at" in columns
