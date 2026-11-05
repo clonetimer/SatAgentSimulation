@@ -482,6 +482,10 @@ class ExperienceLessonCompileBody(_Strict):
     experience_ids: list[str] = Field(min_length=1, max_length=100)
 
 
+class ExperienceEvaluationArtifactBody(_Strict):
+    payload: dict[str, Any]
+
+
 class ExperienceLessonEvaluateBody(_Strict):
     tenant_id: str = Field(min_length=1, max_length=128)
     project_id: str = Field(min_length=1, max_length=128)
@@ -4115,6 +4119,33 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
                 status_code=422,
                 detail={"reason_code": "LESSON_COMPILE_REJECTED", "message": str(exc)},
             ) from exc
+
+    @app.post("/experience-lessons/evaluation-artifacts")
+    def store_experience_evaluation_artifact(
+        body: ExperienceEvaluationArtifactBody,
+    ) -> dict[str, Any]:
+        encoded = json.dumps(
+            body.payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        if len(encoded) > 2 * 1024 * 1024:
+            raise HTTPException(
+                status_code=413,
+                detail={
+                    "reason_code": "EVALUATION_ARTIFACT_TOO_LARGE",
+                    "message": "evaluation artifact JSON exceeds 2 MiB",
+                },
+            )
+        digest = experience_lessons.store_evaluation_artifact(body.payload)
+        return {
+            "ok": True,
+            "schema_version": "sat-sim.evaluation-artifact.v1",
+            "sha256": digest,
+            "size_bytes": len(encoded),
+            "content_type": "application/json",
+        }
 
     @app.post("/experience-lessons/{lesson_id}/evaluate")
     def evaluate_experience_lesson(
