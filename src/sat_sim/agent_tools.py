@@ -1,0 +1,361 @@
+"""Structured Agent tools for bounded experiment design and creation.
+
+P1 intentionally starts with deterministic read/preview operations and an
+idempotent experiment-create write.  It does not launch runs.  Execution is
+added only after operation reconciliation and run-budget accounting are
+available.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from .experiment_manager import ExperimentStore
+from .sqlite_connections import connect
+from .task_models import canonicalize_task_spec
+from .workbench_integration import (
+    experiment_design_options,
+    list_workbench_fault_models,
+    preview_experiment_plan,
+)
+
+_AGENT_TOOL_SCHEMA_VERSION = "agent-experiment-tools.v1"
+_OPERATION_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _stable_json(payload: Any) -> str:
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _payload_hash(payload: Any) -> str:
+    return hashlib.sha256(_stable_json(payload).encode("utf-8")).hexdigest()
+
+
+class AgentToolError(ValueError):
+    """Deterministic tool-contract rejection with a stable reason code."""
+
+    def __init__(self, reason_code: str, message: str) -> None:
+        super().__init__(message)
+        self.reason_code = reason_code
+        self.message = message
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"reason_code": self.reason_code, "message": self.message}
+
+
+@dataclass(frozen=True)
+class OperationReservation:
+    state: str
+    result: dict[str, Any] | None = None
+    error: dict[str, Any] | None = None
+
+
+class AgentOperationStore:
+    """Small durable idempotency journal for Agent write operations.
+
+    The journal is deliberately separate from the execution queue.  It records
+    the Agent's intent to perform a side effect and the resulting persistent
+    object.  A future launch tool can use the same operation identifier while
+    queue/run state remains authoritative for execution.
+    """
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path).resolve()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize()
+
+    def _connect(self) -> sqlite3.Connection:
+        connection = connect(self.path, timeout=30.0)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA busy_timeout=30000")
+        return connection
+
+    def _initialize(self) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS agent_operations (
+                    operation_id TEXT PRIMARY KEY,
+                    input_sha256 TEXT NOT NULL,
+                    operation_kind TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    result_json TEXT,
+                    error_json TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_agent_operations_updated "
+                "ON agent_operations(updated_at DESC)"
+            )
+
+    @staticmethod
+    def _validate_operation_id(operation_id: str) -> str:
+        value = str(operation_id or "").strip()
+        if not _OPERATION_ID_RE.fullmatch(value):
+            raise AgentToolError(
+                "INVALID_OPERATION_ID",
+                "operation_id must be 1-128 characters using letters, numbers, '.', '_', ':', or '-'",
+            )
+        return value
+
+    def reserve(self, *, operation_id: str, input_sha256: str, operation_kind: str) -> OperationReservation:
+        operation_id = self._validate_operation_id(operation_id)
+        now = _now()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                INSERT OR IGNORE INTO agent_operations
+                    (operation_id, input_sha256, operation_kind, state, result_json, error_json, created_at, updated_at)
+                VALUES (?, ?, ?, 'PENDING', NULL, NULL, ?, ?)
+                """,
+                (operation_id, input_sha256, operation_kind, now, now),
+            )
+            row = connection.execute(
+                "SELECT * FROM agent_operations WHERE operation_id = ?",
+                (operation_id,),
+            ).fetchone()
+        if row is None:
+            raise RuntimeError("operation reservation disappeared")
+        if str(row["input_sha256"]) != input_sha256 or str(row["operation_kind"]) != operation_kind:
+            raise AgentToolError(
+                "OPERATION_ID_CONFLICT",
+                "operation_id is already bound to different input or operation kind",
+            )
+        if cursor.rowcount == 1:
+            return OperationReservation(state="NEW")
+        state = str(row["state"])
+        if state == "SUCCEEDED":
+            result = json.loads(row["result_json"]) if row["result_json"] else {}
+            return OperationReservation(state="REPLAY", result=result)
+        if state == "FAILED":
+            error = json.loads(row["error_json"]) if row["error_json"] else {}
+            return OperationReservation(state="FAILED", error=error)
+        return OperationReservation(state="IN_PROGRESS")
+
+    def complete(self, operation_id: str, result: Mapping[str, Any]) -> None:
+        operation_id = self._validate_operation_id(operation_id)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE agent_operations
+                SET state = 'SUCCEEDED', result_json = ?, error_json = NULL, updated_at = ?
+                WHERE operation_id = ? AND state = 'PENDING'
+                """,
+                (_stable_json(dict(result)), _now(), operation_id),
+            )
+
+    def fail(self, operation_id: str, error: Mapping[str, Any]) -> None:
+        operation_id = self._validate_operation_id(operation_id)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE agent_operations
+                SET state = 'FAILED', error_json = ?, updated_at = ?
+                WHERE operation_id = ? AND state = 'PENDING'
+                """,
+                (_stable_json(dict(error)), _now(), operation_id),
+            )
+
+
+class AgentExperimentTools:
+    """Bounded deterministic tool layer for experiment authoring."""
+
+    def __init__(
+        self,
+        *,
+        experiment_store: ExperimentStore,
+        operation_store: AgentOperationStore,
+        max_create_variants: int = 12,
+    ) -> None:
+        if int(max_create_variants) < 1:
+            raise ValueError("max_create_variants must be >= 1")
+        self.experiment_store = experiment_store
+        self.operation_store = operation_store
+        self.max_create_variants = int(max_create_variants)
+
+    def list_fault_models(
+        self,
+        *,
+        capability_id: str | None = None,
+        category: str | None = None,
+    ) -> dict[str, Any]:
+        return list_workbench_fault_models(capability_id=capability_id, category=category)
+
+    def experiment_options(self, base_task_spec: Mapping[str, Any]) -> dict[str, Any]:
+        return experiment_design_options(base_task_spec)
+
+    def preview(
+        self,
+        *,
+        base_task_spec: Mapping[str, Any],
+        experiment_type: str = "sweep",
+        sweep: Mapping[str, list[Any]] | None = None,
+        sampling_plan: Mapping[str, Any] | None = None,
+        assertions: list[dict[str, Any]] | None = None,
+        preview_limit: int = 8,
+    ) -> dict[str, Any]:
+        payload = preview_experiment_plan(
+            base_task_spec=base_task_spec,
+            experiment_type=experiment_type,
+            sweep=sweep,
+            sampling_plan=sampling_plan,
+            assertions=assertions,
+            preview_limit=preview_limit,
+        )
+        payload["write_allowed"] = payload["variant_count"] <= self.max_create_variants
+        payload["write_budget"] = {
+            "max_create_variants": self.max_create_variants,
+            "requested_variants": payload["variant_count"],
+        }
+        return payload
+
+    def create_experiment(
+        self,
+        *,
+        operation_id: str,
+        name: str,
+        base_task_spec: Mapping[str, Any],
+        experiment_type: str = "sweep",
+        sweep: Mapping[str, Sequence[Any]] | None = None,
+        sampling_plan: Mapping[str, Any] | None = None,
+        assertions: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        canonical = canonicalize_task_spec(base_task_spec)
+        normalized_sweep = {str(path): list(values) for path, values in (sweep or {}).items()}
+        normalized_plan = dict(sampling_plan or {})
+        normalized_assertions = list(assertions or [])
+        preview = self.preview(
+            base_task_spec=canonical,
+            experiment_type=experiment_type,
+            sweep=normalized_sweep,
+            sampling_plan=normalized_plan,
+            assertions=normalized_assertions,
+            preview_limit=0,
+        )
+        requested = int(preview["variant_count"])
+        if requested > self.max_create_variants:
+            raise AgentToolError(
+                "AGENT_EXPERIMENT_VARIANT_BUDGET_EXCEEDED",
+                f"experiment requests {requested} variants; Agent create limit is {self.max_create_variants}",
+            )
+        input_payload = {
+            "schema_version": _AGENT_TOOL_SCHEMA_VERSION,
+            "operation_kind": "create_experiment",
+            "name": str(name),
+            "base_task_spec": canonical,
+            "experiment_type": str(preview["experiment_type"]),
+            "sweep": normalized_sweep,
+            "sampling_plan": normalized_plan,
+            "assertions": normalized_assertions,
+            "max_create_variants": self.max_create_variants,
+        }
+        input_sha256 = _payload_hash(input_payload)
+        reservation = self.operation_store.reserve(
+            operation_id=operation_id,
+            input_sha256=input_sha256,
+            operation_kind="create_experiment",
+        )
+        if reservation.state == "REPLAY":
+            replay = dict(reservation.result or {})
+            replay["replayed"] = True
+            return replay
+        if reservation.state == "IN_PROGRESS":
+            return {
+                "ok": False,
+                "schema_version": _AGENT_TOOL_SCHEMA_VERSION,
+                "operation_id": operation_id,
+                "operation_state": "IN_PROGRESS",
+                "replayed": True,
+            }
+        if reservation.state == "FAILED":
+            return {
+                "ok": False,
+                "schema_version": _AGENT_TOOL_SCHEMA_VERSION,
+                "operation_id": operation_id,
+                "operation_state": "FAILED",
+                "error": dict(reservation.error or {}),
+                "replayed": True,
+            }
+
+        try:
+            record = self.experiment_store.create(
+                name=str(name),
+                base_task_spec=canonical,
+                sweep=normalized_sweep,
+                assertions=normalized_assertions,
+                experiment_type=str(preview["experiment_type"]),
+                sampling_plan=normalized_plan,
+            )
+            result = {
+                "ok": True,
+                "schema_version": _AGENT_TOOL_SCHEMA_VERSION,
+                "operation_id": operation_id,
+                "operation_state": "SUCCEEDED",
+                "experiment_id": record.experiment_id,
+                "experiment_type": record.experiment_type,
+                "variant_count": record.variant_count,
+                "status": record.status,
+                "input_sha256": input_sha256,
+                "replayed": False,
+                "launch_permitted": False,
+                "boundary": "P1 create tool persists experiment variants but does not launch runs.",
+            }
+            self.operation_store.complete(operation_id, result)
+            return result
+        except Exception as exc:
+            error = {
+                "reason_code": getattr(exc, "reason_code", "EXPERIMENT_CREATE_FAILED"),
+                "message": str(exc),
+            }
+            self.operation_store.fail(operation_id, error)
+            raise
+
+
+def agent_experiment_tool_surface(*, max_create_variants: int = 12) -> dict[str, Any]:
+    """Machine-readable P1 tool contract for planners and UI adapters."""
+    return {
+        "ok": True,
+        "schema_version": _AGENT_TOOL_SCHEMA_VERSION,
+        "tools": [
+            {"name": "list_fault_models", "effect": "read", "deterministic": True},
+            {"name": "experiment_options", "effect": "read", "deterministic": True},
+            {"name": "preview_experiment", "effect": "read", "deterministic": True},
+            {
+                "name": "create_experiment",
+                "effect": "write",
+                "deterministic": True,
+                "requires_operation_id": True,
+                "max_variants": int(max_create_variants),
+                "launches_runs": False,
+            },
+        ],
+        "forbidden": [
+            "launch_without_budget_reservation",
+            "retry_unknown_write_without_reconciliation",
+            "invent_parameter_path",
+            "execute_arbitrary_python",
+        ],
+    }
+
+
+__all__ = [
+    "AgentExperimentTools",
+    "AgentOperationStore",
+    "AgentToolError",
+    "OperationReservation",
+    "agent_experiment_tool_surface",
+]
