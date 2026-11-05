@@ -66,6 +66,7 @@ def test_first_answer_metric_excludes_template_and_external_draft_cases(tmp_path
     assert row["first_answer_eligible"] is False
     assert row["first_answer_pass"] is False
     assert row["final_agent_ok"] is True
+    assert row["repair_assisted_success"] is False
 
 
 def test_case_and_aggregate_keep_independent_denominators(tmp_path):
@@ -73,10 +74,15 @@ def test_case_and_aggregate_keep_independent_denominators(tmp_path):
     out2 = tmp_path / "case2"
     for out, first_ok, final_ok in ((out1, True, True), (out2, False, True)):
         _write(out / "first_attempt.json", {
+            "first_answer_eligible": True,
+            "first_answer_pass": first_ok,
             "eligible_unrepaired_first_answer": True,
             "validation_ok": first_ok,
         })
-        _write(out / "unified_agent_report.json", {"ok": final_ok})
+        report = {"ok": final_ok}
+        if out == out2:
+            report["facade_result"] = {"steps": [{"name": "repair"}]}
+        _write(out / "unified_agent_report.json", report)
         _model_call(out / "model_call.json", tokens=10)
 
     run1 = tmp_path / "run1"
@@ -149,7 +155,7 @@ def test_schema_rejected_first_response_is_correction_and_costs_both_calls(tmp_p
 
     row = analyze_generation_artifacts(tmp_path)
     assert row["schema_rejected_first_response"] is True
-    assert row["first_answer_eligible"] is False
+    assert row["first_answer_eligible"] is True
     assert row["first_answer_pass"] is False
     assert row["correction_used"] is True
     assert row["repair_assisted_success"] is True
