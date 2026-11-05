@@ -44,6 +44,7 @@ from .evidence_interpreter import (
     interpret_evidence,
     interpretation_response_schema,
 )
+from .goal_runs import GoalRunError, GoalRunStore, TERMINAL_GOAL_STATES
 from .llm_backends import LLMCallConfig
 from .experience import ExperienceScope, ExperienceStore
 from .experience_lessons import ExperienceLessonService
@@ -407,6 +408,47 @@ class AgentExperimentLaunchBody(_Strict):
 
 
 class AgentEvidenceInterpretBody(_Strict):
+    question: str = Field(min_length=1, max_length=4000)
+    mode: Literal["deterministic", "model"] = "deterministic"
+    provider_id: str | None = Field(default=None, max_length=200)
+    metrics: list[str] = Field(default_factory=list, max_length=64)
+
+
+class AgentGoalCreateBody(_Strict):
+    objective: str = Field(min_length=1, max_length=4000)
+    base_task_spec: dict[str, Any]
+    base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
+    allowed_parameter_paths: list[str] = Field(default_factory=list, max_length=64)
+    success_criteria: list[dict[str, Any]] = Field(default_factory=list, max_length=64)
+    budget: dict[str, int] = Field(default_factory=dict)
+    activate: bool = True
+
+
+class AgentGoalCancelBody(_Strict):
+    reason: str = Field(min_length=1, max_length=4000)
+
+
+class AgentGoalExperimentCreateBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=300)
+    sweep: dict[str, list[Any]] = Field(default_factory=dict)
+    assertions: list[dict[str, Any]] = Field(default_factory=list)
+    experiment_type: str = Field(default="sweep", max_length=40)
+    sampling_plan: dict[str, Any] = Field(default_factory=dict)
+    plan_revision: int = Field(default=1, ge=1, le=10000)
+    purpose: str = Field(min_length=1, max_length=2000)
+
+
+class AgentGoalLaunchBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
+    max_attempts: int = Field(default=1, ge=1, le=2)
+    hard_timeout: bool = True
+    max_run_count: int = Field(ge=1, le=64)
+    max_execution_attempts: int = Field(ge=1, le=128)
+
+
+class AgentGoalInterpretBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
     question: str = Field(min_length=1, max_length=4000)
     mode: Literal["deterministic", "model"] = "deterministic"
     provider_id: str | None = Field(default=None, max_length=200)
@@ -808,6 +850,10 @@ def create_app(
     task_center = TaskCenterStore(task_center_path)
     experiment_path = Path(os.getenv("SAT_SIM_EXPERIMENT_DATABASE") or artifact_root / "experiments.sqlite3").resolve()
     experiment_store = ExperimentStore(experiment_path)
+    goal_run_path = Path(
+        os.getenv("SAT_SIM_GOAL_RUN_DATABASE") or artifact_root / "goal_runs.sqlite3"
+    ).resolve()
+    goal_run_store = GoalRunStore(goal_run_path)
     agent_operation_path = Path(
         os.getenv("SAT_SIM_AGENT_OPERATION_DATABASE") or artifact_root / "agent_operations.sqlite3"
     ).resolve()
@@ -872,6 +918,7 @@ def create_app(
     app.state.experiment_store = experiment_store
     app.state.agent_operation_store = agent_operation_store
     app.state.agent_experiment_tools = agent_experiment_tools
+    app.state.goal_run_store = goal_run_store
     app.state.experience_store = experience_store
     app.state.experience_lessons = experience_lessons
     app.state.provider_config_path = provider_config_path
@@ -2118,6 +2165,25 @@ def create_app(
         except Exception as exc:
             raise HTTPException(status_code=422, detail={"reason_code": "SCENARIO_TEMPLATE_INVALID", "message": str(exc)}) from exc
 
+    def goal_snapshot_payload(goal_id: str) -> dict[str, Any]:
+        snapshot = goal_run_store.snapshot(goal_id)
+        enriched = []
+        for link in snapshot["experiments"]:
+            item = dict(link)
+            record = experiment_store.get(str(item["experiment_id"]))
+            item["experiment"] = record.to_dict(include_task_spec=False) if record is not None else None
+            if item.get("launch_operation_id"):
+                item["execution"] = agent_launch_snapshot(
+                    str(item["experiment_id"]),
+                    str(item["launch_operation_id"]),
+                )
+            enriched.append(item)
+        snapshot["experiments"] = enriched
+        return snapshot
+
+    def goal_error(exc: GoalRunError, *, status_code: int = 422) -> HTTPException:
+        return HTTPException(status_code=status_code, detail=exc.to_dict())
+
     @app.get("/agent/tools")
     def agent_tools() -> dict[str, Any]:
         payload = agent_tool_surface()
@@ -2293,8 +2359,7 @@ def create_app(
             "evidence": evidence,
         }
 
-    @app.post("/agent/experiments/{experiment_id}/interpret")
-    def agent_interpret_experiment(
+    def interpret_experiment_payload(
         experiment_id: str,
         body: AgentEvidenceInterpretBody,
     ) -> dict[str, Any]:
@@ -2384,6 +2449,13 @@ def create_app(
             "next_experiments_are_proposals_only": True,
         }
 
+    @app.post("/agent/experiments/{experiment_id}/interpret")
+    def agent_interpret_experiment(
+        experiment_id: str,
+        body: AgentEvidenceInterpretBody,
+    ) -> dict[str, Any]:
+        return interpret_experiment_payload(experiment_id, body)
+
 
     @app.post("/agent/experiments")
     def agent_create_experiment(body: AgentExperimentCreateBody) -> dict[str, Any]:
@@ -2405,6 +2477,467 @@ def create_app(
                 status_code=422,
                 detail={"reason_code": "AGENT_EXPERIMENT_CREATE_FAILED", "message": str(exc)},
             ) from exc
+
+    @app.get("/agent/goals")
+    def list_agent_goals(limit: int = Query(default=100, ge=1, le=500)) -> dict[str, Any]:
+        rows = goal_run_store.list(limit=limit)
+        return {
+            "ok": True,
+            "schema_version": "agent-goal-run.v1",
+            "count": len(rows),
+            "goals": [item.to_dict(include_task_spec=False) for item in rows],
+        }
+
+    @app.post("/agent/goals")
+    def create_agent_goal(body: AgentGoalCreateBody) -> dict[str, Any]:
+        try:
+            source_spec = (
+                parse_canonical_transport(body.base_task_spec, body.base_task_spec_json)
+                if body.base_task_spec_json is not None
+                else body.base_task_spec
+            )
+            canonical = canonicalize_task_spec(source_spec)
+            options = experiment_design_options(canonical)
+            registered = {
+                str(item.get("path"))
+                for item in (options.get("sweep_options") or [])
+                if isinstance(item, Mapping) and item.get("path")
+            }
+            requested = list(dict.fromkeys(str(path) for path in body.allowed_parameter_paths if str(path).strip()))
+            unknown = [path for path in requested if path not in registered]
+            if unknown:
+                raise GoalRunError(
+                    "GOAL_PARAMETER_NOT_REGISTERED",
+                    "goal allows unregistered parameter path(s): " + ", ".join(unknown),
+                )
+            allowed = requested or sorted(registered)
+            goal = goal_run_store.create(
+                objective=body.objective,
+                base_task_spec=canonical,
+                allowed_parameter_paths=allowed,
+                success_criteria=body.success_criteria,
+                budget=body.budget,
+            )
+            if body.activate:
+                goal = goal_run_store.transition(goal.goal_id, "READY")
+            goal_run_store.record_decision(
+                goal.goal_id,
+                decision_kind="GOAL_CREATED",
+                summary="目标已建立并冻结基础任务与预算。",
+                evidence={"task_id": canonical.get("task", {}).get("id")},
+                action={"status": goal.status},
+            )
+            return {"ok": True, **goal_snapshot_payload(goal.goal_id)}
+        except GoalRunError as exc:
+            raise goal_error(exc) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "GOAL_CREATE_FAILED", "message": str(exc)},
+            ) from exc
+
+    @app.get("/agent/goals/{goal_id}")
+    def get_agent_goal(goal_id: str) -> dict[str, Any]:
+        try:
+            return {"ok": True, **goal_snapshot_payload(goal_id)}
+        except GoalRunError as exc:
+            raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
+
+    @app.post("/agent/goals/{goal_id}/activate")
+    def activate_agent_goal(goal_id: str) -> dict[str, Any]:
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            if goal.status == "DRAFT":
+                goal_run_store.transition(goal_id, "READY")
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="GOAL_ACTIVATED",
+                    summary="目标已激活，可以创建受预算约束的实验。",
+                    action={"status": "READY"},
+                )
+            elif goal.status != "READY":
+                raise GoalRunError("GOAL_ACTIVATION_CONFLICT", f"goal cannot be activated from {goal.status}")
+            return {"ok": True, **goal_snapshot_payload(goal_id)}
+        except GoalRunError as exc:
+            raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
+
+    @app.post("/agent/goals/{goal_id}/cancel")
+    def cancel_agent_goal(goal_id: str, body: AgentGoalCancelBody) -> dict[str, Any]:
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            if goal.status not in TERMINAL_GOAL_STATES:
+                goal_run_store.transition(goal_id, "CANCELLED", stop_reason=body.reason)
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="GOAL_CANCELLED",
+                    summary="目标已取消，后续不得继续消耗预算。",
+                    action={"status": "CANCELLED", "reason": body.reason},
+                )
+            return {"ok": True, **goal_snapshot_payload(goal_id)}
+        except GoalRunError as exc:
+            raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
+
+    @app.post("/agent/goals/{goal_id}/experiments")
+    def create_goal_experiment(goal_id: str, body: AgentGoalExperimentCreateBody) -> dict[str, Any]:
+        reservation = None
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            if goal.status in TERMINAL_GOAL_STATES:
+                raise GoalRunError("GOAL_TERMINAL", f"goal is terminal: {goal.status}")
+            if goal.status == "DRAFT":
+                raise GoalRunError("GOAL_NOT_READY", "activate the goal before creating experiments")
+            unknown = [path for path in body.sweep if path not in set(goal.allowed_parameter_paths)]
+            if unknown:
+                raise GoalRunError(
+                    "GOAL_PARAMETER_OUT_OF_SCOPE",
+                    "experiment changes parameter outside goal scope: " + ", ".join(unknown),
+                )
+            assertions = body.assertions or goal.success_criteria
+            preview = agent_experiment_tools.preview(
+                base_task_spec=goal.base_task_spec,
+                experiment_type=body.experiment_type,
+                sweep=body.sweep,
+                sampling_plan=body.sampling_plan,
+                assertions=assertions,
+                preview_limit=0,
+            )
+            reservation = goal_run_store.reserve_budget(
+                goal_id,
+                operation_id=body.operation_id,
+                amounts={"experiments": 1},
+            )
+            result = agent_experiment_tools.create_experiment(
+                operation_id=body.operation_id,
+                name=body.name,
+                base_task_spec=goal.base_task_spec,
+                experiment_type=body.experiment_type,
+                sweep=body.sweep,
+                sampling_plan=body.sampling_plan,
+                assertions=assertions,
+            )
+            if not result.get("ok"):
+                return {
+                    "ok": False,
+                    "goal": goal_run_store.snapshot(goal_id),
+                    "experiment_operation": result,
+                }
+            goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+            link = goal_run_store.link_experiment(
+                goal_id,
+                str(result["experiment_id"]),
+                plan_revision=body.plan_revision,
+                purpose=body.purpose,
+                create_operation_id=body.operation_id,
+            )
+            if not link.get("replayed"):
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="EXPERIMENT_CREATED",
+                    summary="已在目标预算内创建受控实验。",
+                    evidence={"variant_count": preview["variant_count"]},
+                    action={"experiment_id": result["experiment_id"], "operation_id": body.operation_id},
+                )
+            return {
+                "ok": True,
+                "experiment_operation": result,
+                "link": link,
+                **goal_snapshot_payload(goal_id),
+            }
+        except (GoalRunError, AgentToolError) as exc:
+            if reservation is not None and not reservation.get("replayed"):
+                try:
+                    goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+                except Exception:
+                    pass
+            if isinstance(exc, GoalRunError):
+                raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
+            status_code = 409 if exc.reason_code == "OPERATION_ID_CONFLICT" else 422
+            raise HTTPException(status_code=status_code, detail=exc.to_dict()) from exc
+
+    @app.post("/agent/goals/{goal_id}/experiments/{experiment_id}/launch")
+    def launch_goal_experiment(goal_id: str, experiment_id: str, body: AgentGoalLaunchBody) -> dict[str, Any]:
+        reservation = None
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            links = {str(item["experiment_id"]): item for item in goal_run_store.experiments(goal_id)}
+            if experiment_id not in links:
+                raise GoalRunError("GOAL_EXPERIMENT_NOT_FOUND", "experiment is not linked to goal")
+            existing_launch = str(links[experiment_id].get("launch_operation_id") or "")
+            if existing_launch and existing_launch != body.operation_id:
+                raise GoalRunError(
+                    "GOAL_EXPERIMENT_ALREADY_LAUNCHED",
+                    f"experiment is already bound to launch operation {existing_launch}",
+                )
+            members = experiment_store.members(experiment_id)
+            run_count = len(members)
+            attempt_count = run_count * int(body.max_attempts)
+            reservation = goal_run_store.reserve_budget(
+                goal_id,
+                operation_id=body.operation_id,
+                amounts={"runs": run_count, "execution_attempts": attempt_count},
+            )
+            goal_run_store.bind_launch_operation(goal_id, experiment_id, body.operation_id)
+            result = launch_agent_experiment(
+                operation_id=body.operation_id,
+                experiment_id=experiment_id,
+                max_attempts=body.max_attempts,
+                hard_timeout=body.hard_timeout,
+                max_run_count=body.max_run_count,
+                max_execution_attempts=body.max_execution_attempts,
+            )
+            if result.get("ok") and result.get("operation_state") == "SUCCEEDED":
+                goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+                if goal.status in {"READY", "ANALYZING", "NEEDS_REVISION"}:
+                    goal_run_store.transition(goal_id, "RUNNING")
+                if not reservation.get("replayed"):
+                    goal_run_store.record_decision(
+                        goal_id,
+                        decision_kind="EXPERIMENT_LAUNCHED",
+                        summary="已在目标总预算内提交实验运行。",
+                        evidence={
+                            "reserved_runs": run_count,
+                            "reserved_attempts": attempt_count,
+                        },
+                        action={"experiment_id": experiment_id, "operation_id": body.operation_id},
+                    )
+            return {
+                "ok": bool(result.get("ok")),
+                "launch_operation": result,
+                **goal_snapshot_payload(goal_id),
+            }
+        except GoalRunError as exc:
+            if (
+                reservation is not None
+                and exc.reason_code == "GOAL_EXPERIMENT_ALREADY_LAUNCHED"
+                and not reservation.get("replayed")
+            ):
+                try:
+                    goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+                except Exception:
+                    pass
+            raise goal_error(
+                exc,
+                status_code=404 if exc.reason_code in {"GOAL_NOT_FOUND", "GOAL_EXPERIMENT_NOT_FOUND"} else 422,
+            ) from exc
+        except AgentToolError as exc:
+            safe_release = {
+                "OPERATION_ID_CONFLICT",
+                "EXPERIMENT_NOT_FOUND",
+                "AGENT_RUN_BUDGET_EXCEEDED",
+                "AGENT_GLOBAL_RUN_BUDGET_EXCEEDED",
+                "AGENT_ATTEMPT_BUDGET_EXCEEDED",
+                "AGENT_GLOBAL_ATTEMPT_BUDGET_EXCEEDED",
+            }
+            if reservation is not None and exc.reason_code in safe_release and not reservation.get("replayed"):
+                try:
+                    goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+                except Exception:
+                    pass
+            status_code = 409 if exc.reason_code == "OPERATION_ID_CONFLICT" else 422
+            raise HTTPException(status_code=status_code, detail=exc.to_dict()) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "reason_code": "GOAL_LAUNCH_RECONCILIATION_REQUIRED",
+                    "message": str(exc),
+                    "operation_id": body.operation_id,
+                },
+            ) from exc
+
+    @app.post("/agent/goals/{goal_id}/experiments/{experiment_id}/interpret")
+    def interpret_goal_experiment(
+        goal_id: str,
+        experiment_id: str,
+        body: AgentGoalInterpretBody,
+    ) -> dict[str, Any]:
+        reservation = None
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            links = {str(item["experiment_id"]): item for item in goal_run_store.experiments(goal_id)}
+            if experiment_id not in links:
+                raise GoalRunError("GOAL_EXPERIMENT_NOT_FOUND", "experiment is not linked to goal")
+            if goal.status in TERMINAL_GOAL_STATES:
+                raise GoalRunError("GOAL_TERMINAL", f"goal is terminal: {goal.status}")
+
+            if body.mode == "model":
+                if not body.provider_id:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "reason_code": "INTERPRETATION_PROVIDER_REQUIRED",
+                            "message": "model mode requires provider_id",
+                        },
+                    )
+                try:
+                    profile = provider_registry().get(body.provider_id)
+                except KeyError as exc:
+                    raise HTTPException(
+                        status_code=404,
+                        detail={"reason_code": "MODEL_PROVIDER_NOT_FOUND", "message": str(exc)},
+                    ) from exc
+                readiness = provider_registry().readiness(body.provider_id, live_probe=False)
+                if not readiness.ready or profile.backend in {"template", "deterministic"}:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "reason_code": "INTERPRETATION_PROVIDER_NOT_READY",
+                            "message": readiness.reason,
+                            "provider_id": body.provider_id,
+                        },
+                    )
+
+            reservation = goal_run_store.reserve_budget(
+                goal_id,
+                operation_id=body.operation_id,
+                amounts={"model_calls": 1 if body.mode == "model" else 0},
+            )
+            request_payload = {
+                "schema_version": "goal-interpretation-operation.v1",
+                "goal_id": goal_id,
+                "experiment_id": experiment_id,
+                "question": body.question,
+                "mode": body.mode,
+                "provider_id": body.provider_id,
+                "metrics": list(body.metrics),
+            }
+            operation, _ = agent_operation_store.reserve_payload(
+                operation_id=body.operation_id,
+                operation_kind="interpret_evidence",
+                request_payload=request_payload,
+            )
+            if operation.state == "REPLAY":
+                goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+                replay = dict(operation.result or {})
+                replay["replayed"] = True
+                return {
+                    "ok": True,
+                    "analysis_operation": replay,
+                    **goal_snapshot_payload(goal_id),
+                }
+            if operation.state == "IN_PROGRESS":
+                return {
+                    "ok": False,
+                    "analysis_operation": {
+                        "operation_id": body.operation_id,
+                        "operation_state": "IN_PROGRESS",
+                        "replayed": True,
+                    },
+                    **goal_snapshot_payload(goal_id),
+                }
+            if operation.state == "FAILED":
+                goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+                return {
+                    "ok": False,
+                    "analysis_operation": {
+                        "operation_id": body.operation_id,
+                        "operation_state": "FAILED",
+                        "error": dict(operation.error or {}),
+                        "replayed": True,
+                    },
+                    **goal_snapshot_payload(goal_id),
+                }
+
+            interpretation_body = AgentEvidenceInterpretBody(
+                question=body.question,
+                mode=body.mode,
+                provider_id=body.provider_id,
+                metrics=body.metrics,
+            )
+            try:
+                result = interpret_experiment_payload(experiment_id, interpretation_body)
+            except Exception as exc:
+                detail = getattr(exc, "detail", None)
+                if isinstance(detail, Mapping):
+                    reason_code = str(
+                        detail.get("reason_code")
+                        or getattr(exc, "reason_code", "GOAL_INTERPRETATION_FAILED")
+                    )
+                    message = str(detail.get("message") or str(exc))
+                else:
+                    reason_code = str(getattr(exc, "reason_code", "GOAL_INTERPRETATION_FAILED"))
+                    message = str(exc)
+                error = {
+                    "reason_code": reason_code,
+                    "message": message,
+                }
+                agent_operation_store.fail(body.operation_id, error)
+                if body.mode == "model":
+                    goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+                else:
+                    goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+                raise
+
+            agent_operation_store.complete(body.operation_id, result)
+            goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+            if not reservation.get("replayed"):
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="EVIDENCE_INTERPRETED",
+                    summary="已基于受约束证据生成分析结果。",
+                    evidence={
+                        "experiment_id": experiment_id,
+                        "evidence_ready": bool((result.get("evidence") or {}).get("evidence_ready")),
+                    },
+                    action={
+                        "operation_id": body.operation_id,
+                        "mode": body.mode,
+                        "proposal_count": len(
+                            ((result.get("analysis") or {}).get("interpretation") or {}).get("next_experiments") or []
+                        ),
+                    },
+                )
+            current = goal_run_store.get(goal_id)
+            evidence_complete = bool((result.get("evidence") or {}).get("complete"))
+            if current and current.status == "RUNNING" and evidence_complete:
+                goal_run_store.transition(goal_id, "ANALYZING")
+            return {
+                "ok": True,
+                "analysis_operation": {
+                    "operation_id": body.operation_id,
+                    "operation_state": "SUCCEEDED",
+                    "result": result,
+                    "replayed": False,
+                },
+                **goal_snapshot_payload(goal_id),
+            }
+        except GoalRunError as exc:
+            raise goal_error(exc, status_code=404 if exc.reason_code in {"GOAL_NOT_FOUND", "GOAL_EXPERIMENT_NOT_FOUND"} else 422) from exc
+
+    @app.post("/agent/goals/{goal_id}/sync")
+    def sync_agent_goal(goal_id: str) -> dict[str, Any]:
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            links = goal_run_store.experiments(goal_id)
+            all_terminal = bool(links)
+            for link in links:
+                operation_id = str(link.get("launch_operation_id") or "")
+                if operation_id:
+                    operation = agent_operation_store.get(operation_id)
+                    reservation = goal_run_store.reservation_for_operation(goal_id, operation_id)
+                    if operation and operation.get("operation_state") == "SUCCEEDED" and reservation and reservation.get("state") == "RESERVED":
+                        goal_run_store.commit_reservation(goal_id, str(reservation["reservation_id"]))
+                execution = agent_launch_snapshot(str(link["experiment_id"]), operation_id or None)
+                if not execution.get("all_terminal"):
+                    all_terminal = False
+            current = goal_run_store.get(goal_id)
+            if current and current.status == "RUNNING" and all_terminal:
+                goal_run_store.transition(goal_id, "ANALYZING")
+            return {"ok": True, **goal_snapshot_payload(goal_id)}
+        except GoalRunError as exc:
+            raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
 
     @app.get("/fault-environment/catalog")
     def fault_environment_catalog(
