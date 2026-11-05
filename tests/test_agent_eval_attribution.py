@@ -126,6 +126,8 @@ def test_case_and_aggregate_keep_independent_denominators(tmp_path):
 
 def test_schema_rejected_first_response_is_correction_and_costs_both_calls(tmp_path):
     _write(tmp_path / "first_attempt.json", {
+        "first_answer_eligible": True,
+        "first_answer_pass": False,
         "eligible_unrepaired_first_answer": False,
         "validation_ok": True,
         "schema_rejected_first_response": True,
@@ -166,6 +168,8 @@ def test_schema_rejected_first_response_is_correction_and_costs_both_calls(tmp_p
 
 def test_model_call_cost_deduplicates_same_request_id(tmp_path):
     _write(tmp_path / "first_attempt.json", {
+        "first_answer_eligible": True,
+        "first_answer_pass": False,
         "eligible_unrepaired_first_answer": False,
         "validation_ok": True,
         "schema_rejected_first_response": True,
