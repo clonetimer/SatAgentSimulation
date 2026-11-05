@@ -4420,6 +4420,8 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
             ],
             "model_fallback_used": False,
             "schema_rejected_first_response": "model_invocation_rejected" in {step.name for step in steps},
+            "first_answer_eligible": bool(real_model_attempt),
+            "first_answer_pass": False,
             "eligible_unrepaired_first_answer": bool(real_model_attempt),
             "draft_parse_or_schema_failed": True,
             "failure_type": exc.__class__.__name__,
@@ -4638,6 +4640,16 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         "model_fallback_used": "model_fallback" in pre_validation_corrections,
         "schema_rejected_first_response": "model_invocation_rejected" in pre_validation_corrections,
         "model_call_rejected_file": files.get("model_call_rejected"),
+        "first_answer_eligible": (
+            request.draft_spec_path is None
+            and request.backend != "template"
+        ),
+        "first_answer_pass": (
+            request.draft_spec_path is None
+            and request.backend != "template"
+            and not pre_validation_corrections
+            and validation.ok
+        ),
         "eligible_unrepaired_first_answer": (
             request.draft_spec_path is None
             and request.backend != "template"
