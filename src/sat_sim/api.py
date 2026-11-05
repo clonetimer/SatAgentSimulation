@@ -2313,11 +2313,12 @@ def create_app(
             integrity_checker=verify_run_bundle,
         )
         options = experiment_design_options(record.base_task_spec)
-        allowed_paths = [
-            str(item.get("path"))
+        parameter_options = [
+            dict(item)
             for item in (options.get("sweep_options") or [])
             if isinstance(item, Mapping) and item.get("path")
         ]
+        allowed_paths = [str(item["path"]) for item in parameter_options]
         config = None
         selected_provider = None
         if body.mode == "model":
@@ -2364,6 +2365,7 @@ def create_app(
                 question=body.question,
                 evidence=evidence,
                 allowed_parameter_paths=allowed_paths,
+                parameter_options=parameter_options,
                 config=config,
             )
         except InterpretationValidationError as exc:
