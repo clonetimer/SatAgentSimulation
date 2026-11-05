@@ -911,3 +911,107 @@ def test_strict_evaluation_rejects_missing_evidence_objects(tmp_path):
             },
             require_evidence_objects=True,
         )
+
+
+def test_lesson_api_strict_evidence_and_effect_filter(tmp_path):
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "api",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    service = ExperienceLessonService(app.state.experience_store)
+    source = _source(
+        app.state.experience_store,
+        request_text="capacity loss api lesson",
+        mode="fault",
+        effect="eps_battery_capacity_loss",
+    )
+    with TestClient(app) as client:
+        compiled = client.post(
+            "/experience-lessons/compile",
+            json={
+                "tenant_id": SCOPE.tenant_id,
+                "project_id": SCOPE.project_id,
+                "experience_ids": [source.experience_id],
+            },
+        )
+        assert compiled.status_code == 200
+        lesson_id = compiled.json()["lesson"]["lesson_id"]
+
+        case_hash = service.store_evaluation_artifact({
+            "case_id": "held-out-api-1",
+            "result": "PASS",
+        })
+        metrics_hash = service.store_evaluation_artifact({
+            "baseline": 0.8,
+            "candidate": 0.9,
+        })
+        evaluated = client.post(
+            f"/experience-lessons/{lesson_id}/evaluate",
+            json={
+                "tenant_id": SCOPE.tenant_id,
+                "project_id": SCOPE.project_id,
+                "held_out_case_ids": ["held-out-api-1"],
+                "baseline_metrics": {
+                    "primary_score": 0.8,
+                    "safety_regressions": 0,
+                    "physical_regressions": 0,
+                    "backward_regressions": 0,
+                },
+                "candidate_metrics": {
+                    "primary_score": 0.9,
+                    "safety_regressions": 0,
+                    "physical_regressions": 0,
+                    "backward_regressions": 0,
+                },
+                "evaluation_evidence": {
+                    "runner": "api-strict-runner",
+                    "case_result_sha256": case_hash,
+                    "metrics_source_sha256": metrics_hash,
+                },
+                "require_evidence_objects": True,
+            },
+        )
+        assert evaluated.status_code == 200
+        assert evaluated.json()["evaluation"]["evaluation_evidence"]["objects_verified"] is True
+
+        for reviewer in ("api-reviewer-a", "api-reviewer-b"):
+            reviewed = service.review(
+                lesson_id,
+                scope=SCOPE,
+                reviewer=reviewer,
+                decision="APPROVE",
+                reason="strict evidence approved",
+            )
+        assert reviewed.state == "approved"
+        service.create_snapshot(scope=SCOPE, actor="release-manager")
+
+        matched = client.get(
+            "/experience-lessons",
+            params={
+                "tenant_id": SCOPE.tenant_id,
+                "project_id": SCOPE.project_id,
+                "capability_id": "component.battery.v1",
+                "mode": "fault",
+                "effect": "eps_battery_capacity_loss",
+                "limit": 1,
+            },
+        )
+        assert matched.status_code == 200
+        assert matched.json()["count"] == 1
+        assert matched.json()["lessons"][0]["lesson_id"] == lesson_id
+
+        mismatched = client.get(
+            "/experience-lessons",
+            params={
+                "tenant_id": SCOPE.tenant_id,
+                "project_id": SCOPE.project_id,
+                "capability_id": "component.battery.v1",
+                "mode": "fault",
+                "effect": "eps_battery_open_circuit",
+                "limit": 1,
+            },
+        )
+        assert mismatched.status_code == 200
+        assert mismatched.json()["count"] == 0
