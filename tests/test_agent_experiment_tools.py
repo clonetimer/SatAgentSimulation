@@ -196,7 +196,12 @@ def test_agent_launch_is_budgeted_idempotent_and_queryable(tmp_path, monkeypatch
     monkeypatch.setenv("SAT_SIM_AGENT_MAX_CREATE_VARIANTS", "3")
     monkeypatch.setenv("SAT_SIM_AGENT_MAX_LAUNCH_RUNS", "2")
     monkeypatch.setenv("SAT_SIM_AGENT_MAX_EXECUTION_ATTEMPTS", "2")
-    app = create_app(embedded_worker=False)
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
     client = TestClient(app)
     spec = _spec()
 
@@ -260,7 +265,12 @@ def test_agent_launch_budget_rejects_before_queue_side_effect(tmp_path, monkeypa
     monkeypatch.setenv("SAT_SIM_AGENT_MAX_CREATE_VARIANTS", "3")
     monkeypatch.setenv("SAT_SIM_AGENT_MAX_LAUNCH_RUNS", "2")
     monkeypatch.setenv("SAT_SIM_AGENT_MAX_EXECUTION_ATTEMPTS", "2")
-    app = create_app(embedded_worker=False)
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
     client = TestClient(app)
 
     created = client.post(
@@ -299,7 +309,12 @@ def test_agent_launch_operation_id_conflict_is_rejected(tmp_path, monkeypatch):
     from sat_sim.api import create_app
 
     monkeypatch.setenv("SAT_SIM_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
-    app = create_app(embedded_worker=False)
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
     client = TestClient(app)
 
     created = client.post(
@@ -337,7 +352,12 @@ def test_reconcile_refuses_active_launch_lease_then_resumes_expired_operation(tm
 
     monkeypatch.setenv("SAT_SIM_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
     monkeypatch.setenv("SAT_SIM_AGENT_OPERATION_LEASE_S", "600")
-    app = create_app(embedded_worker=False)
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
     client = TestClient(app)
 
     created = client.post(
