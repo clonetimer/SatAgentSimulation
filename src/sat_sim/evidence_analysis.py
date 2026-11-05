@@ -242,10 +242,19 @@ def build_experiment_evidence(
             })
 
     complete = bool(rows) and all(bool(row.get("terminal")) for row in rows)
+    integrity_ready = all(
+        (
+            row.get("integrity") is None
+            or not isinstance(row.get("integrity"), Mapping)
+            or bool(row["integrity"].get("ok"))
+        )
+        for row in rows
+    )
     evidence_ready = (
         complete
         and all(bool(row.get("sealed")) for row in rows)
         and all(bool(row.get("metrics")) for row in rows)
+        and integrity_ready
     )
     return {
         "ok": True,
