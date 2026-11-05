@@ -447,3 +447,49 @@ def test_partial_evidence_interpretation_does_not_advance_running_goal(tmp_path,
     assert interpreted.status_code == 200
     assert interpreted.json()["goal"]["status"] == "RUNNING"
     assert interpreted.json()["analysis_operation"]["result"]["evidence"]["complete"] is False
+
+
+def test_goal_experiment_cannot_be_relaunched_with_new_operation_or_double_charge_budget(tmp_path):
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 2, "execution_attempts": 2, "model_calls": 0},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "single-launch:create",
+            "name": "single launch",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "单次 launch 约束",
+        },
+    )
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+    first = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/launch",
+        json={
+            "operation_id": "single-launch:run-1",
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 1,
+            "max_execution_attempts": 1,
+        },
+    )
+    assert first.status_code == 200
+    assert first.json()["budget"]["committed"]["runs"] == 1
+
+    second = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/launch",
+        json={
+            "operation_id": "single-launch:run-2",
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 1,
+            "max_execution_attempts": 1,
+        },
+    )
+    assert second.status_code == 422
+    assert second.json()["detail"]["reason_code"] == "GOAL_EXPERIMENT_ALREADY_LAUNCHED"
+    snapshot = client.get(f"/agent/goals/{goal_id}").json()
+    assert snapshot["budget"]["reserved_or_committed"]["runs"] == 1
+    assert len(app.state.execution_queue.list_jobs(limit=10)["jobs"]) == 1
