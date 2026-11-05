@@ -210,3 +210,140 @@ def test_validator_accepts_exact_registered_comparison():
         allowed_parameter_paths=["parameters.values.battery_capacity_wh"],
     )
     assert result.comparisons[0].metric == "final_soc"
+
+
+def test_interpret_api_deterministic_mode_does_not_call_model(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from sat_sim.api import create_app
+    from sat_sim.scenario_templates import instantiate_scenario_template
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
+    client = TestClient(app)
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "interpret-api:create",
+            "name": "interpret api",
+            "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+            "sweep": {"simulation.duration_s": [10]},
+        },
+    )
+    experiment_id = created.json()["experiment_id"]
+    response = client.post(
+        f"/agent/experiments/{experiment_id}/interpret",
+        json={"question": "总结现有证据", "mode": "deterministic"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["analysis"]["mode"] == "deterministic"
+    assert payload["analysis"]["model_call"] is None
+    assert payload["analysis"]["interpretation"]["analysis_status"] == "INSUFFICIENT_EVIDENCE"
+    assert payload["next_experiments_are_proposals_only"] is True
+
+
+def test_interpret_api_model_output_is_still_validated(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import sat_sim.api as api_module
+    import sat_sim.evidence_interpreter as interpreter_module
+    from sat_sim.api import create_app
+    from sat_sim.scenario_templates import instantiate_scenario_template
+
+    evidence = _evidence()
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence)
+
+    invalid = _valid_payload()
+    invalid["comparisons"][0]["delta"] = 7.0
+    backend = FakeBackend(invalid)
+    monkeypatch.setattr(interpreter_module, "make_text_llm_backend", lambda _config: backend)
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
+    client = TestClient(app)
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "interpret-model:create",
+            "name": "model interpret",
+            "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+            "sweep": {"simulation.duration_s": [10]},
+        },
+    )
+    experiment_id = created.json()["experiment_id"]
+    response = client.post(
+        f"/agent/experiments/{experiment_id}/interpret",
+        json={
+            "question": "解释结果",
+            "mode": "model",
+            "backend": "openai_compatible",
+            "model": "fake-model",
+            "base_url": "http://127.0.0.1:9999/v1",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["reason_code"] == "COMPARISON_DELTA_MISMATCH"
+
+
+def test_interpret_api_model_can_only_propose_registered_parameter(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import sat_sim.api as api_module
+    import sat_sim.evidence_interpreter as interpreter_module
+    from sat_sim.api import create_app
+    from sat_sim.scenario_templates import instantiate_scenario_template
+
+    evidence = _evidence()
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence)
+
+    payload = _valid_payload()
+    payload["next_experiments"] = [{
+        "objective": "继续验证时长条件的影响。",
+        "parameter_path": "simulation.duration_s",
+        "values": [20, 30],
+        "rationale": "保持其他已登记参数不变。",
+        "estimated_runs": 2,
+    }]
+    backend = FakeBackend(payload)
+    monkeypatch.setattr(interpreter_module, "make_text_llm_backend", lambda _config: backend)
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
+    client = TestClient(app)
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "interpret-proposal:create",
+            "name": "proposal interpret",
+            "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+            "sweep": {"simulation.duration_s": [10]},
+        },
+    )
+    experiment_id = created.json()["experiment_id"]
+    response = client.post(
+        f"/agent/experiments/{experiment_id}/interpret",
+        json={
+            "question": "下一步怎么验证",
+            "mode": "model",
+            "backend": "openai_compatible",
+            "model": "fake-model",
+            "base_url": "http://127.0.0.1:9999/v1",
+        },
+    )
+    assert response.status_code == 200
+    proposal = response.json()["analysis"]["interpretation"]["next_experiments"][0]
+    assert proposal["parameter_path"] == "simulation.duration_s"
+    assert response.json()["next_experiments_are_proposals_only"] is True
