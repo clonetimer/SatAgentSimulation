@@ -235,7 +235,7 @@ class AgentOperationStore:
                 """
                 UPDATE agent_operations
                 SET lease_expires_at = ?, updated_at = ?
-                WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE')
+                WHERE operation_id = ? AND state = 'PENDING'
                 """,
                 (lease_expires_at, now, operation_id),
             )
@@ -271,7 +271,7 @@ class AgentOperationStore:
                 """
                 UPDATE agent_operations
                 SET state = 'SUCCEEDED', result_json = ?, error_json = NULL, updated_at = ?
-                WHERE operation_id = ? AND state = 'PENDING'
+                WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE')
                 """,
                 (_stable_json(dict(result)), _now(), operation_id),
             )
