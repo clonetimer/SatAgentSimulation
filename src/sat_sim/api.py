@@ -34,6 +34,7 @@ from .execution_planner import plan_task_spec
 from .durable_queue import DurableExecutionQueue, TERMINAL_STATES
 from .execution_worker import ExecutionQueueWorker
 from .model_providers import ModelProviderProfile, ModelProviderRegistry
+from .task_source import TaskSourceValidationError, validate_task_source
 from .task_center import TaskCenterStore
 from .experiment_manager import ExperimentStore
 from .experience import ExperienceScope, ExperienceStore
@@ -255,6 +256,7 @@ class VisualTuningRankBody(_Strict):
 
 
 class RunCreateBody(_Strict):
+    source_request_id: str | None = None
     task_spec: dict[str, Any]
     task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
     run_id: str | None = None
@@ -3266,6 +3268,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
     def create_run(body: RunCreateBody) -> dict[str, Any]:
         try:
             canonical = canonicalize_task_spec(body.task_spec)
+            source = validate_task_source(artifact_root, body.source_request_id, canonical) if body.source_request_id is not None else None
             task_record = task_center.save(
                 canonical,
                 status="QUEUED" if body.execute else "READY",
@@ -3276,6 +3279,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
                 output_root=run_root,
                 run_id=body.run_id,
                 supersedes_run_id=body.supersedes_run_id,
+                source_request_id=source["request_id"] if source else None,
             )
             payload: dict[str, Any] = {
                 "ok": True,
@@ -3311,6 +3315,8 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
                     validation_result=executed.validation.result.value,
                 )
             return payload
+        except TaskSourceValidationError as exc:
+            raise HTTPException(status_code=409, detail={"reason_code": exc.reason_code, "message": str(exc)}) from exc
         except Exception as exc:
             raise HTTPException(status_code=422, detail={"reason_code": "RUN_CREATE_FAILED", "message": str(exc)}) from exc
 

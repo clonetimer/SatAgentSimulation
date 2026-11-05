@@ -1100,11 +1100,15 @@ def _merge_natural_language_refinement(
         base_values = out.setdefault("parameters", {}).setdefault("values", {})
         candidate_values = candidate.get("parameters", {}).get("values", {})
         if isinstance(base_values, dict) and isinstance(candidate_values, Mapping):
-            for key in tuple(base_values):
-                if (key in candidate_values and candidate_values[key] != base_values[key]
-                        and _refinement_requests_parameter(key, text, base_capability)):
-                    base_values[key] = copy.deepcopy(candidate_values[key])
-                    changed.append(f"parameters.values.{key}")
+            registered_parameters = get_capability(base_capability).data.get("parameters", {})
+            if isinstance(registered_parameters, Mapping):
+                for key in dict.fromkeys((*base_values, *candidate_values)):
+                    if ((key in base_values or key in registered_parameters)
+                            and key in candidate_values
+                            and candidate_values[key] != base_values.get(key)
+                            and _refinement_requests_parameter(key, text, base_capability)):
+                        base_values[key] = copy.deepcopy(candidate_values[key])
+                        changed.append(f"parameters.values.{key}")
 
     refined_events = _merge_refinement_events(base, candidate, text)
     if refined_events != out.get('events'):
