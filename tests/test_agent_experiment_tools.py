@@ -422,4 +422,48 @@ def test_operation_store_migrates_request_and_lease_columns(tmp_path):
     with store._connect() as connection:
         columns = {row[1] for row in connection.execute("PRAGMA table_info(agent_operations)").fetchall()}
     assert "request_json" in columns
+    assert "lease_owner" in columns
     assert "lease_expires_at" in columns
+
+
+def test_stale_launch_owner_cannot_heartbeat_or_complete_after_recovery_claim(tmp_path):
+    store = AgentOperationStore(tmp_path / "operations.sqlite")
+    reservation, _ = store.reserve_payload(
+        operation_id="owner-test:launch",
+        operation_kind="launch_experiment",
+        request_payload={"experiment_id": "exp_owner"},
+        lease_seconds=600,
+        lease_owner="owner-a",
+    )
+    assert reservation.state == "NEW"
+    assert store.heartbeat("owner-test:launch", lease_owner="owner-b", lease_seconds=600) is False
+    assert store.heartbeat("owner-test:launch", lease_owner="owner-a", lease_seconds=600) is True
+
+    with store._connect() as connection:
+        connection.execute(
+            "UPDATE agent_operations SET lease_expires_at = ? WHERE operation_id = ?",
+            ("2000-01-01T00:00:00+00:00", "owner-test:launch"),
+        )
+
+    assert store.claim_reconciliation("owner-test:launch") is True
+    assert store.resume_reconciliation(
+        "owner-test:launch",
+        lease_owner="owner-b",
+        lease_seconds=600,
+    ) is True
+
+    assert store.heartbeat("owner-test:launch", lease_owner="owner-a", lease_seconds=600) is False
+    assert store.complete(
+        "owner-test:launch",
+        {"ok": True, "owner": "old"},
+        lease_owner="owner-a",
+    ) is False
+    assert store.heartbeat("owner-test:launch", lease_owner="owner-b", lease_seconds=600) is True
+    assert store.complete(
+        "owner-test:launch",
+        {"ok": True, "owner": "new"},
+        lease_owner="owner-b",
+    ) is True
+    operation = store.get("owner-test:launch")
+    assert operation["operation_state"] == "SUCCEEDED"
+    assert operation["result"]["owner"] == "new"
