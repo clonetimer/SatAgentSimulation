@@ -12,6 +12,10 @@ from .llm_backends import LLMCallConfig, LLMCallResult, TextLLMBackend, make_tex
 
 INTERPRETATION_SCHEMA_VERSION = "agent-evidence-interpretation.v1"
 _NUMERIC_LITERAL = re.compile(r"(?<![A-Za-z_])[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
+_CAUSAL_TERMS = (
+    "导致", "引起", "造成", "证明了", "because", "caused", "causes", "due to",
+    "responsible for", "demonstrates that",
+)
 
 
 class _Strict(BaseModel):
@@ -98,6 +102,15 @@ def _reject_numeric_free_text(value: str, field: str) -> None:
         )
 
 
+def _reject_causal_observation(value: str, field: str) -> None:
+    lowered = str(value).lower()
+    if any(term.lower() in lowered for term in _CAUSAL_TERMS):
+        raise InterpretationValidationError(
+            "CAUSAL_LANGUAGE_OUTSIDE_HYPOTHESIS",
+            f"{field} uses causal language; causal mechanisms belong in hypotheses with limitations",
+        )
+
+
 def _indexes(evidence: Mapping[str, Any]):
     runs: dict[str, set[str]] = {}
     for row in evidence.get("runs") or []:
@@ -142,11 +155,13 @@ def validate_interpretation(
 
     for index, item in enumerate(interpretation.observations):
         _reject_numeric_free_text(item.statement, f"observations[{index}].statement")
+        _reject_causal_observation(item.statement, f"observations[{index}].statement")
         for ref in item.evidence:
             check_ref(ref)
 
     for index, item in enumerate(interpretation.comparisons):
         _reject_numeric_free_text(item.statement, f"comparisons[{index}].statement")
+        _reject_causal_observation(item.statement, f"comparisons[{index}].statement")
         key = (item.baseline_run_id, item.run_id, item.metric)
         if key not in comparisons:
             raise InterpretationValidationError("UNKNOWN_COMPARISON_REFERENCE", f"unknown comparison: {key}")
