@@ -2548,6 +2548,8 @@ def create_app(
                 raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
             if goal.status in TERMINAL_GOAL_STATES:
                 raise GoalRunError("GOAL_TERMINAL", f"goal is terminal: {goal.status}")
+            if goal.status == "DRAFT":
+                raise GoalRunError("GOAL_NOT_READY", "activate the goal before creating experiments")
             unknown = [path for path in body.sweep if path not in set(goal.allowed_parameter_paths)]
             if unknown:
                 raise GoalRunError(
@@ -2591,13 +2593,14 @@ def create_app(
                 purpose=body.purpose,
                 create_operation_id=body.operation_id,
             )
-            goal_run_store.record_decision(
-                goal_id,
-                decision_kind="EXPERIMENT_CREATED",
-                summary="已在目标预算内创建受控实验。",
-                evidence={"variant_count": preview["variant_count"]},
-                action={"experiment_id": result["experiment_id"], "operation_id": body.operation_id},
-            )
+            if not link.get("replayed"):
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="EXPERIMENT_CREATED",
+                    summary="已在目标预算内创建受控实验。",
+                    evidence={"variant_count": preview["variant_count"]},
+                    action={"experiment_id": result["experiment_id"], "operation_id": body.operation_id},
+                )
             return {
                 "ok": True,
                 "experiment_operation": result,
@@ -2644,7 +2647,7 @@ def create_app(
             )
             if result.get("ok") and result.get("operation_state") == "SUCCEEDED":
                 goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
-                if goal.status == "READY":
+                if goal.status in {"READY", "ANALYZING", "NEEDS_REVISION"}:
                     goal_run_store.transition(goal_id, "RUNNING")
                 if not reservation.get("replayed"):
                     goal_run_store.record_decision(
