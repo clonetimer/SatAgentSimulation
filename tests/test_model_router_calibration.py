@@ -1,8 +1,32 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 from sat_sim.model_router import ModelRouteConfig, route_model
+
+
+def _verified_segment(segment):
+    payload = {
+        "runner": "pytest-route-calibration",
+        "segment_id": segment["segment_id"],
+        "sample_count": segment.get("sample_count"),
+        "l1_success_rate": segment.get("l1_success_rate"),
+        "l2_success_rate": segment.get("l2_success_rate"),
+        "matched_budget": segment.get("matched_budget"),
+    }
+    digest = hashlib.sha256(
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    enriched = dict(segment)
+    enriched["evaluation"] = payload
+    enriched["evaluation_sha256"] = digest
+    return enriched
 
 
 def _write_calibration(tmp_path, segment):
@@ -36,7 +60,7 @@ def _remote_config(path, *, force_tier=None):
 def test_route_calibration_can_upgrade_l1_with_matched_budget_evidence(tmp_path):
     path = _write_calibration(
         tmp_path,
-        {
+        _verified_segment({
             "segment_id": "eps-evaluated",
             "match": {"domains": ["eps"]},
             "sample_count": 30,
@@ -44,8 +68,7 @@ def test_route_calibration_can_upgrade_l1_with_matched_budget_evidence(tmp_path)
             "l2_success_rate": 0.80,
             "recommended_tier": "L2",
             "matched_budget": True,
-            "evaluation_sha256": "a" * 64,
-        },
+        }),
     )
     decision = route_model(
         input_kind="natural_language",
@@ -62,7 +85,7 @@ def test_route_calibration_can_upgrade_l1_with_matched_budget_evidence(tmp_path)
 def test_route_calibration_does_not_change_tier_without_enough_samples(tmp_path):
     path = _write_calibration(
         tmp_path,
-        {
+        _verified_segment({
             "segment_id": "eps-small",
             "match": {"domains": ["eps"]},
             "sample_count": 4,
@@ -70,8 +93,7 @@ def test_route_calibration_does_not_change_tier_without_enough_samples(tmp_path)
             "l2_success_rate": 0.90,
             "recommended_tier": "L2",
             "matched_budget": True,
-            "evaluation_sha256": "b" * 64,
-        },
+        }),
     )
     decision = route_model(
         input_kind="natural_language",
@@ -111,7 +133,7 @@ def test_route_calibration_requires_matched_budget_and_evidence_hash(tmp_path):
 def test_forced_tier_remains_authoritative_over_calibration(tmp_path):
     path = _write_calibration(
         tmp_path,
-        {
+        _verified_segment({
             "segment_id": "eps-evaluated",
             "match": {"domains": ["eps"]},
             "sample_count": 50,
@@ -119,8 +141,7 @@ def test_forced_tier_remains_authoritative_over_calibration(tmp_path):
             "l2_success_rate": 0.90,
             "recommended_tier": "L2",
             "matched_budget": True,
-            "evaluation_sha256": "c" * 64,
-        },
+        }),
     )
     decision = route_model(
         input_kind="natural_language",
@@ -135,7 +156,7 @@ def test_forced_tier_remains_authoritative_over_calibration(tmp_path):
 def test_route_calibration_can_downgrade_heuristic_l2_when_evidence_favors_l1(tmp_path):
     path = _write_calibration(
         tmp_path,
-        {
+        _verified_segment({
             "segment_id": "multi-domain-local-better",
             "match": {"signals": ["multi_domain", "workflow_or_coupling"]},
             "sample_count": 40,
@@ -143,8 +164,7 @@ def test_route_calibration_can_downgrade_heuristic_l2_when_evidence_favors_l1(tm
             "l2_success_rate": 0.65,
             "recommended_tier": "L1",
             "matched_budget": True,
-            "evaluation_sha256": "d" * 64,
-        },
+        }),
     )
     decision = route_model(
         input_kind="natural_language",
@@ -201,7 +221,7 @@ def test_malformed_numeric_calibration_falls_back_without_crashing(tmp_path):
 def test_segment_thresholds_inherit_valid_file_defaults(tmp_path):
     path = _write_calibration(
         tmp_path,
-        {
+        _verified_segment({
             "segment_id": "eps-inherit-defaults",
             "match": {"domains": ["eps"]},
             "sample_count": 20,
@@ -209,8 +229,7 @@ def test_segment_thresholds_inherit_valid_file_defaults(tmp_path):
             "l2_success_rate": 0.75,
             "recommended_tier": "L2",
             "matched_budget": True,
-            "evaluation_sha256": "f" * 64,
-        },
+        }),
     )
     decision = route_model(
         input_kind="natural_language",
