@@ -39,6 +39,12 @@ from .task_center import TaskCenterStore
 from .experiment_manager import ExperimentStore
 from .agent_tools import AgentExperimentTools, AgentOperationStore, AgentToolError, agent_experiment_tool_surface
 from .evidence_analysis import build_experiment_evidence
+from .evidence_interpreter import (
+    InterpretationValidationError,
+    interpret_evidence,
+    interpretation_response_schema,
+)
+from .llm_backends import LLMCallConfig
 from .experience import ExperienceScope, ExperienceStore
 from .experience_lessons import ExperienceLessonService
 from .experiments.dispersion_registry import dispersion_parameter_options
@@ -398,6 +404,13 @@ class AgentExperimentLaunchBody(_Strict):
     hard_timeout: bool = True
     max_run_count: int = Field(ge=1, le=64)
     max_execution_attempts: int = Field(ge=1, le=128)
+
+
+class AgentEvidenceInterpretBody(_Strict):
+    question: str = Field(min_length=1, max_length=4000)
+    mode: Literal["deterministic", "model"] = "deterministic"
+    provider_id: str | None = Field(default=None, max_length=200)
+    metrics: list[str] = Field(default_factory=list, max_length=64)
 
 
 class RunComparisonBody(_Strict):
@@ -2278,6 +2291,97 @@ def create_app(
             "ok": True,
             "experiment": record.to_dict(include_task_spec=False),
             "evidence": evidence,
+        }
+
+    @app.post("/agent/experiments/{experiment_id}/interpret")
+    def agent_interpret_experiment(
+        experiment_id: str,
+        body: AgentEvidenceInterpretBody,
+    ) -> dict[str, Any]:
+        record = experiment_store.get(experiment_id)
+        if record is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "EXPERIMENT_NOT_FOUND", "message": "experiment not found"},
+            )
+        members = reconcile_experiment(experiment_id)
+        evidence = build_experiment_evidence(
+            experiment_id=experiment_id,
+            members=members,
+            runs_root=run_root,
+            requested_metrics=body.metrics,
+            integrity_checker=verify_run_bundle,
+        )
+        options = experiment_design_options(record.base_task_spec)
+        parameter_options = [
+            dict(item)
+            for item in (options.get("sweep_options") or [])
+            if isinstance(item, Mapping) and item.get("path")
+        ]
+        allowed_paths = [str(item["path"]) for item in parameter_options]
+        config = None
+        selected_provider = None
+        if body.mode == "model":
+            if not body.provider_id:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "INTERPRETATION_PROVIDER_REQUIRED",
+                        "message": "model mode requires provider_id from the configured provider registry",
+                    },
+                )
+            try:
+                profile = provider_registry().get(body.provider_id)
+            except KeyError as exc:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"reason_code": "MODEL_PROVIDER_NOT_FOUND", "message": str(exc)},
+                ) from exc
+            readiness = provider_registry().readiness(body.provider_id, live_probe=False)
+            if not readiness.ready or profile.backend in {"template", "deterministic"}:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "INTERPRETATION_PROVIDER_NOT_READY",
+                        "message": readiness.reason,
+                        "provider_id": body.provider_id,
+                    },
+                )
+            selected_provider = profile.to_dict()
+            config = LLMCallConfig(
+                backend=profile.backend,
+                command=profile.command,
+                model=profile.model,
+                base_url=profile.base_url,
+                api_key_env=profile.api_key_env or "OPENAI_API_KEY",
+                timeout_s=profile.timeout_s,
+                temperature=profile.temperature,
+                max_output_tokens=profile.max_output_tokens,
+                structured_output="json_schema",
+                response_schema=interpretation_response_schema(),
+            )
+        try:
+            result = interpret_evidence(
+                question=body.question,
+                evidence=evidence,
+                allowed_parameter_paths=allowed_paths,
+                parameter_options=parameter_options,
+                config=config,
+            )
+        except InterpretationValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.to_dict()) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502 if body.mode == "model" else 422,
+                detail={"reason_code": "INTERPRETATION_FAILED", "message": str(exc)},
+            ) from exc
+        return {
+            "ok": True,
+            "experiment": record.to_dict(include_task_spec=False),
+            "evidence": evidence,
+            "analysis": result,
+            "selected_provider": selected_provider,
+            "next_experiments_are_proposals_only": True,
         }
 
 
