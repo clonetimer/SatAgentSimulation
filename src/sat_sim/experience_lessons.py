@@ -488,6 +488,18 @@ class ExperienceLessonService:
             result[str(key)] = number
         return result
 
+    def store_evaluation_artifact(self, payload: Mapping[str, Any]) -> str:
+        raw = _canonical(dict(payload))
+        return self.store._put_object(raw, "application/json")
+
+    def _verify_evaluation_object(self, digest: str) -> None:
+        path = self.store._object_path(digest)
+        if not path.is_file():
+            raise ValueError(f"EVALUATION_EVIDENCE_OBJECT_MISSING:{digest}")
+        raw = path.read_bytes()
+        if _sha256(raw) != digest:
+            raise ValueError(f"EVALUATION_EVIDENCE_OBJECT_INTEGRITY_FAILED:{digest}")
+
     def evaluate(
         self,
         lesson_id: str,
@@ -498,6 +510,7 @@ class ExperienceLessonService:
         baseline_metrics: Mapping[str, Any],
         candidate_metrics: Mapping[str, Any],
         evaluation_evidence: Mapping[str, Any],
+        require_evidence_objects: bool = False,
     ) -> dict[str, Any]:
         if not held_out_case_ids:
             raise ValueError("held-out evaluation requires cases")
@@ -522,8 +535,11 @@ class ExperienceLessonService:
             digest = str(evidence[field])
             if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
                 raise ValueError(f"{field} must be a lowercase SHA-256 digest")
+            if require_evidence_objects:
+                self._verify_evaluation_object(digest)
         if not str(evidence["runner"]).strip():
             raise ValueError("evaluation evidence runner is required")
+        evidence["objects_verified"] = bool(require_evidence_objects)
         passed = (
             candidate["primary_score"] >= baseline["primary_score"]
             and candidate["safety_regressions"] == 0
