@@ -703,24 +703,47 @@ class ExperienceLessonService:
             if snapshot is None:
                 return []
             allowed = set(json.loads(snapshot["lesson_ids_json"]))
+            params: list[Any] = [
+                scope.tenant_id,
+                scope.project_id,
+                capability_id,
+            ]
+            mode_clause = ""
+            if mode is not None:
+                mode_clause = """
+                   AND EXISTS (
+                       SELECT 1 FROM lesson_retrieval_index mode_idx
+                       WHERE mode_idx.lesson_id=cap_idx.lesson_id
+                         AND mode_idx.tenant_id=cap_idx.tenant_id
+                         AND mode_idx.project_id=cap_idx.project_id
+                         AND mode_idx.state='approved'
+                         AND mode_idx.facet_kind='mode'
+                         AND mode_idx.facet_value=?
+                   )"""
+                params.append(mode)
             rows = db.execute(
-                """SELECT lesson_id FROM lesson_retrieval_index
-                   WHERE tenant_id=? AND project_id=? AND state='approved'
-                   AND facet_kind='capability' AND facet_value=?
-                   ORDER BY created_at DESC,lesson_id LIMIT ?""",
-                (scope.tenant_id, scope.project_id, capability_id, limit),
+                f"""SELECT DISTINCT cap_idx.lesson_id,cap_idx.created_at
+                    FROM lesson_retrieval_index cap_idx
+                    WHERE cap_idx.tenant_id=? AND cap_idx.project_id=?
+                      AND cap_idx.state='approved'
+                      AND cap_idx.facet_kind='capability'
+                      AND cap_idx.facet_value=?
+                      {mode_clause}
+                    ORDER BY cap_idx.created_at DESC,cap_idx.lesson_id""",
+                params,
             ).fetchall()
-        lessons = [
-            self.get(str(row["lesson_id"]), scope=scope)
-            for row in rows
-            if str(row["lesson_id"]) in allowed
-        ]
-        return [
-            lesson
-            for lesson in lessons
-            if (mode is None or mode in lesson.modes)
-            and task_spec_version in lesson.compatible_task_spec_versions
-        ]
+        lessons: list[ExperienceLesson] = []
+        for row in rows:
+            lesson_id = str(row["lesson_id"])
+            if lesson_id not in allowed:
+                continue
+            lesson = self.get(lesson_id, scope=scope)
+            if task_spec_version not in lesson.compatible_task_spec_versions:
+                continue
+            lessons.append(lesson)
+            if len(lessons) >= int(limit):
+                break
+        return lessons
 
     def create_snapshot(self, *, scope: ExperienceScope, actor: str) -> dict[str, Any]:
         with self.store._connect() as db:
