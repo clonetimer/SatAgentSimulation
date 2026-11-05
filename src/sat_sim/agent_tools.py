@@ -92,6 +92,7 @@ class AgentOperationStore:
                     state TEXT NOT NULL,
                     result_json TEXT,
                     error_json TEXT,
+                    request_json TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -101,6 +102,12 @@ class AgentOperationStore:
                 "CREATE INDEX IF NOT EXISTS idx_agent_operations_updated "
                 "ON agent_operations(updated_at DESC)"
             )
+            columns = {
+                str(row[1])
+                for row in connection.execute("PRAGMA table_info(agent_operations)").fetchall()
+            }
+            if "request_json" not in columns:
+                connection.execute("ALTER TABLE agent_operations ADD COLUMN request_json TEXT")
 
     @staticmethod
     def _validate_operation_id(operation_id: str) -> str:
@@ -112,17 +119,34 @@ class AgentOperationStore:
             )
         return value
 
-    def reserve(self, *, operation_id: str, input_sha256: str, operation_kind: str) -> OperationReservation:
+    def reserve(
+        self,
+        *,
+        operation_id: str,
+        input_sha256: str,
+        operation_kind: str,
+        request_payload: Mapping[str, Any] | None = None,
+    ) -> OperationReservation:
         operation_id = self._validate_operation_id(operation_id)
         now = _now()
         with self._connect() as connection:
             cursor = connection.execute(
                 """
                 INSERT OR IGNORE INTO agent_operations
-                    (operation_id, input_sha256, operation_kind, state, result_json, error_json, created_at, updated_at)
-                VALUES (?, ?, ?, 'PENDING', NULL, NULL, ?, ?)
+                    (
+                        operation_id, input_sha256, operation_kind, state,
+                        result_json, error_json, request_json, created_at, updated_at
+                    )
+                VALUES (?, ?, ?, 'PENDING', NULL, NULL, ?, ?, ?)
                 """,
-                (operation_id, input_sha256, operation_kind, now, now),
+                (
+                    operation_id,
+                    input_sha256,
+                    operation_kind,
+                    _stable_json(dict(request_payload)) if request_payload is not None else None,
+                    now,
+                    now,
+                ),
             )
             row = connection.execute(
                 "SELECT * FROM agent_operations WHERE operation_id = ?",
@@ -144,7 +168,26 @@ class AgentOperationStore:
         if state == "FAILED":
             error = json.loads(row["error_json"]) if row["error_json"] else {}
             return OperationReservation(state="FAILED", error=error)
+        if state == "RECONCILE":
+            error = json.loads(row["error_json"]) if row["error_json"] else {}
+            return OperationReservation(state="RECONCILE", error=error)
         return OperationReservation(state="IN_PROGRESS")
+
+    def reserve_payload(
+        self,
+        *,
+        operation_id: str,
+        operation_kind: str,
+        request_payload: Mapping[str, Any],
+    ) -> tuple[OperationReservation, str]:
+        input_sha256 = _payload_hash(request_payload)
+        reservation = self.reserve(
+            operation_id=operation_id,
+            input_sha256=input_sha256,
+            operation_kind=operation_kind,
+            request_payload=request_payload,
+        )
+        return reservation, input_sha256
 
     def get(self, operation_id: str) -> dict[str, Any] | None:
         operation_id = self._validate_operation_id(operation_id)
@@ -157,6 +200,7 @@ class AgentOperationStore:
             return None
         result = json.loads(row["result_json"]) if row["result_json"] else None
         error = json.loads(row["error_json"]) if row["error_json"] else None
+        request = json.loads(row["request_json"]) if "request_json" in row.keys() and row["request_json"] else None
         return {
             "operation_id": operation_id,
             "operation_kind": str(row["operation_kind"]),
@@ -164,6 +208,7 @@ class AgentOperationStore:
             "input_sha256": str(row["input_sha256"]),
             "result": result,
             "error": error,
+            "request": request,
             "created_at": str(row["created_at"]),
             "updated_at": str(row["updated_at"]),
         }
@@ -178,6 +223,18 @@ class AgentOperationStore:
                 WHERE operation_id = ? AND state = 'PENDING'
                 """,
                 (_stable_json(dict(result)), _now(), operation_id),
+            )
+
+    def require_reconciliation(self, operation_id: str, error: Mapping[str, Any]) -> None:
+        operation_id = self._validate_operation_id(operation_id)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE agent_operations
+                SET state = 'RECONCILE', error_json = ?, updated_at = ?
+                WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE')
+                """,
+                (_stable_json(dict(error)), _now(), operation_id),
             )
 
     def fail(self, operation_id: str, error: Mapping[str, Any]) -> None:
@@ -285,11 +342,10 @@ class AgentExperimentTools:
             "assertions": normalized_assertions,
             "max_create_variants": self.max_create_variants,
         }
-        input_sha256 = _payload_hash(input_payload)
-        reservation = self.operation_store.reserve(
+        reservation, input_sha256 = self.operation_store.reserve_payload(
             operation_id=operation_id,
-            input_sha256=input_sha256,
             operation_kind="create_experiment",
+            request_payload=input_payload,
         )
         if reservation.state == "REPLAY":
             replay = dict(reservation.result or {})
