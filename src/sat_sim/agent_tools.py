@@ -568,6 +568,12 @@ def agent_experiment_tool_surface(
                 "effect": "read",
                 "deterministic": True,
             },
+            {
+                "name": "get_experiment_evidence",
+                "effect": "read",
+                "deterministic": True,
+                "causal_claims_verified": False,
+            },
         ],
         "forbidden": [
             "launch_without_budget_reservation",
