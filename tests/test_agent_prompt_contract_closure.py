@@ -129,3 +129,41 @@ def test_first_attempt_evidence_records_unrepaired_valid_draft(tmp_path):
     assert first_attempt['pre_validation_corrections'] == []
     assert first_attempt['draft_source'] == 'external_draft_file'
     assert result.files['first_attempt'].endswith('first_attempt.json')
+
+
+def test_real_model_timeout_is_counted_as_failed_first_answer(monkeypatch, tmp_path):
+    import sat_sim.capability_agent as capability_agent
+
+    class TimeoutBackend:
+        name = "openai_compatible"
+        last_raw_output = ""
+        last_call = None
+
+        def draft_task_spec(self, *, request, context):
+            raise TimeoutError("model request exceeded timeout")
+
+    monkeypatch.setattr(
+        capability_agent,
+        "_backend_from_request",
+        lambda request: TimeoutBackend(),
+    )
+    result = capability_agent.run_capability_script_generation(
+        capability_agent.CapabilityAgentRequest(
+            request=(
+                "Create a nominal reaction wheel simulation using "
+                "component.reaction_wheel.v1."
+            ),
+            output_dir=tmp_path / "timeout-out",
+            backend="openai_compatible",
+            allowed_capabilities=("component.reaction_wheel.v1",),
+            max_repair_attempts=0,
+        )
+    )
+    assert not result.ok
+    first_attempt = json.loads(
+        (tmp_path / "timeout-out" / "first_attempt.json").read_text(encoding="utf-8")
+    )
+    assert first_attempt["eligible_unrepaired_first_answer"] is True
+    assert first_attempt["validation_ok"] is False
+    assert first_attempt["draft_parse_or_schema_failed"] is True
+    assert first_attempt["failure_type"] == "TimeoutError"
