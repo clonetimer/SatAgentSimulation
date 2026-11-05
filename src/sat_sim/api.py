@@ -409,13 +409,7 @@ class AgentExperimentLaunchBody(_Strict):
 class AgentEvidenceInterpretBody(_Strict):
     question: str = Field(min_length=1, max_length=4000)
     mode: Literal["deterministic", "model"] = "deterministic"
-    backend: str | None = Field(default=None, max_length=64)
-    model: str | None = Field(default=None, max_length=300)
-    base_url: str | None = Field(default=None, max_length=1000)
-    api_key_env: str = Field(default="OPENAI_API_KEY", max_length=200)
-    timeout_s: float = Field(default=60.0, gt=0, le=300)
-    temperature: float | None = Field(default=None, ge=0, le=2)
-    max_output_tokens: int | None = Field(default=2000, ge=128, le=10000)
+    provider_id: str | None = Field(default=None, max_length=200)
     metrics: list[str] = Field(default_factory=list, max_length=64)
 
 
@@ -2325,23 +2319,43 @@ def create_app(
             if isinstance(item, Mapping) and item.get("path")
         ]
         config = None
+        selected_provider = None
         if body.mode == "model":
-            if not body.backend or body.backend == "template":
+            if not body.provider_id:
                 raise HTTPException(
                     status_code=422,
                     detail={
-                        "reason_code": "INTERPRETATION_MODEL_BACKEND_REQUIRED",
-                        "message": "model mode requires an explicit non-template backend",
+                        "reason_code": "INTERPRETATION_PROVIDER_REQUIRED",
+                        "message": "model mode requires provider_id from the configured provider registry",
                     },
                 )
+            try:
+                profile = provider_registry().get(body.provider_id)
+            except KeyError as exc:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"reason_code": "MODEL_PROVIDER_NOT_FOUND", "message": str(exc)},
+                ) from exc
+            readiness = provider_registry().readiness(body.provider_id, live_probe=False)
+            if not readiness.ready or profile.backend in {"template", "deterministic"}:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "INTERPRETATION_PROVIDER_NOT_READY",
+                        "message": readiness.reason,
+                        "provider_id": body.provider_id,
+                    },
+                )
+            selected_provider = profile.to_dict()
             config = LLMCallConfig(
-                backend=body.backend,
-                model=body.model,
-                base_url=body.base_url,
-                api_key_env=body.api_key_env,
-                timeout_s=body.timeout_s,
-                temperature=body.temperature,
-                max_output_tokens=body.max_output_tokens,
+                backend=profile.backend,
+                command=profile.command,
+                model=profile.model,
+                base_url=profile.base_url,
+                api_key_env=profile.api_key_env or "OPENAI_API_KEY",
+                timeout_s=profile.timeout_s,
+                temperature=profile.temperature,
+                max_output_tokens=profile.max_output_tokens,
                 structured_output="json_schema",
                 response_schema=interpretation_response_schema(),
             )
@@ -2364,6 +2378,7 @@ def create_app(
             "experiment": record.to_dict(include_task_spec=False),
             "evidence": evidence,
             "analysis": result,
+            "selected_provider": selected_provider,
             "next_experiments_are_proposals_only": True,
         }
 
