@@ -59,6 +59,7 @@ from .observability import WorkbenchLogStore
 from .scenario_templates import list_scenario_templates, instantiate_scenario_template
 from .remote_worker import (
     REMOTE_WORKER_PROTOCOL_VERSION,
+    prepared_bundle_identity,
     build_bundle_archive,
     install_remote_result_bundle,
     safe_extract_bundle_archive,
@@ -388,6 +389,14 @@ class ExperimentPlanBody(_Strict):
 class ExperimentLaunchBody(_Strict):
     max_attempts: int = Field(default=2, ge=1, le=2)
     hard_timeout: bool = True
+
+
+class AgentExperimentLaunchBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
+    max_attempts: int = Field(default=1, ge=1, le=2)
+    hard_timeout: bool = True
+    max_run_count: int = Field(ge=1, le=64)
+    max_execution_attempts: int = Field(ge=1, le=128)
 
 
 class RunComparisonBody(_Strict):
@@ -794,6 +803,8 @@ def create_app(
         operation_store=agent_operation_store,
         max_create_variants=int(os.getenv("SAT_SIM_AGENT_MAX_CREATE_VARIANTS") or "12"),
     )
+    agent_max_launch_runs = int(os.getenv("SAT_SIM_AGENT_MAX_LAUNCH_RUNS") or "12")
+    agent_max_execution_attempts = int(os.getenv("SAT_SIM_AGENT_MAX_EXECUTION_ATTEMPTS") or "24")
     experience_store = ExperienceStore(artifact_root / "experiences")
     experience_lessons = ExperienceLessonService(experience_store)
     provider_config_path = Path(os.getenv("SAT_SIM_MODEL_PROVIDERS_FILE") or artifact_root / "model_providers.json").resolve()
@@ -1020,16 +1031,244 @@ def create_app(
         expected_plan_sha256: str,
         max_attempts: int,
         hard_timeout: bool,
+        submission_metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        metadata = {"submitted_by": "api", "submitted_at": now_iso()}
+        metadata.update(dict(submission_metadata or {}))
         job = execution_queue.enqueue(
             run_id=run_id,
             bundle_root=bundle_root,
             execution_plan_sha256=expected_plan_sha256,
             max_attempts=max_attempts,
             hard_timeout=hard_timeout,
-            metadata={"submitted_by": "api", "submitted_at": now_iso()},
+            metadata=metadata,
         )
         return _public_queue_job(job.to_dict())
+
+    def agent_launch_snapshot(experiment_id: str, operation_id: str | None = None) -> dict[str, Any]:
+        record = experiment_store.get(experiment_id)
+        if record is None:
+            raise HTTPException(status_code=404, detail={"reason_code": "EXPERIMENT_NOT_FOUND"})
+        members = reconcile_experiment(experiment_id)
+        rows: list[dict[str, Any]] = []
+        assigned = 0
+        terminal = 0
+        for member in members:
+            variant_index = int(member["variant_index"])
+            deterministic_run_id = f"{experiment_id}_v{variant_index + 1:03d}"
+            run_id = str(member.get("run_id") or deterministic_run_id)
+            job = execution_queue.get_by_run_id(run_id)
+            snapshot = execution_snapshot(run_id)
+            if member.get("run_id") or job is not None or str(snapshot.get("state")) != "NOT_FOUND":
+                assigned += 1
+            if str(snapshot.get("state")) in TERMINAL_STATES:
+                terminal += 1
+            rows.append({
+                "variant_index": variant_index,
+                "run_id": run_id,
+                "assigned": bool(member.get("run_id")),
+                "member_state": member.get("state"),
+                "execution_state": snapshot.get("state"),
+                "validation_result": snapshot.get("validation_result"),
+                "job_id": job.job_id if job is not None else None,
+                "job_metadata": dict(job.metadata or {}) if job is not None else None,
+            })
+        return {
+            "experiment_id": experiment_id,
+            "operation_id": operation_id,
+            "variant_count": len(rows),
+            "assigned_count": assigned,
+            "terminal_count": terminal,
+            "all_assigned": bool(rows) and assigned == len(rows),
+            "all_terminal": bool(rows) and terminal == len(rows),
+            "members": rows,
+        }
+
+    def launch_agent_experiment(
+        *,
+        operation_id: str,
+        experiment_id: str,
+        max_attempts: int,
+        hard_timeout: bool,
+        max_run_count: int,
+        max_execution_attempts: int,
+    ) -> dict[str, Any]:
+        record = experiment_store.get(experiment_id)
+        if record is None:
+            raise AgentToolError("EXPERIMENT_NOT_FOUND", "experiment not found")
+        members = experiment_store.members(experiment_id)
+        variant_count = len(members)
+        attempt_capacity = variant_count * int(max_attempts)
+        if variant_count > int(max_run_count):
+            raise AgentToolError(
+                "AGENT_RUN_BUDGET_EXCEEDED",
+                f"experiment has {variant_count} variants; request budget allows {max_run_count} runs",
+            )
+        if variant_count > int(agent_max_launch_runs):
+            raise AgentToolError(
+                "AGENT_GLOBAL_RUN_BUDGET_EXCEEDED",
+                f"experiment has {variant_count} variants; Agent global launch limit is {agent_max_launch_runs}",
+            )
+        if attempt_capacity > int(max_execution_attempts):
+            raise AgentToolError(
+                "AGENT_ATTEMPT_BUDGET_EXCEEDED",
+                f"launch reserves {attempt_capacity} attempts; request budget allows {max_execution_attempts}",
+            )
+        if attempt_capacity > int(agent_max_execution_attempts):
+            raise AgentToolError(
+                "AGENT_GLOBAL_ATTEMPT_BUDGET_EXCEEDED",
+                f"launch reserves {attempt_capacity} attempts; Agent global limit is {agent_max_execution_attempts}",
+            )
+
+        request_payload = {
+            "schema_version": "agent-experiment-launch.v1",
+            "operation_kind": "launch_experiment",
+            "experiment_id": experiment_id,
+            "max_attempts": int(max_attempts),
+            "hard_timeout": bool(hard_timeout),
+            "max_run_count": int(max_run_count),
+            "max_execution_attempts": int(max_execution_attempts),
+            "reserved_run_capacity": variant_count,
+            "reserved_attempt_capacity": attempt_capacity,
+        }
+        reservation, input_sha256 = agent_operation_store.reserve_payload(
+            operation_id=operation_id,
+            operation_kind="launch_experiment",
+            request_payload=request_payload,
+        )
+        if reservation.state == "REPLAY":
+            replay = dict(reservation.result or {})
+            replay["replayed"] = True
+            return replay
+        if reservation.state == "FAILED":
+            return {
+                "ok": False,
+                "operation_id": operation_id,
+                "operation_state": "FAILED",
+                "error": dict(reservation.error or {}),
+                "replayed": True,
+            }
+        if reservation.state == "IN_PROGRESS":
+            return {
+                "ok": False,
+                "operation_id": operation_id,
+                "operation_state": "IN_PROGRESS",
+                "replayed": True,
+                "reconciliation": agent_launch_snapshot(experiment_id, operation_id),
+            }
+
+        launched: list[dict[str, Any]] = []
+        recovered: list[dict[str, Any]] = []
+        try:
+            for member in experiment_store.members(experiment_id):
+                variant_index = int(member["variant_index"])
+                run_id = f"{experiment_id}_v{variant_index + 1:03d}"
+                if member.get("run_id"):
+                    recovered.append({
+                        "variant_index": variant_index,
+                        "run_id": str(member["run_id"]),
+                        "source": "experiment_member",
+                    })
+                    continue
+
+                existing_job = execution_queue.get_by_run_id(run_id)
+                if existing_job is not None:
+                    state = _public_queue_job(existing_job.to_dict())
+                    experiment_store.assign_run(
+                        experiment_id,
+                        variant_index,
+                        run_id,
+                        state=str(state.get("state") or "QUEUED"),
+                    )
+                    recovered.append({
+                        "variant_index": variant_index,
+                        "run_id": run_id,
+                        "source": "execution_queue",
+                        "execution_state": state,
+                    })
+                    continue
+
+                spec = canonicalize_task_spec(member["task_spec"])
+                root = _safe_bundle(run_root, run_id)
+                if root.exists():
+                    stored_spec = _json(root / "input" / "task_spec.json")
+                    if not stored_spec or canonicalize_task_spec(stored_spec) != spec:
+                        raise AgentToolError(
+                            "AGENT_PREPARED_RUN_CONFLICT",
+                            f"existing Run Bundle does not match experiment variant {variant_index}",
+                        )
+                    identity = prepared_bundle_identity(root)
+                    expected_plan_sha256 = str(identity.get("execution_plan_sha256") or "")
+                    if not expected_plan_sha256:
+                        raise AgentToolError(
+                            "AGENT_PREPARED_RUN_INVALID",
+                            f"existing Run Bundle lacks execution plan identity for variant {variant_index}",
+                        )
+                    bundle_root = str(root)
+                    source = "prepared_bundle"
+                else:
+                    prepared = prepare_run(spec, output_root=run_root, run_id=run_id)
+                    expected_plan_sha256 = prepared.execution_plan_sha256
+                    bundle_root = prepared.bundle_root
+                    source = "new_prepare"
+
+                state = submit_execution(
+                    run_id,
+                    bundle_root,
+                    expected_plan_sha256,
+                    int(max_attempts),
+                    bool(hard_timeout),
+                    submission_metadata={
+                        "submitted_by": "agent",
+                        "agent_operation_id": operation_id,
+                        "experiment_id": experiment_id,
+                        "variant_index": variant_index,
+                        "reserved_run_capacity": variant_count,
+                        "reserved_attempt_capacity": attempt_capacity,
+                    },
+                )
+                experiment_store.assign_run(
+                    experiment_id,
+                    variant_index,
+                    run_id,
+                    state=str(state.get("state") or "QUEUED"),
+                )
+                launched.append({
+                    "variant_index": variant_index,
+                    "run_id": run_id,
+                    "source": source,
+                    "execution_state": state,
+                })
+
+            reconciliation = agent_launch_snapshot(experiment_id, operation_id)
+            result = {
+                "ok": True,
+                "schema_version": "agent-experiment-launch.v1",
+                "operation_id": operation_id,
+                "operation_state": "SUCCEEDED",
+                "experiment_id": experiment_id,
+                "input_sha256": input_sha256,
+                "reserved_run_capacity": variant_count,
+                "reserved_attempt_capacity": attempt_capacity,
+                "launched_count": len(launched),
+                "recovered_count": len(recovered),
+                "launched": launched,
+                "recovered": recovered,
+                "reconciliation": reconciliation,
+                "replayed": False,
+            }
+            agent_operation_store.complete(operation_id, result)
+            return result
+        except Exception as exc:
+            agent_operation_store.require_reconciliation(
+                operation_id,
+                {
+                    "reason_code": getattr(exc, "reason_code", "AGENT_LAUNCH_RECONCILIATION_REQUIRED"),
+                    "message": str(exc),
+                    "experiment_id": experiment_id,
+                },
+            )
+            raise
 
     def reconcile_experiment(experiment_id: str) -> list[dict[str, Any]]:
         members = experiment_store.members(experiment_id)
@@ -1815,7 +2054,9 @@ def create_app(
     def agent_tools() -> dict[str, Any]:
         payload = agent_tool_surface()
         payload["experiment_tools"] = agent_experiment_tool_surface(
-            max_create_variants=agent_experiment_tools.max_create_variants
+            max_create_variants=agent_experiment_tools.max_create_variants,
+            max_launch_runs=agent_max_launch_runs,
+            max_execution_attempts=agent_max_execution_attempts,
         )
         return payload
 
@@ -1847,7 +2088,63 @@ def create_app(
                 status_code=404,
                 detail={"reason_code": "AGENT_OPERATION_NOT_FOUND", "message": "operation not found"},
             )
-        return {"ok": True, **payload}
+        response = {"ok": True, **payload}
+        request = payload.get("request") if isinstance(payload.get("request"), dict) else {}
+        if payload.get("operation_kind") == "launch_experiment" and request.get("experiment_id"):
+            response["reconciliation"] = agent_launch_snapshot(
+                str(request["experiment_id"]),
+                operation_id,
+            )
+        return response
+
+    @app.post("/agent/experiments/{experiment_id}/launch")
+    def agent_launch_experiment(experiment_id: str, body: AgentExperimentLaunchBody) -> dict[str, Any]:
+        try:
+            return launch_agent_experiment(
+                operation_id=body.operation_id,
+                experiment_id=experiment_id,
+                max_attempts=body.max_attempts,
+                hard_timeout=body.hard_timeout,
+                max_run_count=body.max_run_count,
+                max_execution_attempts=body.max_execution_attempts,
+            )
+        except AgentToolError as exc:
+            status_code = 409 if exc.reason_code in {
+                "OPERATION_ID_CONFLICT",
+                "AGENT_PREPARED_RUN_CONFLICT",
+            } else 422
+            raise HTTPException(status_code=status_code, detail=exc.to_dict()) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "reason_code": "AGENT_LAUNCH_RECONCILIATION_REQUIRED",
+                    "message": str(exc),
+                    "operation_id": body.operation_id,
+                },
+            ) from exc
+
+    @app.get("/agent/experiments/{experiment_id}/result")
+    def agent_experiment_result(
+        experiment_id: str,
+        metrics: str | None = Query(default=None),
+    ) -> dict[str, Any]:
+        snapshot = agent_launch_snapshot(experiment_id)
+        selected = [item.strip() for item in (metrics or "").split(",") if item.strip()]
+        terminal_run_ids = [
+            str(item["run_id"])
+            for item in snapshot["members"]
+            if item.get("run_id") and str(item.get("execution_state")) in TERMINAL_STATES
+        ]
+        comparison = comparison_payload(terminal_run_ids, selected) if terminal_run_ids else None
+        return {
+            "ok": True,
+            "schema_version": "agent-experiment-result.v1",
+            "experiment_id": experiment_id,
+            "execution": snapshot,
+            "comparison": comparison,
+            "complete": bool(snapshot["all_terminal"]),
+        }
 
     @app.post("/agent/experiments")
     def agent_create_experiment(body: AgentExperimentCreateBody) -> dict[str, Any]:
