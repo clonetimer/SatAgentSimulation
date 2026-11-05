@@ -434,7 +434,9 @@ class GoalRunStore:
                 (goal_id, experiment_id),
             ).fetchone()
             if existing is not None:
-                return dict(existing)
+                value = dict(existing)
+                value["replayed"] = True
+                return value
             sequence = int(connection.execute(
                 "SELECT COALESCE(MAX(sequence),0)+1 FROM goal_experiments WHERE goal_id=?",
                 (goal_id,),
@@ -462,7 +464,9 @@ class GoalRunStore:
                 "SELECT * FROM goal_experiments WHERE goal_id=? AND experiment_id=?",
                 (goal_id, experiment_id),
             ).fetchone()
-        return dict(row)
+        value = dict(row)
+        value["replayed"] = False
+        return value
 
     def bind_launch_operation(self, goal_id: str, experiment_id: str, operation_id: str) -> None:
         with self._connect() as connection:
