@@ -939,14 +939,28 @@ def test_lesson_api_strict_evidence_and_effect_filter(tmp_path):
         assert compiled.status_code == 200
         lesson_id = compiled.json()["lesson"]["lesson_id"]
 
-        case_hash = service.store_evaluation_artifact({
-            "case_id": "held-out-api-1",
-            "result": "PASS",
-        })
-        metrics_hash = service.store_evaluation_artifact({
-            "baseline": 0.8,
-            "candidate": 0.9,
-        })
+        case_artifact = client.post(
+            "/experience-lessons/evaluation-artifacts",
+            json={
+                "payload": {
+                    "case_id": "held-out-api-1",
+                    "result": "PASS",
+                }
+            },
+        )
+        metrics_artifact = client.post(
+            "/experience-lessons/evaluation-artifacts",
+            json={
+                "payload": {
+                    "baseline": 0.8,
+                    "candidate": 0.9,
+                }
+            },
+        )
+        assert case_artifact.status_code == 200
+        assert metrics_artifact.status_code == 200
+        case_hash = case_artifact.json()["sha256"]
+        metrics_hash = metrics_artifact.json()["sha256"]
         evaluated = client.post(
             f"/experience-lessons/{lesson_id}/evaluate",
             json={
