@@ -56,6 +56,19 @@ jobs:
             "joblib==1.5.3" "scikit-learn==1.9.0" \
             "psutil==7.2.2" "numba==0.63.1" \
             "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+      - name: Prepare and verify offline SPICE WMM and J2 assets
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/fetch_environment_assets.py
+          python - <<'PY'
+          from sat_sim.bsk_engine.orbital_environment import NativeOrbitalEnvironment
+          NativeOrbitalEnvironment(
+              {"environment_profile": "spice_wmm", "epoch_utc": "2026-01-01T00:00:00Z"},
+              duration_s=2.0,
+          )
+          print("Strict spice_wmm resource preflight passed; native execution follows.")
+          PY
       - name: Verify finite-duration real Basilisk single and segmented outputs
         env:
           PYTHONPATH: "src:."

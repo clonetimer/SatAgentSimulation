@@ -31,6 +31,14 @@ def pending_input_fixture(tmp_path_factory):
             response = client.post('/forms/capabilities/component.thermal_node.v1/project', json={'task_spec':spec})
             assert response.status_code == 200, response.text
             result[name+'_form'] = response.json()['projection']['form_data']
+        result['editor_validation'] = {}
+        for name, duration in [('equivalent', 60), ('changed', 90)]:
+            edited_text = result['accepted_text'].replace('"duration_s": 60.0', f'"duration_s": {duration}')
+            assert edited_text != result['accepted_text']
+            response = client.post('/tasks/validate', json={
+                'task_spec':json.loads(edited_text), 'task_spec_json':edited_text})
+            assert response.status_code == 200 and response.json()['ok'], response.text
+            result['editor_validation'][name] = {'input_text':edited_text, 'response':response.json()}
     return result
 
 
@@ -39,6 +47,7 @@ def pending_input_fixture(tmp_path_factory):
     'stale_generation', 'stale_projection', 'blank_rerun', 'manual_edit',
     'manual_invalid', 'preflight_stale', 'one_owner',
     'receipt_manual_change', 'receipt_json_precision_change', 'receipt_form_preview',
+    'receipt_editor_equivalent', 'receipt_editor_changed', 'blank_rerun_manual_edit',
 ])
 def test_pending_instruction_execution_and_accepted_state(scenario, pending_input_fixture):
     node = shutil.which('node')

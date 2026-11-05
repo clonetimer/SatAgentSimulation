@@ -91,6 +91,19 @@ jobs:
           print("Basilisk:", Basilisk.__version__)
           print("bsk distribution:", version("bsk"))
           PY
+      - name: Prepare and verify offline SPICE WMM and J2 assets
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/fetch_environment_assets.py
+          python - <<'PY'
+          from sat_sim.bsk_engine.orbital_environment import NativeOrbitalEnvironment
+          NativeOrbitalEnvironment(
+              {"environment_profile": "spice_wmm", "epoch_utc": "2026-01-01T00:00:00Z"},
+              duration_s=2.0,
+          )
+          print("Strict spice_wmm resource preflight passed; native execution follows.")
+          PY
       - name: Run native continuous and segmented execution regression tests
         env:
           PYTHONPATH: "src:."

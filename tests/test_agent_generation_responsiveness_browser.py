@@ -98,16 +98,22 @@ def test_pending_generation_keeps_controls_usable_and_preserves_newer_edits(tmp_
             route.fulfill(status=response.status_code, json=response.json())
         page.wait_for_function("!document.querySelector('#agentParseBtn').disabled")
         assert page.locator('#agentParseBtn').get_attribute('aria-busy') is None
-        assert page.locator('#agentGenerationStatus').inner_text() == ''
         if change_during == 'none':
+            assert page.locator('#agentGenerationStatus').inner_text() == ''
+            assert page.locator('#agentInput').input_value() == ''
             assert page.locator('[data-path="parameters.values.power_w"]').input_value() == '37'
         elif change_during in {'generation','projection'}:
-            assert page.locator('#agentInput').input_value() != ''
+            assert '未应用' in page.locator('#agentGenerationStatus').inner_text()
+            expected_input = ('My newer unsent instruction' if change_during == 'generation'
+                              else 'Edited while form projection was pending')
+            assert page.locator('#agentInput').input_value() == expected_input
             assert 'warning' in page.locator('#notice').get_attribute('class')
             assert page.locator('#taskSpecEditor').input_value() == initial_editor
         else:
+            assert '未应用' in page.locator('#agentGenerationStatus').inner_text()
             assert 'error' in page.locator('#notice').get_attribute('class')
-            assert page.locator('#agentInput').input_value() != ''
+            assert page.locator('#agentInput').input_value() == 'Create a thermal node at 37W.'
+            assert page.locator('#taskSpecEditor').input_value() == initial_editor
         assert not errors
         (tmp_path/'responsiveness.json').write_text(json.dumps({
             'scope':'Delayed HTTP protocol control flow only', 'scenario':change_during,

@@ -21,6 +21,7 @@ const code = [
   section('  async function projectTaskSpecToForm(', '  function formatNumber('),
   section('  function syncTaskSpecEditor(', '  function renderAgentConversation('),
   section('  let agentGenerationPromise = null;', '  function taskSpecFromEditor('),
+  section('  function taskSpecFromEditor(', '  async function syncEditorToForm('),
   section('  async function runSimulation(', '  async function loadRuns('),
 ].join('\n');
 const elements = new Map();
@@ -45,7 +46,7 @@ el('agentBackend').value = 'protocol-only';
 el('agentRoutingMode').value = 'auto';
 el('agentInput').value = '将仿真时长改为120秒';
 el('taskSpecEditor').value = fixture.accepted_text;
-const naturalRequests=[], runRequests=[], formRequests=[], notices=[];
+const naturalRequests=[], runRequests=[], formRequests=[], validationRequests=[], notices=[];
 let duringGeneration = () => {}, duringProjection = () => {}, duringPreflight = () => {};
 let outcome = 'success';
 let validForm = true;
@@ -64,6 +65,13 @@ const sandbox = {
   markSelectedRunInList(){}, renderExecutionProgress(){}, loadRuns:async()=>{}, pollRunExecution:async()=>{},
   api: async (url, options) => {
     const body=JSON.parse(options.body);
+    if (url==='/tasks/validate') {
+      validationRequests.push(body);
+      const name=scenario==='receipt_editor_equivalent' ? 'equivalent' : 'changed';
+      const result=copy(fixture.editor_validation[name].response);
+      sandbox.rememberCanonicalTexts(result);
+      return result;
+    }
     if (url==='/tasks/parse' && body.input_kind==='natural_language') {
       naturalRequests.push(body);
       await duringGeneration();
@@ -151,6 +159,33 @@ const snapshot = () => JSON.stringify({task:state.taskSpec,form:state.formData,p
     await evaluate('runSimulation()');
     assert.equal(runRequests[0].source_request_id,'c'.repeat(32),'Fresh preview receipt binds changed form');
     assert.equal(runRequests[0].task_spec_json,fixture.edited_text);
+  } else if (['receipt_editor_equivalent','receipt_editor_changed'].includes(scenario)) {
+    const equivalent=scenario==='receipt_editor_equivalent';
+    const validation=fixture.editor_validation[equivalent ? 'equivalent' : 'changed'];
+    activeTab='taskspec'; el('agentInput').value='';
+    el('taskSpecEditor').value=validation.input_text;
+    await evaluate('runSimulation()');
+    assert.equal(validationRequests.length,1,'JSON Run validates the actual editor text');
+    assert.equal(validationRequests[0].task_spec_json,validation.input_text);
+    assert.equal(formRequests.length,0,'JSON Run must not create a form parse receipt');
+    assert.equal(runRequests.length,1);
+    assert.equal(runRequests[0].task_spec_json,validation.response.task_spec_json);
+    assert.equal(runRequests[0].task_spec.simulation.duration_s,equivalent ? 60 : 90);
+    assert.equal(runRequests[0].source_request_id,equivalent ? 'a'.repeat(32) : undefined,
+      'Receipt compatibility uses the validated canonical output, not raw editor text');
+  } else if (scenario==='blank_rerun_manual_edit') {
+    el('agentInput').value='  ';
+    await evaluate('runSimulation()');
+    assert.equal(naturalRequests.length,0);
+    assert.equal(runRequests[0].task_spec.simulation.duration_s,60);
+    state.formData=copy(fixture.edited_form); state.taskSpec=null;
+    assert.equal(el('agentRefineCurrent').checked,true);
+    el('agentInput').value='将仿真时长改为120秒';
+    await evaluate('runSimulation()');
+    assert.equal(formRequests.length,1);
+    assert.equal(naturalRequests.length,1);
+    assert.equal(naturalRequests[0].base_task_spec.simulation.duration_s,90);
+    assert.equal(runRequests[1].task_spec.simulation.duration_s,120);
   } else if (scenario==='manual_edit') {
     state.formData=copy(fixture.edited_form); state.taskSpec=null;
     await evaluate('runSimulation()');
