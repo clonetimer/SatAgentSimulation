@@ -12,7 +12,7 @@ import json
 import re
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -93,6 +93,7 @@ class AgentOperationStore:
                     result_json TEXT,
                     error_json TEXT,
                     request_json TEXT,
+                    lease_expires_at TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -108,6 +109,8 @@ class AgentOperationStore:
             }
             if "request_json" not in columns:
                 connection.execute("ALTER TABLE agent_operations ADD COLUMN request_json TEXT")
+            if "lease_expires_at" not in columns:
+                connection.execute("ALTER TABLE agent_operations ADD COLUMN lease_expires_at TEXT")
 
     @staticmethod
     def _validate_operation_id(operation_id: str) -> str:
@@ -126,24 +129,29 @@ class AgentOperationStore:
         input_sha256: str,
         operation_kind: str,
         request_payload: Mapping[str, Any] | None = None,
+        lease_seconds: float = 120.0,
     ) -> OperationReservation:
         operation_id = self._validate_operation_id(operation_id)
         now = _now()
+        lease_expires_at = (
+            datetime.now(timezone.utc) + timedelta(seconds=max(float(lease_seconds), 1.0))
+        ).isoformat()
         with self._connect() as connection:
             cursor = connection.execute(
                 """
                 INSERT OR IGNORE INTO agent_operations
                     (
                         operation_id, input_sha256, operation_kind, state,
-                        result_json, error_json, request_json, created_at, updated_at
+                        result_json, error_json, request_json, lease_expires_at, created_at, updated_at
                     )
-                VALUES (?, ?, ?, 'PENDING', NULL, NULL, ?, ?, ?)
+                VALUES (?, ?, ?, 'PENDING', NULL, NULL, ?, ?, ?, ?)
                 """,
                 (
                     operation_id,
                     input_sha256,
                     operation_kind,
                     _stable_json(dict(request_payload)) if request_payload is not None else None,
+                    lease_expires_at,
                     now,
                     now,
                 ),
@@ -179,6 +187,7 @@ class AgentOperationStore:
         operation_id: str,
         operation_kind: str,
         request_payload: Mapping[str, Any],
+        lease_seconds: float = 120.0,
     ) -> tuple[OperationReservation, str]:
         input_sha256 = _payload_hash(request_payload)
         reservation = self.reserve(
@@ -186,6 +195,7 @@ class AgentOperationStore:
             input_sha256=input_sha256,
             operation_kind=operation_kind,
             request_payload=request_payload,
+            lease_seconds=lease_seconds,
         )
         return reservation, input_sha256
 
@@ -209,9 +219,50 @@ class AgentOperationStore:
             "result": result,
             "error": error,
             "request": request,
+            "lease_expires_at": str(row["lease_expires_at"]) if "lease_expires_at" in row.keys() and row["lease_expires_at"] else None,
             "created_at": str(row["created_at"]),
             "updated_at": str(row["updated_at"]),
         }
+
+    def heartbeat(self, operation_id: str, *, lease_seconds: float = 120.0) -> bool:
+        operation_id = self._validate_operation_id(operation_id)
+        now = _now()
+        lease_expires_at = (
+            datetime.now(timezone.utc) + timedelta(seconds=max(float(lease_seconds), 1.0))
+        ).isoformat()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE agent_operations
+                SET lease_expires_at = ?, updated_at = ?
+                WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE')
+                """,
+                (lease_expires_at, now, operation_id),
+            )
+        return cursor.rowcount == 1
+
+    def claim_reconciliation(self, operation_id: str) -> bool:
+        operation_id = self._validate_operation_id(operation_id)
+        now = _now()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE agent_operations
+                SET state = 'RECONCILE', updated_at = ?
+                WHERE operation_id = ?
+                  AND state = 'PENDING'
+                  AND lease_expires_at IS NOT NULL
+                  AND lease_expires_at <= ?
+                """,
+                (now, operation_id, now),
+            )
+            if cursor.rowcount == 1:
+                return True
+            row = connection.execute(
+                "SELECT state FROM agent_operations WHERE operation_id = ?",
+                (operation_id,),
+            ).fetchone()
+        return bool(row is not None and str(row["state"]) == "RECONCILE")
 
     def complete(self, operation_id: str, result: Mapping[str, Any]) -> None:
         operation_id = self._validate_operation_id(operation_id)
