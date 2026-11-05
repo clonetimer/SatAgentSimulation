@@ -403,7 +403,12 @@ class AgentExperimentTools:
             raise
 
 
-def agent_experiment_tool_surface(*, max_create_variants: int = 12) -> dict[str, Any]:
+def agent_experiment_tool_surface(
+    *,
+    max_create_variants: int = 12,
+    max_launch_runs: int = 12,
+    max_execution_attempts: int = 24,
+) -> dict[str, Any]:
     """Machine-readable P1 tool contract for planners and UI adapters."""
     return {
         "ok": True,
@@ -421,9 +426,25 @@ def agent_experiment_tool_surface(*, max_create_variants: int = 12) -> dict[str,
                 "max_variants": int(max_create_variants),
                 "launches_runs": False,
             },
+            {
+                "name": "launch_experiment",
+                "effect": "write",
+                "deterministic": True,
+                "requires_operation_id": True,
+                "max_runs": int(max_launch_runs),
+                "max_execution_attempts": int(max_execution_attempts),
+                "requires_explicit_request_budget": True,
+                "launches_runs": True,
+            },
+            {
+                "name": "get_experiment_result",
+                "effect": "read",
+                "deterministic": True,
+            },
         ],
         "forbidden": [
             "launch_without_budget_reservation",
+            "launch_above_global_budget",
             "retry_unknown_write_without_reconciliation",
             "invent_parameter_path",
             "execute_arbitrary_python",
