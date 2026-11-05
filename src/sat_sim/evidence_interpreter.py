@@ -121,9 +121,15 @@ def validate_interpretation(
     *,
     evidence: Mapping[str, Any],
     allowed_parameter_paths: Sequence[str] = (),
+    parameter_options: Sequence[Mapping[str, Any]] = (),
 ) -> EvidenceInterpretation:
     runs, comparisons = _indexes(evidence)
-    allowed_paths = {str(path) for path in allowed_parameter_paths}
+    option_map = {
+        str(item.get("path")): dict(item)
+        for item in parameter_options
+        if isinstance(item, Mapping) and item.get("path")
+    }
+    allowed_paths = {str(path) for path in allowed_parameter_paths} | set(option_map)
     expected_status = "EVIDENCE_READY" if evidence.get("evidence_ready") else "INSUFFICIENT_EVIDENCE"
     if interpretation.analysis_status != expected_status:
         raise InterpretationValidationError("INTERPRETATION_STATUS_MISMATCH", f"analysis_status must be {expected_status}")
@@ -153,11 +159,46 @@ def validate_interpretation(
         for ref in item.evidence:
             check_ref(ref)
 
+    def check_candidate_value(path: str, value: Any) -> None:
+        option = option_map.get(path)
+        if not option:
+            return
+        field_type = str(option.get("type") or "")
+        valid_type = (
+            (field_type == "number" and isinstance(value, (int, float)) and not isinstance(value, bool))
+            or (field_type == "integer" and isinstance(value, int) and not isinstance(value, bool))
+            or (field_type == "boolean" and isinstance(value, bool))
+            or (field_type == "string" and isinstance(value, str))
+        )
+        if field_type and not valid_type:
+            raise InterpretationValidationError(
+                "EXPERIMENT_VALUE_TYPE_MISMATCH",
+                f"value for {path} does not match registered type {field_type}",
+            )
+        if option.get("enum") and value not in option["enum"]:
+            raise InterpretationValidationError(
+                "EXPERIMENT_VALUE_OUT_OF_SCHEMA",
+                f"value for {path} is outside registered enum",
+            )
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if option.get("minimum") is not None and float(value) < float(option["minimum"]):
+                raise InterpretationValidationError(
+                    "EXPERIMENT_VALUE_OUT_OF_SCHEMA",
+                    f"value for {path} is below registered minimum",
+                )
+            if option.get("maximum") is not None and float(value) > float(option["maximum"]):
+                raise InterpretationValidationError(
+                    "EXPERIMENT_VALUE_OUT_OF_SCHEMA",
+                    f"value for {path} exceeds registered maximum",
+                )
+
     for index, item in enumerate(interpretation.next_experiments):
         _reject_numeric_free_text(item.objective, f"next_experiments[{index}].objective")
         _reject_numeric_free_text(item.rationale, f"next_experiments[{index}].rationale")
         if item.parameter_path not in allowed_paths:
             raise InterpretationValidationError("UNREGISTERED_EXPERIMENT_PARAMETER", f"unregistered parameter: {item.parameter_path}")
+        for value in item.values:
+            check_candidate_value(item.parameter_path, value)
         if item.estimated_runs != len(item.values):
             raise InterpretationValidationError("EXPERIMENT_RUN_ESTIMATE_MISMATCH", "estimated_runs must equal proposed values count")
 
@@ -244,6 +285,7 @@ def interpret_evidence(
     question: str,
     evidence: Mapping[str, Any],
     allowed_parameter_paths: Sequence[str] = (),
+    parameter_options: Sequence[Mapping[str, Any]] = (),
     backend: TextLLMBackend | None = None,
     config: LLMCallConfig | None = None,
 ) -> dict[str, Any]:
@@ -252,6 +294,7 @@ def interpret_evidence(
             deterministic_interpretation(evidence),
             evidence=evidence,
             allowed_parameter_paths=allowed_parameter_paths,
+            parameter_options=parameter_options,
         )
         return {"ok": True, "mode": "deterministic", "interpretation": interpretation.model_dump(mode="json"), "model_call": None}
 
@@ -266,7 +309,12 @@ def interpret_evidence(
         raise
     except Exception as exc:
         raise InterpretationValidationError("INTERPRETATION_SCHEMA_INVALID", str(exc)) from exc
-    interpretation = validate_interpretation(interpretation, evidence=evidence, allowed_parameter_paths=allowed_parameter_paths)
+    interpretation = validate_interpretation(
+        interpretation,
+        evidence=evidence,
+        allowed_parameter_paths=allowed_parameter_paths,
+        parameter_options=parameter_options,
+    )
     return {"ok": True, "mode": "model", "interpretation": interpretation.model_dump(mode="json"), "model_call": result.to_dict()}
 
 
