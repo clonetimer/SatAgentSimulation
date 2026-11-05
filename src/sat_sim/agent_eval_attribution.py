@@ -71,16 +71,32 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
     first_answer_pass = bool(first_eligible and first_validation_ok)
 
     retry_used = (root / "model_call_retry.json").is_file() or "model_invocation_retry" in step_names
+    schema_rejected_first_response = (
+        (root / "model_call_rejected.json").is_file()
+        or "model_invocation_rejected" in step_names
+        or bool(first and first.get("schema_rejected_first_response") is True)
+    )
     local_repair_used = "repair" in step_names
     route_repair_used = "planner_route_repair" in step_names
     template_fallback_used = "model_fallback" in step_names
     final_ok = report.get("ok") is True
 
     calls = [
+        _call_cost(root / "model_call_rejected.json"),
         _call_cost(root / "model_call.json"),
         _call_cost(root / "model_call_retry.json"),
     ]
-    present_calls = [item for item in calls if item["present"]]
+    present_calls: list[dict[str, Any]] = []
+    seen_request_ids: set[str] = set()
+    for item in calls:
+        if not item["present"]:
+            continue
+        request_id = str(item.get("request_id") or "")
+        if request_id and request_id in seen_request_ids:
+            continue
+        if request_id:
+            seen_request_ids.add(request_id)
+        present_calls.append(item)
     verified_calls = [item for item in present_calls if item["verified"]]
 
     return {
@@ -92,12 +108,17 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
         "first_answer_pass": first_answer_pass,
         "final_agent_ok": final_ok,
         "repair_assisted_success": bool(final_ok and not first_answer_pass),
+        "schema_rejected_first_response": schema_rejected_first_response,
         "model_retry_used": retry_used,
         "local_repair_used": local_repair_used,
         "route_repair_used": route_repair_used,
         "template_fallback_used": template_fallback_used,
         "correction_used": bool(
-            retry_used or local_repair_used or route_repair_used or template_fallback_used
+            schema_rejected_first_response
+            or retry_used
+            or local_repair_used
+            or route_repair_used
+            or template_fallback_used
         ),
         "model_calls": {
             "present_count": len(present_calls),
