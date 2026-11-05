@@ -4402,6 +4402,41 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         write_json(validation_json, validation.to_dict())
         files.update({"generated_task_yaml": str(task_yaml), "generated_task_json": str(task_json), "validation": str(validation_json)})
         steps.append(CapabilityAgentStep("draft", "failed", "LLM output was not valid literal JSON/YAML TaskSpec data; recorded raw output and stopped before compile/export.", {"backend": backend_name or request.backend, "error": str(exc)}))
+        real_model_attempt = request.draft_spec_path is None and request.backend != "template"
+        first_attempt_payload = {
+            "schema_version": "sat-sim.generation-first-attempt.v1",
+            "request_sha256": hashlib.sha256(request.request.encode("utf-8")).hexdigest(),
+            "normalized_task_spec_sha256": None,
+            "validation_ok": False,
+            "validation": validation.to_dict(),
+            "model_call_file": files.get("model_call"),
+            "model_call_rejected_file": files.get("model_call_rejected"),
+            "raw_model_output_file": files.get("raw_model_output"),
+            "draft_source": backend_name or request.backend,
+            "pre_validation_corrections": [
+                step.name
+                for step in steps
+                if step.name in {"model_invocation_rejected"}
+            ],
+            "model_fallback_used": False,
+            "schema_rejected_first_response": "model_invocation_rejected" in {step.name for step in steps},
+            "eligible_unrepaired_first_answer": bool(real_model_attempt),
+            "draft_parse_or_schema_failed": True,
+            "failure_type": exc.__class__.__name__,
+        }
+        first_attempt_path = output_dir / "first_attempt.json"
+        write_json(first_attempt_path, first_attempt_payload)
+        files["first_attempt"] = str(first_attempt_path)
+        steps.append(CapabilityAgentStep(
+            "first_attempt_evidence",
+            "complete",
+            "Sealed the failed first model attempt before returning.",
+            {
+                "validation_ok": False,
+                "eligible_unrepaired_first_answer": bool(real_model_attempt),
+                "failure_type": exc.__class__.__name__,
+            },
+        ))
         result = CapabilityScriptGenerationResult(
             ok=False,
             request=request,
