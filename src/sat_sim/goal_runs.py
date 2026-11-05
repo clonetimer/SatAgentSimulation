@@ -468,9 +468,27 @@ class GoalRunStore:
         value["replayed"] = False
         return value
 
-    def bind_launch_operation(self, goal_id: str, experiment_id: str, operation_id: str) -> None:
+    def bind_launch_operation(self, goal_id: str, experiment_id: str, operation_id: str) -> dict[str, Any]:
         with self._connect() as connection:
-            cursor = connection.execute(
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM goal_experiments WHERE goal_id=? AND experiment_id=?",
+                (goal_id, experiment_id),
+            ).fetchone()
+            if row is None:
+                raise GoalRunError("GOAL_EXPERIMENT_NOT_FOUND", "experiment is not linked to goal")
+            current = str(row["launch_operation_id"] or "")
+            if current:
+                if current != str(operation_id):
+                    raise GoalRunError(
+                        "GOAL_EXPERIMENT_ALREADY_LAUNCHED",
+                        f"experiment is already bound to launch operation {current}",
+                    )
+                return {
+                    "operation_id": current,
+                    "replayed": True,
+                }
+            connection.execute(
                 """
                 UPDATE goal_experiments
                 SET launch_operation_id=?, updated_at=?
@@ -478,8 +496,10 @@ class GoalRunStore:
                 """,
                 (operation_id, _now(), goal_id, experiment_id),
             )
-        if cursor.rowcount != 1:
-            raise GoalRunError("GOAL_EXPERIMENT_NOT_FOUND", "experiment is not linked to goal")
+        return {
+            "operation_id": str(operation_id),
+            "replayed": False,
+        }
 
     def experiments(self, goal_id: str) -> list[dict[str, Any]]:
         with self._connect() as connection:
