@@ -171,9 +171,12 @@ def _calibrated_tier(
     candidates.sort(key=lambda item: (-item[0], item[1]))
     _, segment_id, segment = candidates[0]
     sample_count, sample_count_valid = _coerce_int(segment.get("sample_count"), 0)
-    raw_min_samples, min_samples_valid = _coerce_int(
-        segment.get("min_samples"), default_min_samples
-    )
+    if segment.get("min_samples") is None:
+        raw_min_samples, min_samples_valid = default_min_samples, True
+    else:
+        raw_min_samples, min_samples_valid = _coerce_int(
+            segment.get("min_samples"), default_min_samples
+        )
     min_samples = max(1, raw_min_samples)
     l1_success, l1_rate_valid = _coerce_float(segment.get("l1_success_rate"), 0.0)
     l2_success, l2_rate_valid = _coerce_float(segment.get("l2_success_rate"), 0.0)
@@ -184,9 +187,12 @@ def _calibrated_tier(
         and 0.0 <= l2_success <= 1.0
     )
     gain = l2_success - l1_success
-    raw_min_gain, min_gain_valid = _coerce_float(
-        segment.get("min_success_rate_gain"), default_min_gain
-    )
+    if segment.get("min_success_rate_gain") is None:
+        raw_min_gain, min_gain_valid = default_min_gain, True
+    else:
+        raw_min_gain, min_gain_valid = _coerce_float(
+            segment.get("min_success_rate_gain"), default_min_gain
+        )
     min_gain = max(0.0, raw_min_gain)
     numeric_fields_valid = (
         default_samples_valid
