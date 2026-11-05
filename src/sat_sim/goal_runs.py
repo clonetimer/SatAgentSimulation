@@ -374,6 +374,18 @@ class GoalRunStore:
             "replayed": False,
         }
 
+    def reservation_for_operation(self, goal_id: str, operation_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM goal_budget_reservations WHERE goal_id=? AND operation_id=?",
+                (goal_id, operation_id),
+            ).fetchone()
+        if row is None:
+            return None
+        value = dict(row)
+        value["amounts"] = _json_load(value.pop("amounts_json"), {})
+        return value
+
     def _set_reservation_state(self, goal_id: str, reservation_id: str, state: Literal["COMMITTED", "RELEASED"]) -> dict[str, Any]:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
