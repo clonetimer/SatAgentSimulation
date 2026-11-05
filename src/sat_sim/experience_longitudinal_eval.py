@@ -250,6 +250,9 @@ def run_experience_longitudinal_eval(
                 output_dir=case_output,
                 bundle_root=execution.get("bundle_root"),
             )
+            attributed_calls = (
+                ((attribution.get("generation") or {}).get("model_calls") or {})
+            )
             pair[arm] = {
                 "agent_ok": result.ok,
                 "validation_ok": result.validation.ok,
@@ -265,6 +268,13 @@ def run_experience_longitudinal_eval(
                 "experience_presented": "EXPERIENCE_ADVISORY_PRESENTED"
                 in result.reason_codes,
                 "attribution": attribution,
+                "attributed_prompt_tokens": int(attributed_calls.get("prompt_tokens") or 0),
+                "attributed_completion_tokens": int(attributed_calls.get("completion_tokens") or 0),
+                "attributed_total_tokens": int(attributed_calls.get("total_tokens") or 0),
+                "attributed_latency_ms": float(attributed_calls.get("latency_ms") or 0.0),
+                "all_present_model_calls_verified": bool(
+                    attributed_calls.get("all_present_verified")
+                ),
                 **_model_metrics(case_output),
             }
         pair["delta"] = {
@@ -277,11 +287,23 @@ def run_experience_longitudinal_eval(
             "latency_ms_saved": (
                 pair["baseline"]["latency_ms"] - pair["experience"]["latency_ms"]
             ),
+            "attributed_prompt_tokens_saved": (
+                pair["baseline"]["attributed_prompt_tokens"]
+                - pair["experience"]["attributed_prompt_tokens"]
+            ),
+            "attributed_total_tokens_saved": (
+                pair["baseline"]["attributed_total_tokens"]
+                - pair["experience"]["attributed_total_tokens"]
+            ),
+            "attributed_latency_ms_saved": (
+                pair["baseline"]["attributed_latency_ms"]
+                - pair["experience"]["attributed_latency_ms"]
+            ),
         }
         cases.append(pair)
 
-    token_deltas = [item["delta"]["total_tokens_saved"] for item in cases]
-    latency_deltas = [item["delta"]["latency_ms_saved"] for item in cases]
+    token_deltas = [item["delta"]["attributed_total_tokens_saved"] for item in cases]
+    latency_deltas = [item["delta"]["attributed_latency_ms_saved"] for item in cases]
     wins = sum(value > 0 for value in token_deltas)
     losses = sum(value < 0 for value in token_deltas)
     ties = sum(value == 0 for value in token_deltas)
@@ -297,7 +319,9 @@ def run_experience_longitudinal_eval(
     )
     checks = {
         "all_model_invocations_verified": all(
-            item[arm]["verified"] for item in cases for arm in ("baseline", "experience")
+            item[arm]["all_present_model_calls_verified"]
+            for item in cases
+            for arm in ("baseline", "experience")
         ),
         "baseline_run_pass_rate_100": baseline_pass == 1.0,
         "experience_run_pass_rate_100": experience_pass == 1.0,
@@ -321,6 +345,8 @@ def run_experience_longitudinal_eval(
         "model": model,
         "base_url": base_url,
         "max_repair_attempts": int(max_repair_attempts),
+        "cost_gate_basis": "all_attributed_model_calls",
+        "legacy_single_call_cost_fields_retained": True,
         "attribution": attribution_report,
         "lesson_id": lesson.lesson_id,
         "snapshot_id": snapshot["snapshot_id"],
