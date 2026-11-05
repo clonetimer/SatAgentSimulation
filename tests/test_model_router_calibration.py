@@ -169,3 +169,30 @@ def test_invalid_calibration_file_is_observable_but_non_authoritative(tmp_path):
     assert decision.tier == "L1"
     assert decision.calibration["status"] == "invalid"
     assert decision.calibration["reason"] == "calibration_file_unreadable"
+
+
+def test_malformed_numeric_calibration_falls_back_without_crashing(tmp_path):
+    path = _write_calibration(
+        tmp_path,
+        {
+            "segment_id": "eps-bad-numbers",
+            "match": {"domains": ["eps"]},
+            "sample_count": "many",
+            "min_samples": "ten",
+            "l1_success_rate": "bad",
+            "l2_success_rate": "worse",
+            "min_success_rate_gain": "large",
+            "recommended_tier": "L2",
+            "matched_budget": True,
+            "evaluation_sha256": "e" * 64,
+        },
+    )
+    decision = route_model(
+        input_kind="natural_language",
+        request_text="请建立一个电池工程仿真。",
+        config=_remote_config(path),
+    )
+    assert decision.tier == "L1"
+    assert decision.backend == "template"
+    assert decision.calibration["status"] == "insufficient_evidence"
+    assert decision.calibration["numeric_fields_valid"] is False
