@@ -151,11 +151,21 @@ def _calibrated_tier(
     min_samples = max(1, int(segment.get("min_samples") or default_min_samples))
     l1_success = float(segment.get("l1_success_rate") or 0.0)
     l2_success = float(segment.get("l2_success_rate") or 0.0)
+    rates_valid = 0.0 <= l1_success <= 1.0 and 0.0 <= l2_success <= 1.0
     gain = l2_success - l1_success
     min_gain = max(0.0, float(segment.get("min_success_rate_gain") or default_min_gain))
     recommended = str(segment.get("recommended_tier") or "").upper()
+    evidence_sha256 = str(segment.get("evaluation_sha256") or "")
+    evidence_valid = (
+        len(evidence_sha256) == 64
+        and all(ch in "0123456789abcdef" for ch in evidence_sha256)
+    )
+    matched_budget = segment.get("matched_budget") is True
     accepted = (
         sample_count >= min_samples
+        and rates_valid
+        and evidence_valid
+        and matched_budget
         and recommended in {"L1", "L2"}
         and (
             (recommended == "L2" and gain >= min_gain)
@@ -174,6 +184,10 @@ def _calibrated_tier(
         "min_success_rate_gain": min_gain,
         "recommended_tier": recommended or None,
         "heuristic_tier": heuristic_tier,
+        "matched_budget": matched_budget,
+        "evaluation_sha256": evidence_sha256 or None,
+        "rates_valid": rates_valid,
+        "evidence_valid": evidence_valid,
     }
     if not accepted:
         return heuristic_tier, result
