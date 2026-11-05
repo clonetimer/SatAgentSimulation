@@ -37,6 +37,7 @@ from .model_providers import ModelProviderProfile, ModelProviderRegistry
 from .task_source import TaskSourceValidationError, validate_task_source
 from .task_center import TaskCenterStore
 from .experiment_manager import ExperimentStore
+from .agent_tools import AgentExperimentTools, AgentOperationStore, AgentToolError, agent_experiment_tool_surface
 from .experience import ExperienceScope, ExperienceStore
 from .experience_lessons import ExperienceLessonService
 from .experiments.dispersion_registry import dispersion_parameter_options
@@ -349,6 +350,17 @@ class ScenarioTemplateInstantiateBody(_Strict):
 
 
 class ExperimentCreateBody(_Strict):
+    name: str = Field(min_length=1, max_length=300)
+    base_task_spec: dict[str, Any]
+    base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
+    sweep: dict[str, list[Any]] = Field(default_factory=dict)
+    assertions: list[dict[str, Any]] = Field(default_factory=list)
+    experiment_type: str = Field(default="sweep", max_length=40)
+    sampling_plan: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentExperimentCreateBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
     name: str = Field(min_length=1, max_length=300)
     base_task_spec: dict[str, Any]
     base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
@@ -773,6 +785,15 @@ def create_app(
     task_center = TaskCenterStore(task_center_path)
     experiment_path = Path(os.getenv("SAT_SIM_EXPERIMENT_DATABASE") or artifact_root / "experiments.sqlite3").resolve()
     experiment_store = ExperimentStore(experiment_path)
+    agent_operation_path = Path(
+        os.getenv("SAT_SIM_AGENT_OPERATION_DATABASE") or artifact_root / "agent_operations.sqlite3"
+    ).resolve()
+    agent_operation_store = AgentOperationStore(agent_operation_path)
+    agent_experiment_tools = AgentExperimentTools(
+        experiment_store=experiment_store,
+        operation_store=agent_operation_store,
+        max_create_variants=int(os.getenv("SAT_SIM_AGENT_MAX_CREATE_VARIANTS") or "12"),
+    )
     experience_store = ExperienceStore(artifact_root / "experiences")
     experience_lessons = ExperienceLessonService(experience_store)
     provider_config_path = Path(os.getenv("SAT_SIM_MODEL_PROVIDERS_FILE") or artifact_root / "model_providers.json").resolve()
@@ -1792,7 +1813,49 @@ def create_app(
 
     @app.get("/agent/tools")
     def agent_tools() -> dict[str, Any]:
-        return agent_tool_surface()
+        payload = agent_tool_surface()
+        payload["experiment_tools"] = agent_experiment_tool_surface(
+            max_create_variants=agent_experiment_tools.max_create_variants
+        )
+        return payload
+
+    @app.post("/agent/experiments/plan")
+    def agent_experiment_plan(body: ExperimentPlanBody) -> dict[str, Any]:
+        try:
+            return agent_experiment_tools.preview(
+                base_task_spec=body.base_task_spec,
+                experiment_type=body.experiment_type,
+                sweep=body.sweep,
+                sampling_plan=body.sampling_plan,
+                assertions=body.assertions,
+                preview_limit=body.preview_limit,
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "AGENT_EXPERIMENT_PLAN_INVALID", "message": str(exc)},
+            ) from exc
+
+    @app.post("/agent/experiments")
+    def agent_create_experiment(body: AgentExperimentCreateBody) -> dict[str, Any]:
+        try:
+            return agent_experiment_tools.create_experiment(
+                operation_id=body.operation_id,
+                name=body.name,
+                base_task_spec=body.base_task_spec,
+                sweep=body.sweep,
+                assertions=body.assertions,
+                experiment_type=body.experiment_type,
+                sampling_plan=body.sampling_plan,
+            )
+        except AgentToolError as exc:
+            status_code = 409 if exc.reason_code == "OPERATION_ID_CONFLICT" else 422
+            raise HTTPException(status_code=status_code, detail=exc.to_dict()) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"reason_code": "AGENT_EXPERIMENT_CREATE_FAILED", "message": str(exc)},
+            ) from exc
 
     @app.get("/fault-environment/catalog")
     def fault_environment_catalog(
