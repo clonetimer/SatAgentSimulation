@@ -371,3 +371,24 @@ def test_interpret_api_model_can_only_propose_registered_parameter(tmp_path, mon
     proposal = response.json()["analysis"]["interpretation"]["next_experiments"][0]
     assert proposal["parameter_path"] == "simulation.duration_s"
     assert response.json()["next_experiments_are_proposals_only"] is True
+
+
+def test_next_experiment_value_must_respect_registered_range():
+    payload = _valid_payload()
+    payload["next_experiments"][0]["values"] = [999]
+    payload["next_experiments"][0]["estimated_runs"] = 1
+    interpretation = EvidenceInterpretation.model_validate(payload)
+    with pytest.raises(InterpretationValidationError) as captured:
+        validate_interpretation(
+            interpretation,
+            evidence=_evidence(),
+            allowed_parameter_paths=["parameters.values.battery_capacity_wh"],
+            parameter_options=[{
+                "path": "parameters.values.battery_capacity_wh",
+                "type": "number",
+                "minimum": 10,
+                "maximum": 500,
+                "enum": [],
+            }],
+        )
+    assert captured.value.reason_code == "EXPERIMENT_VALUE_OUT_OF_SCHEMA"
