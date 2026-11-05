@@ -38,6 +38,7 @@ from .task_source import TaskSourceValidationError, validate_task_source
 from .task_center import TaskCenterStore
 from .experiment_manager import ExperimentStore
 from .agent_tools import AgentExperimentTools, AgentOperationStore, AgentToolError, agent_experiment_tool_surface
+from .evidence_analysis import build_experiment_evidence
 from .experience import ExperienceScope, ExperienceStore
 from .experience_lessons import ExperienceLessonService
 from .experiments.dispersion_registry import dispersion_parameter_options
@@ -2253,6 +2254,32 @@ def create_app(
             "comparison": comparison,
             "complete": bool(snapshot["all_terminal"]),
         }
+    @app.get("/agent/experiments/{experiment_id}/evidence")
+    def agent_experiment_evidence(
+        experiment_id: str,
+        metrics: str | None = Query(default=None),
+    ) -> dict[str, Any]:
+        record = experiment_store.get(experiment_id)
+        if record is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "EXPERIMENT_NOT_FOUND", "message": "experiment not found"},
+            )
+        members = reconcile_experiment(experiment_id)
+        selected = [item.strip() for item in (metrics or "").split(",") if item.strip()]
+        evidence = build_experiment_evidence(
+            experiment_id=experiment_id,
+            members=members,
+            runs_root=run_root,
+            requested_metrics=selected,
+            integrity_checker=verify_run_bundle,
+        )
+        return {
+            "ok": True,
+            "experiment": record.to_dict(include_task_spec=False),
+            "evidence": evidence,
+        }
+
 
     @app.post("/agent/experiments")
     def agent_create_experiment(body: AgentExperimentCreateBody) -> dict[str, Any]:
