@@ -2839,13 +2839,19 @@ def create_app(
             try:
                 result = interpret_experiment_payload(experiment_id, interpretation_body)
             except Exception as exc:
+                detail = getattr(exc, "detail", None)
+                if isinstance(detail, Mapping):
+                    reason_code = str(
+                        detail.get("reason_code")
+                        or getattr(exc, "reason_code", "GOAL_INTERPRETATION_FAILED")
+                    )
+                    message = str(detail.get("message") or str(exc))
+                else:
+                    reason_code = str(getattr(exc, "reason_code", "GOAL_INTERPRETATION_FAILED"))
+                    message = str(exc)
                 error = {
-                    "reason_code": getattr(
-                        getattr(exc, "detail", None),
-                        "reason_code",
-                        getattr(exc, "reason_code", "GOAL_INTERPRETATION_FAILED"),
-                    ),
-                    "message": str(exc),
+                    "reason_code": reason_code,
+                    "message": message,
                 }
                 agent_operation_store.fail(body.operation_id, error)
                 if body.mode == "model":
