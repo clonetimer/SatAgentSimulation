@@ -2735,6 +2735,160 @@ def create_app(
                 },
             ) from exc
 
+    @app.post("/agent/goals/{goal_id}/experiments/{experiment_id}/interpret")
+    def interpret_goal_experiment(
+        goal_id: str,
+        experiment_id: str,
+        body: AgentGoalInterpretBody,
+    ) -> dict[str, Any]:
+        reservation = None
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            links = {str(item["experiment_id"]): item for item in goal_run_store.experiments(goal_id)}
+            if experiment_id not in links:
+                raise GoalRunError("GOAL_EXPERIMENT_NOT_FOUND", "experiment is not linked to goal")
+            if goal.status in TERMINAL_GOAL_STATES:
+                raise GoalRunError("GOAL_TERMINAL", f"goal is terminal: {goal.status}")
+
+            if body.mode == "model":
+                if not body.provider_id:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "reason_code": "INTERPRETATION_PROVIDER_REQUIRED",
+                            "message": "model mode requires provider_id",
+                        },
+                    )
+                try:
+                    profile = provider_registry().get(body.provider_id)
+                except KeyError as exc:
+                    raise HTTPException(
+                        status_code=404,
+                        detail={"reason_code": "MODEL_PROVIDER_NOT_FOUND", "message": str(exc)},
+                    ) from exc
+                readiness = provider_registry().readiness(body.provider_id, live_probe=False)
+                if not readiness.ready or profile.backend in {"template", "deterministic"}:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "reason_code": "INTERPRETATION_PROVIDER_NOT_READY",
+                            "message": readiness.reason,
+                            "provider_id": body.provider_id,
+                        },
+                    )
+
+            reservation = goal_run_store.reserve_budget(
+                goal_id,
+                operation_id=body.operation_id,
+                amounts={"model_calls": 1 if body.mode == "model" else 0},
+            )
+            request_payload = {
+                "schema_version": "goal-interpretation-operation.v1",
+                "goal_id": goal_id,
+                "experiment_id": experiment_id,
+                "question": body.question,
+                "mode": body.mode,
+                "provider_id": body.provider_id,
+                "metrics": list(body.metrics),
+            }
+            operation, _ = agent_operation_store.reserve_payload(
+                operation_id=body.operation_id,
+                operation_kind="interpret_evidence",
+                request_payload=request_payload,
+            )
+            if operation.state == "REPLAY":
+                goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+                replay = dict(operation.result or {})
+                replay["replayed"] = True
+                return {
+                    "ok": True,
+                    "analysis_operation": replay,
+                    **goal_snapshot_payload(goal_id),
+                }
+            if operation.state == "IN_PROGRESS":
+                return {
+                    "ok": False,
+                    "analysis_operation": {
+                        "operation_id": body.operation_id,
+                        "operation_state": "IN_PROGRESS",
+                        "replayed": True,
+                    },
+                    **goal_snapshot_payload(goal_id),
+                }
+            if operation.state == "FAILED":
+                goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+                return {
+                    "ok": False,
+                    "analysis_operation": {
+                        "operation_id": body.operation_id,
+                        "operation_state": "FAILED",
+                        "error": dict(operation.error or {}),
+                        "replayed": True,
+                    },
+                    **goal_snapshot_payload(goal_id),
+                }
+
+            interpretation_body = AgentEvidenceInterpretBody(
+                question=body.question,
+                mode=body.mode,
+                provider_id=body.provider_id,
+                metrics=body.metrics,
+            )
+            try:
+                result = interpret_experiment_payload(experiment_id, interpretation_body)
+            except Exception as exc:
+                error = {
+                    "reason_code": getattr(
+                        getattr(exc, "detail", None),
+                        "reason_code",
+                        getattr(exc, "reason_code", "GOAL_INTERPRETATION_FAILED"),
+                    ),
+                    "message": str(exc),
+                }
+                agent_operation_store.fail(body.operation_id, error)
+                if body.mode == "model":
+                    goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+                else:
+                    goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+                raise
+
+            agent_operation_store.complete(body.operation_id, result)
+            goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
+            if not reservation.get("replayed"):
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="EVIDENCE_INTERPRETED",
+                    summary="已基于受约束证据生成分析结果。",
+                    evidence={
+                        "experiment_id": experiment_id,
+                        "evidence_ready": bool((result.get("evidence") or {}).get("evidence_ready")),
+                    },
+                    action={
+                        "operation_id": body.operation_id,
+                        "mode": body.mode,
+                        "proposal_count": len(
+                            ((result.get("analysis") or {}).get("interpretation") or {}).get("next_experiments") or []
+                        ),
+                    },
+                )
+            current = goal_run_store.get(goal_id)
+            if current and current.status == "RUNNING":
+                goal_run_store.transition(goal_id, "ANALYZING")
+            return {
+                "ok": True,
+                "analysis_operation": {
+                    "operation_id": body.operation_id,
+                    "operation_state": "SUCCEEDED",
+                    "result": result,
+                    "replayed": False,
+                },
+                **goal_snapshot_payload(goal_id),
+            }
+        except GoalRunError as exc:
+            raise goal_error(exc, status_code=404 if exc.reason_code in {"GOAL_NOT_FOUND", "GOAL_EXPERIMENT_NOT_FOUND"} else 422) from exc
+
     @app.post("/agent/goals/{goal_id}/sync")
     def sync_agent_goal(goal_id: str) -> dict[str, Any]:
         try:
