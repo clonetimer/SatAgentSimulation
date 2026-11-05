@@ -114,3 +114,61 @@ def test_invalid_operation_id_is_rejected(tmp_path):
             sweep={"simulation.duration_s": [10]},
         )
     assert captured.value.reason_code == "INVALID_OPERATION_ID"
+
+
+def test_agent_experiment_api_is_idempotent_and_budgeted(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from sat_sim.api import create_app
+
+    monkeypatch.setenv("SAT_SIM_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("SAT_SIM_AGENT_MAX_CREATE_VARIANTS", "2")
+    client = TestClient(create_app())
+    spec = _spec()
+
+    tools = client.get("/agent/tools")
+    assert tools.status_code == 200
+    experiment_tools = tools.json()["experiment_tools"]
+    create_contract = next(item for item in experiment_tools["tools"] if item["name"] == "create_experiment")
+    assert create_contract["max_variants"] == 2
+    assert create_contract["launches_runs"] is False
+
+    plan = client.post(
+        "/agent/experiments/plan",
+        json={
+            "base_task_spec": spec,
+            "experiment_type": "sweep",
+            "sweep": {"simulation.duration_s": [10, 20]},
+        },
+    )
+    assert plan.status_code == 200
+    assert plan.json()["variant_count"] == 2
+    assert plan.json()["write_allowed"] is True
+
+    body = {
+        "operation_id": "api:create:1",
+        "name": "api agent sweep",
+        "base_task_spec": spec,
+        "experiment_type": "sweep",
+        "sweep": {"simulation.duration_s": [10, 20]},
+    }
+    first = client.post("/agent/experiments", json=body)
+    second = client.post("/agent/experiments", json=body)
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["experiment_id"] == second.json()["experiment_id"]
+    assert first.json()["replayed"] is False
+    assert second.json()["replayed"] is True
+
+    conflict = dict(body)
+    conflict["name"] = "changed"
+    rejected = client.post("/agent/experiments", json=conflict)
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"]["reason_code"] == "OPERATION_ID_CONFLICT"
+
+    too_many = dict(body)
+    too_many["operation_id"] = "api:create:2"
+    too_many["sweep"] = {"simulation.duration_s": [10, 20, 30]}
+    budget = client.post("/agent/experiments", json=too_many)
+    assert budget.status_code == 422
+    assert budget.json()["detail"]["reason_code"] == "AGENT_EXPERIMENT_VARIANT_BUDGET_EXCEEDED"
