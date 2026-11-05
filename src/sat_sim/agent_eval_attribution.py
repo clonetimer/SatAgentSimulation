@@ -66,9 +66,30 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
     steps = _steps(report)
     step_names = [str(item.get("name") or "") for item in steps]
     first_available = isinstance(first, Mapping)
-    first_eligible = bool(first and first.get("eligible_unrepaired_first_answer") is True)
+    first_eligible = bool(
+        first
+        and (
+            first.get("first_answer_eligible") is True
+            or (
+                "first_answer_eligible" not in first
+                and first.get("eligible_unrepaired_first_answer") is True
+            )
+        )
+    )
     first_validation_ok = bool(first and first.get("validation_ok") is True)
-    first_answer_pass = bool(first_eligible and first_validation_ok)
+    pre_validation_corrections = (
+        list(first.get("pre_validation_corrections") or [])
+        if isinstance(first, Mapping)
+        else []
+    )
+    if isinstance(first, Mapping) and "first_answer_pass" in first:
+        first_answer_pass = bool(first_eligible and first.get("first_answer_pass") is True)
+    else:
+        first_answer_pass = bool(
+            first_eligible
+            and first_validation_ok
+            and not pre_validation_corrections
+        )
 
     retry_used = (root / "model_call_retry.json").is_file() or "model_invocation_retry" in step_names
     schema_rejected_first_response = (
@@ -107,7 +128,17 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
         "first_answer_validation_ok": first_validation_ok,
         "first_answer_pass": first_answer_pass,
         "final_agent_ok": final_ok,
-        "repair_assisted_success": bool(final_ok and not first_answer_pass),
+        "repair_assisted_success": bool(
+            final_ok
+            and not first_answer_pass
+            and (
+                schema_rejected_first_response
+                or retry_used
+                or local_repair_used
+                or route_repair_used
+                or template_fallback_used
+            )
+        ),
         "schema_rejected_first_response": schema_rejected_first_response,
         "model_retry_used": retry_used,
         "local_repair_used": local_repair_used,
