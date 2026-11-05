@@ -146,6 +146,28 @@ class AgentOperationStore:
             return OperationReservation(state="FAILED", error=error)
         return OperationReservation(state="IN_PROGRESS")
 
+    def get(self, operation_id: str) -> dict[str, Any] | None:
+        operation_id = self._validate_operation_id(operation_id)
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM agent_operations WHERE operation_id = ?",
+                (operation_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        result = json.loads(row["result_json"]) if row["result_json"] else None
+        error = json.loads(row["error_json"]) if row["error_json"] else None
+        return {
+            "operation_id": operation_id,
+            "operation_kind": str(row["operation_kind"]),
+            "operation_state": str(row["state"]),
+            "input_sha256": str(row["input_sha256"]),
+            "result": result,
+            "error": error,
+            "created_at": str(row["created_at"]),
+            "updated_at": str(row["updated_at"]),
+        }
+
     def complete(self, operation_id: str, result: Mapping[str, Any]) -> None:
         operation_id = self._validate_operation_id(operation_id)
         with self._connect() as connection:
@@ -334,6 +356,7 @@ def agent_experiment_tool_surface(*, max_create_variants: int = 12) -> dict[str,
             {"name": "list_fault_models", "effect": "read", "deterministic": True},
             {"name": "experiment_options", "effect": "read", "deterministic": True},
             {"name": "preview_experiment", "effect": "read", "deterministic": True},
+            {"name": "get_operation", "effect": "read", "deterministic": True},
             {
                 "name": "create_experiment",
                 "effect": "write",
