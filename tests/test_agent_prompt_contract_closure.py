@@ -42,7 +42,7 @@ def test_model_duration_mismatch_is_rejected_without_template_replacement(tmp_pa
     first_attempt = json.loads((tmp_path/'out'/'first_attempt.json').read_text(encoding='utf-8'))
     assert first_attempt['validation_ok'] is False
     assert 'USER_TIME_REQUIREMENT_MISMATCH' in {
-        issue['code'] for issue in first_attempt['validation']['issues']
+        issue['code'] for issue in first_attempt['validation']['errors']
     }
     assert first_attempt['pre_validation_corrections'] == []
     from sat_sim.agent_facade import AgentFacadeRequest, run_agent
