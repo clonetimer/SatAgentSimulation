@@ -4564,6 +4564,61 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
     validation = _validate_generated_draft(current, request)
     if raw_parameter_issues:
         validation = ValidationResult(tuple([*validation.issues, *raw_parameter_issues]))
+
+    # Seal the first normalized candidate and its validation result before any
+    # LLM retry, deterministic repair, or template-route fallback.  Evaluation
+    # code can therefore distinguish true first-answer fidelity from eventual
+    # task success without issuing a second model request.
+    pre_validation_corrections = [
+        step.name
+        for step in steps
+        if step.name in {
+            "model_fallback",
+            "planner_route_repair",
+            "capability_id_alias_normalization",
+        }
+    ]
+    first_attempt_payload = {
+        "schema_version": "sat-sim.generation-first-attempt.v1",
+        "request_sha256": hashlib.sha256(request.request.encode("utf-8")).hexdigest(),
+        "normalized_task_spec_sha256": hashlib.sha256(
+            json.dumps(
+                current,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest(),
+        "validation_ok": validation.ok,
+        "validation": validation.to_dict(),
+        "model_call_file": files.get("model_call"),
+        "raw_model_output_file": files.get("raw_model_output"),
+        "draft_source": (
+            "external_draft_file"
+            if request.draft_spec_path is not None
+            else getattr(backend, "name", request.backend)
+        ),
+        "pre_validation_corrections": pre_validation_corrections,
+        "model_fallback_used": "model_fallback" in pre_validation_corrections,
+        "eligible_unrepaired_first_answer": (
+            request.draft_spec_path is None
+            and request.backend != "template"
+            and not pre_validation_corrections
+        ),
+    }
+    first_attempt_path = output_dir / "first_attempt.json"
+    write_json(first_attempt_path, first_attempt_payload)
+    files["first_attempt"] = str(first_attempt_path)
+    steps.append(CapabilityAgentStep(
+        "first_attempt_evidence",
+        "complete",
+        "Sealed the first normalized candidate and validation result before repair.",
+        {
+            "validation_ok": validation.ok,
+            "normalized_task_spec_sha256": first_attempt_payload["normalized_task_spec_sha256"],
+            "pre_validation_corrections": pre_validation_corrections,
+        },
+    ))
     if (
         not validation.ok
         and not raw_parameter_issues
