@@ -685,6 +685,7 @@ class ExperienceLessonService:
         scope: ExperienceScope,
         capability_id: str,
         mode: str | None = None,
+        effect: str | None = None,
         task_spec_version: str = "1.0.0",
         limit: int = 10,
     ) -> list[ExperienceLesson]:
@@ -708,19 +709,36 @@ class ExperienceLessonService:
                 scope.project_id,
                 capability_id,
             ]
-            mode_clause = ""
+            applicability_clauses: list[str] = []
             if mode is not None:
-                mode_clause = """
-                   AND EXISTS (
-                       SELECT 1 FROM lesson_retrieval_index mode_idx
-                       WHERE mode_idx.lesson_id=cap_idx.lesson_id
-                         AND mode_idx.tenant_id=cap_idx.tenant_id
-                         AND mode_idx.project_id=cap_idx.project_id
-                         AND mode_idx.state='approved'
-                         AND mode_idx.facet_kind='mode'
-                         AND mode_idx.facet_value=?
-                   )"""
+                applicability_clauses.append(
+                    """
+                    AND EXISTS (
+                        SELECT 1 FROM lesson_retrieval_index mode_idx
+                        WHERE mode_idx.lesson_id=cap_idx.lesson_id
+                          AND mode_idx.tenant_id=cap_idx.tenant_id
+                          AND mode_idx.project_id=cap_idx.project_id
+                          AND mode_idx.state='approved'
+                          AND mode_idx.facet_kind='mode'
+                          AND mode_idx.facet_value=?
+                    )"""
+                )
                 params.append(mode)
+            if effect is not None:
+                applicability_clauses.append(
+                    """
+                    AND EXISTS (
+                        SELECT 1 FROM lesson_retrieval_index effect_idx
+                        WHERE effect_idx.lesson_id=cap_idx.lesson_id
+                          AND effect_idx.tenant_id=cap_idx.tenant_id
+                          AND effect_idx.project_id=cap_idx.project_id
+                          AND effect_idx.state='approved'
+                          AND effect_idx.facet_kind='effect'
+                          AND effect_idx.facet_value=?
+                    )"""
+                )
+                params.append(effect)
+            applicability_sql = "".join(applicability_clauses)
             rows = db.execute(
                 f"""SELECT DISTINCT cap_idx.lesson_id,cap_idx.created_at
                     FROM lesson_retrieval_index cap_idx
@@ -728,7 +746,7 @@ class ExperienceLessonService:
                       AND cap_idx.state='approved'
                       AND cap_idx.facet_kind='capability'
                       AND cap_idx.facet_value=?
-                      {mode_clause}
+                      {applicability_sql}
                     ORDER BY cap_idx.created_at DESC,cap_idx.lesson_id""",
                 params,
             ).fetchall()
