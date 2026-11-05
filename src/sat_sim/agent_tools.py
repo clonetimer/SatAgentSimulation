@@ -602,6 +602,14 @@ def agent_experiment_tool_surface(
                 "requires_goal_budget": True,
                 "reuses_safe_launch": True,
             },
+            {
+                "name": "interpret_goal_experiment",
+                "effect": "read_with_optional_model",
+                "requires_operation_id": True,
+                "requires_goal_model_budget": True,
+                "deterministic_mode_costs_model_calls": False,
+                "model_mode_is_idempotent": True,
+            },
             {"name": "sync_goal", "effect": "write", "deterministic": True},
         ],
         "forbidden": [
