@@ -23,6 +23,7 @@ def _source(
     request_text: str = "simulate battery nominal operation",
     validation_result: str = "PASS",
     capability_id: str = "component.battery.v1",
+    mode: str = "nominal",
     errors=(),
 ):
     return store.capture(
@@ -35,7 +36,7 @@ def _source(
             "run_bundle": {"sealed": True, "request_marker": request_text},
         },
         capability_ids=(capability_id,),
-        modes=("nominal",),
+        modes=(mode,),
         errors=errors,
         security_labels=("sealed_run_bundle", "hash_verified"),
     )[0]
@@ -66,6 +67,19 @@ def _evaluated(service: ExperienceLessonService, lesson_id: str):
         },
     )
 
+
+
+
+def _approve(service: ExperienceLessonService, lesson_id: str) -> None:
+    _evaluated(service, lesson_id)
+    for reviewer in ("reviewer-a", "reviewer-b"):
+        service.review(
+            lesson_id,
+            scope=SCOPE,
+            reviewer=reviewer,
+            decision="APPROVE",
+            reason="approved",
+        )
 
 def test_compiled_lesson_is_structured_hash_only_and_schema_valid(tmp_path):
     store = ExperienceStore(tmp_path / "store")
@@ -493,3 +507,132 @@ def test_lesson_api_and_rbac_boundaries(tmp_path):
             self_review.json()["detail"]["reason_code"]
             == "LESSON_REVIEW_REJECTED"
         )
+
+
+def test_retrieve_approved_filters_mode_before_limit(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+
+    nominal_source = _source(
+        store,
+        request_text="older nominal battery reference",
+        mode="nominal",
+    )
+    nominal, _ = service.compile(
+        [nominal_source.experience_id],
+        scope=SCOPE,
+        actor="compiler-a",
+    )
+    _approve(service, nominal.lesson_id)
+
+    fault_source = _source(
+        store,
+        request_text="newer battery fault reference",
+        mode="fault",
+    )
+    fault, _ = service.compile(
+        [fault_source.experience_id],
+        scope=SCOPE,
+        actor="compiler-b",
+    )
+    # use distinct evaluator/review identities for the second lesson
+    service.evaluate(
+        fault.lesson_id,
+        scope=SCOPE,
+        evaluator="evaluator-b",
+        held_out_case_ids=("held-out-fault-1",),
+        baseline_metrics={
+            "primary_score": 0.8,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        candidate_metrics={
+            "primary_score": 0.81,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        evaluation_evidence={
+            "runner": "pytest-held-out-runner",
+            "case_result_sha256": "c" * 64,
+            "metrics_source_sha256": "d" * 64,
+        },
+    )
+    for reviewer in ("reviewer-c", "reviewer-d"):
+        service.review(
+            fault.lesson_id,
+            scope=SCOPE,
+            reviewer=reviewer,
+            decision="APPROVE",
+            reason="approved",
+        )
+
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+
+    retrieved = service.retrieve_approved(
+        scope=SCOPE,
+        capability_id="component.battery.v1",
+        mode="nominal",
+        limit=1,
+    )
+    assert [item.lesson_id for item in retrieved] == [nominal.lesson_id]
+
+
+def test_natural_language_refinement_reuses_base_taskspec_scope(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    source = _source(store, request_text="battery nominal advisory", mode="nominal")
+    service = ExperienceLessonService(store)
+    lesson, _ = service.compile(
+        [source.experience_id],
+        scope=SCOPE,
+        actor="compiler-a",
+    )
+    _approve(service, lesson.lesson_id)
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+
+    base = {
+        "schema_version": "1.0.0",
+        "task": {"id": "battery-refine", "name": "battery refine"},
+        "model": {
+            "capability_id": "component.battery.v1",
+            "target": {
+                "level": "component",
+                "name": "battery",
+                "mode": "nominal",
+            },
+            "config": {},
+        },
+        "simulation": {
+            "level": "component",
+            "duration_s": 60.0,
+            "step_s": 1.0,
+            "sample_s": 1.0,
+        },
+        "parameters": {"values": {}},
+        "events": {"faults": [], "degradations": [], "constraints": []},
+        "outputs": {"qoi": [], "plots": []},
+        "metadata": {},
+    }
+    output = tmp_path / "refinement"
+    result = run_unified_agent(
+        UnifiedAgentRequest(
+            input_kind="natural_language",
+            request_text="改成 42%。",
+            base_task_spec=base,
+            output_dir=output,
+            backend="template",
+            local_backend="template",
+            experience_reuse_enabled=True,
+            experience_store_root=store.root,
+            experience_tenant_id=SCOPE.tenant_id,
+            experience_project_id=SCOPE.project_id,
+        )
+    )
+    advisory = json.loads((output / "experience_advisory.json").read_text(encoding="utf-8"))
+    assert advisory["capability_id"] == "component.battery.v1"
+    assert advisory["mode"] == "nominal"
+    assert advisory["lesson_ids"] == [lesson.lesson_id]
+    # The generation itself may reject an underspecified percentage, but
+    # advisory retrieval must still be grounded in the base TaskSpec.
+    assert result is not None
