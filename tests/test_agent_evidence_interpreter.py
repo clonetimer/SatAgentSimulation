@@ -405,3 +405,18 @@ def test_causal_language_is_rejected_from_observation_fields():
             backend=FakeBackend(payload),
         )
     assert captured.value.reason_code == "CAUSAL_LANGUAGE_OUTSIDE_HYPOTHESIS"
+
+
+def test_model_interpretation_rejects_oversized_evidence_context():
+    evidence = _evidence()
+    evidence["runs"] = [
+        {"run_id": f"run_{index}", "metrics": {"metric": float(index)}}
+        for index in range(33)
+    ]
+    with pytest.raises(InterpretationValidationError) as captured:
+        interpret_evidence(
+            question="解释",
+            evidence=evidence,
+            backend=FakeBackend(_valid_payload()),
+        )
+    assert captured.value.reason_code == "EVIDENCE_CONTEXT_LIMIT"
