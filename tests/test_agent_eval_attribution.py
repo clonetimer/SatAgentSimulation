@@ -14,11 +14,12 @@ def _write(path, payload):
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-def _model_call(path, *, tokens=10, latency=25.0, verified=True):
+def _model_call(path, *, tokens=10, latency=25.0, verified=True, request_id=None):
     _write(path, {
         "invocation_evidence": {
             "verified": verified,
             "latency_ms": latency,
+            "request_id": request_id,
             "usage": {
                 "prompt_tokens": tokens - 2,
                 "completion_tokens": 2,
@@ -115,3 +116,69 @@ def test_case_and_aggregate_keep_independent_denominators(tmp_path):
     }
     assert report["metrics"]["repair_assisted_success_count"] == 1
     assert report["metrics"]["resource_use"]["model_total_tokens"] == 20
+
+
+def test_schema_rejected_first_response_is_correction_and_costs_both_calls(tmp_path):
+    _write(tmp_path / "first_attempt.json", {
+        "eligible_unrepaired_first_answer": False,
+        "validation_ok": True,
+        "schema_rejected_first_response": True,
+        "pre_validation_corrections": ["model_invocation_rejected"],
+    })
+    _write(tmp_path / "unified_agent_report.json", {
+        "ok": True,
+        "facade_result": {
+            "steps": [
+                {"name": "model_invocation_rejected"},
+                {"name": "model_invocation"},
+            ]
+        },
+    })
+    _model_call(
+        tmp_path / "model_call_rejected.json",
+        tokens=13,
+        latency=30.0,
+        request_id="request-rejected",
+    )
+    _model_call(
+        tmp_path / "model_call.json",
+        tokens=17,
+        latency=40.0,
+        request_id="request-corrected",
+    )
+
+    row = analyze_generation_artifacts(tmp_path)
+    assert row["schema_rejected_first_response"] is True
+    assert row["first_answer_eligible"] is False
+    assert row["first_answer_pass"] is False
+    assert row["correction_used"] is True
+    assert row["repair_assisted_success"] is True
+    assert row["model_calls"]["present_count"] == 2
+    assert row["model_calls"]["total_tokens"] == 30
+    assert row["model_calls"]["latency_ms"] == 70.0
+
+
+def test_model_call_cost_deduplicates_same_request_id(tmp_path):
+    _write(tmp_path / "first_attempt.json", {
+        "eligible_unrepaired_first_answer": False,
+        "validation_ok": True,
+        "schema_rejected_first_response": True,
+    })
+    _write(tmp_path / "unified_agent_report.json", {"ok": True})
+    _model_call(
+        tmp_path / "model_call_rejected.json",
+        tokens=19,
+        latency=50.0,
+        request_id="same-request",
+    )
+    _model_call(
+        tmp_path / "model_call.json",
+        tokens=19,
+        latency=50.0,
+        request_id="same-request",
+    )
+
+    row = analyze_generation_artifacts(tmp_path)
+    assert row["model_calls"]["present_count"] == 1
+    assert row["model_calls"]["total_tokens"] == 19
+    assert row["model_calls"]["latency_ms"] == 50.0
