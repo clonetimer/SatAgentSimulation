@@ -447,6 +447,14 @@ class AgentGoalLaunchBody(_Strict):
     max_execution_attempts: int = Field(ge=1, le=128)
 
 
+class AgentGoalInterpretBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
+    question: str = Field(min_length=1, max_length=4000)
+    mode: Literal["deterministic", "model"] = "deterministic"
+    provider_id: str | None = Field(default=None, max_length=200)
+    metrics: list[str] = Field(default_factory=list, max_length=64)
+
+
 class RunComparisonBody(_Strict):
     run_ids: list[str] = Field(min_length=2, max_length=32)
     metrics: list[str] = Field(default_factory=list, max_length=64)
@@ -2351,8 +2359,7 @@ def create_app(
             "evidence": evidence,
         }
 
-    @app.post("/agent/experiments/{experiment_id}/interpret")
-    def agent_interpret_experiment(
+    def interpret_experiment_payload(
         experiment_id: str,
         body: AgentEvidenceInterpretBody,
     ) -> dict[str, Any]:
@@ -2441,6 +2448,13 @@ def create_app(
             "selected_provider": selected_provider,
             "next_experiments_are_proposals_only": True,
         }
+
+    @app.post("/agent/experiments/{experiment_id}/interpret")
+    def agent_interpret_experiment(
+        experiment_id: str,
+        body: AgentEvidenceInterpretBody,
+    ) -> dict[str, Any]:
+        return interpret_experiment_payload(experiment_id, body)
 
 
     @app.post("/agent/experiments")
