@@ -6,6 +6,7 @@ and guard responsibilities.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -102,6 +103,16 @@ def _load_calibration(config: ModelRouteConfig) -> dict[str, Any] | None:
             "reason": "calibration_schema_invalid",
         }
     return {"status": "loaded", "source": str(path), "payload": dict(payload)}
+
+
+def _canonical_sha256(payload: Mapping[str, Any]) -> str:
+    raw = json.dumps(
+        dict(payload),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
 
 
 def _coerce_int(value: Any, default: int) -> tuple[int, bool]:
@@ -203,10 +214,21 @@ def _calibrated_tier(
     )
     recommended = str(segment.get("recommended_tier") or "").upper()
     evidence_sha256 = str(segment.get("evaluation_sha256") or "")
-    evidence_valid = (
+    evaluation_payload = (
+        segment.get("evaluation")
+        if isinstance(segment.get("evaluation"), Mapping)
+        else None
+    )
+    evidence_hash_format_valid = (
         len(evidence_sha256) == 64
         and all(ch in "0123456789abcdef" for ch in evidence_sha256)
     )
+    evidence_content_valid = bool(
+        evidence_hash_format_valid
+        and evaluation_payload is not None
+        and _canonical_sha256(evaluation_payload) == evidence_sha256
+    )
+    evidence_valid = evidence_content_valid
     matched_budget = segment.get("matched_budget") is True
     accepted = (
         numeric_fields_valid
@@ -234,6 +256,7 @@ def _calibrated_tier(
         "heuristic_tier": heuristic_tier,
         "matched_budget": matched_budget,
         "evaluation_sha256": evidence_sha256 or None,
+        "evaluation_content_hash_verified": evidence_content_valid,
         "rates_valid": rates_valid,
         "numeric_fields_valid": numeric_fields_valid,
         "evidence_valid": evidence_valid,
