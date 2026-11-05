@@ -217,6 +217,7 @@ def build_interpretation_prompt(
     question: str,
     evidence: Mapping[str, Any],
     allowed_parameter_paths: Sequence[str],
+    parameter_options: Sequence[Mapping[str, Any]] = (),
 ) -> str:
     bounded = {
         "schema_version": evidence.get("schema_version"),
@@ -240,6 +241,7 @@ def build_interpretation_prompt(
         + "USER_QUESTION:\n" + str(question).strip() + "\n"
         + "RULES_JSON:\n" + json.dumps(rules, ensure_ascii=False) + "\n"
         + "ALLOWED_PARAMETER_PATHS:\n" + json.dumps(list(allowed_parameter_paths), ensure_ascii=False) + "\n"
+        + "PARAMETER_OPTIONS_JSON:\n" + json.dumps(list(parameter_options), ensure_ascii=False, sort_keys=True) + "\n"
         + "EVIDENCE_JSON:\n" + json.dumps(bounded, ensure_ascii=False, sort_keys=True)
     )
 
@@ -299,7 +301,12 @@ def interpret_evidence(
         return {"ok": True, "mode": "deterministic", "interpretation": interpretation.model_dump(mode="json"), "model_call": None}
 
     model = backend or make_text_llm_backend(config)  # type: ignore[arg-type]
-    prompt = build_interpretation_prompt(question=question, evidence=evidence, allowed_parameter_paths=allowed_parameter_paths)
+    prompt = build_interpretation_prompt(
+        question=question,
+        evidence=evidence,
+        allowed_parameter_paths=allowed_parameter_paths,
+        parameter_options=parameter_options,
+    )
     result: LLMCallResult = model.generate_text(prompt)
     if not result.ok:
         raise InterpretationValidationError("MODEL_CALL_FAILED", result.error or "model call failed")
