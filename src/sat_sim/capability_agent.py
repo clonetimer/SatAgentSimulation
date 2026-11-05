@@ -4576,6 +4576,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
             "model_fallback",
             "planner_route_repair",
             "capability_id_alias_normalization",
+            "model_invocation_rejected",
         }
     ]
     first_attempt_payload = {
@@ -4600,6 +4601,8 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         ),
         "pre_validation_corrections": pre_validation_corrections,
         "model_fallback_used": "model_fallback" in pre_validation_corrections,
+        "schema_rejected_first_response": "model_invocation_rejected" in pre_validation_corrections,
+        "model_call_rejected_file": files.get("model_call_rejected"),
         "eligible_unrepaired_first_answer": (
             request.draft_spec_path is None
             and request.backend != "template"
