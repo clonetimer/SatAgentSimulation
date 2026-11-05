@@ -148,7 +148,7 @@ def test_route_calibration_can_downgrade_heuristic_l2_when_evidence_favors_l1(tm
     )
     decision = route_model(
         input_kind="natural_language",
-        request_text="同时对 ADCS 和 EPS 做参数扫描，然后与基线对比。",
+        request_text="同时对 ADCS 和 EPS 做参数扫描，然后注入故障并与基线对比；如果失败则回滚。",
         config=_remote_config(path),
     )
     assert decision.complexity_score >= 5
