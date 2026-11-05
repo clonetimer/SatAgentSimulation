@@ -185,3 +185,146 @@ def test_agent_experiment_api_is_idempotent_and_budgeted(tmp_path, monkeypatch):
     missing = client.get("/agent/operations/api:missing")
     assert missing.status_code == 404
     assert missing.json()["detail"]["reason_code"] == "AGENT_OPERATION_NOT_FOUND"
+
+
+def test_agent_launch_is_budgeted_idempotent_and_queryable(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from sat_sim.api import create_app
+
+    monkeypatch.setenv("SAT_SIM_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("SAT_SIM_AGENT_MAX_CREATE_VARIANTS", "3")
+    monkeypatch.setenv("SAT_SIM_AGENT_MAX_LAUNCH_RUNS", "2")
+    monkeypatch.setenv("SAT_SIM_AGENT_MAX_EXECUTION_ATTEMPTS", "2")
+    app = create_app(embedded_worker=False)
+    client = TestClient(app)
+    spec = _spec()
+
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "launch-test:create",
+            "name": "launch test",
+            "base_task_spec": spec,
+            "experiment_type": "sweep",
+            "sweep": {"simulation.duration_s": [10, 20]},
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_id"]
+
+    body = {
+        "operation_id": "launch-test:run",
+        "max_attempts": 1,
+        "hard_timeout": True,
+        "max_run_count": 2,
+        "max_execution_attempts": 2,
+    }
+    launched = client.post(f"/agent/experiments/{experiment_id}/launch", json=body)
+    assert launched.status_code == 200
+    payload = launched.json()
+    assert payload["operation_state"] == "SUCCEEDED"
+    assert payload["reserved_run_capacity"] == 2
+    assert payload["reserved_attempt_capacity"] == 2
+    assert payload["launched_count"] == 2
+    assert payload["reconciliation"]["all_assigned"] is True
+
+    jobs = app.state.execution_queue.list_jobs(limit=10)["jobs"]
+    assert len(jobs) == 2
+    assert all(job["metadata"]["submitted_by"] == "agent" for job in jobs)
+    assert all(job["metadata"]["agent_operation_id"] == "launch-test:run" for job in jobs)
+
+    replay = client.post(f"/agent/experiments/{experiment_id}/launch", json=body)
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert len(app.state.execution_queue.list_jobs(limit=10)["jobs"]) == 2
+
+    operation = client.get("/agent/operations/launch-test:run")
+    assert operation.status_code == 200
+    assert operation.json()["operation_state"] == "SUCCEEDED"
+    assert operation.json()["reconciliation"]["all_assigned"] is True
+
+    result = client.get(f"/agent/experiments/{experiment_id}/result")
+    assert result.status_code == 200
+    assert result.json()["complete"] is False
+    assert result.json()["execution"]["assigned_count"] == 2
+    assert result.json()["comparison"] is None
+
+
+def test_agent_launch_budget_rejects_before_queue_side_effect(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from sat_sim.api import create_app
+
+    monkeypatch.setenv("SAT_SIM_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("SAT_SIM_AGENT_MAX_CREATE_VARIANTS", "3")
+    monkeypatch.setenv("SAT_SIM_AGENT_MAX_LAUNCH_RUNS", "2")
+    monkeypatch.setenv("SAT_SIM_AGENT_MAX_EXECUTION_ATTEMPTS", "2")
+    app = create_app(embedded_worker=False)
+    client = TestClient(app)
+
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "budget-test:create",
+            "name": "three variants",
+            "base_task_spec": _spec(),
+            "experiment_type": "sweep",
+            "sweep": {"simulation.duration_s": [10, 20, 30]},
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_id"]
+
+    rejected = client.post(
+        f"/agent/experiments/{experiment_id}/launch",
+        json={
+            "operation_id": "budget-test:run",
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 3,
+            "max_execution_attempts": 3,
+        },
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["reason_code"] == "AGENT_GLOBAL_RUN_BUDGET_EXCEEDED"
+    assert app.state.execution_queue.list_jobs(limit=10)["jobs"] == []
+    members = app.state.experiment_store.members(experiment_id)
+    assert all(member["run_id"] is None for member in members)
+
+
+def test_agent_launch_operation_id_conflict_is_rejected(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from sat_sim.api import create_app
+
+    monkeypatch.setenv("SAT_SIM_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    app = create_app(embedded_worker=False)
+    client = TestClient(app)
+
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "conflict:create",
+            "name": "conflict",
+            "base_task_spec": _spec(),
+            "sweep": {"simulation.duration_s": [10]},
+        },
+    )
+    experiment_id = created.json()["experiment_id"]
+    body = {
+        "operation_id": "conflict:launch",
+        "max_attempts": 1,
+        "hard_timeout": True,
+        "max_run_count": 1,
+        "max_execution_attempts": 1,
+    }
+    assert client.post(f"/agent/experiments/{experiment_id}/launch", json=body).status_code == 200
+
+    changed = dict(body)
+    changed["max_attempts"] = 2
+    changed["max_execution_attempts"] = 2
+    rejected = client.post(f"/agent/experiments/{experiment_id}/launch", json=changed)
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"]["reason_code"] == "OPERATION_ID_CONFLICT"
+    assert len(app.state.execution_queue.list_jobs(limit=10)["jobs"]) == 1
