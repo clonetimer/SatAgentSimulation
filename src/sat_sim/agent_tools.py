@@ -93,6 +93,7 @@ class AgentOperationStore:
                     result_json TEXT,
                     error_json TEXT,
                     request_json TEXT,
+                    lease_owner TEXT,
                     lease_expires_at TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
@@ -109,6 +110,8 @@ class AgentOperationStore:
             }
             if "request_json" not in columns:
                 connection.execute("ALTER TABLE agent_operations ADD COLUMN request_json TEXT")
+            if "lease_owner" not in columns:
+                connection.execute("ALTER TABLE agent_operations ADD COLUMN lease_owner TEXT")
             if "lease_expires_at" not in columns:
                 connection.execute("ALTER TABLE agent_operations ADD COLUMN lease_expires_at TEXT")
 
@@ -130,6 +133,7 @@ class AgentOperationStore:
         operation_kind: str,
         request_payload: Mapping[str, Any] | None = None,
         lease_seconds: float = 120.0,
+        lease_owner: str | None = None,
     ) -> OperationReservation:
         operation_id = self._validate_operation_id(operation_id)
         now = _now()
@@ -142,15 +146,16 @@ class AgentOperationStore:
                 INSERT OR IGNORE INTO agent_operations
                     (
                         operation_id, input_sha256, operation_kind, state,
-                        result_json, error_json, request_json, lease_expires_at, created_at, updated_at
+                        result_json, error_json, request_json, lease_owner, lease_expires_at, created_at, updated_at
                     )
-                VALUES (?, ?, ?, 'PENDING', NULL, NULL, ?, ?, ?, ?)
+                VALUES (?, ?, ?, 'PENDING', NULL, NULL, ?, ?, ?, ?, ?)
                 """,
                 (
                     operation_id,
                     input_sha256,
                     operation_kind,
                     _stable_json(dict(request_payload)) if request_payload is not None else None,
+                    str(lease_owner) if lease_owner is not None else None,
                     lease_expires_at,
                     now,
                     now,
@@ -188,6 +193,7 @@ class AgentOperationStore:
         operation_kind: str,
         request_payload: Mapping[str, Any],
         lease_seconds: float = 120.0,
+        lease_owner: str | None = None,
     ) -> tuple[OperationReservation, str]:
         input_sha256 = _payload_hash(request_payload)
         reservation = self.reserve(
@@ -196,6 +202,7 @@ class AgentOperationStore:
             operation_kind=operation_kind,
             request_payload=request_payload,
             lease_seconds=lease_seconds,
+            lease_owner=lease_owner,
         )
         return reservation, input_sha256
 
@@ -224,7 +231,13 @@ class AgentOperationStore:
             "updated_at": str(row["updated_at"]),
         }
 
-    def heartbeat(self, operation_id: str, *, lease_seconds: float = 120.0) -> bool:
+    def heartbeat(
+        self,
+        operation_id: str,
+        *,
+        lease_owner: str,
+        lease_seconds: float = 120.0,
+    ) -> bool:
         operation_id = self._validate_operation_id(operation_id)
         now = _now()
         lease_expires_at = (
@@ -235,9 +248,9 @@ class AgentOperationStore:
                 """
                 UPDATE agent_operations
                 SET lease_expires_at = ?, updated_at = ?
-                WHERE operation_id = ? AND state = 'PENDING'
+                WHERE operation_id = ? AND state = 'PENDING' AND lease_owner = ?
                 """,
-                (lease_expires_at, now, operation_id),
+                (lease_expires_at, now, operation_id, str(lease_owner)),
             )
         return cursor.rowcount == 1
 
@@ -248,7 +261,7 @@ class AgentOperationStore:
             cursor = connection.execute(
                 """
                 UPDATE agent_operations
-                SET state = 'RECONCILE', updated_at = ?
+                SET state = 'RECONCILE', lease_owner = NULL, updated_at = ?
                 WHERE operation_id = ?
                   AND state = 'PENDING'
                   AND lease_expires_at IS NOT NULL
@@ -264,7 +277,13 @@ class AgentOperationStore:
             ).fetchone()
         return bool(row is not None and str(row["state"]) == "RECONCILE")
 
-    def resume_reconciliation(self, operation_id: str, *, lease_seconds: float = 120.0) -> bool:
+    def resume_reconciliation(
+        self,
+        operation_id: str,
+        *,
+        lease_owner: str,
+        lease_seconds: float = 120.0,
+    ) -> bool:
         operation_id = self._validate_operation_id(operation_id)
         now = _now()
         lease_expires_at = (
@@ -274,36 +293,70 @@ class AgentOperationStore:
             cursor = connection.execute(
                 """
                 UPDATE agent_operations
-                SET state = 'PENDING', lease_expires_at = ?, updated_at = ?
+                SET state = 'PENDING', lease_owner = ?, lease_expires_at = ?, updated_at = ?
                 WHERE operation_id = ? AND state = 'RECONCILE'
                 """,
-                (lease_expires_at, now, operation_id),
+                (str(lease_owner), lease_expires_at, now, operation_id),
             )
         return cursor.rowcount == 1
 
-    def complete(self, operation_id: str, result: Mapping[str, Any]) -> None:
+    def complete(
+        self,
+        operation_id: str,
+        result: Mapping[str, Any],
+        *,
+        lease_owner: str | None = None,
+    ) -> bool:
         operation_id = self._validate_operation_id(operation_id)
         with self._connect() as connection:
-            connection.execute(
-                """
-                UPDATE agent_operations
-                SET state = 'SUCCEEDED', result_json = ?, error_json = NULL, updated_at = ?
-                WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE')
-                """,
-                (_stable_json(dict(result)), _now(), operation_id),
-            )
+            if lease_owner is None:
+                cursor = connection.execute(
+                    """
+                    UPDATE agent_operations
+                    SET state = 'SUCCEEDED', result_json = ?, error_json = NULL, updated_at = ?
+                    WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE') AND lease_owner IS NULL
+                    """,
+                    (_stable_json(dict(result)), _now(), operation_id),
+                )
+            else:
+                cursor = connection.execute(
+                    """
+                    UPDATE agent_operations
+                    SET state = 'SUCCEEDED', result_json = ?, error_json = NULL, updated_at = ?
+                    WHERE operation_id = ? AND state = 'PENDING' AND lease_owner = ?
+                    """,
+                    (_stable_json(dict(result)), _now(), operation_id, str(lease_owner)),
+                )
+        return cursor.rowcount == 1
 
-    def require_reconciliation(self, operation_id: str, error: Mapping[str, Any]) -> None:
+    def require_reconciliation(
+        self,
+        operation_id: str,
+        error: Mapping[str, Any],
+        *,
+        lease_owner: str | None = None,
+    ) -> bool:
         operation_id = self._validate_operation_id(operation_id)
         with self._connect() as connection:
-            connection.execute(
-                """
-                UPDATE agent_operations
-                SET state = 'RECONCILE', error_json = ?, updated_at = ?
-                WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE')
-                """,
-                (_stable_json(dict(error)), _now(), operation_id),
-            )
+            if lease_owner is None:
+                cursor = connection.execute(
+                    """
+                    UPDATE agent_operations
+                    SET state = 'RECONCILE', lease_owner = NULL, error_json = ?, updated_at = ?
+                    WHERE operation_id = ? AND state IN ('PENDING', 'RECONCILE') AND lease_owner IS NULL
+                    """,
+                    (_stable_json(dict(error)), _now(), operation_id),
+                )
+            else:
+                cursor = connection.execute(
+                    """
+                    UPDATE agent_operations
+                    SET state = 'RECONCILE', lease_owner = NULL, error_json = ?, updated_at = ?
+                    WHERE operation_id = ? AND state = 'PENDING' AND lease_owner = ?
+                    """,
+                    (_stable_json(dict(error)), _now(), operation_id, str(lease_owner)),
+                )
+        return cursor.rowcount == 1
 
     def fail(self, operation_id: str, error: Mapping[str, Any]) -> None:
         operation_id = self._validate_operation_id(operation_id)
