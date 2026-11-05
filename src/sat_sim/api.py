@@ -1052,6 +1052,7 @@ def create_app(
         members = reconcile_experiment(experiment_id)
         rows: list[dict[str, Any]] = []
         assigned = 0
+        observed = 0
         terminal = 0
         for member in members:
             variant_index = int(member["variant_index"])
@@ -1059,14 +1060,19 @@ def create_app(
             run_id = str(member.get("run_id") or deterministic_run_id)
             job = execution_queue.get_by_run_id(run_id)
             snapshot = execution_snapshot(run_id)
-            if member.get("run_id") or job is not None or str(snapshot.get("state")) != "NOT_FOUND":
+            is_assigned = bool(member.get("run_id"))
+            is_observed = is_assigned or job is not None or str(snapshot.get("state")) != "NOT_FOUND"
+            if is_assigned:
                 assigned += 1
+            if is_observed:
+                observed += 1
             if str(snapshot.get("state")) in TERMINAL_STATES:
                 terminal += 1
             rows.append({
                 "variant_index": variant_index,
                 "run_id": run_id,
-                "assigned": bool(member.get("run_id")),
+                "assigned": is_assigned,
+                "observed": is_observed,
                 "member_state": member.get("state"),
                 "execution_state": snapshot.get("state"),
                 "validation_result": snapshot.get("validation_result"),
@@ -1078,8 +1084,10 @@ def create_app(
             "operation_id": operation_id,
             "variant_count": len(rows),
             "assigned_count": assigned,
+            "observed_count": observed,
             "terminal_count": terminal,
             "all_assigned": bool(rows) and assigned == len(rows),
+            "all_observed": bool(rows) and observed == len(rows),
             "all_terminal": bool(rows) and terminal == len(rows),
             "members": rows,
         }
