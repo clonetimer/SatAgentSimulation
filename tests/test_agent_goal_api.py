@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+
 from fastapi.testclient import TestClient
 
 from sat_sim.api import create_app
 from sat_sim.scenario_templates import instantiate_scenario_template
+from sat_sim.llm_backends import LLMCallResult
 
 
 def _client(tmp_path):
@@ -214,3 +217,175 @@ def test_goal_parameter_allowlist_must_be_registered(tmp_path):
     )
     assert response.status_code == 422
     assert response.json()["detail"]["reason_code"] == "GOAL_PARAMETER_NOT_REGISTERED"
+
+
+class _GoalFakeBackend:
+    name = "goal-fake"
+
+    def __init__(self, payload):
+        self.payload = payload
+        self.calls = 0
+
+    def generate_text(self, prompt):
+        self.calls += 1
+        return LLMCallResult(
+            ok=True,
+            backend=self.name,
+            raw_text=json.dumps(self.payload, ensure_ascii=False),
+            prompt_chars=len(prompt),
+            metadata={"model": "goal-fake-model"},
+        )
+
+
+def _goal_ready_evidence():
+    return {
+        "schema_version": "agent-experiment-evidence.v1",
+        "experiment_id": "goal-exp",
+        "evidence_ready": True,
+        "runs": [
+            {
+                "run_id": "goal-exp_v001",
+                "metrics": {"final_pointing_error_deg": 0.12},
+            }
+        ],
+        "comparisons": [],
+        "warnings": [],
+        "claim_policy": {
+            "causal_explanation": "Not verified by this evidence package alone.",
+        },
+    }
+
+
+def _goal_interpretation_payload():
+    return {
+        "schema_version": "agent-evidence-interpretation.v1",
+        "analysis_status": "EVIDENCE_READY",
+        "observations": [
+            {
+                "statement": "该运行提供了可引用的姿态结果。",
+                "evidence": [
+                    {
+                        "run_id": "goal-exp_v001",
+                        "metric": "final_pointing_error_deg",
+                    }
+                ],
+            }
+        ],
+        "comparisons": [],
+        "hypotheses": [],
+        "next_experiments": [],
+        "unresolved": [],
+    }
+
+
+def test_goal_model_interpretation_consumes_one_call_and_replay_is_free(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+    import sat_sim.evidence_interpreter as interpreter_module
+
+    provider_path = tmp_path / "providers.json"
+    provider_path.write_text(
+        json.dumps({
+            "providers": [{
+                "provider_id": "goal-provider",
+                "label": "goal-provider",
+                "backend": "openai_compatible",
+                "location": "local",
+                "tier": "L2",
+                "model": "goal-fake-model",
+                "base_url": "http://127.0.0.1:9999/v1",
+                "enabled": True,
+            }]
+        }),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("SAT_SIM_MODEL_PROVIDERS_FILE", str(provider_path))
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: _goal_ready_evidence())
+    backend = _GoalFakeBackend(_goal_interpretation_payload())
+    monkeypatch.setattr(interpreter_module, "make_text_llm_backend", lambda _config: backend)
+
+    _, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 1, "execution_attempts": 1, "model_calls": 1},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-model:create",
+            "name": "model evidence",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "为受约束解释建立实验引用",
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+
+    body = {
+        "operation_id": "goal-model:interpret-1",
+        "question": "总结现有证据",
+        "mode": "model",
+        "provider_id": "goal-provider",
+        "metrics": ["final_pointing_error_deg"],
+    }
+    first = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/interpret",
+        json=body,
+    )
+    assert first.status_code == 200
+    assert backend.calls == 1
+    assert first.json()["budget"]["committed"]["model_calls"] == 1
+    decision_count = len(first.json()["decisions"])
+
+    replay = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/interpret",
+        json=body,
+    )
+    assert replay.status_code == 200
+    assert replay.json()["analysis_operation"]["replayed"] is True
+    assert backend.calls == 1
+    assert replay.json()["budget"]["committed"]["model_calls"] == 1
+    assert len(replay.json()["decisions"]) == decision_count
+
+    second = dict(body)
+    second["operation_id"] = "goal-model:interpret-2"
+    rejected = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/interpret",
+        json=second,
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["reason_code"] == "GOAL_BUDGET_EXCEEDED"
+    assert backend.calls == 1
+
+
+def test_goal_deterministic_interpretation_does_not_consume_model_budget(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: _goal_ready_evidence())
+    _, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 1, "execution_attempts": 1, "model_calls": 0},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-det:create",
+            "name": "det evidence",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "确定性证据解释",
+        },
+    )
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+    response = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/interpret",
+        json={
+            "operation_id": "goal-det:interpret",
+            "question": "整理现有证据",
+            "mode": "deterministic",
+            "metrics": ["final_pointing_error_deg"],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["analysis_operation"]["result"]["analysis"]["mode"] == "deterministic"
+    assert response.json()["budget"]["committed"]["model_calls"] == 0
+    assert response.json()["budget"]["remaining"]["model_calls"] == 0
