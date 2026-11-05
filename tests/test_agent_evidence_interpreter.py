@@ -392,3 +392,16 @@ def test_next_experiment_value_must_respect_registered_range():
             }],
         )
     assert captured.value.reason_code == "EXPERIMENT_VALUE_OUT_OF_SCHEMA"
+
+
+def test_causal_language_is_rejected_from_observation_fields():
+    payload = _valid_payload()
+    payload["observations"][0]["statement"] = "容量变化导致末端状态变化。"
+    with pytest.raises(InterpretationValidationError) as captured:
+        interpret_evidence(
+            question="解释",
+            evidence=_evidence(),
+            allowed_parameter_paths=["parameters.values.battery_capacity_wh"],
+            backend=FakeBackend(payload),
+        )
+    assert captured.value.reason_code == "CAUSAL_LANGUAGE_OUTSIDE_HYPOTHESIS"
