@@ -132,3 +132,21 @@ def test_evidence_package_rejects_run_id_path_escape(tmp_path):
         assert "escapes runs root" in str(exc)
     else:
         raise AssertionError("path escape must be rejected")
+
+
+def test_evidence_ready_requires_integrity_when_checker_is_supplied(tmp_path):
+    _sealed_run(tmp_path, "bad_integrity", final_soc=0.75, shed_count=0)
+    payload = build_experiment_evidence(
+        experiment_id="exp_integrity",
+        members=[{
+            "variant_index": 0,
+            "run_id": "bad_integrity",
+            "parameters": {},
+            "state": "SUCCEEDED",
+        }],
+        runs_root=tmp_path,
+        integrity_checker=lambda _root: {"ok": False, "reason_code": "HASH_MISMATCH"},
+    )
+    assert payload["complete"] is True
+    assert payload["evidence_ready"] is False
+    assert payload["runs"][0]["integrity"]["ok"] is False
