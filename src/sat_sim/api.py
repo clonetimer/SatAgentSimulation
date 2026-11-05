@@ -39,6 +39,12 @@ from .task_center import TaskCenterStore
 from .experiment_manager import ExperimentStore
 from .agent_tools import AgentExperimentTools, AgentOperationStore, AgentToolError, agent_experiment_tool_surface
 from .evidence_analysis import build_experiment_evidence
+from .evidence_interpreter import (
+    InterpretationValidationError,
+    interpret_evidence,
+    interpretation_response_schema,
+)
+from .llm_backends import LLMCallConfig
 from .experience import ExperienceScope, ExperienceStore
 from .experience_lessons import ExperienceLessonService
 from .experiments.dispersion_registry import dispersion_parameter_options
@@ -398,6 +404,19 @@ class AgentExperimentLaunchBody(_Strict):
     hard_timeout: bool = True
     max_run_count: int = Field(ge=1, le=64)
     max_execution_attempts: int = Field(ge=1, le=128)
+
+
+class AgentEvidenceInterpretBody(_Strict):
+    question: str = Field(min_length=1, max_length=4000)
+    mode: Literal["deterministic", "model"] = "deterministic"
+    backend: str | None = Field(default=None, max_length=64)
+    model: str | None = Field(default=None, max_length=300)
+    base_url: str | None = Field(default=None, max_length=1000)
+    api_key_env: str = Field(default="OPENAI_API_KEY", max_length=200)
+    timeout_s: float = Field(default=60.0, gt=0, le=300)
+    temperature: float | None = Field(default=None, ge=0, le=2)
+    max_output_tokens: int | None = Field(default=2000, ge=128, le=10000)
+    metrics: list[str] = Field(default_factory=list, max_length=64)
 
 
 class RunComparisonBody(_Strict):
@@ -2278,6 +2297,74 @@ def create_app(
             "ok": True,
             "experiment": record.to_dict(include_task_spec=False),
             "evidence": evidence,
+        }
+
+    @app.post("/agent/experiments/{experiment_id}/interpret")
+    def agent_interpret_experiment(
+        experiment_id: str,
+        body: AgentEvidenceInterpretBody,
+    ) -> dict[str, Any]:
+        record = experiment_store.get(experiment_id)
+        if record is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "EXPERIMENT_NOT_FOUND", "message": "experiment not found"},
+            )
+        members = reconcile_experiment(experiment_id)
+        evidence = build_experiment_evidence(
+            experiment_id=experiment_id,
+            members=members,
+            runs_root=run_root,
+            requested_metrics=body.metrics,
+            integrity_checker=verify_run_bundle,
+        )
+        options = experiment_design_options(record.base_task_spec)
+        allowed_paths = [
+            str(item.get("path"))
+            for item in (options.get("sweep_options") or [])
+            if isinstance(item, Mapping) and item.get("path")
+        ]
+        config = None
+        if body.mode == "model":
+            if not body.backend or body.backend == "template":
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "reason_code": "INTERPRETATION_MODEL_BACKEND_REQUIRED",
+                        "message": "model mode requires an explicit non-template backend",
+                    },
+                )
+            config = LLMCallConfig(
+                backend=body.backend,
+                model=body.model,
+                base_url=body.base_url,
+                api_key_env=body.api_key_env,
+                timeout_s=body.timeout_s,
+                temperature=body.temperature,
+                max_output_tokens=body.max_output_tokens,
+                structured_output="json_schema",
+                response_schema=interpretation_response_schema(),
+            )
+        try:
+            result = interpret_evidence(
+                question=body.question,
+                evidence=evidence,
+                allowed_parameter_paths=allowed_paths,
+                config=config,
+            )
+        except InterpretationValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.to_dict()) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502 if body.mode == "model" else 422,
+                detail={"reason_code": "INTERPRETATION_FAILED", "message": str(exc)},
+            ) from exc
+        return {
+            "ok": True,
+            "experiment": record.to_dict(include_task_spec=False),
+            "evidence": evidence,
+            "analysis": result,
+            "next_experiments_are_proposals_only": True,
         }
 
 
