@@ -424,9 +424,8 @@ class AgentGoalCreateBody(_Strict):
     activate: bool = True
 
 
-class AgentGoalTransitionBody(_Strict):
-    status: str = Field(min_length=1, max_length=40)
-    stop_reason: str | None = Field(default=None, max_length=4000)
+class AgentGoalCancelBody(_Strict):
+    reason: str = Field(min_length=1, max_length=4000)
 
 
 class AgentGoalExperimentCreateBody(_Strict):
@@ -2525,16 +2524,40 @@ def create_app(
         except GoalRunError as exc:
             raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
 
-    @app.post("/agent/goals/{goal_id}/transition")
-    def transition_agent_goal(goal_id: str, body: AgentGoalTransitionBody) -> dict[str, Any]:
+    @app.post("/agent/goals/{goal_id}/activate")
+    def activate_agent_goal(goal_id: str) -> dict[str, Any]:
         try:
-            goal_run_store.transition(goal_id, body.status, stop_reason=body.stop_reason)
-            goal_run_store.record_decision(
-                goal_id,
-                decision_kind="STATE_TRANSITION",
-                summary="目标状态已更新。",
-                action={"status": body.status.upper(), "stop_reason": body.stop_reason},
-            )
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            if goal.status == "DRAFT":
+                goal_run_store.transition(goal_id, "READY")
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="GOAL_ACTIVATED",
+                    summary="目标已激活，可以创建受预算约束的实验。",
+                    action={"status": "READY"},
+                )
+            elif goal.status != "READY":
+                raise GoalRunError("GOAL_ACTIVATION_CONFLICT", f"goal cannot be activated from {goal.status}")
+            return {"ok": True, **goal_snapshot_payload(goal_id)}
+        except GoalRunError as exc:
+            raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
+
+    @app.post("/agent/goals/{goal_id}/cancel")
+    def cancel_agent_goal(goal_id: str, body: AgentGoalCancelBody) -> dict[str, Any]:
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+            if goal.status not in TERMINAL_GOAL_STATES:
+                goal_run_store.transition(goal_id, "CANCELLED", stop_reason=body.reason)
+                goal_run_store.record_decision(
+                    goal_id,
+                    decision_kind="GOAL_CANCELLED",
+                    summary="目标已取消，后续不得继续消耗预算。",
+                    action={"status": "CANCELLED", "reason": body.reason},
+                )
             return {"ok": True, **goal_snapshot_payload(goal_id)}
         except GoalRunError as exc:
             raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
