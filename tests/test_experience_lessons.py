@@ -613,7 +613,7 @@ def test_natural_language_refinement_reuses_base_taskspec_scope(tmp_path):
         },
         "parameters": {"values": {}},
         "events": {"faults": [], "degradations": [], "constraints": []},
-        "outputs": {"qoi": [], "plots": []},
+        "outputs": {"qoi": [], "plots": [], "output_root": "results"},
         "metadata": {},
     }
     output = tmp_path / "refinement"
@@ -803,7 +803,7 @@ def test_refinement_advisory_uses_single_explicit_base_effect(tmp_path):
             "degradations": [],
             "constraints": [],
         },
-        "outputs": {"qoi": [], "plots": []},
+        "outputs": {"qoi": [], "plots": [], "output_root": "results"},
         "metadata": {},
     }
     output = tmp_path / "effect-refinement"
