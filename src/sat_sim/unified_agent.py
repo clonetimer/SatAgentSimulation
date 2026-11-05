@@ -877,11 +877,24 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
     capability_id = ""
     mode = None
     if request.input_kind == "natural_language":
-        from .capability_planner import plan_capability_for_request
+        base_source = request.base_task_spec or {}
+        base_model = (
+            base_source.get("model")
+            if isinstance(base_source, Mapping) and isinstance(base_source.get("model"), Mapping)
+            else {}
+        )
+        if isinstance(base_model, Mapping):
+            capability_id = str(base_model.get("capability_id") or "")
+            target = base_model.get("target")
+            if isinstance(target, Mapping):
+                mode = str(target.get("mode") or "") or None
+        if not capability_id:
+            from .capability_planner import plan_capability_for_request
 
-        plan = plan_capability_for_request(request.request_text)
-        capability_id = str(plan.selected_capability_id or "")
-        mode = requested_health_mode(request.request_text)
+            plan = plan_capability_for_request(request.request_text)
+            capability_id = str(plan.selected_capability_id or "")
+        if mode is None:
+            mode = requested_health_mode(request.request_text)
     else:
         source = request.task_spec or request.form_data or request.base_task_spec or {}
         model = source.get("model") if isinstance(source, Mapping) else {}
