@@ -2880,7 +2880,8 @@ def create_app(
                     },
                 )
             current = goal_run_store.get(goal_id)
-            if current and current.status == "RUNNING":
+            evidence_complete = bool((result.get("evidence") or {}).get("complete"))
+            if current and current.status == "RUNNING" and evidence_complete:
                 goal_run_store.transition(goal_id, "ANALYZING")
             return {
                 "ok": True,
