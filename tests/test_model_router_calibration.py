@@ -196,3 +196,28 @@ def test_malformed_numeric_calibration_falls_back_without_crashing(tmp_path):
     assert decision.backend == "template"
     assert decision.calibration["status"] == "insufficient_evidence"
     assert decision.calibration["numeric_fields_valid"] is False
+
+
+def test_segment_thresholds_inherit_valid_file_defaults(tmp_path):
+    path = _write_calibration(
+        tmp_path,
+        {
+            "segment_id": "eps-inherit-defaults",
+            "match": {"domains": ["eps"]},
+            "sample_count": 20,
+            "l1_success_rate": 0.50,
+            "l2_success_rate": 0.75,
+            "recommended_tier": "L2",
+            "matched_budget": True,
+            "evaluation_sha256": "f" * 64,
+        },
+    )
+    decision = route_model(
+        input_kind="natural_language",
+        request_text="请建立一个电池工程仿真。",
+        config=_remote_config(path),
+    )
+    assert decision.calibration["status"] == "accepted"
+    assert decision.calibration["min_samples"] == 10
+    assert decision.calibration["min_success_rate_gain"] == 0.10
+    assert decision.calibration["numeric_fields_valid"] is True
