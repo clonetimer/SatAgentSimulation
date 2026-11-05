@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+
+import pytest
 from pathlib import Path
 
 from sat_sim.evidence_analysis import build_experiment_evidence
@@ -75,7 +77,7 @@ def test_evidence_package_keeps_observations_and_deltas_traceable(tmp_path):
     comparison = payload["comparisons"][0]
     assert comparison["baseline_variant_index"] == 0
     assert comparison["variant_index"] == 1
-    assert comparison["metric_deltas"]["final_soc"] == 0.08
+    assert comparison["metric_deltas"]["final_soc"] == pytest.approx(0.08)
     assert comparison["metric_deltas"]["load_shed_event_count"] == -1.0
     assert "Causal attribution" in comparison["interpretation_boundary"]
 
