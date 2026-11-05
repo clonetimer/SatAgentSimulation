@@ -2670,6 +2670,12 @@ def create_app(
             links = {str(item["experiment_id"]): item for item in goal_run_store.experiments(goal_id)}
             if experiment_id not in links:
                 raise GoalRunError("GOAL_EXPERIMENT_NOT_FOUND", "experiment is not linked to goal")
+            existing_launch = str(links[experiment_id].get("launch_operation_id") or "")
+            if existing_launch and existing_launch != body.operation_id:
+                raise GoalRunError(
+                    "GOAL_EXPERIMENT_ALREADY_LAUNCHED",
+                    f"experiment is already bound to launch operation {existing_launch}",
+                )
             members = experiment_store.members(experiment_id)
             run_count = len(members)
             attempt_count = run_count * int(body.max_attempts)
@@ -2708,7 +2714,19 @@ def create_app(
                 **goal_snapshot_payload(goal_id),
             }
         except GoalRunError as exc:
-            raise goal_error(exc, status_code=404 if exc.reason_code in {"GOAL_NOT_FOUND", "GOAL_EXPERIMENT_NOT_FOUND"} else 422) from exc
+            if (
+                reservation is not None
+                and exc.reason_code == "GOAL_EXPERIMENT_ALREADY_LAUNCHED"
+                and not reservation.get("replayed")
+            ):
+                try:
+                    goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+                except Exception:
+                    pass
+            raise goal_error(
+                exc,
+                status_code=404 if exc.reason_code in {"GOAL_NOT_FOUND", "GOAL_EXPERIMENT_NOT_FOUND"} else 422,
+            ) from exc
         except AgentToolError as exc:
             safe_release = {
                 "OPERATION_ID_CONFLICT",
