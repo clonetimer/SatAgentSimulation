@@ -86,7 +86,6 @@ def build_experiment_evidence(
     base = Path(runs_root).resolve()
     rows: list[dict[str, Any]] = []
     warnings: list[dict[str, Any]] = []
-    terminal_count = 0
     sealed_count = 0
     metrics_available_count = 0
 
@@ -114,10 +113,6 @@ def build_experiment_evidence(
             "event_count": 0,
             "artifact_refs": {},
         }
-
-        if member_state in TERMINAL_STATES:
-            terminal_count += 1
-
         if not run_id:
             warnings.append({
                 "code": "RUN_NOT_ASSIGNED",
@@ -241,7 +236,8 @@ def build_experiment_evidence(
                 ),
             })
 
-    complete = bool(rows) and all(bool(row.get("terminal")) for row in rows)
+    terminal_count = sum(1 for row in rows if bool(row.get("terminal")))
+    complete = bool(rows) and terminal_count == len(rows)
     integrity_ready = all(
         (
             row.get("integrity") is None
