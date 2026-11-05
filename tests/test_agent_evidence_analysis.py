@@ -150,3 +150,70 @@ def test_evidence_ready_requires_integrity_when_checker_is_supplied(tmp_path):
     assert payload["complete"] is True
     assert payload["evidence_ready"] is False
     assert payload["runs"][0]["integrity"]["ok"] is False
+
+
+def test_agent_evidence_api_returns_traceable_artifacts_without_upgrading_bad_integrity(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from sat_sim.api import create_app
+    from sat_sim.scenario_templates import instantiate_scenario_template
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
+    client = TestClient(app)
+
+    tools = client.get("/agent/tools")
+    assert tools.status_code == 200
+    evidence_tool = next(
+        item
+        for item in tools.json()["experiment_tools"]["tools"]
+        if item["name"] == "get_experiment_evidence"
+    )
+    assert evidence_tool["causal_claims_verified"] is False
+
+    created = client.post(
+        "/agent/experiments",
+        json={
+            "operation_id": "evidence:create",
+            "name": "evidence api",
+            "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+            "sweep": {"simulation.duration_s": [10]},
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_id"]
+    run_id = f"{experiment_id}_v001"
+    app.state.experiment_store.assign_run(experiment_id, 0, run_id, state="SUCCEEDED")
+
+    root = tmp_path / "runs" / run_id
+    _write(root / "run_record.json", {
+        "run_id": run_id,
+        "status": "SUCCEEDED",
+        "validation_result": "PASS",
+    })
+    _write(root / "results" / "metrics.json", {
+        "metrics": {"final_pointing_error_deg": 0.12}
+    })
+    _write(root / "input" / "provenance.json", {
+        "task_spec_sha256": "task-hash",
+        "execution_plan_sha256": "plan-hash",
+        "capability_id": "subsystem.adcs_unified_native.v1",
+    })
+    _write(root / "SEALED.json", {"sealed": True})
+
+    response = client.get(
+        f"/agent/experiments/{experiment_id}/evidence",
+        params={"metrics": "final_pointing_error_deg"},
+    )
+    assert response.status_code == 200
+    evidence = response.json()["evidence"]
+    assert evidence["runs"][0]["metrics"]["final_pointing_error_deg"] == 0.12
+    assert evidence["runs"][0]["artifact_refs"]["metrics"].endswith("results/metrics.json")
+    assert evidence["runs"][0]["provenance"]["execution_plan_sha256"] == "plan-hash"
+    assert evidence["runs"][0]["integrity"]["ok"] is False
+    assert evidence["evidence_ready"] is False
+    assert evidence["claim_policy"]["causal_explanation"].startswith("Not verified")
