@@ -24,6 +24,7 @@ def _source(
     validation_result: str = "PASS",
     capability_id: str = "component.battery.v1",
     mode: str = "nominal",
+    effect: str | None = None,
     errors=(),
 ):
     return store.capture(
@@ -37,6 +38,7 @@ def _source(
         },
         capability_ids=(capability_id,),
         modes=(mode,),
+        effects=((effect,) if effect else ()),
         errors=errors,
         security_labels=("sealed_run_bundle", "hash_verified"),
     )[0]
@@ -635,4 +637,192 @@ def test_natural_language_refinement_reuses_base_taskspec_scope(tmp_path):
     assert advisory["lesson_ids"] == [lesson.lesson_id]
     # The generation itself may reject an underspecified percentage, but
     # advisory retrieval must still be grounded in the base TaskSpec.
+    assert result is not None
+
+
+def test_retrieve_approved_filters_effect_before_limit(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+
+    wanted_source = _source(
+        store,
+        request_text="older capacity loss evidence",
+        mode="fault",
+        effect="eps_battery_capacity_loss",
+    )
+    wanted, _ = service.compile(
+        [wanted_source.experience_id],
+        scope=SCOPE,
+        actor="compiler-a",
+    )
+    _approve(service, wanted.lesson_id)
+
+    newer_source = _source(
+        store,
+        request_text="newer open circuit evidence",
+        mode="fault",
+        effect="eps_battery_open_circuit",
+    )
+    newer, _ = service.compile(
+        [newer_source.experience_id],
+        scope=SCOPE,
+        actor="compiler-b",
+    )
+    service.evaluate(
+        newer.lesson_id,
+        scope=SCOPE,
+        evaluator="evaluator-b",
+        held_out_case_ids=("held-out-newer-1",),
+        baseline_metrics={
+            "primary_score": 0.8,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        candidate_metrics={
+            "primary_score": 0.81,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        evaluation_evidence={
+            "runner": "pytest-held-out-runner",
+            "case_result_sha256": "e" * 64,
+            "metrics_source_sha256": "f" * 64,
+        },
+    )
+    for reviewer in ("reviewer-c", "reviewer-d"):
+        service.review(
+            newer.lesson_id,
+            scope=SCOPE,
+            reviewer=reviewer,
+            decision="APPROVE",
+            reason="approved",
+        )
+
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+    retrieved = service.retrieve_approved(
+        scope=SCOPE,
+        capability_id="component.battery.v1",
+        mode="fault",
+        effect="eps_battery_capacity_loss",
+        limit=1,
+    )
+    assert [item.lesson_id for item in retrieved] == [wanted.lesson_id]
+
+
+def test_refinement_advisory_uses_single_explicit_base_effect(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    wanted_source = _source(
+        store,
+        request_text="capacity loss lesson",
+        mode="fault",
+        effect="eps_battery_capacity_loss",
+    )
+    service = ExperienceLessonService(store)
+    wanted, _ = service.compile(
+        [wanted_source.experience_id],
+        scope=SCOPE,
+        actor="compiler-a",
+    )
+    _approve(service, wanted.lesson_id)
+
+    other_source = _source(
+        store,
+        request_text="open circuit lesson",
+        mode="fault",
+        effect="eps_battery_open_circuit",
+    )
+    other, _ = service.compile(
+        [other_source.experience_id],
+        scope=SCOPE,
+        actor="compiler-b",
+    )
+    service.evaluate(
+        other.lesson_id,
+        scope=SCOPE,
+        evaluator="evaluator-b",
+        held_out_case_ids=("held-out-other-1",),
+        baseline_metrics={
+            "primary_score": 0.8,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        candidate_metrics={
+            "primary_score": 0.81,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        evaluation_evidence={
+            "runner": "pytest-held-out-runner",
+            "case_result_sha256": "1" * 64,
+            "metrics_source_sha256": "2" * 64,
+        },
+    )
+    for reviewer in ("reviewer-c", "reviewer-d"):
+        service.review(
+            other.lesson_id,
+            scope=SCOPE,
+            reviewer=reviewer,
+            decision="APPROVE",
+            reason="approved",
+        )
+
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+    base = {
+        "schema_version": "1.0.0",
+        "task": {"id": "battery-fault-refine", "name": "battery fault refine"},
+        "model": {
+            "capability_id": "component.battery.v1",
+            "target": {
+                "level": "component",
+                "name": "battery",
+                "mode": "fault",
+            },
+            "config": {},
+        },
+        "simulation": {
+            "level": "component",
+            "duration_s": 60.0,
+            "step_s": 1.0,
+            "sample_s": 1.0,
+        },
+        "parameters": {"values": {}},
+        "events": {
+            "faults": [
+                {
+                    "id": "f1",
+                    "effect": "eps_battery_capacity_loss",
+                    "target": "battery",
+                    "start_s": 10.0,
+                    "parameters": {"loss_fraction": 0.2},
+                }
+            ],
+            "degradations": [],
+            "constraints": [],
+        },
+        "outputs": {"qoi": [], "plots": []},
+        "metadata": {},
+    }
+    output = tmp_path / "effect-refinement"
+    result = run_unified_agent(
+        UnifiedAgentRequest(
+            input_kind="natural_language",
+            request_text="把故障开始时间改到 15 秒，其他保持不变。",
+            base_task_spec=base,
+            output_dir=output,
+            backend="template",
+            local_backend="template",
+            experience_reuse_enabled=True,
+            experience_store_root=store.root,
+            experience_tenant_id=SCOPE.tenant_id,
+            experience_project_id=SCOPE.project_id,
+        )
+    )
+    advisory = json.loads((output / "experience_advisory.json").read_text(encoding="utf-8"))
+    assert advisory["effect"] == "eps_battery_capacity_loss"
+    assert advisory["lesson_ids"] == [wanted.lesson_id]
+    assert other.lesson_id not in advisory["lesson_ids"]
     assert result is not None
