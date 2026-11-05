@@ -6,13 +6,17 @@ and guard responsibilities.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import os
+from pathlib import Path
 from dataclasses import asdict, dataclass, field
-from typing import Literal, Sequence
+from typing import Any, Literal, Mapping, Sequence
 
 from .reason_codes import ReasonCode
 
-MODEL_ROUTER_VERSION = "v23.model-router.v1"
+MODEL_ROUTER_VERSION = "v23.model-router.v2"
+MODEL_ROUTE_CALIBRATION_VERSION = "sat-sim.model-route-calibration.v1"
 InputKind = Literal["natural_language", "form", "task_spec", "patch"]
 ModelTier = Literal["L0", "L1", "L2"]
 
@@ -42,6 +46,7 @@ class ModelRouteConfig:
     remote_base_url: str | None = None
     remote_command: str | None = None
     force_tier: ModelTier | None = None
+    calibration_file: str | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +63,7 @@ class ModelRouteDecision:
     remote_available: bool = False
     provider_id: str | None = None
     provider_location: str | None = None
+    calibration: dict[str, object] | None = None
     authority_boundary: str = "Capability Registry and deterministic guards remain authoritative."
 
     def to_dict(self) -> dict[str, object]:
@@ -71,6 +77,193 @@ class ModelRouteDecision:
 def _contains(text: str, words: Sequence[str]) -> bool:
     lower = text.lower()
     return any(word.lower() in lower for word in words)
+
+
+def _load_calibration(config: ModelRouteConfig) -> dict[str, Any] | None:
+    path_value = (
+        config.calibration_file
+        or os.environ.get("SAT_SIM_MODEL_ROUTE_CALIBRATION_FILE")
+        or ""
+    ).strip()
+    if not path_value:
+        return None
+    path = Path(path_value).expanduser().resolve()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "status": "invalid",
+            "source": str(path),
+            "reason": "calibration_file_unreadable",
+        }
+    if not isinstance(payload, Mapping) or payload.get("schema_version") != MODEL_ROUTE_CALIBRATION_VERSION:
+        return {
+            "status": "invalid",
+            "source": str(path),
+            "reason": "calibration_schema_invalid",
+        }
+    return {"status": "loaded", "source": str(path), "payload": dict(payload)}
+
+
+def _canonical_sha256(payload: Mapping[str, Any]) -> str:
+    raw = json.dumps(
+        dict(payload),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _coerce_int(value: Any, default: int) -> tuple[int, bool]:
+    try:
+        return int(value), True
+    except (TypeError, ValueError, OverflowError):
+        return int(default), False
+
+
+def _coerce_float(value: Any, default: float) -> tuple[float, bool]:
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return float(default), False
+    if number != number or number in {float("inf"), float("-inf")}:
+        return float(default), False
+    return number, True
+
+
+def _calibrated_tier(
+    *,
+    heuristic_tier: ModelTier,
+    domains: tuple[str, ...],
+    signals: Sequence[str],
+    calibration: dict[str, Any] | None,
+) -> tuple[ModelTier, dict[str, object] | None]:
+    if not calibration or calibration.get("status") != "loaded":
+        return heuristic_tier, (
+            {key: value for key, value in calibration.items() if key != "payload"}
+            if calibration
+            else None
+        )
+    payload = calibration.get("payload")
+    if not isinstance(payload, Mapping):
+        return heuristic_tier, None
+    raw_default_min_samples, default_samples_valid = _coerce_int(
+        payload.get("min_samples"), 10
+    )
+    raw_default_min_gain, default_gain_valid = _coerce_float(
+        payload.get("min_success_rate_gain"), 0.10
+    )
+    default_min_samples = max(1, raw_default_min_samples)
+    default_min_gain = max(0.0, raw_default_min_gain)
+    candidates: list[tuple[int, str, Mapping[str, Any]]] = []
+    signal_set = set(str(item) for item in signals)
+    domain_set = set(domains)
+    for raw in payload.get("segments") or []:
+        if not isinstance(raw, Mapping):
+            continue
+        match = raw.get("match") if isinstance(raw.get("match"), Mapping) else {}
+        required_domains = {str(item) for item in (match.get("domains") or [])}
+        required_signals = {str(item) for item in (match.get("signals") or [])}
+        if required_domains and not required_domains.issubset(domain_set):
+            continue
+        if required_signals and not required_signals.issubset(signal_set):
+            continue
+        segment_id = str(raw.get("segment_id") or "").strip()
+        if not segment_id:
+            continue
+        specificity = len(required_domains) + len(required_signals)
+        candidates.append((specificity, segment_id, raw))
+    if not candidates:
+        return heuristic_tier, {
+            "status": "no_matching_segment",
+            "source": calibration.get("source"),
+        }
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    _, segment_id, segment = candidates[0]
+    sample_count, sample_count_valid = _coerce_int(segment.get("sample_count"), 0)
+    if segment.get("min_samples") is None:
+        raw_min_samples, min_samples_valid = default_min_samples, True
+    else:
+        raw_min_samples, min_samples_valid = _coerce_int(
+            segment.get("min_samples"), default_min_samples
+        )
+    min_samples = max(1, raw_min_samples)
+    l1_success, l1_rate_valid = _coerce_float(segment.get("l1_success_rate"), 0.0)
+    l2_success, l2_rate_valid = _coerce_float(segment.get("l2_success_rate"), 0.0)
+    rates_valid = (
+        l1_rate_valid
+        and l2_rate_valid
+        and 0.0 <= l1_success <= 1.0
+        and 0.0 <= l2_success <= 1.0
+    )
+    gain = l2_success - l1_success
+    if segment.get("min_success_rate_gain") is None:
+        raw_min_gain, min_gain_valid = default_min_gain, True
+    else:
+        raw_min_gain, min_gain_valid = _coerce_float(
+            segment.get("min_success_rate_gain"), default_min_gain
+        )
+    min_gain = max(0.0, raw_min_gain)
+    numeric_fields_valid = (
+        default_samples_valid
+        and default_gain_valid
+        and sample_count_valid
+        and min_samples_valid
+        and min_gain_valid
+    )
+    recommended = str(segment.get("recommended_tier") or "").upper()
+    evidence_sha256 = str(segment.get("evaluation_sha256") or "")
+    evaluation_payload = (
+        segment.get("evaluation")
+        if isinstance(segment.get("evaluation"), Mapping)
+        else None
+    )
+    evidence_hash_format_valid = (
+        len(evidence_sha256) == 64
+        and all(ch in "0123456789abcdef" for ch in evidence_sha256)
+    )
+    evidence_content_valid = bool(
+        evidence_hash_format_valid
+        and evaluation_payload is not None
+        and _canonical_sha256(evaluation_payload) == evidence_sha256
+    )
+    evidence_valid = evidence_content_valid
+    matched_budget = segment.get("matched_budget") is True
+    accepted = (
+        numeric_fields_valid
+        and sample_count >= min_samples
+        and rates_valid
+        and evidence_valid
+        and matched_budget
+        and recommended in {"L1", "L2"}
+        and (
+            (recommended == "L2" and gain >= min_gain)
+            or (recommended == "L1" and -gain >= min_gain)
+        )
+    )
+    result = {
+        "status": "accepted" if accepted else "insufficient_evidence",
+        "source": calibration.get("source"),
+        "segment_id": segment_id,
+        "sample_count": sample_count,
+        "min_samples": min_samples,
+        "l1_success_rate": l1_success,
+        "l2_success_rate": l2_success,
+        "success_rate_gain_l2_minus_l1": gain,
+        "min_success_rate_gain": min_gain,
+        "recommended_tier": recommended or None,
+        "heuristic_tier": heuristic_tier,
+        "matched_budget": matched_budget,
+        "evaluation_sha256": evidence_sha256 or None,
+        "evaluation_content_hash_verified": evidence_content_valid,
+        "rates_valid": rates_valid,
+        "numeric_fields_valid": numeric_fields_valid,
+        "evidence_valid": evidence_valid,
+    }
+    if not accepted:
+        return heuristic_tier, result
+    return recommended, result  # type: ignore[return-value]
 
 
 def _remote_available(config: ModelRouteConfig) -> bool:
@@ -128,13 +321,29 @@ def route_model(
 
     remote_ok = _remote_available(config)
     forced = config.force_tier
-    tier: ModelTier = forced or ("L2" if score >= 5 else "L1")
+    heuristic_tier: ModelTier = "L2" if score >= 5 else "L1"
+    calibration_state = _load_calibration(config)
+    calibrated_tier, calibration_result = _calibrated_tier(
+        heuristic_tier=heuristic_tier,
+        domains=domains,
+        signals=signals,
+        calibration=calibration_state,
+    )
+    tier: ModelTier = forced or calibrated_tier
+    if calibration_result and calibration_result.get("status") == "accepted":
+        signals.append(
+            "route_calibration:"
+            + str(calibration_result.get("segment_id"))
+            + ":"
+            + str(calibration_result.get("recommended_tier"))
+        )
     if tier == "L2" and remote_ok:
         backend = str(config.remote_backend)
         codes = (ReasonCode.MODEL_ROUTE_L2.value, ReasonCode.CAPABILITY_REGISTRY_AUTHORITATIVE.value)
         return ModelRouteDecision(
             MODEL_ROUTER_VERSION, input_kind, tier, backend, score, domains, tuple(signals), codes,
             fallback_backend=config.local_backend, remote_available=True,
+            calibration=calibration_result,
         )
     if tier == "L2" and not remote_ok:
         return ModelRouteDecision(
@@ -145,11 +354,13 @@ def route_model(
                 ReasonCode.CAPABILITY_REGISTRY_AUTHORITATIVE.value,
             ),
             fallback_backend=config.local_backend, remote_available=False,
+            calibration=calibration_result,
         )
     return ModelRouteDecision(
         MODEL_ROUTER_VERSION, input_kind, "L1", config.local_backend, score, domains, tuple(signals),
         (ReasonCode.MODEL_ROUTE_L1.value, ReasonCode.CAPABILITY_REGISTRY_AUTHORITATIVE.value),
         remote_available=remote_ok,
+        calibration=calibration_result,
     )
 
 
@@ -185,6 +396,7 @@ RAG_BOUNDARY_POLICY = {
 
 __all__ = [
     "MODEL_ROUTER_VERSION",
+    "MODEL_ROUTE_CALIBRATION_VERSION",
     "ModelRouteConfig",
     "ModelRouteDecision",
     "RAG_BOUNDARY_POLICY",

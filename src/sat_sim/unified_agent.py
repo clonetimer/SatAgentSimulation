@@ -857,6 +857,26 @@ def _record_patch_ops(metadata: dict[str, Any], changed_paths: list[str]) -> Non
         ops.append({"op": "replace_or_append", "path": "/" + path.replace(".", "/")})
 
 
+def _single_explicit_effect(task_spec: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(task_spec, Mapping):
+        return None
+    events = task_spec.get("events")
+    if not isinstance(events, Mapping):
+        return None
+    effects: set[str] = set()
+    for category in ("faults", "degradations", "constraints"):
+        rows = events.get(category)
+        if not isinstance(rows, list):
+            continue
+        for item in rows:
+            if not isinstance(item, Mapping):
+                continue
+            effect = str(item.get("effect") or "").strip()
+            if effect:
+                effects.add(effect)
+    return next(iter(effects)) if len(effects) == 1 else None
+
+
 def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "enabled": bool(request.experience_reuse_enabled),
@@ -876,12 +896,27 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
 
     capability_id = ""
     mode = None
+    effect = None
     if request.input_kind == "natural_language":
-        from .capability_planner import plan_capability_for_request
+        base_source = request.base_task_spec or {}
+        base_model = (
+            base_source.get("model")
+            if isinstance(base_source, Mapping) and isinstance(base_source.get("model"), Mapping)
+            else {}
+        )
+        if isinstance(base_model, Mapping):
+            capability_id = str(base_model.get("capability_id") or "")
+            target = base_model.get("target")
+            if isinstance(target, Mapping):
+                mode = str(target.get("mode") or "") or None
+        effect = _single_explicit_effect(base_source)
+        if not capability_id:
+            from .capability_planner import plan_capability_for_request
 
-        plan = plan_capability_for_request(request.request_text)
-        capability_id = str(plan.selected_capability_id or "")
-        mode = requested_health_mode(request.request_text)
+            plan = plan_capability_for_request(request.request_text)
+            capability_id = str(plan.selected_capability_id or "")
+        if mode is None:
+            mode = requested_health_mode(request.request_text)
     else:
         source = request.task_spec or request.form_data or request.base_task_spec or {}
         model = source.get("model") if isinstance(source, Mapping) else {}
@@ -893,6 +928,7 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
         if not capability_id and isinstance(source, Mapping):
             capability_id = str(source.get("capability_id") or "")
             mode = mode or (str(source.get("mode") or "") or None)
+        effect = _single_explicit_effect(source)
     if not capability_id:
         payload["reason"] = "capability_not_resolved"
         return payload
@@ -909,6 +945,7 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
         scope=scope,
         capability_id=capability_id,
         mode=mode,
+        effect=effect,
         task_spec_version=CANONICAL_TASK_SPEC_VERSION,
     )
     advisories = [
@@ -928,6 +965,7 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
         {
             "capability_id": capability_id,
             "mode": mode,
+            "effect": effect,
             "approved_experience_advisories": advisories,
             "lesson_ids": [item["lesson_id"] for item in advisories],
             "hit_count": len(advisories),

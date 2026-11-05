@@ -488,6 +488,18 @@ class ExperienceLessonService:
             result[str(key)] = number
         return result
 
+    def store_evaluation_artifact(self, payload: Mapping[str, Any]) -> str:
+        raw = _canonical(dict(payload))
+        return self.store._put_object(raw, "application/json")
+
+    def _verify_evaluation_object(self, digest: str) -> None:
+        path = self.store._object_path(digest)
+        if not path.is_file():
+            raise ValueError(f"EVALUATION_EVIDENCE_OBJECT_MISSING:{digest}")
+        raw = path.read_bytes()
+        if _sha256(raw) != digest:
+            raise ValueError(f"EVALUATION_EVIDENCE_OBJECT_INTEGRITY_FAILED:{digest}")
+
     def evaluate(
         self,
         lesson_id: str,
@@ -498,6 +510,7 @@ class ExperienceLessonService:
         baseline_metrics: Mapping[str, Any],
         candidate_metrics: Mapping[str, Any],
         evaluation_evidence: Mapping[str, Any],
+        require_evidence_objects: bool = False,
     ) -> dict[str, Any]:
         if not held_out_case_ids:
             raise ValueError("held-out evaluation requires cases")
@@ -522,8 +535,11 @@ class ExperienceLessonService:
             digest = str(evidence[field])
             if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
                 raise ValueError(f"{field} must be a lowercase SHA-256 digest")
+            if require_evidence_objects:
+                self._verify_evaluation_object(digest)
         if not str(evidence["runner"]).strip():
             raise ValueError("evaluation evidence runner is required")
+        evidence["objects_verified"] = bool(require_evidence_objects)
         passed = (
             candidate["primary_score"] >= baseline["primary_score"]
             and candidate["safety_regressions"] == 0
@@ -685,6 +701,7 @@ class ExperienceLessonService:
         scope: ExperienceScope,
         capability_id: str,
         mode: str | None = None,
+        effect: str | None = None,
         task_spec_version: str = "1.0.0",
         limit: int = 10,
     ) -> list[ExperienceLesson]:
@@ -703,24 +720,64 @@ class ExperienceLessonService:
             if snapshot is None:
                 return []
             allowed = set(json.loads(snapshot["lesson_ids_json"]))
+            params: list[Any] = [
+                scope.tenant_id,
+                scope.project_id,
+                capability_id,
+            ]
+            applicability_clauses: list[str] = []
+            if mode is not None:
+                applicability_clauses.append(
+                    """
+                    AND EXISTS (
+                        SELECT 1 FROM lesson_retrieval_index mode_idx
+                        WHERE mode_idx.lesson_id=cap_idx.lesson_id
+                          AND mode_idx.tenant_id=cap_idx.tenant_id
+                          AND mode_idx.project_id=cap_idx.project_id
+                          AND mode_idx.state='approved'
+                          AND mode_idx.facet_kind='mode'
+                          AND mode_idx.facet_value=?
+                    )"""
+                )
+                params.append(mode)
+            if effect is not None:
+                applicability_clauses.append(
+                    """
+                    AND EXISTS (
+                        SELECT 1 FROM lesson_retrieval_index effect_idx
+                        WHERE effect_idx.lesson_id=cap_idx.lesson_id
+                          AND effect_idx.tenant_id=cap_idx.tenant_id
+                          AND effect_idx.project_id=cap_idx.project_id
+                          AND effect_idx.state='approved'
+                          AND effect_idx.facet_kind='effect'
+                          AND effect_idx.facet_value=?
+                    )"""
+                )
+                params.append(effect)
+            applicability_sql = "".join(applicability_clauses)
             rows = db.execute(
-                """SELECT lesson_id FROM lesson_retrieval_index
-                   WHERE tenant_id=? AND project_id=? AND state='approved'
-                   AND facet_kind='capability' AND facet_value=?
-                   ORDER BY created_at DESC,lesson_id LIMIT ?""",
-                (scope.tenant_id, scope.project_id, capability_id, limit),
+                f"""SELECT DISTINCT cap_idx.lesson_id,cap_idx.created_at
+                    FROM lesson_retrieval_index cap_idx
+                    WHERE cap_idx.tenant_id=? AND cap_idx.project_id=?
+                      AND cap_idx.state='approved'
+                      AND cap_idx.facet_kind='capability'
+                      AND cap_idx.facet_value=?
+                      {applicability_sql}
+                    ORDER BY cap_idx.created_at DESC,cap_idx.lesson_id""",
+                params,
             ).fetchall()
-        lessons = [
-            self.get(str(row["lesson_id"]), scope=scope)
-            for row in rows
-            if str(row["lesson_id"]) in allowed
-        ]
-        return [
-            lesson
-            for lesson in lessons
-            if (mode is None or mode in lesson.modes)
-            and task_spec_version in lesson.compatible_task_spec_versions
-        ]
+        lessons: list[ExperienceLesson] = []
+        for row in rows:
+            lesson_id = str(row["lesson_id"])
+            if lesson_id not in allowed:
+                continue
+            lesson = self.get(lesson_id, scope=scope)
+            if task_spec_version not in lesson.compatible_task_spec_versions:
+                continue
+            lessons.append(lesson)
+            if len(lessons) >= int(limit):
+                break
+        return lessons
 
     def create_snapshot(self, *, scope: ExperienceScope, actor: str) -> dict[str, Any]:
         with self.store._connect() as db:
