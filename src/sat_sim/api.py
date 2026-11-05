@@ -4211,6 +4211,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
         project_id: str = Query(min_length=1, max_length=128),
         capability_id: str = Query(min_length=1),
         mode: str | None = Query(default=None),
+        effect: str | None = Query(default=None),
         task_spec_version: str = Query(default="1.0.0"),
         limit: int = Query(default=10, ge=1, le=100),
     ) -> dict[str, Any]:
@@ -4218,6 +4219,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
             scope=ExperienceScope(tenant_id=tenant_id, project_id=project_id),
             capability_id=capability_id,
             mode=mode,
+            effect=effect,
             task_spec_version=task_spec_version,
             limit=limit,
         )
