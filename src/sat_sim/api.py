@@ -1836,6 +1836,19 @@ def create_app(
                 detail={"reason_code": "AGENT_EXPERIMENT_PLAN_INVALID", "message": str(exc)},
             ) from exc
 
+    @app.get("/agent/operations/{operation_id}")
+    def agent_operation_status(operation_id: str) -> dict[str, Any]:
+        try:
+            payload = agent_operation_store.get(operation_id)
+        except AgentToolError as exc:
+            raise HTTPException(status_code=422, detail=exc.to_dict()) from exc
+        if payload is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"reason_code": "AGENT_OPERATION_NOT_FOUND", "message": "operation not found"},
+            )
+        return {"ok": True, **payload}
+
     @app.post("/agent/experiments")
     def agent_create_experiment(body: AgentExperimentCreateBody) -> dict[str, Any]:
         try:
