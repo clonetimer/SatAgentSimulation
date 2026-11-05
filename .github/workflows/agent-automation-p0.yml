@@ -25,6 +25,7 @@ on:
       - "tests/test_agent_*.py"
       - "tests/test_agent_prompt_contract_closure.py"
       - "tests/test_model_router*.py"
+      - "tests/test_model_schema_rejection_repair.py"
       - "tests/test_experience_lessons.py"
       - "tests/test_workbench_agent_refinement_browser.py"
       - "tests/test_task_source_binding.py"
@@ -82,6 +83,7 @@ jobs:
             tests/test_workbench_agent_integration.py \
             tests/test_experience_lessons.py \
             tests/test_model_router_calibration.py \
+            tests/test_model_schema_rejection_repair.py \
             tests/test_task_source_binding.py \
             tests/test_explicit_optional_parameter_refinement.py \
             tests/test_canonical_transport.py \
