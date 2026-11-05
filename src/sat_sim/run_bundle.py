@@ -581,6 +581,7 @@ def prepare_run(
     output_root: str | Path,
     run_id: str | None = None,
     supersedes_run_id: str | None = None,
+    source_request_id: str | None = None,
 ) -> PreparedRun:
     """Create a new immutable-intent Run Bundle without executing it."""
 
@@ -623,6 +624,7 @@ def prepare_run(
     })
     write_json(root / "input" / "provenance.json", {
         "schema_version": "v37d.input-provenance.v1",
+        **({"source_request_id": source_request_id} if source_request_id is not None else {}),
         "task_spec_sha256": resolved.canonical_task_spec_sha256,
         "resolved_spec_sha256": resolved.resolved_spec_sha256,
         "execution_plan_sha256": plan.plan_sha256,

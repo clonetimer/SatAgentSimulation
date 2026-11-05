@@ -37,6 +37,20 @@
     return JSON.stringify(document, null, 2);
   }
 
+  function captureTaskSource(payload) {
+    state.taskSource = payload.ok === true && payload.request_id && state.taskSpec
+      ? { requestId: payload.request_id, taskSpecText: canonicalText(state.taskSpec) }
+      : null;
+  }
+
+  function currentTaskSourceId() {
+    // Compare the existing authoritative text, preserving numeric precision.
+    // A manual/JSON change can omit the optional receipt until a fresh parse.
+    return state.taskSource && state.taskSpec
+      && canonicalText(state.taskSpec) === state.taskSource.taskSpecText
+      ? state.taskSource.requestId : undefined;
+  }
+
   function apiBody(value) {
     const visit = (item) => {
       if (!item || typeof item !== 'object' || isTaskSpecDocument(item)) return item;
@@ -68,6 +82,7 @@
     schema: null,
     formData: null,
     taskSpec: null,
+    taskSource: null,
     hasTaskSpecContext: false,
     planning: null,
     activeRunId: null,
@@ -5309,7 +5324,7 @@
       return false;
     }
     const result=payload.result; state.taskSpec=result.task_spec || null; state.planning=result.planning || null; syncTaskSpecEditor();
-    if (payload.ok && state.taskSpec) state.hasTaskSpecContext = true;
+    if (payload.ok && state.taskSpec) { state.hasTaskSpecContext = true; captureTaskSource(payload); }
     if (!payload.ok) {
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
       showValidationIssues(errors,'TaskSpec 校验失败');
@@ -5334,13 +5349,21 @@
 
   let agentGenerationPromise = null;
 
+  function renderAgentGenerationStatus() {
+    el('agentGenerationStatus').textContent = state.agentGenerating
+      ? '正在生成并校验；可继续查看仿真结果或调整界面。'
+      : el('agentInput').value.trim()
+        ? '有未应用的需求；点击生成或运行时，将先生成并校验当前输入。'
+        : '';
+  }
+
   function setAgentBusy(busy) {
     state.agentGenerating = busy;
     const button = el('agentParseBtn');
     button.disabled = busy;
     if (busy) button.setAttribute('aria-busy', 'true');
     else button.removeAttribute('aria-busy');
-    el('agentGenerationStatus').textContent = busy ? '正在生成并校验；可继续查看仿真结果或调整界面。' : '';
+    renderAgentGenerationStatus();
     el('runBtn').disabled = Boolean(busy || state.singleRunSubmitting) || !state.schema;
   }
 
@@ -5360,6 +5383,16 @@
 
   async function parseNaturalLanguageRequest() {
     const text=el('agentInput').value.trim(); if (!text) throw new Error('请输入仿真需求');
+    const instructionContext = () => JSON.stringify({
+      input:el('agentInput').value, refine:el('agentRefineCurrent')?.checked,
+      provider:el('agentBackend').value, routing:el('agentRoutingMode').value,
+      history:state.agentHistory, taskCenter:state.activeTaskCenterId, run:state.activeRunId,
+    });
+    const requestedInstruction = instructionContext();
+    const discardStale = () => {
+      showNotice('生成期间配置或需求已更新，旧回答未应用。请按当前内容重新生成。', 'warning');
+      return false;
+    };
     // A manual form edit invalidates the cached TaskSpec. Rebuild that edited
     // configuration before refinement; never silently turn it into creation.
     // A pristine initial form still permits the first instruction to select a
@@ -5373,22 +5406,18 @@
         showNotice('当前配置未通过校验，未向模型提交增量修改。请返回参数配置修正错误。', 'error');
         return false;
       }
+      // Form validation changes the accepted TaskSpec, but must not adopt
+      // instruction edits made while that preflight request was pending.
+      if (instructionContext() !== requestedInstruction) return discardStale();
     }
     const refinementBase=refine ? clone(state.taskSpec) : null;
     state.agentHistory.push({role:'user',text}); renderAgentConversation();
     const generationContext = () => JSON.stringify({
       capability:state.selectedCapabilityId, form:state.formData, task:state.taskSpec,
-      editor:el('taskSpecEditor').value, input:el('agentInput').value,
-      refine:el('agentRefineCurrent')?.checked, provider:el('agentBackend').value,
-      routing:el('agentRoutingMode').value, history:state.agentHistory,
-      taskCenter:state.activeTaskCenterId, run:state.activeRunId,
+      editor:el('taskSpecEditor').value, instruction:instructionContext(),
     });
     const requestedContext = generationContext();
     const isCurrent = () => generationContext() === requestedContext;
-    const discardStale = () => {
-      showNotice('生成期间配置或需求已更新，旧回答未应用。请按当前内容重新生成。', 'warning');
-      return false;
-    };
     const payload=await api('/tasks/parse',{method:'POST',body:apiBody({
       input_kind:'natural_language',request_text:text,base_task_spec:refinementBase,
       backend:'auto',local_backend:'template',provider_id:el('agentBackend').value || state.activeProviderId || 'local-template',
@@ -5399,12 +5428,12 @@
     if (payload.ok) {
       const capabilityId=generatedTaskSpec?.model?.capability_id; const changedCount=await projectTaskSpecToForm(generatedTaskSpec,refine?'Agent 多轮补充':'Agent',isCurrent);
       if (changedCount === null) return discardStale();
+      captureTaskSource(payload);
       state.planning=payload.result.planning || null;
       const provider=payload.result.route?.provider_id || el('agentBackend').value || 'local-template';
       const response=`已${refine?'更新':'生成'} ${generatedTaskSpec?.task?.name || capabilityId || 'TaskSpec'}；Provider=${provider}；同步 ${changedCount} 组表单差异。`;
       state.agentHistory.push({role:'assistant',text:response}); renderAgentConversation(); el('agentInput').value=''; showNotice(response,'success');
     } else {
-      state.taskSpec=generatedTaskSpec; state.planning=payload.result.planning || null; syncTaskSpecEditor();
       const errors=[...(payload.result.validation?.errors || []),...(payload.result.guards?.issues || [])]; const message=errors.map(formatValidationIssue).join('；') || '需求未通过能力边界校验';
       state.agentHistory.push({role:'assistant',text:`未通过：${message}`}); renderAgentConversation(); showValidationIssues(errors,message);
     }
@@ -5559,7 +5588,7 @@
     let submittedRunId = null;
     try {
       const activeTab = document.querySelector('.tab.active')?.dataset.tab;
-      if (activeTab === 'agent' && !state.taskSpec) {
+      if (activeTab === 'agent' && (el('agentInput').value.trim() || !state.taskSpec)) {
         // An implicit Agent request has the same editable/cancellable UI as
         // the explicit button. Do not cover it with Run's preparation overlay.
         hideBusy();
@@ -5603,6 +5632,7 @@
         method: 'POST',
         body: apiBody({
           task_spec: state.taskSpec,
+          source_request_id: currentTaskSourceId(),
           run_id: requestedId,
           execute: true,
           execution_mode: 'async',
@@ -8679,6 +8709,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await runSimulation(); } catch (error) { showNotice(`仿真失败：${error.message}`, 'error'); hideBusy(); }
     });
     el('clearAgentConversationBtn').addEventListener('click', () => { state.agentHistory=[]; renderAgentConversation(); });
+    el('agentInput').addEventListener('input', renderAgentGenerationStatus);
     el('agentParseBtn').addEventListener('click', async () => {
       try { await parseNaturalLanguage(); } catch (error) { showNotice(error.message, 'error'); }
     });
