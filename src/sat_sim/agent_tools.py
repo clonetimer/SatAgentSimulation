@@ -264,6 +264,23 @@ class AgentOperationStore:
             ).fetchone()
         return bool(row is not None and str(row["state"]) == "RECONCILE")
 
+    def resume_reconciliation(self, operation_id: str, *, lease_seconds: float = 120.0) -> bool:
+        operation_id = self._validate_operation_id(operation_id)
+        now = _now()
+        lease_expires_at = (
+            datetime.now(timezone.utc) + timedelta(seconds=max(float(lease_seconds), 1.0))
+        ).isoformat()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE agent_operations
+                SET state = 'PENDING', lease_expires_at = ?, updated_at = ?
+                WHERE operation_id = ? AND state = 'RECONCILE'
+                """,
+                (lease_expires_at, now, operation_id),
+            )
+        return cursor.rowcount == 1
+
     def complete(self, operation_id: str, result: Mapping[str, Any]) -> None:
         operation_id = self._validate_operation_id(operation_id)
         with self._connect() as connection:
@@ -469,6 +486,12 @@ def agent_experiment_tool_surface(
             {"name": "experiment_options", "effect": "read", "deterministic": True},
             {"name": "preview_experiment", "effect": "read", "deterministic": True},
             {"name": "get_operation", "effect": "read", "deterministic": True},
+            {
+                "name": "reconcile_operation",
+                "effect": "write",
+                "deterministic": True,
+                "requires_expired_lease": True,
+            },
             {
                 "name": "create_experiment",
                 "effect": "write",
