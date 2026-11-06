@@ -97,7 +97,7 @@ def run_native_case(
     from Basilisk.utilities import SimulationBaseClass, macros, simIncludeRW
 
     distribution_version = version("bsk")
-    if distribution_version != "2.11.0+satfix1":
+    if distribution_version != "2.11.0+satfix2":
         raise RuntimeError(f"R84_WRONG_BASILISK_DISTRIBUTION:{distribution_version}")
 
     sim = SimulationBaseClass.SimBaseClass()
