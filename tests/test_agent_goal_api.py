@@ -705,7 +705,8 @@ def test_goal_interpretation_waits_for_every_linked_experiment_to_finish(tmp_pat
     assert interpreted.json()["goal"]["status"] == "RUNNING"
 
 
-def test_goal_sync_releases_failed_launch_when_no_run_side_effects(tmp_path):
+@pytest.mark.parametrize("release_before_sync", [False, True])
+def test_goal_sync_releases_failed_launch_when_no_run_side_effects(tmp_path, release_before_sync):
     app, client = _client(tmp_path)
     goal_id = _create_goal(
         client,
@@ -751,6 +752,8 @@ def test_goal_sync_releases_failed_launch_when_no_run_side_effects(tmp_path):
     )
     app.state.goal_run_store.bind_launch_operation(goal_id, experiment_id, operation_id)
     assert reservation["state"] == "RESERVED"
+    if release_before_sync:
+        app.state.goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
 
     synced = client.post(f"/agent/goals/{goal_id}/sync")
     assert synced.status_code == 200
