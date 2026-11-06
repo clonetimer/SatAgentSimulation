@@ -357,3 +357,11 @@ def test_token_usage_normalizer_marks_provider_and_derived_sources():
     unknown = normalize_token_usage({"prompt_tokens": 100})
     assert unknown["total_tokens"] is None
     assert unknown["total_tokens_known"] is False
+
+
+def test_missing_generation_artifacts_do_not_look_like_zero_token_cost():
+    aggregate = aggregate_cases([{"execution": {}, "evidence_accuracy_pass": None}])
+    resource = aggregate["metrics"]["resource_use"]
+    assert resource["model_total_tokens"] is None
+    assert resource["model_total_tokens_unknown_case_count"] == 1
+    assert resource["model_token_usage_complete"] is False
