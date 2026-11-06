@@ -8,7 +8,7 @@
 - P0～P3 代码完成点：`d51f14197503cff522ccf4412a0b0d7fe4f5fd1f`（PR #94 合入后的主干）。
 - 阶段补充收敛点：`4d35ab5c77ca1f27013e0a529d25236fed607e02`（随后 #95 首答/执行归因与 #96 检索审计均合入后的主干）。
 - 不是新 Stable release：`src/sat_sim/release_manifest.json` 当前仍标记 `status=IN_PROGRESS`；不借用历史测试、24 小时耐久或其他源代码版本的资格声明。
-- 后续开发独立于本阶段：PR #97「GoalRun 目标实验工作台」仍为 Draft，**不纳入 P0～P3 的通过结论或冻结范围**。
+- 后续开发独立于本阶段：PR #97「GoalRun 目标实验工作台」已于 2026-11-06 作为独立后续功能合入 main（merge commit `7bbde7e`），**不纳入 P0～P3 的通过结论或冻结范围**。
 
 ## 2. 完成项与主要改动
 
@@ -87,10 +87,10 @@ python -m pytest -q tests/test_agent_pending_input_vm.py tests/test_agent_experi
 
 1. **真实模型配对评测**：预注册固定任务集；相同 Provider、模型版本、推理参数、token/时间/repair 预算；baseline vs lesson-enabled 各运行同一案例，记录首答通过率、最终任务、原生执行、证据准确率、token/latency 和失败分类。保留不利/失败案例；生成可复核的 Run Bundle 与评测 SHA。
 2. **模型路由在线校准效益**：让校准文件来自真实配对评测；建立对照/回退阈值。非法或证据不足的校准继续 fail-safe。
-3. **实际使用 UI**：GoalRun 原生工作台单独在 [PR #97](https://github.com/clonetimer/SatAgentSimulation/pull/97) 开发（本报告时为 Draft）；不纳入 P0～P3 通过声明，不在本次冻结中合并。
+3. **实际使用 UI**：GoalRun 原生工作台已通过独立 PR [#97](https://github.com/clonetimer/SatAgentSimulation/pull/97) 合入 main（merge commit `7bbde7e`）；它属于 P0～P3 冻结之后的后续功能，不改变本报告的范围和通过声明。
 4. **原生覆盖、部署与长测**：按 Capability implementation_class 和真实 Run Bundle 逐条验收；保留 project-deterministic、mixed-native、proxy 的准确分类。当前全平台 Stable、Windows/Ubuntu 各环境与 24h 同源码可靠性资格需独立证明。
 
-**收尾决定**：冻结 P0～P3 的已合并功能范围，不继续以同一阶段名义加入新 Agent 能力；除回归失败、安全问题或真实使用阻断外，功能扩张放入后续独立 PR。PR #97 与真实模型效果评测均属于后续工作。
+**收尾决定**：冻结 P0～P3 的已合并功能范围，不继续以同一阶段名义加入新 Agent 能力；除回归失败、安全问题或真实使用阻断外，功能扩张放入后续独立 PR。PR #97 已作为后续功能独立合入；真实模型效果评测仍属于后续工作。
 
 ## 7. 追溯与使用入口
 
