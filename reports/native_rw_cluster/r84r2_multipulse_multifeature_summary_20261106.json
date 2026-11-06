@@ -1,0 +1,124 @@
+{
+  "schema_version": "sat-sim.r84r2.execution-summary.v1",
+  "status": "PASS_NATIVE_PHYSICS_CONDITIONAL_OBSERVABILITY",
+  "workflow_run_id": 42227287650,
+  "workflow_run_url": "https://github.com/clonetimer/SatAgentSimulation/actions/runs/42227287650",
+  "artifact_id": 13507175034,
+  "artifact_sha256": "74385222791bd82737b661ad22468b835805d1114647117933c3d9fa0f2aa3e4",
+  "artifact_size_bytes": 50226064,
+  "artifact_expires_at": "2027-02-04T13:39:40Z",
+  "unique_native_runs": 2862,
+  "unique_rng_seeds": 2862,
+  "total_native_executions_including_replay": 2863,
+  "physical_contexts": 18,
+  "samples_per_execution": 91,
+  "noise_free_physics_references": 54,
+  "physical_comparisons_including_replay": 2863,
+  "r83m_first_six_second_comparisons": 36,
+  "max_abs_physics_delta": 0,
+  "primary_noise_sigma_rad_s": 0.0001,
+  "primary_results": {
+    "zero": {
+      "healthy_control": {
+        "count": 270,
+        "exceedances": 39,
+        "rate": 0.14444444444444443
+      },
+      "loss50": {
+        "count": 270,
+        "exceedances": 51,
+        "rate": 0.18888888888888888
+      },
+      "loss75": {
+        "count": 270,
+        "exceedances": 45,
+        "rate": 0.16666666666666666
+      },
+      "cliffs_delta_mean": {
+        "loss50": 0.05876543209876543,
+        "loss75": 0.055802469135802474
+      },
+      "cliffs_delta_median": {
+        "loss50": 0.06,
+        "loss75": 0.013333333333333334
+      }
+    },
+    "pulse09x4": {
+      "healthy_control": {
+        "count": 270,
+        "exceedances": 48,
+        "rate": 0.17777777777777778
+      },
+      "loss50": {
+        "count": 270,
+        "exceedances": 54,
+        "rate": 0.2,
+        "cliffs_delta_mean": -0.015061728395061726,
+        "cliffs_delta_median": -0.07111111111111111
+      },
+      "loss75": {
+        "count": 270,
+        "exceedances": 270,
+        "rate": 1,
+        "cliffs_delta_mean": 0.9854320987654321,
+        "cliffs_delta_median": 1,
+        "cliffs_delta_min": 0.92,
+        "cliffs_delta_max": 1
+      }
+    },
+    "pooled": {
+      "healthy_control": {
+        "count": 540,
+        "exceedances": 87,
+        "rate": 0.16111111111111112
+      },
+      "loss50": {
+        "count": 540,
+        "exceedances": 105,
+        "rate": 0.19444444444444445
+      },
+      "loss75": {
+        "count": 540,
+        "exceedances": 315,
+        "rate": 0.5833333333333334
+      }
+    }
+  },
+  "noise_sensitivity": {
+    "0.00005": {
+      "zero": {
+        "loss50_cliffs_delta_mean": 0.4567901234567901,
+        "loss50_median": 0.4444444444444444,
+        "loss75_mean": 0.4012345679012346,
+        "loss75_median": 0.3333333333333333
+      },
+      "pulse09x4": {
+        "loss50_cliffs_delta_mean": 0.4938271604938272,
+        "loss50_median": 0.5,
+        "loss75_mean": 1,
+        "loss75_median": 1
+      }
+    },
+    "0.0002": {
+      "zero": {
+        "loss50_cliffs_delta_mean": 0.46913580246913583,
+        "loss50_median": 0.5,
+        "loss75_mean": 0.45679012345679015,
+        "loss75_median": 0.5
+      },
+      "pulse09x4": {
+        "loss50_cliffs_delta_mean": 0.5740740740740741,
+        "loss50_median": 0.6666666666666666,
+        "loss75_mean": 0.8148148148148148,
+        "loss75_median": 0.9444444444444444
+      }
+    }
+  },
+  "feature_count": 16,
+  "feature_source": "official raw IMU gyro only",
+  "diagnostic_model_trained": false,
+  "formal_false_alarm_qualification": false,
+  "formal_training_or_test_eligible": false,
+  "flight_or_hardware_safety_qualified": false,
+  "stable_release_eligible": false
+}
