@@ -168,25 +168,63 @@ def analyze_run_bundle(bundle_root: str | Path | None) -> dict[str, Any]:
     if bundle_root is None:
         return {
             "present": False,
+            "integrity_ok": False,
             "sealed": False,
+            "implementation_class": None,
+            "native_eligible": False,
             "run_status": None,
             "validation_result": None,
+            "run_bundle_execution_pass": False,
             "native_execution_pass": False,
         }
     root = Path(bundle_root)
+    if not root.exists():
+        return {
+            "present": False,
+            "integrity_ok": False,
+            "sealed": False,
+            "implementation_class": None,
+            "native_eligible": False,
+            "run_status": None,
+            "validation_result": None,
+            "run_bundle_execution_pass": False,
+            "native_execution_pass": False,
+        }
+    from .run_bundle import verify_run_bundle
+
+    try:
+        integrity = verify_run_bundle(root)
+    except Exception as exc:
+        integrity = {
+            "ok": False,
+            "reason_code": "RUN_BUNDLE_INTEGRITY_CHECK_ERROR",
+            "error_type": exc.__class__.__name__,
+        }
     record = _read_json(root / "run_record.json") or {}
     validation = _read_json(root / "validation" / "validation_outcome.json") or {}
-    sealed = (root / "SEALED.json").is_file()
+    resolved = _read_json(root / "input" / "resolved_spec.json") or {}
+    implementation_class = str(resolved.get("implementation_class") or "") or None
+    native_eligible = implementation_class in {
+        "official_basilisk_native",
+        "mixed_native_project",
+    }
+    integrity_ok = integrity.get("ok") is True
     run_status = record.get("status")
     validation_result = validation.get("result")
+    run_bundle_execution_pass = bool(
+        integrity_ok and run_status == "SUCCEEDED" and validation_result == "PASS"
+    )
     return {
-        "present": root.exists(),
-        "sealed": sealed,
+        "present": True,
+        "integrity_ok": integrity_ok,
+        "integrity_reason_code": integrity.get("reason_code"),
+        "sealed": integrity_ok,
+        "implementation_class": implementation_class,
+        "native_eligible": native_eligible,
         "run_status": run_status,
         "validation_result": validation_result,
-        "native_execution_pass": bool(
-            sealed and run_status == "SUCCEEDED" and validation_result == "PASS"
-        ),
+        "run_bundle_execution_pass": run_bundle_execution_pass,
+        "native_execution_pass": bool(native_eligible and run_bundle_execution_pass),
     }
 
 
@@ -225,9 +263,17 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         item for item in rows
         if bool(((item.get("generation") or {}).get("final_agent_ok")))
     ]
-    native_eligible = [
+    run_bundle_eligible = [
         item for item in rows
         if bool(((item.get("execution") or {}).get("present")))
+    ]
+    run_bundle_passed = [
+        item for item in run_bundle_eligible
+        if bool(((item.get("execution") or {}).get("run_bundle_execution_pass")))
+    ]
+    native_eligible = [
+        item for item in rows
+        if bool(((item.get("execution") or {}).get("native_eligible")))
     ]
     native_passed = [
         item for item in native_eligible
@@ -270,6 +316,11 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
                 "rate": rate(len(final_passed), len(rows)),
             },
             "repair_assisted_success_count": len(correction_success),
+            "run_bundle_execution": {
+                "eligible": len(run_bundle_eligible),
+                "passed": len(run_bundle_passed),
+                "rate": rate(len(run_bundle_passed), len(run_bundle_eligible)),
+            },
             "native_execution": {
                 "eligible": len(native_eligible),
                 "passed": len(native_passed),
