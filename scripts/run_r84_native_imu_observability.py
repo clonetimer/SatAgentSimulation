@@ -12,6 +12,7 @@ import json
 import math
 from pathlib import Path
 import sys
+from statistics import mean, pstdev
 from typing import Any
 from zipfile import ZipFile
 
@@ -328,8 +329,42 @@ def run_pilot(original_archive: Path, output_dir: Path) -> dict[str, Any]:
         "native_execution_count_including_one_replay": 9,
         "records": case_manifest,
     }
+    sensor_by_record = {item["record_id"]: item["rows"] for item in sensor_records}
+    noise_residual_summary: list[dict[str, Any]] = []
+    for item in qa_records:
+        if item.get("repeatability_control") or float(item.get("gyro_white_noise_std_rad_s") or 0.0) <= 0.0:
+            continue
+        record_id = item["record_id"]
+        observed = sensor_by_record[record_id]
+        physical = item["qa_rows"]
+        axis_stats: dict[str, Any] = {}
+        for axis_index, axis in enumerate("xyz"):
+            observed_key = f"imu.raw_gyro_rad_s_{axis}"
+            truth_key = f"hub.omega_bn_b_rad_s_{axis_index}"
+            residual = [
+                float(observed[index][observed_key]) - float(physical[index][truth_key])
+                for index in range(1, len(observed))
+            ]
+            axis_stats[axis] = {
+                "sample_count_excluding_initial_zero_time": len(residual),
+                "mean_rad_s": mean(residual),
+                "population_std_rad_s": pstdev(residual),
+                "max_abs_rad_s": max(abs(value) for value in residual),
+            }
+        noise_residual_summary.append({
+            "record_id": record_id,
+            "reference_mode": item["reference_mode"],
+            "capacity_mode_QA_ONLY": item["capacity_mode_QA_ONLY"],
+            "configured_white_noise_sigma_rad_s": item["gyro_white_noise_std_rad_s"],
+            "axis_residuals": axis_stats,
+            "interpretation": "offline sensor-minus-simulator-truth QA only; not an inference feature or detector score",
+        })
+
     qa_payload = {
         "schema_version": "sat-sim.r84.native-imu-physics-qa.v1",
+        "records": qa_records,
+        "noise_residual_against_simulator_truth_QA_ONLY": noise_residual_summary,
+        "noise_residual_interpretation": "offline QA only; simulator truth subtraction is forbidden in inference",
         "original_r83m_archive_receipt": original_receipt,
         "r83m_observer_ab_comparisons": source_comparisons,
         "healthy_fault_sensor_observability_pairs": healthy_fault_pairs,
@@ -395,6 +430,14 @@ def run_pilot(original_archive: Path, output_dir: Path) -> dict[str, Any]:
         "stable_release_eligible": False,
     }
     _write_json(output_dir / "r84_execution_manifest.json", manifest)
+    # Successful completion promotes final files and removes transient partial
+    # snapshots; failures retain the partial snapshots and failure receipt.
+    for partial_name in (
+        "r84_partial_sensor_observations.json",
+        "r84_partial_case_manifest.json",
+        "r84_partial_physics_qa.json",
+    ):
+        (output_dir / partial_name).unlink(missing_ok=True)
     return manifest
 
 
