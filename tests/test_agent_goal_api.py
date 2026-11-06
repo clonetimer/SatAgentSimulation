@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 
 from fastapi.testclient import TestClient
 
@@ -548,3 +549,40 @@ def test_goal_create_requires_operation_id(tmp_path):
         },
     )
     assert response.status_code == 422
+
+
+def test_goal_run_store_migrates_legacy_database_for_idempotent_create(tmp_path):
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    database = artifact_root / "goal_runs.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            """
+            CREATE TABLE goal_runs (
+                goal_id TEXT PRIMARY KEY,
+                objective TEXT NOT NULL,
+                status TEXT NOT NULL,
+                base_task_spec_json TEXT NOT NULL,
+                allowed_parameter_paths_json TEXT NOT NULL,
+                success_criteria_json TEXT NOT NULL,
+                budget_json TEXT NOT NULL,
+                stop_reason TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=artifact_root,
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
+    with sqlite3.connect(database) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(goal_runs)")}
+        indexes = {row[1] for row in connection.execute("PRAGMA index_list(goal_runs)")}
+    assert "create_operation_id" in columns
+    assert "create_input_sha256" in columns
+    assert "idx_goal_runs_create_operation_id" in indexes
+    assert app.state.goal_run_store is not None
