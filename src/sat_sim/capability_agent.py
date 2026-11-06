@@ -333,6 +333,11 @@ def requested_health_mode(text: str) -> str:
         " ",
         probe,
     )
+    probe = re.sub(
+        r"\b(?:not|never)\s+(?:be\s+)?(?:an?\s+)?faults?\b",
+        " ",
+        probe,
+    )
     # Match English fault as a complete word. Substring matching treats
     # "default" as "fault" and can suppress nominal-only lesson retrieval.
     fault = (
