@@ -9397,6 +9397,41 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('taskStatusFilter').addEventListener('change', () => loadTasks().catch(() => null));
     el('newExperimentBtn').addEventListener('click', () => openExperimentModal().catch(error => showNotice(error.message, 'error')));
     el('refreshExperimentsBtn').addEventListener('click', () => loadExperiments().catch(() => null));
+    el('newGoalRunBtn').addEventListener('click', () => openGoalCreatePanel().catch((error) => goalRunNotice(error.message, 'error')));
+    el('refreshGoalRunsBtn').addEventListener('click', () => loadGoals().catch((error) => goalRunNotice(error.message, 'error')));
+    el('closeGoalCreateBtn').addEventListener('click', () => el('goalRunCreatePanel').classList.add('hidden'));
+    el('goalBaseTaskSelect').addEventListener('change', (event) => selectGoalBaseTask(event.target.value).catch((error) => {
+      el('goalBaseTaskStatus').textContent = error.message;
+      goalRunNotice(error.message, 'error');
+    }));
+    el('createGoalRunBtn').addEventListener('click', () => createGoalRun().catch((error) => goalRunNotice(error.message, 'error')));
+    [
+      'goalObjective', 'goalSuccessMetric', 'goalSuccessOperator', 'goalSuccessValue',
+      'goalBudgetExperiments', 'goalBudgetRuns', 'goalBudgetAttempts', 'goalBudgetModelCalls',
+    ].forEach((id) => {
+      el(id).addEventListener('input', invalidateGoalCreateOperation);
+      el(id).addEventListener('change', invalidateGoalCreateOperation);
+    });
+    el('previewGoalExperimentBtn').addEventListener('click', () => previewGoalExperiment().catch((error) => goalRunNotice(error.message, 'error')));
+    el('createGoalExperimentBtn').addEventListener('click', () => createGoalExperiment().catch((error) => goalRunNotice(error.message, 'error')));
+    ['goalExperimentName', 'goalExperimentPurpose', 'goalSweepValues'].forEach((id) => el(id).addEventListener('input', invalidateGoalExperimentOperation));
+    el('goalSweepPath').addEventListener('change', invalidateGoalExperimentOperation);
+    el('refreshGoalDetailBtn').addEventListener('click', () => {
+      if (state.activeGoalId) openGoalDetail(state.activeGoalId).catch((error) => goalRunNotice(error.message, 'error'));
+    });
+    el('cancelGoalRunBtn').addEventListener('click', () => cancelGoalRun().catch((error) => goalRunNotice(error.message, 'error')));
+    el('goalInterpretMode').addEventListener('change', async (event) => {
+      const modelMode = event.target.value === 'model';
+      el('goalInterpretProviderWrap').classList.toggle('hidden', !modelMode);
+      if (modelMode) {
+        try { await populateGoalInterpretProviders(); }
+        catch (error) { goalRunNotice(error.message, 'error'); }
+      }
+      state.goalInterpretOperationId = null;
+    });
+    el('goalInterpretProvider').addEventListener('change', () => { state.goalInterpretOperationId = null; });
+    ['goalInterpretQuestion', 'goalInterpretMetrics'].forEach((id) => el(id).addEventListener('input', () => { state.goalInterpretOperationId = null; }));
+    el('interpretGoalRunBtn').addEventListener('click', () => interpretGoalExperiment().catch((error) => goalRunNotice(error.message, 'error')));
     el('experimentBaseTaskSelect').addEventListener('change', (event) => selectExperimentBaseTask(event.target.value).catch((error) => { el('experimentModalStatus').textContent=error.message; }));
     el('experimentType').addEventListener('change', updateExperimentTypeFields);
     el('sweepPath').addEventListener('change', updateSweepParameterHelp);
