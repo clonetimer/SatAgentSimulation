@@ -147,4 +147,12 @@ def test_goal_run_workspace_creates_budgets_launches_and_interprets(tmp_path):
         page.wait_for_function(
             "document.querySelectorAll('#goalDecisionLedger li.goal-decision-item').length >= 3"
         )
+        app.state.goal_run_store.transition(goal_id, "ANALYZING")
+        page.locator("#refreshGoalDetailBtn").click()
+        page.wait_for_function(
+            "!document.querySelector('#goalResolutionPanel').classList.contains('hidden')"
+        )
+        assert page.locator("#completeGoalRunBtn").is_visible()
+        assert page.locator("#partialGoalRunBtn").is_visible()
+        assert page.locator("#reviseGoalRunBtn").is_visible()
         assert not page_errors, page_errors

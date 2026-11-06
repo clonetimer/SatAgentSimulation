@@ -142,6 +142,7 @@
     goalExperimentOperationId: null,
     goalLaunchOperationIds: {},
     goalInterpretOperationId: null,
+    goalResolveOperationIds: {},
     goalSelectedExperimentId: null,
     apiToken: sessionStorage.getItem('sat-sim-api-token') || '',
     authEnabled: false,
@@ -8357,7 +8358,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
 
   const GOAL_STATUS_LABELS = {
     DRAFT: '草稿', READY: '就绪', RUNNING: '运行中', ANALYZING: '分析中',
-    NEEDS_REVISION: '需要调整', COMPLETED: '已完成', FAILED: '失败', CANCELLED: '已取消',
+    NEEDS_REVISION: '需要调整', COMPLETED: '已完成', PARTIAL: '部分完成', FAILED: '失败', CANCELLED: '已取消',
   };
 
   function goalRunNotice(message, type = 'info') {
@@ -8745,7 +8746,12 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('goalDetailStatus').className = 'status-chip ' + (goal.status === 'COMPLETED' ? 'status-success' : (['FAILED', 'CANCELLED'].includes(goal.status) ? 'status-fail' : 'status-muted'));
     const taskName = goal.base_task_spec?.task?.name || goal.base_task_spec?.task?.id || goal.base_task_spec?.model?.capability_id || '基础任务';
     el('goalDetailMeta').textContent = goal.goal_id + ' · 基础任务：' + taskName + ' · 允许参数：' + (goal.allowed_parameter_paths || []).length + ' 项';
-    const terminal = ['COMPLETED', 'FAILED', 'CANCELLED'].includes(goal.status);
+    const terminal = ['COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED'].includes(goal.status);
+    const canResolve = ['ANALYZING', 'NEEDS_REVISION'].includes(goal.status);
+    el('goalResolutionPanel').classList.toggle('hidden', !canResolve);
+    ['completeGoalRunBtn', 'partialGoalRunBtn', 'reviseGoalRunBtn'].forEach((id) => {
+      el(id).disabled = !canResolve;
+    });
     el('cancelGoalRunBtn').disabled = terminal;
     el('createGoalExperimentBtn').disabled = terminal || !(goal.allowed_parameter_paths || []).length;
     el('previewGoalExperimentBtn').disabled = terminal || !(goal.allowed_parameter_paths || []).length;
@@ -8811,13 +8817,26 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
           purpose,
         }),
       });
+      if (!payload.ok) {
+        state.activeGoal = payload;
+        const operationState = payload.experiment_operation?.operation_state || 'UNKNOWN';
+        if (operationState === 'FAILED') {
+          state.goalExperimentOperationId = null;
+          await loadGoals();
+          renderGoalDetail();
+          throw new Error('实验创建已明确失败，目标预算预留已释放。修正原因后可以重新提交。');
+        }
+        await loadGoals();
+        renderGoalDetail();
+        throw new Error('实验创建仍在处理中；保持相同输入重试同一 operation_id。');
+      }
       state.goalExperimentOperationId = null;
       state.activeGoal = payload;
       await loadGoals();
       renderGoalDetail();
       goalRunNotice('已创建实验 ' + (payload.experiment_operation?.experiment_id || '') + '；尚未启动运行。', 'success');
     } catch (error) {
-      goalRunNotice('创建结果未确认。保持相同输入重试同一 operation_id；' + error.message, 'error');
+      goalRunNotice('创建操作未完成。' + error.message, 'error');
       throw error;
     } finally {
       button.disabled = false;
@@ -8940,6 +8959,45 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     await loadGoals();
     renderGoalDetail();
     goalRunNotice('目标已取消。', 'success');
+  }
+
+
+  async function resolveGoalRun(status) {
+    const goal = state.activeGoal?.goal;
+    if (!goal) throw new Error('请先选择目标。');
+    const reason = el('goalResolutionReason').value.trim();
+    if (!reason) throw new Error('请填写结论说明，便于追溯本次目标决策。');
+    if (!['COMPLETED', 'PARTIAL', 'NEEDS_REVISION'].includes(status)) {
+      throw new Error('不支持的目标结论。');
+    }
+    if (!state.goalResolveOperationIds[status]) {
+      state.goalResolveOperationIds[status] = goalOperationId('goal:' + goal.goal_id + ':resolve:' + status);
+    }
+    const buttonIds = ['completeGoalRunBtn', 'partialGoalRunBtn', 'reviseGoalRunBtn'];
+    buttonIds.forEach((id) => { el(id).disabled = true; });
+    try {
+      const response = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/resolve', {
+        method: 'POST',
+        body: apiBody({
+          operation_id: state.goalResolveOperationIds[status],
+          status,
+          reason,
+        }),
+      });
+      delete state.goalResolveOperationIds[status];
+      state.activeGoal = response;
+      await loadGoals();
+      renderGoalDetail();
+      const label = GOAL_STATUS_LABELS[status] || status;
+      goalRunNotice('目标结论已记录：' + label + '。', 'success');
+      return response;
+    } catch (error) {
+      goalRunNotice('结论提交未确认。保持相同结论和说明重试同一 operation_id；' + error.message, 'error');
+      throw error;
+    } finally {
+      const canResolve = ['ANALYZING', 'NEEDS_REVISION'].includes(state.activeGoal?.goal?.status);
+      buttonIds.forEach((id) => { el(id).disabled = !canResolve; });
+    }
   }
 
   async function showExperimentComparison(experimentId) {
@@ -9430,6 +9488,9 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       if (state.activeGoalId) openGoalDetail(state.activeGoalId).catch((error) => goalRunNotice(error.message, 'error'));
     });
     el('cancelGoalRunBtn').addEventListener('click', () => cancelGoalRun().catch((error) => goalRunNotice(error.message, 'error')));
+    el('completeGoalRunBtn').addEventListener('click', () => resolveGoalRun('COMPLETED').catch((error) => goalRunNotice(error.message, 'error')));
+    el('partialGoalRunBtn').addEventListener('click', () => resolveGoalRun('PARTIAL').catch((error) => goalRunNotice(error.message, 'error')));
+    el('reviseGoalRunBtn').addEventListener('click', () => resolveGoalRun('NEEDS_REVISION').catch((error) => goalRunNotice(error.message, 'error')));
     el('goalInterpretMode').addEventListener('change', async (event) => {
       const modelMode = event.target.value === 'model';
       el('goalInterpretProviderWrap').classList.toggle('hidden', !modelMode);

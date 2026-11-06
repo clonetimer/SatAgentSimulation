@@ -646,6 +646,20 @@
               <div class="section-heading compact"><h3>总预算使用</h3><span id="goalBudgetStatus"></span></div>
               <div id="goalBudgetUsage" class="goal-budget-usage"></div>
             </section>
+            <section id="goalResolutionPanel" class="goal-detail-section hidden">
+              <div class="section-heading compact">
+                <div><h3>确认目标结论</h3><span>先核验所有实验轮次的 Run Bundle 证据，再记录目标决策。</span></div>
+              </div>
+              <div class="goal-interpret-form">
+                <label>结论说明<textarea id="goalResolutionReason" rows="2" maxlength="4000" placeholder="说明完成依据、部分完成范围，或下一轮需要验证的问题。"></textarea></label>
+                <div class="goal-experiment-actions">
+                  <button id="completeGoalRunBtn" class="button button-primary" type="button">确认完成</button>
+                  <button id="partialGoalRunBtn" class="button button-secondary" type="button">标记部分完成</button>
+                  <button id="reviseGoalRunBtn" class="button button-ghost" type="button">继续调整</button>
+                </div>
+                <p class="goal-field-hint">完成目标要求所有轮次证据完整且通过封存与完整性核验；配置了成功条件时，至少一个候选必须满足条件。</p>
+              </div>
+            </section>
             <section class="goal-detail-section">
               <div class="section-heading compact"><h3>创建下一轮实验</h3><span>只能修改目标允许的参数</span></div>
               <div class="goal-experiment-form">
