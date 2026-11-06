@@ -122,7 +122,7 @@ jobs:
           echo "db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796  $RUNNER_TEMP/r84/r83m-original.zip" | sha256sum --check -
           mkdir -p "$RUNNER_TEMP/r84/evidence/source"
           cp "$RUNNER_TEMP/r84/r83m-original.zip" "$RUNNER_TEMP/r84/evidence/source/r83m-original.zip"
-          sha256sum "$RUNNER_TEMP/r84/evidence/source/r83m-original.zip" > "$RUNNER_TEMP/r84/evidence/source/r83m-original.sha256"
+          printf "%s  r83m-original.zip\n" "$(sha256sum "$RUNNER_TEMP/r84/evidence/source/r83m-original.zip" | cut -d' ' -f1)" > "$RUNNER_TEMP/r84/evidence/source/r83m-original.sha256"
       - name: Execute eight unique native IMU/RW arms and one exact seeded replay
         env:
           PYTHONPATH: "src:."
@@ -152,7 +152,12 @@ jobs:
           assert manifest["checks"] and all(manifest["checks"].values())
           assert manifest["diagnostic_model_trained"] is False
           assert manifest["formal_training_or_test_eligible"] is False
+          source_dir = root / "source"
+          assert (source_dir / "r83m-original.zip").is_file()
+          assert (source_dir / "r83m-original.sha256").is_file()
           print("R84_NATIVE_IMU_EXECUTION_PASS", manifest["checks"])
+          PY
+          (cd "$RUNNER_TEMP/r84/evidence/source" && sha256sum --check r83m-original.sha256)
           PY
       - name: Upload R84 native observations, separate QA and failure receipts
         if: always()
