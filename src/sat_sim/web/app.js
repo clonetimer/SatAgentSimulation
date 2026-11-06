@@ -8604,7 +8604,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
   }
 
   async function openGoalDetail(goalId) {
-    const payload = await api('/agent/goals/' + encodeURIComponent(goalId));
+    const payload = await api('/agent/goals/' + encodeURIComponent(goalId) + '/sync', { method: 'POST' });
     state.activeGoalId = goalId;
     state.activeGoal = payload;
     el('goalRunDetail').classList.remove('hidden');
@@ -8874,10 +8874,26 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       method: 'POST',
       body: apiBody(request),
     });
+    const operationState = String(response.launch_operation?.operation_state || '').toUpperCase();
     delete state.goalLaunchOperationIds[experimentId];
     state.activeGoal = response;
     await loadGoals();
-    goalRunNotice('实验 ' + experimentId + ' 的运行提交状态：' + (response.launch_operation?.operation_state || '已对账'), 'success');
+    if (operationState === 'FAILED') {
+      const currentLink = (state.activeGoal?.experiments || []).find((item) => item.experiment_id === experimentId);
+      const unbound = !currentLink?.launch_operation_id;
+      goalRunNotice(
+        unbound
+          ? '启动明确失败，未观察到运行副作用；预算已释放，可以重新启动。'
+          : '启动操作失败，但已观察到运行副作用；预算保持占用，请先核对运行中心，不要重复提交。',
+        'error',
+      );
+      return;
+    }
+    if (operationState === 'IN_PROGRESS') {
+      goalRunNotice('启动仍在处理中，已保留原操作绑定；刷新详情继续核对。', 'info');
+      return;
+    }
+    goalRunNotice('实验 ' + experimentId + ' 的运行提交状态：' + (operationState || '已对账'), response.ok ? 'success' : 'error');
   }
 
   async function populateGoalInterpretProviders() {
