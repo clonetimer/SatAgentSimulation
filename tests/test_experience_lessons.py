@@ -1146,3 +1146,32 @@ def test_retrieval_event_api_is_scope_filtered(tmp_path):
     )
     assert isolated.status_code == 200
     assert isolated.json()["count"] == 0
+
+
+def test_tampered_lesson_snapshot_fails_closed_for_retrieval_and_rollback(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+    source = _source(store, request_text="snapshot integrity battery")
+    lesson, _ = service.compile([source.experience_id], scope=SCOPE, actor="compiler-a")
+    _approve(service, lesson.lesson_id)
+    snapshot = service.create_snapshot(scope=SCOPE, actor="release-manager")
+
+    with store._connect() as db:
+        db.execute(
+            "UPDATE lesson_snapshots SET lesson_ids_json = ? WHERE snapshot_id = ?",
+            ("[]", snapshot["snapshot_id"]),
+        )
+
+    with pytest.raises(ValueError, match="LESSON_SNAPSHOT_INTEGRITY_FAILED"):
+        service.retrieve_approved(
+            scope=SCOPE,
+            capability_id="component.battery.v1",
+            mode="nominal",
+        )
+
+    with pytest.raises(ValueError, match="LESSON_SNAPSHOT_INTEGRITY_FAILED"):
+        service.rollback_snapshot(
+            snapshot["snapshot_id"],
+            scope=SCOPE,
+            actor="release-manager",
+        )
