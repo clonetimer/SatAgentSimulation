@@ -255,14 +255,15 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
             "present_count": len(present_calls),
             "verified_count": len(verified_calls),
             "all_present_verified": bool(present_calls) and len(verified_calls) == len(present_calls),
-            "prompt_tokens": _sum_optional(present_calls, "prompt_tokens")["total"],
+            "prompt_tokens": _sum_optional(present_calls, "prompt_tokens")["total"] if present_calls else None,
             "prompt_tokens_known_sum": _sum_optional(present_calls, "prompt_tokens")["known_sum"],
-            "completion_tokens": _sum_optional(present_calls, "completion_tokens")["total"],
+            "completion_tokens": _sum_optional(present_calls, "completion_tokens")["total"] if present_calls else None,
             "completion_tokens_known_sum": _sum_optional(present_calls, "completion_tokens")["known_sum"],
-            "total_tokens": _sum_optional(present_calls, "total_tokens")["total"] if present_calls else 0,
+            "total_tokens": _sum_optional(present_calls, "total_tokens")["total"] if present_calls else None,
             "total_tokens_known_sum": _sum_optional(present_calls, "total_tokens")["known_sum"],
             "total_tokens_unknown_call_count": _sum_optional(present_calls, "total_tokens")["unknown_count"],
-            "token_usage_complete": _sum_optional(present_calls, "total_tokens")["unknown_count"] == 0,
+            "model_call_evidence_missing": not bool(present_calls),
+            "token_usage_complete": bool(present_calls) and _sum_optional(present_calls, "total_tokens")["unknown_count"] == 0,
             "total_tokens_source_counts": {
                 source: sum(item.get("total_tokens_source") == source for item in present_calls)
                 for source in ("provider", "derived_prompt_plus_completion", "missing")
@@ -417,9 +418,9 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         if not isinstance(model_calls, Mapping):
             case_token_values.append(None)
         elif int(model_calls.get("present_count") or 0) == 0:
-            case_token_values.append(
-                None if generation.get("first_answer_eligible") is True else 0
-            )
+            # A missing invocation artifact is unknown, not a measured
+            # zero-token request (including preflight-rejected cases).
+            case_token_values.append(None)
         else:
             value = model_calls.get("total_tokens")
             case_token_values.append(
