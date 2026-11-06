@@ -3,6 +3,10 @@
 The source artifact remains immutable; this program does not synthesize traces,
 change physics, label an unobservable fault as healthy, or export ML features.
 Unit tests use *synthetic fixtures*, never substitute them for archived evidence.
+
+用途：对 SHA-256 固定的 R83m 原始 Basilisk ZIP 执行只读结构、物理配对及数据资格核验。
+参数：archive 为原始 ZIP 路径；--report 可选输出审计 JSON 路径。
+输出：终端及可选 JSON 审计收据；失败返回非零状态，绝不导出训练集或改写原始证据。
 """
 from __future__ import annotations
 
