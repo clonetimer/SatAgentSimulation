@@ -82,6 +82,33 @@ def _sign_test_p_value(wins: int, losses: int) -> float:
     return min(1.0, 2.0 * tail / (2**trials))
 
 
+def _eligible_experience_pairs(cases: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Only count actual model A/B calls with a presented experience lesson.
+
+    If the experience arm never retrieved a matching lesson or was rejected
+    before invoking the model, its token delta is not evidence for or against
+    the effect of experience reuse.
+    """
+    eligible: list[dict[str, Any]] = []
+    for pair in cases:
+        baseline = pair.get("baseline")
+        experience = pair.get("experience")
+        if not isinstance(baseline, dict) or not isinstance(experience, dict):
+            continue
+        if experience.get("experience_presented") is not True:
+            continue
+
+        def observed_model_calls(arm: dict[str, Any]) -> bool:
+            attribution = arm.get("attribution")
+            generation = attribution.get("generation") if isinstance(attribution, dict) else None
+            calls = generation.get("model_calls") if isinstance(generation, dict) else None
+            return isinstance(calls, dict) and int(calls.get("present_count") or 0) > 0
+
+        if observed_model_calls(baseline) and observed_model_calls(experience):
+            eligible.append(pair)
+    return eligible
+
+
 def _paired_cost_statistics(cases: Sequence[dict[str, Any]]) -> dict[str, Any]:
     """Summarize only complete, attributable token pairs.
 
@@ -387,8 +414,10 @@ def run_experience_longitudinal_eval(
         }
         cases.append(pair)
 
-    cost_stats = _paired_cost_statistics(cases)
-    token_usage_complete = cost_stats["token_usage_complete"]
+    all_pair_cost_stats = _paired_cost_statistics(cases)
+    effective_pairs = _eligible_experience_pairs(cases)
+    cost_stats = _paired_cost_statistics(effective_pairs)
+    token_usage_complete = all_pair_cost_stats["token_usage_complete"]
     wins = cost_stats["token_wins"]
     losses = cost_stats["token_losses"]
     ties = cost_stats["token_ties"]
@@ -415,6 +444,7 @@ def run_experience_longitudinal_eval(
         "experience_presented_in_all_b_cases": all(
             item["experience"]["experience_presented"] for item in cases
         ),
+        "effective_experience_pair_coverage": len(effective_pairs) == len(cases),
         "paired_token_wins_at_least_5": wins >= 5,
         "paired_sign_test_p_le_0_05": sign_p <= 0.05,
         "median_total_tokens_saved_positive": cost_stats["median_total_tokens_saved_positive"],
@@ -444,6 +474,9 @@ def run_experience_longitudinal_eval(
         "token_ties": ties,
         "token_sign_test_p_value": sign_p,
         "token_usage_complete": token_usage_complete,
+        "all_cost_complete_pair_count": all_pair_cost_stats["token_pair_count"],
+        "effective_experience_pair_count": len(effective_pairs),
+        "unexposed_or_no_model_pair_count": len(cases) - len(effective_pairs),
         "token_pair_count": cost_stats["token_pair_count"],
         "token_unknown_pair_count": cost_stats["token_unknown_pair_count"],
         "median_total_tokens_saved": cost_stats["median_total_tokens_saved"],
