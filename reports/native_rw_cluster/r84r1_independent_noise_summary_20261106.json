@@ -1,0 +1,79 @@
+{
+  "schema_version": "sat-sim.r84r1.independent-noise-observability-summary.v1",
+  "status": "PASS_NATIVE_PHYSICS_WEAK_SINGLE_FEATURE_SEPARATION",
+  "workflow_run_id": 42210589499,
+  "workflow_run_url": "https://github.com/clonetimer/SatAgentSimulation/actions/runs/42210589499",
+  "artifact_id": 13498019393,
+  "artifact_sha256": "4bc1f9d0f788dce5e8d33aace1fe8860d739158793bcf6fae28352c785742a8e",
+  "artifact_size_bytes": 4245308,
+  "artifact_expires_at": "2027-02-04T11:29:10Z",
+  "unique_native_runs": 3159,
+  "unique_rng_seeds": 3159,
+  "native_executions_including_replay": 3160,
+  "physical_context_count": 27,
+  "physical_comparison_count": 3160,
+  "max_abs_physics_delta": 0,
+  "primary_noise_sigma_rad_s": 0.0001,
+  "primary_healthy_false_alarm_controls": {
+    "count": 540,
+    "false_alarms": 93,
+    "rate": 0.17222222222222222
+  },
+  "primary_loss50": {
+    "count": 540,
+    "threshold_exceedances": 99,
+    "rate": 0.18333333333333332,
+    "cliffs_delta_mean": 0.018518518518518517,
+    "cliffs_delta_median": 0.015,
+    "cliffs_delta_min": -0.33,
+    "cliffs_delta_max": 0.485,
+    "wasserstein_1_mean_rad_s": 0.000017583022297374763
+  },
+  "primary_loss75": {
+    "count": 540,
+    "threshold_exceedances": 84,
+    "rate": 0.15555555555555556,
+    "cliffs_delta_mean": -0.09555555555555556,
+    "cliffs_delta_median": -0.115,
+    "cliffs_delta_min": -0.62,
+    "cliffs_delta_max": 0.4,
+    "wasserstein_1_mean_rad_s": 0.00002320119467657392
+  },
+  "noise_sensitivity": {
+    "0.00005": {
+      "loss50": {
+        "cliffs_delta_mean": -0.0823045267489712,
+        "cliffs_delta_median": -0.05555555555555555,
+        "wasserstein_1_mean_rad_s": 0.00001423945153076785
+      },
+      "loss75": {
+        "cliffs_delta_mean": -0.18106995884773663,
+        "cliffs_delta_median": -0.1111111111111111,
+        "wasserstein_1_mean_rad_s": 0.000016360476456628016
+      }
+    },
+    "0.0002": {
+      "loss50": {
+        "cliffs_delta_mean": 0.05761316872427983,
+        "cliffs_delta_median": 0.05555555555555555,
+        "wasserstein_1_mean_rad_s": 0.00004652058935218584
+      },
+      "loss75": {
+        "cliffs_delta_mean": -0.010288065843621401,
+        "cliffs_delta_median": -0.05555555555555555,
+        "wasserstein_1_mean_rad_s": 0.000053872039044218
+      }
+    }
+  },
+  "primary_context_count": 27,
+  "sensitivity_context_count": 54,
+  "observer_only_physics_invariance": true,
+  "unique_seed_and_cohort_separation": true,
+  "all_negative_cases_retained": true,
+  "diagnostic_model_trained": false,
+  "formal_training_or_test_eligible": false,
+  "formal_false_alarm_qualification": false,
+  "flight_or_hardware_safety_qualified": false,
+  "stable_release_eligible": false,
+  "conclusion": "The predeclared single delta-RMS gyro statistic has little stable separation under independent noise: false-alarm control rate 17.22%, loss50 threshold exceedance 18.33%, loss75 15.56%. This does not rule out richer raw-IMU feature sets."
+}
