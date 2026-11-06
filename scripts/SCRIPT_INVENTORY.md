@@ -27,6 +27,7 @@
 | `audit_a4r_dc2_run_bundles.py` | A4R-DC2 evidence audit | active | Audits Composite Digital Twin Run Bundle adapter, legacy flags, manifests, and SHA-256 evidence |
 | `audit_campaign_dataset.py` | Campaign 数据审计 | active | 校验数据集完整性、失败可见性和跨运行稳定输出 |
 | `audit_r83m_native_archive.py` | R83m 原生物理归档独立核验 | active | 用途：只读检验固定 SHA 原始 ZIP、54×31 样本、27 组配对及 C++ 轮力矩读回；参数：archive、--report；输出：机器可读审计收据，原始归档不可变，不生成正式训练集 |
+| `run_r84_native_imu_observability.py` | R84 原生 IMU/RW 研究执行 | active | 用途：运行 8 个唯一 Basilisk 原生工况及 1 次同种子回放；参数：--r83m-archive、--output-dir；输出：独立 IMU 观测、物理 QA、案例清单和哈希收据，不训练模型 |
 | `audit_interactive_baseline.py` | 交互扩展兼容基线 | active | 冻结测试计数、Doctor、release-check、OpenAPI 与脚本清单哈希 |
 | `bootstrap_local.sh` | 环境初始化 | active | 保留并统一文件头与入口 |
 | `bootstrap_windows.ps1` | 环境初始化 | active | 保留并统一文件头与入口 |
