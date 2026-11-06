@@ -3223,6 +3223,8 @@ def create_app(
                     all_terminal = False
 
             current = goal_run_store.get(goal_id)
+            if current and all_terminal and current.status in {"READY", "NEEDS_REVISION"}:
+                current = goal_run_store.transition(goal_id, "RUNNING")
             if current and current.status == "RUNNING" and all_terminal:
                 goal_run_store.transition(goal_id, "ANALYZING")
             return {"ok": True, **goal_snapshot_payload(goal_id)}
