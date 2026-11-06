@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 import sqlite3
+from uuid import uuid4
 from typing import Any, Literal, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -211,6 +212,31 @@ class ExperienceLessonService:
                         tenant_id,project_id,state,facet_kind,facet_value,
                         created_at DESC,lesson_id
                     );
+                CREATE TABLE IF NOT EXISTS lesson_retrieval_events (
+                    event_id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    project_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    snapshot_id TEXT,
+                    capability_id TEXT NOT NULL,
+                    mode TEXT,
+                    effect TEXT,
+                    task_spec_version TEXT NOT NULL,
+                    retrieval_status TEXT NOT NULL,
+                    candidate_count INTEGER NOT NULL,
+                    snapshot_eligible_count INTEGER NOT NULL,
+                    version_eligible_count INTEGER NOT NULL,
+                    returned_count INTEGER NOT NULL,
+                    returned_lesson_ids_json TEXT NOT NULL,
+                    caller TEXT NOT NULL,
+                    request_fingerprint TEXT,
+                    context_ref TEXT,
+                    trace_sha256 TEXT NOT NULL UNIQUE
+                );
+                CREATE INDEX IF NOT EXISTS idx_lesson_retrieval_events_scope_time
+                    ON lesson_retrieval_events(tenant_id,project_id,created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_lesson_retrieval_events_snapshot
+                    ON lesson_retrieval_events(snapshot_id,created_at DESC);
                 CREATE TABLE IF NOT EXISTS lesson_evaluations (
                     evaluation_id TEXT PRIMARY KEY,
                     lesson_id TEXT NOT NULL REFERENCES experience_lessons(lesson_id),
@@ -695,6 +721,190 @@ class ExperienceLessonService:
             db.execute("COMMIT")
         return self.get(lesson_id, scope=scope)
 
+    def retrieve_approved_with_trace(
+        self,
+        *,
+        scope: ExperienceScope,
+        capability_id: str,
+        mode: str | None = None,
+        effect: str | None = None,
+        task_spec_version: str = "1.0.0",
+        limit: int = 10,
+        audit_context: Mapping[str, Any] | None = None,
+    ) -> tuple[list[ExperienceLesson], dict[str, Any]]:
+        limit = int(limit)
+        if limit < 1 or limit > 1_000:
+            raise ValueError("lesson retrieval limit must be between 1 and 1000")
+        caller = str((audit_context or {}).get("caller") or "lesson-retrieval").strip()[:128]
+        if not caller:
+            caller = "lesson-retrieval"
+        request_fingerprint = str((audit_context or {}).get("request_fingerprint") or "").strip() or None
+        if request_fingerprint is not None and (
+            len(request_fingerprint) != 64
+            or any(ch not in "0123456789abcdef" for ch in request_fingerprint)
+        ):
+            raise ValueError("request_fingerprint must be a lowercase SHA-256 digest")
+        context_ref = str((audit_context or {}).get("context_ref") or "").strip()[:128] or None
+
+        retrieval_status = "matched"
+        snapshot_id: str | None = None
+        rows: list[sqlite3.Row] = []
+        allowed: set[str] = set()
+        with self.store._connect() as db:
+            config = db.execute(
+                """SELECT enabled,active_snapshot_id FROM lesson_reuse_config
+                   WHERE tenant_id=? AND project_id=?""",
+                (scope.tenant_id, scope.project_id),
+            ).fetchone()
+            if config is None or not bool(config["enabled"]):
+                retrieval_status = "reuse_disabled"
+            elif not config["active_snapshot_id"]:
+                retrieval_status = "snapshot_not_activated"
+            else:
+                snapshot_id = str(config["active_snapshot_id"])
+                snapshot = db.execute(
+                    """SELECT lesson_ids_json FROM lesson_snapshots
+                       WHERE snapshot_id=? AND tenant_id=? AND project_id=?""",
+                    (snapshot_id, scope.tenant_id, scope.project_id),
+                ).fetchone()
+                if snapshot is None:
+                    retrieval_status = "active_snapshot_missing"
+                else:
+                    allowed = set(json.loads(snapshot["lesson_ids_json"]))
+                    params: list[Any] = [
+                        scope.tenant_id,
+                        scope.project_id,
+                        capability_id,
+                    ]
+                    applicability_clauses: list[str] = []
+                    if mode is not None:
+                        applicability_clauses.append(
+                            """
+                            AND EXISTS (
+                                SELECT 1 FROM lesson_retrieval_index mode_idx
+                                WHERE mode_idx.lesson_id=cap_idx.lesson_id
+                                  AND mode_idx.tenant_id=cap_idx.tenant_id
+                                  AND mode_idx.project_id=cap_idx.project_id
+                                  AND mode_idx.state='approved'
+                                  AND mode_idx.facet_kind='mode'
+                                  AND mode_idx.facet_value=?
+                            )"""
+                        )
+                        params.append(mode)
+                    if effect is not None:
+                        applicability_clauses.append(
+                            """
+                            AND EXISTS (
+                                SELECT 1 FROM lesson_retrieval_index effect_idx
+                                WHERE effect_idx.lesson_id=cap_idx.lesson_id
+                                  AND effect_idx.tenant_id=cap_idx.tenant_id
+                                  AND effect_idx.project_id=cap_idx.project_id
+                                  AND effect_idx.state='approved'
+                                  AND effect_idx.facet_kind='effect'
+                                  AND effect_idx.facet_value=?
+                            )"""
+                        )
+                        params.append(effect)
+                    applicability_sql = "".join(applicability_clauses)
+                    rows = db.execute(
+                        f"""SELECT DISTINCT cap_idx.lesson_id,cap_idx.created_at
+                            FROM lesson_retrieval_index cap_idx
+                            WHERE cap_idx.tenant_id=? AND cap_idx.project_id=?
+                              AND cap_idx.state='approved'
+                              AND cap_idx.facet_kind='capability'
+                              AND cap_idx.facet_value=?
+                              {applicability_sql}
+                            ORDER BY cap_idx.created_at DESC,cap_idx.lesson_id""",
+                        params,
+                    ).fetchall()
+
+        snapshot_rows = [
+            row for row in rows if str(row["lesson_id"]) in allowed
+        ]
+        eligible: list[ExperienceLesson] = []
+        for row in snapshot_rows:
+            lesson = self.get(str(row["lesson_id"]), scope=scope)
+            if task_spec_version in lesson.compatible_task_spec_versions:
+                eligible.append(lesson)
+        selected = eligible[:limit]
+        trace_payload: dict[str, Any] = {
+            "event_id": uuid4().hex,
+            "scope": scope.model_dump(mode="json"),
+            "created_at": _now(),
+            "snapshot_id": snapshot_id,
+            "capability_id": capability_id,
+            "mode": mode,
+            "effect": effect,
+            "task_spec_version": task_spec_version,
+            "limit": limit,
+            "retrieval_status": retrieval_status,
+            "candidate_count": len(rows),
+            "snapshot_eligible_count": len(snapshot_rows),
+            "version_eligible_count": len(eligible),
+            "returned_count": len(selected),
+            "returned_lesson_ids": [lesson.lesson_id for lesson in selected],
+            "caller": caller,
+            "request_fingerprint": request_fingerprint,
+            "context_ref": context_ref,
+        }
+        trace_payload["trace_sha256"] = _sha256(_canonical(trace_payload))
+        if audit_context is not None:
+            with self.store._connect() as db:
+                db.execute("BEGIN IMMEDIATE")
+                db.execute(
+                    """INSERT INTO lesson_retrieval_events(
+                        event_id,tenant_id,project_id,created_at,snapshot_id,
+                        capability_id,mode,effect,task_spec_version,retrieval_status,
+                        candidate_count,snapshot_eligible_count,version_eligible_count,
+                        returned_count,returned_lesson_ids_json,caller,request_fingerprint,
+                        context_ref,trace_sha256
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        trace_payload["event_id"],
+                        scope.tenant_id,
+                        scope.project_id,
+                        trace_payload["created_at"],
+                        snapshot_id,
+                        capability_id,
+                        mode,
+                        effect,
+                        task_spec_version,
+                        retrieval_status,
+                        len(rows),
+                        len(snapshot_rows),
+                        len(eligible),
+                        len(selected),
+                        json.dumps(trace_payload["returned_lesson_ids"], ensure_ascii=False),
+                        caller,
+                        request_fingerprint,
+                        context_ref,
+                        trace_payload["trace_sha256"],
+                    ),
+                )
+                self.store._audit(
+                    db,
+                    experience_id=None,
+                    action="lesson_retrieve",
+                    actor=caller,
+                    details={
+                        "event_id": trace_payload["event_id"],
+                        "trace_sha256": trace_payload["trace_sha256"],
+                        "snapshot_id": snapshot_id,
+                        "capability_id": capability_id,
+                        "mode": mode,
+                        "effect": effect,
+                        "candidate_count": len(rows),
+                        "snapshot_eligible_count": len(snapshot_rows),
+                        "version_eligible_count": len(eligible),
+                        "returned_count": len(selected),
+                        "returned_lesson_ids": trace_payload["returned_lesson_ids"],
+                        "request_fingerprint": request_fingerprint,
+                        "context_ref": context_ref,
+                    },
+                )
+                db.execute("COMMIT")
+        return selected, trace_payload
+
     def retrieve_approved(
         self,
         *,
@@ -705,79 +915,54 @@ class ExperienceLessonService:
         task_spec_version: str = "1.0.0",
         limit: int = 10,
     ) -> list[ExperienceLesson]:
-        with self.store._connect() as db:
-            config = db.execute(
-                """SELECT enabled,active_snapshot_id FROM lesson_reuse_config
-                   WHERE tenant_id=? AND project_id=?""",
-                (scope.tenant_id, scope.project_id),
-            ).fetchone()
-            if config is None or not config["enabled"] or not config["active_snapshot_id"]:
-                return []
-            snapshot = db.execute(
-                "SELECT lesson_ids_json FROM lesson_snapshots WHERE snapshot_id=?",
-                (config["active_snapshot_id"],),
-            ).fetchone()
-            if snapshot is None:
-                return []
-            allowed = set(json.loads(snapshot["lesson_ids_json"]))
-            params: list[Any] = [
-                scope.tenant_id,
-                scope.project_id,
-                capability_id,
-            ]
-            applicability_clauses: list[str] = []
-            if mode is not None:
-                applicability_clauses.append(
-                    """
-                    AND EXISTS (
-                        SELECT 1 FROM lesson_retrieval_index mode_idx
-                        WHERE mode_idx.lesson_id=cap_idx.lesson_id
-                          AND mode_idx.tenant_id=cap_idx.tenant_id
-                          AND mode_idx.project_id=cap_idx.project_id
-                          AND mode_idx.state='approved'
-                          AND mode_idx.facet_kind='mode'
-                          AND mode_idx.facet_value=?
-                    )"""
-                )
-                params.append(mode)
-            if effect is not None:
-                applicability_clauses.append(
-                    """
-                    AND EXISTS (
-                        SELECT 1 FROM lesson_retrieval_index effect_idx
-                        WHERE effect_idx.lesson_id=cap_idx.lesson_id
-                          AND effect_idx.tenant_id=cap_idx.tenant_id
-                          AND effect_idx.project_id=cap_idx.project_id
-                          AND effect_idx.state='approved'
-                          AND effect_idx.facet_kind='effect'
-                          AND effect_idx.facet_value=?
-                    )"""
-                )
-                params.append(effect)
-            applicability_sql = "".join(applicability_clauses)
-            rows = db.execute(
-                f"""SELECT DISTINCT cap_idx.lesson_id,cap_idx.created_at
-                    FROM lesson_retrieval_index cap_idx
-                    WHERE cap_idx.tenant_id=? AND cap_idx.project_id=?
-                      AND cap_idx.state='approved'
-                      AND cap_idx.facet_kind='capability'
-                      AND cap_idx.facet_value=?
-                      {applicability_sql}
-                    ORDER BY cap_idx.created_at DESC,cap_idx.lesson_id""",
-                params,
-            ).fetchall()
-        lessons: list[ExperienceLesson] = []
-        for row in rows:
-            lesson_id = str(row["lesson_id"])
-            if lesson_id not in allowed:
-                continue
-            lesson = self.get(lesson_id, scope=scope)
-            if task_spec_version not in lesson.compatible_task_spec_versions:
-                continue
-            lessons.append(lesson)
-            if len(lessons) >= int(limit):
-                break
+        lessons, _ = self.retrieve_approved_with_trace(
+            scope=scope,
+            capability_id=capability_id,
+            mode=mode,
+            effect=effect,
+            task_spec_version=task_spec_version,
+            limit=limit,
+        )
         return lessons
+
+    def list_retrieval_events(
+        self,
+        *,
+        scope: ExperienceScope,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        limit = int(limit)
+        if limit < 1 or limit > 10_000:
+            raise ValueError("retrieval event limit must be between 1 and 10000")
+        with self.store._connect() as db:
+            rows = db.execute(
+                """SELECT * FROM lesson_retrieval_events
+                   WHERE tenant_id=? AND project_id=?
+                   ORDER BY created_at DESC,event_id DESC LIMIT ?""",
+                (scope.tenant_id, scope.project_id, limit),
+            ).fetchall()
+        return [
+            {
+                "event_id": str(row["event_id"]),
+                "created_at": str(row["created_at"]),
+                "snapshot_id": row["snapshot_id"],
+                "capability_id": str(row["capability_id"]),
+                "mode": row["mode"],
+                "effect": row["effect"],
+                "task_spec_version": str(row["task_spec_version"]),
+                "retrieval_status": str(row["retrieval_status"]),
+                "candidate_count": int(row["candidate_count"]),
+                "snapshot_eligible_count": int(row["snapshot_eligible_count"]),
+                "version_eligible_count": int(row["version_eligible_count"]),
+                "returned_count": int(row["returned_count"]),
+                "returned_lesson_ids": json.loads(row["returned_lesson_ids_json"]),
+                "caller": str(row["caller"]),
+                "request_fingerprint": row["request_fingerprint"],
+                "context_ref": row["context_ref"],
+                "trace_sha256": str(row["trace_sha256"]),
+            }
+            for row in rows
+        ]
 
     def create_snapshot(self, *, scope: ExperienceScope, actor: str) -> dict[str, Any]:
         with self.store._connect() as db:
