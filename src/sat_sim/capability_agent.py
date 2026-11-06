@@ -1280,18 +1280,23 @@ def _example_for_prompt(capability_id: str | None, *, omit_optional_parameters: 
         return ""
 
 
-def _experience_example_for_prompt(outline: Mapping[str, Any]) -> str | None:
-    """Adapt a canonical lesson outline to the generator's legacy draft contract."""
+def _experience_example_for_prompt(
+    outline: Mapping[str, Any],
+    *,
+    canonical_example: str,
+) -> str | None:
+    """Overlay verified lesson values onto the current Registry example.
 
+    The Registry example owns the TaskSpec shape, accepted backend, output
+    defaults (including qoi/plots), and required scaffolding. A historical
+    lesson may contribute only same-capability, already-validated task values;
+    it must never replace the current capability contract example.
+    """
     model = outline.get("model")
     simulation = outline.get("simulation")
     parameters = outline.get("parameters")
     events = outline.get("events")
-    outputs = outline.get("outputs")
-    if not all(
-        isinstance(item, Mapping)
-        for item in (model, simulation, parameters, events, outputs)
-    ):
+    if not all(isinstance(item, Mapping) for item in (model, simulation, parameters, events)):
         return None
     capability_id = model.get("capability_id")
     target = model.get("target")
@@ -1303,45 +1308,46 @@ def _experience_example_for_prompt(outline: Mapping[str, Any]) -> str | None:
         or not isinstance(values, Mapping)
     ):
         return None
-    # Event conversion needs effect-specific legacy fields. For those lessons,
-    # retain the registry-generated example until a lossless adapter is available.
+    # Event conversion needs effect-specific legacy fields. Keep the
+    # registry-generated example until a lossless adapter is available.
     if any(events.get(category) for category in ("faults", "degradations", "constraints")):
         return None
-    level = str(target.get("level") or "component")
-    task_type = level if level in {
-        "component",
-        "subsystem",
-        "orbit_environment",
-        "whole_spacecraft",
-    } else "component"
-    sim = {
-        key: simulation[key]
-        for key in ("duration_s", "sample_s", "backend")
-        if key in simulation
-    }
-    sim.setdefault("backend", "selective_unified_basilisk_assembly")
-    payload: dict[str, Any] = {
-        "schema_version": TASK_SPEC_VERSION,
-        "task_id": "approved_experience_reference",
-        "task_type": task_type,
-        "capability_id": capability_id,
-        "simulation": sim,
-        "target": {
-            key: target[key] for key in ("level", "name", "mode") if key in target
-        },
-        "parameters": dict(values),
-        "faults": [],
-        "modifiers": {"faults": [], "degradations": [], "constraints": []},
-        "outputs": {
-            "output_root": "runs",
-            "trace_format": "csv",
-            "include_summary": True,
-            "include_trace": True,
-            "include_labels": True,
-            "include_manifest": True,
-        },
-    }
-    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    try:
+        payload = yaml.safe_load(canonical_example)
+    except Exception:
+        return None
+    if not isinstance(payload, dict) or payload.get("capability_id") != capability_id:
+        return None
+
+    contract = get_capability(capability_id)
+    declared_parameters = contract.data.get("parameters")
+    if not isinstance(declared_parameters, Mapping):
+        declared_parameters = {}
+    merged_parameters = dict(payload.get("parameters") or {})
+    for name, value in values.items():
+        if name in declared_parameters:
+            merged_parameters[str(name)] = copy.deepcopy(value)
+    payload["parameters"] = merged_parameters
+
+    # Keep Registry-owned target identity and only copy a mode when it is
+    # explicitly present in the verified source outline.
+    current_target = payload.get("target")
+    if isinstance(current_target, dict) and target.get("mode") in {"nominal", "fault", "degradation"}:
+        current_target["mode"] = target["mode"]
+
+    # Duration/sample values are useful historical context, but the backend
+    # and any other required simulation fields remain Registry-owned.
+    current_simulation = payload.get("simulation")
+    if isinstance(current_simulation, dict):
+        for key in ("duration_s", "sample_s"):
+            value = simulation.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value)) and value > 0:
+                current_simulation[key] = value
+
+    payload["task_id"] = "approved_experience_reference"
+    # Deliberately do not copy outline.outputs. The registry example is the
+    # authoritative demonstration of qoi, plots, trace format and output flags.
+    return _safe_dump_yaml(payload)
 
 
 def build_capability_agent_prompt(
@@ -1395,7 +1401,10 @@ def build_capability_agent_prompt(
             else None
         )
         if isinstance(outlines, list) and outlines and isinstance(outlines[0], Mapping):
-            adapted = _experience_example_for_prompt(outlines[0])
+            adapted = _experience_example_for_prompt(
+                outlines[0],
+                canonical_example=canonical_example,
+            )
             if adapted is not None:
                 canonical_example = adapted
             break
