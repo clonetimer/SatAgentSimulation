@@ -11,7 +11,7 @@
     "original_source_head": "6e1d54bfef6655a29e0a6c98b135f478fa539a48"
   },
   "fixed_native_engine": {
-    "distribution": "bsk==2.11.0+satfix1",
+    "distribution": "bsk==2.11.0+satfix2",
     "source_wheel_sha256": "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a",
     "required_modules": [
       "spacecraft.Spacecraft",
@@ -27,7 +27,7 @@
     "sensor_source": "imuSensor.sensorOutMsg.AngVelPlatform",
     "imu_connection": "imu.scStateInMsg.subscribeTo(spacecraft.scStateOutMsg)",
     "controller_feedback_source": "simpleNav unchanged from R83m; sensor remains observer-only",
-    "compatibility_metadata_patch": "satfix1; original upstream wheel binary payload unchanged",
+    "compatibility_metadata_patch": "satfix2; current mainline metadata-only Pillow compatibility update; original native wheel payload unchanged",
     "original_wheel_sha256": "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a"
   },
   "frozen_pilot_design": {
