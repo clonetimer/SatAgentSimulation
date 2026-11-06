@@ -101,7 +101,7 @@ def run_pilot(original_archive: Path, output_dir: Path) -> dict[str, Any]:
         raise RuntimeError("R84_FROZEN_UNIQUE_ARM_COUNT_CHANGED")
     if design.get("total_native_executions") != 9:
         raise RuntimeError("R84_FROZEN_EXECUTION_COUNT_CHANGED")
-    if config["fixed_native_engine"]["distribution"] != "bsk==2.11.0+satfix1":
+    if config["fixed_native_engine"]["distribution"] != "bsk==2.11.0+satfix2":
         raise RuntimeError("R84_FROZEN_BASILISK_DISTRIBUTION_CHANGED")
 
     original_receipt, original_payload = _load_original_r83m(original_archive)
@@ -364,7 +364,7 @@ def run_pilot(original_archive: Path, output_dir: Path) -> dict[str, Any]:
         "sample_count_per_unique_arm": 31,
         "sample_interval_s": 0.2,
         "duration_s": 6.0,
-        "native_distribution": "bsk==2.11.0+satfix1",
+        "native_distribution": "bsk==2.11.0+satfix2",
         "original_upstream_wheel_sha256": config["fixed_native_engine"]["original_wheel_sha256"],
         "r83m_original_archive_sha256": original_receipt["archive_sha256"],
         "r83m_original_physics_baseline_verified": True,
