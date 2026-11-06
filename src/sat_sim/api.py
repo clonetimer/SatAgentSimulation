@@ -2919,7 +2919,8 @@ def create_app(
                     and int(reconciliation.get("assigned_count") or 0) == 0
                 )
                 budget_released = False
-                if no_run_side_effects and reservation.get("state") in {"RESERVED", "RELEASED"}:
+                safely_unbound = no_run_side_effects and reservation.get("state") in {"RESERVED", "RELEASED"}
+                if safely_unbound:
                     if reservation.get("state") == "RESERVED":
                         goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
                         budget_released = True
@@ -2934,7 +2935,7 @@ def create_app(
                 return {
                     "ok": False,
                     "budget_released": budget_released,
-                    "reconciliation_required": not no_run_side_effects,
+                    "reconciliation_required": not safely_unbound,
                     "launch_operation": result,
                     "reconciliation": reconciliation,
                     **goal_snapshot_payload(goal_id),
