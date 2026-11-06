@@ -363,7 +363,7 @@ def run_experience_longitudinal_eval(
         for arm in ("baseline", "experience")
     }
     report = {
-        "schema_version": "sat-sim.experience-longitudinal-ab.v2",
+        "schema_version": "sat-sim.experience-longitudinal-ab.v3",
         "status": "PASS" if all(checks.values()) else "FAIL",
         "checks": checks,
         "run_id": run_id,
