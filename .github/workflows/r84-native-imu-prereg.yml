@@ -120,6 +120,9 @@ jobs:
             -o "$RUNNER_TEMP/r84/r83m-original.zip"
           echo "R83M_ARCHIVE_SHA256 $(sha256sum "$RUNNER_TEMP/r84/r83m-original.zip" | cut -d' ' -f1)"
           echo "db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796  $RUNNER_TEMP/r84/r83m-original.zip" | sha256sum --check -
+          mkdir -p "$RUNNER_TEMP/r84/evidence/source"
+          cp "$RUNNER_TEMP/r84/r83m-original.zip" "$RUNNER_TEMP/r84/evidence/source/r83m-original.zip"
+          sha256sum "$RUNNER_TEMP/r84/evidence/source/r83m-original.zip" > "$RUNNER_TEMP/r84/evidence/source/r83m-original.sha256"
       - name: Execute eight unique native IMU/RW arms and one exact seeded replay
         env:
           PYTHONPATH: "src:."
@@ -158,4 +161,4 @@ jobs:
           name: r84-native-imu-rw-observability
           path: ${{ runner.temp }}/r84/evidence/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 90
