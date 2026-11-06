@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 from sat_sim.agent_eval_attribution import (
@@ -28,6 +29,44 @@ def _model_call(path, *, tokens=10, latency=25.0, verified=True, request_id=None
         }
     })
 
+
+
+
+def _sealed_bundle(root, *, implementation_class="official_basilisk_native", run_id="eval-run"):
+    payloads = {
+        "run_record.json": {"run_id": run_id, "status": "SUCCEEDED"},
+        "validation/validation_outcome.json": {"result": "PASS"},
+        "input/resolved_spec.json": {"implementation_class": implementation_class},
+    }
+    files = {}
+    for relative, payload in payloads.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        raw = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        path.write_bytes(raw)
+        files[relative] = {
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "size_bytes": len(raw),
+        }
+    manifest = {"run_id": run_id, "files": files}
+    manifest_raw = json.dumps(
+        manifest,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    (root / "bundle_manifest.json").write_bytes(manifest_raw)
+    seal = {
+        "run_id": run_id,
+        "bundle_manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+    }
+    _write(root / "SEALED.json", seal)
+    return root
 
 def test_attribution_separates_first_answer_from_repaired_success(tmp_path):
     _write(tmp_path / "first_attempt.json", {
@@ -85,10 +124,7 @@ def test_case_and_aggregate_keep_independent_denominators(tmp_path):
         _write(out / "unified_agent_report.json", report)
         _model_call(out / "model_call.json", tokens=10)
 
-    run1 = tmp_path / "run1"
-    _write(run1 / "run_record.json", {"status": "SUCCEEDED"})
-    _write(run1 / "validation" / "validation_outcome.json", {"result": "PASS"})
-    _write(run1 / "SEALED.json", {"ok": True})
+    run1 = _sealed_bundle(tmp_path / "run1")
 
     case1 = analyze_case(
         case_id="c1",
@@ -110,6 +146,11 @@ def test_case_and_aggregate_keep_independent_denominators(tmp_path):
         "rate": 0.5,
     }
     assert report["metrics"]["final_agent_task"]["rate"] == 1.0
+    assert report["metrics"]["run_bundle_execution"] == {
+        "eligible": 1,
+        "passed": 1,
+        "rate": 1.0,
+    }
     assert report["metrics"]["native_execution"] == {
         "eligible": 1,
         "passed": 1,
@@ -192,3 +233,47 @@ def test_model_call_cost_deduplicates_same_request_id(tmp_path):
     assert row["model_calls"]["present_count"] == 1
     assert row["model_calls"]["total_tokens"] == 19
     assert row["model_calls"]["latency_ms"] == 50.0
+
+
+def test_proxy_bundle_is_not_counted_as_native_execution(tmp_path):
+    bundle = _sealed_bundle(
+        tmp_path / "proxy",
+        implementation_class="engineering_proxy",
+        run_id="proxy-run",
+    )
+    execution = analyze_case(
+        case_id="proxy-case",
+        output_dir=tmp_path / "no-generation-artifacts",
+        bundle_root=bundle,
+    )["execution"]
+    assert execution["integrity_ok"] is True
+    assert execution["run_bundle_execution_pass"] is True
+    assert execution["native_eligible"] is False
+    assert execution["native_execution_pass"] is False
+
+    aggregate = aggregate_cases([{
+        "generation": {},
+        "execution": execution,
+        "evidence_accuracy_pass": None,
+    }])
+    assert aggregate["metrics"]["run_bundle_execution"]["rate"] == 1.0
+    assert aggregate["metrics"]["native_execution"]["eligible"] == 0
+    assert aggregate["metrics"]["native_execution"]["rate"] is None
+
+
+def test_tampered_run_bundle_is_not_counted_as_execution_pass(tmp_path):
+    bundle = _sealed_bundle(tmp_path / "tampered")
+    (bundle / "run_record.json").write_text(
+        json.dumps({"run_id": "eval-run", "status": "SUCCEEDED", "tampered": True}),
+        encoding="utf-8",
+    )
+    execution = analyze_case(
+        case_id="tampered-case",
+        output_dir=tmp_path / "no-generation-artifacts",
+        bundle_root=bundle,
+    )["execution"]
+    assert execution["present"] is True
+    assert execution["integrity_ok"] is False
+    assert execution["run_bundle_execution_pass"] is False
+    assert execution["native_eligible"] is True
+    assert execution["native_execution_pass"] is False
