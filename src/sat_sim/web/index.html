@@ -76,6 +76,7 @@
           <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
           <button class="nav-button" data-view="tasks" type="button"><span>▣</span><b>任务中心</b></button>
           <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
+          <button class="nav-button" data-view="goals" type="button"><span>◎</span><b>目标实验</b></button>
           <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
           <button class="nav-button" data-view="diagnostics" type="button"><span>◉</span><b>系统诊断</b></button>
           <button class="nav-button" data-view="logs" type="button"><span>≡</span><b>运行日志</b></button>
@@ -556,6 +557,137 @@
           <div id="experimentComparisonSummary" class="task-summary"></div>
           <div class="task-table-wrap"><table class="task-table"><thead id="experimentComparisonHead"></thead><tbody id="experimentComparisonBody"></tbody></table></div>
         </section>
+      </section>
+    </main>
+
+    <main id="goalRunView" class="task-center-view app-view hidden">
+      <section class="panel task-center-panel goal-run-panel">
+        <div class="task-center-header">
+          <div>
+            <div class="eyebrow">GoalRun · 预算化自主实验</div>
+            <h1>目标实验</h1>
+            <p>围绕一个工程目标，冻结基础任务、可调整参数和总预算；逐轮创建实验、运行、读取证据并记录决策。模型提出建议，是否执行由预算和验证器控制。</p>
+          </div>
+          <div class="task-center-actions">
+            <button id="newGoalRunBtn" class="button button-primary" type="button">新建目标</button>
+            <button id="refreshGoalRunsBtn" class="button button-secondary" type="button">刷新</button>
+          </div>
+        </div>
+        <div id="goalRunNotice" class="notice hidden" role="status" aria-live="polite"></div>
+        <div id="goalRunSummary" class="task-summary">正在读取目标实验…</div>
+
+        <section id="goalRunCreatePanel" class="goal-create-panel hidden">
+          <div class="section-heading compact">
+            <div><h2>定义实验目标</h2><p>先校验或选择一个已保存 TaskSpec；目标创建后基础任务和允许调整的参数将被冻结。</p></div>
+            <button id="closeGoalCreateBtn" class="button button-ghost" type="button">收起</button>
+          </div>
+          <div class="goal-form-grid">
+            <label class="goal-field-wide">目标描述
+              <textarea id="goalObjective" rows="3" maxlength="4000" placeholder="例如：在满足末端 SOC 和负载供电约束的前提下，比较不同电池容量，找出可行的最小容量。"></textarea>
+            </label>
+            <label>基础任务
+              <select id="goalBaseTaskSelect"></select>
+            </label>
+            <label>基础任务状态
+              <span id="goalBaseTaskStatus" class="goal-field-hint">请选择当前配置或任务中心中的已保存任务。</span>
+            </label>
+            <div class="goal-field-wide">
+              <div class="goal-subheading"><strong>允许调整的参数</strong><span>仅显示能力注册表已登记的标量参数；未勾选参数保持不变。</span></div>
+              <div id="goalAllowedParameterList" class="goal-parameter-list">
+                <div class="empty-state">先选择基础任务。</div>
+              </div>
+            </div>
+            <div class="goal-field-wide goal-criteria-box">
+              <div class="goal-subheading"><strong>成功条件（可选）</strong><span>用于实验验收和目标分析；不会覆盖物理/安全验证器。</span></div>
+              <div class="goal-criteria-grid">
+                <label>指标名称<input id="goalSuccessMetric" type="text" placeholder="例如 final_soc"></label>
+                <label>比较方式<select id="goalSuccessOperator"><option value=">=">大于等于</option><option value="<=">小于等于</option><option value="==">等于</option><option value="within">区间内</option></select></label>
+                <label>目标值<input id="goalSuccessValue" type="text" placeholder="例如 0.35 或 0.35,0.8"></label>
+              </div>
+            </div>
+            <div class="goal-field-wide">
+              <div class="goal-subheading"><strong>总预算</strong><span>预算覆盖整个目标的所有实验轮次，而非单次实验。</span></div>
+              <div class="goal-budget-inputs">
+                <label>实验数<input id="goalBudgetExperiments" type="number" min="0" max="100" step="1" value="4"></label>
+                <label>运行数<input id="goalBudgetRuns" type="number" min="0" max="128" step="1" value="12"></label>
+                <label>执行尝试数<input id="goalBudgetAttempts" type="number" min="0" max="256" step="1" value="24"></label>
+                <label>模型调用数<input id="goalBudgetModelCalls" type="number" min="0" max="100" step="1" value="8"></label>
+              </div>
+            </div>
+          </div>
+          <div class="goal-create-actions">
+            <span id="goalCreateStatus" class="goal-field-hint" role="status">创建后将立即激活；可随时取消，已消耗预算不会回滚。</span>
+            <button id="createGoalRunBtn" class="button button-primary" type="button">创建并激活目标</button>
+          </div>
+        </section>
+
+        <div class="goal-run-layout">
+          <aside class="goal-run-list-panel">
+            <div class="section-heading compact"><h2>目标列表</h2><span id="goalRunCount">0</span></div>
+            <div id="goalRunList" class="goal-run-list">
+              <div class="empty-state">暂无目标。点击“新建目标”开始。</div>
+            </div>
+          </aside>
+
+          <section id="goalRunDetail" class="goal-run-detail hidden" aria-live="polite">
+            <div class="goal-detail-header">
+              <div>
+                <div class="eyebrow">目标状态</div>
+                <h2 id="goalDetailTitle">目标详情</h2>
+                <p id="goalDetailObjective"></p>
+                <div id="goalDetailMeta" class="goal-detail-meta"></div>
+              </div>
+              <div class="goal-detail-actions">
+                <span id="goalDetailStatus" class="status-chip status-muted">—</span>
+                <button id="cancelGoalRunBtn" class="button button-danger" type="button">取消目标</button>
+              </div>
+            </div>
+            <section class="goal-budget-panel">
+              <div class="section-heading compact"><h3>总预算使用</h3><span id="goalBudgetStatus"></span></div>
+              <div id="goalBudgetUsage" class="goal-budget-usage"></div>
+            </section>
+            <section class="goal-detail-section">
+              <div class="section-heading compact"><h3>创建下一轮实验</h3><span>只能修改目标允许的参数</span></div>
+              <div class="goal-experiment-form">
+                <label>实验名称<input id="goalExperimentName" type="text" placeholder="例如：电池容量候选比较"></label>
+                <label>实验用途<input id="goalExperimentPurpose" type="text" placeholder="说明本轮实验要验证什么"></label>
+                <label>参数<select id="goalSweepPath"></select></label>
+                <label>候选值<input id="goalSweepValues" type="text" placeholder="例如 120, 160, 200"></label>
+                <label>最大执行尝试<input id="goalLaunchMaxAttempts" type="number" min="1" max="2" step="1" value="1"></label>
+              </div>
+              <div class="goal-experiment-actions">
+                <button id="previewGoalExperimentBtn" class="button button-secondary" type="button">预览候选</button>
+                <button id="createGoalExperimentBtn" class="button button-primary" type="button">创建本轮实验</button>
+              </div>
+              <pre id="goalExperimentPreview" class="goal-json-preview hidden"></pre>
+            </section>
+            <section class="goal-detail-section">
+              <div class="section-heading compact"><h3>实验轮次</h3><button id="refreshGoalDetailBtn" class="button button-ghost" type="button">刷新详情</button></div>
+              <div id="goalRunExperiments" class="goal-linked-experiments">
+                <div class="empty-state">尚未创建实验。</div>
+              </div>
+            </section>
+            <section class="goal-detail-section">
+              <div class="section-heading compact"><h3>证据分析与下一步建议</h3><span>模型建议不会自动执行</span></div>
+              <div class="goal-interpret-form">
+                <label>分析问题<textarea id="goalInterpretQuestion" rows="2">结合本目标的成功条件和已完成实验，比较结果、指出尚未验证的假设，并提出下一轮实验建议。</textarea></label>
+                <div class="goal-interpret-controls">
+                  <label>分析方式<select id="goalInterpretMode"><option value="deterministic">确定性证据分析</option><option value="model">大模型辅助解释</option></select></label>
+                  <label id="goalInterpretProviderWrap" class="hidden">模型服务<select id="goalInterpretProvider"></select></label>
+                  <label>关注指标<input id="goalInterpretMetrics" type="text" placeholder="逗号分隔，例如 final_soc,load_shed_event_count"></label>
+                </div>
+                <button id="interpretGoalRunBtn" class="button button-secondary" type="button">分析当前证据</button>
+                <pre id="goalInterpretResult" class="goal-json-preview hidden"></pre>
+              </div>
+            </section>
+            <section class="goal-detail-section">
+              <div class="section-heading compact"><h3>决策记录</h3><span>不可变顺序记录</span></div>
+              <ol id="goalDecisionLedger" class="goal-decision-ledger">
+                <li class="empty-state">暂无决策记录。</li>
+              </ol>
+            </section>
+          </section>
+        </div>
       </section>
     </main>
 
