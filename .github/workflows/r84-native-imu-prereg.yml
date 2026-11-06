@@ -1,0 +1,27 @@
+name: R84 native IMU preregistration contract
+
+on:
+  pull_request:
+    paths:
+      - "configs/research/r84_native_imu_observability_pilot.json"
+      - "tests/test_r84_native_imu_prereg_contract.py"
+      - "docs/R84_NATIVE_IMU_RW_OBSERVABILITY_PREREG_20261106.md"
+      - ".github/workflows/r84-native-imu-prereg.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prereg-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install contract test dependency
+        run: python -m pip install "pytest==9.0.3"
+      - name: Check fixed R84 experiment design (not a native simulation run)
+        run: python -m pytest -q tests/test_r84_native_imu_prereg_contract.py
