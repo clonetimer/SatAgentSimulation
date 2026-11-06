@@ -29,12 +29,45 @@ DEFAULT_HELD_OUT_REQUESTS = (
 
 
 def _model_metrics(output_dir: Path) -> dict[str, Any]:
-    payload = json.loads((output_dir / "model_call.json").read_text(encoding="utf-8"))
-    evidence = payload["invocation_evidence"]
+    """Return missing/invalid model evidence as unknown, never zero cost.
+
+    A deterministic pre-model rejection is a valid failed test outcome and
+    must not crash the entire paired benchmark.
+    """
+    path = output_dir / "model_call.json"
+    payload: Any = None
+    error_code: str | None = None
+    if not path.is_file():
+        error_code = "MODEL_CALL_EVIDENCE_MISSING"
+    else:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            error_code = "MODEL_CALL_EVIDENCE_INVALID"
+    evidence = (
+        payload.get("invocation_evidence")
+        if isinstance(payload, dict)
+        else None
+    )
+    if not isinstance(evidence, dict):
+        evidence = {}
+        if error_code is None:
+            error_code = "MODEL_CALL_EVIDENCE_INVALID"
     usage = normalize_token_usage(evidence.get("usage"))
+    latency = evidence.get("latency_ms")
+    latency_ms = (
+        float(latency)
+        if isinstance(latency, (int, float))
+        and not isinstance(latency, bool)
+        and math.isfinite(float(latency))
+        and float(latency) >= 0
+        else None
+    )
     return {
-        "verified": evidence.get("verified") is True,
-        "latency_ms": float(evidence.get("latency_ms") or 0.0),
+        "model_call_present": path.is_file(),
+        "model_call_evidence_error": error_code,
+        "verified": error_code is None and evidence.get("verified") is True,
+        "latency_ms": latency_ms,
         **usage,
         "request_id": evidence.get("request_id"),
     }
@@ -356,7 +389,9 @@ def run_experience_longitudinal_eval(
         ),
         "paired_token_wins_at_least_5": wins >= 5,
         "paired_sign_test_p_le_0_05": sign_p <= 0.05,
-        "median_total_tokens_saved_positive": statistics.median(token_deltas) > 0,
+        "median_total_tokens_saved_positive": (
+            bool(token_deltas) and statistics.median(token_deltas) > 0
+        ),
     }
     attribution_report = {
         arm: aggregate_cases([item[arm]["attribution"] for item in cases])
