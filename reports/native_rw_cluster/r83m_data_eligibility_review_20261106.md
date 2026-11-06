@@ -10,16 +10,15 @@
 
 - [原生实验 Actions #40160788578](https://github.com/clonetimer/SatAgentSimulation/actions/runs/40160788578)
 - [原始归档 artifact #12586915899](https://github.com/clonetimer/SatAgentSimulation/actions/runs/40160788578/artifacts/12586915899)
-- 原生实验源码 head：`6e1d54bfef6655a29e0a6c98b135f478fa539a48`
 - 实验执行引擎：`GENUINE_BASILISK_REACTIONWHEELSTATEEFFECTOR_AND_FSW`
 
 本轮实际下载归档并重新计算 SHA-256，与 PR 归档记录一致：
 
 | 文件 | 大小 | SHA-256 |
 |---|---:|---|
-| 原始 ZIP | 2,021,? bytes | `db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796` |
+| 原始 ZIP | — | `db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796` |
 | `r83m_genuine_native_54_original.json` | 2,020,615 bytes | `635fd4e4cd36da39a15ba1289003ba84aaf4551b02de70c3d063ada878209502` |
-| `compat_payload_review.json` | 847 bytes | `3f279f92c4e424ce0625083a190dda1b9ab183727fb789eb976abded67b9cdb9` |
+| `compat_payload_review.json` | 847 bytes | 本轮已读取并核验内容，未单列文件哈希 |
 
 兼容性审查记录为 Basilisk 2.11.0 的 metadata-only `satfix1` 发行兼容修正，原生载荷 880 项、字节数保持不变。它不代表物理内核被替换为 Python 代理。
 
