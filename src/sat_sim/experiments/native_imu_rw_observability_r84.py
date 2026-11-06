@@ -240,7 +240,8 @@ def run_native_case(
     if abs(after - requested_cap) > 1e-12 or abs(effector_after - requested_cap) > 1e-12:
         raise RuntimeError("R84_NATIVE_RW_CPP_CAPACITY_READBACK_FAILED")
     receipts.append({
-        "event": "NATIVE_CPP_RW_TORQUE_AUTHORITY_CHANGE",
+        "event": "NATIVE_CPP_RW_CAPACITY_VERIFICATION",
+        "capacity_changed": degraded,
         "scheduler_pause_s": FAULT_PAUSE_S,
         "target_rw_index_QA_ONLY": WHEEL,
         "nominal_cap_before_nm": before,
