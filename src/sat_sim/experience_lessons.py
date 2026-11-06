@@ -231,7 +231,8 @@ class ExperienceLessonService:
                     caller TEXT NOT NULL,
                     request_fingerprint TEXT,
                     context_ref TEXT,
-                    trace_sha256 TEXT NOT NULL UNIQUE
+                    trace_sha256 TEXT NOT NULL UNIQUE,
+                    trace_json TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_lesson_retrieval_events_scope_time
                     ON lesson_retrieval_events(tenant_id,project_id,created_at DESC);
@@ -277,6 +278,15 @@ class ExperienceLessonService:
                 );
                 """
             )
+            retrieval_columns = {
+                str(row["name"])
+                for row in db.execute("PRAGMA table_info(lesson_retrieval_events)").fetchall()
+            }
+            if "trace_json" not in retrieval_columns:
+                db.execute(
+                    """ALTER TABLE lesson_retrieval_events
+                       ADD COLUMN trace_json TEXT NOT NULL DEFAULT '{}'"""
+                )
             evaluation_columns = {
                 str(row["name"])
                 for row in db.execute("PRAGMA table_info(lesson_evaluations)").fetchall()
@@ -890,8 +900,8 @@ class ExperienceLessonService:
                         capability_id,mode,effect,task_spec_version,retrieval_status,
                         candidate_count,snapshot_eligible_count,version_eligible_count,
                         returned_count,returned_lesson_ids_json,caller,request_fingerprint,
-                        context_ref,trace_sha256
-                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        context_ref,trace_sha256,trace_json
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         trace_payload["event_id"],
                         scope.tenant_id,
@@ -912,6 +922,7 @@ class ExperienceLessonService:
                         request_fingerprint,
                         context_ref,
                         trace_payload["trace_sha256"],
+                        _canonical(trace_payload).decode("utf-8"),
                     ),
                 )
                 self.store._audit(
@@ -993,9 +1004,35 @@ class ExperienceLessonService:
                 "request_fingerprint": row["request_fingerprint"],
                 "context_ref": row["context_ref"],
                 "trace_sha256": str(row["trace_sha256"]),
+                "trace": self._decode_retrieval_trace(row),
+                "integrity_ok": self._verify_retrieval_trace(row),
             }
             for row in rows
         ]
+
+    @staticmethod
+    def _decode_retrieval_trace(row: sqlite3.Row) -> dict[str, Any] | None:
+        try:
+            payload = json.loads(str(row["trace_json"]))
+            return payload if isinstance(payload, dict) else None
+        except Exception:
+            return None
+
+    @staticmethod
+    def _verify_retrieval_trace(row: sqlite3.Row) -> bool:
+        try:
+            payload = json.loads(str(row["trace_json"]))
+            if not isinstance(payload, dict):
+                return False
+            embedded_digest = str(payload.pop("trace_sha256", ""))
+            stored_digest = str(row["trace_sha256"])
+            return (
+                embedded_digest == stored_digest
+                and len(stored_digest) == 64
+                and _sha256(_canonical(payload)) == stored_digest
+            )
+        except Exception:
+            return False
 
     def create_snapshot(self, *, scope: ExperienceScope, actor: str) -> dict[str, Any]:
         with self.store._connect() as db:
