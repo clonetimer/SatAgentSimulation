@@ -36,6 +36,7 @@ def test_fault_is_a_real_cpp_capacity_change_at_paused_scheduler_boundary():
     assert "target.u_max = requested_cap" in source
     assert "rw.ReactionWheelData[WHEEL].u_max" in source
     assert "rw.rwOutMsgs[WHEEL].recorder(sample)" in source
+    assert '"event": "NATIVE_CPP_RW_CAPACITY_VERIFICATION"' in source
     assert r84.FAULT_PAUSE_S == 2.4
     assert r84.FIRST_POST_FAULT_SAMPLE_S == 2.6
     assert r84.NOMINAL_CAP_NM == 0.02
