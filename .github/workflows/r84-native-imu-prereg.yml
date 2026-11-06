@@ -158,7 +158,6 @@ jobs:
           print("R84_NATIVE_IMU_EXECUTION_PASS", manifest["checks"])
           PY
           (cd "$RUNNER_TEMP/r84/evidence/source" && sha256sum --check r83m-original.sha256)
-          PY
       - name: Upload R84 native observations, separate QA and failure receipts
         if: always()
         uses: actions/upload-artifact@v7
