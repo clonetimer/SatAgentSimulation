@@ -88,8 +88,10 @@
   ],
   "next_phase_separated": {
     "pr": 97,
-    "status": "DRAFT_NOT_PART_OF_P0_P3_CLOSURE",
-    "subject": "GoalRun workbench UI"
+    "status": "MERGED_AFTER_P0_P3_CLOSURE",
+    "merge_sha": "7bbde7efa78fdf896d7cd09ae77ddf9d049ae3d0",
+    "subject": "GoalRun workbench UI",
+    "scope_note": "Follow-on feature; not included in the P0-P3 closure verdict."
   },
   "workflow_skips_policy": "not_counted_as_pass",
   "completed_coverage_policy": "selected_PR_head_CI_only",
