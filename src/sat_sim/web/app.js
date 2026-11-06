@@ -8568,7 +8568,6 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       state.activeGoalId = payload.goal.goal_id;
       el('goalRunCreatePanel').classList.add('hidden');
       await loadGoals();
-      await openGoalDetail(state.activeGoalId);
       goalRunNotice((payload.replayed ? '已恢复原目标：' : '目标已创建并激活：') + payload.goal.goal_id, 'success');
     } catch (error) {
       el('goalCreateStatus').textContent = '提交未确认。刷新目标列表核对，或在不修改输入的情况下重试同一操作。操作 ID：' + state.goalCreateOperationId;
@@ -8691,6 +8690,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       interpret.disabled = !link.launch_operation_id;
       interpret.addEventListener('click', () => {
         state.goalSelectedExperimentId = experimentId;
+        state.goalInterpretOperationId = null;
         el('goalInterpretResult').classList.add('hidden');
         el('goalInterpretQuestion').focus();
         goalRunNotice('已选择实验 ' + experimentId + ' 进行证据分析。');
@@ -8830,24 +8830,34 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     const experimentId = String(link.experiment_id || '');
     const variantCount = Number(link.experiment?.variant_count || 0);
     if (!experimentId || variantCount < 1) throw new Error('实验定义缺少有效变体数。');
-    const maxAttempts = Number(el('goalLaunchMaxAttempts').value || 1);
-    if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 2) throw new Error('最大执行尝试数只能为 1 或 2。');
-    const operationId = String(link.launch_operation_id || state.goalLaunchOperationIds[experimentId] || goalOperationId('goal:' + goal.goal_id + ':launch:' + experimentId));
-    state.goalLaunchOperationIds[experimentId] = operationId;
-    const response = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/experiments/' + encodeURIComponent(experimentId) + '/launch', {
-      method: 'POST',
-      body: apiBody({
+    let request;
+    if (link.launch_operation_id) {
+      const operation = await api('/agent/operations/' + encodeURIComponent(link.launch_operation_id));
+      request = operation.request || {};
+      if (!request.max_attempts || !request.max_run_count || !request.max_execution_attempts) {
+        throw new Error('已存在运行操作，但原始预算参数不可读取；请到运行中心核对，不要新建 launch 操作。');
+      }
+      request.operation_id = link.launch_operation_id;
+    } else {
+      const maxAttempts = Number(el('goalLaunchMaxAttempts').value || 1);
+      if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 2) throw new Error('最大执行尝试数只能为 1 或 2。');
+      const operationId = String(state.goalLaunchOperationIds[experimentId] || goalOperationId('goal:' + goal.goal_id + ':launch:' + experimentId));
+      state.goalLaunchOperationIds[experimentId] = operationId;
+      request = {
         operation_id: operationId,
         max_attempts: maxAttempts,
         hard_timeout: true,
         max_run_count: variantCount,
         max_execution_attempts: variantCount * maxAttempts,
-      }),
+      };
+    }
+    const response = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/experiments/' + encodeURIComponent(experimentId) + '/launch', {
+      method: 'POST',
+      body: apiBody(request),
     });
     delete state.goalLaunchOperationIds[experimentId];
     state.activeGoal = response;
     await loadGoals();
-    renderGoalDetail();
     goalRunNotice('实验 ' + experimentId + ' 的运行提交状态：' + (response.launch_operation?.operation_state || '已对账'), 'success');
   }
 
