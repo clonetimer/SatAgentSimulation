@@ -91,7 +91,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install "$RUNNER_TEMP"/r84/compat/bsk-2.11.0+satfix1-*.whl
+          python -m pip install "$RUNNER_TEMP"/r84/compat/bsk-2.11.0+satfix2-*.whl
           python -m pip install \
             "pytest==9.0.3" "pydantic==2.13.4" "jsonschema==4.26.0" \
             "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
