@@ -1090,6 +1090,8 @@ def test_retrieval_trace_records_disabled_and_applicable_outcomes(tmp_path):
         disabled_trace["event_id"],
     ]
     assert all(len(event["trace_sha256"]) == 64 for event in events[:2])
+    assert all(event["integrity_ok"] is True for event in events[:2])
+    assert events[0]["trace"]["returned_lesson_ids"] == [lesson.lesson_id]
 
     with store._connect() as db:
         actions = [
@@ -1099,6 +1101,15 @@ def test_retrieval_trace_records_disabled_and_applicable_outcomes(tmp_path):
             ).fetchall()
         ]
     assert actions.count("lesson_retrieve") == 2
+
+    with store._connect() as db:
+        db.execute(
+            "UPDATE lesson_retrieval_events SET trace_json = '{}' WHERE event_id = ?",
+            (trace["event_id"],),
+        )
+    tampered = service.list_retrieval_events(scope=SCOPE, limit=10)
+    tampered_event = next(item for item in tampered if item["event_id"] == trace["event_id"])
+    assert tampered_event["integrity_ok"] is False
 
 
 def test_retrieval_limit_is_validated_even_when_reuse_is_disabled(tmp_path):
