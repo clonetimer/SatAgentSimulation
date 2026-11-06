@@ -112,9 +112,9 @@ R84-R1 的事后探索还比较了三轴均值、RMS、标准差、差分 RMS �
 <badge color="success">原生执行与证据完整性 PASS</badge>
 
 - [PR #105](https://github.com/clonetimer/SatAgentSimulation/pull/105)
-- [GitHub Actions #42225945027](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42225945027)：prereg-contract 与 native-r84r2 均 PASS；项目脚本治理 PASS。
-- [证据 artifact #13504909292](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42225945027/artifacts/13504909292)
-- ZIP：50,226,064 bytes；SHA-256：\`36b74ce517faa5bb76669ea184c156659fabd817557b851fd0c903b2e1cbc793\`；保留至 2027-02-04。
+- [GitHub Actions #42227287650](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42227287650)：prereg-contract 与 native-r84r2 均 PASS；项目脚本治理 PASS。
+- [证据 artifact #13507175034](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42227287650/artifacts/13507175034)
+- ZIP：50,226,064 bytes；SHA-256：\`74385222791bd82737b661ad22468b835805d1114647117933c3d9fa0f2aa3e4\`；保留至 2027-02-04。
 - 官方 Basilisk 原始 Wheel SHA-256：\`d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a\`；metadata-only satfix2 构建验证 880 个原生载荷文件逐字节不变。
 - 原始 R83m、R84-R0、R84-R1 三份参考归档均已随证据包保存并通过 SHA 核验。
 
