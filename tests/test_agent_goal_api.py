@@ -766,6 +766,64 @@ def test_goal_sync_releases_failed_launch_when_no_run_side_effects(tmp_path, rel
     )
 
 
+def test_goal_launch_failed_without_side_effects_releases_budget_immediately(tmp_path):
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 1, "execution_attempts": 1, "model_calls": 0},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-launch-immediate:create",
+            "name": "immediate launch failure",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证明确失败的启动立即回收预算",
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+    operation_id = "goal-launch-immediate:launch"
+    request_payload = {
+        "schema_version": "agent-experiment-launch.v1",
+        "operation_kind": "launch_experiment",
+        "experiment_id": experiment_id,
+        "max_attempts": 1,
+        "hard_timeout": True,
+        "max_run_count": 1,
+        "max_execution_attempts": 1,
+        "reserved_run_capacity": 1,
+        "reserved_attempt_capacity": 1,
+    }
+    app.state.agent_operation_store.reserve_payload(
+        operation_id=operation_id,
+        operation_kind="launch_experiment",
+        request_payload=request_payload,
+    )
+    app.state.agent_operation_store.fail(
+        operation_id,
+        {"reason_code": "SYNTHETIC_LAUNCH_FAILURE", "message": "failed before queue side effects"},
+    )
+
+    response = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/launch",
+        json={
+            "operation_id": operation_id,
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 1,
+            "max_execution_attempts": 1,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["budget_released"] is True
+    assert payload["reconciliation_required"] is False
+    assert payload["budget"]["reserved_or_committed"]["runs"] == 0
+    assert payload["budget"]["remaining"]["runs"] == 1
+    assert payload["experiments"][0]["launch_operation_id"] is None
+
 def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, monkeypatch):
     import sat_sim.api as api_module
 
