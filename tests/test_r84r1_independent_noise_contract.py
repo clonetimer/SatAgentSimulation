@@ -155,5 +155,7 @@ def test_runner_keeps_sensor_observations_separate_from_qa_and_training():
     assert "r84r1_features.jsonl" in source
     assert "r84r1_observability_analysis.json" in source
     assert "audit_archive(path)" in source
+    assert "--r0-artifact" in source
+    assert "R84R1_R0_REFERENCE_ARTIFACT_SHA256_MISMATCH" in source
     assert "diagnostic_model_trained" in source
     assert "formal_training_or_test_eligible" in source
