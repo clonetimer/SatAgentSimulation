@@ -4236,6 +4236,18 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
                 detail={"reason_code": "LESSON_REVOKE_REJECTED", "message": str(exc)},
             ) from exc
 
+    @app.get("/experience-lessons/retrieval-events")
+    def list_experience_lesson_retrieval_events(
+        tenant_id: str = Query(min_length=1, max_length=128),
+        project_id: str = Query(min_length=1, max_length=128),
+        limit: int = Query(default=100, ge=1, le=10_000),
+    ) -> dict[str, Any]:
+        events = experience_lessons.list_retrieval_events(
+            scope=ExperienceScope(tenant_id=tenant_id, project_id=project_id),
+            limit=limit,
+        )
+        return {"ok": True, "count": len(events), "events": events}
+
     @app.get("/experience-lessons")
     def retrieve_experience_lessons(
         tenant_id: str = Query(min_length=1, max_length=128),
