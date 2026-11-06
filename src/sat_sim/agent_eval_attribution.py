@@ -17,7 +17,77 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-ATTRIBUTION_SCHEMA_VERSION = "sat-sim.agent-eval-attribution.v1"
+ATTRIBUTION_SCHEMA_VERSION = "sat-sim.agent-eval-attribution.v2"
+
+
+def normalize_token_usage(usage: Any) -> dict[str, Any]:
+    """Normalize provider token usage without converting missing values to zero.
+
+    Provider total_tokens is authoritative when valid. If it is absent but both
+    prompt/completion components are present, derive the total and label it as
+    such. Otherwise total cost remains unknown.
+    """
+    source = usage if isinstance(usage, Mapping) else {}
+
+    def parse_count(value: Any) -> int | None:
+        if isinstance(value, bool) or value is None:
+            return None
+        if isinstance(value, int):
+            return value if value >= 0 else None
+        if isinstance(value, float):
+            if value >= 0 and value.is_integer():
+                return int(value)
+            return None
+        if isinstance(value, str):
+            stripped = value.strip()
+            if stripped.isdigit():
+                return int(stripped)
+        return None
+
+    prompt = parse_count(source.get("prompt_tokens"))
+    completion = parse_count(source.get("completion_tokens"))
+    reported_total = parse_count(source.get("total_tokens"))
+    if reported_total is not None:
+        total = reported_total
+        total_source = "provider"
+    elif prompt is not None and completion is not None:
+        total = prompt + completion
+        total_source = "derived_prompt_plus_completion"
+    else:
+        total = None
+        total_source = "missing"
+
+    components_total = (
+        prompt + completion
+        if prompt is not None and completion is not None
+        else None
+    )
+    return {
+        "prompt_tokens": prompt,
+        "completion_tokens": completion,
+        "reported_total_tokens": reported_total,
+        "total_tokens": total,
+        "total_tokens_source": total_source,
+        "total_tokens_known": total is not None,
+        "component_tokens_complete": components_total is not None,
+        "reported_total_matches_components": (
+            reported_total == components_total
+            if reported_total is not None and components_total is not None
+            else None
+        ),
+    }
+
+
+def _sum_optional(items: Sequence[Mapping[str, Any]], field: str) -> dict[str, Any]:
+    values = [item.get(field) for item in items]
+    known = [int(value) for value in values if isinstance(value, int) and not isinstance(value, bool) and value >= 0]
+    unknown_count = len(values) - len(known)
+    return {
+        "total": sum(known) if unknown_count == 0 else None,
+        "known_sum": sum(known),
+        "known_count": len(known),
+        "unknown_count": unknown_count,
+    }
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
@@ -42,15 +112,11 @@ def _call_cost(path: Path) -> dict[str, Any]:
     evidence = payload.get("invocation_evidence")
     if not isinstance(evidence, Mapping):
         evidence = {}
-    usage = evidence.get("usage")
-    if not isinstance(usage, Mapping):
-        usage = {}
+    usage = normalize_token_usage(evidence.get("usage"))
     return {
         "present": path.is_file(),
         "verified": evidence.get("verified") is True,
-        "prompt_tokens": int(usage.get("prompt_tokens") or 0),
-        "completion_tokens": int(usage.get("completion_tokens") or 0),
-        "total_tokens": int(usage.get("total_tokens") or 0),
+        **usage,
         "latency_ms": float(evidence.get("latency_ms") or 0.0),
         "request_id": evidence.get("request_id"),
     }
@@ -189,9 +255,18 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
             "present_count": len(present_calls),
             "verified_count": len(verified_calls),
             "all_present_verified": bool(present_calls) and len(verified_calls) == len(present_calls),
-            "prompt_tokens": sum(int(item["prompt_tokens"]) for item in present_calls),
-            "completion_tokens": sum(int(item["completion_tokens"]) for item in present_calls),
-            "total_tokens": sum(int(item["total_tokens"]) for item in present_calls),
+            "prompt_tokens": _sum_optional(present_calls, "prompt_tokens")["total"],
+            "prompt_tokens_known_sum": _sum_optional(present_calls, "prompt_tokens")["known_sum"],
+            "completion_tokens": _sum_optional(present_calls, "completion_tokens")["total"],
+            "completion_tokens_known_sum": _sum_optional(present_calls, "completion_tokens")["known_sum"],
+            "total_tokens": _sum_optional(present_calls, "total_tokens")["total"] if present_calls else 0,
+            "total_tokens_known_sum": _sum_optional(present_calls, "total_tokens")["known_sum"],
+            "total_tokens_unknown_call_count": _sum_optional(present_calls, "total_tokens")["unknown_count"],
+            "token_usage_complete": _sum_optional(present_calls, "total_tokens")["unknown_count"] == 0,
+            "total_tokens_source_counts": {
+                source: sum(item.get("total_tokens_source") == source for item in present_calls)
+                for source in ("provider", "derived_prompt_plus_completion", "missing")
+            },
             "latency_ms": sum(float(item["latency_ms"]) for item in present_calls),
         },
         "first_attempt": dict(first) if first else None,
@@ -335,10 +410,21 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         item for item in experience_eligible
         if bool((((item.get("generation") or {}).get("experience_context") or {}).get("context_injected")))
     ]
-    total_tokens = sum(
-        int((((item.get("generation") or {}).get("model_calls") or {}).get("total_tokens") or 0))
-        for item in rows
-    )
+    case_token_values: list[int | None] = []
+    for item in rows:
+        model_calls = (item.get("generation") or {}).get("model_calls") or {}
+        if int(model_calls.get("present_count") or 0) == 0:
+            case_token_values.append(0)
+        else:
+            value = model_calls.get("total_tokens")
+            case_token_values.append(
+                int(value)
+                if isinstance(value, int) and not isinstance(value, bool) and value >= 0
+                else None
+            )
+    known_case_tokens = [value for value in case_token_values if value is not None]
+    unknown_token_case_count = len(case_token_values) - len(known_case_tokens)
+    total_tokens = sum(known_case_tokens) if unknown_token_case_count == 0 else None
     total_latency_ms = sum(
         float((((item.get("generation") or {}).get("model_calls") or {}).get("latency_ms") or 0.0))
         for item in rows
@@ -385,8 +471,11 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             },
             "resource_use": {
                 "model_total_tokens": total_tokens,
+                "model_total_tokens_known_sum": sum(known_case_tokens),
+                "model_total_tokens_unknown_case_count": unknown_token_case_count,
+                "model_token_usage_complete": unknown_token_case_count == 0,
                 "model_latency_ms": total_latency_ms,
-                "tokens_per_case": rate(total_tokens, len(rows)),
+                "tokens_per_case": rate(total_tokens, len(rows)) if total_tokens is not None else None,
                 "latency_ms_per_case": rate(total_latency_ms, len(rows)),
             },
         },
@@ -402,6 +491,7 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
 __all__ = [
     "ATTRIBUTION_SCHEMA_VERSION",
     "analyze_generation_artifacts",
+    "normalize_token_usage",
     "analyze_run_bundle",
     "analyze_case",
     "aggregate_cases",
