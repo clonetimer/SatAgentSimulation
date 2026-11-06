@@ -1,0 +1,239 @@
+{
+  "schema_version": "sat-sim.r84r1.independent-noise-observability-prereg.v1",
+  "status": "PREREGISTERED_NOT_EXECUTED",
+  "preregistered_at_utc": "2026-11-06",
+  "research_only": true,
+  "goal": "Quantify native IMU gyro observability of real Basilisk RW torque-authority loss under independent noise realizations, multiple wheel directions, initial attitudes, guidance excitation amplitudes and two fault severities, while retaining healthy-only false-alarm controls.",
+  "r0_reference": {
+    "repository": "clonetimer/SatAgentSimulation",
+    "workflow_run_id": 42205669199,
+    "workflow_artifact_id": 13497015497,
+    "workflow_artifact_sha256": "5d1439272f651519fec011d9728165f3afc46b1b3d14d305357ae271b26752af",
+    "original_r83m_archive_sha256": "db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796"
+  },
+  "fixed_native_engine": {
+    "distribution": "bsk==2.11.0+satfix2",
+    "original_upstream_wheel_sha256": "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a",
+    "metadata_only_compatibility_patch": "satfix2; current mainline metadata-only Pillow compatibility update; original Basilisk payload unchanged",
+    "required_modules": [
+      "spacecraft.Spacecraft",
+      "reactionWheelStateEffector.ReactionWheelStateEffector",
+      "inertial3D.inertial3D",
+      "attTrackingError.attTrackingError",
+      "mrpFeedback.mrpFeedback",
+      "rwMotorTorque.rwMotorTorque",
+      "simpleNav.SimpleNav",
+      "imuSensor.ImuSensor"
+    ],
+    "imu_message": "imu.sensorOutMsg.AngVelPlatform",
+    "imu_state_connection": "imu.scStateInMsg.subscribeTo(sc.scStateOutMsg)",
+    "controller_feedback": "simpleNav unchanged; official IMU is observer-only",
+    "gyro_noise": "official ImuSensor.PMatrixGyro with setAMatrixGyro(0) and unique per-run RNGSeed",
+    "proxy_fallback_allowed": false,
+    "posthoc_noise_allowed": false,
+    "dynamics_substitution_allowed": false
+  },
+  "frozen_physics_design": {
+    "wheel_indices": [
+      0,
+      1,
+      2
+    ],
+    "wheel_axes_body": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "initial_attitude_mrp_bn": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0.001,
+        -0.0005,
+        0.0007
+      ],
+      [
+        -0.0008,
+        0.0007,
+        -0.0004
+      ]
+    ],
+    "reference_modes_deg": {
+      "zero": 0,
+      "pulse05": 0.5,
+      "pulse09": 0.9
+    },
+    "reference_axis": "target wheel axis; same original native inertial3D reference update pattern",
+    "actuator_capacity_nm": {
+      "healthy": 0.02,
+      "loss50": 0.01,
+      "loss75": 0.005
+    },
+    "guidance_setpoint_s": 1.8,
+    "guidance_reset_s": 3.8,
+    "physical_capacity_change_paused_scheduler_s": 2.4,
+    "first_post_fault_native_sample_s": 2.6,
+    "sample_interval_s": 0.2,
+    "duration_s": 6,
+    "samples_per_execution": 31,
+    "noise_sigma_rad_s": {
+      "low": 0.00005,
+      "primary": 0.0001,
+      "high": 0.0002
+    },
+    "physical_context_count": 27
+  },
+  "frozen_replication_design": {
+    "primary_noise_sigma_rad_s": 0.0001,
+    "primary_repetitions_per_physical_context": {
+      "healthy_calibration": 20,
+      "healthy_false_alarm_control": 20,
+      "loss50_fault": 20,
+      "loss75_fault": 20
+    },
+    "sensitivity_noise_sigmas_rad_s": [
+      0.00005,
+      0.0002
+    ],
+    "sensitivity_repetitions_per_capacity_per_context": 6,
+    "loss50_noise_free_physics_reference_repetitions_per_context": 1,
+    "unique_primary_runs": 2160,
+    "unique_noise_sensitivity_runs": 972,
+    "unique_loss50_noise_free_reference_runs": 27,
+    "unique_native_runs": 3159,
+    "deterministic_replay_controls": 1,
+    "total_native_executions": 3160,
+    "statistical_unit": "one independently seeded complete 6-second Basilisk execution; 31 time samples within a run are not treated as independent replicates"
+  },
+  "seed_contract": {
+    "unique_seed_required_for_each_unique_run": true,
+    "common_random_numbers_between_healthy_and_fault_runs": false,
+    "seed_formula": "10000000 + cohort_code*1000000 + wheel_index*100000 + initial_index*10000 + reference_index*1000 + noise_index*100 + repetition_index",
+    "cohort_codes": {
+      "healthy_calibration": 1,
+      "healthy_false_alarm_control": 2,
+      "loss50_primary": 3,
+      "loss75_primary": 4,
+      "healthy_sensitivity": 5,
+      "loss50_sensitivity": 6,
+      "loss75_sensitivity": 7,
+      "loss50_noise_free_physics_reference": 8
+    },
+    "noise_index_codes": {
+      "noise_free": 0,
+      "low_0_00005": 1,
+      "primary_0_0001": 2,
+      "high_0_0002": 3
+    },
+    "seed_must_be_positive_signed_32_bit": true,
+    "exact_replay_uses_same_seed_and_is_not_counted_as_an_independent_run": true
+  },
+  "observation_contract": {
+    "sensor_observation_fields": [
+      "imu.raw_gyro_rad_s_x",
+      "imu.raw_gyro_rad_s_y",
+      "imu.raw_gyro_rad_s_z"
+    ],
+    "sensor_observation_file_contains_only_record_id_time_and_approved_raw_gyro_channels": true,
+    "forbidden_in_sensor_file": [
+      "fault labels",
+      "capacity mode",
+      "wheel index",
+      "fault onset",
+      "hub truth",
+      "native applied torque",
+      "QA_ONLY fields"
+    ],
+    "simulator_truth_subtraction_allowed_only_in_separate_physics_qa": false,
+    "analysis_features_are_not_training_inputs": true
+  },
+  "preregistered_analysis": {
+    "pre_event_window_s": [
+      0.4,
+      1.6
+    ],
+    "post_event_window_s": [
+      2.6,
+      3.6
+    ],
+    "window_endpoints_inclusive": true,
+    "pre_window_sample_count": 7,
+    "post_window_sample_count": 6,
+    "primary_per_run_feature": "delta_gyro_rms_3d_rad_s = post_window_vector_RMS - pre_window_vector_RMS, computed exclusively from official raw gyro measurements",
+    "healthy_calibration_statistic": "median of 20 healthy_calibration delta_gyro_rms_3d values within each wheel/initial/reference/noise context",
+    "anomaly_score": "absolute deviation of delta_gyro_rms_3d from the healthy_calibration median",
+    "healthy_only_threshold": "nearest-rank empirical 90th percentile of the 20 healthy_calibration anomaly scores",
+    "threshold_application": "apply unchanged only to the independent healthy_false_alarm_control, loss50_fault and loss75_fault cohorts at primary noise sigma",
+    "primary_operating_summaries": [
+      "healthy false-alarm count and rate on the independent healthy_false_alarm_control cohort",
+      "loss50 and loss75 exceedance count and rate at the frozen healthy-only threshold",
+      "per-run feature median, IQR, min and max",
+      "Cliff's delta and empirical one-dimensional Wasserstein-1 distance between independent healthy false-alarm and fault feature distributions"
+    ],
+    "sensitivity_analysis": "at low/high noise sigma, compare independent healthy/loss50/loss75 delta_gyro_rms_3d distributions using median, IQR, Cliff's delta and Wasserstein-1; do not transfer the primary-noise threshold",
+    "no_classifier_training": true,
+    "no_time_samples_as_independent_observations": true,
+    "no_posthoc_threshold_tuning": true,
+    "no_condition_exclusion": true
+  },
+  "physical_qa_contract": {
+    "verify_cpp_rw_capacity_readback_for_every_execution": true,
+    "verify_rw_out_message_applied_torque_respects_capacity": true,
+    "verify_all_native_recorder_clocks_and_31_samples": true,
+    "compare_healthy_and_loss75_physics_to_sha_pinned_r83m_original_archive": true,
+    "compare_loss50_physics_to_one_native_noise_free_reference_per_physical_context": true,
+    "observer_noise_must_not_change_physics": true,
+    "retain_all_zero_excitation_and_unobservable_cases": true,
+    "provisional_research_envelopes": {
+      "max_abs_allocator_request_nm": 0.02,
+      "max_abs_wheel_speed_rad_s": 900,
+      "max_abs_body_rate_rad_s": 0.005
+    },
+    "envelopes_are_flight_safety_limits": false
+  },
+  "prohibited_claims": [
+    "diagnostic model trained",
+    "classifier accuracy or deployment detection performance",
+    "statistically qualified false-alarm probability",
+    "flight or hardware safety qualification",
+    "hardware calibration or flight correlation",
+    "formal train/validation/test eligibility",
+    "Stable release eligibility"
+  ],
+  "success_checks": [
+    "all_unique_runs_have_unique_predeclared_rng_seeds",
+    "all_native_imu_recorders_align_with_all_native_physics_recorders",
+    "all_native_cpp_capacity_readbacks_match_predeclared_severity",
+    "all_actual_applied_rw_torques_respect_cpp_capacity",
+    "healthy_and_loss75_native_physics_match_original_r83m_archive",
+    "loss50_physics_matches_native_noise_free_reference",
+    "imu_noise_observer_does_not_change_native_physics",
+    "raw_sensor_file_has_no_truth_or_condition_labels",
+    "healthy_calibration_and_false_alarm_control_use_disjoint_seeds",
+    "fault_runs_use_seeds_disjoint_from_all_healthy_runs",
+    "exact_seed_replay_is_reproducible",
+    "all_negative_and_unobservable_conditions_are_retained"
+  ],
+  "prohibitions": [
+    "no_training",
+    "no_model_accuracy_claim",
+    "no_protected_ml_validation_test_final_access",
+    "no_hardware_or_flight_safety_claim",
+    "no_stable_merge"
+  ]
+}
