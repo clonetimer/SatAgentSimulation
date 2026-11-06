@@ -1186,3 +1186,18 @@ def test_tampered_lesson_snapshot_fails_closed_for_retrieval_and_rollback(tmp_pa
             scope=SCOPE,
             actor="release-manager",
         )
+
+
+def test_retrieval_trace_distinguishes_no_approved_match(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+    lessons, trace = service.retrieve_approved_with_trace(
+        scope=SCOPE,
+        capability_id="component.battery.v1",
+        mode="nominal",
+        audit_context={"caller": "pytest", "request_fingerprint": "d" * 64},
+    )
+    assert lessons == []
+    assert trace["retrieval_status"] == "no_approved_match"
+    assert trace["candidate_count"] == 0
