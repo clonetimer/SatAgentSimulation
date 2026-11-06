@@ -1,0 +1,60 @@
+name: R83m original native archive audit
+
+on:
+  pull_request:
+    paths:
+      - "scripts/audit_r83m_native_archive.py"
+      - "tests/test_r83m_native_archive_audit.py"
+      - "reports/native_rw_cluster/r83m_*"
+      - ".github/workflows/r83m-original-archive-audit.yml"
+  workflow_dispatch:
+    inputs:
+      verify_original_archive:
+        description: "Download and SHA-audit the original preserved GitHub Actions artifact (before its retention expiry)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install audit-only test dependency
+        run: python -m pip install "pytest==9.0.3"
+      - name: Run synthetic contract, anti-tampering and safety-gate tests
+        env:
+          PYTHONPATH: "."
+        run: python -m pytest -q tests/test_r83m_native_archive_audit.py
+      - name: Download original SHA-pinned archived Basilisk evidence (manual only)
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_original_archive == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/clonetimer/SatAgentSimulation/actions/artifacts/12586915899/zip" \
+            -o "$RUNNER_TEMP/r83m-original.zip"
+      - name: Recalculate all original physics pairs and emit integrity receipt
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_original_archive == true
+        shell: bash
+        run: |
+          python scripts/audit_r83m_native_archive.py \
+            "$RUNNER_TEMP/r83m-original.zip" \
+            --report "$RUNNER_TEMP/r83m-original-audit.json"
+      - name: Archive independent audit receipt (not raw evidence)
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_original_archive == true
+        uses: actions/upload-artifact@v7
+        with:
+          name: r83m-original-archive-audit
+          path: ${{ runner.temp }}/r83m-original-audit.json
+          retention-days: 30
