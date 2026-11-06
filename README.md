@@ -2,6 +2,8 @@
 
 新手从[START_HERE.md](START_HERE.md)开始。uv环境入口为 `python scripts/setup_uv.py`，已有完整缓存可加 `--offline`。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
+**Agent 自动化 P0～P3 阶段收尾（2026-11-06）**：输入—运行一致性、安全实验工具、GoalRun 协调、证据解释、经验适用性与可选路由校准已合入主干。专项选定 CI 通过；真实模型收益、完整原生覆盖及整体 Stable 资格不在本专项通过范围。详见 [P0～P3 收尾报告](docs/agent_automation_p0_p3_closure_20261106.md) 与 [证据索引](reports/agent_automation_p0_p3_closure.json)。
+
 **其他机器使用微调AI：**模型权重单独通过Release分发，运行 `python scripts/model_release.py install` 自动获取和校验，再用锁定的GPU环境执行 `scripts/model_release.py serve`。无需重新训练；本机推理要求兼容NVIDIA GPU，无GPU可配置远程模型服务。完整步骤见[模型下载与部署](docs/model_distribution.md)，公开全量联网安装及真实生成验证见[模型分发验收](reports/progress_checkpoint/model-distribution-2026-11-02/README.md)。下文2516项为既有功能验收基线，新增分发检查单独记录。
 
 本次约定范围内的功能开发与本地验收已完成。当前 **2516 项用例完整分段覆盖：2511 通过、5 跳过、未解决失败 0、遗漏 0**；不是一次单命令全绿，原失败记录与两项独立复验均保留。最新修复已在独立 uv 环境构建安装，869 项运行载荷逐字节一致，真实原生网页流程 11 项检查通过。详见[最终验收报告与实测图](reports/progress_checkpoint/maintenance-closure-2026-11-02/README.md)。安装态实测地址为 http://127.0.0.1:56149 （不保证后台服务持续在线），常规启动地址为 `http://127.0.0.1:8000/`。
