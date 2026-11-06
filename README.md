@@ -4,6 +4,8 @@
 
 **Agent 自动化 P0～P3 阶段收尾（2026-11-06）**：输入—运行一致性、安全实验工具、GoalRun 协调、证据解释、经验适用性与可选路由校准已合入主干。专项选定 CI 通过；真实模型收益、完整原生覆盖及整体 Stable 资格不在本专项通过范围。详见 [P0～P3 收尾报告](docs/agent_automation_p0_p3_closure_20261106.md) 与 [证据索引](reports/agent_automation_p0_p3_closure.json)。
 
+**GoalRun 目标实验工作台（2026-11-06）**：PR [#97](https://github.com/clonetimer/SatAgentSimulation/pull/97) 已合入主干（`7bbde7e`）。支持冻结基础 TaskSpec、参数白名单、跨轮总预算、幂等操作、Run Bundle 证据分析，以及由用户确认完成/部分完成/继续调整。目标完成要求执行 SUCCEEDED、验证 PASS、断言 PASS 和 Run Bundle 完整性通过。真实 Basilisk 原生回归、Agent 与 Chromium 回归均通过；整体发布资格仍以 `release_manifest.json` 为准，当前仍为 IN_PROGRESS。使用方法见[目标实验工作台指南](docs/guides_zh/12_目标实验工作台使用指南.md)。
+
 **其他机器使用微调AI：**模型权重单独通过Release分发，运行 `python scripts/model_release.py install` 自动获取和校验，再用锁定的GPU环境执行 `scripts/model_release.py serve`。无需重新训练；本机推理要求兼容NVIDIA GPU，无GPU可配置远程模型服务。完整步骤见[模型下载与部署](docs/model_distribution.md)，公开全量联网安装及真实生成验证见[模型分发验收](reports/progress_checkpoint/model-distribution-2026-11-02/README.md)。下文2516项为既有功能验收基线，新增分发检查单独记录。
 
 本次约定范围内的功能开发与本地验收已完成。当前 **2516 项用例完整分段覆盖：2511 通过、5 跳过、未解决失败 0、遗漏 0**；不是一次单命令全绿，原失败记录与两项独立复验均保留。最新修复已在独立 uv 环境构建安装，869 项运行载荷逐字节一致，真实原生网页流程 11 项检查通过。详见[最终验收报告与实测图](reports/progress_checkpoint/maintenance-closure-2026-11-02/README.md)。安装态实测地址为 http://127.0.0.1:56149 （不保证后台服务持续在线），常规启动地址为 `http://127.0.0.1:8000/`。
@@ -689,6 +691,6 @@ pytest -q
 
 ## V15 使用原则
 
-**把 V15 当成当前稳定工程版本使用，不再为了“继续推进”而继续推进。**
+**把 V15 当成当前工程基线使用；Stable 发布资格以 `src/sat_sim/release_manifest.json` 和当前验收报告为准。除实际使用反馈、回归失败或安全问题外，不为继续开发而增加功能。**
 
 优先完成真实卫星仿真任务；只有实际使用反馈证明某个问题值得解决时，再进入下一轮开发。
