@@ -864,12 +864,19 @@ class ExperienceLessonService:
         snapshot_rows = [
             row for row in rows if str(row["lesson_id"]) in allowed
         ]
+        if retrieval_status == "matched":
+            if not rows:
+                retrieval_status = "no_approved_match"
+            elif not snapshot_rows:
+                retrieval_status = "snapshot_excluded_all"
         eligible: list[ExperienceLesson] = []
         for row in snapshot_rows:
             lesson = self.get(str(row["lesson_id"]), scope=scope)
             if task_spec_version in lesson.compatible_task_spec_versions:
                 eligible.append(lesson)
         selected = eligible[:limit]
+        if retrieval_status == "matched" and not eligible:
+            retrieval_status = "no_compatible_task_spec_version"
         trace_payload: dict[str, Any] = {
             "event_id": uuid4().hex,
             "scope": scope.model_dump(mode="json"),
