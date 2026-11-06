@@ -7,6 +7,7 @@ from sat_sim.agent_eval_attribution import (
     aggregate_cases,
     analyze_case,
     analyze_generation_artifacts,
+    normalize_token_usage,
 )
 
 
@@ -297,3 +298,62 @@ def test_tampered_run_bundle_is_not_counted_as_execution_pass(tmp_path):
     assert execution["run_bundle_execution_pass"] is False
     assert execution["native_eligible"] is True
     assert execution["native_execution_pass"] is False
+
+
+def test_missing_total_tokens_is_derived_from_components_not_zero(tmp_path):
+    _write(tmp_path / "unified_agent_report.json", {"ok": True})
+    _write(tmp_path / "model_call.json", {
+        "invocation_evidence": {
+            "verified": True,
+            "usage": {"prompt_tokens": 100, "completion_tokens": 23},
+        }
+    })
+    row = analyze_generation_artifacts(tmp_path)
+    usage = row["model_calls"]
+    assert usage["prompt_tokens"] == 100
+    assert usage["completion_tokens"] == 23
+    assert usage["total_tokens"] == 123
+    assert usage["total_tokens_source_counts"]["derived_prompt_plus_completion"] == 1
+    assert usage["total_tokens_unknown_call_count"] == 0
+    assert usage["token_usage_complete"] is True
+
+
+def test_missing_total_and_component_tokens_remain_unknown_in_aggregate(tmp_path):
+    _write(tmp_path / "unified_agent_report.json", {"ok": True})
+    _write(tmp_path / "model_call.json", {
+        "invocation_evidence": {
+            "verified": True,
+            "usage": {"prompt_tokens": 100},
+        }
+    })
+    row = analyze_generation_artifacts(tmp_path)
+    assert row["model_calls"]["total_tokens"] is None
+    assert row["model_calls"]["total_tokens_unknown_call_count"] == 1
+    aggregate = aggregate_cases([{"generation": row, "execution": {}, "evidence_accuracy_pass": None}])
+    resource = aggregate["metrics"]["resource_use"]
+    assert resource["model_total_tokens"] is None
+    assert resource["model_total_tokens_known_sum"] == 0
+    assert resource["model_total_tokens_unknown_case_count"] == 1
+    assert resource["model_token_usage_complete"] is False
+
+
+def test_token_usage_normalizer_marks_provider_and_derived_sources():
+    provider = normalize_token_usage({
+        "prompt_tokens": 100,
+        "completion_tokens": 20,
+        "total_tokens": 121,
+    })
+    assert provider["total_tokens"] == 121
+    assert provider["total_tokens_source"] == "provider"
+    assert provider["reported_total_matches_components"] is False
+
+    derived = normalize_token_usage({
+        "prompt_tokens": 100,
+        "completion_tokens": 20,
+    })
+    assert derived["total_tokens"] == 120
+    assert derived["total_tokens_source"] == "derived_prompt_plus_completion"
+
+    unknown = normalize_token_usage({"prompt_tokens": 100})
+    assert unknown["total_tokens"] is None
+    assert unknown["total_tokens_known"] is False
