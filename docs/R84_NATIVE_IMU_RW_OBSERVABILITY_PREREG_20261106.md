@@ -9,6 +9,8 @@
 
 R84-R0 只验证**真实原生测量链的可用性和故障可观测性**，不训练算法。保留 R83m 的整星动力学、FSW、轮系与实际 C++ 权限故障链，独立新增官方 Basilisk ImuSensor 作为旁路观察者。实验设计见 [冻结 JSON](../configs/research/r84_native_imu_observability_pilot.json)。
 
+运行时固定使用原始 R83m 相同的官方 bsk 2.11.0 Linux Wheel，SHA-256 为 `d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a`。R83m 原实验构建产物的发行元数据标记为 satfix1；当前 mainline 构建工具使用 satfix2。R84 采用当前工具生成 satfix2 metadata-only Wheel，但必须证明 880 项原生载荷逐字节不变，且再次核验原始 Wheel SHA。该变更只涉及发行元数据和 Pillow 依赖标记，不替换、不重新编译 Basilisk 物理模块。
+
 ## 2. 固定八个实验臂与一项重复性控制
 
 | 维度 | 固定条件 |
