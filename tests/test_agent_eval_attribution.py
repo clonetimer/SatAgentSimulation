@@ -124,6 +124,19 @@ def test_case_and_aggregate_keep_independent_denominators(tmp_path):
         _write(out / "unified_agent_report.json", report)
         _model_call(out / "model_call.json", tokens=10)
 
+    _write(out1 / "experience_advisory.json", {
+        "lesson_ids": ["lesson_123"],
+        "retrieval_event_id": "retrieval-1",
+        "influence_status": "context_injected_use_unverified",
+        "retrieval_trace": {
+            "event_id": "retrieval-1",
+            "trace_sha256": "a" * 64,
+            "retrieval_status": "matched",
+            "returned_count": 1,
+            "returned_lesson_ids": ["lesson_123"],
+        },
+    })
+
     run1 = _sealed_bundle(tmp_path / "run1")
 
     case1 = analyze_case(
@@ -162,6 +175,13 @@ def test_case_and_aggregate_keep_independent_denominators(tmp_path):
         "rate": 1.0,
     }
     assert report["metrics"]["repair_assisted_success_count"] == 1
+    assert report["metrics"]["experience_reuse_exposure"] == {
+        "eligible": 1,
+        "retrieval_with_lessons": 1,
+        "context_injected_unverified": 1,
+        "retrieval_rate": 1.0,
+    }
+    assert case1["generation"]["experience_context"]["retrieval_event_id"] == "retrieval-1"
     assert report["metrics"]["resource_use"]["model_total_tokens"] == 20
 
 
