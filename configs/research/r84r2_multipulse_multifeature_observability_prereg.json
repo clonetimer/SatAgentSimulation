@@ -230,7 +230,7 @@
     "unique_seed_required_for_each_unique_run": true,
     "healthy_calibration_and_healthy_control_seeds_disjoint": true,
     "all_healthy_and_fault_seeds_disjoint": true,
-    "seed_formula": "20000000 + cohort_code*1000000 + wheel_index*100000 + initial_index*10000 + reference_index*1000 + noise_index*100 + repetition_index",
+    "seed_formula": "20000000 + cohort_code*10000000 + wheel_index*1000000 + initial_index*100000 + reference_index*10000 + capacity_index*1000 + noise_index*100 + repetition_index",
     "cohort_codes": {
       "healthy_calibration": 1,
       "healthy_false_alarm_control": 2,
@@ -252,7 +252,12 @@
       "pulse09x4": 1
     },
     "positive_signed_32_bit_required": true,
-    "exact_replay_reuses_one_predeclared_seed_and_is_not_an_independent_run": true
+    "exact_replay_reuses_one_predeclared_seed_and_is_not_an_independent_run": true,
+    "capacity_index_codes": {
+      "healthy": 0,
+      "loss50": 1,
+      "loss75": 2
+    }
   },
   "observation_contract": {
     "approved_raw_fields": [
