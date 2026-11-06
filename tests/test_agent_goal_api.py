@@ -8,6 +8,7 @@ import sqlite3
 from fastapi.testclient import TestClient
 
 from sat_sim.api import create_app
+from sat_sim.assertions import normalize_assertions
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.llm_backends import LLMCallResult
 
@@ -621,7 +622,7 @@ def test_failed_goal_experiment_create_replay_releases_reserved_budget(tmp_path,
             experiment_type="sweep",
             sweep=sweep,
             sampling_plan={},
-            assertions=goal.success_criteria,
+            assertions=normalize_assertions(goal.success_criteria),
         )
     except RuntimeError:
         pass
