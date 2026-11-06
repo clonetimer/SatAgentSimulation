@@ -333,23 +333,25 @@ def requested_health_mode(text: str) -> str:
         " ",
         probe,
     )
-    fault = _contains_any(
-        probe,
-        [
-            "mode=fault",
-            "mode: fault",
-            "fault",
-            "故障",
-            "开路",
-            "open circuit",
-            "failure",
-            "失效",
-            "异常",
-            "中断",
-            "outage",
-            "jam",
-            "卡滞",
-        ],
+    # Match English fault as a complete word. Substring matching treats
+    # "default" as "fault" and can suppress nominal-only lesson retrieval.
+    fault = (
+        re.search(r"(?<![A-Za-z0-9_])faults?(?![A-Za-z0-9_])", probe) is not None
+        or _contains_any(
+            probe,
+            [
+                "故障",
+                "开路",
+                "open circuit",
+                "failure",
+                "失效",
+                "异常",
+                "中断",
+                "outage",
+                "jam",
+                "卡滞",
+            ],
+        )
     )
     degradation = _contains_any(
         probe,
