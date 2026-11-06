@@ -347,6 +347,7 @@ def run_native_case(
         })
         qa_rows.append({
             "time_s": time_s,
+            "fsw.pointing_error_deg_QA_ONLY": pointing_error_deg,
             **{f"fsw.native_reference_mrp_{i}": reference_mrp[i] for i in range(3)},
             **{f"fsw.body_request_nm_{i}": body_request[i] for i in range(3)},
             **{f"rw.native_allocator_request_nm_{i}": wheel_request[i] for i in range(3)},
