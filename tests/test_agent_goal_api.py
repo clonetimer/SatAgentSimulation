@@ -244,10 +244,17 @@ def _goal_ready_evidence():
     return {
         "schema_version": "agent-experiment-evidence.v1",
         "experiment_id": "goal-exp",
+        "complete": True,
         "evidence_ready": True,
         "runs": [
             {
                 "run_id": "goal-exp_v001",
+                "execution_state": "SUCCEEDED",
+                "validation_result": "PASS",
+                "assertion_status": "PASS",
+                "terminal": True,
+                "sealed": True,
+                "integrity": {"ok": True},
                 "metrics": {"final_pointing_error_deg": 0.12},
             }
         ],
@@ -698,6 +705,64 @@ def test_goal_interpretation_waits_for_every_linked_experiment_to_finish(tmp_pat
     assert interpreted.json()["goal"]["status"] == "RUNNING"
 
 
+def test_goal_sync_releases_failed_launch_when_no_run_side_effects(tmp_path):
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 1, "execution_attempts": 1, "model_calls": 0},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-sync-failed:create",
+            "name": "failed launch recovery",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证同步时回收无副作用的失败启动预算",
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+    operation_id = "goal-sync-failed:launch"
+    request_payload = {
+        "schema_version": "agent-experiment-launch.v1",
+        "operation_kind": "launch_experiment",
+        "experiment_id": experiment_id,
+        "max_attempts": 1,
+        "hard_timeout": True,
+        "max_run_count": 1,
+        "max_execution_attempts": 1,
+        "reserved_run_capacity": 1,
+        "reserved_attempt_capacity": 1,
+    }
+    app.state.agent_operation_store.reserve_payload(
+        operation_id=operation_id,
+        operation_kind="launch_experiment",
+        request_payload=request_payload,
+    )
+    app.state.agent_operation_store.fail(
+        operation_id,
+        {"reason_code": "SYNTHETIC_LAUNCH_FAILURE", "message": "failed before queue side effects"},
+    )
+    # Reproduce a crash after the GoalRun reservation/binding but before API cleanup.
+    reservation = app.state.goal_run_store.reserve_budget(
+        goal_id,
+        operation_id=operation_id,
+        amounts={"runs": 1, "execution_attempts": 1},
+    )
+    app.state.goal_run_store.bind_launch_operation(goal_id, experiment_id, operation_id)
+    assert reservation["state"] == "RESERVED"
+
+    synced = client.post(f"/agent/goals/{goal_id}/sync")
+    assert synced.status_code == 200
+    assert synced.json()["budget"]["reserved_or_committed"]["runs"] == 0
+    assert synced.json()["budget"]["remaining"]["runs"] == 1
+    assert synced.json()["experiments"][0]["launch_operation_id"] is None
+    assert any(
+        item["decision_kind"] == "EXPERIMENT_LAUNCH_FAILED"
+        for item in synced.json()["decisions"]
+    )
+
+
 def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, monkeypatch):
     import sat_sim.api as api_module
 
@@ -752,6 +817,42 @@ def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, 
     assert conflict.json()["detail"]["reason_code"] == "GOAL_RESOLUTION_OPERATION_CONFLICT"
 
 
+def test_goal_completion_rejects_pass_assertion_without_successful_validated_execution(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(client)
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-execution-gate:create",
+            "name": "execution gate",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证执行和验证状态也是目标完成门槛",
+        },
+    )
+    assert created.status_code == 200
+    app.state.goal_run_store.transition(goal_id, "RUNNING")
+    app.state.goal_run_store.transition(goal_id, "ANALYZING")
+
+    invalid_success = _goal_ready_evidence()
+    invalid_success["runs"][0]["execution_state"] = "FAILED"
+    invalid_success["runs"][0]["validation_result"] = "FAIL"
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: invalid_success)
+
+    response = client.post(
+        f"/agent/goals/{goal_id}/resolve",
+        json={
+            "operation_id": "goal-execution-gate:complete",
+            "status": "COMPLETED",
+            "reason": "断言虽为 PASS，但运行执行和验证均失败，不应完成。",
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["reason_code"] == "GOAL_SUCCESS_CRITERIA_NOT_MET"
+    assert client.get(f"/agent/goals/{goal_id}").json()["goal"]["status"] == "ANALYZING"
+
+
 def test_goal_completion_rejects_unmet_success_criteria_but_allows_partial(tmp_path, monkeypatch):
     import sat_sim.api as api_module
 
@@ -776,7 +877,12 @@ def test_goal_completion_rejects_unmet_success_criteria_but_allows_partial(tmp_p
     failed_criteria["runs"] = [
         {
             "run_id": "goal-exp_v001",
+            "execution_state": "SUCCEEDED",
+            "validation_result": "PASS",
             "assertion_status": "FAIL",
+            "terminal": True,
+            "sealed": True,
+            "integrity": {"ok": True},
             "metrics": {"final_pointing_error_deg": 0.8},
         }
     ]
