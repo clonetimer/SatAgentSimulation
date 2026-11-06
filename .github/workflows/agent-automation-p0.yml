@@ -7,6 +7,7 @@ on:
       - "src/sat_sim/api.py"
       - "src/sat_sim/agent_tools.py"
       - "src/sat_sim/agent_eval_attribution.py"
+      - "src/sat_sim/vllm_evidence_benchmark.py"
       - "src/sat_sim/experience_longitudinal_eval.py"
       - "src/sat_sim/model_router.py"
       - "src/sat_sim/experience_lessons.py"
@@ -79,6 +80,9 @@ jobs:
             tests/test_agent_pending_input_vm.py \
             tests/test_agent_experiment_tools.py \
             tests/test_agent_eval_attribution.py \
+            tests/test_agent_prompt_contract_closure.py \
+            tests/test_agent_longitudinal_token_accounting.py \
+            tests/test_agent_vllm_evidence_benchmark.py \
             tests/test_agent_prompt_contract_closure.py \
             tests/test_workbench_agent_integration.py \
             tests/test_experience_lessons.py \
