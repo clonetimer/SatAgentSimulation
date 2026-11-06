@@ -721,6 +721,37 @@ class ExperienceLessonService:
             db.execute("COMMIT")
         return self.get(lesson_id, scope=scope)
 
+    @staticmethod
+    def _verified_snapshot_ids(
+        snapshot: Mapping[str, Any],
+        *,
+        scope: ExperienceScope,
+    ) -> set[str]:
+        try:
+            lesson_ids = json.loads(str(snapshot["lesson_ids_json"]))
+        except Exception as exc:
+            raise ValueError("LESSON_SNAPSHOT_INTEGRITY_FAILED:invalid_lesson_ids") from exc
+        if (
+            not isinstance(lesson_ids, list)
+            or any(not isinstance(item, str) or not item for item in lesson_ids)
+            or lesson_ids != sorted(set(lesson_ids))
+        ):
+            raise ValueError("LESSON_SNAPSHOT_INTEGRITY_FAILED:noncanonical_lesson_ids")
+        payload = {
+            "scope": scope.model_dump(mode="json"),
+            "lesson_ids": lesson_ids,
+            "created_at": str(snapshot["created_at"]),
+            "actor": str(snapshot["actor"]),
+        }
+        digest = _sha256(_canonical(payload))
+        expected_id = f"snapshot_{digest[:24]}"
+        if (
+            digest != str(snapshot["snapshot_sha256"])
+            or expected_id != str(snapshot["snapshot_id"])
+        ):
+            raise ValueError("LESSON_SNAPSHOT_INTEGRITY_FAILED:hash_mismatch")
+        return set(lesson_ids)
+
     def retrieve_approved_with_trace(
         self,
         *,
@@ -763,14 +794,16 @@ class ExperienceLessonService:
             else:
                 snapshot_id = str(config["active_snapshot_id"])
                 snapshot = db.execute(
-                    """SELECT lesson_ids_json FROM lesson_snapshots
+                    """SELECT snapshot_id,tenant_id,project_id,created_at,actor,
+                              lesson_ids_json,snapshot_sha256
+                       FROM lesson_snapshots
                        WHERE snapshot_id=? AND tenant_id=? AND project_id=?""",
                     (snapshot_id, scope.tenant_id, scope.project_id),
                 ).fetchone()
                 if snapshot is None:
                     retrieval_status = "active_snapshot_missing"
                 else:
-                    allowed = set(json.loads(snapshot["lesson_ids_json"]))
+                    allowed = self._verified_snapshot_ids(snapshot, scope=scope)
                     params: list[Any] = [
                         scope.tenant_id,
                         scope.project_id,
@@ -1055,13 +1088,20 @@ class ExperienceLessonService:
         with self.store._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             snapshot = db.execute(
-                """SELECT snapshot_id FROM lesson_snapshots
+                """SELECT snapshot_id,tenant_id,project_id,created_at,actor,
+                          lesson_ids_json,snapshot_sha256
+                   FROM lesson_snapshots
                    WHERE snapshot_id=? AND tenant_id=? AND project_id=?""",
                 (snapshot_id, scope.tenant_id, scope.project_id),
             ).fetchone()
             if snapshot is None:
                 db.execute("ROLLBACK")
                 raise KeyError(snapshot_id)
+            try:
+                self._verified_snapshot_ids(snapshot, scope=scope)
+            except ValueError:
+                db.execute("ROLLBACK")
+                raise
             db.execute(
                 """INSERT INTO lesson_reuse_config(
                     tenant_id,project_id,enabled,active_snapshot_id,updated_at
