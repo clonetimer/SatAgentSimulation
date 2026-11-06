@@ -196,6 +196,69 @@ def iter_unique_run_specs() -> Iterable[dict[str, Any]]:
                             }
 
 
+def validate_preregistered_run_plan(config: dict[str, Any]) -> list[dict[str, Any]]:
+    """Preflight all conditions and unique seeds before starting any physics."""
+    design = config["frozen_replication_design"]
+    physics = config["frozen_physics_design"]
+    if design.get("unique_native_runs") != 3159 or design.get("total_native_executions") != 3160:
+        raise RuntimeError("R84R1_FROZEN_EXECUTION_COUNTS_CHANGED")
+    if physics.get("physical_context_count") != 27:
+        raise RuntimeError("R84R1_FROZEN_PHYSICAL_CONTEXT_COUNT_CHANGED")
+    if physics.get("noise_sigma_rad_s") != {
+        "low": 0.00005, "primary": 0.0001, "high": 0.0002
+    }:
+        raise RuntimeError("R84R1_FROZEN_NOISE_LEVELS_CHANGED")
+    specs = list(iter_unique_run_specs())
+    if len(specs) != 3159:
+        raise RuntimeError("R84R1_PREFLIGHT_UNIQUE_RUN_COUNT_MISMATCH")
+    seeds = [
+        seed_for(
+            spec["cohort"], spec["wheel"], spec["initial"],
+            spec["reference_mode"], spec["gyro_noise_std_rad_s"], spec["repetition"]
+        )
+        for spec in specs
+    ]
+    if len(set(seeds)) != len(seeds):
+        raise RuntimeError("R84R1_PREFLIGHT_SEED_COLLISION")
+    from collections import Counter
+    counts = Counter(spec["cohort"] for spec in specs)
+    expected = {
+        "loss50_noise_free_physics_reference": 27,
+        "healthy_calibration": 540,
+        "healthy_false_alarm_control": 540,
+        "loss50_primary": 540,
+        "loss75_primary": 540,
+        "healthy_sensitivity": 162,
+        "loss50_sensitivity": 162,
+        "loss75_sensitivity": 162,
+    }
+    if dict(counts) != expected:
+        raise RuntimeError("R84R1_PREFLIGHT_COHORT_COUNTS_MISMATCH")
+    healthy_seeds = {
+        seed for spec, seed in zip(specs, seeds)
+        if spec["cohort"] in (
+            "healthy_calibration", "healthy_false_alarm_control", "healthy_sensitivity"
+        )
+    }
+    fault_seeds = {
+        seed for spec, seed in zip(specs, seeds)
+        if spec["cohort"] in (
+            "loss50_primary", "loss75_primary", "loss50_sensitivity", "loss75_sensitivity"
+        )
+    }
+    if healthy_seeds.intersection(fault_seeds):
+        raise RuntimeError("R84R1_PREFLIGHT_HEALTHY_FAULT_SEED_OVERLAP")
+    calibration = {
+        seed for spec, seed in zip(specs, seeds) if spec["cohort"] == "healthy_calibration"
+    }
+    false_alarm = {
+        seed for spec, seed in zip(specs, seeds) if spec["cohort"] == "healthy_false_alarm_control"
+    }
+    if calibration.intersection(false_alarm):
+        raise RuntimeError("R84R1_PREFLIGHT_CALIBRATION_CONTROL_SEED_OVERLAP")
+    return specs
+
+
 def extract_sensor_feature(sensor_rows: list[dict[str, float]]) -> dict[str, float]:
     """Fixed event-aligned summary from official raw gyro channels only."""
     expected_keys = {"time_s", *OBSERVATION_FIELDS}
@@ -407,11 +470,9 @@ def _analysis(case_records: list[dict[str, Any]], feature_by_id: dict[str, dict[
 
 def run_pilot(r83m_archive: Path, output_dir: Path) -> dict[str, Any]:
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    design = config["frozen_replication_design"]
     if config.get("status") != "PREREGISTERED_NOT_EXECUTED":
         raise RuntimeError("R84R1_PREREGISTRATION_STATUS_INVALID")
-    if design.get("unique_native_runs") != 3159 or design.get("total_native_executions") != 3160:
-        raise RuntimeError("R84R1_FROZEN_RUN_COUNT_CHANGED")
+    run_plan = validate_preregistered_run_plan(config)
 
     original_receipt, original_payload = _load_original_r83m(r83m_archive)
     if original_receipt["archive_sha256"] != config["r0_reference"]["original_r83m_archive_sha256"]:
@@ -601,7 +662,7 @@ def run_pilot(r83m_archive: Path, output_dir: Path) -> dict[str, Any]:
         }
 
     try:
-        for spec in iter_unique_run_specs():
+        for spec in run_plan:
             execute_one(spec)
         if run_index != 3159 or len(seed_set) != 3159:
             raise RuntimeError("R84R1_UNIQUE_RUN_OR_SEED_COUNT_MISMATCH")
