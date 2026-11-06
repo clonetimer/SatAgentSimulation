@@ -152,6 +152,28 @@ def test_link_experiment_and_record_decision_are_ordered(tmp_path):
     assert snapshot["decisions"][0]["action"]["experiment_id"] == "exp-1"
 
 
+def test_unbind_launch_operation_requires_matching_binding(tmp_path):
+    store = _store(tmp_path)
+    goal = _goal(store)
+    store.link_experiment(
+        goal.goal_id,
+        "exp-unbind",
+        plan_revision=1,
+        purpose="验证启动失败恢复",
+    )
+    store.bind_launch_operation(goal.goal_id, "exp-unbind", "launch-op-1")
+
+    with pytest.raises(GoalRunError) as captured:
+        store.unbind_launch_operation(goal.goal_id, "exp-unbind", "different-op")
+    assert captured.value.reason_code == "GOAL_LAUNCH_OPERATION_CONFLICT"
+
+    cleared = store.unbind_launch_operation(goal.goal_id, "exp-unbind", "launch-op-1")
+    assert cleared["replayed"] is False
+    assert store.experiments(goal.goal_id)[0]["launch_operation_id"] is None
+    replay = store.unbind_launch_operation(goal.goal_id, "exp-unbind", "launch-op-1")
+    assert replay["replayed"] is True
+
+
 def test_terminal_goal_rejects_new_budget(tmp_path):
     store = _store(tmp_path)
     goal = _goal(store)
