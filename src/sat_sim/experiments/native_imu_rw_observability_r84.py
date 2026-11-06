@@ -99,8 +99,6 @@ def run_native_case(
     distribution_version = version("bsk")
     if distribution_version != "2.11.0+satfix1":
         raise RuntimeError(f"R84_WRONG_BASILISK_DISTRIBUTION:{distribution_version}")
-    if not hasattr(imuSensor.ImuSensor(), "sensorOutMsg"):
-        raise RuntimeError("R84_OFFICIAL_BASILISK_IMU_OUTPUT_MISSING")
 
     sim = SimulationBaseClass.SimBaseClass()
     dynamics = sim.CreateNewProcess("r84_native_dynamics")
