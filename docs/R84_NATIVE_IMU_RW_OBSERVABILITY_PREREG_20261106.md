@@ -1,7 +1,8 @@
 # R84 原生 IMU × 反作用轮故障可观测性：R0 小规模预注册
 
 > 预注册日期：2026-11-06（JST）。
-> **状态：PREREGISTERED_NOT_EXECUTED；本文件不代表已运行任何 R84 Basilisk 仿真。**
+> 预注册时状态：`PREREGISTERED_NOT_EXECUTED`（保留原始冻结记录）。  
+> 当前 R0 执行状态：**PASS**，详见 [R84 原生执行报告](../reports/native_rw_cluster/r84_native_imu_execution_20261106.md)。
 
 ## 1. 背景与物理边界
 
@@ -57,4 +58,17 @@ R0-A：官方 IMU SWIG 实际接入、时间戳一致、种子回放、原生 no
 
     python -m pytest -q tests/test_r84_native_imu_prereg_contract.py
 
-此项测试通过不等于 R84 物理实验成功，不影响现有 main 与 Stable 资格。
+此项测试通过仅说明预注册约束冻结，不等于物理实验成功；R84-R0 现已在独立执行 PR 中完成真实 Basilisk 运行。
+
+## 7. R84-R0 实际执行结果（2026-11-06）
+
+- [执行 PR #103](https://github.com/clonetimer/SatAgentSimulation/pull/103)；[GitHub Actions run #42205173858](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42205173858)。
+- 8 个唯一实验臂、9 次原生执行（含同种子回放），每次 31 点。
+- 原始 R83m 八组物理对照最大差异为 0；IMU 噪声 on/off 的物理 QA 最大差异为 0；同种子回放的传感器和物理 QA 差异均为 0。
+- 0° 条件下健康/故障 IMU 配对无可观测差异；0.9° 条件下最大陀螺仪物理差异为 4.09094×10⁻⁵ rad/s。噪声开启时，实测噪声残差标准差约为 0.00010–0.00014 rad/s。
+- 因此当前信号幅值低于噪声残差标准差；这是小样本物理可观测性结果，不是检测准确率或正式 SNR 结论。
+- 完整原始 IMU 观测、物理 QA、案例清单、执行 manifest 和被引用的 R83m 原始 ZIP 已放入 [90 天执行证据 artifact #13495508905](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42205173858/artifacts/13495508905)。
+
+执行报告明确保留：无诊断模型训练、无正式 VAL/TEST/FINAL、无飞行/硬件安全资格、无 Stable 资格。下一步应另行预注册独立噪声种子与多物理条件 R84-R1，先评价观测分布和误报，再决定是否建设训练集。
+
+
