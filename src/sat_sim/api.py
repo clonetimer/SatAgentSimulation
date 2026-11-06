@@ -2912,6 +2912,33 @@ def create_app(
                 max_run_count=body.max_run_count,
                 max_execution_attempts=body.max_execution_attempts,
             )
+            if str(result.get("operation_state") or "").upper() == "FAILED":
+                reconciliation = agent_launch_snapshot(experiment_id, body.operation_id)
+                no_run_side_effects = (
+                    int(reconciliation.get("observed_count") or 0) == 0
+                    and int(reconciliation.get("assigned_count") or 0) == 0
+                )
+                budget_released = False
+                if no_run_side_effects and reservation.get("state") in {"RESERVED", "RELEASED"}:
+                    if reservation.get("state") == "RESERVED":
+                        goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+                        budget_released = True
+                    goal_run_store.unbind_launch_operation(goal_id, experiment_id, body.operation_id)
+                    goal_run_store.record_decision(
+                        goal_id,
+                        decision_kind="EXPERIMENT_LAUNCH_FAILED",
+                        summary="启动操作明确失败且没有观察到运行副作用；已释放预算并解除启动绑定。",
+                        evidence={"experiment_id": experiment_id, "reconciliation": reconciliation},
+                        action={"operation_id": body.operation_id, "budget_released": budget_released},
+                    )
+                return {
+                    "ok": False,
+                    "budget_released": budget_released,
+                    "reconciliation_required": not no_run_side_effects,
+                    "launch_operation": result,
+                    "reconciliation": reconciliation,
+                    **goal_snapshot_payload(goal_id),
+                }
             if result.get("ok") and result.get("operation_state") == "SUCCEEDED":
                 goal_run_store.commit_reservation(goal_id, reservation["reservation_id"])
                 if goal.status in {"READY", "ANALYZING", "NEEDS_REVISION"}:
