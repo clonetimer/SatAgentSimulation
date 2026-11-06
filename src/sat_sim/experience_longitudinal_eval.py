@@ -467,6 +467,11 @@ def run_experience_longitudinal_eval(
         "lesson_id": lesson.lesson_id,
         "snapshot_id": snapshot["snapshot_id"],
         "pair_count": len(cases),
+        "request_set_sha256": _sha256(_canonical({
+            "schema_version": "sat-sim.frozen-paired-requests.v1",
+            "requests": list(requests),
+        })),
+        "request_set_verbatim": True,
         "baseline_run_pass_rate": baseline_pass,
         "experience_run_pass_rate": experience_pass,
         "token_wins": wins,
