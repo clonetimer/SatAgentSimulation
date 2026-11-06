@@ -701,6 +701,8 @@ def test_goal_interpretation_waits_for_every_linked_experiment_to_finish(tmp_pat
 def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, monkeypatch):
     import sat_sim.api as api_module
 
+    evidence_result = _goal_ready_evidence()
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence_result)
     app, client = _client(tmp_path)
     goal_id = _create_goal(client)
     created = client.post(
@@ -719,7 +721,7 @@ def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, 
     incomplete = dict(_goal_ready_evidence())
     incomplete["complete"] = False
     incomplete["evidence_ready"] = False
-    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: incomplete)
+    evidence_result = incomplete
     body = {
         "operation_id": "goal-resolution:complete",
         "status": "COMPLETED",
@@ -730,7 +732,7 @@ def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, 
     assert blocked.json()["detail"]["reason_code"] == "GOAL_EVIDENCE_INCOMPLETE"
     assert client.get(f"/agent/goals/{goal_id}").json()["goal"]["status"] == "ANALYZING"
 
-    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: _goal_ready_evidence())
+    evidence_result = _goal_ready_evidence()
     body["reason"] = "所有运行均已封存，证据完整，至少一个候选满足目标成功条件。"
     first = client.post(f"/agent/goals/{goal_id}/resolve", json=body)
     assert first.status_code == 200, first.text
@@ -753,6 +755,8 @@ def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, 
 def test_goal_completion_rejects_unmet_success_criteria_but_allows_partial(tmp_path, monkeypatch):
     import sat_sim.api as api_module
 
+    evidence_result = dict(_goal_ready_evidence())
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence_result)
     app, client = _client(tmp_path)
     goal_id = _create_goal(client)
     created = client.post(
@@ -776,7 +780,7 @@ def test_goal_completion_rejects_unmet_success_criteria_but_allows_partial(tmp_p
             "metrics": {"final_pointing_error_deg": 0.8},
         }
     ]
-    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: failed_criteria)
+    evidence_result = failed_criteria
     completed = client.post(
         f"/agent/goals/{goal_id}/resolve",
         json={
