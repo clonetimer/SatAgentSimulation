@@ -25,6 +25,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .canonical_transport import CanonicalTransportError, parse_canonical_transport, task_spec_json
+from .assertions import normalize_assertions
 
 from .agent_guards import agent_tool_policy_payload, evaluate_agent_guards
 from .capability_registry import capability_summary_payload
@@ -2669,6 +2670,7 @@ def create_app(
             evidence_summaries: list[dict[str, Any]] = []
             all_evidence_ready = True
             any_success_criteria_passed = False
+            criteria_configured = bool(goal.success_criteria)
             for link in links:
                 experiment_id = str(link.get("experiment_id") or "")
                 if not experiment_id or experiment_store.get(experiment_id) is None:
@@ -2689,14 +2691,30 @@ def create_app(
                         f"experiment evidence is not terminal and complete: {experiment_id}",
                     )
                 runs = evidence.get("runs") if isinstance(evidence.get("runs"), list) else []
+                record = experiment_store.get(experiment_id)
+                criteria_configured = criteria_configured or bool(record and record.assertions)
                 assertion_statuses = [
                     str(item.get("assertion_status") or "NOT_EVALUATED").upper()
                     for item in runs
                     if isinstance(item, Mapping)
                 ]
-                any_success_criteria_passed = any_success_criteria_passed or any(
-                    status == "PASS" for status in assertion_statuses
-                )
+                verified_success_run_ids = []
+                for item in runs:
+                    if not isinstance(item, Mapping):
+                        continue
+                    integrity = item.get("integrity")
+                    integrity_ok = isinstance(integrity, Mapping) and integrity.get("ok") is True
+                    if (
+                        str(item.get("execution_state") or "").upper() == "SUCCEEDED"
+                        and str(item.get("validation_result") or "").upper() == "PASS"
+                        and str(item.get("assertion_status") or "").upper() == "PASS"
+                        and bool(item.get("terminal"))
+                        and bool(item.get("sealed"))
+                        and integrity_ok
+                    ):
+                        if item.get("run_id"):
+                            verified_success_run_ids.append(str(item["run_id"]))
+                any_success_criteria_passed = any_success_criteria_passed or bool(verified_success_run_ids)
                 evidence_ready = bool(evidence.get("evidence_ready"))
                 all_evidence_ready = all_evidence_ready and evidence_ready
                 evidence_summaries.append({
@@ -2710,6 +2728,7 @@ def create_app(
                         if isinstance(item, Mapping) and item.get("run_id")
                     ],
                     "assertion_statuses": assertion_statuses,
+                    "verified_success_run_ids": verified_success_run_ids,
                 })
 
             if body.status == "COMPLETED":
@@ -2718,10 +2737,10 @@ def create_app(
                         "GOAL_EVIDENCE_NOT_READY",
                         "completion requires sealed, integrity-verified Run Bundle evidence and metrics for every variant",
                     )
-                if goal.success_criteria and not any_success_criteria_passed:
+                if criteria_configured and not any_success_criteria_passed:
                     raise GoalRunError(
                         "GOAL_SUCCESS_CRITERIA_NOT_MET",
-                        "no completed variant satisfies the configured goal success criteria",
+                        "no candidate simultaneously has SUCCEEDED execution, PASS validation, PASS assertions, a sealed Run Bundle, and verified integrity.",
                     )
 
             goal_run_store.transition(
@@ -2786,7 +2805,11 @@ def create_app(
                     "GOAL_PARAMETER_OUT_OF_SCOPE",
                     "experiment changes parameter outside goal scope: " + ", ".join(unknown),
                 )
-            assertions = body.assertions or goal.success_criteria
+            frozen_assertions = normalize_assertions(goal.success_criteria)
+            requested_assertions = normalize_assertions(body.assertions)
+            assertions = frozen_assertions + [
+                item for item in requested_assertions if item not in frozen_assertions
+            ]
             preview = agent_experiment_tools.preview(
                 base_task_spec=goal.base_task_spec,
                 experiment_type=body.experiment_type,
@@ -3124,15 +3147,51 @@ def create_app(
             links = goal_run_store.experiments(goal_id)
             all_terminal = bool(links)
             for link in links:
+                experiment_id = str(link["experiment_id"])
                 operation_id = str(link.get("launch_operation_id") or "")
-                if operation_id:
-                    operation = agent_operation_store.get(operation_id)
-                    reservation = goal_run_store.reservation_for_operation(goal_id, operation_id)
-                    if operation and operation.get("operation_state") == "SUCCEEDED" and reservation and reservation.get("state") == "RESERVED":
-                        goal_run_store.commit_reservation(goal_id, str(reservation["reservation_id"]))
-                execution = agent_launch_snapshot(str(link["experiment_id"]), operation_id or None)
-                if not execution.get("all_terminal"):
+                if not operation_id:
                     all_terminal = False
+                    continue
+
+                operation = agent_operation_store.get(operation_id)
+                reservation = goal_run_store.reservation_for_operation(goal_id, operation_id)
+                execution = agent_launch_snapshot(experiment_id, operation_id)
+
+                if operation and operation.get("operation_state") == "FAILED":
+                    no_run_side_effects = (
+                        int(execution.get("observed_count") or 0) == 0
+                        and int(execution.get("assigned_count") or 0) == 0
+                    )
+                    if no_run_side_effects:
+                        if reservation and reservation.get("state") == "RESERVED":
+                            goal_run_store.release_reservation(goal_id, str(reservation["reservation_id"]))
+                            goal_run_store.unbind_launch_operation(goal_id, experiment_id, operation_id)
+                            goal_run_store.record_decision(
+                                goal_id,
+                                decision_kind="EXPERIMENT_LAUNCH_FAILED",
+                                summary="启动操作明确失败且没有观察到运行副作用；同步时已释放预算并解除启动绑定。",
+                                evidence={"experiment_id": experiment_id, "reconciliation": execution},
+                                action={"operation_id": operation_id, "budget_released": True},
+                            )
+                        else:
+                            all_terminal = False
+                            continue
+                        all_terminal = False
+                        continue
+
+                if (
+                    reservation
+                    and reservation.get("state") == "RESERVED"
+                    and execution.get("all_assigned")
+                    and execution.get("all_terminal")
+                ):
+                    # All variant side effects are now visible and terminal, even if
+                    # the launcher lost its final operation-ledger acknowledgement.
+                    goal_run_store.commit_reservation(goal_id, str(reservation["reservation_id"]))
+
+                if not execution.get("all_assigned") or not execution.get("all_terminal"):
+                    all_terminal = False
+
             current = goal_run_store.get(goal_id)
             if current and current.status == "RUNNING" and all_terminal:
                 goal_run_store.transition(goal_id, "ANALYZING")
