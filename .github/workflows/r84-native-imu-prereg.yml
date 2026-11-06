@@ -70,7 +70,7 @@ jobs:
               raise RuntimeError("R84_ORIGINAL_R83M_BASILISK_WHEEL_SHA256_MISMATCH")
           print("R84_ORIGINAL_BASILISK_WHEEL_SHA256", expected)
           PY
-      - name: Build metadata-only satfix1 compatibility wheel and prove binary payload unchanged
+      - name: Build metadata-only satfix2 compatibility wheel and prove binary payload unchanged
         shell: bash
         run: |
           set -euo pipefail
@@ -103,7 +103,7 @@ jobs:
           import Basilisk
           from Basilisk.simulation import spacecraft, reactionWheelStateEffector, imuSensor, simpleNav
           from Basilisk.fswAlgorithms import inertial3D, attTrackingError, mrpFeedback, rwMotorTorque
-          assert version("bsk") == "2.11.0+satfix1"
+          assert version("bsk") == "2.11.0+satfix2"
           print("R84_NATIVE_BASILISK_DISTRIBUTION", version("bsk"))
           print("R84_BASILISK_MODULES_IMPORTED", Basilisk.__version__)
           PY
