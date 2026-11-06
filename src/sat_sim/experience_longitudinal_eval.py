@@ -82,6 +82,43 @@ def _sign_test_p_value(wins: int, losses: int) -> float:
     return min(1.0, 2.0 * tail / (2**trials))
 
 
+def _paired_cost_statistics(cases: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize only complete, attributable token pairs.
+
+    An empty or entirely unknown cost comparison is a failed/unknown cost
+    result, never zero-token savings or a statistics.median exception.
+    """
+    token_deltas = [
+        item["delta"]["attributed_total_tokens_saved"]
+        for item in cases
+        if item["delta"].get("attributed_total_tokens_saved") is not None
+    ]
+    latency_deltas = [
+        item["delta"]["attributed_latency_ms_saved"]
+        for item in cases
+        if item["delta"].get("attributed_latency_ms_saved") is not None
+    ]
+    wins = sum(value > 0 for value in token_deltas)
+    losses = sum(value < 0 for value in token_deltas)
+    ties = sum(value == 0 for value in token_deltas)
+    token_median = statistics.median(token_deltas) if token_deltas else None
+    latency_median = statistics.median(latency_deltas) if latency_deltas else None
+    return {
+        "token_usage_complete": bool(cases) and len(token_deltas) == len(cases),
+        "token_pair_count": len(token_deltas),
+        "token_unknown_pair_count": len(cases) - len(token_deltas),
+        "token_wins": wins,
+        "token_losses": losses,
+        "token_ties": ties,
+        "token_sign_test_p_value": _sign_test_p_value(wins, losses),
+        "median_total_tokens_saved": token_median,
+        "median_latency_ms_saved": latency_median,
+        "median_total_tokens_saved_positive": (
+            token_median is not None and token_median > 0
+        ),
+    }
+
+
 def _execute_supervised(task_spec_path: Path, runs_root: Path) -> dict[str, Any]:
     process = subprocess.Popen(
         [
@@ -350,21 +387,12 @@ def run_experience_longitudinal_eval(
         }
         cases.append(pair)
 
-    token_deltas = [
-        item["delta"]["attributed_total_tokens_saved"]
-        for item in cases
-        if item["delta"]["attributed_total_tokens_saved"] is not None
-    ]
-    latency_deltas = [
-        item["delta"]["attributed_latency_ms_saved"]
-        for item in cases
-        if item["delta"]["attributed_latency_ms_saved"] is not None
-    ]
-    token_usage_complete = len(token_deltas) == len(cases)
-    wins = sum(value > 0 for value in token_deltas)
-    losses = sum(value < 0 for value in token_deltas)
-    ties = sum(value == 0 for value in token_deltas)
-    sign_p = _sign_test_p_value(wins, losses)
+    cost_stats = _paired_cost_statistics(cases)
+    token_usage_complete = cost_stats["token_usage_complete"]
+    wins = cost_stats["token_wins"]
+    losses = cost_stats["token_losses"]
+    ties = cost_stats["token_ties"]
+    sign_p = cost_stats["token_sign_test_p_value"]
     baseline_pass = sum(item["baseline"]["run_pass"] for item in cases) / len(cases)
     experience_pass = sum(item["experience"]["run_pass"] for item in cases) / len(cases)
     safety_ok = all(
@@ -389,9 +417,7 @@ def run_experience_longitudinal_eval(
         ),
         "paired_token_wins_at_least_5": wins >= 5,
         "paired_sign_test_p_le_0_05": sign_p <= 0.05,
-        "median_total_tokens_saved_positive": (
-            bool(token_deltas) and statistics.median(token_deltas) > 0
-        ),
+        "median_total_tokens_saved_positive": cost_stats["median_total_tokens_saved_positive"],
     }
     attribution_report = {
         arm: aggregate_cases([item[arm]["attribution"] for item in cases])
@@ -418,9 +444,10 @@ def run_experience_longitudinal_eval(
         "token_ties": ties,
         "token_sign_test_p_value": sign_p,
         "token_usage_complete": token_usage_complete,
-        "token_pair_count": len(token_deltas),
-        "median_total_tokens_saved": statistics.median(token_deltas) if token_deltas else None,
-        "median_latency_ms_saved": statistics.median(latency_deltas) if latency_deltas else None,
+        "token_pair_count": cost_stats["token_pair_count"],
+        "token_unknown_pair_count": cost_stats["token_unknown_pair_count"],
+        "median_total_tokens_saved": cost_stats["median_total_tokens_saved"],
+        "median_latency_ms_saved": cost_stats["median_latency_ms_saved"],
         "cases": cases,
         "engineering_simulation_only": True,
         "represents_hardware_or_flight_validation": False,
