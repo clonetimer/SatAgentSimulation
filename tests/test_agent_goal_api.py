@@ -23,6 +23,7 @@ def _create_goal(client, *, budget=None, activate=True):
     response = client.post(
         "/agent/goals",
         json={
+            "operation_id": "goal-api:create-root",
             "objective": "比较候选参数并保留可追溯证据",
             "base_task_spec": instantiate_scenario_template("adcs_pointing"),
             "allowed_parameter_paths": ["simulation.duration_s"],
@@ -209,6 +210,7 @@ def test_goal_parameter_allowlist_must_be_registered(tmp_path):
     response = client.post(
         "/agent/goals",
         json={
+            "operation_id": "goal-invalid-allowlist",
             "objective": "非法参数范围",
             "base_task_spec": instantiate_scenario_template("adcs_pointing"),
             "allowed_parameter_paths": ["parameters.values.not_registered"],
@@ -493,3 +495,56 @@ def test_goal_experiment_cannot_be_relaunched_with_new_operation_or_double_charg
     snapshot = client.get(f"/agent/goals/{goal_id}").json()
     assert snapshot["budget"]["reserved_or_committed"]["runs"] == 1
     assert len(app.state.execution_queue.list_jobs(limit=10)["jobs"]) == 1
+
+
+def test_goal_create_is_idempotent_and_rejects_operation_id_reuse(tmp_path):
+    _, client = _client(tmp_path)
+    body = {
+        "operation_id": "goal-create:stable-op",
+        "objective": "比较电池容量并保留证据",
+        "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+        "allowed_parameter_paths": ["simulation.duration_s"],
+        "success_criteria": [{"metric": "status", "operator": "==", "value": "PASS"}],
+        "budget": {
+            "experiments": 2,
+            "runs": 4,
+            "execution_attempts": 4,
+            "model_calls": 1,
+        },
+        "activate": True,
+    }
+    first = client.post("/agent/goals", json=body)
+    assert first.status_code == 200
+    goal_id = first.json()["goal"]["goal_id"]
+    assert first.json()["replayed"] is False
+    assert first.json()["goal"]["status"] == "READY"
+    decision_count = len(first.json()["decisions"])
+
+    replay = client.post("/agent/goals", json=body)
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert replay.json()["goal"]["goal_id"] == goal_id
+    assert len(replay.json()["decisions"]) == decision_count
+
+    changed = dict(body)
+    changed["objective"] = "改成另一个目标"
+    conflict = client.post("/agent/goals", json=changed)
+    assert conflict.status_code == 409
+    assert conflict.json()["detail"]["reason_code"] == "GOAL_CREATE_OPERATION_CONFLICT"
+
+    listed = client.get("/agent/goals")
+    assert listed.status_code == 200
+    assert listed.json()["count"] == 1
+
+
+def test_goal_create_requires_operation_id(tmp_path):
+    _, client = _client(tmp_path)
+    response = client.post(
+        "/agent/goals",
+        json={
+            "objective": "缺少操作 ID",
+            "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+            "allowed_parameter_paths": ["simulation.duration_s"],
+        },
+    )
+    assert response.status_code == 422
