@@ -128,7 +128,7 @@ def run_vllm_evidence_benchmark(
         "gpu_visible": bool(gpu["ok"]),
     }
     report = {
-        "schema_version": "sat-sim.vllm-evidence-benchmark.v1",
+        "schema_version": "sat-sim.vllm-evidence-benchmark.v2",
         "status": "PASS" if all(checks.values()) else "FAIL",
         "budgets": VLLM_BUDGETS,
         "checks": checks,
