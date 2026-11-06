@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from sat_sim.api import create_app
 from sat_sim.experience import ExperienceScope, ExperienceStore
 from sat_sim.experience_lessons import ExperienceLessonService
-from sat_sim.unified_agent import UnifiedAgentRequest, run_unified_agent
+from sat_sim.unified_agent import UnifiedAgentRequest, run_unified_agent, _experience_advisory_payload
 from sat_sim.security import required_roles_for_request
 
 
@@ -1201,3 +1201,41 @@ def test_retrieval_trace_distinguishes_no_approved_match(tmp_path):
     assert lessons == []
     assert trace["retrieval_status"] == "no_approved_match"
     assert trace["candidate_count"] == 0
+
+
+def test_default_wording_retrieves_nominal_experience_in_unified_agent(tmp_path):
+    """Fix the frozen holdout failure class: default != fault."""
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+    source = _source(
+        store,
+        request_text="approved nominal default settings",
+        mode="nominal",
+    )
+    lesson, _ = service.compile(
+        [source.experience_id],
+        scope=SCOPE,
+        actor="compiler-a",
+    )
+    _approve(service, lesson.lesson_id)
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+
+    payload = _experience_advisory_payload(
+        UnifiedAgentRequest(
+            input_kind="natural_language",
+            request_text=(
+                "Use component.battery.v1, mode=default, "
+                "with registered default battery outputs."
+            ),
+            output_dir=tmp_path / "default-mode",
+            backend="template",
+            local_backend="template",
+            experience_reuse_enabled=True,
+            experience_store_root=store.root,
+            experience_tenant_id=SCOPE.tenant_id,
+            experience_project_id=SCOPE.project_id,
+        )
+    )
+    assert payload["mode"] == "nominal"
+    assert payload["lesson_ids"] == [lesson.lesson_id]
+    assert payload["retrieval_trace"]["returned_count"] == 1
