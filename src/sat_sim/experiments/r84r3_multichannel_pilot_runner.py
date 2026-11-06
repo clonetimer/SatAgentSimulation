@@ -24,7 +24,7 @@ from sat_sim.experiments.native_imu_rw_multichannel_pilot_r84r3 import (
 )
 from scripts.audit_r83m_native_archive import audit_archive
 
-CONFIG_PATH = Path(__file__).resolve().parents[2] / "configs" / "research" / "r84r3_native_multichannel_telemetry_pilot.json"
+CONFIG_PATH = Path(__file__).resolve().parents[3] / "configs" / "research" / "r84r3_native_multichannel_telemetry_pilot.json"
 R84R1_SHA256 = "4bc1f9d0f788dce5e8d33aace1fe8860d739158793bcf6fae28352c785742a8e"
 R84R0_SHA256 = "5d1439272f651519fec011d9728165f3afc46b1b3d14d305357ae271b26752af"
 R83M_SHA256 = "db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796"
