@@ -4403,6 +4403,14 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         files.update({"generated_task_yaml": str(task_yaml), "generated_task_json": str(task_json), "validation": str(validation_json)})
         steps.append(CapabilityAgentStep("draft", "failed", "LLM output was not valid literal JSON/YAML TaskSpec data; recorded raw output and stopped before compile/export.", {"backend": backend_name or request.backend, "error": str(exc)}))
         real_model_attempt = request.draft_spec_path is None and request.backend != "template"
+        pre_validation_corrections = [
+            step.name
+            for step in steps
+            if step.name in {"model_invocation_rejected"}
+        ]
+        eligible_unrepaired_first_answer = bool(
+            real_model_attempt and not pre_validation_corrections
+        )
         first_attempt_payload = {
             "schema_version": "sat-sim.generation-first-attempt.v1",
             "request_sha256": hashlib.sha256(request.request.encode("utf-8")).hexdigest(),
@@ -4413,16 +4421,12 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
             "model_call_rejected_file": files.get("model_call_rejected"),
             "raw_model_output_file": files.get("raw_model_output"),
             "draft_source": backend_name or request.backend,
-            "pre_validation_corrections": [
-                step.name
-                for step in steps
-                if step.name in {"model_invocation_rejected"}
-            ],
+            "pre_validation_corrections": pre_validation_corrections,
             "model_fallback_used": False,
-            "schema_rejected_first_response": "model_invocation_rejected" in {step.name for step in steps},
+            "schema_rejected_first_response": "model_invocation_rejected" in pre_validation_corrections,
             "first_answer_eligible": bool(real_model_attempt),
             "first_answer_pass": False,
-            "eligible_unrepaired_first_answer": bool(real_model_attempt),
+            "eligible_unrepaired_first_answer": eligible_unrepaired_first_answer,
             "draft_parse_or_schema_failed": True,
             "failure_type": exc.__class__.__name__,
         }
@@ -4435,7 +4439,7 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
             "Sealed the failed first model attempt before returning.",
             {
                 "validation_ok": False,
-                "eligible_unrepaired_first_answer": bool(real_model_attempt),
+                "eligible_unrepaired_first_answer": eligible_unrepaired_first_answer,
                 "failure_type": exc.__class__.__name__,
             },
         ))
