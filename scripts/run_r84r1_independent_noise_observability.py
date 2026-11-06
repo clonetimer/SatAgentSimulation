@@ -468,7 +468,7 @@ def _analysis(case_records: list[dict[str, Any]], feature_by_id: dict[str, dict[
     }
 
 
-def run_pilot(r83m_archive: Path, output_dir: Path) -> dict[str, Any]:
+def run_pilot(r83m_archive: Path, r0_artifact_path: Path, output_dir: Path) -> dict[str, Any]:
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     if config.get("status") != "PREREGISTERED_NOT_EXECUTED":
         raise RuntimeError("R84R1_PREREGISTRATION_STATUS_INVALID")
@@ -481,6 +481,14 @@ def run_pilot(r83m_archive: Path, output_dir: Path) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     source_dir = output_dir / "source"
     source_dir.mkdir(parents=True, exist_ok=True)
+    expected_r0_sha = config["r0_reference"]["workflow_artifact_sha256"]
+    if _sha256(r0_artifact_path) != expected_r0_sha:
+        raise RuntimeError("R84R1_R0_REFERENCE_ARTIFACT_SHA256_MISMATCH")
+    preserved_r0 = source_dir / "r84-r0-reference.zip"
+    shutil.copy2(r0_artifact_path, preserved_r0)
+    (source_dir / "r84-r0-reference.sha256").write_text(
+        f"{_sha256(preserved_r0)}  r84-r0-reference.zip\n", encoding="utf-8"
+    )
     preserved_archive = source_dir / "r83m-original.zip"
     shutil.copy2(r83m_archive, preserved_archive)
     (source_dir / "r83m-original.sha256").write_text(
@@ -707,6 +715,8 @@ def run_pilot(r83m_archive: Path, output_dir: Path) -> dict[str, Any]:
             "r84r1_observability_analysis.json",
             "source/r83m-original.zip",
             "source/r83m-original.sha256",
+            "source/r84-r0-reference.zip",
+            "source/r84-r0-reference.sha256",
         )
         manifest = {
             "schema_version": "sat-sim.r84r1.native-imu-execution-manifest.v1",
@@ -788,10 +798,11 @@ def run_pilot(r83m_archive: Path, output_dir: Path) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--r83m-archive", type=Path, required=True)
+    parser.add_argument("--r0-artifact", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    result = run_pilot(args.r83m_archive, args.output_dir)
+    result = run_pilot(args.r83m_archive, args.r0_artifact, args.output_dir)
     print(json.dumps({
         "status": result["status"],
         "unique_native_run_count": result["unique_native_run_count"],
