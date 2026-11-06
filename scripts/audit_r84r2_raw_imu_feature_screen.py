@@ -236,6 +236,24 @@ def screen_artifact(path: Path) -> dict:
     fpr=sum(x["multi_feature"]["healthy_false_alarms"] for x in per)
     loss50=sum(x["multi_feature"]["severity"]["loss50"]["threshold_exceedances"] for x in per)
     loss75=sum(x["multi_feature"]["severity"]["loss75"]["threshold_exceedances"] for x in per)
+    original_counts={"healthy_false_alarms":0,"loss50_exceedances":0,"loss75_exceedances":0}
+    for key, records in groups.items():
+        calibration=[float(original[item["record_id"]]["delta_rms_3d_rad_s"])
+                     for item in records["healthy_calibration"]]
+        center0=statistics.median(calibration)
+        cal_scores=[abs(value-center0) for value in calibration]
+        threshold0=nearest_rank(cal_scores)
+        for cohort, target in (
+            ("healthy_false_alarm_control","healthy_false_alarms"),
+            ("loss50_primary","loss50_exceedances"),
+            ("loss75_primary","loss75_exceedances"),
+        ):
+            values=[float(original[item["record_id"]]["delta_rms_3d_rad_s"])
+                    for item in records[cohort]]
+            original_counts[target]+=sum(abs(value-center0)>threshold0 for value in values)
+    require(original_counts=={
+        "healthy_false_alarms":93,"loss50_exceedances":99,"loss75_exceedances":84
+    },"R84R1_ORIGINAL_UNIVARIATE_BASELINE_RECOMPUTE_MISMATCH")
     cliffs50=[x["multi_feature"]["severity"]["loss50"]["cliffs_delta_vs_healthy_control"] for x in per]
     cliffs75=[x["multi_feature"]["severity"]["loss75"]["cliffs_delta_vs_healthy_control"] for x in per]
     uni={}
@@ -278,9 +296,13 @@ def screen_artifact(path: Path) -> dict:
             "median_context_cliffs_delta_loss75":statistics.median(cliffs75),
         },
         "original_r84r1_delta_rms_baseline":{
-            "healthy_false_alarms":93,"healthy_false_alarm_rate":93/n,
-            "loss50_exceedances":99,"loss50_exceedance_rate":99/n,
-            "loss75_exceedances":84,"loss75_exceedance_rate":84/n,
+            **original_counts,
+            "healthy_control_count":n,
+            "healthy_false_alarm_rate":original_counts["healthy_false_alarms"]/n,
+            "loss50_count":n,
+            "loss50_exceedance_rate":original_counts["loss50_exceedances"]/n,
+            "loss75_count":n,
+            "loss75_exceedance_rate":original_counts["loss75_exceedances"]/n,
         },
         "individual_feature_aggregate":uni,
         "per_context":per,
