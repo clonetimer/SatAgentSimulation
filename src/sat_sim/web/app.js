@@ -133,6 +133,16 @@
     activeView: "creator",
     scenarioTemplates: [],
     experiments: [],
+    goals: [],
+    activeGoalId: null,
+    activeGoal: null,
+    goalBaseSpec: null,
+    goalParameterOptions: [],
+    goalCreateOperationId: null,
+    goalExperimentOperationId: null,
+    goalLaunchOperationIds: {},
+    goalInterpretOperationId: null,
+    goalSelectedExperimentId: null,
     apiToken: sessionStorage.getItem('sat-sim-api-token') || '',
     authEnabled: false,
     logSearchTimer: null,
@@ -7427,12 +7437,14 @@
     document.body.dataset.activeView = name;
     const viewIds = {
       creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
+      goals: 'goalRunView',
       interactive: 'interactiveView', continuous: 'continuousView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
     if (name === 'tasks') loadTasks().catch((error) => { el('taskSummary').textContent = `任务中心读取失败：${error.message}`; });
     if (name === 'experiments') loadExperiments().catch((error) => { el('experimentSummary').textContent = `实验中心读取失败：${error.message}`; });
+    if (name === 'goals') loadGoals().catch((error) => { el('goalRunSummary').textContent = `目标列表读取失败：${error.message}`; });
     if (name === 'runs') loadRunCenter().catch((error) => { el('runCenterSummary').textContent = `运行中心读取失败：${error.message}`; });
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
