@@ -585,6 +585,31 @@ class GoalRunStore:
             "replayed": False,
         }
 
+    def unbind_launch_operation(self, goal_id: str, experiment_id: str, operation_id: str) -> dict[str, Any]:
+        """Clear a launch binding only after the caller proves no run side effect occurred."""
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT launch_operation_id FROM goal_experiments WHERE goal_id=? AND experiment_id=?",
+                (goal_id, experiment_id),
+            ).fetchone()
+            if row is None:
+                raise GoalRunError("GOAL_EXPERIMENT_NOT_FOUND", "experiment is not linked to goal")
+            current = str(row["launch_operation_id"] or "")
+            if not current:
+                return {"operation_id": None, "replayed": True}
+            if current != str(operation_id):
+                raise GoalRunError(
+                    "GOAL_LAUNCH_OPERATION_CONFLICT",
+                    "launch operation binding changed before it could be cleared",
+                )
+            connection.execute(
+                """UPDATE goal_experiments SET launch_operation_id=NULL, updated_at=?
+                   WHERE goal_id=? AND experiment_id=? AND launch_operation_id=?""",
+                (_now(), goal_id, experiment_id, str(operation_id)),
+            )
+        return {"operation_id": None, "replayed": False}
+
     def experiments(self, goal_id: str) -> list[dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute(
