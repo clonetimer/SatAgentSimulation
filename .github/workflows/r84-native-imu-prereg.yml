@@ -139,11 +139,13 @@ jobs:
           manifest = json.loads((root / "r84_execution_manifest.json").read_text())
           case_manifest = json.loads((root / "r84_case_manifest.json").read_text())
           sensor = json.loads((root / "r84_sensor_observations.json").read_text())
+          qa = json.loads((root / "r84_physics_qa.json").read_text())
           assert manifest["status"] == "PASS"
           assert manifest["unique_arm_count"] == 8
           assert manifest["native_execution_count_including_one_replay"] == 9
           assert len(case_manifest["records"]) == 9
           assert len(sensor["records"]) == 9
+          assert len(qa["records"]) == 9
           assert manifest["checks"] and all(manifest["checks"].values())
           assert manifest["diagnostic_model_trained"] is False
           assert manifest["formal_training_or_test_eligible"] is False
