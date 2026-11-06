@@ -3163,15 +3163,17 @@ def create_app(
                         and int(execution.get("assigned_count") or 0) == 0
                     )
                     if no_run_side_effects:
-                        if reservation and reservation.get("state") == "RESERVED":
-                            goal_run_store.release_reservation(goal_id, str(reservation["reservation_id"]))
+                        if reservation is None or reservation.get("state") in {"RESERVED", "RELEASED"}:
+                            if reservation and reservation.get("state") == "RESERVED":
+                                goal_run_store.release_reservation(goal_id, str(reservation["reservation_id"]))
+                            # Also recover the crash window after RELEASED but before unbinding.
                             goal_run_store.unbind_launch_operation(goal_id, experiment_id, operation_id)
                             goal_run_store.record_decision(
                                 goal_id,
                                 decision_kind="EXPERIMENT_LAUNCH_FAILED",
                                 summary="启动操作明确失败且没有观察到运行副作用；同步时已释放预算并解除启动绑定。",
                                 evidence={"experiment_id": experiment_id, "reconciliation": execution},
-                                action={"operation_id": operation_id, "budget_released": True},
+                                action={"operation_id": operation_id, "budget_released": bool(reservation)},
                             )
                         else:
                             all_terminal = False
