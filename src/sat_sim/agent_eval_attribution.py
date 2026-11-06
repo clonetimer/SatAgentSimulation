@@ -59,6 +59,7 @@ def _call_cost(path: Path) -> dict[str, Any]:
 def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
     root = Path(output_dir)
     first = _read_json(root / "first_attempt.json")
+    experience_advisory = _read_json(root / "experience_advisory.json")
     report = _read_json(root / "unified_agent_report.json")
     if report is None:
         report = _read_json(root / "capability_agent_report.json") or {}
@@ -119,6 +120,38 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
             seen_request_ids.add(request_id)
         present_calls.append(item)
     verified_calls = [item for item in present_calls if item["verified"]]
+    retrieval_trace = (
+        experience_advisory.get("retrieval_trace")
+        if isinstance(experience_advisory, Mapping)
+        and isinstance(experience_advisory.get("retrieval_trace"), Mapping)
+        else {}
+    )
+    returned_lesson_ids = (
+        list(experience_advisory.get("lesson_ids") or [])
+        if isinstance(experience_advisory, Mapping)
+        else []
+    )
+    influence_status = (
+        str(experience_advisory.get("influence_status") or "unknown")
+        if isinstance(experience_advisory, Mapping)
+        else "unknown"
+    )
+    experience_context = (
+        {
+            "retrieval_event_id": (
+                retrieval_trace.get("event_id")
+                or experience_advisory.get("retrieval_event_id")
+            ),
+            "retrieval_trace_sha256": retrieval_trace.get("trace_sha256"),
+            "retrieval_status": retrieval_trace.get("retrieval_status"),
+            "returned_lesson_ids": returned_lesson_ids,
+            "returned_count": int(retrieval_trace.get("returned_count") or len(returned_lesson_ids)),
+            "influence_status": influence_status,
+            "context_injected": influence_status == "context_injected_use_unverified",
+        }
+        if experience_advisory is not None
+        else None
+    )
 
     return {
         "schema_version": ATTRIBUTION_SCHEMA_VERSION,
@@ -151,6 +184,7 @@ def analyze_generation_artifacts(output_dir: str | Path) -> dict[str, Any]:
             or route_repair_used
             or template_fallback_used
         ),
+        "experience_context": experience_context,
         "model_calls": {
             "present_count": len(present_calls),
             "verified_count": len(verified_calls),
@@ -289,6 +323,18 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         item for item in rows
         if bool(((item.get("generation") or {}).get("repair_assisted_success")))
     ]
+    experience_eligible = [
+        item for item in rows
+        if isinstance((item.get("generation") or {}).get("experience_context"), Mapping)
+    ]
+    experience_retrieved = [
+        item for item in experience_eligible
+        if int((((item.get("generation") or {}).get("experience_context") or {}).get("returned_count") or 0)) > 0
+    ]
+    experience_context_injected = [
+        item for item in experience_eligible
+        if bool((((item.get("generation") or {}).get("experience_context") or {}).get("context_injected")))
+    ]
     total_tokens = sum(
         int((((item.get("generation") or {}).get("model_calls") or {}).get("total_tokens") or 0))
         for item in rows
@@ -316,6 +362,12 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
                 "rate": rate(len(final_passed), len(rows)),
             },
             "repair_assisted_success_count": len(correction_success),
+            "experience_reuse_exposure": {
+                "eligible": len(experience_eligible),
+                "retrieval_with_lessons": len(experience_retrieved),
+                "context_injected_unverified": len(experience_context_injected),
+                "retrieval_rate": rate(len(experience_retrieved), len(experience_eligible)),
+            },
             "run_bundle_execution": {
                 "eligible": len(run_bundle_eligible),
                 "passed": len(run_bundle_passed),
@@ -340,8 +392,9 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         },
         "cases": rows,
         "denominator_policy": (
-            "First-answer, final-task, native-execution and evidence-accuracy "
-            "metrics retain separate eligibility denominators."
+            "First-answer, final-task, Run Bundle, native-execution and evidence-accuracy "
+            "metrics retain separate eligibility denominators. Experience retrieval/context "
+            "exposure is descriptive only and does not establish model use or causal benefit."
         ),
     }
 
