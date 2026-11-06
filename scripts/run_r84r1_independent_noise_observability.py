@@ -228,9 +228,9 @@ def validate_preregistered_run_plan(config: dict[str, Any]) -> list[dict[str, An
         "healthy_false_alarm_control": 540,
         "loss50_primary": 540,
         "loss75_primary": 540,
-        "healthy_sensitivity": 162,
-        "loss50_sensitivity": 162,
-        "loss75_sensitivity": 162,
+        "healthy_sensitivity": 324,
+        "loss50_sensitivity": 324,
+        "loss75_sensitivity": 324,
     }
     if dict(counts) != expected:
         raise RuntimeError("R84R1_PREFLIGHT_COHORT_COUNTS_MISMATCH")
