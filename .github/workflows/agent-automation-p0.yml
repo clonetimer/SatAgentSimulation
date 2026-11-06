@@ -83,7 +83,6 @@ jobs:
             tests/test_agent_prompt_contract_closure.py \
             tests/test_agent_longitudinal_token_accounting.py \
             tests/test_agent_vllm_evidence_benchmark.py \
-            tests/test_agent_prompt_contract_closure.py \
             tests/test_workbench_agent_integration.py \
             tests/test_experience_lessons.py \
             tests/test_model_router_calibration.py \
