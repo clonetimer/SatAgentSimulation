@@ -8,6 +8,7 @@ against the authoritative capability registry and Agent guards.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import math
 import re
@@ -941,12 +942,19 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
         project_id=request.experience_project_id,
     )
     service = ExperienceLessonService(ExperienceStore(request.experience_store_root))
-    lessons = service.retrieve_approved(
+    lessons, retrieval_trace = service.retrieve_approved_with_trace(
         scope=scope,
         capability_id=capability_id,
         mode=mode,
         effect=effect,
         task_spec_version=CANONICAL_TASK_SPEC_VERSION,
+        audit_context={
+            "caller": "unified_agent",
+            "request_fingerprint": hashlib.sha256(
+                request.request_text.encode("utf-8")
+            ).hexdigest(),
+            "context_ref": request.task_id,
+        },
     )
     advisories = [
         {
@@ -966,6 +974,8 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
             "capability_id": capability_id,
             "mode": mode,
             "effect": effect,
+            "retrieval_trace": retrieval_trace,
+            "retrieval_event_id": retrieval_trace["event_id"],
             "approved_experience_advisories": advisories,
             "lesson_ids": [item["lesson_id"] for item in advisories],
             "hit_count": len(advisories),
@@ -975,6 +985,13 @@ def _experience_advisory_payload(request: UnifiedAgentRequest) -> dict[str, Any]
                 else "available_but_no_model_generation"
                 if advisories
                 else "no_approved_match"
+            ),
+            "influence_status": (
+                "context_injected_use_unverified"
+                if advisories and request.input_kind == "natural_language"
+                else "retrieved_not_injected"
+                if advisories
+                else "no_advisory_retrieved"
             ),
         }
     )

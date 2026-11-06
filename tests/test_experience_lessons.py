@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -405,6 +406,17 @@ def test_approved_lesson_is_injected_as_audited_advisory_context(tmp_path):
     assert result.ok is True
     assert advisory["lesson_ids"] == [lesson.lesson_id]
     assert advisory["influence_attribution"] == "presented_to_model"
+    assert advisory["influence_status"] == "context_injected_use_unverified"
+    assert advisory["retrieval_event_id"] == advisory["retrieval_trace"]["event_id"]
+    retrieval_events = service.list_retrieval_events(scope=SCOPE, limit=10)
+    assert retrieval_events[0]["event_id"] == advisory["retrieval_event_id"]
+    assert retrieval_events[0]["returned_lesson_ids"] == [lesson.lesson_id]
+    assert retrieval_events[0]["request_fingerprint"] == hashlib.sha256(
+        (
+            "capability_id=component.battery.v1, mode=nominal. "
+            "Generate a battery engineering simulation."
+        ).encode("utf-8")
+    ).hexdigest()
     assert lesson.lesson_id in prompt
     assert "<!-- verified-example " in prompt
     assert "trust=approved_advisory" in prompt
@@ -1029,3 +1041,163 @@ def test_lesson_api_strict_evidence_and_effect_filter(tmp_path):
         )
         assert mismatched.status_code == 200
         assert mismatched.json()["count"] == 0
+
+
+def test_retrieval_trace_records_disabled_and_applicable_outcomes(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+
+    disabled_lessons, disabled_trace = service.retrieve_approved_with_trace(
+        scope=SCOPE,
+        capability_id="component.battery.v1",
+        mode="nominal",
+        audit_context={
+            "caller": "pytest",
+            "request_fingerprint": "a" * 64,
+            "context_ref": "goal-disabled",
+        },
+    )
+    assert disabled_lessons == []
+    assert disabled_trace["retrieval_status"] == "reuse_disabled"
+    assert disabled_trace["candidate_count"] == 0
+
+    source = _source(store, request_text="trace nominal battery reference")
+    lesson, _ = service.compile([source.experience_id], scope=SCOPE, actor="compiler-a")
+    _approve(service, lesson.lesson_id)
+    snapshot = service.create_snapshot(scope=SCOPE, actor="release-manager")
+
+    retrieved, trace = service.retrieve_approved_with_trace(
+        scope=SCOPE,
+        capability_id="component.battery.v1",
+        mode="nominal",
+        audit_context={
+            "caller": "pytest",
+            "request_fingerprint": "b" * 64,
+            "context_ref": "goal-applicable",
+        },
+    )
+    assert [item.lesson_id for item in retrieved] == [lesson.lesson_id]
+    assert trace["retrieval_status"] == "matched"
+    assert trace["snapshot_id"] == snapshot["snapshot_id"]
+    assert trace["candidate_count"] == 1
+    assert trace["snapshot_eligible_count"] == 1
+    assert trace["version_eligible_count"] == 1
+    assert trace["returned_count"] == 1
+
+    events = service.list_retrieval_events(scope=SCOPE, limit=10)
+    assert [event["event_id"] for event in events[:2]] == [
+        trace["event_id"],
+        disabled_trace["event_id"],
+    ]
+    assert all(len(event["trace_sha256"]) == 64 for event in events[:2])
+    assert all(event["integrity_ok"] is True for event in events[:2])
+    assert events[0]["trace"]["returned_lesson_ids"] == [lesson.lesson_id]
+
+    with store._connect() as db:
+        actions = [
+            row["action"]
+            for row in db.execute(
+                "SELECT action FROM audit_events ORDER BY event_id"
+            ).fetchall()
+        ]
+    assert actions.count("lesson_retrieve") == 2
+
+    with store._connect() as db:
+        db.execute(
+            "UPDATE lesson_retrieval_events SET trace_json = '{}' WHERE event_id = ?",
+            (trace["event_id"],),
+        )
+    tampered = service.list_retrieval_events(scope=SCOPE, limit=10)
+    tampered_event = next(item for item in tampered if item["event_id"] == trace["event_id"])
+    assert tampered_event["integrity_ok"] is False
+
+
+def test_retrieval_limit_is_validated_even_when_reuse_is_disabled(tmp_path):
+    service = ExperienceLessonService(ExperienceStore(tmp_path / "store"))
+    with pytest.raises(ValueError, match="between 1 and 1000"):
+        service.retrieve_approved(
+            scope=SCOPE,
+            capability_id="component.battery.v1",
+            limit=0,
+        )
+
+
+def test_retrieval_event_api_is_scope_filtered(tmp_path):
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        queue_database=tmp_path / "queue.sqlite3",
+        embedded_worker=False,
+    )
+    service = app.state.experience_lessons
+    store = app.state.experience_store
+    source = _source(store, request_text="api retrieval battery")
+    lesson, _ = service.compile([source.experience_id], scope=SCOPE, actor="compiler-a")
+    _approve(service, lesson.lesson_id)
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+    service.retrieve_approved_with_trace(
+        scope=SCOPE,
+        capability_id="component.battery.v1",
+        mode="nominal",
+        audit_context={"caller": "api-test", "request_fingerprint": "c" * 64},
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/experience-lessons/retrieval-events",
+        params={"tenant_id": SCOPE.tenant_id, "project_id": SCOPE.project_id},
+    )
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+    assert response.json()["events"][0]["returned_lesson_ids"] == [lesson.lesson_id]
+
+    isolated = client.get(
+        "/experience-lessons/retrieval-events",
+        params={"tenant_id": "other", "project_id": SCOPE.project_id},
+    )
+    assert isolated.status_code == 200
+    assert isolated.json()["count"] == 0
+
+
+def test_tampered_lesson_snapshot_fails_closed_for_retrieval_and_rollback(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+    source = _source(store, request_text="snapshot integrity battery")
+    lesson, _ = service.compile([source.experience_id], scope=SCOPE, actor="compiler-a")
+    _approve(service, lesson.lesson_id)
+    snapshot = service.create_snapshot(scope=SCOPE, actor="release-manager")
+
+    with store._connect() as db:
+        db.execute(
+            "UPDATE lesson_snapshots SET lesson_ids_json = ? WHERE snapshot_id = ?",
+            ("[]", snapshot["snapshot_id"]),
+        )
+
+    with pytest.raises(ValueError, match="LESSON_SNAPSHOT_INTEGRITY_FAILED"):
+        service.retrieve_approved(
+            scope=SCOPE,
+            capability_id="component.battery.v1",
+            mode="nominal",
+        )
+
+    with pytest.raises(ValueError, match="LESSON_SNAPSHOT_INTEGRITY_FAILED"):
+        service.rollback_snapshot(
+            snapshot["snapshot_id"],
+            scope=SCOPE,
+            actor="release-manager",
+        )
+
+
+def test_retrieval_trace_distinguishes_no_approved_match(tmp_path):
+    store = ExperienceStore(tmp_path / "store")
+    service = ExperienceLessonService(store)
+    service.create_snapshot(scope=SCOPE, actor="release-manager")
+    lessons, trace = service.retrieve_approved_with_trace(
+        scope=SCOPE,
+        capability_id="component.battery.v1",
+        mode="nominal",
+        audit_context={"caller": "pytest", "request_fingerprint": "d" * 64},
+    )
+    assert lessons == []
+    assert trace["retrieval_status"] == "no_approved_match"
+    assert trace["candidate_count"] == 0
