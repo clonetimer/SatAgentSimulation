@@ -414,7 +414,10 @@ def aggregate_cases(cases: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     for item in rows:
         model_calls = (item.get("generation") or {}).get("model_calls") or {}
         if int(model_calls.get("present_count") or 0) == 0:
-            case_token_values.append(0)
+            generation = item.get("generation") or {}
+            case_token_values.append(
+                None if generation.get("first_answer_eligible") is True else 0
+            )
         else:
             value = model_calls.get("total_tokens")
             case_token_values.append(
