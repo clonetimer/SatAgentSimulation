@@ -30,13 +30,19 @@ def test_pilot_has_exactly_eight_fixed_physical_sensor_arms():
     assert design["actuator_caps_nm"] == {"healthy": 0.02, "loss75": 0.005}
     assert design["sampling_s"] == 0.2 and design["duration_s"] == 6.0
     assert design["expected_samples_per_case"] == 31
+    assert design["unique_arm_count"] == 8
+    assert design["total_native_executions"] == 9
+    assert design["repeatability_control"]["repetitions"] == 1
+    assert design["repeatability_control"]["seed"] == design["noise_seed"]
     assert design["fault_mutation_paused_scheduler_s"] == 2.4
     assert design["first_post_fault_native_sample_s"] == 2.6
 
 
 def test_native_sensor_must_be_official_and_observer_only():
     engine = protocol()["fixed_native_engine"]
-    assert engine["distribution"] == "bsk==2.11.0"
+    assert engine["distribution"] == "bsk==2.11.0+satfix2"
+    assert engine["original_wheel_sha256"] == "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a"
+    assert engine["compatibility_metadata_patch"].startswith("satfix2;")
     assert "imuSensor.ImuSensor" in engine["required_modules"]
     assert engine["sensor_source"] == "imuSensor.sensorOutMsg.AngVelPlatform"
     assert engine["proxy_fallback_allowed"] is False
