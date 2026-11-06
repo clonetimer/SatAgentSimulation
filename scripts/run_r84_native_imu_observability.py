@@ -1,8 +1,8 @@
 """Execute and audit the preregistered R84-R0 native Basilisk IMU pilot.
 
-The original R83m artifact is a mandatory SHA-pinned physical baseline. The
-script emits sensor observations separately from condition labels and private
-physics QA. It never creates a classifier dataset or trains a model.
+用途：运行八个唯一原生 Basilisk IMU/RW 物理实验臂和一个同种子回放控制。
+参数：--r83m-archive 指向 SHA 固定的原始 54 案例 ZIP；--output-dir 指定证据输出目录。
+输出：分离的 IMU 原始观测、条件清单、物理 QA、哈希清单和失败收据；不训练模型。
 """
 from __future__ import annotations
 
