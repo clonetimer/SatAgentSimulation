@@ -272,6 +272,7 @@ class GoalRunStore:
         allowed_parameter_paths: Sequence[str],
         success_criteria: Sequence[Mapping[str, Any]] = (),
         budget: Mapping[str, Any] | None = None,
+        activate: bool = True,
     ) -> tuple[GoalRunRecord, bool]:
         operation_id = str(operation_id or "").strip()
         if not operation_id or len(operation_id) > 128 or any(ord(ch) < 33 for ch in operation_id):
@@ -290,6 +291,7 @@ class GoalRunStore:
             "allowed_parameter_paths": allowed,
             "success_criteria": criteria,
             "budget": normalized_budget,
+            "activate": bool(activate),
         }
         input_sha256 = hashlib.sha256(_json_dump(request_payload).encode("utf-8")).hexdigest()
         goal_id = "goal_" + hashlib.sha256(operation_id.encode("utf-8")).hexdigest()[:16]
