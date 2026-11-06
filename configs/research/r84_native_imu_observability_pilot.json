@@ -11,7 +11,7 @@
     "original_source_head": "6e1d54bfef6655a29e0a6c98b135f478fa539a48"
   },
   "fixed_native_engine": {
-    "distribution": "bsk==2.11.0",
+    "distribution": "bsk==2.11.0+satfix1",
     "source_wheel_sha256": "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a",
     "required_modules": [
       "spacecraft.Spacecraft",
@@ -26,7 +26,9 @@
     "kinematic_or_posthoc_imu_substitution_allowed": false,
     "sensor_source": "imuSensor.sensorOutMsg.AngVelPlatform",
     "imu_connection": "imu.scStateInMsg.subscribeTo(spacecraft.scStateOutMsg)",
-    "controller_feedback_source": "simpleNav unchanged from R83m; sensor remains observer-only"
+    "controller_feedback_source": "simpleNav unchanged from R83m; sensor remains observer-only",
+    "compatibility_metadata_patch": "satfix1; original upstream wheel binary payload unchanged",
+    "original_wheel_sha256": "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a"
   },
   "frozen_pilot_design": {
     "wheel": 0,
@@ -66,7 +68,17 @@
     "expected_samples_per_case": 31,
     "provisional_request_max_abs_nm": 0.02,
     "provisional_wheel_speed_max_abs_rad_s": 900,
-    "provisional_body_rate_max_abs_rad_s": 0.005
+    "provisional_body_rate_max_abs_rad_s": 0.005,
+    "unique_arm_count": 8,
+    "repeatability_control": {
+      "reference_mode": "pulse09",
+      "actuator_capacity_mode": "loss75",
+      "gyro_white_noise_std_rad_s": 0.0001,
+      "seed": 331,
+      "repetitions": 1,
+      "purpose": "exact seeded native sensor replay; QA repeat only, not an independent arm or dataset sample"
+    },
+    "total_native_executions": 9
   },
   "approved_observation_fields": [
     "imu.raw_gyro_rad_s_x",
