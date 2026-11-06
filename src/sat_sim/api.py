@@ -415,6 +415,7 @@ class AgentEvidenceInterpretBody(_Strict):
 
 
 class AgentGoalCreateBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
     objective: str = Field(min_length=1, max_length=4000)
     base_task_spec: dict[str, Any]
     base_task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
@@ -2516,25 +2517,31 @@ def create_app(
                     "goal allows unregistered parameter path(s): " + ", ".join(unknown),
                 )
             allowed = requested or sorted(registered)
-            goal = goal_run_store.create(
+            goal, replayed = goal_run_store.create_idempotent(
+                operation_id=body.operation_id,
                 objective=body.objective,
                 base_task_spec=canonical,
                 allowed_parameter_paths=allowed,
                 success_criteria=body.success_criteria,
                 budget=body.budget,
             )
-            if body.activate:
+            if body.activate and goal.status == "DRAFT":
                 goal = goal_run_store.transition(goal.goal_id, "READY")
-            goal_run_store.record_decision(
-                goal.goal_id,
-                decision_kind="GOAL_CREATED",
-                summary="目标已建立并冻结基础任务与预算。",
-                evidence={"task_id": canonical.get("task", {}).get("id")},
-                action={"status": goal.status},
-            )
-            return {"ok": True, **goal_snapshot_payload(goal.goal_id)}
+            if not replayed:
+                goal_run_store.record_decision(
+                    goal.goal_id,
+                    decision_kind="GOAL_CREATED",
+                    summary="目标已建立并冻结基础任务与预算。",
+                    evidence={"task_id": canonical.get("task", {}).get("id")},
+                    action={"status": goal.status, "operation_id": body.operation_id},
+                )
+            return {"ok": True, "replayed": replayed, **goal_snapshot_payload(goal.goal_id)}
         except GoalRunError as exc:
-            raise goal_error(exc) from exc
+            status_code = 409 if exc.reason_code in {
+                "GOAL_CREATE_OPERATION_CONFLICT",
+                "GOAL_ID_CONFLICT",
+            } else 422
+            raise goal_error(exc, status_code=status_code) from exc
         except Exception as exc:
             raise HTTPException(
                 status_code=422,
