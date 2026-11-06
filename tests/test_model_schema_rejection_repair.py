@@ -86,6 +86,12 @@ def test_pipeline_preserves_rejection_and_final_response_separately(monkeypatch,
     assert (tmp_path / 'raw_model_output_rejected.txt').read_text(encoding='utf-8') == rejected.raw_text
     assert (tmp_path / 'raw_model_output.txt').read_text(encoding='utf-8') == backend.last_call.raw_text
     assert any(s.name == 'model_invocation_rejected' and not s.payload['verified'] for s in result.steps)
+    first_attempt = json.loads((tmp_path / 'first_attempt.json').read_text(encoding='utf-8'))
+    assert first_attempt['schema_rejected_first_response'] is True
+    assert first_attempt['first_answer_eligible'] is True
+    assert first_attempt['first_answer_pass'] is False
+    assert first_attempt['eligible_unrepaired_first_answer'] is False
+    assert 'model_invocation_rejected' in first_attempt['pre_validation_corrections']
     if second == '422':
         assert not result.ok and result.compiled is None and result.script is None
     else:

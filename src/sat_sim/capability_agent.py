@@ -4402,6 +4402,47 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
         write_json(validation_json, validation.to_dict())
         files.update({"generated_task_yaml": str(task_yaml), "generated_task_json": str(task_json), "validation": str(validation_json)})
         steps.append(CapabilityAgentStep("draft", "failed", "LLM output was not valid literal JSON/YAML TaskSpec data; recorded raw output and stopped before compile/export.", {"backend": backend_name or request.backend, "error": str(exc)}))
+        real_model_attempt = request.draft_spec_path is None and request.backend != "template"
+        pre_validation_corrections = [
+            step.name
+            for step in steps
+            if step.name in {"model_invocation_rejected"}
+        ]
+        eligible_unrepaired_first_answer = bool(
+            real_model_attempt and not pre_validation_corrections
+        )
+        first_attempt_payload = {
+            "schema_version": "sat-sim.generation-first-attempt.v1",
+            "request_sha256": hashlib.sha256(request.request.encode("utf-8")).hexdigest(),
+            "normalized_task_spec_sha256": None,
+            "validation_ok": False,
+            "validation": validation.to_dict(),
+            "model_call_file": files.get("model_call"),
+            "model_call_rejected_file": files.get("model_call_rejected"),
+            "raw_model_output_file": files.get("raw_model_output"),
+            "draft_source": backend_name or request.backend,
+            "pre_validation_corrections": pre_validation_corrections,
+            "model_fallback_used": False,
+            "schema_rejected_first_response": "model_invocation_rejected" in pre_validation_corrections,
+            "first_answer_eligible": bool(real_model_attempt),
+            "first_answer_pass": False,
+            "eligible_unrepaired_first_answer": eligible_unrepaired_first_answer,
+            "draft_parse_or_schema_failed": True,
+            "failure_type": exc.__class__.__name__,
+        }
+        first_attempt_path = output_dir / "first_attempt.json"
+        write_json(first_attempt_path, first_attempt_payload)
+        files["first_attempt"] = str(first_attempt_path)
+        steps.append(CapabilityAgentStep(
+            "first_attempt_evidence",
+            "complete",
+            "Sealed the failed first model attempt before returning.",
+            {
+                "validation_ok": False,
+                "eligible_unrepaired_first_answer": eligible_unrepaired_first_answer,
+                "failure_type": exc.__class__.__name__,
+            },
+        ))
         result = CapabilityScriptGenerationResult(
             ok=False,
             request=request,
@@ -4564,6 +4605,74 @@ def run_capability_script_generation(request: CapabilityAgentRequest) -> Capabil
     validation = _validate_generated_draft(current, request)
     if raw_parameter_issues:
         validation = ValidationResult(tuple([*validation.issues, *raw_parameter_issues]))
+
+    # Seal the first normalized candidate and its validation result before any
+    # LLM retry, deterministic repair, or template-route fallback.  Evaluation
+    # code can therefore distinguish true first-answer fidelity from eventual
+    # task success without issuing a second model request.
+    pre_validation_corrections = [
+        step.name
+        for step in steps
+        if step.name in {
+            "model_fallback",
+            "planner_route_repair",
+            "capability_id_alias_normalization",
+            "model_invocation_rejected",
+        }
+    ]
+    first_attempt_payload = {
+        "schema_version": "sat-sim.generation-first-attempt.v1",
+        "request_sha256": hashlib.sha256(request.request.encode("utf-8")).hexdigest(),
+        "normalized_task_spec_sha256": hashlib.sha256(
+            json.dumps(
+                current,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest(),
+        "validation_ok": validation.ok,
+        "validation": validation.to_dict(),
+        "model_call_file": files.get("model_call"),
+        "raw_model_output_file": files.get("raw_model_output"),
+        "draft_source": (
+            "external_draft_file"
+            if request.draft_spec_path is not None
+            else getattr(backend, "name", request.backend)
+        ),
+        "pre_validation_corrections": pre_validation_corrections,
+        "model_fallback_used": "model_fallback" in pre_validation_corrections,
+        "schema_rejected_first_response": "model_invocation_rejected" in pre_validation_corrections,
+        "model_call_rejected_file": files.get("model_call_rejected"),
+        "first_answer_eligible": (
+            request.draft_spec_path is None
+            and request.backend != "template"
+        ),
+        "first_answer_pass": (
+            request.draft_spec_path is None
+            and request.backend != "template"
+            and not pre_validation_corrections
+            and validation.ok
+        ),
+        "eligible_unrepaired_first_answer": (
+            request.draft_spec_path is None
+            and request.backend != "template"
+            and not pre_validation_corrections
+        ),
+    }
+    first_attempt_path = output_dir / "first_attempt.json"
+    write_json(first_attempt_path, first_attempt_payload)
+    files["first_attempt"] = str(first_attempt_path)
+    steps.append(CapabilityAgentStep(
+        "first_attempt_evidence",
+        "complete",
+        "Sealed the first normalized candidate and validation result before repair.",
+        {
+            "validation_ok": validation.ok,
+            "normalized_task_spec_sha256": first_attempt_payload["normalized_task_spec_sha256"],
+            "pre_validation_corrections": pre_validation_corrections,
+        },
+    ))
     if (
         not validation.ok
         and not raw_parameter_issues

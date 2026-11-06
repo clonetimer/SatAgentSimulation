@@ -39,6 +39,12 @@ def test_model_duration_mismatch_is_rejected_without_template_replacement(tmp_pa
     assert result.compiled is None
     assert 'USER_TIME_REQUIREMENT_MISMATCH' in {issue.code for issue in result.validation.errors}
     assert result.task_spec['simulation']['duration_s']==2.
+    first_attempt = json.loads((tmp_path/'out'/'first_attempt.json').read_text(encoding='utf-8'))
+    assert first_attempt['validation_ok'] is False
+    assert 'USER_TIME_REQUIREMENT_MISMATCH' in {
+        issue['code'] for issue in first_attempt['validation']['errors']
+    }
+    assert first_attempt['pre_validation_corrections'] == []
     from sat_sim.agent_facade import AgentFacadeRequest, run_agent
     facade = run_agent(AgentFacadeRequest(request=f'使用 {cid} 运行20秒',
         draft_spec_path=source,output_dir=tmp_path/'facade'))
@@ -101,3 +107,65 @@ def test_requested_eps_scope_is_not_replaced_by_output_component_keywords(prompt
     result=plan_capability_for_request(prompt_text,allowed_capabilities=DEFAULT_ALLOWED_CAPABILITIES)
     assert result.supported
     assert result.selected_capability_id == expected
+
+
+def test_first_attempt_evidence_records_unrepaired_valid_draft(tmp_path):
+    from sat_sim.capability_agent import CapabilityAgentRequest, run_capability_script_generation
+    cid = 'subsystem.adcs_unified_native.v1'
+    spec = yaml.safe_load(_example_for_prompt(cid))
+    source = tmp_path/'valid-model-draft.json'
+    source.write_text(json.dumps(spec),encoding='utf-8')
+    result = run_capability_script_generation(CapabilityAgentRequest(
+        request=f'使用 {cid} 创建ADCS正常仿真',
+        draft_spec_path=source,
+        output_dir=tmp_path/'valid-out',
+        allowed_capabilities=(cid,),
+        max_repair_attempts=2,
+    ))
+    assert result.ok
+    first_attempt = json.loads((tmp_path/'valid-out'/'first_attempt.json').read_text(encoding='utf-8'))
+    assert first_attempt['schema_version'] == 'sat-sim.generation-first-attempt.v1'
+    assert first_attempt['validation_ok'] is True
+    assert first_attempt['pre_validation_corrections'] == []
+    assert first_attempt['draft_source'] == 'external_draft_file'
+    assert result.files['first_attempt'].endswith('first_attempt.json')
+
+
+def test_real_model_timeout_is_counted_as_failed_first_answer(monkeypatch, tmp_path):
+    import sat_sim.capability_agent as capability_agent
+
+    class TimeoutBackend:
+        name = "openai_compatible"
+        last_raw_output = ""
+        last_call = None
+
+        def draft_task_spec(self, *, request, context):
+            raise TimeoutError("model request exceeded timeout")
+
+    monkeypatch.setattr(
+        capability_agent,
+        "_backend_from_request",
+        lambda request: TimeoutBackend(),
+    )
+    result = capability_agent.run_capability_script_generation(
+        capability_agent.CapabilityAgentRequest(
+            request=(
+                "Create a nominal reaction wheel simulation using "
+                "component.reaction_wheel.v1."
+            ),
+            output_dir=tmp_path / "timeout-out",
+            backend="openai_compatible",
+            allowed_capabilities=("component.reaction_wheel.v1",),
+            max_repair_attempts=0,
+        )
+    )
+    assert not result.ok
+    first_attempt = json.loads(
+        (tmp_path / "timeout-out" / "first_attempt.json").read_text(encoding="utf-8")
+    )
+    assert first_attempt["first_answer_eligible"] is True
+    assert first_attempt["first_answer_pass"] is False
+    assert first_attempt["eligible_unrepaired_first_answer"] is True
+    assert first_attempt["validation_ok"] is False
+    assert first_attempt["draft_parse_or_schema_failed"] is True
+    assert first_attempt["failure_type"] == "TimeoutError"

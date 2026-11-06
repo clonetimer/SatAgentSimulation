@@ -18,6 +18,7 @@ def main() -> int:
     parser.add_argument("--source-bundle", type=Path, required=True)
     parser.add_argument("--base-url", default="http://127.0.0.1:8000/v1")
     parser.add_argument("--model", default="Qwen3.5-9B")
+    parser.add_argument("--max-repair-attempts", type=int, default=2, choices=(0, 1, 2))
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -29,6 +30,7 @@ def main() -> int:
         output_dir=args.output_dir,
         base_url=args.base_url,
         model=args.model,
+        max_repair_attempts=args.max_repair_attempts,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["status"] == "PASS" else 1

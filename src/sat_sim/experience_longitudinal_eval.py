@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from .experience import ExperienceScope, ExperienceStore, _canonical, _sha256
 from .experience_lessons import ExperienceLessonService
+from .agent_eval_attribution import analyze_case, aggregate_cases
 from .task_spec import write_json
 from .unified_agent import UnifiedAgentRequest, run_unified_agent
 
@@ -125,6 +126,7 @@ def run_experience_longitudinal_eval(
     base_url: str = "http://127.0.0.1:8000/v1",
     model: str = "Qwen3.5-9B",
     requests: Sequence[str] = DEFAULT_HELD_OUT_REQUESTS,
+    max_repair_attempts: int = 2,
 ) -> dict[str, Any]:
     if len(requests) < 6:
         raise ValueError("longitudinal evaluation requires at least six paired cases")
@@ -155,29 +157,39 @@ def run_experience_longitudinal_eval(
         "case_ids": ["preliminary-battery-nominal"],
         "result": "PASS",
     }
-    preliminary_hash = _sha256(_canonical(preliminary))
+    preliminary_hash = service.store_evaluation_artifact(preliminary)
+    preliminary_metrics = {
+        "baseline": {
+            "primary_score": 1.0,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+        "candidate": {
+            "primary_score": 1.0,
+            "safety_regressions": 0,
+            "physical_regressions": 0,
+            "backward_regressions": 0,
+        },
+    }
+    preliminary_metrics_hash = service.store_evaluation_artifact(preliminary_metrics)
     service.evaluate(
         lesson.lesson_id,
         scope=scope,
         evaluator="evaluator-a",
         held_out_case_ids=("preliminary-battery-nominal",),
         baseline_metrics={
-            "primary_score": 1.0,
-            "safety_regressions": 0,
-            "physical_regressions": 0,
-            "backward_regressions": 0,
+            **preliminary_metrics["baseline"],
         },
         candidate_metrics={
-            "primary_score": 1.0,
-            "safety_regressions": 0,
-            "physical_regressions": 0,
-            "backward_regressions": 0,
+            **preliminary_metrics["candidate"],
         },
         evaluation_evidence={
             "runner": preliminary["runner"],
             "case_result_sha256": preliminary_hash,
-            "metrics_source_sha256": preliminary_hash,
+            "metrics_source_sha256": preliminary_metrics_hash,
         },
+        require_evidence_objects=True,
     )
     for reviewer in ("reviewer-a", "reviewer-b"):
         service.review(
@@ -209,6 +221,7 @@ def run_experience_longitudinal_eval(
                     model_seed=0,
                     model_max_output_tokens=2048,
                     model_structured_output="json_schema",
+                    max_repair_attempts=max_repair_attempts,
                     compile_if_valid=True,
                     experience_reuse_enabled=enabled,
                     experience_store_root=store.root if enabled else None,
@@ -219,6 +232,7 @@ def run_experience_longitudinal_eval(
             run_pass = False
             validation_result = None
             run_status = None
+            execution = {}
             if result.ok:
                 execution = _execute_supervised(
                     case_output / "task_spec.json",
@@ -231,6 +245,14 @@ def run_experience_longitudinal_eval(
                     and validation_result == "PASS"
                     and run_status == "SUCCEEDED"
                 )
+            attribution = analyze_case(
+                case_id=f"held-out-{index + 1}:{arm}",
+                output_dir=case_output,
+                bundle_root=execution.get("bundle_root"),
+            )
+            attributed_calls = (
+                ((attribution.get("generation") or {}).get("model_calls") or {})
+            )
             pair[arm] = {
                 "agent_ok": result.ok,
                 "validation_ok": result.validation.ok,
@@ -245,6 +267,14 @@ def run_experience_longitudinal_eval(
                 ),
                 "experience_presented": "EXPERIENCE_ADVISORY_PRESENTED"
                 in result.reason_codes,
+                "attribution": attribution,
+                "attributed_prompt_tokens": int(attributed_calls.get("prompt_tokens") or 0),
+                "attributed_completion_tokens": int(attributed_calls.get("completion_tokens") or 0),
+                "attributed_total_tokens": int(attributed_calls.get("total_tokens") or 0),
+                "attributed_latency_ms": float(attributed_calls.get("latency_ms") or 0.0),
+                "all_present_model_calls_verified": bool(
+                    attributed_calls.get("all_present_verified")
+                ),
                 **_model_metrics(case_output),
             }
         pair["delta"] = {
@@ -257,11 +287,23 @@ def run_experience_longitudinal_eval(
             "latency_ms_saved": (
                 pair["baseline"]["latency_ms"] - pair["experience"]["latency_ms"]
             ),
+            "attributed_prompt_tokens_saved": (
+                pair["baseline"]["attributed_prompt_tokens"]
+                - pair["experience"]["attributed_prompt_tokens"]
+            ),
+            "attributed_total_tokens_saved": (
+                pair["baseline"]["attributed_total_tokens"]
+                - pair["experience"]["attributed_total_tokens"]
+            ),
+            "attributed_latency_ms_saved": (
+                pair["baseline"]["attributed_latency_ms"]
+                - pair["experience"]["attributed_latency_ms"]
+            ),
         }
         cases.append(pair)
 
-    token_deltas = [item["delta"]["total_tokens_saved"] for item in cases]
-    latency_deltas = [item["delta"]["latency_ms_saved"] for item in cases]
+    token_deltas = [item["delta"]["attributed_total_tokens_saved"] for item in cases]
+    latency_deltas = [item["delta"]["attributed_latency_ms_saved"] for item in cases]
     wins = sum(value > 0 for value in token_deltas)
     losses = sum(value < 0 for value in token_deltas)
     ties = sum(value == 0 for value in token_deltas)
@@ -277,7 +319,9 @@ def run_experience_longitudinal_eval(
     )
     checks = {
         "all_model_invocations_verified": all(
-            item[arm]["verified"] for item in cases for arm in ("baseline", "experience")
+            item[arm]["all_present_model_calls_verified"]
+            for item in cases
+            for arm in ("baseline", "experience")
         ),
         "baseline_run_pass_rate_100": baseline_pass == 1.0,
         "experience_run_pass_rate_100": experience_pass == 1.0,
@@ -289,13 +333,21 @@ def run_experience_longitudinal_eval(
         "paired_sign_test_p_le_0_05": sign_p <= 0.05,
         "median_total_tokens_saved_positive": statistics.median(token_deltas) > 0,
     }
+    attribution_report = {
+        arm: aggregate_cases([item[arm]["attribution"] for item in cases])
+        for arm in ("baseline", "experience")
+    }
     report = {
-        "schema_version": "sat-sim.experience-longitudinal-ab.v1",
+        "schema_version": "sat-sim.experience-longitudinal-ab.v2",
         "status": "PASS" if all(checks.values()) else "FAIL",
         "checks": checks,
         "run_id": run_id,
         "model": model,
         "base_url": base_url,
+        "max_repair_attempts": int(max_repair_attempts),
+        "cost_gate_basis": "all_attributed_model_calls",
+        "legacy_single_call_cost_fields_retained": True,
+        "attribution": attribution_report,
         "lesson_id": lesson.lesson_id,
         "snapshot_id": snapshot["snapshot_id"],
         "pair_count": len(cases),
