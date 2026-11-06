@@ -365,3 +365,20 @@ def test_missing_generation_artifacts_do_not_look_like_zero_token_cost():
     assert resource["model_total_tokens"] is None
     assert resource["model_total_tokens_unknown_case_count"] == 1
     assert resource["model_token_usage_complete"] is False
+
+
+def test_preflight_rejection_artifacts_have_unknown_attributed_token_cost(tmp_path):
+    # Generation report exists but no provider call was attempted. This is not
+    # an observed zero-token model invocation.
+    _write(tmp_path / "unified_agent_report.json", {"ok": False})
+    result = analyze_generation_artifacts(tmp_path)
+    assert result["model_calls"]["present_count"] == 0
+    assert result["model_calls"]["total_tokens"] is None
+    assert result["model_calls"]["model_call_evidence_missing"] is True
+    assert result["model_calls"]["token_usage_complete"] is False
+
+    aggregate = aggregate_cases([
+        {"generation": result, "execution": {}, "evidence_accuracy_pass": None},
+    ])
+    assert aggregate["metrics"]["resource_use"]["model_total_tokens"] is None
+    assert aggregate["metrics"]["resource_use"]["model_total_tokens_unknown_case_count"] == 1
