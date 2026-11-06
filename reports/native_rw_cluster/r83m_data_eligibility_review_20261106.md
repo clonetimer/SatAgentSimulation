@@ -16,9 +16,9 @@
 
 | 文件 | 大小 | SHA-256 |
 |---|---:|---|
-| 原始 ZIP | — | `db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796` |
+| 原始 ZIP | 271,722 bytes | `db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796` |
 | `r83m_genuine_native_54_original.json` | 2,020,615 bytes | `635fd4e4cd36da39a15ba1289003ba84aaf4551b02de70c3d063ada878209502` |
-| `compat_payload_review.json` | 847 bytes | 本轮已读取并核验内容，未单列文件哈希 |
+| `compat_payload_review.json` | 847 bytes | `3f279f92c4e424ce0625083a190dda1b9ab183727fb789eb976abded67b9cdb9` |
 
 兼容性审查记录为 Basilisk 2.11.0 的 metadata-only `satfix1` 发行兼容修正，原生载荷 880 项、字节数保持不变。它不代表物理内核被替换为 Python 代理。
 
@@ -47,7 +47,7 @@
 
 ## 3. 物理可观测性结果
 
-原始 `native_physical_paired_outcomes` 共 27 个配对结果：
+原始 `native_physical_paired_outcomes` 共 27 个配对结果。已使用独立只读审计程序逐行复算，包含正常/故障配对、原生 C++ 权限读回、0.2 s 时间网格、封存 SHA、非 QA 通道以及故障后实际施加力矩约束。故障在 2.4 s 原生调度暂停点修改权限，降额后的执行效果从下一个 2.6 s 样本起核验；2.4 s 时刻的旧力矩样本不应误判为超限。
 
 | 参考激励 | 有实际轮速差异的配对 | 结论 |
 |---|---:|---|
@@ -123,5 +123,19 @@
 4. 形成严格的特征白名单、QA 字段黑名单、标签 schema 和 provenance manifest。
 5. 按独立物理条件组划分训练/验证/测试；禁止把同一条件组的时间窗随机拆到不同集合。
 6. 先完成数据专家审查和独立测试，再决定是否训练诊断模型。
+
+## 8. 可复现的原始归档验收
+
+本次新增只读工具 [`scripts/audit_r83m_native_archive.py`](../../scripts/audit_r83m_native_archive.py)、防篡改单测 [`tests/test_r83m_native_archive_audit.py`](../../tests/test_r83m_native_archive_audit.py)，以及 [机器可读审计报告](r83m_original_archive_audit.json)。无需重新仿真，不会修改原始 ZIP，不生成可以冒充诊断遥测的训练样本。
+
+```bash
+# 将 GitHub Actions #40160788578 的原始 ZIP 下载到本机后：
+python -m pytest -q tests/test_r83m_native_archive_audit.py
+python scripts/audit_r83m_native_archive.py ./r83m-original.zip --report ./r83m-original-audit.json
+```
+
+审计硬性核对：原始 ZIP/两个成员文件 SHA-256、固定 54 案例与 27 配对、9 条轮系与初始状态条件、31 点 × 0.2 s 采样、故障轮与注入时间、原生 C++ `u_max` 读回、故障后 `u_current` 限幅、已归档正常—故障逐行差异与摘要值。若任何签名或原始数值不符，则 `ok=false` 并返回非零退出码。
+
+**区分两种测试证据：**无原始 ZIP 的 CI 运行是合成夹具的验证器回归，不代表执行过真实 Basilisk；只有通过哈希绑定的 `audit_archive` 才能把 `physics_archive_verified` 设为 `true`。如需 GitHub 端再次复验，可以手动触发 [`r83m-original-archive-audit.yml`](../../.github/workflows/r83m-original-archive-audit.yml) 并启用 `verify_original_archive`，让 Actions 从原始归档获取数据并输出独立 JSON 收据。该 GitHub Actions 原始 artifact 的当前保留截止时间为 **2026-11-15 04:09 UTC**；截止后需用已保存的原始字节副本复验，不得以重跑数据替代原始样本。
 
 **当前决定：不训练、不生成虚假的 VAL/TEST 资格、不合并 R83j–R83m 实验草稿为生产能力。** 先将本归档固定为可追溯的物理证据，再补足传感器观测链。
