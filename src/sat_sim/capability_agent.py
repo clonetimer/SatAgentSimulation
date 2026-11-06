@@ -1319,6 +1319,14 @@ def _experience_example_for_prompt(
     if not isinstance(payload, dict) or payload.get("capability_id") != capability_id:
         return None
 
+    current_target = payload.get("target")
+    if not isinstance(current_target, Mapping):
+        return None
+    for identity_key in ("level", "name"):
+        source_value = target.get(identity_key)
+        if source_value is not None and source_value != current_target.get(identity_key):
+            return None
+
     contract = get_capability(capability_id)
     declared_parameters = contract.data.get("parameters")
     if not isinstance(declared_parameters, Mapping):
@@ -1331,7 +1339,6 @@ def _experience_example_for_prompt(
 
     # Keep Registry-owned target identity and only copy a mode when it is
     # explicitly present in the verified source outline.
-    current_target = payload.get("target")
     if isinstance(current_target, dict) and target.get("mode") in {"nominal", "fault", "degradation"}:
         current_target["mode"] = target["mode"]
 
