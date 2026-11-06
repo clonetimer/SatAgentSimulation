@@ -6,6 +6,7 @@ and Run Bundles remain authoritative for experiment/run state and evidence.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from dataclasses import asdict, dataclass
@@ -115,6 +116,8 @@ class GoalRunStore:
                     success_criteria_json TEXT NOT NULL,
                     budget_json TEXT NOT NULL,
                     stop_reason TEXT,
+                    create_operation_id TEXT,
+                    create_input_sha256 TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
@@ -160,6 +163,19 @@ class GoalRunStore:
                 CREATE INDEX IF NOT EXISTS idx_goal_decisions_goal ON goal_decisions(goal_id, sequence);
                 """
             )
+            columns = {
+                str(row["name"])
+                for row in connection.execute("PRAGMA table_info(goal_runs)").fetchall()
+            }
+            if "create_operation_id" not in columns:
+                connection.execute("ALTER TABLE goal_runs ADD COLUMN create_operation_id TEXT")
+            if "create_input_sha256" not in columns:
+                connection.execute("ALTER TABLE goal_runs ADD COLUMN create_input_sha256 TEXT")
+            connection.execute(
+                """CREATE UNIQUE INDEX IF NOT EXISTS idx_goal_runs_create_operation_id
+                   ON goal_runs(create_operation_id)
+                   WHERE create_operation_id IS NOT NULL"""
+            )
 
     @staticmethod
     def _normalize_budget(budget: Mapping[str, Any]) -> dict[str, int]:
@@ -203,6 +219,8 @@ class GoalRunStore:
         success_criteria: Sequence[Mapping[str, Any]] = (),
         budget: Mapping[str, Any] | None = None,
         goal_id: str | None = None,
+        create_operation_id: str | None = None,
+        create_input_sha256: str | None = None,
     ) -> GoalRunRecord:
         objective = str(objective or "").strip()
         if not objective:
@@ -219,8 +237,9 @@ class GoalRunStore:
                     INSERT INTO goal_runs(
                         goal_id, objective, status, base_task_spec_json,
                         allowed_parameter_paths_json, success_criteria_json,
-                        budget_json, stop_reason, created_at, updated_at
-                    ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                        budget_json, stop_reason, create_operation_id,
+                        create_input_sha256, created_at, updated_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         resolved_id,
@@ -231,6 +250,8 @@ class GoalRunStore:
                         _json_dump([dict(item) for item in success_criteria]),
                         _json_dump(normalized_budget),
                         None,
+                        create_operation_id,
+                        create_input_sha256,
                         now,
                         now,
                     ),
@@ -241,6 +262,67 @@ class GoalRunStore:
         record = self._row(row)
         assert record is not None
         return record
+
+    def create_idempotent(
+        self,
+        *,
+        operation_id: str,
+        objective: str,
+        base_task_spec: Mapping[str, Any],
+        allowed_parameter_paths: Sequence[str],
+        success_criteria: Sequence[Mapping[str, Any]] = (),
+        budget: Mapping[str, Any] | None = None,
+    ) -> tuple[GoalRunRecord, bool]:
+        operation_id = str(operation_id or "").strip()
+        if not operation_id or len(operation_id) > 128 or any(ord(ch) < 33 for ch in operation_id):
+            raise GoalRunError("INVALID_GOAL_CREATE_OPERATION_ID", "operation_id must be 1-128 visible characters")
+        objective = str(objective or "").strip()
+        if not objective:
+            raise GoalRunError("GOAL_OBJECTIVE_REQUIRED", "objective is required")
+        canonical = canonicalize_task_spec(base_task_spec)
+        normalized_budget = self._normalize_budget(dict(budget or {}))
+        allowed = list(dict.fromkeys(str(path) for path in allowed_parameter_paths if str(path).strip()))
+        criteria = [dict(item) for item in success_criteria]
+        request_payload = {
+            "schema_version": "agent-goal-create.v1",
+            "objective": objective,
+            "base_task_spec": canonical,
+            "allowed_parameter_paths": allowed,
+            "success_criteria": criteria,
+            "budget": normalized_budget,
+        }
+        input_sha256 = hashlib.sha256(_json_dump(request_payload).encode("utf-8")).hexdigest()
+        goal_id = "goal_" + hashlib.sha256(operation_id.encode("utf-8")).hexdigest()[:16]
+        try:
+            record = self.create(
+                objective=objective,
+                base_task_spec=canonical,
+                allowed_parameter_paths=allowed,
+                success_criteria=criteria,
+                budget=normalized_budget,
+                goal_id=goal_id,
+                create_operation_id=operation_id,
+                create_input_sha256=input_sha256,
+            )
+            return record, False
+        except GoalRunError as exc:
+            if exc.reason_code != "GOAL_ID_CONFLICT":
+                raise
+            with self._connect() as connection:
+                row = connection.execute(
+                    "SELECT * FROM goal_runs WHERE create_operation_id=?",
+                    (operation_id,),
+                ).fetchone()
+            existing = self._row(row)
+            if existing is None:
+                raise
+            stored_hash = str(row["create_input_sha256"] or "")
+            if stored_hash != input_sha256:
+                raise GoalRunError(
+                    "GOAL_CREATE_OPERATION_CONFLICT",
+                    "operation_id is already bound to a different goal request",
+                ) from exc
+            return existing, True
 
     def get(self, goal_id: str) -> GoalRunRecord | None:
         with self._connect() as connection:
