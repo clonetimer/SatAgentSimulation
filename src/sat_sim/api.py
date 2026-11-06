@@ -2524,10 +2524,17 @@ def create_app(
                 allowed_parameter_paths=allowed,
                 success_criteria=body.success_criteria,
                 budget=body.budget,
+                activate=body.activate,
             )
             if body.activate and goal.status == "DRAFT":
                 goal = goal_run_store.transition(goal.goal_id, "READY")
-            if not replayed:
+            decisions = goal_run_store.decisions(goal.goal_id)
+            creation_decision_exists = any(
+                item.get("decision_kind") == "GOAL_CREATED"
+                and (item.get("action") or {}).get("operation_id") == body.operation_id
+                for item in decisions
+            )
+            if not creation_decision_exists:
                 goal_run_store.record_decision(
                     goal.goal_id,
                     decision_kind="GOAL_CREATED",
