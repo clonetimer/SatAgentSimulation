@@ -110,7 +110,10 @@
     "/agent/goals/{goal_id}/experiments/{experiment_id}/launch",
     "/agent/goals/{goal_id}/experiments/{experiment_id}/interpret",
     "/agent/goals/{goal_id}/cancel",
-    "/experience-lessons/retrieval-events"
+    "/experience-lessons/retrieval-events",
+    "/agent/goals/{goal_id}/activate",
+    "/agent/goals/{goal_id}/sync",
+    "/agent/goals/{goal_id}/resolve"
   ],
   "optional_feature_api_paths": {
     "SAT_SIM_INTERACTIVE_ENABLED": [
@@ -253,7 +256,8 @@
     "src/sat_sim/goal_runs.py",
     "src/sat_sim/agent_eval_attribution.py",
     "tests/test_agent_goal_api.py",
-    "tests/test_goal_run_workbench_browser.py"
+    "tests/test_goal_run_workbench_browser.py",
+    "tests/test_agent_goal_runs.py"
   ],
   "engineering_closure_status": "IN_PROGRESS",
   "model_asset_non_legacy_capability_count": 6,
