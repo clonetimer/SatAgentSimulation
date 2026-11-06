@@ -586,3 +586,215 @@ def test_goal_run_store_migrates_legacy_database_for_idempotent_create(tmp_path)
     assert "create_input_sha256" in columns
     assert "idx_goal_runs_create_operation_id" in indexes
     assert app.state.goal_run_store is not None
+
+
+def test_failed_goal_experiment_create_replay_releases_reserved_budget(tmp_path, monkeypatch):
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 2, "runs": 4, "execution_attempts": 4, "model_calls": 0},
+    )
+    goal = app.state.goal_run_store.get(goal_id)
+    tool = app.state.agent_experiment_tools
+    operation_id = "goal-failed-create:replay"
+    sweep = {"simulation.duration_s": [10]}
+    original_create = tool.experiment_store.create
+
+    def fail_create(**_kwargs):
+        raise RuntimeError("injected create failure")
+
+    monkeypatch.setattr(tool.experiment_store, "create", fail_create)
+    try:
+        tool.create_experiment(
+            operation_id=operation_id,
+            name="failed create replay",
+            base_task_spec=goal.base_task_spec,
+            experiment_type="sweep",
+            sweep=sweep,
+            sampling_plan={},
+            assertions=goal.success_criteria,
+        )
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("injected create failure did not propagate")
+    monkeypatch.setattr(tool.experiment_store, "create", original_create)
+
+    app.state.goal_run_store.reserve_budget(
+        goal_id,
+        operation_id=operation_id,
+        amounts={"experiments": 1},
+    )
+    response = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": operation_id,
+            "name": "failed create replay",
+            "sweep": sweep,
+            "purpose": "验证失败操作恢复时释放预算",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["experiment_operation"]["operation_state"] == "FAILED"
+    assert payload["goal"]["budget"]["reserved_or_committed"]["experiments"] == 0
+    assert payload["goal"]["budget"]["remaining"]["experiments"] == 2
+
+
+def test_goal_interpretation_waits_for_every_linked_experiment_to_finish(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: _goal_ready_evidence())
+    _, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 2, "runs": 4, "execution_attempts": 4, "model_calls": 0},
+    )
+    first = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-all-terminal:create-1",
+            "name": "first round",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "建立第一轮证据",
+        },
+    )
+    assert first.status_code == 200
+    first_experiment_id = first.json()["experiment_operation"]["experiment_id"]
+    launched = client.post(
+        f"/agent/goals/{goal_id}/experiments/{first_experiment_id}/launch",
+        json={
+            "operation_id": "goal-all-terminal:launch-1",
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 1,
+            "max_execution_attempts": 1,
+        },
+    )
+    assert launched.status_code == 200
+    assert launched.json()["goal"]["status"] == "RUNNING"
+
+    second = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-all-terminal:create-2",
+            "name": "second round",
+            "sweep": {"simulation.duration_s": [20]},
+            "purpose": "保留尚待执行的第二轮",
+        },
+    )
+    assert second.status_code == 200
+
+    interpreted = client.post(
+        f"/agent/goals/{goal_id}/experiments/{first_experiment_id}/interpret",
+        json={
+            "operation_id": "goal-all-terminal:interpret",
+            "question": "总结第一轮现有证据",
+            "mode": "deterministic",
+        },
+    )
+    assert interpreted.status_code == 200
+    assert interpreted.json()["goal"]["status"] == "RUNNING"
+
+
+def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(client)
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-resolution:create",
+            "name": "resolution evidence",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "建立目标结论证据",
+        },
+    )
+    assert created.status_code == 200
+    app.state.goal_run_store.transition(goal_id, "RUNNING")
+    app.state.goal_run_store.transition(goal_id, "ANALYZING")
+
+    incomplete = dict(_goal_ready_evidence())
+    incomplete["complete"] = False
+    incomplete["evidence_ready"] = False
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: incomplete)
+    body = {
+        "operation_id": "goal-resolution:complete",
+        "status": "COMPLETED",
+        "reason": "当前证据尚未完成，先验证接口门禁。",
+    }
+    blocked = client.post(f"/agent/goals/{goal_id}/resolve", json=body)
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"]["reason_code"] == "GOAL_EVIDENCE_INCOMPLETE"
+    assert client.get(f"/agent/goals/{goal_id}").json()["goal"]["status"] == "ANALYZING"
+
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: _goal_ready_evidence())
+    body["reason"] = "所有运行均已封存，证据完整，至少一个候选满足目标成功条件。"
+    first = client.post(f"/agent/goals/{goal_id}/resolve", json=body)
+    assert first.status_code == 200, first.text
+    assert first.json()["replayed"] is False
+    assert first.json()["goal"]["status"] == "COMPLETED"
+    decision_count = len(first.json()["decisions"])
+
+    replay = client.post(f"/agent/goals/{goal_id}/resolve", json=body)
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert len(replay.json()["decisions"]) == decision_count
+
+    changed = dict(body)
+    changed["reason"] = "试图复用操作 ID 修改结论。"
+    conflict = client.post(f"/agent/goals/{goal_id}/resolve", json=changed)
+    assert conflict.status_code == 409
+    assert conflict.json()["detail"]["reason_code"] == "GOAL_RESOLUTION_OPERATION_CONFLICT"
+
+
+def test_goal_completion_rejects_unmet_success_criteria_but_allows_partial(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(client)
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-partial:create",
+            "name": "partial evidence",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证成功条件未满足时的部分结论",
+        },
+    )
+    assert created.status_code == 200
+    app.state.goal_run_store.transition(goal_id, "RUNNING")
+    app.state.goal_run_store.transition(goal_id, "ANALYZING")
+
+    failed_criteria = dict(_goal_ready_evidence())
+    failed_criteria["runs"] = [
+        {
+            "run_id": "goal-exp_v001",
+            "assertion_status": "FAIL",
+            "metrics": {"final_pointing_error_deg": 0.8},
+        }
+    ]
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: failed_criteria)
+    completed = client.post(
+        f"/agent/goals/{goal_id}/resolve",
+        json={
+            "operation_id": "goal-partial:complete",
+            "status": "COMPLETED",
+            "reason": "尝试在成功条件未满足时标记完成。",
+        },
+    )
+    assert completed.status_code == 409
+    assert completed.json()["detail"]["reason_code"] == "GOAL_SUCCESS_CRITERIA_NOT_MET"
+
+    partial = client.post(
+        f"/agent/goals/{goal_id}/resolve",
+        json={
+            "operation_id": "goal-partial:partial",
+            "status": "PARTIAL",
+            "reason": "运行已结束，但没有候选满足全部成功条件。",
+        },
+    )
+    assert partial.status_code == 200
+    assert partial.json()["goal"]["status"] == "PARTIAL"

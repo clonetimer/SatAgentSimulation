@@ -429,6 +429,12 @@ class AgentGoalCancelBody(_Strict):
     reason: str = Field(min_length=1, max_length=4000)
 
 
+class AgentGoalResolveBody(_Strict):
+    operation_id: str = Field(min_length=1, max_length=128)
+    status: Literal["COMPLETED", "PARTIAL", "NEEDS_REVISION"]
+    reason: str = Field(min_length=1, max_length=4000)
+
+
 class AgentGoalExperimentCreateBody(_Strict):
     operation_id: str = Field(min_length=1, max_length=128)
     name: str = Field(min_length=1, max_length=300)
@@ -2187,6 +2193,20 @@ def create_app(
         snapshot["experiments"] = enriched
         return snapshot
 
+    def goal_experiments_all_terminal(goal_id: str) -> bool:
+        links = goal_run_store.experiments(goal_id)
+        if not links:
+            return False
+        for link in links:
+            experiment_id = str(link.get("experiment_id") or "")
+            operation_id = str(link.get("launch_operation_id") or "")
+            if not experiment_id or not operation_id:
+                return False
+            execution = agent_launch_snapshot(experiment_id, operation_id)
+            if not execution.get("all_terminal"):
+                return False
+        return True
+
     def goal_error(exc: GoalRunError, *, status_code: int = 422) -> HTTPException:
         return HTTPException(status_code=status_code, detail=exc.to_dict())
 
@@ -2600,6 +2620,155 @@ def create_app(
         except GoalRunError as exc:
             raise goal_error(exc, status_code=404 if exc.reason_code == "GOAL_NOT_FOUND" else 422) from exc
 
+
+    @app.post("/agent/goals/{goal_id}/resolve")
+    def resolve_agent_goal(goal_id: str, body: AgentGoalResolveBody) -> dict[str, Any]:
+        try:
+            goal = goal_run_store.get(goal_id)
+            if goal is None:
+                raise GoalRunError("GOAL_NOT_FOUND", f"goal not found: {goal_id}")
+
+            decisions = goal_run_store.decisions(goal_id)
+            for decision in decisions:
+                action = decision.get("action") if isinstance(decision.get("action"), Mapping) else {}
+                if str(action.get("operation_id") or "") != body.operation_id:
+                    continue
+                if action.get("status") == body.status and action.get("reason") == body.reason:
+                    return {"ok": True, "replayed": True, **goal_snapshot_payload(goal_id)}
+                raise GoalRunError(
+                    "GOAL_RESOLUTION_OPERATION_CONFLICT",
+                    "resolution operation_id was already used with different input",
+                )
+
+            resolution_kinds = {"GOAL_COMPLETED", "GOAL_PARTIALLY_COMPLETED"}
+            prior_terminal_resolution = next(
+                (
+                    item for item in reversed(decisions)
+                    if item.get("decision_kind") in resolution_kinds
+                ),
+                None,
+            )
+            if goal.status in TERMINAL_GOAL_STATES:
+                if goal.status != body.status:
+                    raise GoalRunError("GOAL_ALREADY_RESOLVED", f"goal is already terminal: {goal.status}")
+                if prior_terminal_resolution is not None:
+                    prior_action = prior_terminal_resolution.get("action") or {}
+                    if prior_action.get("status") == body.status and prior_action.get("reason") == body.reason:
+                        return {"ok": True, "replayed": True, **goal_snapshot_payload(goal_id)}
+                    raise GoalRunError("GOAL_ALREADY_RESOLVED", "goal already has a different terminal resolution")
+            elif goal.status not in {"ANALYZING", "NEEDS_REVISION"}:
+                raise GoalRunError(
+                    "GOAL_NOT_READY_FOR_RESOLUTION",
+                    f"goal cannot be resolved from {goal.status}",
+                )
+
+            links = goal_run_store.experiments(goal_id)
+            if not links:
+                raise GoalRunError("GOAL_EVIDENCE_REQUIRED", "create and complete at least one experiment before resolving the goal")
+
+            evidence_summaries: list[dict[str, Any]] = []
+            all_evidence_ready = True
+            any_success_criteria_passed = False
+            for link in links:
+                experiment_id = str(link.get("experiment_id") or "")
+                if not experiment_id or experiment_store.get(experiment_id) is None:
+                    raise GoalRunError(
+                        "GOAL_EXPERIMENT_NOT_FOUND",
+                        f"linked experiment is unavailable: {experiment_id or 'unknown'}",
+                    )
+                members = reconcile_experiment(experiment_id)
+                evidence = build_experiment_evidence(
+                    experiment_id=experiment_id,
+                    members=members,
+                    runs_root=run_root,
+                    integrity_checker=verify_run_bundle,
+                )
+                if not bool(evidence.get("complete")):
+                    raise GoalRunError(
+                        "GOAL_EVIDENCE_INCOMPLETE",
+                        f"experiment evidence is not terminal and complete: {experiment_id}",
+                    )
+                runs = evidence.get("runs") if isinstance(evidence.get("runs"), list) else []
+                assertion_statuses = [
+                    str(item.get("assertion_status") or "NOT_EVALUATED").upper()
+                    for item in runs
+                    if isinstance(item, Mapping)
+                ]
+                any_success_criteria_passed = any_success_criteria_passed or any(
+                    status == "PASS" for status in assertion_statuses
+                )
+                evidence_ready = bool(evidence.get("evidence_ready"))
+                all_evidence_ready = all_evidence_ready and evidence_ready
+                evidence_summaries.append({
+                    "experiment_id": experiment_id,
+                    "variant_count": int(evidence.get("variant_count") or len(runs)),
+                    "terminal_count": int(evidence.get("terminal_count") or 0),
+                    "evidence_ready": evidence_ready,
+                    "run_ids": [
+                        str(item.get("run_id"))
+                        for item in runs
+                        if isinstance(item, Mapping) and item.get("run_id")
+                    ],
+                    "assertion_statuses": assertion_statuses,
+                })
+
+            if body.status == "COMPLETED":
+                if not all_evidence_ready:
+                    raise GoalRunError(
+                        "GOAL_EVIDENCE_NOT_READY",
+                        "completion requires sealed, integrity-verified Run Bundle evidence and metrics for every variant",
+                    )
+                if goal.success_criteria and not any_success_criteria_passed:
+                    raise GoalRunError(
+                        "GOAL_SUCCESS_CRITERIA_NOT_MET",
+                        "no completed variant satisfies the configured goal success criteria",
+                    )
+
+            goal_run_store.transition(
+                goal_id,
+                body.status,
+                stop_reason=body.reason if body.status in TERMINAL_GOAL_STATES else None,
+            )
+            decision_kind = {
+                "COMPLETED": "GOAL_COMPLETED",
+                "PARTIAL": "GOAL_PARTIALLY_COMPLETED",
+                "NEEDS_REVISION": "GOAL_NEEDS_REVISION",
+            }[body.status]
+            summary = {
+                "COMPLETED": "目标通过证据与成功条件核验，并由用户确认完成。",
+                "PARTIAL": "目标以部分完成状态结束。",
+                "NEEDS_REVISION": "当前实验轮次已收敛，目标进入下一轮调整。",
+            }[body.status]
+            goal_run_store.record_decision(
+                goal_id,
+                decision_kind=decision_kind,
+                summary=summary,
+                evidence={
+                    "experiments": evidence_summaries,
+                    "success_criteria": goal.success_criteria,
+                },
+                action={
+                    "operation_id": body.operation_id,
+                    "status": body.status,
+                    "reason": body.reason,
+                },
+            )
+            return {"ok": True, "replayed": False, **goal_snapshot_payload(goal_id)}
+        except GoalRunError as exc:
+            conflict_codes = {
+                "GOAL_RESOLUTION_OPERATION_CONFLICT",
+                "GOAL_ALREADY_RESOLVED",
+                "GOAL_NOT_READY_FOR_RESOLUTION",
+                "GOAL_EVIDENCE_REQUIRED",
+                "GOAL_EVIDENCE_INCOMPLETE",
+                "GOAL_EVIDENCE_NOT_READY",
+                "GOAL_SUCCESS_CRITERIA_NOT_MET",
+            }
+            status_code = 404 if exc.reason_code in {"GOAL_NOT_FOUND", "GOAL_EXPERIMENT_NOT_FOUND"} else (
+                409 if exc.reason_code in conflict_codes else 422
+            )
+            raise goal_error(exc, status_code=status_code) from exc
+
     @app.post("/agent/goals/{goal_id}/experiments")
     def create_goal_experiment(goal_id: str, body: AgentGoalExperimentCreateBody) -> dict[str, Any]:
         reservation = None
@@ -2641,6 +2810,14 @@ def create_app(
                 assertions=assertions,
             )
             if not result.get("ok"):
+                if (
+                    result.get("operation_state") == "FAILED"
+                    and reservation is not None
+                    and reservation.get("state") == "RESERVED"
+                ):
+                    # Recover the crash window between the operation ledger recording
+                    # FAILED and the goal-level budget reservation being released.
+                    goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
                 return {
                     "ok": False,
                     "goal": goal_run_store.snapshot(goal_id),
@@ -2918,7 +3095,12 @@ def create_app(
                 )
             current = goal_run_store.get(goal_id)
             evidence_complete = bool((result.get("evidence") or {}).get("complete"))
-            if current and current.status == "RUNNING" and evidence_complete:
+            if (
+                current
+                and current.status == "RUNNING"
+                and evidence_complete
+                and goal_experiments_all_terminal(goal_id)
+            ):
                 goal_run_store.transition(goal_id, "ANALYZING")
             return {
                 "ok": True,

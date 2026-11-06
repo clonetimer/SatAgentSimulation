@@ -161,3 +161,21 @@ def test_terminal_goal_rejects_new_budget(tmp_path):
     with pytest.raises(GoalRunError) as captured:
         store.reserve_budget(goal.goal_id, operation_id="after-stop", amounts={"runs": 1})
     assert captured.value.reason_code == "GOAL_TERMINAL"
+
+
+def test_needs_revision_can_be_completed_after_review(tmp_path):
+    store = _store(tmp_path)
+    goal = _goal(store)
+    store.transition(goal.goal_id, "READY")
+    store.transition(goal.goal_id, "RUNNING")
+    store.transition(goal.goal_id, "ANALYZING")
+    revision = store.transition(goal.goal_id, "NEEDS_REVISION")
+    assert revision.status == "NEEDS_REVISION"
+
+    completed = store.transition(
+        goal.goal_id,
+        "COMPLETED",
+        stop_reason="复核后确认已有证据满足目标。",
+    )
+    assert completed.status == "COMPLETED"
+    assert completed.stop_reason == "复核后确认已有证据满足目标。"
