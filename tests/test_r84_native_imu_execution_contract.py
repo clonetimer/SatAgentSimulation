@@ -61,7 +61,7 @@ def test_r83m_physics_fields_are_separated_into_qa_sidecar():
 def test_runner_requires_original_r83m_archive_and_separates_artifacts():
     source = RUNNER.read_text(encoding="utf-8")
     assert "--r83m-archive" in source
-    assert "audit_archive(original_archive)" in source
+    assert "receipt = audit_archive(path)" in source
     assert "r84_sensor_observations.json" in source
     assert "r84_case_manifest.json" in source
     assert "r84_physics_qa.json" in source
