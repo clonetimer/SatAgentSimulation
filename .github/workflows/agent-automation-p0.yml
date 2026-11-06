@@ -82,6 +82,7 @@ jobs:
             tests/test_agent_eval_attribution.py \
             tests/test_agent_prompt_contract_closure.py \
             tests/test_agent_longitudinal_token_accounting.py \
+            tests/test_agent_frozen_holdout_cli.py \
             tests/test_agent_preparse_heldout_boundaries.py \
             tests/test_agent_vllm_evidence_benchmark.py \
             tests/test_workbench_agent_integration.py \
