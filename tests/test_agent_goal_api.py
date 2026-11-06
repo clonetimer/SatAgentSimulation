@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import pytest
+
 import json
+import sqlite3
 
 from fastapi.testclient import TestClient
 
 from sat_sim.api import create_app
+from sat_sim.assertions import normalize_assertions
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.llm_backends import LLMCallResult
 
@@ -23,6 +27,7 @@ def _create_goal(client, *, budget=None, activate=True):
     response = client.post(
         "/agent/goals",
         json={
+            "operation_id": "goal-api:create-root",
             "objective": "比较候选参数并保留可追溯证据",
             "base_task_spec": instantiate_scenario_template("adcs_pointing"),
             "allowed_parameter_paths": ["simulation.duration_s"],
@@ -209,6 +214,7 @@ def test_goal_parameter_allowlist_must_be_registered(tmp_path):
     response = client.post(
         "/agent/goals",
         json={
+            "operation_id": "goal-invalid-allowlist",
             "objective": "非法参数范围",
             "base_task_spec": instantiate_scenario_template("adcs_pointing"),
             "allowed_parameter_paths": ["parameters.values.not_registered"],
@@ -241,10 +247,17 @@ def _goal_ready_evidence():
     return {
         "schema_version": "agent-experiment-evidence.v1",
         "experiment_id": "goal-exp",
+        "complete": True,
         "evidence_ready": True,
         "runs": [
             {
                 "run_id": "goal-exp_v001",
+                "execution_state": "SUCCEEDED",
+                "validation_result": "PASS",
+                "assertion_status": "PASS",
+                "terminal": True,
+                "sealed": True,
+                "integrity": {"ok": True},
                 "metrics": {"final_pointing_error_deg": 0.12},
             }
         ],
@@ -493,3 +506,469 @@ def test_goal_experiment_cannot_be_relaunched_with_new_operation_or_double_charg
     snapshot = client.get(f"/agent/goals/{goal_id}").json()
     assert snapshot["budget"]["reserved_or_committed"]["runs"] == 1
     assert len(app.state.execution_queue.list_jobs(limit=10)["jobs"]) == 1
+
+
+def test_goal_create_is_idempotent_and_rejects_operation_id_reuse(tmp_path):
+    _, client = _client(tmp_path)
+    body = {
+        "operation_id": "goal-create:stable-op",
+        "objective": "比较电池容量并保留证据",
+        "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+        "allowed_parameter_paths": ["simulation.duration_s"],
+        "success_criteria": [{"metric": "status", "operator": "==", "value": "PASS"}],
+        "budget": {
+            "experiments": 2,
+            "runs": 4,
+            "execution_attempts": 4,
+            "model_calls": 1,
+        },
+        "activate": True,
+    }
+    first = client.post("/agent/goals", json=body)
+    assert first.status_code == 200
+    goal_id = first.json()["goal"]["goal_id"]
+    assert first.json()["replayed"] is False
+    assert first.json()["goal"]["status"] == "READY"
+    decision_count = len(first.json()["decisions"])
+
+    replay = client.post("/agent/goals", json=body)
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert replay.json()["goal"]["goal_id"] == goal_id
+    assert len(replay.json()["decisions"]) == decision_count
+
+    changed = dict(body)
+    changed["objective"] = "改成另一个目标"
+    conflict = client.post("/agent/goals", json=changed)
+    assert conflict.status_code == 409
+    assert conflict.json()["detail"]["reason_code"] == "GOAL_CREATE_OPERATION_CONFLICT"
+
+    listed = client.get("/agent/goals")
+    assert listed.status_code == 200
+    assert listed.json()["count"] == 1
+
+
+def test_goal_create_requires_operation_id(tmp_path):
+    _, client = _client(tmp_path)
+    response = client.post(
+        "/agent/goals",
+        json={
+            "objective": "缺少操作 ID",
+            "base_task_spec": instantiate_scenario_template("adcs_pointing"),
+            "allowed_parameter_paths": ["simulation.duration_s"],
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_goal_run_store_migrates_legacy_database_for_idempotent_create(tmp_path):
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    database = artifact_root / "goal_runs.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            """
+            CREATE TABLE goal_runs (
+                goal_id TEXT PRIMARY KEY,
+                objective TEXT NOT NULL,
+                status TEXT NOT NULL,
+                base_task_spec_json TEXT NOT NULL,
+                allowed_parameter_paths_json TEXT NOT NULL,
+                success_criteria_json TEXT NOT NULL,
+                budget_json TEXT NOT NULL,
+                stop_reason TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=artifact_root,
+        queue_database=tmp_path / "queue.sqlite",
+        embedded_worker=False,
+    )
+    with sqlite3.connect(database) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(goal_runs)")}
+        indexes = {row[1] for row in connection.execute("PRAGMA index_list(goal_runs)")}
+    assert "create_operation_id" in columns
+    assert "create_input_sha256" in columns
+    assert "idx_goal_runs_create_operation_id" in indexes
+    assert app.state.goal_run_store is not None
+
+
+def test_failed_goal_experiment_create_replay_releases_reserved_budget(tmp_path, monkeypatch):
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 2, "runs": 4, "execution_attempts": 4, "model_calls": 0},
+    )
+    goal = app.state.goal_run_store.get(goal_id)
+    tool = app.state.agent_experiment_tools
+    operation_id = "goal-failed-create:replay"
+    sweep = {"simulation.duration_s": [10]}
+    original_create = tool.experiment_store.create
+
+    def fail_create(**_kwargs):
+        raise RuntimeError("injected create failure")
+
+    monkeypatch.setattr(tool.experiment_store, "create", fail_create)
+    try:
+        tool.create_experiment(
+            operation_id=operation_id,
+            name="failed create replay",
+            base_task_spec=goal.base_task_spec,
+            experiment_type="sweep",
+            sweep=sweep,
+            sampling_plan={},
+            assertions=normalize_assertions(goal.success_criteria),
+        )
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("injected create failure did not propagate")
+    monkeypatch.setattr(tool.experiment_store, "create", original_create)
+
+    app.state.goal_run_store.reserve_budget(
+        goal_id,
+        operation_id=operation_id,
+        amounts={"experiments": 1},
+    )
+    response = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": operation_id,
+            "name": "failed create replay",
+            "sweep": sweep,
+            "purpose": "验证失败操作恢复时释放预算",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["experiment_operation"]["operation_state"] == "FAILED"
+    assert payload["goal"]["budget"]["reserved_or_committed"]["experiments"] == 0
+    assert payload["goal"]["budget"]["remaining"]["experiments"] == 2
+
+
+def test_goal_interpretation_waits_for_every_linked_experiment_to_finish(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: _goal_ready_evidence())
+    _, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 2, "runs": 4, "execution_attempts": 4, "model_calls": 0},
+    )
+    first = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-all-terminal:create-1",
+            "name": "first round",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "建立第一轮证据",
+        },
+    )
+    assert first.status_code == 200
+    first_experiment_id = first.json()["experiment_operation"]["experiment_id"]
+    launched = client.post(
+        f"/agent/goals/{goal_id}/experiments/{first_experiment_id}/launch",
+        json={
+            "operation_id": "goal-all-terminal:launch-1",
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 1,
+            "max_execution_attempts": 1,
+        },
+    )
+    assert launched.status_code == 200
+    assert launched.json()["goal"]["status"] == "RUNNING"
+
+    second = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-all-terminal:create-2",
+            "name": "second round",
+            "sweep": {"simulation.duration_s": [20]},
+            "purpose": "保留尚待执行的第二轮",
+        },
+    )
+    assert second.status_code == 200
+
+    interpreted = client.post(
+        f"/agent/goals/{goal_id}/experiments/{first_experiment_id}/interpret",
+        json={
+            "operation_id": "goal-all-terminal:interpret",
+            "question": "总结第一轮现有证据",
+            "mode": "deterministic",
+        },
+    )
+    assert interpreted.status_code == 200
+    assert interpreted.json()["goal"]["status"] == "RUNNING"
+
+
+@pytest.mark.parametrize("release_before_sync", [False, True])
+def test_goal_sync_releases_failed_launch_when_no_run_side_effects(tmp_path, release_before_sync):
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 1, "execution_attempts": 1, "model_calls": 0},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-sync-failed:create",
+            "name": "failed launch recovery",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证同步时回收无副作用的失败启动预算",
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+    operation_id = "goal-sync-failed:launch"
+    request_payload = {
+        "schema_version": "agent-experiment-launch.v1",
+        "operation_kind": "launch_experiment",
+        "experiment_id": experiment_id,
+        "max_attempts": 1,
+        "hard_timeout": True,
+        "max_run_count": 1,
+        "max_execution_attempts": 1,
+        "reserved_run_capacity": 1,
+        "reserved_attempt_capacity": 1,
+    }
+    app.state.agent_operation_store.reserve_payload(
+        operation_id=operation_id,
+        operation_kind="launch_experiment",
+        request_payload=request_payload,
+    )
+    app.state.agent_operation_store.fail(
+        operation_id,
+        {"reason_code": "SYNTHETIC_LAUNCH_FAILURE", "message": "failed before queue side effects"},
+    )
+    # Reproduce a crash after the GoalRun reservation/binding but before API cleanup.
+    reservation = app.state.goal_run_store.reserve_budget(
+        goal_id,
+        operation_id=operation_id,
+        amounts={"runs": 1, "execution_attempts": 1},
+    )
+    app.state.goal_run_store.bind_launch_operation(goal_id, experiment_id, operation_id)
+    assert reservation["state"] == "RESERVED"
+    if release_before_sync:
+        app.state.goal_run_store.release_reservation(goal_id, reservation["reservation_id"])
+
+    synced = client.post(f"/agent/goals/{goal_id}/sync")
+    assert synced.status_code == 200
+    assert synced.json()["budget"]["reserved_or_committed"]["runs"] == 0
+    assert synced.json()["budget"]["remaining"]["runs"] == 1
+    assert synced.json()["experiments"][0]["launch_operation_id"] is None
+    assert any(
+        item["decision_kind"] == "EXPERIMENT_LAUNCH_FAILED"
+        for item in synced.json()["decisions"]
+    )
+
+
+def test_goal_launch_failed_without_side_effects_releases_budget_immediately(tmp_path):
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(
+        client,
+        budget={"experiments": 1, "runs": 1, "execution_attempts": 1, "model_calls": 0},
+    )
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-launch-immediate:create",
+            "name": "immediate launch failure",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证明确失败的启动立即回收预算",
+        },
+    )
+    assert created.status_code == 200
+    experiment_id = created.json()["experiment_operation"]["experiment_id"]
+    operation_id = "goal-launch-immediate:launch"
+    request_payload = {
+        "schema_version": "agent-experiment-launch.v1",
+        "operation_kind": "launch_experiment",
+        "experiment_id": experiment_id,
+        "max_attempts": 1,
+        "hard_timeout": True,
+        "max_run_count": 1,
+        "max_execution_attempts": 1,
+        "reserved_run_capacity": 1,
+        "reserved_attempt_capacity": 1,
+    }
+    app.state.agent_operation_store.reserve_payload(
+        operation_id=operation_id,
+        operation_kind="launch_experiment",
+        request_payload=request_payload,
+    )
+    app.state.agent_operation_store.fail(
+        operation_id,
+        {"reason_code": "SYNTHETIC_LAUNCH_FAILURE", "message": "failed before queue side effects"},
+    )
+
+    response = client.post(
+        f"/agent/goals/{goal_id}/experiments/{experiment_id}/launch",
+        json={
+            "operation_id": operation_id,
+            "max_attempts": 1,
+            "hard_timeout": True,
+            "max_run_count": 1,
+            "max_execution_attempts": 1,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["budget_released"] is True
+    assert payload["reconciliation_required"] is False
+    assert payload["budget"]["reserved_or_committed"]["runs"] == 0
+    assert payload["budget"]["remaining"]["runs"] == 1
+    assert payload["experiments"][0]["launch_operation_id"] is None
+
+def test_goal_resolution_requires_complete_evidence_and_is_idempotent(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    evidence_result = _goal_ready_evidence()
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence_result)
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(client)
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-resolution:create",
+            "name": "resolution evidence",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "建立目标结论证据",
+        },
+    )
+    assert created.status_code == 200
+    app.state.goal_run_store.transition(goal_id, "RUNNING")
+    app.state.goal_run_store.transition(goal_id, "ANALYZING")
+
+    incomplete = dict(_goal_ready_evidence())
+    incomplete["complete"] = False
+    incomplete["evidence_ready"] = False
+    evidence_result = incomplete
+    body = {
+        "operation_id": "goal-resolution:complete",
+        "status": "COMPLETED",
+        "reason": "当前证据尚未完成，先验证接口门禁。",
+    }
+    blocked = client.post(f"/agent/goals/{goal_id}/resolve", json=body)
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"]["reason_code"] == "GOAL_EVIDENCE_INCOMPLETE"
+    assert client.get(f"/agent/goals/{goal_id}").json()["goal"]["status"] == "ANALYZING"
+
+    evidence_result = _goal_ready_evidence()
+    body["reason"] = "所有运行均已封存，证据完整，至少一个候选满足目标成功条件。"
+    first = client.post(f"/agent/goals/{goal_id}/resolve", json=body)
+    assert first.status_code == 200, first.text
+    assert first.json()["replayed"] is False
+    assert first.json()["goal"]["status"] == "COMPLETED"
+    decision_count = len(first.json()["decisions"])
+
+    replay = client.post(f"/agent/goals/{goal_id}/resolve", json=body)
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert len(replay.json()["decisions"]) == decision_count
+
+    changed = dict(body)
+    changed["reason"] = "试图复用操作 ID 修改结论。"
+    conflict = client.post(f"/agent/goals/{goal_id}/resolve", json=changed)
+    assert conflict.status_code == 409
+    assert conflict.json()["detail"]["reason_code"] == "GOAL_RESOLUTION_OPERATION_CONFLICT"
+
+
+def test_goal_completion_rejects_pass_assertion_without_successful_validated_execution(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(client)
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-execution-gate:create",
+            "name": "execution gate",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证执行和验证状态也是目标完成门槛",
+        },
+    )
+    assert created.status_code == 200
+    app.state.goal_run_store.transition(goal_id, "RUNNING")
+    app.state.goal_run_store.transition(goal_id, "ANALYZING")
+
+    invalid_success = _goal_ready_evidence()
+    invalid_success["runs"][0]["execution_state"] = "FAILED"
+    invalid_success["runs"][0]["validation_result"] = "FAIL"
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: invalid_success)
+
+    response = client.post(
+        f"/agent/goals/{goal_id}/resolve",
+        json={
+            "operation_id": "goal-execution-gate:complete",
+            "status": "COMPLETED",
+            "reason": "断言虽为 PASS，但运行执行和验证均失败，不应完成。",
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["reason_code"] == "GOAL_SUCCESS_CRITERIA_NOT_MET"
+    assert client.get(f"/agent/goals/{goal_id}").json()["goal"]["status"] == "ANALYZING"
+
+
+def test_goal_completion_rejects_unmet_success_criteria_but_allows_partial(tmp_path, monkeypatch):
+    import sat_sim.api as api_module
+
+    evidence_result = dict(_goal_ready_evidence())
+    monkeypatch.setattr(api_module, "build_experiment_evidence", lambda **_kwargs: evidence_result)
+    app, client = _client(tmp_path)
+    goal_id = _create_goal(client)
+    created = client.post(
+        f"/agent/goals/{goal_id}/experiments",
+        json={
+            "operation_id": "goal-partial:create",
+            "name": "partial evidence",
+            "sweep": {"simulation.duration_s": [10]},
+            "purpose": "验证成功条件未满足时的部分结论",
+        },
+    )
+    assert created.status_code == 200
+    app.state.goal_run_store.transition(goal_id, "RUNNING")
+    app.state.goal_run_store.transition(goal_id, "ANALYZING")
+
+    failed_criteria = dict(_goal_ready_evidence())
+    failed_criteria["runs"] = [
+        {
+            "run_id": "goal-exp_v001",
+            "execution_state": "SUCCEEDED",
+            "validation_result": "PASS",
+            "assertion_status": "FAIL",
+            "terminal": True,
+            "sealed": True,
+            "integrity": {"ok": True},
+            "metrics": {"final_pointing_error_deg": 0.8},
+        }
+    ]
+    evidence_result = failed_criteria
+    completed = client.post(
+        f"/agent/goals/{goal_id}/resolve",
+        json={
+            "operation_id": "goal-partial:complete",
+            "status": "COMPLETED",
+            "reason": "尝试在成功条件未满足时标记完成。",
+        },
+    )
+    assert completed.status_code == 409
+    assert completed.json()["detail"]["reason_code"] == "GOAL_SUCCESS_CRITERIA_NOT_MET"
+
+    partial = client.post(
+        f"/agent/goals/{goal_id}/resolve",
+        json={
+            "operation_id": "goal-partial:partial",
+            "status": "PARTIAL",
+            "reason": "运行已结束，但没有候选满足全部成功条件。",
+        },
+    )
+    assert partial.status_code == 200
+    assert partial.json()["goal"]["status"] == "PARTIAL"

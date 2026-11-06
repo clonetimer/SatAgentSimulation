@@ -96,7 +96,24 @@
     "/runs/{run_id}/fmea/download",
     "/diagnostics/pipelines",
     "/diagnostics/pipelines/{fault_id}",
-    "/diagnostics/pipelines/{fault_id}/execute"
+    "/diagnostics/pipelines/{fault_id}/execute",
+    "/agent/tools",
+    "/agent/experiments/plan",
+    "/agent/experiments",
+    "/agent/experiments/{experiment_id}/launch",
+    "/agent/experiments/{experiment_id}/result",
+    "/agent/operations/{operation_id}",
+    "/agent/operations/{operation_id}/reconcile",
+    "/agent/goals",
+    "/agent/goals/{goal_id}",
+    "/agent/goals/{goal_id}/experiments",
+    "/agent/goals/{goal_id}/experiments/{experiment_id}/launch",
+    "/agent/goals/{goal_id}/experiments/{experiment_id}/interpret",
+    "/agent/goals/{goal_id}/cancel",
+    "/experience-lessons/retrieval-events",
+    "/agent/goals/{goal_id}/activate",
+    "/agent/goals/{goal_id}/sync",
+    "/agent/goals/{goal_id}/resolve"
   ],
   "optional_feature_api_paths": {
     "SAT_SIM_INTERACTIVE_ENABLED": [
@@ -170,7 +187,8 @@
     "reports/cleanup_report.json",
     "reports/interactive/final_acceptance.json",
     "reports/interactive/final_acceptance.md",
-    "reports/interactive/realtime_capability_matrix.json"
+    "reports/interactive/realtime_capability_matrix.json",
+    "docs/guides_zh/12_目标实验工作台使用指南.md"
   ],
   "runtime_generated_evidence": [
     "reports/platform_acceptance/platform_acceptance_summary.json",
@@ -233,7 +251,13 @@
     "tests/test_component_effect_batch.py",
     "tests/test_script_dependency_governance.py",
     "tests/test_rw_jam_readiness.py",
-    "tests/test_rw_fault_scientific_closure.py"
+    "tests/test_rw_fault_scientific_closure.py",
+    "src/sat_sim/agent_tools.py",
+    "src/sat_sim/goal_runs.py",
+    "src/sat_sim/agent_eval_attribution.py",
+    "tests/test_agent_goal_api.py",
+    "tests/test_goal_run_workbench_browser.py",
+    "tests/test_agent_goal_runs.py"
   ],
   "engineering_closure_status": "IN_PROGRESS",
   "model_asset_non_legacy_capability_count": 6,

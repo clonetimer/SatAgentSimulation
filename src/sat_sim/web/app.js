@@ -133,6 +133,17 @@
     activeView: "creator",
     scenarioTemplates: [],
     experiments: [],
+    goals: [],
+    activeGoalId: null,
+    activeGoal: null,
+    goalBaseSpec: null,
+    goalParameterOptions: [],
+    goalCreateOperationId: null,
+    goalExperimentOperationId: null,
+    goalLaunchOperationIds: {},
+    goalInterpretOperationId: null,
+    goalResolveOperationIds: {},
+    goalSelectedExperimentId: null,
     apiToken: sessionStorage.getItem('sat-sim-api-token') || '',
     authEnabled: false,
     logSearchTimer: null,
@@ -7427,12 +7438,14 @@
     document.body.dataset.activeView = name;
     const viewIds = {
       creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
+      goals: 'goalRunView',
       interactive: 'interactiveView', continuous: 'continuousView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
     if (name === 'tasks') loadTasks().catch((error) => { el('taskSummary').textContent = `任务中心读取失败：${error.message}`; });
     if (name === 'experiments') loadExperiments().catch((error) => { el('experimentSummary').textContent = `实验中心读取失败：${error.message}`; });
+    if (name === 'goals') loadGoals().catch((error) => { el('goalRunSummary').textContent = `目标列表读取失败：${error.message}`; });
     if (name === 'runs') loadRunCenter().catch((error) => { el('runCenterSummary').textContent = `运行中心读取失败：${error.message}`; });
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
@@ -8343,6 +8356,666 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
   }
 
+  const GOAL_STATUS_LABELS = {
+    DRAFT: '草稿', READY: '就绪', RUNNING: '运行中', ANALYZING: '分析中',
+    NEEDS_REVISION: '需要调整', COMPLETED: '已完成', PARTIAL: '部分完成', FAILED: '失败', CANCELLED: '已取消',
+  };
+
+  function goalRunNotice(message, type = 'info') {
+    const node = el('goalRunNotice');
+    if (!node) return;
+    node.textContent = String(message || '');
+    node.className = 'notice ' + (type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info'));
+    node.classList.remove('hidden');
+  }
+
+  function goalOperationId(prefix) {
+    return prefix + ':' + crypto.randomUUID();
+  }
+
+  function invalidateGoalCreateOperation() {
+    state.goalCreateOperationId = null;
+  }
+
+  function invalidateGoalExperimentOperation() {
+    state.goalExperimentOperationId = null;
+  }
+
+  async function loadGoals() {
+    const payload = await api('/agent/goals?limit=100');
+    state.goals = payload.goals || [];
+    renderGoalList();
+    el('goalRunSummary').textContent = '共 ' + state.goals.length + ' 个目标；GoalRun 会累计管理实验、运行、执行尝试和模型调用预算。';
+    if (state.activeGoalId && state.goals.some((item) => item.goal_id === state.activeGoalId)) {
+      await openGoalDetail(state.activeGoalId);
+    } else if (!state.goals.length) {
+      state.activeGoalId = null;
+      state.activeGoal = null;
+      el('goalRunDetail').classList.add('hidden');
+    }
+    return state.goals;
+  }
+
+  function renderGoalList() {
+    const container = el('goalRunList');
+    if (!container) return;
+    container.replaceChildren();
+    el('goalRunCount').textContent = String(state.goals.length);
+    if (!state.goals.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = '暂无目标。先校验一份 TaskSpec，再创建目标实验。';
+      container.appendChild(empty);
+      return;
+    }
+    state.goals.forEach((goal) => {
+      const card = document.createElement('article');
+      card.className = 'goal-run-item' + (goal.goal_id === state.activeGoalId ? ' active' : '');
+      const title = document.createElement('strong');
+      title.textContent = goal.objective || goal.goal_id;
+      const meta = document.createElement('span');
+      meta.textContent = goal.goal_id + ' · ' + (GOAL_STATUS_LABELS[goal.status] || goal.status);
+      const budget = document.createElement('small');
+      const limits = goal.budget || {};
+      budget.textContent = '预算：实验 ' + (limits.experiments ?? '—') + ' · 运行 ' + (limits.runs ?? '—') + ' · 模型调用 ' + (limits.model_calls ?? '—');
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'button button-secondary';
+      open.textContent = '查看目标';
+      open.addEventListener('click', () => openGoalDetail(goal.goal_id).catch((error) => goalRunNotice(error.message, 'error')));
+      card.append(title, meta, budget, open);
+      container.appendChild(card);
+    });
+  }
+
+  async function openGoalCreatePanel() {
+    if (!state.tasks.length) await loadTasks();
+    const select = el('goalBaseTaskSelect');
+    select.replaceChildren(new Option(
+      state.taskSpec ? '当前已校验配置：' + (state.taskSpec.task?.name || state.taskSpec.task?.id || '当前 TaskSpec') : '当前编辑配置（需要先校验）',
+      'current',
+    ));
+    state.tasks.forEach((task) => {
+      select.appendChild(new Option(
+        '任务中心 · ' + (task.name || task.task_id) + ' · V' + (task.current_version || 1),
+        task.task_id,
+      ));
+    });
+    if (!state.taskSpec && state.tasks.length) select.value = state.tasks[0].task_id;
+    el('goalRunCreatePanel').classList.remove('hidden');
+    await selectGoalBaseTask(select.value);
+    el('goalObjective').focus();
+  }
+
+  async function selectGoalBaseTask(value) {
+    let spec = null;
+    if (value === 'current') {
+      if (!state.taskSpec && state.formData) {
+        const ok = await previewForm();
+        if (!ok) throw new Error('当前编辑配置未通过校验；请先完成配置校验。');
+      }
+      spec = state.taskSpec ? clone(state.taskSpec) : null;
+    } else {
+      const payload = await api('/task-center/tasks/' + encodeURIComponent(value));
+      spec = clone(payload.task?.task_spec || null);
+    }
+    if (!spec) throw new Error('请选择一份有效的基础 TaskSpec。');
+    state.goalBaseSpec = spec;
+    await refreshGoalParameterOptions();
+    el('goalBaseTaskStatus').textContent = '已载入：' + (spec.task?.name || spec.task?.id || spec.model?.capability_id || '基础任务') + '；' + state.goalParameterOptions.length + ' 个可调整参数。';
+    invalidateGoalCreateOperation();
+  }
+
+  async function refreshGoalParameterOptions() {
+    const payload = await api('/experiments/options', {
+      method: 'POST',
+      body: apiBody({ base_task_spec: state.goalBaseSpec }),
+    });
+    const fields = (payload.sweep_options || payload.dispersion_options || payload.options || []).filter((field) => {
+      const path = String(field.path || '');
+      const type = String(field.type || '');
+      return (path.startsWith('simulation.') || path.startsWith('parameters.values.'))
+        && ['number', 'integer', 'boolean', 'string'].includes(type)
+        && field.widget !== 'object_editor';
+    });
+    state.goalParameterOptions = fields;
+    renderGoalParameterOptions();
+  }
+
+  function renderGoalParameterOptions() {
+    const container = el('goalAllowedParameterList');
+    if (!container) return;
+    container.replaceChildren();
+    if (!state.goalParameterOptions.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = '该基础任务没有可登记的标量扫描参数；请更换基础任务或检查能力参数注册表。';
+      container.appendChild(empty);
+      return;
+    }
+    state.goalParameterOptions.forEach((field) => {
+      const label = document.createElement('label');
+      label.className = 'goal-parameter-option';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = true;
+      input.value = field.path;
+      input.addEventListener('change', invalidateGoalCreateOperation);
+      const text = document.createElement('span');
+      const title = document.createElement('strong');
+      title.textContent = (field.label || field.path) + (field.unit ? '（' + field.unit + '）' : '');
+      const path = document.createElement('code');
+      path.textContent = field.path;
+      const description = document.createElement('small');
+      description.textContent = field.description || '能力注册表登记的可扫描参数。';
+      text.append(title, path, description);
+      label.append(input, text);
+      container.appendChild(label);
+    });
+  }
+
+  function selectedGoalParameterPaths() {
+    return $all('#goalAllowedParameterList input[type="checkbox"]:checked').map((input) => input.value);
+  }
+
+  function buildGoalSuccessCriteria() {
+    const metric = el('goalSuccessMetric').value.trim();
+    if (!metric) return [];
+    const operator = el('goalSuccessOperator').value;
+    let value = parseExperimentValue(el('goalSuccessValue').value);
+    if (el('goalSuccessValue').value.trim() === '') throw new Error('成功条件的目标值不能为空。');
+    if (operator === 'within') {
+      const values = el('goalSuccessValue').value.split(',').map(parseExperimentValue);
+      if (values.length !== 2 || values.some((item) => item === '')) {
+        throw new Error('区间条件请填写“最小值,最大值”。');
+      }
+      value = values;
+    }
+    return [{ metric, operator, value }];
+  }
+
+  async function createGoalRun() {
+    const objective = el('goalObjective').value.trim();
+    if (!objective) throw new Error('请填写目标描述。');
+    if (!state.goalBaseSpec) throw new Error('请先选择基础 TaskSpec。');
+    const allowed = selectedGoalParameterPaths();
+    if (!allowed.length) throw new Error('至少选择一个允许调整的参数。');
+    const budget = {
+      experiments: Number(el('goalBudgetExperiments').value),
+      runs: Number(el('goalBudgetRuns').value),
+      execution_attempts: Number(el('goalBudgetAttempts').value),
+      model_calls: Number(el('goalBudgetModelCalls').value),
+    };
+    Object.entries(budget).forEach(([key, value]) => {
+      if (!Number.isInteger(value) || value < 0) throw new Error(key + ' 必须是非负整数。');
+    });
+    if (!state.goalCreateOperationId) state.goalCreateOperationId = goalOperationId('goal-create');
+    el('createGoalRunBtn').disabled = true;
+    el('goalCreateStatus').textContent = '正在创建目标；操作 ID：' + state.goalCreateOperationId;
+    try {
+      const payload = await api('/agent/goals', {
+        method: 'POST',
+        body: apiBody({
+          operation_id: state.goalCreateOperationId,
+          objective,
+          base_task_spec: state.goalBaseSpec,
+          allowed_parameter_paths: allowed,
+          success_criteria: buildGoalSuccessCriteria(),
+          budget,
+          activate: true,
+        }),
+      });
+      state.goalCreateOperationId = null;
+      state.activeGoalId = payload.goal.goal_id;
+      el('goalRunCreatePanel').classList.add('hidden');
+      await loadGoals();
+      goalRunNotice((payload.replayed ? '已恢复原目标：' : '目标已创建并激活：') + payload.goal.goal_id, 'success');
+    } catch (error) {
+      el('goalCreateStatus').textContent = '提交未确认。刷新目标列表核对，或在不修改输入的情况下重试同一操作。操作 ID：' + state.goalCreateOperationId;
+      throw error;
+    } finally {
+      el('createGoalRunBtn').disabled = false;
+    }
+  }
+
+  async function refreshGoalExperimentOptions() {
+    const goal = state.activeGoal?.goal;
+    const select = el('goalSweepPath');
+    if (!goal?.base_task_spec || !select) return;
+    const payload = await api('/experiments/options', {
+      method: 'POST',
+      body: apiBody({ base_task_spec: goal.base_task_spec }),
+    });
+    const fields = (payload.sweep_options || payload.dispersion_options || payload.options || []).filter((field) => {
+      const path = String(field.path || '');
+      const type = String(field.type || '');
+      return goal.allowed_parameter_paths.includes(path)
+        && (path.startsWith('simulation.') || path.startsWith('parameters.values.'))
+        && ['number', 'integer', 'boolean', 'string'].includes(type)
+        && field.widget !== 'object_editor';
+    });
+    state.goalParameterOptions = fields;
+    select.replaceChildren();
+    fields.forEach((field) => {
+      select.appendChild(new Option((field.label || field.path) + (field.unit ? '（' + field.unit + '）' : ''), field.path));
+    });
+    if (fields.length) select.value = fields[0].path;
+    else select.appendChild(new Option('当前目标没有可用参数', ''));
+  }
+
+  async function openGoalDetail(goalId) {
+    const payload = await api('/agent/goals/' + encodeURIComponent(goalId) + '/sync', { method: 'POST' });
+    state.activeGoalId = goalId;
+    state.activeGoal = payload;
+    el('goalRunDetail').classList.remove('hidden');
+    await refreshGoalExperimentOptions();
+    renderGoalList();
+    renderGoalDetail();
+    return payload;
+  }
+
+  function renderGoalBudget() {
+    const snapshot = state.activeGoal;
+    const budget = snapshot?.budget;
+    const container = el('goalBudgetUsage');
+    container.replaceChildren();
+    if (!budget) return;
+    const labels = { experiments: '实验数', runs: '运行数', execution_attempts: '执行尝试', model_calls: '模型调用' };
+    const limits = budget.limit || {};
+    const used = budget.reserved_or_committed || {};
+    const committed = budget.committed || {};
+    Object.keys(labels).forEach((key) => {
+      const limit = Number(limits[key] || 0);
+      const reserved = Number(used[key] || 0);
+      const consumed = Number(committed[key] || 0);
+      const row = document.createElement('div');
+      row.className = 'goal-budget-row';
+      const header = document.createElement('div');
+      header.className = 'goal-budget-row-header';
+      const name = document.createElement('strong');
+      name.textContent = labels[key];
+      const value = document.createElement('span');
+      value.textContent = reserved + '/' + limit + '（已提交 ' + consumed + '）';
+      header.append(name, value);
+      const track = document.createElement('div');
+      track.className = 'goal-budget-track';
+      const fill = document.createElement('span');
+      fill.style.width = (limit > 0 ? Math.min(100, reserved / limit * 100) : 0) + '%';
+      track.appendChild(fill);
+      row.append(header, track);
+      container.appendChild(row);
+    });
+    const remaining = budget.remaining || {};
+    el('goalBudgetStatus').textContent = '剩余：实验 ' + (remaining.experiments ?? 0) + ' · 运行 ' + (remaining.runs ?? 0) + ' · 尝试 ' + (remaining.execution_attempts ?? 0) + ' · 模型调用 ' + (remaining.model_calls ?? 0);
+  }
+
+  function renderGoalExperiments() {
+    const container = el('goalRunExperiments');
+    container.replaceChildren();
+    const links = state.activeGoal?.experiments || [];
+    if (!links.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = '尚未创建实验。选择允许参数并创建第一轮实验。';
+      container.appendChild(empty);
+      return;
+    }
+    links.forEach((link) => {
+      const experiment = link.experiment || {};
+      const execution = link.execution || {};
+      const experimentId = String(link.experiment_id || experiment.experiment_id || '');
+      const card = document.createElement('article');
+      card.className = 'goal-linked-experiment';
+      const title = document.createElement('strong');
+      title.textContent = experiment.name || experimentId;
+      const meta = document.createElement('span');
+      meta.textContent = experimentId + ' · 第 ' + (link.plan_revision || 1) + ' 轮 · ' + (experiment.variant_count ?? '—') + ' 个变体 · ' + (experiment.status || link.status || '已创建');
+      const purpose = document.createElement('p');
+      purpose.textContent = link.purpose || '未填写本轮实验用途。';
+      const progress = document.createElement('small');
+      progress.textContent = execution.variant_count
+        ? '运行绑定 ' + (execution.assigned_count || 0) + '/' + execution.variant_count + ' · 终态 ' + (execution.terminal_count || 0) + '/' + execution.variant_count
+        : (link.launch_operation_id ? '已提交运行操作：' + link.launch_operation_id : '尚未启动运行');
+      const actions = document.createElement('div');
+      actions.className = 'toolbar-actions';
+      const launch = document.createElement('button');
+      launch.type = 'button';
+      launch.className = 'button button-primary';
+      launch.textContent = link.launch_operation_id ? '核对运行状态' : '启动本轮运行';
+      launch.disabled = ['COMPLETED', 'FAILED', 'CANCELLED'].includes(state.activeGoal?.goal?.status) && !link.launch_operation_id;
+      launch.addEventListener('click', () => launchGoalExperiment(link).catch((error) => goalRunNotice(error.message, 'error')));
+      const interpret = document.createElement('button');
+      interpret.type = 'button';
+      interpret.className = 'button button-secondary';
+      interpret.textContent = '分析本轮证据';
+      interpret.disabled = !link.launch_operation_id;
+      interpret.addEventListener('click', () => {
+        state.goalSelectedExperimentId = experimentId;
+        state.goalInterpretOperationId = null;
+        el('goalInterpretResult').classList.add('hidden');
+        el('goalInterpretQuestion').focus();
+        goalRunNotice('已选择实验 ' + experimentId + ' 进行证据分析。');
+      });
+      actions.append(launch, interpret);
+      card.append(title, meta, purpose, progress, actions);
+      container.appendChild(card);
+    });
+  }
+
+  function renderGoalDecisions() {
+    const container = el('goalDecisionLedger');
+    container.replaceChildren();
+    const decisions = state.activeGoal?.decisions || [];
+    if (!decisions.length) {
+      const empty = document.createElement('li');
+      empty.className = 'empty-state';
+      empty.textContent = '暂无决策记录。';
+      container.appendChild(empty);
+      return;
+    }
+    decisions.forEach((decision) => {
+      const item = document.createElement('li');
+      item.className = 'goal-decision-item';
+      const heading = document.createElement('strong');
+      heading.textContent = '#' + decision.sequence + ' · ' + decision.decision_kind;
+      const summary = document.createElement('p');
+      summary.textContent = decision.summary || '';
+      const time = document.createElement('small');
+      time.textContent = decision.created_at || '';
+      item.append(heading, summary, time);
+      if (decision.evidence && Object.keys(decision.evidence).length) {
+        const evidence = document.createElement('details');
+        const summaryNode = document.createElement('summary');
+        summaryNode.textContent = '查看证据引用';
+        const pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(decision.evidence, null, 2);
+        evidence.append(summaryNode, pre);
+        item.appendChild(evidence);
+      }
+      container.appendChild(item);
+    });
+  }
+
+  function renderGoalDetail() {
+    const snapshot = state.activeGoal;
+    const goal = snapshot?.goal;
+    if (!goal) return;
+    el('goalDetailTitle').textContent = goal.objective || goal.goal_id;
+    el('goalDetailObjective').textContent = goal.objective || '';
+    el('goalDetailStatus').textContent = GOAL_STATUS_LABELS[goal.status] || goal.status;
+    el('goalDetailStatus').className = 'status-chip ' + (goal.status === 'COMPLETED' ? 'status-success' : (['FAILED', 'CANCELLED'].includes(goal.status) ? 'status-fail' : 'status-muted'));
+    const taskName = goal.base_task_spec?.task?.name || goal.base_task_spec?.task?.id || goal.base_task_spec?.model?.capability_id || '基础任务';
+    el('goalDetailMeta').textContent = goal.goal_id + ' · 基础任务：' + taskName + ' · 允许参数：' + (goal.allowed_parameter_paths || []).length + ' 项';
+    const terminal = ['COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED'].includes(goal.status);
+    const canResolve = ['ANALYZING', 'NEEDS_REVISION'].includes(goal.status);
+    el('goalResolutionPanel').classList.toggle('hidden', !canResolve);
+    ['completeGoalRunBtn', 'partialGoalRunBtn', 'reviseGoalRunBtn'].forEach((id) => {
+      el(id).disabled = !canResolve;
+    });
+    el('cancelGoalRunBtn').disabled = terminal;
+    el('createGoalExperimentBtn').disabled = terminal || !(goal.allowed_parameter_paths || []).length;
+    el('previewGoalExperimentBtn').disabled = terminal || !(goal.allowed_parameter_paths || []).length;
+    el('interpretGoalRunBtn').disabled = !(snapshot.experiments || []).some((item) => item.launch_operation_id);
+    renderGoalBudget();
+    renderGoalExperiments();
+    renderGoalDecisions();
+  }
+
+  async function previewGoalExperiment() {
+    const goal = state.activeGoal?.goal;
+    if (!goal) throw new Error('请先选择目标。');
+    const path = el('goalSweepPath').value;
+    const values = el('goalSweepValues').value.split(',').map(parseExperimentValue).filter((value) => value !== '');
+    if (!path || !goal.allowed_parameter_paths.includes(path)) throw new Error('请选择目标允许调整的参数。');
+    if (!values.length) throw new Error('请填写候选值，以逗号分隔。');
+    const payload = await api('/experiments/plan', {
+      method: 'POST',
+      body: apiBody({
+        base_task_spec: goal.base_task_spec,
+        experiment_type: 'sweep',
+        sweep: { [path]: values },
+        assertions: goal.success_criteria || [],
+        preview_limit: 8,
+      }),
+    });
+    const preview = el('goalExperimentPreview');
+    preview.classList.remove('hidden');
+    preview.textContent = JSON.stringify({
+      variant_count: payload.variant_count,
+      preview: payload.preview,
+      assertions: payload.assertions,
+      budget: {
+        goal_remaining_experiments: state.activeGoal.budget?.remaining?.experiments,
+        goal_remaining_runs: state.activeGoal.budget?.remaining?.runs,
+      },
+    }, null, 2);
+  }
+
+  async function createGoalExperiment() {
+    const goal = state.activeGoal?.goal;
+    if (!goal) throw new Error('请先选择目标。');
+    const path = el('goalSweepPath').value;
+    const values = el('goalSweepValues').value.split(',').map(parseExperimentValue).filter((value) => value !== '');
+    const purpose = el('goalExperimentPurpose').value.trim();
+    if (!goal.allowed_parameter_paths.includes(path)) throw new Error('参数超出目标允许范围。');
+    if (!values.length) throw new Error('请填写候选值，以逗号分隔。');
+    if (!purpose) throw new Error('请说明本轮实验的验证目的。');
+    if (!state.goalExperimentOperationId) state.goalExperimentOperationId = goalOperationId('goal:' + goal.goal_id + ':experiment');
+    const button = el('createGoalExperimentBtn');
+    button.disabled = true;
+    try {
+      const payload = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/experiments', {
+        method: 'POST',
+        body: apiBody({
+          operation_id: state.goalExperimentOperationId,
+          name: el('goalExperimentName').value.trim() || ('第 ' + ((state.activeGoal.experiments || []).length + 1) + ' 轮参数扫描'),
+          sweep: { [path]: values },
+          assertions: [],
+          experiment_type: 'sweep',
+          sampling_plan: {},
+          plan_revision: (state.activeGoal.experiments || []).length + 1,
+          purpose,
+        }),
+      });
+      if (!payload.ok) {
+        state.activeGoal = payload;
+        const operationState = payload.experiment_operation?.operation_state || 'UNKNOWN';
+        if (operationState === 'FAILED') {
+          state.goalExperimentOperationId = null;
+          await loadGoals();
+          renderGoalDetail();
+          throw new Error('实验创建已明确失败，目标预算预留已释放。修正原因后可以重新提交。');
+        }
+        await loadGoals();
+        renderGoalDetail();
+        throw new Error('实验创建仍在处理中；保持相同输入重试同一 operation_id。');
+      }
+      state.goalExperimentOperationId = null;
+      state.activeGoal = payload;
+      await loadGoals();
+      renderGoalDetail();
+      goalRunNotice('已创建实验 ' + (payload.experiment_operation?.experiment_id || '') + '；尚未启动运行。', 'success');
+    } catch (error) {
+      goalRunNotice('创建操作未完成。' + error.message, 'error');
+      throw error;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function launchGoalExperiment(link) {
+    const goal = state.activeGoal?.goal;
+    if (!goal) throw new Error('请先选择目标。');
+    const experimentId = String(link.experiment_id || '');
+    const variantCount = Number(link.experiment?.variant_count || 0);
+    if (!experimentId || variantCount < 1) throw new Error('实验定义缺少有效变体数。');
+    let request;
+    if (link.launch_operation_id) {
+      const operation = await api('/agent/operations/' + encodeURIComponent(link.launch_operation_id));
+      request = operation.request || {};
+      if (!request.max_attempts || !request.max_run_count || !request.max_execution_attempts) {
+        throw new Error('已存在运行操作，但原始预算参数不可读取；请到运行中心核对，不要新建 launch 操作。');
+      }
+      request.operation_id = link.launch_operation_id;
+    } else {
+      const maxAttempts = Number(el('goalLaunchMaxAttempts').value || 1);
+      if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 2) throw new Error('最大执行尝试数只能为 1 或 2。');
+      const operationId = String(state.goalLaunchOperationIds[experimentId] || goalOperationId('goal:' + goal.goal_id + ':launch:' + experimentId));
+      state.goalLaunchOperationIds[experimentId] = operationId;
+      request = {
+        operation_id: operationId,
+        max_attempts: maxAttempts,
+        hard_timeout: true,
+        max_run_count: variantCount,
+        max_execution_attempts: variantCount * maxAttempts,
+      };
+    }
+    const response = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/experiments/' + encodeURIComponent(experimentId) + '/launch', {
+      method: 'POST',
+      body: apiBody(request),
+    });
+    const operationState = String(response.launch_operation?.operation_state || '').toUpperCase();
+    delete state.goalLaunchOperationIds[experimentId];
+    state.activeGoal = response;
+    await loadGoals();
+    if (operationState === 'FAILED') {
+      const currentLink = (state.activeGoal?.experiments || []).find((item) => item.experiment_id === experimentId);
+      const unbound = !currentLink?.launch_operation_id;
+      goalRunNotice(
+        unbound
+          ? '启动明确失败，未观察到运行副作用；预算已释放，可以重新启动。'
+          : '启动操作失败，但已观察到运行副作用；预算保持占用，请先核对运行中心，不要重复提交。',
+        'error',
+      );
+      return;
+    }
+    if (operationState === 'IN_PROGRESS') {
+      goalRunNotice('启动仍在处理中，已保留原操作绑定；刷新详情继续核对。', 'info');
+      return;
+    }
+    goalRunNotice('实验 ' + experimentId + ' 的运行提交状态：' + (operationState || '已对账'), response.ok ? 'success' : 'error');
+  }
+
+  async function populateGoalInterpretProviders() {
+    if (!state.providers.length) await loadModelProviders(false);
+    const select = el('goalInterpretProvider');
+    select.replaceChildren();
+    const providers = state.providers.filter((provider) => (
+      provider.provider_id !== 'local-template'
+      && provider.availability_state === 'FULL_TEST_PASSED'
+      && !['template', 'deterministic'].includes(provider.backend)
+    ));
+    providers.forEach((provider) => {
+      select.appendChild(new Option(
+        (provider.label || provider.provider_id) + (provider.model ? ' · ' + provider.model : ''),
+        provider.provider_id,
+      ));
+    });
+    if (!providers.length) select.appendChild(new Option('没有已通过完整测试的模型服务', ''));
+    return providers.length > 0;
+  }
+
+  async function interpretGoalExperiment() {
+    const goal = state.activeGoal?.goal;
+    if (!goal) throw new Error('请先选择目标。');
+    const links = state.activeGoal.experiments || [];
+    const link = links.find((item) => item.experiment_id === state.goalSelectedExperimentId)
+      || links.find((item) => item.launch_operation_id);
+    if (!link) throw new Error('请先启动至少一轮实验，并选择对应实验进行分析。');
+    const mode = el('goalInterpretMode').value;
+    const question = el('goalInterpretQuestion').value.trim();
+    if (!question) throw new Error('请填写分析问题。');
+    let providerId = null;
+    if (mode === 'model') {
+      if (!el('goalInterpretProvider').options.length) await populateGoalInterpretProviders();
+      providerId = el('goalInterpretProvider').value || null;
+      if (!providerId) throw new Error('当前没有可用的已验证模型服务；请先在“模型服务”中完成配置和测试。');
+    }
+    const metrics = el('goalInterpretMetrics').value.split(',').map((item) => item.trim()).filter(Boolean);
+    if (!state.goalInterpretOperationId) state.goalInterpretOperationId = goalOperationId('goal:' + goal.goal_id + ':interpret:' + link.experiment_id);
+    const button = el('interpretGoalRunBtn');
+    button.disabled = true;
+    try {
+      const response = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/experiments/' + encodeURIComponent(link.experiment_id) + '/interpret', {
+        method: 'POST',
+        body: apiBody({
+          operation_id: state.goalInterpretOperationId,
+          question,
+          mode,
+          provider_id: providerId,
+          metrics,
+        }),
+      });
+      state.goalInterpretOperationId = null;
+      state.activeGoal = response;
+      const result = response.analysis_operation?.result || response.analysis_operation || {};
+      const output = el('goalInterpretResult');
+      output.classList.remove('hidden');
+      output.textContent = JSON.stringify(result, null, 2);
+      await loadGoals();
+      renderGoalDetail();
+      goalRunNotice('证据分析已完成；下一轮建议仅供审阅，不会自动执行。', 'success');
+    } catch (error) {
+      goalRunNotice('分析提交未确认。保持相同输入重试同一 operation_id；' + error.message, 'error');
+      throw error;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function cancelGoalRun() {
+    const goal = state.activeGoal?.goal;
+    if (!goal) return;
+    if (!window.confirm('取消该目标？后续不得继续消耗此目标的预算，已提交的仿真运行按运行中心状态处理。')) return;
+    const response = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/cancel', {
+      method: 'POST',
+      body: apiBody({ reason: '用户从目标实验工作台取消目标' }),
+    });
+    state.activeGoal = response;
+    await loadGoals();
+    renderGoalDetail();
+    goalRunNotice('目标已取消。', 'success');
+  }
+
+
+  async function resolveGoalRun(status) {
+    const goal = state.activeGoal?.goal;
+    if (!goal) throw new Error('请先选择目标。');
+    const reason = el('goalResolutionReason').value.trim();
+    if (!reason) throw new Error('请填写结论说明，便于追溯本次目标决策。');
+    if (!['COMPLETED', 'PARTIAL', 'NEEDS_REVISION'].includes(status)) {
+      throw new Error('不支持的目标结论。');
+    }
+    if (!state.goalResolveOperationIds[status]) {
+      state.goalResolveOperationIds[status] = goalOperationId('goal:' + goal.goal_id + ':resolve:' + status);
+    }
+    const buttonIds = ['completeGoalRunBtn', 'partialGoalRunBtn', 'reviseGoalRunBtn'];
+    buttonIds.forEach((id) => { el(id).disabled = true; });
+    try {
+      const response = await api('/agent/goals/' + encodeURIComponent(goal.goal_id) + '/resolve', {
+        method: 'POST',
+        body: apiBody({
+          operation_id: state.goalResolveOperationIds[status],
+          status,
+          reason,
+        }),
+      });
+      delete state.goalResolveOperationIds[status];
+      state.activeGoal = response;
+      await loadGoals();
+      renderGoalDetail();
+      const label = GOAL_STATUS_LABELS[status] || status;
+      goalRunNotice('目标结论已记录：' + label + '。', 'success');
+      return response;
+    } catch (error) {
+      goalRunNotice('结论提交未确认。保持相同结论和说明重试同一 operation_id；' + error.message, 'error');
+      throw error;
+    } finally {
+      const canResolve = ['ANALYZING', 'NEEDS_REVISION'].includes(state.activeGoal?.goal?.status);
+      buttonIds.forEach((id) => { el(id).disabled = !canResolve; });
+    }
+  }
+
   async function showExperimentComparison(experimentId) {
     const [detail, comparison] = await Promise.all([
       api(`/experiments/${experimentId}`), api(`/experiments/${experimentId}/comparison`),
@@ -8808,6 +9481,44 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('taskStatusFilter').addEventListener('change', () => loadTasks().catch(() => null));
     el('newExperimentBtn').addEventListener('click', () => openExperimentModal().catch(error => showNotice(error.message, 'error')));
     el('refreshExperimentsBtn').addEventListener('click', () => loadExperiments().catch(() => null));
+    el('newGoalRunBtn').addEventListener('click', () => openGoalCreatePanel().catch((error) => goalRunNotice(error.message, 'error')));
+    el('refreshGoalRunsBtn').addEventListener('click', () => loadGoals().catch((error) => goalRunNotice(error.message, 'error')));
+    el('closeGoalCreateBtn').addEventListener('click', () => el('goalRunCreatePanel').classList.add('hidden'));
+    el('goalBaseTaskSelect').addEventListener('change', (event) => selectGoalBaseTask(event.target.value).catch((error) => {
+      el('goalBaseTaskStatus').textContent = error.message;
+      goalRunNotice(error.message, 'error');
+    }));
+    el('createGoalRunBtn').addEventListener('click', () => createGoalRun().catch((error) => goalRunNotice(error.message, 'error')));
+    [
+      'goalObjective', 'goalSuccessMetric', 'goalSuccessOperator', 'goalSuccessValue',
+      'goalBudgetExperiments', 'goalBudgetRuns', 'goalBudgetAttempts', 'goalBudgetModelCalls',
+    ].forEach((id) => {
+      el(id).addEventListener('input', invalidateGoalCreateOperation);
+      el(id).addEventListener('change', invalidateGoalCreateOperation);
+    });
+    el('previewGoalExperimentBtn').addEventListener('click', () => previewGoalExperiment().catch((error) => goalRunNotice(error.message, 'error')));
+    el('createGoalExperimentBtn').addEventListener('click', () => createGoalExperiment().catch((error) => goalRunNotice(error.message, 'error')));
+    ['goalExperimentName', 'goalExperimentPurpose', 'goalSweepValues'].forEach((id) => el(id).addEventListener('input', invalidateGoalExperimentOperation));
+    el('goalSweepPath').addEventListener('change', invalidateGoalExperimentOperation);
+    el('refreshGoalDetailBtn').addEventListener('click', () => {
+      if (state.activeGoalId) openGoalDetail(state.activeGoalId).catch((error) => goalRunNotice(error.message, 'error'));
+    });
+    el('cancelGoalRunBtn').addEventListener('click', () => cancelGoalRun().catch((error) => goalRunNotice(error.message, 'error')));
+    el('completeGoalRunBtn').addEventListener('click', () => resolveGoalRun('COMPLETED').catch((error) => goalRunNotice(error.message, 'error')));
+    el('partialGoalRunBtn').addEventListener('click', () => resolveGoalRun('PARTIAL').catch((error) => goalRunNotice(error.message, 'error')));
+    el('reviseGoalRunBtn').addEventListener('click', () => resolveGoalRun('NEEDS_REVISION').catch((error) => goalRunNotice(error.message, 'error')));
+    el('goalInterpretMode').addEventListener('change', async (event) => {
+      const modelMode = event.target.value === 'model';
+      el('goalInterpretProviderWrap').classList.toggle('hidden', !modelMode);
+      if (modelMode) {
+        try { await populateGoalInterpretProviders(); }
+        catch (error) { goalRunNotice(error.message, 'error'); }
+      }
+      state.goalInterpretOperationId = null;
+    });
+    el('goalInterpretProvider').addEventListener('change', () => { state.goalInterpretOperationId = null; });
+    ['goalInterpretQuestion', 'goalInterpretMetrics'].forEach((id) => el(id).addEventListener('input', () => { state.goalInterpretOperationId = null; }));
+    el('interpretGoalRunBtn').addEventListener('click', () => interpretGoalExperiment().catch((error) => goalRunNotice(error.message, 'error')));
     el('experimentBaseTaskSelect').addEventListener('change', (event) => selectExperimentBaseTask(event.target.value).catch((error) => { el('experimentModalStatus').textContent=error.message; }));
     el('experimentType').addEventListener('change', updateExperimentTypeFields);
     el('sweepPath').addEventListener('change', updateSweepParameterHelp);
