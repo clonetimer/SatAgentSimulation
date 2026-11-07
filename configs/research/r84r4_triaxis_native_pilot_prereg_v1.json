@@ -1,0 +1,24 @@
+{
+  "schema": "sat-sim.r84r4.triaxis-native-pilot-prereg.v1",
+  "status": "FROZEN_BEFORE_EXECUTION",
+  "qualification": "triaxis_native_feasibility_only_uncalibrated_wheel_measurement",
+  "native_source_sha256": "9ebf89d27d4f068a0b8e4f07ad376203692ccdc8655b51b27f07aa12c14dd2d4",
+  "measurement_source_sha256": "48cfe418624da1a3abf3e22873a7715e180204f8549c771b75683fb91a8314ea",
+  "native_distribution": "bsk==2.11.0+satfix2",
+  "design": {
+    "reference_mode": "triaxis_pulse09x4",
+    "axis_orders": [[0, 1, 2], [1, 2, 0], [2, 0, 1]],
+    "fault_target_wheels": [0, 1, 2],
+    "initial_states": [0, 1, 2],
+    "capacity_modes": ["healthy", "loss50", "loss75"],
+    "gyro_noise_sigma_rad_s": 0.0001,
+    "unique_native_cases": 81,
+    "duration_s": 54,
+    "native_samples_per_case": 271,
+    "reference_events_per_case": 24,
+    "seed_formula": "2030000000 + order_index*1000000 + wheel*100000 + initial*10000 + capacity_index*1000 + 17"
+  },
+  "measurement": "reuse frozen nominal R84-R4 uncalibrated wheel-speed sensitivity assumptions",
+  "analysis": "physical/source feasibility and exact same-seed replay only; no diagnostic rates",
+  "prohibitions": ["no feature or threshold tuning", "no R85 dataset eligibility", "no flight or Stable claim"]
+}
