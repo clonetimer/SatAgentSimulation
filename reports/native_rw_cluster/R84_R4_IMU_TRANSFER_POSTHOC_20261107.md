@@ -38,4 +38,18 @@ R2 条件上界在新种子的四脉冲 loss75 上复现 270/270，但独立健�
 
 公开 [Rocket Lab RW3-0.06 ICD](https://rocketlabcorp.com/assets/Uploads/60-Nms-RW3-0.06-ICD.pdf) 将 SPEED 定义为基于 Hall 转换的速度估计，并说明低转速下速度估计的噪声和时延受转子脉冲年龄影响；[Astrofein RW1 产品资料](https://www.astrofein.com/en/reaction-wheels/reaction-wheel-rw1/)给出该型号 0.25 rpm 的速度分辨率。这些是不同设备的公开规格，均不能标定当前 Basilisk Honeywell HR16 轮的采样、噪声、量化、丢包和同步。R3B 仍属于显式敏感性模型。
 
-机器可读输出：本地 `reports/local_r84r4_20261107/evidence/r84r4_imu_transfer_posthoc.json`。执行脚本会先核验 R4 预注册哈希、R2 源码和两份压缩输入的 SHA-256，再计算逐组计数；原始 R4 数据由 [Actions #42345657428](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42345657428) 另行归档。本次转移分析尚未在该云端归档上独立重算。
+机器可读本地输出：`reports/local_r84r4_20261107/evidence/r84r4_imu_transfer_posthoc.json`。执行脚本先核验 R4 预注册哈希、R2 源码和两份压缩输入的 SHA-256，再计算逐组计数；原始 R4 数据由 [Actions #42345657428](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42345657428) 另行归档。
+
+## Windows 与 Linux 原生噪声复现审计
+
+[云端转移复算 #42347008270](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42347008270)通过，结果保存在 [Artifact #13563089185](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42347008270/artifacts/13563089185)。最初以“所有阳性数必须逐项相同”为门槛的 [#42346469959](https://github.com/clonetimer/SatAgentSimulation/actions/runs/42346469959)失败并保留；该失败暴露了跨平台噪声差异，后续工作流改为显式打印所有计数与原始解压哈希，同时检查核心条件性结论。不是把不同结果写成相同。
+
+| 解压后原始 JSONL SHA-256 | Windows 本地 | Linux Actions | 判定 |
+| --- | --- | --- | --- |
+| 工况清单 | `5f07a33f…6023e3` | 同左 | 逐字节相同 |
+| 物理 QA | `fae2f367…ac5ebc` | 同左 | 逐字节相同 |
+| 官方 IMU | `b1c89642…187f2f7e` | `91f1ee5e…602fef50` | 不同 |
+
+第一条工况的 0 秒 IMU 为相同的零值，0.2 秒起三轴噪声值已不同。相同 seed 保证**各平台内**回放，不保证这两个预编译平台轮的官方 IMU 噪声流逐字节一致。Basilisk 2.11 的 [GaussMarkov 源码](https://github.com/AVSLab/basilisk/blob/v2.11.0/src/architecture/utilities/gauss_markov.h)使用 `std::minstd_rand` 与 `std::normal_distribution`；这是跨平台差异的合理候选机制，尚未做唯一原因证明。物理 QA 完全相同，表明本次差异局限于 IMU 随机观测，而非已记录的物理轨迹或故障注入。
+
+云端四脉冲计数分别是：条件上界健康 47/270、loss50 34/270、loss75 **270/270**；目标轮盲评健康 28/270、loss50 31/270、loss75 **0/270**。前表本地对应为 49/45/270 与 19/26/0。关键的目标轮条件性结论跨平台一致，精确误报与 loss50 计数不一致。R85 前应把运行平台和构建件作为研究因素，逐平台报告噪声统计与误报，并检验各平台内同 seed 复现。完整比较见 `r84r4_imu_transfer_platform_comparison_20261107.json`。
