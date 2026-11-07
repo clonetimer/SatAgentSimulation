@@ -23,7 +23,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - run: python -m pip install "pytest==9.0.3"
+      - name: Install pinned project and contract-test dependencies
+        run: |
+          python -m pip install \
+            "pytest==9.0.3" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
       - name: Run deterministic measurement contract tests
         env:
           PYTHONPATH: "src:."
@@ -38,6 +44,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+      - name: Install pinned project import dependencies
+        run: |
+          python -m pip install \
+            "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
       - name: Download R3A native evidence from current main integration
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,7 +1,8 @@
 """Audit the R84-R3B observation-only replay against pinned R3A telemetry.
 
-Inputs: --source-dir, --identity-dir, --sensitivity-dir, --report.
-Output: machine-readable receipt; does not execute Basilisk or train a model.
+用途：只读核验固定 R3A 遥测与测量模型的零扰动和敏感性回放。
+参数：--source-dir、--identity-dir、--sensitivity-dir、--report。
+输出：机器可读收据；不执行 Basilisk，不训练模型，不授予数据资格。
 """
 from __future__ import annotations
 
