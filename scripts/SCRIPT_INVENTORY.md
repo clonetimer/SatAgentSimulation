@@ -47,6 +47,7 @@
 | `run_r84r4_triaxis_independent.py` | R84-R4 三轴独立原生队列 | active | 用途：按冻结矩阵执行 7560 个全新 54 秒 Basilisk 工况并配对两档轮速测量敏感性观察；参数：--output-dir、六个 --prior-case-file；输出：分离的压缩原始证据与 SHA-256 |
 | `analyze_r84r4_triaxis_independent.py` | R84-R4 三轴预注册盲评 | active | 用途：三段 R2 IMU 和 R4 轮速命令增益评分，只由健康校准定阈值；参数：--evidence-dir、--report；输出：含弃权的逐上下文计数，故障轮仅用于事后分组 |
 | `audit_r84r4_triaxis_independent.py` | R84-R4 三轴独立证据审计 | active | 用途：逐条核对 7560 次运行、六批种子互斥、三轴参考、C++ 权限、双档轮速回放与 QA 隔离；参数：--evidence-dir、六个 --prior-case-file、--report；输出：机器可读收据 |
+| `assess_r85_triaxis_candidate.py` | R85 三轴数据候选资格判定 | active | 用途：核对冻结协议、原生清单、独立审计与盲评的一致性，并逐项记录物理、测量、误报及可辨识性门槛；参数：--prereg、--manifest、--audit、--analysis、--report；输出：保守资格收据，证据不全则失败关闭，不授予飞行资格 |
 | `audit_r84r4_native_feasibility.py` | R84-R4 新原生可行性证据审计 | active | 用途：逐行核对 55 次执行、来源消息、互斥 seed 和 QA 隔离；参数：--evidence-dir、--prior-r2-cases、--report；输出：机器可读独立审计收据，不授予数据集资格 |
 | `audit_r84r2_raw_imu_feature_screen.py` | R84-R2-E0 原始 IMU 多特征探索审计 | active | 用途：对固定 SHA 的 R84-R1 原始 IMU artifact 做回溯式 8 维特征筛查；参数：--artifact、--report；输出：特征级和多特征健康控制/故障对照 JSON；不运行仿真、不训练模型、不作为独立确认 |
 | `audit_interactive_baseline.py` | 交互扩展兼容基线 | active | 冻结测试计数、Doctor、release-check、OpenAPI 与脚本清单哈希 |

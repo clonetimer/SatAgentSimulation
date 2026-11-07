@@ -1,0 +1,188 @@
+{
+  "schema": "sat-sim.r85.candidate-assessment.v1",
+  "context_of_use": "generic LEO smallsat synthetic RW-fault diagnostic dataset candidate; no flight qualification",
+  "status": "NOT_QUALIFIED",
+  "formal_dataset_eligible": false,
+  "native_cases": 7560,
+  "evidence_sha256": {
+    "preregistration": "a14b745b4cf70ea69ae6c013486130545409a2244ed7de42b13e3bf7e2d7ac1e",
+    "manifest": "571c997ba8bd036be1787c36b3b266edd2afbad6c0a8b62758676c418a9084aa",
+    "independent_audit": "d87ab05d5879c847dd53be5721f2b25c2a488966d676106c43a668a8c2c4a5c6",
+    "blind_analysis": "197cbde544f3bbecac70c31bf01b055d9a12dc35eeea5e780887ec28ed8257fc"
+  },
+  "fusion_counts_by_noise_and_wheel_profile": {
+    "0.0001/nominal": {
+      "healthy_control": {
+        "total": 810,
+        "positive": 107,
+        "negative": 703,
+        "abstain": 0
+      },
+      "loss50_test": {
+        "total": 810,
+        "positive": 116,
+        "negative": 694,
+        "abstain": 0
+      },
+      "loss75_test": {
+        "total": 810,
+        "positive": 810,
+        "negative": 0,
+        "abstain": 0
+      }
+    },
+    "0.0001/stressed": {
+      "healthy_control": {
+        "total": 810,
+        "positive": 99,
+        "negative": 710,
+        "abstain": 1
+      },
+      "loss50_test": {
+        "total": 810,
+        "positive": 88,
+        "negative": 722,
+        "abstain": 0
+      },
+      "loss75_test": {
+        "total": 810,
+        "positive": 807,
+        "negative": 3,
+        "abstain": 0
+      }
+    },
+    "5e-05/nominal": {
+      "healthy_control": {
+        "total": 540,
+        "positive": 67,
+        "negative": 473,
+        "abstain": 0
+      },
+      "loss50_test": {
+        "total": 540,
+        "positive": 71,
+        "negative": 469,
+        "abstain": 0
+      },
+      "loss75_test": {
+        "total": 540,
+        "positive": 540,
+        "negative": 0,
+        "abstain": 0
+      }
+    },
+    "5e-05/stressed": {
+      "healthy_control": {
+        "total": 540,
+        "positive": 74,
+        "negative": 466,
+        "abstain": 0
+      },
+      "loss50_test": {
+        "total": 540,
+        "positive": 65,
+        "negative": 473,
+        "abstain": 2
+      },
+      "loss75_test": {
+        "total": 540,
+        "positive": 539,
+        "negative": 0,
+        "abstain": 1
+      }
+    },
+    "0.0002/nominal": {
+      "healthy_control": {
+        "total": 540,
+        "positive": 78,
+        "negative": 462,
+        "abstain": 0
+      },
+      "loss50_test": {
+        "total": 540,
+        "positive": 76,
+        "negative": 464,
+        "abstain": 0
+      },
+      "loss75_test": {
+        "total": 540,
+        "positive": 483,
+        "negative": 57,
+        "abstain": 0
+      }
+    },
+    "0.0002/stressed": {
+      "healthy_control": {
+        "total": 540,
+        "positive": 59,
+        "negative": 481,
+        "abstain": 0
+      },
+      "loss50_test": {
+        "total": 540,
+        "positive": 65,
+        "negative": 474,
+        "abstain": 1
+      },
+      "loss75_test": {
+        "total": 540,
+        "positive": 292,
+        "negative": 247,
+        "abstain": 1
+      }
+    }
+  },
+  "gates": {
+    "native_verification_and_lineage": {
+      "status": "PASS",
+      "evidence": [
+        "manifest",
+        "independent_audit"
+      ]
+    },
+    "measurement_validation_for_target_hardware": {
+      "status": "HOLD",
+      "reason": "Wheel sample rate, resolution, bias, noise, dropout and timing are uncalibrated sensitivity assumptions."
+    },
+    "independent_healthy_false_alarm": {
+      "status": "HOLD",
+      "reason": "No approved false-alarm acceptance limit; report exact independent healthy count.",
+      "primary_nominal": {
+        "total": 810,
+        "positive": 107,
+        "negative": 703,
+        "abstain": 0
+      }
+    },
+    "loss50_distinguishability": {
+      "status": "HOLD",
+      "reason": "Current frozen fusion probe does not reliably separate loss50 from independent healthy controls.",
+      "primary_nominal": {
+        "total": 810,
+        "positive": 116,
+        "negative": 694,
+        "abstain": 0
+      },
+      "positive_rate_difference": 0.01111111
+    },
+    "loss75_robustness": {
+      "status": "HOLD",
+      "reason": "High-IMU-noise and stressed wheel measurement reduce detection and vary by context.",
+      "high_noise_stressed": {
+        "total": 540,
+        "positive": 292,
+        "negative": 247,
+        "abstain": 1
+      }
+    },
+    "cross_platform_reproducibility": {
+      "status": "PARTIAL",
+      "reason": "Windows and Linux native audits pass; exact independent-control counts differ by platform."
+    }
+  },
+  "next_evidence": [
+    "selected wheel hardware specification or bench calibration for measurement parameters",
+    "preapproved false-alarm and fault-detection acceptance criteria with independent controls",
+    "independent loss50 study and high-noise context-level loss75 replication"
+  ]
+}
