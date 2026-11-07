@@ -8,12 +8,27 @@
 
 | 来源 | 明示内容 | 本项目可用程度 |
 |---|---|---|
+| [Honeywell Constellation Series HR16 产品资料](https://satcatalog.s3.amazonaws.com/components/223/SatCatalog_-_Honeywell_-_HR16-100_-_Datasheet.pdf) | 公开 HR16 的 Hall 换相与速度遥测、模拟/RS422 接口、动量/力矩/轮速范围 | 可证明该系列有速度遥测；未列出本试验所需的采样率、量化分辨率、噪声、偏置、丢包或时间同步误差，不能为当前数值模型标定 |
 | [Astrofein RW1 产品资料](https://www.astrofein.com/en/reaction-wheels/reaction-wheel-rw1/) | speed resolution 0.25 rpm (1 LSB) | 该型号的公开规格；本项目未确认使用同型号，不能据此标定三轮 |
 | [Rocket Lab RW3-0.06 数据表](https://rocketlabcorp.com/assets/Uploads/RW3-0.06-Datasheet-v3.1-2.pdf) | 速度/力矩模式、RS-485 命令与遥测 | 未披露适用于本试验的采样、编码器量化、噪声、丢包、时延联合标定 |
 | [Sinclair/Rocket Lab RW3-0.06 ICD](https://satcatalog.s3.amazonaws.com/components/250/SatCatalog_-_Sinclair_Interplanetary_-_RW3-0.06_-_ICD.pdf?lastmod=20211207035547) | 10.3.13 节定义只读 SPEED 为转子速度遥测；另有约 93 Hz 控制帧描述 | 控制帧频率不等于本项目遥测采样率或时间同步精度；该 ICD 属具体硬件修订版，仍需型号与接口匹配 |
 | [ECSS-E-60A](https://ecss.nl/wp-content/uploads/standards/ecss-e/ECSS-E-60A14September2004.pdf) | 传感器采样、时延、抖动、噪声和量化应作为特性定义 | 作为建模检查维度，不提供本轮系的数值 |
 
 选定硬件、接口控制文件和实测标定在当前仓库中尚不可追溯。因此任何数值组合均标为**敏感性假设**。必须记录每项参数的来源、单位、适用轮号和版本；无依据时不能称飞行真实测量。样本时钟与任务控制时钟须分别记录。
+
+当前 `r84r3b_wheel_speed_sensitivity_v1.json` 的逐参数来源状态如下。Honeywell 资料证明速度遥测存在，但没有为表内任何误差参数提供数值依据。
+
+| 参数 | 当前研究值 | 硬件依据与升级条件 |
+|---|---:|---|
+| 采样间隔 | 每 2 个原生点，即 0.4 s | 未标定；需型号、接口模式及遥测周期说明 |
+| 分辨率 | 0.01 rad/s | 未标定；需速度字格式、量化规则或实测阶梯 |
+| 高斯噪声标准差 | 0.005 rad/s | 未标定；需跨轮速/温度的重复测量残差 |
+| 固定偏置 | 0.002 rad/s | 未标定；需零点与漂移标定 |
+| 独立丢包概率 | 2% | 未标定；需链路统计；独立伯努利只是模型假设 |
+| 接收时延 | 0.05 s | 未标定；需发送、采样、接收时标定义及测量 |
+| 时间戳抖动标准差 | 0.01 s | 未标定；需同步架构与时标残差 |
+
+当前未选定实际飞行轮系，也未取得其 ICD 或台架数据。即便仿真动力学采用 `Honeywell_HR16` 模板，这些测量参数也不能因此升级为 HR16 设备规格。
 
 ## 已实现的纯测量层
 
