@@ -39,6 +39,9 @@
 | `analyze_r84r4_imu_transfer_posthoc.py` | R84-R4 已冻结 R2 IMU 方法回溯转移 | active | 用途：只读复算 R2 十六特征在 R4 新种子的目标轮条件上界与目标轮盲评；参数：--evidence-dir、--profile、--report；输出：按队列和激励方式的计数，明确标为后验比较 |
 | `run_r84r4_crossed_axis_native_pilot.py` | R84-R4 激励轴与故障轮交叉原生试验 | active | 用途：按冻结 3×3×3×3 因素矩阵运行 81 个真实 Basilisk 工况及一次精确回放；参数：--output-dir；输出：独立观测、IMU、物理 QA、工况清单及 SHA-256，不计算诊断率 |
 | `audit_r84r4_crossed_axis_native_pilot.py` | R84-R4 激励轴交叉证据审计 | active | 用途：核验 81 个原生工况的互斥种子、指令轴、C++ 故障目标轮、消息来源与 QA 隔离；参数：--evidence-dir、--prior-r2-cases、--prior-r4-cases、--prior-r4-primary-cases、--report；输出：机器可读收据 |
+| `run_r84r4_crossed_independent.py` | R84-R4 交叉轴多噪声独立原生队列 | active | 用途：按冻结矩阵执行 7560 个全新原生工况并配对两档轮速观察；参数：--output-dir、四个 --prior-case-file；输出：分离的压缩原始证据和 SHA-256 |
+| `analyze_r84r4_crossed_independent.py` | R84-R4 交叉轴预注册评分 | active | 用途：按已知指令轴与初始状态健康校准，比较 IMU、轮速命令和融合评分；参数：--evidence-dir、--report；输出：含弃权的逐层计数，故障轮仅用于最终分组 |
+| `audit_r84r4_crossed_independent.py` | R84-R4 交叉轴独立队列审计 | active | 用途：核对 7560 次执行的哈希、种子、物理读回、消息来源和 QA 隔离；参数：--evidence-dir、四个 --prior-case-file、--report；输出：机器可读收据 |
 | `audit_r84r4_native_feasibility.py` | R84-R4 新原生可行性证据审计 | active | 用途：逐行核对 55 次执行、来源消息、互斥 seed 和 QA 隔离；参数：--evidence-dir、--prior-r2-cases、--report；输出：机器可读独立审计收据，不授予数据集资格 |
 | `audit_r84r2_raw_imu_feature_screen.py` | R84-R2-E0 原始 IMU 多特征探索审计 | active | 用途：对固定 SHA 的 R84-R1 原始 IMU artifact 做回溯式 8 维特征筛查；参数：--artifact、--report；输出：特征级和多特征健康控制/故障对照 JSON；不运行仿真、不训练模型、不作为独立确认 |
 | `audit_interactive_baseline.py` | 交互扩展兼容基线 | active | 冻结测试计数、Doctor、release-check、OpenAPI 与脚本清单哈希 |
