@@ -55,6 +55,16 @@ jobs:
           echo "55c9b9fdcbb993237ec88bff858b0fa74b94a9f45e8bf23f616b789333cd4228  $RUNNER_TEMP/r84r4transfer/native.zip" | sha256sum --check -
           unzip -q "$RUNNER_TEMP/r84r4transfer/native.zip" -d "$RUNNER_TEMP/r84r4transfer/source"
           test -f "$RUNNER_TEMP/r84r4transfer/source/cohort/r84r4_independent_manifest.json"
+          python - <<'PY'
+          import gzip, hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])/'r84r4transfer/source/cohort'
+          for name in ('r84r4_independent_imu.jsonl.gz', 'r84r4_independent_qa.jsonl.gz'):
+              with gzip.open(root/name, 'rb') as stream:
+                  print('R84R4_DECOMPRESSED_SHA256', name, hashlib.sha256(stream.read()).hexdigest())
+          with gzip.open(root/'r84r4_independent_imu.jsonl.gz', 'rt', encoding='utf-8') as stream:
+              print('R84R4_FIRST_IMU_ROWS', json.loads(next(stream))['rows'][:3])
+          PY
       - name: Recompute locked IMU features and both grouping results
         env:
           PYTHONPATH: "src:."
