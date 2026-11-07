@@ -1,0 +1,140 @@
+name: R84-R4 three-axis independent native cohort
+
+on:
+  pull_request:
+    paths:
+      - "configs/research/r84r4_triaxis_independent_prereg_v1.json"
+      - "src/sat_sim/experiments/native_imu_rw_triaxis_r84r4.py"
+      - "scripts/run_r84r4_triaxis_independent.py"
+      - "scripts/analyze_r84r4_triaxis_independent.py"
+      - "scripts/audit_r84r4_triaxis_independent.py"
+      - "tests/test_r84r4_triaxis_independent_contract.py"
+      - ".github/workflows/r84r4-triaxis-independent.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prereg-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install contract dependencies
+        run: |
+          python -m pip install "pytest==9.0.3" "numpy==2.3.5" "pydantic==2.13.4" \
+            "jsonschema==4.26.0" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+      - name: Verify preregistered matrix and frozen sources
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/test_r84r4_triaxis_independent_contract.py
+
+  native-independent-cohort:
+    needs: prereg-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Prepare source and evidence directories
+        run: mkdir -p "$RUNNER_TEMP/r84r4/wheel" "$RUNNER_TEMP/r84r4/compat" "$RUNNER_TEMP/r84r4/r2" "$RUNNER_TEMP/r84r4/prior" "$RUNNER_TEMP/r84r4/crossed" "$RUNNER_TEMP/r84r4/evidence"
+      - name: Download and verify official Basilisk wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip download --only-binary=:all: --no-deps --dest "$RUNNER_TEMP/r84r4/wheel" "bsk==2.11.0"
+          echo "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a  $(echo "$RUNNER_TEMP"/r84r4/wheel/bsk-2.11.0-*.whl)" | sha256sum --check -
+      - name: Build metadata-only compatibility wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_bsk_compat_wheels.py "$RUNNER_TEMP"/r84r4/wheel/bsk-2.11.0-*.whl \
+            --output-dir "$RUNNER_TEMP/r84r4/compat" \
+            --report "$RUNNER_TEMP/r84r4/evidence/compat_payload_review.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          receipt = json.loads((Path(os.environ['RUNNER_TEMP'])/'r84r4/evidence/compat_payload_review.json').read_text())
+          assert receipt['results'][0]['payload_bytes_unchanged']
+          assert receipt['results'][0]['payload_file_count'] == 880
+          PY
+      - name: Install pinned native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "$RUNNER_TEMP"/r84r4/compat/bsk-2.11.0+satfix2-*.whl
+          python -m pip install "pytest==9.0.3" "numpy==2.3.5" "pydantic==2.13.4" \
+            "jsonschema==4.26.0" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+          python - <<'PY'
+          from importlib.metadata import version
+          from Basilisk.simulation import spacecraft, reactionWheelStateEffector, imuSensor
+          from Basilisk.fswAlgorithms import rwMotorTorque
+          assert version('bsk') == '2.11.0+satfix2'
+          print('R84R4_NATIVE_BASILISK', version('bsk'))
+          PY
+      - name: Download pinned prior case archives
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in "13507175034:r2:74385222791bd82737b661ad22468b835805d1114647117933c3d9fa0f2aa3e4" \
+            "13563407865:prior:55c9b9fdcbb993237ec88bff858b0fa74b94a9f45e8bf23f616b789333cd4228" \
+            "13564502261:crossed:a91577282932430cb8e58782ae64dcfd09835e82b0d8e15f339767a9aa0c6978" \
+            "13565755960:crossed-independent:c0058d72637de3061c60f17c081e235d00c4e64b59179c1641630359c6e4e5d3" \
+            "13565902078:triaxis:3aa821d1150b89f017fad5868d93ef1315474a9ea1df0ffc979e4196bce7774a"; do
+            IFS=: read -r artifact directory digest <<< "$spec"
+            curl --fail --location --retry 3 --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/clonetimer/SatAgentSimulation/actions/artifacts/$artifact/zip" \
+              -o "$RUNNER_TEMP/r84r4/$directory.zip"
+            echo "$digest  $RUNNER_TEMP/r84r4/$directory.zip" | sha256sum --check -
+            unzip -q "$RUNNER_TEMP/r84r4/$directory.zip" -d "$RUNNER_TEMP/r84r4/$directory"
+          done
+          test -f "$RUNNER_TEMP/r84r4/r2/r84r2_case_manifest.jsonl"
+          test -f "$RUNNER_TEMP/r84r4/prior/pilot/r84r4_cases.jsonl"
+          test -f "$RUNNER_TEMP/r84r4/prior/cohort/r84r4_independent_cases.jsonl.gz"
+          test -f "$RUNNER_TEMP/r84r4/crossed/crossed/r84r4_crossed_cases.jsonl.gz"
+          test -f "$RUNNER_TEMP/r84r4/crossed-independent/cohort/r84r4_crossed_independent_cases.jsonl.gz"
+          test -f "$RUNNER_TEMP/r84r4/triaxis/triaxis/r84r4_triaxis_cases.jsonl.gz"
+      - name: Run, analyze, and audit independent three-axis cohort
+        env:
+          PYTHONPATH: "src:."
+        shell: bash
+        run: |
+          set -euo pipefail
+          prior=(--prior-case-file "$RUNNER_TEMP/r84r4/r2/r84r2_case_manifest.jsonl"
+            --prior-case-file "$RUNNER_TEMP/r84r4/prior/pilot/r84r4_cases.jsonl"
+            --prior-case-file "$RUNNER_TEMP/r84r4/prior/cohort/r84r4_independent_cases.jsonl.gz"
+            --prior-case-file "$RUNNER_TEMP/r84r4/crossed/crossed/r84r4_crossed_cases.jsonl.gz"
+            --prior-case-file "$RUNNER_TEMP/r84r4/crossed-independent/cohort/r84r4_crossed_independent_cases.jsonl.gz"
+            --prior-case-file "$RUNNER_TEMP/r84r4/triaxis/triaxis/r84r4_triaxis_cases.jsonl.gz")
+          python scripts/run_r84r4_triaxis_independent.py \
+            --output-dir "$RUNNER_TEMP/r84r4/evidence/cohort" "${prior[@]}"
+          python scripts/analyze_r84r4_triaxis_independent.py \
+            --evidence-dir "$RUNNER_TEMP/r84r4/evidence/cohort" \
+            --report "$RUNNER_TEMP/r84r4/evidence/analysis.json"
+          python scripts/audit_r84r4_triaxis_independent.py \
+            --evidence-dir "$RUNNER_TEMP/r84r4/evidence/cohort" "${prior[@]}" \
+            --report "$RUNNER_TEMP/r84r4/evidence/audit.json"
+      - name: Upload raw native evidence and failure receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: r84r4-triaxis-independent-native-cohort
+          path: ${{ runner.temp }}/r84r4/evidence/
+          if-no-files-found: warn
+          retention-days: 90
