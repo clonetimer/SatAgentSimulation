@@ -28,7 +28,7 @@
       "target_blind": {"healthy_control": 28, "loss50": 31, "loss75": 0}
     }
   },
-  "interpretation": "Same case design and physics QA, different official native IMU stochastic samples from the first nonzero sample. Qualitative loss75 conditional/target-blind contrast reproduced; exact false-alarm and loss50 counts are platform-specific for this seed list.",
+  "interpretation": "Same case design and physics QA, different official native IMU stochastic samples from the first nonzero sample. Qualitative contrast between conditioning on the coupled wheel/maneuver axis and pooling all axes reproduced; this design does not isolate fault-target knowledge from commanded-axis knowledge. Exact false-alarm and loss50 counts are platform-specific for this seed list.",
   "candidate_mechanism": "Basilisk v2.11 GaussMarkov uses std::minstd_rand and std::normal_distribution; the platform-specific normal sequence is a plausible cause, not independently proven unique cause.",
   "required_followup": "Treat operating platform/build as a study factor; verify independent noise statistics and repeatability within each platform before R85 data qualification."
 }

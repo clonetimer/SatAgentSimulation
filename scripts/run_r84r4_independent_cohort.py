@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 import time
 
-from run_r84r4_native_multichannel_feasibility import output_rows
+from scripts.run_r84r4_native_multichannel_feasibility import output_rows
 from sat_sim.experiments.native_imu_rw_observability_r84r2 import run_native_case
 from sat_sim.experiments.r84r3b_wheel_speed_measurement import WheelSpeedMeasurementAssumptions
 

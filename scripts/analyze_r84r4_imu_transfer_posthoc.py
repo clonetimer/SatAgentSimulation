@@ -80,6 +80,8 @@ def evaluate(records: list[dict], *, target_blind: bool) -> dict:
         per_group.append({'group': list(key), 'calibration_size': len(calibration),
                           'threshold': threshold, 'cohorts': dict(counts)})
     return {'target_wheel_used_to_choose_calibration': not target_blind,
+            'maneuver_axis_used_to_choose_calibration': not target_blind,
+            'axis_and_fault_target_confound': True,
             'overall': dict(overall),
             'by_reference': [{'reference_mode': reference, 'cohort': cohort, **counts}
                              for (reference, cohort), counts in sorted(by_reference.items())],

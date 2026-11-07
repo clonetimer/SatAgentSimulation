@@ -18,8 +18,8 @@
     "features": "R84-R2 exact frozen 16 raw-IMU features",
     "score": "R84-R2 max absolute robust-z with R84-R2 scale fallback",
     "threshold": "nearest-rank 90th percentile, healthy calibration only",
-    "conditional_upper_bound": "18 physical contexts including QA-only target wheel identity; not deployable fault detection",
-    "target_blind": "six initial-attitude/reference groups pooling all three nominal target wheels; 90 healthy calibration cases per group",
+    "conditional_upper_bound": "18 physical contexts; wheel index simultaneously sets known commanded maneuver axis and QA-only fault target, so their separate effects are confounded",
+    "target_blind": "six initial-attitude/reference groups pooling all three maneuver axes and fault targets; 90 healthy calibration cases per group; axis-blind as well as target-blind",
     "held_out_groups": ["healthy_control", "loss50_test", "loss75_test"],
     "report": "exact positive, negative and abstain counts by context and reference; no threshold tuning"
   }

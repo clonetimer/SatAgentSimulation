@@ -1,0 +1,31 @@
+{
+  "schema": "sat-sim.r84r4.crossed-axis-native-pilot-prereg.v1",
+  "status": "FROZEN_BEFORE_EXECUTION",
+  "qualification": "factorial_native_feasibility_only_not_diagnostic_effect",
+  "source_module_sha256": "4ed79578903089778da71f75ffe2ab4af2280cd27cb3f3c2bdc591b4bbed82e4",
+  "measurement_module_sha256": "48cfe418624da1a3abf3e22873a7715e180204f8549c771b75683fb91a8314ea",
+  "native_distribution": "bsk==2.11.0+satfix2",
+  "design": {
+    "reference_mode": "pulse09x4",
+    "maneuver_axes": [0, 1, 2],
+    "fault_target_wheels": [0, 1, 2],
+    "initial_states": [0, 1, 2],
+    "capacity_modes": ["healthy", "loss50", "loss75"],
+    "gyro_noise_sigma_rad_s": 0.0001,
+    "unique_native_cases": 81,
+    "exact_replays": 1,
+    "seed_formula": "1900000000 + maneuver_axis*1000000 + fault_wheel*100000 + initial*10000 + capacity_index*1000 + 17",
+    "seed_disjoint_from_r2_and_previous_r4": true,
+    "duration_s": 18,
+    "native_samples_per_case": 91
+  },
+  "measurement": "reuse frozen R84-R4 uncalibrated sensitivity assumptions solely for source-isolation checks",
+  "required_checks": [
+    "reference MRP nonzero only on planned maneuver axis",
+    "C++ capacity change only on chosen target wheel",
+    "healthy physics independent of nominal target wheel for fixed maneuver axis and initial state",
+    "same seed exact replay within current platform",
+    "observation fields exclude target-wheel and fault labels"
+  ],
+  "prohibitions": ["no diagnostic rate", "no R85 dataset eligibility", "no flight or Stable claim"]
+}
