@@ -3,6 +3,7 @@ configs/research/r84r4_independent_cohort_prereg_v1.json text eol=lf
 configs/research/r84r4_crossed_axis_native_pilot_prereg_v1.json text eol=lf
 configs/research/r84r4_crossed_independent_prereg_v1.json text eol=lf
 configs/research/r84r4_triaxis_native_pilot_prereg_v1.json text eol=lf
+configs/research/r84r4_triaxis_independent_prereg_v1.json text eol=lf
 scripts/analyze_r84r4_independent_cohort.py text eol=lf
 data/training/** -text
 data/reference/nasa_iss_oem/** -text
