@@ -97,7 +97,13 @@ def parse_time_bindings(text: str) -> TimeBindings:
     latest = str(text or "").rsplit("本轮补充指令：", 1)[-1]
     updates: dict[str, float] = {}
     preserved: dict[str, float] = {}
-    for clause in re.split(r"[,，;；。\n]|并(?:且)?|(?<!不)但(?:是)?|\b(?:and|but)\b", latest, flags=re.I):
+    # Treat Chinese enumeration separators as independent clause boundaries.
+    # ASCII '.' inside numbers or capability IDs remains untouched.
+    for clause in re.split(
+        r"[,，、;；。\n]|(?<=[秒分时])\.(?=\s|$)|并(?:且)?|(?<!不)但(?:是)?|\b(?:and|but)\b",
+        latest,
+        flags=re.I,
+    ):
         if _NEGATIVE.search(clause):
             continue
         keep = bool(_KEEP.search(clause))

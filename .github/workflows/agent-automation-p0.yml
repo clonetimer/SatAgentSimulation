@@ -8,6 +8,7 @@ on:
       - "src/sat_sim/goal_runs.py"
       - "src/sat_sim/agent_tools.py"
       - "src/sat_sim/agent_eval_attribution.py"
+      - "src/sat_sim/vllm_evidence_benchmark.py"
       - "src/sat_sim/experience_longitudinal_eval.py"
       - "src/sat_sim/model_router.py"
       - "src/sat_sim/experience_lessons.py"
@@ -83,6 +84,10 @@ jobs:
             tests/test_agent_goal_api.py \
             tests/test_agent_eval_attribution.py \
             tests/test_agent_prompt_contract_closure.py \
+            tests/test_agent_longitudinal_token_accounting.py \
+            tests/test_agent_frozen_holdout_cli.py \
+            tests/test_agent_preparse_heldout_boundaries.py \
+            tests/test_agent_vllm_evidence_benchmark.py \
             tests/test_workbench_agent_integration.py \
             tests/test_experience_lessons.py \
             tests/test_model_router_calibration.py \

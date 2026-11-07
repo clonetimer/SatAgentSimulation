@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from .experience import ExperienceScope, ExperienceStore, _canonical, _sha256
 from .experience_lessons import ExperienceLessonService
-from .agent_eval_attribution import analyze_case, aggregate_cases
+from .agent_eval_attribution import analyze_case, aggregate_cases, normalize_token_usage
 from .task_spec import write_json
 from .unified_agent import UnifiedAgentRequest, run_unified_agent
 
@@ -29,15 +29,46 @@ DEFAULT_HELD_OUT_REQUESTS = (
 
 
 def _model_metrics(output_dir: Path) -> dict[str, Any]:
-    payload = json.loads((output_dir / "model_call.json").read_text(encoding="utf-8"))
-    evidence = payload["invocation_evidence"]
-    usage = evidence.get("usage") or {}
+    """Return missing/invalid model evidence as unknown, never zero cost.
+
+    A deterministic pre-model rejection is a valid failed test outcome and
+    must not crash the entire paired benchmark.
+    """
+    path = output_dir / "model_call.json"
+    payload: Any = None
+    error_code: str | None = None
+    if not path.is_file():
+        error_code = "MODEL_CALL_EVIDENCE_MISSING"
+    else:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            error_code = "MODEL_CALL_EVIDENCE_INVALID"
+    evidence = (
+        payload.get("invocation_evidence")
+        if isinstance(payload, dict)
+        else None
+    )
+    if not isinstance(evidence, dict):
+        evidence = {}
+        if error_code is None:
+            error_code = "MODEL_CALL_EVIDENCE_INVALID"
+    usage = normalize_token_usage(evidence.get("usage"))
+    latency = evidence.get("latency_ms")
+    latency_ms = (
+        float(latency)
+        if isinstance(latency, (int, float))
+        and not isinstance(latency, bool)
+        and math.isfinite(float(latency))
+        and float(latency) >= 0
+        else None
+    )
     return {
-        "verified": evidence.get("verified") is True,
-        "latency_ms": float(evidence.get("latency_ms") or 0.0),
-        "prompt_tokens": int(usage.get("prompt_tokens") or 0),
-        "completion_tokens": int(usage.get("completion_tokens") or 0),
-        "total_tokens": int(usage.get("total_tokens") or 0),
+        "model_call_present": path.is_file(),
+        "model_call_evidence_error": error_code,
+        "verified": error_code is None and evidence.get("verified") is True,
+        "latency_ms": latency_ms,
+        **usage,
         "request_id": evidence.get("request_id"),
     }
 
@@ -49,6 +80,70 @@ def _sign_test_p_value(wins: int, losses: int) -> float:
     extreme = max(wins, losses)
     tail = sum(math.comb(trials, index) for index in range(extreme, trials + 1))
     return min(1.0, 2.0 * tail / (2**trials))
+
+
+def _eligible_experience_pairs(cases: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Only count actual model A/B calls with a presented experience lesson.
+
+    If the experience arm never retrieved a matching lesson or was rejected
+    before invoking the model, its token delta is not evidence for or against
+    the effect of experience reuse.
+    """
+    eligible: list[dict[str, Any]] = []
+    for pair in cases:
+        baseline = pair.get("baseline")
+        experience = pair.get("experience")
+        if not isinstance(baseline, dict) or not isinstance(experience, dict):
+            continue
+        if experience.get("experience_presented") is not True:
+            continue
+
+        def observed_model_calls(arm: dict[str, Any]) -> bool:
+            attribution = arm.get("attribution")
+            generation = attribution.get("generation") if isinstance(attribution, dict) else None
+            calls = generation.get("model_calls") if isinstance(generation, dict) else None
+            return isinstance(calls, dict) and int(calls.get("present_count") or 0) > 0
+
+        if observed_model_calls(baseline) and observed_model_calls(experience):
+            eligible.append(pair)
+    return eligible
+
+
+def _paired_cost_statistics(cases: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize only complete, attributable token pairs.
+
+    An empty or entirely unknown cost comparison is a failed/unknown cost
+    result, never zero-token savings or a statistics.median exception.
+    """
+    token_deltas = [
+        item["delta"]["attributed_total_tokens_saved"]
+        for item in cases
+        if item["delta"].get("attributed_total_tokens_saved") is not None
+    ]
+    latency_deltas = [
+        item["delta"]["attributed_latency_ms_saved"]
+        for item in cases
+        if item["delta"].get("attributed_latency_ms_saved") is not None
+    ]
+    wins = sum(value > 0 for value in token_deltas)
+    losses = sum(value < 0 for value in token_deltas)
+    ties = sum(value == 0 for value in token_deltas)
+    token_median = statistics.median(token_deltas) if token_deltas else None
+    latency_median = statistics.median(latency_deltas) if latency_deltas else None
+    return {
+        "token_usage_complete": bool(cases) and len(token_deltas) == len(cases),
+        "token_pair_count": len(token_deltas),
+        "token_unknown_pair_count": len(cases) - len(token_deltas),
+        "token_wins": wins,
+        "token_losses": losses,
+        "token_ties": ties,
+        "token_sign_test_p_value": _sign_test_p_value(wins, losses),
+        "median_total_tokens_saved": token_median,
+        "median_latency_ms_saved": latency_median,
+        "median_total_tokens_saved_positive": (
+            token_median is not None and token_median > 0
+        ),
+    }
 
 
 def _execute_supervised(task_spec_path: Path, runs_root: Path) -> dict[str, Any]:
@@ -268,46 +363,65 @@ def run_experience_longitudinal_eval(
                 "experience_presented": "EXPERIENCE_ADVISORY_PRESENTED"
                 in result.reason_codes,
                 "attribution": attribution,
-                "attributed_prompt_tokens": int(attributed_calls.get("prompt_tokens") or 0),
-                "attributed_completion_tokens": int(attributed_calls.get("completion_tokens") or 0),
-                "attributed_total_tokens": int(attributed_calls.get("total_tokens") or 0),
+                "attributed_prompt_tokens": attributed_calls.get("prompt_tokens"),
+                "attributed_completion_tokens": attributed_calls.get("completion_tokens"),
+                "attributed_total_tokens": attributed_calls.get("total_tokens"),
+                "attributed_total_tokens_unknown_call_count": int(
+                    attributed_calls.get("total_tokens_unknown_call_count") or 0
+                ),
+                "attributed_token_usage_complete": attributed_calls.get("token_usage_complete") is True,
                 "attributed_latency_ms": float(attributed_calls.get("latency_ms") or 0.0),
                 "all_present_model_calls_verified": bool(
                     attributed_calls.get("all_present_verified")
                 ),
                 **_model_metrics(case_output),
             }
+        def optional_delta(left: Any, right: Any) -> int | float | None:
+            if (
+                isinstance(left, (int, float))
+                and not isinstance(left, bool)
+                and isinstance(right, (int, float))
+                and not isinstance(right, bool)
+            ):
+                return left - right
+            return None
+
         pair["delta"] = {
-            "prompt_tokens_saved": (
-                pair["baseline"]["prompt_tokens"] - pair["experience"]["prompt_tokens"]
+            "prompt_tokens_saved": optional_delta(
+                pair["baseline"]["prompt_tokens"],
+                pair["experience"]["prompt_tokens"],
             ),
-            "total_tokens_saved": (
-                pair["baseline"]["total_tokens"] - pair["experience"]["total_tokens"]
+            "total_tokens_saved": optional_delta(
+                pair["baseline"]["total_tokens"],
+                pair["experience"]["total_tokens"],
             ),
-            "latency_ms_saved": (
-                pair["baseline"]["latency_ms"] - pair["experience"]["latency_ms"]
+            "latency_ms_saved": optional_delta(
+                pair["baseline"]["latency_ms"],
+                pair["experience"]["latency_ms"],
             ),
-            "attributed_prompt_tokens_saved": (
-                pair["baseline"]["attributed_prompt_tokens"]
-                - pair["experience"]["attributed_prompt_tokens"]
+            "attributed_prompt_tokens_saved": optional_delta(
+                pair["baseline"]["attributed_prompt_tokens"],
+                pair["experience"]["attributed_prompt_tokens"],
             ),
-            "attributed_total_tokens_saved": (
-                pair["baseline"]["attributed_total_tokens"]
-                - pair["experience"]["attributed_total_tokens"]
+            "attributed_total_tokens_saved": optional_delta(
+                pair["baseline"]["attributed_total_tokens"],
+                pair["experience"]["attributed_total_tokens"],
             ),
-            "attributed_latency_ms_saved": (
-                pair["baseline"]["attributed_latency_ms"]
-                - pair["experience"]["attributed_latency_ms"]
+            "attributed_latency_ms_saved": optional_delta(
+                pair["baseline"]["attributed_latency_ms"],
+                pair["experience"]["attributed_latency_ms"],
             ),
         }
         cases.append(pair)
 
-    token_deltas = [item["delta"]["attributed_total_tokens_saved"] for item in cases]
-    latency_deltas = [item["delta"]["attributed_latency_ms_saved"] for item in cases]
-    wins = sum(value > 0 for value in token_deltas)
-    losses = sum(value < 0 for value in token_deltas)
-    ties = sum(value == 0 for value in token_deltas)
-    sign_p = _sign_test_p_value(wins, losses)
+    all_pair_cost_stats = _paired_cost_statistics(cases)
+    effective_pairs = _eligible_experience_pairs(cases)
+    cost_stats = _paired_cost_statistics(effective_pairs)
+    token_usage_complete = all_pair_cost_stats["token_usage_complete"]
+    wins = cost_stats["token_wins"]
+    losses = cost_stats["token_losses"]
+    ties = cost_stats["token_ties"]
+    sign_p = cost_stats["token_sign_test_p_value"]
     baseline_pass = sum(item["baseline"]["run_pass"] for item in cases) / len(cases)
     experience_pass = sum(item["experience"]["run_pass"] for item in cases) / len(cases)
     safety_ok = all(
@@ -323,22 +437,24 @@ def run_experience_longitudinal_eval(
             for item in cases
             for arm in ("baseline", "experience")
         ),
+        "all_token_usage_complete": token_usage_complete,
         "baseline_run_pass_rate_100": baseline_pass == 1.0,
         "experience_run_pass_rate_100": experience_pass == 1.0,
         "no_safety_or_fallback_regression": safety_ok,
         "experience_presented_in_all_b_cases": all(
             item["experience"]["experience_presented"] for item in cases
         ),
+        "effective_experience_pair_coverage": len(effective_pairs) == len(cases),
         "paired_token_wins_at_least_5": wins >= 5,
         "paired_sign_test_p_le_0_05": sign_p <= 0.05,
-        "median_total_tokens_saved_positive": statistics.median(token_deltas) > 0,
+        "median_total_tokens_saved_positive": cost_stats["median_total_tokens_saved_positive"],
     }
     attribution_report = {
         arm: aggregate_cases([item[arm]["attribution"] for item in cases])
         for arm in ("baseline", "experience")
     }
     report = {
-        "schema_version": "sat-sim.experience-longitudinal-ab.v2",
+        "schema_version": "sat-sim.experience-longitudinal-ab.v3",
         "status": "PASS" if all(checks.values()) else "FAIL",
         "checks": checks,
         "run_id": run_id,
@@ -351,14 +467,25 @@ def run_experience_longitudinal_eval(
         "lesson_id": lesson.lesson_id,
         "snapshot_id": snapshot["snapshot_id"],
         "pair_count": len(cases),
+        "request_set_sha256": _sha256(_canonical({
+            "schema_version": "sat-sim.frozen-paired-requests.v1",
+            "requests": list(requests),
+        })),
+        "request_set_verbatim": True,
         "baseline_run_pass_rate": baseline_pass,
         "experience_run_pass_rate": experience_pass,
         "token_wins": wins,
         "token_losses": losses,
         "token_ties": ties,
         "token_sign_test_p_value": sign_p,
-        "median_total_tokens_saved": statistics.median(token_deltas),
-        "median_latency_ms_saved": statistics.median(latency_deltas),
+        "token_usage_complete": token_usage_complete,
+        "all_cost_complete_pair_count": all_pair_cost_stats["token_pair_count"],
+        "effective_experience_pair_count": len(effective_pairs),
+        "unexposed_or_no_model_pair_count": len(cases) - len(effective_pairs),
+        "token_pair_count": cost_stats["token_pair_count"],
+        "token_unknown_pair_count": cost_stats["token_unknown_pair_count"],
+        "median_total_tokens_saved": cost_stats["median_total_tokens_saved"],
+        "median_latency_ms_saved": cost_stats["median_latency_ms_saved"],
         "cases": cases,
         "engineering_simulation_only": True,
         "represents_hardware_or_flight_validation": False,

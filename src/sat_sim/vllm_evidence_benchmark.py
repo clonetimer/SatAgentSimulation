@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .task_spec import write_json
+from .agent_eval_attribution import normalize_token_usage
 
 VLLM_BUDGETS = {
     "p95_latency_ms": 15_000.0,
@@ -94,15 +95,21 @@ def run_vllm_evidence_benchmark(
 
     values = [item[1] for item in calls.values()]
     latencies = [float(item["latency_ms"]) for item in values]
-    prompt_tokens = [int((item.get("usage") or {}).get("prompt_tokens") or 0) for item in values]
-    completion_tokens = [
-        int((item.get("usage") or {}).get("completion_tokens") or 0) for item in values
-    ]
-    total_tokens = [int((item.get("usage") or {}).get("total_tokens") or 0) for item in values]
+    usage_rows = [normalize_token_usage(item.get("usage")) for item in values]
+    prompt_tokens = [item["prompt_tokens"] for item in usage_rows if item["prompt_tokens"] is not None]
+    completion_tokens = [item["completion_tokens"] for item in usage_rows if item["completion_tokens"] is not None]
+    total_tokens = [item["total_tokens"] for item in usage_rows if item["total_tokens"] is not None]
+    total_tokens_complete = len(total_tokens) == len(values)
+    prompt_tokens_complete = len(prompt_tokens) == len(values)
+    completion_tokens_complete = len(completion_tokens) == len(values)
     verified_count = sum(item.get("verified") is True for item in values)
     errors = [item for item in values if item.get("error")]
     p95_latency = _percentile(latencies, 0.95)
-    p95_tokens = int(_percentile([float(item) for item in total_tokens], 0.95))
+    p95_tokens = (
+        int(_percentile([float(item) for item in total_tokens], 0.95))
+        if total_tokens_complete
+        else None
+    )
     service = _service_status(base_url)
     gpu = _gpu_status()
     checks = {
@@ -111,12 +118,17 @@ def run_vllm_evidence_benchmark(
         "error_count": len(errors) == VLLM_BUDGETS["error_count"],
         "p95_latency_budget": p95_latency <= VLLM_BUDGETS["p95_latency_ms"],
         "max_latency_budget": max(latencies) <= VLLM_BUDGETS["max_latency_ms"],
-        "p95_token_budget": p95_tokens <= VLLM_BUDGETS["p95_total_tokens"],
+        "token_usage_complete": total_tokens_complete,
+        "p95_token_budget": (
+            total_tokens_complete
+            and p95_tokens is not None
+            and p95_tokens <= VLLM_BUDGETS["p95_total_tokens"]
+        ),
         "service_online": bool(service["ok"]),
         "gpu_visible": bool(gpu["ok"]),
     }
     report = {
-        "schema_version": "sat-sim.vllm-evidence-benchmark.v1",
+        "schema_version": "sat-sim.vllm-evidence-benchmark.v2",
         "status": "PASS" if all(checks.values()) else "FAIL",
         "budgets": VLLM_BUDGETS,
         "checks": checks,
@@ -131,11 +143,18 @@ def run_vllm_evidence_benchmark(
             "max": round(max(latencies), 3),
         },
         "tokens": {
-            "prompt_p50": round(statistics.median(prompt_tokens), 3),
-            "completion_p50": round(statistics.median(completion_tokens), 3),
-            "total_p50": round(statistics.median(total_tokens), 3),
+            "prompt_p50": round(statistics.median(prompt_tokens), 3) if prompt_tokens_complete else None,
+            "completion_p50": round(statistics.median(completion_tokens), 3) if completion_tokens_complete else None,
+            "total_p50": round(statistics.median(total_tokens), 3) if total_tokens_complete else None,
             "total_p95": p95_tokens,
-            "total_max": max(total_tokens),
+            "total_max": max(total_tokens) if total_tokens_complete else None,
+            "total_known_count": len(total_tokens),
+            "total_unknown_count": len(values) - len(total_tokens),
+            "total_coverage_rate": len(total_tokens) / len(values),
+            "total_source_counts": {
+                source: sum(item["total_tokens_source"] == source for item in usage_rows)
+                for source in ("provider", "derived_prompt_plus_completion", "missing")
+            },
         },
         "retry_call_count": sum("retry" in path for path in source_files.values()),
         "service": service,

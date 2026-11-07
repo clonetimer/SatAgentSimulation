@@ -206,12 +206,16 @@ def explicit_parameter_assignments(text: str, declared: Mapping[str, Any]) -> di
         remainder = latest[match.end():].lstrip()
         try:
             literal, end = decoder.raw_decode(remainder)
-            if end < len(remainder) and not re.match(r'[\s,，;；。]', remainder[end]):
+            # A list separator may be the Chinese enumeration comma. An ASCII
+            # full stop is sentence punctuation only at a token boundary; a
+            # decimal point within a number remains part of its JSON literal.
+            terminator = r'(?:[\s,，、;；。]|\.(?=\s|$|[,，、;；。]))'
+            if end < len(remainder) and not re.match(terminator, remainder[end:]):
                 raise ValueError('not a complete literal')
         except ExplicitParameterError:
             raise
         except (ValueError, TypeError):
-            token = re.match(r'[^\s,，;；。]+', remainder)
+            token = re.match(r'[^\s,，、;；。]+', remainder)
             literal = token.group(0) if token else ''
             # Preserve the existing bare-string assignment interface, while
             # treating invalid numeric/non-finite tokens as explicit errors.

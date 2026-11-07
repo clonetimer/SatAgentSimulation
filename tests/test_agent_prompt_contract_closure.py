@@ -169,3 +169,81 @@ def test_real_model_timeout_is_counted_as_failed_first_answer(monkeypatch, tmp_p
     assert first_attempt["validation_ok"] is False
     assert first_attempt["draft_parse_or_schema_failed"] is True
     assert first_attempt["failure_type"] == "TimeoutError"
+
+
+def _battery_experience_outline(*, capability_id="component.battery.v1"):
+    return {
+        "schema_version": "1.0.0",
+        "model": {
+            "capability_id": capability_id,
+            "target": {
+                "level": "component",
+                "name": "battery",
+                "mode": "nominal",
+            },
+        },
+        "simulation": {
+            "duration_s": 12.0,
+            "sample_s": 2.0,
+            "backend": "historical-backend-must-not-override-registry",
+        },
+        "parameters": {
+            "values": {
+                "capacity_wh": 260.0,
+                "initial_soc": 0.67,
+            },
+        },
+        "events": {"faults": [], "degradations": [], "constraints": []},
+        "outputs": {
+            "qoi": [],
+            "plots": [],
+        },
+    }
+
+
+def test_experience_example_preserves_registry_qoi_plots_and_backend():
+    cid = "component.battery.v1"
+    base = yaml.safe_load(_example_for_prompt(cid, omit_optional_parameters=True))
+    outline = _battery_experience_outline()
+    prompt = build_capability_json_prompt(
+        "Create a nominal battery simulation for 12 seconds.",
+        allowed_capabilities=(cid,),
+        advisory_context=(
+            {
+                "lesson_id": "lesson_test",
+                "lesson_sha256": "a" * 64,
+                "advisory": {"verified_taskspec_outlines": [outline]},
+            },
+        ),
+    )
+    blocks = re.findall(r"\x60\x60\x60json\s*\n(.*?)\x60\x60\x60", prompt, re.DOTALL)
+    assert len(blocks) >= 2
+    example = json.loads(blocks[-1])
+
+    assert example["capability_id"] == cid
+    assert example["parameters"]["capacity_wh"] == 260.0
+    assert example["parameters"]["initial_soc"] == 0.67
+    assert example["simulation"]["duration_s"] == 12.0
+    assert example["simulation"]["sample_s"] == 2.0
+    assert example["simulation"]["backend"] == base["simulation"]["backend"]
+    assert example["outputs"]["qoi"] == base["outputs"]["qoi"]
+    assert example["outputs"]["plots"] == base["outputs"]["plots"]
+    assert example["outputs"]["plots"], "registry plot example must not be erased by lesson reuse"
+
+
+def test_experience_outline_from_another_capability_cannot_replace_registry_example():
+    cid = "component.battery.v1"
+    base = yaml.safe_load(_example_for_prompt(cid, omit_optional_parameters=True))
+    outline = _battery_experience_outline(capability_id="component.reaction_wheel.v1")
+    prompt = build_capability_json_prompt(
+        "Create a nominal battery simulation.",
+        allowed_capabilities=(cid,),
+        advisory_context=(
+            {"advisory": {"verified_taskspec_outlines": [outline]}},
+        ),
+    )
+    blocks = re.findall(r"\x60\x60\x60json\s*\n(.*?)\x60\x60\x60", prompt, re.DOTALL)
+    example = json.loads(blocks[-1])
+    assert example["capability_id"] == cid
+    assert example["outputs"]["qoi"] == base["outputs"]["qoi"]
+    assert example["outputs"]["plots"] == base["outputs"]["plots"]
