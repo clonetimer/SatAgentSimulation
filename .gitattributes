@@ -1,4 +1,6 @@
 # Preserve exact bytes for hash-bound datasets, reference inputs and review snapshots.
+configs/research/r84r4_independent_cohort_prereg_v1.json text eol=lf
+scripts/analyze_r84r4_independent_cohort.py text eol=lf
 data/training/** -text
 data/reference/nasa_iss_oem/** -text
 configs/interactive/generic_leo_thermal_link_candidate.json -text
