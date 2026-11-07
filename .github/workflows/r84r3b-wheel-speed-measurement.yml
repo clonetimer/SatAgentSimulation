@@ -1,0 +1,85 @@
+name: R84-R3B wheel-speed measurement sensitivity replay
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/r84r3b-wheel-speed-measurement.yml"
+      - "configs/research/r84r3b_*"
+      - "src/sat_sim/experiments/r84r3b_*"
+      - "scripts/audit_r84r3b_measurement_replay.py"
+      - "tests/test_r84r3b_wheel_speed_measurement.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  measurement-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install pinned project and contract-test dependencies
+        run: |
+          python -m pip install \
+            "pytest==9.0.3" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+      - name: Run deterministic measurement contract tests
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/test_r84r3b_wheel_speed_measurement.py
+
+  pinned-native-evidence-replay:
+    needs: measurement-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install pinned project import dependencies
+        run: |
+          python -m pip install \
+            "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+      - name: Download R3A native evidence from current main integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download 42342916883 -R clonetimer/SatAgentSimulation \
+            -n r84r3-native-multichannel-telemetry-pilot \
+            -D "$RUNNER_TEMP/r84r3_source"
+      - name: Replay pinned source through two explicit profiles
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m sat_sim.experiments.r84r3b_measurement_replay \
+            --evidence-dir "$RUNNER_TEMP/r84r3_source" \
+            --profile configs/research/r84r3b_ideal_feedback_control_v1.json \
+            --output-dir "$RUNNER_TEMP/r84r3b_ideal"
+          python -m sat_sim.experiments.r84r3b_measurement_replay \
+            --evidence-dir "$RUNNER_TEMP/r84r3_source" \
+            --profile configs/research/r84r3b_wheel_speed_sensitivity_v1.json \
+            --output-dir "$RUNNER_TEMP/r84r3b_sensitivity"
+          python scripts/audit_r84r3b_measurement_replay.py \
+            --source-dir "$RUNNER_TEMP/r84r3_source" \
+            --identity-dir "$RUNNER_TEMP/r84r3b_ideal" \
+            --sensitivity-dir "$RUNNER_TEMP/r84r3b_sensitivity" \
+            --report "$RUNNER_TEMP/r84r3b_audit.json"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: r84r3b-wheel-speed-sensitivity-replay
+          path: |
+            ${{ runner.temp }}/r84r3b_ideal/*.json*
+            ${{ runner.temp }}/r84r3b_sensitivity/*.json*
+            ${{ runner.temp }}/r84r3b_audit.json
+          retention-days: 90
