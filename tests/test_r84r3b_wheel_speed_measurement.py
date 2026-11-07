@@ -37,7 +37,7 @@ def test_dropout_is_explicit_and_repeatable():
 
 def test_rejects_invalid_assumptions_and_nonmonotonic_native_time():
     with pytest.raises(ValueError):
-        assumptions(resolution_rad_s=0)
+        assumptions(resolution_rad_s=-1)
     with pytest.raises(ValueError):
         assumptions(dropout_probability=1.1)
     bad = rows()

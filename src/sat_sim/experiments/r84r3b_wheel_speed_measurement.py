@@ -30,8 +30,8 @@ class WheelSpeedMeasurementAssumptions:
             value = getattr(self, name)
             if type(value) not in (int, float) or not math.isfinite(value):
                 raise ValueError(f"{name} must be finite")
-        if self.resolution_rad_s <= 0 or self.noise_sigma_rad_s < 0:
-            raise ValueError("resolution must be positive and noise nonnegative")
+        if self.resolution_rad_s < 0 or self.noise_sigma_rad_s < 0:
+            raise ValueError("resolution and noise must be nonnegative")
         if not 0 <= self.dropout_probability <= 1:
             raise ValueError("dropout_probability must be in [0, 1]")
         if self.timestamp_latency_s < 0 or self.timestamp_jitter_sigma_s < 0:
@@ -75,6 +75,7 @@ def observe_wheel_speeds(
             valid = rng.random() >= assumptions.dropout_probability
             row[f"wheel_{wheel}_valid"] = valid
             noisy = value + assumptions.bias_rad_s + rng.gauss(0, assumptions.noise_sigma_rad_s)
-            row[key] = (round(noisy / assumptions.resolution_rad_s) * assumptions.resolution_rad_s) if valid else None
+            row[key] = ((round(noisy / assumptions.resolution_rad_s) * assumptions.resolution_rad_s)
+                        if assumptions.resolution_rad_s else noisy) if valid else None
         result.append(row)
     return result

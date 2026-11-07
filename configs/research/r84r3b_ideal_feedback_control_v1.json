@@ -1,0 +1,15 @@
+{
+  "schema": "sat-sim.r84r3b.wheel-speed-sensitivity.v1",
+  "qualification": "sensitivity_assumptions_only",
+  "seed_namespace": "r84r3b-replay-20261107-v1",
+  "parameter_basis": "Identity control reproducing ideal native feedback; not a hardware measurement model.",
+  "parameters": {
+    "sample_every_n_native_points": 1,
+    "resolution_rad_s": 0,
+    "noise_sigma_rad_s": 0,
+    "bias_rad_s": 0,
+    "dropout_probability": 0,
+    "timestamp_latency_s": 0,
+    "timestamp_jitter_sigma_s": 0
+  }
+}

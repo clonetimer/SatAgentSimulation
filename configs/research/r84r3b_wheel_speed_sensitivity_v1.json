@@ -1,0 +1,15 @@
+{
+  "schema": "sat-sim.r84r3b.wheel-speed-sensitivity.v1",
+  "qualification": "sensitivity_assumptions_only",
+  "seed_namespace": "r84r3b-replay-20261107-v1",
+  "parameter_basis": "Illustrative research sensitivity values; no selected wheel ICD or hardware calibration. Do not claim device realism.",
+  "parameters": {
+    "sample_every_n_native_points": 2,
+    "resolution_rad_s": 0.01,
+    "noise_sigma_rad_s": 0.005,
+    "bias_rad_s": 0.002,
+    "dropout_probability": 0.02,
+    "timestamp_latency_s": 0.05,
+    "timestamp_jitter_sigma_s": 0.01
+  }
+}
