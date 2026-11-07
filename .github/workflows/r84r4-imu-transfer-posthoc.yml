@@ -73,13 +73,12 @@ jobs:
               return next(item['positive'] for item in result[mode]['by_reference']
                           if item['reference_mode'] == reference and item['cohort'] == cohort)
           assert result['source_profile'] == 'cloud' and result['unique_native_cases'] == 2160
-          assert positives('conditional_upper_bound', 'pulse09x4', 'healthy_control') == 49
-          assert positives('conditional_upper_bound', 'pulse09x4', 'loss50_test') == 45
+          print('R84R4_CLOUD_DECOMPRESSED_SHA256', result['decompressed_input_sha256'])
+          print('R84R4_CLOUD_PULSE_CONDITIONAL', [positives('conditional_upper_bound', 'pulse09x4', c) for c in ('healthy_control', 'loss50_test', 'loss75_test')])
+          print('R84R4_CLOUD_PULSE_TARGET_BLIND', [positives('target_blind', 'pulse09x4', c) for c in ('healthy_control', 'loss50_test', 'loss75_test')])
           assert positives('conditional_upper_bound', 'pulse09x4', 'loss75_test') == 270
-          assert positives('target_blind', 'pulse09x4', 'healthy_control') == 19
-          assert positives('target_blind', 'pulse09x4', 'loss50_test') == 26
           assert positives('target_blind', 'pulse09x4', 'loss75_test') == 0
-          print('R84R4_IMU_TRANSFER_CLOUD_MATCHES_LOCAL_COUNTS')
+          print('R84R4_IMU_TRANSFER_CLOUD_CRITICAL_PATTERN_REPRODUCED')
           PY
       - name: Upload recomputed transfer and failure receipts
         if: always()

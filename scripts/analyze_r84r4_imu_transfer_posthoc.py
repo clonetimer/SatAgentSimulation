@@ -43,6 +43,14 @@ def read(path: Path):
                 yield json.loads(line)
 
 
+def decompressed_sha(path: Path) -> str:
+    h = hashlib.sha256()
+    with gzip.open(path, 'rb') as stream:
+        for data in iter(lambda: stream.read(4 * 1024 * 1024), b''):
+            h.update(data)
+    return h.hexdigest()
+
+
 def evaluate(records: list[dict], *, target_blind: bool) -> dict:
     def group_key(item: dict) -> tuple:
         if target_blind:
@@ -109,6 +117,7 @@ def analyze(directory: Path, *, profile: str = 'local') -> dict:
             'source_r2_script_sha256': config['source_r2_script_sha256'],
             'source_r4_preregistration_sha256': config['source_r4_preregistration_sha256'],
             'source_profile': profile, 'source_input_sha256': actual_sha,
+            'decompressed_input_sha256': {name: decompressed_sha(directory / name) for name in config['input_sha256']},
             'unique_native_cases': len(records),
             'conditional_upper_bound': evaluate(records, target_blind=False),
             'target_blind': evaluate(records, target_blind=True),
