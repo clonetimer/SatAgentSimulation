@@ -1,0 +1,70 @@
+{
+  "schema": "sat-sim.r84r4.crossed-independent-multinoise-prereg.v1",
+  "status": "FROZEN_BEFORE_EXECUTION",
+  "qualification": "research_observability_only_uncalibrated_wheel_measurement",
+  "native_source_sha256": "4ed79578903089778da71f75ffe2ab4af2280cd27cb3f3c2bdc591b4bbed82e4",
+  "measurement_source_sha256": "48cfe418624da1a3abf3e22873a7715e180204f8549c771b75683fb91a8314ea",
+  "imu_feature_source_sha256": "f602db732514e7df134ea2364d717084ab0abb4effcc918ae8163b7ac8e0418b",
+  "wheel_stat_source_sha256": "77e249478ccd8164767a3fbb74fa225b93b60881ad3ceca11bd9cdf27380088d",
+  "analysis_source_sha256": "76e7d06a0d72572e1bf35be7111ef1529bff6ef4ffafc82e0e9c82fb39752a6a",
+  "native_distribution": "bsk==2.11.0+satfix2",
+  "design": {
+    "reference_mode": "pulse09x4",
+    "maneuver_axes": [0, 1, 2],
+    "fault_target_wheels": [0, 1, 2],
+    "initial_states": [0, 1, 2],
+    "cohorts": ["healthy_calibration", "healthy_control", "loss50_test", "loss75_test"],
+    "imu_noise_sigmas_rad_s": [0.0001, 0.00005, 0.0002],
+    "primary_imu_sigma_rad_s": 0.0001,
+    "primary_repetitions_per_cell": 30,
+    "sensitivity_repetitions_per_cell": 20,
+    "unique_native_cases": 7560,
+    "seed_formula": "2000000000 + noise_index*10000000 + axis*1000000 + wheel*100000 + initial*10000 + cohort_index*1000 + repetition",
+    "seed_disjoint_from_r2_and_previous_r4": true,
+    "duration_s": 18,
+    "native_samples_per_case": 91
+  },
+  "wheel_measurement_profiles": [
+    {
+      "name": "nominal",
+      "basis": "same uncalibrated sensitivity assumptions as prior R84-R4",
+      "assumptions": {
+        "sample_every_n_native_points": 2,
+        "resolution_rad_s": 0.01,
+        "noise_sigma_rad_s": 0.005,
+        "bias_rad_s": 0.002,
+        "dropout_probability": 0.02,
+        "timestamp_latency_s": 0.05,
+        "timestamp_jitter_sigma_s": 0.01
+      }
+    },
+    {
+      "name": "stressed",
+      "basis": "explicit uncalibrated sensitivity stress, not a device specification",
+      "assumptions": {
+        "sample_every_n_native_points": 3,
+        "resolution_rad_s": 0.03,
+        "noise_sigma_rad_s": 0.015,
+        "bias_rad_s": 0.006,
+        "dropout_probability": 0.1,
+        "timestamp_latency_s": 0.15,
+        "timestamp_jitter_sigma_s": 0.03
+      }
+    }
+  ],
+  "analysis": {
+    "known_at_inference": ["maneuver_axis", "initial_state", "IMU_noise_profile", "wheel_measurement_profile"],
+    "hidden_at_inference": ["fault_target_wheel", "capacity_mode", "physics_QA"],
+    "calibration": "within each IMU noise, known maneuver axis, initial state and wheel profile; pool healthy calibration across three nominal target-wheel design levels",
+    "primary_sample_unit": "one native execution with two paired wheel-observation profiles",
+    "imu_score": "unchanged R84-R2 16 gyro features and max robust-z score",
+    "wheel_command_score": "unchanged R84-R4 log response-gain deviation across three wheel channels",
+    "fusion_score": "max(IMU_score / healthy_median_IMU_score, wheel_score / healthy_median_wheel_score)",
+    "threshold": "nearest-rank 90th percentile of healthy calibration scores separately for IMU, wheel_command and fusion",
+    "minimum_valid_healthy_fraction": 0.8,
+    "abstention": "wheel_command and fusion abstain when any required wheel gain is missing or fewer than 80% healthy calibration gains are valid; keep all assigned seeds in denominator",
+    "comparisons": "independent healthy false alarm, loss50, loss75 by noise profile, wheel profile, maneuver axis, target wheel and initial state; report exact counts",
+    "method_selection": "no post-hoc feature, threshold, or profile selection; all methods reported",
+    "qualification": "research only, no R85 dataset eligibility or flight/Stable claim"
+  }
+}

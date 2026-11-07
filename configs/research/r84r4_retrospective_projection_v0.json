@@ -1,0 +1,16 @@
+{
+  "schema": "sat-sim.r84r4.retrospective-projection.v0",
+  "qualification": "exploratory_reuse_not_independent_confirmation",
+  "source_r84r2_manifest_sha256": "21a24d67d3a17f68b8623ae064f96baefa0797faacbfcc339524596fab46eff4",
+  "seed_namespace": "r84r4-exploratory-projection-20261107-v0",
+  "wheel_measurement_basis": "Uncalibrated R3B sensitivity assumptions; no selected hardware encoder or timing specification.",
+  "parameters": {
+    "sample_every_n_native_points": 2,
+    "resolution_rad_s": 0.01,
+    "noise_sigma_rad_s": 0.005,
+    "bias_rad_s": 0.002,
+    "dropout_probability": 0.02,
+    "timestamp_latency_s": 0.05,
+    "timestamp_jitter_sigma_s": 0.01
+  }
+}

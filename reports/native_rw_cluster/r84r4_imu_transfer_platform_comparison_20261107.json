@@ -1,0 +1,34 @@
+{
+  "schema": "sat-sim.r84r4.imu-transfer-platform-comparison.v1",
+  "status": "CROSS_PLATFORM_IMU_NOISE_SEQUENCE_DIFFERS",
+  "qualification": "research_reproducibility_audit_not_data_or_diagnostic_qualification",
+  "windows_local": {
+    "analysis_path": "reports/local_r84r4_20261107/evidence/r84r4_imu_transfer_posthoc.json",
+    "decompressed_sha256": {
+      "cases": "5f07a33fddc1aefd9f562d4e77dbfe6902e3d145563cac2dd4af68785c6023e3",
+      "physics_qa": "fae2f367bb5aa86f295bcf57c0d5f43a4c08a3b121f18b4a069082e3a1ac5ebc",
+      "imu": "b1c8964264a2a585fc969490041cb941f4fba62c6ca8a20adaedd106187f2f7e"
+    },
+    "pulse09x4_positive": {
+      "conditional_upper_bound": {"healthy_control": 49, "loss50": 45, "loss75": 270},
+      "target_blind": {"healthy_control": 19, "loss50": 26, "loss75": 0}
+    }
+  },
+  "linux_github_actions": {
+    "source_native_artifact_id": 13563407865,
+    "transfer_run_id": 42347008270,
+    "transfer_artifact_id": 13563089185,
+    "decompressed_sha256": {
+      "cases": "5f07a33fddc1aefd9f562d4e77dbfe6902e3d145563cac2dd4af68785c6023e3",
+      "physics_qa": "fae2f367bb5aa86f295bcf57c0d5f43a4c08a3b121f18b4a069082e3a1ac5ebc",
+      "imu": "91f1ee5e814d303a195dbefb2bfb61f10338b415dfee984e087f1689602fef50"
+    },
+    "pulse09x4_positive": {
+      "conditional_upper_bound": {"healthy_control": 47, "loss50": 34, "loss75": 270},
+      "target_blind": {"healthy_control": 28, "loss50": 31, "loss75": 0}
+    }
+  },
+  "interpretation": "Same case design and physics QA, different official native IMU stochastic samples from the first nonzero sample. Qualitative contrast between conditioning on the coupled wheel/maneuver axis and pooling all axes reproduced; this design does not isolate fault-target knowledge from commanded-axis knowledge. Exact false-alarm and loss50 counts are platform-specific for this seed list.",
+  "candidate_mechanism": "Basilisk v2.11 GaussMarkov uses std::minstd_rand and std::normal_distribution; the platform-specific normal sequence is a plausible cause, not independently proven unique cause.",
+  "required_followup": "Treat operating platform/build as a study factor; verify independent noise statistics and repeatability within each platform before R85 data qualification."
+}

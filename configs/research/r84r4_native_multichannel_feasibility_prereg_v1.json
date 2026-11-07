@@ -1,0 +1,36 @@
+{
+  "schema": "sat-sim.r84r4.native-multichannel-feasibility-prereg.v1",
+  "status": "PREREGISTERED_NOT_EXECUTED",
+  "qualification": "new_native_feasibility_only_not_diagnostic_effect",
+  "source_module": "sat_sim.experiments.native_imu_rw_observability_r84r2.run_native_case",
+  "native_distribution": "bsk==2.11.0+satfix2",
+  "design": {
+    "wheels": [0, 1, 2],
+    "initial_states": [0, 1, 2],
+    "reference_modes": ["zero", "pulse09x4"],
+    "capacity_modes": ["healthy", "loss50", "loss75"],
+    "gyro_noise_sigma_rad_s": 0.0001,
+    "unique_native_cases": 54,
+    "exact_replays": 1,
+    "duration_s": 18,
+    "native_samples_per_case": 91,
+    "seed_formula": "1700000000 + wheel*1000000 + initial*100000 + reference_index*10000 + capacity_index*1000 + 17",
+    "seed_disjoint_from_r84r2": true
+  },
+  "wheel_measurement": {
+    "basis": "uncalibrated sensitivity assumptions; no device qualification",
+    "sample_every_n_native_points": 2,
+    "resolution_rad_s": 0.01,
+    "noise_sigma_rad_s": 0.005,
+    "bias_rad_s": 0.002,
+    "dropout_probability": 0.02,
+    "timestamp_latency_s": 0.05,
+    "timestamp_jitter_sigma_s": 0.01
+  },
+  "output_separation": {
+    "model_observations": ["official_imu_raw_gyro", "modeled_rw_speed", "native_fsw_motor_torque_command"],
+    "qa_only": ["applied_torque", "cpp_capacity", "hub_truth", "fault_label", "physical_context"],
+    "pointing_error": "not recorded by R2 native source; do not derive from hub truth"
+  },
+  "prohibitions": ["no classifier metrics", "no formal false-alarm qualification", "no training dataset eligibility", "no flight or Stable claim"]
+}

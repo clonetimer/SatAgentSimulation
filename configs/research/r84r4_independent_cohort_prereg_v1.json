@@ -1,0 +1,45 @@
+{
+  "schema": "sat-sim.r84r4.independent-cohort-prereg.v1",
+  "status": "FROZEN_BEFORE_NATIVE_EXECUTION",
+  "qualification": "research_observability_only_uncalibrated_wheel_measurement",
+  "source_module_sha256": "a9a0ced97e01baab172269a14e712611fb31da09490447560bbc37153d628f79",
+  "measurement_module_sha256": "48cfe418624da1a3abf3e22873a7715e180204f8549c771b75683fb91a8314ea",
+  "analysis_script_sha256": "77e249478ccd8164767a3fbb74fa225b93b60881ad3ceca11bd9cdf27380088d",
+  "native_distribution": "bsk==2.11.0+satfix2",
+  "design": {
+    "wheels": [0, 1, 2],
+    "initial_states": [0, 1, 2],
+    "reference_modes": ["zero", "pulse09x4"],
+    "capacity_modes": ["healthy", "loss50", "loss75"],
+    "cohorts": ["healthy_calibration", "healthy_control", "loss50_test", "loss75_test"],
+    "repetitions_per_context_cohort": 30,
+    "gyro_noise_sigma_rad_s": 0.0001,
+    "unique_native_cases": 2160,
+    "seed_formula": "1800000000 + context_index*100000 + cohort_index*10000 + repetition_index",
+    "context_index_formula": "(wheel*3 + initial)*2 + reference_index",
+    "duration_s": 18,
+    "native_samples_per_case": 91
+  },
+  "wheel_measurement": {
+    "sample_every_n_native_points": 2,
+    "resolution_rad_s": 0.01,
+    "noise_sigma_rad_s": 0.005,
+    "bias_rad_s": 0.002,
+    "dropout_probability": 0.02,
+    "timestamp_latency_s": 0.05,
+    "timestamp_jitter_sigma_s": 0.01,
+    "basis": "uncalibrated sensitivity assumptions, not a hardware sensor claim"
+  },
+  "analysis": {
+    "unit": "one independent native seed per physical context and cohort",
+    "allowed_inputs": ["official_imu_raw_gyro", "modeled_three_wheel_speed", "native_fsw_three_wheel_command"],
+    "primary_score": "max over three wheels of absolute log response-gain deviation from healthy calibration median, divided by max(healthy median absolute deviation, 0.01)",
+    "response_gain": "for each wheel, sum absolute consecutive valid speed differences divided by sum absolute FSW command times source-time delta, over pairs with later source time >=2.8s and <=17.6s; require total command-time effort >=0.001 Nms and >=10 valid pairs; use log(gain+1e-6)",
+    "calibration": "per initial-state and reference mode, pool all three nominal target-wheel design levels; fit wheel-channel median and median absolute deviation from 90 healthy calibration cases only; target-wheel identity is not a model input",
+    "threshold": "per initial-state and reference mode, nearest-rank 90th percentile of 90 healthy calibration case scores; score > threshold is positive",
+    "abstain": "missing gain for any wheel, missing calibration, or nonfinite values; include abstentions in denominators and report separately; no fault label imputation",
+    "primary_comparison": "held-out healthy positive rate versus loss50 and loss75 positive rates, separately for 18 contexts and pooled with exact numerators",
+    "secondary": "zero versus pulse09x4 reported separately; no post-hoc threshold or feature selection",
+    "prohibitions": ["no flight qualification", "no formal dataset eligibility", "no product Stable inference", "no device-calibrated sensor claim"]
+  }
+}

@@ -1,0 +1,146 @@
+name: R84-R4 crossed commanded-axis native pilot
+
+on:
+  pull_request:
+    paths:
+      - "configs/research/r84r4_crossed_axis_native_pilot_prereg_v1.json"
+      - "src/sat_sim/experiments/native_imu_rw_crossed_axis_r84r4.py"
+      - "scripts/run_r84r4_crossed_axis_native_pilot.py"
+      - "scripts/audit_r84r4_crossed_axis_native_pilot.py"
+      - "tests/test_r84r4_crossed_axis_native.py"
+      - ".github/workflows/r84r4-crossed-axis-pilot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prereg-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install pinned contract dependencies
+        run: |
+          python -m pip install "pytest==9.0.3" "numpy==2.3.5" "pydantic==2.13.4" \
+            "jsonschema==4.26.0" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+      - name: Verify frozen crossed-axis matrix without native execution
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python - <<'PY'
+          import json
+          from scripts.run_r84r4_crossed_axis_native_pilot import CONFIG, cases
+          config = json.loads(CONFIG.read_text())
+          planned = list(cases(config))
+          assert config['status'] == 'FROZEN_BEFORE_EXECUTION'
+          assert len(planned) == len({item['rng_seed'] for item in planned}) == 81
+          print('R84R4_CROSSED_AXIS_PREREGISTRATION_FROZEN')
+          PY
+
+  native-crossed-axis-pilot:
+    needs: prereg-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Prepare native source and evidence directories
+        run: mkdir -p "$RUNNER_TEMP/r84r4/wheel" "$RUNNER_TEMP/r84r4/compat" "$RUNNER_TEMP/r84r4/r2" "$RUNNER_TEMP/r84r4/evidence"
+      - name: Download and verify official Basilisk wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip download --only-binary=:all: --no-deps --dest "$RUNNER_TEMP/r84r4/wheel" "bsk==2.11.0"
+          echo "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a  $(echo "$RUNNER_TEMP"/r84r4/wheel/bsk-2.11.0-*.whl)" | sha256sum --check -
+      - name: Build metadata-only compatibility wheel and verify native payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_bsk_compat_wheels.py "$RUNNER_TEMP"/r84r4/wheel/bsk-2.11.0-*.whl \
+            --output-dir "$RUNNER_TEMP/r84r4/compat" \
+            --report "$RUNNER_TEMP/r84r4/evidence/compat_payload_review.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP'])/'r84r4/evidence/compat_payload_review.json').read_text())
+          assert report['results'][0]['payload_bytes_unchanged']
+          assert report['results'][0]['payload_file_count'] == 880
+          PY
+      - name: Install pinned native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "$RUNNER_TEMP"/r84r4/compat/bsk-2.11.0+satfix2-*.whl
+          python -m pip install "pytest==9.0.3" "numpy==2.3.5" "pydantic==2.13.4" \
+            "jsonschema==4.26.0" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+          python - <<'PY'
+          from importlib.metadata import version
+          from Basilisk.simulation import spacecraft, reactionWheelStateEffector, imuSensor
+          from Basilisk.fswAlgorithms import rwMotorTorque
+          assert version('bsk') == '2.11.0+satfix2'
+          print('R84R4_NATIVE_BASILISK', version('bsk'))
+          PY
+      - name: Download pinned R84-R2 seed archive
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/clonetimer/SatAgentSimulation/actions/artifacts/13507175034/zip" \
+            -o "$RUNNER_TEMP/r84r4/r2.zip"
+          echo "74385222791bd82737b661ad22468b835805d1114647117933c3d9fa0f2aa3e4  $RUNNER_TEMP/r84r4/r2.zip" | sha256sum --check -
+          unzip -q "$RUNNER_TEMP/r84r4/r2.zip" -d "$RUNNER_TEMP/r84r4/r2"
+          test -f "$RUNNER_TEMP/r84r4/r2/r84r2_case_manifest.jsonl"
+      - name: Download pinned prior R84-R4 native evidence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/r84r4/prior"
+          curl --fail --location --retry 3 --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/clonetimer/SatAgentSimulation/actions/artifacts/13563407865/zip" \
+            -o "$RUNNER_TEMP/r84r4/prior.zip"
+          echo "55c9b9fdcbb993237ec88bff858b0fa74b94a9f45e8bf23f616b789333cd4228  $RUNNER_TEMP/r84r4/prior.zip" | sha256sum --check -
+          unzip -q "$RUNNER_TEMP/r84r4/prior.zip" -d "$RUNNER_TEMP/r84r4/prior"
+          test -f "$RUNNER_TEMP/r84r4/prior/pilot/r84r4_cases.jsonl"
+          test -f "$RUNNER_TEMP/r84r4/prior/cohort/r84r4_independent_cases.jsonl.gz"
+      - name: Run crossed-axis pilot, native contract test and independent audit
+        env:
+          PYTHONPATH: "src:."
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_r84r4_crossed_axis_native.py
+          python scripts/run_r84r4_crossed_axis_native_pilot.py \
+            --output-dir "$RUNNER_TEMP/r84r4/evidence/crossed"
+          python scripts/audit_r84r4_crossed_axis_native_pilot.py \
+            --evidence-dir "$RUNNER_TEMP/r84r4/evidence/crossed" \
+            --prior-r2-cases "$RUNNER_TEMP/r84r4/r2/r84r2_case_manifest.jsonl" \
+            --prior-r4-cases "$RUNNER_TEMP/r84r4/prior/pilot/r84r4_cases.jsonl" \
+            --prior-r4-primary-cases "$RUNNER_TEMP/r84r4/prior/cohort/r84r4_independent_cases.jsonl.gz" \
+            --report "$RUNNER_TEMP/r84r4/evidence/audit.json"
+      - name: Upload raw native evidence and failure receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: r84r4-crossed-axis-native-pilot
+          path: ${{ runner.temp }}/r84r4/evidence/
+          if-no-files-found: warn
+          retention-days: 90
