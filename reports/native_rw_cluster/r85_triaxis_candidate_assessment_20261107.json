@@ -176,8 +176,8 @@
       }
     },
     "cross_platform_reproducibility": {
-      "status": "PARTIAL",
-      "reason": "Windows and Linux native audits pass; exact independent-control counts differ by platform."
+      "status": "NOT_ASSESSED",
+      "reason": "This assessment accepts one local evidence chain; cloud evidence requires a separate linked receipt."
     }
   },
   "next_evidence": [

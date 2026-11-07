@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 
 
-EXPECTED_COHORTS = {"healthy_control", "loss50_test", "loss75_test"}
+EXPECTED_COHORTS = ("healthy_control", "loss50_test", "loss75_test")
 
 
 def _load(path: Path) -> dict:
