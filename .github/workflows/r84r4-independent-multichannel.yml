@@ -1,0 +1,131 @@
+name: R84-R4 independent native multichannel cohort
+
+on:
+  pull_request:
+    paths:
+      - "configs/research/r84r4_independent_cohort_prereg_v1.json"
+      - "src/sat_sim/experiments/native_imu_rw_observability_r84r2.py"
+      - "src/sat_sim/experiments/r84r3b_wheel_speed_measurement.py"
+      - "scripts/run_r84r4_native_multichannel_feasibility.py"
+      - "scripts/run_r84r4_independent_cohort.py"
+      - "scripts/analyze_r84r4_independent_cohort.py"
+      - "scripts/audit_r84r4_independent_cohort.py"
+      - "tests/test_r84r4_independent_cohort.py"
+      - ".github/workflows/r84r4-independent-multichannel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prereg-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install pinned contract dependencies
+        run: |
+          python -m pip install "pytest==9.0.3" "numpy==2.3.5" "pydantic==2.13.4" \
+            "jsonschema==4.26.0" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+      - name: Verify frozen seed and analysis contract
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/test_r84r4_independent_cohort.py
+
+  native-independent-cohort:
+    needs: prereg-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Prepare native source and evidence directories
+        run: mkdir -p "$RUNNER_TEMP/r84r4/wheel" "$RUNNER_TEMP/r84r4/compat" "$RUNNER_TEMP/r84r4/r2" "$RUNNER_TEMP/r84r4/evidence"
+      - name: Download and verify official Basilisk wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip download --only-binary=:all: --no-deps --dest "$RUNNER_TEMP/r84r4/wheel" "bsk==2.11.0"
+          echo "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a  $(echo "$RUNNER_TEMP"/r84r4/wheel/bsk-2.11.0-*.whl)" | sha256sum --check -
+      - name: Build metadata-only compatibility wheel and verify native payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_bsk_compat_wheels.py "$RUNNER_TEMP"/r84r4/wheel/bsk-2.11.0-*.whl \
+            --output-dir "$RUNNER_TEMP/r84r4/compat" \
+            --report "$RUNNER_TEMP/r84r4/evidence/compat_payload_review.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP'])/'r84r4/evidence/compat_payload_review.json').read_text())
+          assert report['results'][0]['payload_bytes_unchanged']
+          assert report['results'][0]['payload_file_count'] == 880
+          PY
+      - name: Install pinned native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "$RUNNER_TEMP"/r84r4/compat/bsk-2.11.0+satfix2-*.whl
+          python -m pip install "pytest==9.0.3" "numpy==2.3.5" "pydantic==2.13.4" \
+            "jsonschema==4.26.0" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+          python - <<'PY'
+          from importlib.metadata import version
+          from Basilisk.simulation import spacecraft, reactionWheelStateEffector, imuSensor
+          from Basilisk.fswAlgorithms import rwMotorTorque
+          assert version('bsk') == '2.11.0+satfix2'
+          print('R84R4_NATIVE_BASILISK', version('bsk'))
+          PY
+      - name: Download pinned R84-R2 seed archive
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/clonetimer/SatAgentSimulation/actions/artifacts/13507175034/zip" \
+            -o "$RUNNER_TEMP/r84r4/r2.zip"
+          echo "74385222791bd82737b661ad22468b835805d1114647117933c3d9fa0f2aa3e4  $RUNNER_TEMP/r84r4/r2.zip" | sha256sum --check -
+          unzip -q "$RUNNER_TEMP/r84r4/r2.zip" -d "$RUNNER_TEMP/r84r4/r2"
+          test -f "$RUNNER_TEMP/r84r4/r2/r84r2_case_manifest.jsonl"
+      - name: Run fresh pilot, independent cohort, analysis, and evidence audit
+        env:
+          PYTHONPATH: "src:."
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/run_r84r4_native_multichannel_feasibility.py \
+            --output-dir "$RUNNER_TEMP/r84r4/evidence/pilot"
+          python scripts/run_r84r4_independent_cohort.py \
+            --output-dir "$RUNNER_TEMP/r84r4/evidence/cohort" \
+            --prior-r2-cases "$RUNNER_TEMP/r84r4/r2/r84r2_case_manifest.jsonl" \
+            --pilot-cases "$RUNNER_TEMP/r84r4/evidence/pilot/r84r4_cases.jsonl"
+          python scripts/analyze_r84r4_independent_cohort.py \
+            --evidence-dir "$RUNNER_TEMP/r84r4/evidence/cohort" \
+            --report "$RUNNER_TEMP/r84r4/evidence/analysis.json"
+          python scripts/audit_r84r4_independent_cohort.py \
+            --evidence-dir "$RUNNER_TEMP/r84r4/evidence/cohort" \
+            --prior-r2-cases "$RUNNER_TEMP/r84r4/r2/r84r2_case_manifest.jsonl" \
+            --pilot-cases "$RUNNER_TEMP/r84r4/evidence/pilot/r84r4_cases.jsonl" \
+            --analysis "$RUNNER_TEMP/r84r4/evidence/analysis.json" \
+            --report "$RUNNER_TEMP/r84r4/evidence/audit.json"
+      - name: Upload raw native evidence and failure receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: r84r4-independent-native-multichannel
+          path: ${{ runner.temp }}/r84r4/evidence/
+          if-no-files-found: warn
+          retention-days: 90
