@@ -10,6 +10,7 @@
 |---|---|---|
 | [Astrofein RW1 产品资料](https://www.astrofein.com/en/reaction-wheels/reaction-wheel-rw1/) | speed resolution 0.25 rpm (1 LSB) | 该型号的公开规格；本项目未确认使用同型号，不能据此标定三轮 |
 | [Rocket Lab RW3-0.06 数据表](https://rocketlabcorp.com/assets/Uploads/RW3-0.06-Datasheet-v3.1-2.pdf) | 速度/力矩模式、RS-485 命令与遥测 | 未披露适用于本试验的采样、编码器量化、噪声、丢包、时延联合标定 |
+| [Sinclair/Rocket Lab RW3-0.06 ICD](https://satcatalog.s3.amazonaws.com/components/250/SatCatalog_-_Sinclair_Interplanetary_-_RW3-0.06_-_ICD.pdf?lastmod=20211207035547) | 10.3.13 节定义只读 SPEED 为转子速度遥测；另有约 93 Hz 控制帧描述 | 控制帧频率不等于本项目遥测采样率或时间同步精度；该 ICD 属具体硬件修订版，仍需型号与接口匹配 |
 | [ECSS-E-60A](https://ecss.nl/wp-content/uploads/standards/ecss-e/ECSS-E-60A14September2004.pdf) | 传感器采样、时延、抖动、噪声和量化应作为特性定义 | 作为建模检查维度，不提供本轮系的数值 |
 
 选定硬件、接口控制文件和实测标定在当前仓库中尚不可追溯。因此任何数值组合均标为**敏感性假设**。必须记录每项参数的来源、单位、适用轮号和版本；无依据时不能称飞行真实测量。样本时钟与任务控制时钟须分别记录。
@@ -19,6 +20,8 @@
 `r84r3b_wheel_speed_measurement.py` 从 R3A 三轮理想速度序列单向生成观察值，原生动力学不受影响。显式配置包括采样点间隔、轮速分辨率、高斯噪声、偏置、独立丢包概率、固定遥测时延和时间戳抖动。逐轮独立随机流；丢包输出 `valid=false` 和 `null`，不暗中前向填充。捕获时刻和接收时刻分列；不输出故障标签、执行器权限或物理 QA 真值。
 
 `r84r3b_measurement_replay.py` 校验当前 R3A 完整证据目录中的 7 个文件哈希，然后只读处理 12 个工况与一次固定种子回放。理想对照配置无扰动；敏感性配置的具体数值都在 JSON 中明确标为未标定假设。实际 Actions 归档本地执行结果：理想对照 403 点逐值复现原反馈；敏感性配置 208 点，其中轮速数值改变 611 项、显式缺测 13 项；非轮速通道原值保留，QA 真值没有进入观测；原始和测量后固定种子回放均逐点相同。独立校验文件为本地 `reports/local_r84r3b_20261107/evidence/r84r3b_replay_verification.json`。这仍是事后观察层，不等于 Basilisk 官方编码器或硬件标定。
+
+源归档清单 SHA-256 已锁在两份配置中；`audit_r84r3b_measurement_replay.py` 独立检查输出，`.github/workflows/r84r3b-wheel-speed-measurement.yml` 在 CI 下载当前 R3A 原生归档并复验。脚本不会改变原生动力学。固定的 0.01 rad/s 分辨率、0.005 rad/s 噪声和 2% 丢包率等数值均为方法敏感性假设，不来自上述设备数据表。
 
 这仍是研究原型。下一步需扩大 R3A 多轮系和多姿态覆盖、取得选定设备的参数依据并冻结 R4 协议，检验各轮随机流隔离、下游对缺测与时标的处理，以及不同参数组合的敏感性。应保留理想反馈作为性能上界对照。
 

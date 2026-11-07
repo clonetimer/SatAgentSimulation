@@ -1,6 +1,7 @@
 {
   "schema": "sat-sim.r84r3b.wheel-speed-sensitivity.v1",
   "qualification": "sensitivity_assumptions_only",
+  "source_manifest_sha256": "734c4b86b67716a76c05de4af705a73a3e2d3394db800e771cd7861d08e7a4f7",
   "seed_namespace": "r84r3b-replay-20261107-v1",
   "parameter_basis": "Illustrative research sensitivity values; no selected wheel ICD or hardware calibration. Do not claim device realism.",
   "parameters": {

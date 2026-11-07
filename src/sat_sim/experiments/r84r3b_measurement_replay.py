@@ -33,6 +33,8 @@ def replay(evidence_dir: Path, profile: Path, output_dir: Path) -> dict:
     config = json.loads(profile_bytes)
     if config.get("qualification") != "sensitivity_assumptions_only":
         raise ValueError("profile must disclose research-only qualification")
+    if config.get("source_manifest_sha256") != digest(manifest_bytes):
+        raise ValueError("R3A source manifest does not match pinned profile")
     params = WheelSpeedMeasurementAssumptions(**config["parameters"])
     source_bytes = (evidence_dir / SOURCE_NAME).read_bytes()
     cases = [json.loads(line) for line in source_bytes.splitlines() if line.strip()]
