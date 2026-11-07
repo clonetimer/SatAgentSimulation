@@ -1,0 +1,26 @@
+{
+  "schema": "sat-sim.r84r4.imu-transfer-posthoc.v1",
+  "status": "POST_HOC_METHOD_COMPARISON_AFTER_R4_PRIMARY_RESULT",
+  "qualification": "exploratory_transfer_not_new_independent_confirmation",
+  "source_r2_script_sha256": "f602db732514e7df134ea2364d717084ab0abb4effcc918ae8163b7ac8e0418b",
+  "source_r4_preregistration_sha256": "abe0c483c40ce378acfbe26756c771cfee9cd958bf5494c8674ef089ea0b9290",
+  "cloud_source_artifact": {
+    "artifact_id": 13563407865,
+    "workflow_run_id": 42345657428,
+    "head_sha": "9df4f8cf68cef89428f0dc370d58b79a08c01f43",
+    "archive_sha256": "55c9b9fdcbb993237ec88bff858b0fa74b94a9f45e8bf23f616b789333cd4228"
+  },
+  "input_sha256": {
+    "r84r4_independent_imu.jsonl.gz": "d2d73d16117debb12b5b62507c66305e6b5a8acfd7239d28cfbf7f03285ad0a3",
+    "r84r4_independent_cases.jsonl.gz": "181162b108c941d6f4c998388b9347193fbe2e12abfe960ef81bf0ffbe281277"
+  },
+  "methods": {
+    "features": "R84-R2 exact frozen 16 raw-IMU features",
+    "score": "R84-R2 max absolute robust-z with R84-R2 scale fallback",
+    "threshold": "nearest-rank 90th percentile, healthy calibration only",
+    "conditional_upper_bound": "18 physical contexts including QA-only target wheel identity; not deployable fault detection",
+    "target_blind": "six initial-attitude/reference groups pooling all three nominal target wheels; 90 healthy calibration cases per group",
+    "held_out_groups": ["healthy_control", "loss50_test", "loss75_test"],
+    "report": "exact positive, negative and abstain counts by context and reference; no threshold tuning"
+  }
+}

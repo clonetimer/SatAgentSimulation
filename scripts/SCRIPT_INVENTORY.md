@@ -36,6 +36,7 @@
 | `run_r84r4_independent_cohort.py` | R84-R4 独立原生研究队列 | active | 用途：按预注册的互斥种子运行 2160 个原生工况；参数：--output-dir、--prior-r2-cases、--pilot-cases；输出：分离的压缩逐次观测、IMU、QA、工况清单及哈希，不调整阈值 |
 | `analyze_r84r4_independent_cohort.py` | R84-R4 预注册多通道评分 | active | 用途：仅从观测计算三轮命令-响应偏差，以健康校准定阈值并评估独立控制与故障组；参数：--evidence-dir、--report；输出：逐组计数和弃权，不使用物理 QA 或目标轮标签评分 |
 | `audit_r84r4_independent_cohort.py` | R84-R4 独立原生证据审计 | active | 用途：核对 2160 次原生执行的文件哈希、种子、消息来源、测量回放及 QA 隔离；参数：--evidence-dir、--prior-r2-cases、--pilot-cases、--analysis、--report；输出：机器可读收据 |
+| `analyze_r84r4_imu_transfer_posthoc.py` | R84-R4 已冻结 R2 IMU 方法回溯转移 | active | 用途：只读复算 R2 十六特征在 R4 新种子的目标轮条件上界与目标轮盲评；参数：--evidence-dir、--profile、--report；输出：按队列和激励方式的计数，明确标为后验比较 |
 | `audit_r84r4_native_feasibility.py` | R84-R4 新原生可行性证据审计 | active | 用途：逐行核对 55 次执行、来源消息、互斥 seed 和 QA 隔离；参数：--evidence-dir、--prior-r2-cases、--report；输出：机器可读独立审计收据，不授予数据集资格 |
 | `audit_r84r2_raw_imu_feature_screen.py` | R84-R2-E0 原始 IMU 多特征探索审计 | active | 用途：对固定 SHA 的 R84-R1 原始 IMU artifact 做回溯式 8 维特征筛查；参数：--artifact、--report；输出：特征级和多特征健康控制/故障对照 JSON；不运行仿真、不训练模型、不作为独立确认 |
 | `audit_interactive_baseline.py` | 交互扩展兼容基线 | active | 冻结测试计数、Doctor、release-check、OpenAPI 与脚本清单哈希 |

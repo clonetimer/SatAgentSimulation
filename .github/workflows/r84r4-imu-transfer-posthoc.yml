@@ -1,0 +1,91 @@
+name: R84-R4 posthoc R2 IMU transfer audit
+
+on:
+  pull_request:
+    paths:
+      - "configs/research/r84r4_imu_transfer_posthoc_v1.json"
+      - "scripts/analyze_r84r4_imu_transfer_posthoc.py"
+      - "tests/test_r84r4_imu_transfer_posthoc.py"
+      - ".github/workflows/r84r4-imu-transfer-posthoc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  transfer-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Prepare pinned native import runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/r84r4transfer/wheel" "$RUNNER_TEMP/r84r4transfer/compat" "$RUNNER_TEMP/r84r4transfer/source" "$RUNNER_TEMP/r84r4transfer/evidence"
+          python -m pip download --only-binary=:all: --no-deps --dest "$RUNNER_TEMP/r84r4transfer/wheel" "bsk==2.11.0"
+          echo "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a  $(echo "$RUNNER_TEMP"/r84r4transfer/wheel/bsk-2.11.0-*.whl)" | sha256sum --check -
+          python scripts/build_bsk_compat_wheels.py "$RUNNER_TEMP"/r84r4transfer/wheel/bsk-2.11.0-*.whl \
+            --output-dir "$RUNNER_TEMP/r84r4transfer/compat" \
+            --report "$RUNNER_TEMP/r84r4transfer/evidence/compat_payload_review.json"
+          python -m pip install "$RUNNER_TEMP"/r84r4transfer/compat/bsk-2.11.0+satfix2-*.whl
+          python -m pip install "pytest==9.0.3" "numpy==2.3.5" "pydantic==2.13.4" \
+            "jsonschema==4.26.0" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+      - name: Verify target-blind grouping unit test
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/test_r84r4_imu_transfer_posthoc.py
+      - name: Download pinned R84-R4 native evidence artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/clonetimer/SatAgentSimulation/actions/artifacts/13563407865/zip" \
+            -o "$RUNNER_TEMP/r84r4transfer/native.zip"
+          echo "55c9b9fdcbb993237ec88bff858b0fa74b94a9f45e8bf23f616b789333cd4228  $RUNNER_TEMP/r84r4transfer/native.zip" | sha256sum --check -
+          unzip -q "$RUNNER_TEMP/r84r4transfer/native.zip" -d "$RUNNER_TEMP/r84r4transfer/source"
+          test -f "$RUNNER_TEMP/r84r4transfer/source/cohort/r84r4_independent_manifest.json"
+      - name: Recompute locked IMU features and both grouping results
+        env:
+          PYTHONPATH: "src:."
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/analyze_r84r4_imu_transfer_posthoc.py \
+            --evidence-dir "$RUNNER_TEMP/r84r4transfer/source/cohort" \
+            --profile cloud \
+            --report "$RUNNER_TEMP/r84r4transfer/evidence/imu_transfer_posthoc.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = json.loads((Path(os.environ['RUNNER_TEMP'])/'r84r4transfer/evidence/imu_transfer_posthoc.json').read_text())
+          def positives(mode, reference, cohort):
+              return next(item['positive'] for item in result[mode]['by_reference']
+                          if item['reference_mode'] == reference and item['cohort'] == cohort)
+          assert result['source_profile'] == 'cloud' and result['unique_native_cases'] == 2160
+          assert positives('conditional_upper_bound', 'pulse09x4', 'healthy_control') == 49
+          assert positives('conditional_upper_bound', 'pulse09x4', 'loss50_test') == 45
+          assert positives('conditional_upper_bound', 'pulse09x4', 'loss75_test') == 270
+          assert positives('target_blind', 'pulse09x4', 'healthy_control') == 19
+          assert positives('target_blind', 'pulse09x4', 'loss50_test') == 26
+          assert positives('target_blind', 'pulse09x4', 'loss75_test') == 0
+          print('R84R4_IMU_TRANSFER_CLOUD_MATCHES_LOCAL_COUNTS')
+          PY
+      - name: Upload recomputed transfer and failure receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: r84r4-posthoc-imu-transfer
+          path: ${{ runner.temp }}/r84r4transfer/evidence/
+          if-no-files-found: warn
+          retention-days: 90
