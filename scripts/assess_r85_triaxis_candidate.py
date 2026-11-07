@@ -1,7 +1,8 @@
 """Fail-closed R85 qualification assessment of the frozen R84-R4 triaxis cohort.
 
-This checks evidence consistency and reports research-use boundaries. It does not
-infer a flight-hardware measurement model or an approved diagnostic threshold.
+用途：核对冻结协议、原始清单、独立审计与盲评计数，记录研究数据资格边界。
+参数：--prereg、--manifest、--audit、--analysis、--report。
+输出：机器可读资格收据；证据缺失或冲突时失败关闭，不推断硬件测量或诊断阈值。
 """
 
 from __future__ import annotations
