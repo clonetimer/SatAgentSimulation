@@ -1,0 +1,87 @@
+{
+  "schema_version": "sat-sim.r84r3.multichannel-pilot-execution-summary.v1",
+  "status": "PASS_NATIVE_MULTICHANNEL_PROVENANCE_ONLY",
+  "workflow_run_id": 42229904690,
+  "workflow_run_url": "https://github.com/clonetimer/SatAgentSimulation/actions/runs/42229904690",
+  "artifact_id": 13507208414,
+  "artifact_sha256": "769fcabf1d2cda41a74842653603255292dbbfc73f05c1bd7e3742ece561a775",
+  "artifact_size_bytes": 4780275,
+  "artifact_expires_at": "2027-02-04T13:59:01Z",
+  "unique_arms": 12,
+  "native_executions_including_replay": 13,
+  "samples_per_execution": 31,
+  "physical_baseline_comparisons": 12,
+  "max_abs_physics_delta": 0,
+  "seeded_replay": {
+    "passed": true,
+    "sensor_max_abs_delta": 0,
+    "telemetry_max_abs_delta": 0,
+    "physics_qa_max_abs_delta": 0
+  },
+  "non_imu_channel_noise_ab_max_delta": 0,
+  "imu_noise_on_off_max_delta_rad_s": {
+    "zero_healthy": 0.0002615823992788911,
+    "zero_loss50": 0.00022058810029199197,
+    "zero_loss75": 0.0003349932417678397,
+    "pulse09_healthy": 0.00025343095090589685,
+    "pulse09_loss50": 0.00029069114269034065,
+    "pulse09_loss75": 0.0002925825166961479
+  },
+  "telemetry_channels": {
+    "imu": {
+      "source": "official Basilisk ImuSensor.sensorOutMsg.AngVelPlatform",
+      "status": "noisy sensor measurement",
+      "model_input_candidate": true
+    },
+    "rw_speed": {
+      "source": "reactionWheelStateEffector.rwSpeedOutMsg.wheelSpeeds",
+      "status": "ideal state-feedback upper bound; no encoder noise/quantization/dropout/hardware correlation",
+      "model_input_candidate": "provisional"
+    },
+    "command_torque": {
+      "source": "native FSW rwMotorTorqueOutMsg.motorTorque",
+      "status": "command telemetry; not delivered torque",
+      "model_input_candidate": true
+    },
+    "pointing_error": {
+      "source": "attTrackingError.attGuidOutMsg.sigma_BR",
+      "status": "FSW estimate",
+      "model_input_candidate": "provisional"
+    },
+    "actual_torque": {
+      "source": "rwOutMsgs[].u_current",
+      "status": "physics QA only",
+      "model_input_candidate": false
+    },
+    "capacity_truth": {
+      "source": "ReactionWheelData[].u_max",
+      "status": "C++ actuator truth QA only",
+      "model_input_candidate": false
+    },
+    "motor_current": {
+      "status": "not recorded; no native current sensor model",
+      "model_input_candidate": false
+    }
+  },
+  "r83m_observability": {
+    "zero": {
+      "pairs": 9,
+      "nonqa_effects": 0
+    },
+    "pulse05": {
+      "pairs": 9,
+      "nonqa_effects": 0
+    },
+    "pulse09": {
+      "pairs": 9,
+      "nonqa_effects": 9,
+      "wheel_speed_max_delta_median_rad_s": 0.005200329490500977,
+      "applied_torque_max_delta_min_nm": 0.0009986083168342253,
+      "applied_torque_max_delta_max_nm": 0.002457121563464045
+    }
+  },
+  "model_trained": false,
+  "formal_training_or_test_eligible": false,
+  "flight_or_hardware_safety_qualified": false,
+  "stable_release_eligible": false
+}

@@ -1,0 +1,153 @@
+name: R84-R3A native multi-channel RW telemetry pilot
+
+on:
+  pull_request:
+    paths:
+      - "configs/research/r84r3_native_multichannel_telemetry_pilot.json"
+      - "src/sat_sim/experiments/native_imu_rw_multichannel_pilot_r84r3.py"
+      - "src/sat_sim/experiments/r84r3_multichannel_pilot_runner.py"
+      - "tests/test_r84r3_multichannel_pilot_contract.py"
+      - ".github/workflows/r84r3-native-multichannel-pilot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pilot-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install pinned project and contract-test dependencies
+        run: |
+          python -m pip install \
+            "pytest==9.0.3" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+      - name: Validate preregistration and multi-channel provenance gates
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/test_r84r3_multichannel_pilot_contract.py
+
+  native-r84r3:
+    needs: pilot-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Create native runtime and evidence directories
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/r84r3/wheel" "$RUNNER_TEMP/r84r3/compat" "$RUNNER_TEMP/r84r3/evidence"
+      - name: Download and verify exact original Basilisk upstream wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip download --only-binary=:all: --no-deps \
+            --dest "$RUNNER_TEMP/r84r3/wheel" "bsk==2.11.0"
+          python - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          wheels=list((Path(os.environ["RUNNER_TEMP"])/"r84r3/wheel").glob("bsk-2.11.0-*.whl"))
+          expected="d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a"
+          if len(wheels)!=1 or hashlib.sha256(wheels[0].read_bytes()).hexdigest()!=expected:
+              raise RuntimeError("R84R3_ORIGINAL_BASILISK_WHEEL_SHA256_MISMATCH")
+          PY
+      - name: Build metadata-only satfix2 compatibility wheel and verify native payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_bsk_compat_wheels.py \
+            "$RUNNER_TEMP"/r84r3/wheel/bsk-2.11.0-*.whl \
+            --output-dir "$RUNNER_TEMP/r84r3/compat" \
+            --report "$RUNNER_TEMP/r84r3/evidence/compat_payload_review.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report=json.loads((Path(os.environ["RUNNER_TEMP"])/"r84r3/evidence/compat_payload_review.json").read_text())
+          item=report["results"][0]
+          assert item["payload_bytes_unchanged"] is True
+          assert item["payload_file_count"]==880
+          PY
+      - name: Install pinned Basilisk runtime and project dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "$RUNNER_TEMP"/r84r3/compat/bsk-2.11.0+satfix2-*.whl
+          python -m pip install \
+            "pytest==9.0.3" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1"
+          python -m pip install -e . --no-deps
+          python - <<'PY'
+          from importlib.metadata import version
+          from Basilisk.simulation import spacecraft, reactionWheelStateEffector, imuSensor, simpleNav
+          from Basilisk.fswAlgorithms import inertial3D, attTrackingError, mrpFeedback, rwMotorTorque
+          assert version("bsk")=="2.11.0+satfix2"
+          print("R84R3_NATIVE_RUNTIME_READY")
+          PY
+      - name: Download and verify immutable R84-R1 source artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/clonetimer/SatAgentSimulation/actions/artifacts/13498019393/zip" \
+            -o "$RUNNER_TEMP/r84r3/r84r1-reference.zip"
+          echo "4bc1f9d0f788dce5e8d33aace1fe8860d739158793bcf6fae28352c785742a8e  $RUNNER_TEMP/r84r3/r84r1-reference.zip" | sha256sum --check -
+      - name: Execute 12 genuine Basilisk native telemetry arms and one exact replay
+        env:
+          PYTHONPATH: "src:."
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m sat_sim.experiments.r84r3_multichannel_pilot_runner \
+            --r84r1-artifact "$RUNNER_TEMP/r84r3/r84r1-reference.zip" \
+            --output-dir "$RUNNER_TEMP/r84r3/evidence"
+      - name: Verify all channels, physical baselines and non-training boundary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])/"r84r3/evidence"
+          manifest=json.loads((root/"r84r3_execution_manifest.json").read_text())
+          def count(name):
+              return sum(1 for line in (root/name).open(encoding="utf-8") if line.strip())
+          assert manifest["status"]=="PASS"
+          assert manifest["unique_arm_count"]==12
+          assert manifest["native_execution_count_including_replay"]==13
+          assert manifest["physical_baseline_comparisons"]==12
+          assert manifest["max_abs_physics_delta"]==0.0
+          assert len(manifest["noise_on_off_checks"])==6
+          assert all(item["non_imu_channels_unchanged"] for item in manifest["noise_on_off_checks"])
+          assert manifest["seeded_replay"]["passed"] is True
+          assert count("r84r3_multichannel_telemetry.jsonl")==13
+          assert count("r84r3_imu_sensor_observations.jsonl")==13
+          assert count("r84r3_case_manifest.jsonl")==13
+          assert count("r84r3_physics_qa.jsonl")==13
+          assert manifest["model_trained"] is False
+          assert manifest["formal_training_or_test_eligible"] is False
+          print("R84R3_NATIVE_MULTICHANNEL_PILOT_PASS")
+          PY
+      - name: Upload native telemetry, QA and preserved source artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: r84r3-native-multichannel-telemetry-pilot
+          path: ${{ runner.temp }}/r84r3/evidence/
+          if-no-files-found: warn
+          retention-days: 90

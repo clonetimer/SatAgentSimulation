@@ -1,0 +1,134 @@
+{
+  "schema_version": "sat-sim.r84r3.native-multichannel-telemetry-pilot-prereg.v1",
+  "status": "PREREGISTERED_NOT_EXECUTED",
+  "research_only": true,
+  "goal": "Verify the provenance, native recorder alignment and physical consistency of a multi-channel RW telemetry upper-bound using official Basilisk IMU, native RW speed feedback, native FSW command torque and attitude tracking error.",
+  "source_references": {
+    "r84r1_run_id": 42210589499,
+    "r84r1_artifact_id": 13498019393,
+    "r84r1_artifact_sha256": "4bc1f9d0f788dce5e8d33aace1fe8860d739158793bcf6fae28352c785742a8e",
+    "r84r0_artifact_sha256": "5d1439272f651519fec011d9728165f3afc46b1b3d14d305357ae271b26752af",
+    "r83m_original_archive_sha256": "db83c8b50a833d2f9c5074cb3f6f9d44c8e0109a2a7be4ddcec5f70bff754796"
+  },
+  "native_engine": {
+    "distribution": "bsk==2.11.0+satfix2",
+    "original_upstream_wheel_sha256": "d51fe1ffa1b0b03dc415034b210497b28a2504428d4d8e71b481542a08c08a0a",
+    "compatibility": "metadata-only satfix2; 880 Basilisk native payload files must remain byte-identical",
+    "no_proxy_dynamics": true,
+    "no_posthoc_imu_noise": true,
+    "native_modules": [
+      "spacecraft.Spacecraft",
+      "reactionWheelStateEffector.ReactionWheelStateEffector",
+      "simpleNav.SimpleNav",
+      "imuSensor.ImuSensor",
+      "inertial3D.inertial3D",
+      "attTrackingError.attTrackingError",
+      "mrpFeedback.mrpFeedback",
+      "rwMotorTorque.rwMotorTorque"
+    ]
+  },
+  "physical_design": {
+    "target_wheel_index": 0,
+    "initial_state_index": 0,
+    "initial_attitude_mrp_bn": [
+      0,
+      0,
+      0
+    ],
+    "all_three_rw_feedback_channels_recorded": true,
+    "reference_modes_deg": {
+      "zero": 0,
+      "pulse09": 0.9
+    },
+    "capacity_modes_nm": {
+      "healthy": 0.02,
+      "loss50": 0.01,
+      "loss75": 0.005
+    },
+    "gyro_noise_sigma_rad_s": [
+      0,
+      0.0001
+    ],
+    "random_seed_formula": "50000000 + reference_index*100000 + capacity_index*10000 + noise_index*1000 + 331",
+    "unique_arm_count": 12,
+    "exact_replay_controls": 1,
+    "total_native_executions": 13,
+    "sample_interval_s": 0.2,
+    "duration_s": 6,
+    "samples_per_execution": 31,
+    "guidance_set_s": 1.8,
+    "guidance_reset_s": 3.8,
+    "capacity_change_paused_scheduler_s": 2.4,
+    "first_post_fault_sample_s": 2.6
+  },
+  "telemetry_provenance": {
+    "imu.raw_gyro_rad_s_x/y/z": {
+      "source": "official Basilisk ImuSensor.sensorOutMsg.AngVelPlatform",
+      "role": "noisy_sensor_measurement",
+      "model_input_candidate": true
+    },
+    "sensor.adcs.rw.speed_rad_s_0/1/2": {
+      "source": "reactionWheelStateEffector.rwSpeedOutMsg.wheelSpeeds",
+      "role": "ideal_native_state_feedback_upper_bound",
+      "model_input_candidate": "provisional_only",
+      "limitations": [
+        "no encoder noise model",
+        "no quantization model",
+        "no dropout model",
+        "no hardware correlation"
+      ]
+    },
+    "command.adcs.rw.motor_torque_nm_0/1/2": {
+      "source": "native FSW rwMotorTorqueOutMsg.motorTorque",
+      "role": "command_telemetry",
+      "model_input_candidate": true,
+      "limitations": [
+        "command is not delivered torque"
+      ]
+    },
+    "estimate.adcs.pointing_error_deg": {
+      "source": "attTrackingError.attGuidOutMsg.sigma_BR converted by 4*atan(norm(sigma_BR))",
+      "role": "FSW_operational_estimate",
+      "model_input_candidate": "provisional_only"
+    },
+    "rwOutMsgs.u_current": {
+      "role": "native_applied_torque_physics_QA_only",
+      "model_input_candidate": false
+    },
+    "ReactionWheelData.u_max": {
+      "role": "C++ actuator_capacity_truth_QA_only",
+      "model_input_candidate": false
+    },
+    "sensor.adcs.rw.motor_current_a": {
+      "role": "not_recorded",
+      "reason": "no native electrical current sensor model; I=tau/Kt is a command-derived estimate, not measured current"
+    },
+    "hub.*": {
+      "role": "simulator_truth_QA_only",
+      "model_input_candidate": false
+    }
+  },
+  "checks": [
+    "all_13_native_recorders_have_aligned_31_point_time_axes",
+    "all_three_rw_speed_and_command_channels_present_and_finite",
+    "pointing_error_comes_from_attGuidOutMsg_not_hub_truth",
+    "all_12_unique_seed_values_match_frozen_formula",
+    "same_seed_replay_is_exact",
+    "native_cpp_capacity_readback_matches_each_arm",
+    "applied_rw_torque_respects_cpp_capacity",
+    "healthy_and_loss75_physics_match_sha_pinned_r83m_cases",
+    "loss50_physics_matches_r84r1_native_noise_free_reference",
+    "imu_sensor_rows_match_multichannel_telemetry_imu_columns",
+    "rw_speed_and_command_telemetry_match_separate_physics_qa",
+    "no_truth_or_label_fields_in_telemetry_rows"
+  ],
+  "prohibitions": [
+    "no_model_training",
+    "no_classifier_metrics",
+    "no_formal_train_validation_test_eligibility",
+    "no_flight_or_hardware_safety_claim",
+    "no_stable_qualification",
+    "no_measured_current_claim",
+    "no_encoder_noise_or_quantization_claim"
+  ]
+}
