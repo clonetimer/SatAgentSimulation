@@ -131,7 +131,7 @@
     formErrors: new Map(),
     discoveredModels: [],
     activeView: "wizard",
-    wizard: { goal: null, step: "welcome", level: null, objectId: null, faultEffect: null, validated: false, validatedForm: null, messages: [] },
+    wizard: { goal: null, step: "welcome", level: null, objectId: null, faultEffect: null, parameterMode: "recommended", validated: false, validatedForm: null, messages: [] },
     scenarioTemplates: [],
     experiments: [],
     goals: [],
@@ -4689,6 +4689,57 @@
     return wrapper;
   }
 
+  function renderWizardParameterControls() {
+    const mode = ['runtime', 'recommended', 'all'].includes(state.wizard.parameterMode)
+      ? state.wizard.parameterMode : 'recommended';
+    state.wizard.parameterMode = mode;
+    const fields = (state.schema?.fields || []).filter((field) => String(field.path || '').startsWith('parameters.values.'));
+    const recommended = fields.filter((field) => field.importance !== 'advanced').length;
+    const advanced = fields.length - recommended;
+    const changed = fields.filter((field) => state.changedPaths.has(field.path)).length;
+    const descriptions = {
+      runtime: '只显示仿真时长和采样间隔。所有模型参数保持当前推荐值，不会被删除或重置。',
+      recommended: '显示模型常用参数；专业参数保持折叠。可以搜索完整参数目录，搜索结果会自动展开所属分组。',
+      all: '显示全部已注册参数，包括高级参数和模型选项。参数仍按物理意义分组，修改后需要重新校验。',
+    };
+    $all('[data-wizard-parameter-mode]').forEach((button) => {
+      const active = button.dataset.wizardParameterMode === mode;
+      button.setAttribute('aria-pressed', String(active));
+      button.classList.toggle('active', active);
+    });
+    const description = el('wizardParameterModeDescription');
+    if (description) description.textContent = descriptions[mode];
+    const searchWrap = el('wizardParameterSearchWrap');
+    searchWrap?.classList.toggle('hidden', mode === 'runtime');
+    const count = el('wizardParameterCount');
+    if (count) count.textContent = mode === 'runtime'
+      ? `已保留 ${fields.length} 项模型参数`
+      : `常用 ${recommended} 项 · 专业 ${advanced} 项 · 已修改 ${changed} 项`;
+    const search = el('wizardParameterSearch');
+    const legacySearch = el('formFieldSearch');
+    if (search && legacySearch && search.value !== legacySearch.value) search.value = legacySearch.value;
+    const form = el('dynamicForm');
+    if (form) form.dataset.wizardParameterMode = mode;
+    const legacyAdvanced = el('showAdvancedFields');
+    if (legacyAdvanced) legacyAdvanced.checked = mode === 'all';
+  }
+
+  function setWizardParameterMode(mode) {
+    if (!['runtime', 'recommended', 'all'].includes(mode)) return;
+    state.wizard.parameterMode = mode;
+    state.formSectionOpen.clear();
+    const search = el('wizardParameterSearch');
+    const legacySearch = el('formFieldSearch');
+    if (mode === 'runtime') {
+      if (search) search.value = '';
+      if (legacySearch) legacySearch.value = '';
+    }
+    const legacyAdvanced = el('showAdvancedFields');
+    if (legacyAdvanced) legacyAdvanced.checked = mode === 'all';
+    renderWizardParameterControls();
+    renderForm();
+  }
+
   function renderForm() {
     const form = el('dynamicForm');
     form.replaceChildren();
@@ -4698,7 +4749,9 @@
       return;
     }
     const query = (el('formFieldSearch')?.value || '').trim().toLowerCase();
-    const showAdvanced = Boolean(el('showAdvancedFields')?.checked);
+    const wizardParameterMode = state.activeView === 'wizard' ? state.wizard.parameterMode : null;
+    const showAdvanced = Boolean(el('showAdvancedFields')?.checked) || wizardParameterMode === 'all';
+    form.dataset.wizardParameterMode = wizardParameterMode || '';
     const fieldsByPath = new Map((state.schema.fields || []).map((field) => [field.path, field]));
     const sections = (state.schema.sections || []).filter((section) => Array.isArray(section.field_paths));
 
@@ -4787,7 +4840,7 @@
         card.classList.add('parameter-section');
         const key=`${state.schema.capability.capability_id}:${section.id}`;
         const changed=filtered.some((field)=>state.changedPaths.has(field.path));
-        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? section.parameter_group === 'orbit');
+        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? wizardParameterMode === 'all' : section.parameter_group === 'orbit'));
         card.addEventListener('toggle',()=>{
           if (!query && !showAdvanced && !changed) state.formSectionOpen.set(key,card.open);
         });
@@ -7520,7 +7573,7 @@
   }
 
   function wizardReset() {
-    state.wizard = { goal: null, step: 'welcome', level: null, objectId: null, faultEffect: null, mode: null, validated: false, validatedForm: null, messages: [] };
+    state.wizard = { goal: null, step: 'welcome', level: null, objectId: null, faultEffect: null, mode: null, parameterMode: 'recommended', validated: false, validatedForm: null, messages: [] };
     wizardMessage('assistant', '你好！你想完成什么仿真任务？我会按固定步骤引导你完成配置、运行和结果查看。');
     const root = el('wizardView'); if (root) root.dataset.runtimeMode = '';
     el('wizardRunResultsHost')?.classList.add('hidden');
@@ -7925,6 +7978,7 @@
     if (state.wizard.step === 'tasks') renderWizardTasks();
     el('wizardRunResultsHost')?.classList.toggle('hidden', state.wizard.step !== 'results');
     el('wizardRealtimeBackBtn')?.classList.add('hidden');
+    if (state.wizard.step === 'configure') renderWizardParameterControls();
     if (state.wizard.step === 'tasks') {
       // Search/filter controls live in the dialog; reuse the existing task-center query contract.
       const search = el('wizardTaskSearch'); const status = el('wizardTaskStatus');
@@ -9999,6 +10053,13 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await saveCurrentTask('new'); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
     });
     el('updateTaskBtn').addEventListener('click', async () => { showBusy('更新仿真任务','写入任务中心新版本'); try { await saveCurrentTask('update'); } catch (error) { showNotice(error.message,'error'); } finally { hideBusy(); } });
+    $all('[data-wizard-parameter-mode]').forEach((button) => button.addEventListener('click', () => setWizardParameterMode(button.dataset.wizardParameterMode)));
+    el('wizardParameterSearch')?.addEventListener('input', () => {
+      const legacySearch = el('formFieldSearch');
+      if (legacySearch) legacySearch.value = el('wizardParameterSearch').value;
+      renderForm();
+      renderWizardParameterControls();
+    });
     el('formFieldSearch').addEventListener('input', renderForm);
     el('showAdvancedFields').addEventListener('change', renderForm);
     el('acceptAgentChangesBtn').addEventListener('click', clearAgentChanges);
