@@ -7959,8 +7959,9 @@
     el('wizardRealtimeBackBtn')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
     const activeNavigation = guided && name === 'wizard' ? 'wizard' : name;
     $all('.nav-button[data-view]').forEach((button) => {
-      const taskShortcutActive = state.wizard.step === 'tasks' && button.dataset.wizardShortcut === 'history';
-      const ordinaryNavigationActive = !button.dataset.wizardShortcut && button.dataset.view === activeNavigation;
+      const taskViewActive = guided && name === 'wizard' && state.wizard.step === 'tasks';
+      const taskShortcutActive = taskViewActive && button.dataset.wizardShortcut === 'history';
+      const ordinaryNavigationActive = !taskViewActive && !button.dataset.wizardShortcut && button.dataset.view === activeNavigation;
       button.classList.toggle('active', taskShortcutActive || ordinaryNavigationActive);
     });
     if (name === 'wizard') renderSimulationWizard();
