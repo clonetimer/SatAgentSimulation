@@ -65,3 +65,34 @@ def test_both_realtime_modes_share_visible_control_labels_and_button_contract():
     assert 'data-continuous-action="resume"' in html
     assert 'data-continuous-action="step"' in html
     assert 'data-continuous-action="stop"' in html
+
+
+def test_realtime_creation_is_progressively_disclosed_around_active_work():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = Path("src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+    css = Path("src/sat_sim/web/styles.css").read_text(encoding="utf-8")
+
+    assert 'id="interactiveCreateDetails"' in html
+    assert 'id="continuousCreateDetails"' in html
+    assert "interactiveCreateDisclosureInitialized" in app
+    assert "createDisclosure.open = false" in app
+    assert "createDisclosureInitialized" in continuous
+    assert "createDisclosure.open = false" in continuous
+    assert ".realtime-create-disclosure > summary" in css
+    # Advanced continuous native parameters remain available as a separate disclosure.
+    assert 'class="continuous-native-config"' in html
+
+
+def test_realtime_telemetry_and_feedback_use_user_readable_labels_without_losing_raw_evidence():
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = Path("src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+    assert "function interactiveTelemetryLabel(field)" in app
+    assert "姿态指向误差（°）" in app
+    assert "电池荷电状态（SOC）" in app
+    assert "label.title = name" in app
+    assert "function interactiveAckStateLabel(value)" in app
+    assert "已排队，等待执行" in app
+    assert "title.title = ack.state" in app
+    assert "function continuousTelemetryLabel(field)" in continuous
+    assert "轨道半径（m）" in continuous
