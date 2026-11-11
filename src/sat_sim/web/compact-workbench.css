@@ -653,3 +653,87 @@ body[data-active-view="continuous"] .app-content {
   .wizard-progress-label { font-size: 9px; }
   .wizard-progress-number { flex-basis: 20px; width: 20px; height: 20px; }
 }
+
+
+/* P2 — parameter disclosure by user intent, never by deleting schema fields. */
+.wizard-parameter-controls {
+  display: grid;
+  gap: 9px;
+  margin: 2px 0 13px;
+}
+.wizard-parameter-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.wizard-parameter-mode-button {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wizard-parameter-mode-button:hover { color: var(--text); background: var(--panel-2); }
+.wizard-parameter-mode-button[aria-pressed="true"] {
+  color: var(--text);
+  border-color: var(--line);
+  background: var(--panel-2);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+.wizard-parameter-mode-description {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.wizard-parameter-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.wizard-parameter-search .search-box { flex: 1 1 260px; min-width: 0; }
+.wizard-parameter-search .search-box input { width: 100%; min-height: 38px; }
+.wizard-parameter-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+#wizardParameterHost #dynamicForm[data-wizard-parameter-mode="runtime"] { display: none !important; }
+#wizardParameterHost #dynamicForm[data-wizard-parameter-mode="recommended"] .advanced-fields { display: none; }
+#wizardParameterHost #dynamicForm[data-wizard-parameter-mode="all"] .advanced-fields { display: block; }
+#wizardParameterHost #dynamicForm .parameter-section > summary { gap: 10px; }
+#wizardParameterHost #dynamicForm .parameter-section > summary .section-heading p {
+  display: none;
+}
+#wizardParameterHost #dynamicForm .parameter-section[open] > summary .section-heading p {
+  display: block;
+}
+#wizardParameterHost #dynamicForm .parameter-section > summary .parameter-count {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+#wizardParameterHost #dynamicForm .field-help > summary { min-height: 24px; }
+#wizardParameterHost #dynamicForm .form-field input:not([type="checkbox"]),
+#wizardParameterHost #dynamicForm .form-field select,
+#wizardParameterHost #dynamicForm .form-field textarea { min-height: 40px; }
+#wizardParameterHost #dynamicForm .schema-section { padding: 11px 12px; }
+#wizardParameterHost #dynamicForm .section-heading h3 { font-size: 13px; }
+#wizardParameterHost #dynamicForm .section-heading p { font-size: 11px; line-height: 1.55; }
+@media (max-width: 600px) {
+  .wizard-parameter-mode { width: 100%; }
+  .wizard-parameter-mode-button { flex: 1 1 auto; padding-inline: 7px; font-size: 11px; }
+  .wizard-parameter-search { align-items: stretch; flex-direction: column; }
+  .wizard-parameter-count { white-space: normal; }
+}
