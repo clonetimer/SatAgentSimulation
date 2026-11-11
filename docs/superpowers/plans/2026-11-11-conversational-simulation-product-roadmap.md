@@ -55,7 +55,8 @@
 - [ ] 结果视图沿用原 Run Bundle、telemetry、plot manifest 和事件来源。
 - [ ] 验收：无模拟进度/伪造指标；任务失败、部分结果、缺失数据均有明确状态。
 - P4 实施说明：`docs/superpowers/plans/2026-11-11-p4-run-results-closure.md`。
-- 已完成代码结构审计：`runSimulation()`、`pollRunExecution()`、`loadRun()` 已具备真实执行与结果读取链；当前 `wizardRunResultsHost` 为空，现有唯一结果面板仍位于 `creatorRunPanel`，需要通过单实例挂载/恢复打通工作区，而非复制结果 UI 或 API。
+- 已完成代码结构审计：`runSimulation()`、`pollRunExecution()`、`loadRun()` 已具备真实执行与结果读取链；`wizardAttachPanels()` 已将唯一 `creatorRunPanel` 挂载到 `wizardRunResultsHost`，`wizardRestoreAdvancedPanels()` 负责恢复高级工作台位置。当前 P4 的主要缺口是对该链路补充专项静态/Chromium 回归，以及验证失败、部分结果、缺失数据和实时会话隔离。
+- 已新增 `tests/test_p4_conversational_run_results.py`，冻结唯一结果面板、向导挂载/高级工作台恢复、结果数据源和关键 DOM 唯一性契约；CI 尚待本轮提交验证。
 
 ### P5 — 限时实时与持续实时一致化
 - 统一会话创建、启动、暂停、继续、单步、停止/归档的对话式操作层级。
