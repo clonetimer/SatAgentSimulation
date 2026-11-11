@@ -124,6 +124,10 @@
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
         <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
         <section id="wizardConfigSections" class="wizard-config-sections hidden" aria-label="仿真参数、事件和输出">
+          <div class="wizard-config-graph-action">
+            <span>需要更直观地检查任务流程？可以在原生拖拽画布中查看节点与端口。</span>
+            <button id="wizardOpenGraphFromConfigBtn" class="button button-secondary" type="button">用图形方式查看流程</button>
+          </div>
           <details id="wizardParametersPanel" class="wizard-config-panel">
             <summary>模型参数（按需调整）</summary>
             <p class="wizard-panel-help">默认沿用当前模型推荐值。先完成运行时长和采样间隔即可开始；只有需要改变物理工况或模型特性时，再展开参数。</p>

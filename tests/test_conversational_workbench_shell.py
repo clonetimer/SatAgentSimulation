@@ -96,3 +96,15 @@ def test_taskspec_can_be_applied_and_opened_in_the_native_graph_editor():
     assert "switchView('creator')" in handler
     assert "switchTab('graph')" in handler
     assert "graphSetStatus('TaskSpec 已投影到当前模型配置" in handler
+
+
+def test_applied_natural_language_or_form_configuration_can_open_graph_canvas():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    assert 'id="wizardOpenGraphFromConfigBtn"' in html
+    assert "function openCurrentConfigurationInGraph(sourceLabel = '当前仿真配置')" in js
+    assert "openCurrentConfigurationInGraph('当前仿真配置')" in js
+    assert "openCurrentConfigurationInGraph('TaskSpec')" in js
+    assert "switchView('creator')" in js
+    assert "switchTab('graph')" in js
+    assert "重建推荐流程会替换当前图形节点和连线" in js
