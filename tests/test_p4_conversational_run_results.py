@@ -34,6 +34,9 @@ def test_conversational_run_results_use_existing_execution_and_result_sources():
     ):
         assert html.count(f'id="{panel_id}"') == 1
     assert "wizardRunResultsHost" in js
+    assert "const sourceErrors = Object.fromEntries" in js
+    assert "部分结果数据读取失败" in js
+    assert "run-source-warnings" in js
     assert "Run Bundle" in Path(
         "docs/superpowers/plans/2026-11-11-p4-run-results-closure.md"
     ).read_text(encoding="utf-8")
