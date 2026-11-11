@@ -647,3 +647,62 @@ def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_pat
             assert not errors, errors
         finally:
             browser.close()
+
+
+
+def test_rule_driven_wizard_completes_preflight_without_agent_or_run_submission(tmp_path):
+    pw = pytest.importorskip("playwright.sync_api")
+    run_calls = []
+    parse_calls = []
+    agent_calls = []
+    with _client(tmp_path) as client, pw.sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"), args=["--no-sandbox", "--disable-dev-shm-usage"])
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 960}, locale="zh-CN")
+            errors = []
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def route_request(route):
+                req = route.request
+                u = urlsplit(req.url)
+                assert u.netloc == "workbench.test"
+                path_with_query = u.path + ("?" + u.query if u.query else "")
+                if req.method == "POST" and u.path == "/runs":
+                    run_calls.append(path_with_query)
+                if req.method == "POST" and u.path == "/tasks/parse":
+                    parse_calls.append(path_with_query)
+                if "/agent/" in u.path:
+                    agent_calls.append(path_with_query)
+                response = client.request(
+                    req.method, path_with_query,
+                    content=req.post_data.encode("utf-8") if req.post_data else None,
+                    headers={k: v for k, v in req.headers.items()
+                             if k.lower() in ("authorization", "content-type", "accept")},
+                )
+                route.fulfill(status=response.status_code, body=response.content,
+                              headers={k: v for k, v in response.headers.items()
+                                       if k.lower() in ("content-type", "cache-control")})
+
+            page.route("https://workbench.test/**", route_request)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardView").wait_for(state="visible")
+            assert page.locator("#wizardOptions .wizard-option").count() == 5
+            page.get_by_role("button", name="运行正常仿真").click()
+            page.get_by_role("button", name="整星").click()
+            page.locator("#wizardOptions .wizard-option").first.click()
+            page.locator("#wizardOptions [data-wizard-field='simulation.duration_s']").wait_for(timeout=20000)
+            assert page.locator("#wizardOptions [data-wizard-field='simulation.sample_s']").count() == 1
+            page.get_by_role("button", name="下一步：检查配置").click()
+            page.get_by_role("button", name="校验配置").click()
+            page.wait_for_function(
+                "() => document.querySelector('#wizardNotice').textContent.includes('配置校验通过') || document.querySelector('#wizardNotice').textContent.includes('配置未通过')",
+                timeout=30000,
+            )
+            assert parse_calls, "Wizard preflight must use the existing TaskSpec parse/validation endpoint."
+            assert run_calls == [], "Preflight must never submit a physical run."
+            assert agent_calls == [], "Rule-based wizard must not call Agent endpoints."
+            assert page.locator("#wizardOptions button").last.is_enabled() == page.locator("#wizardNotice").inner_text().startswith("配置校验通过")
+            assert errors == []
+            page.screenshot(path=str(tmp_path / "rule-wizard-review.png"), full_page=True)
+        finally:
+            browser.close()
