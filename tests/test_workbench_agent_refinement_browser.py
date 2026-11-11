@@ -137,6 +137,7 @@ def test_previewed_task_restored_to_default_values_still_has_refinement_context(
 
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
+        page.locator('#wizardAdvancedBtn').click()
         page.wait_for_selector('.capability-card.active', state='attached')
         duration = page.locator('[data-path="simulation.duration_s"]')
         default_duration = duration.input_value()
