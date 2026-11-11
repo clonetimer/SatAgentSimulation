@@ -6968,7 +6968,7 @@
       return false;
     }
     if (mode === 'bounded') {
-      el('interactiveCapability').value = 'whole_spacecraft.unified_native.v1';
+      el('interactiveCapability').value = state.selectedCapabilityId;
       const valid = await importOfflineNativeToRealtime('interactive');
       status.textContent = valid
         ? '参数审核完成，已转到限时实时创建页。还需确认时长并点击创建会话。'
@@ -7595,12 +7595,13 @@
   }
 
   function wizardLiveModeSupport(mode) {
-    if (state.selectedCapabilityId !== 'whole_spacecraft.unified_native.v1') {
-      return { supported: false, reason: '当前实时会话仅开放原生整星模型；所选分系统或部件仍可进行离线仿真。' };
+    const capabilityId = state.selectedCapabilityId;
+    if (!INTERACTIVE_CAPABILITIES[capabilityId]) {
+      return { supported: false, reason: '当前实时服务仅开放已注册的整星或独立分系统能力；单独部件暂不支持实时会话。' };
     }
     if (!state.interactiveAvailable) return { supported: false, reason: '实时仿真服务当前未启用；离线仿真仍可正常使用。' };
     const continuous = mode === 'continuous_realtime';
-    const support = interactiveCreationSupport('whole_spacecraft.unified_native.v1', continuous);
+    const support = interactiveCreationSupport(capabilityId, continuous);
     if (!support) return { supported: false, reason: '正在读取实时服务能力目录，请稍后重试。' };
     if (!support.supported) return { supported: false, reason: support.reason_code || '当前服务不支持此运行方式。' };
     return { supported: true, reason: continuous ? '持续运行，直到用户主动停止' : '限时运行，可启动、暂停、单步和停止' };
