@@ -131,3 +131,16 @@ def test_continuous_engineering_diagnostics_are_preserved_but_progressively_disc
         assert required in block
     assert "长稳证据" in block
     assert "原生恢复审计" in block
+
+
+def test_returning_from_realtime_offers_direct_reentry_without_restarting_sessions():
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = Path("src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+
+    assert "返回正在运行的限时实时会话" in app
+    assert "返回持续实时会话" in app
+    assert "data-wizard-resume" in app
+    assert "getSelectedSessionId: () => state.selectedId" in continuous
+    assert "不会自动重启或重放遥控" in app
+    assert "switchView('interactive')" in app
+    assert "switchView('continuous')" in app
