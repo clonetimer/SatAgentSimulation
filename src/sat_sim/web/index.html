@@ -173,6 +173,7 @@
             <button type="button" class="wizard-tool-option" data-wizard-goal="goals"><strong>目标驱动实验</strong><small>多轮候选优化、约束和预算管理，保留目标状态与决策记录。</small></button>
             <button type="button" class="wizard-tool-option" data-wizard-goal="graph"><strong>图形化建模</strong><small>需要拖拽模块、连接端口和编辑画布，保留专用工程工作区。</small></button>
             <button type="button" class="wizard-tool-option" data-wizard-goal="diagnostics"><strong>系统诊断</strong><small>环境、能力目录和服务健康检查属于运维工具，不混入仿真参数流程。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="runs"><strong>运行中心</strong><small>查看实际运行记录、Run Bundle、验收证据和历史运行对比。</small></button>
           </div>
         </details>
         <section id="wizardAgentWorkspace" class="wizard-special-workspace hidden" aria-label="自然语言仿真需求">
@@ -665,7 +666,7 @@
       <section class="panel task-center-panel">
         <div class="task-center-header">
           <div><div class="eyebrow">批量仿真实验</div><h1>实验中心</h1><p>从当前编辑配置或任务中心已保存任务中选择基线，创建参数扫描、批量运行、自动验收并对比多个 Run。</p></div>
-          <div class="task-center-actions"><button id="newExperimentBtn" class="button button-primary" type="button">创建实验</button><button id="faultCatalogBtn" class="button button-secondary" type="button">故障/约束目录</button><button id="refreshExperimentsBtn" class="button button-secondary" type="button">刷新</button></div>
+          <div class="task-center-actions"><button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button><button id="newExperimentBtn" class="button button-primary" type="button">创建实验</button><button id="faultCatalogBtn" class="button button-secondary" type="button">故障/约束目录</button><button id="refreshExperimentsBtn" class="button button-secondary" type="button">刷新</button></div>
         </div>
         <div id="experimentSummary" class="task-summary">正在读取实验中心…</div>
         <div id="experimentList" class="experiment-list"></div>
@@ -686,6 +687,7 @@
             <p>围绕一个工程目标，冻结基础任务、可调整参数和总预算；逐轮创建实验、运行、读取证据并记录决策。模型提出建议，是否执行由预算和验证器控制。</p>
           </div>
           <div class="task-center-actions">
+            <button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button>
             <button id="newGoalRunBtn" class="button button-primary" type="button">新建目标</button>
             <button id="refreshGoalRunsBtn" class="button button-secondary" type="button">刷新</button>
           </div>
@@ -1406,7 +1408,7 @@
       <section class="panel task-center-panel">
         <div class="task-center-header">
           <div><div class="eyebrow">Run Bundle</div><h1>运行中心</h1><p>查看每一次实际执行产生的 Run Bundle、状态、验收结果和证据制品。这里管理“某一次运行发生了什么”。</p></div>
-          <div class="task-center-actions"><button id="refreshRunCenterBtn" class="button button-secondary" type="button">刷新</button></div>
+          <div class="task-center-actions"><button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button><button id="refreshRunCenterBtn" class="button button-secondary" type="button">刷新</button></div>
         </div>
         <div id="runCenterSummary" class="task-summary">正在读取运行记录…</div>
         <div class="run-compare-toolbar">
@@ -1436,7 +1438,7 @@
       <section class="panel task-center-panel">
         <div class="task-center-header">
           <div><div class="eyebrow">Environment & Evidence</div><h1>系统诊断</h1><p>检查运行环境、队列、模型服务和发布资产，并生成脱敏诊断包。</p></div>
-          <div class="task-center-actions"><button id="downloadDiagnosticBtn" class="button button-primary" type="button">一键导出诊断包</button><button id="refreshDiagnosticsBtn" class="button button-secondary" type="button">重新检查</button></div>
+          <div class="task-center-actions"><button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button><button id="downloadDiagnosticBtn" class="button button-primary" type="button">一键导出诊断包</button><button id="refreshDiagnosticsBtn" class="button button-secondary" type="button">重新检查</button></div>
         </div>
         <div id="diagnosticSummary" class="diagnostic-summary-grid"></div>
         <section class="diagnostic-section"><div class="section-heading compact"><h3>环境 Doctor</h3></div><div id="doctorCheckList" class="doctor-check-list"></div></section>

@@ -108,3 +108,17 @@ def test_applied_natural_language_or_form_configuration_can_open_graph_canvas():
     assert "switchView('creator')" in js
     assert "switchTab('graph')" in js
     assert "重建推荐流程会替换当前图形节点和连线" in js
+
+
+def test_specialist_workspaces_offer_a_consistent_return_to_the_guided_workflow():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    for view_id in ("experimentCenterView", "goalRunView", "diagnosticView", "runCenterView"):
+        start = html.index(f'id="{view_id}"')
+        end = html.find("</main>", start)
+        assert 'data-return-wizard' in html[start:end]
+    assert 'data-wizard-goal="runs"' in html
+    assert "goal === 'compare' || goal === 'runs'" in js
+    assert "$all('[data-return-wizard]')" in js
+    assert "renderSimulationWizard();" in js
+    assert "当前配置、任务版本和已有运行记录保持不变" in js
