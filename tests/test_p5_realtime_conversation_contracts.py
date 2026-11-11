@@ -158,3 +158,17 @@ def test_limited_realtime_health_snapshot_uses_only_present_real_telemetry_field
     assert "healthFields.filter(name => Object.hasOwn(latest, name))" in app
     assert "当前遥测流未提供轨道、姿态或能源关键指标" in app
     assert ".interactive-health-grid" in css
+
+
+def test_realtime_reentry_prefers_existing_active_session_and_guards_duplicate_actions():
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = Path("src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+
+    assert "const activeSession = state.interactiveSessions.find" in app
+    assert "await selectInteractiveSession(activeSession.session_id)" in app
+    assert "const activeSession = sessions.find(session => !terminal.has" in continuous
+    assert "state.interactiveControlPending" in app
+    assert "state.interactiveCommandSending" in app
+    assert "state.controlSending" in continuous
+    assert "if (!state.interactiveSession || state.interactiveControlPending) return" in app
+    assert "if (!state.selectedId || state.controlSending) return" in continuous
