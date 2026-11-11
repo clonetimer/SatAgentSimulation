@@ -7455,6 +7455,12 @@
     move('eventList', 'wizardEventHost');
     move('qoiOptions', 'wizardQoiHost');
     move('plotOptions', 'wizardPlotHost');
+    const agent = document.querySelector('#agentTab .agent-compose');
+    const agentHost = el('wizardAgentHost');
+    if (agent && agentHost && agent.parentElement !== agentHost) agentHost.appendChild(agent);
+    const taskSpec = document.querySelector('#taskspecTab .json-workbench');
+    const taskSpecHost = el('wizardTaskSpecHost');
+    if (taskSpec && taskSpecHost && taskSpec.parentElement !== taskSpecHost) taskSpecHost.appendChild(taskSpec);
     move('interactiveView', 'wizardRealtimeWorkspace');
     move('continuousView', 'wizardRealtimeWorkspace');
   }
@@ -7471,6 +7477,10 @@
     placeAfter('eventList', 'wizardEventReturnAnchor');
     placeAfter('qoiOptions', 'wizardQoiReturnAnchor');
     placeAfter('plotOptions', 'wizardPlotReturnAnchor');
+    const agent = document.querySelector('#wizardAgentHost .agent-compose');
+    if (agent && el('agentTab')) el('agentTab').appendChild(agent);
+    const taskSpec = document.querySelector('#wizardTaskSpecHost .json-workbench');
+    if (taskSpec && el('taskspecTab')) el('taskspecTab').appendChild(taskSpec);
   }
 
   function wizardSetStep(step, prompt, userMessage = null) {
@@ -7511,7 +7521,7 @@
 
   function wizardBack() {
     const previous = {
-      level: 'welcome', tasks: 'welcome', object: 'level', fault: 'object',
+      level: 'welcome', tasks: 'welcome', natural_language: 'welcome', taskspec: 'welcome', object: 'level', fault: 'object',
       mode: state.wizard.goal === 'fault_run' ? 'fault' : 'object',
       configure: 'mode', review: 'configure', results: 'configure',
     }[state.wizard.step];
@@ -7544,6 +7554,24 @@
 
   function wizardStart(goal) {
     state.wizard.goal = goal;
+    if (goal === 'natural_language') {
+      state.wizard.step = 'natural_language';
+      wizardMessage('user', '我想用自然语言描述仿真需求');
+      wizardMessage('assistant', '请描述仿真对象、运行时间、工况或故障，以及希望观察的遥测。系统会生成候选 TaskSpec 并投影到可编辑表单；需要你确认后才会运行。');
+      switchTab('agent');
+      switchView('wizard');
+      return;
+    }
+    if (goal === 'taskspec') {
+      state.wizard.step = 'taskspec';
+      wizardMessage('user', '我要直接编辑或导入 TaskSpec');
+      wizardMessage('assistant', '这里可以编辑结构化任务定义。校验通过后可同步到仿真配置；仍需检查并执行运行前校验。');
+      switchTab('taskspec');
+      switchView('wizard');
+      if (!state.taskSpec && state.formData) previewForm().then(() => syncTaskSpecEditor()).catch((error) => { el('wizardNotice').textContent = error.message; });
+      else syncTaskSpecEditor();
+      return;
+    }
     if (goal === 'history') {
       state.wizard.step = 'tasks';
       state.wizard.validated = false;
@@ -7560,6 +7588,10 @@
     state.wizard.mode = null;
     state.wizard.validated = false;
     if (goal === 'compare') { switchView('runs'); return; }
+    if (goal === 'experiments') { switchView('experiments'); return; }
+    if (goal === 'goals') { switchView('goals'); return; }
+    if (goal === 'diagnostics') { switchView('diagnostics'); return; }
+    if (goal === 'graph') { switchView('creator'); switchTab('graph'); return; }
     if (goal === 'advanced') { switchView('creator'); return; }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
   }
@@ -7849,6 +7881,9 @@
     const showConfig = state.wizard.step === 'configure';
     config?.classList.toggle('hidden', !showConfig);
     el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
+    el('wizardAgentWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'natural_language');
+    el('wizardTaskSpecWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'taskspec');
+    el('wizardAdditionalTools')?.classList.toggle('hidden', state.wizard.step !== 'welcome');
     if (state.wizard.step === 'tasks') renderWizardTasks();
     el('wizardRunResultsHost')?.classList.toggle('hidden', state.wizard.step !== 'results');
     el('wizardRealtimeBackBtn')?.classList.add('hidden');
@@ -7863,8 +7898,14 @@
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
-        ['advanced', '高级建模与配置', '进入完整工作台、图形组装和 TaskSpec'],
+        ['advanced', '高级建模与配置', '进入完整工作台和图形组装'],
+        ['natural_language', '自然语言生成配置', '用文字描述对象、工况和观测目标，生成后人工确认'],
+        ['taskspec', 'TaskSpec 结构化编辑', '直接导入、编辑、校验机器可读任务定义'],
       ].forEach((item) => option(item[1], item[2], { 'data-wizard-goal': item[0] }, () => wizardStart(item[0])));
+    } else if (state.wizard.step === 'natural_language') {
+      // Existing parser/provider routing and refinement guards are mounted above.
+    } else if (state.wizard.step === 'taskspec') {
+      // Canonical TaskSpec remains an expert editing surface inside the Wizard shell.
     } else if (state.wizard.step === 'level') {
       [['whole_spacecraft','整星','运行整星集成模型'],['subsystem','分系统','选择 ADCS、EPS、通信等'],['component','部件','单独运行已注册部件模型']].forEach((item) => option(item[1], item[2], { 'data-wizard-level': item[0] }, () => wizardChooseLevel(item[0])));
     } else if (state.wizard.step === 'object') {
@@ -9945,6 +9986,42 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
     el('wizardAdvancedBtn').addEventListener('click', () => switchView('creator'));
+    el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
+      try {
+        showBusy('生成仿真配置', '自然语言解析、能力边界检查与 TaskSpec 校验');
+        const ok = await parseNaturalLanguage();
+        if (!ok || !state.taskSpec || !state.formData) { el('wizardNotice').textContent = '尚未生成可用配置。请查看需求解析反馈并修改描述。'; return; }
+        state.wizard.mode = 'offline';
+        state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (state.taskSpec.model?.capability_id || state.taskSpec.capability_id)))?.object_id || null;
+        wizardSetStep('configure', '自然语言已生成候选配置。请检查时长、采样间隔、故障事件和输出曲线；配置不会自动运行。');
+        el('wizardNotice').textContent = '候选配置已载入，请人工确认。';
+      } catch (error) { el('wizardNotice').textContent = '生成失败：' + error.message; }
+      finally { hideBusy(); }
+    });
+    el('wizardUseFormInsteadBtn').addEventListener('click', () => {
+      state.wizard.goal = 'normal_run';
+      if (state.wizard.objectId && state.schema) wizardSetStep('mode', '请选择运行方式。');
+      else wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。');
+    });
+    el('wizardValidateTaskSpecBtn').addEventListener('click', async () => {
+      try {
+        showBusy('校验 TaskSpec', 'Schema、语义和能力边界');
+        const ok = await validateEditor();
+        el('wizardNotice').textContent = ok ? 'TaskSpec 校验通过。还需要应用到配置并执行运行前校验。' : 'TaskSpec 未通过校验，请根据错误提示修正。';
+      } catch (error) { el('wizardNotice').textContent = 'TaskSpec 校验失败：' + error.message; }
+      finally { hideBusy(); }
+    });
+    el('wizardApplyTaskSpecBtn').addEventListener('click', async () => {
+      try {
+        showBusy('应用 TaskSpec', '校验并投影到仿真表单');
+        await syncEditorToForm();
+        state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline';
+        state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (state.taskSpec?.model?.capability_id || state.taskSpec?.capability_id)))?.object_id || null;
+        wizardSetStep('configure', 'TaskSpec 已同步到配置。请检查参数、事件和输出，再执行正式运行前校验。');
+        el('wizardNotice').textContent = 'TaskSpec 已应用；尚未启动仿真。';
+      } catch (error) { el('wizardNotice').textContent = '应用失败：' + error.message; }
+      finally { hideBusy(); }
+    });
     el('previewBtn').addEventListener('click', async () => {
       const graphMode = document.querySelector('.tab.active')?.dataset.tab === 'graph';
       showBusy(graphMode ? '校验图形流程' : '校验并编译 TaskSpec', graphMode ? '检查节点结构并编译 Canonical TaskSpec' : '解析 Schema 表单与能力约束');
