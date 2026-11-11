@@ -599,3 +599,57 @@ body[data-active-view="continuous"] .app-content {
 @media (prefers-reduced-motion: reduce) {
   .wizard-option { transition: none; }
 }
+
+/* Clear, persistent step orientation for the guided flow. */
+.wizard-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 0 2px;
+  list-style: none;
+}
+.wizard-progress-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 9px;
+  border-radius: 9px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  border: 1px solid transparent;
+}
+.wizard-progress-step[data-state="current"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent-2) 9%, var(--panel));
+}
+.wizard-progress-step[data-state="complete"] { color: var(--success, var(--accent)); }
+.wizard-progress-number {
+  flex: 0 0 23px;
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+.wizard-progress-step[data-state="current"] .wizard-progress-number {
+  color: var(--bg);
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+.wizard-progress-step[data-state="complete"] .wizard-progress-number {
+  border-color: currentColor;
+}
+.wizard-progress-label { min-width: 0; font-size: 11px; font-weight: 650; overflow-wrap: anywhere; }
+@media (max-width: 540px) {
+  .wizard-progress { gap: 3px; }
+  .wizard-progress-step { justify-content: center; padding: 6px 3px; }
+  .wizard-progress-label { font-size: 9px; }
+  .wizard-progress-number { flex-basis: 20px; width: 20px; height: 20px; }
+}
