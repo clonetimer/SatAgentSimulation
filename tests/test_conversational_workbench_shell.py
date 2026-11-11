@@ -32,3 +32,11 @@ def test_wizard_progress_is_present_and_tracks_existing_state_machine():
         assert label in js
     assert ".wizard-progress-step[data-state=\"current\"]" in css
     assert "@media (max-width: 540px)" in css
+
+
+def test_realtime_conversation_mount_keeps_app_frame_full_width():
+    css = Path("src/sat_sim/web/compact-workbench.css").read_text(encoding="utf-8")
+    assert '.app-frame:has(.wizard-view[data-runtime-mode="interactive"])' in css
+    assert '.app-frame:has(.wizard-view[data-runtime-mode="continuous"])' in css
+    assert "grid-template-columns: minmax(0, 1fr) !important;" in css
+    assert ".app-frame:has(.wizard-view[data-runtime-mode=\"continuous\"]) .app-content" in css
