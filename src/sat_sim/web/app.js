@@ -7524,10 +7524,15 @@
     renderSimulationWizard();
   }
 
+  function wizardRealtimeSessionActive() {
+    const liveState = String(state.interactiveSession?.state || '').toUpperCase();
+    const continuousState = String(el('continuousState')?.textContent || '').toUpperCase();
+    return ['RUNNING', 'STARTING', 'PAUSED', 'STOPPING'].includes(liveState)
+      || /运行中|启动中|已暂停|正在停止/.test(continuousState);
+  }
+
   function wizardBackFromRealtime() {
-    const liveState = state.interactiveSession?.state;
-    const continuousState = el('continuousState')?.textContent;
-    const active = ['RUNNING', 'STARTING', 'PAUSED', 'STOPPING'].includes(String(liveState || continuousState || '').toUpperCase());
+    const active = wizardRealtimeSessionActive();
     if (active && !window.confirm('当前实时会话仍处于活动状态。返回向导会离开实时控制台；会话不会自动停止。确定返回吗？')) return;
     el('wizardView').dataset.runtimeMode = '';
     wizardSetStep('mode', '请选择运行方式。实时会话如仍在运行，可从实时入口再次进入控制台。');
@@ -7558,6 +7563,7 @@
       el('wizardNotice').textContent = '该对象目前没有可配置的执行能力，请选择其他对象。';
       return;
     }
+    switchTab('form');
     await selectCatalogObject(objectId);
     if (!state.schema || !state.formData) {
       el('wizardNotice').textContent = '对象 Schema 未能加载，请稍后重试或进入高级工作台。';
@@ -7752,6 +7758,9 @@
 
   function switchView(name) {
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
+    if (['interactive', 'continuous'].includes(state.activeView) && !guided && wizardRealtimeSessionActive()) {
+      if (!window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
+    }
     state.activeView = name;
     document.body.dataset.activeView = name;
     if (guided) wizardAttachPanels();
