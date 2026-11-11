@@ -7678,7 +7678,7 @@
     const help = document.createElement('small');
     help.className = 'wizard-field-help';
     help.textContent = path === 'simulation.duration_s'
-      ? '仿真从开始到结束的总时间。时间越长，计算和数据记录耗时通常越多。'
+      ? '仿真总时长：从开始到结束的模拟时间。时间越长，计算和数据记录耗时通常越多。'
       : '每隔多久记录一次数据。间隔越小，曲线越细、数据量越大；间隔越大，运行和存储负担越小。';
     const recommended = document.createElement('span');
     recommended.className = 'wizard-recommended-value';

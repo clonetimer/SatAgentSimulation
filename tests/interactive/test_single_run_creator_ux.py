@@ -768,7 +768,7 @@ def test_wizard_task_center_and_purpose_first_curve_selection_stay_in_dialog(tmp
             page.get_by_role("button", name="运行正常仿真").click()
             page.get_by_role("button", name="整星").click()
             page.locator("#wizardOptions .wizard-option").first.click()
-            page.get_by_role("button", name="离线仿真").click()
+            page.locator("#wizardOptions [data-wizard-mode='offline']").click()
             page.locator("#wizardConfigSections").wait_for(state="visible")
             page.locator("#wizardOutputPanel").wait_for(state="visible")
             assert page.locator("#wizardOutputPanel").evaluate("(node) => node.open")
