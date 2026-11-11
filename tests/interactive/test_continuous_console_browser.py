@@ -339,7 +339,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 timeout=12000,
             )
             assert page.locator("#continuousState").inner_text() == "已暂停"
-            page.locator(".nav-button[data-view=wizard]").click()
+            page.locator(".nav-button[data-view=wizard]:not([data-wizard-shortcut])").click()
             assert any("实时会话仍处于活动状态" in message for message in dialog_messages)
             page.locator(".nav-button[data-view=continuous]").click()
             page.locator("#continuousView").wait_for(state="visible", timeout=15000)
