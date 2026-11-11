@@ -4715,13 +4715,8 @@
     if (count) count.textContent = mode === 'runtime'
       ? `已保留 ${fields.length} 项模型参数`
       : `常用 ${recommended} 项 · 专业 ${advanced} 项 · 已修改 ${changed} 项`;
-    const search = el('wizardParameterSearch');
-    const legacySearch = el('formFieldSearch');
-    if (search && legacySearch && search.value !== legacySearch.value) search.value = legacySearch.value;
     const form = el('dynamicForm');
     if (form) form.dataset.wizardParameterMode = mode;
-    const legacyAdvanced = el('showAdvancedFields');
-    if (legacyAdvanced) legacyAdvanced.checked = mode === 'all';
   }
 
   function setWizardParameterMode(mode) {
@@ -4729,13 +4724,7 @@
     state.wizard.parameterMode = mode;
     state.formSectionOpen.clear();
     const search = el('wizardParameterSearch');
-    const legacySearch = el('formFieldSearch');
-    if (mode === 'runtime') {
-      if (search) search.value = '';
-      if (legacySearch) legacySearch.value = '';
-    }
-    const legacyAdvanced = el('showAdvancedFields');
-    if (legacyAdvanced) legacyAdvanced.checked = mode === 'all';
+    if (mode === 'runtime' && search) search.value = '';
     renderWizardParameterControls();
     renderForm();
   }
@@ -4748,9 +4737,9 @@
       updateSingleRunSummary();
       return;
     }
-    const query = (el('formFieldSearch')?.value || '').trim().toLowerCase();
     const wizardParameterMode = state.activeView === 'wizard' ? state.wizard.parameterMode : null;
-    const showAdvanced = Boolean(el('showAdvancedFields')?.checked) || wizardParameterMode === 'all';
+    const query = (wizardParameterMode ? el('wizardParameterSearch')?.value : el('formFieldSearch')?.value || '').trim().toLowerCase();
+    const showAdvanced = wizardParameterMode ? wizardParameterMode === 'all' : Boolean(el('showAdvancedFields')?.checked);
     form.dataset.wizardParameterMode = wizardParameterMode || '';
     const fieldsByPath = new Map((state.schema.fields || []).map((field) => [field.path, field]));
     const sections = (state.schema.sections || []).filter((section) => Array.isArray(section.field_paths));
@@ -7678,6 +7667,8 @@
       return;
     }
     state.wizard.objectId = objectId;
+    state.wizard.parameterMode = 'recommended';
+    if (el('wizardParameterSearch')) el('wizardParameterSearch').value = '';
     const label = object.name_zh || object.name_en || objectId;
     if (state.wizard.goal === 'fault_run') {
       wizardSetStep('fault', '该对象已加载。请选择一个当前模型正式注册的故障类型。', label);
@@ -10056,8 +10047,6 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('updateTaskBtn').addEventListener('click', async () => { showBusy('更新仿真任务','写入任务中心新版本'); try { await saveCurrentTask('update'); } catch (error) { showNotice(error.message,'error'); } finally { hideBusy(); } });
     $all('[data-wizard-parameter-mode]').forEach((button) => button.addEventListener('click', () => setWizardParameterMode(button.dataset.wizardParameterMode)));
     el('wizardParameterSearch')?.addEventListener('input', () => {
-      const legacySearch = el('formFieldSearch');
-      if (legacySearch) legacySearch.value = el('wizardParameterSearch').value;
       renderForm();
       renderWizardParameterControls();
     });
