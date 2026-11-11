@@ -7524,7 +7524,7 @@
     state.wizard.validated = false;
     state.wizard.validatedForm = null;
     el('wizardView').dataset.runtimeMode = '';
-    renderSimulationWizard();
+    switchView('wizard');
   }
 
   function wizardRealtimeSessionActive() {
@@ -7956,7 +7956,11 @@
     el('wizardView')?.setAttribute('data-runtime-mode', name === 'interactive' ? 'interactive' : name === 'continuous' ? 'continuous' : '');
     el('wizardRealtimeBackBtn')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
     const activeNavigation = guided && name === 'wizard' ? 'wizard' : name;
-    $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === activeNavigation));
+    $all('.nav-button[data-view]').forEach((button) => {
+      const taskShortcutActive = state.wizard.step === 'tasks' && button.dataset.wizardShortcut === 'history';
+      const ordinaryNavigationActive = !button.dataset.wizardShortcut && button.dataset.view === activeNavigation;
+      button.classList.toggle('active', taskShortcutActive || ordinaryNavigationActive);
+    });
     if (name === 'wizard') renderSimulationWizard();
     if (name === 'tasks') loadTasks().catch((error) => { el('taskSummary').textContent = `任务中心读取失败：${error.message}`; });
     if (name === 'experiments') loadExperiments().catch((error) => { el('experimentSummary').textContent = `实验中心读取失败：${error.message}`; });
