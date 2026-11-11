@@ -96,6 +96,8 @@ def test_wizard_parameter_modes_preserve_registry_fields_and_expose_progressive_
         assert f"'{mode}'" in js
     assert 'id="wizardParameterSearch"' in index
     assert 'id="wizardParameterCount"' in index
+    assert 'id="wizardParameterSearchEmpty"' in index
+    assert "wizardParameterSearchEmpty" in js
     assert "function renderWizardParameterControls()" in js
     assert "function setWizardParameterMode(mode)" in js
     assert "state.formSectionOpen.clear()" in js
