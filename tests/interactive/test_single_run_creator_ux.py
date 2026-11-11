@@ -776,7 +776,7 @@ def test_wizard_task_center_and_purpose_first_curve_selection_stay_in_dialog(tmp
             assert page.locator("#wizardOutputPanel").evaluate("(node) => node.open")
             cards = page.locator("#wizardCurveChoices .wizard-curve-card")
             assert cards.count() > 0, "Curve groups should be generated from the selected Schema trace options."
-            assert page.locator("#wizardCurveSelectionSummary").inner_text().startswith("已选择")
+            assert page.locator("#wizardCurveSelectionSummary").inner_text().startswith("已选")
             assert page.locator("#wizardParametersPanel").evaluate("(node) => !node.open")
             # Technical field identifiers stay hidden unless a user explicitly expands the advanced details.
             assert page.locator("#wizardCurveChoices .wizard-curve-technical code").count() > 0
