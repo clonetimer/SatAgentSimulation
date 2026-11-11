@@ -737,3 +737,13 @@ body[data-active-view="continuous"] .app-content {
   .wizard-parameter-search { align-items: stretch; flex-direction: column; }
   .wizard-parameter-count { white-space: normal; }
 }
+
+.wizard-parameter-empty {
+  padding: 11px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  background: var(--panel);
+}
