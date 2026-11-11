@@ -7796,6 +7796,7 @@
     host.replaceChildren();
     const summary = el('wizardTaskSummary');
     if (summary) summary.textContent = '共 ' + state.tasks.length + ' 个已保存任务。任务配置可以复用；每次运行仍会生成独立运行记录。';
+    if (el('wizardSaveCurrentTaskBtn')) el('wizardSaveCurrentTaskBtn').disabled = !state.formData || !state.schema;
     if (!state.tasks.length) {
       const empty = document.createElement('div'); empty.className = 'wizard-empty';
       empty.textContent = '还没有保存的任务。完成一次仿真配置后，可以在这里保存并反复使用。';
@@ -7843,8 +7844,6 @@
     const config = el('wizardConfigSections');
     const showConfig = state.wizard.step === 'configure';
     config?.classList.toggle('hidden', !showConfig);
-    el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
-    if (state.wizard.step === 'tasks') renderWizardTasks();
     el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
     if (state.wizard.step === 'tasks') renderWizardTasks();
     el('wizardRunResultsHost')?.classList.toggle('hidden', state.wizard.step !== 'results');
@@ -8548,6 +8547,7 @@
         closeTaskDetails();
         if (state.activeView === 'wizard' && state.wizard.step === 'tasks') {
           state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline'; state.wizard.step = 'configure';
+          state.wizard.validated = false; state.wizard.validatedForm = null;
           wizardMessage('assistant', `已载入任务 V${version.version}。你可以检查配置、调整参数，再校验并运行。`);
           switchView('wizard');
         } else switchView('creator');
@@ -8612,6 +8612,7 @@
       updateTaskEditState();
       if (options.guided) {
         state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline'; state.wizard.step = 'configure';
+        state.wizard.validated = false; state.wizard.validatedForm = null;
         state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (spec.model?.capability_id || spec.capability_id)))?.object_id || null;
         wizardMessage('assistant', `已载入任务“${payload.task.name || taskId}”。你可以继续检查和修改参数，再执行校验。`);
         switchView('wizard');
