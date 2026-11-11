@@ -983,6 +983,7 @@
   function graphInvalidateCompiledState() {
     state.taskSpec = null;
     state.planning = null;
+    state.graphCompilationContext = '';
     state.graphPendingConnection = null;
     clearVisualDiagnostics('flow');
   }
@@ -1142,9 +1143,11 @@
 
   function graphSetStatus(message, type = '') {
     const node = el('graphStatus');
-    if (!node) return;
-    node.textContent = message;
-    node.className = `graph-status${type ? ` ${type}` : ''}`;
+    if (node) {
+      node.textContent = message;
+      node.className = `graph-status${type ? ` ${type}` : ''}`;
+    }
+    renderGraphGuide();
   }
 
   function graphDefaultNodes() {
@@ -1677,16 +1680,22 @@
       nextDetail = structural.errors.slice(0, 2).join('；') + (structural.errors.length > 2 ? `；另有 ${structural.errors.length - 2} 项` : '');
       status = '待处理 ' + structural.errors.length;
       statusClass = 'status-warn';
-    } else if (!graphCodeIsFresh()) {
+    } else if (state.graphCompilationContext === visualCompilationSnapshot('flow')) {
+      if (graphCodeIsFresh()) {
+        nextTitle = '图、正式校验和生成代码保持一致';
+        nextDetail = '服务端图拓扑、TaskSpec 和执行计划校验已通过，Python 与当前图/参数一致。可以构建并运行。';
+        status = '可运行候选';
+      } else {
+        nextTitle = '正式校验已通过，可以生成 Python';
+        nextDetail = '服务端图拓扑、TaskSpec、能力边界和执行计划校验已通过。下一步可以生成 Python，或检查节点属性后再运行。';
+        status = '校验通过';
+      }
+      statusClass = 'status-ok';
+    } else {
       nextTitle = '图结构完整，可以进行正式校验';
       nextDetail = '前端结构检查已通过。点击“正式校验”后，服务端会继续执行端口拓扑、TaskSpec、能力边界和执行计划校验。';
       status = '待后端校验';
       statusClass = 'status-warn';
-    } else {
-      nextTitle = '图与生成代码保持一致';
-      nextDetail = '可以检查节点参数，或构建并运行。任何图或参数修改都会使校验/代码上下文失效，需要重新校验。';
-      status = '可运行候选';
-      statusClass = 'status-ok';
     }
     title.textContent = nextTitle;
     detail.textContent = nextDetail;
@@ -1979,6 +1988,7 @@
     }
     const nodes = result.planning?.execution_plan?.nodes?.length || result.planning?.plan?.nodes?.length || 0;
     state.graphCompilationNote = formCompilationNote(result, requestedForm);
+    state.graphCompilationContext = requestedCompilation;
     operation?.commit();
     if (announce) graphSetStatus(`图已校验${nodes ? `；${nodes} 个节点` : ''}。${state.graphCompilationNote}`, 'success');
     renderGraph(); return true;
