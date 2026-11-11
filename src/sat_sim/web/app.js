@@ -10191,6 +10191,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       renderForm();
       renderWizardParameterControls();
     });
+    el('wizardOutputSearch')?.addEventListener('input', renderWizardCurveChoices);
+    el('wizardRestoreOutputDefaultsBtn')?.addEventListener('click', wizardRestoreOutputDefaults);
     el('formFieldSearch').addEventListener('input', renderForm);
     el('showAdvancedFields').addEventListener('change', renderForm);
     el('acceptAgentChangesBtn').addEventListener('click', clearAgentChanges);
