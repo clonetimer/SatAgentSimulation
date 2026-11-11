@@ -247,7 +247,7 @@
               <select id="effectSelect" aria-label="效果类型"></select>
               <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
             </div>
-            <div id="wizardEventReturnAnchor"></div><div id="eventList" class="event-list"></div>
+            <div id="wizardEventControlsReturnAnchor"></div><div id="wizardEventReturnAnchor"></div><div id="eventList" class="event-list"></div>
 
 </details>
           <details id="compactOutputs" class="form-section">
@@ -758,7 +758,7 @@
       </section>
     </main>
 
-    <main id="interactiveView" class="interactive-view app-view hidden">
+    <section id="interactiveView" class="interactive-view app-view hidden">
       <header class="interactive-header">
         <div><div class="eyebrow">Whole-spacecraft Soft Real-time</div><h1>整星实时交互</h1><p>在同一仿真时钟中控制整星、分系统并观察耦合响应。</p></div>
         <div class="interactive-header-status"><button id="interactiveWizardBackBtn" class="button button-ghost" type="button">返回仿真向导</button>
@@ -850,9 +850,9 @@
           </section>
         </aside>
       </div>
-    </main>
+    </section>
 
-    <main id="continuousView" class="continuous-view app-view hidden" aria-label="持续卫星仿真">
+    <section id="continuousView" class="continuous-view app-view hidden" aria-label="持续卫星仿真">
       <header class="continuous-hero">
         <div><div class="eyebrow">Continuous Basilisk Native · TC / TM Control</div>
           <h1>持续卫星仿真</h1>
@@ -1290,7 +1290,7 @@
           </section>
         </aside>
       </div>
-    </main>
+    </section>
 
     <main id="runCenterView" class="task-center-view app-view hidden">
       <section class="panel task-center-panel">
