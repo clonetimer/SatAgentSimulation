@@ -8691,6 +8691,7 @@
       if (options.guided) {
         state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline'; state.wizard.step = 'configure';
         state.wizard.validated = false; state.wizard.validatedForm = null;
+        switchTab('form');
         state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (spec.model?.capability_id || spec.capability_id)))?.object_id || null;
         wizardMessage('assistant', `已载入任务“${payload.task.name || taskId}”。你可以继续检查和修改参数，再执行校验。`);
         switchView('wizard');
@@ -9993,6 +9994,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
         const ok = await parseNaturalLanguage();
         if (!ok || !state.taskSpec || !state.formData) { el('wizardNotice').textContent = '尚未生成可用配置。请查看需求解析反馈并修改描述。'; return; }
         state.wizard.mode = 'offline';
+        switchTab('form');
         state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (state.taskSpec.model?.capability_id || state.taskSpec.capability_id)))?.object_id || null;
         wizardSetStep('configure', '自然语言已生成候选配置。请检查时长、采样间隔、故障事件和输出曲线；配置不会自动运行。');
         el('wizardNotice').textContent = '候选配置已载入，请人工确认。';
@@ -10016,6 +10018,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try {
         showBusy('应用 TaskSpec', '校验并投影到仿真表单');
         await syncEditorToForm();
+        switchTab('form');
         state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline';
         state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (state.taskSpec?.model?.capability_id || state.taskSpec?.capability_id)))?.object_id || null;
         wizardSetStep('configure', 'TaskSpec 已同步到配置。请检查参数、事件和输出，再执行正式运行前校验。');
