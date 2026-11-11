@@ -472,7 +472,8 @@
   function continuousAckLabel(ack) {
     const labels = {
       QUEUED: '已排队，等待执行',
-      ACKNOWLEDGED: '服务端已确认',\n      ACKED: '服务端已确认',
+      ACKNOWLEDGED: '服务端已确认',
+      ACKED: '服务端已确认',
       ACCEPTED: '服务端已接收',
       REJECTED: '指令已拒绝',
       EXECUTED: '指令已执行',
