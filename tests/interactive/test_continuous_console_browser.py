@@ -177,9 +177,9 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator('[data-wizard-parameter-mode="recommended"]').click()
             assert form.get_attribute("data-wizard-parameter-mode") == "recommended"
             assert form.is_visible()
-            page.locator('#wizardParametersPanel [data-wizard-parameter-mode="all"]').click()
+            page.locator('#wizardParametersPanel button[data-wizard-parameter-mode="all"]').click()
             assert form.get_attribute("data-wizard-parameter-mode") == "all"
-            assert page.locator('#wizardParametersPanel [data-wizard-parameter-mode="all"]').get_attribute("aria-pressed") == "true"
+            assert page.locator('#wizardParametersPanel button[data-wizard-parameter-mode="all"]').get_attribute("aria-pressed") == "true"
             assert form.locator(".parameter-section[open]").count() > 0
             page.locator('[data-wizard-parameter-mode="recommended"]').click()
             page.locator("#wizardParameterSearch").fill("orbit")
