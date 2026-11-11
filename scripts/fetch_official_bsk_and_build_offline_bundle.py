@@ -55,6 +55,42 @@ def fetch(url: str, target: Path) -> None:
             output.write(block)
 
 
+def obtain_verified_official_wheel(
+    item: dict[str, str], target: Path, *, offline: bool = False,
+) -> str:
+    """Reuse only a pinned, verified cache entry; atomically replace stale/partial downloads."""
+    expected = item["sha256"]
+    if target.is_file():
+        cached = sha256(target)
+        if cached == expected:
+            return cached
+        if offline:
+            raise ValueError(
+                f"cached official wheel SHA-256 mismatch in offline mode for "
+                f"{item['filename']}: {cached}; expected {expected}"
+            )
+        target.unlink()
+    elif offline:
+        raise FileNotFoundError(
+            f"approved original wheel is missing in offline mode: {target}"
+        )
+
+    temporary = target.with_name(target.name + ".part")
+    temporary.unlink(missing_ok=True)
+    try:
+        fetch(str(item["url"]), temporary)
+        actual = sha256(temporary)
+        if actual != expected:
+            raise ValueError(
+                f"official wheel SHA-256 mismatch for {item['filename']}: "
+                f"{actual}; expected {expected}. The downloaded file was discarded."
+            )
+        temporary.replace(target)
+        return actual
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser()
@@ -70,14 +106,7 @@ def main() -> int:
     for key in keys:
         item = OFFICIAL_RELEASE["files"][key]
         target = args.download_dir / item["filename"]
-        if not target.exists():
-            if args.offline:
-                raise FileNotFoundError(f"approved original wheel is missing in offline mode: {target}")
-            fetch(str(item["url"]), target)
-        actual = sha256(target)
-        if actual != item["sha256"]:
-            target.unlink(missing_ok=True)
-            raise ValueError(f"official wheel SHA-256 mismatch for {item['filename']}: {actual}")
+        actual = obtain_verified_official_wheel(item, target, offline=args.offline)
         originals.append(target)
         retrieval.append({"platform": key, "filename": item["filename"], "sha256": actual, "source_url": item["url"], "verified": True})
 
