@@ -7874,10 +7874,39 @@
     });
   }
 
+  function renderWizardProgress() {
+    const host = el('wizardProgress');
+    if (!host) return;
+    const step = state.wizard.step;
+    const visible = !['tasks', 'natural_language', 'taskspec'].includes(step);
+    host.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    const current = ['welcome'].includes(step) ? 0
+      : ['level', 'object', 'fault'].includes(step) ? 1
+        : ['mode'].includes(step) ? 2 : 3;
+    const labels = ['任务目标', '仿真对象', '运行方式', '配置与结果'];
+    host.replaceChildren();
+    labels.forEach((label, index) => {
+      const item = document.createElement('li');
+      item.className = 'wizard-progress-step';
+      item.dataset.state = index < current ? 'complete' : index === current ? 'current' : 'upcoming';
+      item.setAttribute('aria-current', index === current ? 'step' : 'false');
+      const number = document.createElement('span');
+      number.className = 'wizard-progress-number';
+      number.textContent = index < current ? '✓' : String(index + 1);
+      const text = document.createElement('span');
+      text.className = 'wizard-progress-label';
+      text.textContent = label;
+      item.append(number, text);
+      host.appendChild(item);
+    });
+  }
+
   function renderSimulationWizard() {
     const conversation = el('wizardConversation'); const options = el('wizardOptions');
     if (!conversation || !options) return;
     conversation.replaceChildren(); options.replaceChildren();
+    renderWizardProgress();
     state.wizard.messages.forEach((entry) => {
       const bubble = document.createElement('div'); bubble.className = 'wizard-message ' + entry.role;
       const role = document.createElement('strong'); role.textContent = entry.role === 'user' ? '你的选择' : '仿真向导';
