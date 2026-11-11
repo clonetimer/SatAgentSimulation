@@ -172,3 +172,12 @@ def test_realtime_reentry_prefers_existing_active_session_and_guards_duplicate_a
     assert "state.controlSending" in continuous
     assert "if (!state.interactiveSession || state.interactiveControlPending) return" in app
     assert "if (!state.selectedId || state.controlSending) return" in continuous
+
+
+def test_human_readable_command_feedback_keeps_raw_state_codes_visible():
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = Path("src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+    assert "ACKED: '服务端已确认'" in app
+    assert "ACKED: '服务端已确认'" in continuous
+    assert "原始状态 ${ack.state}" in app
+    assert "row.state ? '原始状态 ' + row.state : ''" in continuous
