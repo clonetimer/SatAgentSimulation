@@ -172,7 +172,9 @@
       target.append(element('p', '尚无持续会话，填写上方表单创建。', 'continuous-muted'));
       return;
     }
-    sessions.forEach((session) => {
+    const orderedSessions = [...sessions].sort((a, b) =>
+      Number(b.session_id === state.selectedId) - Number(a.session_id === state.selectedId));
+    orderedSessions.forEach((session) => {
       const node = element('button', '', 'continuous-session' +
         (session.session_id === state.selectedId ? ' active' : ''));
       node.type = 'button';
