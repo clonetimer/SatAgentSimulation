@@ -758,6 +758,8 @@ def test_wizard_task_center_and_purpose_first_curve_selection_stay_in_dialog(tmp
             assert page.locator("#wizardTaskSearch").is_visible()
             assert page.locator("#wizardTaskStatus").is_visible()
             assert page.locator("#taskCenterView").is_hidden()
+            assert page.locator(".nav-button[data-wizard-shortcut='history']").evaluate("(node) => node.classList.contains('active')")
+            assert not page.locator(".nav-button[data-view='wizard']:not([data-wizard-shortcut])").evaluate("(node) => node.classList.contains('active')")
             assert page.locator("#wizardSaveCurrentTaskBtn").is_disabled()
             assert "还没有保存的任务" in page.locator("#wizardTaskList").inner_text()
 

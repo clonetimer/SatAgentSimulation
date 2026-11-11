@@ -39,6 +39,7 @@ def test_wizard_curve_presets_are_schema_derived_and_task_center_is_dialog_route
     assert "wizardTaskList" in js
     assert "openTaskFromCenter(taskId, { guided: true })" in js
     assert "runTaskFromCenter(taskId, { guided: true })" in js
+    assert "保存为新版本" in js
 
 
 def test_wizard_task_management_reuses_existing_task_center_api(tmp_path):
