@@ -456,6 +456,35 @@
     });
     updateCommandAvailability();
   }
+  function continuousEventLabel(event) {
+    const labels = {
+      READY: '会话已就绪', RUNNING: '仿真开始运行', PAUSED: '仿真已暂停',
+      COMPLETED: '仿真正常完成', FAILED: '仿真执行失败', ABORTED: '仿真已中止',
+      INTERRUPTED: '仿真发生中断', STOPPING: '正在停止仿真',
+    };
+    const stateLabel = labels[String(event.state || '').toUpperCase()] || event.state || '状态未知';
+    const previous = event.previous_state
+      ? (labels[String(event.previous_state).toUpperCase()] || event.previous_state) + ' → '
+      : '';
+    return previous + stateLabel;
+  }
+
+  function continuousAckLabel(ack) {
+    const labels = {
+      QUEUED: '已排队，等待执行',
+      ACKNOWLEDGED: '服务端已确认',
+      ACCEPTED: '服务端已接收',
+      REJECTED: '指令已拒绝',
+      EXECUTED: '指令已执行',
+      COMPLETED: '指令执行完成',
+      FAILED: '指令执行失败',
+      ABORTED: '指令已中止',
+      CANCELLED: '指令已取消',
+    };
+    return (labels[String(ack.state || '').toUpperCase()] || ack.state || '状态未知')
+      + ' · ' + (ack.operation || ack.command_id || '遥控指令');
+  }
+
   function renderLog(id, rows, formatter) {
     const node = $(id);
     node.replaceChildren();
@@ -743,8 +772,8 @@
       renderObservability();
       renderEndurance();
       latest();
-      renderLog('continuousEventList', state.events, (e) => e.state + ' · ' + (e.reason_code || ''));
-      renderLog('continuousAckList', state.acks, (a) => a.command_id + ' · ' + a.state);
+      renderLog('continuousEventList', state.events, continuousEventLabel);
+      renderLog('continuousAckList', state.acks, continuousAckLabel);
     } catch (error) {
       renderCreationPolicy(null);
       setText('continuousConnectionBadge', '连接异常');

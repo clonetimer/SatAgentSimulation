@@ -7397,6 +7397,8 @@
   }
 
   function acceptInteractiveFrame(frame) {
+    state.interactiveLastTelemetryReceivedAt ||= {};
+    state.interactiveLastTelemetryReceivedAt[frame.stream] = Date.now();
     const frames = state.interactiveFrames[frame.stream] || [];
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
@@ -7456,6 +7458,15 @@
     const stream = el('interactiveStream').value;
     const frames = state.interactiveFrames[stream] || [];
     const gap = state.interactiveGaps[stream];
+    const receivedAt = state.interactiveLastTelemetryReceivedAt?.[stream];
+    const freshness = el('interactiveTelemetryFreshness');
+    if (freshness) {
+      freshness.textContent = receivedAt
+        ? '最近收到 ' + new Date(receivedAt).toLocaleTimeString()
+        : '尚未收到遥测';
+      freshness.title = receivedAt ? new Date(receivedAt).toLocaleString() : '当前流尚无接收记录';
+      freshness.className = 'status-chip ' + (receivedAt ? 'status-ok' : 'status-muted');
+    }
     el('interactiveGapBadge').className = `status-chip ${gap ? 'status-warn' : 'status-muted'}`;
     el('interactiveGapBadge').textContent = gap ? `缺口 ${gap.dropped_count}` : '无缺口';
     const latest = frames[frames.length - 1]?.values || {};
