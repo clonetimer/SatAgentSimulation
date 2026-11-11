@@ -7299,7 +7299,8 @@
       const item = document.createElement('div');
       item.className = `interactive-timeline-item ${String(event.state).toLowerCase()}`;
       const title = document.createElement('strong');
-      title.textContent = `${interactiveEventStateLabel(event.previous_state)} → ${interactiveEventStateLabel(event.state)}`;\n      title.title = `${event.previous_state} → ${event.state}`;
+      title.textContent = `${interactiveEventStateLabel(event.previous_state)} → ${interactiveEventStateLabel(event.state)}`;
+      title.title = `${event.previous_state} → ${event.state}`;
       const meta = document.createElement('span');
       meta.textContent = `#${event.sequence} · t=${Number(event.sim_time_s).toFixed(3)} s · ${event.reason_code}`;
       item.append(title, meta);
@@ -7314,7 +7315,8 @@
       const item = document.createElement('div');
       item.className = `interactive-timeline-item ${String(ack.state).toLowerCase()}`;
       const title = document.createElement('strong');
-      title.textContent = `${interactiveAckStateLabel(ack.state)} · ${ack.command_id}`;\n      title.title = ack.state;
+      title.textContent = `${interactiveAckStateLabel(ack.state)} · ${ack.command_id}`;
+      title.title = ack.state;
       const meta = document.createElement('span');
       meta.textContent = `#${ack.sequence} · ${ack.reason_code}${ack.sim_time_s == null ? '' : ` · t=${Number(ack.sim_time_s).toFixed(3)} s`}`;
       item.append(title, meta);
@@ -7466,7 +7468,8 @@
     visibleFields.filter(name => Object.hasOwn(latest, name)).forEach((name) => {
       const value = latest[name];
       const item = document.createElement('div'); item.className = 'interactive-value';
-      const label = document.createElement('span'); label.textContent = interactiveTelemetryLabel(name);\n      label.title = name;
+      const label = document.createElement('span'); label.textContent = interactiveTelemetryLabel(name);
+      label.title = name;
       const strong = document.createElement('strong');
       strong.textContent = value == null || (typeof value === 'number' && !Number.isFinite(value))
         ? '—' : (typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value));
