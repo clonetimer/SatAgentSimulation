@@ -22,7 +22,7 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
-  <link rel="stylesheet" href="/assets/compact-workbench.css?v=conversation-20261111-1">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=conversation-20261111-2">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -120,6 +120,7 @@
           <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
           <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
         </header>
+        <ol id="wizardProgress" class="wizard-progress" aria-label="仿真步骤进度"></ol>
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
         <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
         <section id="wizardConfigSections" class="wizard-config-sections hidden" aria-label="仿真参数、事件和输出">
