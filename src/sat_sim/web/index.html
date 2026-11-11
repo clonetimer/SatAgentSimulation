@@ -118,10 +118,17 @@
       <section class="wizard-shell" aria-label="规则驱动仿真向导">
         <header class="wizard-header">
           <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
-          <button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button>
+          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
         </header>
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
         <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
+        <section id="wizardConfigSections" class="wizard-config-sections hidden" aria-label="仿真参数、事件和输出">
+          <details id="wizardParametersPanel" class="wizard-config-panel"><summary>更多仿真参数</summary><div id="wizardParameterHost"></div></details>
+          <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><div id="wizardEventHost"></div></details>
+          <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary><div class="wizard-output-columns"><section><h3>摘要指标</h3><div id="wizardQoiHost"></div></section><section><h3>输出曲线</h3><div id="wizardPlotHost"></div></section></div></details>
+        </section>
+        <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果"></section>
+        <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>
         <div class="wizard-footer">
           <div class="wizard-footer-note">规则驱动 · 不需要 AI 对话 · 运行前执行正式配置校验</div>
           <div class="wizard-footer-actions"><button id="wizardBackBtn" class="button button-ghost" type="button" disabled>上一步</button><button id="wizardResetBtn" class="button button-ghost" type="button">重新开始</button></div>
@@ -229,18 +236,18 @@
           </div>
           <div id="formSearchEmpty" class="single-run-search-empty hidden" role="status">未找到匹配参数。请尝试其他关键词，或清空搜索框。</div>
           <div id="formValidationSummary" class="inline-validation hidden" aria-live="polite"></div>
-          <form id="dynamicForm" class="dynamic-form" autocomplete="off"></form>
+          <div id="wizardParameterReturnAnchor"></div><form id="dynamicForm" class="dynamic-form" autocomplete="off"></form>
           <details id="compactEvents" class="form-section">
 <summary class="compact-section-summary">事件 <span id="compactEventCount" class="compact-count">无</span></summary>
             <div class="section-heading">
               <div><h3>添加事件</h3><p>选择事件类型，设置生效时间和幅度。</p></div>
             </div>
-            <div class="event-add-row">
+            <div id="eventAddRow" class="event-add-row">
               <select id="effectKind"><option value="fault">故障</option><option value="degradation">退化</option><option value="constraint">运行约束</option></select>
               <select id="effectSelect" aria-label="效果类型"></select>
               <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
             </div>
-            <div id="eventList" class="event-list"></div>
+            <div id="wizardEventReturnAnchor"></div><div id="eventList" class="event-list"></div>
 
 </details>
           <details id="compactOutputs" class="form-section">
@@ -249,8 +256,8 @@
               <div><h3>输出与曲线</h3><p>选择记录量；曲线横轴为仿真时间。</p></div>
             </div>
             <div class="output-grid">
-              <div><h4>QoI（摘要指标）</h4><div id="qoiOptions" class="check-grid"></div></div>
-              <div><h4>曲线（纵轴参量）</h4><p class="output-hierarchy-hint">按整星 / 分系统 / 部件逐层展开，或直接搜索输出量。</p><div id="plotOptions" class="check-grid output-hierarchy" aria-label="曲线输出层级选择"></div></div>
+              <div><h4>QoI（摘要指标）</h4><div id="wizardQoiReturnAnchor"></div><div id="qoiOptions" class="check-grid"></div></div>
+              <div><h4>曲线（纵轴参量）</h4><p class="output-hierarchy-hint">按整星 / 分系统 / 部件逐层展开，或直接搜索输出量。</p><div id="wizardPlotReturnAnchor"></div><div id="plotOptions" class="check-grid output-hierarchy" aria-label="曲线输出层级选择"></div></div>
             </div>
             <div class="output-help"><strong>标识说明：</strong>task_id 标识可保存、可复用的任务配置；case_id 标识批量实验或参数扫描中的一个具体案例。同一 task_id 可生成多个 case_id，每个案例又可以产生一个或多个 run_id。</div>
             <div class="advanced-output-grid">
@@ -754,7 +761,7 @@
     <main id="interactiveView" class="interactive-view app-view hidden">
       <header class="interactive-header">
         <div><div class="eyebrow">Whole-spacecraft Soft Real-time</div><h1>整星实时交互</h1><p>在同一仿真时钟中控制整星、分系统并观察耦合响应。</p></div>
-        <div class="interactive-header-status">
+        <div class="interactive-header-status"><button id="interactiveWizardBackBtn" class="button button-ghost" type="button">返回仿真向导</button>
           <span id="interactiveConnectionBadge" class="status-chip status-muted"><span class="status-dot"></span>未连接</span>
           <button id="refreshInteractiveBtn" class="icon-button" type="button" title="刷新会话" aria-label="刷新会话">↻</button>
         </div>
@@ -850,7 +857,7 @@
         <div><div class="eyebrow">Continuous Basilisk Native · TC / TM Control</div>
           <h1>持续卫星仿真</h1>
           <p>遥控按仿真时刻执行，遥测实时更新。</p></div>
-        <div class="continuous-hero-actions">
+        <div class="continuous-hero-actions"><button id="continuousWizardBackBtn" class="button button-ghost" type="button">返回仿真向导</button>
           <span id="continuousConnectionBadge" class="status-chip status-muted" role="status">尚未连接</span>
           <button id="continuousRefreshBtn" class="button button-secondary" type="button">刷新状态</button>
         </div>
