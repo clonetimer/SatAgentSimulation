@@ -327,3 +327,58 @@ body[data-active-view="wizard"] .mobile-catalog-toggle { display: none !importan
   .wizard-realtime-workspace .continuous-sidebar { grid-template-columns:minmax(0,1fr); }
   .wizard-run-results #creatorRunPanel .chart-frame canvas { height:300px; }
 }
+
+
+/* Third-stage Wizard UX: fewer parameters, purpose-first curve groups, task cards. */
+.wizard-panel-help { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.wizard-runtime-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.wizard-runtime-field { display: grid; gap: 6px; min-width: 0; }
+.wizard-runtime-label { color: var(--text); font-size: 13px; font-weight: 650; }
+.wizard-runtime-field > input { width: 100%; min-height: 42px; }
+.wizard-field-help, .wizard-recommended-value { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.wizard-parameter-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.wizard-parameter-presets > span { color: var(--muted); font-size: 11px; margin-right: 2px; }
+.wizard-preset-button { border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; background: var(--panel); color: var(--text); font-size: 11px; cursor: pointer; }
+.wizard-preset-button:hover, .wizard-preset-button:focus-visible { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 8%, var(--panel)); }
+.wizard-curve-section { display: grid; gap: 10px; }
+.wizard-curve-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wizard-curve-heading h3 { margin: 0; font-size: 14px; }
+.wizard-curve-heading span { color: var(--muted); font-size: 12px; }
+.wizard-curve-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.wizard-curve-card { min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--panel); display: grid; gap: 7px; }
+.wizard-curve-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wizard-curve-card-head strong { font-size: 13px; }
+.wizard-curve-card-head span { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.wizard-curve-card > p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.wizard-curve-card > .button { justify-self: start; min-height: 32px; padding: 6px 11px; }
+.wizard-curve-detail { border-top: 1px solid var(--line); padding-top: 6px; }
+.wizard-curve-detail > summary, .wizard-curve-technical > summary { color: var(--muted); font-size: 11px; cursor: pointer; }
+.wizard-curve-detail-list { display: grid; gap: 7px; margin-top: 8px; max-height: 260px; overflow: auto; }
+.wizard-curve-row { display: flex; align-items: flex-start; gap: 8px; padding: 7px; border-radius: 7px; background: var(--panel-2); min-width: 0; }
+.wizard-curve-row > input { margin-top: 3px; flex: 0 0 auto; }
+.wizard-curve-row > span { display: grid; gap: 3px; min-width: 0; }
+.wizard-curve-row strong { font-size: 12px; }
+.wizard-curve-row small { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.wizard-curve-technical { color: var(--muted); }
+.wizard-curve-technical code { display: block; overflow-wrap: anywhere; font-size: 10px; }
+.wizard-advanced-output { margin-top: 12px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; }
+.wizard-advanced-output > summary { color: var(--muted); font-size: 12px; cursor: pointer; }
+#wizardAdvancedCurvePanel #plotOptions .output-hierarchy code { display: none; }
+.wizard-task-workspace { display: grid; gap: 12px; }
+.wizard-task-toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(150px, 190px) auto auto; align-items: center; gap: 8px; }
+.wizard-task-summary { color: var(--muted); font-size: 12px; }
+.wizard-task-list { display: grid; gap: 10px; }
+.wizard-task-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.wizard-task-main { display: grid; gap: 4px; min-width: 0; }
+.wizard-task-main > strong { font-size: 14px; overflow-wrap: anywhere; }
+.wizard-task-main > small, .wizard-task-meta { color: var(--muted); font-size: 11px; }
+.wizard-task-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.wizard-task-actions .button { min-height: 32px; padding: 5px 9px; font-size: 11px; }
+@media (max-width: 760px) {
+  .wizard-curve-choices { grid-template-columns: 1fr; }
+  .wizard-task-toolbar { grid-template-columns: 1fr 1fr; }
+  .wizard-task-toolbar .search-box { grid-column: 1 / -1; }
+  .wizard-task-card { grid-template-columns: 1fr; }
+  .wizard-task-actions { justify-content: flex-start; }
+}
+@media (max-width: 540px) { .wizard-runtime-fields { grid-template-columns: 1fr; } }

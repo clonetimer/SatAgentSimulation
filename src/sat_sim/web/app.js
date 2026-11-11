@@ -8429,6 +8429,7 @@
     const payload = await api(`/task-center/tasks?${params.toString()}`);
     state.tasks = payload.tasks || [];
     renderTaskCenter(payload);
+    if (state.activeView === 'wizard' && state.wizard.step === 'tasks') renderWizardTasks();
   }
 
   function renderTaskCenter(payload = {}) {
