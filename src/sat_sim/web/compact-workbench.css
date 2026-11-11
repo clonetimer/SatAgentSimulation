@@ -287,17 +287,13 @@ body[data-active-view="wizard"] .mobile-catalog-toggle { display: none !importan
 .wizard-realtime-workspace .interactive-header,
 .wizard-realtime-workspace .continuous-hero { padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); }
 .wizard-realtime-workspace .interactive-layout { display:grid; grid-template-columns:minmax(0,1fr); min-height:0; }
-.wizard-realtime-workspace .interactive-rail { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); border:0; border-bottom:1px solid var(--line); }
-.wizard-realtime-workspace .interactive-rail > .interactive-section:first-child { display:none; }
-.wizard-realtime-workspace .interactive-command-panel { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:0; border-top:1px solid var(--line); }
+.wizard-realtime-workspace .interactive-rail { display:grid; grid-template-columns:minmax(0,1fr); border:0; border-bottom:1px solid var(--line); }
+.wizard-realtime-workspace .interactive-command-panel { display:grid; grid-template-columns:minmax(0,1fr); border:0; border-top:1px solid var(--line); }
 .wizard-realtime-workspace .interactive-console { display:grid; grid-template-columns:minmax(0,1fr); }
 .wizard-realtime-workspace .interactive-chart canvas { width:100%; }
 .wizard-realtime-workspace .continuous-grid { display:grid; grid-template-columns:minmax(0,1fr); min-height:0; }
-.wizard-realtime-workspace .continuous-sidebar { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
-.wizard-realtime-workspace .continuous-sidebar > .continuous-card:nth-child(3) { display:none; }
+.wizard-realtime-workspace .continuous-sidebar { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
 .wizard-realtime-workspace .continuous-main { display:grid; grid-template-columns:minmax(0,1fr); }
-.wizard-realtime-workspace .continuous-main > .continuous-card[aria-label="原生中断恢复准入"] { display:none; }
-.wizard-realtime-workspace .continuous-main > .continuous-card[aria-label="持续运行资源监测"] { display:none; }
 .wizard-realtime-workspace .continuous-main .continuous-chart canvas { width:100%; }
 .wizard-realtime-workspace .continuous-policy { margin:10px 0; }
 .wizard-view[data-runtime-mode="interactive"] .wizard-options,
