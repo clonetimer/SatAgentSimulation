@@ -6988,7 +6988,10 @@
     container.replaceChildren();
     renderInteractiveSelectedSessionSummary();
     el('interactiveSessionCount').textContent = String(state.interactiveSessions.length);
-    state.interactiveSessions.forEach((session) => {
+    const orderedSessions = [...state.interactiveSessions].sort((a, b) =>
+      Number(b.session_id === state.interactiveSession?.session_id)
+      - Number(a.session_id === state.interactiveSession?.session_id));
+    orderedSessions.forEach((session) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `interactive-session-item${state.interactiveSession?.session_id === session.session_id ? ' active' : ''}`;
