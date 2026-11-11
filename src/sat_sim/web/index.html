@@ -895,6 +895,12 @@
                 <span id="interactiveGapBadge" class="status-chip status-muted">无缺口</span>
               </div>
             </div>
+            <section class="interactive-health-overview" aria-label="关键卫星状态">
+              <div class="section-heading compact"><h3>关键状态</h3><span>仅显示当前遥测流实际提供的指标</span></div>
+              <div id="interactiveHealthSnapshot" class="interactive-health-grid">
+                <p class="continuous-muted">等待真实遥测数据。</p>
+              </div>
+            </section>
             <div class="interactive-chart"><canvas id="interactiveTelemetryChart" width="960" height="320"></canvas></div>
             <p class="continuous-muted">各曲线按自身范围归一化；下方显示原始数值。</p>
             <div id="interactiveLatestValues" class="interactive-latest-values"></div>

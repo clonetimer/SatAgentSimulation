@@ -1887,3 +1887,13 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   border-radius: 0;
   box-shadow: none;
 }
+
+.interactive-health-overview { padding: 12px 14px 4px; border-bottom: 1px solid var(--line); }
+.interactive-health-overview .section-heading { margin-bottom: 9px; }
+.interactive-health-overview .section-heading h3 { margin: 0; font-size: 11px; }
+.interactive-health-overview .section-heading > span { color: var(--muted); font-size: 9px; }
+.interactive-health-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-bottom: 10px; }
+.interactive-health-item { min-width: 0; display: grid; gap: 4px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
+.interactive-health-item span { color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
+.interactive-health-item strong { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .interactive-health-grid { grid-template-columns: 1fr; } }

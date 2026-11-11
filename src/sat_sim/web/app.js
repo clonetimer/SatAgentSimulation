@@ -7474,6 +7474,39 @@
     const visibleFields = el('interactiveTelemetryObject').value === 'configured'
       ? state.interactiveSession?.telemetry_catalog?.find(item => item.stream_id === stream)?.fields || Object.keys(latest)
       : group?.fields || Object.keys(latest);
+    const healthHost = el('interactiveHealthSnapshot');
+    if (healthHost) {
+      healthHost.replaceChildren();
+      const healthFields = [
+        'orbit.radius_m',
+        'adcs.pointing_error_deg',
+        'eps.battery_soc',
+      ];
+      const availableHealth = healthFields.filter(name => Object.hasOwn(latest, name));
+      if (!frames.length || !availableHealth.length) {
+        const empty = document.createElement('p');
+        empty.className = 'continuous-muted';
+        empty.textContent = !frames.length
+          ? '等待当前会话产生真实遥测。'
+          : '当前遥测流未提供轨道、姿态或能源关键指标；可切换遥测流查看其他数据。';
+        healthHost.appendChild(empty);
+      } else {
+        availableHealth.forEach((name) => {
+          const card = document.createElement('div');
+          card.className = 'interactive-health-item';
+          const label = document.createElement('span');
+          label.textContent = interactiveTelemetryLabel(name);
+          label.title = name;
+          const value = document.createElement('strong');
+          const raw = latest[name];
+          value.textContent = typeof raw === 'number' && Number.isFinite(raw)
+            ? String(Math.round(raw * 1e6) / 1e6)
+            : raw == null ? '—' : String(raw);
+          card.append(label, value);
+          healthHost.appendChild(card);
+        });
+      }
+    }
     const values = el('interactiveLatestValues');
     values.replaceChildren();
     visibleFields.filter(name => Object.hasOwn(latest, name)).forEach((name) => {
