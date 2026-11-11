@@ -592,7 +592,7 @@ def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_pat
 
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
-            page.locator(".nav-button[data-view='runs']").click()
+            page.locator("#wizardOptions [data-wizard-goal='compare']").click()
             first = page.locator('input[data-run-compare-id="cmp-a"]')
             second = page.locator('input[data-run-compare-id="cmp-b"]')
             different = page.locator('input[data-run-compare-id="cmp-incompatible"]')
