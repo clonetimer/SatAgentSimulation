@@ -842,7 +842,8 @@
             <div id="interactiveSessionList" class="interactive-session-list"></div>
           </section>
           <section class="interactive-section interactive-create">
-            <div class="section-heading compact"><h2>新建</h2></div>
+            <details id="interactiveCreateDetails" class="realtime-create-disclosure" open>
+              <summary>新建实时会话 <span>使用推荐设置，专业选项按需展开</span></summary>
             <label>会话范围<select id="interactiveCapability">
               <option value="whole_spacecraft.unified_native.v1" selected>整星（推荐）</option>
               <optgroup label="高级：分系统独立调试">
@@ -863,6 +864,7 @@
               <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>
             </div>
             <button id="createInteractiveSessionBtn" class="button button-primary" type="button">创建会话</button>
+            </details>
           </section>
         </aside>
 
@@ -940,7 +942,8 @@
       <div class="continuous-grid">
         <aside class="continuous-sidebar">
           <section class="continuous-card">
-            <div class="section-heading compact"><h2>创建持续会话</h2></div>
+            <details id="continuousCreateDetails" class="realtime-create-disclosure" open>
+              <summary>新建持续会话 <span>推荐配置优先，工程参数按需展开</span></summary>
             <p class="continuous-muted">无需编写脚本。后端固定使用已注册的 Basilisk 原生整星能力。</p>
             <form id="continuousCreateForm" autocomplete="off">
               <p id="continuousCreationPolicy" class="continuous-muted" role="status">正在读取服务器创建能力…</p>
@@ -1192,6 +1195,7 @@
               <p id="continuousInitialConfigStatus" class="continuous-muted">仅当前新会话可设置；创建后无法修改已有模型实例。</p>
               <button class="button button-primary" type="submit">创建会话</button>
             </form>
+            </details>
           </section>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>会话列表</h2><span id="continuousSessionCount">0</span></div>
