@@ -7807,12 +7807,14 @@
     state.tasks.forEach((task) => {
       const card = document.createElement('article'); card.className = 'wizard-task-card';
       const main = document.createElement('div'); main.className = 'wizard-task-main';
-      const title = document.createElement('strong'); title.textContent = task.name || task.task_id;
+      const title = document.createElement('strong'); title.textContent = task.name || '未命名任务';
       const object = presentationObjectForCapability(task.capability_id);
       const description = document.createElement('small');
-      description.textContent = (object?.name_zh || task.capability_id || '未标注对象') + ' · V' + (task.current_version || 1) + ' · ' + (task.run_count || 0) + ' 次运行';
+      description.textContent = (object?.name_zh || '仿真对象') + ' · V' + (task.current_version || 1) + ' · ' + (task.run_count || 0) + ' 次运行';
+      const taskStatusLabels = { READY: '就绪', QUEUED: '排队中', RUNNING: '运行中', COMPLETED: '已完成', FAILED: '失败', CANCELLED: '已取消' };
+      const runStatusLabels = { SUCCEEDED: '成功', FAILED: '失败', CANCELLED: '已取消', TIMED_OUT: '超时', RUNNING: '运行中', QUEUED: '排队中' };
       const meta = document.createElement('span'); meta.className = 'wizard-task-meta';
-      meta.textContent = (task.status || 'UNKNOWN') + (task.last_run_status ? ' · 最近运行：' + task.last_run_status : ' · 尚未运行');
+      meta.textContent = (taskStatusLabels[task.status] || '状态未知') + (task.last_run_status ? ' · 最近运行：' + (runStatusLabels[task.last_run_status] || '已结束') : ' · 尚未运行');
       main.append(title, description, meta);
       const actions = document.createElement('div'); actions.className = 'wizard-task-actions';
       const addAction = (label, callback, style = 'button-ghost') => {
