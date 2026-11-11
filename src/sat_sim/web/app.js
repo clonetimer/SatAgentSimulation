@@ -7810,7 +7810,7 @@
     if (!state.formData) return;
     state.formData.outputs = state.formData.outputs || {};
     state.formData.outputs.plots = [...new Set(nextSelection)];
-    state.taskSpec = null; state.planning = null;
+    state.taskSpec = null; state.planning = null; syncTaskSpecEditor();
     state.wizard.validated = false; state.wizard.validatedForm = null;
     renderOutputs();
     el('wizardNotice').textContent = '曲线选择已更新；正式运行前请重新校验。';
@@ -7855,7 +7855,7 @@
     if (!state.formData) return;
     state.formData.outputs = state.formData.outputs || {};
     state.formData.outputs.qoi = [...new Set(nextSelection)];
-    state.taskSpec = null; state.planning = null;
+    state.taskSpec = null; state.planning = null; syncTaskSpecEditor();
     state.wizard.validated = false; state.wizard.validatedForm = null;
     renderOutputs();
     el('wizardNotice').textContent = '结果指标已更新；正式运行前请重新校验。';
