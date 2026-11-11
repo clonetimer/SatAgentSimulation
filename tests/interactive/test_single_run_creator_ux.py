@@ -696,7 +696,7 @@ def test_rule_driven_wizard_completes_preflight_without_agent_or_run_submission(
             page.locator("#wizardOptions [data-wizard-field='simulation.duration_s']").wait_for(timeout=20000)
             assert page.locator("#wizardOptions [data-wizard-field='simulation.sample_s']").count() == 1
             page.get_by_role("button", name="下一步：检查配置").click()
-            page.get_by_role("button", name="校验配置").click()
+            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
             page.wait_for_function(
                 "() => document.querySelector('#wizardNotice').textContent.includes('配置校验通过') || document.querySelector('#wizardNotice').textContent.includes('配置未通过')",
                 timeout=30000,
