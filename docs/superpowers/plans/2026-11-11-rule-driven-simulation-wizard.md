@@ -63,3 +63,28 @@
 - [x] Chromium 向导及高级工作台回归、真实 Basilisk 有限时长回归通过。
 - [x] 检查 Git diff、资源版本缓存、无 LLM 调用和所有导航路由。
 - [x] 更新 PR #113 验证说明；仍等待 Windows clean bootstrap 最终结果，暂不转 Ready、不合并 main。
+
+### Task 6: 完整对话式仿真操作台（离线 + 两种实时）
+
+**Files:**
+- Modify: `src/sat_sim/web/index.html`
+- Modify: `src/sat_sim/web/compact-workbench.css`
+- Modify: `src/sat_sim/web/app.js`
+- Modify: `tests/interactive/test_single_run_creator_ux.py`
+- Modify: `tests/interactive/test_continuous_console_browser.py`
+- Modify: `tests/interactive/test_continuous_console.py`
+
+**Interfaces:**
+- 向导运行方式：`offline`、`limited_realtime`、`continuous_realtime`。
+- 现有服务端能力目录 `/interactive/capabilities` 是实时模式准入唯一依据。
+- 离线运行继续使用 `previewForm()`、`runSimulation()` 和原 Run Bundle。
+- 限时实时继续使用 `createInteractiveSession()`、`interactiveControl()`、WebSocket 遥测与命令回执。
+- 持续实时继续使用 `SatContinuousConsole`，不复制控制逻辑。
+- 现有 `creatorRunPanel`、`dynamicForm`、`eventList`、`qoiOptions`、`plotOptions` 在向导与高级工作台之间移动，不克隆 DOM。
+
+- [x] 增加运行方式选择和服务端能力规则，实时不支持时显示原因并禁用。
+- [x] 将参数、事件、QoI、曲线输出节点嵌入向导；高级工作台可恢复原节点位置。
+- [x] 将离线结果面板嵌入向导；运行完成后在当前操作台显示结果、曲线、事件和制品。
+- [x] 将限时实时与持续实时控制台嵌入向导；保留原服务、命令和遥测链路。
+- [ ] Chromium 回归覆盖实时视图嵌入、返回向导、会话控制和曲线显示。
+- [ ] 完成整体验证并更新 PR 验收说明。
