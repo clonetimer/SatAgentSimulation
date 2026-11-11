@@ -396,9 +396,10 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 timeout=12000,
             )
             assert page.locator("#continuousState").inner_text() == "已暂停"
-            page.locator(".nav-button[data-view=wizard]:not([data-wizard-shortcut])").click()
+            page.locator("#wizardRealtimeBackBtn").click()
             assert any("实时会话仍处于活动状态" in message for message in dialog_messages)
-            page.locator(".nav-button[data-view=continuous]").click()
+            page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").wait_for(state="visible", timeout=15000)
+            page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").click()
             page.locator("#continuousView").wait_for(state="visible", timeout=15000)
             assert page.locator("#continuousState").inner_text() == "已暂停"
             assert page.locator("#continuousState").get_attribute("title") == "PAUSED"
