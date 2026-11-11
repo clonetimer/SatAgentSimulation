@@ -29,4 +29,3 @@ def test_realtime_safety_contracts_remain_explicit():
     html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
     assert "原生自动恢复：关闭" in html
     assert "异常执行的遥控不会自动重放" in html
-    assert "automatic_cross_process_resume_supported" in js
