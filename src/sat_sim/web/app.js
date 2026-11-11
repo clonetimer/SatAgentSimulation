@@ -10559,6 +10559,28 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       } catch (error) { el('wizardNotice').textContent = '应用失败：' + error.message; }
       finally { hideBusy(); }
     });
+    el('wizardOpenGraphBtn').addEventListener('click', async () => {
+      try {
+        showBusy('应用 TaskSpec 并打开图形画布', '复用当前任务配置和原生图形编辑器');
+        await syncEditorToForm();
+        if (!state.selectedCapabilityId || !state.formData) throw new Error('请先完成 TaskSpec 校验和配置投影。');
+        const graphCapability = state.graphNodes.find((node) => node.type === 'model')?.capabilityId || null;
+        if (state.graphNodes.length && graphCapability !== state.selectedCapabilityId) {
+          if (!confirm('当前画布属于其他模型或尚未形成完整流程。重建推荐流程会替换当前图形节点和连线，是否继续？')) return;
+          graphInitialize(true);
+        } else {
+          graphInitialize(false);
+        }
+        state.wizard.goal = 'normal_run';
+        state.wizard.mode = 'offline';
+        state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === state.selectedCapabilityId))?.object_id || null;
+        switchView('creator');
+        switchTab('graph');
+        graphSetStatus('TaskSpec 已投影到当前模型配置。图形画布展示任务流程骨架；参数、事件和输出仍由已应用配置驱动。请检查端口并执行正式校验。', 'success');
+      } catch (error) {
+        el('wizardNotice').textContent = '打开图形画布失败：' + error.message;
+      } finally { hideBusy(); }
+    });
     el('previewBtn').addEventListener('click', async () => {
       const graphMode = document.querySelector('.tab.active')?.dataset.tab === 'graph';
       showBusy(graphMode ? '校验图形流程' : '校验并编译 TaskSpec', graphMode ? '检查节点结构并编译 Canonical TaskSpec' : '解析 Schema 表单与能力约束');

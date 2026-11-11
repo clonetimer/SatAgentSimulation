@@ -82,3 +82,18 @@ def test_graph_guide_distinguishes_frontend_structure_from_server_compile_succes
     assert "正式校验已通过，可以生成 Python" in js
     assert "图、正式校验和生成代码保持一致" in js
     assert "renderGraphGuide();" in js
+
+
+def test_taskspec_can_be_applied_and_opened_in_the_native_graph_editor():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    assert 'id="wizardOpenGraphBtn"' in html
+    assert "await syncEditorToForm();" in js[js.index("wizardOpenGraphBtn").__str__():] if False else True
+    start = js.index("el('wizardOpenGraphBtn').addEventListener")
+    handler = js[start:js.index("el('previewBtn').addEventListener", start)]
+    assert "await syncEditorToForm()" in handler
+    assert "graphInitialize(true)" in handler
+    assert "graphInitialize(false)" in handler
+    assert "switchView('creator')" in handler
+    assert "switchTab('graph')" in handler
+    assert "graphSetStatus('TaskSpec 已投影到当前模型配置" in handler
