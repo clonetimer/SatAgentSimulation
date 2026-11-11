@@ -144,3 +144,17 @@ def test_returning_from_realtime_offers_direct_reentry_without_restarting_sessio
     assert "不会自动重启或重放遥控" in app
     assert "switchView('interactive')" in app
     assert "switchView('continuous')" in app
+
+
+def test_limited_realtime_health_snapshot_uses_only_present_real_telemetry_fields():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    css = Path("src/sat_sim/web/styles.css").read_text(encoding="utf-8")
+    assert 'id="interactiveHealthSnapshot"' in html
+    assert "const healthFields = [" in app
+    assert "orbit.radius_m" in app
+    assert "adcs.pointing_error_deg" in app
+    assert "eps.battery_soc" in app
+    assert "healthFields.filter(name => Object.hasOwn(latest, name))" in app
+    assert "当前遥测流未提供轨道、姿态或能源关键指标" in app
+    assert ".interactive-health-grid" in css
