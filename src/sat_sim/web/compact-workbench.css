@@ -836,3 +836,26 @@ body[data-active-view="continuous"] .app-content {
   .wizard-output-heading { align-items: flex-start; }
   .wizard-output-actions { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Keep the realtime workspace full-width even while its view is mounted
+   inside the conversational wizard rather than the engineering navigation. */
+.app-frame:has(.wizard-view[data-runtime-mode="interactive"]),
+.app-frame:has(.wizard-view[data-runtime-mode="continuous"]) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.app-frame:has(.wizard-view[data-runtime-mode="interactive"]) .app-sidebar,
+.app-frame:has(.wizard-view[data-runtime-mode="continuous"]) .app-sidebar {
+  display: none !important;
+}
+.app-frame:has(.wizard-view[data-runtime-mode="interactive"]) .app-content,
+.app-frame:has(.wizard-view[data-runtime-mode="continuous"]) .app-content {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+.app-frame:has(.wizard-view[data-runtime-mode="interactive"]) .wizard-view,
+.app-frame:has(.wizard-view[data-runtime-mode="continuous"]) .wizard-view {
+  width: 100%;
+  min-width: 0;
+}
