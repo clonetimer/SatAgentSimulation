@@ -58,6 +58,7 @@ def test_pending_generation_keeps_controls_usable_and_preserves_newer_edits(tmp_
 
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
+        page.locator('#wizardAdvancedBtn').click()
         page.wait_for_selector('.capability-card.active', state='attached')
         initial_editor = page.locator('#taskSpecEditor').input_value()
         page.locator('#creatorAgentTabButton').click()
