@@ -22,7 +22,7 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
-  <link rel="stylesheet" href="/assets/compact-workbench.css?v=p2-parameters-20261111-1">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-observability-20261111-1">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -145,9 +145,21 @@
           <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><p class="wizard-panel-help">设置故障何时发生、持续多久以及作用幅度。所有故障类型均来自当前模型已注册的事件目录。</p><div id="wizardEventHost"></div></details>
           <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary>
             <p class="wizard-panel-help">先按观察目的添加推荐曲线，不需要理解技术字段。每组曲线都来自当前仿真对象实际注册的输出。</p>
-            <section class="wizard-curve-section"><div class="wizard-curve-heading"><h3>你想观察什么？</h3><span id="wizardCurveSelectionSummary">尚未选择曲线</span></div><div id="wizardCurveChoices" class="wizard-curve-choices"></div></section>
-            <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>更多摘要指标</summary><div id="wizardQoiHost"></div></details>
-            <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>按具体遥测量选择（高级）</summary><p class="wizard-panel-help">这里显示完整注册目录，适合熟悉遥测名称的用户；普通使用优先选择上方分组。</p><div id="wizardPlotHost"></div></details>
+            <section class="wizard-output-section" aria-label="观测指标">
+              <div class="wizard-output-heading"><div><h3>结果指标</h3><p>用于概括仿真表现；与时序曲线分开选择。</p></div><span id="wizardQoiSelectionSummary">已选 0 项</span></div>
+              <div id="wizardQoiChoices" class="wizard-qoi-choices"></div>
+            </section>
+            <section class="wizard-curve-section" aria-label="时序曲线">
+              <div class="wizard-output-heading"><div><h3>时序曲线</h3><p>记录仿真过程中随时间变化的状态。横轴自动使用仿真时间。</p></div><span id="wizardCurveSelectionSummary">已选 0 条</span></div>
+              <div class="wizard-output-toolbar">
+                <div id="wizardOutputPurposes" class="wizard-output-purposes" role="group" aria-label="观测目的"></div>
+                <label class="search-box wizard-output-search"><span aria-hidden="true">⌕</span><input id="wizardOutputSearch" type="search" placeholder="搜索指标或曲线名称、含义、单位…" autocomplete="off"></label>
+              </div>
+              <div class="wizard-output-actions"><button type="button" class="button button-secondary" id="wizardRestoreOutputDefaultsBtn">恢复模型推荐组合</button><span id="wizardOutputSearchCount" class="wizard-output-search-count"></span></div>
+              <div id="wizardCurveChoices" class="wizard-curve-choices"></div>
+            </section>
+            <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>查看完整摘要指标目录</summary><p class="wizard-panel-help">完整注册指标目录，包含高级或低频使用的结果摘要项。</p><div id="wizardQoiHost"></div></details>
+            <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>查看完整遥测字段目录（高级）</summary><p class="wizard-panel-help">完整展示当前能力注册的具体遥测字段，可查看技术字段名和单位。</p><div id="wizardPlotHost"></div></details>
           </details>
         </section>
         <details id="wizardAdditionalTools" class="wizard-additional-tools">
