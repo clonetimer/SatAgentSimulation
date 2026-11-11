@@ -164,7 +164,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             # The default entry is now the rule-driven wizard; this regression
             # exercises the advanced realtime controls and explicitly enters
             # the retained engineering workbench before editing its form.
-            page.locator(".nav-button[data-view=creator]").click()
+            page.locator("#wizardAdvancedBtn").click()
             # Edit the current offline whole-spacecraft form, then import the
             # same approved native value into each realtime UI. Browser test
             # checks only UI/API wiring; it never claims physical equivalence.
@@ -188,7 +188,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#interactiveOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
             assert "orbit_radius_m" in page.locator("#interactiveOfflineConfigStatus").inner_text()
             assert running == []  # Review must not auto-start a physical run.
-            page.locator(".nav-button[data-view='creator']").click()
+            page.locator("#wizardRealtimeBackBtn").click()
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#modeContinuousRealtimeBtn").click()
             page.locator("#continuousView").wait_for(state="visible", timeout=15000)
             assert page.locator("#wizardView").is_visible()
