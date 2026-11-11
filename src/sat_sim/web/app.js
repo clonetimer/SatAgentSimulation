@@ -7869,7 +7869,7 @@
     state.formData.outputs = state.formData.outputs || {};
     state.formData.outputs.qoi = [...qoi];
     state.formData.outputs.plots = [...plots];
-    state.taskSpec = null; state.planning = null;
+    state.taskSpec = null; state.planning = null; syncTaskSpecEditor();
     state.wizard.validated = false; state.wizard.validatedForm = null;
     renderOutputs();
     el('wizardNotice').textContent = '已恢复当前模型 Schema 提供的推荐输出组合；请重新校验配置。';
