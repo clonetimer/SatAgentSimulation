@@ -6954,10 +6954,39 @@
     renderInteractiveSnapshot();
   }
 
+  function renderInteractiveSelectedSessionSummary() {
+    const host = el('interactiveSelectedSessionSummary');
+    if (!host) return;
+    const session = state.interactiveSession;
+    host.replaceChildren();
+    const eyebrow = document.createElement('span');
+    eyebrow.textContent = '当前会话';
+    const title = document.createElement('strong');
+    const detail = document.createElement('small');
+    if (!session) {
+      title.textContent = '尚未选择会话';
+      detail.textContent = '创建新会话或从列表中选择已有会话。';
+    } else {
+      const scope = session.capability_id === 'whole_spacecraft.unified_native.v1' ? '整星' : '分系统';
+      title.textContent = session.session_id;
+      detail.textContent = [
+        scope,
+        session.continuous ? '持续实时' : '限时实时',
+        session.state || '状态未知',
+        Number(session.sim_time_s || 0).toFixed(2) + ' s',
+        (session.rate || 1) + '×',
+      ].join(' · ');
+      if (session.terminal_error || session.archive_error) detail.title = session.terminal_error || session.archive_error;
+    }
+    host.append(eyebrow, title, detail);
+    host.dataset.state = session?.state || 'NONE';
+  }
+
   function renderInteractiveSessions() {
     const container = el('interactiveSessionList');
     if (!container) return;
     container.replaceChildren();
+    renderInteractiveSelectedSessionSummary();
     el('interactiveSessionCount').textContent = String(state.interactiveSessions.length);
     state.interactiveSessions.forEach((session) => {
       const button = document.createElement('button');
@@ -7172,6 +7201,7 @@
   function renderInteractiveSnapshot() {
     const snapshot = state.interactiveSession;
     el('interactiveOpenContinuousBtn')?.classList.toggle('hidden', !snapshot?.continuous);
+    renderInteractiveSelectedSessionSummary();
     el('interactiveState').textContent = snapshot?.state || '未选择';
     el('interactiveState').title = snapshot?.terminal_error || '';
     const archiveLabels = {
