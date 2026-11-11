@@ -73,7 +73,7 @@ def _goal_workbench(tmp_path):
 
 def test_goal_run_workspace_creates_budgets_launches_and_interprets(tmp_path):
     with _goal_workbench(tmp_path) as (page, client, app, page_errors):
-        page.locator('.nav-button[data-view="goals"]').click()
+        page.locator('.wizard-tool-option[data-wizard-goal="goals"]').click()
         page.wait_for_function(
             "document.querySelector('#goalRunSummary').textContent.includes('0 个目标')"
         )
