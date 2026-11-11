@@ -116,6 +116,13 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     page.locator('#graphValidateBtn').click()
                     assert 'error' in (page.locator('#graphStatus').get_attribute('class') or '')
                     page.locator('#graphStatus').scroll_into_view_if_needed();assert page.locator('#graphStatus').is_visible()
+                    # Palette drag must create a real graph block, not just
+                    # focus the module search shortcut.
+                    page.locator('[data-graph-block="config"]').drag_to(
+                        page.locator('#graphCanvas'), target_position={'x': 420, 'y': 300}
+                    )
+                    assert page.locator('#graphNodes .graph-node').count() == 1
+                    assert page.locator('.graph-node[data-node-id="graph-config"]').is_visible()
                     page.locator('#graphResetBtn').click()
                     assert page.locator('#graphNodes .graph-node').count()>0
 
@@ -134,6 +141,7 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                         page.locator('#graphGuideValidateBtn').click()
                     assert compile_response.value.ok
                     assert 'success' in (page.locator('#graphStatus').get_attribute('class') or '')
+                    assert page.locator('#graphGuideNextTitle').inner_text() == '正式校验已通过，可以生成 Python'
 
                     # Real HTML drag-and-drop of a node, followed by undo/redo.
                     node = page.locator('.graph-node[data-node-id="graph-config"]')
