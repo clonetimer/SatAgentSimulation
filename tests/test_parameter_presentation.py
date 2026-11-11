@@ -41,3 +41,5 @@ def test_parameter_explanations_are_collapsed_by_default_in_the_shared_renderer(
     assert "className='field-help'" in source
     assert "helpSummary.textContent='参数说明'" in source
     assert "wrapper.append(heading,input,help)" in source
+    assert "Schema 默认值：" in source
+    assert "允许范围：" in source
