@@ -66,6 +66,7 @@ def _goal_workbench(tmp_path):
             page.route("https://workbench.test/**", forward)
             page.goto("https://workbench.test/", wait_until="networkidle")
             page.wait_for_selector('#wizardView:not(.hidden)')
+            page.locator('#wizardAdditionalTools > summary').click()
             page.wait_for_selector('.wizard-tool-option[data-wizard-goal="goals"]')
             yield page, client, app, page_errors
         finally:
