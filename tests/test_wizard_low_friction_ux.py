@@ -50,3 +50,32 @@ def test_wizard_task_management_reuses_existing_task_center_api(tmp_path):
         assert action in js or action in index
     assert "/task-center/tasks" in js
     assert "openTaskDetails(task.task_id)" in js
+
+
+
+def test_natural_language_and_taskspec_are_available_inside_wizard(tmp_path):
+    with _client(tmp_path) as client:
+        index = client.get("/").text
+        js = client.get("/assets/app.js").text
+    for marker in (
+        'id="wizardAgentWorkspace"', 'id="wizardAgentHost"',
+        'id="wizardTaskSpecWorkspace"', 'id="wizardTaskSpecHost"',
+        'id="wizardGenerateFromTextBtn"', 'id="wizardValidateTaskSpecBtn"',
+        'id="wizardApplyTaskSpecBtn"',
+    ):
+        assert marker in index
+    for marker in ("natural_language", "taskspec", "parseNaturalLanguage()", "syncEditorToForm()", "wizardGenerateFromTextBtn"):
+        assert marker in js
+    assert "/assets/app.js?v=wizard7" in index
+
+
+def test_specialist_tools_keep_dedicated_workspaces_and_are_not_forced_into_chat(tmp_path):
+    with _client(tmp_path) as client:
+        index = client.get("/").text
+        js = client.get("/assets/app.js").text
+    for goal in ("experiments", "goals", "graph", "diagnostics"):
+        assert f'data-wizard-goal="{goal}"' in index
+    assert "wizard-tool-option[data-wizard-goal]" in js
+    assert "switchView('experiments')" in js
+    assert "switchView('goals')" in js
+    assert "switchTab('graph')" in js

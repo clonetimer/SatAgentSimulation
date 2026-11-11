@@ -9986,6 +9986,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
     el('wizardAdvancedBtn').addEventListener('click', () => switchView('creator'));
+    $all('.wizard-tool-option[data-wizard-goal]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardGoal)));
     el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
       try {
         showBusy('生成仿真配置', '自然语言解析、能力边界检查与 TaskSpec 校验');
