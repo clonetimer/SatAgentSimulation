@@ -61,3 +61,14 @@ def test_graph_modeling_has_conversational_guide_over_native_drag_canvas():
     assert "graphAutoWire()" in js
     assert ".graph-conversation-guide" in css
     assert "不会绕过端口类型、DAG、TaskSpec" in html
+
+
+def test_guided_task_workspace_prioritizes_common_actions_and_discloses_secondary_actions():
+    js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    css = Path("src/sat_sim/web/compact-workbench.css").read_text(encoding="utf-8")
+    for label in ("任务详情", "编辑配置", "运行任务", "更多操作", "克隆任务", "删除任务"):
+        assert label in js
+    assert "wizard-task-more" in js
+    assert ".wizard-task-more-actions" in css
+    assert "openTaskDetails(task.task_id)" in js
+    assert "runTaskFromCenter(task.task_id, { guided: true })" in js

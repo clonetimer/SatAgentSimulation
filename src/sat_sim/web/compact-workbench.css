@@ -892,3 +892,26 @@ body[data-active-view="continuous"] .app-content {
   .graph-guide-heading > .status-chip { margin-left: 40px; }
   .graph-guide-actions .button { flex: 1 1 calc(50% - 7px); }
 }
+
+/* P6-B: keep frequent task actions prominent; disclose secondary operations. */
+.wizard-task-actions { align-items: center; }
+.wizard-task-actions > .button-primary { font-weight: 650; }
+.wizard-task-more { position: relative; }
+.wizard-task-more > summary {
+  min-height: 32px; display: inline-flex; align-items: center; padding: 5px 9px;
+  border: 1px solid var(--line); border-radius: 7px; color: var(--muted);
+  background: var(--panel); font-size: 11px; cursor: pointer; list-style: none;
+}
+.wizard-task-more > summary::-webkit-details-marker { display: none; }
+.wizard-task-more[open] > summary { color: var(--text); border-color: var(--accent-2); }
+.wizard-task-more-actions {
+  position: absolute; z-index: 5; right: 0; top: calc(100% + 5px);
+  display: grid; gap: 5px; min-width: 120px; padding: 7px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0,0,0,.14);
+}
+.wizard-task-more-actions .button { justify-content: flex-start; width: 100%; }
+@media (max-width: 760px) {
+  .wizard-task-more { width: fit-content; }
+  .wizard-task-more-actions { position: static; margin-top: 5px; box-shadow: none; }
+}

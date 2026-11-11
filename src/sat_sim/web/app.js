@@ -8293,18 +8293,26 @@
       meta.textContent = (taskStatusLabels[task.status] || '状态未知') + (task.last_run_status ? ' · 最近运行：' + (runStatusLabels[task.last_run_status] || '已结束') : ' · 尚未运行');
       main.append(title, description, meta);
       const actions = document.createElement('div'); actions.className = 'wizard-task-actions';
-      const addAction = (label, callback, style = 'button-ghost') => {
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'button ' + style; button.textContent = label;
-        button.addEventListener('click', callback); actions.appendChild(button);
+      const addAction = (parent, label, callback, buttonStyle = 'button-ghost') => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'button ' + buttonStyle; button.textContent = label;
+        button.addEventListener('click', callback); parent.appendChild(button);
       };
-      addAction('任务详情', () => openTaskDetails(task.task_id));
-      addAction('克隆任务', async () => {
-        try { const result = await api('/task-center/tasks/' + encodeURIComponent(task.task_id) + '/clone', { method: 'POST', body: apiBody({}) }); await loadTasks(); el('wizardNotice').textContent = '已克隆任务：' + (result.task?.name || result.task?.task_id); }
-        catch (error) { el('wizardNotice').textContent = '克隆失败：' + error.message; }
+      addAction(actions, '任务详情', () => openTaskDetails(task.task_id));
+      addAction(actions, '编辑配置', () => openTaskFromCenter(task.task_id, { guided: true }), 'button-secondary');
+      addAction(actions, '运行任务', () => runTaskFromCenter(task.task_id, { guided: true }), 'button-primary');
+      const more = document.createElement('details'); more.className = 'wizard-task-more';
+      const moreSummary = document.createElement('summary'); moreSummary.textContent = '更多操作';
+      const moreActions = document.createElement('div'); moreActions.className = 'wizard-task-more-actions';
+      addAction(moreActions, '克隆任务', async () => {
+        try {
+          const result = await api('/task-center/tasks/' + encodeURIComponent(task.task_id) + '/clone', { method: 'POST', body: apiBody({}) });
+          await loadTasks();
+          el('wizardNotice').textContent = '已克隆任务：' + (result.task?.name || result.task?.task_id);
+        } catch (error) { el('wizardNotice').textContent = '克隆失败：' + error.message; }
       });
-      addAction('编辑配置', () => openTaskFromCenter(task.task_id, { guided: true }));
-      addAction('运行任务', () => runTaskFromCenter(task.task_id, { guided: true }), 'button-secondary');
-      addAction('删除任务', () => deleteTaskFromCenter(task.task_id), 'button-danger');
+      addAction(moreActions, '删除任务', () => deleteTaskFromCenter(task.task_id), 'button-danger');
+      more.append(moreSummary, moreActions);
+      actions.appendChild(more);
       card.append(main, actions); host.appendChild(card);
     });
   }
