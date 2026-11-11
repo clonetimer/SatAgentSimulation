@@ -6946,6 +6946,15 @@
     if (!state.interactiveAvailable) return;
     const payload = await api('/interactive/sessions');
     state.interactiveSessions = payload.sessions || [];
+    if (!state.interactiveSession) {
+      const activeSession = state.interactiveSessions.find(item =>
+        !['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(String(item.state || '').toUpperCase()));
+      if (activeSession) {
+        renderInteractiveSessions();
+        await selectInteractiveSession(activeSession.session_id);
+        return;
+      }
+    }
     if (state.interactiveSession) {
       const current = state.interactiveSessions.find(item => item.session_id === state.interactiveSession.session_id);
       if (current) state.interactiveSession = current;
@@ -7232,9 +7241,11 @@
       if (Number(el('interactiveCommandTime').value) < Number(snapshot.sim_time_s)) el('interactiveCommandTime').value = String(snapshot.sim_time_s);
     }
     const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(snapshot?.state);
-    ['interactiveStartBtn', 'interactivePauseBtn', 'interactiveResumeBtn', 'interactiveStepBtn', 'interactiveStopBtn', 'interactiveSendCommandBtn'].forEach((id) => {
-      el(id).disabled = !snapshot || terminal;
+    const controlPending = Boolean(state.interactiveControlPending);
+    ['interactiveStartBtn', 'interactivePauseBtn', 'interactiveResumeBtn', 'interactiveStepBtn', 'interactiveStopBtn'].forEach((id) => {
+      el(id).disabled = !snapshot || terminal || controlPending;
     });
+    el('interactiveSendCommandBtn').disabled = !snapshot || terminal || controlPending || Boolean(state.interactiveCommandSending);
     el('interactiveStartBtn').disabled = !snapshot || snapshot.state !== 'READY';
     el('interactivePauseBtn').disabled = !snapshot || snapshot.state !== 'RUNNING';
     el('interactiveResumeBtn').disabled = !snapshot || snapshot.state !== 'PAUSED';
@@ -7242,14 +7253,25 @@
   }
 
   async function interactiveControl(action, extra = {}) {
-    if (!state.interactiveSession) return;
+    if (!state.interactiveSession || state.interactiveControlPending) return;
     if ((action === 'stop' || action === 'abort') && !confirm('确认停止当前实时会话并归档？')) return;
     const sessionId = state.interactiveSession.session_id;
-    state.interactiveSession = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}/control`, {
-      method: 'POST', body: apiBody({ action, ...extra }),
-    });
+    state.interactiveControlPending = true;
     renderInteractiveSnapshot();
-    await refreshInteractiveDetails();
+    try {
+      state.interactiveSession = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}/control`, {
+        method: 'POST', body: apiBody({ action, ...extra }),
+      });
+      interactiveNotice({ start: '已向服务端提交启动请求', pause: '已向服务端提交暂停请求',
+        resume: '已向服务端提交继续请求', step: '已提交单步推进请求',
+        stop: '停止与归档请求已提交', abort: '中止请求已提交' }[action] || '控制请求已提交');
+      await refreshInteractiveDetails();
+    } catch (error) {
+      interactiveNotice('控制请求失败：' + error.message, 'error');
+    } finally {
+      state.interactiveControlPending = false;
+      renderInteractiveSnapshot();
+    }
   }
 
   async function refreshInteractiveDetails() {
@@ -7633,7 +7655,7 @@
   async function sendInteractiveCommand() {
     const session = state.interactiveSession;
     const contract = state.interactiveCommandCatalog.find(item => item.operation === el('interactiveCommandOperation').value);
-    if (!session || !contract) return;
+    if (!session || !contract || state.interactiveCommandSending) return;
     if (contract.required_role === 'fault_operator' && !confirm(`确认执行故障指令 ${contract.operation}？`)) return;
     const parameters = {};
     $all('[data-parameter]', el('interactiveCommandForm')).forEach((input) => {
@@ -7656,9 +7678,18 @@
       actor_role: contract.required_role,
       execute_at_sim_time_s: Number(el('interactiveCommandTime').value || session.sim_time_s),
     };
-    const ack = await api(`/interactive/sessions/${encodeURIComponent(session.session_id)}/commands`, { method: 'POST', body: apiBody(payload) });
-    interactiveNotice(`${ack.command_id}: ${ack.state}`, ack.state === 'REJECTED' ? 'error' : 'success');
-    await refreshInteractiveDetails();
+    state.interactiveCommandSending = true;
+    renderInteractiveSnapshot();
+    try {
+      const ack = await api(`/interactive/sessions/${encodeURIComponent(session.session_id)}/commands`, { method: 'POST', body: apiBody(payload) });
+      interactiveNotice(`${ack.command_id}：${interactiveAckStateLabel(ack.state)}`, ack.state === 'REJECTED' ? 'error' : 'success');
+      await refreshInteractiveDetails();
+    } catch (error) {
+      interactiveNotice('遥控提交失败：' + error.message, 'error');
+    } finally {
+      state.interactiveCommandSending = false;
+      renderInteractiveSnapshot();
+    }
   }
 
   function wizardMessage(role, message) { state.wizard.messages.push({ role, message }); }

@@ -446,7 +446,7 @@
     setText('continuousErrorDetail', session?.terminal_error || session?.archive_error || '');
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       const action = button.dataset.continuousAction;
-      button.disabled = !live || (
+      button.disabled = state.controlSending || !live || (
         action === 'start' ? session.state !== 'READY'
           : action === 'pause' ? session.state !== 'RUNNING'
           : action === 'resume' ? session.state !== 'PAUSED'
@@ -716,7 +716,10 @@
       renderCreationPolicy(creationPolicy);
       state.policy = overview;
       const sessions = overview.sessions || [];
-      if (!state.selectedId && sessions.length) state.selectedId = sessions[0].session_id;
+      if (!state.selectedId && sessions.length) {
+        const activeSession = sessions.find(session => !terminal.has(String(session.state || '').toUpperCase()));
+        state.selectedId = (activeSession || sessions[0]).session_id;
+      }
       if (state.selectedId && !sessions.some((s) => s.session_id === state.selectedId)) {
         state.selectedId = null;
         state.snapshot = null;
@@ -951,16 +954,19 @@
     } catch (e) { notice('创建失败：' + e.message, true); }
   }
   async function control(action) {
-    if (!state.selectedId) return;
+    if (!state.selectedId || state.controlSending) return;
     if (action === 'stop' && !confirm('确认停止持续仿真并归档？停止后不能继续当前物理状态。')) return;
+    state.controlSending = true;
+    renderStatus();
     try {
       await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/control', {
         method: 'POST', body: JSON.stringify({ action }),
       });
-      notice({ start: '仿真已启动', pause: '仿真已暂停', resume: '已继续仿真',
-        step: '已推进一个量子', stop: '停止请求已处理' }[action] || '操作完成');
+      notice({ start: '启动请求已提交', pause: '暂停请求已提交', resume: '继续请求已提交',
+        step: '单步推进请求已提交', stop: '停止与归档请求已提交' }[action] || '控制请求已提交');
       await refresh();
     } catch (e) { notice('会话控制失败：' + e.message, true); }
+    finally { state.controlSending = false; renderStatus(); }
   }
   const commandLabels = {
     'session.mode.set': '整星 · 切换运行模式',
@@ -1163,7 +1169,7 @@
       const ack = await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/commands', {
         method: 'POST', body: JSON.stringify(command),
       });
-      notice('遥控 ' + ack.command_id + '：' + ack.state +
+      notice('遥控 ' + ack.command_id + '：' + continuousAckLabel(ack) +
         (ack.reason_code ? ' / ' + ack.reason_code : ''), ack.state === 'REJECTED');
       await refresh();
     } catch (error) {
