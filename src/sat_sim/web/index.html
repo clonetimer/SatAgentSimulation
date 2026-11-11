@@ -876,12 +876,12 @@
           </div>
           <div class="interactive-controls" role="toolbar" aria-label="会话控制">
             <button id="interactiveOpenContinuousBtn" class="button button-secondary hidden" type="button">在持续控制台查看</button>
-            <button id="interactiveStartBtn" class="icon-button" type="button" title="启动" aria-label="启动">▶</button>
-            <button id="interactivePauseBtn" class="icon-button" type="button" title="暂停" aria-label="暂停">Ⅱ</button>
-            <button id="interactiveResumeBtn" class="icon-button" type="button" title="继续" aria-label="继续">▷</button>
-            <button id="interactiveStepBtn" class="icon-button" type="button" title="单步" aria-label="单步">↦</button>
+            <button id="interactiveStartBtn" class="button button-primary realtime-control-button" type="button" title="启动" aria-label="启动">启动</button>
+            <button id="interactivePauseBtn" class="button button-secondary realtime-control-button" type="button" title="暂停" aria-label="暂停">暂停</button>
+            <button id="interactiveResumeBtn" class="button button-secondary realtime-control-button" type="button" title="继续" aria-label="继续">继续</button>
+            <button id="interactiveStepBtn" class="button button-secondary realtime-control-button" type="button" title="单步" aria-label="单步">单步</button>
             <label class="interactive-rate-control">倍速<select id="interactiveRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
-            <button id="interactiveStopBtn" class="icon-button danger-icon" type="button" title="停止并归档" aria-label="停止并归档">■</button>
+            <button id="interactiveStopBtn" class="button button-danger realtime-control-button danger-icon" type="button" title="停止并归档" aria-label="停止并归档">停止并归档</button>
           </div>
           <section class="interactive-section telemetry-section">
             <div class="section-heading compact">
@@ -1222,11 +1222,11 @@
             </div>
             <div id="continuousSessionActionSlot">
             <div id="continuousSessionToolbar" class="continuous-actions" role="toolbar" aria-label="持续仿真会话控制">
-              <button id="continuousStartBtn" class="button button-primary" type="button" data-continuous-action="start">▶ 启动</button>
-              <button class="button button-secondary" type="button" data-continuous-action="pause">Ⅱ 暂停</button>
-              <button class="button button-secondary" type="button" data-continuous-action="resume">▷ 继续</button>
-              <button class="button button-secondary" type="button" data-continuous-action="step">↦ 单步</button>
-              <button class="button button-ghost" type="button" data-continuous-action="stop">■ 停止并归档</button>
+              <button id="continuousStartBtn" class="button button-primary realtime-control-button" type="button" data-continuous-action="start">启动</button>
+              <button class="button button-secondary realtime-control-button" type="button" data-continuous-action="pause">暂停</button>
+              <button class="button button-secondary" type="button" data-continuous-action="resume">继续</button>
+              <button class="button button-secondary" type="button" data-continuous-action="step">单步</button>
+              <button class="button button-danger realtime-control-button" type="button" data-continuous-action="stop">停止并归档</button>
             </div>
             </div>
           </section>
