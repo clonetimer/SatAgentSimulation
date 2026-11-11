@@ -106,3 +106,32 @@ def test_wizard_parameter_modes_preserve_registry_fields_and_expose_progressive_
     assert 'data-wizard-parameter-mode="recommended"' in css
     assert 'data-wizard-parameter-mode="all"' in css
     assert "已保留" in js
+
+
+def test_wizard_separates_summary_metrics_from_time_series_and_uses_registry_options(tmp_path):
+    with _client(tmp_path) as client:
+        index = client.get("/").text
+        js = client.get("/assets/app.js").text
+        css = client.get("/assets/compact-workbench.css").text
+        response = client.get("/forms/capabilities/whole_spacecraft.unified_native.v1")
+    assert response.status_code == 200
+    schema = response.json()["form_schema"]
+    qoi_names = {item["name"] for item in schema["outputs"]["summary_options"]}
+    trace_names = {item["name"] for item in schema["outputs"]["trace_options"]}
+    assert qoi_names
+    assert trace_names
+    assert qoi_names.isdisjoint(trace_names)
+    assert 'id="wizardQoiChoices"' in index
+    assert 'id="wizardCurveChoices"' in index
+    assert 'id="wizardOutputPurposes"' in index
+    assert 'id="wizardOutputSearch"' in index
+    assert 'id="wizardRestoreOutputDefaultsBtn"' in index
+    assert "function wizardOutputPurpose(option)" in js
+    assert "function wizardSetQoiSelection(nextSelection)" in js
+    assert "function wizardRestoreOutputDefaults()" in js
+    assert "state.schema.outputs?.summary_options" in js
+    assert "state.schema.outputs?.trace_options" in js
+    assert "state.schema.default_form?.outputs" in js
+    assert "wizardOutputSearch" in js
+    assert ".wizard-qoi-row" in css
+    assert ".wizard-output-purpose[aria-pressed=\"true\"]" in css
