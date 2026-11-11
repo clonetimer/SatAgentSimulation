@@ -7900,6 +7900,7 @@
       availablePurposes.forEach((item) => {
         const button = document.createElement('button');
         button.type = 'button'; button.className = 'wizard-output-purpose';
+        button.dataset.outputPurpose = item.id;
         button.textContent = item.label;
         button.setAttribute('aria-pressed', String(state.wizard.outputPurpose === item.id));
         if (item.id !== 'all') button.dataset.count = String(purposeCounts.get(item.id) || 0);
