@@ -56,6 +56,7 @@ def test_manual_form_changes_remain_the_base_of_next_agent_turn(tmp_path, restor
 
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
+        page.locator('#wizardAdvancedBtn').click()
         page.wait_for_selector('.capability-card.active', state='attached')
         page.locator('#creatorAgentTabButton').click()
         page.locator('#agentInput').fill('创建热节点仿真，功率37W。')
