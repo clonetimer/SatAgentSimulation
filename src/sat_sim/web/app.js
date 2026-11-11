@@ -7984,7 +7984,9 @@
         const count = document.createElement('span'); count.textContent = `${selectedCount} / ${group.options.length} 已选`;
         head.append(title, count);
         const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'button button-secondary';
-        toggle.textContent = selectedCount === group.options.length ? '移除这一组' : '添加这一组';
+        toggle.textContent = search
+          ? (selectedCount === group.options.length ? '移除匹配项' : '添加匹配项')
+          : (selectedCount === group.options.length ? '移除这一组' : '添加这一组');
         toggle.disabled = group.options.length === 0;
         toggle.addEventListener('click', () => {
           const next = new Set(state.formData.outputs.plots || []);
