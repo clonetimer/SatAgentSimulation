@@ -496,8 +496,9 @@
     tail.forEach((row) => {
       const line = element('div', undefined, 'continuous-log-item');
       line.append(element('strong', formatter(row)), element('small',
-        [row.reason_code, row.sim_time_s === null || row.sim_time_s === undefined
-          ? '' : valueText(row.sim_time_s, 2) + ' s'].filter(Boolean).join(' · ')));
+        [row.state ? '原始状态 ' + row.state : '', row.reason_code,
+          row.sim_time_s === null || row.sim_time_s === undefined
+            ? '' : valueText(row.sim_time_s, 2) + ' s'].filter(Boolean).join(' · ')));
       node.append(line);
     });
   }

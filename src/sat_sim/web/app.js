@@ -7324,7 +7324,7 @@
       title.textContent = `${interactiveEventStateLabel(event.previous_state)} → ${interactiveEventStateLabel(event.state)}`;
       title.title = `${event.previous_state} → ${event.state}`;
       const meta = document.createElement('span');
-      meta.textContent = `#${event.sequence} · t=${Number(event.sim_time_s).toFixed(3)} s · ${event.reason_code}`;
+      meta.textContent = `#${event.sequence} · ${event.previous_state} → ${event.state} · t=${Number(event.sim_time_s).toFixed(3)} s · ${event.reason_code}`;
       item.append(title, meta);
       container.appendChild(item);
     });
@@ -7340,7 +7340,7 @@
       title.textContent = `${interactiveAckStateLabel(ack.state)} · ${ack.command_id}`;
       title.title = ack.state;
       const meta = document.createElement('span');
-      meta.textContent = `#${ack.sequence} · ${ack.reason_code}${ack.sim_time_s == null ? '' : ` · t=${Number(ack.sim_time_s).toFixed(3)} s`}`;
+      meta.textContent = `#${ack.sequence} · 原始状态 ${ack.state} · ${ack.reason_code}${ack.sim_time_s == null ? '' : ` · t=${Number(ack.sim_time_s).toFixed(3)} s`}`;
       item.append(title, meta);
       container.appendChild(item);
     });
