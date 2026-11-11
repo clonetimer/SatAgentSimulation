@@ -4696,7 +4696,8 @@
     const fields = (state.schema?.fields || []).filter((field) => String(field.path || '').startsWith('parameters.values.'));
     const recommended = fields.filter((field) => field.importance !== 'advanced').length;
     const advanced = fields.length - recommended;
-    const changed = fields.filter((field) => state.changedPaths.has(field.path)).length;
+    const nonDefault = fields.filter((field) => field.default !== undefined
+      && JSON.stringify(getPath(state.formData, field.path)) !== JSON.stringify(field.default)).length;
     const descriptions = {
       runtime: '只显示仿真时长和采样间隔。所有模型参数保持当前推荐值，不会被删除或重置。',
       recommended: '显示模型常用参数；专业参数保持折叠。可以搜索完整参数目录，搜索结果会自动展开所属分组。',
@@ -4714,7 +4715,7 @@
     const count = el('wizardParameterCount');
     if (count) count.textContent = mode === 'runtime'
       ? `已保留 ${fields.length} 项模型参数`
-      : `常用 ${recommended} 项 · 专业 ${advanced} 项 · 已修改 ${changed} 项`;
+      : `常用 ${recommended} 项 · 专业 ${advanced} 项 · 非默认 ${nonDefault} 项`;
     const form = el('dynamicForm');
     if (form) form.dataset.wizardParameterMode = mode;
   }
