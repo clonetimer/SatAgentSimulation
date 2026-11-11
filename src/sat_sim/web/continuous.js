@@ -142,9 +142,31 @@
       input.disabled = !fields.includes(input.value); if (input.disabled) input.checked = false;
     });
   }
+  function renderSelectedSessionSummary() {
+    const host = $('continuousSelectedSessionSummary');
+    if (!host) return;
+    const session = state.snapshot?.session;
+    host.replaceChildren();
+    const eyebrow = element('span', '当前会话');
+    const title = element('strong', session?.session_id || '尚未选择会话');
+    const detail = element('small', session
+      ? [
+          '整星',
+          '持续实时',
+          sessionStateLabels[session.state] || session.state || '状态未知',
+          valueText(session.sim_time_s, 2) + ' s',
+          valueText(session.rate || 1, 1) + '×',
+        ].join(' · ')
+      : '创建新会话或从列表中选择已有会话。');
+    if (session?.terminal_error || session?.archive_error) detail.title = session.terminal_error || session.archive_error;
+    host.append(eyebrow, title, detail);
+    host.dataset.state = session?.state || 'NONE';
+  }
+
   function renderSessionList(sessions) {
     const target = $('continuousSessionList');
     target.replaceChildren();
+    renderSelectedSessionSummary();
     setText('continuousSessionCount', sessions.length);
     if (!sessions.length) {
       target.append(element('p', '尚无持续会话，填写上方表单创建。', 'continuous-muted'));
@@ -380,6 +402,7 @@
         });
       }
     }
+    renderSelectedSessionSummary();
     const live = Boolean(session) && !terminal.has(session.state);
     const mode = info?.runtime_mode || state.policy?.mode || '未连接';
     setText('continuousRuntimeMode', mode === 'SUPERVISED_NATIVE_CHILD'
