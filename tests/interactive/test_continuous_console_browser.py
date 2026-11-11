@@ -167,6 +167,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").count() == 1
             page.locator("#wizardOptions [data-wizard-mode='limited_realtime']").click()
             page.locator("#interactiveView").wait_for(state="visible", timeout=15000)
+            assert page.locator("#interactiveCreateDetails").evaluate("(el) => el.open")
             assert page.locator("#wizardView").is_visible()
             assert page.locator("#interactiveView").evaluate("(node) => node.closest('#wizardView') !== null")
             page.locator("#interactiveWizardBackBtn").click()
@@ -248,6 +249,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#wizardAdvancedBtn").click()
             page.locator("#modeContinuousRealtimeBtn").click()
             page.locator("#continuousView").wait_for(state="visible", timeout=15000)
+            assert page.locator("#continuousCreateDetails").evaluate("(el) => el.open")
             assert page.locator("#wizardView").is_visible()
             assert page.locator("#continuousView").evaluate("(node) => node.closest('#wizardView') !== null")
             assert "参数审核完成" in page.locator("#simulationModeChooserStatus").inner_text()
@@ -296,6 +298,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert len(running) == 1
             assert page.locator("#continuousState").inner_text() == "准备就绪"
             assert page.locator("#continuousState").get_attribute("title") == "READY"
+            assert not page.locator("#continuousCreateDetails").evaluate("(el) => el.open")
+            assert not page.locator("#continuousEngineeringDetails").evaluate("(el) => el.open")
             assert page.locator("#continuousCommandSubmit").is_enabled()
             original = client.get("/interactive/continuous/sessions/browser-r7d/configuration")
             assert original.status_code == 200, original.text
