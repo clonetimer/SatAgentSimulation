@@ -51,3 +51,17 @@ def test_both_realtime_modes_expose_a_consistent_current_session_summary():
     assert "data-state" in app
     assert "data-state" in continuous
     assert ".realtime-current-session" in css
+
+
+def test_both_realtime_modes_share_visible_control_labels_and_button_contract():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    css = Path("src/sat_sim/web/styles.css").read_text(encoding="utf-8")
+    for label in ("启动", "暂停", "继续", "单步", "停止并归档"):
+        assert f">{label}</button>" in html
+    assert html.count("realtime-control-button") >= 10
+    assert ".realtime-control-button" in css
+    assert 'data-continuous-action="start"' in html
+    assert 'data-continuous-action="pause"' in html
+    assert 'data-continuous-action="resume"' in html
+    assert 'data-continuous-action="step"' in html
+    assert 'data-continuous-action="stop"' in html
