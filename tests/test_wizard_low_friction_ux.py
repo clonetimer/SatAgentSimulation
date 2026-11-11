@@ -38,7 +38,7 @@ def test_wizard_curve_presets_are_schema_derived_and_task_center_is_dialog_route
     assert "wizardToggleCurveGroup" in js
     assert "wizardTaskList" in js
     assert "openTaskFromCenter(task.task_id, { guided: true })" in js
-    assert "runTaskFromCenter(taskId, { guided: true })" in js
+    assert "runTaskFromCenter(task.task_id, { guided: true })" in js
     assert "保存为新版本" in js
 
 
