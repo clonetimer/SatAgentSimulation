@@ -130,7 +130,8 @@
     agentGenerating: false,
     formErrors: new Map(),
     discoveredModels: [],
-    activeView: "creator",
+    activeView: "wizard",
+    wizard: { goal: null, step: "welcome", level: null, objectId: null, faultEffect: null, validated: false, messages: [] },
     scenarioTemplates: [],
     experiments: [],
     goals: [],
@@ -7433,11 +7434,36 @@
     await refreshInteractiveDetails();
   }
 
+  function wizardMessage(role, message) { state.wizard.messages.push({ role, message }); }
+  function wizardSetStep(step, prompt, userMessage = null) { if (userMessage) wizardMessage('user', userMessage); state.wizard.step = step; state.wizard.validated = false; if (prompt) wizardMessage('assistant', prompt); renderSimulationWizard(); }
+  function wizardOption(host, title, detail, onClick) { const button = document.createElement('button'); button.type = 'button'; button.className = 'wizard-option'; const strong = document.createElement('strong'); strong.textContent = title; const small = document.createElement('small'); small.textContent = detail || ''; button.append(strong, small); button.addEventListener('click', onClick); host.appendChild(button); }
+  function wizardReset() { state.wizard = { goal: null, step: 'welcome', level: null, objectId: null, faultEffect: null, validated: false, messages: [] }; wizardMessage('assistant', '你好！你想进行哪一种仿真？请选择一个功能，我会按固定步骤引导你完成。'); renderSimulationWizard(); }
+  function wizardBack() { const previous = { level: 'welcome', object: 'level', fault: 'object', configure: state.wizard.goal === 'fault_run' ? 'fault' : 'object', review: 'configure' }[state.wizard.step]; if (!previous) return; state.wizard.messages.pop(); state.wizard.step = previous; state.wizard.validated = false; renderSimulationWizard(); }
+  function wizardStart(goal) { state.wizard.goal = goal; state.wizard.level = null; state.wizard.objectId = null; state.wizard.faultEffect = null; state.wizard.validated = false; if (goal === 'history') { switchView('tasks'); return; } if (goal === 'compare') { switchView('runs'); return; } if (goal === 'advanced') { switchView('creator'); return; } wizardSetStep('level', '先选择仿真对象的范围。你可以选择整星、一个分系统，或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真'); }
+  function wizardChooseLevel(level) { state.wizard.level = level; const labels = { whole_spacecraft: '整星', subsystem: '分系统', component: '部件' }; wizardSetStep('object', '请选择具体仿真对象。列表来自当前平台已注册的模型能力。', labels[level] || level); }
+  async function wizardChooseObject(objectId) { const object = state.presentationObjects.find((item) => item.object_id === objectId); if (!object || !(object.primary_capability_id || object.configuration_capability_id)) { el('wizardNotice').textContent = '该对象目前没有可配置的执行能力，请选择其他对象。'; return; } await selectCatalogObject(objectId); if (!state.schema || !state.formData) { el('wizardNotice').textContent = '对象 Schema 未能加载，请稍后重试或进入高级工作台。'; return; } state.wizard.objectId = objectId; const label = object.name_zh || object.name_en || objectId; if (state.wizard.goal === 'fault_run') wizardSetStep('fault', '该对象已加载。请选择一个当前模型正式注册的故障类型。', label); else wizardSetStep('configure', '对象已准备好。请确认仿真时长和采样间隔；其他专业参数可以稍后在高级工作台调整。', label); }
+  function wizardChooseFault(effect) { const item = effectCatalog('fault').find((entry) => entry.effect === effect); if (!item) { el('wizardNotice').textContent = '该故障不在当前模型的注册目录中，未添加任何事件。'; return; } el('effectKind').value = 'fault'; renderEffectSelect(); el('effectSelect').value = effect; addEffect(); state.wizard.faultEffect = effect; wizardSetStep('configure', '已添加故障事件模板。默认生效时间和参数可以在高级事件编辑中进一步调整。现在请确认仿真时长和采样间隔。', item.label || effect); }
+  function wizardRuntimeField(path, label) { const field = (state.schema.fields || []).find((item) => item.path === path) || {}; const wrapper = document.createElement('label'); wrapper.textContent = label + (field.unit ? '（' + field.unit + '）' : ''); const input = document.createElement('input'); input.type = 'number'; input.step = 'any'; input.dataset.wizardField = path; if (field.minimum != null) input.min = String(field.minimum); if (field.maximum != null) input.max = String(field.maximum); input.value = String(getPath(state.formData, path) ?? field.default ?? ''); input.addEventListener('change', () => { const value = Number(input.value); if (!Number.isFinite(value) || value <= 0 || (field.minimum != null && value < field.minimum) || (field.maximum != null && value > field.maximum)) { input.setCustomValidity('请输入符合参数范围的正数。'); input.reportValidity(); state.wizard.validated = false; return; } input.setCustomValidity(''); setPath(state.formData, path, value); state.taskSpec = null; state.planning = null; state.wizard.validated = false; renderForm(); renderEvents(); renderOutputs(); updateSingleRunSummary(); el('wizardNotice').textContent = '配置已更新，需要重新校验后才能运行。'; }); wrapper.appendChild(input); return wrapper; }
+  function renderSimulationWizard() {
+    const conversation = el('wizardConversation'); const options = el('wizardOptions'); if (!conversation || !options) return; conversation.replaceChildren(); options.replaceChildren();
+    state.wizard.messages.forEach((entry) => { const bubble = document.createElement('div'); bubble.className = 'wizard-message ' + entry.role; const role = document.createElement('strong'); role.textContent = entry.role === 'user' ? '你的选择' : '仿真向导'; const text = document.createElement('span'); text.textContent = entry.message; bubble.append(role, text); conversation.appendChild(bubble); }); conversation.scrollTop = conversation.scrollHeight;
+    const option = (title, detail, callback) => wizardOption(options, title, detail, callback);
+    if (state.wizard.step === 'welcome') { [['normal_run','运行正常仿真','按选定对象和运行参数执行一次仿真'],['fault_run','注入故障并仿真','选择已注册故障，观察系统响应'],['history','查看历史任务','查看已保存的任务配置'],['compare','对比两次运行','比较两次已完成运行的结果'],['advanced','高级建模与配置','进入完整工作台、图形组装和 TaskSpec']].forEach((item) => option(item[1], item[2], () => wizardStart(item[0]))); }
+    else if (state.wizard.step === 'level') { [['whole_spacecraft','整星','运行整星集成模型'],['subsystem','分系统','选择 ADCS、EPS、通信等'],['component','部件','单独运行已注册部件模型']].forEach((item) => option(item[1], item[2], () => wizardChooseLevel(item[0]))); }
+    else if (state.wizard.step === 'object') { const rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id)); if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); } rows.forEach((item) => option(item.name_zh || item.name_en || item.object_id, item.summary_zh || (item.independently_executable ? '可独立配置和运行' : '使用所属模型配置'), () => wizardChooseObject(item.object_id).catch((error) => { el('wizardNotice').textContent = error.message; }))); }
+    else if (state.wizard.step === 'fault') { const faults = effectCatalog('fault'); if (!faults.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前模型没有注册可用故障。没有虚构或替代故障选项。'; options.appendChild(empty); } faults.forEach((item) => option(item.label || item.effect, item.description || '使用该模型注册的故障事件模板', () => wizardChooseFault(item.effect))); }
+    else if (state.wizard.step === 'configure') { const fields = document.createElement('div'); fields.className = 'wizard-runtime-fields'; fields.append(wizardRuntimeField('simulation.duration_s', '仿真时长'), wizardRuntimeField('simulation.sample_s', '采样间隔')); options.appendChild(fields); option('高级参数与故障细节', '打开原生表单，可编辑专业参数、故障作用时间和输出量', () => { switchView('creator'); switchTab('form'); if (state.wizard.goal === 'fault_run') el('compactEvents').open = true; el('formFieldSearch').focus(); }); option('下一步：检查配置', '查看配置摘要并执行正式校验', () => wizardSetStep('review', '请检查当前配置。点击“校验配置”后，系统会调用正式 TaskSpec 校验和执行计划编译；通过后才允许运行。')); }
+    else if (state.wizard.step === 'review') { const review = document.createElement('div'); review.className = 'wizard-review'; const rows = [['仿真对象', el('selectedCapabilityName').textContent],['仿真时长', String(getPath(state.formData, 'simulation.duration_s')) + ' s'],['采样间隔', String(getPath(state.formData, 'simulation.sample_s')) + ' s'],['故障事件', String((state.formData.events.faults || []).length) + ' 个'],['输出曲线', String((state.formData.outputs.plots || []).length) + ' 条']]; rows.forEach((item) => { const row = document.createElement('div'); row.className = 'wizard-review-row'; const name = document.createElement('span'); name.textContent = item[0]; const value = document.createElement('strong'); value.textContent = item[1]; row.append(name, value); review.appendChild(row); }); options.appendChild(review);
+      option('校验配置', '仅校验，不会启动仿真', async () => { el('wizardNotice').textContent = '正在校验配置…'; try { const valid = await previewForm(); state.wizard.validated = Boolean(valid); el('wizardNotice').textContent = valid ? '配置校验通过。现在可以运行仿真。' : '配置未通过校验，请返回修改参数。'; renderSimulationWizard(); } catch (error) { state.wizard.validated = false; el('wizardNotice').textContent = '校验失败：' + error.message; } });
+      const run = document.createElement('button'); run.type = 'button'; run.className = 'wizard-option'; run.disabled = !state.wizard.validated; const runTitle = document.createElement('strong'); runTitle.textContent = '运行仿真'; const runDetail = document.createElement('small'); runDetail.textContent = state.wizard.validated ? '提交到现有 Basilisk 执行队列' : '请先通过配置校验'; run.append(runTitle, runDetail); run.addEventListener('click', async () => { if (!state.wizard.validated) return; try { await runSimulation(); switchView('creator'); } catch (error) { el('wizardNotice').textContent = '运行失败：' + error.message; } }); options.appendChild(run);
+    }
+    el('wizardBackBtn').disabled = state.wizard.step === 'welcome';
+  }
   function switchView(name) {
     state.activeView = name;
     document.body.dataset.activeView = name;
     const viewIds = {
-      creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
+      wizard: 'wizardView', creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
       goals: 'goalRunView',
       interactive: 'interactiveView', continuous: 'continuousView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
     };
@@ -9369,6 +9395,9 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
         if (targetId !== 'plotOptions') target?.focus({ preventScroll: true });
       });
     });
+    el('wizardBackBtn').addEventListener('click', wizardBack);
+    el('wizardResetBtn').addEventListener('click', wizardReset);
+    el('wizardAdvancedBtn').addEventListener('click', () => switchView('creator'));
     el('previewBtn').addEventListener('click', async () => {
       const graphMode = document.querySelector('.tab.active')?.dataset.tab === 'graph';
       showBusy(graphMode ? '校验图形流程' : '校验并编译 TaskSpec', graphMode ? '检查节点结构并编译 Canonical TaskSpec' : '解析 Schema 表单与能力约束');
@@ -9564,6 +9593,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     await Promise.allSettled([loadHeader(), loadRuns(), loadSingleRunReadiness(), loadModelProviders(), loadTasks(), loadScenarioTemplates(), loadExperiments(), loadInteractiveAvailability()]);
     try {
       await loadCapabilities();
+      wizardReset();
       await loadAssemblyCatalog();
       await loadModuleLibrary();
     } catch (error) {
