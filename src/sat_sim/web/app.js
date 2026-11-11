@@ -8605,6 +8605,21 @@
         if (index === 0) cell.className = 'task-id';
         row.appendChild(cell);
       });
+      const actionCell = document.createElement('td');
+      const viewRun = document.createElement('button');
+      viewRun.type = 'button'; viewRun.className = 'button button-ghost'; viewRun.textContent = '查看结果';
+      viewRun.addEventListener('click', async () => {
+        closeTaskDetails();
+        if (state.activeView === 'wizard') {
+          state.wizard.goal = 'history'; state.wizard.step = 'results';
+          wizardMessage('assistant', `正在打开历史运行 ${run.run_id} 的结果和证据。`);
+          switchView('wizard');
+        } else switchView('creator');
+        const loaded = await loadRun(run.run_id);
+        if (loaded && state.activeView === 'wizard') renderSimulationWizard();
+      });
+      actionCell.appendChild(viewRun);
+      row.appendChild(actionCell);
       runBody.appendChild(row);
     });
     el('taskDetailsModal').classList.remove('hidden');
@@ -8676,6 +8691,7 @@
   async function deleteTaskFromCenter(taskId) {
     if (!window.confirm(`确认删除任务“${taskId}”？已生成的 Run Bundle 不会被删除。`)) return;
     await api(`/task-center/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
+    if (state.activeTaskCenterId === taskId) { state.activeTaskCenterId = null; updateTaskEditState(); }
     await loadTasks();
   }
 
