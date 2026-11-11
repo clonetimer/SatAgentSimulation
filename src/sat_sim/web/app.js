@@ -5862,9 +5862,9 @@
         ['telemetry', api(`/runs/${encodeURIComponent(runId)}/telemetry?limit=2000`)],
         ['artifacts', api(`/runs/${encodeURIComponent(runId)}/artifacts`)],
         ['dataset', api(`/runs/${encodeURIComponent(runId)}/dataset`)],
-        ...(availability?.fmea === false ? [] : [['fmea', api(`/runs/${encodeURIComponent(runId)}/fmea`])]),
-        ...(availability?.fault_traceability === false ? [] : [['traceability', api(`/runs/${encodeURIComponent(runId)}/fault-traceability`])]),
       ];
+      if (availability?.fmea !== false) sourceRequests.push(['fmea', api(`/runs/${encodeURIComponent(runId)}/fmea`)]);
+      if (availability?.fault_traceability !== false) sourceRequests.push(['traceability', api(`/runs/${encodeURIComponent(runId)}/fault-traceability`)]);
       const sourceResults = await Promise.all(sourceRequests.map(async ([name, request]) => {
         try { return [name, await request, null]; }
         catch (error) { return [name, null, error.message || String(error)]; }
