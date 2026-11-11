@@ -915,3 +915,25 @@ body[data-active-view="continuous"] .app-content {
   .wizard-task-more { width: fit-content; }
   .wizard-task-more-actions { position: static; margin-top: 5px; box-shadow: none; }
 }
+
+.wizard-config-graph-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+}
+.wizard-config-graph-action > span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.wizard-config-graph-action .button { flex: 0 0 auto; min-height: 34px; }
+@media (max-width: 600px) {
+  .wizard-config-graph-action { align-items: stretch; flex-direction: column; }
+  .wizard-config-graph-action .button { width: 100%; }
+}
