@@ -54,6 +54,14 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     page.locator('#fontScaleSelect').select_option(font)
                     page.locator('#toggleMobileToolsBtn').click()
                 page.locator('#creatorGraphTabButton').click()
+                page.locator('#graphConversationGuide').wait_for(state='visible')
+                assert '建模助手' in page.locator('#graphConversationGuide').inner_text()
+                assert page.locator('#graphGuideNextTitle').inner_text().strip()
+                assert page.locator('#graphGuideNextDetail').inner_text().strip()
+                page.locator('#graphGuideChooseModuleBtn').click()
+                assert page.locator('#graphCapabilitySearch').evaluate(
+                    '(node) => node === document.activeElement'
+                )
                 for mode in ['flow','assembly']:
                     page.locator('#graphFlowModeBtn' if mode=='flow' else '#graphAssemblyModeBtn').click()
                     if mode=='assembly':
