@@ -342,6 +342,27 @@
 
         <div id="graphTab" class="tab-content" data-panel="graph" role="tabpanel" aria-labelledby="creatorGraphTabButton">
           <section class="graph-workbench" aria-label="图形化仿真组装器">
+            <section id="graphConversationGuide" class="graph-conversation-guide" aria-label="图形建模助手">
+              <div class="graph-guide-heading">
+                <div class="graph-guide-avatar" aria-hidden="true">✦</div>
+                <div>
+                  <strong>建模助手</strong>
+                  <p>告诉你下一步做什么；实际模块拖拽、端口连接和参数编辑仍在下方画布完成。</p>
+                </div>
+                <span id="graphGuideProgress" class="status-chip status-muted">准备中</span>
+              </div>
+              <div class="graph-guide-message" role="status" aria-live="polite">
+                <strong id="graphGuideNextTitle">从一个可执行模型开始</strong>
+                <span id="graphGuideNextDetail">从左侧模块库选择执行能力，拖入画布；也可以先恢复推荐流程，再按需要调整。</span>
+              </div>
+              <div class="graph-guide-actions" role="group" aria-label="建模快捷操作">
+                <button id="graphGuideChooseModuleBtn" class="button button-secondary" type="button">选择模块</button>
+                <button id="graphGuideRestoreBtn" class="button button-ghost" type="button">恢复推荐流程</button>
+                <button id="graphGuideAutoWireBtn" class="button button-ghost" type="button">自动布线</button>
+                <button id="graphGuideValidateBtn" class="button button-primary" type="button">正式校验</button>
+              </div>
+              <div class="graph-guide-footnote">快捷操作调用现有图编辑器和后端校验；不会绕过端口类型、DAG、TaskSpec 或运行前检查。</div>
+            </section>
             <div class="graph-toolbar">
               <div>
                 <h3>图形组装</h3>

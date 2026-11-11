@@ -40,3 +40,24 @@ def test_realtime_conversation_mount_keeps_app_frame_full_width():
     assert '.app-frame:has(.wizard-view[data-runtime-mode="continuous"])' in css
     assert "grid-template-columns: minmax(0, 1fr) !important;" in css
     assert ".app-frame:has(.wizard-view[data-runtime-mode=\"continuous\"]) .app-content" in css
+
+
+def test_graph_modeling_has_conversational_guide_over_native_drag_canvas():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    css = Path("src/sat_sim/web/compact-workbench.css").read_text(encoding="utf-8")
+
+    assert 'id="graphConversationGuide"' in html
+    assert 'id="graphGuideNextTitle"' in html
+    assert 'id="graphGuideNextDetail"' in html
+    assert 'id="graphCanvas"' in html
+    assert 'id="graphCapabilityPalette"' in html
+    assert 'id="graphInspector"' in html
+    assert "function renderGraphGuide()" in js
+    assert "renderGraphGuide();" in js
+    assert "graphValidateStructure({ requireCode: true, requireRun: true })" in js
+    assert "graphCompile({ requireCode: true, requireRun: true })" in js
+    assert "graphInitialize(true)" in js
+    assert "graphAutoWire()" in js
+    assert ".graph-conversation-guide" in css
+    assert "不会绕过端口类型、DAG、TaskSpec" in html

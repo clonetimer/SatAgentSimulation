@@ -859,3 +859,36 @@ body[data-active-view="continuous"] .app-content {
   width: 100%;
   min-width: 0;
 }
+
+/* P6: conversational guidance paired with the native drag-and-drop graph canvas. */
+.graph-conversation-guide {
+  display: grid;
+  gap: 11px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 30%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-2) 4%, var(--panel));
+}
+.graph-guide-heading { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.graph-guide-avatar {
+  display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px;
+  border-radius: 9px; background: var(--panel-2); color: var(--accent-2); font-size: 16px;
+}
+.graph-guide-heading > div:nth-child(2) { min-width: 0; }
+.graph-guide-heading strong { display: block; color: var(--text); font-size: 12px; }
+.graph-guide-heading p { margin: 3px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.graph-guide-heading > .status-chip { margin-left: auto; flex: 0 0 auto; }
+.graph-guide-message { display: grid; gap: 4px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+.graph-guide-message strong { font-size: 12px; color: var(--text); }
+.graph-guide-message span { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.graph-guide-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.graph-guide-actions .button { min-height: 34px; padding: 6px 11px; font-size: 11px; }
+.graph-guide-actions .button:disabled { opacity: .45; cursor: not-allowed; }
+.graph-guide-footnote { color: var(--muted); font-size: 9px; line-height: 1.5; }
+@media (max-width: 620px) {
+  .graph-conversation-guide { padding: 11px; }
+  .graph-guide-heading { align-items: flex-start; flex-wrap: wrap; }
+  .graph-guide-heading > .status-chip { margin-left: 40px; }
+  .graph-guide-actions .button { flex: 1 1 calc(50% - 7px); }
+}

@@ -1654,6 +1654,56 @@
     return button;
   }
 
+  function renderGraphGuide() {
+    const title = el('graphGuideNextTitle');
+    const detail = el('graphGuideNextDetail');
+    const badge = el('graphGuideProgress');
+    if (!title || !detail || !badge) return;
+    const nodes = state.graphNodes || [];
+    const edges = state.graphEdges || [];
+    const structural = graphValidateStructure({ requireCode: true, requireRun: true });
+    let nextTitle = '';
+    let nextDetail = '';
+    let status = '进行中';
+    let statusClass = 'status-muted';
+    if (!state.selectedCapabilityId || !state.formData) {
+      nextTitle = '先选择一个可执行模型';
+      nextDetail = '在左侧模块库搜索整星、分系统或部件，将合适的执行能力拖到画布。当前没有可用模型配置时，先返回对象选择步骤。';
+    } else if (!nodes.length) {
+      nextTitle = '把第一个模块放到画布';
+      nextDetail = '从左侧模块库拖入执行能力，随后添加参数配置、事件注入和输出选择等流程块。';
+    } else if (!structural.ok) {
+      nextTitle = '先处理图结构问题';
+      nextDetail = structural.errors.slice(0, 2).join('；') + (structural.errors.length > 2 ? `；另有 ${structural.errors.length - 2} 项` : '');
+      status = '待处理 ' + structural.errors.length;
+      statusClass = 'status-warn';
+    } else if (!graphCodeIsFresh()) {
+      nextTitle = '图结构完整，可以进行正式校验';
+      nextDetail = '前端结构检查已通过。点击“正式校验”后，服务端会继续执行端口拓扑、TaskSpec、能力边界和执行计划校验。';
+      status = '待后端校验';
+      statusClass = 'status-warn';
+    } else {
+      nextTitle = '图与生成代码保持一致';
+      nextDetail = '可以检查节点参数，或构建并运行。任何图或参数修改都会使校验/代码上下文失效，需要重新校验。';
+      status = '可运行候选';
+      statusClass = 'status-ok';
+    }
+    title.textContent = nextTitle;
+    detail.textContent = nextDetail;
+    badge.textContent = status;
+    badge.className = 'status-chip ' + statusClass;
+    const choose = el('graphGuideChooseModuleBtn');
+    if (choose) choose.textContent = nodes.length ? '继续添加模块' : '选择模块';
+    const restore = el('graphGuideRestoreBtn');
+    if (restore) restore.disabled = !state.selectedCapabilityId || !state.formData;
+    const wire = el('graphGuideAutoWireBtn');
+    if (wire) wire.disabled = nodes.length < 2;
+    const validate = el('graphGuideValidateBtn');
+    if (validate) validate.disabled = !state.selectedCapabilityId || !state.formData;
+    const summary = el('graphGuideProgress');
+    summary.title = `${nodes.length} 个节点 · ${edges.length} 条连线`;
+  }
+
   function renderGraph() {
     const host = el('graphNodes');
     if (!host) return;
@@ -1692,6 +1742,7 @@
     el('graphEmptyHint')?.classList.toggle('hidden', state.graphNodes.length > 0);
     requestAnimationFrame(graphDrawEdges);
     renderGraphInspector();
+    renderGraphGuide();
   }
 
   function graphInspectorMetaRow(label, value) {
@@ -10388,6 +10439,23 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('graphAutoWireBtn').addEventListener('click', () => graphAutoWire());
     el('graphAutoLayoutBtn').addEventListener('click', graphAutoLayout);
     el('graphValidateBtn').addEventListener('click', async () => { showBusy('校验图形流程', '节点结构 → TaskSpec → 执行计划'); try { await graphCompile({ requireCode: true, requireRun: true }); } catch (error) { graphSetStatus(error.message, 'error'); } finally { hideBusy(); } });
+    el('graphGuideChooseModuleBtn')?.addEventListener('click', () => {
+      const palette = el('graphCapabilityPalette');
+      palette?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el('graphCapabilitySearch')?.focus({ preventScroll: true });
+      graphSetStatus('在左侧模块库搜索并拖入执行能力；放置后可继续添加流程块。');
+    });
+    el('graphGuideRestoreBtn')?.addEventListener('click', () => {
+      if (state.graphNodes.length && !confirm('恢复推荐流程会替换当前流程节点和连线。确定继续吗？')) return;
+      graphInitialize(true);
+      graphAutoLayout();
+      graphSetStatus('已恢复推荐流程。你可以调整参数、拖动节点或重新连接端口。', 'success');
+    });
+    el('graphGuideAutoWireBtn')?.addEventListener('click', () => {
+      if (state.graphEdges.length && !confirm('自动布线会替换当前全部连线，但不会删除节点。确定继续吗？')) return;
+      graphAutoWire();
+    });
+    el('graphGuideValidateBtn')?.addEventListener('click', () => el('graphValidateBtn')?.click());
     el('graphResultOverlayBtn').addEventListener('click', () => openVisualRunResults('flow').catch((error) => graphSetStatus(`打开结果失败：${error.message}`, 'error')));
     el('graphGenerateCodeBtn').addEventListener('click', async () => { showBusy('生成可执行 Python', '使用受约束 deterministic script exporter'); try { await graphGeneratePython(); } catch (error) { graphSetStatus(error.message, 'error'); } finally { hideBusy(); } });
     el('graphExportProgramBtn').addEventListener('click', async () => { showBusy('导出可运行程序包', 'TaskSpec + Python + 启动脚本'); try { await graphExportProgram(); } catch (error) { graphSetStatus(`程序包导出失败：${error.message}`, 'error'); } finally { hideBusy(); } });
