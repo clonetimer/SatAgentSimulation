@@ -161,6 +161,28 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#interactiveView").evaluate("(node) => node.closest('#wizardView') !== null")
             page.locator("#interactiveWizardBackBtn").click()
             page.locator("#wizardOptions [data-wizard-mode='offline']").wait_for(state="visible")
+            # P2: the wizard exposes three disclosure levels without removing
+            # or rebuilding the authoritative Schema-backed form.
+            page.locator("#wizardParametersPanel > summary").click()
+            form = page.locator("#wizardParameterHost #dynamicForm")
+            form.wait_for(state="attached")
+            registered_field_count = form.locator(".form-field").count()
+            assert registered_field_count > 0
+            page.locator('[data-wizard-parameter-mode="runtime"]').click()
+            assert form.get_attribute("data-wizard-parameter-mode") == "runtime"
+            assert not form.is_visible()
+            assert form.locator(".form-field").count() == registered_field_count
+            page.locator('[data-wizard-parameter-mode="recommended"]').click()
+            assert form.get_attribute("data-wizard-parameter-mode") == "recommended"
+            assert form.is_visible()
+            page.locator('[data-wizard-parameter-mode="all"]').click()
+            assert form.get_attribute("data-wizard-parameter-mode") == "all"
+            assert page.locator('[data-wizard-parameter-mode="all"]').get_attribute("aria-pressed") == "true"
+            assert form.locator(".advanced-fields").count() > 0
+            page.locator('[data-wizard-parameter-mode="recommended"]').click()
+            page.locator("#wizardParameterSearch").fill("orbit")
+            assert form.locator(".form-field").count() > 0
+            page.locator("#wizardParameterSearch").fill("")
             # The default entry is now the rule-driven wizard; this regression
             # exercises the advanced realtime controls and explicitly enters
             # the retained engineering workbench before editing its form.
