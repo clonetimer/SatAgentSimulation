@@ -4715,7 +4715,13 @@
       const help = document.createElement('details'); help.className='field-help';
       const helpSummary = document.createElement('summary'); helpSummary.textContent='参数说明';
       const description = document.createElement('span'); description.className='field-description'; description.textContent=field.description || '该参数由能力注册表定义。';
+      const schemaMeta = document.createElement('span'); schemaMeta.className='field-schema-meta';
+      const metaParts = [];
+      if (field.default !== undefined) metaParts.push('Schema 默认值：' + displayFieldValue(field.default, field));
+      if (field.minimum !== undefined || field.maximum !== undefined) metaParts.push('允许范围：' + (field.minimum !== undefined ? field.minimum : '不限') + ' ～ ' + (field.maximum !== undefined ? field.maximum : '不限'));
+      schemaMeta.textContent = metaParts.join('；');
       help.append(helpSummary, description);
+      if (metaParts.length) help.appendChild(schemaMeta);
       let input;
       if (field.widget === 'select') {
         input=document.createElement('select');
