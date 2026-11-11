@@ -5855,16 +5855,30 @@
       const runPayload = await api(`/runs/${encodeURIComponent(runId)}`);
       if (requestId !== state.runLoadRequestId) return false;
       const availability = runPayload.run?.available_outputs;
-      const [metricsPayload, eventsPayload, plotsPayload, telemetryPayload, artifactsPayload, datasetPayload, fmeaPayload, traceabilityPayload] = await Promise.all([
-        api(`/runs/${encodeURIComponent(runId)}/metrics`).catch(() => ({ metrics: {} })),
-        api(`/runs/${encodeURIComponent(runId)}/events`).catch(() => ({ events: null })),
-        api(`/runs/${encodeURIComponent(runId)}/plots`).catch(() => ({ plot_manifest: null })),
-        api(`/runs/${encodeURIComponent(runId)}/telemetry?limit=2000`).catch(() => ({ rows: [] })),
-        api(`/runs/${encodeURIComponent(runId)}/artifacts`).catch(() => ({ artifacts: [] })),
-        api(`/runs/${encodeURIComponent(runId)}/dataset`).catch(() => ({ dataset: null })),
-        availability?.fmea === false ? { table: null, manifest: null } : api(`/runs/${encodeURIComponent(runId)}/fmea`).catch(() => ({ table: null, manifest: null })),
-        availability?.fault_traceability === false ? { traceability: null } : api(`/runs/${encodeURIComponent(runId)}/fault-traceability`).catch(() => ({ traceability: null })),
-      ]);
+      const sourceRequests = [
+        ['metrics', api(`/runs/${encodeURIComponent(runId)}/metrics`)],
+        ['events', api(`/runs/${encodeURIComponent(runId)}/events`)],
+        ['plots', api(`/runs/${encodeURIComponent(runId)}/plots`)],
+        ['telemetry', api(`/runs/${encodeURIComponent(runId)}/telemetry?limit=2000`)],
+        ['artifacts', api(`/runs/${encodeURIComponent(runId)}/artifacts`)],
+        ['dataset', api(`/runs/${encodeURIComponent(runId)}/dataset`)],
+        ...(availability?.fmea === false ? [] : [['fmea', api(`/runs/${encodeURIComponent(runId)}/fmea`])]),
+        ...(availability?.fault_traceability === false ? [] : [['traceability', api(`/runs/${encodeURIComponent(runId)}/fault-traceability`])]),
+      ];
+      const sourceResults = await Promise.all(sourceRequests.map(async ([name, request]) => {
+        try { return [name, await request, null]; }
+        catch (error) { return [name, null, error.message || String(error)]; }
+      }));
+      const sourceErrors = Object.fromEntries(sourceResults.filter(([, , error]) => error).map(([name, , error]) => [name, error]));
+      const sourcePayloads = Object.fromEntries(sourceResults.filter(([, payload]) => payload).map(([name, payload]) => [name, payload]));
+      const metricsPayload = sourcePayloads.metrics || { metrics: {} };
+      const eventsPayload = sourcePayloads.events || { events: null };
+      const plotsPayload = sourcePayloads.plots || { plot_manifest: null };
+      const telemetryPayload = sourcePayloads.telemetry || { rows: [] };
+      const artifactsPayload = sourcePayloads.artifacts || { artifacts: [] };
+      const datasetPayload = sourcePayloads.dataset || { dataset: null };
+      const fmeaPayload = availability?.fmea === false ? { table: null, manifest: null } : (sourcePayloads.fmea || { table: null, manifest: null });
+      const traceabilityPayload = availability?.fault_traceability === false ? { traceability: null } : (sourcePayloads.traceability || { traceability: null });
       if (requestId !== state.runLoadRequestId) return false;
       // Finite-run charts must span the entire trace, not silently show only
       // the first 2,000 samples. This bounded preview preserves actual extrema.
@@ -5917,6 +5931,24 @@
       renderEventsResult();
       renderTraceability();
       renderArtifacts();
+      const warningHost = el('activeRunCard');
+      warningHost.querySelector('.run-source-warnings')?.remove();
+      if (Object.keys(sourceErrors).length) {
+        const warnings = document.createElement('section');
+        warnings.className = 'run-source-warnings';
+        warnings.setAttribute('role', 'status');
+        const heading = document.createElement('strong');
+        heading.textContent = '部分结果数据读取失败';
+        const list = document.createElement('ul');
+        const labels = { metrics: '结果指标', events: '事件记录', plots: '曲线清单', telemetry: '遥测数据', artifacts: '运行制品', dataset: '数据集', fmea: 'FMEA', traceability: '故障追溯' };
+        Object.entries(sourceErrors).forEach(([name, message]) => {
+          const item = document.createElement('li');
+          item.textContent = `${labels[name] || name}：${message}`;
+          list.appendChild(item);
+        });
+        warnings.append(heading, list);
+        warningHost.appendChild(warnings);
+      }
       switchResultTab('overview');
       return true;
     } catch (error) {
