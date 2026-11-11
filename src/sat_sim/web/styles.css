@@ -1748,3 +1748,41 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   .goal-detail-header { flex-direction: column; }
   .goal-create-actions { align-items: stretch; }
 }
+
+/* P5: shared selected-session summary for both realtime execution modes. */
+.realtime-current-session {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  min-width: 0;
+}
+.realtime-current-session > span {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: .02em;
+}
+.realtime-current-session > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 11px;
+}
+.realtime-current-session > small {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.realtime-current-session[data-state="RUNNING"] {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+}
+.realtime-current-session[data-state="FAILED"],
+.realtime-current-session[data-state="INTERRUPTED"],
+.realtime-current-session[data-state="ABORTED"] {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+}
