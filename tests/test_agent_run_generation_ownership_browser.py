@@ -54,6 +54,7 @@ def test_pending_generation_has_one_owner_across_agent_and_run(tmp_path, first_a
                     headers={'content-type':response.headers.get('content-type','application/octet-stream')})
             page.route('https://workbench.test/**',proxy)
             page.goto('https://workbench.test/',wait_until='networkidle')
+            page.locator('#wizardAdvancedBtn').click()
             page.locator('.capability-card.active').wait_for(state='attached')
             assert page.locator('#taskSpecEditor').input_value()==''
             page.locator('#creatorAgentTabButton').click()
