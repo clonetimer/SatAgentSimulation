@@ -174,7 +174,7 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             # The default entry is the wizard; this legacy path exercises the retained advanced creator.
-            page.locator(".nav-button[data-view=creator]").click()
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#singleRunGuide[data-stage='configure']").wait_for(timeout=30000)
             assert page.locator("#singleRunGuide .single-run-step").count() == 3
             _reveal_with_keyboard(page, "#singleRunReadiness", tmp_path, "model-readiness-menu")
@@ -410,7 +410,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
 
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
-            page.locator(".nav-button[data-view=creator]").click()
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#runList .run-list-item").first.wait_for(timeout=30000)
             page.locator("#runList [data-run-id='ui-a']").click()
             page.locator("#activeRunCard .run-id").get_by_text("UI 曲线验收 A").wait_for(timeout=20000)
