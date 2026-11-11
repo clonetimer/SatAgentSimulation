@@ -794,6 +794,7 @@ def _parameter_fields(contract: Any) -> list[dict[str, Any]]:
             f"parameters.values.{name}",
             payload,
             label=PARAMETER_LABELS.get(str(name), _human_label(str(name))),
+            description=COMMON_PARAMETER_DESCRIPTIONS.get(str(name)),
             importance=_field_importance(capability_id, str(name)),
         )
         field.update(_parameter_group(capability_id, str(name)))
