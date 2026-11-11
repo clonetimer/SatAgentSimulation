@@ -5671,7 +5671,15 @@
       showNotice(`仿真“${displayName}”已提交执行（Run ID：${runId}）。可以继续编辑其他任务，无需进入运行中心。`, 'success');
       await loadRuns();
       hideBusy();
+      if (state.activeView === 'wizard') el('wizardRunResultsHost')?.classList.remove('hidden');
       await pollRunExecution(runId);
+      if (state.activeView === 'wizard') {
+        state.wizard.step = 'results';
+        state.wizard.validated = false;
+        state.wizard.validatedForm = null;
+        wizardMessage('assistant', state.executionState?.state === 'SUCCEEDED' ? '仿真已完成。下方可以查看运行概览、曲线、事件和结果制品。' : '仿真任务已结束，请查看下方运行状态和诊断信息。');
+        renderSimulationWizard();
+      }
     } catch (error) {
       if (visualRunContext) await requestVisualDiagnostics(error.message, visualRunContext, error.payload?.detail?.reason_code || error.payload?.reason_code || null);
       throw error;
@@ -7741,15 +7749,24 @@
   }
 
   function switchView(name) {
+    const guided = ['wizard', 'interactive', 'continuous'].includes(name);
     state.activeView = name;
     document.body.dataset.activeView = name;
+    if (guided) wizardAttachPanels();
+    else if (name === 'creator') wizardRestoreAdvancedPanels();
     const viewIds = {
-      wizard: 'wizardView', creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
-      goals: 'goalRunView',
-      interactive: 'interactiveView', continuous: 'continuousView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
+      creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
+      goals: 'goalRunView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
-    $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
+    el('wizardView')?.classList.toggle('hidden', !guided);
+    el('interactiveView')?.classList.toggle('hidden', name !== 'interactive');
+    el('continuousView')?.classList.toggle('hidden', name !== 'continuous');
+    el('wizardRealtimeWorkspace')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
+    el('wizardRunResultsHost')?.classList.toggle('hidden', name !== 'wizard' || state.wizard.step !== 'results');
+    el('wizardView')?.setAttribute('data-runtime-mode', name === 'interactive' ? 'interactive' : name === 'continuous' ? 'continuous' : '');
+    el('wizardRealtimeBackBtn')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
+    $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === (guided ? 'wizard' : name)));
     if (name === 'wizard') renderSimulationWizard();
     if (name === 'tasks') loadTasks().catch((error) => { el('taskSummary').textContent = `任务中心读取失败：${error.message}`; });
     if (name === 'experiments') loadExperiments().catch((error) => { el('experimentSummary').textContent = `实验中心读取失败：${error.message}`; });
@@ -9678,6 +9695,9 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       });
     });
     el('wizardBackBtn').addEventListener('click', wizardBack);
+    el('wizardRealtimeBackBtn').addEventListener('click', wizardBackFromRealtime);
+    el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
+    el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
     el('wizardAdvancedBtn').addEventListener('click', () => switchView('creator'));
     el('previewBtn').addEventListener('click', async () => {
@@ -9871,6 +9891,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     initTheme();
     initDisplayPreferences();
     bindEvents();
+    wizardAttachPanels();
     wizardReset();
     await loadAuthStatus().catch(() => null);
     await Promise.allSettled([loadHeader(), loadRuns(), loadSingleRunReadiness(), loadModelProviders(), loadTasks(), loadScenarioTemplates(), loadExperiments(), loadInteractiveAvailability()]);
