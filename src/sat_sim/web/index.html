@@ -22,7 +22,7 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
-  <link rel="stylesheet" href="/assets/compact-workbench.css?v=conversation-20261111-2">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=p2-parameters-20261111-1">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -124,7 +124,23 @@
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
         <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
         <section id="wizardConfigSections" class="wizard-config-sections hidden" aria-label="仿真参数、事件和输出">
-          <details id="wizardParametersPanel" class="wizard-config-panel"><summary>更多仿真参数（可保持推荐值）</summary><p class="wizard-panel-help">通常只需设置仿真时长和采样间隔。模型专用参数已按推荐值初始化；只有研究需要时才展开修改。</p><div id="wizardParameterHost"></div></details>
+          <details id="wizardParametersPanel" class="wizard-config-panel">
+            <summary>模型参数（按需调整）</summary>
+            <p class="wizard-panel-help">默认沿用当前模型推荐值。先完成运行时长和采样间隔即可开始；只有需要改变物理工况或模型特性时，再展开参数。</p>
+            <div class="wizard-parameter-controls">
+              <div class="wizard-parameter-mode" role="group" aria-label="参数显示级别">
+                <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="runtime" aria-pressed="false">仅运行参数</button>
+                <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="recommended" aria-pressed="true">推荐参数</button>
+                <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="all" aria-pressed="false">全部参数</button>
+              </div>
+              <div id="wizardParameterModeDescription" class="wizard-parameter-mode-description" role="status">显示常用物理参数；其余专业参数保持折叠。</div>
+              <div id="wizardParameterSearchWrap" class="wizard-parameter-search">
+                <label class="search-box"><span aria-hidden="true">⌕</span><input id="wizardParameterSearch" type="search" placeholder="搜索参数名称、含义或单位…" autocomplete="off"></label>
+                <span id="wizardParameterCount" class="wizard-parameter-count"></span>
+              </div>
+            </div>
+            <div id="wizardParameterHost"></div>
+          </details>
           <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><p class="wizard-panel-help">设置故障何时发生、持续多久以及作用幅度。所有故障类型均来自当前模型已注册的事件目录。</p><div id="wizardEventHost"></div></details>
           <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary>
             <p class="wizard-panel-help">先按观察目的添加推荐曲线，不需要理解技术字段。每组曲线都来自当前仿真对象实际注册的输出。</p>
