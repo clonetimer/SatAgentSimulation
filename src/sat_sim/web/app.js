@@ -7762,13 +7762,14 @@
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     el('wizardView')?.classList.toggle('hidden', !guided);
-    el('interactiveView')?.classList.toggle('hidden', name !== 'interactive');
-    el('continuousView')?.classList.toggle('hidden', name !== 'continuous');
+    const realtimeViewIds = { interactive: 'interactiveView', continuous: 'continuousView' };
+    Object.entries(realtimeViewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     el('wizardRealtimeWorkspace')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
     el('wizardRunResultsHost')?.classList.toggle('hidden', name !== 'wizard' || state.wizard.step !== 'results');
     el('wizardView')?.setAttribute('data-runtime-mode', name === 'interactive' ? 'interactive' : name === 'continuous' ? 'continuous' : '');
     el('wizardRealtimeBackBtn')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
-    $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === (guided ? 'wizard' : name)));
+    const activeNavigation = guided && name === 'wizard' ? 'wizard' : name;
+    $all('.nav-button[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === activeNavigation));
     if (name === 'wizard') renderSimulationWizard();
     if (name === 'tasks') loadTasks().catch((error) => { el('taskSummary').textContent = `任务中心读取失败：${error.message}`; });
     if (name === 'experiments') loadExperiments().catch((error) => { el('experimentSummary').textContent = `实验中心读取失败：${error.message}`; });
