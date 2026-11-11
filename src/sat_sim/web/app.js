@@ -4851,7 +4851,9 @@
       if (advancedGrid.children.length) card.appendChild(advanced);
       form.appendChild(card);
     });
-    el('formSearchEmpty')?.classList.toggle('hidden', !query || Boolean(form.children.length));
+    const noMatches = Boolean(query) && !form.children.length;
+    el('formSearchEmpty')?.classList.toggle('hidden', !noMatches);
+    el('wizardParameterSearchEmpty')?.classList.toggle('hidden', !noMatches || state.activeView !== 'wizard');
     validateClientForm({show:false});
   }
 
