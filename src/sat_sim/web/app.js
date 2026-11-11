@@ -10687,8 +10687,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     $all('.nav-button[data-view]').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
     $all('[data-return-wizard]').forEach((button) => button.addEventListener('click', () => {
       switchView('wizard');
-      renderSimulationWizard();
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
+      renderSimulationWizard();
     }));
     $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardShortcut)));
     el('wizardTaskSearch').addEventListener('input', () => { el('taskSearch').value = el('wizardTaskSearch').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
