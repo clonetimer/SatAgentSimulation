@@ -55,3 +55,19 @@ def test_wizard_has_back_reset_and_schema_driven_runtime_configuration(tmp_path)
     assert "wizard.validated" in js
     assert "validatedForm" in js
     assert "wizard.validatedForm !== JSON.stringify(state.formData)" in js
+
+
+
+def test_wizard_keeps_results_and_both_realtime_modes_inside_the_guided_workspace(tmp_path):
+    with _client(tmp_path) as client:
+        index = client.get('/').text
+        js = client.get('/assets/app.js').text
+    assert 'id="wizardRealtimeWorkspace"' in index
+    assert 'id="wizardRunResultsHost"' in index
+    assert "wizardAttachRuntimeViews" in js
+    assert "wizardChooseMode" in js
+    assert "limited_realtime" in js
+    assert "continuous_realtime" in js
+    assert "creatorRunPanel" in js
+    assert "interactiveView" in js
+    assert "continuousView" in js

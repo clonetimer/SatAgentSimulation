@@ -688,11 +688,16 @@ def test_rule_driven_wizard_completes_preflight_without_agent_or_run_submission(
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardView").wait_for(state="visible")
+            assert page.locator("#creatorRunPanel").evaluate("(node) => node.closest('#wizardView') !== null")
             page.locator("#wizardOptions .wizard-option").first.wait_for(state="visible", timeout=15000)
             assert page.locator("#wizardOptions .wizard-option").count() == 5
             page.get_by_role("button", name="运行正常仿真").click()
             page.get_by_role("button", name="整星").click()
             page.locator("#wizardOptions .wizard-option").first.click()
+            page.locator("#wizardOptions [data-wizard-mode='offline']").wait_for(timeout=20000)
+            assert page.locator("#wizardOptions [data-wizard-mode='limited_realtime']").count() == 1
+            assert page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").count() == 1
+            page.locator("#wizardOptions [data-wizard-mode='offline']").click()
             page.locator("#wizardOptions [data-wizard-field='simulation.duration_s']").wait_for(timeout=20000)
             assert page.locator("#wizardOptions [data-wizard-field='simulation.sample_s']").count() == 1
             page.get_by_role("button", name="下一步：检查配置").click()
