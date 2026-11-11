@@ -7544,19 +7544,21 @@
 
   function wizardStart(goal) {
     state.wizard.goal = goal;
+    if (goal === 'history') {
+      state.wizard.step = 'tasks';
+      state.wizard.validated = false;
+      state.wizard.validatedForm = null;
+      wizardMessage('user', '我要查看和管理已保存的仿真任务');
+      wizardMessage('assistant', '这里可以搜索任务、查看版本和运行历史、克隆配置，或继续运行已有任务。也可以把当前已选对象的配置另存为任务。');
+      switchView('wizard');
+      loadTasks().catch((error) => { el('wizardTaskSummary').textContent = '任务读取失败：' + error.message; });
+      return;
+    }
     state.wizard.level = null;
     state.wizard.objectId = null;
     state.wizard.faultEffect = null;
     state.wizard.mode = null;
     state.wizard.validated = false;
-    if (goal === 'history') {
-      state.wizard.step = 'tasks';
-      wizardMessage('user', '我要查看和管理已保存的仿真任务');
-      wizardMessage('assistant', '这里可以搜索任务、查看版本和运行历史、克隆配置，或继续运行已有任务。');
-      switchView('wizard');
-      loadTasks().catch((error) => { el('wizardTaskSummary').textContent = '任务读取失败：' + error.message; });
-      return;
-    }
     if (goal === 'compare') { switchView('runs'); return; }
     if (goal === 'advanced') { switchView('creator'); return; }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
@@ -7796,7 +7798,7 @@
     host.replaceChildren();
     const summary = el('wizardTaskSummary');
     if (summary) summary.textContent = '共 ' + state.tasks.length + ' 个已保存任务。任务配置可以复用；每次运行仍会生成独立运行记录。';
-    if (el('wizardSaveCurrentTaskBtn')) el('wizardSaveCurrentTaskBtn').disabled = !state.formData || !state.schema;
+    if (el('wizardSaveCurrentTaskBtn')) el('wizardSaveCurrentTaskBtn').disabled = !state.formData || !state.schema || !state.wizard.objectId;
     if (!state.tasks.length) {
       const empty = document.createElement('div'); empty.className = 'wizard-empty';
       empty.textContent = '还没有保存的任务。完成一次仿真配置后，可以在这里保存并反复使用。';
