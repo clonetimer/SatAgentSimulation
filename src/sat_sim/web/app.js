@@ -131,7 +131,7 @@
     formErrors: new Map(),
     discoveredModels: [],
     activeView: "wizard",
-    wizard: { goal: null, step: "welcome", level: null, objectId: null, faultEffect: null, parameterMode: "recommended", validated: false, validatedForm: null, messages: [] },
+    wizard: { goal: null, step: "welcome", level: null, objectId: null, faultEffect: null, parameterMode: "recommended", outputPurpose: "all", validated: false, validatedForm: null, messages: [] },
     scenarioTemplates: [],
     experiments: [],
     goals: [],
@@ -7566,7 +7566,7 @@
   }
 
   function wizardReset() {
-    state.wizard = { goal: null, step: 'welcome', level: null, objectId: null, faultEffect: null, mode: null, parameterMode: 'recommended', validated: false, validatedForm: null, messages: [] };
+    state.wizard = { goal: null, step: 'welcome', level: null, objectId: null, faultEffect: null, mode: null, parameterMode: 'recommended', outputPurpose: 'all', validated: false, validatedForm: null, messages: [] };
     wizardMessage('assistant', '你好！你想完成什么仿真任务？我会按固定步骤引导你完成配置、运行和结果查看。');
     const root = el('wizardView'); if (root) root.dataset.runtimeMode = '';
     el('wizardRunResultsHost')?.classList.add('hidden');
@@ -7671,6 +7671,8 @@
     }
     state.wizard.objectId = objectId;
     state.wizard.parameterMode = 'recommended';
+    state.wizard.outputPurpose = 'all';
+    if (el('wizardOutputSearch')) el('wizardOutputSearch').value = '';
     if (el('wizardParameterSearch')) el('wizardParameterSearch').value = '';
     const label = object.name_zh || object.name_en || objectId;
     if (state.wizard.goal === 'fault_run') {
@@ -7824,61 +7826,197 @@
     wizardSetPlotSelection([...selected]);
   }
 
+  function wizardOutputPurpose(option) {
+    const text = [option.name, option.label, option.description, option.group_label, option.subsystem_label]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (/(thermal|temperature|temp_|heater|radiator|热)/.test(text)) return 'thermal';
+    if (/(comm|downlink|ground|transmitter|storage|queue|通信|下行|数据链)/.test(text)) return 'communications';
+    if (/(orbit|environment|disturbance|轨道|环境|扰动)/.test(text)) return 'environment';
+    if (/(eps|battery|solar|soc|pdu|energy|power|电池|能源|功耗|太阳阵)/.test(text)) return 'energy';
+    if (/(adcs|attitude|pointing|angular.rate|gyro|star.tracker|sun.sensor|reaction.wheel|rw\.|cmg|imu|magnetometer|mtb|姿态|飞轮|陀螺|星敏|太阳敏)/.test(text)) return 'attitude';
+    if (/(mission|success|status|health|conservation|任务|整星|状态|健康)/.test(text)) return 'mission';
+    return 'other';
+  }
+
+  function wizardOutputPurposeDefinitions() {
+    return [
+      { id: 'all', label: '全部' },
+      { id: 'attitude', label: '姿态与控制' },
+      { id: 'energy', label: '能源与功耗' },
+      { id: 'thermal', label: '热控与温度' },
+      { id: 'communications', label: '通信与数据' },
+      { id: 'environment', label: '轨道与环境' },
+      { id: 'mission', label: '任务与整星状态' },
+      { id: 'other', label: '其他' },
+    ];
+  }
+
+  function wizardSetQoiSelection(nextSelection) {
+    if (!state.formData) return;
+    state.formData.outputs = state.formData.outputs || {};
+    state.formData.outputs.qoi = [...new Set(nextSelection)];
+    state.taskSpec = null; state.planning = null;
+    state.wizard.validated = false; state.wizard.validatedForm = null;
+    renderOutputs();
+    el('wizardNotice').textContent = '结果指标已更新；正式运行前请重新校验。';
+  }
+
+  function wizardRestoreOutputDefaults() {
+    if (!state.formData || !state.schema) return;
+    const defaults = state.schema.default_form?.outputs || {};
+    const qoi = Array.isArray(defaults.qoi) ? defaults.qoi : (state.schema.outputs?.default_qoi || []);
+    const plots = Array.isArray(defaults.plots) ? defaults.plots : [];
+    state.formData.outputs = state.formData.outputs || {};
+    state.formData.outputs.qoi = [...qoi];
+    state.formData.outputs.plots = [...plots];
+    state.taskSpec = null; state.planning = null;
+    state.wizard.validated = false; state.wizard.validatedForm = null;
+    renderOutputs();
+    el('wizardNotice').textContent = '已恢复当前模型 Schema 提供的推荐输出组合；请重新校验配置。';
+  }
+
   function renderWizardCurveChoices() {
     const host = el('wizardCurveChoices');
-    if (!host || !state.schema || !state.formData) return;
-    host.replaceChildren();
-    const options = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
-    const selected = new Set(state.formData.outputs?.plots || []);
-    const groups = new Map();
-    options.forEach((item) => {
-      const key = item.subsystem_id || item.group_id || 'other';
-      if (!groups.has(key)) groups.set(key, { id: key, label: item.subsystem_label || item.group_label || '其他可观测量', options: [] });
-      groups.get(key).options.push(item);
+    const qoiHost = el('wizardQoiChoices');
+    if ((!host && !qoiHost) || !state.schema || !state.formData) return;
+    if (host) host.replaceChildren();
+    if (qoiHost) qoiHost.replaceChildren();
+    const qoiOptions = (state.schema.outputs?.summary_options || []).map(normalizedOutputOption);
+    const traceOptions = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
+    const selectedQoi = new Set(state.formData.outputs?.qoi || []);
+    const selectedPlots = new Set(state.formData.outputs?.plots || []);
+    const search = String(el('wizardOutputSearch')?.value || '').trim().toLowerCase();
+    const allOptions = [...qoiOptions, ...traceOptions];
+    const purposeCounts = new Map();
+    allOptions.forEach((item) => {
+      const purpose = wizardOutputPurpose(item);
+      purposeCounts.set(purpose, (purposeCounts.get(purpose) || 0) + 1);
     });
-    const summary = el('wizardCurveSelectionSummary');
-    if (summary) summary.textContent = '已选择 ' + selected.size + ' / ' + options.length + ' 条曲线';
-    if (!groups.size) {
-      const empty = document.createElement('div'); empty.className = 'wizard-empty';
-      empty.textContent = '当前仿真对象没有注册可输出曲线；可以保留默认输出并继续。';
-      host.appendChild(empty); return;
+    const availablePurposes = wizardOutputPurposeDefinitions().filter((item) => item.id === 'all' || purposeCounts.has(item.id));
+    if (!availablePurposes.some((item) => item.id === state.wizard.outputPurpose)) state.wizard.outputPurpose = 'all';
+    const purposeHost = el('wizardOutputPurposes');
+    if (purposeHost) {
+      purposeHost.replaceChildren();
+      availablePurposes.forEach((item) => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'wizard-output-purpose';
+        button.textContent = item.label;
+        button.setAttribute('aria-pressed', String(state.wizard.outputPurpose === item.id));
+        if (item.id !== 'all') button.dataset.count = String(purposeCounts.get(item.id) || 0);
+        button.addEventListener('click', () => {
+          state.wizard.outputPurpose = item.id;
+          renderWizardCurveChoices();
+        });
+        purposeHost.appendChild(button);
+      });
     }
-    [...groups.values()].forEach((group) => {
-      const card = document.createElement('article'); card.className = 'wizard-curve-card';
-      const head = document.createElement('div'); head.className = 'wizard-curve-card-head';
-      const title = document.createElement('strong'); title.textContent = group.label;
-      const count = document.createElement('span');
-      const selectedCount = group.options.filter((item) => selected.has(item.name)).length;
-      count.textContent = selectedCount + ' / ' + group.options.length + ' 已选';
-      head.append(title, count);
-      const detail = document.createElement('p'); detail.textContent = '该分组包含 ' + group.options.length + ' 条已注册曲线，选择后会记录到本次运行。';
-      const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'button button-secondary';
-      toggle.textContent = selectedCount === group.options.length ? '移除这一组' : '添加这一组';
-      toggle.addEventListener('click', () => wizardToggleCurveGroup(group.id));
-      const list = document.createElement('details'); list.className = 'wizard-curve-detail';
-      const summaryNode = document.createElement('summary'); summaryNode.textContent = '查看具体曲线';
-      const rows = document.createElement('div'); rows.className = 'wizard-curve-detail-list';
-      group.options.forEach((item) => {
-        const row = document.createElement('label'); row.className = 'wizard-curve-row';
-        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(item.name);
-        checkbox.addEventListener('change', () => {
+    const matches = (item) => {
+      const purposeMatch = state.wizard.outputPurpose === 'all' || wizardOutputPurpose(item) === state.wizard.outputPurpose;
+      const text = [item.name, item.label, item.description, item.unit, item.group_label, item.subsystem_label]
+        .filter(Boolean).join(' ').toLowerCase();
+      return purposeMatch && (!search || text.includes(search));
+    };
+    const visibleQoi = qoiOptions.filter(matches);
+    const visibleTraces = traceOptions.filter(matches);
+    const qoiSummary = el('wizardQoiSelectionSummary');
+    if (qoiSummary) qoiSummary.textContent = `已选 ${selectedQoi.size} 项 / ${qoiOptions.length} 项注册指标`;
+    const curveSummary = el('wizardCurveSelectionSummary');
+    if (curveSummary) curveSummary.textContent = `已选 ${selectedPlots.size} 条 / ${traceOptions.length} 条注册曲线`;
+    const qoiCount = el('wizardOutputSearchCount');
+    if (qoiCount) qoiCount.textContent = search
+      ? `匹配 ${visibleQoi.length} 项指标、${visibleTraces.length} 条曲线`
+      : `当前显示 ${visibleQoi.length} 项指标、${visibleTraces.length} 条曲线`;
+
+    if (qoiHost) {
+      if (!qoiOptions.length) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前仿真对象没有注册结果摘要指标。';
+        qoiHost.appendChild(empty);
+      } else if (!visibleQoi.length) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前观测目的或搜索条件下没有匹配的结果指标。';
+        qoiHost.appendChild(empty);
+      } else {
+        visibleQoi.forEach((item) => {
+          const row = document.createElement('label'); row.className = 'wizard-qoi-row';
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selectedQoi.has(item.name);
+          checkbox.addEventListener('change', () => {
+            const next = new Set(state.formData.outputs.qoi || []);
+            if (checkbox.checked) next.add(item.name); else next.delete(item.name);
+            wizardSetQoiSelection([...next]);
+          });
+          const body = document.createElement('span'); body.className = 'wizard-qoi-body';
+          const title = document.createElement('strong'); title.textContent = item.label || item.name;
+          const desc = document.createElement('small'); desc.textContent = item.description || '当前模型注册的结果摘要指标。';
+          const meta = document.createElement('span'); meta.className = 'wizard-output-meta';
+          if (item.unit) meta.textContent = '单位：' + item.unit;
+          const technical = document.createElement('details'); technical.className = 'wizard-output-technical';
+          const technicalSummary = document.createElement('summary'); technicalSummary.textContent = '技术字段';
+          const code = document.createElement('code'); code.textContent = item.name;
+          technical.append(technicalSummary, code);
+          body.append(title, desc, meta, technical);
+          row.append(checkbox, body); qoiHost.appendChild(row);
+        });
+      }
+    }
+    if (host) {
+      const groups = new Map();
+      visibleTraces.forEach((item) => {
+        const key = item.subsystem_id || item.group_id || 'other';
+        if (!groups.has(key)) groups.set(key, { id: key, label: item.subsystem_label || item.group_label || '其他可观测量', options: [] });
+        groups.get(key).options.push(item);
+      });
+      if (!traceOptions.length) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前仿真对象没有注册可输出时序曲线。';
+        host.appendChild(empty);
+      } else if (!groups.size) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前观测目的或搜索条件下没有匹配曲线。可以切换“全部”或清空搜索。';
+        host.appendChild(empty);
+      }
+      [...groups.values()].forEach((group) => {
+        const card = document.createElement('article'); card.className = 'wizard-curve-card';
+        const head = document.createElement('div'); head.className = 'wizard-curve-card-head';
+        const title = document.createElement('strong'); title.textContent = group.label;
+        const selectedCount = group.options.filter((item) => selectedPlots.has(item.name)).length;
+        const count = document.createElement('span'); count.textContent = `${selectedCount} / ${group.options.length} 已选`;
+        head.append(title, count);
+        const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'button button-secondary';
+        toggle.textContent = selectedCount === group.options.length ? '移除这一组' : '添加这一组';
+        toggle.disabled = group.options.length === 0;
+        toggle.addEventListener('click', () => {
           const next = new Set(state.formData.outputs.plots || []);
-          if (checkbox.checked) next.add(item.name); else next.delete(item.name);
+          const allSelected = group.options.every((item) => next.has(item.name));
+          group.options.forEach((item) => { if (allSelected) next.delete(item.name); else next.add(item.name); });
           wizardSetPlotSelection([...next]);
         });
-        const text = document.createElement('span');
-        const name = document.createElement('strong'); name.textContent = item.label || item.name;
-        const desc = document.createElement('small'); desc.textContent = item.description || '当前模型注册的遥测输出量。';
-        const tech = document.createElement('details'); tech.className = 'wizard-curve-technical';
-        const techSummary = document.createElement('summary'); techSummary.textContent = '技术字段';
-        const code = document.createElement('code'); code.textContent = item.name;
-        tech.append(techSummary, code); text.append(name, desc, tech);
-        row.append(checkbox, text); rows.appendChild(row);
+        const list = document.createElement('details'); list.className = 'wizard-curve-detail';
+        const summaryNode = document.createElement('summary'); summaryNode.textContent = '查看具体曲线';
+        const rows = document.createElement('div'); rows.className = 'wizard-curve-detail-list';
+        group.options.forEach((item) => {
+          const row = document.createElement('label'); row.className = 'wizard-curve-row';
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selectedPlots.has(item.name);
+          checkbox.addEventListener('change', () => {
+            const next = new Set(state.formData.outputs.plots || []);
+            if (checkbox.checked) next.add(item.name); else next.delete(item.name);
+            wizardSetPlotSelection([...next]);
+          });
+          const body = document.createElement('span');
+          const name = document.createElement('strong'); name.textContent = item.label || item.name;
+          const desc = document.createElement('small'); desc.textContent = item.description || '当前模型注册的遥测输出量。';
+          const meta = document.createElement('span'); meta.className = 'wizard-output-meta';
+          if (item.unit) meta.textContent = '单位：' + item.unit;
+          const tech = document.createElement('details'); tech.className = 'wizard-curve-technical';
+          const techSummary = document.createElement('summary'); techSummary.textContent = '技术字段';
+          const code = document.createElement('code'); code.textContent = item.name;
+          tech.append(techSummary, code); body.append(name, desc, meta, tech);
+          row.append(checkbox, body); rows.appendChild(row);
+        });
+        list.append(summaryNode, rows);
+        card.append(head, toggle, list); host.appendChild(card);
       });
-      list.append(summaryNode, rows);
-      card.append(head, detail, toggle, list);
-      host.appendChild(card);
-    });
+    }
   }
 
   function renderWizardTasks() {
