@@ -161,6 +161,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#interactiveView").evaluate("(node) => node.closest('#wizardView') !== null")
             page.locator("#interactiveWizardBackBtn").click()
             page.locator("#wizardOptions [data-wizard-mode='offline']").wait_for(state="visible")
+            page.locator("#wizardOptions [data-wizard-mode='offline']").click()
+            page.locator("#wizardConfigSections").wait_for(state="visible")
             # P2: the wizard exposes three disclosure levels without removing
             # or rebuilding the authoritative Schema-backed form.
             page.locator("#wizardParametersPanel > summary").click()
@@ -183,6 +185,28 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#wizardParameterSearch").fill("orbit")
             assert form.locator(".form-field").count() > 0
             page.locator("#wizardParameterSearch").fill("")
+            # P3: purpose-first observability keeps QoI and time-series separate,
+            # and only exposes fields supplied by the selected capability schema.
+            qoi_rows = page.locator("#wizardQoiChoices .wizard-qoi-row")
+            curve_rows = page.locator("#wizardCurveChoices .wizard-curve-row")
+            assert qoi_rows.count() > 0
+            assert curve_rows.count() > 0
+            assert page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").count() == 1
+            page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").click()
+            assert page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").get_attribute("aria-pressed") == "true"
+            assert page.locator("#wizardCurveChoices .wizard-curve-card").count() > 0
+            technical_name = page.locator("#wizardCurveChoices .wizard-curve-technical code").first.inner_text()
+            page.locator("#wizardOutputSearch").fill(technical_name)
+            assert page.locator("#wizardCurveChoices .wizard-curve-technical code").count() == 1
+            assert "匹配" in page.locator("#wizardOutputSearchCount").inner_text()
+            page.locator("#wizardOutputSearch").fill("")
+            page.locator("#wizardOutputPurposes [data-output-purpose='all']").click()
+            page.locator("#wizardRestoreOutputDefaultsBtn").click()
+            assert "恢复当前模型 Schema 提供的推荐输出组合" in page.locator("#wizardNotice").inner_text()
+            assert page.locator("#wizardQoiChoices input:checked").count() > 0
+            assert page.locator("#wizardCurveChoices .wizard-curve-row input:checked").count() > 0
+            page.locator("#wizardBackBtn").click()
+            page.locator("#wizardOptions [data-wizard-mode='offline']").wait_for(state="visible")
             # The default entry is now the rule-driven wizard; this regression
             # exercises the advanced realtime controls and explicitly enters
             # the retained engineering workbench before editing its form.
