@@ -177,9 +177,9 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator('[data-wizard-parameter-mode="recommended"]').click()
             assert form.get_attribute("data-wizard-parameter-mode") == "recommended"
             assert form.is_visible()
-            page.locator('[data-wizard-parameter-mode="all"]').click()
+            page.locator('#wizardParametersPanel [data-wizard-parameter-mode="all"]').click()
             assert form.get_attribute("data-wizard-parameter-mode") == "all"
-            assert page.locator('[data-wizard-parameter-mode="all"]').get_attribute("aria-pressed") == "true"
+            assert page.locator('#wizardParametersPanel [data-wizard-parameter-mode="all"]').get_attribute("aria-pressed") == "true"
             assert form.locator(".parameter-section[open]").count() > 0
             page.locator('[data-wizard-parameter-mode="recommended"]').click()
             page.locator("#wizardParameterSearch").fill("orbit")
@@ -511,6 +511,9 @@ def test_command_availability_when_catalog_arrives_after_session(
                     headers={"content-type": response.headers.get("content-type", "application/json")})
             page.route("https://workbench.test/**", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            # Enter the retained engineering workspace through the visible wizard action;
+            # the guided shell intentionally hides the legacy sidebar in realtime mode.
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
             delay_catalog = True
             page.locator("#continuousNavButton").click(timeout=30000)
@@ -583,6 +586,7 @@ def test_fourth_wheel_catalog_does_not_enable_unobserved_channel(tmp_path, monke
                               headers={"content-type":response.headers.get("content-type","application/json")})
             page.route("https://workbench.test/**",proxy)
             page.goto("https://workbench.test/",wait_until="domcontentloaded")
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#continuousNavButton").click(timeout=30000)
             page.wait_for_function("() => document.querySelector('#continuousStream').options.length > 0")
             # Contract has arrived, but no frame has reached this page yet.
