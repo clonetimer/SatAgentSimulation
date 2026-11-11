@@ -7889,6 +7889,19 @@
       const fields = document.createElement('div'); fields.className = 'wizard-runtime-fields';
       fields.append(wizardRuntimeField('simulation.duration_s', '仿真时长'), wizardRuntimeField('simulation.sample_s', '采样间隔'));
       options.appendChild(fields);
+      if (state.activeTaskCenterId) {
+        option('保存为新版本', '将本次修改追加到当前任务，旧版本和历史运行保持不变', {}, async () => {
+          try { showBusy('保存任务新版本', '写入任务中心'); const task = await saveCurrentTask('update'); wizardMessage('assistant', '已保存任务新版本：' + (task?.name || task?.task_id || state.activeTaskCenterId)); el('wizardNotice').textContent = '新版本已保存。'; renderSimulationWizard(); }
+          catch (error) { el('wizardNotice').textContent = '保存新版本失败：' + error.message; }
+          finally { hideBusy(); }
+        });
+      } else {
+        option('保存为新任务', '保存当前配置，供以后再次运行；不会自动启动仿真', {}, async () => {
+          try { showBusy('保存仿真任务', '写入任务中心'); const task = await saveCurrentTask('new'); wizardMessage('assistant', '已保存新任务：' + (task?.name || task?.task_id || '新任务')); el('wizardNotice').textContent = '任务已保存。'; renderSimulationWizard(); }
+          catch (error) { el('wizardNotice').textContent = '保存任务失败：' + error.message; }
+          finally { hideBusy(); }
+        });
+      }
       option('下一步：检查配置', '确认输出和事件设置，执行正式 TaskSpec 校验', {}, () => wizardSetStep('review', '请检查配置摘要。校验只检查参数与执行计划，不会启动仿真。通过后才能运行。'));
       const faultPanel = el('wizardFaultPanel'); if (faultPanel) faultPanel.open = state.wizard.goal === 'fault_run' || (state.formData.events?.faults || []).length > 0;
       const outputPanel = el('wizardOutputPanel'); if (outputPanel) outputPanel.open = true;
