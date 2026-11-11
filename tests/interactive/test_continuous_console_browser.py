@@ -342,6 +342,20 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 "() => document.querySelector('#continuousOrbit').textContent.includes('7000000')",
                 timeout=15000,
             )
+            # Leaving the wizard must not stop the live session; the wizard
+            # should offer a direct re-entry action for the same session.
+            active_session_id = page.locator("#continuousSelectedSessionSummary strong").inner_text()
+            page.locator("#continuousWizardBackBtn").click()
+            resume = page.locator("#wizardOptions [data-wizard-resume='continuous_realtime']")
+            resume.wait_for(state="visible", timeout=10000)
+            assert active_session_id in resume.inner_text()
+            resume.click()
+            page.locator("#continuousView").wait_for(state="visible", timeout=10000)
+            page.wait_for_function(
+                "() => document.querySelector('#continuousState').dataset.state === 'RUNNING'",
+                timeout=10000,
+            )
+            assert page.locator("#continuousSelectedSessionSummary strong").inner_text() == active_session_id
             page.wait_for_function(
                 "() => document.querySelector('#continuousAckList').textContent.includes('ACKED')",
                 timeout=15000,
