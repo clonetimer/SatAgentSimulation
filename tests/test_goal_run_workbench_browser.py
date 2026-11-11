@@ -65,7 +65,8 @@ def _goal_workbench(tmp_path):
 
             page.route("https://workbench.test/**", forward)
             page.goto("https://workbench.test/", wait_until="networkidle")
-            page.wait_for_selector('.nav-button[data-view="goals"]')
+            page.wait_for_selector('#wizardView:not(.hidden)')
+            page.wait_for_selector('.wizard-tool-option[data-wizard-goal="goals"]')
             yield page, client, app, page_errors
         finally:
             browser.close()
