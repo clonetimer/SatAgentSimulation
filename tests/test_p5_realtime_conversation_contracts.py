@@ -115,3 +115,19 @@ def test_realtime_feedback_explains_telemetry_freshness_and_command_outcomes():
     assert "指令执行失败" in continuous
     # Raw reason codes remain in the secondary evidence line.
     assert "row.reason_code" in continuous
+
+
+def test_continuous_engineering_diagnostics_are_preserved_but_progressively_disclosed():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    assert 'id="continuousEngineeringDetails"' in html
+    start = html.index('id="continuousEngineeringDetails"')
+    end = html.index("</details>", start)
+    block = html[start:end]
+    for required in (
+        "continuousRecoveryAuditBtn", "continuousEnduranceStart",
+        "continuousEnduranceAuditBtn", "continuousWallElapsed",
+        "continuousResidentBytes", "continuousDurableFrames",
+    ):
+        assert required in block
+    assert "长稳证据" in block
+    assert "原生恢复审计" in block

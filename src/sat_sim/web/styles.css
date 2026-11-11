@@ -1846,3 +1846,44 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
 .realtime-create-disclosure > form { margin-top: 8px; }
 .interactive-create .realtime-create-disclosure:not([open]) { padding-bottom: 1px; }
 .continuous-sidebar .realtime-create-disclosure:not([open]) { padding: 2px 0; }
+
+.continuous-engineering-disclosure {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.continuous-engineering-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+.continuous-engineering-disclosure > summary::-webkit-details-marker { display: none; }
+.continuous-engineering-disclosure > summary::after {
+  content: '展开';
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.continuous-engineering-disclosure[open] > summary::after { content: '收起'; }
+.continuous-engineering-disclosure > summary span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+  text-align: right;
+}
+.continuous-engineering-disclosure > .continuous-card {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
