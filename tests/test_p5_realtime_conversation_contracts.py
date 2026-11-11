@@ -26,6 +26,7 @@ def test_realtime_safety_contracts_remain_explicit():
 
     assert "实时会话仍处于活动状态" in js
     assert "会话不会自动停止" in js
-    assert "自动恢复：关闭" in Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
-    assert "不自动重放" in Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
-    assert "automatic" not in continuous.lower() or "recovery" in continuous.lower()
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    assert "原生自动恢复：关闭" in html
+    assert "异常执行的遥控不会自动重放" in html
+    assert "automatic_cross_process_resume_supported" in js
