@@ -120,7 +120,8 @@ def test_wizard_separates_summary_metrics_from_time_series_and_uses_registry_opt
     trace_names = {item["name"] for item in schema["outputs"]["trace_options"]}
     assert qoi_names
     assert trace_names
-    assert qoi_names.isdisjoint(trace_names)
+    assert qoi_names.issubset(set(schema["outputs"]["summary_qoi"]))
+    assert trace_names.issubset(set(schema["outputs"]["trace_fields"]))
     assert 'id="wizardQoiChoices"' in index
     assert 'id="wizardCurveChoices"' in index
     assert 'id="wizardOutputPurposes"' in index
