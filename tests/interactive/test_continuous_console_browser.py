@@ -145,7 +145,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                              if key.lower() in ("content-type", "cache-control")},
                 )
             page.route("https://workbench.test/**", route_request)
-            page.on("dialog", lambda dialog: dialog.accept())
+            dialog_messages = []
+            page.on("dialog", lambda dialog: (dialog_messages.append(dialog.message), dialog.accept()))
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             # Exercise the new default wizard's limited-realtime branch first.
             page.locator("#wizardView").wait_for(state="visible")
@@ -337,6 +338,11 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 "() => document.querySelector('#continuousState').dataset.state === 'PAUSED'",
                 timeout=12000,
             )
+            assert page.locator("#continuousState").inner_text() == "已暂停"
+            page.locator(".nav-button[data-view=wizard]").click()
+            assert any("实时会话仍处于活动状态" in message for message in dialog_messages)
+            page.locator(".nav-button[data-view=continuous]").click()
+            page.locator("#continuousView").wait_for(state="visible", timeout=15000)
             assert page.locator("#continuousState").inner_text() == "已暂停"
             assert page.locator("#continuousState").get_attribute("title") == "PAUSED"
             # A paused session permits verified historical retrieval from

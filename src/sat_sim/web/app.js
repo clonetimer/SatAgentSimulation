@@ -7536,6 +7536,7 @@
   function wizardBackFromRealtime() {
     const active = wizardRealtimeSessionActive();
     if (active && !window.confirm('当前实时会话仍处于活动状态。返回向导会离开实时控制台；会话不会自动停止。确定返回吗？')) return;
+    state.wizardLeavingRealtimeApproved = true;
     el('wizardView').dataset.runtimeMode = '';
     wizardSetStep('mode', '请选择运行方式。实时会话如仍在运行，可从实时入口再次进入控制台。');
   }
@@ -7762,9 +7763,10 @@
 
   function switchView(name) {
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
-    if (['interactive', 'continuous'].includes(state.activeView) && !guided && wizardRealtimeSessionActive()) {
-      if (!window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
+    if (['interactive', 'continuous'].includes(state.activeView) && name !== state.activeView && wizardRealtimeSessionActive()) {
+      if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
     }
+    state.wizardLeavingRealtimeApproved = false;
     state.activeView = name;
     document.body.dataset.activeView = name;
     if (guided) wizardAttachPanels();
