@@ -118,6 +118,36 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     page.locator('#graphStatus').scroll_into_view_if_needed();assert page.locator('#graphStatus').is_visible()
                     page.locator('#graphResetBtn').click()
                     assert page.locator('#graphNodes .graph-node').count()>0
+
+                    # Exercise the conversational guide against the real graph
+                    # controller: confirmed restore, constrained auto-wire,
+                    # and server-side graph compilation (no simulation run).
+                    with page.expect_dialog() as restore_dialog:
+                        page.locator('#graphGuideRestoreBtn').click()
+                    restore_dialog.value.accept()
+                    assert page.locator('#graphNodes .graph-node').count() == 6
+                    with page.expect_dialog() as wire_dialog:
+                        page.locator('#graphGuideAutoWireBtn').click()
+                    wire_dialog.value.accept()
+                    assert page.locator('#graphEdges .graph-edge').count() == 6
+                    with page.expect_response(lambda response: response.url.endswith('/tasks/compile-graph')) as compile_response:
+                        page.locator('#graphGuideValidateBtn').click()
+                    assert compile_response.value.ok
+                    assert 'success' in (page.locator('#graphStatus').get_attribute('class') or '')
+
+                    # Real HTML drag-and-drop of a node, followed by undo/redo.
+                    node = page.locator('.graph-node[data-node-id="graph-config"]')
+                    before = node.evaluate('(el) => [el.style.left, el.style.top]')
+                    node.locator('.graph-node-head').drag_to(
+                        page.locator('#graphCanvas'), target_position={'x': 520, 'y': 360}
+                    )
+                    after = node.evaluate('(el) => [el.style.left, el.style.top]')
+                    assert after != before
+                    page.locator('#graphUndoBtn').click()
+                    assert node.evaluate('(el) => [el.style.left, el.style.top]') == before
+                    page.locator('#graphRedoBtn').click()
+                    assert node.evaluate('(el) => [el.style.left, el.style.top]') == after
+
                     edit.locator('summary').focus();page.keyboard.press('Enter')
                     project=page.locator('#graphProjectActions');project.locator('summary').focus();page.keyboard.press('Space')
                     page.locator('#graphSaveDraftBtn').click();page.locator('#graphLoadDraftBtn').click()
