@@ -212,3 +212,15 @@ body:not([data-active-view="creator"]) #mobileCatalogPanel { display: none; }
   .compact-graph-secondary { width: 100%; }
   .compact-graph-disclosure[open] { flex-basis: 100%; width: 100%; }
 }
+
+
+/* UX Quick Wins 2026-11: make first-run guidance and field explanations discoverable. */
+.sidebar-section-title { margin: 14px 12px 6px; padding: 0 4px 5px; color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .08em; border-bottom: 1px solid var(--line); }
+.sidebar-section-title:first-child { margin-top: 8px; }
+#formTab .field-description { display: block; color: var(--muted); font-size: 11px; line-height: 1.55; margin-top: 3px; }
+#formTab .form-field { min-width: 0; }
+#formTab .form-field:focus-within > .field-description { color: var(--text); }
+#creatorView details.single-run-guide:not([open]) > summary { color: var(--accent-2); }
+#creatorView details.single-run-guide[open] > summary { color: var(--text); }
+#creatorView .single-run-step > div span { line-height: 1.5; }
+@media (max-width: 900px) { .sidebar-section-title { margin-inline: 8px; } #formTab .field-description { font-size: 12px; } }
