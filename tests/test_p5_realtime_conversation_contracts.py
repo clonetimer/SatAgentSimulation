@@ -96,3 +96,22 @@ def test_realtime_telemetry_and_feedback_use_user_readable_labels_without_losing
     assert "title.title = ack.state" in app
     assert "function continuousTelemetryLabel(field)" in continuous
     assert "轨道半径（m）" in continuous
+
+
+def test_realtime_feedback_explains_telemetry_freshness_and_command_outcomes():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = Path("src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+
+    assert 'id="interactiveTelemetryFreshness"' in html
+    assert "interactiveLastTelemetryReceivedAt[frame.stream] = Date.now()" in app
+    assert "最近收到 " in app
+    assert "尚未收到遥测" in app
+    assert "function interactiveAckStateLabel(value)" in app
+    assert "已排队，等待执行" in app
+    assert "function continuousAckLabel(ack)" in continuous
+    assert "function continuousEventLabel(event)" in continuous
+    assert "已拒绝" in app
+    assert "指令执行失败" in continuous
+    # Raw reason codes remain in the secondary evidence line.
+    assert "row.reason_code" in continuous
