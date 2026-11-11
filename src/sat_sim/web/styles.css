@@ -1786,3 +1786,24 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
 .realtime-current-session[data-state="ABORTED"] {
   border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
 }
+
+.realtime-control-button {
+  min-width: 76px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.interactive-controls .realtime-control-button {
+  width: auto;
+  flex: 0 1 auto;
+  padding-inline: 11px;
+}
+@media (max-width: 560px) {
+  .interactive-controls .realtime-control-button {
+    min-width: 0;
+    flex: 1 1 calc(33.333% - 8px);
+  }
+  .interactive-controls .danger-icon { margin-left: 0; }
+}
