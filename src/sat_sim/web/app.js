@@ -8178,13 +8178,18 @@
       faults.forEach((item) => option(item.label || item.effect, item.description || '使用该模型注册的故障事件模板', { 'data-wizard-fault': item.effect }, () => wizardChooseFault(item.effect)));
     } else if (state.wizard.step === 'mode') {
       const modes = [
-        ['offline','离线仿真','完成配置校验后执行一次仿真'],
-        ['limited_realtime','限时实时仿真','启动后可暂停、单步和查看实时曲线'],
-        ['continuous_realtime','持续实时仿真','持续运行，直到用户主动停止'],
+        ['offline','离线仿真','提交一次有限时长任务；结束后查看完整运行结果、曲线、事件与制品。'],
+        ['limited_realtime','限时实时仿真','按设定时长运行；支持暂停、继续、单步和实时遥控。到达时长上限后结束并归档。'],
+        ['continuous_realtime','持续实时仿真','面向长时间运行与持续遥测；由用户主动停止并归档，提供资源监测和长稳证据工具。'],
       ];
       modes.forEach(([mode,title,detail]) => {
         const support = mode === 'offline' ? { supported: true, reason: '适用于当前已选模型' } : wizardLiveModeSupport(mode);
-        option(title, support.supported ? detail : detail + ' · ' + support.reason,
+        const explanation = mode === 'limited_realtime'
+          ? '适合交互调试和短时控制；结束条件由会话时长决定。'
+          : mode === 'continuous_realtime'
+            ? '适合长稳观察和持续遥测；不会自动恢复异常进程，也不会重放遥控。'
+            : '适合标准任务执行与可重复的结果分析。';
+        option(title, [detail, explanation, support.supported ? '' : '当前不可用：' + support.reason].filter(Boolean).join(' '),
           { 'data-wizard-mode': mode, disabled: !support.supported, 'aria-disabled': String(!support.supported) },
           () => wizardChooseMode(mode));
       });
