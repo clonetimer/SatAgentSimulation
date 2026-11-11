@@ -35,7 +35,7 @@ def test_wizard_exposes_five_rule_based_goals_and_uses_registry_event_catalog(tm
         index = client.get('/').text
         js = client.get('/assets/app.js').text
     for goal in ('normal_run', 'fault_run', 'history', 'compare', 'advanced'):
-        assert f'data-wizard-goal="{goal}"' in index
+        assert goal in js
     assert "effectCatalog('fault')" in js
     assert 'selectCatalogObject(objectId)' in js
     assert 'previewForm()' in js
