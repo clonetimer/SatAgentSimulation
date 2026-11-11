@@ -22,9 +22,9 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
-  <link rel="stylesheet" href="/assets/compact-workbench.css?v=compact2">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=wizard1">
 </head>
-<body data-active-view="creator">
+<body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
   <div class="app-shell">
     <header class="topbar">
@@ -71,7 +71,8 @@
       <aside class="app-sidebar" aria-label="工作台目录">
         <nav class="sidebar-nav" aria-label="主目录">
           <div class="sidebar-section-title">仿真工作</div>
-          <button class="nav-button active" data-view="creator" type="button"><span>✦</span><b>仿真创建</b></button>
+          <button class="nav-button active" data-view="wizard" type="button"><span>✦</span><b>开始仿真</b></button>
+          <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>高级工作台</b></button>
           <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
           <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
           <div class="sidebar-section-title">任务与实验</div>
@@ -112,6 +113,22 @@
       </aside>
       <div id="mainContent" class="app-content" tabindex="-1">
 
+
+    <main id="wizardView" class="wizard-view app-view">
+      <section class="wizard-shell" aria-label="规则驱动仿真向导">
+        <header class="wizard-header">
+          <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
+          <button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button>
+        </header>
+        <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
+        <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
+        <div class="wizard-footer">
+          <div class="wizard-footer-note">规则驱动 · 不需要 AI 对话 · 运行前执行正式配置校验</div>
+          <div class="wizard-footer-actions"><button id="wizardBackBtn" class="button button-ghost" type="button" disabled>上一步</button><button id="wizardResetBtn" class="button button-ghost" type="button">重新开始</button></div>
+        </div>
+        <div id="wizardNotice" class="wizard-notice" role="status" aria-live="polite"></div>
+      </section>
+    </main>
 
     <main id="creatorView" class="workspace app-view compact-empty-results">
       <section class="panel editor-panel">
