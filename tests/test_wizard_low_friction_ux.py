@@ -86,9 +86,9 @@ def test_wizard_parameter_modes_preserve_registry_fields_and_expose_progressive_
         index = client.get("/").text
         js = client.get("/assets/app.js").text
         css = client.get("/assets/compact-workbench.css").text
-        schema = client.get("/capabilities/component.reaction_wheel.v1/form-schema")
+        schema = client.get("/forms/capabilities/component.reaction_wheel.v1")
     assert schema.status_code == 200
-    fields = schema.json()["fields"]
+    fields = schema.json()["form_schema"]["fields"]
     parameter_count = sum(str(field["path"]).startswith("parameters.values.") for field in fields)
     assert parameter_count > 0
     for mode in ("runtime", "recommended", "all"):
