@@ -6986,6 +6986,11 @@
     const container = el('interactiveSessionList');
     if (!container) return;
     container.replaceChildren();
+    if (!state.interactiveCreateDisclosureInitialized) {
+      const disclosure = el('interactiveCreateDetails');
+      if (disclosure) disclosure.open = !state.interactiveSessions.length && !state.interactiveSession;
+      state.interactiveCreateDisclosureInitialized = true;
+    }
     renderInteractiveSelectedSessionSummary();
     el('interactiveSessionCount').textContent = String(state.interactiveSessions.length);
     const orderedSessions = [...state.interactiveSessions].sort((a, b) =>
@@ -7018,6 +7023,8 @@
     const snapshot = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}`);
     if (selectionVersion !== state.interactiveSelectionVersion) return;
     state.interactiveSession = snapshot;
+    const createDisclosure = el('interactiveCreateDetails');
+    if (createDisclosure) createDisclosure.open = false;
     interactiveNotice(`当前查看会话 ${snapshot.session_id}。`);
     state.interactiveFrames = {};
     state.interactiveGaps = {};
@@ -7198,6 +7205,8 @@
     const created = await api('/interactive/sessions', { method: 'POST', body: apiBody(spec) });
     await loadInteractiveSessions();
     await selectInteractiveSession(created.session_id);
+    const createDisclosure = el('interactiveCreateDetails');
+    if (createDisclosure) createDisclosure.open = false;
     interactiveNotice(`会话 ${created.session_id} 已就绪。`);
   }
 
@@ -7259,6 +7268,30 @@
     renderInteractiveAcks();
   }
 
+  function interactiveAckStateLabel(value) {
+    const labels = {
+      QUEUED: '已排队，等待执行',
+      ACKNOWLEDGED: '服务端已确认',
+      ACCEPTED: '服务端已接收',
+      REJECTED: '已拒绝',
+      EXECUTED: '已执行',
+      COMPLETED: '执行完成',
+      FAILED: '执行失败',
+      ABORTED: '已中止',
+      CANCELLED: '已取消',
+    };
+    return labels[String(value || '').toUpperCase()] || String(value || '状态未知');
+  }
+
+  function interactiveEventStateLabel(value) {
+    const labels = {
+      READY: '已就绪', RUNNING: '运行中', PAUSED: '已暂停',
+      COMPLETED: '已完成', FAILED: '运行失败', ABORTED: '已中止',
+      INTERRUPTED: '运行中断', STOPPING: '正在停止',
+    };
+    return labels[String(value || '').toUpperCase()] || String(value || '状态未知');
+  }
+
   function renderInteractiveEvents() {
     const container = el('interactiveEventList');
     container.replaceChildren();
@@ -7266,7 +7299,7 @@
       const item = document.createElement('div');
       item.className = `interactive-timeline-item ${String(event.state).toLowerCase()}`;
       const title = document.createElement('strong');
-      title.textContent = `${event.previous_state} → ${event.state}`;
+      title.textContent = `${interactiveEventStateLabel(event.previous_state)} → ${interactiveEventStateLabel(event.state)}`;\n      title.title = `${event.previous_state} → ${event.state}`;
       const meta = document.createElement('span');
       meta.textContent = `#${event.sequence} · t=${Number(event.sim_time_s).toFixed(3)} s · ${event.reason_code}`;
       item.append(title, meta);
@@ -7281,7 +7314,7 @@
       const item = document.createElement('div');
       item.className = `interactive-timeline-item ${String(ack.state).toLowerCase()}`;
       const title = document.createElement('strong');
-      title.textContent = `${ack.command_id} · ${ack.state}`;
+      title.textContent = `${interactiveAckStateLabel(ack.state)} · ${ack.command_id}`;\n      title.title = ack.state;
       const meta = document.createElement('span');
       meta.textContent = `#${ack.sequence} · ${ack.reason_code}${ack.sim_time_s == null ? '' : ` · t=${Number(ack.sim_time_s).toFixed(3)} s`}`;
       item.append(title, meta);
@@ -7399,6 +7432,24 @@
     renderInteractiveTelemetry();
   }
 
+  function interactiveTelemetryLabel(field) {
+    const labels = {
+      'orbit.radius_m': '轨道半径（m）',
+      'orbit.altitude_m': '轨道高度（m）',
+      'orbit.velocity_m_s': '轨道速度（m/s）',
+      'adcs.pointing_error_deg': '姿态指向误差（°）',
+      'adcs.attitude_error_deg': '姿态误差（°）',
+      'adcs.rw.speed_rad_s_0': '飞轮 1 转速（rad/s）',
+      'adcs.rw.speed_rad_s_1': '飞轮 2 转速（rad/s）',
+      'adcs.rw.speed_rad_s_2': '飞轮 3 转速（rad/s）',
+      'eps.battery_soc': '电池荷电状态（SOC）',
+      'eps.battery_voltage_v': '电池电压（V）',
+      'eps.battery_current_a': '电池电流（A）',
+      'comm.link_margin_db': '通信链路余量（dB）',
+    };
+    return labels[field] || field;
+  }
+
   function renderInteractiveTelemetry() {
     const stream = el('interactiveStream').value;
     const frames = state.interactiveFrames[stream] || [];
@@ -7415,7 +7466,7 @@
     visibleFields.filter(name => Object.hasOwn(latest, name)).forEach((name) => {
       const value = latest[name];
       const item = document.createElement('div'); item.className = 'interactive-value';
-      const label = document.createElement('span'); label.textContent = name;
+      const label = document.createElement('span'); label.textContent = interactiveTelemetryLabel(name);\n      label.title = name;
       const strong = document.createElement('strong');
       strong.textContent = value == null || (typeof value === 'number' && !Number.isFinite(value))
         ? '—' : (typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value));
@@ -7472,7 +7523,7 @@
         if (!connected) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         connected = true;
       });
-      ctx.stroke(); ctx.fillStyle = colors[fieldIndex]; ctx.font = '10px sans-serif'; ctx.fillText(field, 46, 14 + fieldIndex * 13);
+      ctx.stroke(); ctx.fillStyle = colors[fieldIndex]; ctx.font = '10px sans-serif'; ctx.fillText(interactiveTelemetryLabel(field), 46, 14 + fieldIndex * 13);
     });
     ctx.fillStyle = muted; ctx.font = '9px sans-serif'; ctx.fillText('sim time', Math.max(44, width - 52), height - 6);
   }

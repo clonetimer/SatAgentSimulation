@@ -77,6 +77,8 @@
   }
   function selectSession(sessionId) {
     state.selectedId = sessionId;
+    const createDisclosure = $('continuousCreateDetails');
+    if (createDisclosure) createDisclosure.open = false;
     state.focusSelectedStatus = true;
     state.snapshot = null; state.metrics = null; state.recovery = null; state.endurance = null;
     state.events = []; state.acks = []; state.lastEventSeq = -1;
@@ -103,6 +105,18 @@
         return typeof value === 'number' && Number.isFinite(value);
       });
   }
+  function continuousTelemetryLabel(field) {
+    const labels = {
+      'orbit.radius_m': '轨道半径（m）',
+      'orbit.altitude_m': '轨道高度（m）',
+      'adcs.pointing_error_deg': '姿态指向误差（°）',
+      'eps.battery_soc': '电池荷电状态（SOC）',
+      'adcs.rw.speed_rad_s_0': '飞轮 1 转速（rad/s）',
+      'adcs.rw.speed_rad_s_1': '飞轮 2 转速（rad/s）',
+      'adcs.rw.speed_rad_s_2': '飞轮 3 转速（rad/s）',
+    };
+    return labels[field] || field;
+  }
   function renderStreamContract(info) {
     const catalog = info.telemetry_catalog || [];
     if (!catalog.length) throw new Error('SESSION_TELEMETRY_CATALOG_EMPTY');
@@ -123,7 +137,7 @@
     const signal = $('continuousSignal');
     fields.forEach(field => {
       if (![...signal.options].some(option => option.value === field)) {
-        const option = element('option', field); option.value = field; signal.append(option);
+        const option = element('option', continuousTelemetryLabel(field)); option.value = field; option.title = field; signal.append(option);
       }
     });
     [...signal.options].forEach(option => {
@@ -166,6 +180,11 @@
   function renderSessionList(sessions) {
     const target = $('continuousSessionList');
     target.replaceChildren();
+    if (!state.createDisclosureInitialized) {
+      const disclosure = $('continuousCreateDetails');
+      if (disclosure) disclosure.open = sessions.length === 0;
+      state.createDisclosureInitialized = true;
+    }
     renderSelectedSessionSummary();
     setText('continuousSessionCount', sessions.length);
     if (!sessions.length) {
@@ -886,6 +905,8 @@
         method: 'POST', body: JSON.stringify(body),
       });
       state.selectedId = result.session_id;
+      const createDisclosure = $('continuousCreateDetails');
+      if (createDisclosure) createDisclosure.open = false;
       state.telemetryStream = null;
       state.focusSelectedStatus = true;
       state.metrics = null;
