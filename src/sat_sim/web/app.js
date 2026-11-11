@@ -4770,7 +4770,7 @@
       const description = document.createElement('span'); description.className='field-description'; description.textContent=field.description || '该参数由能力注册表定义。';
       const schemaMeta = document.createElement('span'); schemaMeta.className='field-schema-meta';
       const metaParts = [];
-      if (field.default !== undefined) metaParts.push('Schema 默认值：' + displayFieldValue(field.default, field));
+      if (field.default !== undefined) metaParts.push((String(field.path || '').startsWith('parameters.values.') ? '模型推荐值：' : 'Schema 默认值：') + displayFieldValue(field.default, field));
       if (field.minimum !== undefined || field.maximum !== undefined) metaParts.push('允许范围：' + (field.minimum !== undefined ? field.minimum : '不限') + ' ～ ' + (field.maximum !== undefined ? field.maximum : '不限'));
       schemaMeta.textContent = metaParts.join('；');
       help.append(helpSummary, description);
@@ -4817,6 +4817,7 @@
           if (value === undefined) deletePath(state.formData,field.path); else setPath(state.formData,field.path,value);
           state.taskSpec=null; state.changedPaths.delete(field.path); wrapper.classList.remove('agent-changed','field-error'); wrapper.querySelector('.field-error-message')?.remove();
           validateClientForm({show:false}); renderAgentChangePanel();
+          if (state.activeView === 'wizard') renderWizardParameterControls();
         } catch (error) {
           setFieldError(field.path,error.message);
         }
