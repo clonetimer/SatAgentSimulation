@@ -8275,6 +8275,18 @@
       if (!faults.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前模型没有注册可用故障。没有虚构或替代故障选项。'; options.appendChild(empty); }
       faults.forEach((item) => option(item.label || item.effect, item.description || '使用该模型注册的故障事件模板', { 'data-wizard-fault': item.effect }, () => wizardChooseFault(item.effect)));
     } else if (state.wizard.step === 'mode') {
+      const limitedSession = state.interactiveSession;
+      if (limitedSession) {
+        const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(String(limitedSession.state || '').toUpperCase());
+        option(terminal ? '查看上一次限时实时会话' : '返回正在运行的限时实时会话',
+          limitedSession.session_id + ' · ' + (limitedSession.state || '状态未知') + ' · t=' + Number(limitedSession.sim_time_s || 0).toFixed(2) + ' s',
+          { 'data-wizard-resume': 'limited_realtime' }, () => switchView('interactive'));
+      }
+      const continuousSessionId = window.SatContinuousConsole?.getSelectedSessionId?.();
+      if (continuousSessionId) {
+        option('返回持续实时会话', continuousSessionId + ' · 重新连接并读取服务端状态，不会自动重启或重放遥控',
+          { 'data-wizard-resume': 'continuous_realtime' }, () => switchView('continuous'));
+      }
       const modes = [
         ['offline','离线仿真','提交一次有限时长任务；结束后查看完整运行结果、曲线、事件与制品。'],
         ['limited_realtime','限时实时仿真','按设定时长运行；支持暂停、继续、单步和实时遥控。到达时长上限后结束并归档。'],

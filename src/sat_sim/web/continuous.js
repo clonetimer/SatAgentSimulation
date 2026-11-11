@@ -1300,6 +1300,9 @@
     renderChart();
     renderVerifiedHistory();
   }
-  window.SatContinuousConsole = { enter, exit, applyNativeConfiguration, selectSession };
+  window.SatContinuousConsole = {
+    enter, exit, applyNativeConfiguration, selectSession,
+    getSelectedSessionId: () => state.selectedId,
+  };
   document.addEventListener('DOMContentLoaded', initialize);
 })();
