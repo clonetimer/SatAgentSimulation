@@ -132,6 +132,26 @@
             <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>按具体遥测量选择（高级）</summary><p class="wizard-panel-help">这里显示完整注册目录，适合熟悉遥测名称的用户；普通使用优先选择上方分组。</p><div id="wizardPlotHost"></div></details>
           </details>
         </section>
+        <details id="wizardAdditionalTools" class="wizard-additional-tools">
+          <summary>其他专业工具（按需使用）</summary>
+          <div class="wizard-additional-tool-grid">
+            <button type="button" class="wizard-tool-option" data-wizard-goal="experiments"><strong>批量实验 / 参数扫描</strong><small>多组参数组合、Monte Carlo 和批量运行，使用独立实验计划与预算。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="goals"><strong>目标驱动实验</strong><small>多轮候选优化、约束和预算管理，保留目标状态与决策记录。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="graph"><strong>图形化建模</strong><small>需要拖拽模块、连接端口和编辑画布，保留专用工程工作区。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="diagnostics"><strong>系统诊断</strong><small>环境、能力目录和服务健康检查属于运维工具，不混入仿真参数流程。</small></button>
+          </div>
+        </details>
+        <section id="wizardAgentWorkspace" class="wizard-special-workspace hidden" aria-label="自然语言仿真需求">
+          <div class="wizard-special-heading"><strong>用自然语言描述仿真任务</strong><span>描述仿真对象、运行时间、工况/故障和希望观察的数据。生成后仍会回到表单检查，不会直接启动仿真。</span></div>
+          <div id="wizardAgentHost"></div>
+          <div class="wizard-special-actions"><button id="wizardGenerateFromTextBtn" class="button button-primary" type="button">生成配置并检查</button><button id="wizardUseFormInsteadBtn" class="button button-ghost" type="button">改用分步配置</button></div>
+        </section>
+        <section id="wizardTaskSpecWorkspace" class="wizard-special-workspace hidden" aria-label="TaskSpec 结构化任务">
+          <div class="wizard-special-heading"><strong>TaskSpec 结构化任务</strong><span>适合精确编辑、导入和交换机器可读任务定义。普通用户可直接使用分步配置，无需编辑 JSON。</span></div>
+          <div id="wizardTaskSpecHost"></div>
+          <div class="wizard-special-actions"><button id="wizardValidateTaskSpecBtn" class="button button-secondary" type="button">校验 TaskSpec</button><button id="wizardApplyTaskSpecBtn" class="button button-primary" type="button">应用到仿真配置</button></div>
+          <p class="wizard-panel-help">TaskSpec 校验通过不等于已经启动仿真。应用后仍需检查运行参数、输出与事件，再执行运行前校验。</p>
+        </section>
         <section id="wizardTaskWorkspace" class="wizard-task-workspace hidden" aria-label="对话式任务管理">
           <div class="wizard-task-toolbar">
             <label class="search-box"><span aria-hidden="true">⌕</span><input id="wizardTaskSearch" type="search" placeholder="搜索任务名称或仿真对象…"></label>

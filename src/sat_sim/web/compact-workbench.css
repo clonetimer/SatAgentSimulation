@@ -382,3 +382,23 @@ body[data-active-view="wizard"] .mobile-catalog-toggle { display: none !importan
   .wizard-task-actions { justify-content: flex-start; }
 }
 @media (max-width: 540px) { .wizard-runtime-fields { grid-template-columns: 1fr; } }
+
+
+/* Specialist capabilities mounted inside the guided workflow without duplicating their controllers. */
+.wizard-additional-tools { border:1px solid var(--line); border-radius:12px; background:var(--panel-2); padding:0 14px 12px; }
+.wizard-additional-tools > summary { cursor:pointer; padding:12px 2px; font-size:13px; font-weight:650; }
+.wizard-additional-tool-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.wizard-tool-option { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--panel); color:var(--text); text-align:left; cursor:pointer; }
+.wizard-tool-option strong { font-size:13px; }
+.wizard-tool-option small { color:var(--muted); font-size:11px; line-height:1.5; }
+.wizard-special-workspace { display:grid; gap:12px; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2); min-width:0; }
+.wizard-special-heading { display:grid; gap:4px; }
+.wizard-special-heading strong { font-size:14px; }
+.wizard-special-heading span { color:var(--muted); font-size:12px; line-height:1.6; }
+.wizard-special-workspace .agent-compose, .wizard-special-workspace .json-workbench { min-width:0; }
+.wizard-special-workspace .agent-compose { padding:0; border:0; background:transparent; }
+.wizard-special-workspace .agent-compose textarea { min-height:120px; }
+.wizard-special-workspace .json-workbench { padding:0; border:0; background:transparent; }
+.wizard-special-workspace .code-editor { min-height:360px; width:100%; }
+.wizard-special-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+@media(max-width:640px) { .wizard-additional-tool-grid { grid-template-columns:1fr; } .wizard-special-actions > button { flex:1 1 100%; } }
