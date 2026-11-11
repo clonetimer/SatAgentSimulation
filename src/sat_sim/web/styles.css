@@ -1807,3 +1807,42 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   }
   .interactive-controls .danger-icon { margin-left: 0; }
 }
+
+/* P5 UX: keep session creation available but out of the active monitoring path. */
+.realtime-create-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  list-style: none;
+  padding: 2px 0;
+}
+.realtime-create-disclosure > summary::-webkit-details-marker { display: none; }
+.realtime-create-disclosure > summary::after {
+  content: '展开';
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.realtime-create-disclosure[open] > summary::after { content: '收起'; }
+.realtime-create-disclosure > summary span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+  text-align: right;
+}
+.realtime-create-disclosure[open] > summary { margin-bottom: 12px; }
+.realtime-create-disclosure > form,
+.realtime-create-disclosure > label,
+.realtime-create-disclosure > p,
+.realtime-create-disclosure > div,
+.realtime-create-disclosure > button { min-width: 0; }
+.realtime-create-disclosure > form { margin-top: 8px; }
+.interactive-create .realtime-create-disclosure:not([open]) { padding-bottom: 1px; }
+.continuous-sidebar .realtime-create-disclosure:not([open]) { padding: 2px 0; }
