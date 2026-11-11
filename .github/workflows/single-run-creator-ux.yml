@@ -39,7 +39,7 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           node --check src/sat_sim/web/app.js
-          python -m pytest -q -s tests/test_workbench_wizard.py tests/test_wizard_low_friction_ux.py tests/interactive/test_single_run_creator_ux.py tests/interactive/test_finite_telemetry_overview.py
+          python -m pytest -q -s tests/test_workbench_wizard.py tests/test_parameter_presentation.py tests/test_wizard_low_friction_ux.py tests/interactive/test_single_run_creator_ux.py tests/interactive/test_finite_telemetry_overview.py
 
   finite-basilisk-physics:
     runs-on: ubuntu-latest
