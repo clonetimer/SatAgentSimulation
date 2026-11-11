@@ -44,6 +44,8 @@ def test_both_realtime_modes_expose_a_consistent_current_session_summary():
     assert "function renderSelectedSessionSummary()" in continuous
     assert "renderInteractiveSelectedSessionSummary();" in app
     assert "renderSelectedSessionSummary();" in continuous
+    assert "const orderedSessions = [...state.interactiveSessions].sort" in app
+    assert "const orderedSessions = [...sessions].sort" in continuous
     assert "session.session_id" in app
     assert "session.session_id" in continuous
     assert "data-state" in app
