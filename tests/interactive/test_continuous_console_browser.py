@@ -147,6 +147,10 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.route("https://workbench.test/**", route_request)
             page.on("dialog", lambda dialog: dialog.accept())
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            # The default entry is now the rule-driven wizard; this regression
+            # exercises the advanced realtime controls and explicitly enters
+            # the retained engineering workbench before editing its form.
+            page.locator(".nav-button[data-view=creator]").click()
             # Edit the current offline whole-spacecraft form, then import the
             # same approved native value into each realtime UI. Browser test
             # checks only UI/API wiring; it never claims physical equivalence.
