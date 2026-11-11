@@ -715,3 +715,72 @@ def test_rule_driven_wizard_completes_preflight_without_agent_or_run_submission(
             page.screenshot(path=str(tmp_path / "rule-wizard-review.png"), full_page=True)
         finally:
             browser.close()
+
+
+def test_wizard_task_center_and_purpose_first_curve_selection_stay_in_dialog(tmp_path):
+    pw = pytest.importorskip("playwright.sync_api")
+    run_calls = []
+    agent_calls = []
+    with _client(tmp_path) as client, pw.sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"), args=["--no-sandbox", "--disable-dev-shm-usage"])
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 960}, locale="zh-CN")
+            errors = []
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def route_request(route):
+                req = route.request
+                u = urlsplit(req.url)
+                assert u.netloc == "workbench.test"
+                request_path = u.path + ("?" + u.query if u.query else "")
+                if req.method == "POST" and u.path == "/runs":
+                    run_calls.append(request_path)
+                if "/agent/" in u.path or u.path.endswith("/tasks/parse/natural-language"):
+                    agent_calls.append(request_path)
+                response = client.request(
+                    req.method, request_path,
+                    content=req.post_data.encode("utf-8") if req.post_data else None,
+                    headers={k: v for k, v in req.headers.items()
+                             if k.lower() in ("authorization", "content-type", "accept")},
+                )
+                route.fulfill(status=response.status_code, body=response.content,
+                              headers={k: v for k, v in response.headers.items()
+                                       if k.lower() in ("content-type", "cache-control")})
+
+            page.route("https://workbench.test/**", route_request)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardView").wait_for(state="visible")
+            page.locator("#wizardOptions .wizard-option").first.wait_for(state="visible", timeout=20000)
+
+            # The task-center entry opens the task manager inside the wizard shell.
+            page.get_by_role("button", name="查看历史任务").click()
+            page.locator("#wizardTaskWorkspace").wait_for(state="visible")
+            assert page.locator("#wizardTaskSearch").is_visible()
+            assert page.locator("#wizardTaskStatus").is_visible()
+            assert page.locator("#taskCenterView").is_hidden()
+            assert page.locator("#wizardSaveCurrentTaskBtn").is_disabled()
+            assert "还没有保存的任务" in page.locator("#wizardTaskList").inner_text()
+
+            # Reset, then follow the normal offline flow and inspect metadata-derived curve groups.
+            page.locator("#wizardResetBtn").click()
+            page.get_by_role("button", name="运行正常仿真").click()
+            page.get_by_role("button", name="整星").click()
+            page.locator("#wizardOptions .wizard-option").first.click()
+            page.get_by_role("button", name="离线仿真").click()
+            page.locator("#wizardConfigSections").wait_for(state="visible")
+            page.locator("#wizardOutputPanel").wait_for(state="visible")
+            assert page.locator("#wizardOutputPanel").evaluate("(node) => node.open")
+            cards = page.locator("#wizardCurveChoices .wizard-curve-card")
+            assert cards.count() > 0, "Curve groups should be generated from the selected Schema trace options."
+            assert page.locator("#wizardCurveSelectionSummary").inner_text().startswith("已选择")
+            assert page.locator("#wizardParametersPanel").evaluate("(node) => !node.open")
+            # Technical field identifiers stay hidden unless a user explicitly expands the advanced details.
+            assert page.locator("#wizardCurveChoices .wizard-curve-technical code").count() > 0
+            assert all(not page.locator("#wizardCurveChoices .wizard-curve-technical").nth(i).evaluate("(node) => node.open")
+                       for i in range(page.locator("#wizardCurveChoices .wizard-curve-technical").count()))
+            assert run_calls == []
+            assert agent_calls == []
+            assert errors == []
+            page.screenshot(path=str(tmp_path / "wizard-curves-and-task-center.png"), full_page=True)
+        finally:
+            browser.close()
