@@ -26,7 +26,7 @@ def test_default_entry_is_rule_driven_wizard_and_advanced_workbench_is_preserved
     assert 'data-view="creator"' in index
     assert 'id="creatorView"' in index
     assert 'id="wizardOptions"' in index
-    assert '/assets/app.js?v=wizard3' in index
+    assert '/assets/app.js?v=wizard5' in index
     assert 'wizardStart' in js
     assert 'renderSimulationWizard' in js
 
