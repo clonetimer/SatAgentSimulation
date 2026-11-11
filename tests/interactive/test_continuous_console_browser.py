@@ -195,7 +195,7 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").click()
             assert page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").get_attribute("aria-pressed") == "true"
             assert page.locator("#wizardCurveChoices .wizard-curve-card").count() > 0
-            technical_name = page.locator("#wizardCurveChoices .wizard-curve-technical code").first.inner_text()
+            technical_name = page.locator("#wizardCurveChoices .wizard-curve-technical code").first.evaluate("(node) => node.textContent")
             page.locator("#wizardOutputSearch").fill(technical_name)
             assert page.locator("#wizardCurveChoices .wizard-curve-technical code").count() == 1
             assert "匹配" in page.locator("#wizardOutputSearchCount").inner_text()
