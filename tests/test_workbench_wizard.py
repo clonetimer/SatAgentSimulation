@@ -52,3 +52,5 @@ def test_wizard_has_back_reset_and_schema_driven_runtime_configuration(tmp_path)
     assert "simulation.duration_s" in js
     assert "simulation.sample_s" in js
     assert "wizard.validated" in js
+    assert "validatedForm" in js
+    assert "wizard.validatedForm !== JSON.stringify(state.formData)" in js
