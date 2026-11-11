@@ -7487,7 +7487,9 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'wizard-option';
-    Object.entries(attributes || {}).forEach(([key, value]) => button.setAttribute(key, String(value)));
+    Object.entries(attributes || {}).forEach(([key, value]) => {
+      if (key !== 'disabled') button.setAttribute(key, String(value));
+    });
     const strong = document.createElement('strong'); strong.textContent = title;
     const small = document.createElement('small'); small.textContent = detail || '';
     button.append(strong, small);

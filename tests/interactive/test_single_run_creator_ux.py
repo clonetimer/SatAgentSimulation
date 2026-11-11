@@ -410,6 +410,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
 
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator(".nav-button[data-view=creator]").click()
             page.locator("#runList .run-list-item").first.wait_for(timeout=30000)
             page.locator("#runList [data-run-id='ui-a']").click()
             page.locator("#activeRunCard .run-id").get_by_text("UI 曲线验收 A").wait_for(timeout=20000)

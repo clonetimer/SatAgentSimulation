@@ -26,7 +26,7 @@ def test_default_entry_is_rule_driven_wizard_and_advanced_workbench_is_preserved
     assert 'data-view="creator"' in index
     assert 'id="creatorView"' in index
     assert 'id="wizardOptions"' in index
-    assert '/assets/app.js?v=wizard1' in index
+    assert '/assets/app.js?v=wizard3' in index
     assert 'wizardStart' in js
     assert 'renderSimulationWizard' in js
 
@@ -64,7 +64,7 @@ def test_wizard_keeps_results_and_both_realtime_modes_inside_the_guided_workspac
         js = client.get('/assets/app.js').text
     assert 'id="wizardRealtimeWorkspace"' in index
     assert 'id="wizardRunResultsHost"' in index
-    assert "wizardAttachRuntimeViews" in js
+    assert "wizardAttachPanels" in js
     assert "wizardChooseMode" in js
     assert "limited_realtime" in js
     assert "continuous_realtime" in js
