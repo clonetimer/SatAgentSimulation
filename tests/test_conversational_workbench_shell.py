@@ -88,7 +88,6 @@ def test_taskspec_can_be_applied_and_opened_in_the_native_graph_editor():
     html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
     js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
     assert 'id="wizardOpenGraphBtn"' in html
-    assert "await syncEditorToForm();" in js[js.index("wizardOpenGraphBtn").__str__():] if False else True
     start = js.index("el('wizardOpenGraphBtn').addEventListener")
     handler = js[start:js.index("el('previewBtn').addEventListener", start)]
     assert "await syncEditorToForm()" in handler
