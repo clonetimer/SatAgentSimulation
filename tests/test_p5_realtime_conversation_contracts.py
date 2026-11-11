@@ -29,3 +29,23 @@ def test_realtime_safety_contracts_remain_explicit():
     html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
     assert "原生自动恢复：关闭" in html
     assert "异常执行的遥控不会自动重放" in html
+
+
+def test_both_realtime_modes_expose_a_consistent_current_session_summary():
+    html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    app = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = Path("src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+    css = Path("src/sat_sim/web/styles.css").read_text(encoding="utf-8")
+
+    assert html.count('class="realtime-current-session"') == 2
+    assert 'id="interactiveSelectedSessionSummary"' in html
+    assert 'id="continuousSelectedSessionSummary"' in html
+    assert "function renderInteractiveSelectedSessionSummary()" in app
+    assert "function renderSelectedSessionSummary()" in continuous
+    assert "renderInteractiveSelectedSessionSummary();" in app
+    assert "renderSelectedSessionSummary();" in continuous
+    assert "session.session_id" in app
+    assert "session.session_id" in continuous
+    assert "data-state" in app
+    assert "data-state" in continuous
+    assert ".realtime-current-session" in css
