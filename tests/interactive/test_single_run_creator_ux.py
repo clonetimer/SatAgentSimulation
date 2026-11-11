@@ -173,6 +173,8 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
 
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            # The default entry is the wizard; this legacy path exercises the retained advanced creator.
+            page.locator(".nav-button[data-view=creator]").click()
             page.locator("#singleRunGuide[data-stage='configure']").wait_for(timeout=30000)
             assert page.locator("#singleRunGuide .single-run-step").count() == 3
             _reveal_with_keyboard(page, "#singleRunReadiness", tmp_path, "model-readiness-menu")
