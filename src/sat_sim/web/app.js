@@ -7526,7 +7526,7 @@
 
   function wizardBackFromRealtime() {
     const liveState = state.interactiveSession?.state;
-    const continuousState = window.SatContinuousConsole?.state?.()?.state;
+    const continuousState = el('continuousState')?.textContent;
     const active = ['RUNNING', 'STARTING', 'PAUSED', 'STOPPING'].includes(String(liveState || continuousState || '').toUpperCase());
     if (active && !window.confirm('当前实时会话仍处于活动状态。返回向导会离开实时控制台；会话不会自动停止。确定返回吗？')) return;
     el('wizardView').dataset.runtimeMode = '';
@@ -7620,12 +7620,14 @@
       el('interactiveQuantum').value = quantum;
       renderInteractiveCapabilityHint();
       wizardMessage('assistant', '已进入限时实时仿真。先创建会话，再启动；可暂停、单步、调整倍速，并在同一窗口查看实时遥测曲线和遥控回执。');
+      renderSimulationWizard();
       switchView('interactive');
       return;
     }
     el('continuousHorizon').value = String(Math.max(1, Math.min(86400, duration)));
     el('continuousQuantum').value = [0.1, 0.2, 0.5, 1].includes(sample) ? String(sample) : '0.5';
     wizardMessage('assistant', '已进入持续实时仿真。创建整星会话后手动启动；可以持续观察遥测曲线、运行状态和资源指标，并在需要时停止并归档。');
+    renderSimulationWizard();
     switchView('continuous');
   }
 
