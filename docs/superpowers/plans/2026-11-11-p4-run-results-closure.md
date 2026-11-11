@@ -45,7 +45,7 @@ P4 的主要数据链和 UI 面板其实已经存在，本轮核查确认：
 
 ## P4 验收结论
 
-<badge>已完成（工作台集成范围）</badge>
+**已完成（工作台集成范围）**
 
 - 最新分支回归已通过：Continuous simulation browser smoke、Single-run creator UX + real Basilisk finite-run、Agent input/run consistency、unit tests、static checks 和 script/dependency governance。
 - 新增 P4 静态契约测试已纳入单元测试回归。
