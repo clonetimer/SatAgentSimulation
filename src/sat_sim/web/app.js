@@ -9590,11 +9590,12 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     initTheme();
     initDisplayPreferences();
     bindEvents();
+    wizardReset();
     await loadAuthStatus().catch(() => null);
     await Promise.allSettled([loadHeader(), loadRuns(), loadSingleRunReadiness(), loadModelProviders(), loadTasks(), loadScenarioTemplates(), loadExperiments(), loadInteractiveAvailability()]);
     try {
       await loadCapabilities();
-      wizardReset();
+      renderSimulationWizard();
       await loadAssemblyCatalog();
       await loadModuleLibrary();
     } catch (error) {
