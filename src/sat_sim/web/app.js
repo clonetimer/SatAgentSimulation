@@ -7623,7 +7623,8 @@
     const sample = Number(getPath(state.formData, 'simulation.sample_s') || 0.5);
     const quantum = [0.1, 0.5, 1].includes(sample) ? String(sample) : '0.5';
     if (mode === 'limited_realtime') {
-      el('interactiveCapability').value = 'whole_spacecraft.unified_native.v1';
+      el('interactiveCapability').value = state.selectedCapabilityId;
+      el('interactiveImportOfflineConfigBtn').classList.toggle('hidden', state.selectedCapabilityId !== 'whole_spacecraft.unified_native.v1');
       el('interactiveContinuous').checked = false;
       el('interactiveDuration').value = String(Math.max(1, Math.min(86400, duration)));
       el('interactiveQuantum').value = quantum;
