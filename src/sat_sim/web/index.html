@@ -76,7 +76,7 @@
           <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
           <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
           <div class="sidebar-section-title">任务与实验</div>
-          <button class="nav-button" data-view="tasks" type="button"><span>▣</span><b>任务中心</b></button>
+          <button class="nav-button" data-view="wizard" data-wizard-shortcut="history" type="button"><span>▣</span><b>任务中心</b></button>
           <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
           <button class="nav-button" data-view="goals" type="button"><span>◎</span><b>目标实验</b></button>
           <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
@@ -123,9 +123,24 @@
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
         <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
         <section id="wizardConfigSections" class="wizard-config-sections hidden" aria-label="仿真参数、事件和输出">
-          <details id="wizardParametersPanel" class="wizard-config-panel"><summary>更多仿真参数</summary><div id="wizardParameterHost"></div></details>
-          <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><div id="wizardEventHost"></div></details>
-          <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary><div class="wizard-output-columns"><section><h3>摘要指标</h3><div id="wizardQoiHost"></div></section><section><h3>输出曲线</h3><div id="wizardPlotHost"></div></section></div></details>
+          <details id="wizardParametersPanel" class="wizard-config-panel"><summary>更多仿真参数（可保持推荐值）</summary><p class="wizard-panel-help">通常只需设置仿真时长和采样间隔。模型专用参数已按推荐值初始化；只有研究需要时才展开修改。</p><div id="wizardParameterHost"></div></details>
+          <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><p class="wizard-panel-help">设置故障何时发生、持续多久以及作用幅度。所有故障类型均来自当前模型已注册的事件目录。</p><div id="wizardEventHost"></div></details>
+          <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary>
+            <p class="wizard-panel-help">先按观察目的添加推荐曲线，不需要理解技术字段。每组曲线都来自当前仿真对象实际注册的输出。</p>
+            <section class="wizard-curve-section"><div class="wizard-curve-heading"><h3>你想观察什么？</h3><span id="wizardCurveSelectionSummary">尚未选择曲线</span></div><div id="wizardCurveChoices" class="wizard-curve-choices"></div></section>
+            <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>更多摘要指标</summary><div id="wizardQoiHost"></div></details>
+            <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>按具体遥测量选择（高级）</summary><p class="wizard-panel-help">这里显示完整注册目录，适合熟悉遥测名称的用户；普通使用优先选择上方分组。</p><div id="wizardPlotHost"></div></details>
+          </details>
+        </section>
+        <section id="wizardTaskWorkspace" class="wizard-task-workspace hidden" aria-label="对话式任务管理">
+          <div class="wizard-task-toolbar">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="wizardTaskSearch" type="search" placeholder="搜索任务名称或仿真对象…"></label>
+            <select id="wizardTaskStatus" aria-label="任务状态筛选"><option value="">全部任务状态</option><option value="READY">就绪</option><option value="QUEUED">排队</option><option value="RUNNING">运行中</option><option value="COMPLETED">已完成</option><option value="FAILED">失败</option><option value="CANCELLED">已取消</option></select>
+            <button id="wizardRefreshTasksBtn" class="button button-secondary" type="button">刷新</button>
+            <button id="wizardSaveCurrentTaskBtn" class="button button-primary" type="button">保存当前配置</button>
+          </div>
+          <div id="wizardTaskSummary" class="wizard-task-summary" role="status"></div>
+          <div id="wizardTaskList" class="wizard-task-list"></div>
         </section>
         <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果"></section>
         <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>

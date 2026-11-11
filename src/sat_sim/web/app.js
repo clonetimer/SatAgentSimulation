@@ -5042,6 +5042,7 @@
     renderCheckOptions('qoiOptions', state.schema.outputs.summary_options || [], state.formData.outputs.qoi || [], 'qoi');
     renderCheckOptions('plotOptions', state.schema.outputs.trace_options || [], state.formData.outputs.plots || [], 'plots');
     renderAdvancedOutputs();
+    renderWizardCurveChoices();
     updateSingleRunSummary();
   }
 
@@ -7510,7 +7511,7 @@
 
   function wizardBack() {
     const previous = {
-      level: 'welcome', object: 'level', fault: 'object',
+      level: 'welcome', tasks: 'welcome', object: 'level', fault: 'object',
       mode: state.wizard.goal === 'fault_run' ? 'fault' : 'object',
       configure: 'mode', review: 'configure', results: 'configure',
     }[state.wizard.step];
@@ -7548,7 +7549,14 @@
     state.wizard.faultEffect = null;
     state.wizard.mode = null;
     state.wizard.validated = false;
-    if (goal === 'history') { switchView('tasks'); return; }
+    if (goal === 'history') {
+      state.wizard.step = 'tasks';
+      wizardMessage('user', '我要查看和管理已保存的仿真任务');
+      wizardMessage('assistant', '这里可以搜索任务、查看版本和运行历史、克隆配置，或继续运行已有任务。');
+      switchView('wizard');
+      loadTasks().catch((error) => { el('wizardTaskSummary').textContent = '任务读取失败：' + error.message; });
+      return;
+    }
     if (goal === 'compare') { switchView('runs'); return; }
     if (goal === 'advanced') { switchView('creator'); return; }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
@@ -7642,15 +7650,41 @@
     switchView('continuous');
   }
 
+  function wizardParameterPresetValues(path, field) {
+    const candidates = path === 'simulation.duration_s'
+      ? [{ value: 60, label: '短时验证' }, { value: 300, label: '常规观察' }, { value: 600, label: '长时分析' }]
+      : path === 'simulation.sample_s'
+        ? [{ value: 0.5, label: '较细' }, { value: 1, label: '精细' }, { value: 5, label: '均衡' }, { value: 10, label: '较少数据' }]
+        : [];
+    return candidates.filter((item) => Number.isFinite(item.value)
+      && (field.minimum == null || item.value >= Number(field.minimum))
+      && (field.maximum == null || item.value <= Number(field.maximum)));
+  }
+
   function wizardRuntimeField(path, label) {
     const field = (state.schema?.fields || []).find((item) => item.path === path) || {};
-    const wrapper = document.createElement('label');
-    wrapper.textContent = label + (field.unit ? '（' + field.unit + '）' : '');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'wizard-runtime-field';
+    const heading = document.createElement('label');
+    heading.className = 'wizard-runtime-label';
+    heading.textContent = label + (field.unit ? '（' + field.unit + '）' : '');
     const input = document.createElement('input');
     input.type = 'number'; input.step = 'any'; input.dataset.wizardField = path;
     if (field.minimum != null) input.min = String(field.minimum);
     if (field.maximum != null) input.max = String(field.maximum);
     input.value = String(getPath(state.formData, path) ?? field.default ?? '');
+    const help = document.createElement('small');
+    help.className = 'wizard-field-help';
+    help.textContent = path === 'simulation.duration_s'
+      ? '仿真从开始到结束的总时间。时间越长，计算和数据记录耗时通常越多。'
+      : '每隔多久记录一次数据。间隔越小，曲线越细、数据量越大；间隔越大，运行和存储负担越小。';
+    const recommended = document.createElement('span');
+    recommended.className = 'wizard-recommended-value';
+    recommended.textContent = field.default != null ? '模型推荐值：' + field.default + (field.unit ? ' ' + field.unit : '') : '';
+    const applyValue = (value) => {
+      input.value = String(value);
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
     input.addEventListener('change', () => {
       const value = Number(input.value);
       if (!Number.isFinite(value) || value <= 0 || (field.minimum != null && value < field.minimum) || (field.maximum != null && value > field.maximum)) {
@@ -7662,8 +7696,136 @@
       renderForm(); renderEvents(); renderOutputs(); updateSingleRunSummary();
       el('wizardNotice').textContent = '配置已更新，需要重新校验后才能运行。';
     });
-    wrapper.appendChild(input);
+    wrapper.append(heading, input, help, recommended);
+    const presets = wizardParameterPresetValues(path, field);
+    if (presets.length) {
+      const presetRow = document.createElement('div'); presetRow.className = 'wizard-parameter-presets';
+      const presetLabel = document.createElement('span'); presetLabel.textContent = '快速选择';
+      presetRow.appendChild(presetLabel);
+      presets.forEach((item) => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'wizard-preset-button';
+        button.textContent = item.label + ' · ' + item.value + (field.unit ? ' ' + field.unit : '');
+        button.addEventListener('click', () => applyValue(item.value));
+        presetRow.appendChild(button);
+      });
+      wrapper.appendChild(presetRow);
+    }
     return wrapper;
+  }
+
+  function wizardSetPlotSelection(nextSelection) {
+    if (!state.formData) return;
+    state.formData.outputs = state.formData.outputs || {};
+    state.formData.outputs.plots = [...new Set(nextSelection)];
+    state.taskSpec = null; state.planning = null;
+    state.wizard.validated = false; state.wizard.validatedForm = null;
+    renderOutputs();
+    el('wizardNotice').textContent = '曲线选择已更新；正式运行前请重新校验。';
+  }
+
+  function wizardToggleCurveGroup(groupId) {
+    const options = (state.schema?.outputs?.trace_options || []).map(normalizedOutputOption);
+    const group = options.filter((item) => (item.subsystem_id || item.group_id || 'other') === groupId);
+    if (!group.length) return;
+    const selected = new Set(state.formData.outputs.plots || []);
+    const allSelected = group.every((item) => selected.has(item.name));
+    group.forEach((item) => { if (allSelected) selected.delete(item.name); else selected.add(item.name); });
+    wizardSetPlotSelection([...selected]);
+  }
+
+  function renderWizardCurveChoices() {
+    const host = el('wizardCurveChoices');
+    if (!host || !state.schema || !state.formData) return;
+    host.replaceChildren();
+    const options = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
+    const selected = new Set(state.formData.outputs?.plots || []);
+    const groups = new Map();
+    options.forEach((item) => {
+      const key = item.subsystem_id || item.group_id || 'other';
+      if (!groups.has(key)) groups.set(key, { id: key, label: item.subsystem_label || item.group_label || '其他可观测量', options: [] });
+      groups.get(key).options.push(item);
+    });
+    const summary = el('wizardCurveSelectionSummary');
+    if (summary) summary.textContent = '已选择 ' + selected.size + ' / ' + options.length + ' 条曲线';
+    if (!groups.size) {
+      const empty = document.createElement('div'); empty.className = 'wizard-empty';
+      empty.textContent = '当前仿真对象没有注册可输出曲线；可以保留默认输出并继续。';
+      host.appendChild(empty); return;
+    }
+    [...groups.values()].forEach((group) => {
+      const card = document.createElement('article'); card.className = 'wizard-curve-card';
+      const head = document.createElement('div'); head.className = 'wizard-curve-card-head';
+      const title = document.createElement('strong'); title.textContent = group.label;
+      const count = document.createElement('span');
+      const selectedCount = group.options.filter((item) => selected.has(item.name)).length;
+      count.textContent = selectedCount + ' / ' + group.options.length + ' 已选';
+      head.append(title, count);
+      const detail = document.createElement('p'); detail.textContent = '该分组包含 ' + group.options.length + ' 条已注册曲线，选择后会记录到本次运行。';
+      const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'button button-secondary';
+      toggle.textContent = selectedCount === group.options.length ? '移除这一组' : '添加这一组';
+      toggle.addEventListener('click', () => wizardToggleCurveGroup(group.id));
+      const list = document.createElement('details'); list.className = 'wizard-curve-detail';
+      const summaryNode = document.createElement('summary'); summaryNode.textContent = '查看具体曲线';
+      const rows = document.createElement('div'); rows.className = 'wizard-curve-detail-list';
+      group.options.forEach((item) => {
+        const row = document.createElement('label'); row.className = 'wizard-curve-row';
+        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(item.name);
+        checkbox.addEventListener('change', () => {
+          const next = new Set(state.formData.outputs.plots || []);
+          if (checkbox.checked) next.add(item.name); else next.delete(item.name);
+          wizardSetPlotSelection([...next]);
+        });
+        const text = document.createElement('span');
+        const name = document.createElement('strong'); name.textContent = item.label || item.name;
+        const desc = document.createElement('small'); desc.textContent = item.description || '当前模型注册的遥测输出量。';
+        const tech = document.createElement('details'); tech.className = 'wizard-curve-technical';
+        const techSummary = document.createElement('summary'); techSummary.textContent = '技术字段';
+        const code = document.createElement('code'); code.textContent = item.name;
+        tech.append(techSummary, code); text.append(name, desc, tech);
+        row.append(checkbox, text); rows.appendChild(row);
+      });
+      list.append(summaryNode, rows);
+      card.append(head, detail, toggle, list);
+      host.appendChild(card);
+    });
+  }
+
+  function renderWizardTasks() {
+    const host = el('wizardTaskList');
+    if (!host) return;
+    host.replaceChildren();
+    const summary = el('wizardTaskSummary');
+    if (summary) summary.textContent = '共 ' + state.tasks.length + ' 个已保存任务。任务配置可以复用；每次运行仍会生成独立运行记录。';
+    if (!state.tasks.length) {
+      const empty = document.createElement('div'); empty.className = 'wizard-empty';
+      empty.textContent = '还没有保存的任务。完成一次仿真配置后，可以在这里保存并反复使用。';
+      host.appendChild(empty); return;
+    }
+    state.tasks.forEach((task) => {
+      const card = document.createElement('article'); card.className = 'wizard-task-card';
+      const main = document.createElement('div'); main.className = 'wizard-task-main';
+      const title = document.createElement('strong'); title.textContent = task.name || task.task_id;
+      const object = presentationObjectForCapability(task.capability_id);
+      const description = document.createElement('small');
+      description.textContent = (object?.name_zh || task.capability_id || '未标注对象') + ' · V' + (task.current_version || 1) + ' · ' + (task.run_count || 0) + ' 次运行';
+      const meta = document.createElement('span'); meta.className = 'wizard-task-meta';
+      meta.textContent = (task.status || 'UNKNOWN') + (task.last_run_status ? ' · 最近运行：' + task.last_run_status : ' · 尚未运行');
+      main.append(title, description, meta);
+      const actions = document.createElement('div'); actions.className = 'wizard-task-actions';
+      const addAction = (label, callback, style = 'button-ghost') => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'button ' + style; button.textContent = label;
+        button.addEventListener('click', callback); actions.appendChild(button);
+      };
+      addAction('任务详情', () => openTaskDetails(task.task_id));
+      addAction('克隆任务', async () => {
+        try { const result = await api('/task-center/tasks/' + encodeURIComponent(task.task_id) + '/clone', { method: 'POST', body: apiBody({}) }); await loadTasks(); el('wizardNotice').textContent = '已克隆任务：' + (result.task?.name || result.task?.task_id); }
+        catch (error) { el('wizardNotice').textContent = '克隆失败：' + error.message; }
+      });
+      addAction('编辑配置', () => openTaskFromCenter(task.task_id, { guided: true }));
+      addAction('运行任务', () => runTaskFromCenter(task.task_id, { guided: true }), 'button-secondary');
+      addAction('删除任务', () => deleteTaskFromCenter(task.task_id), 'button-danger');
+      card.append(main, actions); host.appendChild(card);
+    });
   }
 
   function renderSimulationWizard() {
@@ -7681,9 +7843,18 @@
     const config = el('wizardConfigSections');
     const showConfig = state.wizard.step === 'configure';
     config?.classList.toggle('hidden', !showConfig);
+    el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
+    if (state.wizard.step === 'tasks') renderWizardTasks();
+    el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
+    if (state.wizard.step === 'tasks') renderWizardTasks();
     el('wizardRunResultsHost')?.classList.toggle('hidden', state.wizard.step !== 'results');
     el('wizardRealtimeBackBtn')?.classList.add('hidden');
-    if (state.wizard.step === 'welcome') {
+    if (state.wizard.step === 'tasks') {
+      // Search/filter controls live in the dialog; reuse the existing task-center query contract.
+      const search = el('wizardTaskSearch'); const status = el('wizardTaskStatus');
+      if (search) search.value = el('taskSearch')?.value || '';
+      if (status) status.value = el('taskStatusFilter')?.value || '';
+    } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
@@ -7719,7 +7890,9 @@
       options.appendChild(fields);
       option('下一步：检查配置', '确认输出和事件设置，执行正式 TaskSpec 校验', {}, () => wizardSetStep('review', '请检查配置摘要。校验只检查参数与执行计划，不会启动仿真。通过后才能运行。'));
       const faultPanel = el('wizardFaultPanel'); if (faultPanel) faultPanel.open = state.wizard.goal === 'fault_run' || (state.formData.events?.faults || []).length > 0;
-      const outputPanel = el('wizardOutputPanel'); if (outputPanel) outputPanel.open = false;
+      const outputPanel = el('wizardOutputPanel'); if (outputPanel) outputPanel.open = true;
+      const parameterPanel = el('wizardParametersPanel'); if (parameterPanel) parameterPanel.open = false;
+      renderWizardCurveChoices();
     } else if (state.wizard.step === 'review') {
       const review = document.createElement('div'); review.className = 'wizard-review';
       const rows = [
@@ -8372,7 +8545,11 @@
         state.activeTaskCenterId = taskId;
         updateTaskEditState();
         closeTaskDetails();
-        switchView('creator');
+        if (state.activeView === 'wizard' && state.wizard.step === 'tasks') {
+          state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline'; state.wizard.step = 'configure';
+          wizardMessage('assistant', `已载入任务 V${version.version}。你可以检查配置、调整参数，再校验并运行。`);
+          switchView('wizard');
+        } else switchView('creator');
       });
       const baseline = document.createElement('button');
       baseline.className = 'button button-ghost';
@@ -8423,7 +8600,7 @@
     showNotice(`已克隆为新任务“${payload.task?.name || payload.task?.task_id}”。`, 'success');
   }
 
-  async function openTaskFromCenter(taskId) {
+  async function openTaskFromCenter(taskId, options = {}) {
     showBusy('打开任务', taskId);
     try {
       const payload = await api(`/task-center/tasks/${encodeURIComponent(taskId)}`);
@@ -8432,16 +8609,21 @@
       await projectTaskSpecToForm(spec, '任务中心');
       state.activeTaskCenterId = taskId;
       updateTaskEditState();
-      switchView('creator');
+      if (options.guided) {
+        state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline'; state.wizard.step = 'configure';
+        state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (spec.model?.capability_id || spec.capability_id)))?.object_id || null;
+        wizardMessage('assistant', `已载入任务“${payload.task.name || taskId}”。你可以继续检查和修改参数，再执行校验。`);
+        switchView('wizard');
+      } else switchView('creator');
       showNotice(`已打开任务“${payload.task.name || taskId}”。`, 'success');
     } catch (error) {
-      el('taskSummary').textContent = `打开任务失败：${error.message}`;
+      if (options.guided) el('wizardNotice').textContent = `打开任务失败：${error.message}`; else el('taskSummary').textContent = `打开任务失败：${error.message}`;
     } finally {
       hideBusy();
     }
   }
 
-  async function runTaskFromCenter(taskId) {
+  async function runTaskFromCenter(taskId, options = {}) {
     showBusy('提交任务运行', taskId);
     try {
       const payload = await api(`/task-center/tasks/${encodeURIComponent(taskId)}/run`, {
@@ -8452,15 +8634,20 @@
       if (!runId) throw new Error('未返回 run_id');
       state.activeRunId = runId;
       state.executionState = payload.execution_state;
-      switchView('creator');
+      if (options.guided) {
+        state.wizard.goal = 'history'; state.wizard.step = 'results';
+        wizardMessage('assistant', `任务已提交运行（${runId}）。正在等待执行结果，完成后会在此显示曲线和证据。`);
+        switchView('wizard');
+      } else switchView('creator');
       renderExecutionProgress(state.executionState);
       showNotice(`任务 ${taskId} 已提交，运行 ID：${runId}`, 'success');
       hideBusy();
       await pollRunExecution(runId);
       await loadTasks();
+      if (options.guided) { state.wizard.step = 'results'; renderSimulationWizard(); }
     } catch (error) {
       hideBusy();
-      el('taskSummary').textContent = `运行任务失败：${error.message}`;
+      if (options.guided) el('wizardNotice').textContent = `运行任务失败：${error.message}`; else el('taskSummary').textContent = `运行任务失败：${error.message}`;
     }
   }
 
@@ -9811,6 +9998,15 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveCommandOperation').addEventListener('change', renderInteractiveCommandForm);
     el('interactiveSendCommandBtn').addEventListener('click', () => sendInteractiveCommand().catch(error => interactiveNotice(error.message, 'error')));
     $all('.nav-button[data-view]').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+    $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardShortcut)));
+    el('wizardTaskSearch').addEventListener('input', () => { el('taskSearch').value = el('wizardTaskSearch').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
+    el('wizardTaskStatus').addEventListener('change', () => { el('taskStatusFilter').value = el('wizardTaskStatus').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
+    el('wizardRefreshTasksBtn').addEventListener('click', () => loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }));
+    el('wizardSaveCurrentTaskBtn').addEventListener('click', async () => {
+      try { showBusy('保存仿真任务', '写入任务中心'); const task = await saveCurrentTask('new'); el('wizardNotice').textContent = '已保存任务：' + (task?.name || task?.task_id || '新任务'); await loadTasks(); }
+      catch (error) { el('wizardNotice').textContent = '保存失败：' + error.message; }
+      finally { hideBusy(); }
+    });
     el('openModelSettingsBtn').addEventListener('click', openModelSettings);
     el('closeModelSettingsBtn').addEventListener('click', closeModelSettings);
     el('modelSettingsModal').addEventListener('click', (event) => { if (event.target === el('modelSettingsModal')) closeModelSettings(); });
