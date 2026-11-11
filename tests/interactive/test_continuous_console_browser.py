@@ -96,7 +96,17 @@ def _reveal_with_keyboard(page, selector, label, tmp_path, records):
         assert summary.evaluate("(node) => document.activeElement === node")
         summary.press("Enter")
         page.wait_for_function("(index) => document.querySelectorAll('details')[index].open", arg=index)
-    assert page.locator(selector).is_visible()
+    visible = page.locator(selector).is_visible()
+    if not visible:
+        visibility = page.locator(selector).evaluate("""node => {
+            const chain=[]; for(let p=node;p;p=p.parentElement) chain.push({
+              tag:p.tagName,id:p.id,className:p.className,
+              display:getComputedStyle(p).display,visibility:getComputedStyle(p).visibility,
+              hidden:p.hidden,rect:(()=>{const r=p.getBoundingClientRect();return [r.width,r.height]})()
+            });
+            return chain;
+        }""")
+        raise AssertionError(f"{selector} remains hidden after disclosure: {visibility}")
     return _navigation_snapshot(page, selector, label + "-after", tmp_path, records)
 
 
