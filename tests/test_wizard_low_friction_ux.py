@@ -46,7 +46,7 @@ def test_wizard_task_management_reuses_existing_task_center_api(tmp_path):
     with _client(tmp_path) as client:
         index = client.get("/").text
         js = client.get("/assets/app.js").text
-    for action in ("任务详情", "克隆任务", "编辑配置", "运行任务", "删除任务", "保存当前配置"):
+    for action in ("任务详情", "克隆任务", "编辑配置", "运行任务", "删除任务", "查看结果", "保存当前配置", "保存为新版本"):
         assert action in js or action in index
     assert "/task-center/tasks" in js
     assert "openTaskDetails(task.task_id)" in js
