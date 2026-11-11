@@ -406,3 +406,16 @@ body[data-active-view="wizard"] .mobile-catalog-toggle { display: none !importan
 .wizard-special-workspace #agentParseBtn,
 .wizard-special-workspace #applyJsonToFormBtn,
 .wizard-special-workspace #validateJsonBtn { display:none !important; }
+
+
+/* Low-clutter schema parameter presentation: explanations are opt-in. */
+.form-field { align-content:start; gap:5px; }
+.form-field .field-label { font-weight:650; line-height:1.45; }
+.form-field .field-help { margin-top:1px; }
+.form-field .field-help > summary { display:inline-flex; align-items:center; gap:4px; color:var(--muted); font-size:10px; cursor:pointer; list-style:none; }
+.form-field .field-help > summary::-webkit-details-marker { display:none; }
+.form-field .field-help > summary::before { content:"ⓘ"; font-size:11px; }
+.form-field .field-help[open] { padding:7px 9px; border-radius:7px; background:var(--panel-2); }
+.form-field .field-help .field-description { display:block; margin-top:4px; color:var(--muted); font-size:11px; line-height:1.55; }
+.parameter-section > summary .section-heading p { display:none; }
+.parameter-section[open] > summary .section-heading p { display:block; }

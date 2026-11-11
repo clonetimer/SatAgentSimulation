@@ -4712,7 +4712,10 @@
       const heading = document.createElement('span'); heading.className = 'field-label'; heading.textContent = field.label || field.path;
       if (field.required) { const required=document.createElement('span'); required.className='required'; required.textContent='*'; heading.appendChild(required); }
       if (field.unit) { const unit=document.createElement('span'); unit.className='unit'; unit.textContent=field.unit; heading.appendChild(unit); }
+      const help = document.createElement('details'); help.className='field-help';
+      const helpSummary = document.createElement('summary'); helpSummary.textContent='参数说明';
       const description = document.createElement('span'); description.className='field-description'; description.textContent=field.description || '该参数由能力注册表定义。';
+      help.append(helpSummary, description);
       let input;
       if (field.widget === 'select') {
         input=document.createElement('select');
@@ -4761,7 +4764,7 @@
       };
       input.addEventListener('change',commit);
       if (input.tagName==='TEXTAREA' || input.type==='text') input.addEventListener('blur',commit);
-      wrapper.append(heading,input,description);
+      wrapper.append(heading,input,help);
       return wrapper;
     }
 

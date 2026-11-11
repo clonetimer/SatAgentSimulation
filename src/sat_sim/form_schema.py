@@ -431,6 +431,15 @@ UNIT_HINTS = {
 }
 
 PARAMETER_LABELS = {
+    "physics_backend": "物理计算后端",
+    "num_wheels": "反作用轮数量",
+    "wheel_inertia_kg_m2": "反作用轮转动惯量",
+    "max_motor_torque_nm": "最大电机力矩",
+    "max_speed_rad_s": "最大允许转速",
+    "damping_nms": "黏性阻尼系数",
+    "initial_wheel_speeds_rad_s": "初始轮速",
+    "command_torque_nm": "指令力矩",
+    "torque_profile_nm": "指令力矩时序",
     "thermal_earth_ir_w_m2": "地球红外出射度",
     "thermal_earth_albedo": "地球均匀反照率",
     "thermal_panel_front_absorptivity": "太阳翼正面短波吸收率",
@@ -459,6 +468,10 @@ PARAMETER_LABELS = {
 }
 
 ENUM_VALUE_LABELS: dict[str, dict[str, str]] = {
+    "physics_backend": {
+        "project_reference": "项目参考模型（非 Basilisk 原生物理）",
+        "basilisk_native": "Basilisk 原生物理（仅支持标称模式）",
+    },
     "target_mode": {
         "inertial": "惯性定向", "nadir": "对地定向", "sun": "对日定向", "detumble": "消旋模式",
     },
@@ -529,6 +542,7 @@ EVENT_FIELD_SCHEMAS.update({
 
 
 COMMON_PARAMETER_DESCRIPTIONS = {
+    "physics_backend": "选择反作用轮动力学计算实现。项目参考模型支持当前注册的故障、约束和退化事件；Basilisk 原生物理目前仅支持1轮、3正交轮或4轮金字塔构型的标称模式，不支持故障、约束或时变力矩曲线。默认项目参考模型不等同于 Basilisk 原生物理。",
     "initial_attitude_error_deg": "仿真开始时航天器相对目标姿态的角度误差。数值越大，控制器需要更长时间或更大力矩完成收敛。",
     "initial_rate_deg_s": "仿真开始时机体三轴角速度，可填写单个数值或三元素数组 [x, y, z]。",
     "target_mode": "姿态控制目标模式：惯性定向、对地定向、对日定向或消旋。",
@@ -748,9 +762,25 @@ def _field(
 
 
 def _parameter_group(capability_id: str, name: str) -> dict[str, str]:
-    for group in SUBSYSTEM_PARAMETER_GROUPS.get(capability_id, ()): 
+    """Return user-facing physical parameter groups without changing model semantics."""
+    for group in SUBSYSTEM_PARAMETER_GROUPS.get(capability_id, ()):
         if any(str(name).startswith(prefix) for prefix in group.get("prefixes", ())):
             return {"group_id": str(group["id"]), "group_title": str(group["title"]), "group_description": str(group.get("description") or "")}
+
+    key = str(name).lower()
+    groups = (
+        ("backend", "计算实现与模型选项", "选择计算实现或模型兼容方式；这些选项可能改变模型保真度和可用事件范围。", ("physics_backend", "backend", "solver_backend")),
+        ("initial_state", "初始状态", "设置仿真开始时的状态；不确定时优先使用模型默认值。", ("initial_", "epoch_", "environment_profile")),
+        ("actuator_mechanics", "执行机构与机械特性", "设置执行机构数量、惯量、力矩、转速、阻尼及相关机械特性。", ("num_wheels", "wheel_", "reaction_wheel", "max_motor_torque", "max_speed", "damping", "friction", "command_torque", "torque_profile")),
+        ("sensing", "传感器与测量特性", "设置传感器偏置、噪声、精度和可用状态。", ("gyro_", "star_tracker", "sun_sensor", "sensor_", "bias", "noise", "measurement")),
+        ("electrical", "电气与能源特性", "设置电压、电流、功率、容量、效率和电气限制。", ("battery_", "solar_", "power_", "voltage", "current", "capacity", "efficiency", "pdu_")),
+        ("thermal", "热特性", "设置温度、热容、热导、加热和散热特性。", ("thermal_", "temperature", "temp_", "heater_", "radiator_", "conductance")),
+        ("orbit_environment", "轨道与环境条件", "设置轨道参数、环境模型和外部扰动。", ("orbit_", "altitude", "inclination", "raan", "environment_", "disturbance_", "shadow_", "eclipse_")),
+        ("limits", "能力边界与约束", "设置模型能力上限、阈值和保护限制。", ("max_", "min_", "limit_", "threshold", "timeout")),
+    )
+    for group_id, title, description, prefixes in groups:
+        if any(key.startswith(prefix) for prefix in prefixes):
+            return {"group_id": group_id, "group_title": title, "group_description": description}
     return {"group_id": "other", "group_title": "其他模型参数", "group_description": "当前能力合同支持的其他参数。"}
 
 
@@ -1247,8 +1277,9 @@ def _parameter_sections(contract: Any, fields: list[dict[str, Any]]) -> list[dic
             sections.insert(0, {"id": "parameters_general", "title": "整星公共参数", "description": "环境与公共模型配置。",
                                 "field_paths": remaining, "parameter_group": "general"})
         return sections
-    if contract.target_level != "subsystem" or contract.capability_id not in SUBSYSTEM_PARAMETER_GROUPS:
-        return [{"id": "parameters", "title": "模型参数", "description": "常用参数默认显示，专业参数可按需展开。", "field_paths": [item["path"] for item in parameter_fields]}]
+    has_display_groups = any(str(item.get("group_id") or "other") != "other" for item in parameter_fields)
+    if not has_display_groups:
+        return [{"id": "parameters", "title": "模型参数", "description": "参数按物理意义分组；专业参数可按需展开。", "field_paths": [item["path"] for item in parameter_fields]}]
     sections: list[dict[str, Any]] = []
     seen: set[str] = set()
     for field in parameter_fields:
