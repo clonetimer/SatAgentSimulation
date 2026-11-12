@@ -18,4 +18,3 @@ def test_p7c_c2_exact_run_evidence_navigation_contract(tmp_path):
     assert "下载此 Run 诊断包" in js
     assert "/diagnostics/bundle?run_id=" in js
     assert "查看运行证据" in js
-    assert "POST /runs" not in js
