@@ -89,14 +89,17 @@ def test_taskspec_can_be_applied_and_opened_in_the_native_graph_editor():
     js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
     assert 'id="wizardOpenGraphBtn"' in html
     start = js.index("el('wizardOpenGraphBtn').addEventListener")
-    handler = js[start:js.index("el('previewBtn').addEventListener", start)]
+    handler = js[start:js.index("el('wizardOpenGraphFromConfigBtn').addEventListener", start)]
     assert "await syncEditorToForm()" in handler
-    assert "graphInitialize(true)" in handler
-    assert "graphInitialize(false)" in handler
-    assert "switchView('creator')" in handler
-    assert "switchTab('graph')" in handler
-    assert "graphSetStatus('TaskSpec 已投影到当前模型配置" in handler
-
+    assert "openCurrentConfigurationInGraph('TaskSpec')" in handler
+    helper_start = js.index("function openCurrentConfigurationInGraph")
+    helper = js[helper_start:js.index("function graphInitialize", helper_start)]
+    assert "graphInitialize(true)" in helper
+    assert "graphInitialize(false)" in helper
+    assert "switchView('creator')" in helper
+    assert "switchTab('graph')" in helper
+    assert "重建推荐流程会替换当前图形节点和连线" in helper
+    assert "graphSetStatus" in helper
 
 def test_applied_natural_language_or_form_configuration_can_open_graph_canvas():
     html = Path("src/sat_sim/web/index.html").read_text(encoding="utf-8")
