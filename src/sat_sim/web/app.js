@@ -8683,6 +8683,8 @@
       context.runTaskSpecId && `运行 TaskSpec ${context.runTaskSpecId}`,
       context.bundleId && `已封存 Run Bundle ${context.bundleId}`,
     ].filter(Boolean).join(' · ');
+    const returnTarget = context.returnView || context.sourceView;
+    const returnLabel = SHARED_CONTEXT_LABELS[returnTarget] || '当前工作区';
     const source = context.sourceLabel || SHARED_CONTEXT_LABELS[context.sourceView] || '当前工作区';
     document.querySelectorAll('[data-p7-context]').forEach((host) => {
       host.replaceChildren();
@@ -8694,21 +8696,23 @@
       extra.title = '编辑任务和查看结果分别保留；查看结果不会切换保存或取消操作的对象。';
       summary.append(title, taskNode, runNode, extra);
       const actions = document.createElement('div'); actions.className = 'p7-context-actions';
-      const sourceNode = document.createElement('small'); sourceNode.textContent = `来源：${source}`;
+      const sourceNode = document.createElement('small'); sourceNode.textContent = context.returnView ? `返回位置：${returnLabel} · 原始来源：${source}` : `来源：${source}`;
       const back = document.createElement('button'); back.type = 'button'; back.className = 'button button-secondary';
-      back.textContent = `返回${source}`;
-      back.disabled = !context.sourceView || context.sourceView === state.activeView;
+      back.textContent = `返回${returnLabel}`;
+      back.disabled = !returnTarget || returnTarget === state.activeView;
       back.addEventListener('click', returnToSharedContextSource);
       actions.append(sourceNode, back); host.append(summary, actions);
     });
   }
 
   function returnToSharedContextSource() {
-    const source = state.sharedWorkbenchContext?.sourceView;
-    if (!source || source === state.activeView) return;
-    switchView(source);
-    if (state.activeView !== source) return; // Keep the source if departure was cancelled.
-    if (source === 'wizard') {
+    const context = state.sharedWorkbenchContext || {};
+    const target = context.returnView || context.sourceView;
+    if (!target || target === state.activeView) return;
+    switchView(target);
+    if (state.activeView !== target) return; // Keep the return target if departure was cancelled.
+    if (context.returnView) state.sharedWorkbenchContext = { ...state.sharedWorkbenchContext, returnView: null };
+    if (target === 'wizard') {
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
       renderSimulationWizard();
     }
@@ -10609,6 +10613,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     if (!loaded || state.activeRunId !== runId || !state.activeRun) throw new Error('指定 Run 未能完整载入，请检查运行记录。');
     updateSharedWorkbenchContext({
       experimentId,
+      returnView: 'experiments',
       experimentVariantIndex: Number.isInteger(variantRow.variant_index) ? variantRow.variant_index : null,
       runId,
       bundleId: state.activeRun.sealed === true ? runId : null,
