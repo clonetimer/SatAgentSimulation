@@ -171,6 +171,7 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     if width >= 760:
                         canvas = page.locator('#graphCanvas')
                         head = node.locator('.graph-node-head')
+                        assert head.get_attribute('draggable') == 'true'
                         head.scroll_into_view_if_needed()
                         canvas.scroll_into_view_if_needed()
                         canvas_box = canvas.bounding_box()
@@ -189,6 +190,12 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                             'x': target_abs_x - canvas_box['x'],
                             'y': target_abs_y - canvas_box['y'],
                         }
+                        page.evaluate("""() => {
+                            window.__graphDropEffect = null;
+                            document.querySelector('#graphCanvas').addEventListener('dragover', (event) => {
+                                window.__graphDropEffect = event.dataTransfer.dropEffect;
+                            });
+                        }""")
                         before = node.evaluate('(el) => [el.style.left, el.style.top]')
                         head.drag_to(
                             canvas,
@@ -199,6 +206,7 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                             target_position=target_position,
                         )
                         after = node.evaluate('(el) => [el.style.left, el.style.top]')
+                        assert page.evaluate('() => window.__graphDropEffect') == 'move'
                         assert after != before, {
                             'before': before,
                             'after': after,
