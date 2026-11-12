@@ -131,6 +131,7 @@
     experimentBaseSpec: null,
     agentHistory: [],
     agentGenerating: false,
+    agentCandidate: null,
     formErrors: new Map(),
     discoveredModels: [],
     activeView: "wizard",
@@ -5500,6 +5501,67 @@
     container.scrollTop=container.scrollHeight;
   }
 
+  function taskSpecFieldDiff(before, after, prefix = '', rows = []) {
+    if (rows.length >= 80 || equivalentJSONValues(before, after)) return rows;
+    const left = before && typeof before === 'object' ? before : {};
+    const right = after && typeof after === 'object' ? after : {};
+    if ((before && typeof before === 'object') || (after && typeof after === 'object')) {
+      [...new Set([...Object.keys(left), ...Object.keys(right)])].sort().forEach((key) => taskSpecFieldDiff(left[key], right[key], prefix ? `${prefix}.${key}` : key, rows));
+      return rows;
+    }
+    rows.push({ path: prefix || '$', before, after }); return rows;
+  }
+
+  function renderAgentCandidatePreview() {
+    const host = el('wizardAgentCandidatePreview'); if (!host) return;
+    host.replaceChildren(); const candidate = state.agentCandidate;
+    host.classList.toggle('hidden', !candidate); if (!candidate) return;
+    const heading = document.createElement('strong'); heading.textContent = '候选任务预览（尚未应用）';
+    const spec = candidate.taskSpec;
+    const summary = document.createElement('p'); summary.textContent = `${spec?.task?.name || '未命名任务'} · ${spec?.model?.capability_id || spec?.capability_id || '未声明 Capability'} · ${candidate.diff.length} 处字段差异`;
+    const graph = document.createElement('div'); graph.className = 'agent-candidate-graph';
+    const graphTitle = document.createElement('strong'); graphTitle.textContent = '图形骨架预览';
+    const graphText = document.createElement('p'); graphText.textContent = `${GRAPH_FLOW_ORDER.map((type) => GRAPH_BLOCK_META[type]?.title || type).join(' → ')}；${GRAPH_FLOW_ORDER.length} 个标准节点。此处为预览，不代表服务端图校验已通过。`;
+    graph.append(graphTitle, graphText);
+    const table = document.createElement('div'); table.className = 'agent-candidate-diff';
+    candidate.diff.slice(0, 24).forEach((item) => {
+      const row = document.createElement('div'); row.className = 'agent-candidate-diff-row';
+      const path = document.createElement('code'); path.textContent = item.path;
+      const before = document.createElement('span'); before.textContent = item.before === undefined ? '（新增）' : JSON.stringify(item.before);
+      const after = document.createElement('strong'); after.textContent = item.after === undefined ? '（删除）' : JSON.stringify(item.after);
+      row.append(path, before, after); table.appendChild(row);
+    });
+    if (!candidate.diff.length) { const empty = document.createElement('p'); empty.textContent = '与当前 TaskSpec 相比没有字段变化。'; table.appendChild(empty); }
+    const actions = document.createElement('div'); actions.className = 'wizard-special-actions';
+    const apply = document.createElement('button'); apply.type = 'button'; apply.id = 'wizardApplyAgentCandidateBtn'; apply.className = 'button button-primary'; apply.textContent = '确认应用候选配置';
+    const graphButton = document.createElement('button'); graphButton.type = 'button'; graphButton.id = 'wizardApplyAgentCandidateGraphBtn'; graphButton.className = 'button button-secondary'; graphButton.textContent = '应用并查看图形画布';
+    const discard = document.createElement('button'); discard.type = 'button'; discard.id = 'wizardDiscardAgentCandidateBtn'; discard.className = 'button button-ghost'; discard.textContent = '放弃候选';
+    actions.append(apply, graphButton, discard); host.append(heading, summary, graph, table, actions);
+    apply.addEventListener('click', () => applyAgentCandidate(false));
+    graphButton.addEventListener('click', () => applyAgentCandidate(true));
+    discard.addEventListener('click', () => { state.agentCandidate = null; renderAgentCandidatePreview(); el('wizardNotice').textContent = '已放弃候选配置；当前任务和图形画布保持不变。'; });
+  }
+
+  async function applyAgentCandidate(openGraph = false) {
+    const candidate = state.agentCandidate; if (!candidate?.taskSpec) return;
+    try {
+      showBusy('应用候选任务', '重新投影并保留原生任务配置与图形编辑器');
+      const changed = await projectTaskSpecToForm(candidate.taskSpec, 'Agent 候选确认');
+      if (changed === null) throw new Error('候选应用期间任务已变化，请重新生成预览。');
+      captureTaskSource(candidate.payload); state.planning = candidate.payload.result?.planning || null;
+      state.agentCandidate = null; state.wizard.mode = 'offline';
+      state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === state.selectedCapabilityId))?.object_id || null;
+      renderAgentCandidatePreview();
+      if (openGraph) {
+        if (!openCurrentConfigurationInGraph('已确认的 Agent 候选')) throw new Error('候选已应用；打开图形画布未完成。');
+      } else {
+        wizardSetStep('configure', '候选配置已确认并应用。请检查参数、故障事件和输出，再执行正式校验。');
+        el('wizardNotice').textContent = '候选配置已应用；尚未执行图形正式校验或仿真。';
+      }
+    } catch (error) { el('wizardNotice').textContent = `应用候选失败：${error.message}`; }
+    finally { hideBusy(); }
+  }
+
   let agentGenerationPromise = null;
 
   function renderAgentGenerationStatus() {
@@ -5520,12 +5582,12 @@
     el('runBtn').disabled = Boolean(busy || state.singleRunSubmitting) || !state.schema;
   }
 
-  function parseNaturalLanguage() {
+  function parseNaturalLanguage({ previewOnly = false } = {}) {
     if (agentGenerationPromise) return agentGenerationPromise;
     // Both the Agent button and Run's implicit generation own this same lease,
     // including refinement preflight and the final form projection.
     setAgentBusy(true);
-    const owned = parseNaturalLanguageRequest().finally(() => {
+    const owned = parseNaturalLanguageRequest({ previewOnly }).finally(() => {
       if (agentGenerationPromise !== owned) return;
       agentGenerationPromise = null;
       setAgentBusy(false);
@@ -5534,7 +5596,7 @@
     return owned;
   }
 
-  async function parseNaturalLanguageRequest() {
+  async function parseNaturalLanguageRequest({ previewOnly = false } = {}) {
     const text=el('agentInput').value.trim(); if (!text) throw new Error('请输入仿真需求');
     const instructionContext = () => JSON.stringify({
       input:el('agentInput').value, refine:el('agentRefineCurrent')?.checked,
@@ -5579,13 +5641,22 @@
     if (!isCurrent()) return discardStale();
     const generatedTaskSpec=payload.result.task_spec || null;
     if (payload.ok) {
-      const capabilityId=generatedTaskSpec?.model?.capability_id; const changedCount=await projectTaskSpecToForm(generatedTaskSpec,refine?'Agent 多轮补充':'Agent',isCurrent);
-      if (changedCount === null) return discardStale();
-      captureTaskSource(payload);
-      state.planning=payload.result.planning || null;
+      const capabilityId=generatedTaskSpec?.model?.capability_id || generatedTaskSpec?.capability_id;
       const provider=payload.result.route?.provider_id || el('agentBackend').value || 'local-template';
-      const response=`已${refine?'更新':'生成'} ${generatedTaskSpec?.task?.name || capabilityId || 'TaskSpec'}；Provider=${provider}；同步 ${changedCount} 组表单差异。`;
-      state.agentHistory.push({role:'assistant',text:response}); renderAgentConversation(); el('agentInput').value=''; showNotice(response,'success');
+      if (previewOnly) {
+        if (!generatedTaskSpec || !capabilityId) throw new Error('Agent 返回结果缺少可执行 Capability，不能形成候选预览。');
+        const base = refinementBase || state.taskSpec || null;
+        state.agentCandidate = { taskSpec: clone(generatedTaskSpec), baseTaskSpec: base ? clone(base) : null, payload, diff: taskSpecFieldDiff(base || {}, generatedTaskSpec) };
+        renderAgentCandidatePreview();
+        const response=`已生成候选 ${generatedTaskSpec?.task?.name || capabilityId}；Provider=${provider}。尚未修改当前配置，请检查字段差异和图形骨架后确认应用。`;
+        state.agentHistory.push({role:'assistant',text:response}); renderAgentConversation(); el('agentInput').value=''; showNotice(response,'success');
+      } else {
+        const changedCount=await projectTaskSpecToForm(generatedTaskSpec,refine?'Agent 多轮补充':'Agent',isCurrent);
+        if (changedCount === null) return discardStale();
+        captureTaskSource(payload); state.planning=payload.result.planning || null;
+        const response=`已${refine?'更新':'生成'} ${generatedTaskSpec?.task?.name || capabilityId || 'TaskSpec'}；Provider=${provider}；同步 ${changedCount} 组表单差异。`;
+        state.agentHistory.push({role:'assistant',text:response}); renderAgentConversation(); el('agentInput').value=''; showNotice(response,'success');
+      }
     } else {
       const errors=[...(payload.result.validation?.errors || []),...(payload.result.guards?.issues || [])]; const message=errors.map(formatValidationIssue).join('；') || '需求未通过能力边界校验';
       state.agentHistory.push({role:'assistant',text:`未通过：${message}`}); renderAgentConversation(); showValidationIssues(errors,message);
@@ -10735,13 +10806,10 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
       try {
         showBusy('生成仿真配置', '自然语言解析、能力边界检查与 TaskSpec 校验');
-        const ok = await parseNaturalLanguage();
-        if (!ok || !state.taskSpec || !state.formData) { el('wizardNotice').textContent = '尚未生成可用配置。请查看需求解析反馈并修改描述。'; return; }
-        state.wizard.mode = 'offline';
-        switchTab('form');
-        state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === (state.taskSpec.model?.capability_id || state.taskSpec.capability_id)))?.object_id || null;
-        wizardSetStep('configure', '自然语言已生成候选配置。请检查时长、采样间隔、故障事件和输出曲线；配置不会自动运行。');
-        el('wizardNotice').textContent = '候选配置已载入，请人工确认。';
+        const ok = await parseNaturalLanguage({ previewOnly: true });
+        if (!ok || !state.agentCandidate) { el('wizardNotice').textContent = '尚未生成可用候选。请查看需求解析反馈并修改描述。'; return; }
+        renderAgentCandidatePreview();
+        el('wizardNotice').textContent = '候选已生成，当前配置未改变；请检查差异后确认应用。';
       } catch (error) { el('wizardNotice').textContent = '生成失败：' + error.message; }
       finally { hideBusy(); }
     });
