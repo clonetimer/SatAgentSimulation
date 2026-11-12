@@ -5598,6 +5598,7 @@
 
   async function parseNaturalLanguageRequest({ previewOnly = false } = {}) {
     const text=el('agentInput').value.trim(); if (!text) throw new Error('请输入仿真需求');
+    if (previewOnly) { state.agentCandidate = null; renderAgentCandidatePreview(); }
     const instructionContext = () => JSON.stringify({
       input:el('agentInput').value, refine:el('agentRefineCurrent')?.checked,
       provider:el('agentBackend').value, routing:el('agentRoutingMode').value,
@@ -10814,6 +10815,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       finally { hideBusy(); }
     });
     el('wizardUseFormInsteadBtn').addEventListener('click', () => {
+      state.agentCandidate = null; renderAgentCandidatePreview();
       state.wizard.goal = 'normal_run';
       if (state.wizard.objectId && state.schema) wizardSetStep('mode', '请选择运行方式。');
       else wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。');
