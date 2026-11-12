@@ -192,8 +192,17 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                         }
                         page.evaluate("""() => {
                             window.__graphDropEffect = null;
+                            window.__graphDropPayload = null;
                             document.querySelector('#graphCanvas').addEventListener('dragover', (event) => {
                                 window.__graphDropEffect = event.dataTransfer.dropEffect;
+                            });
+                            document.querySelector('#graphCanvas').addEventListener('drop', (event) => {
+                                window.__graphDropPayload = event.dataTransfer.getData('text/plain');
+                            });
+                        }""")
+                        head.evaluate("""(element) => {
+                            element.addEventListener('dragstart', (event) => {
+                                window.__graphDragStartPayload = event.dataTransfer.getData('text/plain');
                             });
                         }""")
                         before = node.evaluate('(el) => [el.style.left, el.style.top]')
@@ -206,10 +215,16 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                             target_position=target_position,
                         )
                         after = node.evaluate('(el) => [el.style.left, el.style.top]')
+                        drag_payload = page.evaluate('() => window.__graphDragStartPayload')
+                        drop_payload = page.evaluate('() => window.__graphDropPayload')
+                        assert drag_payload and json.loads(drag_payload).get('kind') == 'move-node', drag_payload
                         assert page.evaluate('() => window.__graphDropEffect') == 'move'
+                        assert drop_payload and json.loads(drop_payload).get('kind') == 'move-node', drop_payload
                         assert after != before, {
                             'before': before,
                             'after': after,
+                            'drag_payload': drag_payload,
+                            'drop_payload': drop_payload,
                             'target': target_position,
                             'canvas': canvas_box,
                         }
