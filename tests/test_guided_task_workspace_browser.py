@@ -498,7 +498,11 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                 assert not submitted_runs
                 context = page.locator("#diagnosticView [data-p7-context]")
                 assert "来源：实验中心" in context.inner_text()
-                context.get_by_role("button", name="返回实验中心").click()
+                page.locator("#runEvidencePanel").get_by_role("button", name="查看完整运行曲线").click()
+                page.locator("#creatorView").wait_for(state="visible")
+                creator_context = page.locator("#creatorView [data-p7-context]")
+                assert "来源：实验中心" in creator_context.inner_text()
+                creator_context.get_by_role("button", name="返回实验中心").click()
                 page.locator("#experimentCenterView").wait_for(state="visible")
                 assert not submitted_runs
                 assert not errors, errors
