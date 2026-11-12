@@ -77,7 +77,8 @@ def test_guided_task_workspace_prioritizes_common_actions_and_discloses_secondar
 def test_graph_guide_distinguishes_frontend_structure_from_server_compile_success():
     js = Path("src/sat_sim/web/app.js").read_text(encoding="utf-8")
     assert "state.graphCompilationContext === visualCompilationSnapshot('flow')" in js
-    assert "state.graphCompilationContext = requestedCompilation" in js
+    assert "state.graphCompilationContext = visualCompilationSnapshot('flow')" in js
+    assert "visualCompilationSnapshot('flow') !== requestedCompilation" in js
     assert "state.graphCompilationContext = ''" in js
     assert "正式校验已通过，可以生成 Python" in js
     assert "图、正式校验和生成代码保持一致" in js
