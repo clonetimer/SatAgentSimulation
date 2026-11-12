@@ -1922,3 +1922,6 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
 .p7-context-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .p7-context-actions .button{white-space:nowrap}
 @media(max-width:720px){.p7-shared-context{align-items:flex-start;flex-direction:column}.p7-context-actions{width:100%;justify-content:space-between}}
+
+/* P7-C2: evidence summary for the exact experiment variant Run. */
+.run-evidence-panel{margin:0 0 16px;padding:14px;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface-raised);display:grid;gap:12px}.run-evidence-panel h3,.run-evidence-panel p{margin:0}.run-evidence-panel>p{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.run-evidence-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.run-evidence-count{display:flex;justify-content:space-between;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:12px}.run-evidence-count span{color:var(--muted)}.run-evidence-actions{display:flex;gap:8px;flex-wrap:wrap}.run-evidence-note{font-size:11px!important;color:var(--muted)}@media(max-width:640px){.run-evidence-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.run-evidence-actions .button{width:100%}}
