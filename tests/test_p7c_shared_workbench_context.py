@@ -6,8 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_p7c_shared_context_is_mounted_in_all_specialist_workspaces():
     html = (ROOT / "src/sat_sim/web/index.html").read_text(encoding="utf-8")
-    assert html.count("data-p7-context") == 4
-    for view in ("experimentCenterView", "goalRunView", "runCenterView", "diagnosticView"):
+    assert html.count("data-p7-context") == 5
+    for view in ("creatorView", "experimentCenterView", "goalRunView", "runCenterView", "diagnosticView"):
         section = html.split('id="' + view + '"', 1)[1].split("</main>", 1)[0]
         assert "data-p7-context" in section, view
 
