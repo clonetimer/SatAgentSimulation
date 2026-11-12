@@ -47,7 +47,7 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
                     route.fulfill(json={"runs": [{
                         "run_id": "p7d-run-001", "task_name": "P7-D 用户旅程",
                         "status": "SUCCEEDED", "validation_result": "PASS",
-                        "sealed": True, "primary_capability_id": parsed_task_specs[0].get("model", {}).get("capability_id")
+                        "sealed": True, "primary_capability_id": (parsed_task_specs[-1] if parsed_task_specs else {}).get("model", {}).get("capability_id")
                     }], "total": 1})
                     return
                 if request.method == "GET" and path == "/runs/p7d-run-001/execution":
@@ -99,6 +99,7 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
 
             # Desktop: use the actual guided controls and registered capability catalog.
             normal = page.locator('#wizardOptions [data-wizard-goal="normal_run"]')
+            normal.wait_for(state="visible", timeout=30000)
             normal.focus()
             assert normal.evaluate("(node) => document.activeElement === node")
             normal.press("Enter")
