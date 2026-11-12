@@ -120,7 +120,7 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
             run_button.click()
             page.wait_for_function("() => document.querySelector('#busyOverlay').classList.contains('hidden')",
                                    timeout=30000)
-            page.wait_for_function("() => document.querySelector('#wizardConversation').innerText.includes('已结束')",
+            page.wait_for_function("() => document.querySelector('#wizardConversation').innerText.includes('仿真已完成') || document.querySelector('#wizardConversation').innerText.includes('仿真任务已结束')",
                                    timeout=30000)
             assert len(submitted) == 1
             assert submitted[0]["execute"] is True
