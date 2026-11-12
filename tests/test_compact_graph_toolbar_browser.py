@@ -172,17 +172,6 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                         canvas_box = canvas.bounding_box()
                         node_box = node.bounding_box()
                         assert canvas_box and node_box
-                        relative_left = node_box['x'] - canvas_box['x']
-                        relative_top = node_box['y'] - canvas_box['y']
-                        right_target = relative_left + node_box['width'] + 100
-                        target_x = (
-                            right_target if right_target <= canvas_box['width'] - 24
-                            else max(24, relative_left - 100)
-                        )
-                        target_y = min(
-                            canvas_box['height'] - 24,
-                            max(70, relative_top + node_box['height'] / 2),
-                        )
                         head = node.locator('.graph-node-head')
                         head_box = head.bounding_box()
                         viewport = page.viewport_size
