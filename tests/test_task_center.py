@@ -139,3 +139,23 @@ def test_taskcenter_task_center_version_api_and_assets(tmp_path: Path):
     assert "任务版本与运行历史" in html
     assert "/models/local-services/discover" in js
     assert "/versions" in js and "/clone" in js
+
+
+def test_task_history_dialog_exposes_evidence_based_run_comparison(tmp_path: Path):
+    """P7-A: compare and explain a task's runs without leaving its dialog."""
+    app = create_app(runs_root=tmp_path / "runs", artifacts_root=tmp_path / "artifacts", embedded_worker=False, auth_mode="disabled")
+    with TestClient(app) as client:
+        html = client.get("/").text
+        js = client.get("/assets/app.js").text
+    for control in (
+        'id="taskRunHistoryStatus"',
+        'id="taskRunCompareSelectedBtn"',
+        'id="taskRunCompareStatus"',
+        'id="taskRunExplanation"',
+        'id="taskRunCompareHost"',
+    ):
+        assert control in html, control
+    assert "taskRunFailureExplanation" in js
+    assert "taskRunComparisonEligibility" in js
+    assert "compareTaskHistoryRuns" in js
+    assert "'/runs/' + encodeURIComponent" in js or "`/runs/${encodeURIComponent" in js

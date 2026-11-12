@@ -125,6 +125,9 @@
     activeTaskCenterId: null,
     taskDetailsTaskId: null,
     taskDetailsRequestId: 0,
+    taskHistoryRows: [],
+    taskHistorySelectedRunIds: [],
+    runComparePanelHome: null,
     experimentBaseSpec: null,
     agentHistory: [],
     agentGenerating: false,
@@ -9096,13 +9099,221 @@
     });
   }
 
+  // The status/phase words below describe only recorded evidence. A failed
+  // process is distinct from a completed process whose mission check failed.
+  function taskRunFailureExplanation(run, execution = {}, bundle = {}) {
+    const record = bundle?.run_record || {};
+    const validation = bundle?.validation_outcome || {};
+    const status = String(execution?.state || record.status || run?.status || 'UNKNOWN').toUpperCase();
+    const check = String(validation.result || record.validation_status || run?.validation_result || '').toUpperCase();
+    let phase;
+    if (status === 'SUCCEEDED' && check === 'FAIL') phase = '执行已完成；验收未通过。请检查验证条件与原始 Run Bundle。';
+    else if (status === 'SUCCEEDED' && check === 'PASS') phase = '执行已完成，验收通过。';
+    else if (status === 'SUCCEEDED') phase = '执行已完成，但当前记录没有明确的验收通过结论。';
+    else if (status === 'FAILED') phase = '执行阶段未成功完成；当前记录不代表模型仿真通过。';
+    else if (status === 'TIMED_OUT') phase = '执行超时终止；需要检查执行时限和运行证据。';
+    else if (status === 'CANCELLED') phase = '运行已取消；不能把取消视为执行或验收失败。';
+    else if (['QUEUED', 'PREPARED', 'RUNNING', 'CANCEL_REQUESTED'].includes(status)) phase = '运行尚未完成，最终验证结论尚不可用。';
+    else phase = '运行状态无法从已有证据确认。';
+    const codes = [
+      ['终止原因', record.terminal_reason_code],
+      ['验证原因', validation.reason_code],
+      ['执行错误', execution?.error],
+    ].filter(([, value]) => value && String(value).trim());
+    return `${phase}\n运行状态：${status} · 验证结果：${check || '未提供'}\n${codes.length
+      ? codes.map(([label, value]) => `${label}：${String(value)}`).join('\n')
+      : '未提供具体原因码；可查看该 Run 的记录和诊断包进一步排查。'}`;
+  }
+
+  function taskRunComparisonEligibility(runs) {
+    if (!Array.isArray(runs) || runs.length !== 2 || !runs[0]?.run_id || runs[0].run_id === runs[1]?.run_id) {
+      return { ok: false, message: '需要选择两次不同的历史运行。' };
+    }
+    if (runs.some((run) => run.status !== 'SUCCEEDED')) {
+      return { ok: false, message: '仅支持执行成功的历史运行；执行失败和验收未通过是不同状态。' };
+    }
+    if (runs.some((run) => run.sealed !== true)) {
+      return { ok: false, message: '所选运行尚未密封，无法用于可信对比。' };
+    }
+    if (runs.some((run) => !run.primary_capability_id)
+        || runs[0].primary_capability_id !== runs[1].primary_capability_id) {
+      return { ok: false, message: '必须选择同一仿真模型的两次运行。' };
+    }
+    return { ok: true, message: '两次运行已通过状态、密封和模型一致性预检。' };
+  }
+
+  function updateTaskHistorySelection() {
+    const selected = state.taskHistorySelectedRunIds;
+    const ready = selected.length === 2;
+    el('taskRunCompareSelectedBtn').disabled = !ready;
+    el('taskRunCompareStatus').textContent = ready
+      ? `已选择 ${selected.join(' 与 ')}。点击后读取两份 Run Bundle，确认可比性再展示指标。`
+      : selected.length
+        ? '已选 1 / 2 次成功运行；再选一次同一任务的历史运行。'
+        : '请选择两次执行成功的历史运行。对比仅使用已密封的同模型 Run Bundle，不会重新执行仿真。';
+    $all('#taskRunTableBody input[data-task-history-run]').forEach((input) => {
+      input.checked = selected.includes(input.dataset.taskHistoryRun);
+      input.disabled = input.dataset.taskHistoryEligible !== 'true'
+        || (!input.checked && selected.length >= 2);
+    });
+  }
+
+  function taskRunNeedsAttention(run) {
+    return ['FAILED', 'TIMED_OUT', 'CANCELLED'].includes(String(run.status || '').toUpperCase())
+      || (run.status === 'SUCCEEDED' && Boolean(run.validation_result) && run.validation_result !== 'PASS');
+  }
+
+  function restoreTaskRunComparisonPanel() {
+    const panel = el('runComparePanel');
+    if (panel?.parentElement === el('taskRunCompareHost')) {
+      invalidateRunComparison();
+      state.runComparePanelHome?.appendChild(panel);
+      state.runComparePanelHome = null;
+    }
+  }
+
+  function renderTaskHistoryRows() {
+    const runBody = el('taskRunTableBody');
+    runBody.replaceChildren();
+    const filter = el('taskRunHistoryStatus').value;
+    const rows = state.taskHistoryRows.filter((run) => filter === 'all'
+      || (filter === 'succeeded' && run.status === 'SUCCEEDED')
+      || (filter === 'attention' && taskRunNeedsAttention(run))
+      || (filter === 'running' && ['QUEUED', 'PREPARED', 'RUNNING', 'CANCEL_REQUESTED'].includes(run.status)));
+    el('taskRunHistorySummary').textContent = `显示 ${rows.length} / ${state.taskHistoryRows.length} 次运行；筛选不修改历史。`;
+    if (!rows.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td'); cell.colSpan = 7; cell.textContent = '当前筛选下没有运行记录。';
+      row.appendChild(cell); runBody.appendChild(row);
+    }
+    const statusLabels = { SUCCEEDED: '执行成功', FAILED: '执行失败', CANCELLED: '已取消', TIMED_OUT: '执行超时', RUNNING: '运行中', QUEUED: '排队中', PREPARED: '已准备', CANCEL_REQUESTED: '取消中' };
+    rows.forEach((run) => {
+      const row = document.createElement('tr');
+      const chooseCell = document.createElement('td');
+      const choose = document.createElement('input');
+      choose.type = 'checkbox'; choose.dataset.taskHistoryRun = run.run_id;
+      choose.dataset.taskHistoryEligible = String(run.status === 'SUCCEEDED');
+      choose.setAttribute('aria-label', `选择运行 ${run.run_id} 进行对比`);
+      choose.disabled = run.status !== 'SUCCEEDED';
+      choose.title = choose.disabled ? '此运行未执行成功，不能参与对比' : '选择作为历史对比的一次运行';
+      choose.addEventListener('change', () => {
+        const previous = state.taskHistorySelectedRunIds;
+        state.taskHistorySelectedRunIds = choose.checked
+          ? [...previous.filter((id) => id !== run.run_id), run.run_id].slice(0, 2)
+          : previous.filter((id) => id !== run.run_id);
+        updateTaskHistorySelection();
+      });
+      chooseCell.appendChild(choose); row.appendChild(chooseCell);
+      [run.run_id, `V${run.task_version}`, statusLabels[run.status] || run.status || '未知', run.validation_result || '未验证', formatDateTime(run.updated_at)].forEach((value, index) => {
+        const cell = document.createElement('td');
+        cell.textContent = value;
+        if (index === 0) cell.className = 'task-id';
+        row.appendChild(cell);
+      });
+      const actionCell = document.createElement('td');
+      actionCell.className = 'task-actions-cell';
+      const viewRun = document.createElement('button');
+      viewRun.type = 'button'; viewRun.className = 'button button-ghost'; viewRun.textContent = '查看结果';
+      viewRun.addEventListener('click', async () => {
+        closeTaskDetails();
+        if (state.activeView === 'wizard') {
+          state.wizard.goal = 'history'; state.wizard.step = 'results';
+          wizardMessage('assistant', `正在打开历史运行 ${run.run_id} 的结果和证据。`);
+          switchView('wizard');
+        } else switchView('creator');
+        try {
+          const loaded = await loadRun(run.run_id);
+          if (loaded && state.activeView === 'wizard') renderSimulationWizard();
+        } catch (error) { showNotice(`读取运行 ${run.run_id} 失败：${error.message}`, 'error'); }
+      });
+      actionCell.appendChild(viewRun);
+      if (taskRunNeedsAttention(run)) {
+        const explain = document.createElement('button');
+        explain.type = 'button'; explain.className = 'button button-secondary'; explain.textContent = '查看原因';
+        explain.addEventListener('click', () => showTaskRunExplanation(run));
+        actionCell.appendChild(explain);
+      }
+      row.appendChild(actionCell); runBody.appendChild(row);
+    });
+    updateTaskHistorySelection();
+  }
+
+  async function showTaskRunExplanation(run) {
+    const currentRequest = state.taskDetailsRequestId;
+    const host = el('taskRunExplanation');
+    host.classList.remove('hidden');
+    host.textContent = `正在读取 Run ${run.run_id} 的执行及验证证据…`;
+    const encoded = encodeURIComponent(run.run_id);
+    const [execution, bundle] = await Promise.allSettled([
+      api(`/runs/${encoded}/execution`), api(`/runs/${encoded}`),
+    ]);
+    if (currentRequest !== state.taskDetailsRequestId) return;
+    if (execution.status === 'rejected' && bundle.status === 'rejected') {
+      host.textContent = `运行 ${run.run_id} 的证据读取失败：${execution.reason?.message || '未知错误'}。`;
+      return;
+    }
+    host.textContent = `Run ${run.run_id}\n${taskRunFailureExplanation(
+      run,
+      execution.status === 'fulfilled' ? execution.value.execution_state : null,
+      bundle.status === 'fulfilled' ? bundle.value.run : null,
+    )}${execution.status === 'rejected' || bundle.status === 'rejected'
+      ? '\n部分证据接口读取失败；以上只包含可获得的记录。' : ''}`;
+  }
+
+  async function compareTaskHistoryRuns() {
+    const selected = [...state.taskHistorySelectedRunIds];
+    if (selected.length !== 2) return false;
+    const requestId = state.taskDetailsRequestId;
+    const button = el('taskRunCompareSelectedBtn');
+    button.disabled = true;
+    el('taskRunCompareStatus').textContent = '正在核查两份 Run Bundle 的状态、密封信息和模型标识…';
+    try {
+      const runs = await Promise.all(selected.map(async (runId) => {
+        const payload = await api(`/runs/${encodeURIComponent(runId)}`);
+        const bundle = payload.run || {};
+        return {
+          run_id: runId,
+          status: bundle.run_record?.status,
+          sealed: bundle.sealed,
+          primary_capability_id: bundle.prepared_run?.primary_capability_id,
+          integrity: bundle.integrity,
+        };
+      }));
+      if (requestId !== state.taskDetailsRequestId) return false;
+      const eligible = taskRunComparisonEligibility(runs);
+      if (!eligible.ok) throw new Error(eligible.message);
+      if (runs.some((run) => run.integrity?.ok === false)) throw new Error('Run Bundle 完整性检查未通过。');
+      state.runCompareRows = runs;
+      state.runCompareSelection = selected;
+      const panel = el('runComparePanel');
+      if (!state.runComparePanelHome) state.runComparePanelHome = panel.parentElement;
+      el('taskRunCompareHost').appendChild(panel);
+      el('taskRunCompareStatus').textContent = `已验证 ${selected[0]} 与 ${selected[1]} 同模型且已密封；正在比较原始证据。`;
+      const compared = await compareSelectedRuns();
+      if (requestId !== state.taskDetailsRequestId) return false;
+      if (compared) panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      else el('taskRunCompareStatus').textContent = '对比请求未完成；请在下方查看返回的错误信息。';
+      return compared;
+    } catch (error) {
+      if (requestId === state.taskDetailsRequestId) {
+        el('taskRunCompareStatus').textContent = `无法比较：${error.message}`;
+        showNotice(`任务历史对比未执行：${error.message}`, 'warning');
+      }
+      return false;
+    } finally {
+      if (requestId === state.taskDetailsRequestId) button.disabled = state.taskHistorySelectedRunIds.length !== 2;
+    }
+  }
+
   function closeTaskDetails() {
     state.taskDetailsTaskId = null;
     state.taskDetailsRequestId += 1;
+    restoreTaskRunComparisonPanel();
     el('taskDetailsModal').classList.add('hidden');
   }
 
   async function openTaskDetails(taskId) {
+    restoreTaskRunComparisonPanel();
     const requestId = ++state.taskDetailsRequestId;
     const [taskPayload, versionPayload, runPayload] = await Promise.all([
       api(`/task-center/tasks/${encodeURIComponent(taskId)}`),
@@ -9168,33 +9379,12 @@
       row.append(versionCell, summaryCell, timeCell, hashCell, actionCell);
       versionBody.appendChild(row);
     });
-    const runBody = el('taskRunTableBody');
-    runBody.replaceChildren();
-    (runPayload.runs || []).forEach((run) => {
-      const row = document.createElement('tr');
-      [run.run_id, `V${run.task_version}`, run.status, run.validation_result || '—', formatDateTime(run.updated_at)].forEach((value, index) => {
-        const cell = document.createElement('td');
-        cell.textContent = value;
-        if (index === 0) cell.className = 'task-id';
-        row.appendChild(cell);
-      });
-      const actionCell = document.createElement('td');
-      const viewRun = document.createElement('button');
-      viewRun.type = 'button'; viewRun.className = 'button button-ghost'; viewRun.textContent = '查看结果';
-      viewRun.addEventListener('click', async () => {
-        closeTaskDetails();
-        if (state.activeView === 'wizard') {
-          state.wizard.goal = 'history'; state.wizard.step = 'results';
-          wizardMessage('assistant', `正在打开历史运行 ${run.run_id} 的结果和证据。`);
-          switchView('wizard');
-        } else switchView('creator');
-        const loaded = await loadRun(run.run_id);
-        if (loaded && state.activeView === 'wizard') renderSimulationWizard();
-      });
-      actionCell.appendChild(viewRun);
-      row.appendChild(actionCell);
-      runBody.appendChild(row);
-    });
+    state.taskHistoryRows = runPayload.runs || [];
+    state.taskHistorySelectedRunIds = [];
+    el('taskRunHistoryStatus').value = 'all';
+    el('taskRunExplanation').textContent = '';
+    el('taskRunExplanation').classList.add('hidden');
+    renderTaskHistoryRows();
     el('taskDetailsModal').classList.remove('hidden');
   }
 
@@ -10712,6 +10902,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('closeTaskDetailsBtn').addEventListener('click', closeTaskDetails);
     el('taskDetailsModal').addEventListener('click', (event) => { if (event.target === el('taskDetailsModal')) closeTaskDetails(); });
+    el('taskRunHistoryStatus').addEventListener('change', renderTaskHistoryRows);
+    el('taskRunCompareSelectedBtn').addEventListener('click', compareTaskHistoryRuns);
     el('cloneTaskBtn').addEventListener('click', () => cloneActiveTask().catch((error) => showNotice(error.message, 'error')));
     el('refreshTasksBtn').addEventListener('click', () => loadTasks().catch(() => null));
     el('taskSearch').addEventListener('input', () => loadTasks().catch(() => null));
