@@ -362,7 +362,7 @@ def test_natural_language_candidate_preview_discard_and_explicit_apply(tmp_path)
                 preview = page.locator("#wizardAgentCandidatePreview")
                 preview.wait_for(state="visible", timeout=20000)
                 assert "自然语言候选预览验收" in preview.inner_text()
-                assert "simulation.duration_s" in preview.inner_text()
+                assert "47 s" in preview.inner_text()\n                assert "新任务 · 完整配置" in preview.inner_text()
                 assert page.locator("#wizardAgentCandidatePreview .agent-candidate-node").count() == 6
                 assert page.locator("#wizardAgentCandidatePreview .agent-candidate-edge").count() == 5
                 assert "不代表服务端图校验已通过" in preview.inner_text()
