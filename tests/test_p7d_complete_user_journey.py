@@ -127,7 +127,9 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
             assert submitted[0]["execution_mode"] == "async"
             assert page.locator("#wizardRunResultsHost").is_visible()
             assert page.locator("#activeRunCard").inner_text().strip()
-            assert "p7d-run-001" in page.locator("#activeRunCard").inner_text()
+            assert page.locator("#runList [data-run-id='p7d-run-001']").count() == 1
+            assert "SUCCEEDED" in page.locator("#activeRunCard").inner_text()
+            assert "PASS" in page.locator("#activeRunCard").inner_text()
             assert not errors, errors
 
             # Returning to configuration preserves the form but invalidates old validation.
