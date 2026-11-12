@@ -62,7 +62,7 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
 
                 page.route("https://workbench.test/**", proxy)
                 page.goto("https://workbench.test/", wait_until="networkidle")
-                page.locator('.nav-button[data-wizard-shortcut="history"]').click()
+                page.locator('#wizardOptions [data-wizard-goal="history"]').click()
                 card = page.locator("#wizardTaskList .wizard-task-card").filter(has_text="整星姿态控制验证")
                 card.wait_for(state="visible", timeout=10000)
                 assert card.get_by_role("button", name="任务详情").is_visible()
@@ -87,21 +87,40 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 assert page.locator("#taskVersionTableBody tr").count() >= 1
                 page.locator("#closeTaskDetailsBtn").click()
 
-                # Exercise every P6-D specialist-workspace return path in a real browser.
-                # The wizard's task context must remain available after each round trip.
+                # Return to the wizard's welcome step, then enter each specialist
+                # workspace through the same visible "其他专业工具" cards as users.
+                page.locator("#wizardBackBtn").click()
+                tools = page.locator("#wizardAdditionalTools")
+                tools.wait_for(state="visible")
+                if tools.get_attribute("open") is None:
+                    tools.locator("summary").click()
+                assert tools.get_attribute("open") is not None
+
                 specialist_views = (
                     ("experiments", "experimentCenterView"),
                     ("goals", "goalRunView"),
                     ("diagnostics", "diagnosticView"),
                     ("runs", "runCenterView"),
                 )
-                for navigation, view_id in specialist_views:
-                    page.locator(f'.nav-button[data-view="{navigation}"]').click()
+                for goal, view_id in specialist_views:
+                    tools.locator(f'[data-wizard-goal="{goal}"]').click()
                     page.locator(f"#{view_id}").wait_for(state="visible", timeout=10000)
                     page.locator(f"#{view_id} [data-return-wizard]").click()
                     assert page.locator("body").get_attribute("data-active-view") == "wizard"
                     assert "当前配置、任务版本和已有运行记录保持不变" in page.locator("#wizardNotice").inner_text()
+                    assert tools.is_visible()
+                    assert tools.get_attribute("open") is not None
+
+                    # Reopen task history after every round trip to prove the
+                    # task list and cloned version records remain reachable.
+                    page.locator('#wizardOptions [data-wizard-goal="history"]').click()
+                    original = page.locator("#wizardTaskList .wizard-task-card").filter(
+                        has_text="整星姿态控制验证"
+                    )
+                    original.wait_for(state="visible", timeout=10000)
                     assert page.locator("#wizardTaskList .wizard-task-card").count() == 2
+                    page.locator("#wizardBackBtn").click()
+                    assert tools.is_visible() and tools.get_attribute("open") is not None
 
                 assert not errors, errors
             finally:
