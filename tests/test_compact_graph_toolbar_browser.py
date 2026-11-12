@@ -170,7 +170,7 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     if width >= 760:
                         before = node.evaluate('(el) => [el.style.left, el.style.top]')
                         node.locator('.graph-node-head').drag_to(
-                            page.locator('#graphCanvas'), target_position={'x': 240, 'y': 180}
+                            page.locator('#graphCanvas'), target_position={'x': 520, 'y': 360}
                         )
                         after = node.evaluate('(el) => [el.style.left, el.style.top]')
                         assert after != before
