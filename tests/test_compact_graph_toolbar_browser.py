@@ -225,20 +225,17 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                         after = node.evaluate('(el) => [el.style.left, el.style.top]')
                         assert page.evaluate('() => window.__graphDropEffect') == 'move'
                         assert page.evaluate('() => window.__graphDropCount') > 0
-                        drag_types = page.evaluate('() => window.__graphDragTypes')
+                        # The browser exposes the native transfer payload at drop.
+                        # dragstart's DataTransfer readback is implementation-dependent
+                        # in Chromium automation, so assert the real drop event instead.
                         drop_types = page.evaluate('() => window.__graphDropTypes')
-                        drag_payload = page.evaluate('() => window.__graphDragPayload')
                         drop_payload = page.evaluate('() => window.__graphDropPayload')
-                        assert 'application/x-sat-graph' in (drag_types or []), drag_types
-                        assert drag_payload and json.loads(drag_payload).get('kind') == 'move-node', drag_payload
                         assert 'application/x-sat-graph' in (drop_types or []), drop_types
                         assert drop_payload and json.loads(drop_payload).get('kind') == 'move-node', drop_payload
                         assert after != before, {
                             'before': before,
                             'after': after,
-                            'drag_types': drag_types,
                             'drop_types': drop_types,
-                            'drag_payload': drag_payload,
                             'drop_payload': drop_payload,
                             'target': target_position,
                             'canvas': canvas_box,
