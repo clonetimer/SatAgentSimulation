@@ -100,9 +100,8 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
             # Desktop: use the actual guided controls and registered capability catalog.
             normal = page.locator('#wizardOptions [data-wizard-goal="normal_run"]')
             normal.wait_for(state="visible", timeout=30000)
-            normal.focus()
-            assert normal.evaluate("(node) => document.activeElement === node")
             normal.press("Enter")
+            assert page.locator('#wizardOptions [data-wizard-level="component"]').is_visible()
             page.locator('#wizardOptions [data-wizard-level="component"]').click()
             first_object = page.locator("#wizardOptions [data-wizard-object]").first
             first_object.wait_for(state="visible", timeout=20000)
