@@ -414,6 +414,9 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                     request = route.request
                     url = urlsplit(request.url)
                     path = url.path
+                    if request.method == "GET" and path == "/experiments":
+                        route.fulfill(json={"experiments": [{"experiment_id": "p7c-exp", "name": "P7-C 精确 Run 跳转", "experiment_type": "sweep", "variant_count": 2, "status": "COMPLETED"}]})
+                        return
                     if request.method == "GET" and path == "/experiments/p7c-exp":
                         route.fulfill(json={"experiment": {
                             "experiment_id": "p7c-exp", "name": "P7-C 精确 Run 跳转",
