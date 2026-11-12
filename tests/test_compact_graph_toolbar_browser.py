@@ -53,8 +53,11 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     page.locator('#toggleMobileToolsBtn').focus();page.keyboard.press('Enter')
                     page.locator('#fontScaleSelect').select_option(font)
                     page.locator('#toggleMobileToolsBtn').click()
-                page.locator('.nav-button[data-view="creator"]').click()
-                page.locator('#creatorGraphTabButton').click()
+                tools = page.locator('#wizardAdditionalTools')
+                tools.locator('summary').click()
+                assert tools.get_attribute('open') is not None
+                tools.locator('[data-wizard-goal="graph"]').click()
+                page.locator('#creatorGraphTabButton').wait_for(state='visible')
                 page.locator('#graphConversationGuide').wait_for(state='visible')
                 assert '建模助手' in page.locator('#graphConversationGuide').inner_text()
                 assert page.locator('#graphGuideNextTitle').inner_text().strip()
