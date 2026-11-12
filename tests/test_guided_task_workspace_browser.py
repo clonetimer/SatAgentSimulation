@@ -139,7 +139,10 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 for goal, view_id in specialist_views:
                     tools.locator(f'[data-wizard-goal="{goal}"]').click()
                     page.locator(f"#{view_id}").wait_for(state="visible", timeout=10000)
-                    page.locator(f"#{view_id} [data-return-wizard]").click()
+                    context = page.locator(f"#{view_id} [data-p7-context]")
+                    assert context.is_visible()
+                    assert "来源：仿真向导" in context.inner_text()
+                    context.get_by_role("button", name="返回仿真向导").click()
                     assert page.locator("body").get_attribute("data-active-view") == "wizard"
                     assert "当前配置、任务版本和已有运行记录保持不变" in page.locator("#wizardConversation").inner_text()
                     assert tools.is_visible()
@@ -382,6 +385,127 @@ def test_natural_language_candidate_preview_discard_and_explicit_apply(tmp_path)
                 assert "候选配置已应用" in page.locator("#wizardNotice").inner_text()
                 assert not run_posts
                 assert len(parse_posts) == 2
+                assert not errors, errors
+            finally:
+                browser.close()
+
+
+def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(tmp_path):
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs", artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False, auth_mode="disabled",
+    )
+    requested_runs = []
+    submitted_runs = []
+    with TestClient(app) as client:
+        with playwright.sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True, executable_path=executable)
+            try:
+                page = browser.new_page(viewport={"width": 1366, "height": 900})
+                errors = []
+                page.on("pageerror", lambda error: errors.append(str(error)))
+
+                def proxy(route):
+                    request = route.request
+                    url = urlsplit(request.url)
+                    path = url.path
+                    if request.method == "GET" and path == "/experiments":
+                        route.fulfill(json={"experiments": [{"experiment_id": "p7c-exp", "name": "P7-C 精确 Run 跳转", "experiment_type": "sweep", "variant_count": 2, "status": "COMPLETED"}]})
+                        return
+                    if request.method == "GET" and path == "/experiments/p7c-exp":
+                        route.fulfill(json={"experiment": {
+                            "experiment_id": "p7c-exp", "name": "P7-C 精确 Run 跳转",
+                            "base_task_spec": {"task": {"id": "task-p7c"}},
+                        }})
+                        return
+                    if request.method == "GET" and path == "/experiments/p7c-exp/comparison":
+                        route.fulfill(json={"comparison": {
+                            "metrics": ["final_error"], "rows": [
+                                {"variant_index": 1, "run_id": "run-p7c-selected",
+                                 "status": "SUCCEEDED", "assertion_status": "PASS",
+                                 "values": {"final_error": 0.012}},
+                                {"variant_index": 0, "run_id": "run-p7c-other",
+                                 "status": "SUCCEEDED", "assertion_status": "PASS",
+                                 "values": {"final_error": 0.021}},
+                            ],
+                        }})
+                        return
+                    if request.method == "GET" and path == "/runs/run-p7c-selected":
+                        requested_runs.append(path)
+                        route.fulfill(json={"run": {
+                            "run_id": "run-p7c-selected", "sealed": True, "status": "SUCCEEDED",
+                            "task_spec": {"task": {"id": "task-p7c"}, "model": {"capability_id": "component.reaction_wheel.v1"}},
+                            "run_record": {"task_id": "task-p7c", "task_version": 3},
+                            "validation_outcome": {"result": "PASS"},
+                        }})
+                        return
+                    if request.method == "POST" and path == "/runs":
+                        submitted_runs.append(path)
+                        route.fulfill(status=500, json={"detail": "C2 navigation must not submit a new run"})
+                        return
+                    if path.endswith("/metrics"):
+                        route.fulfill(json={"metrics": {"metrics": {}}}); return
+                    if path.endswith("/events"):
+                        route.fulfill(json={"events": {}}); return
+                    if path.endswith("/plots"):
+                        route.fulfill(json={"plot_manifest": {"series": []}}); return
+                    if path.endswith("/telemetry/overview"):
+                        route.fulfill(json={"source": "fixture", "rows": [], "count": 0, "sampled": False}); return
+                    if path.endswith("/telemetry"):
+                        route.fulfill(json={"rows": [], "total": 0}); return
+                    if path.endswith("/artifacts"):
+                        route.fulfill(json={"artifacts": []}); return
+                    if path.endswith("/dataset"):
+                        route.fulfill(json={"dataset": None}); return
+                    if path.endswith("/fmea"):
+                        route.fulfill(json={"table": None, "manifest": None}); return
+                    if path.endswith("/fault-traceability"):
+                        route.fulfill(json={"traceability": None}); return
+                    response = client.request(
+                        request.method, path + ("?" + url.query if url.query else ""),
+                        content=request.post_data_buffer,
+                        headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
+                    )
+                    route.fulfill(status=response.status_code, body=response.content,
+                                  headers={"content-type": response.headers.get("content-type", "application/json")})
+
+                page.route("https://workbench.test/**", proxy)
+                page.goto("https://workbench.test/", wait_until="networkidle")
+                page.locator('#wizardAdditionalTools summary').click()
+                page.locator('#wizardAdditionalTools [data-wizard-goal="experiments"]').click()
+                page.locator("#experimentCenterView").wait_for(state="visible")
+                page.locator("#experimentList").wait_for()
+                page.evaluate("""() => {
+                    window.__p7cTestRenderExperiment = true;
+                }""")
+                # Render the comparison from the real UI handler using the selected experiment card.
+                page.locator("#experimentList").get_by_role("button", name="查看对比").first.click()
+                comparison = page.locator("#experimentComparisonPanel")
+                comparison.wait_for(state="visible", timeout=10000)
+                row = comparison.locator("tbody tr").filter(has_text="run-p7c-selected")
+                row.get_by_role("button", name="查看运行证据").click()
+                page.locator("#diagnosticView").wait_for(state="visible", timeout=20000)
+                evidence = page.locator("#runEvidencePanel")
+                evidence.wait_for(state="visible", timeout=10000)
+                assert "run-p7c-selected" in evidence.inner_text()
+                assert "V3" in evidence.inner_text()
+                assert "PASS" in evidence.inner_text()
+                assert requested_runs == ["/runs/run-p7c-selected"]
+                assert not submitted_runs
+                context = page.locator("#diagnosticView [data-p7-context]")
+                assert "返回位置：实验中心" in context.inner_text()
+                page.locator("#runEvidencePanel").get_by_role("button", name="查看完整运行曲线").click()
+                page.locator("#creatorView").wait_for(state="visible")
+                creator_context = page.locator("#creatorView [data-p7-context]")
+                assert "返回位置：实验中心" in creator_context.inner_text()
+                creator_context.get_by_role("button", name="返回实验中心").click()
+                page.locator("#experimentCenterView").wait_for(state="visible")
+                assert not submitted_runs
                 assert not errors, errors
             finally:
                 browser.close()
