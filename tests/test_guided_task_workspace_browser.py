@@ -107,7 +107,7 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                     page.locator(f"#{view_id}").wait_for(state="visible", timeout=10000)
                     page.locator(f"#{view_id} [data-return-wizard]").click()
                     assert page.locator("body").get_attribute("data-active-view") == "wizard"
-                    assert "当前配置、任务版本和已有运行记录保持不变" in page.locator("#wizardNotice").inner_text()
+                    assert "当前配置、任务版本和已有运行记录保持不变" in page.locator("#wizardConversation").inner_text()
                     assert tools.is_visible()
                     assert tools.get_attribute("open") is not None
 
