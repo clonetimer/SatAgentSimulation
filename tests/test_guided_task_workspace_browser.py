@@ -297,3 +297,90 @@ def test_task_details_dialog_filters_explains_and_compares_real_run_evidence(tmp
                 assert not errors, errors
             finally:
                 browser.close()
+
+
+def test_natural_language_candidate_preview_discard_and_explicit_apply(tmp_path):
+    """P7-B: real Chromium reviews a candidate before any current-task mutation."""
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs", artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False, auth_mode="disabled",
+    )
+    run_posts = []
+    parse_posts = []
+    with TestClient(app) as client:
+        schema = client.get("/forms/capabilities/component.reaction_wheel.v1").json()["form_schema"]
+        parsed = client.post("/tasks/parse", json={
+            "input_kind": "form", "form_data": schema["default_form"], "compile_if_valid": True,
+        })
+        assert parsed.status_code == 200 and parsed.json()["ok"] is True
+        candidate = parsed.json()["result"]["task_spec"]
+        candidate["task"]["name"] = "自然语言候选预览验收"
+        candidate["simulation"]["duration_s"] = 47.0
+
+        with playwright.sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True, executable_path=executable)
+            try:
+                page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+                errors = []
+                page.on("pageerror", lambda error: errors.append(str(error)))
+
+                def proxy(route):
+                    request = route.request
+                    url = urlsplit(request.url)
+                    if request.method == "POST" and url.path == "/tasks/parse":
+                        parse_posts.append(json.loads(request.post_data))
+                        route.fulfill(json={
+                            "ok": True, "request_id": f"p7b-candidate-{len(parse_posts)}",
+                            "result": {
+                                "task_spec": candidate,
+                                "planning": {},
+                                "route": {"provider_id": "local-template"},
+                            },
+                        })
+                        return
+                    if request.method == "POST" and url.path == "/runs":
+                        run_posts.append(request.post_data)
+                    response = client.request(
+                        request.method, url.path + ("?" + url.query if url.query else ""),
+                        content=request.post_data_buffer,
+                        headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
+                    )
+                    route.fulfill(status=response.status_code, body=response.content,
+                                  headers={"content-type": response.headers.get("content-type", "application/octet-stream")})
+
+                page.route("https://workbench.test/**", proxy)
+                page.goto("https://workbench.test/", wait_until="networkidle")
+                page.locator('#wizardOptions [data-wizard-goal="natural_language"]').click()
+                page.locator("#wizardAgentWorkspace").wait_for(state="visible")
+                page.locator("#agentInput").fill("建立反作用飞轮仿真，运行47秒，观察飞轮转速。")
+                page.locator("#wizardGenerateFromTextBtn").click()
+                preview = page.locator("#wizardAgentCandidatePreview")
+                preview.wait_for(state="visible", timeout=20000)
+                assert "自然语言候选预览验收" in preview.inner_text()
+                assert "simulation.duration_s" in preview.inner_text()
+                assert page.locator("#wizardAgentCandidatePreview .agent-candidate-node").count() == 6
+                assert page.locator("#wizardAgentCandidatePreview .agent-candidate-edge").count() == 5
+                assert "不代表服务端图校验已通过" in preview.inner_text()
+                assert not run_posts
+
+                page.locator("#wizardDiscardAgentCandidateBtn").click()
+                assert preview.is_hidden()
+                assert "已放弃候选配置" in page.locator("#wizardNotice").inner_text()
+                assert not run_posts
+
+                page.locator("#agentInput").fill("重新生成候选，运行47秒。")
+                page.locator("#wizardGenerateFromTextBtn").click()
+                preview.wait_for(state="visible", timeout=20000)
+                page.locator("#wizardApplyAgentCandidateBtn").click()
+                page.wait_for_function("document.querySelector('#wizardConfigSections') && !document.querySelector('#wizardConfigSections').classList.contains('hidden')", timeout=20000)
+                assert "候选配置已应用" in page.locator("#wizardNotice").inner_text()
+                assert not run_posts
+                assert len(parse_posts) == 2
+                assert not errors, errors
+            finally:
+                browser.close()
