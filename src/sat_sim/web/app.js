@@ -124,6 +124,7 @@
     tasks: [],
     activeTaskCenterId: null,
     activeTaskVersion: null,
+    activeTaskVersionTaskId: null,
     sharedWorkbenchContext: { sourceView: null, sourceLabel: null, taskId: null, taskVersion: null, runId: null, experimentId: null, goalId: null, bundleId: null },
     taskDetailsTaskId: null,
     taskDetailsRequestId: 0,
@@ -6049,7 +6050,11 @@
       if (requestId !== state.runLoadRequestId) return false;
       const runContext = runPayload.run || {};
       const recordContext = runContext.run_record || {};
-      updateSharedWorkbenchContext({ runId, bundleId: runContext.bundle_id || runContext.run_id || runId, taskId: recordContext.task_id || runContext.task_id || state.sharedWorkbenchContext.taskId, taskVersion: recordContext.task_version ?? runContext.task_version ?? state.sharedWorkbenchContext.taskVersion });
+      if (state.activeRunId !== runId) return false;
+      updateSharedWorkbenchContext({
+        runId, bundleId: runContext.sealed === true ? runId : null,
+        runTaskSpecId: runContext.task_spec?.task?.id || recordContext.task_id || null,
+      });
       const availability = runPayload.run?.available_outputs;
       const sourceRequests = [
         ['metrics', api(`/runs/${encodeURIComponent(runId)}/metrics`)],
@@ -8636,24 +8641,101 @@
   }
 
   const SHARED_CONTEXT_VIEWS = new Set(['experiments', 'goals', 'runs', 'diagnostics']);
-  const SHARED_CONTEXT_LABELS = { wizard: '仿真向导', creator: '高级工作台', tasks: '任务中心', experiments: '实验中心', goals: '目标实验', runs: '运行中心', diagnostics: '系统诊断' };
-  function sharedContextSnapshot() { const c=state.sharedWorkbenchContext; return { ...c, taskId:c.taskId||state.activeTaskCenterId||null, taskVersion:c.taskVersion??state.activeTaskVersion??null, runId:c.runId||state.activeRunId||null }; }
-  function updateSharedWorkbenchContext(patch={}) { state.sharedWorkbenchContext={...state.sharedWorkbenchContext,...patch}; if(patch.taskId!==undefined) state.activeTaskCenterId=patch.taskId; if(patch.taskVersion!==undefined) state.activeTaskVersion=patch.taskVersion; if(patch.runId!==undefined) state.activeRunId=patch.runId; renderSharedWorkbenchContext(); }
-  function renderSharedWorkbenchContext() {
-    const c=sharedContextSnapshot(); const task=c.taskId ? ('任务 '+c.taskId+(c.taskVersion?' · V'+c.taskVersion:'')) : '未关联已保存任务'; const run=c.runId ? ('Run '+c.runId) : '尚未选择 Run';
-    const extras=[c.experimentId&&('实验 '+c.experimentId),c.goalId&&('目标 '+c.goalId),c.bundleId&&('Bundle '+c.bundleId)].filter(Boolean).join(' · '); const source=c.sourceLabel||SHARED_CONTEXT_LABELS[c.sourceView]||'当前工作区';
-    document.querySelectorAll('[data-p7-context]').forEach(host=>{ host.replaceChildren(); const summary=document.createElement('div'); summary.className='p7-context-summary';
-      const title=document.createElement('strong'); title.textContent='当前工作上下文'; const taskNode=document.createElement('span'); taskNode.textContent=task; const runNode=document.createElement('span'); runNode.textContent=run; const extra=document.createElement('small'); extra.textContent=extras||'尚无实验、目标或额外制品引用'; summary.append(title,taskNode,runNode,extra);
-      const actions=document.createElement('div'); actions.className='p7-context-actions'; const sourceNode=document.createElement('small'); sourceNode.textContent='来源：'+source; const back=document.createElement('button'); back.type='button'; back.className='button button-secondary'; back.textContent='返回'+source; back.disabled=!c.sourceView||c.sourceView===state.activeView; back.addEventListener('click',returnToSharedContextSource); actions.append(sourceNode,back); host.append(summary,actions); });
+  const SHARED_CONTEXT_LABELS = {
+    wizard: '仿真向导', creator: '高级工作台', tasks: '任务中心',
+    experiments: '实验中心', goals: '目标实验', runs: '运行中心', diagnostics: '系统诊断',
+    interactive: '限时实时控制台', continuous: '持续实时控制台',
+  };
+
+  // References are read-only navigation metadata. Never use an inspected
+  // TaskSpec ID as the editor's Task Center identity or a comparison row as
+  // the selected Run: those controllers own save/cancel/polling targets.
+  function sharedContextSnapshot() {
+    const context = state.sharedWorkbenchContext || {};
+    const taskId = state.activeTaskCenterId || null;
+    const runId = state.activeRunId || null;
+    const sameRun = Boolean(runId && context.runId === runId);
+    return {
+      ...context,
+      taskId,
+      taskVersion: taskId && state.activeTaskVersionTaskId === taskId ? state.activeTaskVersion : null,
+      runId,
+      bundleId: sameRun ? context.bundleId || null : null,
+      runTaskSpecId: sameRun ? context.runTaskSpecId || null : null,
+    };
   }
-  function returnToSharedContextSource() { const source=state.sharedWorkbenchContext?.sourceView; if(!source||source===state.activeView)return; state.sharedWorkbenchContext={...state.sharedWorkbenchContext,sourceView:null,sourceLabel:null}; switchView(source); renderSharedWorkbenchContext(); }
-  function noteSharedContextTransition(nextView) { if(!SHARED_CONTEXT_VIEWS.has(nextView)){ if(state.sharedWorkbenchContext?.sourceView===state.activeView) state.sharedWorkbenchContext={...state.sharedWorkbenchContext,sourceView:null,sourceLabel:null}; return; } const current=state.activeView; if(!SHARED_CONTEXT_VIEWS.has(current)&&!state.sharedWorkbenchContext?.sourceView) state.sharedWorkbenchContext={...state.sharedWorkbenchContext,sourceView:current,sourceLabel:SHARED_CONTEXT_LABELS[current]||current}; }
+
+  function updateSharedWorkbenchContext(patch = {}) {
+    state.sharedWorkbenchContext = { ...state.sharedWorkbenchContext, ...patch };
+    renderSharedWorkbenchContext();
+  }
+
+  function renderSharedWorkbenchContext() {
+    const context = sharedContextSnapshot();
+    const task = context.taskId
+      ? `编辑任务 ${context.taskId}${context.taskVersion ? ` · 载入 V${context.taskVersion}` : ' · 版本未确认'}`
+      : '当前编辑配置未关联已保存任务';
+    const run = context.runId ? `当前查看 Run ${context.runId}` : '尚未选择 Run';
+    const references = [
+      context.experimentId && `实验 ${context.experimentId}`,
+      context.goalId && `目标 ${context.goalId}`,
+      context.baseTaskSpecId && `实验基础 TaskSpec ${context.baseTaskSpecId}`,
+      context.runTaskSpecId && `运行 TaskSpec ${context.runTaskSpecId}`,
+      context.bundleId && `已封存 Run Bundle ${context.bundleId}`,
+    ].filter(Boolean).join(' · ');
+    const source = context.sourceLabel || SHARED_CONTEXT_LABELS[context.sourceView] || '当前工作区';
+    document.querySelectorAll('[data-p7-context]').forEach((host) => {
+      host.replaceChildren();
+      const summary = document.createElement('div'); summary.className = 'p7-context-summary';
+      const title = document.createElement('strong'); title.textContent = '当前工作上下文';
+      const taskNode = document.createElement('span'); taskNode.textContent = task;
+      const runNode = document.createElement('span'); runNode.textContent = run;
+      const extra = document.createElement('small'); extra.textContent = references || '尚无额外结果引用';
+      extra.title = '编辑任务和查看结果分别保留；查看结果不会切换保存或取消操作的对象。';
+      summary.append(title, taskNode, runNode, extra);
+      const actions = document.createElement('div'); actions.className = 'p7-context-actions';
+      const sourceNode = document.createElement('small'); sourceNode.textContent = `来源：${source}`;
+      const back = document.createElement('button'); back.type = 'button'; back.className = 'button button-secondary';
+      back.textContent = `返回${source}`;
+      back.disabled = !context.sourceView || context.sourceView === state.activeView;
+      back.addEventListener('click', returnToSharedContextSource);
+      actions.append(sourceNode, back); host.append(summary, actions);
+    });
+  }
+
+  function returnToSharedContextSource() {
+    const source = state.sharedWorkbenchContext?.sourceView;
+    if (!source || source === state.activeView) return;
+    switchView(source);
+    if (state.activeView !== source) return; // Keep the source if departure was cancelled.
+    if (source === 'wizard') {
+      wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
+      renderSimulationWizard();
+    }
+    renderSharedWorkbenchContext();
+  }
+
+  function noteSharedContextTransition(nextView) {
+    if (nextView === state.activeView) return;
+    if (!SHARED_CONTEXT_VIEWS.has(nextView)) {
+      state.sharedWorkbenchContext = { ...state.sharedWorkbenchContext, sourceView: null, sourceLabel: null };
+      return;
+    }
+    const current = state.activeView;
+    if (!SHARED_CONTEXT_VIEWS.has(current) && !state.sharedWorkbenchContext?.sourceView) {
+      state.sharedWorkbenchContext = {
+        ...state.sharedWorkbenchContext, sourceView: current,
+        sourceLabel: SHARED_CONTEXT_LABELS[current] || current,
+      };
+    }
+  }
+
   function switchView(name) {
-    noteSharedContextTransition(name);
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
     if (['interactive', 'continuous'].includes(state.activeView) && name !== state.activeView && wizardRealtimeSessionActive()) {
       if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
     }
+    noteSharedContextTransition(name);
     state.wizardLeavingRealtimeApproved = false;
     state.activeView = name;
     document.body.dataset.activeView = name;
@@ -9129,7 +9211,12 @@
       task_spec:spec,task_id:taskId,source:'web_workbench',status:'READY',force_new_version:mode==='update',
       change_summary:mode==='update'?'工作台更新已打开任务':'从工作台另存为新任务',
     })});
-    if (mode === 'update') state.activeTaskCenterId=payload.task?.task_id || state.activeTaskCenterId;
+    if (mode === 'update') {
+      state.activeTaskCenterId = payload.task?.task_id || state.activeTaskCenterId;
+      state.activeTaskVersion = payload.task?.current_version ?? null;
+      state.activeTaskVersionTaskId = state.activeTaskCenterId;
+      renderSharedWorkbenchContext();
+    }
     updateTaskEditState();
     showNotice(mode==='update' ? `任务“${payload.task?.name || payload.task?.task_id}”已生成新版本。` : `已另存为新任务“${payload.task?.name || payload.task?.task_id}”，不会覆盖现有任务。`,'success');
     await loadTasks(); return payload.task;
@@ -9533,8 +9620,9 @@
       if (!spec) throw new Error('任务中心没有返回 TaskSpec');
       await projectTaskSpecToForm(spec, '任务中心');
       state.activeTaskCenterId = taskId;
-      state.activeTaskVersion = payload.task?.current_version ?? payload.task?.version ?? null;
-      updateSharedWorkbenchContext({ taskId, taskVersion: state.activeTaskVersion, bundleId: null });
+      state.activeTaskVersion = payload.task?.current_version ?? null;
+      state.activeTaskVersionTaskId = taskId;
+      updateSharedWorkbenchContext({ experimentId: null, goalId: null, baseTaskSpecId: null });
       updateTaskEditState();
       if (options.guided) {
         state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline'; state.wizard.step = 'configure';
@@ -9561,7 +9649,8 @@
       });
       const runId = payload.prepared_run?.run_id || payload.execution_state?.run_id;
       if (!runId) throw new Error('未返回 run_id');
-      updateSharedWorkbenchContext({ taskId, taskVersion: state.activeTaskVersion, runId, bundleId: runId });
+      state.activeRunId = runId;
+      updateSharedWorkbenchContext({ runId, bundleId: null, runTaskSpecId: null });
       state.executionState = payload.execution_state;
       if (options.guided) {
         state.wizard.goal = 'history'; state.wizard.step = 'results';
@@ -9774,7 +9863,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       body: apiBody(request),
     });
     closeExperimentModal();
-    updateSharedWorkbenchContext({ experimentId: payload.experiment.experiment_id });
+    updateSharedWorkbenchContext({ experimentId: payload.experiment.experiment_id, goalId: null, baseTaskSpecId: request.base_task_spec?.task?.id || null });
     switchView('experiments');
     await loadExperiments();
     showNotice(`实验 ${payload.experiment.experiment_id} 已创建，共 ${payload.experiment.variant_count} 个变体。`, 'success');
@@ -10028,7 +10117,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       });
       state.goalCreateOperationId = null;
       state.activeGoalId = payload.goal.goal_id;
-      updateSharedWorkbenchContext({ goalId: payload.goal.goal_id, taskId: payload.goal.base_task_spec?.task?.id || state.sharedWorkbenchContext.taskId });
+      updateSharedWorkbenchContext({ goalId: payload.goal.goal_id, experimentId: null, baseTaskSpecId: payload.goal.base_task_spec?.task?.id || null });
       el('goalRunCreatePanel').classList.add('hidden');
       await loadGoals();
       goalRunNotice((payload.replayed ? '已恢复原目标：' : '目标已创建并激活：') + payload.goal.goal_id, 'success');
@@ -10070,7 +10159,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     state.activeGoalId = goalId;
     state.activeGoal = payload;
     const baseSpec = payload.goal?.base_task_spec || payload.base_task_spec || null;
-    updateSharedWorkbenchContext({ goalId, taskId: baseSpec?.task?.id || state.sharedWorkbenchContext.taskId, taskVersion: payload.goal?.base_task_version ?? state.sharedWorkbenchContext.taskVersion });
+    updateSharedWorkbenchContext({ goalId, experimentId: null, baseTaskSpecId: baseSpec?.task?.id || null });
     el('goalRunDetail').classList.remove('hidden');
     await refreshGoalExperimentOptions();
     renderGoalList();
@@ -10503,7 +10592,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       body.appendChild(tr);
     });
     el('experimentComparisonPanel').classList.remove('hidden');
-    updateSharedWorkbenchContext({ experimentId, runId: rows.find((row) => row.run_id)?.run_id || state.sharedWorkbenchContext.runId });
+    updateSharedWorkbenchContext({ experimentId, goalId: null, baseTaskSpecId: detail.experiment.base_task_spec?.task?.id || null });
     await loadExperiments();
   }
 
