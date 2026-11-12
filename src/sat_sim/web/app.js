@@ -2009,7 +2009,7 @@
     }
     const nodes = result.planning?.execution_plan?.nodes?.length || result.planning?.plan?.nodes?.length || 0;
     state.graphCompilationNote = formCompilationNote(result, requestedForm);
-    state.graphCompilationContext = requestedCompilation;
+    state.graphCompilationContext = visualCompilationSnapshot('flow');
     operation?.commit();
     if (announce) graphSetStatus(`图已校验${nodes ? `；${nodes} 个节点` : ''}。${state.graphCompilationNote}`, 'success');
     renderGraph(); return true;
