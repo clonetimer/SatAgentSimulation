@@ -8640,7 +8640,7 @@
     el('wizardBackBtn').disabled = state.wizard.step === 'welcome';
   }
 
-  const SHARED_CONTEXT_VIEWS = new Set(['experiments', 'goals', 'runs', 'diagnostics']);
+  const SHARED_CONTEXT_VIEWS = new Set(['creator', 'experiments', 'goals', 'runs', 'diagnostics']);
   const SHARED_CONTEXT_LABELS = {
     wizard: '仿真向导', creator: '高级工作台', tasks: '任务中心',
     experiments: '实验中心', goals: '目标实验', runs: '运行中心', diagnostics: '系统诊断',
