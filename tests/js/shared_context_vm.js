@@ -59,8 +59,8 @@ test('ordinary navigation back clears source before a fresh creator visit', () =
   c.switchView('experiments'); c.switchView('wizard');
   assert.equal(state.sharedWorkbenchContext.sourceView, null);
   c.switchView('creator'); c.switchView('runs');
-  assert.equal(state.sharedWorkbenchContext.sourceView, 'creator');
-  c.returnToSharedContextSource(); assert.equal(state.activeView, 'creator');
+  assert.equal(state.sharedWorkbenchContext.sourceView, 'wizard');
+  c.returnToSharedContextSource(); assert.equal(state.activeView, 'wizard');
 });
 test('same-view navigation does not create a return loop', () => {
   const {c,state} = harness(); state.activeView = 'experiments';
@@ -76,4 +76,11 @@ test('cancelled realtime departure does not change the source reference', () => 
 test('clearing a reference never clears the live run controller', () => {
   const {c,state} = harness(); c.updateSharedWorkbenchContext({runId:null,bundleId:null});
   assert.equal(state.activeRunId, 'loaded-A');
+});
+
+test('experiment source survives diagnostics to full creator Run detail', () => {
+  const {c,state} = harness();
+  c.switchView('experiments'); c.switchView('diagnostics'); c.switchView('creator');
+  assert.equal(state.sharedWorkbenchContext.sourceView, 'wizard');
+  c.returnToSharedContextSource(); assert.equal(state.activeView, 'wizard');
 });
