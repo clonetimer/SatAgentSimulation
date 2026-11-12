@@ -136,3 +136,37 @@ def test_wizard_separates_summary_metrics_from_time_series_and_uses_registry_opt
     assert "wizardOutputSearch" in js
     assert ".wizard-qoi-row" in css
     assert ".wizard-output-purpose[aria-pressed=\"true\"]" in css
+
+def test_p7b_natural_language_candidate_preview_requires_explicit_apply(tmp_path):
+    with _client(tmp_path) as client:
+        index = client.get("/").text
+        js = client.get("/assets/app.js").text
+    assert 'id="wizardAgentCandidatePreview"' in index
+    assert "生成候选预览" in index
+    for marker in (
+        "wizardApplyAgentCandidateBtn",
+        "wizardApplyAgentCandidateGraphBtn",
+        "wizardDiscardAgentCandidateBtn",
+        "parseNaturalLanguage({ previewOnly: true })",
+        "taskSpecFieldDiff",
+        "state.agentCandidate = { taskSpec:",
+        "applyAgentCandidate(openGraph = false)",
+        "此处为预览，不代表服务端图校验已通过",
+        "openCurrentConfigurationInGraph('已确认的 Agent 候选')",
+    ):
+        assert marker in js
+    assert "api('/tasks/compile-graph'" in js
+    assert "api('/tasks/parse'" in js
+
+
+def test_p7b_candidate_preview_blocks_apply_after_context_changes(tmp_path):
+    with _client(tmp_path) as client:
+        js = client.get("/assets/app.js").text
+        css = client.get("/assets/styles.css").text
+    assert "function agentCandidateBaseSnapshot()" in js
+    assert "candidate.baseSnapshot, currentSnapshot" in js
+    assert "当前任务或图形画布在候选生成后已发生变化" in js
+    assert "agent-candidate-flow" in js
+    assert "agent-candidate-node" in js
+    assert "agent-candidate-edge" in css
+    assert "此处为预览，不代表服务端图校验已通过" in js
