@@ -476,7 +476,7 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
 
                 page.route("https://workbench.test/**", proxy)
                 page.goto("https://workbench.test/", wait_until="networkidle")
-                page.locator('#wizardOptions [data-wizard-goal="experiments"]').click()
+                page.locator('.nav-button[data-view="experiments"]').click()
                 page.locator("#experimentCenterView").wait_for(state="visible")
                 page.locator("#experimentList").wait_for()
                 page.evaluate("""() => {
