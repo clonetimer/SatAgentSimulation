@@ -139,7 +139,10 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 for goal, view_id in specialist_views:
                     tools.locator(f'[data-wizard-goal="{goal}"]').click()
                     page.locator(f"#{view_id}").wait_for(state="visible", timeout=10000)
-                    page.locator(f"#{view_id} [data-return-wizard]").click()
+                    context = page.locator(f"#{view_id} [data-p7-context]")
+                    assert context.is_visible()
+                    assert "来源：仿真向导" in context.inner_text()
+                    context.get_by_role("button", name="返回仿真向导").click()
                     assert page.locator("body").get_attribute("data-active-view") == "wizard"
                     assert "当前配置、任务版本和已有运行记录保持不变" in page.locator("#wizardConversation").inner_text()
                     assert tools.is_visible()
