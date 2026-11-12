@@ -38,7 +38,11 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
             "task_id": "guided-task-ux", "task_spec": _task_spec(), "status": "READY",
         })
         assert saved.status_code == 200, saved.text
+        listed = client.get("/task-center/tasks?limit=200")
+        assert listed.status_code == 200, listed.text
+        assert any(task.get("task_id") == "guided-task-ux" for task in listed.json().get("tasks", []))
         errors = []
+        task_list_payloads = []
         with playwright.sync_playwright() as pw:
             browser = pw.chromium.launch(headless=True, executable_path=executable)
             try:
@@ -54,6 +58,8 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                         content=request.post_data_buffer,
                         headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
                     )
+                    if request.method == "GET" and url.path == "/task-center/tasks":
+                        task_list_payloads.append(response.json())
                     route.fulfill(
                         status=response.status_code,
                         body=response.content,
@@ -63,8 +69,16 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 page.route("https://workbench.test/**", proxy)
                 page.goto("https://workbench.test/", wait_until="networkidle")
                 page.locator('#wizardOptions [data-wizard-goal="history"]').click()
+                page.locator("#wizardTaskWorkspace").wait_for(state="visible", timeout=10000)
                 card = page.locator("#wizardTaskList .wizard-task-card").filter(has_text="整星姿态控制验证")
-                card.wait_for(state="visible", timeout=10000)
+                try:
+                    card.wait_for(state="visible", timeout=10000)
+                except Exception as error:
+                    raise AssertionError(
+                        "Task history did not render; "
+                        f"summary={page.locator('#wizardTaskSummary').inner_text()!r}; "
+                        f"API task payloads={task_list_payloads!r}"
+                    ) from error
                 assert card.get_by_role("button", name="任务详情").is_visible()
                 assert card.get_by_role("button", name="编辑配置").is_visible()
                 assert card.get_by_role("button", name="运行任务").is_visible()
