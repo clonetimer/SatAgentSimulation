@@ -6047,6 +6047,9 @@
     try {
       const runPayload = await api(`/runs/${encodeURIComponent(runId)}`);
       if (requestId !== state.runLoadRequestId) return false;
+      const runContext = runPayload.run || {};
+      const recordContext = runContext.run_record || {};
+      updateSharedWorkbenchContext({ runId, bundleId: runContext.bundle_id || runContext.run_id || runId, taskId: recordContext.task_id || runContext.task_id || state.sharedWorkbenchContext.taskId, taskVersion: recordContext.task_version ?? runContext.task_version ?? state.sharedWorkbenchContext.taskVersion });
       const availability = runPayload.run?.available_outputs;
       const sourceRequests = [
         ['metrics', api(`/runs/${encodeURIComponent(runId)}/metrics`)],
@@ -9530,6 +9533,8 @@
       if (!spec) throw new Error('任务中心没有返回 TaskSpec');
       await projectTaskSpecToForm(spec, '任务中心');
       state.activeTaskCenterId = taskId;
+      state.activeTaskVersion = payload.task?.current_version ?? payload.task?.version ?? null;
+      updateSharedWorkbenchContext({ taskId, taskVersion: state.activeTaskVersion, bundleId: null });
       updateTaskEditState();
       if (options.guided) {
         state.wizard.goal = 'normal_run'; state.wizard.mode = 'offline'; state.wizard.step = 'configure';
@@ -9556,7 +9561,7 @@
       });
       const runId = payload.prepared_run?.run_id || payload.execution_state?.run_id;
       if (!runId) throw new Error('未返回 run_id');
-      state.activeRunId = runId;
+      updateSharedWorkbenchContext({ taskId, taskVersion: state.activeTaskVersion, runId, bundleId: runId });
       state.executionState = payload.execution_state;
       if (options.guided) {
         state.wizard.goal = 'history'; state.wizard.step = 'results';
@@ -9769,6 +9774,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       body: apiBody(request),
     });
     closeExperimentModal();
+    updateSharedWorkbenchContext({ experimentId: payload.experiment.experiment_id });
     switchView('experiments');
     await loadExperiments();
     showNotice(`实验 ${payload.experiment.experiment_id} 已创建，共 ${payload.experiment.variant_count} 个变体。`, 'success');
@@ -10022,6 +10028,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       });
       state.goalCreateOperationId = null;
       state.activeGoalId = payload.goal.goal_id;
+      updateSharedWorkbenchContext({ goalId: payload.goal.goal_id, taskId: payload.goal.base_task_spec?.task?.id || state.sharedWorkbenchContext.taskId });
       el('goalRunCreatePanel').classList.add('hidden');
       await loadGoals();
       goalRunNotice((payload.replayed ? '已恢复原目标：' : '目标已创建并激活：') + payload.goal.goal_id, 'success');
@@ -10062,6 +10069,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     const payload = await api('/agent/goals/' + encodeURIComponent(goalId) + '/sync', { method: 'POST' });
     state.activeGoalId = goalId;
     state.activeGoal = payload;
+    const baseSpec = payload.goal?.base_task_spec || payload.base_task_spec || null;
+    updateSharedWorkbenchContext({ goalId, taskId: baseSpec?.task?.id || state.sharedWorkbenchContext.taskId, taskVersion: payload.goal?.base_task_version ?? state.sharedWorkbenchContext.taskVersion });
     el('goalRunDetail').classList.remove('hidden');
     await refreshGoalExperimentOptions();
     renderGoalList();
@@ -10494,6 +10503,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       body.appendChild(tr);
     });
     el('experimentComparisonPanel').classList.remove('hidden');
+    updateSharedWorkbenchContext({ experimentId, runId: rows.find((row) => row.run_id)?.run_id || state.sharedWorkbenchContext.runId });
     await loadExperiments();
   }
 
