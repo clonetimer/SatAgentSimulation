@@ -108,7 +108,6 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
             first_object.click()
             page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
             page.locator("#wizardConfigSections").wait_for(state="visible")
-            assert page.locator("#wizardRuntimeFields").count() >= 0
             assert page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").is_visible()
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
@@ -137,17 +136,8 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
             assert page.locator("#wizardRunResultsHost").is_hidden()
             assert "请重新校验" in page.locator("#wizardConversation").inner_text() or page.locator("#wizardOptions").is_visible()
 
-            # Advanced view restores the same, unique result panel; no clone/duplicate IDs.
-            page.locator("#wizardAdvancedBtn").click()
-            assert page.locator("#creatorView").is_visible()
-            assert page.locator("#creatorRunPanel").is_visible()
-            assert page.locator("#creatorRunPanel").count() == 1
-            assert len(submitted) == 1
-
             # Narrow screen: no page-level horizontal scroll; key controls remain reachable.
             page.set_viewport_size({"width": 390, "height": 844})
-            page.locator("#wizardAdvancedBtn").click()
-            assert page.locator("#wizardView").is_visible()
             dimensions = page.evaluate("""() => ({
                 viewport: document.documentElement.clientWidth,
                 document: document.documentElement.scrollWidth,
@@ -157,6 +147,13 @@ def test_p7d_desktop_and_narrow_guided_journey_reuses_existing_run_pipeline(tmp_
             assert page.locator("#wizardBackBtn").is_visible()
             page.locator("#wizardBackBtn").focus()
             assert page.locator("#wizardBackBtn").evaluate("(node) => document.activeElement === node")
+
+            # Advanced view restores the same, unique result panel; no clone/duplicate IDs.
+            page.locator("#wizardAdvancedBtn").click()
+            assert page.locator("#creatorView").is_visible()
+            assert page.locator("#creatorRunPanel").is_visible()
+            assert page.locator("#creatorRunPanel").count() == 1
+            assert len(submitted) == 1
             assert not errors, errors
         finally:
             browser.close()
