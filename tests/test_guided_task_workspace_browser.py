@@ -62,7 +62,7 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
 
                 page.route("https://workbench.test/**", proxy)
                 page.goto("https://workbench.test/", wait_until="networkidle")
-                page.locator('[data-wizard-goal="history"]').click()
+                page.locator('.nav-button[data-wizard-shortcut="history"]').click()
                 card = page.locator("#wizardTaskList .wizard-task-card").filter(has_text="整星姿态控制验证")
                 card.wait_for(state="visible", timeout=10000)
                 assert card.get_by_role("button", name="任务详情").is_visible()
