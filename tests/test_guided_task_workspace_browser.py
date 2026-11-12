@@ -498,7 +498,7 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                 assert requested_runs == ["/runs/run-p7c-selected"]
                 assert not submitted_runs
                 context = page.locator("#diagnosticView [data-p7-context]")
-                assert "来源：实验中心" in context.inner_text()
+                assert "返回位置：实验中心" in context.inner_text()
                 page.locator("#runEvidencePanel").get_by_role("button", name="查看完整运行曲线").click()
                 page.locator("#creatorView").wait_for(state="visible")
                 creator_context = page.locator("#creatorView [data-p7-context]")
