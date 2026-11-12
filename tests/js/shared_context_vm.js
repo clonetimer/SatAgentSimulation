@@ -86,3 +86,13 @@ test('experiment source survives diagnostics to full creator Run detail', () => 
   assert.equal(state.sharedWorkbenchContext.sourceView, 'experiments');
   c.returnToSharedContextSource(); assert.equal(state.activeView, 'experiments');
 });
+
+test('C2 return target restores the experiment while retaining the original wizard source', () => {
+  const {c,state} = harness();
+  state.activeView = 'diagnostics';
+  state.sharedWorkbenchContext = {sourceView:'wizard', sourceLabel:'仿真向导', returnView:'experiments'};
+  c.returnToSharedContextSource();
+  assert.equal(state.activeView, 'experiments');
+  assert.equal(state.sharedWorkbenchContext.returnView, null);
+  assert.equal(state.sharedWorkbenchContext.sourceView, 'wizard');
+});
