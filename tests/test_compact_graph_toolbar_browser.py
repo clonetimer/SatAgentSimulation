@@ -147,13 +147,15 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     # Exercise the conversational guide against the real graph
                     # controller: confirmed restore, constrained auto-wire,
                     # and server-side graph compilation (no simulation run).
-                    with page.expect_event('dialog') as restore_dialog:
-                        page.locator('#graphGuideRestoreBtn').click()
-                    restore_dialog.value.accept()
+                    restore_dialogs = []
+                    page.once('dialog', lambda dialog: (restore_dialogs.append(dialog.message), dialog.accept()))
+                    page.locator('#graphGuideRestoreBtn').click()
+                    assert restore_dialogs and '恢复推荐流程' in restore_dialogs[0]
                     assert page.locator('#graphNodes .graph-node').count() == 6
-                    with page.expect_event('dialog') as wire_dialog:
-                        page.locator('#graphGuideAutoWireBtn').click()
-                    wire_dialog.value.accept()
+                    wire_dialogs = []
+                    page.once('dialog', lambda dialog: (wire_dialogs.append(dialog.message), dialog.accept()))
+                    page.locator('#graphGuideAutoWireBtn').click()
+                    assert wire_dialogs and '自动布线' in wire_dialogs[0]
                     assert page.locator('#graphEdges .graph-edge').count() == 6
                     with page.expect_response(lambda response: response.url.endswith('/tasks/compile-graph')) as compile_response:
                         page.locator('#graphGuideValidateBtn').click()
