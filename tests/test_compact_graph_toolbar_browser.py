@@ -173,9 +173,12 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                         node_box = node.bounding_box()
                         assert canvas_box and node_box
                         head = node.locator('.graph-node-head')
+                        assert head.get_attribute('draggable') == 'true'
+                        head.scroll_into_view_if_needed()
+                        canvas_box = canvas.bounding_box()
                         head_box = head.bounding_box()
                         viewport = page.viewport_size
-                        assert head_box and viewport
+                        assert canvas_box and head_box and viewport
                         visible_width = min(canvas_box['width'], viewport['width'] - canvas_box['x'])
                         visible_height = min(canvas_box['height'], viewport['height'] - canvas_box['y'])
                         target_abs_x = min(
