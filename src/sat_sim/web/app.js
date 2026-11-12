@@ -5513,7 +5513,7 @@
   }
 
   function agentCandidateBaseSnapshot() {
-    return { capabilityId: state.selectedCapabilityId, formData: clone(state.formData), taskSpec: clone(state.taskSpec), graph: graphSerialize(), activeTaskCenterId: state.activeTaskCenterId };
+    return { capabilityId: state.selectedCapabilityId, formData: state.formData ? clone(state.formData) : null, taskSpec: state.taskSpec ? clone(state.taskSpec) : null, graph: graphSerialize(), activeTaskCenterId: state.activeTaskCenterId };
   }
 
   function renderAgentCandidatePreview() {
