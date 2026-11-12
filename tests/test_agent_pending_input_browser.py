@@ -119,6 +119,7 @@ def workbench(tmp_path, *, delay_projection=False, delay_preflight=False):
             page.route('https://workbench.test/**', proxy)
             page.goto('https://workbench.test/', wait_until='networkidle')
             page.wait_for_selector('.capability-card.active', state='attached')
+            page.locator('#wizardAdvancedBtn').click()
             page.locator('#creatorAgentTabButton').click()
             page.locator('#agentRefineCurrent').uncheck()
             page.locator('#agentInput').fill('创建热节点仿真，运行60秒。')
