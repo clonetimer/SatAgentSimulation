@@ -1913,3 +1913,12 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
 .agent-candidate-flow{display:flex;align-items:stretch;gap:7px;overflow-x:auto;padding:8px 2px 12px;scrollbar-width:thin}.agent-candidate-node{flex:1 0 118px;min-width:0;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:10px;border:1px solid var(--border-color);border-radius:9px;background:var(--surface);text-align:center}.agent-candidate-node strong{font-size:.86rem}.agent-candidate-node small{font-size:.72rem;color:var(--text-muted);overflow-wrap:anywhere}.agent-candidate-edge{align-self:center;flex:0 0 auto;color:var(--text-muted);font-weight:700}
 
 .agent-candidate-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.agent-candidate-overview-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border-color);border-radius:8px;min-width:0;font-size:.84rem}.agent-candidate-overview-item span{color:var(--text-muted)}.agent-candidate-overview-item strong{overflow-wrap:anywhere;text-align:right}@media(max-width:640px){.agent-candidate-overview{grid-template-columns:1fr}}
+
+/* P7-C shared context strip across specialist workspaces. */
+.p7-shared-context{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 16px;padding:12px 14px;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface-raised);min-width:0}
+.p7-context-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
+.p7-context-summary strong{font-size:12px}
+.p7-context-summary span,.p7-context-summary small,.p7-context-actions small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.p7-context-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.p7-context-actions .button{white-space:nowrap}
+@media(max-width:720px){.p7-shared-context{align-items:flex-start;flex-direction:column}.p7-context-actions{width:100%;justify-content:space-between}}
