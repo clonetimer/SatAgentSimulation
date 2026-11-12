@@ -1,0 +1,48 @@
+name: P7-C one-shot checked source repair
+on:
+  push:
+    branches: [feat/p7c-shared-workbench-context-20261112]
+    paths: [.github/workflows/p7c-repair-once.yml]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.repository == 'clonetimer/SatAgentSimulation' && github.ref == 'refs/heads/feat/p7c-shared-workbench-context-20261112'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove regressions on exact original functions
+        shell: bash
+        run: |
+          set +e
+          node tests/js/shared_context_vm.js > /tmp/p7c-red.log 2>&1
+          result=$?
+          set -e
+          cat /tmp/p7c-red.log
+          test "$result" -ne 0
+          grep -q 'not ok 1 - reference updates' /tmp/p7c-red.log
+          grep -q 'not ok 4 - specialist chain' /tmp/p7c-red.log
+          ! grep -Eq 'SyntaxError|ReferenceError' /tmp/p7c-red.log
+      - name: Apply checksum-bound repair and prove green
+        run: |
+          python .github/p7c_repair.py
+          node --check src/sat_sim/web/app.js
+          node tests/js/shared_context_vm.js
+          python -m py_compile tests/test_p7c_shared_workbench_context.py
+          git diff --check
+      - name: Commit only repaired source and regression wiring to the same branch
+        env:
+          BRANCH: feat/p7c-shared-workbench-context-20261112
+        run: |
+          test "$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/sat_sim/web/app.js tests/test_p7c_shared_workbench_context.py
+          git commit -m 'fix(workbench): isolate inspected context from editor and Run controls'
+          git push origin "HEAD:refs/heads/$BRANCH"
