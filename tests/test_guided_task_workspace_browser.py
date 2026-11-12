@@ -75,14 +75,26 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
 
                 page.route("https://workbench.test/**", proxy)
                 page.goto("https://workbench.test/", wait_until="networkidle")
+
+                def original_task_card():
+                    for candidate in page.locator("#wizardTaskList .wizard-task-card").all():
+                        title = candidate.locator(".wizard-task-main strong").inner_text().strip()
+                        if title == "整星姿态控制验证":
+                            return candidate
+                    raise AssertionError("Original task card was not rendered")
+
                 page.locator('#wizardOptions [data-wizard-goal="history"]').click()
                 page.locator("#wizardTaskWorkspace").wait_for(state="visible", timeout=10000)
-                card = page.locator("#wizardTaskList .wizard-task-card").filter(has_text="整星姿态控制验证")
                 try:
+                    page.wait_for_function(
+                        "document.querySelectorAll('#wizardTaskList .wizard-task-card').length >= 1",
+                        timeout=10000,
+                    )
+                    card = original_task_card()
                     card.wait_for(state="visible", timeout=10000)
                 except Exception as error:
                     raise AssertionError(
-                        "Task history did not render; "
+                        "Task history did not render the original task; "
                         f"summary={page.locator('#wizardTaskSummary').inner_text()!r}; "
                         f"API task payloads={task_list_payloads!r}"
                     ) from error
@@ -101,7 +113,7 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 page.wait_for_function("document.querySelectorAll('#wizardTaskList .wizard-task-card').length === 2")
                 assert "已克隆任务" in page.locator("#wizardNotice").inner_text()
 
-                card = page.locator("#wizardTaskList .wizard-task-card").filter(has_text="整星姿态控制验证")
+                card = original_task_card()
                 card.get_by_role("button", name="任务详情").click()
                 page.locator("#taskDetailsModal").wait_for(state="visible")
                 assert "V1" in page.locator("#taskDetailsSummary").inner_text()
@@ -135,9 +147,7 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                     # Reopen task history after every round trip to prove the
                     # task list and cloned version records remain reachable.
                     page.locator('#wizardOptions [data-wizard-goal="history"]').click()
-                    original = page.locator("#wizardTaskList .wizard-task-card").filter(
-                        has_text="整星姿态控制验证"
-                    )
+                    original = original_task_card()
                     original.wait_for(state="visible", timeout=10000)
                     assert page.locator("#wizardTaskList .wizard-task-card").count() == 2
                     page.locator("#wizardBackBtn").click()
