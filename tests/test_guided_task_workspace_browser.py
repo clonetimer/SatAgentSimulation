@@ -10,7 +10,7 @@ from sat_sim.api import create_app
 
 def _task_spec():
     return {
-        "schema_version": "1.0",
+        "schema_version": "1.0.0",
         "task": {"id": "guided-task-ux", "name": "整星姿态控制验证"},
         "simulation": {"duration_s": 30.0, "sample_s": 0.5, "level": "component"},
         "model": {"capability_id": "component.reaction_wheel.v1", "target": {"mode": "nominal"}},
@@ -38,9 +38,16 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
             "task_id": "guided-task-ux", "task_spec": _task_spec(), "status": "READY",
         })
         assert saved.status_code == 200, saved.text
+        assert saved.json()["task"]["name"] == "整星姿态控制验证"
+        assert saved.json()["task"]["capability_id"] == "component.reaction_wheel.v1"
         listed = client.get("/task-center/tasks?limit=200")
         assert listed.status_code == 200, listed.text
-        assert any(task.get("task_id") == "guided-task-ux" for task in listed.json().get("tasks", []))
+        assert any(
+            task.get("task_id") == "guided-task-ux"
+            and task.get("name") == "整星姿态控制验证"
+            and task.get("capability_id") == "component.reaction_wheel.v1"
+            for task in listed.json().get("tasks", [])
+        )
         errors = []
         task_list_payloads = []
         with playwright.sync_playwright() as pw:
