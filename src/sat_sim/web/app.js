@@ -5522,7 +5522,20 @@
     host.classList.toggle('hidden', !candidate); if (!candidate) return;
     const heading = document.createElement('strong'); heading.textContent = '候选任务预览（尚未应用）';
     const spec = candidate.taskSpec;
-    const summary = document.createElement('p'); summary.textContent = `${spec?.task?.name || '未命名任务'} · ${spec?.model?.capability_id || spec?.capability_id || '未声明 Capability'} · ${candidate.diff.length} 处字段差异`;
+    const simulation = spec?.simulation || {};
+    const events = spec?.events || {};
+    const outputs = spec?.outputs || {};
+    const eventCount = ['faults', 'degradations', 'constraints'].reduce((count, key) => count + (Array.isArray(events[key]) ? events[key].length : 0), 0);
+    const qoiCount = Array.isArray(outputs.qoi) ? outputs.qoi.length : 0;
+    const plotCount = Array.isArray(outputs.plots) ? outputs.plots.length : 0;
+    const summary = document.createElement('p'); summary.textContent = `${spec?.task?.name || '未命名任务'} · ${spec?.model?.capability_id || spec?.capability_id || '未声明 Capability'} · ${candidate.baseTaskSpec ? `${candidate.diff.length} 处字段差异` : '新任务 · 完整配置'}`;
+    const overview = document.createElement('div'); overview.className = 'agent-candidate-overview';
+    [['运行时长', Number.isFinite(Number(simulation.duration_s)) ? `${simulation.duration_s} s` : '未设置'], ['采样间隔', Number.isFinite(Number(simulation.sample_s)) ? `${simulation.sample_s} s` : '未设置'], ['故障与工况', `${eventCount} 项`], ['结果输出', `${qoiCount} 项指标 · ${plotCount} 条曲线`]].forEach(([label, value]) => {
+      const item = document.createElement('div'); item.className = 'agent-candidate-overview-item';
+      const name = document.createElement('span'); name.textContent = label;
+      const detail = document.createElement('strong'); detail.textContent = value;
+      item.append(name, detail); overview.appendChild(item);
+    });
     const graph = document.createElement('div'); graph.className = 'agent-candidate-graph';
     const graphTitle = document.createElement('strong'); graphTitle.textContent = '候选图形流程预览';
     const graphText = document.createElement('p'); graphText.textContent = `基于当前 Capability 的标准流程骨架 · ${GRAPH_FLOW_ORDER.length} 个节点。此处为预览，不代表服务端图校验已通过。`;
@@ -5552,7 +5565,7 @@
     const apply = document.createElement('button'); apply.type = 'button'; apply.id = 'wizardApplyAgentCandidateBtn'; apply.className = 'button button-primary'; apply.textContent = '确认应用候选配置';
     const graphButton = document.createElement('button'); graphButton.type = 'button'; graphButton.id = 'wizardApplyAgentCandidateGraphBtn'; graphButton.className = 'button button-secondary'; graphButton.textContent = '应用并查看图形画布';
     const discard = document.createElement('button'); discard.type = 'button'; discard.id = 'wizardDiscardAgentCandidateBtn'; discard.className = 'button button-ghost'; discard.textContent = '放弃候选';
-    actions.append(apply, graphButton, discard); host.append(heading, summary, graph, table, actions);
+    actions.append(apply, graphButton, discard); host.append(heading, summary, overview, graph, table, actions);
     apply.addEventListener('click', () => applyAgentCandidate(false));
     graphButton.addEventListener('click', () => applyAgentCandidate(true));
     discard.addEventListener('click', () => { state.agentCandidate = null; renderAgentCandidatePreview(); el('wizardNotice').textContent = '已放弃候选配置；当前任务和图形画布保持不变。'; });
@@ -5668,7 +5681,7 @@
       if (previewOnly) {
         if (!generatedTaskSpec || !capabilityId) throw new Error('Agent 返回结果缺少可执行 Capability，不能形成候选预览。');
         const base = refinementBase || state.taskSpec || null;
-        state.agentCandidate = { taskSpec: clone(generatedTaskSpec), baseTaskSpec: base ? clone(base) : null, baseSnapshot: agentCandidateBaseSnapshot(), payload, diff: taskSpecFieldDiff(base || {}, generatedTaskSpec) };
+        state.agentCandidate = { taskSpec: clone(generatedTaskSpec), baseTaskSpec: base ? clone(base) : null, baseSnapshot: agentCandidateBaseSnapshot(), payload, diff: base ? taskSpecFieldDiff(base, generatedTaskSpec) : [] };
         renderAgentCandidatePreview();
         const response=`已生成候选 ${generatedTaskSpec?.task?.name || capabilityId}；Provider=${provider}。尚未修改当前配置，请检查字段差异和图形骨架后确认应用。`;
         state.agentHistory.push({role:'assistant',text:response}); renderAgentConversation(); el('agentInput').value=''; showNotice(response,'success');
