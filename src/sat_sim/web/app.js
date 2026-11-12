@@ -5560,7 +5560,7 @@
       const after = document.createElement('strong'); after.textContent = item.after === undefined ? '（删除）' : JSON.stringify(item.after);
       row.append(path, before, after); table.appendChild(row);
     });
-    if (!candidate.diff.length) { const empty = document.createElement('p'); empty.textContent = '与当前 TaskSpec 相比没有字段变化。'; table.appendChild(empty); }
+    if (!candidate.diff.length) { const empty = document.createElement('p'); empty.textContent = candidate.baseTaskSpec ? '与当前 TaskSpec 相比没有字段变化。' : '这是新建任务；完整配置摘要见上方，详细参数可在确认应用后检查。'; table.appendChild(empty); }
     const actions = document.createElement('div'); actions.className = 'wizard-special-actions';
     const apply = document.createElement('button'); apply.type = 'button'; apply.id = 'wizardApplyAgentCandidateBtn'; apply.className = 'button button-primary'; apply.textContent = '确认应用候选配置';
     const graphButton = document.createElement('button'); graphButton.type = 'button'; graphButton.id = 'wizardApplyAgentCandidateGraphBtn'; graphButton.className = 'button button-secondary'; graphButton.textContent = '应用并查看图形画布';
