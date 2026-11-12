@@ -86,6 +86,23 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 assert "V1" in page.locator("#taskDetailsSummary").inner_text()
                 assert page.locator("#taskVersionTableBody tr").count() >= 1
                 page.locator("#closeTaskDetailsBtn").click()
+
+                # Exercise every P6-D specialist-workspace return path in a real browser.
+                # The wizard's task context must remain available after each round trip.
+                specialist_views = (
+                    ("experiments", "experimentCenterView"),
+                    ("goals", "goalRunView"),
+                    ("diagnostics", "diagnosticView"),
+                    ("runs", "runCenterView"),
+                )
+                for navigation, view_id in specialist_views:
+                    page.locator(f'.nav-button[data-view="{navigation}"]').click()
+                    page.locator(f"#{view_id}").wait_for(state="visible", timeout=10000)
+                    page.locator(f"#{view_id} [data-return-wizard]").click()
+                    assert page.locator("body").get_attribute("data-active-view") == "wizard"
+                    assert "当前配置、任务版本和已有运行记录保持不变" in page.locator("#wizardNotice").inner_text()
+                    assert page.locator("#wizardTaskList .wizard-task-card").count() == 2
+
                 assert not errors, errors
             finally:
                 browser.close()
