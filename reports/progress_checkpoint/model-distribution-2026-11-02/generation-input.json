@@ -1,9 +1,0 @@
-{
-  "input_kind": "natural_language",
-  "request_text": "Create a whole spacecraft simulation using capability whole_spacecraft.unified_native.v1. Duration 2 seconds, sample interval 0.5 seconds, solver step 0.1 seconds. No faults. Use the default engineering parameters and default trace outputs.",
-  "backend": "auto",
-  "provider_id": "local-modelscope",
-  "routing_mode": "auto",
-  "compile_if_valid": true,
-  "experience_reuse_enabled": false
-}

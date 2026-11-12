@@ -1,3 +1,0 @@
-# Browser end-to-end test dependencies
--r requirements-dev.txt
-playwright==1.57.0
