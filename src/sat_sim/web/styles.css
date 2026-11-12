@@ -355,6 +355,15 @@ select:-webkit-autofill {
 .task-detail-actions { display: flex; justify-content: flex-end; margin: -6px 0 12px; }
 .detail-table-wrap { padding: 0 0 18px; }
 .detail-table { min-width: 760px; }
+.task-run-history-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin:0 0 12px; }
+.task-run-history-toolbar label { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+.task-run-history-toolbar select { max-width:220px; }
+.task-run-history-note { color:var(--muted); font-size:12px; }
+.task-run-compare-toolbar { border-top:1px solid var(--line); }
+.task-run-explanation { padding:12px 14px; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface-raised); color:var(--text); font-size:12px; line-height:1.7; overflow-wrap:anywhere; white-space:pre-wrap; }
+.task-run-explanation.hidden { display:none; }
+#taskRunTableBody input[type="checkbox"] { width:16px; height:16px; accent-color:var(--accent-2); }
+#taskRunCompareHost .run-compare-panel { margin-top:12px; }
 .task-version-meta { color: var(--muted); font-size: 9px; margin-top: 3px; }
 .task-counts { display: grid; gap: 3px; font-size: 10px; }
 .task-counts strong { color: var(--text); }

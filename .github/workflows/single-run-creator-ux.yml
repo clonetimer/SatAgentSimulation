@@ -47,6 +47,7 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           node --check src/sat_sim/web/app.js
+          node tests/js/task_history_vm.js
           python -m pytest -q -s tests/test_workbench_wizard.py tests/test_conversational_workbench_shell.py tests/test_parameter_presentation.py tests/test_wizard_low_friction_ux.py tests/test_compact_graph_toolbar_browser.py tests/test_guided_task_workspace_browser.py tests/interactive/test_single_run_creator_ux.py tests/interactive/test_finite_telemetry_overview.py
 
   finite-basilisk-physics:

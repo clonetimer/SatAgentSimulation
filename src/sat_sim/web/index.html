@@ -1524,7 +1524,19 @@
       <div class="section-heading compact"><h3>版本历史</h3></div>
       <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>版本</th><th>摘要</th><th>时间</th><th>哈希</th><th>操作</th></tr></thead><tbody id="taskVersionTableBody"></tbody></table></div>
       <div class="section-heading compact"><h3>运行历史</h3></div>
-      <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>Run ID</th><th>任务版本</th><th>状态</th><th>验证</th><th>时间</th><th>操作</th></tr></thead><tbody id="taskRunTableBody"></tbody></table></div>
+      <div class="task-run-history-toolbar">
+        <label for="taskRunHistoryStatus">运行状态
+          <select id="taskRunHistoryStatus"><option value="all">全部运行</option><option value="succeeded">执行成功</option><option value="attention">失败或验收异常</option><option value="running">排队或运行中</option></select>
+        </label>
+        <span id="taskRunHistorySummary" class="task-run-history-note" role="status" aria-live="polite"></span>
+      </div>
+      <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>选择</th><th>Run ID</th><th>任务版本</th><th>状态</th><th>验证</th><th>时间</th><th>操作</th></tr></thead><tbody id="taskRunTableBody"></tbody></table></div>
+      <div id="taskRunExplanation" class="task-run-explanation hidden" role="status" aria-live="polite"></div>
+      <div class="run-compare-toolbar task-run-compare-toolbar">
+        <span id="taskRunCompareStatus" role="status" aria-live="polite">勾选两次成功运行，比较真实 Run Bundle 的指标与曲线。</span>
+        <button id="taskRunCompareSelectedBtn" class="button button-primary" type="button" disabled>在对话框中比较 2 次运行</button>
+      </div>
+      <div id="taskRunCompareHost" aria-label="任务历史比较结果"></div>
     </section>
   </div>
 
