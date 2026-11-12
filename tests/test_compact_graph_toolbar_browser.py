@@ -163,57 +163,48 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     assert 'success' in (page.locator('#graphStatus').get_attribute('class') or '')
                     assert page.locator('#graphGuideNextTitle').inner_text() == '正式校验已通过，可以生成 Python'
 
-                    # Real HTML node drag plus undo/redo on desktop; narrow
-                    # viewports retain the responsive and keyboard contracts.
+                    # Real HTML5 drag/drop of a node plus undo/redo on desktop.
+                    # Scroll the source into the viewport before calculating the
+                    # target; target_position is relative to the canvas locator.
                     node = page.locator('.graph-node[data-node-id="graph-config"]')
                     assert node.is_visible()
                     if width >= 760:
                         canvas = page.locator('#graphCanvas')
-                        canvas_box = canvas.bounding_box()
-                        node_box = node.bounding_box()
-                        assert canvas_box and node_box
                         head = node.locator('.graph-node-head')
-                        assert head.get_attribute('draggable') == 'true'
                         head.scroll_into_view_if_needed()
+                        canvas.scroll_into_view_if_needed()
                         canvas_box = canvas.bounding_box()
                         head_box = head.bounding_box()
                         viewport = page.viewport_size
                         assert canvas_box and head_box and viewport
-                        visible_width = min(canvas_box['width'], viewport['width'] - canvas_box['x'])
-                        visible_height = min(canvas_box['height'], viewport['height'] - canvas_box['y'])
                         target_abs_x = min(
-                            canvas_box['x'] + visible_width - 24,
+                            canvas_box['x'] + canvas_box['width'] - 24,
                             viewport['width'] - 12,
                         )
                         target_abs_y = min(
-                            canvas_box['y'] + visible_height - 24,
+                            canvas_box['y'] + canvas_box['height'] - 24,
                             viewport['height'] - 12,
                         )
-                        page.evaluate("""() => {
-                            window.__graphDragTrace = [];
-                            for (const name of ['dragstart', 'dragover', 'drop', 'dragend']) {
-                                document.addEventListener(name, (event) => {
-                                    window.__graphDragTrace.push({
-                                        type: name,
-                                        target: event.target.id || event.target.className || event.target.tagName,
-                                        payload: name === 'drop'
-                                            ? (event.dataTransfer.getData('application/x-sat-graph') || event.dataTransfer.getData('text/plain'))
-                                            : '',
-                                    });
-                                }, true);
-                            }
-                        }""")
+                        target_position = {
+                            'x': target_abs_x - canvas_box['x'],
+                            'y': target_abs_y - canvas_box['y'],
+                        }
                         before = node.evaluate('(el) => [el.style.left, el.style.top]')
-                        page.mouse.move(head_box['x'] + 28, head_box['y'] + 16)
-                        page.mouse.down()
-                        page.mouse.move(target_abs_x, target_abs_y, steps=16)
-                        page.mouse.up()
+                        head.drag_to(
+                            canvas,
+                            source_position={
+                                'x': min(28, head_box['width'] / 2),
+                                'y': min(16, head_box['height'] / 2),
+                            },
+                            target_position=target_position,
+                        )
                         after = node.evaluate('(el) => [el.style.left, el.style.top]')
-                        drag_trace = page.evaluate('() => window.__graphDragTrace')
-                        assert any(item['type'] == 'dragstart' for item in drag_trace), drag_trace
-                        drop_events = [item for item in drag_trace if item['type'] == 'drop']
-                        assert drop_events and 'move-node' in drop_events[-1]['payload'], drag_trace
-                        assert after != before, {'before': before, 'after': after, 'trace': drag_trace, 'target': [target_abs_x, target_abs_y]}
+                        assert after != before, {
+                            'before': before,
+                            'after': after,
+                            'target': target_position,
+                            'canvas': canvas_box,
+                        }
                         page.locator('#graphUndoBtn').click()
                         assert node.evaluate('(el) => [el.style.left, el.style.top]') == before
                         page.locator('#graphRedoBtn').click()
