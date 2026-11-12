@@ -10452,7 +10452,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('graphCapabilitySearch').addEventListener('input', renderGraphPalette);
     $all('[data-graph-block]').forEach((button) => button.addEventListener('dragstart', (event) => graphTransfer(event, { kind: 'block', type: button.dataset.graphBlock })));
-    el('graphCanvas').addEventListener('dragover', (event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; el('graphCanvas').classList.add('drag-over'); });
+    el('graphCanvas').addEventListener('dragover', (event) => { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === 'move' ? 'move' : 'copy'; el('graphCanvas').classList.add('drag-over'); });
     el('graphCanvas').addEventListener('dragleave', (event) => { if (!el('graphCanvas').contains(event.relatedTarget)) el('graphCanvas').classList.remove('drag-over'); });
     el('graphCanvas').addEventListener('drop', (event) => graphHandleDrop(event).catch((error) => graphSetStatus(error.message, 'error')));
     el('graphCanvas').addEventListener('click', (event) => { if (event.target === el('graphCanvas') || event.target === el('graphNodes')) { graphCancelConnection(); state.graphSelectedNodeId = null; state.graphSelectedEdgeId = null; renderGraph(); } });
