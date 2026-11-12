@@ -22,7 +22,7 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
-  <link rel="stylesheet" href="/assets/compact-workbench.css?v=paramui-1794387352278">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-realtime-width-20261111-2">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -120,16 +120,50 @@
           <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
           <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
         </header>
+        <ol id="wizardProgress" class="wizard-progress" aria-label="仿真步骤进度"></ol>
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
         <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
         <section id="wizardConfigSections" class="wizard-config-sections hidden" aria-label="仿真参数、事件和输出">
-          <details id="wizardParametersPanel" class="wizard-config-panel"><summary>更多仿真参数（可保持推荐值）</summary><p class="wizard-panel-help">通常只需设置仿真时长和采样间隔。模型专用参数已按推荐值初始化；只有研究需要时才展开修改。</p><div id="wizardParameterHost"></div></details>
+          <div class="wizard-config-graph-action">
+            <span>需要更直观地检查任务流程？可以在原生拖拽画布中查看节点与端口。</span>
+            <button id="wizardOpenGraphFromConfigBtn" class="button button-secondary" type="button">用图形方式查看流程</button>
+          </div>
+          <details id="wizardParametersPanel" class="wizard-config-panel">
+            <summary>模型参数（按需调整）</summary>
+            <p class="wizard-panel-help">默认沿用当前模型推荐值。先完成运行时长和采样间隔即可开始；只有需要改变物理工况或模型特性时，再展开参数。</p>
+            <div class="wizard-parameter-controls">
+              <div class="wizard-parameter-mode" role="group" aria-label="参数显示级别">
+                <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="runtime" aria-pressed="false">仅运行参数</button>
+                <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="recommended" aria-pressed="true">推荐参数</button>
+                <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="all" aria-pressed="false">全部参数</button>
+              </div>
+              <div id="wizardParameterModeDescription" class="wizard-parameter-mode-description" role="status">显示常用物理参数；其余专业参数保持折叠。</div>
+              <div id="wizardParameterSearchWrap" class="wizard-parameter-search">
+                <label class="search-box"><span aria-hidden="true">⌕</span><input id="wizardParameterSearch" type="search" placeholder="搜索参数名称、含义或单位…" autocomplete="off"></label>
+                <span id="wizardParameterCount" class="wizard-parameter-count"></span>
+              </div>
+              <div id="wizardParameterSearchEmpty" class="wizard-parameter-empty hidden" role="status">没有找到匹配参数。请尝试其他关键词，或清空搜索框。</div>
+            </div>
+            <div id="wizardParameterHost"></div>
+          </details>
           <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><p class="wizard-panel-help">设置故障何时发生、持续多久以及作用幅度。所有故障类型均来自当前模型已注册的事件目录。</p><div id="wizardEventHost"></div></details>
           <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary>
             <p class="wizard-panel-help">先按观察目的添加推荐曲线，不需要理解技术字段。每组曲线都来自当前仿真对象实际注册的输出。</p>
-            <section class="wizard-curve-section"><div class="wizard-curve-heading"><h3>你想观察什么？</h3><span id="wizardCurveSelectionSummary">尚未选择曲线</span></div><div id="wizardCurveChoices" class="wizard-curve-choices"></div></section>
-            <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>更多摘要指标</summary><div id="wizardQoiHost"></div></details>
-            <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>按具体遥测量选择（高级）</summary><p class="wizard-panel-help">这里显示完整注册目录，适合熟悉遥测名称的用户；普通使用优先选择上方分组。</p><div id="wizardPlotHost"></div></details>
+            <section class="wizard-output-section" aria-label="观测指标">
+              <div class="wizard-output-heading"><div><h3>结果指标</h3><p>用于概括仿真表现；与时序曲线分开选择。</p></div><span id="wizardQoiSelectionSummary">已选 0 项</span></div>
+              <div id="wizardQoiChoices" class="wizard-qoi-choices"></div>
+            </section>
+            <section class="wizard-curve-section" aria-label="时序曲线">
+              <div class="wizard-output-heading"><div><h3>时序曲线</h3><p>记录仿真过程中随时间变化的状态。横轴自动使用仿真时间。</p></div><span id="wizardCurveSelectionSummary">已选 0 条</span></div>
+              <div class="wizard-output-toolbar">
+                <div id="wizardOutputPurposes" class="wizard-output-purposes" role="group" aria-label="观测目的"></div>
+                <label class="search-box wizard-output-search"><span aria-hidden="true">⌕</span><input id="wizardOutputSearch" type="search" placeholder="搜索指标或曲线名称、含义、单位…" autocomplete="off"></label>
+              </div>
+              <div class="wizard-output-actions"><button type="button" class="button button-secondary" id="wizardRestoreOutputDefaultsBtn">恢复模型推荐组合</button><span id="wizardOutputSearchCount" class="wizard-output-search-count"></span></div>
+              <div id="wizardCurveChoices" class="wizard-curve-choices"></div>
+            </section>
+            <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>查看完整摘要指标目录</summary><p class="wizard-panel-help">完整注册指标目录，包含高级或低频使用的结果摘要项。</p><div id="wizardQoiHost"></div></details>
+            <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>查看完整遥测字段目录（高级）</summary><p class="wizard-panel-help">完整展示当前能力注册的具体遥测字段，可查看技术字段名和单位。</p><div id="wizardPlotHost"></div></details>
           </details>
         </section>
         <details id="wizardAdditionalTools" class="wizard-additional-tools">
@@ -139,6 +173,7 @@
             <button type="button" class="wizard-tool-option" data-wizard-goal="goals"><strong>目标驱动实验</strong><small>多轮候选优化、约束和预算管理，保留目标状态与决策记录。</small></button>
             <button type="button" class="wizard-tool-option" data-wizard-goal="graph"><strong>图形化建模</strong><small>需要拖拽模块、连接端口和编辑画布，保留专用工程工作区。</small></button>
             <button type="button" class="wizard-tool-option" data-wizard-goal="diagnostics"><strong>系统诊断</strong><small>环境、能力目录和服务健康检查属于运维工具，不混入仿真参数流程。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="runs"><strong>运行中心</strong><small>查看实际运行记录、Run Bundle、验收证据和历史运行对比。</small></button>
           </div>
         </details>
         <section id="wizardAgentWorkspace" class="wizard-special-workspace hidden" aria-label="自然语言仿真需求">
@@ -149,7 +184,7 @@
         <section id="wizardTaskSpecWorkspace" class="wizard-special-workspace hidden" aria-label="TaskSpec 结构化任务">
           <div class="wizard-special-heading"><strong>TaskSpec 结构化任务</strong><span>适合精确编辑、导入和交换机器可读任务定义。普通用户可直接使用分步配置，无需编辑 JSON。</span></div>
           <div id="wizardTaskSpecHost"></div>
-          <div class="wizard-special-actions"><button id="wizardValidateTaskSpecBtn" class="button button-secondary" type="button">校验 TaskSpec</button><button id="wizardApplyTaskSpecBtn" class="button button-primary" type="button">应用到仿真配置</button></div>
+          <div class="wizard-special-actions"><button id="wizardValidateTaskSpecBtn" class="button button-secondary" type="button">校验 TaskSpec</button><button id="wizardApplyTaskSpecBtn" class="button button-primary" type="button">应用到仿真配置</button><button id="wizardOpenGraphBtn" class="button button-secondary" type="button">应用并在图形画布中查看</button></div>
           <p class="wizard-panel-help">TaskSpec 校验通过不等于已经启动仿真。应用后仍需检查运行参数、输出与事件，再执行运行前校验。</p>
         </section>
         <section id="wizardTaskWorkspace" class="wizard-task-workspace hidden" aria-label="对话式任务管理">
@@ -312,6 +347,27 @@
 
         <div id="graphTab" class="tab-content" data-panel="graph" role="tabpanel" aria-labelledby="creatorGraphTabButton">
           <section class="graph-workbench" aria-label="图形化仿真组装器">
+            <section id="graphConversationGuide" class="graph-conversation-guide" aria-label="图形建模助手">
+              <div class="graph-guide-heading">
+                <div class="graph-guide-avatar" aria-hidden="true">✦</div>
+                <div>
+                  <strong>建模助手</strong>
+                  <p>告诉你下一步做什么；实际模块拖拽、端口连接和参数编辑仍在下方画布完成。</p>
+                </div>
+                <span id="graphGuideProgress" class="status-chip status-muted">准备中</span>
+              </div>
+              <div class="graph-guide-message" role="status" aria-live="polite">
+                <strong id="graphGuideNextTitle">从一个可执行模型开始</strong>
+                <span id="graphGuideNextDetail">从左侧模块库选择执行能力，拖入画布；也可以先恢复推荐流程，再按需要调整。</span>
+              </div>
+              <div class="graph-guide-actions" role="group" aria-label="建模快捷操作">
+                <button id="graphGuideChooseModuleBtn" class="button button-secondary" type="button">选择模块</button>
+                <button id="graphGuideRestoreBtn" class="button button-ghost" type="button">恢复推荐流程</button>
+                <button id="graphGuideAutoWireBtn" class="button button-ghost" type="button">自动布线</button>
+                <button id="graphGuideValidateBtn" class="button button-primary" type="button">正式校验</button>
+              </div>
+              <div class="graph-guide-footnote">快捷操作调用现有图编辑器和后端校验；不会绕过端口类型、DAG、TaskSpec 或运行前检查。</div>
+            </section>
             <div class="graph-toolbar">
               <div>
                 <h3>图形组装</h3>
@@ -610,7 +666,7 @@
       <section class="panel task-center-panel">
         <div class="task-center-header">
           <div><div class="eyebrow">批量仿真实验</div><h1>实验中心</h1><p>从当前编辑配置或任务中心已保存任务中选择基线，创建参数扫描、批量运行、自动验收并对比多个 Run。</p></div>
-          <div class="task-center-actions"><button id="newExperimentBtn" class="button button-primary" type="button">创建实验</button><button id="faultCatalogBtn" class="button button-secondary" type="button">故障/约束目录</button><button id="refreshExperimentsBtn" class="button button-secondary" type="button">刷新</button></div>
+          <div class="task-center-actions"><button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button><button id="newExperimentBtn" class="button button-primary" type="button">创建实验</button><button id="faultCatalogBtn" class="button button-secondary" type="button">故障/约束目录</button><button id="refreshExperimentsBtn" class="button button-secondary" type="button">刷新</button></div>
         </div>
         <div id="experimentSummary" class="task-summary">正在读取实验中心…</div>
         <div id="experimentList" class="experiment-list"></div>
@@ -631,6 +687,7 @@
             <p>围绕一个工程目标，冻结基础任务、可调整参数和总预算；逐轮创建实验、运行、读取证据并记录决策。模型提出建议，是否执行由预算和验证器控制。</p>
           </div>
           <div class="task-center-actions">
+            <button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button>
             <button id="newGoalRunBtn" class="button button-primary" type="button">新建目标</button>
             <button id="refreshGoalRunsBtn" class="button button-secondary" type="button">刷新</button>
           </div>
@@ -806,10 +863,14 @@
         <aside class="interactive-rail">
           <section class="interactive-section">
             <div class="section-heading compact"><h2>会话</h2><span id="interactiveSessionCount">0</span></div>
+            <div id="interactiveSelectedSessionSummary" class="realtime-current-session" role="status" aria-live="polite">
+              <span>当前会话</span><strong>尚未选择会话</strong><small>创建新会话或从列表中选择已有会话。</small>
+            </div>
             <div id="interactiveSessionList" class="interactive-session-list"></div>
           </section>
           <section class="interactive-section interactive-create">
-            <div class="section-heading compact"><h2>新建</h2></div>
+            <details id="interactiveCreateDetails" class="realtime-create-disclosure" open>
+              <summary>新建实时会话 <span>使用推荐设置，专业选项按需展开</span></summary>
             <label>会话范围<select id="interactiveCapability">
               <option value="whole_spacecraft.unified_native.v1" selected>整星（推荐）</option>
               <optgroup label="高级：分系统独立调试">
@@ -830,6 +891,7 @@
               <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>
             </div>
             <button id="createInteractiveSessionBtn" class="button button-primary" type="button">创建会话</button>
+            </details>
           </section>
         </aside>
 
@@ -843,12 +905,12 @@
           </div>
           <div class="interactive-controls" role="toolbar" aria-label="会话控制">
             <button id="interactiveOpenContinuousBtn" class="button button-secondary hidden" type="button">在持续控制台查看</button>
-            <button id="interactiveStartBtn" class="icon-button" type="button" title="启动" aria-label="启动">▶</button>
-            <button id="interactivePauseBtn" class="icon-button" type="button" title="暂停" aria-label="暂停">Ⅱ</button>
-            <button id="interactiveResumeBtn" class="icon-button" type="button" title="继续" aria-label="继续">▷</button>
-            <button id="interactiveStepBtn" class="icon-button" type="button" title="单步" aria-label="单步">↦</button>
+            <button id="interactiveStartBtn" class="button button-primary realtime-control-button" type="button" title="启动" aria-label="启动">启动</button>
+            <button id="interactivePauseBtn" class="button button-secondary realtime-control-button" type="button" title="暂停" aria-label="暂停">暂停</button>
+            <button id="interactiveResumeBtn" class="button button-secondary realtime-control-button" type="button" title="继续" aria-label="继续">继续</button>
+            <button id="interactiveStepBtn" class="button button-secondary realtime-control-button" type="button" title="单步" aria-label="单步">单步</button>
             <label class="interactive-rate-control">倍速<select id="interactiveRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
-            <button id="interactiveStopBtn" class="icon-button danger-icon" type="button" title="停止并归档" aria-label="停止并归档">■</button>
+            <button id="interactiveStopBtn" class="button button-danger realtime-control-button danger-icon" type="button" title="停止并归档" aria-label="停止并归档">停止并归档</button>
           </div>
           <section class="interactive-section telemetry-section">
             <div class="section-heading compact">
@@ -856,9 +918,16 @@
               <div class="telemetry-toolbar">
                 <select id="interactiveTelemetryObject" aria-label="遥测对象"></select>
                 <select id="interactiveStream" aria-label="遥测速率"></select>
+                <span id="interactiveTelemetryFreshness" class="status-chip status-muted">尚未收到遥测</span>
                 <span id="interactiveGapBadge" class="status-chip status-muted">无缺口</span>
               </div>
             </div>
+            <section class="interactive-health-overview" aria-label="关键卫星状态">
+              <div class="section-heading compact"><h3>关键状态</h3><span>仅显示当前遥测流实际提供的指标</span></div>
+              <div id="interactiveHealthSnapshot" class="interactive-health-grid">
+                <p class="continuous-muted">等待真实遥测数据。</p>
+              </div>
+            </section>
             <div class="interactive-chart"><canvas id="interactiveTelemetryChart" width="960" height="320"></canvas></div>
             <p class="continuous-muted">各曲线按自身范围归一化；下方显示原始数值。</p>
             <div id="interactiveLatestValues" class="interactive-latest-values"></div>
@@ -907,7 +976,8 @@
       <div class="continuous-grid">
         <aside class="continuous-sidebar">
           <section class="continuous-card">
-            <div class="section-heading compact"><h2>创建持续会话</h2></div>
+            <details id="continuousCreateDetails" class="realtime-create-disclosure" open>
+              <summary>新建持续会话 <span>推荐配置优先，工程参数按需展开</span></summary>
             <p class="continuous-muted">无需编写脚本。后端固定使用已注册的 Basilisk 原生整星能力。</p>
             <form id="continuousCreateForm" autocomplete="off">
               <p id="continuousCreationPolicy" class="continuous-muted" role="status">正在读取服务器创建能力…</p>
@@ -1159,9 +1229,13 @@
               <p id="continuousInitialConfigStatus" class="continuous-muted">仅当前新会话可设置；创建后无法修改已有模型实例。</p>
               <button class="button button-primary" type="submit">创建会话</button>
             </form>
+            </details>
           </section>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>会话列表</h2><span id="continuousSessionCount">0</span></div>
+            <div id="continuousSelectedSessionSummary" class="realtime-current-session" role="status" aria-live="polite">
+              <span>当前会话</span><strong>尚未选择会话</strong><small>创建新会话或从列表中选择已有会话。</small>
+            </div>
             <div id="continuousSessionList" class="continuous-sessions"><p class="continuous-muted">暂无持续会话。</p></div>
           </section>
           <section class="continuous-card">
@@ -1186,15 +1260,17 @@
             </div>
             <div id="continuousSessionActionSlot">
             <div id="continuousSessionToolbar" class="continuous-actions" role="toolbar" aria-label="持续仿真会话控制">
-              <button id="continuousStartBtn" class="button button-primary" type="button" data-continuous-action="start">▶ 启动</button>
-              <button class="button button-secondary" type="button" data-continuous-action="pause">Ⅱ 暂停</button>
-              <button class="button button-secondary" type="button" data-continuous-action="resume">▷ 继续</button>
-              <button class="button button-secondary" type="button" data-continuous-action="step">↦ 单步</button>
-              <button class="button button-ghost" type="button" data-continuous-action="stop">■ 停止并归档</button>
+              <button id="continuousStartBtn" class="button button-primary realtime-control-button" type="button" data-continuous-action="start">启动</button>
+              <button class="button button-secondary realtime-control-button" type="button" data-continuous-action="pause">暂停</button>
+              <button class="button button-secondary realtime-control-button" type="button" data-continuous-action="resume">继续</button>
+              <button class="button button-secondary realtime-control-button" type="button" data-continuous-action="step">单步</button>
+              <button class="button button-danger realtime-control-button" type="button" data-continuous-action="stop">停止并归档</button>
             </div>
             </div>
           </section>
-          <section class="continuous-card" aria-label="原生中断恢复准入">
+          <details id="continuousEngineeringDetails" class="continuous-engineering-disclosure">
+            <summary>工程与诊断 <span>资源监测 · 长稳证据 · 原生恢复审计</span></summary>
+<section class="continuous-card" aria-label="原生中断恢复准入">
             <div class="section-heading compact">
               <h2>R8 · 原生中断恢复准备度</h2>
               <span id="continuousRecoveryVerdict" class="status-chip status-muted">未检查</span>
@@ -1252,6 +1328,7 @@
             <p id="continuousEnduranceReason" class="continuous-muted">证据与原生仿真状态相互独立；不会触发停止、自动恢复或遥控重放。</p>
             <div id="continuousEnduranceAuditResult" class="continuous-muted" role="status" aria-live="polite">尚未执行离线式证据完整性核验。</div>
           </section>
+          </details>
           <section class="continuous-card">
             <div class="section-heading compact"><h2>实时整星遥测</h2><span id="continuousGapBadge" class="status-chip status-muted">未订阅</span></div>
             <label class="continuous-signal">会话遥测流<select id="continuousStream" aria-label="持续会话遥测流"></select></label>
@@ -1331,7 +1408,7 @@
       <section class="panel task-center-panel">
         <div class="task-center-header">
           <div><div class="eyebrow">Run Bundle</div><h1>运行中心</h1><p>查看每一次实际执行产生的 Run Bundle、状态、验收结果和证据制品。这里管理“某一次运行发生了什么”。</p></div>
-          <div class="task-center-actions"><button id="refreshRunCenterBtn" class="button button-secondary" type="button">刷新</button></div>
+          <div class="task-center-actions"><button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button><button id="refreshRunCenterBtn" class="button button-secondary" type="button">刷新</button></div>
         </div>
         <div id="runCenterSummary" class="task-summary">正在读取运行记录…</div>
         <div class="run-compare-toolbar">
@@ -1361,7 +1438,7 @@
       <section class="panel task-center-panel">
         <div class="task-center-header">
           <div><div class="eyebrow">Environment & Evidence</div><h1>系统诊断</h1><p>检查运行环境、队列、模型服务和发布资产，并生成脱敏诊断包。</p></div>
-          <div class="task-center-actions"><button id="downloadDiagnosticBtn" class="button button-primary" type="button">一键导出诊断包</button><button id="refreshDiagnosticsBtn" class="button button-secondary" type="button">重新检查</button></div>
+          <div class="task-center-actions"><button class="button button-ghost" type="button" data-return-wizard>返回仿真向导</button><button id="downloadDiagnosticBtn" class="button button-primary" type="button">一键导出诊断包</button><button id="refreshDiagnosticsBtn" class="button button-secondary" type="button">重新检查</button></div>
         </div>
         <div id="diagnosticSummary" class="diagnostic-summary-grid"></div>
         <section class="diagnostic-section"><div class="section-heading compact"><h3>环境 Doctor</h3></div><div id="doctorCheckList" class="doctor-check-list"></div></section>

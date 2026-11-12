@@ -174,7 +174,7 @@ def test_single_run_browser_path_has_visible_steps_and_no_auto_execute(tmp_path)
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             # The default entry is the wizard; this legacy path exercises the retained advanced creator.
-            page.locator(".nav-button[data-view=creator]").click()
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#singleRunGuide[data-stage='configure']").wait_for(timeout=30000)
             assert page.locator("#singleRunGuide .single-run-step").count() == 3
             _reveal_with_keyboard(page, "#singleRunReadiness", tmp_path, "model-readiness-menu")
@@ -410,7 +410,7 @@ def test_single_run_history_chart_window_and_failure_ui(tmp_path):
 
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
-            page.locator(".nav-button[data-view=creator]").click()
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#runList .run-list-item").first.wait_for(timeout=30000)
             page.locator("#runList [data-run-id='ui-a']").click()
             page.locator("#activeRunCard .run-id").get_by_text("UI 曲线验收 A").wait_for(timeout=20000)
@@ -592,7 +592,7 @@ def test_run_center_comparison_reuses_bundle_api_without_running_physics(tmp_pat
 
             page.route("https://workbench.test/**", route_request)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
-            page.locator(".nav-button[data-view='runs']").click()
+            page.locator("#wizardOptions [data-wizard-goal='compare']").click()
             first = page.locator('input[data-run-compare-id="cmp-a"]')
             second = page.locator('input[data-run-compare-id="cmp-b"]')
             different = page.locator('input[data-run-compare-id="cmp-incompatible"]')
@@ -776,7 +776,7 @@ def test_wizard_task_center_and_purpose_first_curve_selection_stay_in_dialog(tmp
             assert page.locator("#wizardOutputPanel").evaluate("(node) => node.open")
             cards = page.locator("#wizardCurveChoices .wizard-curve-card")
             assert cards.count() > 0, "Curve groups should be generated from the selected Schema trace options."
-            assert page.locator("#wizardCurveSelectionSummary").inner_text().startswith("已选择")
+            assert page.locator("#wizardCurveSelectionSummary").inner_text().startswith("已选")
             assert page.locator("#wizardParametersPanel").evaluate("(node) => !node.open")
             # Technical field identifiers stay hidden unless a user explicitly expands the advanced details.
             assert page.locator("#wizardCurveChoices .wizard-curve-technical code").count() > 0

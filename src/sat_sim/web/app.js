@@ -131,7 +131,7 @@
     formErrors: new Map(),
     discoveredModels: [],
     activeView: "wizard",
-    wizard: { goal: null, step: "welcome", level: null, objectId: null, faultEffect: null, validated: false, validatedForm: null, messages: [] },
+    wizard: { goal: null, step: "welcome", level: null, objectId: null, faultEffect: null, parameterMode: "recommended", outputPurpose: "all", validated: false, validatedForm: null, messages: [] },
     scenarioTemplates: [],
     experiments: [],
     goals: [],
@@ -983,6 +983,7 @@
   function graphInvalidateCompiledState() {
     state.taskSpec = null;
     state.planning = null;
+    state.graphCompilationContext = '';
     state.graphPendingConnection = null;
     clearVisualDiagnostics('flow');
   }
@@ -1142,9 +1143,11 @@
 
   function graphSetStatus(message, type = '') {
     const node = el('graphStatus');
-    if (!node) return;
-    node.textContent = message;
-    node.className = `graph-status${type ? ` ${type}` : ''}`;
+    if (node) {
+      node.textContent = message;
+      node.className = `graph-status${type ? ` ${type}` : ''}`;
+    }
+    renderGraphGuide();
   }
 
   function graphDefaultNodes() {
@@ -1209,6 +1212,27 @@
     graphHistoryCommit();
     renderGraph();
     graphSetStatus('已按流程顺序自动布局并吸附到 20px 网格；仅修改画布坐标，不会使已生成代码过期。', 'success');
+  }
+
+  function openCurrentConfigurationInGraph(sourceLabel = '当前仿真配置') {
+    if (!state.selectedCapabilityId || !state.formData) {
+      el('wizardNotice').textContent = '请先选择仿真对象并生成有效配置，再打开图形画布。';
+      return false;
+    }
+    const graphCapability = state.graphNodes.find((node) => node.type === 'model')?.capabilityId || null;
+    if (state.graphNodes.length && graphCapability !== state.selectedCapabilityId) {
+      if (!confirm('当前画布属于其他模型或尚未形成完整流程。重建推荐流程会替换当前图形节点和连线，是否继续？')) return false;
+      graphInitialize(true);
+    } else {
+      graphInitialize(false);
+    }
+    state.wizard.goal = 'normal_run';
+    state.wizard.mode = 'offline';
+    state.wizard.objectId = state.presentationObjects.find((item) => (item.variants || []).some((variant) => variant.capability_id === state.selectedCapabilityId))?.object_id || null;
+    switchView('creator');
+    switchTab('graph');
+    graphSetStatus(`${sourceLabel}已投影到当前模型配置。图形画布展示任务流程骨架；参数、事件和输出仍由已应用配置驱动。请检查端口并执行正式校验。`, 'success');
+    return true;
   }
 
   function graphInitialize(reset = false) {
@@ -1654,6 +1678,62 @@
     return button;
   }
 
+  function renderGraphGuide() {
+    const title = el('graphGuideNextTitle');
+    const detail = el('graphGuideNextDetail');
+    const badge = el('graphGuideProgress');
+    if (!title || !detail || !badge) return;
+    const nodes = state.graphNodes || [];
+    const edges = state.graphEdges || [];
+    const structural = graphValidateStructure({ requireCode: true, requireRun: true });
+    let nextTitle = '';
+    let nextDetail = '';
+    let status = '进行中';
+    let statusClass = 'status-muted';
+    if (!state.selectedCapabilityId || !state.formData) {
+      nextTitle = '先选择一个可执行模型';
+      nextDetail = '在左侧模块库搜索整星、分系统或部件，将合适的执行能力拖到画布。当前没有可用模型配置时，先返回对象选择步骤。';
+    } else if (!nodes.length) {
+      nextTitle = '把第一个模块放到画布';
+      nextDetail = '从左侧模块库拖入执行能力，随后添加参数配置、事件注入和输出选择等流程块。';
+    } else if (!structural.ok) {
+      nextTitle = '先处理图结构问题';
+      nextDetail = structural.errors.slice(0, 2).join('；') + (structural.errors.length > 2 ? `；另有 ${structural.errors.length - 2} 项` : '');
+      status = '待处理 ' + structural.errors.length;
+      statusClass = 'status-warn';
+    } else if (state.graphCompilationContext === visualCompilationSnapshot('flow')) {
+      if (graphCodeIsFresh()) {
+        nextTitle = '图、正式校验和生成代码保持一致';
+        nextDetail = '服务端图拓扑、TaskSpec 和执行计划校验已通过，Python 与当前图/参数一致。可以构建并运行。';
+        status = '可运行候选';
+      } else {
+        nextTitle = '正式校验已通过，可以生成 Python';
+        nextDetail = '服务端图拓扑、TaskSpec、能力边界和执行计划校验已通过。下一步可以生成 Python，或检查节点属性后再运行。';
+        status = '校验通过';
+      }
+      statusClass = 'status-ok';
+    } else {
+      nextTitle = '图结构完整，可以进行正式校验';
+      nextDetail = '前端结构检查已通过。点击“正式校验”后，服务端会继续执行端口拓扑、TaskSpec、能力边界和执行计划校验。';
+      status = '待后端校验';
+      statusClass = 'status-warn';
+    }
+    title.textContent = nextTitle;
+    detail.textContent = nextDetail;
+    badge.textContent = status;
+    badge.className = 'status-chip ' + statusClass;
+    const choose = el('graphGuideChooseModuleBtn');
+    if (choose) choose.textContent = nodes.length ? '继续添加模块' : '选择模块';
+    const restore = el('graphGuideRestoreBtn');
+    if (restore) restore.disabled = !state.selectedCapabilityId || !state.formData;
+    const wire = el('graphGuideAutoWireBtn');
+    if (wire) wire.disabled = nodes.length < 2;
+    const validate = el('graphGuideValidateBtn');
+    if (validate) validate.disabled = !state.selectedCapabilityId || !state.formData;
+    const summary = el('graphGuideProgress');
+    summary.title = `${nodes.length} 个节点 · ${edges.length} 条连线`;
+  }
+
   function renderGraph() {
     const host = el('graphNodes');
     if (!host) return;
@@ -1692,6 +1772,7 @@
     el('graphEmptyHint')?.classList.toggle('hidden', state.graphNodes.length > 0);
     requestAnimationFrame(graphDrawEdges);
     renderGraphInspector();
+    renderGraphGuide();
   }
 
   function graphInspectorMetaRow(label, value) {
@@ -1928,6 +2009,7 @@
     }
     const nodes = result.planning?.execution_plan?.nodes?.length || result.planning?.plan?.nodes?.length || 0;
     state.graphCompilationNote = formCompilationNote(result, requestedForm);
+    state.graphCompilationContext = visualCompilationSnapshot('flow');
     operation?.commit();
     if (announce) graphSetStatus(`图已校验${nodes ? `；${nodes} 个节点` : ''}。${state.graphCompilationNote}`, 'success');
     renderGraph(); return true;
@@ -4689,6 +4771,47 @@
     return wrapper;
   }
 
+  function renderWizardParameterControls() {
+    const mode = ['runtime', 'recommended', 'all'].includes(state.wizard.parameterMode)
+      ? state.wizard.parameterMode : 'recommended';
+    state.wizard.parameterMode = mode;
+    const fields = (state.schema?.fields || []).filter((field) => String(field.path || '').startsWith('parameters.values.'));
+    const recommended = fields.filter((field) => field.importance !== 'advanced').length;
+    const advanced = fields.length - recommended;
+    const nonDefault = fields.filter((field) => field.default !== undefined
+      && JSON.stringify(getPath(state.formData, field.path)) !== JSON.stringify(field.default)).length;
+    const descriptions = {
+      runtime: '只显示仿真时长和采样间隔。所有模型参数保持当前推荐值，不会被删除或重置。',
+      recommended: '显示模型常用参数；专业参数保持折叠。可以搜索完整参数目录，搜索结果会自动展开所属分组。',
+      all: '显示全部已注册参数，包括高级参数和模型选项。参数仍按物理意义分组，修改后需要重新校验。',
+    };
+    $all('[data-wizard-parameter-mode]').forEach((button) => {
+      const active = button.dataset.wizardParameterMode === mode;
+      button.setAttribute('aria-pressed', String(active));
+      button.classList.toggle('active', active);
+    });
+    const description = el('wizardParameterModeDescription');
+    if (description) description.textContent = descriptions[mode];
+    const searchWrap = el('wizardParameterSearchWrap');
+    searchWrap?.classList.toggle('hidden', mode === 'runtime');
+    const count = el('wizardParameterCount');
+    if (count) count.textContent = mode === 'runtime'
+      ? `已保留 ${fields.length} 项模型参数`
+      : `常用 ${recommended} 项 · 专业 ${advanced} 项 · 非默认 ${nonDefault} 项`;
+    const form = el('dynamicForm');
+    if (form) form.dataset.wizardParameterMode = mode;
+  }
+
+  function setWizardParameterMode(mode) {
+    if (!['runtime', 'recommended', 'all'].includes(mode)) return;
+    state.wizard.parameterMode = mode;
+    state.formSectionOpen.clear();
+    const search = el('wizardParameterSearch');
+    if (mode === 'runtime' && search) search.value = '';
+    renderWizardParameterControls();
+    renderForm();
+  }
+
   function renderForm() {
     const form = el('dynamicForm');
     form.replaceChildren();
@@ -4697,8 +4820,10 @@
       updateSingleRunSummary();
       return;
     }
-    const query = (el('formFieldSearch')?.value || '').trim().toLowerCase();
-    const showAdvanced = Boolean(el('showAdvancedFields')?.checked);
+    const wizardParameterMode = state.activeView === 'wizard' ? state.wizard.parameterMode : null;
+    const query = (wizardParameterMode ? el('wizardParameterSearch')?.value : el('formFieldSearch')?.value || '').trim().toLowerCase();
+    const showAdvanced = wizardParameterMode ? wizardParameterMode === 'all' : Boolean(el('showAdvancedFields')?.checked);
+    form.dataset.wizardParameterMode = wizardParameterMode || '';
     const fieldsByPath = new Map((state.schema.fields || []).map((field) => [field.path, field]));
     const sections = (state.schema.sections || []).filter((section) => Array.isArray(section.field_paths));
 
@@ -4717,7 +4842,7 @@
       const description = document.createElement('span'); description.className='field-description'; description.textContent=field.description || '该参数由能力注册表定义。';
       const schemaMeta = document.createElement('span'); schemaMeta.className='field-schema-meta';
       const metaParts = [];
-      if (field.default !== undefined) metaParts.push('Schema 默认值：' + displayFieldValue(field.default, field));
+      if (field.default !== undefined) metaParts.push((String(field.path || '').startsWith('parameters.values.') ? '模型推荐值：' : 'Schema 默认值：') + displayFieldValue(field.default, field));
       if (field.minimum !== undefined || field.maximum !== undefined) metaParts.push('允许范围：' + (field.minimum !== undefined ? field.minimum : '不限') + ' ～ ' + (field.maximum !== undefined ? field.maximum : '不限'));
       schemaMeta.textContent = metaParts.join('；');
       help.append(helpSummary, description);
@@ -4764,6 +4889,7 @@
           if (value === undefined) deletePath(state.formData,field.path); else setPath(state.formData,field.path,value);
           state.taskSpec=null; state.changedPaths.delete(field.path); wrapper.classList.remove('agent-changed','field-error'); wrapper.querySelector('.field-error-message')?.remove();
           validateClientForm({show:false}); renderAgentChangePanel();
+          if (state.activeView === 'wizard') renderWizardParameterControls();
         } catch (error) {
           setFieldError(field.path,error.message);
         }
@@ -4787,7 +4913,7 @@
         card.classList.add('parameter-section');
         const key=`${state.schema.capability.capability_id}:${section.id}`;
         const changed=filtered.some((field)=>state.changedPaths.has(field.path));
-        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? section.parameter_group === 'orbit');
+        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? wizardParameterMode === 'all' : section.parameter_group === 'orbit'));
         card.addEventListener('toggle',()=>{
           if (!query && !showAdvanced && !changed) state.formSectionOpen.set(key,card.open);
         });
@@ -4807,7 +4933,9 @@
       if (advancedGrid.children.length) card.appendChild(advanced);
       form.appendChild(card);
     });
-    el('formSearchEmpty')?.classList.toggle('hidden', !query || Boolean(form.children.length));
+    const noMatches = Boolean(query) && !form.children.length;
+    el('formSearchEmpty')?.classList.toggle('hidden', !noMatches);
+    el('wizardParameterSearchEmpty')?.classList.toggle('hidden', !noMatches || state.activeView !== 'wizard');
     validateClientForm({show:false});
   }
 
@@ -5809,16 +5937,30 @@
       const runPayload = await api(`/runs/${encodeURIComponent(runId)}`);
       if (requestId !== state.runLoadRequestId) return false;
       const availability = runPayload.run?.available_outputs;
-      const [metricsPayload, eventsPayload, plotsPayload, telemetryPayload, artifactsPayload, datasetPayload, fmeaPayload, traceabilityPayload] = await Promise.all([
-        api(`/runs/${encodeURIComponent(runId)}/metrics`).catch(() => ({ metrics: {} })),
-        api(`/runs/${encodeURIComponent(runId)}/events`).catch(() => ({ events: null })),
-        api(`/runs/${encodeURIComponent(runId)}/plots`).catch(() => ({ plot_manifest: null })),
-        api(`/runs/${encodeURIComponent(runId)}/telemetry?limit=2000`).catch(() => ({ rows: [] })),
-        api(`/runs/${encodeURIComponent(runId)}/artifacts`).catch(() => ({ artifacts: [] })),
-        api(`/runs/${encodeURIComponent(runId)}/dataset`).catch(() => ({ dataset: null })),
-        availability?.fmea === false ? { table: null, manifest: null } : api(`/runs/${encodeURIComponent(runId)}/fmea`).catch(() => ({ table: null, manifest: null })),
-        availability?.fault_traceability === false ? { traceability: null } : api(`/runs/${encodeURIComponent(runId)}/fault-traceability`).catch(() => ({ traceability: null })),
-      ]);
+      const sourceRequests = [
+        ['metrics', api(`/runs/${encodeURIComponent(runId)}/metrics`)],
+        ['events', api(`/runs/${encodeURIComponent(runId)}/events`)],
+        ['plots', api(`/runs/${encodeURIComponent(runId)}/plots`)],
+        ['telemetry', api(`/runs/${encodeURIComponent(runId)}/telemetry?limit=2000`)],
+        ['artifacts', api(`/runs/${encodeURIComponent(runId)}/artifacts`)],
+        ['dataset', api(`/runs/${encodeURIComponent(runId)}/dataset`)],
+      ];
+      if (availability?.fmea !== false) sourceRequests.push(['fmea', api(`/runs/${encodeURIComponent(runId)}/fmea`)]);
+      if (availability?.fault_traceability !== false) sourceRequests.push(['traceability', api(`/runs/${encodeURIComponent(runId)}/fault-traceability`)]);
+      const sourceResults = await Promise.all(sourceRequests.map(async ([name, request]) => {
+        try { return [name, await request, null]; }
+        catch (error) { return [name, null, error.message || String(error)]; }
+      }));
+      const sourceErrors = Object.fromEntries(sourceResults.filter(([, , error]) => error).map(([name, , error]) => [name, error]));
+      const sourcePayloads = Object.fromEntries(sourceResults.filter(([, payload]) => payload).map(([name, payload]) => [name, payload]));
+      const metricsPayload = sourcePayloads.metrics || { metrics: {} };
+      const eventsPayload = sourcePayloads.events || { events: null };
+      const plotsPayload = sourcePayloads.plots || { plot_manifest: null };
+      const telemetryPayload = sourcePayloads.telemetry || { rows: [] };
+      const artifactsPayload = sourcePayloads.artifacts || { artifacts: [] };
+      const datasetPayload = sourcePayloads.dataset || { dataset: null };
+      const fmeaPayload = availability?.fmea === false ? { table: null, manifest: null } : (sourcePayloads.fmea || { table: null, manifest: null });
+      const traceabilityPayload = availability?.fault_traceability === false ? { traceability: null } : (sourcePayloads.traceability || { traceability: null });
       if (requestId !== state.runLoadRequestId) return false;
       // Finite-run charts must span the entire trace, not silently show only
       // the first 2,000 samples. This bounded preview preserves actual extrema.
@@ -5871,6 +6013,24 @@
       renderEventsResult();
       renderTraceability();
       renderArtifacts();
+      const warningHost = el('activeRunCard');
+      warningHost.querySelector('.run-source-warnings')?.remove();
+      if (Object.keys(sourceErrors).length) {
+        const warnings = document.createElement('section');
+        warnings.className = 'run-source-warnings';
+        warnings.setAttribute('role', 'status');
+        const heading = document.createElement('strong');
+        heading.textContent = '部分结果数据读取失败';
+        const list = document.createElement('ul');
+        const labels = { metrics: '结果指标', events: '事件记录', plots: '曲线清单', telemetry: '遥测数据', artifacts: '运行制品', dataset: '数据集', fmea: 'FMEA', traceability: '故障追溯' };
+        Object.entries(sourceErrors).forEach(([name, message]) => {
+          const item = document.createElement('li');
+          item.textContent = `${labels[name] || name}：${message}`;
+          list.appendChild(item);
+        });
+        warnings.append(heading, list);
+        warningHost.appendChild(warnings);
+      }
       switchResultTab('overview');
       return true;
     } catch (error) {
@@ -6868,6 +7028,15 @@
     if (!state.interactiveAvailable) return;
     const payload = await api('/interactive/sessions');
     state.interactiveSessions = payload.sessions || [];
+    if (!state.interactiveSession) {
+      const activeSession = state.interactiveSessions.find(item =>
+        !['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(String(item.state || '').toUpperCase()));
+      if (activeSession) {
+        renderInteractiveSessions();
+        await selectInteractiveSession(activeSession.session_id);
+        return;
+      }
+    }
     if (state.interactiveSession) {
       const current = state.interactiveSessions.find(item => item.session_id === state.interactiveSession.session_id);
       if (current) state.interactiveSession = current;
@@ -6876,12 +7045,49 @@
     renderInteractiveSnapshot();
   }
 
+  function renderInteractiveSelectedSessionSummary() {
+    const host = el('interactiveSelectedSessionSummary');
+    if (!host) return;
+    const session = state.interactiveSession;
+    host.replaceChildren();
+    const eyebrow = document.createElement('span');
+    eyebrow.textContent = '当前会话';
+    const title = document.createElement('strong');
+    const detail = document.createElement('small');
+    if (!session) {
+      title.textContent = '尚未选择会话';
+      detail.textContent = '创建新会话或从列表中选择已有会话。';
+    } else {
+      const scope = session.capability_id === 'whole_spacecraft.unified_native.v1' ? '整星' : '分系统';
+      title.textContent = session.session_id;
+      detail.textContent = [
+        scope,
+        session.continuous ? '持续实时' : '限时实时',
+        session.state || '状态未知',
+        Number(session.sim_time_s || 0).toFixed(2) + ' s',
+        (session.rate || 1) + '×',
+      ].join(' · ');
+      if (session.terminal_error || session.archive_error) detail.title = session.terminal_error || session.archive_error;
+    }
+    host.append(eyebrow, title, detail);
+    host.dataset.state = session?.state || 'NONE';
+  }
+
   function renderInteractiveSessions() {
     const container = el('interactiveSessionList');
     if (!container) return;
     container.replaceChildren();
+    if (!state.interactiveCreateDisclosureInitialized) {
+      const disclosure = el('interactiveCreateDetails');
+      if (disclosure) disclosure.open = !state.interactiveSessions.length && !state.interactiveSession;
+      state.interactiveCreateDisclosureInitialized = true;
+    }
+    renderInteractiveSelectedSessionSummary();
     el('interactiveSessionCount').textContent = String(state.interactiveSessions.length);
-    state.interactiveSessions.forEach((session) => {
+    const orderedSessions = [...state.interactiveSessions].sort((a, b) =>
+      Number(b.session_id === state.interactiveSession?.session_id)
+      - Number(a.session_id === state.interactiveSession?.session_id));
+    orderedSessions.forEach((session) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `interactive-session-item${state.interactiveSession?.session_id === session.session_id ? ' active' : ''}`;
@@ -6908,6 +7114,8 @@
     const snapshot = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}`);
     if (selectionVersion !== state.interactiveSelectionVersion) return;
     state.interactiveSession = snapshot;
+    const createDisclosure = el('interactiveCreateDetails');
+    if (createDisclosure) createDisclosure.open = false;
     interactiveNotice(`当前查看会话 ${snapshot.session_id}。`);
     state.interactiveFrames = {};
     state.interactiveGaps = {};
@@ -7088,12 +7296,15 @@
     const created = await api('/interactive/sessions', { method: 'POST', body: apiBody(spec) });
     await loadInteractiveSessions();
     await selectInteractiveSession(created.session_id);
+    const createDisclosure = el('interactiveCreateDetails');
+    if (createDisclosure) createDisclosure.open = false;
     interactiveNotice(`会话 ${created.session_id} 已就绪。`);
   }
 
   function renderInteractiveSnapshot() {
     const snapshot = state.interactiveSession;
     el('interactiveOpenContinuousBtn')?.classList.toggle('hidden', !snapshot?.continuous);
+    renderInteractiveSelectedSessionSummary();
     el('interactiveState').textContent = snapshot?.state || '未选择';
     el('interactiveState').title = snapshot?.terminal_error || '';
     const archiveLabels = {
@@ -7112,9 +7323,11 @@
       if (Number(el('interactiveCommandTime').value) < Number(snapshot.sim_time_s)) el('interactiveCommandTime').value = String(snapshot.sim_time_s);
     }
     const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(snapshot?.state);
-    ['interactiveStartBtn', 'interactivePauseBtn', 'interactiveResumeBtn', 'interactiveStepBtn', 'interactiveStopBtn', 'interactiveSendCommandBtn'].forEach((id) => {
-      el(id).disabled = !snapshot || terminal;
+    const controlPending = Boolean(state.interactiveControlPending);
+    ['interactiveStartBtn', 'interactivePauseBtn', 'interactiveResumeBtn', 'interactiveStepBtn', 'interactiveStopBtn'].forEach((id) => {
+      el(id).disabled = !snapshot || terminal || controlPending;
     });
+    el('interactiveSendCommandBtn').disabled = !snapshot || terminal || controlPending || Boolean(state.interactiveCommandSending);
     el('interactiveStartBtn').disabled = !snapshot || snapshot.state !== 'READY';
     el('interactivePauseBtn').disabled = !snapshot || snapshot.state !== 'RUNNING';
     el('interactiveResumeBtn').disabled = !snapshot || snapshot.state !== 'PAUSED';
@@ -7122,14 +7335,25 @@
   }
 
   async function interactiveControl(action, extra = {}) {
-    if (!state.interactiveSession) return;
+    if (!state.interactiveSession || state.interactiveControlPending) return;
     if ((action === 'stop' || action === 'abort') && !confirm('确认停止当前实时会话并归档？')) return;
     const sessionId = state.interactiveSession.session_id;
-    state.interactiveSession = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}/control`, {
-      method: 'POST', body: apiBody({ action, ...extra }),
-    });
+    state.interactiveControlPending = true;
     renderInteractiveSnapshot();
-    await refreshInteractiveDetails();
+    try {
+      state.interactiveSession = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}/control`, {
+        method: 'POST', body: apiBody({ action, ...extra }),
+      });
+      interactiveNotice({ start: '已向服务端提交启动请求', pause: '已向服务端提交暂停请求',
+        resume: '已向服务端提交继续请求', step: '已提交单步推进请求',
+        stop: '停止与归档请求已提交', abort: '中止请求已提交' }[action] || '控制请求已提交');
+      await refreshInteractiveDetails();
+    } catch (error) {
+      interactiveNotice('控制请求失败：' + error.message, 'error');
+    } finally {
+      state.interactiveControlPending = false;
+      renderInteractiveSnapshot();
+    }
   }
 
   async function refreshInteractiveDetails() {
@@ -7148,6 +7372,31 @@
     renderInteractiveAcks();
   }
 
+  function interactiveAckStateLabel(value) {
+    const labels = {
+      QUEUED: '已排队，等待执行',
+      ACKNOWLEDGED: '服务端已确认',
+      ACKED: '服务端已确认',
+      ACCEPTED: '服务端已接收',
+      REJECTED: '已拒绝',
+      EXECUTED: '已执行',
+      COMPLETED: '执行完成',
+      FAILED: '执行失败',
+      ABORTED: '已中止',
+      CANCELLED: '已取消',
+    };
+    return labels[String(value || '').toUpperCase()] || String(value || '状态未知');
+  }
+
+  function interactiveEventStateLabel(value) {
+    const labels = {
+      READY: '已就绪', RUNNING: '运行中', PAUSED: '已暂停',
+      COMPLETED: '已完成', FAILED: '运行失败', ABORTED: '已中止',
+      INTERRUPTED: '运行中断', STOPPING: '正在停止',
+    };
+    return labels[String(value || '').toUpperCase()] || String(value || '状态未知');
+  }
+
   function renderInteractiveEvents() {
     const container = el('interactiveEventList');
     container.replaceChildren();
@@ -7155,9 +7404,10 @@
       const item = document.createElement('div');
       item.className = `interactive-timeline-item ${String(event.state).toLowerCase()}`;
       const title = document.createElement('strong');
-      title.textContent = `${event.previous_state} → ${event.state}`;
+      title.textContent = `${interactiveEventStateLabel(event.previous_state)} → ${interactiveEventStateLabel(event.state)}`;
+      title.title = `${event.previous_state} → ${event.state}`;
       const meta = document.createElement('span');
-      meta.textContent = `#${event.sequence} · t=${Number(event.sim_time_s).toFixed(3)} s · ${event.reason_code}`;
+      meta.textContent = `#${event.sequence} · ${event.previous_state} → ${event.state} · t=${Number(event.sim_time_s).toFixed(3)} s · ${event.reason_code}`;
       item.append(title, meta);
       container.appendChild(item);
     });
@@ -7170,9 +7420,10 @@
       const item = document.createElement('div');
       item.className = `interactive-timeline-item ${String(ack.state).toLowerCase()}`;
       const title = document.createElement('strong');
-      title.textContent = `${ack.command_id} · ${ack.state}`;
+      title.textContent = `${interactiveAckStateLabel(ack.state)} · ${ack.command_id}`;
+      title.title = ack.state;
       const meta = document.createElement('span');
-      meta.textContent = `#${ack.sequence} · ${ack.reason_code}${ack.sim_time_s == null ? '' : ` · t=${Number(ack.sim_time_s).toFixed(3)} s`}`;
+      meta.textContent = `#${ack.sequence} · 原始状态 ${ack.state} · ${ack.reason_code}${ack.sim_time_s == null ? '' : ` · t=${Number(ack.sim_time_s).toFixed(3)} s`}`;
       item.append(title, meta);
       container.appendChild(item);
     });
@@ -7251,6 +7502,8 @@
   }
 
   function acceptInteractiveFrame(frame) {
+    state.interactiveLastTelemetryReceivedAt ||= {};
+    state.interactiveLastTelemetryReceivedAt[frame.stream] = Date.now();
     const frames = state.interactiveFrames[frame.stream] || [];
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
@@ -7288,10 +7541,37 @@
     renderInteractiveTelemetry();
   }
 
+  function interactiveTelemetryLabel(field) {
+    const labels = {
+      'orbit.radius_m': '轨道半径（m）',
+      'orbit.altitude_m': '轨道高度（m）',
+      'orbit.velocity_m_s': '轨道速度（m/s）',
+      'adcs.pointing_error_deg': '姿态指向误差（°）',
+      'adcs.attitude_error_deg': '姿态误差（°）',
+      'adcs.rw.speed_rad_s_0': '飞轮 1 转速（rad/s）',
+      'adcs.rw.speed_rad_s_1': '飞轮 2 转速（rad/s）',
+      'adcs.rw.speed_rad_s_2': '飞轮 3 转速（rad/s）',
+      'eps.battery_soc': '电池荷电状态（SOC）',
+      'eps.battery_voltage_v': '电池电压（V）',
+      'eps.battery_current_a': '电池电流（A）',
+      'comm.link_margin_db': '通信链路余量（dB）',
+    };
+    return labels[field] || field;
+  }
+
   function renderInteractiveTelemetry() {
     const stream = el('interactiveStream').value;
     const frames = state.interactiveFrames[stream] || [];
     const gap = state.interactiveGaps[stream];
+    const receivedAt = state.interactiveLastTelemetryReceivedAt?.[stream];
+    const freshness = el('interactiveTelemetryFreshness');
+    if (freshness) {
+      freshness.textContent = receivedAt
+        ? '最近收到 ' + new Date(receivedAt).toLocaleTimeString()
+        : '尚未收到遥测';
+      freshness.title = receivedAt ? new Date(receivedAt).toLocaleString() : '当前流尚无接收记录';
+      freshness.className = 'status-chip ' + (receivedAt ? 'status-ok' : 'status-muted');
+    }
     el('interactiveGapBadge').className = `status-chip ${gap ? 'status-warn' : 'status-muted'}`;
     el('interactiveGapBadge').textContent = gap ? `缺口 ${gap.dropped_count}` : '无缺口';
     const latest = frames[frames.length - 1]?.values || {};
@@ -7299,12 +7579,46 @@
     const visibleFields = el('interactiveTelemetryObject').value === 'configured'
       ? state.interactiveSession?.telemetry_catalog?.find(item => item.stream_id === stream)?.fields || Object.keys(latest)
       : group?.fields || Object.keys(latest);
+    const healthHost = el('interactiveHealthSnapshot');
+    if (healthHost) {
+      healthHost.replaceChildren();
+      const healthFields = [
+        'orbit.radius_m',
+        'adcs.pointing_error_deg',
+        'eps.battery_soc',
+      ];
+      const availableHealth = healthFields.filter(name => Object.hasOwn(latest, name));
+      if (!frames.length || !availableHealth.length) {
+        const empty = document.createElement('p');
+        empty.className = 'continuous-muted';
+        empty.textContent = !frames.length
+          ? '等待当前会话产生真实遥测。'
+          : '当前遥测流未提供轨道、姿态或能源关键指标；可切换遥测流查看其他数据。';
+        healthHost.appendChild(empty);
+      } else {
+        availableHealth.forEach((name) => {
+          const card = document.createElement('div');
+          card.className = 'interactive-health-item';
+          const label = document.createElement('span');
+          label.textContent = interactiveTelemetryLabel(name);
+          label.title = name;
+          const value = document.createElement('strong');
+          const raw = latest[name];
+          value.textContent = typeof raw === 'number' && Number.isFinite(raw)
+            ? String(Math.round(raw * 1e6) / 1e6)
+            : raw == null ? '—' : String(raw);
+          card.append(label, value);
+          healthHost.appendChild(card);
+        });
+      }
+    }
     const values = el('interactiveLatestValues');
     values.replaceChildren();
     visibleFields.filter(name => Object.hasOwn(latest, name)).forEach((name) => {
       const value = latest[name];
       const item = document.createElement('div'); item.className = 'interactive-value';
-      const label = document.createElement('span'); label.textContent = name;
+      const label = document.createElement('span'); label.textContent = interactiveTelemetryLabel(name);
+      label.title = name;
       const strong = document.createElement('strong');
       strong.textContent = value == null || (typeof value === 'number' && !Number.isFinite(value))
         ? '—' : (typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value));
@@ -7361,7 +7675,7 @@
         if (!connected) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         connected = true;
       });
-      ctx.stroke(); ctx.fillStyle = colors[fieldIndex]; ctx.font = '10px sans-serif'; ctx.fillText(field, 46, 14 + fieldIndex * 13);
+      ctx.stroke(); ctx.fillStyle = colors[fieldIndex]; ctx.font = '10px sans-serif'; ctx.fillText(interactiveTelemetryLabel(field), 46, 14 + fieldIndex * 13);
     });
     ctx.fillStyle = muted; ctx.font = '9px sans-serif'; ctx.fillText('sim time', Math.max(44, width - 52), height - 6);
   }
@@ -7424,7 +7738,7 @@
   async function sendInteractiveCommand() {
     const session = state.interactiveSession;
     const contract = state.interactiveCommandCatalog.find(item => item.operation === el('interactiveCommandOperation').value);
-    if (!session || !contract) return;
+    if (!session || !contract || state.interactiveCommandSending) return;
     if (contract.required_role === 'fault_operator' && !confirm(`确认执行故障指令 ${contract.operation}？`)) return;
     const parameters = {};
     $all('[data-parameter]', el('interactiveCommandForm')).forEach((input) => {
@@ -7447,9 +7761,18 @@
       actor_role: contract.required_role,
       execute_at_sim_time_s: Number(el('interactiveCommandTime').value || session.sim_time_s),
     };
-    const ack = await api(`/interactive/sessions/${encodeURIComponent(session.session_id)}/commands`, { method: 'POST', body: apiBody(payload) });
-    interactiveNotice(`${ack.command_id}: ${ack.state}`, ack.state === 'REJECTED' ? 'error' : 'success');
-    await refreshInteractiveDetails();
+    state.interactiveCommandSending = true;
+    renderInteractiveSnapshot();
+    try {
+      const ack = await api(`/interactive/sessions/${encodeURIComponent(session.session_id)}/commands`, { method: 'POST', body: apiBody(payload) });
+      interactiveNotice(`${ack.command_id}：${interactiveAckStateLabel(ack.state)}`, ack.state === 'REJECTED' ? 'error' : 'success');
+      await refreshInteractiveDetails();
+    } catch (error) {
+      interactiveNotice('遥控提交失败：' + error.message, 'error');
+    } finally {
+      state.interactiveCommandSending = false;
+      renderInteractiveSnapshot();
+    }
   }
 
   function wizardMessage(role, message) { state.wizard.messages.push({ role, message }); }
@@ -7520,7 +7843,7 @@
   }
 
   function wizardReset() {
-    state.wizard = { goal: null, step: 'welcome', level: null, objectId: null, faultEffect: null, mode: null, validated: false, validatedForm: null, messages: [] };
+    state.wizard = { goal: null, step: 'welcome', level: null, objectId: null, faultEffect: null, mode: null, parameterMode: 'recommended', outputPurpose: 'all', validated: false, validatedForm: null, messages: [] };
     wizardMessage('assistant', '你好！你想完成什么仿真任务？我会按固定步骤引导你完成配置、运行和结果查看。');
     const root = el('wizardView'); if (root) root.dataset.runtimeMode = '';
     el('wizardRunResultsHost')?.classList.add('hidden');
@@ -7596,7 +7919,7 @@
     state.wizard.faultEffect = null;
     state.wizard.mode = null;
     state.wizard.validated = false;
-    if (goal === 'compare') { switchView('runs'); return; }
+    if (goal === 'compare' || goal === 'runs') { switchView('runs'); return; }
     if (goal === 'experiments') { switchView('experiments'); return; }
     if (goal === 'goals') { switchView('goals'); return; }
     if (goal === 'diagnostics') { switchView('diagnostics'); return; }
@@ -7624,6 +7947,10 @@
       return;
     }
     state.wizard.objectId = objectId;
+    state.wizard.parameterMode = 'recommended';
+    state.wizard.outputPurpose = 'all';
+    if (el('wizardOutputSearch')) el('wizardOutputSearch').value = '';
+    if (el('wizardParameterSearch')) el('wizardParameterSearch').value = '';
     const label = object.name_zh || object.name_en || objectId;
     if (state.wizard.goal === 'fault_run') {
       wizardSetStep('fault', '该对象已加载。请选择一个当前模型正式注册的故障类型。', label);
@@ -7760,7 +8087,7 @@
     if (!state.formData) return;
     state.formData.outputs = state.formData.outputs || {};
     state.formData.outputs.plots = [...new Set(nextSelection)];
-    state.taskSpec = null; state.planning = null;
+    state.taskSpec = null; state.planning = null; syncTaskSpecEditor();
     state.wizard.validated = false; state.wizard.validatedForm = null;
     renderOutputs();
     el('wizardNotice').textContent = '曲线选择已更新；正式运行前请重新校验。';
@@ -7776,61 +8103,200 @@
     wizardSetPlotSelection([...selected]);
   }
 
+  function wizardOutputPurpose(option) {
+    const text = [option.name, option.label, option.description, option.group_label, option.subsystem_label]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (/(thermal|temperature|temp_|heater|radiator|热)/.test(text)) return 'thermal';
+    if (/(comm|downlink|ground|transmitter|storage|queue|通信|下行|数据链)/.test(text)) return 'communications';
+    if (/(orbit|environment|disturbance|轨道|环境|扰动)/.test(text)) return 'environment';
+    if (/(eps|battery|solar|soc|pdu|energy|power|电池|能源|功耗|太阳阵)/.test(text)) return 'energy';
+    if (/(adcs|attitude|pointing|angular.rate|gyro|star.tracker|sun.sensor|reaction.wheel|rw\.|cmg|imu|magnetometer|mtb|姿态|飞轮|陀螺|星敏|太阳敏)/.test(text)) return 'attitude';
+    if (/(mission|success|status|health|conservation|任务|整星|状态|健康)/.test(text)) return 'mission';
+    return 'other';
+  }
+
+  function wizardOutputPurposeDefinitions() {
+    return [
+      { id: 'all', label: '全部' },
+      { id: 'attitude', label: '姿态与控制' },
+      { id: 'energy', label: '能源与功耗' },
+      { id: 'thermal', label: '热控与温度' },
+      { id: 'communications', label: '通信与数据' },
+      { id: 'environment', label: '轨道与环境' },
+      { id: 'mission', label: '任务与整星状态' },
+      { id: 'other', label: '其他' },
+    ];
+  }
+
+  function wizardSetQoiSelection(nextSelection) {
+    if (!state.formData) return;
+    state.formData.outputs = state.formData.outputs || {};
+    state.formData.outputs.qoi = [...new Set(nextSelection)];
+    state.taskSpec = null; state.planning = null; syncTaskSpecEditor();
+    state.wizard.validated = false; state.wizard.validatedForm = null;
+    renderOutputs();
+    el('wizardNotice').textContent = '结果指标已更新；正式运行前请重新校验。';
+  }
+
+  function wizardRestoreOutputDefaults() {
+    if (!state.formData || !state.schema) return;
+    const defaults = state.schema.default_form?.outputs || {};
+    const qoi = Array.isArray(defaults.qoi) ? defaults.qoi : (state.schema.outputs?.default_qoi || []);
+    const plots = Array.isArray(defaults.plots) ? defaults.plots : [];
+    state.formData.outputs = state.formData.outputs || {};
+    state.formData.outputs.qoi = [...qoi];
+    state.formData.outputs.plots = [...plots];
+    state.taskSpec = null; state.planning = null; syncTaskSpecEditor();
+    state.wizard.validated = false; state.wizard.validatedForm = null;
+    renderOutputs();
+    el('wizardNotice').textContent = '已恢复当前模型 Schema 提供的推荐输出组合；请重新校验配置。';
+  }
+
   function renderWizardCurveChoices() {
     const host = el('wizardCurveChoices');
-    if (!host || !state.schema || !state.formData) return;
-    host.replaceChildren();
-    const options = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
-    const selected = new Set(state.formData.outputs?.plots || []);
-    const groups = new Map();
-    options.forEach((item) => {
-      const key = item.subsystem_id || item.group_id || 'other';
-      if (!groups.has(key)) groups.set(key, { id: key, label: item.subsystem_label || item.group_label || '其他可观测量', options: [] });
-      groups.get(key).options.push(item);
+    const qoiHost = el('wizardQoiChoices');
+    if ((!host && !qoiHost) || !state.schema || !state.formData) return;
+    if (host) host.replaceChildren();
+    if (qoiHost) qoiHost.replaceChildren();
+    const qoiOptions = (state.schema.outputs?.summary_options || []).map(normalizedOutputOption);
+    const traceOptions = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
+    const selectedQoi = new Set(state.formData.outputs?.qoi || []);
+    const selectedPlots = new Set(state.formData.outputs?.plots || []);
+    const search = String(el('wizardOutputSearch')?.value || '').trim().toLowerCase();
+    const allOptions = [...qoiOptions, ...traceOptions];
+    const purposeCounts = new Map();
+    allOptions.forEach((item) => {
+      const purpose = wizardOutputPurpose(item);
+      purposeCounts.set(purpose, (purposeCounts.get(purpose) || 0) + 1);
     });
-    const summary = el('wizardCurveSelectionSummary');
-    if (summary) summary.textContent = '已选择 ' + selected.size + ' / ' + options.length + ' 条曲线';
-    if (!groups.size) {
-      const empty = document.createElement('div'); empty.className = 'wizard-empty';
-      empty.textContent = '当前仿真对象没有注册可输出曲线；可以保留默认输出并继续。';
-      host.appendChild(empty); return;
+    const availablePurposes = wizardOutputPurposeDefinitions().filter((item) => item.id === 'all' || purposeCounts.has(item.id));
+    if (!availablePurposes.some((item) => item.id === state.wizard.outputPurpose)) state.wizard.outputPurpose = 'all';
+    const purposeHost = el('wizardOutputPurposes');
+    if (purposeHost) {
+      purposeHost.replaceChildren();
+      availablePurposes.forEach((item) => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'wizard-output-purpose';
+        button.dataset.outputPurpose = item.id;
+        button.textContent = item.label;
+        button.setAttribute('aria-pressed', String(state.wizard.outputPurpose === item.id));
+        if (item.id !== 'all') button.dataset.count = String(purposeCounts.get(item.id) || 0);
+        button.addEventListener('click', () => {
+          state.wizard.outputPurpose = item.id;
+          renderWizardCurveChoices();
+        });
+        purposeHost.appendChild(button);
+      });
     }
-    [...groups.values()].forEach((group) => {
-      const card = document.createElement('article'); card.className = 'wizard-curve-card';
-      const head = document.createElement('div'); head.className = 'wizard-curve-card-head';
-      const title = document.createElement('strong'); title.textContent = group.label;
-      const count = document.createElement('span');
-      const selectedCount = group.options.filter((item) => selected.has(item.name)).length;
-      count.textContent = selectedCount + ' / ' + group.options.length + ' 已选';
-      head.append(title, count);
-      const detail = document.createElement('p'); detail.textContent = '该分组包含 ' + group.options.length + ' 条已注册曲线，选择后会记录到本次运行。';
-      const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'button button-secondary';
-      toggle.textContent = selectedCount === group.options.length ? '移除这一组' : '添加这一组';
-      toggle.addEventListener('click', () => wizardToggleCurveGroup(group.id));
-      const list = document.createElement('details'); list.className = 'wizard-curve-detail';
-      const summaryNode = document.createElement('summary'); summaryNode.textContent = '查看具体曲线';
-      const rows = document.createElement('div'); rows.className = 'wizard-curve-detail-list';
-      group.options.forEach((item) => {
-        const row = document.createElement('label'); row.className = 'wizard-curve-row';
-        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(item.name);
-        checkbox.addEventListener('change', () => {
+    const matches = (item) => {
+      const purposeMatch = state.wizard.outputPurpose === 'all' || wizardOutputPurpose(item) === state.wizard.outputPurpose;
+      const text = [item.name, item.label, item.description, item.unit, item.group_label, item.subsystem_label]
+        .filter(Boolean).join(' ').toLowerCase();
+      return purposeMatch && (!search || text.includes(search));
+    };
+    const visibleQoi = qoiOptions.filter(matches);
+    const visibleTraces = traceOptions.filter(matches);
+    const qoiSummary = el('wizardQoiSelectionSummary');
+    if (qoiSummary) qoiSummary.textContent = `已选 ${selectedQoi.size} 项 / ${qoiOptions.length} 项注册指标`;
+    const curveSummary = el('wizardCurveSelectionSummary');
+    if (curveSummary) curveSummary.textContent = `已选 ${selectedPlots.size} 条 / ${traceOptions.length} 条注册曲线`;
+    const qoiCount = el('wizardOutputSearchCount');
+    if (qoiCount) qoiCount.textContent = search
+      ? `匹配 ${visibleQoi.length} 项指标、${visibleTraces.length} 条曲线`
+      : `当前显示 ${visibleQoi.length} 项指标、${visibleTraces.length} 条曲线`;
+
+    if (qoiHost) {
+      if (!qoiOptions.length) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前仿真对象没有注册结果摘要指标。';
+        qoiHost.appendChild(empty);
+      } else if (!visibleQoi.length) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前观测目的或搜索条件下没有匹配的结果指标。';
+        qoiHost.appendChild(empty);
+      } else {
+        visibleQoi.forEach((item) => {
+          const row = document.createElement('label'); row.className = 'wizard-qoi-row';
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selectedQoi.has(item.name);
+          checkbox.addEventListener('change', () => {
+            const next = new Set(state.formData.outputs.qoi || []);
+            if (checkbox.checked) next.add(item.name); else next.delete(item.name);
+            wizardSetQoiSelection([...next]);
+          });
+          const body = document.createElement('span'); body.className = 'wizard-qoi-body';
+          const title = document.createElement('strong'); title.textContent = item.label || item.name;
+          const desc = document.createElement('small'); desc.textContent = item.description || '当前模型注册的结果摘要指标。';
+          const meta = document.createElement('span'); meta.className = 'wizard-output-meta';
+          if (item.unit) meta.textContent = '单位：' + item.unit;
+          const technical = document.createElement('details'); technical.className = 'wizard-output-technical';
+          const technicalSummary = document.createElement('summary'); technicalSummary.textContent = '技术字段';
+          const code = document.createElement('code'); code.textContent = item.name;
+          technical.append(technicalSummary, code);
+          body.append(title, desc, meta, technical);
+          row.append(checkbox, body); qoiHost.appendChild(row);
+        });
+      }
+    }
+    if (host) {
+      const groups = new Map();
+      visibleTraces.forEach((item) => {
+        const key = item.subsystem_id || item.group_id || 'other';
+        if (!groups.has(key)) groups.set(key, { id: key, label: item.subsystem_label || item.group_label || '其他可观测量', options: [] });
+        groups.get(key).options.push(item);
+      });
+      if (!traceOptions.length) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前仿真对象没有注册可输出时序曲线。';
+        host.appendChild(empty);
+      } else if (!groups.size) {
+        const empty = document.createElement('div'); empty.className = 'wizard-empty';
+        empty.textContent = '当前观测目的或搜索条件下没有匹配曲线。可以切换“全部”或清空搜索。';
+        host.appendChild(empty);
+      }
+      [...groups.values()].forEach((group) => {
+        const card = document.createElement('article'); card.className = 'wizard-curve-card';
+        const head = document.createElement('div'); head.className = 'wizard-curve-card-head';
+        const title = document.createElement('strong'); title.textContent = group.label;
+        const selectedCount = group.options.filter((item) => selectedPlots.has(item.name)).length;
+        const count = document.createElement('span'); count.textContent = `${selectedCount} / ${group.options.length} 已选`;
+        head.append(title, count);
+        const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'button button-secondary';
+        toggle.textContent = search
+          ? (selectedCount === group.options.length ? '移除匹配项' : '添加匹配项')
+          : (selectedCount === group.options.length ? '移除这一组' : '添加这一组');
+        toggle.disabled = group.options.length === 0;
+        toggle.addEventListener('click', () => {
           const next = new Set(state.formData.outputs.plots || []);
-          if (checkbox.checked) next.add(item.name); else next.delete(item.name);
+          const allSelected = group.options.every((item) => next.has(item.name));
+          group.options.forEach((item) => { if (allSelected) next.delete(item.name); else next.add(item.name); });
           wizardSetPlotSelection([...next]);
         });
-        const text = document.createElement('span');
-        const name = document.createElement('strong'); name.textContent = item.label || item.name;
-        const desc = document.createElement('small'); desc.textContent = item.description || '当前模型注册的遥测输出量。';
-        const tech = document.createElement('details'); tech.className = 'wizard-curve-technical';
-        const techSummary = document.createElement('summary'); techSummary.textContent = '技术字段';
-        const code = document.createElement('code'); code.textContent = item.name;
-        tech.append(techSummary, code); text.append(name, desc, tech);
-        row.append(checkbox, text); rows.appendChild(row);
+        const list = document.createElement('details'); list.className = 'wizard-curve-detail';
+        const summaryNode = document.createElement('summary'); summaryNode.textContent = '查看具体曲线';
+        const rows = document.createElement('div'); rows.className = 'wizard-curve-detail-list';
+        group.options.forEach((item) => {
+          const row = document.createElement('label'); row.className = 'wizard-curve-row';
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selectedPlots.has(item.name);
+          checkbox.addEventListener('change', () => {
+            const next = new Set(state.formData.outputs.plots || []);
+            if (checkbox.checked) next.add(item.name); else next.delete(item.name);
+            wizardSetPlotSelection([...next]);
+          });
+          const body = document.createElement('span');
+          const name = document.createElement('strong'); name.textContent = item.label || item.name;
+          const desc = document.createElement('small'); desc.textContent = item.description || '当前模型注册的遥测输出量。';
+          const meta = document.createElement('span'); meta.className = 'wizard-output-meta';
+          if (item.unit) meta.textContent = '单位：' + item.unit;
+          const tech = document.createElement('details'); tech.className = 'wizard-curve-technical';
+          const techSummary = document.createElement('summary'); techSummary.textContent = '技术字段';
+          const code = document.createElement('code'); code.textContent = item.name;
+          tech.append(techSummary, code); body.append(name, desc, meta, tech);
+          row.append(checkbox, body); rows.appendChild(row);
+        });
+        list.append(summaryNode, rows);
+        card.append(head, toggle, list); host.appendChild(card);
       });
-      list.append(summaryNode, rows);
-      card.append(head, detail, toggle, list);
-      host.appendChild(card);
-    });
+    }
   }
 
   function renderWizardTasks() {
@@ -7858,19 +8324,55 @@
       meta.textContent = (taskStatusLabels[task.status] || '状态未知') + (task.last_run_status ? ' · 最近运行：' + (runStatusLabels[task.last_run_status] || '已结束') : ' · 尚未运行');
       main.append(title, description, meta);
       const actions = document.createElement('div'); actions.className = 'wizard-task-actions';
-      const addAction = (label, callback, style = 'button-ghost') => {
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'button ' + style; button.textContent = label;
-        button.addEventListener('click', callback); actions.appendChild(button);
+      const addAction = (parent, label, callback, buttonStyle = 'button-ghost') => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'button ' + buttonStyle; button.textContent = label;
+        button.addEventListener('click', callback); parent.appendChild(button);
       };
-      addAction('任务详情', () => openTaskDetails(task.task_id));
-      addAction('克隆任务', async () => {
-        try { const result = await api('/task-center/tasks/' + encodeURIComponent(task.task_id) + '/clone', { method: 'POST', body: apiBody({}) }); await loadTasks(); el('wizardNotice').textContent = '已克隆任务：' + (result.task?.name || result.task?.task_id); }
-        catch (error) { el('wizardNotice').textContent = '克隆失败：' + error.message; }
+      addAction(actions, '任务详情', () => openTaskDetails(task.task_id));
+      addAction(actions, '编辑配置', () => openTaskFromCenter(task.task_id, { guided: true }), 'button-secondary');
+      addAction(actions, '运行任务', () => runTaskFromCenter(task.task_id, { guided: true }), 'button-primary');
+      const more = document.createElement('details'); more.className = 'wizard-task-more';
+      const moreSummary = document.createElement('summary'); moreSummary.textContent = '更多操作';
+      const moreActions = document.createElement('div'); moreActions.className = 'wizard-task-more-actions';
+      addAction(moreActions, '克隆任务', async () => {
+        try {
+          const result = await api('/task-center/tasks/' + encodeURIComponent(task.task_id) + '/clone', { method: 'POST', body: apiBody({}) });
+          await loadTasks();
+          el('wizardNotice').textContent = '已克隆任务：' + (result.task?.name || result.task?.task_id);
+        } catch (error) { el('wizardNotice').textContent = '克隆失败：' + error.message; }
       });
-      addAction('编辑配置', () => openTaskFromCenter(task.task_id, { guided: true }));
-      addAction('运行任务', () => runTaskFromCenter(task.task_id, { guided: true }), 'button-secondary');
-      addAction('删除任务', () => deleteTaskFromCenter(task.task_id), 'button-danger');
+      addAction(moreActions, '删除任务', () => deleteTaskFromCenter(task.task_id), 'button-danger');
+      more.append(moreSummary, moreActions);
+      actions.appendChild(more);
       card.append(main, actions); host.appendChild(card);
+    });
+  }
+
+  function renderWizardProgress() {
+    const host = el('wizardProgress');
+    if (!host) return;
+    const step = state.wizard.step;
+    const visible = !['tasks', 'natural_language', 'taskspec'].includes(step);
+    host.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    const current = ['welcome'].includes(step) ? 0
+      : ['level', 'object', 'fault'].includes(step) ? 1
+        : ['mode'].includes(step) ? 2 : 3;
+    const labels = ['任务目标', '仿真对象', '运行方式', '配置与结果'];
+    host.replaceChildren();
+    labels.forEach((label, index) => {
+      const item = document.createElement('li');
+      item.className = 'wizard-progress-step';
+      item.dataset.state = index < current ? 'complete' : index === current ? 'current' : 'upcoming';
+      item.setAttribute('aria-current', index === current ? 'step' : 'false');
+      const number = document.createElement('span');
+      number.className = 'wizard-progress-number';
+      number.textContent = index < current ? '✓' : String(index + 1);
+      const text = document.createElement('span');
+      text.className = 'wizard-progress-label';
+      text.textContent = label;
+      item.append(number, text);
+      host.appendChild(item);
     });
   }
 
@@ -7878,6 +8380,7 @@
     const conversation = el('wizardConversation'); const options = el('wizardOptions');
     if (!conversation || !options) return;
     conversation.replaceChildren(); options.replaceChildren();
+    renderWizardProgress();
     state.wizard.messages.forEach((entry) => {
       const bubble = document.createElement('div'); bubble.className = 'wizard-message ' + entry.role;
       const role = document.createElement('strong'); role.textContent = entry.role === 'user' ? '你的选择' : '仿真向导';
@@ -7896,6 +8399,7 @@
     if (state.wizard.step === 'tasks') renderWizardTasks();
     el('wizardRunResultsHost')?.classList.toggle('hidden', state.wizard.step !== 'results');
     el('wizardRealtimeBackBtn')?.classList.add('hidden');
+    if (state.wizard.step === 'configure') renderWizardParameterControls();
     if (state.wizard.step === 'tasks') {
       // Search/filter controls live in the dialog; reuse the existing task-center query contract.
       const search = el('wizardTaskSearch'); const status = el('wizardTaskStatus');
@@ -7926,14 +8430,31 @@
       if (!faults.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前模型没有注册可用故障。没有虚构或替代故障选项。'; options.appendChild(empty); }
       faults.forEach((item) => option(item.label || item.effect, item.description || '使用该模型注册的故障事件模板', { 'data-wizard-fault': item.effect }, () => wizardChooseFault(item.effect)));
     } else if (state.wizard.step === 'mode') {
+      const limitedSession = state.interactiveSession;
+      if (limitedSession) {
+        const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(String(limitedSession.state || '').toUpperCase());
+        option(terminal ? '查看上一次限时实时会话' : '返回正在运行的限时实时会话',
+          limitedSession.session_id + ' · ' + (limitedSession.state || '状态未知') + ' · t=' + Number(limitedSession.sim_time_s || 0).toFixed(2) + ' s',
+          { 'data-wizard-resume': 'limited_realtime' }, () => switchView('interactive'));
+      }
+      const continuousSessionId = window.SatContinuousConsole?.getSelectedSessionId?.();
+      if (continuousSessionId) {
+        option('返回持续实时会话', continuousSessionId + ' · 重新连接并读取服务端状态，不会自动重启或重放遥控',
+          { 'data-wizard-resume': 'continuous_realtime' }, () => switchView('continuous'));
+      }
       const modes = [
-        ['offline','离线仿真','完成配置校验后执行一次仿真'],
-        ['limited_realtime','限时实时仿真','启动后可暂停、单步和查看实时曲线'],
-        ['continuous_realtime','持续实时仿真','持续运行，直到用户主动停止'],
+        ['offline','离线仿真','提交一次有限时长任务；结束后查看完整运行结果、曲线、事件与制品。'],
+        ['limited_realtime','限时实时仿真','按设定时长运行；支持暂停、继续、单步和实时遥控。到达时长上限后结束并归档。'],
+        ['continuous_realtime','持续实时仿真','面向长时间运行与持续遥测；由用户主动停止并归档，提供资源监测和长稳证据工具。'],
       ];
       modes.forEach(([mode,title,detail]) => {
         const support = mode === 'offline' ? { supported: true, reason: '适用于当前已选模型' } : wizardLiveModeSupport(mode);
-        option(title, support.supported ? detail : detail + ' · ' + support.reason,
+        const explanation = mode === 'limited_realtime'
+          ? '适合交互调试和短时控制；结束条件由会话时长决定。'
+          : mode === 'continuous_realtime'
+            ? '适合长稳观察和持续遥测；不会自动恢复异常进程，也不会重放遥控。'
+            : '适合标准任务执行与可重复的结果分析。';
+        option(title, [detail, explanation, support.supported ? '' : '当前不可用：' + support.reason].filter(Boolean).join(' '),
           { 'data-wizard-mode': mode, disabled: !support.supported, 'aria-disabled': String(!support.supported) },
           () => wizardChooseMode(mode));
       });
@@ -9931,7 +10452,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('graphCapabilitySearch').addEventListener('input', renderGraphPalette);
     $all('[data-graph-block]').forEach((button) => button.addEventListener('dragstart', (event) => graphTransfer(event, { kind: 'block', type: button.dataset.graphBlock })));
-    el('graphCanvas').addEventListener('dragover', (event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; el('graphCanvas').classList.add('drag-over'); });
+    el('graphCanvas').addEventListener('dragover', (event) => { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === 'move' ? 'move' : 'copy'; el('graphCanvas').classList.add('drag-over'); });
     el('graphCanvas').addEventListener('dragleave', (event) => { if (!el('graphCanvas').contains(event.relatedTarget)) el('graphCanvas').classList.remove('drag-over'); });
     el('graphCanvas').addEventListener('drop', (event) => graphHandleDrop(event).catch((error) => graphSetStatus(error.message, 'error')));
     el('graphCanvas').addEventListener('click', (event) => { if (event.target === el('graphCanvas') || event.target === el('graphNodes')) { graphCancelConnection(); state.graphSelectedNodeId = null; state.graphSelectedEdgeId = null; renderGraph(); } });
@@ -9957,6 +10478,23 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('graphAutoWireBtn').addEventListener('click', () => graphAutoWire());
     el('graphAutoLayoutBtn').addEventListener('click', graphAutoLayout);
     el('graphValidateBtn').addEventListener('click', async () => { showBusy('校验图形流程', '节点结构 → TaskSpec → 执行计划'); try { await graphCompile({ requireCode: true, requireRun: true }); } catch (error) { graphSetStatus(error.message, 'error'); } finally { hideBusy(); } });
+    el('graphGuideChooseModuleBtn')?.addEventListener('click', () => {
+      const palette = el('graphCapabilityPalette');
+      palette?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el('graphCapabilitySearch')?.focus({ preventScroll: true });
+      graphSetStatus('在左侧模块库搜索并拖入执行能力；放置后可继续添加流程块。');
+    });
+    el('graphGuideRestoreBtn')?.addEventListener('click', () => {
+      if (state.graphNodes.length && !confirm('恢复推荐流程会替换当前流程节点和连线。确定继续吗？')) return;
+      graphInitialize(true);
+      graphAutoLayout();
+      graphSetStatus('已恢复推荐流程。你可以调整参数、拖动节点或重新连接端口。', 'success');
+    });
+    el('graphGuideAutoWireBtn')?.addEventListener('click', () => {
+      if (state.graphEdges.length && !confirm('自动布线会替换当前全部连线，但不会删除节点。确定继续吗？')) return;
+      graphAutoWire();
+    });
+    el('graphGuideValidateBtn')?.addEventListener('click', () => el('graphValidateBtn')?.click());
     el('graphResultOverlayBtn').addEventListener('click', () => openVisualRunResults('flow').catch((error) => graphSetStatus(`打开结果失败：${error.message}`, 'error')));
     el('graphGenerateCodeBtn').addEventListener('click', async () => { showBusy('生成可执行 Python', '使用受约束 deterministic script exporter'); try { await graphGeneratePython(); } catch (error) { graphSetStatus(error.message, 'error'); } finally { hideBusy(); } });
     el('graphExportProgramBtn').addEventListener('click', async () => { showBusy('导出可运行程序包', 'TaskSpec + Python + 启动脚本'); try { await graphExportProgram(); } catch (error) { graphSetStatus(`程序包导出失败：${error.message}`, 'error'); } finally { hideBusy(); } });
@@ -9970,6 +10508,13 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await saveCurrentTask('new'); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
     });
     el('updateTaskBtn').addEventListener('click', async () => { showBusy('更新仿真任务','写入任务中心新版本'); try { await saveCurrentTask('update'); } catch (error) { showNotice(error.message,'error'); } finally { hideBusy(); } });
+    $all('[data-wizard-parameter-mode]').forEach((button) => button.addEventListener('click', () => setWizardParameterMode(button.dataset.wizardParameterMode)));
+    el('wizardParameterSearch')?.addEventListener('input', () => {
+      renderForm();
+      renderWizardParameterControls();
+    });
+    el('wizardOutputSearch')?.addEventListener('input', renderWizardCurveChoices);
+    el('wizardRestoreOutputDefaultsBtn')?.addEventListener('click', wizardRestoreOutputDefaults);
     el('formFieldSearch').addEventListener('input', renderForm);
     el('showAdvancedFields').addEventListener('change', renderForm);
     el('acceptAgentChangesBtn').addEventListener('click', clearAgentChanges);
@@ -10034,6 +10579,18 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
         el('wizardNotice').textContent = 'TaskSpec 已应用；尚未启动仿真。';
       } catch (error) { el('wizardNotice').textContent = '应用失败：' + error.message; }
       finally { hideBusy(); }
+    });
+    el('wizardOpenGraphBtn').addEventListener('click', async () => {
+      try {
+        showBusy('应用 TaskSpec 并打开图形画布', '复用当前任务配置和原生图形编辑器');
+        await syncEditorToForm();
+        if (openCurrentConfigurationInGraph('TaskSpec')) el('wizardNotice').textContent = 'TaskSpec 已应用并打开图形画布；尚未运行仿真。';
+      } catch (error) {
+        el('wizardNotice').textContent = '打开图形画布失败：' + error.message;
+      } finally { hideBusy(); }
+    });
+    el('wizardOpenGraphFromConfigBtn').addEventListener('click', () => {
+      openCurrentConfigurationInGraph('当前仿真配置');
     });
     el('previewBtn').addEventListener('click', async () => {
       const graphMode = document.querySelector('.tab.active')?.dataset.tab === 'graph';
@@ -10128,6 +10685,11 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveCommandOperation').addEventListener('change', renderInteractiveCommandForm);
     el('interactiveSendCommandBtn').addEventListener('click', () => sendInteractiveCommand().catch(error => interactiveNotice(error.message, 'error')));
     $all('.nav-button[data-view]').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+    $all('[data-return-wizard]').forEach((button) => button.addEventListener('click', () => {
+      switchView('wizard');
+      wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
+      renderSimulationWizard();
+    }));
     $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardShortcut)));
     el('wizardTaskSearch').addEventListener('input', () => { el('taskSearch').value = el('wizardTaskSearch').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
     el('wizardTaskStatus').addEventListener('change', () => { el('taskStatusFilter').value = el('wizardTaskStatus').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });

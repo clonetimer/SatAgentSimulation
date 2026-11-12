@@ -96,7 +96,17 @@ def _reveal_with_keyboard(page, selector, label, tmp_path, records):
         assert summary.evaluate("(node) => document.activeElement === node")
         summary.press("Enter")
         page.wait_for_function("(index) => document.querySelectorAll('details')[index].open", arg=index)
-    assert page.locator(selector).is_visible()
+    visible = page.locator(selector).is_visible()
+    if not visible:
+        visibility = page.locator(selector).evaluate("""node => {
+            const chain=[]; for(let p=node;p;p=p.parentElement) chain.push({
+              tag:p.tagName,id:p.id,className:p.className,
+              display:getComputedStyle(p).display,visibility:getComputedStyle(p).visibility,
+              hidden:p.hidden,rect:(()=>{const r=p.getBoundingClientRect();return [r.width,r.height]})()
+            });
+            return chain;
+        }""")
+        raise AssertionError(f"{selector} remains hidden after disclosure: {visibility}")
     return _navigation_snapshot(page, selector, label + "-after", tmp_path, records)
 
 
@@ -157,14 +167,61 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").count() == 1
             page.locator("#wizardOptions [data-wizard-mode='limited_realtime']").click()
             page.locator("#interactiveView").wait_for(state="visible", timeout=15000)
+            assert page.locator("#interactiveCreateDetails").evaluate("(el) => el.open")
             assert page.locator("#wizardView").is_visible()
             assert page.locator("#interactiveView").evaluate("(node) => node.closest('#wizardView') !== null")
             page.locator("#interactiveWizardBackBtn").click()
             page.locator("#wizardOptions [data-wizard-mode='offline']").wait_for(state="visible")
+            page.locator("#wizardOptions [data-wizard-mode='offline']").click()
+            page.locator("#wizardConfigSections").wait_for(state="visible")
+            # P2: the wizard exposes three disclosure levels without removing
+            # or rebuilding the authoritative Schema-backed form.
+            page.locator("#wizardParametersPanel > summary").click()
+            form = page.locator("#wizardParameterHost #dynamicForm")
+            form.wait_for(state="attached")
+            registered_field_count = form.locator(".form-field").count()
+            assert registered_field_count > 0
+            page.locator('[data-wizard-parameter-mode="runtime"]').click()
+            assert form.get_attribute("data-wizard-parameter-mode") == "runtime"
+            assert not form.is_visible()
+            assert form.locator(".form-field").count() == registered_field_count
+            page.locator('#wizardParametersPanel button[data-wizard-parameter-mode="recommended"]').click()
+            assert form.get_attribute("data-wizard-parameter-mode") == "recommended"
+            assert form.is_visible()
+            page.locator('#wizardParametersPanel button[data-wizard-parameter-mode="all"]').click()
+            assert form.get_attribute("data-wizard-parameter-mode") == "all"
+            assert page.locator('#wizardParametersPanel button[data-wizard-parameter-mode="all"]').get_attribute("aria-pressed") == "true"
+            assert form.locator(".parameter-section[open]").count() > 0
+            page.locator('#wizardParametersPanel button[data-wizard-parameter-mode="recommended"]').click()
+            page.locator("#wizardParameterSearch").fill("orbit")
+            assert form.locator(".form-field").count() > 0
+            page.locator("#wizardParameterSearch").fill("")
+            # P3: purpose-first observability keeps QoI and time-series separate,
+            # and only exposes fields supplied by the selected capability schema.
+            qoi_rows = page.locator("#wizardQoiChoices .wizard-qoi-row")
+            curve_rows = page.locator("#wizardCurveChoices .wizard-curve-row")
+            assert qoi_rows.count() > 0
+            assert curve_rows.count() > 0
+            assert page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").count() == 1
+            page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").click()
+            assert page.locator("#wizardOutputPurposes [data-output-purpose='attitude']").get_attribute("aria-pressed") == "true"
+            assert page.locator("#wizardCurveChoices .wizard-curve-card").count() > 0
+            technical_name = page.locator("#wizardCurveChoices .wizard-curve-technical code").first.evaluate("(node) => node.textContent")
+            page.locator("#wizardOutputSearch").fill(technical_name)
+            assert page.locator("#wizardCurveChoices .wizard-curve-technical code").count() == 1
+            assert "匹配" in page.locator("#wizardOutputSearchCount").inner_text()
+            page.locator("#wizardOutputSearch").fill("")
+            page.locator("#wizardOutputPurposes [data-output-purpose='all']").click()
+            page.locator("#wizardRestoreOutputDefaultsBtn").click()
+            assert "恢复当前模型 Schema 提供的推荐输出组合" in page.locator("#wizardNotice").inner_text()
+            assert page.locator("#wizardQoiChoices input:checked").count() > 0
+            assert page.locator("#wizardCurveChoices .wizard-curve-row input:checked").count() > 0
+            page.locator("#wizardBackBtn").click()
+            page.locator("#wizardOptions [data-wizard-mode='offline']").wait_for(state="visible")
             # The default entry is now the rule-driven wizard; this regression
             # exercises the advanced realtime controls and explicitly enters
             # the retained engineering workbench before editing its form.
-            page.locator(".nav-button[data-view=creator]").click()
+            page.locator("#wizardAdvancedBtn").click()
             # Edit the current offline whole-spacecraft form, then import the
             # same approved native value into each realtime UI. Browser test
             # checks only UI/API wiring; it never claims physical equivalence.
@@ -188,9 +245,11 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator("#interactiveOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
             assert "orbit_radius_m" in page.locator("#interactiveOfflineConfigStatus").inner_text()
             assert running == []  # Review must not auto-start a physical run.
-            page.locator(".nav-button[data-view='creator']").click()
+            page.locator("#wizardRealtimeBackBtn").click()
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#modeContinuousRealtimeBtn").click()
             page.locator("#continuousView").wait_for(state="visible", timeout=15000)
+            assert page.locator("#continuousCreateDetails").evaluate("(el) => el.open")
             assert page.locator("#wizardView").is_visible()
             assert page.locator("#continuousView").evaluate("(node) => node.closest('#wizardView') !== null")
             assert "参数审核完成" in page.locator("#simulationModeChooserStatus").inner_text()
@@ -239,6 +298,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert len(running) == 1
             assert page.locator("#continuousState").inner_text() == "准备就绪"
             assert page.locator("#continuousState").get_attribute("title") == "READY"
+            assert not page.locator("#continuousCreateDetails").evaluate("(el) => el.open")
+            assert not page.locator("#continuousEngineeringDetails").evaluate("(el) => el.open")
             assert page.locator("#continuousCommandSubmit").is_enabled()
             original = client.get("/interactive/continuous/sessions/browser-r7d/configuration")
             assert original.status_code == 200, original.text
@@ -281,6 +342,20 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 "() => document.querySelector('#continuousOrbit').textContent.includes('7000000')",
                 timeout=15000,
             )
+            # Leaving the wizard must not stop the live session; the wizard
+            # should offer a direct re-entry action for the same session.
+            active_session_id = page.locator("#continuousSelectedSessionSummary strong").inner_text()
+            page.locator("#continuousWizardBackBtn").click()
+            resume = page.locator("#wizardOptions [data-wizard-resume='continuous_realtime']")
+            resume.wait_for(state="visible", timeout=10000)
+            assert active_session_id in resume.inner_text()
+            resume.click()
+            page.locator("#continuousView").wait_for(state="visible", timeout=10000)
+            page.wait_for_function(
+                "() => document.querySelector('#continuousState').dataset.state === 'RUNNING'",
+                timeout=10000,
+            )
+            assert page.locator("#continuousSelectedSessionSummary strong").inner_text() == active_session_id
             page.wait_for_function(
                 "() => document.querySelector('#continuousAckList').textContent.includes('ACKED')",
                 timeout=15000,
@@ -339,9 +414,10 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 timeout=12000,
             )
             assert page.locator("#continuousState").inner_text() == "已暂停"
-            page.locator(".nav-button[data-view=wizard]:not([data-wizard-shortcut])").click()
+            page.locator("#wizardRealtimeBackBtn").click()
             assert any("实时会话仍处于活动状态" in message for message in dialog_messages)
-            page.locator(".nav-button[data-view=continuous]").click()
+            page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").wait_for(state="visible", timeout=15000)
+            page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").click()
             page.locator("#continuousView").wait_for(state="visible", timeout=15000)
             assert page.locator("#continuousState").inner_text() == "已暂停"
             assert page.locator("#continuousState").get_attribute("title") == "PAUSED"
@@ -464,6 +540,9 @@ def test_command_availability_when_catalog_arrives_after_session(
                     headers={"content-type": response.headers.get("content-type", "application/json")})
             page.route("https://workbench.test/**", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            # Enter the retained engineering workspace through the visible wizard action;
+            # the guided shell intentionally hides the legacy sidebar in realtime mode.
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
             delay_catalog = True
             page.locator("#continuousNavButton").click(timeout=30000)
@@ -536,6 +615,7 @@ def test_fourth_wheel_catalog_does_not_enable_unobserved_channel(tmp_path, monke
                               headers={"content-type":response.headers.get("content-type","application/json")})
             page.route("https://workbench.test/**",proxy)
             page.goto("https://workbench.test/",wait_until="domcontentloaded")
+            page.locator("#wizardAdvancedBtn").click()
             page.locator("#continuousNavButton").click(timeout=30000)
             page.wait_for_function("() => document.querySelector('#continuousStream').options.length > 0")
             # Contract has arrived, but no frame has reached this page yet.

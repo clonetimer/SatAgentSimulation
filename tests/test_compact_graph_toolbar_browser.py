@@ -53,7 +53,25 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     page.locator('#toggleMobileToolsBtn').focus();page.keyboard.press('Enter')
                     page.locator('#fontScaleSelect').select_option(font)
                     page.locator('#toggleMobileToolsBtn').click()
-                page.locator('#creatorGraphTabButton').click()
+                tools = page.locator('#wizardAdditionalTools')
+                tools.locator('summary').click()
+                assert tools.get_attribute('open') is not None
+                tools.locator('[data-wizard-goal="graph"]').click()
+                page.locator('#creatorGraphTabButton').wait_for(state='visible')
+                page.locator('#graphConversationGuide').wait_for(state='visible')
+                assert '建模助手' in page.locator('#graphConversationGuide').inner_text()
+                assert page.locator('#graphGuideNextTitle').inner_text().strip()
+                assert page.locator('#graphGuideNextDetail').inner_text().strip()
+                page.locator('#graphGuideChooseModuleBtn').click()
+                assert page.locator('#graphCapabilitySearch').evaluate(
+                    '(node) => node === document.activeElement'
+                )
+                capability = page.locator('#graphCapabilityPalette .graph-palette-item').first
+                capability.dblclick()
+                page.wait_for_function(
+                    '() => document.querySelector("#graphStatus").textContent.includes("已装入执行能力")'
+                )
+                assert not page.locator('#graphGuideRestoreBtn').is_disabled()
                 for mode in ['flow','assembly']:
                     page.locator('#graphFlowModeBtn' if mode=='flow' else '#graphAssemblyModeBtn').click()
                     if mode=='assembly':
@@ -108,8 +126,128 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     page.locator('#graphValidateBtn').click()
                     assert 'error' in (page.locator('#graphStatus').get_attribute('class') or '')
                     page.locator('#graphStatus').scroll_into_view_if_needed();assert page.locator('#graphStatus').is_visible()
+                    # On desktop, prove the module palette performs real HTML
+                    # drag/drop. At narrow widths keep the same canvas and
+                    # keyboard checks without assuming touch drag support.
+                    if width >= 760:
+                        canvas_box = page.locator('#graphCanvas').bounding_box()
+                        assert canvas_box and canvas_box['width'] > 40 and canvas_box['height'] > 40
+                        drop_position = {
+                            'x': min(160, max(20, canvas_box['width'] - 20)),
+                            'y': min(160, max(20, canvas_box['height'] - 20)),
+                        }
+                        page.locator('[data-graph-block="config"]').drag_to(
+                            page.locator('#graphCanvas'), target_position=drop_position
+                        )
+                        assert page.locator('#graphNodes .graph-node').count() == 1
+                        assert page.locator('.graph-node[data-node-id="graph-config"]').is_visible()
                     page.locator('#graphResetBtn').click()
                     assert page.locator('#graphNodes .graph-node').count()>0
+
+                    # Exercise the conversational guide against the real graph
+                    # controller: confirmed restore, constrained auto-wire,
+                    # and server-side graph compilation (no simulation run).
+                    restore_dialogs = []
+                    page.once('dialog', lambda dialog: (restore_dialogs.append(dialog.message), dialog.accept()))
+                    page.locator('#graphGuideRestoreBtn').click()
+                    assert restore_dialogs and '恢复推荐流程' in restore_dialogs[0]
+                    assert page.locator('#graphNodes .graph-node').count() == 6
+                    wire_dialogs = []
+                    page.once('dialog', lambda dialog: (wire_dialogs.append(dialog.message), dialog.accept()))
+                    page.locator('#graphGuideAutoWireBtn').click()
+                    assert wire_dialogs and '自动布线' in wire_dialogs[0]
+                    assert page.locator('#graphEdges .graph-edge').count() == 6
+                    with page.expect_response(lambda response: response.url.endswith('/tasks/compile-graph')) as compile_response:
+                        page.locator('#graphGuideValidateBtn').click()
+                    assert compile_response.value.ok
+                    assert 'success' in (page.locator('#graphStatus').get_attribute('class') or '')
+                    assert page.locator('#graphGuideNextTitle').inner_text() == '正式校验已通过，可以生成 Python'
+
+                    # Real HTML5 drag/drop of a node plus undo/redo on desktop.
+                    # Scroll the source into the viewport before calculating the
+                    # target; target_position is relative to the canvas locator.
+                    node = page.locator('.graph-node[data-node-id="graph-outputs"]')
+                    assert node.is_visible()
+                    if width >= 760:
+                        canvas = page.locator('#graphCanvas')
+                        head = node.locator('.graph-node-head')
+                        assert head.get_attribute('draggable') == 'true'
+                        head.scroll_into_view_if_needed()
+                        canvas.scroll_into_view_if_needed()
+                        canvas_box = canvas.bounding_box()
+                        head_box = head.bounding_box()
+                        viewport = page.viewport_size
+                        assert canvas_box and head_box and viewport
+                        # Move the outputs node into a clear lower-middle
+                        # canvas region, away from the other five default nodes.
+                        target_position = {'x': 500, 'y': 420}
+                        target_abs_x = canvas_box['x'] + target_position['x']
+                        target_abs_y = canvas_box['y'] + target_position['y']
+                        assert target_abs_x < viewport['width'] - 1
+                        assert target_abs_y < viewport['height'] - 1
+                        page.evaluate("""() => {
+                            window.__graphDragSourceNode = null;
+                            window.__graphDropEffect = null;
+                            window.__graphDropCount = 0;
+                            document.addEventListener('dragstart', (event) => {
+                                window.__graphDragSourceNode = event.target.closest('.graph-node')?.dataset.nodeId || null;
+                            }, true);
+                            window.__graphDropTypes = [];
+                            window.__graphDropPayload = null;
+                            const canvas = document.querySelector('#graphCanvas');
+                            canvas.addEventListener('dragover', (event) => {
+                                window.__graphDropEffect = event.dataTransfer.dropEffect;
+                            });
+                            canvas.addEventListener('drop', (event) => {
+                                window.__graphDropCount += 1;
+                                window.__graphDropTypes = Array.from(event.dataTransfer.types);
+                                window.__graphDropPayload = event.dataTransfer.getData('application/x-sat-graph')
+                                    || event.dataTransfer.getData('text/plain');
+                            });
+                        }""")
+                        head.evaluate("""(element) => {
+                            element.addEventListener('dragstart', (event) => {
+                                window.__graphDragTypes = Array.from(event.dataTransfer.types);
+                                window.__graphDragPayload = event.dataTransfer.getData('application/x-sat-graph')
+                                    || event.dataTransfer.getData('text/plain');
+                            });
+                        }""")
+                        before = node.evaluate('(el) => [el.style.left, el.style.top]')
+                        head.drag_to(
+                            canvas,
+                            source_position={
+                                'x': min(28, head_box['width'] / 2),
+                                'y': min(16, head_box['height'] / 2),
+                            },
+                            target_position=target_position,
+                        )
+                        after = node.evaluate('(el) => [el.style.left, el.style.top]')
+                        assert page.evaluate('() => window.__graphDragSourceNode') == 'graph-outputs'
+                        assert page.evaluate('() => window.__graphDropEffect') == 'move'
+                        assert page.evaluate('() => window.__graphDropCount') > 0
+                        # The browser exposes the native transfer payload at drop.
+                        # dragstart's DataTransfer readback is implementation-dependent
+                        # in Chromium automation, so assert the real drop event instead.
+                        drop_types = page.evaluate('() => window.__graphDropTypes')
+                        drop_payload = page.evaluate('() => window.__graphDropPayload')
+                        assert 'application/x-sat-graph' in (drop_types or []), drop_types
+                        assert drop_payload and json.loads(drop_payload) == {
+                            'kind': 'move-node', 'nodeId': 'graph-outputs'
+                        }, drop_payload
+                        assert after != before, {
+                            'before': before,
+                            'after': after,
+                            'drag_source_node': page.evaluate('() => window.__graphDragSourceNode'),
+                            'drop_types': drop_types,
+                            'drop_payload': drop_payload,
+                            'target': target_position,
+                            'canvas': canvas_box,
+                        }
+                        page.locator('#graphUndoBtn').click()
+                        assert node.evaluate('(el) => [el.style.left, el.style.top]') == before
+                        page.locator('#graphRedoBtn').click()
+                        assert node.evaluate('(el) => [el.style.left, el.style.top]') == after
+
                     edit.locator('summary').focus();page.keyboard.press('Enter')
                     project=page.locator('#graphProjectActions');project.locator('summary').focus();page.keyboard.press('Space')
                     page.locator('#graphSaveDraftBtn').click();page.locator('#graphLoadDraftBtn').click()

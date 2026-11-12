@@ -55,7 +55,10 @@ def test_pending_generation_has_one_owner_across_agent_and_run(tmp_path, first_a
             page.route('https://workbench.test/**',proxy)
             page.goto('https://workbench.test/',wait_until='networkidle')
             page.locator('.capability-card.active').wait_for(state='attached')
-            page.locator('#wizardAdvancedBtn').click()
+            advanced_button = page.locator('#wizardAdvancedBtn')
+            if advanced_button.is_visible():
+                advanced_button.click()
+            page.locator('#creatorAgentTabButton').wait_for(state='visible')
             assert page.locator('#taskSpecEditor').input_value()==''
             page.locator('#creatorAgentTabButton').click()
             page.locator('#agentRefineCurrent').uncheck()

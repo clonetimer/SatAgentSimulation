@@ -1748,3 +1748,152 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   .goal-detail-header { flex-direction: column; }
   .goal-create-actions { align-items: stretch; }
 }
+
+/* P5: shared selected-session summary for both realtime execution modes. */
+.realtime-current-session {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  min-width: 0;
+}
+.realtime-current-session > span {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: .02em;
+}
+.realtime-current-session > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 11px;
+}
+.realtime-current-session > small {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.realtime-current-session[data-state="RUNNING"] {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+}
+.realtime-current-session[data-state="FAILED"],
+.realtime-current-session[data-state="INTERRUPTED"],
+.realtime-current-session[data-state="ABORTED"] {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+}
+
+.realtime-control-button {
+  min-width: 76px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.interactive-controls .realtime-control-button {
+  width: auto;
+  flex: 0 1 auto;
+  padding-inline: 11px;
+}
+@media (max-width: 560px) {
+  .interactive-controls .realtime-control-button {
+    min-width: 0;
+    flex: 1 1 calc(33.333% - 8px);
+  }
+  .interactive-controls .danger-icon { margin-left: 0; }
+}
+
+/* P5 UX: keep session creation available but out of the active monitoring path. */
+.realtime-create-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  list-style: none;
+  padding: 2px 0;
+}
+.realtime-create-disclosure > summary::-webkit-details-marker { display: none; }
+.realtime-create-disclosure > summary::after {
+  content: '展开';
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.realtime-create-disclosure[open] > summary::after { content: '收起'; }
+.realtime-create-disclosure > summary span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+  text-align: right;
+}
+.realtime-create-disclosure[open] > summary { margin-bottom: 12px; }
+.realtime-create-disclosure > form,
+.realtime-create-disclosure > label,
+.realtime-create-disclosure > p,
+.realtime-create-disclosure > div,
+.realtime-create-disclosure > button { min-width: 0; }
+.realtime-create-disclosure > form { margin-top: 8px; }
+.interactive-create .realtime-create-disclosure:not([open]) { padding-bottom: 1px; }
+.continuous-sidebar .realtime-create-disclosure:not([open]) { padding: 2px 0; }
+
+.continuous-engineering-disclosure {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.continuous-engineering-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+.continuous-engineering-disclosure > summary::-webkit-details-marker { display: none; }
+.continuous-engineering-disclosure > summary::after {
+  content: '展开';
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.continuous-engineering-disclosure[open] > summary::after { content: '收起'; }
+.continuous-engineering-disclosure > summary span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+  text-align: right;
+}
+.continuous-engineering-disclosure > .continuous-card {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.interactive-health-overview { padding: 12px 14px 4px; border-bottom: 1px solid var(--line); }
+.interactive-health-overview .section-heading { margin-bottom: 9px; }
+.interactive-health-overview .section-heading h3 { margin: 0; font-size: 11px; }
+.interactive-health-overview .section-heading > span { color: var(--muted); font-size: 9px; }
+.interactive-health-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-bottom: 10px; }
+.interactive-health-item { min-width: 0; display: grid; gap: 4px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
+.interactive-health-item span { color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
+.interactive-health-item strong { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .interactive-health-grid { grid-template-columns: 1fr; } }

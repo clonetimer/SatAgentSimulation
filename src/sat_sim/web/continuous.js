@@ -77,6 +77,8 @@
   }
   function selectSession(sessionId) {
     state.selectedId = sessionId;
+    const createDisclosure = $('continuousCreateDetails');
+    if (createDisclosure) createDisclosure.open = false;
     state.focusSelectedStatus = true;
     state.snapshot = null; state.metrics = null; state.recovery = null; state.endurance = null;
     state.events = []; state.acks = []; state.lastEventSeq = -1;
@@ -103,6 +105,18 @@
         return typeof value === 'number' && Number.isFinite(value);
       });
   }
+  function continuousTelemetryLabel(field) {
+    const labels = {
+      'orbit.radius_m': '轨道半径（m）',
+      'orbit.altitude_m': '轨道高度（m）',
+      'adcs.pointing_error_deg': '姿态指向误差（°）',
+      'eps.battery_soc': '电池荷电状态（SOC）',
+      'adcs.rw.speed_rad_s_0': '飞轮 1 转速（rad/s）',
+      'adcs.rw.speed_rad_s_1': '飞轮 2 转速（rad/s）',
+      'adcs.rw.speed_rad_s_2': '飞轮 3 转速（rad/s）',
+    };
+    return labels[field] || field;
+  }
   function renderStreamContract(info) {
     const catalog = info.telemetry_catalog || [];
     if (!catalog.length) throw new Error('SESSION_TELEMETRY_CATALOG_EMPTY');
@@ -123,7 +137,7 @@
     const signal = $('continuousSignal');
     fields.forEach(field => {
       if (![...signal.options].some(option => option.value === field)) {
-        const option = element('option', field); option.value = field; signal.append(option);
+        const option = element('option', continuousTelemetryLabel(field)); option.value = field; option.title = field; signal.append(option);
       }
     });
     [...signal.options].forEach(option => {
@@ -142,15 +156,44 @@
       input.disabled = !fields.includes(input.value); if (input.disabled) input.checked = false;
     });
   }
+  function renderSelectedSessionSummary() {
+    const host = $('continuousSelectedSessionSummary');
+    if (!host) return;
+    const session = state.snapshot?.session;
+    host.replaceChildren();
+    const eyebrow = element('span', '当前会话');
+    const title = element('strong', session?.session_id || '尚未选择会话');
+    const detail = element('small', session
+      ? [
+          '整星',
+          '持续实时',
+          sessionStateLabels[session.state] || session.state || '状态未知',
+          valueText(session.sim_time_s, 2) + ' s',
+          valueText(session.rate || 1, 1) + '×',
+        ].join(' · ')
+      : '创建新会话或从列表中选择已有会话。');
+    if (session?.terminal_error || session?.archive_error) detail.title = session.terminal_error || session.archive_error;
+    host.append(eyebrow, title, detail);
+    host.dataset.state = session?.state || 'NONE';
+  }
+
   function renderSessionList(sessions) {
     const target = $('continuousSessionList');
     target.replaceChildren();
+    if (!state.createDisclosureInitialized) {
+      const disclosure = $('continuousCreateDetails');
+      if (disclosure) disclosure.open = sessions.length === 0;
+      state.createDisclosureInitialized = true;
+    }
+    renderSelectedSessionSummary();
     setText('continuousSessionCount', sessions.length);
     if (!sessions.length) {
       target.append(element('p', '尚无持续会话，填写上方表单创建。', 'continuous-muted'));
       return;
     }
-    sessions.forEach((session) => {
+    const orderedSessions = [...sessions].sort((a, b) =>
+      Number(b.session_id === state.selectedId) - Number(a.session_id === state.selectedId));
+    orderedSessions.forEach((session) => {
       const node = element('button', '', 'continuous-session' +
         (session.session_id === state.selectedId ? ' active' : ''));
       node.type = 'button';
@@ -380,6 +423,7 @@
         });
       }
     }
+    renderSelectedSessionSummary();
     const live = Boolean(session) && !terminal.has(session.state);
     const mode = info?.runtime_mode || state.policy?.mode || '未连接';
     setText('continuousRuntimeMode', mode === 'SUPERVISED_NATIVE_CHILD'
@@ -402,7 +446,7 @@
     setText('continuousErrorDetail', session?.terminal_error || session?.archive_error || '');
     document.querySelectorAll('[data-continuous-action]').forEach((button) => {
       const action = button.dataset.continuousAction;
-      button.disabled = !live || (
+      button.disabled = state.controlSending || !live || (
         action === 'start' ? session.state !== 'READY'
           : action === 'pause' ? session.state !== 'RUNNING'
           : action === 'resume' ? session.state !== 'PAUSED'
@@ -412,6 +456,36 @@
     });
     updateCommandAvailability();
   }
+  function continuousEventLabel(event) {
+    const labels = {
+      READY: '会话已就绪', RUNNING: '仿真开始运行', PAUSED: '仿真已暂停',
+      COMPLETED: '仿真正常完成', FAILED: '仿真执行失败', ABORTED: '仿真已中止',
+      INTERRUPTED: '仿真发生中断', STOPPING: '正在停止仿真',
+    };
+    const stateLabel = labels[String(event.state || '').toUpperCase()] || event.state || '状态未知';
+    const previous = event.previous_state
+      ? (labels[String(event.previous_state).toUpperCase()] || event.previous_state) + ' → '
+      : '';
+    return previous + stateLabel;
+  }
+
+  function continuousAckLabel(ack) {
+    const labels = {
+      QUEUED: '已排队，等待执行',
+      ACKNOWLEDGED: '服务端已确认',
+      ACKED: '服务端已确认',
+      ACCEPTED: '服务端已接收',
+      REJECTED: '指令已拒绝',
+      EXECUTED: '指令已执行',
+      COMPLETED: '指令执行完成',
+      FAILED: '指令执行失败',
+      ABORTED: '指令已中止',
+      CANCELLED: '指令已取消',
+    };
+    return (labels[String(ack.state || '').toUpperCase()] || ack.state || '状态未知')
+      + ' · ' + (ack.operation || ack.command_id || '遥控指令');
+  }
+
   function renderLog(id, rows, formatter) {
     const node = $(id);
     node.replaceChildren();
@@ -423,8 +497,9 @@
     tail.forEach((row) => {
       const line = element('div', undefined, 'continuous-log-item');
       line.append(element('strong', formatter(row)), element('small',
-        [row.reason_code, row.sim_time_s === null || row.sim_time_s === undefined
-          ? '' : valueText(row.sim_time_s, 2) + ' s'].filter(Boolean).join(' · ')));
+        [row.state ? '原始状态 ' + row.state : '', row.reason_code,
+          row.sim_time_s === null || row.sim_time_s === undefined
+            ? '' : valueText(row.sim_time_s, 2) + ' s'].filter(Boolean).join(' · ')));
       node.append(line);
     });
   }
@@ -643,7 +718,10 @@
       renderCreationPolicy(creationPolicy);
       state.policy = overview;
       const sessions = overview.sessions || [];
-      if (!state.selectedId && sessions.length) state.selectedId = sessions[0].session_id;
+      if (!state.selectedId && sessions.length) {
+        const activeSession = sessions.find(session => !terminal.has(String(session.state || '').toUpperCase()));
+        state.selectedId = (activeSession || sessions[0]).session_id;
+      }
       if (state.selectedId && !sessions.some((s) => s.session_id === state.selectedId)) {
         state.selectedId = null;
         state.snapshot = null;
@@ -699,8 +777,8 @@
       renderObservability();
       renderEndurance();
       latest();
-      renderLog('continuousEventList', state.events, (e) => e.state + ' · ' + (e.reason_code || ''));
-      renderLog('continuousAckList', state.acks, (a) => a.command_id + ' · ' + a.state);
+      renderLog('continuousEventList', state.events, continuousEventLabel);
+      renderLog('continuousAckList', state.acks, continuousAckLabel);
     } catch (error) {
       renderCreationPolicy(null);
       setText('continuousConnectionBadge', '连接异常');
@@ -861,6 +939,8 @@
         method: 'POST', body: JSON.stringify(body),
       });
       state.selectedId = result.session_id;
+      const createDisclosure = $('continuousCreateDetails');
+      if (createDisclosure) createDisclosure.open = false;
       state.telemetryStream = null;
       state.focusSelectedStatus = true;
       state.metrics = null;
@@ -876,16 +956,19 @@
     } catch (e) { notice('创建失败：' + e.message, true); }
   }
   async function control(action) {
-    if (!state.selectedId) return;
+    if (!state.selectedId || state.controlSending) return;
     if (action === 'stop' && !confirm('确认停止持续仿真并归档？停止后不能继续当前物理状态。')) return;
+    state.controlSending = true;
+    renderStatus();
     try {
       await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/control', {
         method: 'POST', body: JSON.stringify({ action }),
       });
-      notice({ start: '仿真已启动', pause: '仿真已暂停', resume: '已继续仿真',
-        step: '已推进一个量子', stop: '停止请求已处理' }[action] || '操作完成');
+      notice({ start: '启动请求已提交', pause: '暂停请求已提交', resume: '继续请求已提交',
+        step: '单步推进请求已提交', stop: '停止与归档请求已提交' }[action] || '控制请求已提交');
       await refresh();
     } catch (e) { notice('会话控制失败：' + e.message, true); }
+    finally { state.controlSending = false; renderStatus(); }
   }
   const commandLabels = {
     'session.mode.set': '整星 · 切换运行模式',
@@ -1088,7 +1171,7 @@
       const ack = await api('/interactive/sessions/' + encodeURIComponent(state.selectedId) + '/commands', {
         method: 'POST', body: JSON.stringify(command),
       });
-      notice('遥控 ' + ack.command_id + '：' + ack.state +
+      notice('遥控 ' + ack.command_id + '：' + continuousAckLabel(ack) +
         (ack.reason_code ? ' / ' + ack.reason_code : ''), ack.state === 'REJECTED');
       await refresh();
     } catch (error) {
@@ -1225,6 +1308,9 @@
     renderChart();
     renderVerifiedHistory();
   }
-  window.SatContinuousConsole = { enter, exit, applyNativeConfiguration, selectSession };
+  window.SatContinuousConsole = {
+    enter, exit, applyNativeConfiguration, selectSession,
+    getSelectedSessionId: () => state.selectedId,
+  };
   document.addEventListener('DOMContentLoaded', initialize);
 })();

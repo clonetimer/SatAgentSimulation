@@ -57,7 +57,10 @@ def test_manual_form_changes_remain_the_base_of_next_agent_turn(tmp_path, restor
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
         page.wait_for_selector('.capability-card.active', state='attached')
-        page.locator('#wizardAdvancedBtn').click()
+        advanced_button = page.locator('#wizardAdvancedBtn')
+        if advanced_button.is_visible():
+            advanced_button.click()
+        page.locator('#creatorAgentTabButton').wait_for(state='visible')
         page.locator('#creatorAgentTabButton').click()
         page.locator('#agentInput').fill('创建热节点仿真，功率37W。')
         page.locator('#agentParseBtn').click()
@@ -138,7 +141,10 @@ def test_previewed_task_restored_to_default_values_still_has_refinement_context(
         page.route('https://workbench.test/**', proxy)
         page.goto('https://workbench.test/', wait_until='networkidle')
         page.wait_for_selector('.capability-card.active', state='attached')
-        page.locator('#wizardAdvancedBtn').click()
+        advanced_button = page.locator('#wizardAdvancedBtn')
+        if advanced_button.is_visible():
+            advanced_button.click()
+        page.locator('#creatorAgentTabButton').wait_for(state='visible')
         duration = page.locator('[data-path="simulation.duration_s"]')
         default_duration = duration.input_value()
         page.locator('#previewBtn').click()

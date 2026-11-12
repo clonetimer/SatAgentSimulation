@@ -31,7 +31,7 @@ jobs:
           "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
           "playwright>=1.56,<2"
       - name: Install Chromium for headless UI E2E
-        run: python -m playwright install --with-deps chromium
+        run: python -m playwright install chromium
       - name: Exercise live continuous Web console in real Chromium
         env:
           PYTHONPATH: "src:."
