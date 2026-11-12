@@ -14,6 +14,7 @@ on:
       - "tests/test_compact_graph_toolbar_browser.py"
       - "tests/test_guided_task_workspace_browser.py"
       - "tests/test_p7c_shared_workbench_context.py"
+      - "tests/test_p7c_c2_run_navigation.py"
       - "tests/js/shared_context_vm.js"
       - ".github/workflows/single-run-creator-ux.yml"
   workflow_dispatch:
