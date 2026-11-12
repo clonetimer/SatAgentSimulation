@@ -5512,6 +5512,10 @@
     rows.push({ path: prefix || '$', before, after }); return rows;
   }
 
+  function agentCandidateBaseSnapshot() {
+    return { capabilityId: state.selectedCapabilityId, formData: clone(state.formData), taskSpec: clone(state.taskSpec), graph: graphSerialize(), activeTaskCenterId: state.activeTaskCenterId };
+  }
+
   function renderAgentCandidatePreview() {
     const host = el('wizardAgentCandidatePreview'); if (!host) return;
     host.replaceChildren(); const candidate = state.agentCandidate;
@@ -5520,9 +5524,21 @@
     const spec = candidate.taskSpec;
     const summary = document.createElement('p'); summary.textContent = `${spec?.task?.name || '未命名任务'} · ${spec?.model?.capability_id || spec?.capability_id || '未声明 Capability'} · ${candidate.diff.length} 处字段差异`;
     const graph = document.createElement('div'); graph.className = 'agent-candidate-graph';
-    const graphTitle = document.createElement('strong'); graphTitle.textContent = '图形骨架预览';
-    const graphText = document.createElement('p'); graphText.textContent = `${GRAPH_FLOW_ORDER.map((type) => GRAPH_BLOCK_META[type]?.title || type).join(' → ')}；${GRAPH_FLOW_ORDER.length} 个标准节点。此处为预览，不代表服务端图校验已通过。`;
-    graph.append(graphTitle, graphText);
+    const graphTitle = document.createElement('strong'); graphTitle.textContent = '候选图形流程预览';
+    const graphText = document.createElement('p'); graphText.textContent = `基于当前 Capability 的标准流程骨架 · ${GRAPH_FLOW_ORDER.length} 个节点。此处为预览，不代表服务端图校验已通过。`;
+    const flow = document.createElement('div'); flow.className = 'agent-candidate-flow';
+    GRAPH_FLOW_ORDER.forEach((type, index) => {
+      const node = document.createElement('div'); node.className = 'agent-candidate-node'; node.dataset.nodeType = type;
+      const title = document.createElement('strong'); title.textContent = GRAPH_BLOCK_META[type]?.title || type;
+      const detail = document.createElement('small'); detail.textContent = type === 'model'
+        ? (spec?.model?.capability_id || spec?.capability_id || '候选执行能力')
+        : ({ config: '运行参数', effects: '故障与工况', outputs: '观测指标', code: '受约束代码生成', run: '仿真执行' }[type] || '工作流节点');
+      node.append(title, detail); flow.appendChild(node);
+      if (index < GRAPH_FLOW_ORDER.length - 1) {
+        const edge = document.createElement('span'); edge.className = 'agent-candidate-edge'; edge.setAttribute('aria-hidden', 'true'); edge.textContent = '→'; flow.appendChild(edge);
+      }
+    });
+    graph.append(graphTitle, graphText, flow);
     const table = document.createElement('div'); table.className = 'agent-candidate-diff';
     candidate.diff.slice(0, 24).forEach((item) => {
       const row = document.createElement('div'); row.className = 'agent-candidate-diff-row';
@@ -5544,6 +5560,11 @@
 
   async function applyAgentCandidate(openGraph = false) {
     const candidate = state.agentCandidate; if (!candidate?.taskSpec) return;
+    const currentSnapshot = agentCandidateBaseSnapshot();
+    if (!equivalentJSONValues(candidate.baseSnapshot, currentSnapshot)) {
+      el('wizardNotice').textContent = '当前任务或图形画布在候选生成后已发生变化。为避免覆盖新编辑，请重新生成候选或先恢复到生成时的配置。';
+      return;
+    }
     try {
       showBusy('应用候选任务', '重新投影并保留原生任务配置与图形编辑器');
       const changed = await projectTaskSpecToForm(candidate.taskSpec, 'Agent 候选确认');
@@ -5647,7 +5668,7 @@
       if (previewOnly) {
         if (!generatedTaskSpec || !capabilityId) throw new Error('Agent 返回结果缺少可执行 Capability，不能形成候选预览。');
         const base = refinementBase || state.taskSpec || null;
-        state.agentCandidate = { taskSpec: clone(generatedTaskSpec), baseTaskSpec: base ? clone(base) : null, payload, diff: taskSpecFieldDiff(base || {}, generatedTaskSpec) };
+        state.agentCandidate = { taskSpec: clone(generatedTaskSpec), baseTaskSpec: base ? clone(base) : null, baseSnapshot: agentCandidateBaseSnapshot(), payload, diff: taskSpecFieldDiff(base || {}, generatedTaskSpec) };
         renderAgentCandidatePreview();
         const response=`已生成候选 ${generatedTaskSpec?.task?.name || capabilityId}；Provider=${provider}。尚未修改当前配置，请检查字段差异和图形骨架后确认应用。`;
         state.agentHistory.push({role:'assistant',text:response}); renderAgentConversation(); el('agentInput').value=''; showNotice(response,'success');
