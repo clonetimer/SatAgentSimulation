@@ -168,12 +168,38 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     node = page.locator('.graph-node[data-node-id="graph-config"]')
                     assert node.is_visible()
                     if width >= 760:
+                        canvas = page.locator('#graphCanvas')
+                        canvas_box = canvas.bounding_box()
+                        node_box = node.bounding_box()
+                        assert canvas_box and node_box
+                        relative_left = node_box['x'] - canvas_box['x']
+                        relative_top = node_box['y'] - canvas_box['y']
+                        right_target = relative_left + node_box['width'] + 100
+                        target_x = (
+                            right_target if right_target <= canvas_box['width'] - 24
+                            else max(24, relative_left - 100)
+                        )
+                        target_y = min(
+                            canvas_box['height'] - 24,
+                            max(70, relative_top + node_box['height'] / 2),
+                        )
+                        page.evaluate("""() => {
+                            window.__graphDropObserved = null;
+                            document.querySelector('#graphCanvas').addEventListener('drop', (event) => {
+                                window.__graphDropObserved = event.dataTransfer.getData('application/x-sat-graph')
+                                    || event.dataTransfer.getData('text/plain');
+                            });
+                        }""")
                         before = node.evaluate('(el) => [el.style.left, el.style.top]')
                         node.locator('.graph-node-head').drag_to(
-                            page.locator('#graphCanvas'), target_position={'x': 520, 'y': 360}
+                            canvas,
+                            source_position={'x': 28, 'y': 16},
+                            target_position={'x': target_x, 'y': target_y},
                         )
                         after = node.evaluate('(el) => [el.style.left, el.style.top]')
-                        assert after != before
+                        drop_payload = page.evaluate('() => window.__graphDropObserved')
+                        assert drop_payload and 'move-node' in drop_payload, drop_payload
+                        assert after != before, {'before': before, 'after': after, 'drop_payload': drop_payload, 'target': [target_x, target_y]}
                         page.locator('#graphUndoBtn').click()
                         assert node.evaluate('(el) => [el.style.left, el.style.top]') == before
                         page.locator('#graphRedoBtn').click()
