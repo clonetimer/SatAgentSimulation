@@ -123,6 +123,8 @@
     activeProviderId: "local-template",
     tasks: [],
     activeTaskCenterId: null,
+    activeTaskVersion: null,
+    sharedWorkbenchContext: { sourceView: null, sourceLabel: null, taskId: null, taskVersion: null, runId: null, experimentId: null, goalId: null, bundleId: null },
     taskDetailsTaskId: null,
     taskDetailsRequestId: 0,
     taskHistoryRows: [],
@@ -8630,7 +8632,21 @@
     el('wizardBackBtn').disabled = state.wizard.step === 'welcome';
   }
 
+  const SHARED_CONTEXT_VIEWS = new Set(['experiments', 'goals', 'runs', 'diagnostics']);
+  const SHARED_CONTEXT_LABELS = { wizard: '仿真向导', creator: '高级工作台', tasks: '任务中心', experiments: '实验中心', goals: '目标实验', runs: '运行中心', diagnostics: '系统诊断' };
+  function sharedContextSnapshot() { const c=state.sharedWorkbenchContext; return { ...c, taskId:c.taskId||state.activeTaskCenterId||null, taskVersion:c.taskVersion??state.activeTaskVersion??null, runId:c.runId||state.activeRunId||null }; }
+  function updateSharedWorkbenchContext(patch={}) { state.sharedWorkbenchContext={...state.sharedWorkbenchContext,...patch}; if(patch.taskId!==undefined) state.activeTaskCenterId=patch.taskId; if(patch.taskVersion!==undefined) state.activeTaskVersion=patch.taskVersion; if(patch.runId!==undefined) state.activeRunId=patch.runId; renderSharedWorkbenchContext(); }
+  function renderSharedWorkbenchContext() {
+    const c=sharedContextSnapshot(); const task=c.taskId ? ('任务 '+c.taskId+(c.taskVersion?' · V'+c.taskVersion:'')) : '未关联已保存任务'; const run=c.runId ? ('Run '+c.runId) : '尚未选择 Run';
+    const extras=[c.experimentId&&('实验 '+c.experimentId),c.goalId&&('目标 '+c.goalId),c.bundleId&&('Bundle '+c.bundleId)].filter(Boolean).join(' · '); const source=c.sourceLabel||SHARED_CONTEXT_LABELS[c.sourceView]||'当前工作区';
+    document.querySelectorAll('[data-p7-context]').forEach(host=>{ host.replaceChildren(); const summary=document.createElement('div'); summary.className='p7-context-summary';
+      const title=document.createElement('strong'); title.textContent='当前工作上下文'; const taskNode=document.createElement('span'); taskNode.textContent=task; const runNode=document.createElement('span'); runNode.textContent=run; const extra=document.createElement('small'); extra.textContent=extras||'尚无实验、目标或额外制品引用'; summary.append(title,taskNode,runNode,extra);
+      const actions=document.createElement('div'); actions.className='p7-context-actions'; const sourceNode=document.createElement('small'); sourceNode.textContent='来源：'+source; const back=document.createElement('button'); back.type='button'; back.className='button button-secondary'; back.textContent='返回'+source; back.disabled=!c.sourceView||c.sourceView===state.activeView; back.addEventListener('click',returnToSharedContextSource); actions.append(sourceNode,back); host.append(summary,actions); });
+  }
+  function returnToSharedContextSource() { const source=state.sharedWorkbenchContext?.sourceView; if(!source||source===state.activeView)return; state.sharedWorkbenchContext={...state.sharedWorkbenchContext,sourceView:null,sourceLabel:null}; switchView(source); renderSharedWorkbenchContext(); }
+  function noteSharedContextTransition(nextView) { if(!SHARED_CONTEXT_VIEWS.has(nextView)){ if(state.sharedWorkbenchContext?.sourceView===state.activeView) state.sharedWorkbenchContext={...state.sharedWorkbenchContext,sourceView:null,sourceLabel:null}; return; } const current=state.activeView; if(!SHARED_CONTEXT_VIEWS.has(current)&&!state.sharedWorkbenchContext?.sourceView) state.sharedWorkbenchContext={...state.sharedWorkbenchContext,sourceView:current,sourceLabel:SHARED_CONTEXT_LABELS[current]||current}; }
   function switchView(name) {
+    noteSharedContextTransition(name);
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
     if (['interactive', 'continuous'].includes(state.activeView) && name !== state.activeView && wizardRealtimeSessionActive()) {
       if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
@@ -8659,6 +8675,7 @@
       const ordinaryNavigationActive = !taskViewActive && !button.dataset.wizardShortcut && button.dataset.view === activeNavigation;
       button.classList.toggle('active', taskShortcutActive || ordinaryNavigationActive);
     });
+    renderSharedWorkbenchContext();
     if (name === 'wizard') renderSimulationWizard();
     if (name === 'tasks') loadTasks().catch((error) => { el('taskSummary').textContent = `任务中心读取失败：${error.message}`; });
     if (name === 'experiments') loadExperiments().catch((error) => { el('experimentSummary').textContent = `实验中心读取失败：${error.message}`; });
