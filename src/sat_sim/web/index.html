@@ -179,7 +179,8 @@
         <section id="wizardAgentWorkspace" class="wizard-special-workspace hidden" aria-label="自然语言仿真需求">
           <div class="wizard-special-heading"><strong>用自然语言描述仿真任务</strong><span>描述仿真对象、运行时间、工况/故障和希望观察的数据。生成后仍会回到表单检查，不会直接启动仿真。</span></div>
           <div id="wizardAgentHost"></div>
-          <div class="wizard-special-actions"><button id="wizardGenerateFromTextBtn" class="button button-primary" type="button">生成配置并检查</button><button id="wizardUseFormInsteadBtn" class="button button-ghost" type="button">改用分步配置</button></div>
+          <div class="wizard-special-actions"><button id="wizardGenerateFromTextBtn" class="button button-primary" type="button">生成候选预览</button><button id="wizardUseFormInsteadBtn" class="button button-ghost" type="button">改用分步配置</button></div>
+          <section id="wizardAgentCandidatePreview" class="agent-candidate-preview hidden" aria-label="自然语言候选任务预览" aria-live="polite"></section>
         </section>
         <section id="wizardTaskSpecWorkspace" class="wizard-special-workspace hidden" aria-label="TaskSpec 结构化任务">
           <div class="wizard-special-heading"><strong>TaskSpec 结构化任务</strong><span>适合精确编辑、导入和交换机器可读任务定义。普通用户可直接使用分步配置，无需编辑 JSON。</span></div>
