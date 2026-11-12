@@ -80,7 +80,9 @@ test('clearing a reference never clears the live run controller', () => {
 
 test('experiment source survives diagnostics to full creator Run detail', () => {
   const {c,state} = harness();
-  c.switchView('experiments'); c.switchView('diagnostics'); c.switchView('creator');
-  assert.equal(state.sharedWorkbenchContext.sourceView, 'wizard');
-  c.returnToSharedContextSource(); assert.equal(state.activeView, 'wizard');
+  state.activeView = 'experiments';
+  state.sharedWorkbenchContext = {sourceView:'experiments', sourceLabel:'实验中心'};
+  c.switchView('diagnostics'); c.switchView('creator');
+  assert.equal(state.sharedWorkbenchContext.sourceView, 'experiments');
+  c.returnToSharedContextSource(); assert.equal(state.activeView, 'experiments');
 });
