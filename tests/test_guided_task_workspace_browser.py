@@ -147,6 +147,10 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                     # Reopen task history after every round trip to prove the
                     # task list and cloned version records remain reachable.
                     page.locator('#wizardOptions [data-wizard-goal="history"]').click()
+                    page.wait_for_function(
+                        "document.querySelectorAll('#wizardTaskList .wizard-task-card').length === 2",
+                        timeout=10000,
+                    )
                     original = original_task_card()
                     original.wait_for(state="visible", timeout=10000)
                     assert page.locator("#wizardTaskList .wizard-task-card").count() == 2
