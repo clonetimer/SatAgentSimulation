@@ -145,8 +145,26 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                              if key.lower() in ("content-type", "cache-control")},
                 )
             page.route("https://workbench.test/**", route_request)
-            page.on("dialog", lambda dialog: dialog.accept())
+            dialog_messages = []
+            page.on("dialog", lambda dialog: (dialog_messages.append(dialog.message), dialog.accept()))
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            # Exercise the new default wizard's limited-realtime branch first.
+            page.locator("#wizardView").wait_for(state="visible")
+            page.get_by_role("button", name="运行正常仿真").click()
+            page.get_by_role("button", name="整星").click()
+            page.locator("#wizardOptions [data-wizard-object='whole_spacecraft']").click()
+            page.locator("#wizardOptions [data-wizard-mode='limited_realtime']").wait_for(state="visible", timeout=20000)
+            assert page.locator("#wizardOptions [data-wizard-mode='continuous_realtime']").count() == 1
+            page.locator("#wizardOptions [data-wizard-mode='limited_realtime']").click()
+            page.locator("#interactiveView").wait_for(state="visible", timeout=15000)
+            assert page.locator("#wizardView").is_visible()
+            assert page.locator("#interactiveView").evaluate("(node) => node.closest('#wizardView') !== null")
+            page.locator("#interactiveWizardBackBtn").click()
+            page.locator("#wizardOptions [data-wizard-mode='offline']").wait_for(state="visible")
+            # The default entry is now the rule-driven wizard; this regression
+            # exercises the advanced realtime controls and explicitly enters
+            # the retained engineering workbench before editing its form.
+            page.locator(".nav-button[data-view=creator]").click()
             # Edit the current offline whole-spacecraft form, then import the
             # same approved native value into each realtime UI. Browser test
             # checks only UI/API wiring; it never claims physical equivalence.
@@ -163,6 +181,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator("#simulationModeChooser").is_visible()
             page.locator("#modeBoundedRealtimeBtn").click()
             page.locator("#interactiveView").wait_for(state="visible", timeout=15000)
+            assert page.locator("#wizardView").is_visible()
+            assert page.locator("#interactiveView").evaluate("(node) => node.closest('#wizardView') !== null")
             assert not page.locator("#interactiveContinuous").is_checked()
             assert "参数审核完成" in page.locator("#simulationModeChooserStatus").inner_text()
             page.locator("#interactiveOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
@@ -171,6 +191,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             page.locator(".nav-button[data-view='creator']").click()
             page.locator("#modeContinuousRealtimeBtn").click()
             page.locator("#continuousView").wait_for(state="visible", timeout=15000)
+            assert page.locator("#wizardView").is_visible()
+            assert page.locator("#continuousView").evaluate("(node) => node.closest('#wizardView') !== null")
             assert "参数审核完成" in page.locator("#simulationModeChooserStatus").inner_text()
             page.locator("#continuousOfflineConfigStatus").get_by_text("已导入并冻结当前离线参数修改快照", exact=False).wait_for(timeout=15000)
             assert page.locator('[data-native-key="orbit_radius_m"]').input_value() == "7230000"
@@ -316,6 +338,11 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
                 "() => document.querySelector('#continuousState').dataset.state === 'PAUSED'",
                 timeout=12000,
             )
+            assert page.locator("#continuousState").inner_text() == "已暂停"
+            page.locator(".nav-button[data-view=wizard]:not([data-wizard-shortcut])").click()
+            assert any("实时会话仍处于活动状态" in message for message in dialog_messages)
+            page.locator(".nav-button[data-view=continuous]").click()
+            page.locator("#continuousView").wait_for(state="visible", timeout=15000)
             assert page.locator("#continuousState").inner_text() == "已暂停"
             assert page.locator("#continuousState").get_attribute("title") == "PAUSED"
             # A paused session permits verified historical retrieval from

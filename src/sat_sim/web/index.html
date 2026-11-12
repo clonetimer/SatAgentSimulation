@@ -22,9 +22,9 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
-  <link rel="stylesheet" href="/assets/compact-workbench.css?v=compact1">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=paramui-1794387352278">
 </head>
-<body data-active-view="creator">
+<body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
   <div class="app-shell">
     <header class="topbar">
@@ -70,14 +70,17 @@
     <div class="app-frame">
       <aside class="app-sidebar" aria-label="工作台目录">
         <nav class="sidebar-nav" aria-label="主目录">
-          <div class="sidebar-section-title">工作台</div>
-          <button class="nav-button active" data-view="creator" type="button"><span>✦</span><b>仿真创建</b></button>
+          <div class="sidebar-section-title">仿真工作</div>
+          <button class="nav-button active" data-view="wizard" type="button"><span>✦</span><b>开始仿真</b></button>
+          <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>高级工作台</b></button>
           <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
           <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
-          <button class="nav-button" data-view="tasks" type="button"><span>▣</span><b>任务中心</b></button>
+          <div class="sidebar-section-title">任务与实验</div>
+          <button class="nav-button" data-view="wizard" data-wizard-shortcut="history" type="button"><span>▣</span><b>任务中心</b></button>
           <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
           <button class="nav-button" data-view="goals" type="button"><span>◎</span><b>目标实验</b></button>
           <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
+          <div class="sidebar-section-title">系统工具</div>
           <button class="nav-button" data-view="diagnostics" type="button"><span>◉</span><b>系统诊断</b></button>
           <button class="nav-button" data-view="logs" type="button"><span>≡</span><b>运行日志</b></button>
           <button id="openModelSettingsBtn" class="nav-button" type="button"><span>◇</span><b>模型服务</b></button>
@@ -110,6 +113,64 @@
       </aside>
       <div id="mainContent" class="app-content" tabindex="-1">
 
+
+    <main id="wizardView" class="wizard-view app-view">
+      <section class="wizard-shell" aria-label="规则驱动仿真向导">
+        <header class="wizard-header">
+          <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
+          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
+        </header>
+        <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
+        <div id="wizardOptions" class="wizard-options" aria-label="当前步骤选项"></div>
+        <section id="wizardConfigSections" class="wizard-config-sections hidden" aria-label="仿真参数、事件和输出">
+          <details id="wizardParametersPanel" class="wizard-config-panel"><summary>更多仿真参数（可保持推荐值）</summary><p class="wizard-panel-help">通常只需设置仿真时长和采样间隔。模型专用参数已按推荐值初始化；只有研究需要时才展开修改。</p><div id="wizardParameterHost"></div></details>
+          <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><p class="wizard-panel-help">设置故障何时发生、持续多久以及作用幅度。所有故障类型均来自当前模型已注册的事件目录。</p><div id="wizardEventHost"></div></details>
+          <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary>
+            <p class="wizard-panel-help">先按观察目的添加推荐曲线，不需要理解技术字段。每组曲线都来自当前仿真对象实际注册的输出。</p>
+            <section class="wizard-curve-section"><div class="wizard-curve-heading"><h3>你想观察什么？</h3><span id="wizardCurveSelectionSummary">尚未选择曲线</span></div><div id="wizardCurveChoices" class="wizard-curve-choices"></div></section>
+            <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>更多摘要指标</summary><div id="wizardQoiHost"></div></details>
+            <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>按具体遥测量选择（高级）</summary><p class="wizard-panel-help">这里显示完整注册目录，适合熟悉遥测名称的用户；普通使用优先选择上方分组。</p><div id="wizardPlotHost"></div></details>
+          </details>
+        </section>
+        <details id="wizardAdditionalTools" class="wizard-additional-tools">
+          <summary>其他专业工具（按需使用）</summary>
+          <div class="wizard-additional-tool-grid">
+            <button type="button" class="wizard-tool-option" data-wizard-goal="experiments"><strong>批量实验 / 参数扫描</strong><small>多组参数组合、Monte Carlo 和批量运行，使用独立实验计划与预算。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="goals"><strong>目标驱动实验</strong><small>多轮候选优化、约束和预算管理，保留目标状态与决策记录。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="graph"><strong>图形化建模</strong><small>需要拖拽模块、连接端口和编辑画布，保留专用工程工作区。</small></button>
+            <button type="button" class="wizard-tool-option" data-wizard-goal="diagnostics"><strong>系统诊断</strong><small>环境、能力目录和服务健康检查属于运维工具，不混入仿真参数流程。</small></button>
+          </div>
+        </details>
+        <section id="wizardAgentWorkspace" class="wizard-special-workspace hidden" aria-label="自然语言仿真需求">
+          <div class="wizard-special-heading"><strong>用自然语言描述仿真任务</strong><span>描述仿真对象、运行时间、工况/故障和希望观察的数据。生成后仍会回到表单检查，不会直接启动仿真。</span></div>
+          <div id="wizardAgentHost"></div>
+          <div class="wizard-special-actions"><button id="wizardGenerateFromTextBtn" class="button button-primary" type="button">生成配置并检查</button><button id="wizardUseFormInsteadBtn" class="button button-ghost" type="button">改用分步配置</button></div>
+        </section>
+        <section id="wizardTaskSpecWorkspace" class="wizard-special-workspace hidden" aria-label="TaskSpec 结构化任务">
+          <div class="wizard-special-heading"><strong>TaskSpec 结构化任务</strong><span>适合精确编辑、导入和交换机器可读任务定义。普通用户可直接使用分步配置，无需编辑 JSON。</span></div>
+          <div id="wizardTaskSpecHost"></div>
+          <div class="wizard-special-actions"><button id="wizardValidateTaskSpecBtn" class="button button-secondary" type="button">校验 TaskSpec</button><button id="wizardApplyTaskSpecBtn" class="button button-primary" type="button">应用到仿真配置</button></div>
+          <p class="wizard-panel-help">TaskSpec 校验通过不等于已经启动仿真。应用后仍需检查运行参数、输出与事件，再执行运行前校验。</p>
+        </section>
+        <section id="wizardTaskWorkspace" class="wizard-task-workspace hidden" aria-label="对话式任务管理">
+          <div class="wizard-task-toolbar">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="wizardTaskSearch" type="search" placeholder="搜索任务名称或仿真对象…"></label>
+            <select id="wizardTaskStatus" aria-label="任务状态筛选"><option value="">全部任务状态</option><option value="READY">就绪</option><option value="QUEUED">排队</option><option value="RUNNING">运行中</option><option value="COMPLETED">已完成</option><option value="FAILED">失败</option><option value="CANCELLED">已取消</option></select>
+            <button id="wizardRefreshTasksBtn" class="button button-secondary" type="button">刷新</button>
+            <button id="wizardSaveCurrentTaskBtn" class="button button-primary" type="button">保存当前配置</button>
+          </div>
+          <div id="wizardTaskSummary" class="wizard-task-summary" role="status"></div>
+          <div id="wizardTaskList" class="wizard-task-list"></div>
+        </section>
+        <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果"></section>
+        <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>
+        <div class="wizard-footer">
+          <div class="wizard-footer-note">规则驱动 · 不需要 AI 对话 · 运行前执行正式配置校验</div>
+          <div class="wizard-footer-actions"><button id="wizardBackBtn" class="button button-ghost" type="button" disabled>上一步</button><button id="wizardResetBtn" class="button button-ghost" type="button">重新开始</button></div>
+        </div>
+        <div id="wizardNotice" class="wizard-notice" role="status" aria-live="polite"></div>
+      </section>
+    </main>
 
     <main id="creatorView" class="workspace app-view compact-empty-results">
       <section class="panel editor-panel">
@@ -161,26 +222,26 @@
           </div>
           <p id="simulationModeChooserStatus" class="continuous-muted" role="status">实时入口支持原生整星正常工况，审核后确认启动。</p>
         </section>
-        <details id="singleRunGuide" class="workflow-explainer single-run-guide" aria-label="单次仿真三步操作">
+        <details id="singleRunGuide" class="workflow-explainer single-run-guide" aria-label="单次仿真三步操作" open>
 <summary class="compact-section-summary">操作指南</summary>
           <div class="single-run-heading">
-            <div><strong>单次仿真 · 从配置到结果</strong><span>有限时长任务，执行一次后形成独立 Run Bundle；不同于持续卫星仿真。</span></div>
+            <div><strong>第一次使用？按这三步完成仿真</strong><span>选择对象 → 配置参数和故障 → 运行并查看结果。专业文件和执行细节会自动保存，无需手动处理。</span></div>
             <span id="singleRunReadiness" class="single-run-readiness" role="status" aria-live="polite">检查 Basilisk 环境中…</span>
           </div>
           <div class="single-run-steps" role="list">
             <div class="single-run-step is-current" data-stage="select" role="listitem">
               <span class="single-run-step-index" aria-hidden="true">1</span>
-              <div><strong>选择仿真对象</strong><span>左侧选择整星、分系统或部件</span></div>
+              <div><strong>选择仿真对象</strong><span>选择要仿真的对象：整星、分系统或部件</span></div>
               <button id="singleRunSelectBtn" class="button button-ghost" type="button">去选择</button>
             </div>
             <div class="single-run-step" data-stage="configure" role="listitem">
               <span class="single-run-step-index" aria-hidden="true">2</span>
-              <div><strong>配置与校验</strong><span>设置参数、故障、输出；校验不执行</span></div>
+              <div><strong>配置与校验</strong><span>设置运行时长、故障事件和需要查看的数据</span></div>
               <button id="singleRunValidateBtn" class="button button-ghost" type="button">校验</button>
             </div>
             <div class="single-run-step" data-stage="run" role="listitem">
               <span class="single-run-step-index" aria-hidden="true">3</span>
-              <div><strong>执行并查看结果</strong><span>提交后跟踪状态、曲线及导出</span></div>
+              <div><strong>执行并查看结果</strong><span>查看关键指标、故障时间线和遥测曲线</span></div>
               <button id="singleRunResultsBtn" class="button button-ghost" type="button">运行记录</button>
             </div>
           </div>
@@ -192,7 +253,7 @@
               <button id="singleRunJumpOutputsBtn" class="button button-ghost" type="button">输出与曲线</button>
             </div>
           </div>
-          <p id="singleRunProgress" class="single-run-progress" role="status" aria-live="polite">请选择左侧仿真对象。运行后可在右侧结果面板或运行中心查看记录。</p>
+          <p id="singleRunProgress" class="single-run-progress" role="status" aria-live="polite">从左侧选择仿真对象开始。校验配置只检查参数，不会启动仿真；确认无误后再点击“运行仿真”。</p>
 
 </details>
 
@@ -210,18 +271,18 @@
           </div>
           <div id="formSearchEmpty" class="single-run-search-empty hidden" role="status">未找到匹配参数。请尝试其他关键词，或清空搜索框。</div>
           <div id="formValidationSummary" class="inline-validation hidden" aria-live="polite"></div>
-          <form id="dynamicForm" class="dynamic-form" autocomplete="off"></form>
+          <div id="wizardParameterReturnAnchor"></div><form id="dynamicForm" class="dynamic-form" autocomplete="off"></form>
           <details id="compactEvents" class="form-section">
 <summary class="compact-section-summary">事件 <span id="compactEventCount" class="compact-count">无</span></summary>
             <div class="section-heading">
               <div><h3>添加事件</h3><p>选择事件类型，设置生效时间和幅度。</p></div>
             </div>
-            <div class="event-add-row">
+            <div id="eventAddRow" class="event-add-row">
               <select id="effectKind"><option value="fault">故障</option><option value="degradation">退化</option><option value="constraint">运行约束</option></select>
               <select id="effectSelect" aria-label="效果类型"></select>
               <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
             </div>
-            <div id="eventList" class="event-list"></div>
+            <div id="wizardEventControlsReturnAnchor"></div><div id="wizardEventReturnAnchor"></div><div id="eventList" class="event-list"></div>
 
 </details>
           <details id="compactOutputs" class="form-section">
@@ -230,8 +291,8 @@
               <div><h3>输出与曲线</h3><p>选择记录量；曲线横轴为仿真时间。</p></div>
             </div>
             <div class="output-grid">
-              <div><h4>QoI（摘要指标）</h4><div id="qoiOptions" class="check-grid"></div></div>
-              <div><h4>曲线（纵轴参量）</h4><p class="output-hierarchy-hint">按整星 / 分系统 / 部件逐层展开，或直接搜索输出量。</p><div id="plotOptions" class="check-grid output-hierarchy" aria-label="曲线输出层级选择"></div></div>
+              <div><h4>QoI（摘要指标）</h4><div id="wizardQoiReturnAnchor"></div><div id="qoiOptions" class="check-grid"></div></div>
+              <div><h4>曲线（纵轴参量）</h4><p class="output-hierarchy-hint">按整星 / 分系统 / 部件逐层展开，或直接搜索输出量。</p><div id="wizardPlotReturnAnchor"></div><div id="plotOptions" class="check-grid output-hierarchy" aria-label="曲线输出层级选择"></div></div>
             </div>
             <div class="output-help"><strong>标识说明：</strong>task_id 标识可保存、可复用的任务配置；case_id 标识批量实验或参数扫描中的一个具体案例。同一 task_id 可生成多个 case_id，每个案例又可以产生一个或多个 run_id。</div>
             <div class="advanced-output-grid">
@@ -485,7 +546,8 @@
             <button id="exportDatasetBtn" class="button button-primary hidden" type="button">导出数据集</button>
 
             <button id="cancelRunBtn" class="button button-danger hidden" type="button">取消运行</button>
-            <details id="resultMoreActions" class="creator-more-actions result-more-actions"><summary>更多</summary><div class="creator-secondary-actions"><button id="reuseRunConfigBtn" class="button button-secondary hidden" type="button" title="复制本次 Run 保存的配置到新建表单，不运行、不修改历史记录">复用此配置</button><button id="openRunReportBtn" class="button button-ghost hidden" type="button">查看报告</button><button id="downloadRunDiagnosticBtn" class="button button-ghost hidden" type="button">诊断包</button></div></details><button id="refreshRunsBtn" class="icon-button" type="button" title="刷新运行列表" aria-label="刷新运行列表">↻</button>
+            <button id="reuseRunConfigBtn" class="button button-secondary hidden" type="button" title="将本次运行的原始配置复制到新建表单；不会启动仿真，也不会修改历史记录">复用此配置</button>
+            <details id="resultMoreActions" class="creator-more-actions result-more-actions"><summary>更多</summary><div class="creator-secondary-actions"><button id="openRunReportBtn" class="button button-ghost hidden" type="button">查看报告</button><button id="downloadRunDiagnosticBtn" class="button button-ghost hidden" type="button">诊断包</button></div></details><button id="refreshRunsBtn" class="icon-button" type="button" title="刷新运行列表" aria-label="刷新运行列表">↻</button>
           </div>
         </div>
         <div id="activeRunCard" class="active-run empty-state">
@@ -731,10 +793,10 @@
       </section>
     </main>
 
-    <main id="interactiveView" class="interactive-view app-view hidden">
+    <section id="interactiveView" class="interactive-view app-view hidden">
       <header class="interactive-header">
         <div><div class="eyebrow">Whole-spacecraft Soft Real-time</div><h1>整星实时交互</h1><p>在同一仿真时钟中控制整星、分系统并观察耦合响应。</p></div>
-        <div class="interactive-header-status">
+        <div class="interactive-header-status"><button id="interactiveWizardBackBtn" class="button button-ghost" type="button">返回仿真向导</button>
           <span id="interactiveConnectionBadge" class="status-chip status-muted"><span class="status-dot"></span>未连接</span>
           <button id="refreshInteractiveBtn" class="icon-button" type="button" title="刷新会话" aria-label="刷新会话">↻</button>
         </div>
@@ -823,14 +885,14 @@
           </section>
         </aside>
       </div>
-    </main>
+    </section>
 
-    <main id="continuousView" class="continuous-view app-view hidden" aria-label="持续卫星仿真">
+    <section id="continuousView" class="continuous-view app-view hidden" aria-label="持续卫星仿真">
       <header class="continuous-hero">
         <div><div class="eyebrow">Continuous Basilisk Native · TC / TM Control</div>
           <h1>持续卫星仿真</h1>
           <p>遥控按仿真时刻执行，遥测实时更新。</p></div>
-        <div class="continuous-hero-actions">
+        <div class="continuous-hero-actions"><button id="continuousWizardBackBtn" class="button button-ghost" type="button">返回仿真向导</button>
           <span id="continuousConnectionBadge" class="status-chip status-muted" role="status">尚未连接</span>
           <button id="continuousRefreshBtn" class="button button-secondary" type="button">刷新状态</button>
         </div>
@@ -1263,7 +1325,7 @@
           </section>
         </aside>
       </div>
-    </main>
+    </section>
 
     <main id="runCenterView" class="task-center-view app-view hidden">
       <section class="panel task-center-panel">
@@ -1385,7 +1447,7 @@
       <div class="section-heading compact"><h3>版本历史</h3></div>
       <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>版本</th><th>摘要</th><th>时间</th><th>哈希</th><th>操作</th></tr></thead><tbody id="taskVersionTableBody"></tbody></table></div>
       <div class="section-heading compact"><h3>运行历史</h3></div>
-      <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>Run ID</th><th>任务版本</th><th>状态</th><th>验证</th><th>时间</th></tr></thead><tbody id="taskRunTableBody"></tbody></table></div>
+      <div class="task-table-wrap detail-table-wrap"><table class="task-table detail-table"><thead><tr><th>Run ID</th><th>任务版本</th><th>状态</th><th>验证</th><th>时间</th><th>操作</th></tr></thead><tbody id="taskRunTableBody"></tbody></table></div>
     </section>
   </div>
 
@@ -1394,7 +1456,7 @@
   </div>
 
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
-  <script src="/assets/app.js?v=0.7.8" defer></script>
+  <script src="/assets/app.js?v=wizard7" defer></script>
   <script src="/assets/continuous.js?v=0.7.8" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
 </body>

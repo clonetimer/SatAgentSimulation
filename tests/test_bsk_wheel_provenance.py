@@ -144,3 +144,71 @@ def test_reject_linux_selection_when_only_windows_wheel_exists(tmp_path):
     _make_report(tmp_path, wheel)
     with pytest.raises(ValueError, match="BSK_PLATFORM_WHEEL_AMBIGUOUS_OR_MISSING"):
         verify_approved_wheel(tmp_path, platform_key="linux_x86_64")
+
+
+# Download-cache recovery tests: a partial or stale existing file must never
+# suppress a fresh verified download, and failed downloads must not be retained.
+from fetch_official_bsk_and_build_offline_bundle import obtain_verified_official_wheel
+
+
+def test_stale_cached_official_wheel_is_replaced_by_verified_download(tmp_path, monkeypatch):
+    payload = b"official-pinned-wheel-bytes"
+    expected = hashlib.sha256(payload).hexdigest()
+    target = tmp_path / "bsk-official.whl"
+    target.write_bytes(b"interrupted-or-stale-download")
+    calls = []
+
+    def fake_fetch(url, destination):
+        calls.append((url, destination))
+        destination.write_bytes(payload)
+
+    monkeypatch.setattr(
+        "fetch_official_bsk_and_build_offline_bundle.fetch", fake_fetch
+    )
+    item = {"filename": target.name, "url": "https://files.pythonhosted.org/pinned", "sha256": expected}
+    actual = obtain_verified_official_wheel(item, target)
+    assert actual == expected
+    assert target.read_bytes() == payload
+    assert len(calls) == 1
+    assert not target.with_name(target.name + ".part").exists()
+
+
+def test_verified_cached_official_wheel_is_reused_without_network(tmp_path, monkeypatch):
+    payload = b"official-pinned-wheel-bytes"
+    expected = hashlib.sha256(payload).hexdigest()
+    target = tmp_path / "bsk-official.whl"
+    target.write_bytes(payload)
+
+    def unexpected_fetch(*args):
+        raise AssertionError("verified cache should not be downloaded again")
+
+    monkeypatch.setattr(
+        "fetch_official_bsk_and_build_offline_bundle.fetch", unexpected_fetch
+    )
+    item = {"filename": target.name, "url": "https://files.pythonhosted.org/pinned", "sha256": expected}
+    assert obtain_verified_official_wheel(item, target) == expected
+
+
+def test_bad_redownload_is_discarded_and_never_promoted(tmp_path, monkeypatch):
+    target = tmp_path / "bsk-official.whl"
+
+    def fake_fetch(url, destination):
+        destination.write_bytes(b"not-the-pinned-wheel")
+
+    monkeypatch.setattr(
+        "fetch_official_bsk_and_build_offline_bundle.fetch", fake_fetch
+    )
+    item = {"filename": target.name, "url": "https://files.pythonhosted.org/pinned", "sha256": "a" * 64}
+    with pytest.raises(ValueError, match="official wheel SHA-256 mismatch"):
+        obtain_verified_official_wheel(item, target)
+    assert not target.exists()
+    assert not target.with_name(target.name + ".part").exists()
+
+
+def test_offline_mode_rejects_stale_cached_official_wheel(tmp_path):
+    target = tmp_path / "bsk-official.whl"
+    target.write_bytes(b"stale")
+    item = {"filename": target.name, "url": "https://files.pythonhosted.org/pinned", "sha256": "b" * 64}
+    with pytest.raises(ValueError, match="cached official wheel SHA-256 mismatch"):
+        obtain_verified_official_wheel(item, target, offline=True)
+    assert target.read_bytes() == b"stale"

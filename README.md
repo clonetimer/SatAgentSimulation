@@ -1,5 +1,9 @@
 # SAT卫星仿真平台
 
+## 普通用户入口：规则驱动仿真向导
+
+默认打开“开始仿真”向导。用户通过固定选项选择正常仿真、故障仿真、历史任务、运行对比或高级工作台；模型和故障选项来自当前 Capability Registry 与 Schema，不调用大语言模型。向导复用既有表单、TaskSpec 校验、Basilisk 执行队列和 Run Bundle。需要专业控制时，可随时进入“高级工作台”。详细操作见[工作台使用指南](docs/guides_zh/02_工作台使用指南.md)。
+
 新手从[START_HERE.md](START_HERE.md)开始。uv环境入口为 `python scripts/setup_uv.py`，已有完整缓存可加 `--offline`。逐项结论见[当前验收状态](reports/current_requirements_status.md)。
 
 **Agent 自动化 P0～P3 阶段收尾（2026-11-06）**：输入—运行一致性、安全实验工具、GoalRun 协调、证据解释、经验适用性与可选路由校准已合入主干。专项选定 CI 通过；真实模型收益、完整原生覆盖及整体 Stable 资格不在本专项通过范围。详见 [P0～P3 收尾报告](docs/agent_automation_p0_p3_closure_20261106.md) 与 [证据索引](reports/agent_automation_p0_p3_closure.json)。
