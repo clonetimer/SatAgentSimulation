@@ -166,7 +166,7 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                     # Real HTML5 drag/drop of a node plus undo/redo on desktop.
                     # Scroll the source into the viewport before calculating the
                     # target; target_position is relative to the canvas locator.
-                    node = page.locator('.graph-node[data-node-id="graph-config"]')
+                    node = page.locator('.graph-node[data-node-id="graph-outputs"]')
                     assert node.is_visible()
                     if width >= 760:
                         canvas = page.locator('#graphCanvas')
@@ -178,21 +178,20 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                         head_box = head.bounding_box()
                         viewport = page.viewport_size
                         assert canvas_box and head_box and viewport
-                        target_abs_x = min(
-                            canvas_box['x'] + canvas_box['width'] - 24,
-                            viewport['width'] - 12,
-                        )
-                        target_abs_y = min(
-                            canvas_box['y'] + canvas_box['height'] - 24,
-                            viewport['height'] - 12,
-                        )
-                        target_position = {
-                            'x': target_abs_x - canvas_box['x'],
-                            'y': target_abs_y - canvas_box['y'],
-                        }
+                        # Move the outputs node into a clear lower-middle
+                        # canvas region, away from the other five default nodes.
+                        target_position = {'x': 500, 'y': 420}
+                        target_abs_x = canvas_box['x'] + target_position['x']
+                        target_abs_y = canvas_box['y'] + target_position['y']
+                        assert target_abs_x < viewport['width'] - 1
+                        assert target_abs_y < viewport['height'] - 1
                         page.evaluate("""() => {
+                            window.__graphDragSourceNode = null;
                             window.__graphDropEffect = null;
                             window.__graphDropCount = 0;
+                            document.addEventListener('dragstart', (event) => {
+                                window.__graphDragSourceNode = event.target.closest('.graph-node')?.dataset.nodeId || null;
+                            }, true);
                             window.__graphDropTypes = [];
                             window.__graphDropPayload = null;
                             const canvas = document.querySelector('#graphCanvas');
@@ -223,6 +222,7 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                             target_position=target_position,
                         )
                         after = node.evaluate('(el) => [el.style.left, el.style.top]')
+                        assert page.evaluate('() => window.__graphDragSourceNode') == 'graph-outputs'
                         assert page.evaluate('() => window.__graphDropEffect') == 'move'
                         assert page.evaluate('() => window.__graphDropCount') > 0
                         # The browser exposes the native transfer payload at drop.
@@ -231,10 +231,13 @@ def test_compact_toolbar_public_keyboard_and_mobile_layout(tmp_path,width,height
                         drop_types = page.evaluate('() => window.__graphDropTypes')
                         drop_payload = page.evaluate('() => window.__graphDropPayload')
                         assert 'application/x-sat-graph' in (drop_types or []), drop_types
-                        assert drop_payload and json.loads(drop_payload).get('kind') == 'move-node', drop_payload
+                        assert drop_payload and json.loads(drop_payload) == {
+                            'kind': 'move-node', 'nodeId': 'graph-outputs'
+                        }, drop_payload
                         assert after != before, {
                             'before': before,
                             'after': after,
+                            'drag_source_node': page.evaluate('() => window.__graphDragSourceNode'),
                             'drop_types': drop_types,
                             'drop_payload': drop_payload,
                             'target': target_position,
