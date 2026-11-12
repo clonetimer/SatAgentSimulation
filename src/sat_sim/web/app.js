@@ -10589,11 +10589,76 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       const tr = document.createElement('tr');
       const values = [row.variant_index + 1, row.run_id || '—', row.status || '—', row.assertion_status || '—', ...metrics.map(name => row.values?.[name] ?? '—')];
       values.forEach(value => { const td = document.createElement('td'); td.textContent = typeof value === 'number' ? String(Math.round(value * 1e6) / 1e6) : String(value); tr.appendChild(td); });
+      const actionCell = document.createElement('td'); actionCell.className = 'table-actions';
+      const inspect = document.createElement('button'); inspect.type = 'button'; inspect.className = 'button button-secondary';
+      inspect.textContent = '查看运行证据'; inspect.disabled = !row.run_id;
+      inspect.addEventListener('click', () => openExperimentRunEvidence(experimentId, row).catch(error => showNotice('打开变体运行失败：' + error.message, 'error')));
+      actionCell.appendChild(inspect); tr.appendChild(actionCell);
       body.appendChild(tr);
     });
+    const actionHeader = document.createElement('th'); actionHeader.textContent = '操作'; header.appendChild(actionHeader);
     el('experimentComparisonPanel').classList.remove('hidden');
     updateSharedWorkbenchContext({ experimentId, goalId: null, baseTaskSpecId: detail.experiment.base_task_spec?.task?.id || null });
     await loadExperiments();
+  }
+
+  async function openExperimentRunEvidence(experimentId, variantRow) {
+    const runId = variantRow?.run_id;
+    if (!runId) throw new Error('该变体没有关联 Run ID，不能跳转到运行证据。');
+    const loaded = await loadRun(runId);
+    if (!loaded || state.activeRunId !== runId || !state.activeRun) throw new Error('指定 Run 未能完整载入，请检查运行记录。');
+    updateSharedWorkbenchContext({
+      experimentId,
+      experimentVariantIndex: Number.isInteger(variantRow.variant_index) ? variantRow.variant_index : null,
+      runId,
+      bundleId: state.activeRun.sealed === true ? runId : null,
+      runTaskSpecId: state.activeRun.task_spec?.task?.id || state.activeRun.run_record?.task_id || null,
+    });
+    switchView('diagnostics');
+    renderRunEvidencePanel();
+  }
+
+  function renderRunEvidencePanel() {
+    const host = el('runEvidencePanel');
+    if (!host) return;
+    host.replaceChildren();
+    const context = state.sharedWorkbenchContext || {};
+    const run = state.activeRun;
+    if (!run || !context.runId || run.run_id !== context.runId) {
+      host.classList.add('hidden');
+      return;
+    }
+    host.classList.remove('hidden');
+    const heading = document.createElement('h3'); heading.textContent = '所选 Run 的证据摘要';
+    const summary = document.createElement('p');
+    const taskId = run.task_spec?.task?.id || run.run_record?.task_id || context.runTaskSpecId || '未记录';
+    const version = run.run_record?.task_version ?? run.task_version ?? '未记录';
+    const status = String(run.status || run.run_record?.status || 'UNKNOWN').toUpperCase();
+    const validation = String(run.validation_outcome?.result || run.validation_status || '未提供').toUpperCase();
+    summary.textContent = `Run：${run.run_id} · 任务：${taskId} · 版本：${version === '未记录' ? version : 'V' + version} · 状态：${status} · 验收：${validation}`;
+    const counts = document.createElement('div'); counts.className = 'run-evidence-counts';
+    [
+      ['指标', Object.keys(state.metrics || {}).length],
+      ['遥测样本', (state.telemetry || []).length],
+      ['事件', Array.isArray(state.events?.events) ? state.events.events.length : Array.isArray(state.events) ? state.events.length : 0],
+      ['制品', (state.artifacts || []).length],
+      ['FMEA', state.fmea?.table ? '已提供' : '无'],
+      ['故障追溯', state.traceability ? '已提供' : '无'],
+    ].forEach(([label, value]) => {
+      const item = document.createElement('div'); item.className = 'run-evidence-count';
+      const name = document.createElement('span'); name.textContent = label;
+      const number = document.createElement('strong'); number.textContent = String(value);
+      item.append(name, number); counts.appendChild(item);
+    });
+    const note = document.createElement('p'); note.className = 'run-evidence-note';
+    note.textContent = '证据读取自指定 Run 的现有记录；本操作不会重新执行仿真。缺失项目按原始 Run 返回结果显示，不推断为零故障。';
+    const actions = document.createElement('div'); actions.className = 'run-evidence-actions';
+    const download = document.createElement('button'); download.type = 'button'; download.className = 'button button-primary'; download.textContent = '下载此 Run 诊断包';
+    download.addEventListener('click', () => downloadEndpoint(`/diagnostics/bundle?run_id=${encodeURIComponent(run.run_id)}`, `diagnostic_${run.run_id}.zip`).catch(error => showNotice(error.message, 'error')));
+    const detail = document.createElement('button'); detail.type = 'button'; detail.className = 'button button-secondary'; detail.textContent = '查看完整运行曲线';
+    detail.addEventListener('click', () => { switchView('creator'); switchResultTab('overview'); });
+    actions.append(download, detail);
+    host.append(heading, summary, counts, note, actions);
   }
 
   async function openFaultCatalog() {
