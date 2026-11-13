@@ -24,6 +24,13 @@ def _sealed_run(root: Path) -> None:
     _write(root / "runtime" / "prepared_run.json", {
         "primary_capability_id": "component.reaction_wheel.v1",
     })
+    _write(root / "input" / "task_spec.json", {
+        "schema_version": "1.0.0",
+        "task": {"id": root.name, "name": "反作用轮测试"},
+        "simulation": {"level": "component", "duration_s": 2.0, "step_s": 1.0, "sample_s": 1.0},
+        "outputs": {"output_root": "runs", "qoi": []},
+        "model": {"capability_id": "component.reaction_wheel.v1"},
+    })
     _write(root / "run_record.json", {
         "run_id": root.name, "status": "SUCCEEDED", "validation_result": "PASS",
     })
