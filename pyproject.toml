@@ -55,7 +55,7 @@ where = ["src"]
 "" = "src"
 
 [tool.setuptools.package-data]
-"sat_sim" = ["release_manifest.json", "release_baseline.json", "web/*.html", "web/*.css", "web/*.js"]
+"sat_sim" = ["release_manifest.json", "release_baseline.json", "web/*.html", "web/*.css", "web/*.js", "web/vendor/cesium/**/*"]
 "sat_sim.interactive" = ["*.json"]
 "sat_sim.schemas" = ["*.json"]
 "sat_sim.capabilities" = ["*.yaml", "*.yml"]
