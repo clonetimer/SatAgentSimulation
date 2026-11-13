@@ -20,7 +20,7 @@
     for (let index = 0; index <= 180; index += 1) {
       const phase = (index / 180) * Math.PI * 2;
       const latitude = Math.asin(Math.sin(inclination) * Math.sin(phase));
-      const longitude = phase - (index / 180) * Math.PI * 2 * 0.069;
+      const longitude = phase;
       const position = Cesium.Cartesian3.fromRadians(longitude, latitude, altitude);
       points.push(position);
       const time = Cesium.JulianDate.addSeconds(start, (index / 180) * periodSeconds, new Cesium.JulianDate());
@@ -109,9 +109,18 @@
       viewer.clock.multiplier = 30;
       viewer.clock.shouldAnimate = true;
 
+      const satelliteOrientation = new Cesium.VelocityOrientationProperty(sampled);
       const satellite = viewer.entities.add({
         id: 'sat-sim-demo-satellite',
         name: '任务卫星（示意模型）',
+        orientation: satelliteOrientation,
+        model: {
+          uri: '/assets/satellite-demo.gltf',
+          scale: 1,
+          minimumPixelSize: 20,
+          maximumScale: 50000,
+          runAnimations: false
+        },
         availability: new Cesium.TimeIntervalCollection([
           new Cesium.TimeInterval({ start: epoch, stop })
         ]),
@@ -124,7 +133,7 @@
           disableDepthTestDistance: Number.POSITIVE_INFINITY
         },
         label: {
-          text: '任务卫星（示意）',
+          text: '任务卫星（示意模型）',
           font: '14px sans-serif',
           fillColor: Cesium.Color.WHITE,
           outlineColor: Cesium.Color.BLACK,
