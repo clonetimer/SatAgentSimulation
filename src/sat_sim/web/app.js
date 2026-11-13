@@ -6214,7 +6214,6 @@
       details.appendChild(item);
     });
     card.append(titleRow, details);
-    renderRunEngineeringContext(card, run);
     const runStatus = String(record.status || '').toUpperCase();
     const failureReason = state.executionState?.run_id === technicalRunId ? state.executionState?.error : null;
     const recordedError = run.failure_reason || record.error || record.error_message || record.message || failureReason;
@@ -6226,95 +6225,6 @@
         : `本次运行状态：${runStatus}。运行记录未提供具体原因；请查看制品与诊断包。`;
       card.appendChild(failure);
     }
-  }
-
-  function renderRunEngineeringContext(card, run) {
-    const spec = run.task_spec;
-    if (!spec) return;
-    const section = document.createElement('section');
-    section.className = 'run-engineering-context';
-    section.setAttribute('aria-label', '工程假设与适用范围');
-    const title = document.createElement('strong');
-    title.textContent = '工程假设与适用范围';
-    const profile = spec.parameters?.profile || spec.assurance?.parameter_profile || '未记录';
-    const profileLabels = { demo: '默认/假设参数（未标定）', engineering_estimate: '工程估计', ground_calibrated: '地面标定', flight_correlated: '飞行关联' };
-    const summary = document.createElement('p');
-    summary.textContent = `参数证据：${profileLabels[profile] || profile}。用途与误差范围以本次记录中的依据为准。`;
-    section.append(title, summary);
-    const scope = spec.metadata?.engineering_scope;
-    if (scope) {
-      [scope.target, scope.parameter_basis, scope.validity, scope.error_boundary, scope.thermal_boundary].filter(Boolean).forEach((text) => {
-        const line = document.createElement('p');
-        line.textContent = String(text);
-        section.appendChild(line);
-      });
-      if (Array.isArray(scope.excluded_effects) && scope.excluded_effects.length) {
-        const exclusions = document.createElement('p');
-        exclusions.textContent = `本场景未建模：${scope.excluded_effects.join('；')}。`;
-        section.appendChild(exclusions);
-      }
-    }
-    const errorScope = document.createElement('p');
-    errorScope.textContent = '当前未声明覆盖全部近地轨道工况的统一精度上界；数值误差与外部参考残差需按各自的验证窗口解读。';
-    section.appendChild(errorScope);
-    const environment = run.summary?.orbital_environment;
-    if (environment) {
-      const description = document.createElement('p');
-      description.textContent = `实际轨道环境：${environment.profile}；UTC 历元：${environment.epoch_utc || '未记录'}。`;
-      section.appendChild(description);
-    }
-    const assumptions = spec.provenance?.assumptions || [];
-    const fields = spec.provenance?.fields || {};
-    const disclosure = document.createElement('details');
-    disclosure.className = 'run-input-assumptions';
-    const heading = document.createElement('summary');
-    heading.textContent = `输入参数来源与假设（${assumptions.length} 项）`;
-    disclosure.appendChild(heading);
-    if (assumptions.length) {
-      const list = document.createElement('ul');
-      list.className = 'run-assumption-list';
-      assumptions.forEach((assumption) => {
-        const row = document.createElement('li');
-        const label = document.createElement('strong');
-        label.textContent = `${assumption.path} = ${JSON.stringify(assumption.value)}`;
-        const source = fields[assumption.path];
-        const evidence = document.createElement('span');
-        evidence.textContent = [assumption.reason, source?.evidence, source?.note].filter(Boolean).join(' · ');
-        row.append(label, evidence);
-        list.appendChild(row);
-      });
-      disclosure.appendChild(list);
-    } else {
-      const empty = document.createElement('p');
-      empty.textContent = '本次记录没有逐参数假设说明；可在 TaskSpec 的 provenance 中补充依据。';
-      disclosure.appendChild(empty);
-    }
-    section.appendChild(disclosure);
-    const limitations = run.claim_report?.limitations || [];
-    if (limitations.length) {
-      const list = document.createElement('ul');
-      list.className = 'run-model-limitations';
-      limitations.forEach((limitation) => {
-        const item = document.createElement('li');
-        item.textContent = String(limitation);
-        list.appendChild(item);
-      });
-      section.appendChild(list);
-    }
-    if (spec.parameters?.overrides?.length) {
-      const overrides = document.createElement('p');
-      overrides.textContent = `另有 ${spec.parameters.overrides.length} 项参数覆盖；实际生效值见解析配置与运行制品。`;
-      section.appendChild(overrides);
-    }
-    const overview = document.createElement('details');
-    overview.className = 'run-engineering-disclosure';
-    const overviewHeading = document.createElement('summary');
-    overviewHeading.textContent = `工程假设与适用范围 · ${profileLabels[profile] || profile}`;
-    const body = document.createElement('div');
-    while (section.firstChild) body.appendChild(section.firstChild);
-    overview.append(overviewHeading, body);
-    section.appendChild(overview);
-    card.appendChild(section);
   }
 
   async function reuseActiveRunConfiguration() {
@@ -11040,8 +10950,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
-    el('wizardGraphShortcutBtn')?.addEventListener('click', () => wizardStart('graph'));
-    el('wizardAdvancedBtn').addEventListener('click', () => switchView('creator'));
+    el('wizardProfessionalModelingBtn')?.addEventListener('click', () => switchView('creator'));
     $all('.wizard-tool-option[data-wizard-goal]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardGoal)));
     el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
       try {
