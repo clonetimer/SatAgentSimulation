@@ -117,6 +117,8 @@ def bind_quantity_dictionary(contract: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("QUANTITY_CAPABILITY_NOT_REVIEWED")
     parameters = contract.get("parameters")
     outputs = contract.get("outputs")
+    if parameters is None:
+        parameters = {}
     if not isinstance(parameters, Mapping) or not isinstance(outputs, Mapping):
         raise ValueError("QUANTITY_INVALID_CONTRACT")
     entries: list[dict[str, Any]] = []
