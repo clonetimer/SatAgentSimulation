@@ -115,6 +115,12 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
             assert "反作用轮转速评估" in page.locator("#evaluationReportMeta").inner_text()
             assert "2.160247" in page.locator("#evaluationReportMetrics").inner_text()
             assert page.locator("#evaluationHistoryList .evaluation-history-item").count() == 1
+            page.locator("#createEvaluationDraftBtn").click()
+            page.wait_for_function(
+                "() => document.querySelector('#evaluationFormNotice').textContent.includes('已创建配置草稿')",
+                timeout=20000,
+            )
+            assert page.locator("#createEvaluationDraftBtn").is_disabled()
             visible = page.locator("#evaluationView").inner_text()
             for forbidden in ("TaskSpec", "snapshot", "JSON", "API", "调试语句", "开发痕迹"):
                 assert forbidden not in visible
