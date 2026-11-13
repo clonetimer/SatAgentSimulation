@@ -94,9 +94,20 @@ def test_object_tree_has_four_levels_and_keeps_non_spacecraft_objects_separate()
     assert orbit["object_id"] != control["object_id"]
     context = next(row for row in result["roots"] if row["object_id"] == "mission_context")
     context_ids = {row["object_id"] for row in context["children"]}
-    assert {"component.ground_station", "component.link_budget", "component.data_queue"} <= context_ids
+    assert {"component.data_queue", "component.power_sink", "component.thermal_node"} <= context_ids
+    external = next(row for row in result["roots"] if row["object_id"] == "external_environment")
+    assert {row["object_id"] for row in external["children"]} == {"component.ground_station"}
+    relationships = next(row for row in result["roots"] if row["object_id"] == "relationships")
+    link = next(row for row in relationships["children"] if row["object_id"] == "component.link_budget")
+    assert link["kind"] == "relationship_object"
+    assert link["relationship_type"] == "communication_link"
+    assert {row["role"] for row in link["endpoint_roles"]} == {"transmitter", "receiver"}
+    assert link["endpoint_binding"] == "task_configuration"
     assert all(row["object_id"] != "component.ground_station" for row in root["children"])
+    assert all(row["object_id"] != "component.link_budget" for row in root["children"])
     assert result["semantics"]["component_counts_are_inventory"] is False
+    assert result["semantics"]["external_objects_are_not_spacecraft_hardware"] is True
+    assert result["semantics"]["relationship_objects_are_not_single_equipment"] is True
 
 
 def test_scene_catalog_endpoint_is_read_only_and_available_without_realtime(tmp_path, monkeypatch):
