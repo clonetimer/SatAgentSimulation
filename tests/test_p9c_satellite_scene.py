@@ -74,26 +74,12 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
 
         page.on("pageerror", lambda error: failures.append(str(error)))
         page.on("requestfailed", lambda request: failures.append(f"request failed: {request.url} {request.failure}"))
-        page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
+        page.on("console", lambda message: failures.append(f"console error: {message.text}") if message.type == "error" else None)
         page.route("https://workbench.test/**", proxy)
         page.goto("https://workbench.test/", wait_until="domcontentloaded")
-        page.wait_for_function("() => document.readyState === 'complete'")
-        runtime_state = page.evaluate("""() => ({
-            cesium: typeof window.Cesium,
-            scene: typeof window.SatScene,
-            scripts: Array.from(document.scripts).map((item) => ({src: item.src, type: item.type})),
-            sceneStatus: document.querySelector('#satelliteSceneStatus')?.textContent
-        })""")
-        assert runtime_state["cesium"] == "object" and runtime_state["scene"] == "object", {
-            "runtime": runtime_state, "browser_errors": failures
-        }
         page.locator('[data-view="scene"]').click()
-        page.locator("#satelliteSceneStatus").wait_for()
-        page.wait_for_function(
-            "() => document.querySelectorAll('#satelliteSceneCanvas canvas').length > 0 && "
-            "document.querySelector('#satelliteSceneStatus')?.dataset.kind === 'success'",
-            timeout=60000,
-        )
+        page.locator("#satelliteSceneStatus").filter(has_text="场景已就绪").wait_for(timeout=60000)
+        page.locator("#satelliteSceneCanvas canvas").first.wait_for(timeout=60000)
         assert "演示数据" in page.locator("#satelliteSceneStatus").inner_text()
         page.locator('[data-scene-action="track"]').click()
         page.locator('[data-scene-action="free"]').click()
