@@ -1,40 +1,49 @@
-# P9-C 卫星数字场景本地运行
+# P9-C：卫星数字场景本地运行
 
-## 准备本地场景资源
+## 采用的成熟案例
 
-三维场景采用固定版本 Three.js 0.187.0，地球底图采用随包提供的 Natural Earth II 低分辨率影像，卫星采用项目自有 glTF 示意模型。
+本阶段采用 **Globe.gl + Three.js** 作为浏览器地球与空间对象渲染层。Globe.gl 官方仓库提供独立的 Satellites 示例，包含地球球面、卫星位置粒子、轨迹路径、相机视角和交互控制。本项目复用其成熟的地球可视化能力，不再自行实现球面投影、轨迹贴地和相机控制基础设施。
 
-源码工作区首次运行前，需要 Node.js 22 和 npm：
+- Globe.gl：MIT，固定版本 2.46.2
+- three-globe：MIT，固定版本 2.45.6
+- Three.js：MIT，固定版本 0.186.1
+- 地球纹理：three-globe 包内 Earth Blue Marble 和地形 bump 纹理，随项目离线打包
+- 所有 npm 包通过 registry 发布的完整性元数据校验；各包许可证随资源一起分发
+
+上游参考：
+- https://github.com/vasturiano/globe.gl
+- https://github.com/vasturiano/three-globe
+- https://github.com/mrdoob/three.js
+- https://vasturiano.github.io/globe.gl/example/satellites/
+
+## 准备离线资源
+
+源码开发环境需要 Node.js 22 和 npm。首次运行或更新资源时，在项目根目录执行：
 
 ```powershell
 python scripts/vendor_scene_assets.py
 ```
 
-脚本从 npm registry 获取精确版本的 Three.js 和 CesiumJS 资源包，npm 校验发布的完整性信息；仅复制 Three.js 运行模块、GLTFLoader/OrbitControls 及 Natural Earth II 两张 level-0 地球瓦片。不会把 CesiumJS 运行引擎装入产品，也不依赖 CDN、在线地图或 Cesium ion Token。
+资源写入 `src/sat_sim/web/vendor/globe/`。运行时不访问 CDN，不依赖 Cesium ion Token，也不请求在线地球影像。
 
-准备完成后，按项目原有方式启动 SatAgentSimulation，打开左侧“卫星数字场景”。
+Python wheel 会将 Globe.gl、Three.js、地球纹理和许可证一并打包。安装后的运行环境不需要 Node.js/npm。
 
-## 当前场景内容
+## 场景操作
 
-- 三维地球球体和本地 Natural Earth II 纹理；
-- 大气层效果与星空背景；
-- 原创 glTF 卫星示意模型（中心舱体和两侧太阳翼）；
-- 黄色虚线演示轨道；
-- 卫星跟踪、自由旋转/缩放/平移、返回全景。
+从仿真向导右上方打开“卫星数字场景”：
 
-卫星模型为可视化示意，尺寸经过放大，不代表真实卫星结构比例。轨道和卫星运动由前端演示时钟驱动，不是 Basilisk 仿真数据。
+- 鼠标拖动：旋转地球
+- 滚轮：缩放观察距离
+- “跟踪卫星”：相机持续跟随演示卫星
+- “自由观察”：解除跟踪，手动观察
+- “返回全景”：回到全球视角
 
-## 安全边界
+## 数据真实性边界
 
-场景渲染使用 WebGL，不要求在工作台主文档开放 `unsafe-eval` 或 `wasm-unsafe-eval`。主页面继续使用现有严格 CSP；场景只读取随包静态资源，不读取 Token、任务配置或实时会话凭证。
+当前轨道和卫星位置用于场景渲染技术验证，是明确标注的演示数据，不代表 Basilisk 仿真输出，也不能用于科研分析或效能评估。
 
-## 打包
+后续接入真实仿真时，应由仿真运行记录提供带时间戳的位置、姿态和坐标系定义；渲染层只负责转换与呈现，不自行生成或修改仿真真值。单次仿真结果、两种实时仿真以及历史 Run Bundle 应使用各自明确的数据适配器。
 
-构建 Python wheel 前先运行资源准备脚本。Three.js、Earth 纹理和卫星 glTF 会随 wheel 一并打包，安装后的运行时不需要 Node.js/npm。Node.js 仅用于源码构建阶段准备第三方静态资源。
+## 内容安全策略
 
-## 资源与许可
-
-- Three.js：0.187.0，MIT
-- Natural Earth II 纹理：来自 CesiumJS 1.147.0 npm 包内置资源；保留包许可证和资源来源记录
-- 卫星 glTF：项目原创程序化几何，CC0-1.0
-- 运行时外部网络依赖：无
+工作台保留原有严格 Content Security Policy。场景使用本地 UMD 与 ESM 静态资源，不要求全站 `unsafe-eval`、`wasm-unsafe-eval` 或宽松 Worker 策略。不要为了场景效果放宽主工作台 CSP。
