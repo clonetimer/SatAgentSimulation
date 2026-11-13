@@ -179,17 +179,11 @@ def run(output):
                 physical['check_results']['data_conservation']['status']=='NOT_EVALUATED'
                 and '未评估' in coverage.inner_text() and '数据守恒' in coverage.inner_text())
             context = page.get_by_role('region',name='工程假设与适用范围')
-            checks['engineering_context_visible'] = context.is_visible() and '未标定' in context.inner_text()
+            checks['engineering_context_hidden_from_default_results'] = context.count() == 0
             expected_paths = {f'parameters.values.{key}' for key in detail['run']['task_spec']['parameters']['values']}
             recorded_paths = {item['path'] for item in detail['run']['task_spec']['provenance']['assumptions']}
             checks['engineering_inputs_traced'] = expected_paths <= recorded_paths
             checks['engineering_scope_preserved'] = detail['run']['task_spec'].get('metadata',{}).get('engineering_scope')==expected_engineering_scope
-            context.locator('.run-engineering-disclosure > summary').click()
-            checks['thermal_boundary_disclosed_in_ui'] = expected_engineering_scope['thermal_boundary'] in context.inner_text()
-            context.locator('.run-input-assumptions > summary').click()
-            checks['engineering_parameter_sources_displayed'] = context.locator('.run-assumption-list li').count() >= len(expected_paths)
-            page.screenshot(path=str(output/'engineering-input-sources.png'),full_page=False)
-            context.locator('.run-engineering-disclosure > summary').click()
             page.screenshot(path=str(output/'offline.png'),full_page=False)
             inspect_responsive_layout(page,'offline')
 
