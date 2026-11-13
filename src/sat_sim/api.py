@@ -1543,6 +1543,30 @@ def create_app(
     def capabilities() -> dict[str, Any]:
         return {"ok": True, "capabilities": capability_summary_payload()}
 
+    @app.get("/workbench/scene/catalog")
+    def workbench_scene_catalog_endpoint() -> dict[str, Any]:
+        """Return a read-only spacecraft object tree and reviewed component quantities."""
+        from .workbench_catalog import workbench_presentation_catalog
+        from .workbench_scene_catalog import build_scene_catalog
+        from .workbench_object_tree import build_object_tree
+        from .interactive.runtime_factory import runtime_capability_catalog
+
+        policy = runtime_capability_catalog()
+        policy["enabled"] = interactive_manager is not None
+        scene = build_scene_catalog(workbench_presentation_catalog(), policy)
+        schemas: dict[str, Any] = {}
+        for item in scene["objects"]:
+            capability_id = item.get("execution_capability_id")
+            if item.get("kind") == "component" and capability_id:
+                schemas[capability_id] = capability_form_schema(capability_id)
+        tree = build_object_tree(scene, schemas)
+        return {
+            "ok": True,
+            "catalog": scene,
+            "tree": tree,
+            "quantity_dictionary_version": tree["schema_version"],
+        }
+
     @app.get("/visual-composer/assemblies")
     def visual_assembly_catalog() -> dict[str, Any]:
         return {"ok": True, "assemblies": assembly_catalog()}
