@@ -28,7 +28,7 @@ CesiumJS 1.147.0 已完成离线运行时 staging，但严格 CSP 下的 Chromiu
 - Globe.gl 2.46.2，MIT；
 - three-globe 2.45.6，MIT；
 - Three.js 0.186.1，MIT；
-- Earth Blue Marble 和地形 bump 纹理来自 three-globe npm 包内示例资源；
+- Earth Blue Marble 日面纹理来自 three-globe npm 包内示例资源，单独按 NASA Public Domain 影像记录来源、署名与 SHA-256；不把影像归入 MIT 代码许可；
 - 通过 npm registry 发布的 integrity 元数据校验固定版本 tarball；
 - 将 UMD、Three.js ESM 核心模块、纹理和许可证随 Python wheel 打包；
 - 运行时不访问 CDN、在线地图服务或 Cesium ion；
