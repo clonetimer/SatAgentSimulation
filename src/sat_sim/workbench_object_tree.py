@@ -48,16 +48,38 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
             counts["unreviewed"] += 1
             continue
         quantity_name = definition["display_name_zh"] if definition else f"{owner_name} · {field.get('label') or source_name}"
-        parameter_nodes.append({
-            "node_id": f"{object_row['object_id']}:parameter:{source_name}",
-            "kind": "parameter", "source_capability_id": capability_id,
-            "source_field": source_name, "display_name_zh": quantity_name,
-            "unit": field.get("unit"), "value_type": field.get("type"),
-            "default": deepcopy(field.get("default")),
-            "minimum": field.get("min"), "maximum": field.get("max"),
-            "description_zh": str(field.get("description") or ""), "children": [],
-        })
-        counts["parameters"] += 1
+        instance_binding = definition.get("instance_binding") if definition else None
+        default_value = deepcopy(field.get("default"))
+        if instance_binding and isinstance(default_value, list):
+            count_field = next((item for item in schema.get("fields", [])
+                                if isinstance(item, Mapping)
+                                and str(item.get("path", "")).endswith(f".{instance_binding['count_parameter']}")), None)
+            configured_count = count_field.get("default") if isinstance(count_field, Mapping) else None
+            instance_count = int(configured_count) if isinstance(configured_count, (int, float)) and configured_count > 0 else len(default_value)
+            instance_count = min(instance_count, len(default_value))
+            for index in range(instance_count):
+                parameter_nodes.append({
+                    "node_id": f"{object_row['object_id']}:parameter:{source_name}:{index}",
+                    "kind": "parameter", "source_capability_id": capability_id,
+                    "source_field": source_name, "array_index": index,
+                    "display_name_zh": f"反作用轮 {index + 1} · {quantity_name.split(' · ', 1)[-1]}",
+                    "unit": field.get("unit"), "value_type": field.get("type"),
+                    "default": deepcopy(default_value[index]),
+                    "minimum": field.get("min"), "maximum": field.get("max"),
+                    "description_zh": str(field.get("description") or ""), "children": [],
+                })
+                counts["parameters"] += 1
+        else:
+            parameter_nodes.append({
+                "node_id": f"{object_row['object_id']}:parameter:{source_name}",
+                "kind": "parameter", "source_capability_id": capability_id,
+                "source_field": source_name, "display_name_zh": quantity_name,
+                "unit": field.get("unit"), "value_type": field.get("type"),
+                "default": default_value,
+                "minimum": field.get("min"), "maximum": field.get("max"),
+                "description_zh": str(field.get("description") or ""), "children": [],
+            })
+            counts["parameters"] += 1
     outputs = schema.get("outputs")
     if isinstance(outputs, Mapping):
         for section, kind, target in (("summary_options", "summary", summary_nodes), ("trace_options", "observable", observable_nodes)):
