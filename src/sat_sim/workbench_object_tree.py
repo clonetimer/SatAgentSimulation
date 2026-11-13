@@ -14,9 +14,10 @@ from .workbench_quantity_names import output_definition, parameter_definition
 
 OBJECT_TREE_VERSION = "workbench-object-tree.v1"
 _CONTEXT_OBJECTS = {
-    "component.ground_station", "component.link_budget", "component.data_queue",
-    "component.power_sink", "component.thermal_node",
+    "component.data_queue", "component.power_sink", "component.thermal_node",
 }
+_EXTERNAL_OBJECTS = {"component.ground_station"}
+_RELATIONSHIP_OBJECTS = {"component.link_budget"}
 
 
 def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapping[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
@@ -32,7 +33,7 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
     observable_nodes: list[dict[str, Any]] = []
     seen_parameters: set[str] = set()
     owner_name = str(object_row.get("name_zh") or object_row.get("object_id"))
-    is_component = str(object_row.get("kind")) == "equipment"
+    is_component = str(capability_id).startswith("component.")
     for field in schema.get("fields", []):
         if not isinstance(field, Mapping):
             continue
@@ -138,8 +139,14 @@ def build_object_tree(scene_catalog: Mapping[str, Any],
         row = deepcopy(dict(source))
         row["children"] = []
         if row.get("kind") == "component":
-            row["kind"] = "equipment" if object_id not in _CONTEXT_OBJECTS else "context_object"
-            if row["kind"] == "equipment":
+            if object_id in _CONTEXT_OBJECTS:
+                row["kind"] = "context_object"
+            elif object_id in _EXTERNAL_OBJECTS:
+                row["kind"] = "external_object"
+            elif object_id in _RELATIONSHIP_OBJECTS:
+                row["kind"] = "relationship_object"
+            else:
+                row["kind"] = "equipment"
                 row["instance_semantics"] = "capability_model_not_vehicle_inventory"
                 row["inventory_count"] = None
                 row["inventory_count_source"] = None
@@ -154,7 +161,7 @@ def build_object_tree(scene_catalog: Mapping[str, Any],
         parent_id = row.get("parent_object_id")
         if object_id == "whole_spacecraft":
             roots.append(row)
-        elif object_id in _CONTEXT_OBJECTS:
+        elif object_id in _CONTEXT_OBJECTS or object_id in _EXTERNAL_OBJECTS or object_id in _RELATIONSHIP_OBJECTS:
             continue
         elif parent_id is None:
             roots.append(row)
@@ -171,6 +178,35 @@ def build_object_tree(scene_catalog: Mapping[str, Any],
             "kind": "context_group", "parent_object_id": None,
             "spatial_anchor": None, "children": context_children,
         })
+    external_children = [indexed[key] for key in sorted(_EXTERNAL_OBJECTS) if key in indexed]
+    for row in external_children:
+        row["parent_object_id"] = "external_environment"
+    if external_children:
+        roots.append({
+            "object_id": "external_environment", "name_zh": "外部设施",
+            "kind": "external_group", "parent_object_id": None,
+            "spatial_anchor": None, "children": external_children,
+        })
+    relationship_children = []
+    for definition in scene_catalog.get("relationship_objects", []):
+        if not isinstance(definition, Mapping):
+            raise ValueError("OBJECT_TREE_INVALID_RELATIONSHIP")
+        object_id = str(definition.get("object_id") or "")
+        if object_id not in indexed or object_id not in _RELATIONSHIP_OBJECTS:
+            raise ValueError(f"OBJECT_TREE_RELATIONSHIP_OBJECT_MISSING:{object_id}")
+        row = indexed[object_id]
+        row["name_zh"] = definition.get("name_zh") or row.get("name_zh")
+        row["relationship_type"] = definition.get("relationship_type")
+        row["endpoint_roles"] = deepcopy(definition.get("endpoint_roles", []))
+        row["endpoint_binding"] = definition.get("endpoint_binding")
+        row["parent_object_id"] = "relationships"
+        relationship_children.append(row)
+    if relationship_children:
+        roots.append({
+            "object_id": "relationships", "name_zh": "链路与跨对象关系",
+            "kind": "relationship_group", "parent_object_id": None,
+            "spatial_anchor": None, "children": relationship_children,
+        })
     tree = indexed["whole_spacecraft"]
     totals = {"equipment": 0, "parameters": 0, "summary": 0, "observable": 0, "unreviewed": 0}
     for row in indexed.values():
@@ -183,6 +219,8 @@ def build_object_tree(scene_catalog: Mapping[str, Any],
         "tree": tree, "roots": roots, "totals": totals,
         "semantics": {
             "hierarchy": "spacecraft_subsystem_equipment_quantity",
+            "external_objects_are_not_spacecraft_hardware": True,
+            "relationship_objects_are_not_single_equipment": True,
             "component_counts_are_inventory": False,
             "instance_count_source": "explicit_capability_or_vehicle_inventory_only",
             "unreviewed_fields_visible": False,
