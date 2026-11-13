@@ -104,6 +104,7 @@
     });
     $('evaluationMetricList').addEventListener('change', (event) => updateMetric(event.target));
     $('createEvaluationBtn').addEventListener('click', () => createReport());
+    $('createEvaluationDraftBtn').addEventListener('click', () => createConfigurationDraft());
     $('closeEvaluationReportBtn').addEventListener('click', () => $('evaluationReportPanel').classList.add('hidden'));
     $('evaluationHistoryList').addEventListener('click', (event) => {
       const button = event.target.closest('[data-open-report]');
@@ -331,6 +332,11 @@
   }
 
   function renderReport(report, createdAt = null) {
+    state.currentReportId = report.report_id;
+    const draftButton = $('createEvaluationDraftBtn');
+    draftButton.textContent = '根据评估创建配置草稿';
+    draftButton.disabled = false;
+    draftButton.title = '';
     $('evaluationReportPanel').classList.remove('hidden');
     $('evaluationReportMeta').textContent = `${report.plan_name_zh || report.plan_id} · 来源运行：${report.source_run_id}`;
     const summary = $('evaluationReportSummary');
@@ -379,6 +385,26 @@
       host.appendChild(card);
     });
     $('evaluationReportPanel').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+
+  async function createConfigurationDraft() {
+    const reportId = state.currentReportId;
+    if (!reportId || state.busy) return;
+    const button = $('createEvaluationDraftBtn');
+    button.disabled = true;
+    notice('正在创建新的配置草稿…');
+    try {
+      const payload = await request(`/evaluations/${encodeURIComponent(reportId)}/configuration-draft`, {
+        method: 'POST', body: {},
+      });
+      notice(`已创建配置草稿“${payload.task.name}”。原仿真和评估报告均保持不变；请前往任务中心检查并调整参数，再执行校验。`, 'success');
+      button.textContent = '已创建配置草稿';
+      button.disabled = true;
+      button.title = `任务：${payload.task.task_id}`;
+    } catch (error) {
+      notice(error.message, 'error');
+      button.disabled = false;
+    }
   }
 
   function renderHistory() {
