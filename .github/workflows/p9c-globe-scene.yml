@@ -62,7 +62,6 @@ jobs:
               "sat_sim/web/vendor/globe/three.module.js",
               "sat_sim/web/vendor/globe/three.core.js",
               "sat_sim/web/vendor/globe/textures/earth-blue-marble.jpg",
-              "sat_sim/web/vendor/globe/textures/earth-topology.png",
               "sat_sim/web/vendor/globe/vendor-manifest.json",
               "sat_sim/web/vendor/globe/licenses/globe.gl-LICENSE",
               "sat_sim/web/vendor/globe/licenses/three-globe-LICENSE",
