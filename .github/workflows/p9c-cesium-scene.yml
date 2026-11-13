@@ -1,0 +1,80 @@
+name: P9-C Cesium offline scene acceptance
+
+on:
+  pull_request:
+    paths:
+      - "scripts/vendor_cesium_assets.py"
+      - "src/sat_sim/web/satellite-scene.*"
+      - "src/sat_sim/web/index.html"
+      - "src/sat_sim/web/app.js"
+      - "src/sat_sim/api.py"
+      - "pyproject.toml"
+      - "tests/test_p9c_satellite_scene.py"
+      - ".github/workflows/p9c-cesium-scene.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cesium-offline-scene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install Python and browser test dependencies
+        run: >-
+          python -m pip install
+          "pytest==9.0.3" "build==1.5.0"
+          "pydantic==2.13.4" "jsonschema==4.26.0"
+          "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6"
+          "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0"
+          "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+          "playwright==1.57.0"
+      - name: Stage pinned CesiumJS 1.147.0 runtime
+        run: python scripts/vendor_cesium_assets.py
+      - name: Install headless Chromium
+        run: python -m playwright install chromium
+      - name: Verify offline scene and browser lifecycle
+        env:
+          PYTHONPATH: "src:."
+          SAT_SIM_BROWSER_EXECUTABLE: ${{ runner.temp }}/chromium/chrome
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          import shutil
+          with sync_playwright() as p:
+              source = Path(p.chromium.executable_path)
+              target = Path("${{ runner.temp }}/chromium/chrome")
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(source, target)
+          PY
+          python -m pytest -q tests/test_p9c_satellite_scene.py
+      - name: Build wheel with bundled offline Cesium runtime
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m build --wheel
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          wheel = next(Path("dist").glob("*.whl"))
+          with ZipFile(wheel) as archive:
+              names = set(archive.namelist())
+          required = [
+              "sat_sim/web/vendor/cesium/Cesium.js",
+              "sat_sim/web/vendor/cesium/Widgets/widgets.css",
+              "sat_sim/web/vendor/cesium/vendor-manifest.json",
+          ]
+          missing = [item for item in required if item not in names]
+          if missing:
+              raise SystemExit(f"wheel is missing Cesium runtime assets: {missing}")
+          print(f"wheel contains {len([n for n in names if '/vendor/cesium/' in n])} Cesium assets")
+          PY
