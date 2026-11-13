@@ -63,7 +63,7 @@
 | `run_basilisk_validation_suite.py` | 模型验证 | active | 保留并统一文件头与入口 |
 | `run_capacity_benchmark.py` | 性能容量基准 | active | 以隔离子进程执行时长、采样、模型规模、并发和批量吞吐矩阵并生成正式容量证据 |
 | `run_browser_e2e.py` | 浏览器测试 | active | 保留并统一文件头与入口 |
-| `vendor_scene_assets.py` | 前端运行时资源准备 | active | 使用 npm 完整性校验获取固定版本 Three.js 与 Natural Earth II 离线地球纹理，生成可打包的本地三维场景资源 |
+| `vendor_scene_assets.py` | 前端运行时资源准备 | active | 使用 npm 完整性校验获取固定版本 Globe.gl、three-globe、Three.js 与本地 Earth Blue Marble 纹理，连同许可证生成离线三维地球运行时；不使用 CDN、不放宽 CSP |
 | `run_coupling_causality_suite.py` | 耦合因果验证 | active | 执行共享基线与单因素扰动的密封 Basilisk 配对试验并签发证据清单 |
 | `run_coupling_completeness_gate.py` | 耦合治理 | active | 保留并统一文件头与入口 |
 | `run_controlled_experience_acceptance.py` | 经验复用验收 | active | 以真实密封 Run Bundle 验证候选编译、评测、双人审批、快照、禁用、回滚、撤销、隔离和篡改拒绝 |
