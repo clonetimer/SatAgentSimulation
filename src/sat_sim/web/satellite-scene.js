@@ -7,6 +7,9 @@ const EARTH_RADIUS_KM = 6371;
 const INCLINATION = THREE.MathUtils.degToRad(51.6);
 const state = {
   active: false,
+  ready: false,
+  generation: 0,
+  loadingTimer: 0,
   globe: null,
   satellite: null,
   resizeObserver: null,
@@ -87,7 +90,7 @@ function buildOrbitPath() {
   return [{ name: '演示轨道（非仿真结果）', points }];
 }
 
-function createGlobe(host) {
+function createGlobe(host, generation) {
   if (typeof window.Globe !== 'function') {
     throw new Error('Globe.gl 本地运行时未加载。');
   }
@@ -98,6 +101,13 @@ function createGlobe(host) {
     animateIn: false,
     waitForGlobeReady: true,
     rendererConfig: { antialias: true, alpha: false, powerPreference: 'high-performance' }
+  });
+  // Retain ownership before any subsequent setup can throw.
+  state.globe = globe;
+  state.satellite = satellite;
+  globe.onGlobeReady(() => {
+    // Cached-image callbacks may fire during setup; finish configuration first.
+    queueMicrotask(() => markReady(globe, generation));
   })
     .width(width)
     .height(height)
@@ -132,13 +142,12 @@ function createGlobe(host) {
   controls.minDistance = globe.getGlobeRadius() * 1.08;
   controls.maxDistance = globe.getGlobeRadius() * 18;
   globe.pointOfView({ lat: 18, lng: 120, altitude: 2.8 }, 0);
-  state.globe = globe;
-  state.satellite = satellite;
+  controls.addEventListener('start', freeCamera);
   return globe;
 }
 
 function updateSatellite(now) {
-  if (!state.active || !state.globe || !state.satellite) return;
+  if (!state.active || !state.ready || !state.globe || !state.satellite) return;
   if (now - state.lastUpdateAt >= 100) {
     state.lastUpdateAt = now;
     const elapsed = (now - state.startedAt) / 1000;
@@ -156,68 +165,121 @@ function updateSatellite(now) {
   state.frame = requestAnimationFrame(updateSatellite);
 }
 
+function syncCameraActions() {
+  document.querySelectorAll('#satelliteSceneView [data-scene-action]').forEach((button) => {
+    button.disabled = !state.ready;
+    if (button.dataset.sceneAction !== 'home') {
+      const selected = button.dataset.sceneAction === 'track' ? state.tracking : !state.tracking;
+      button.setAttribute('aria-pressed', String(state.ready && selected));
+    }
+  });
+}
+
+function markReady(globe, generation) {
+  if (!state.active || state.ready || state.globe !== globe || state.generation !== generation) return;
+  clearTimeout(state.loadingTimer);
+  state.loadingTimer = 0;
+  state.ready = true;
+  state.startedAt = performance.now();
+  state.lastUpdateAt = 0;
+  state.frame = requestAnimationFrame(updateSatellite);
+  syncCameraActions();
+  status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
+}
+
 function destroy() {
+  const globe = state.globe;
+  // Invalidate late imagery callbacks before invoking third-party cleanup.
   state.active = false;
-  if (state.frame) cancelAnimationFrame(state.frame);
-  state.frame = 0;
-  if (state.resizeObserver) state.resizeObserver.disconnect();
-  state.resizeObserver = null;
-  if (state.globe) {
-    state.globe.pauseAnimation();
-    state.globe.controls()?.dispose?.();
-    state.globe.renderer()?.dispose?.();
-    const canvas = state.globe.renderer()?.domElement;
-    canvas?.remove();
-  }
-  const host = byId('satelliteSceneCanvas');
-  host?.replaceChildren();
+  state.ready = false;
+  state.generation += 1;
   state.globe = null;
   state.satellite = null;
+  state.tracking = false;
+  clearTimeout(state.loadingTimer);
+  state.loadingTimer = 0;
+  if (state.frame) cancelAnimationFrame(state.frame);
+  state.frame = 0;
+  state.resizeObserver?.disconnect();
+  state.resizeObserver = null;
+  if (globe) {
+    const renderer = globe.renderer();
+    globe.controls()?.removeEventListener('start', freeCamera);
+    globe.pauseAnimation();
+    try {
+      // Globe.gl 2.46.2's wrapper teardown also releases layers, tooltips and
+      // internal tickers. Removing just the canvas leaves these owners alive.
+      globe._destructor();
+    } finally {
+      renderer?.forceContextLoss?.();
+      renderer?.domElement?.remove();
+      byId('satelliteSceneCanvas')?.replaceChildren();
+      syncCameraActions();
+    }
+  } else {
+    byId('satelliteSceneCanvas')?.replaceChildren();
+    syncCameraActions();
+  }
 }
 
 async function enter() {
-  if (state.active && state.globe) return;
-  state.active = true;
+  if (state.active) return;
   const host = byId('satelliteSceneCanvas');
   if (!host) return;
+  state.active = true;
+  state.ready = false;
+  state.tracking = false;
+  const generation = ++state.generation;
+  syncCameraActions();
   try {
     status('正在加载离线地球影像与三维卫星模型…');
-    createGlobe(host);
-    state.startedAt = performance.now();
-    state.lastUpdateAt = 0;
-    state.tracking = false;
+    createGlobe(host, generation);
+    state.loadingTimer = setTimeout(() => {
+      if (!state.active || state.ready || state.generation !== generation) return;
+      destroy();
+      status('地球影像加载超时。请返回仿真向导后重试，其他仿真功能仍可使用。', 'error');
+    }, 15000);
     state.resizeObserver = new ResizeObserver(() => {
-      if (!state.globe) return;
+      if (!state.active || !state.globe || state.generation !== generation) return;
       state.globe.width(Math.max(1, host.clientWidth));
       state.globe.height(Math.max(1, host.clientHeight));
     });
     state.resizeObserver.observe(host);
-    state.frame = requestAnimationFrame(updateSatellite);
-    status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
   } catch (error) {
     destroy();
-    status('三维场景加载失败，仿真工作台其他功能不受影响。' + (error?.message ? ' ' + error.message : ''), 'error');
+    // Keep technical errors in diagnostics, not in the ordinary user view.
+    console.warn('Satellite scene initialization failed', error);
+    status('三维场景未能加载。请返回仿真向导后重试，其他仿真功能仍可使用。', 'error');
   }
 }
 
 function track() {
-  if (!state.globe || !state.satellite) return;
+  if (!state.ready || !state.globe || !state.satellite) return;
   state.tracking = true;
   state.globe.pointOfView({
     lat: state.satellite.lat,
     lng: state.satellite.lng,
     altitude: 1.8
-  }, 600);
+  }, 0);
+  syncCameraActions();
 }
 
 function freeCamera() {
   state.tracking = false;
+  if (state.ready && state.globe) {
+    // Freeze the current view and cancel a pending home transition. Subsequent
+    // telemetry/display ticks must not take the camera back from the user.
+    const currentView = state.globe.pointOfView();
+    state.globe.pointOfView(currentView, 0);
+  }
+  syncCameraActions();
 }
 
 function home() {
-  if (!state.globe) return;
+  if (!state.ready || !state.globe) return;
   state.tracking = false;
   state.globe.pointOfView({ lat: 18, lng: 120, altitude: 2.8 }, 800);
+  syncCameraActions();
 }
 
 document.addEventListener('click', (event) => {

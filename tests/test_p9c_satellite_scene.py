@@ -60,8 +60,8 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
     assert "window.Globe" in scene
     assert "earth-blue-marble.jpg" in scene
-    assert "objectsData" in scene or ".objectsData" in scene
-    assert "pathsData" in scene or ".pathsData" in scene
+    assert "objectsData" in scene
+    assert "pathsData" in scene
     assert "不代表真实 Basilisk 仿真遥测" in scene
     assert "window.SatScene = { enter, exit: destroy, track, freeCamera, home }" in scene
     assert "setInterval" not in scene
@@ -73,44 +73,68 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
     executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
     if not executable:
         pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to an installed Chromium browser")
+    evidence_dir = os.environ.get("SAT_SIM_SCENE_EVIDENCE_DIR")
     with _client(tmp_path) as client, playwright.sync_playwright() as pw:
         browser = pw.chromium.launch(
             headless=True,
             executable_path=executable,
             args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
         )
-        page = browser.new_page(viewport={"width": 1440, "height": 960})
-        failures: list[str] = []
-        external_requests: list[str] = []
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 960})
+            failures: list[str] = []
+            external_requests: list[str] = []
 
-        def proxy(route):
-            parsed = urlparse(route.request.url)
-            response = client.get(parsed.path, params=dict(parse_qsl(parsed.query)))
-            headers = {
-                key: value for key, value in response.headers.items()
-                if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")
-            }
-            route.fulfill(status=response.status_code, body=response.content, headers=headers)
+            def proxy(route):
+                parsed = urlparse(route.request.url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc != "workbench.test":
+                    external_requests.append(route.request.url)
+                    route.abort()
+                    return
+                response = client.get(parsed.path, params=dict(parse_qsl(parsed.query)))
+                headers = {
+                    key: value for key, value in response.headers.items()
+                    if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")
+                }
+                route.fulfill(status=response.status_code, body=response.content, headers=headers)
 
-        page.on("pageerror", lambda error: failures.append(str(error)))
-        page.on("requestfailed", lambda request: failures.append(f"request failed: {request.url} {request.failure}"))
-        page.on("request", lambda request: external_requests.append(request.url) if urlparse(request.url).netloc != "workbench.test" else None)
-        page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
-        page.on("console", lambda message: failures.append(f"console error: {message.text}") if message.type == "error" else None)
-        page.route("https://workbench.test/**", proxy)
-        page.goto("https://workbench.test/", wait_until="domcontentloaded")
-        page.locator("#wizardSceneShortcutBtn").click()
-        scene_status = page.locator("#satelliteSceneStatus")
-        scene_status.filter(has_text="场景已就绪").wait_for(timeout=30000)
-        page.locator("#satelliteSceneCanvas canvas").first.wait_for(timeout=30000)
-        assert "演示数据" in scene_status.inner_text()
-        page.locator('[data-scene-action="track"]').click()
-        page.locator('[data-scene-action="free"]').click()
-        page.locator('[data-scene-action="home"]').click()
-        assert not external_requests, external_requests
-        assert not failures, failures
-
-        page.locator("#satelliteSceneView [data-return-wizard]").click()
-        page.locator("#wizardView").wait_for(state="visible")
-        assert page.locator("#satelliteSceneCanvas canvas").count() == 0
-        browser.close()
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("requestfailed", lambda request: failures.append(f"request failed: {request.url} {request.failure}"))
+            page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
+            page.on("console", lambda message: failures.append(f"console error: {message.text}") if message.type == "error" else None)
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            for cycle in range(3):
+                page.locator("#wizardSceneShortcutBtn").click()
+                scene_status = page.locator("#satelliteSceneStatus")
+                scene_status.filter(has_text="场景已就绪").wait_for(timeout=30000)
+                canvas = page.locator("#satelliteSceneCanvas canvas").first
+                canvas.wait_for(timeout=30000)
+                assert page.locator("#satelliteSceneCanvas canvas").count() == 1
+                assert "演示数据" in scene_status.inner_text()
+                track = page.locator('[data-scene-action="track"]')
+                free = page.locator('[data-scene-action="free"]')
+                track.click()
+                playwright.expect(track).to_have_attribute("aria-pressed", "true")
+                box = canvas.bounding_box()
+                assert box is not None
+                x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+                page.mouse.move(x, y)
+                page.mouse.down()
+                page.mouse.move(x + 50, y + 15, steps=5)
+                page.mouse.up()
+                playwright.expect(free).to_have_attribute("aria-pressed", "true")
+                playwright.expect(track).to_have_attribute("aria-pressed", "false")
+                free.click()
+                page.locator('[data-scene-action="home"]').click()
+                if evidence_dir and cycle == 2:
+                    output = Path(evidence_dir)
+                    output.mkdir(parents=True, exist_ok=True)
+                    page.screenshot(path=str(output / "scene-desktop.png"), full_page=True)
+                page.locator("#satelliteSceneView [data-return-wizard]").click()
+                page.locator("#wizardView").wait_for(state="visible")
+                assert page.locator("#satelliteSceneCanvas canvas").count() == 0
+            assert not external_requests, external_requests
+            assert not failures, failures
+        finally:
+            browser.close()
