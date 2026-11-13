@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -105,7 +106,7 @@ def vendor(root: Path) -> dict[str, object]:
                     "source": "NASA Blue Marble imagery redistributed in three-globe example assets",
                     "license": "NASA public-domain imagery",
                     "credit": "NASA Goddard Space Flight Center Scientific Visualization Studio; Blue Marble Next Generation data courtesy of Reto Stöckli",
-                    "sha256": __import__("hashlib").sha256((output / "textures/earth-blue-marble.jpg").read_bytes()).hexdigest(),
+                    "sha256": hashlib.sha256((output / "textures/earth-blue-marble.jpg").read_bytes()).hexdigest(),
                     "size_bytes": (output / "textures/earth-blue-marble.jpg").stat().st_size,
                 }
             },
