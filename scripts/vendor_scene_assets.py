@@ -26,7 +26,10 @@ THREE_FILES = (
     "package/examples/jsm/utils/BufferGeometryUtils.js",
     "package/examples/jsm/utils/SkeletonUtils.js",
 )
-EARTH_FILES = {\n    "package/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg": "naturalearth-ii-west.jpg",\n    "package/Build/Cesium/Assets/Textures/NaturalEarthII/0/1/0.jpg": "naturalearth-ii-east.jpg",\n}
+EARTH_FILES = {
+    "package/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg": "naturalearth-ii-west.jpg",
+    "package/Build/Cesium/Assets/Textures/NaturalEarthII/0/1/0.jpg": "naturalearth-ii-east.jpg",
+}
 
 
 def copy_tar_member(bundle: tarfile.TarFile, member_name: str, destination: Path) -> None:
