@@ -60,7 +60,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             executable_path=executable,
             args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
         )
-        page = browser.new_page()
+        page = browser.new_page(viewport={"width": 1440, "height": 960})
         failures: list[str] = []
 
         def proxy(route):
