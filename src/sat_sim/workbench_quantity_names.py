@@ -58,8 +58,23 @@ def parameter_definition(capability_id: str, parameter_name: str) -> dict[str, A
     row = _PARAMETERS.get(capability_id, {}).get(parameter_name)
     if key is None or row is None:
         return None
+    if key == "reaction_wheel" and parameter_name == "physics_backend":
+        display_name = "物理计算后端"
+    else:
+        display_name = f"{_COMPONENTS[key]['name']} · {row[0]}"
+    instance_binding = None
+    if key == "reaction_wheel" and parameter_name in {
+        "wheel_inertia_kg_m2", "max_motor_torque_nm", "max_speed_rad_s",
+        "damping_nms", "initial_wheel_speeds_rad_s", "command_torque_nm",
+        "torque_profile_nm",
+    }:
+        instance_binding = {
+            "equipment_type": "reaction_wheel", "count_parameter": "num_wheels",
+            "array_index_base": 0, "display_index_base": 1,
+        }
     return {
-        "display_name_zh": f"{_COMPONENTS[key]['name']} · {row[0]}",
+        "display_name_zh": display_name,
+        "instance_binding": instance_binding,
         "unit": row[1], "object_id": f"component.{key}",
         "source_capability_id": capability_id, "source_field": parameter_name,
         "source_contract_path": f"src/sat_sim/capabilities/{capability_id}.yaml",
