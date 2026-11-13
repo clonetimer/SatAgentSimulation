@@ -1561,7 +1561,7 @@ def create_app(
         schemas: dict[str, Any] = {}
         for item in scene["objects"]:
             capability_id = item.get("execution_capability_id")
-            if item.get("kind") == "component" and capability_id:
+            if capability_id:
                 schemas[capability_id] = capability_form_schema(capability_id)
         tree = build_object_tree(scene, schemas)
         return {
