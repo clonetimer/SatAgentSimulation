@@ -10,6 +10,7 @@ from typing import Any, Mapping
 from .run_bundle import verify_run_bundle
 
 MAX_EVALUATION_SAMPLES = 250_000
+MAX_EVALUATION_CELLS = 1_000_000
 MAX_EVALUATION_TELEMETRY_BYTES = 256 * 1024 * 1024
 FORMULA_LABELS = {
     "sample_mean.v1": "平均值",
@@ -235,6 +236,23 @@ def build_recorded_evaluation(run: Mapping[str, Any], sources: list[Mapping[str,
         "max_sample_gap_s": request_plan.get("max_sample_gap_s"),
         "metrics": resolved_metrics,
     }
+    declared_sample_counts = {
+        int(source.get("total_samples", -1))
+        for source in selected_sources.values()
+        if type(source.get("total_samples")) is int
+    }
+    if len(declared_sample_counts) != 1 or any(
+        type(source.get("total_samples")) is not int
+        or source.get("total_samples") < 1
+        or source.get("sample_count") != source.get("total_samples")
+        for source in selected_sources.values()
+    ):
+        raise EvaluationRunError("EVALUATION_SOURCE_SAMPLE_COUNTS_INCONSISTENT", 409)
+    declared_rows = next(iter(declared_sample_counts))
+    if declared_rows > MAX_EVALUATION_SAMPLES:
+        raise EvaluationRunError("EVALUATION_SAMPLE_LIMIT_EXCEEDED", 413)
+    if declared_rows * len(selected_sources) > MAX_EVALUATION_CELLS:
+        raise EvaluationRunError("EVALUATION_WORKLOAD_LIMIT_EXCEEDED", 413)
     series = {
         metric_id: {
             "owner_object_id": source["owner_object_id"],
