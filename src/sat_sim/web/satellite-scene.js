@@ -1,240 +1,200 @@
 import * as THREE from 'three';
-import { GLTFLoader } from '/assets/vendor/three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from '/assets/vendor/three/examples/jsm/controls/OrbitControls.js';
 
-const EARTH_RADIUS_M = 6371000;
-const ORBIT_ALTITUDE_M = 550000;
-const ORBIT_PERIOD_DEMO_S = 90;
+const EARTH_ROTATION_S = 86164.0905;
+const ORBIT_PERIOD_S = 5730;
+const ORBIT_ALTITUDE_KM = 550;
+const EARTH_RADIUS_KM = 6371;
 const INCLINATION = THREE.MathUtils.degToRad(51.6);
 const state = {
-  active: false, renderer: null, scene: null, camera: null, controls: null,
-  satellite: null, earth: null, resizeObserver: null, startTime: 0, tracking: true
+  active: false,
+  globe: null,
+  satellite: null,
+  resizeObserver: null,
+  startedAt: 0,
+  lastUpdateAt: 0,
+  tracking: false,
+  frame: 0
 };
-const byId = (id) => document.getElementById(id);
 
-function status(message, kind = 'info') {
+const byId = (id) => document.getElementById(id);
+const status = (message, kind = 'info') => {
   const element = byId('satelliteSceneStatus');
   if (!element) return;
   element.textContent = message;
   element.dataset.kind = kind;
+};
+
+function orbitPoint(phase) {
+  const latitude = Math.asin(Math.sin(INCLINATION) * Math.sin(phase));
+  const earthRotation = (ORBIT_PERIOD_S / EARTH_ROTATION_S) * Math.PI * 2;
+  const longitude = phase - (phase / (Math.PI * 2)) * earthRotation;
+  return {
+    lat: THREE.MathUtils.radToDeg(latitude),
+    lng: THREE.MathUtils.radToDeg(longitude),
+    alt: ORBIT_ALTITUDE_KM / EARTH_RADIUS_KM
+  };
 }
 
-function orbitPosition(phase) {
-  const radius = EARTH_RADIUS_M + ORBIT_ALTITUDE_M;
-  return new THREE.Vector3(
-    radius * Math.cos(phase),
-    radius * Math.sin(phase) * Math.sin(INCLINATION),
-    radius * Math.sin(phase) * Math.cos(INCLINATION)
+function makeSatelliteModel() {
+  const root = new THREE.Group();
+  root.name = 'Original schematic satellite model';
+
+  const bus = new THREE.Mesh(
+    new THREE.BoxGeometry(2.4, 2.1, 2.1),
+    new THREE.MeshStandardMaterial({ color: 0xc4ccd7, metalness: 0.78, roughness: 0.32 })
   );
-}
+  root.add(bus);
 
-function makeLabel() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 96;
-  const context = canvas.getContext('2d');
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = 'rgba(5, 12, 24, 0.78)';
-  context.beginPath();
-  context.roundRect(8, 8, 496, 80, 18);
-  context.fill();
-  context.font = 'bold 34px sans-serif';
-  context.fillStyle = '#ffffff';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText('任务卫星（示意模型）', 256, 48);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
-  const sprite = new THREE.Sprite(material);
-  sprite.scale.set(850000, 159000, 1);
-  sprite.position.set(0, 300000, 0);
-  return sprite;
-}
-
-function makeStars(scene) {
-  const positions = [];
-  for (let index = 0; index < 1800; index += 1) {
-    const u = (index * 0.6180339887498949) % 1;
-    const v = (index * 0.7548776662466927) % 1;
-    const theta = 2 * Math.PI * u;
-    const phi = Math.acos(2 * v - 1);
-    const radius = EARTH_RADIUS_M * 18;
-    positions.push(
-      radius * Math.sin(phi) * Math.cos(theta),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta)
-    );
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  const material = new THREE.PointsMaterial({ color: 0xb9d6ff, size: EARTH_RADIUS_M * 0.0012, sizeAttenuation: true });
-  scene.add(new THREE.Points(geometry, material));
-}
-
-function makeOrbit(scene) {
-  const points = [];
-  for (let index = 0; index <= 360; index += 1) {
-    points.push(orbitPosition((index / 360) * Math.PI * 2));
-  }
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  const material = new THREE.LineDashedMaterial({
-    color: 0xf2c14e, dashSize: 140000, gapSize: 90000, transparent: true, opacity: 0.9
+  const panelMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1c5d9b, metalness: 0.3, roughness: 0.48,
+    emissive: 0x071b38, emissiveIntensity: 0.25
   });
-  const line = new THREE.Line(geometry, material);
-  line.computeLineDistances();
-  scene.add(line);
-  return line;
-}
+  const panelGeometry = new THREE.BoxGeometry(5.5, 0.12, 2.5);
+  for (const side of [-1, 1]) {
+    const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+    panel.position.set(side * 4.0, 0, 0);
+    root.add(panel);
+    const hinge = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18, 0.18, 1.0, 10),
+      new THREE.MeshStandardMaterial({ color: 0xb9a66c, metalness: 0.8, roughness: 0.3 })
+    );
+    hinge.rotation.z = Math.PI / 2;
+    hinge.position.x = side * 2.55;
+    root.add(hinge);
+  }
 
-async function createScene(host) {
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x030915);
-
-  const camera = new THREE.PerspectiveCamera(42, host.clientWidth / host.clientHeight, 1000, EARTH_RADIUS_M * 80);
-  camera.position.set(EARTH_RADIUS_M * 1.8, EARTH_RADIUS_M * 1.15, EARTH_RADIUS_M * 2.6);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setSize(host.clientWidth, host.clientHeight);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
-  renderer.domElement.setAttribute('aria-label', '三维地球、卫星与演示轨道');
-  host.replaceChildren(renderer.domElement);
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.065;
-  controls.minDistance = EARTH_RADIUS_M * 1.04;
-  controls.maxDistance = EARTH_RADIUS_M * 18;
-  controls.target.set(0, 0, 0);
-  controls.update();
-  state.scene = scene;
-  state.camera = camera;
-  state.renderer = renderer;
-  state.controls = controls;
-
-  scene.add(new THREE.AmbientLight(0x8ba6c7, 1.0));
-  const sun = new THREE.DirectionalLight(0xfff0d6, 2.2);
-  sun.position.set(EARTH_RADIUS_M * 5, EARTH_RADIUS_M * 3, EARTH_RADIUS_M * 2);
-  scene.add(sun);
-
-  const textureLoader = new THREE.TextureLoader();
-  const [west, east, gltf] = await Promise.all([
-    textureLoader.loadAsync('/assets/vendor/earth/naturalearth-ii-west.jpg'),
-    textureLoader.loadAsync('/assets/vendor/earth/naturalearth-ii-east.jpg'),
-    new GLTFLoader().loadAsync('/assets/satellite-demo.gltf')
-  ]);
-  const mapCanvas = document.createElement('canvas');
-  mapCanvas.width = west.image.width + east.image.width;
-  mapCanvas.height = Math.max(west.image.height, east.image.height);
-  const mapContext = mapCanvas.getContext('2d');
-  mapContext.drawImage(west.image, 0, 0);
-  mapContext.drawImage(east.image, west.image.width, 0);
-  west.dispose();
-  east.dispose();
-  const earthTexture = new THREE.CanvasTexture(mapCanvas);
-  earthTexture.colorSpace = THREE.SRGBColorSpace;
-  earthTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-  const earth = new THREE.Mesh(
-    new THREE.SphereGeometry(EARTH_RADIUS_M, 128, 80),
-    new THREE.MeshStandardMaterial({ map: earthTexture, roughness: 0.96, metalness: 0.0 })
+  const antenna = new THREE.Mesh(
+    new THREE.ConeGeometry(0.72, 1.2, 20),
+    new THREE.MeshStandardMaterial({ color: 0xd6dbe2, metalness: 0.7, roughness: 0.25 })
   );
-  earth.rotation.y = Math.PI;
-  scene.add(earth);
-  state.earth = earth;
+  antenna.position.set(0, 1.55, 0);
+  root.add(antenna);
 
-  const atmosphere = new THREE.Mesh(
-    new THREE.SphereGeometry(EARTH_RADIUS_M * 1.014, 96, 64),
-    new THREE.MeshBasicMaterial({
-      color: 0x4a9fe5, transparent: true, opacity: 0.105, side: THREE.BackSide, depthWrite: false
-    })
-  );
-  scene.add(atmosphere);
-
-  makeStars(scene);
-  makeOrbit(scene);
-
-  const satellite = new THREE.Group();
-  const model = gltf.scene;
-  model.scale.setScalar(25000);
-  satellite.add(model);
-  const marker = new THREE.Mesh(
-    new THREE.SphereGeometry(18000, 16, 12),
+  const beacon = new THREE.Mesh(
+    new THREE.SphereGeometry(0.18, 12, 8),
     new THREE.MeshBasicMaterial({ color: 0xffd166 })
   );
-  satellite.add(marker);
-  satellite.add(makeLabel());
-  scene.add(satellite);
-  state.satellite = satellite;
-  state.startTime = performance.now();
-  state.tracking = true;
-  return { scene, camera, renderer, controls, satellite, earth };
+  beacon.position.set(0, -1.2, 0);
+  root.add(beacon);
+  return root;
 }
 
-function animate(now) {
-  if (!state.active || !state.renderer) return;
-  const elapsed = (now - state.startTime) / 1000;
-  const phase = (elapsed / ORBIT_PERIOD_DEMO_S) * Math.PI * 2;
-  const position = orbitPosition(phase);
-  const next = orbitPosition(phase + 0.002);
-  state.satellite.position.copy(position);
-  state.satellite.lookAt(next);
-  state.earth.rotation.y += 0.000018;
-  if (state.tracking) state.controls.target.copy(position);
-  state.controls.update();
-  state.renderer.render(state.scene, state.camera);
+function buildOrbitPath() {
+  const points = [];
+  for (let index = 0; index <= 240; index += 1) {
+    points.push(orbitPoint((index / 240) * Math.PI * 2));
+  }
+  return [{ name: '演示轨道（非仿真结果）', points }];
+}
+
+function createGlobe(host) {
+  if (typeof window.Globe !== 'function') {
+    throw new Error('Globe.gl 本地运行时未加载。');
+  }
+  const width = Math.max(1, host.clientWidth);
+  const height = Math.max(1, host.clientHeight);
+  const satellite = { name: '任务卫星（示意模型）', ...orbitPoint(0) };
+  const globe = new window.Globe(host, {
+    animateIn: false,
+    waitForGlobeReady: true,
+    rendererConfig: { antialias: true, alpha: false, powerPreference: 'high-performance' }
+  })
+    .width(width)
+    .height(height)
+    .backgroundColor('#030915')
+    .globeImageUrl('/assets/vendor/globe/textures/earth-blue-marble.jpg')
+    .bumpImageUrl('/assets/vendor/globe/textures/earth-topology.png')
+    .showGraticules(true)
+    .showAtmosphere(true)
+    .atmosphereColor('#4a9fe5')
+    .atmosphereAltitude(0.14)
+    .pathsData(buildOrbitPath())
+    .pathLabel('name')
+    .pathPoints('points')
+    .pathPointLat('lat')
+    .pathPointLng('lng')
+    .pathPointAlt('alt')
+    .pathColor(() => '#f2c14e')
+    .pathStroke(0.65)
+    .pathDashLength(0.008)
+    .pathDashGap(0.004)
+    .pathDashAnimateTime(0)
+    .objectsData([satellite])
+    .objectLabel('name')
+    .objectLat('lat')
+    .objectLng('lng')
+    .objectAltitude('alt')
+    .objectFacesSurface(false)
+    .objectThreeObject(() => makeSatelliteModel());
+
+  const controls = globe.controls();
+  controls.autoRotate = false;
+  controls.enableDamping = true;
+  controls.minDistance = globe.getGlobeRadius() * 1.08;
+  controls.maxDistance = globe.getGlobeRadius() * 18;
+  globe.pointOfView({ lat: 18, lng: 120, altitude: 2.8 }, 0);
+  state.globe = globe;
+  state.satellite = satellite;
+  return globe;
+}
+
+function updateSatellite(now) {
+  if (!state.active || !state.globe || !state.satellite) return;
+  if (now - state.lastUpdateAt >= 100) {
+    state.lastUpdateAt = now;
+    const elapsed = (now - state.startedAt) / 1000;
+    const phase = ((elapsed % ORBIT_PERIOD_S) / ORBIT_PERIOD_S) * Math.PI * 2;
+    Object.assign(state.satellite, orbitPoint(phase));
+    state.globe.objectsData([state.satellite]);
+    if (state.tracking) {
+      state.globe.pointOfView({
+        lat: state.satellite.lat,
+        lng: state.satellite.lng,
+        altitude: 1.8
+      }, 0);
+    }
+  }
+  state.frame = requestAnimationFrame(updateSatellite);
 }
 
 function destroy() {
   state.active = false;
+  if (state.frame) cancelAnimationFrame(state.frame);
+  state.frame = 0;
   if (state.resizeObserver) state.resizeObserver.disconnect();
   state.resizeObserver = null;
-  if (state.renderer) {
-    state.renderer.setAnimationLoop(null);
-    state.renderer.dispose();
-    state.renderer.domElement.remove();
+  if (state.globe) {
+    state.globe.pauseAnimation();
+    state.globe.controls()?.dispose?.();
+    state.globe.renderer()?.dispose?.();
+    const canvas = state.globe.renderer()?.domElement;
+    canvas?.remove();
   }
-  state.controls?.dispose();
-  state.scene?.traverse((object) => {
-    if (object.geometry) object.geometry.dispose();
-    if (object.material) {
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      materials.forEach((material) => {
-        Object.values(material).forEach((value) => {
-          if (value && value.isTexture) value.dispose();
-        });
-        material.dispose();
-      });
-    }
-  });
-  Object.assign(state, {
-    renderer: null, scene: null, camera: null, controls: null,
-    satellite: null, earth: null
-  });
+  const host = byId('satelliteSceneCanvas');
+  host?.replaceChildren();
+  state.globe = null;
+  state.satellite = null;
 }
 
 async function enter() {
-  if (state.active && state.renderer) return;
+  if (state.active && state.globe) return;
   state.active = true;
   const host = byId('satelliteSceneCanvas');
   if (!host) return;
   try {
-    status('正在加载本地地球影像与卫星模型…');
-    await createScene(host);
+    status('正在加载离线地球影像与三维卫星模型…');
+    createGlobe(host);
+    state.startedAt = performance.now();
+    state.lastUpdateAt = 0;
+    state.tracking = false;
     state.resizeObserver = new ResizeObserver(() => {
-      if (!state.renderer || !state.camera) return;
-      const width = Math.max(1, host.clientWidth);
-      const height = Math.max(1, host.clientHeight);
-      state.camera.aspect = width / height;
-      state.camera.updateProjectionMatrix();
-      state.renderer.setSize(width, height);
+      if (!state.globe) return;
+      state.globe.width(Math.max(1, host.clientWidth));
+      state.globe.height(Math.max(1, host.clientHeight));
     });
     state.resizeObserver.observe(host);
-    state.renderer.setAnimationLoop(animate);
-    status('场景已就绪。地球影像和卫星模型来自本地资源；轨道与运动为演示数据，不代表真实仿真遥测。', 'success');
+    state.frame = requestAnimationFrame(updateSatellite);
+    status('场景已就绪。采用 Globe.gl 成熟地球渲染组件；轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
   } catch (error) {
     destroy();
     status('三维场景加载失败，仿真工作台其他功能不受影响。' + (error?.message ? ' ' + error.message : ''), 'error');
@@ -242,19 +202,23 @@ async function enter() {
 }
 
 function track() {
-  if (!state.satellite || !state.controls) return;
+  if (!state.globe || !state.satellite) return;
   state.tracking = true;
-  state.controls.target.copy(state.satellite.position);
+  state.globe.pointOfView({
+    lat: state.satellite.lat,
+    lng: state.satellite.lng,
+    altitude: 1.8
+  }, 600);
 }
+
 function freeCamera() {
   state.tracking = false;
 }
+
 function home() {
-  if (!state.camera || !state.controls) return;
+  if (!state.globe) return;
   state.tracking = false;
-  state.controls.target.set(0, 0, 0);
-  state.camera.position.set(EARTH_RADIUS_M * 1.8, EARTH_RADIUS_M * 1.15, EARTH_RADIUS_M * 2.6);
-  state.controls.update();
+  state.globe.pointOfView({ lat: 18, lng: 120, altitude: 2.8 }, 800);
 }
 
 document.addEventListener('click', (event) => {
