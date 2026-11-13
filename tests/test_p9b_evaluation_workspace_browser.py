@@ -98,8 +98,8 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
             page.set_content(html, wait_until="domcontentloaded", timeout=12000)
             page.locator('#wizardAdditionalTools > summary').click()
             page.locator('[data-wizard-goal="runs"]').click()
-            page.locator('.nav-button[data-view="evaluations"]').wait_for(state="visible")
-            page.locator('.nav-button[data-view="evaluations"]').click()
+            page.locator('#runCenterTableBody button').filter(has_text="效能评估").wait_for(state="visible")
+            page.locator('#runCenterTableBody button').filter(has_text="效能评估").click()
             page.locator("#evaluationRunSelect option").first.wait_for(state="attached", timeout=20000)
             page.wait_for_function(
                 "() => document.querySelectorAll('#evaluationSourceList [data-add-source]:not([disabled])').length > 0",
