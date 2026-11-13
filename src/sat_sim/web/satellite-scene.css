@@ -1,11 +1,13 @@
 
-/* P9-C: CSP-compatible Three.js globe-centered satellite scene. */
+/* Globe-centered satellite scene. */
 .satellite-scene-view { min-width: 0; padding: 18px; }
 .satellite-scene-shell { display: grid; gap: 12px; min-width: 0; }
 .satellite-scene-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.satellite-scene-heading .eyebrow { display: none; }
 .satellite-scene-heading h1 { margin: 0 0 5px; font-size: 22px; }
 .satellite-scene-heading p { margin: 0; color: var(--muted); font-size: 13px; }
 .satellite-scene-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.satellite-scene-actions [aria-pressed="true"] { border-color: var(--accent); font-weight: 700; }
 .satellite-scene-canvas { width: 100%; height: min(70vh, 760px); min-height: 420px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #030915; }
 .satellite-scene-canvas canvas { display: block; width: 100%; height: 100%; }
 .satellite-scene-status { min-height: 36px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: var(--panel); font-size: 12px; }

@@ -90,6 +90,11 @@ function buildOrbitPath() {
   return [{ name: '演示轨道（非仿真结果）', points }];
 }
 
+function overviewPoint(satellite) {
+  // Keep the satellite on the near hemisphere while retaining a global view.
+  return { lat: satellite.lat + 18, lng: satellite.lng + 20, altitude: 2.8 };
+}
+
 function createGlobe(host, generation) {
   if (typeof window.Globe !== 'function') {
     throw new Error('Globe.gl 本地运行时未加载。');
@@ -141,7 +146,7 @@ function createGlobe(host, generation) {
   controls.enableDamping = true;
   controls.minDistance = globe.getGlobeRadius() * 1.08;
   controls.maxDistance = globe.getGlobeRadius() * 18;
-  globe.pointOfView({ lat: 18, lng: 120, altitude: 2.8 }, 0);
+  globe.pointOfView(overviewPoint(satellite), 0);
   controls.addEventListener('start', freeCamera);
   return globe;
 }
@@ -278,7 +283,7 @@ function freeCamera() {
 function home() {
   if (!state.ready || !state.globe) return;
   state.tracking = false;
-  state.globe.pointOfView({ lat: 18, lng: 120, altitude: 2.8 }, 800);
+  state.globe.pointOfView(overviewPoint(state.satellite), 0);
   syncCameraActions();
 }
 

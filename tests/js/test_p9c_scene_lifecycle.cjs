@@ -191,3 +191,22 @@ test('repeated complete enter/exit cycles leave no owned animation or timers', a
   assert.equal(h.instances.length, 12);
   assert.ok(h.instances.every(globe => globe.destroyed === 1));
 });
+
+test('initial overview faces the demonstration satellite instead of its far hemisphere', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const view = h.instances[0].views[0].view;
+  assert.ok(Math.abs(view.lng) <= 30, 'initial satellite longitude is zero; overview must include it');
+  assert.ok(Math.abs(view.lat) <= 30);
+});
+
+test('returning to overview retains the current satellite in the near hemisphere', async () => {
+  const h = harness(); await h.api.enter(); await h.ready(); h.api.track();
+  h.tick();
+  const globe = h.instances[0];
+  const satelliteView = globe.views.at(-1).view;
+  h.api.home();
+  const overview = globe.views.at(-1).view;
+  assert.ok(Math.abs(overview.lng - satelliteView.lng) <= 30);
+  assert.ok(Math.abs(overview.lat - satelliteView.lat) <= 30);
+  assert.ok(overview.altitude > satelliteView.altitude, 'overview must zoom out');
+});
