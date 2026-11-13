@@ -83,6 +83,9 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
             page.set_default_timeout(12000)
             page.set_default_navigation_timeout(12000)
             page.set_content(html, wait_until="domcontentloaded", timeout=12000)
+            page.locator('#wizardAdditionalTools > summary').click()
+            page.locator('[data-wizard-goal="runs"]').click()
+            page.locator('.nav-button[data-view="evaluations"]').wait_for(state="visible")
             page.locator('.nav-button[data-view="evaluations"]').click()
             page.locator("#evaluationRunSelect option").first.wait_for(state="attached", timeout=20000)
             page.wait_for_function(
@@ -90,7 +93,7 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
                 timeout=20000,
             )
             assert "run-001" in page.locator("#evaluationRunSummary").inner_text()
-            page.locator("#evaluationSourceList [data-add-source]").first.click()
+            page.locator("#evaluationSourceList [data-add-source]:not([disabled])").first.click()
             assert page.locator("#evaluationMetricList .evaluation-metric-card").count() == 1
             page.locator("#evaluationPlanName").fill("反作用轮转速评估")
             page.locator("#evaluationMetricList select[data-metric-formula]").select_option("sample_rms.v1")
