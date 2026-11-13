@@ -103,7 +103,6 @@ function createGlobe(host) {
     .height(height)
     .backgroundColor('#030915')
     .globeImageUrl('/assets/vendor/globe/textures/earth-blue-marble.jpg')
-    .bumpImageUrl('/assets/vendor/globe/textures/earth-topology.png')
     .showGraticules(true)
     .showAtmosphere(true)
     .atmosphereColor('#4a9fe5')
