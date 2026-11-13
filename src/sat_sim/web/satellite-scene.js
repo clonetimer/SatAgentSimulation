@@ -110,6 +110,10 @@ async function createScene(host) {
   controls.maxDistance = EARTH_RADIUS_M * 18;
   controls.target.set(0, 0, 0);
   controls.update();
+  state.scene = scene;
+  state.camera = camera;
+  state.renderer = renderer;
+  state.controls = controls;
 
   scene.add(new THREE.AmbientLight(0x8ba6c7, 1.0));
   const sun = new THREE.DirectionalLight(0xfff0d6, 2.2);
@@ -128,6 +132,8 @@ async function createScene(host) {
   const mapContext = mapCanvas.getContext('2d');
   mapContext.drawImage(west.image, 0, 0);
   mapContext.drawImage(east.image, west.image.width, 0);
+  west.dispose();
+  east.dispose();
   const earthTexture = new THREE.CanvasTexture(mapCanvas);
   earthTexture.colorSpace = THREE.SRGBColorSpace;
   earthTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -138,6 +144,7 @@ async function createScene(host) {
   );
   earth.rotation.y = Math.PI;
   scene.add(earth);
+  state.earth = earth;
 
   const atmosphere = new THREE.Mesh(
     new THREE.SphereGeometry(EARTH_RADIUS_M * 1.014, 96, 64),
@@ -161,12 +168,6 @@ async function createScene(host) {
   satellite.add(marker);
   satellite.add(makeLabel());
   scene.add(satellite);
-
-  state.scene = scene;
-  state.camera = camera;
-  state.renderer = renderer;
-  state.controls = controls;
-  state.earth = earth;
   state.satellite = satellite;
   state.startTime = performance.now();
   state.tracking = true;
