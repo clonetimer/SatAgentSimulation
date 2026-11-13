@@ -1,0 +1,15 @@
+
+/* P9-C: isolated globe-centered satellite scene spike. */
+.satellite-scene-view { min-width: 0; padding: 18px; }
+.satellite-scene-shell { display: grid; gap: 12px; min-width: 0; }
+.satellite-scene-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.satellite-scene-heading h1 { margin: 0 0 5px; font-size: 22px; }
+.satellite-scene-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+.satellite-scene-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.satellite-scene-canvas { width: 100%; height: min(70vh, 760px); min-height: 420px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #050b18; }
+.satellite-scene-status { min-height: 36px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: var(--panel); font-size: 12px; }
+.satellite-scene-status[data-kind="success"] { color: var(--success); }
+.satellite-scene-status[data-kind="warning"] { color: var(--warning); }
+.satellite-scene-status[data-kind="error"] { color: var(--danger); }
+.satellite-scene-note { color: var(--muted); font-size: 11px; line-height: 1.5; }
+@media (max-width: 700px) { .satellite-scene-view { padding: 10px; } .satellite-scene-canvas { min-height: 340px; height: 58vh; } }
