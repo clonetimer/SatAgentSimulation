@@ -33,9 +33,12 @@ def test_scene_workspace_contract_and_local_runtime_assets(tmp_path: Path):
         runtime = client.get("/assets/vendor/cesium/Cesium.js")
         widgets = client.get("/assets/vendor/cesium/Widgets/widgets.css")
         earth = client.get("/assets/vendor/cesium/Assets/Textures/NaturalEarthII/tilemapresource.xml")
+        satellite_model = client.get("/assets/satellite-demo.gltf")
         assert runtime.status_code == 200 and len(runtime.content) > 100_000
         assert widgets.status_code == 200
         assert earth.status_code == 200
+        assert satellite_model.status_code == 200
+        assert satellite_model.json()["asset"]["extras"]["license"] == "CC0-1.0"
         assert "worker-src 'self' blob:" in index.headers["content-security-policy"]
 
 
@@ -44,6 +47,7 @@ def test_scene_module_declares_demo_provenance_and_safe_lifecycle():
     scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
     assert "演示数据，不代表真实仿真遥测" in scene
     assert "演示轨道（非仿真结果）" in scene
+    assert "satellite-demo.gltf" in scene
     assert "window.SatScene = { enter, exit: destroy, track, freeCamera, home }" in scene
     assert "viewer.destroy()" in scene
     assert "setInterval" not in scene
