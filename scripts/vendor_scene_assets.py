@@ -24,7 +24,6 @@ REQUIRED = {
     "globe.gl": ("package/dist/globe.gl.min.js", "package/LICENSE"),
     "three-globe": (
         "package/example/img/earth-blue-marble.jpg",
-        "package/example/img/earth-topology.png",
         "package/LICENSE",
     ),
     "three": ("package/build/three.module.js", "package/build/three.core.js", "package/LICENSE"),
@@ -85,8 +84,6 @@ def vendor(root: Path) -> dict[str, object]:
                     else:
                         if "earth-blue-marble" in member:
                             relative = Path("textures/earth-blue-marble.jpg")
-                        elif "earth-topology" in member:
-                            relative = Path("textures/earth-topology.png")
                         else:
                             relative = Path("licenses/three-globe-LICENSE")
                     copy_member(bundle, member, staged / relative)
@@ -102,6 +99,15 @@ def vendor(root: Path) -> dict[str, object]:
                     "license": "MIT",
                 }
                 for name, (_, record) in archives.items()
+            },
+            "textures": {
+                "earth-blue-marble.jpg": {
+                    "source": "NASA Blue Marble imagery redistributed in three-globe example assets",
+                    "license": "NASA public-domain imagery",
+                    "credit": "NASA Goddard Space Flight Center Scientific Visualization Studio; Blue Marble Next Generation data courtesy of Reto Stöckli",
+                    "sha256": __import__("hashlib").sha256((output / "textures/earth-blue-marble.jpg").read_bytes()).hexdigest(),
+                    "size_bytes": (output / "textures/earth-blue-marble.jpg").stat().st_size,
+                }
             },
             "runtime_files": sum(1 for path in output.rglob("*") if path.is_file()),
             "runtime_bytes": sum(path.stat().st_size for path in output.rglob("*") if path.is_file()),
