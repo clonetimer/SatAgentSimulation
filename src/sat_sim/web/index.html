@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-realtime-width-20261111-2">
+  <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9c-three-1">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -72,6 +73,7 @@
         <nav class="sidebar-nav" aria-label="主目录">
           <div class="sidebar-section-title">仿真工作</div>
           <button class="nav-button active" data-view="wizard" type="button"><span>✦</span><b>开始仿真</b></button>
+          <button class="nav-button" data-view="scene" type="button"><span>◎</span><b>卫星数字场景</b></button>
           <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>高级工作台</b></button>
           <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
           <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
@@ -114,11 +116,20 @@
       <div id="mainContent" class="app-content" tabindex="-1">
 
 
+    <main id="satelliteSceneView" class="satellite-scene-view app-view hidden">
+      <section class="satellite-scene-shell">
+        <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE · P9-C</div><h1>卫星数字场景</h1><p>以三维地球为背景观察卫星轨道与场景状态。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free">自由观察</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button></div></header>
+        <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与卫星轨道场景"></div>
+        <div id="satelliteSceneStatus" class="satellite-scene-status" role="status" aria-live="polite">等待场景引擎。</div>
+        <p class="satellite-scene-note">当前版本为三维场景技术验证：卫星位置与轨道为演示数据，不代表真实 Basilisk 仿真结果。真实实时遥测接入将在后续阶段完成。</p>
+      </section>
+    </main>
+
     <main id="wizardView" class="wizard-view app-view">
       <section class="wizard-shell" aria-label="规则驱动仿真向导">
         <header class="wizard-header">
           <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
-          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardGraphShortcutBtn" class="button button-secondary" type="button" title="打开拖拽式模块画布与端口连接工作区">拖拽式建模</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
+          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardGraphShortcutBtn" class="button button-secondary" type="button" title="打开拖拽式模块画布与端口连接工作区">拖拽式建模</button><button id="wizardSceneShortcutBtn" class="button button-secondary" type="button">卫星数字场景</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
         </header>
         <ol id="wizardProgress" class="wizard-progress" aria-label="仿真步骤进度"></ol>
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
@@ -1551,6 +1562,8 @@
     <div class="busy-card"><div class="spinner"></div><strong id="busyTitle">正在处理</strong><span id="busyDetail">请勿关闭页面</span></div>
   </div>
 
+  <script type="importmap">{"imports":{"three":"/assets/vendor/three/build/three.module.js"}}</script>
+  <script type="module" src="/assets/satellite-scene.js?v=p9c-three-1"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/app.js?v=wizard7" defer></script>
   <script src="/assets/continuous.js?v=0.7.8" defer></script>
