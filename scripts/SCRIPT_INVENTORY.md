@@ -23,6 +23,7 @@
 | `setup_uv.py` | uv 完整安装 | active | 安装固定依赖和官方校验 wheel；预取离线环境资产并运行严格 doctor |
 | `fetch_environment_assets.py` | 轨道环境资产 | active | 从固定 NAIF/Basilisk 来源下载、校验并记录 SPICE、WMM2025 和 J2 资产；运行时不联网 |
 | `apply_basilisk211_battery_checkpoint.py` | Basilisk 原生 C++ 源码补丁 | active | 仅对确切 v2.11.0 提交进行版本锁定的 SimpleBattery C++ 状态导入/导出补丁；禁止更改 stock wheel 或宣称恢复验收 |\n| `inspect_continuous_recovery.py` | 持续仿真恢复证据审计 | active | 验证中断会话来源哈希、最后持久化遥测时刻并显式标注不支持原生物理状态无损续跑；只读检查 |
+| `vendor_scene_assets.py` | 前端运行时资源准备 | active | 固定版本 Globe.gl、three-globe、Three.js 与 NASA Blue Marble 纹理离线打包；记录 npm 完整性、软件许可证及影像署名，不使用 CDN、不放宽 CSP |
 | `archive_continuous_telemetry.py` | 持续遥测离线归档 | active | 对已结束会话执行压缩前后 SHA-256 校验的离线 gzip 归档、跨段完整性检查与显式失败恢复；不处理在线状态 |
 | `audit_a4r_dc2_run_bundles.py` | A4R-DC2 evidence audit | active | Audits Composite Digital Twin Run Bundle adapter, legacy flags, manifests, and SHA-256 evidence |
 | `audit_campaign_dataset.py` | Campaign 数据审计 | active | 校验数据集完整性、失败可见性和跨运行稳定输出 |
