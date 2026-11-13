@@ -25,7 +25,7 @@ _VARIANT_LABELS = {
     "whole_spacecraft.power_thermal_orbit_coupled.v1": "电源—热控—轨道联合场景",
     "whole_spacecraft.comm_payload_mission_coupled.v1": "通信—载荷任务链场景",
     "whole_spacecraft.maneuver_orbit_attitude.v1": "推进—轨道—姿态机动场景",
-    "subsystem.adcs_fidelity.v1": "姿态与轨道控制工程模型",
+    "subsystem.adcs_fidelity.v1": "姿态控制工程模型",
     "component.mtb.v1": "磁力矩器独立部件模型",
     "subsystem.propulsion.source_native.v1": "推进分系统原生模型",
     "subsystem.eps.basic.v1": "电源分系统基础模型",
@@ -66,7 +66,7 @@ _COMPONENTS = (
 )
 
 _SUBSYSTEMS = (
-    ("adcs", "姿态与轨道控制", ("subsystem.adcs_unified_native.v1", "subsystem.adcs_fidelity.v1")),
+    ("adcs", "姿态控制", ("subsystem.adcs_unified_native.v1", "subsystem.adcs_fidelity.v1")),
     ("propulsion", "推进", ("subsystem.propulsion.unified_native.v1", "subsystem.propulsion.source_native.v1")),
     ("eps", "电源", ("subsystem.eps.unified_native.v1", "subsystem.eps.basic.v1", "subsystem.eps.source_native.v1")),
     ("thermal", "热控", ("subsystem.thermal.basic_lumped.v1", "subsystem.thermal.source_native.v1")),
