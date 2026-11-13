@@ -7,6 +7,10 @@ on:
       - "src/sat_sim/interactive/api.py"
       - "src/sat_sim/interactive/supervised_native_runtime.py"
       - "tests/interactive/test_continuous_console_browser.py"
+      - "tests/test_p9b_evaluation_workspace_browser.py"
+      - "src/sat_sim/api.py"
+      - "src/sat_sim/evaluation_service.py"
+      - "src/sat_sim/evaluation_store.py"
       - ".github/workflows/continuous-console-browser.yml"
   workflow_dispatch:
 
@@ -32,7 +36,14 @@ jobs:
           "playwright>=1.56,<2"
       - name: Install Chromium for headless UI E2E
         run: python -m playwright install chromium
-      - name: Exercise live continuous Web console in real Chromium
+      - name: Set installed Chromium executable
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as playwright:
+              print(f"SAT_SIM_BROWSER_EXECUTABLE={playwright.chromium.executable_path}")
+          PY
+      - name: Exercise browser journeys in real Chromium
         env:
           PYTHONPATH: "src:."
-        run: python -m pytest -q tests/interactive/test_continuous_console_browser.py
+        run: python -m pytest -q tests/interactive/test_continuous_console_browser.py tests/test_p9b_evaluation_workspace_browser.py
