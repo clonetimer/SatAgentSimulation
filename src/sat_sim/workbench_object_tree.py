@@ -26,30 +26,32 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
     schema = schemas.get(capability_id)
     if not isinstance(schema, Mapping):
         return [], {"parameters": 0, "summary": 0, "observable": 0, "unreviewed": 0}
-    children: list[dict[str, Any]] = []
     counts = {"parameters": 0, "summary": 0, "observable": 0, "unreviewed": 0}
+    parameter_nodes: list[dict[str, Any]] = []
+    summary_nodes: list[dict[str, Any]] = []
+    observable_nodes: list[dict[str, Any]] = []
     seen_parameters: set[str] = set()
+    owner_name = str(object_row.get("name_zh") or object_row.get("object_id"))
+    is_component = str(object_row.get("kind")) == "equipment"
     for field in schema.get("fields", []):
         if not isinstance(field, Mapping):
             continue
         path = str(field.get("path") or "")
-        if path.startswith("parameters.values."):
-            source_name = path[len("parameters.values."):]
-        elif path.startswith("parameters."):
-            source_name = path[len("parameters."):]
-        else:
+        if not path.startswith("parameters.values."):
             continue
+        source_name = path[len("parameters.values."):]
         if source_name in seen_parameters:
             raise ValueError(f"OBJECT_TREE_DUPLICATE_PARAMETER:{capability_id}:{source_name}")
         seen_parameters.add(source_name)
-        definition = parameter_definition(capability_id, source_name)
-        if definition is None or field.get("unit") != definition["unit"]:
+        definition = parameter_definition(capability_id, source_name) if is_component else None
+        if is_component and (definition is None or field.get("unit") != definition["unit"]):
             counts["unreviewed"] += 1
             continue
-        children.append({
+        quantity_name = definition["display_name_zh"] if definition else f"{owner_name} · {field.get('label') or source_name}"
+        parameter_nodes.append({
             "node_id": f"{object_row['object_id']}:parameter:{source_name}",
             "kind": "parameter", "source_capability_id": capability_id,
-            "source_field": source_name, "display_name_zh": definition["display_name_zh"],
+            "source_field": source_name, "display_name_zh": quantity_name,
             "unit": field.get("unit"), "value_type": field.get("type"),
             "default": deepcopy(field.get("default")),
             "minimum": field.get("min"), "maximum": field.get("max"),
@@ -58,7 +60,7 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
         counts["parameters"] += 1
     outputs = schema.get("outputs")
     if isinstance(outputs, Mapping):
-        for section, kind in (("summary_options", "summary"), ("trace_options", "observable")):
+        for section, kind, target in (("summary_options", "summary", summary_nodes), ("trace_options", "observable", observable_nodes)):
             seen_outputs: set[str] = set()
             for field in outputs.get(section, []):
                 if not isinstance(field, Mapping) or not field.get("name"):
@@ -67,21 +69,32 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
                 if source_name in seen_outputs:
                     raise ValueError(f"OBJECT_TREE_DUPLICATE_OUTPUT:{capability_id}:{source_name}")
                 seen_outputs.add(source_name)
-                definition = output_definition(
-                    source_name, capability_id=capability_id,
-                    kind="trace" if kind == "observable" else "summary",
-                )
-                if definition is None or field.get("unit") != definition["unit"]:
+                definition = output_definition(source_name, capability_id=capability_id, kind="trace" if kind == "observable" else "summary") if is_component else None
+                if is_component and (definition is None or field.get("unit") != definition["unit"]):
                     counts["unreviewed"] += 1
                     continue
-                children.append({
+                quantity_name = definition["display_name_zh"] if definition else f"{owner_name} · {field.get('label') or source_name}"
+                target.append({
                     "node_id": f"{object_row['object_id']}:{kind}:{source_name}",
                     "kind": kind, "source_capability_id": capability_id,
-                    "source_field": source_name, "display_name_zh": definition["display_name_zh"],
+                    "source_field": source_name, "display_name_zh": quantity_name,
                     "unit": field.get("unit"), "value_type": field.get("dtype"),
                     "description_zh": str(field.get("description") or ""), "children": [],
                 })
                 counts[kind] += 1
+    children: list[dict[str, Any]] = []
+    if parameter_nodes:
+        children.append({"node_id": f"{object_row['object_id']}:physical-parameters",
+                         "kind": "parameter_group", "name_zh": "物理配置参数", "children": parameter_nodes})
+    if observable_nodes or summary_nodes:
+        output_children = []
+        if observable_nodes:
+            output_children.append({"node_id": f"{object_row['object_id']}:observable-outputs",
+                                    "kind": "observable_group", "name_zh": "输出参量", "children": observable_nodes})
+        if summary_nodes:
+            output_children.append({"node_id": f"{object_row['object_id']}:summary-outputs",
+                                    "kind": "summary_group", "name_zh": "结果指标", "children": summary_nodes})
+        children.extend(output_children)
     return children, counts
 
 
