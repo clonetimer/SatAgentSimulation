@@ -8675,7 +8675,7 @@
     else if (name === 'creator') wizardRestoreAdvancedPanels();
     const viewIds = {
       creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
-      goals: 'goalRunView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
+      goals: 'goalRunView', runs: 'runCenterView', evaluations: 'evaluationView', diagnostics: 'diagnosticView', logs: 'logCenterView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     el('wizardView')?.classList.toggle('hidden', !guided);
@@ -8698,6 +8698,7 @@
     if (name === 'experiments') loadExperiments().catch((error) => { el('experimentSummary').textContent = `实验中心读取失败：${error.message}`; });
     if (name === 'goals') loadGoals().catch((error) => { el('goalRunSummary').textContent = `目标列表读取失败：${error.message}`; });
     if (name === 'runs') loadRunCenter().catch((error) => { el('runCenterSummary').textContent = `运行中心读取失败：${error.message}`; });
+    if (name === 'evaluations') window.SatEvaluationWorkspace?.enter();
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
     if (name === 'continuous') window.SatContinuousConsole?.enter();
