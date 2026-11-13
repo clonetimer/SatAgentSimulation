@@ -8094,14 +8094,27 @@
 
   function wizardLiveModeSupport(mode) {
     const capabilityId = state.selectedCapabilityId;
-    if (!INTERACTIVE_CAPABILITIES[capabilityId]) {
-      return { supported: false, reason: '当前实时服务仅开放已注册的整星或独立分系统能力；单独部件暂不支持实时会话。' };
-    }
-    if (!state.interactiveAvailable) return { supported: false, reason: '实时仿真服务当前未启用；离线仿真仍可正常使用。' };
     const continuous = mode === 'continuous_realtime';
+    const selectedName = el('selectedCapabilityName')?.textContent || '当前对象';
+    if (!state.interactiveAvailable) {
+      return { supported: false, reason: '实时仿真服务当前未启用或能力目录尚未读取；离线仿真仍可使用。请刷新服务状态后重试。' };
+    }
+    if (!INTERACTIVE_CAPABILITIES[capabilityId]) {
+      return {
+        supported: false,
+        reason: `“${selectedName}”当前按单独部件模型执行，没有注册独立实时会话后端。请返回对象选择，改选“姿态控制分系统”或“整星”；当前部件仍可进行离线仿真。`,
+      };
+    }
     const support = interactiveCreationSupport(capabilityId, continuous);
-    if (!support) return { supported: false, reason: '正在读取实时服务能力目录，请稍后重试。' };
-    if (!support.supported) return { supported: false, reason: support.reason_code || '当前服务不支持此运行方式。' };
+    if (!support) return { supported: false, reason: '服务端实时能力目录未返回该对象的支持状态；为避免提交到未注册的后端，暂不开放此入口。请刷新后重试。' };
+    if (!support.supported) {
+      const reason = support.reason_code === 'CONTINUOUS_MODE_REQUIRES_WHOLE_UNIFIED_RUNTIME'
+        ? '持续实时目前仅支持原生整星。请改选整星，或使用限时实时/离线仿真。'
+        : support.reason_code === 'SUPERVISED_NATIVE_ONLY_WHOLE_CONTINUOUS'
+          ? '当前服务采用监督式独立原生进程，仅开放持续整星会话。限时实时和独立分系统实时需要使用支持对应模式的服务。'
+          : `服务端策略未开放此组合（${support.reason_code || '原因未提供'}）。请改选服务端明确支持的对象与运行方式。`;
+      return { supported: false, reason };
+    }
     return { supported: true, reason: continuous ? '持续运行，直到用户主动停止' : '限时运行，可启动、暂停、单步和停止' };
   }
 
@@ -8617,7 +8630,12 @@
           const valid = await previewForm();
           state.wizard.validated = Boolean(valid);
           state.wizard.validatedForm = valid ? JSON.stringify(state.formData) : null;
-          el('wizardNotice').textContent = valid ? '配置校验通过。现在可以运行仿真。' : '配置未通过校验，请返回修改参数。';
+          const validationDetail = el('formValidationSummary')?.textContent?.trim();
+          el('wizardNotice').textContent = valid
+            ? '配置校验通过。现在可以运行仿真。'
+            : (validationDetail
+              ? `配置未通过校验：${validationDetail}。请按提示修改后重新校验。`
+              : '配置未通过校验。请检查参数范围、故障事件输入和模型能力约束；详细错误会显示在对应字段旁。');
           renderSimulationWizard();
         } catch (error) { state.wizard.validated = false; el('wizardNotice').textContent = '校验失败：' + error.message; }
       });
@@ -11022,6 +11040,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
+    el('wizardGraphShortcutBtn')?.addEventListener('click', () => wizardStart('graph'));
     el('wizardAdvancedBtn').addEventListener('click', () => switchView('creator'));
     $all('.wizard-tool-option[data-wizard-goal]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardGoal)));
     el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
