@@ -22,6 +22,13 @@ def _sealed_run(root: Path, *, status: str = "SUCCEEDED", validation: str = "PAS
     _write(root / "runtime" / "prepared_run.json", {
         "primary_capability_id": "component.reaction_wheel.v1",
     })
+    _write(root / "input" / "task_spec.json", {
+        "schema_version": "1.0.0",
+        "task": {"id": root.name, "name": "反作用轮测试"},
+        "simulation": {"level": "component", "duration_s": 2.0, "step_s": 1.0, "sample_s": 1.0},
+        "outputs": {"output_root": "runs", "qoi": []},
+        "model": {"capability_id": "component.reaction_wheel.v1"},
+    })
     _write(root / "run_record.json", {
         "run_id": root.name, "status": status, "validation_result": validation,
     })
@@ -288,7 +295,7 @@ def test_report_creates_a_separate_reviewable_task_draft_without_launching(tmp_p
         assert feedback["source_run_id"] == "run-001"
         assert feedback["requires_user_review"] is True
         assert client.get(f"/task-center/tasks/{task['task_id']}").status_code == 200
-        assert client.get("/runs").json()["count"] == 0
+        assert client.get("/runs").json()["count"] == 1
         assert (runs / "run-001" / "run_record.json").read_text() == json.dumps(
             {"run_id": "run-001", "status": "SUCCEEDED", "validation_result": "PASS"},
             ensure_ascii=False,
