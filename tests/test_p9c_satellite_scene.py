@@ -78,8 +78,18 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
         page.route("https://workbench.test/**", proxy)
         page.goto("https://workbench.test/", wait_until="domcontentloaded")
         page.locator('#wizardSceneShortcutBtn').click()
-        page.locator("#satelliteSceneStatus").filter(has_text="场景已就绪").wait_for(timeout=60000)
-        page.locator("#satelliteSceneCanvas canvas").first.wait_for(timeout=60000)
+        page.wait_for_timeout(1500)
+        scene_status = page.locator("#satelliteSceneStatus")
+        status_text = scene_status.inner_text()
+        status_kind = scene_status.get_attribute("data-kind")
+        assert status_kind == "success", {
+            "status": status_text,
+            "status_kind": status_kind,
+            "active_view": page.locator("body").get_attribute("data-active-view"),
+            "scene_visible": page.locator("#satelliteSceneView").is_visible(),
+            "browser_errors": failures,
+        }
+        page.locator("#satelliteSceneCanvas canvas").first.wait_for(timeout=30000)
         assert "演示数据" in page.locator("#satelliteSceneStatus").inner_text()
         page.locator('[data-scene-action="track"]').click()
         page.locator('[data-scene-action="free"]').click()
