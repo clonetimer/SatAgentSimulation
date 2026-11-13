@@ -261,3 +261,65 @@ def test_inconsistent_source_sample_counts_are_rejected_before_evaluation(tmp_pa
     with pytest.raises(EvaluationRunError) as error:
         build_recorded_evaluation(run, [source], plan)
     assert error.value.reason_code == "EVALUATION_SOURCE_SAMPLE_COUNTS_INCONSISTENT"
+
+
+def test_report_creates_a_separate_reviewable_task_draft_without_launching(tmp_path):
+    runs = tmp_path / "runs"
+    _sealed_run(runs / "run-001")
+    with TestClient(_app(tmp_path, runs, auth_mode="disabled")) as client:
+        source = next(row for row in client.get("/runs/run-001/evaluation-sources").json()["sources"]
+                      if row["source_field"] == "adcs.reaction_wheel.speed_rad_s_0")
+        created = client.post("/runs/run-001/evaluations", json=_plan(source))
+        assert created.status_code == 201, created.text
+        report_id = created.json()["report"]["report_id"]
+        original_spec = json.loads((runs / "run-001" / "input" / "task_spec.json").read_text()) if (runs / "run-001" / "input" / "task_spec.json").exists() else None
+        response = client.post(f"/evaluations/{report_id}/configuration-draft", json={})
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["ok"] is True
+        assert payload["requires_user_review"] is True
+        assert payload["execution_started"] is False
+        task = payload["task"]
+        assert task["status"] == "DRAFT"
+        assert task["source"] == "evaluation_feedback"
+        assert payload["task_spec"]["task"]["id"] == task["task_id"]
+        feedback = payload["task_spec"]["metadata"]["evaluation_feedback"]
+        assert feedback["report_id"] == report_id
+        assert feedback["source_run_id"] == "run-001"
+        assert feedback["requires_user_review"] is True
+        assert client.get(f"/task-center/tasks/{task['task_id']}").status_code == 200
+        assert client.get("/runs").json()["count"] == 0
+        assert (runs / "run-001" / "run_record.json").read_text() == json.dumps(
+            {"run_id": "run-001", "status": "SUCCEEDED", "validation_result": "PASS"},
+            ensure_ascii=False,
+        )
+        if original_spec is not None:
+            assert json.loads((runs / "run-001" / "input" / "task_spec.json").read_text()) == original_spec
+
+
+def test_configuration_draft_cannot_be_created_from_another_principals_report(tmp_path):
+    from sat_sim.security import token_sha256
+
+    runs = tmp_path / "runs"
+    _sealed_run(runs / "run-001")
+    owner_token, other_token = "evaluation-owner-secret", "evaluation-other-secret"
+    auth_path = tmp_path / "auth.json"
+    _write(auth_path, {
+        "schema_version": "auth-config.v1",
+        "tokens": [
+            {"token_id": "owner", "principal_id": "owner-1", "roles": ["operator"],
+             "token_sha256": token_sha256(owner_token)},
+            {"token_id": "other", "principal_id": "other-1", "roles": ["operator"],
+             "token_sha256": token_sha256(other_token)},
+        ],
+    })
+    with TestClient(_app(tmp_path, runs, auth_mode="token", auth_config=auth_path)) as client:
+        owner = {"Authorization": f"Bearer {owner_token}"}
+        other = {"Authorization": f"Bearer {other_token}"}
+        source = next(row for row in client.get("/runs/run-001/evaluation-sources", headers=owner).json()["sources"]
+                      if row["source_field"] == "adcs.reaction_wheel.speed_rad_s_0")
+        created = client.post("/runs/run-001/evaluations", json=_plan(source), headers=owner)
+        assert created.status_code == 201, created.text
+        report_id = created.json()["report"]["report_id"]
+        denied = client.post(f"/evaluations/{report_id}/configuration-draft", json={}, headers=other)
+        assert denied.status_code == 404
