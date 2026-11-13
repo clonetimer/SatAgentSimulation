@@ -63,6 +63,7 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
         try:
             page = browser.new_page(viewport={"width": 1440, "height": 960}, locale="zh-CN")
             errors = []
+            draft_api = []
             page.on("pageerror", lambda error: errors.append(str(error)))
 
             def proxy(route):
@@ -74,6 +75,8 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
                     headers={key: value for key, value in request.headers.items()
                              if key.lower() in ("authorization", "content-type", "accept")},
                 )
+                if "/configuration-draft" in parsed.path:
+                    draft_api.append({"status": response.status_code, "body": response.text})
                 route.fulfill(status=response.status_code, body=response.content,
                               headers={key: value for key, value in response.headers.items()
                                        if key.lower() in ("content-type", "cache-control")})
@@ -115,11 +118,14 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
             assert "反作用轮转速评估" in page.locator("#evaluationReportMeta").inner_text()
             assert "2.160247" in page.locator("#evaluationReportMetrics").inner_text()
             assert page.locator("#evaluationHistoryList .evaluation-history-item").count() == 1
-            page.locator("#createEvaluationDraftBtn").click()
-            page.wait_for_function(
-                "() => document.querySelector('#evaluationFormNotice').textContent.includes('已创建配置草稿')",
-                timeout=20000,
-            )
+            with page.expect_response(lambda response: "/configuration-draft" in response.url, timeout=20000) as draft_response:
+                page.locator("#createEvaluationDraftBtn").click()
+            assert draft_response.value.status == 200, {
+                "status": draft_response.value.status,
+                "body": draft_response.value.text(),
+                "proxy": draft_api,
+            }
+            page.locator("#createEvaluationDraftBtn").filter(has_text="已创建配置草稿").wait_for(state="visible", timeout=20000)
             assert page.locator("#createEvaluationDraftBtn").is_disabled()
             visible = page.locator("#evaluationView").inner_text()
             for forbidden in ("TaskSpec", "snapshot", "JSON", "API", "调试语句", "开发痕迹"):
