@@ -85,7 +85,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
 
         page.on("pageerror", lambda error: failures.append(str(error)))
         page.on("requestfailed", lambda request: failures.append(f"request failed: {request.url} {request.failure}"))
-        page.on("console", lambda message: failures.append(f"console error: {message.text}") if message.type == "error" else None)
+        page.on("console", lambda message: failures.append(f"console error: {message.text} @ {message.location}") if message.type == "error" else None)
         page.route("https://workbench.test/**", proxy)
         page.goto("https://workbench.test/", wait_until="domcontentloaded")
         page.locator('#wizardSceneShortcutBtn').click()
