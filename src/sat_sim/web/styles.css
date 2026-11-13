@@ -2000,3 +2000,6 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
   .evaluation-history-item { align-items: flex-start; flex-direction: column; }
   .evaluation-history-item span { text-align: left; }
 }
+
+.evaluation-report-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+@media(max-width:620px){.evaluation-report-actions{width:100%;}.evaluation-report-actions .button{flex:1 1 auto;}}
