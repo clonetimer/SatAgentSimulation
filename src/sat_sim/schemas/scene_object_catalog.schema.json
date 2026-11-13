@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sat:scene-object-catalog:v1",
+  "title": "P9 scene object catalog",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "objects",
+    "counts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat.scene-object-catalog.v1"
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "object_id",
+          "object_kind",
+          "parent_object_id",
+          "spatial",
+          "execution",
+          "children"
+        ],
+        "properties": {
+          "object_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object_kind": {
+            "enum": [
+              "spacecraft",
+              "subsystem",
+              "component",
+              "environment",
+              "function"
+            ]
+          },
+          "parent_object_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "spatial": {
+            "type": "object",
+            "required": [
+              "kind",
+              "anchor_id",
+              "asset_node"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "hardware",
+                  "functional_region",
+                  "ground_site",
+                  "trajectory",
+                  "maneuver_plan"
+                ]
+              },
+              "anchor_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "asset_node": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "execution": {
+            "type": "object",
+            "required": [
+              "capability_id",
+              "modes"
+            ],
+            "properties": {
+              "capability_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "modes": {
+                "type": "object",
+                "required": [
+                  "offline",
+                  "limited_realtime",
+                  "continuous_realtime"
+                ],
+                "properties": {
+                  "offline": {
+                    "$ref": "#/$defs/mode"
+                  },
+                  "limited_realtime": {
+                    "$ref": "#/$defs/mode"
+                  },
+                  "continuous_realtime": {
+                    "$ref": "#/$defs/mode"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "$defs": {
+    "mode": {
+      "type": "object",
+      "required": [
+        "status",
+        "selectable",
+        "runtime_check_required"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "supported",
+            "not_registered",
+            "service_disabled",
+            "discovery_unavailable",
+            "policy_blocked"
+          ]
+        },
+        "selectable": {
+          "type": "boolean"
+        },
+        "runtime_check_required": {
+          "const": true
+        },
+        "reason_zh": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "supported"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selectable": {
+                "const": true
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "selectable": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -66,7 +66,7 @@ _COMPONENTS = (
 )
 
 _SUBSYSTEMS = (
-    ("adcs", "姿态与轨道控制", ("subsystem.adcs_unified_native.v1", "subsystem.adcs_fidelity.v1")),
+    ("adcs", "姿态控制分系统", ("subsystem.adcs_unified_native.v1", "subsystem.adcs_fidelity.v1")),
     ("propulsion", "推进", ("subsystem.propulsion.unified_native.v1", "subsystem.propulsion.source_native.v1")),
     ("eps", "电源", ("subsystem.eps.unified_native.v1", "subsystem.eps.basic.v1", "subsystem.eps.source_native.v1")),
     ("thermal", "热控", ("subsystem.thermal.basic_lumped.v1", "subsystem.thermal.source_native.v1")),
@@ -172,7 +172,7 @@ def workbench_presentation_catalog(*, include_compatibility: bool = False, inclu
             "level": "subsystem",
             "name_zh": name_zh,
             "name_en": key,
-            "summary_zh": f"{name_zh}分系统；多个能力合同作为模型变体展示，不重复计数。",
+            "summary_zh": f"{name_zh if name_zh.endswith('分系统') else name_zh + '分系统'}参数配置与仿真结果。",
             "variants": variants,
             "primary_capability_id": variants[0]["capability_id"] if variants else None,
             "configuration_capability_id": variants[0]["capability_id"] if variants else None,

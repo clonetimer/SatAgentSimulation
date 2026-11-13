@@ -6,6 +6,7 @@
 
 | 脚本 | 类别 | 状态 | 处理结论 |
 |---|---|---|---|
+| `audit_p9a_catalog.py` | P9 对象与参量字典审计 | active | 用途：只读导出对象树、命名覆盖和源字段清单；参数：--output-dir；输出：JSON/CSV，不运行物理模型，不将未审定名称当成完成 |
 | `analyze_native_timing.py` | 既有节拍诊断分析 | active | 用途：只读关联漂移区间与实测调用耗时；参数：diagnostic_directory、--output、--threshold-ms（默认 200 ms）；输出：分析 JSON 与摘要，不改原始证据，不推断设备或 CPU 成因 |
 | `audit_registry_plot_contract.py` | 数据集显式绘图契约核对 | active | 用途：核对注册表生成数据的已知提示格式和默认绘图约定；参数：--dataset-dir、--output（新路径）；输出：输入哈希、分割及逐记录报告和摘要，不改数据集，不声称模型准确率 |
 | `diagnose_native_timing.py` | 独立进程原生节拍诊断 | active | 用途：复制应用并在自建进程运行诊断；参数：--output-dir、--wall-seconds（默认 60 s、至少 10 s）、--inject-fsync-delay-s（默认 0）；输出：副本、原始记录、日志与状态摘要，不接管既有耐久进程，不替代正式验收 |
