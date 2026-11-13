@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Stage pinned, offline Globe.gl + Three.js assets for the satellite scene.
 
-All runtime assets are local. npm registry integrity metadata verifies exact
-package tarballs; no CDN, online imagery, eval(), or WebAssembly is required.
+用途：准备 Globe.gl、three-globe、Three.js 与离线地球纹理，供卫星数字场景本地运行。
+参数：无命令行参数；要求 Node.js 22/npm 可用。
+输出：写入 src/sat_sim/web/vendor/globe/，包含固定版本运行时、地球纹理、许可证和 vendor-manifest.json；所有 npm tarball 由 registry integrity 元数据校验。运行时不访问 CDN，不使用 eval() 或 WebAssembly。
 """
 from __future__ import annotations
 
