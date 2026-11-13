@@ -85,6 +85,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
 
         page.on("pageerror", lambda error: failures.append(str(error)))
         page.on("requestfailed", lambda request: failures.append(f"request failed: {request.url} {request.failure}"))
+        page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
         page.on("console", lambda message: failures.append(f"console error: {message.text} @ {message.location}") if message.type == "error" else None)
         page.route("https://workbench.test/**", proxy)
         page.goto("https://workbench.test/", wait_until="domcontentloaded")
@@ -93,6 +94,8 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
         scene_status = page.locator("#satelliteSceneStatus")
         status_text = scene_status.inner_text()
         status_kind = scene_status.get_attribute("data-kind")
+        print("P9C_SCENE_STATUS", status_kind, status_text)
+        print("P9C_BROWSER_FAILURES", failures)
         assert status_kind == "success", {
             "status": status_text,
             "status_kind": status_kind,
