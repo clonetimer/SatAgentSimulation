@@ -483,8 +483,14 @@
     }
   }
 
+  function selectRun(runId) {
+    state.runId = typeof runId === 'string' ? runId : null;
+    if (state.entered) return loadRun();
+    return enter();
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     if (!$('evaluationView')) return;
-    window.SatEvaluationWorkspace = Object.freeze({enter});
+    window.SatEvaluationWorkspace = Object.freeze({enter, selectRun});
   });
 })();
