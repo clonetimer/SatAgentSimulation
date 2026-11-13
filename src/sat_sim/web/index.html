@@ -80,6 +80,7 @@
           <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
           <button class="nav-button" data-view="goals" type="button"><span>◎</span><b>目标实验</b></button>
           <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
+          <button class="nav-button" data-view="evaluations" type="button"><span>⌁</span><b>效能评估</b></button>
           <div class="sidebar-section-title">系统工具</div>
           <button class="nav-button" data-view="diagnostics" type="button"><span>◉</span><b>系统诊断</b></button>
           <button class="nav-button" data-view="logs" type="button"><span>≡</span><b>运行日志</b></button>
@@ -1439,6 +1440,66 @@
       </section>
     </main>
 
+    <main id="evaluationView" class="task-center-view app-view hidden">
+      <section class="panel evaluation-panel">
+        <header class="task-center-header evaluation-header">
+          <div>
+            <div class="eyebrow">仿真结果分析</div>
+            <h1>效能评估</h1>
+            <p>选择已完成的仿真记录，分析实际输出参量，并对照您设定的目标范围。评估不会改变原仿真结果。</p>
+          </div>
+          <div class="evaluation-run-picker">
+            <label for="evaluationRunSelect">仿真记录</label>
+            <select id="evaluationRunSelect" aria-label="选择用于效能评估的仿真记录"></select>
+            <button id="refreshEvaluationBtn" class="button button-secondary" type="button">刷新记录</button>
+          </div>
+        </header>
+        <div id="evaluationRunSummary" class="evaluation-run-summary" role="status" aria-live="polite">请选择一条已完成且通过验证的仿真记录。</div>
+        <div class="evaluation-workspace-grid">
+          <section class="evaluation-section evaluation-source-section" aria-labelledby="evaluationSourcesTitle">
+            <div class="evaluation-section-heading">
+              <div><h2 id="evaluationSourcesTitle">可评估参量</h2><p>仅显示本次运行实际记录且来源明确的输出参量。</p></div>
+              <span id="evaluationSourceCount" class="evaluation-count">0 项</span>
+            </div>
+            <div id="evaluationSourceList" class="evaluation-source-list">
+              <div class="empty-state"><strong>尚未选择仿真记录</strong><span>选择记录后，将显示可用于评估的参量。</span></div>
+            </div>
+          </section>
+          <section class="evaluation-section evaluation-builder-section" aria-labelledby="evaluationBuilderTitle">
+            <div class="evaluation-section-heading">
+              <div><h2 id="evaluationBuilderTitle">评估设置</h2><p>选择统计方式和评估时段，可按需要设置判据。</p></div>
+            </div>
+            <div class="evaluation-plan-fields">
+              <label><span>评估名称</span><input id="evaluationPlanName" type="text" maxlength="100" value="仿真效能评估"></label>
+              <label><span>评估时段起点（s）</span><input id="evaluationWindowStart" type="number" min="0" step="any" value="0"></label>
+              <label><span>评估时段终点（s）</span><input id="evaluationWindowEnd" type="number" min="0" step="any" value="0"></label>
+              <label><span>允许的最大采样间隔（s，可选）</span><input id="evaluationMaxGap" type="number" min="0" step="any" placeholder="不限制"></label>
+            </div>
+            <div class="evaluation-selected-heading"><h3>已选评估项</h3><span id="evaluationSelectedCount">0 项</span></div>
+            <div id="evaluationMetricList" class="evaluation-metric-list">
+              <div class="empty-state"><strong>尚未选择评估参量</strong><span>从左侧选择需要分析的参量。</span></div>
+            </div>
+            <div class="evaluation-actions">
+              <span id="evaluationFormNotice" class="evaluation-form-notice" role="status" aria-live="polite"></span>
+              <button id="createEvaluationBtn" class="button button-primary" type="button" disabled>生成评估报告</button>
+            </div>
+          </section>
+        </div>
+        <section id="evaluationReportPanel" class="evaluation-report-section hidden" aria-labelledby="evaluationReportTitle" aria-live="polite">
+          <div class="evaluation-section-heading">
+            <div><h2 id="evaluationReportTitle">评估结果</h2><p id="evaluationReportMeta"></p></div>
+            <button id="closeEvaluationReportBtn" class="button button-ghost" type="button">收起结果</button>
+          </div>
+          <div id="evaluationReportSummary" class="evaluation-report-summary"></div>
+          <div id="evaluationReportMetrics" class="evaluation-report-metrics"></div>
+        </section>
+        <section class="evaluation-history-section" aria-labelledby="evaluationHistoryTitle">
+          <div class="evaluation-section-heading"><div><h2 id="evaluationHistoryTitle">历史评估</h2><p>同一次仿真可以使用不同评估方案重复分析。</p></div></div>
+          <div id="evaluationHistoryList" class="evaluation-history-list"><div class="empty-state"><span>选择仿真记录后，可查看已有评估报告。</span></div></div>
+        </section>
+      </section>
+    </main>
+
     <main id="diagnosticView" class="task-center-view app-view hidden">
       <section class="panel task-center-panel">
         <div class="task-center-header">
@@ -1553,6 +1614,7 @@
 
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/app.js?v=wizard7" defer></script>
+  <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
   <script src="/assets/continuous.js?v=0.7.8" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
 </body>
