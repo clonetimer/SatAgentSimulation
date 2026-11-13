@@ -10950,7 +10950,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
-    el('wizardProfessionalModelingBtn')?.addEventListener('click', () => switchView('creator'));
+    el('wizardAdvancedBtn')?.addEventListener('click', () => switchView('creator'));
     $all('.wizard-tool-option[data-wizard-goal]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardGoal)));
     el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
       try {
