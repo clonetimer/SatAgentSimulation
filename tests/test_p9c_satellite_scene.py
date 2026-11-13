@@ -32,7 +32,7 @@ def test_scene_workspace_contract_and_local_runtime_assets(tmp_path: Path):
         assert 'src="/assets/satellite-scene.js' in index.text
         runtime = client.get("/assets/vendor/cesium/Cesium.js")
         widgets = client.get("/assets/vendor/cesium/Widgets/widgets.css")
-        earth = client.get("/assets/vendor/cesium/Assets/Textures/NaturalEarthII")
+        earth = client.get("/assets/vendor/cesium/Assets/Textures/NaturalEarthII/tilemapresource.xml")
         assert runtime.status_code == 200 and len(runtime.content) > 100_000
         assert widgets.status_code == 200
         assert earth.status_code == 200
