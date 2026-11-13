@@ -279,7 +279,7 @@ def test_report_creates_a_separate_reviewable_task_draft_without_launching(tmp_p
         created = client.post("/runs/run-001/evaluations", json=_plan(source))
         assert created.status_code == 201, created.text
         report_id = created.json()["report"]["report_id"]
-        original_spec = json.loads((runs / "run-001" / "input" / "task_spec.json").read_text()) if (runs / "run-001" / "input" / "task_spec.json").exists() else None
+        original_spec = json.loads((runs / "run-001" / "input" / "task_spec.json").read_text(encoding="utf-8")) if (runs / "run-001" / "input" / "task_spec.json").exists() else None
         response = client.post(f"/evaluations/{report_id}/configuration-draft", json={})
         assert response.status_code == 200, response.text
         payload = response.json()
@@ -301,7 +301,7 @@ def test_report_creates_a_separate_reviewable_task_draft_without_launching(tmp_p
             ensure_ascii=False,
         )
         if original_spec is not None:
-            assert json.loads((runs / "run-001" / "input" / "task_spec.json").read_text()) == original_spec
+            assert json.loads((runs / "run-001" / "input" / "task_spec.json").read_text(encoding="utf-8")) == original_spec
 
 
 def test_configuration_draft_cannot_be_created_from_another_principals_report(tmp_path):
