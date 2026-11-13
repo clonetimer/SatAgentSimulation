@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="卫星仿真工作台：能力选择、Schema 表单、TaskSpec 预览、Basilisk 运行和结果分析。">
+  <meta name="description" content="卫星仿真工作台：三维卫星场景、仿真配置与结果分析。">
   <title>卫星仿真工作台</title>
   <script>
     (() => {
@@ -32,7 +32,7 @@
         <div class="brand-mark" aria-hidden="true">◉</div>
         <div>
           <div class="brand-title">卫星仿真工作台</div>
-          <div class="brand-subtitle">TaskSpec · Basilisk · Evidence</div>
+          <div class="brand-subtitle">三维场景 · 仿真配置 · 结果分析</div>
         </div>
       </div>
       <button id="toggleMobileToolsBtn" class="button secondary small mobile-workbench-toggle" type="button" aria-controls="workbenchTools" aria-expanded="false" data-closed-label="界面设置" data-open-label="收起设置">界面设置</button>
@@ -72,7 +72,7 @@
         <nav class="sidebar-nav" aria-label="主目录">
           <div class="sidebar-section-title">仿真工作</div>
           <button class="nav-button active" data-view="wizard" type="button"><span>✦</span><b>开始仿真</b></button>
-          <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>高级工作台</b></button>
+          <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>专业建模</b></button>
           <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
           <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
           <div class="sidebar-section-title">任务与实验</div>
@@ -115,10 +115,10 @@
 
 
     <main id="wizardView" class="wizard-view app-view">
-      <section class="wizard-shell" aria-label="规则驱动仿真向导">
+      <section class="wizard-shell" aria-label="快速仿真">
         <header class="wizard-header">
-          <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
-          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardGraphShortcutBtn" class="button button-secondary" type="button" title="打开拖拽式模块画布与端口连接工作区">拖拽式建模</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
+          <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>快速仿真</h1><p>选择仿真目标，逐步完成参数配置并查看结果。</p></div>
+          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardAdvancedBtn" class="button button-secondary" type="button">专业建模</button></div>
         </header>
         <ol id="wizardProgress" class="wizard-progress" aria-label="仿真步骤进度"></ol>
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
@@ -182,11 +182,11 @@
           <div class="wizard-special-actions"><button id="wizardGenerateFromTextBtn" class="button button-primary" type="button">生成候选预览</button><button id="wizardUseFormInsteadBtn" class="button button-ghost" type="button">改用分步配置</button></div>
           <section id="wizardAgentCandidatePreview" class="agent-candidate-preview hidden" aria-label="自然语言候选任务预览" aria-live="polite"></section>
         </section>
-        <section id="wizardTaskSpecWorkspace" class="wizard-special-workspace hidden" aria-label="TaskSpec 结构化任务">
-          <div class="wizard-special-heading"><strong>TaskSpec 结构化任务</strong><span>适合精确编辑、导入和交换机器可读任务定义。普通用户可直接使用分步配置，无需编辑 JSON。</span></div>
+        <section id="wizardTaskSpecWorkspace" class="wizard-special-workspace hidden" aria-label="结构化任务配置">
+          <div class="wizard-special-heading"><strong>结构化任务配置</strong><span>适合精确编辑、导入和交换仿真任务。普通仿真可直接使用分步配置。</span></div>
           <div id="wizardTaskSpecHost"></div>
-          <div class="wizard-special-actions"><button id="wizardValidateTaskSpecBtn" class="button button-secondary" type="button">校验 TaskSpec</button><button id="wizardApplyTaskSpecBtn" class="button button-primary" type="button">应用到仿真配置</button><button id="wizardOpenGraphBtn" class="button button-secondary" type="button">应用并在图形画布中查看</button></div>
-          <p class="wizard-panel-help">TaskSpec 校验通过不等于已经启动仿真。应用后仍需检查运行参数、输出与事件，再执行运行前校验。</p>
+          <div class="wizard-special-actions"><button id="wizardValidateTaskSpecBtn" class="button button-secondary" type="button">校验任务配置</button><button id="wizardApplyTaskSpecBtn" class="button button-primary" type="button">应用配置</button><button id="wizardOpenGraphBtn" class="button button-secondary" type="button">应用并在专业建模中查看</button></div>
+          <p class="wizard-panel-help">应用配置后，请检查运行参数、输出和事件；正式校验通过后即可运行。</p>
         </section>
         <section id="wizardTaskWorkspace" class="wizard-task-workspace hidden" aria-label="对话式任务管理">
           <div class="wizard-task-toolbar">
@@ -201,7 +201,7 @@
         <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果"></section>
         <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>
         <div class="wizard-footer">
-          <div class="wizard-footer-note">规则驱动 · 不需要 AI 对话 · 运行前执行正式配置校验</div>
+          <div class="wizard-footer-note">配置完成后即可校验并运行。</div>
           <div class="wizard-footer-actions"><button id="wizardBackBtn" class="button button-ghost" type="button" disabled>上一步</button><button id="wizardResetBtn" class="button button-ghost" type="button">重新开始</button></div>
         </div>
         <div id="wizardNotice" class="wizard-notice" role="status" aria-live="polite"></div>
@@ -240,7 +240,7 @@
           <button id="creatorFormTabButton" class="tab active" data-tab="form" type="button" role="tab" aria-controls="formTab" aria-selected="true" tabindex="0">参数表单</button>
           <button id="creatorGraphTabButton" class="tab" data-tab="graph" type="button" role="tab" aria-controls="graphTab" aria-selected="false" tabindex="-1">图形组装</button>
           <button id="creatorAgentTabButton" class="tab" data-tab="agent" type="button" role="tab" aria-controls="agentTab" aria-selected="false" tabindex="-1">自然语言</button>
-          <button id="creatorTaskSpecTabButton" class="tab" data-tab="taskspec" type="button" role="tab" aria-controls="taskspecTab" aria-selected="false" tabindex="-1">TaskSpec</button>
+          <button id="creatorTaskSpecTabButton" class="tab" data-tab="taskspec" type="button" role="tab" aria-controls="taskspecTab" aria-selected="false" tabindex="-1">结构化任务</button>
         </div>
 
         <div id="notice" class="notice hidden" role="status"></div>
@@ -368,7 +368,7 @@
                 <button id="graphGuideAutoWireBtn" class="button button-ghost" type="button">自动布线</button>
                 <button id="graphGuideValidateBtn" class="button button-primary" type="button">正式校验</button>
               </div>
-              <div class="graph-guide-footnote">快捷操作调用现有图编辑器和后端校验；不会绕过端口类型、DAG、TaskSpec 或运行前检查。</div>
+              
             </section>
             <div class="graph-toolbar">
               <div>
@@ -433,7 +433,7 @@
               <div id="visualTuningResults" class="visual-tuning-results"></div>
             </section>
             <div id="graphFlowComposer">
-            <div id="graphStatus" class="graph-status" role="status">从输出端口拖线到兼容输入端口；实线表示已连接，端口类型和 DAG 会在后端再次校验。</div>
+            <div id="graphStatus" class="graph-status" role="status">连接线表示模块间的数据流；连接有效性会在模型检查时验证。</div>
             <div class="graph-layout">
               <aside class="graph-palette" aria-label="模块库">
                 <div class="graph-panel-title"><strong>模块库</strong><span>拖到画布</span></div>
@@ -566,7 +566,7 @@
             <div class="section-heading">
               <div><h3>描述仿真需求</h3><p>描述对象、时长与工况，生成后检查配置。</p></div>
             </div>
-            <div id="agentConversation" class="agent-conversation" aria-live="polite"><div class="agent-conversation-empty">可连续补充条件；后续指令将基于当前 TaskSpec 修改，而不是重新开始。</div></div>
+            <div id="agentConversation" class="agent-conversation" aria-live="polite"><div class="agent-conversation-empty">可以继续补充仿真条件，系统会在现有配置基础上调整。</div></div>
             <textarea id="agentInput" rows="6" placeholder="例如：创建完整六分系统整星仿真，运行60秒，20秒载荷关机，30秒通信中断，输出姿态误差、电池SOC、温度和下行数据率。"></textarea>
             <div class="agent-actions">
               <label class="agent-refine-toggle"><input id="agentRefineCurrent" type="checkbox" checked><span>基于当前配置继续补充</span></label>
@@ -582,13 +582,13 @@
         <div id="taskspecTab" class="tab-content" data-panel="taskspec" role="tabpanel" aria-labelledby="creatorTaskSpecTabButton">
           <section class="json-workbench">
             <div class="section-heading">
-              <div><h3>Canonical TaskSpec</h3><p>预览、校验或直接编辑结构化任务。</p></div>
+              <div><h3>结构化任务配置</h3><p>预览、校验或直接编辑任务配置。</p></div>
               <div class="toolbar-actions">
                 <button id="applyJsonToFormBtn" class="button button-ghost" type="button">同步到表单</button>
                 <button id="validateJsonBtn" class="button button-secondary" type="button">校验 JSON</button>
               </div>
             </div>
-            <textarea id="taskSpecEditor" class="code-editor" spellcheck="false" aria-label="TaskSpec JSON"></textarea>
+            <textarea id="taskSpecEditor" class="code-editor" spellcheck="false" aria-label="结构化任务配置 JSON"></textarea>
           </section>
         </div>
       </section>
@@ -1205,7 +1205,7 @@
                   </fieldset>
                   <fieldset><legend>热控分系统 · 项目热网络</legend>
                     <p class="continuous-muted">热控为与 Basilisk 仿真任务耦合运行的项目确定性热网络，非官方 Basilisk 原生热模块；温度单位为开尔文。</p>
-                    <p class="continuous-muted">地球红外与反照率采用均匀地球假设；默认值表示全球年均条件，不代表瞬时冷热边界。太阳翼吸收率为工程假设，正面吸收率须不小于发电效率。</p>
+                    
                     <label>地球红外出射度（W/m²）<input data-native-group="thermal" data-native-key="thermal_earth_ir_w_m2" type="number" min="0" max="1000" step="any" value="234" required></label>
                     <label>地球反照率（0–1）<input data-native-group="thermal" data-native-key="thermal_earth_albedo" type="number" min="0" max="1" step="any" value="0.30" required></label>
                     <label>太阳翼正面短波吸收率（0–1）<input data-native-group="thermal" data-native-key="thermal_panel_front_absorptivity" type="number" min="0" max="1" step="any" value="0.90" required></label>
@@ -1470,7 +1470,7 @@
   <div id="experimentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="experimentModalTitle">
     <section class="modal-card experiment-card">
       <div class="modal-header"><div><div class="eyebrow">Experiment Design</div><h2 id="experimentModalTitle">创建实验</h2><p>支持枚举参数扫描和 Monte Carlo 随机采样；每个变体均生成独立 Run Bundle。</p></div><button id="closeExperimentBtn" class="icon-button" type="button">×</button></div>
-      <div class="experiment-base-help">“当前编辑配置”指仿真创建页面内存中的最新 TaskSpec；也可以直接选择任务中心已保存的任务，无需返回仿真创建页面重新配置。</div>
+      <div class="experiment-base-help">可以使用当前仿真配置创建实验，也可以选择一项已保存的任务。</div>
       <div class="model-settings-grid">
         <label class="wide-field"><span>基础任务</span><select id="experimentBaseTaskSelect"><option value="current">当前编辑配置</option></select></label>
         <label><span>实验名称</span><input id="experimentName" type="text" value="参数扫描实验"></label>
@@ -1515,7 +1515,7 @@
         <span id="localModelStatus" class="model-status">尚未检测</span>
       </div>
       <div id="activeModelProviderBanner" class="active-provider-banner">当前使用：读取中…</div>
-      <div class="section-heading compact"><h3>已保存的模型服务</h3><p>“服务可连接”只表示 /v1/models 可访问；只有“完整测试通过”才表示结构化推理和 TaskSpec 链路可用。</p></div>
+      <div class="section-heading compact"><h3>已保存的模型服务</h3><p>连接成功表示服务可访问；完整测试通过后，才能用于生成仿真配置。</p></div>
       <div id="modelProviderList" class="provider-list"></div>
       <pre id="localModelDiagnostics" class="diagnostic-output hidden" aria-live="polite"></pre>
     </section>
