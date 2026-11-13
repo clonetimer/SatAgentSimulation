@@ -163,6 +163,10 @@ def inspect_recorded_sources(run: Mapping[str, Any], definitions: list[Mapping[s
     for definition in definitions:
         row = dict(definition)
         counts = stats[row["source_id"]]
+        # Hide fields that were never recorded; partially recorded fields remain
+        # visible with an explanation, but cannot be selected for evaluation.
+        if counts["sample_count"] == 0:
+            continue
         row.update(counts, total_samples=total_rows)
         row["time_range_s"] = [first_time, last_time] if first_time is not None and last_time is not None else None
         row["evaluable"] = bool(
