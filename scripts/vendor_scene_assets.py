@@ -26,7 +26,7 @@ THREE_FILES = (
     "package/examples/jsm/utils/BufferGeometryUtils.js",
     "package/examples/jsm/utils/SkeletonUtils.js",
 )
-EARTH_FILE = "package/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg"
+EARTH_FILES = {\n    "package/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg": "naturalearth-ii-west.jpg",\n    "package/Build/Cesium/Assets/Textures/NaturalEarthII/0/1/0.jpg": "naturalearth-ii-east.jpg",\n}
 
 
 def copy_tar_member(bundle: tarfile.TarFile, member_name: str, destination: Path) -> None:
@@ -79,7 +79,9 @@ def vendor(root: Path) -> dict[str, object]:
                 copy_tar_member(bundle, name, staged_three / name.removeprefix("package/"))
             copy_tar_member(bundle, "package/LICENSE", staged_three / "LICENSE")
         with tarfile.open(cesium_archive, "r:gz") as bundle:
-            copy_tar_member(bundle, EARTH_FILE, staged_earth / "naturalearth-ii-level0.jpg")
+            for member_name, filename in EARTH_FILES.items():
+                copy_tar_member(bundle, member_name, staged_earth / filename)
+            copy_tar_member(bundle, "package/LICENSE.md", staged_earth / "CESIUM-LICENSE.md")
 
         for output in (three_out, earth_out):
             if output.exists():
@@ -99,17 +101,17 @@ def vendor(root: Path) -> dict[str, object]:
                 "version": PACKAGES["cesium"],
                 "integrity": cesium_record.get("integrity"),
                 "license": "Apache-2.0 package; Natural Earth II source imagery",
-                "path": "vendor/earth/naturalearth-ii-level0.jpg",
+                "paths": ["vendor/earth/naturalearth-ii-west.jpg", "vendor/earth/naturalearth-ii-east.jpg"],
             },
             "csp": "No unsafe-eval or wasm-unsafe-eval required by the scene renderer.",
         }
-        (root / "src/sat_sim/web/vendor/scene-runtime-manifest.json").write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
         manifest["runtime_bytes"] = sum(
             path.stat().st_size
             for folder in (three_out, earth_out)
             for path in folder.rglob("*") if path.is_file()
+        )
+        (root / "src/sat_sim/web/vendor/scene-runtime-manifest.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         return manifest
 
