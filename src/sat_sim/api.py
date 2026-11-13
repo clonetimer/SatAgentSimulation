@@ -1011,7 +1011,7 @@ def create_app(
             # Scope the exception to these static worker responses; the parent document remains eval-free.
             response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self'; worker-src 'self'; base-uri 'self'"
         else:
-            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; child-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; child-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         response.headers["X-Request-ID"] = request.state.request_id
         if path == "/" or path == "/workspace" or path.startswith("/assets/"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
