@@ -7,8 +7,10 @@
 - Globe.gl：MIT，固定版本 2.46.2
 - three-globe：MIT，固定版本 2.45.6
 - Three.js：MIT，固定版本 0.186.1
-- 地球纹理：three-globe 包内 Earth Blue Marble 和地形 bump 纹理，随项目离线打包
+- 地球纹理：采用 three-globe 示例分发的 NASA Blue Marble 日面纹理，单独记录 NASA 来源、Public Domain 许可、署名和 SHA-256；不将图像误标为 MIT 代码许可
 - 所有 npm 包通过 registry 发布的完整性元数据校验；各包许可证随资源一起分发
+
+图像署名：NASA Goddard Space Flight Center Scientific Visualization Studio；Blue Marble Next Generation data courtesy of Reto Stöckli。NASA 不对本项目作任何背书。
 
 上游参考：
 - https://github.com/vasturiano/globe.gl
