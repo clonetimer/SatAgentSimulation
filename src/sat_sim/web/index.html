@@ -72,7 +72,7 @@
         <nav class="sidebar-nav" aria-label="主目录">
           <div class="sidebar-section-title">仿真工作</div>
           <button class="nav-button active" data-view="wizard" type="button"><span>✦</span><b>开始仿真</b></button>
-          <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>高级工作台</b></button>
+          <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>专业建模</b></button>
           <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
           <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
           <div class="sidebar-section-title">任务与实验</div>
@@ -115,10 +115,10 @@
 
 
     <main id="wizardView" class="wizard-view app-view">
-      <section class="wizard-shell" aria-label="规则驱动仿真向导">
+      <section class="wizard-shell" aria-label="快速仿真">
         <header class="wizard-header">
-          <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>开始一次仿真</h1><p>选择任务类型，按步骤完成配置。所有选项来自当前已注册的仿真模型和规则。</p></div>
-          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardGraphShortcutBtn" class="button button-secondary" type="button" title="打开拖拽式模块画布与端口连接工作区">拖拽式建模</button><button id="wizardAdvancedBtn" class="button button-ghost" type="button">高级工作台</button></div>
+          <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>快速仿真</h1><p>选择仿真目标，逐步完成参数配置并查看结果。</p></div>
+          <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardProfessionalModelingBtn" class="button button-secondary" type="button">专业建模</button></div>
         </header>
         <ol id="wizardProgress" class="wizard-progress" aria-label="仿真步骤进度"></ol>
         <div id="wizardConversation" class="wizard-conversation" role="log" aria-live="polite" aria-label="仿真配置步骤"></div>
@@ -201,7 +201,7 @@
         <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果"></section>
         <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>
         <div class="wizard-footer">
-          <div class="wizard-footer-note">规则驱动 · 不需要 AI 对话 · 运行前执行正式配置校验</div>
+          <div class="wizard-footer-note">配置完成后即可校验并运行。</div>
           <div class="wizard-footer-actions"><button id="wizardBackBtn" class="button button-ghost" type="button" disabled>上一步</button><button id="wizardResetBtn" class="button button-ghost" type="button">重新开始</button></div>
         </div>
         <div id="wizardNotice" class="wizard-notice" role="status" aria-live="polite"></div>
@@ -368,7 +368,7 @@
                 <button id="graphGuideAutoWireBtn" class="button button-ghost" type="button">自动布线</button>
                 <button id="graphGuideValidateBtn" class="button button-primary" type="button">正式校验</button>
               </div>
-              <div class="graph-guide-footnote">快捷操作调用现有图编辑器和后端校验；不会绕过端口类型、DAG、TaskSpec 或运行前检查。</div>
+              
             </section>
             <div class="graph-toolbar">
               <div>
