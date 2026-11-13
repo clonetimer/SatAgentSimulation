@@ -375,6 +375,13 @@ PLOT_METADATA_FIELDS = {
 
 def output_label(name: str) -> str:
     raw = str(name).strip()
+    try:
+        from .workbench_quantity_names import output_display_name
+        reviewed = output_display_name(raw)
+        if reviewed:
+            return reviewed
+    except ImportError:
+        pass
     heat_match = re.fullmatch(r'thermal\.(battery|electronics|payload|adcs|structure|solar_panel|comm|propulsion)_(direct_solar_heat_w|albedo_heat_w|earth_ir_heat_w|electrical_extracted_w)', raw)
     if heat_match:
         node = {'battery':'电池', 'electronics':'电子设备', 'payload':'载荷', 'adcs':'姿态控制',
@@ -790,10 +797,19 @@ def _parameter_fields(contract: Any) -> list[dict[str, Any]]:
     for name, payload in _mapping(contract.data.get("parameters")).items():
         if not isinstance(payload, Mapping):
             continue
+        label = PARAMETER_LABELS.get(str(name), _human_label(str(name)))
+        if _canonical_level(str(contract.target_level)) == "component":
+            from .workbench_quantity_names import parameter_definition
+            definition = parameter_definition(capability_id, str(name))
+            if definition is None:
+                raise ValueError(f"COMPONENT_PARAMETER_NAME_NOT_REVIEWED:{capability_id}:{name}")
+            if payload.get("unit", "none") != definition["unit"]:
+                raise ValueError(f"COMPONENT_PARAMETER_UNIT_MISMATCH:{capability_id}:{name}")
+            label = definition["display_name_zh"]
         field = _field(
             f"parameters.values.{name}",
             payload,
-            label=PARAMETER_LABELS.get(str(name), _human_label(str(name))),
+            label=label,
             description=COMMON_PARAMETER_DESCRIPTIONS.get(str(name)),
             importance=_field_importance(capability_id, str(name)),
         )
@@ -1060,7 +1076,14 @@ def _explicit_output_rows(contract: Any, key: str) -> list[Any]:
     for alias in aliases:
         value = outputs.get(alias)
         if isinstance(value, list) and value:
-            return list(value)
+            # Wildcard placeholders are not physical quantities. Expand only
+            # the exact fields declared by the capability observability contract.
+            return [
+                item for item in value
+                if (isinstance(item, Mapping) and item.get("name")
+                    and not any(token in str(item.get("name")) for token in ("*", "?", "[")))
+                or (isinstance(item, str) and not any(token in item for token in ("*", "?", "[")))
+            ]
     return []
 
 
@@ -1141,6 +1164,18 @@ def _output_options(contract: Any, key: str, fallback: tuple[str, ...] | list[st
         if key == "trace" and not _is_plottable_trace(name, payload):
             continue
         unit = payload.get("unit")
+        component_definition = None
+        if _canonical_level(str(contract.target_level)) == "component":
+            from .workbench_quantity_names import output_definition
+            component_definition = output_definition(
+                name, capability_id=contract.capability_id, kind=key,
+            )
+            if component_definition is None:
+                continue
+            if unit != component_definition["unit"]:
+                raise ValueError(f"COMPONENT_OUTPUT_UNIT_MISMATCH:{contract.capability_id}:{name}")
+            if component_definition["dtype"] is not None and payload.get("dtype") != component_definition["dtype"]:
+                raise ValueError(f"COMPONENT_OUTPUT_TYPE_MISMATCH:{contract.capability_id}:{name}")
         group_id, group_label = output_group(name)
         hierarchy = output_hierarchy(
             name,
@@ -1150,7 +1185,8 @@ def _output_options(contract: Any, key: str, fallback: tuple[str, ...] | list[st
         )
         options.append({
             "name": name,
-            "label": output_label(name),
+            "label": component_definition["display_name_zh"] if component_definition else output_label(name),
+            "object_id": component_definition["object_id"] if component_definition else None,
             "unit": unit,
             "dtype": payload.get("dtype"),
             "plottable": key == "trace",
