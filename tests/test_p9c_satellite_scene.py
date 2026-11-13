@@ -39,7 +39,12 @@ def test_scene_workspace_contract_and_local_runtime_assets(tmp_path: Path):
         assert earth.status_code == 200
         assert satellite_model.status_code == 200
         assert satellite_model.json()["asset"]["extras"]["license"] == "CC0-1.0"
-        assert "worker-src 'self' blob:" in index.headers["content-security-policy"]
+        document_csp = index.headers["content-security-policy"]
+        assert "worker-src 'self'" in document_csp
+        assert "'unsafe-eval'" not in document_csp
+        worker = client.get("/assets/vendor/cesium/Workers/cesiumWorkerBootstrapper.js")
+        assert worker.status_code == 200
+        assert "'unsafe-eval'" in worker.headers["content-security-policy"]
 
 
 def test_scene_module_declares_demo_provenance_and_safe_lifecycle():
