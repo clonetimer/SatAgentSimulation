@@ -111,7 +111,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
         assert not external_requests, external_requests
         assert not failures, failures
 
-        page.locator("[data-return-wizard]").click()
+        page.locator("#satelliteSceneView [data-return-wizard]").click()
         page.locator("#wizardView").wait_for(state="visible")
         assert page.locator("#satelliteSceneCanvas canvas").count() == 0
         browser.close()
