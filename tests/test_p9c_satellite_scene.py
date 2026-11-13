@@ -33,12 +33,14 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
 
         globe = client.get("/assets/vendor/globe/globe.gl.min.js")
         three = client.get("/assets/vendor/globe/three.module.js")
+        three_core = client.get("/assets/vendor/globe/three.core.js")
         earth = client.get("/assets/vendor/globe/textures/earth-blue-marble.jpg")
         bump = client.get("/assets/vendor/globe/textures/earth-topology.png")
         manifest = client.get("/assets/vendor/globe/vendor-manifest.json")
 
         assert globe.status_code == 200 and len(globe.content) > 100_000
         assert three.status_code == 200 and len(three.content) > 100_000
+        assert three_core.status_code == 200 and len(three_core.content) > 100_000
         assert earth.status_code == 200 and len(earth.content) > 50_000
         assert bump.status_code == 200
         assert manifest.status_code == 200
