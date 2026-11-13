@@ -10,6 +10,8 @@ on:
       - "src/sat_sim/web/app.js"
       - "pyproject.toml"
       - "tests/test_p9c_satellite_scene.py"
+      - "docs/guides_zh/P9C_卫星数字场景本地运行.md"
+      - "docs/superpowers/plans/2026-11-13-p9c-renderer-technical-decision.md"
       - ".github/workflows/p9c-threejs-scene.yml"
   workflow_dispatch:
 
