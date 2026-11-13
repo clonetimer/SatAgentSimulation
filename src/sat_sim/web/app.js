@@ -8765,7 +8765,7 @@
     else if (name === 'creator') wizardRestoreAdvancedPanels();
     const viewIds = {
       creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
-      goals: 'goalRunView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
+      goals: 'goalRunView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView', scene: 'satelliteSceneView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     el('wizardView')?.classList.toggle('hidden', !guided);
