@@ -1488,7 +1488,10 @@
         <section id="evaluationReportPanel" class="evaluation-report-section hidden" aria-labelledby="evaluationReportTitle" aria-live="polite">
           <div class="evaluation-section-heading">
             <div><h2 id="evaluationReportTitle">评估结果</h2><p id="evaluationReportMeta"></p></div>
-            <button id="closeEvaluationReportBtn" class="button button-ghost" type="button">收起结果</button>
+            <div class="evaluation-report-actions">
+              <button id="createEvaluationDraftBtn" class="button button-secondary" type="button">根据评估创建配置草稿</button>
+              <button id="closeEvaluationReportBtn" class="button button-ghost" type="button">收起结果</button>
+            </div>
           </div>
           <div id="evaluationReportSummary" class="evaluation-report-summary"></div>
           <div id="evaluationReportMetrics" class="evaluation-report-metrics"></div>
