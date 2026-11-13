@@ -92,10 +92,11 @@ def _metadata(object_id: str) -> tuple[str | None, str, str, str]:
         if key == "ground_station":
             target, physical = "ground", "external_equipment"
         elif key == "link_budget":
-            target, physical = "relationship", "logical"
+            target, physical = "relationship", "relationship"
         elif key in {"data_queue", "thermal_node", "power_sink"}:
             target, physical = "logical", "logical"
-        return f"subsystem.{_COMPONENT_PARENT[key]}", "component", target, physical
+        parent = None if key == "ground_station" else f"subsystem.{_COMPONENT_PARENT[key]}"
+        return parent, "component", target, physical
     raise ValueError(f"SCENE_OBJECT_REQUIRES_REVIEW:{object_id}")
 
 
@@ -161,6 +162,17 @@ def build_scene_catalog(presentation: Mapping[str, Any],
         "modes": {name: _mode(False, "NO_INDEPENDENT_CAPABILITY")
                   for name in ("offline", "limited_realtime", "continuous_realtime")},
     })
+    relationship_objects = [{
+        "object_id": "component.link_budget",
+        "name_zh": "星地通信链路预算",
+        "relationship_type": "communication_link",
+        "endpoint_roles": [
+            {"role": "transmitter", "display_name_zh": "发射端", "object_ref_required": True},
+            {"role": "receiver", "display_name_zh": "接收端", "object_ref_required": True},
+        ],
+        "endpoint_binding": "task_configuration",
+        "source_capability_id": "component.link_budget.v1",
+    }]
     relations = []
     for source, target, kind in (
         ("orbit_environment", "orbit_control", "state_input"),
@@ -175,6 +187,7 @@ def build_scene_catalog(presentation: Mapping[str, Any],
         "source_catalog_version": presentation.get("version"),
         "objects": objects, "counts": dict(Counter(o["kind"] for o in objects)),
         "count_semantics": "product_categories_not_installed_equipment_instances",
+        "relationship_objects": relationship_objects,
         "relations": relations, "relation_semantics": "design_dependencies_not_runtime_wiring",
         "policy_semantics": "creation_permission_not_execution_evidence",
     }
