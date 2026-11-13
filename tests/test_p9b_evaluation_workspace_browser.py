@@ -79,6 +79,19 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
                                        if key.lower() in ("content-type", "cache-control")})
 
             page.route("http://127.0.0.1/**", proxy)
+            page.evaluate("""() => {
+              const makeStorage = () => {
+                const values = new Map();
+                return {
+                  getItem: (key) => values.has(String(key)) ? values.get(String(key)) : null,
+                  setItem: (key, value) => values.set(String(key), String(value)),
+                  removeItem: (key) => values.delete(String(key)),
+                  clear: () => values.clear(),
+                };
+              };
+              Object.defineProperty(window, 'localStorage', {configurable: true, value: makeStorage()});
+              Object.defineProperty(window, 'sessionStorage', {configurable: true, value: makeStorage()});
+            }""")
             html = client.get("/").text.replace("<head>", '<head><base href="http://127.0.0.1/">', 1)
             page.set_default_timeout(12000)
             page.set_default_navigation_timeout(12000)
@@ -89,7 +102,7 @@ def test_evaluation_workspace_desktop_and_mobile_journey(tmp_path):
             page.locator('.nav-button[data-view="evaluations"]').click()
             page.locator("#evaluationRunSelect option").first.wait_for(state="attached", timeout=20000)
             page.wait_for_function(
-                "() => document.querySelectorAll('#evaluationSourceList [data-add-source]').length > 0",
+                "() => document.querySelectorAll('#evaluationSourceList [data-add-source]:not([disabled])').length > 0",
                 timeout=20000,
             )
             assert "run-001" in page.locator("#evaluationRunSummary").inner_text()
