@@ -194,7 +194,7 @@ async function enter() {
     });
     state.resizeObserver.observe(host);
     state.frame = requestAnimationFrame(updateSatellite);
-    status('场景已就绪。采用 Globe.gl 成熟地球渲染组件；轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
+    status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
   } catch (error) {
     destroy();
     status('三维场景加载失败，仿真工作台其他功能不受影响。' + (error?.message ? ' ' + error.message : ''), 'error');
