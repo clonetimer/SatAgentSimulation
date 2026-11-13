@@ -23,6 +23,8 @@ CesiumJS 1.147.0 已完成离线运行时 staging，但严格 CSP 下的 Chromiu
 
 最终选择第三条路线。它能直接复用成熟 Satellites 示例的架构，保持较轻的本地资源闭包，并在当前浏览器中保留严格 CSP。该选择不意味着 Globe.gl 可替代 Cesium 的高精度地理分析、3D Tiles、地形和大规模 GIS 能力；若未来需求升级，应单独重新评估 Cesium 或 WorldWind 的安全部署方式。
 
+上游 Satellites 示例还演示了 TLE/SGP4 位置更新。本项目只复用其地球渲染、路径层、三维对象层和相机交互，不复制 satellite.js/TLE 作为仿真数据源。SatAgentSimulation 的真实轨迹必须来自 Basilisk 运行结果或真实实时会话，不能由可视化层另行传播轨道并冒充仿真输出。
+
 ## 3. 固定依赖与资源策略
 
 - Globe.gl 2.46.2，MIT；
