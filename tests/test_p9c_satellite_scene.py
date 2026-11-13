@@ -42,7 +42,9 @@ def test_scene_workspace_contract_and_local_runtime_assets(tmp_path: Path):
         document_csp = index.headers["content-security-policy"]
         assert "worker-src 'self'" in document_csp
         assert "'unsafe-eval'" not in document_csp
-        worker = client.get("/assets/vendor/cesium/Workers/cesiumWorkerBootstrapper.js")
+        manifest = client.get("/assets/vendor/cesium/vendor-manifest.json").json()
+        assert manifest["worker_files"], "Cesium package must expose its worker entrypoints"
+        worker = client.get("/assets/vendor/cesium/" + manifest["worker_files"][0])
         assert worker.status_code == 200
         assert "'unsafe-eval'" in worker.headers["content-security-policy"]
 
