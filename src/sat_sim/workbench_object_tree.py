@@ -12,7 +12,7 @@ from typing import Any
 
 from .workbench_quantity_names import output_definition, parameter_definition
 
-OBJECT_TREE_VERSION = "workbench-object-tree.v1"
+OBJECT_TREE_VERSION = "workbench-object-tree.v2"
 _CONTEXT_OBJECTS = {
     "component.data_queue", "component.power_sink", "component.thermal_node",
 }
@@ -29,7 +29,6 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
         return [], {"parameters": 0, "summary": 0, "observable": 0, "unreviewed": 0}
     counts = {"parameters": 0, "summary": 0, "observable": 0, "unreviewed": 0}
     parameter_nodes: list[dict[str, Any]] = []
-    summary_nodes: list[dict[str, Any]] = []
     observable_nodes: list[dict[str, Any]] = []
     seen_parameters: set[str] = set()
     owner_name = str(object_row.get("name_zh") or object_row.get("object_id"))
@@ -83,7 +82,7 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
             counts["parameters"] += 1
     outputs = schema.get("outputs")
     if isinstance(outputs, Mapping):
-        for section, kind, target in (("summary_options", "summary", summary_nodes), ("trace_options", "observable", observable_nodes)):
+        for section, kind, target in (("trace_options", "observable", observable_nodes),):
             seen_outputs: set[str] = set()
             for field in outputs.get(section, []):
                 if not isinstance(field, Mapping) or not field.get("name"):
@@ -109,15 +108,15 @@ def _quantity_children(object_row: Mapping[str, Any], schemas: Mapping[str, Mapp
     if parameter_nodes:
         children.append({"node_id": f"{object_row['object_id']}:physical-parameters",
                          "kind": "parameter_group", "name_zh": "物理配置参数", "children": parameter_nodes})
-    if observable_nodes or summary_nodes:
-        output_children = []
-        if observable_nodes:
-            output_children.append({"node_id": f"{object_row['object_id']}:observable-outputs",
-                                    "kind": "observable_group", "name_zh": "输出参量", "children": observable_nodes})
-        if summary_nodes:
-            output_children.append({"node_id": f"{object_row['object_id']}:summary-outputs",
-                                    "kind": "summary_group", "name_zh": "结果指标", "children": summary_nodes})
-        children.extend(output_children)
+    if observable_nodes:
+        children.append({"node_id": f"{object_row['object_id']}:observable-outputs",
+                         "kind": "observable_group", "name_zh": "输出参量", "children": observable_nodes})
+    # Owner is a reference; grouping nodes are not physical objects. Legacy
+    # summary/QoI storage is untouched, but not read by the simulation tree.
+    for group in children:
+        group["owner_object_id"] = object_row["object_id"]
+        for quantity in group["children"]:
+            quantity["owner_object_id"] = object_row["object_id"]
     return children, counts
 
 
@@ -156,6 +155,34 @@ def build_object_tree(scene_catalog: Mapping[str, Any],
         indexed[object_id] = row
     if "whole_spacecraft" not in indexed:
         raise ValueError("OBJECT_TREE_ROOT_MISSING")
+    # Validate containment before attaching references. Design/feedback edges
+    # belong to the separate relation catalog, never the containment tree.
+    if indexed["whole_spacecraft"].get("parent_object_id") is not None:
+        raise ValueError("OBJECT_TREE_ROOT_HAS_PARENT")
+    for object_id in indexed:
+        visited: set[str] = set()
+        current = object_id
+        while current is not None:
+            if current in visited:
+                raise ValueError(f"OBJECT_TREE_PARENT_CYCLE:{object_id}")
+            if current not in indexed:
+                raise ValueError(f"OBJECT_TREE_PARENT_MISSING:{object_id}:{current}")
+            visited.add(current)
+            current = indexed[current].get("parent_object_id")
+    definitions = scene_catalog.get("relationship_objects", [])
+    if not isinstance(definitions, list):
+        raise ValueError("OBJECT_TREE_INVALID_RELATIONSHIP_CATALOG")
+    relationship_ids: set[str] = set()
+    for definition in definitions:
+        if not isinstance(definition, Mapping) or not isinstance(definition.get("object_id"), str):
+            raise ValueError("OBJECT_TREE_INVALID_RELATIONSHIP")
+        relation_id = definition["object_id"]
+        if relation_id in relationship_ids:
+            raise ValueError(f"OBJECT_TREE_DUPLICATE_RELATIONSHIP:{relation_id}")
+        relationship_ids.add(relation_id)
+    missing = _RELATIONSHIP_OBJECTS.intersection(indexed).difference(relationship_ids)
+    if missing:
+        raise ValueError(f"OBJECT_TREE_RELATIONSHIP_DEFINITION_MISSING:{sorted(missing)}")
     roots: list[dict[str, Any]] = []
     for object_id, row in indexed.items():
         parent_id = row.get("parent_object_id")
@@ -218,7 +245,9 @@ def build_object_tree(scene_catalog: Mapping[str, Any],
         "schema_version": OBJECT_TREE_VERSION,
         "tree": tree, "roots": roots, "totals": totals,
         "semantics": {
-            "hierarchy": "spacecraft_subsystem_equipment_quantity",
+            "hierarchy": "object_owned_parameters_and_process_outputs",
+            "evaluation_is_independent": True,
+            "summary_count_is_legacy_zero": True,
             "external_objects_are_not_spacecraft_hardware": True,
             "relationship_objects_are_not_single_equipment": True,
             "component_counts_are_inventory": False,

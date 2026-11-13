@@ -60,14 +60,14 @@ def test_object_tree_has_four_levels_and_keeps_non_spacecraft_objects_separate()
     result = build_object_tree(scene, schemas)
     root = result["tree"]
     assert root["object_id"] == "whole_spacecraft"
-    adcs = next(row for row in root["children"] if row["object_id"] == "subsystem.adcs")
+    adcs = next(row for row in root["children"] if row.get("object_id") == "subsystem.adcs")
     assert adcs["name_zh"] == "姿态控制分系统"
-    wheel = next(row for row in adcs["children"] if row["object_id"] == "component.reaction_wheel")
+    wheel = next(row for row in adcs["children"] if row.get("object_id") == "component.reaction_wheel")
     assert wheel["kind"] == "equipment"
     assert wheel["instance_semantics"] == "capability_model_not_vehicle_inventory"
     parameter_group = next(row for row in wheel["children"] if row["kind"] == "parameter_group")
     assert parameter_group["name_zh"] == "物理配置参数"
-    assert any(row["display_name_zh"] == "反作用轮组 · 物理计算后端" for row in parameter_group["children"])
+    assert any(row["display_name_zh"] == "物理计算后端" for row in parameter_group["children"])
     wheel_parameters = [row for row in parameter_group["children"] if row["source_field"] == "wheel_inertia_kg_m2"]
     assert wheel_parameters and wheel_parameters[0]["display_name_zh"] == "反作用轮组 · 转动惯量"
     wheel_schema = schemas["component.reaction_wheel.v1"]
@@ -77,8 +77,8 @@ def test_object_tree_has_four_levels_and_keeps_non_spacecraft_objects_separate()
         if field["path"] == "parameters.values.wheel_inertia_kg_m2":
             field["default"] = [0.1, 0.11, 0.12]
     vector_tree = build_object_tree(scene, schemas)
-    vector_adcs = next(row for row in vector_tree["tree"]["children"] if row["object_id"] == "subsystem.adcs")
-    vector_wheel = next(row for row in vector_adcs["children"] if row["object_id"] == "component.reaction_wheel")
+    vector_adcs = next(row for row in vector_tree["tree"]["children"] if row.get("object_id") == "subsystem.adcs")
+    vector_wheel = next(row for row in vector_adcs["children"] if row.get("object_id") == "component.reaction_wheel")
     vector_group = next(row for row in vector_wheel["children"] if row["kind"] == "parameter_group")
     vector_rows = [row for row in vector_group["children"] if row["source_field"] == "wheel_inertia_kg_m2"]
     assert [row["display_name_zh"] for row in vector_rows] == [
@@ -88,23 +88,24 @@ def test_object_tree_has_four_levels_and_keeps_non_spacecraft_objects_separate()
     output_group = next(row for row in wheel["children"] if row["kind"] == "observable_group")
     assert output_group["name_zh"] == "输出参量"
     assert any(row["kind"] == "observable" and row["display_name_zh"] == "反作用轮1 · 角速度" for row in output_group["children"])
-    assert any(row["kind"] == "summary_group" and row["name_zh"] == "结果指标" for row in wheel["children"])
-    orbit = next(row for row in root["children"] if row["object_id"] == "orbit_environment")
-    control = next(row for row in root["children"] if row["object_id"] == "orbit_control")
+    assert not any(row["kind"] == "summary_group" for row in wheel["children"])
+    assert result["totals"]["summary"] == 0
+    orbit = next(row for row in root["children"] if row.get("object_id") == "orbit_environment")
+    control = next(row for row in root["children"] if row.get("object_id") == "orbit_control")
     assert orbit["object_id"] != control["object_id"]
-    context = next(row for row in result["roots"] if row["object_id"] == "mission_context")
+    context = next(row for row in result["roots"] if row.get("object_id") == "mission_context")
     context_ids = {row["object_id"] for row in context["children"]}
     assert {"component.data_queue", "component.power_sink", "component.thermal_node"} <= context_ids
-    external = next(row for row in result["roots"] if row["object_id"] == "external_environment")
+    external = next(row for row in result["roots"] if row.get("object_id") == "external_environment")
     assert {row["object_id"] for row in external["children"]} == {"component.ground_station"}
-    relationships = next(row for row in result["roots"] if row["object_id"] == "relationships")
-    link = next(row for row in relationships["children"] if row["object_id"] == "component.link_budget")
+    relationships = next(row for row in result["roots"] if row.get("object_id") == "relationships")
+    link = next(row for row in relationships["children"] if row.get("object_id") == "component.link_budget")
     assert link["kind"] == "relationship_object"
     assert link["relationship_type"] == "communication_link"
     assert {row["role"] for row in link["endpoint_roles"]} == {"transmitter", "receiver"}
     assert link["endpoint_binding"] == "task_configuration"
-    assert all(row["object_id"] != "component.ground_station" for row in root["children"])
-    assert all(row["object_id"] != "component.link_budget" for row in root["children"])
+    assert all(row.get("object_id") != "component.ground_station" for row in root["children"])
+    assert all(row.get("object_id") != "component.link_budget" for row in root["children"])
     assert result["semantics"]["component_counts_are_inventory"] is False
     assert result["semantics"]["external_objects_are_not_spacecraft_hardware"] is True
     assert result["semantics"]["relationship_objects_are_not_single_equipment"] is True

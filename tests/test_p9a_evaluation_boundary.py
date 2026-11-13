@@ -39,3 +39,49 @@ def test_building_tree_never_rewrites_recording_or_evaluation_inputs():
     original = deepcopy((scene, schemas))
     json.dumps(build_object_tree(scene, schemas), allow_nan=False)
     assert (scene, schemas) == original
+
+
+def test_quantities_have_owner_without_pretending_groups_are_devices():
+    scene, schemas = inputs()
+    result = build_object_tree(scene, schemas)
+    for node in walk(result["tree"]):
+        if node.get("kind") in {"parameter", "observable", "parameter_group", "observable_group"}:
+            assert node["owner_object_id"] == "whole_spacecraft"
+            assert "object_id" not in node
+
+
+def test_summary_failure_cannot_block_simulation_tree_construction():
+    scene, schemas = inputs()
+    schemas["whole_spacecraft.unified_native.v1"]["outputs"]["summary_options"] = None
+    result = build_object_tree(scene, schemas)
+    assert result["totals"]["observable"] == 1
+    assert result["totals"]["summary"] == 0
+
+
+def test_quantity_dictionary_json_is_declared_as_package_data():
+    from pathlib import Path
+    import fnmatch
+    import tomllib
+    project = tomllib.loads(Path("pyproject.toml").read_text())
+    patterns = project["tool"]["setuptools"]["package-data"]["sat_sim"]
+    for path in Path("src/sat_sim").glob("workbench_quantity_dictionary_*.json"):
+        assert any(fnmatch.fnmatch(path.name, pattern) for pattern in patterns), path.name
+
+
+def test_tree_rejects_parent_cycles_instead_of_losing_unreachable_objects():
+    import pytest
+    scene, schemas = inputs()
+    scene['objects'].extend([
+        {'object_id': 'a', 'kind': 'subsystem', 'parent_object_id': 'b'},
+        {'object_id': 'b', 'kind': 'subsystem', 'parent_object_id': 'a'},
+    ])
+    with pytest.raises(ValueError, match='CYCLE'):
+        build_object_tree(scene, schemas)
+
+
+def test_missing_relationship_descriptor_cannot_silently_drop_a_link():
+    import pytest
+    scene, schemas = inputs()
+    scene['objects'].append({'object_id': 'component.link_budget', 'kind': 'component', 'parent_object_id': 'whole_spacecraft'})
+    with pytest.raises(ValueError, match='RELATIONSHIP_DEFINITION_MISSING'):
+        build_object_tree(scene, schemas)
