@@ -86,6 +86,7 @@ def vendor(output: Path) -> dict[str, object]:
             "license": "Apache-2.0",
             "runtime_files": len(found),
             "runtime_bytes": sum(path.stat().st_size for path in output.rglob("*") if path.is_file()),
+            "worker_files": sorted(name for name in found if name.startswith("Workers/") or name.startswith("ThirdParty/Workers/")),
             "offline_imagery": "Assets/Textures/NaturalEarthII",
         }
         (output / "vendor-manifest.json").write_text(
