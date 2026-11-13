@@ -1006,7 +1006,12 @@ def create_app(
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        if path.startswith("/assets/vendor/cesium/Workers/") or path.startswith("/assets/vendor/cesium/ThirdParty/Workers/"):
+            # Cesium's RequireJS worker bootstrapper uses eval() to load trusted, same-origin worker modules.
+            # Scope the exception to these static worker responses; the parent document remains eval-free.
+            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self'; worker-src 'self'; base-uri 'self'"
+        else:
+            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; child-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
         response.headers["X-Request-ID"] = request.state.request_id
         if path == "/" or path == "/workspace" or path.startswith("/assets/"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
