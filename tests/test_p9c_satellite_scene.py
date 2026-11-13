@@ -31,6 +31,7 @@ def test_scene_workspace_contract_and_local_assets(tmp_path: Path):
         assert 'type="module" src="/assets/satellite-scene.js' in index.text
 
         three = client.get("/assets/vendor/three/build/three.module.js")
+        three_core = client.get("/assets/vendor/three/build/three.core.js")
         gltf_loader = client.get("/assets/vendor/three/examples/jsm/loaders/GLTFLoader.js")
         controls = client.get("/assets/vendor/three/examples/jsm/controls/OrbitControls.js")
         west = client.get("/assets/vendor/earth/naturalearth-ii-west.jpg")
@@ -39,6 +40,7 @@ def test_scene_workspace_contract_and_local_assets(tmp_path: Path):
         manifest = client.get("/assets/vendor/scene-runtime-manifest.json")
 
         assert three.status_code == 200 and len(three.content) > 100_000
+        assert three_core.status_code == 200
         assert gltf_loader.status_code == 200
         assert controls.status_code == 200
         assert west.status_code == 200 and east.status_code == 200
