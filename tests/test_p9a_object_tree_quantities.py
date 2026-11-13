@@ -78,13 +78,13 @@ def test_object_tree_has_four_levels_and_keeps_non_spacecraft_objects_separate()
     assert result["semantics"]["component_counts_are_inventory"] is False
 
 
-def test_scene_catalog_endpoint_is_read_only_and_available_without_realtime():
+def test_scene_catalog_endpoint_is_read_only_and_available_without_realtime(tmp_path, monkeypatch):
     for key in tuple(os.environ):
         if key.startswith("SAT_SIM_"):
-            os.environ.pop(key, None)
+            monkeypatch.delenv(key, raising=False)
     with TestClient(create_app(
-        runs_root=ROOT / ".pytest-tmp" / "scene-runs",
-        artifacts_root=ROOT / ".pytest-tmp" / "scene-artifacts",
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
         embedded_worker=False, auth_mode="disabled",
     )) as client:
         before = client.get("/health").json()
@@ -96,3 +96,19 @@ def test_scene_catalog_endpoint_is_read_only_and_available_without_realtime():
         assert payload["tree"]["tree"]["object_id"] == "whole_spacecraft"
         after = client.get("/health").json()
         assert before["features"] == after["features"] == {"interactive": False}
+
+
+def test_default_quick_simulation_hides_development_copy():
+    web = ROOT / "src" / "sat_sim" / "web"
+    index = (web / "index.html").read_text(encoding="utf-8")
+    app = (web / "app.js").read_text(encoding="utf-8")
+    assert "快速仿真" in index
+    assert "专业建模" in index
+    assert "TaskSpec · Basilisk · Evidence" not in index
+    assert "快捷操作调用现有图编辑器" not in index
+    assert "规则驱动 · 不需要 AI 对话" not in index
+    assert "工程假设与适用范围" not in index
+    assert 'id="wizardGraphShortcutBtn"' not in index
+    assert 'id="wizardProfessionalModelingBtn"' in index
+    assert "renderRunEngineeringContext" not in app
+    assert "wizardProfessionalModelingBtn" in app
