@@ -82,4 +82,4 @@ def test_public_scene_schema_validates_the_real_catalog(catalog):
     import jsonschema
     path = files("sat_sim.schemas").joinpath("scene_object_catalog.schema.json")
     assert path.is_file(), "Scene JSON Schema is missing"
-    jsonschema.validate(builder()(catalog, None, service_enabled=False), json.loads(path.read_text()))
+    jsonschema.validate(builder()(catalog, None, service_enabled=False), json.loads(path.read_text(encoding="utf-8")))

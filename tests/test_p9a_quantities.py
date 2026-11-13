@@ -77,6 +77,6 @@ def test_dictionary_schema_covers_reviewed_and_unreviewed():
     import jsonschema
     path = files("sat_sim.schemas").joinpath("quantity_dictionary.schema.json")
     assert path.is_file(), "Dictionary JSON Schema is missing"
-    schema = json.loads(path.read_text())
+    schema = json.loads(path.read_text(encoding="utf-8"))
     for capability in (RW, "component.battery.v1"):
         jsonschema.validate(dictionary().quantity_catalog(capability), schema)
