@@ -1,0 +1,40 @@
+name: P9-A object and parameter contracts
+
+on:
+  push:
+    branches: [feat/p9a-object-parameter-contracts-20261113]
+  pull_request:
+    paths:
+      - 'src/sat_sim/workbench_catalog.py'
+      - 'src/sat_sim/presentation/**'
+      - 'src/sat_sim/local_workbench.py'
+      - 'scripts/start_local*'
+      - 'tests/test_p9a*'
+      - '.github/workflows/p9a-object-contracts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Archive exact tracked source for reproducible review
+        run: |
+          mkdir -p p9a-evidence
+          git rev-parse HEAD > p9a-evidence/source-commit.txt
+          git archive --format=zip HEAD -o p9a-evidence/source.zip
+          sha256sum p9a-evidence/source.zip > p9a-evidence/source.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p9a-source-${{ github.sha }}
+          path: p9a-evidence/
+          retention-days: 7
+      - name: Compile catalog baseline
+        run: python -m compileall -q src/sat_sim/workbench_catalog.py src/sat_sim/form_schema.py
