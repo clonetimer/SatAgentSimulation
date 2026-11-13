@@ -40,3 +40,7 @@ src/sat_sim/web/vendor/cesium/
 - 地球底图：CesiumJS 包内 Natural Earth II 低分辨率资源
 - 外部在线底图：默认不启用
 - 运行时 Token：不需要
+
+## 内容安全策略
+
+工作台主文档不开放 `unsafe-eval`。Cesium 的 RequireJS Worker bootstrapper 需要动态加载已打包的同源 Worker 模块，因此只对 `/assets/vendor/cesium/Workers/` 和 `/assets/vendor/cesium/ThirdParty/Workers/` 的静态 Worker 响应单独设置 `script-src 'unsafe-eval'`。该例外不作用于工作台主页面或业务 API；Worker 资源仍限定为同源文件。不要将此策略改成全站 `unsafe-eval`。
