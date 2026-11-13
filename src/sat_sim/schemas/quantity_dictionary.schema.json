@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sat:quantity-dictionary:v1",
+  "title": "P9 reviewed quantity bindings",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "capability_id",
+    "reviewed",
+    "unreviewed",
+    "coverage"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sat.quantity-dictionary.v1"
+    },
+    "capability_id": {
+      "type": "string"
+    },
+    "reviewed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "entry_id",
+          "kind",
+          "source_capability_id",
+          "source_field",
+          "unit",
+          "object_id",
+          "owner_scope",
+          "instance_index",
+          "display_name_zh",
+          "aggregation",
+          "review_status",
+          "selectable"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "parameter",
+              "trace",
+              "summary"
+            ]
+          },
+          "source_capability_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entry_id": {
+            "type": "string"
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "owner_scope": {
+            "enum": [
+              "instance",
+              "group",
+              "subsystem",
+              "spacecraft",
+              "environment",
+              "function"
+            ]
+          },
+          "instance_index": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "display_name_zh": {
+            "type": "string",
+            "pattern": "^.+ · .+$"
+          },
+          "aggregation": {
+            "type": "string"
+          },
+          "review_status": {
+            "const": "reviewed"
+          },
+          "selectable": {
+            "const": true
+          }
+        }
+      }
+    },
+    "unreviewed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "source_capability_id",
+          "source_field",
+          "unit",
+          "review_status",
+          "display_name_zh",
+          "selectable"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "parameter",
+              "trace",
+              "summary"
+            ]
+          },
+          "source_capability_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_status": {
+            "const": "unreviewed"
+          },
+          "display_name_zh": {
+            "type": "null"
+          },
+          "selectable": {
+            "const": false
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "registered",
+        "reviewed",
+        "unreviewed"
+      ],
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  }
+}
