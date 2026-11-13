@@ -284,6 +284,27 @@ class RunExecuteBody(_Strict):
     hard_timeout: bool = True
 
 
+class EvaluationMetricBody(_Strict):
+    metric_id: str = Field(min_length=1, max_length=100)
+    source_id: str = Field(min_length=1, max_length=64)
+    formula: str = Field(min_length=1, max_length=64)
+    minimum_samples: int = Field(default=1, ge=1, le=250000)
+    limits: dict[str, Any] | None = None
+
+
+class EvaluationPlanBody(_Strict):
+    schema_version: Literal["evaluation-plan.v1"]
+    plan_id: str = Field(min_length=1, max_length=100)
+    version: str = Field(min_length=1, max_length=40)
+    display_name_zh: str | None = Field(default=None, max_length=100)
+    window_s: list[Any]
+    max_sample_gap_s: Any = None
+    metrics: list[EvaluationMetricBody] = Field(min_length=1, max_length=64)
+
+class EvaluationDraftBody(_Strict):
+    name: str | None = Field(default=None, min_length=1, max_length=300)
+
+
 class FormProjectionBody(_Strict):
     task_spec: dict[str, Any]
     task_spec_json: str | None = Field(default=None, exclude=True, repr=False)
@@ -881,6 +902,8 @@ def create_app(
     agent_operation_lease_s = float(os.getenv("SAT_SIM_AGENT_OPERATION_LEASE_S") or "600")
     experience_store = ExperienceStore(artifact_root / "experiences")
     experience_lessons = ExperienceLessonService(experience_store)
+    from .evaluation_store import EvaluationStore
+    evaluation_store = EvaluationStore(artifact_root / "evaluations.sqlite3")
     provider_config_path = Path(os.getenv("SAT_SIM_MODEL_PROVIDERS_FILE") or artifact_root / "model_providers.json").resolve()
 
     workbench_log = WorkbenchLogStore(os.getenv("SAT_SIM_WORKBENCH_LOG") or artifact_root / "logs" / "workbench.jsonl")
@@ -934,6 +957,7 @@ def create_app(
     app.state.goal_run_store = goal_run_store
     app.state.experience_store = experience_store
     app.state.experience_lessons = experience_lessons
+    app.state.evaluation_store = evaluation_store
     app.state.provider_config_path = provider_config_path
     app.state.workbench_log = workbench_log
     resolved_trusted_hosts = trusted_hosts
@@ -4910,6 +4934,177 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
         if not root.exists():
             raise HTTPException(status_code=404, detail="run not found")
         return {"ok": True, "run": _run_payload(root)}
+
+    def _evaluation_principal_id(request: Request) -> str:
+        principal = getattr(request.state, "principal", None)
+        principal_id = getattr(principal, "principal_id", None)
+        if not isinstance(principal_id, str) or not principal_id:
+            raise HTTPException(status_code=401, detail={"reason_code": "AUTHENTICATION_REQUIRED"})
+        return principal_id
+
+    def _evaluation_tree() -> dict[str, Any]:
+        from .workbench_catalog import workbench_presentation_catalog
+        from .workbench_scene_catalog import build_scene_catalog
+        from .workbench_object_tree import build_object_tree
+
+        if interactive_manager is None:
+            policy = {"enabled": False, "creation": []}
+        else:
+            from .interactive.runtime_factory import runtime_capability_catalog
+            policy = runtime_capability_catalog()
+            policy["enabled"] = True
+        scene = build_scene_catalog(workbench_presentation_catalog(), policy)
+        schemas = {
+            item["execution_capability_id"]: capability_form_schema(item["execution_capability_id"])
+            for item in scene["objects"] if item.get("execution_capability_id")
+        }
+        return build_object_tree(scene, schemas)
+
+    def _evaluation_run(run_id: str) -> dict[str, Any]:
+        from .evaluation_service import inspect_evaluation_run
+        try:
+            root = _safe_bundle(run_root, run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail={"reason_code": "INVALID_RUN_ID"}) from exc
+        try:
+            return inspect_evaluation_run(root, run_id)
+        except ValueError as exc:
+            reason = getattr(exc, "reason_code", str(exc))
+            status = int(getattr(exc, "status_code", 409))
+            raise HTTPException(status_code=status, detail={"reason_code": reason}) from exc
+
+    @app.get("/runs/{run_id}/evaluation-sources")
+    def get_evaluation_sources(run_id: str) -> dict[str, Any]:
+        from .evaluation_service import evaluation_source_definitions, inspect_recorded_sources
+
+        run = _evaluation_run(run_id)
+        definitions = evaluation_source_definitions(_evaluation_tree(), run["capability_id"])
+        sources = inspect_recorded_sources(run, definitions)
+        time_range = next((row["time_range_s"] for row in sources if row.get("time_range_s")), None)
+        return {
+            "ok": True, "schema_version": "evaluation-sources.v1", "run_id": run_id,
+            "run_status": run["run_status"], "validation_result": run["validation_result"],
+            "sealed": True, "time_range_s": time_range, "sources": sources,
+        }
+
+    @app.post("/runs/{run_id}/evaluations")
+    def create_run_evaluation(run_id: str, body: EvaluationPlanBody, request: Request):
+        from .evaluation_service import (
+            EvaluationRunError, build_recorded_evaluation,
+            evaluation_source_definitions, inspect_recorded_sources,
+        )
+        from .evaluation_store import EvaluationStoreConflict
+
+        principal_id = _evaluation_principal_id(request)
+        run = _evaluation_run(run_id)
+        definitions = evaluation_source_definitions(_evaluation_tree(), run["capability_id"])
+        sources = inspect_recorded_sources(run, definitions)
+        try:
+            report, resolved_plan = build_recorded_evaluation(run, sources, body.model_dump(mode="json"))
+            stored, created = evaluation_store.save(
+                principal_id=principal_id, report=report, plan=resolved_plan,
+            )
+        except EvaluationRunError as exc:
+            raise HTTPException(status_code=exc.status_code, detail={"reason_code": exc.reason_code}) from exc
+        except EvaluationStoreConflict as exc:
+            raise HTTPException(status_code=409, detail={"reason_code": str(exc)}) from exc
+        audit_logger.log({
+            "event": "evaluation_report_created" if created else "evaluation_report_reused",
+            "principal_id": principal_id, "run_id": run_id,
+            "report_id": stored["report"]["report_id"],
+            "metric_count": len(stored["report"].get("metrics", [])),
+        })
+        return CanonicalJSONResponse(
+            content={"ok": True, "created": created, "report": stored["report"],
+                     "created_at": stored["created_at"]},
+            status_code=201 if created else 200,
+        )
+
+    @app.get("/runs/{run_id}/evaluations")
+    def list_run_evaluations(run_id: str, request: Request) -> dict[str, Any]:
+        principal_id = _evaluation_principal_id(request)
+        try:
+            root = _safe_bundle(run_root, run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail={"reason_code": "INVALID_RUN_ID"}) from exc
+        if not root.is_dir():
+            raise HTTPException(status_code=404, detail={"reason_code": "EVALUATION_RUN_NOT_FOUND"})
+        rows = evaluation_store.list_for_run(principal_id=principal_id, run_id=run_id)
+        return {"ok": True, "run_id": run_id, "reports": [
+            {"report": row["report"], "created_at": row["created_at"]} for row in rows
+        ]}
+
+    @app.get("/evaluations/{report_id}")
+    def get_evaluation_report(report_id: str, request: Request) -> dict[str, Any]:
+        principal_id = _evaluation_principal_id(request)
+        row = evaluation_store.get(principal_id=principal_id, report_id=report_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail={"reason_code": "EVALUATION_REPORT_NOT_FOUND"})
+        return {"ok": True, "report": row["report"], "plan": row["plan"],
+                "created_at": row["created_at"]}
+
+    @app.post("/evaluations/{report_id}/configuration-draft")
+    def create_evaluation_configuration_draft(
+        report_id: str, body: EvaluationDraftBody, request: Request,
+    ) -> dict[str, Any]:
+        principal_id = _evaluation_principal_id(request)
+        stored = evaluation_store.get(principal_id=principal_id, report_id=report_id)
+        if stored is None:
+            raise HTTPException(status_code=404, detail={"reason_code": "EVALUATION_REPORT_NOT_FOUND"})
+        report = stored["report"]
+        run_id = str(report.get("source_run_id") or "")
+        try:
+            root = _safe_bundle(run_root, run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail={"reason_code": "INVALID_RUN_ID"}) from exc
+        if not root.is_dir():
+            raise HTTPException(status_code=404, detail={"reason_code": "EVALUATION_SOURCE_RUN_NOT_FOUND"})
+        if not (root / "SEALED.json").is_file():
+            raise HTTPException(status_code=409, detail={"reason_code": "EVALUATION_SOURCE_RUN_NOT_SEALED"})
+        source_spec = _json(root / "input" / "task_spec.json")
+        if not isinstance(source_spec, dict):
+            raise HTTPException(status_code=409, detail={"reason_code": "EVALUATION_SOURCE_TASK_SPEC_MISSING"})
+        try:
+            canonical = canonicalize_task_spec(source_spec)
+            validation = validate_task_spec(canonical)
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail={"reason_code": "EVALUATION_SOURCE_TASK_SPEC_INVALID"}) from exc
+        original_task = canonical.get("task") if isinstance(canonical.get("task"), dict) else {}
+        new_task_id = f"task_eval_{uuid4().hex[:12]}"
+        draft_name = body.name or f"{original_task.get('name') or run_id}（评估调整草稿）"
+        canonical["task"] = {**original_task, "id": new_task_id, "name": draft_name}
+        metadata = canonical.setdefault("metadata", {})
+        metadata["evaluation_feedback"] = {
+            "source_run_id": run_id, "report_id": report_id,
+            "plan_id": report.get("plan_id"), "plan_version": report.get("plan_version"),
+            "source_digest": report.get("source_digest"), "created_from": "evaluation_report",
+            "requires_user_review": True,
+        }
+        provenance = canonical.setdefault("provenance", {})
+        fields = provenance.setdefault("fields", {})
+        fields["task.id"] = {
+            "source": "resolver_derived",
+            "evidence": f"New configuration draft copied from evaluation report {report_id}; source run {run_id}.",
+        }
+        record = task_center.save(
+            canonical, task_id=new_task_id, name=draft_name, status="DRAFT",
+            source="evaluation_feedback",
+            notes=f"由仿真运行 {run_id} 的效能评估报告 {report_id} 创建；需人工检查和确认。",
+            change_summary=f"基于评估报告 {report_id} 创建新配置草稿",
+        )
+        audit_logger.log({
+            "event": "evaluation_configuration_draft_created",
+            "principal_id": principal_id, "run_id": run_id,
+            "report_id": report_id, "task_id": record.task_id,
+            "validation_ok": validation.ok,
+        })
+        return {
+            "ok": True, "task": record.to_dict(),
+            "task_spec": canonical,
+            "source": {"run_id": run_id, "report_id": report_id},
+            "validation": validation.to_dict(),
+            "requires_user_review": True, "execution_started": False,
+        }
 
     @app.get("/runs/{run_id}/metrics")
     def get_metrics(run_id: str) -> dict[str, Any]:

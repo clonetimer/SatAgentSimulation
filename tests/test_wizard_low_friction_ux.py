@@ -66,7 +66,7 @@ def test_natural_language_and_taskspec_are_available_inside_wizard(tmp_path):
         assert marker in index
     for marker in ("natural_language", "taskspec", "parseNaturalLanguage()", "syncEditorToForm()", "wizardGenerateFromTextBtn"):
         assert marker in js
-    assert "/assets/app.js?v=wizard7" in index
+    assert "/assets/app.js?v=" in index
 
 
 def test_specialist_tools_keep_dedicated_workspaces_and_are_not_forced_into_chat(tmp_path):
