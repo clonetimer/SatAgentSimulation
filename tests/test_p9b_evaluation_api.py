@@ -112,7 +112,7 @@ def test_report_is_server_built_persisted_idempotent_and_read_only(tmp_path):
         assert len(client.get("/runs/run-001/evaluations").json()["reports"]) == 1
         assert client.get(f"/evaluations/{report['report_id']}").json()["report"] == report
     assert (runs / "run-001" / "results" / "telemetry.jsonl").read_bytes() == telemetry_before
-    assert json.loads((runs / "run-001" / "run_record.json").read_text())["status"] == "SUCCEEDED"
+    assert json.loads((runs / "run-001" / "run_record.json").read_text(encoding="utf-8"))["status"] == "SUCCEEDED"
 
 
 def test_client_cannot_forge_source_binding(tmp_path):
@@ -296,7 +296,7 @@ def test_report_creates_a_separate_reviewable_task_draft_without_launching(tmp_p
         assert feedback["requires_user_review"] is True
         assert client.get(f"/task-center/tasks/{task['task_id']}").status_code == 200
         assert client.get("/runs").json()["count"] == 1
-        assert (runs / "run-001" / "run_record.json").read_text() == json.dumps(
+        assert (runs / "run-001" / "run_record.json").read_text(encoding="utf-8") == json.dumps(
             {"run_id": "run-001", "status": "SUCCEEDED", "validation_result": "PASS"},
             ensure_ascii=False,
         )
