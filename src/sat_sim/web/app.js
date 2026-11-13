@@ -8765,7 +8765,7 @@
     else if (name === 'creator') wizardRestoreAdvancedPanels();
     const viewIds = {
       creator: 'creatorView', tasks: 'taskCenterView', experiments: 'experimentCenterView',
-      goals: 'goalRunView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView',
+      goals: 'goalRunView', runs: 'runCenterView', diagnostics: 'diagnosticView', logs: 'logCenterView', scene: 'satelliteSceneView',
     };
     Object.entries(viewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     el('wizardView')?.classList.toggle('hidden', !guided);
@@ -8792,6 +8792,8 @@
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
     if (name === 'continuous') window.SatContinuousConsole?.enter();
     else window.SatContinuousConsole?.exit();
+    if (name === 'scene') window.SatScene?.enter();
+    else window.SatScene?.exit();
     if (name === 'interactive') {
       loadInteractiveSessions().then(() => {
         if (!state.interactiveSession && state.interactiveSessions.length) selectInteractiveSession(state.interactiveSessions[0].session_id);
@@ -11041,6 +11043,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
     el('wizardGraphShortcutBtn')?.addEventListener('click', () => wizardStart('graph'));
+    el('wizardSceneShortcutBtn')?.addEventListener('click', () => switchView('scene'));
     el('wizardAdvancedBtn').addEventListener('click', () => switchView('creator'));
     $all('.wizard-tool-option[data-wizard-goal]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardGoal)));
     el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
