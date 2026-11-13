@@ -9078,9 +9078,16 @@
       open.addEventListener('click', async () => { if (await loadRun(run.run_id)) switchView('creator'); });
       const report = document.createElement('button'); report.className = 'button button-secondary'; report.textContent = '报告'; report.disabled = !run.sealed;
       report.addEventListener('click', () => openReport(run.run_id).catch((error) => showNotice(error.message, 'error')));
+      const evaluate = document.createElement('button'); evaluate.className = 'button button-secondary'; evaluate.textContent = '效能评估';
+      evaluate.disabled = !(run.status === 'SUCCEEDED' && run.validation_result === 'PASS' && run.sealed);
+      evaluate.title = evaluate.disabled ? '仅可评估已完成、通过验证并已归档的仿真记录' : '根据本次仿真记录开展效能评估';
+      evaluate.addEventListener('click', () => {
+        window.SatEvaluationWorkspace?.selectRun(run.run_id);
+        switchView('evaluations');
+      });
       const diag = document.createElement('button'); diag.className = 'button button-ghost'; diag.textContent = '诊断包';
       diag.addEventListener('click', () => downloadEndpoint(`/diagnostics/bundle?run_id=${encodeURIComponent(run.run_id)}`, `diagnostic_${run.run_id}.zip`).catch((error) => showNotice(error.message, 'error')));
-      actions.append(open, report, diag); tr.appendChild(actions); body.appendChild(tr);
+      actions.append(open, report, evaluate, diag); tr.appendChild(actions); body.appendChild(tr);
     });
     updateRunCompareSelection();
   }
