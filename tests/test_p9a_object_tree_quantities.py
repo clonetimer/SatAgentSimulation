@@ -44,7 +44,7 @@ def test_single_machine_plus_quantity_names_use_exact_telemetry_fields():
     assert output_display_name("adcs.mtb.torque_nm_0") == "磁力矩器 · 输出力矩 X 分量"
     assert output_display_name("eps.battery.soc") == "蓄电池 · 荷电状态"
     assert output_display_name("adcs.star_tracker.sigma_x") == "星敏感器 · 姿态误差参数 X 分量"
-    assert parameter_display_name("component.reaction_wheel.v1", "wheel_inertia_kg_m2") == "反作用轮组 · 逐轮转动惯量"
+    assert parameter_display_name("component.reaction_wheel.v1", "wheel_inertia_kg_m2") == "反作用轮组 · 转动惯量"
     assert parameter_display_name("component.battery.v1", "initial_soc") == "蓄电池 · 初始荷电状态"
     assert output_display_name("adcs.unreviewed_temperature_k") is None
     assert output_label("adcs.reaction_wheel.speed_rad_s_0") == "反作用轮1 · 角速度"
@@ -55,7 +55,7 @@ def test_object_tree_has_four_levels_and_keeps_non_spacecraft_objects_separate()
     schemas = {
         row["execution_capability_id"]: capability_form_schema(row["execution_capability_id"])
         for row in scene["objects"]
-        if row["kind"] == "component" and row.get("execution_capability_id")
+        if row.get("execution_capability_id")
     }
     result = build_object_tree(scene, schemas)
     root = result["tree"]
@@ -66,8 +66,10 @@ def test_object_tree_has_four_levels_and_keeps_non_spacecraft_objects_separate()
     assert wheel["kind"] == "equipment"
     assert wheel["instance_semantics"] == "capability_model_not_vehicle_inventory"
     assert any(row["kind"] == "parameter" and row["display_name_zh"] == "反作用轮组 · 逐轮转动惯量" for row in wheel["children"])
-    assert any(row["kind"] == "observable" and row["display_name_zh"] == "反作用轮1 · 角速度" for row in wheel["children"])
-    assert any(row["kind"] == "summary" for row in wheel["children"])
+    output_group = next(row for row in wheel["children"] if row["kind"] == "observable_group")
+    assert output_group["name_zh"] == "输出参量"
+    assert any(row["kind"] == "observable" and row["display_name_zh"] == "反作用轮1 · 角速度" for row in output_group["children"])
+    assert any(row["kind"] == "summary_group" and row["name_zh"] == "结果指标" for row in wheel["children"])
     orbit = next(row for row in root["children"] if row["object_id"] == "orbit_environment")
     control = next(row for row in root["children"] if row["object_id"] == "orbit_control")
     assert orbit["object_id"] != control["object_id"]
@@ -109,6 +111,6 @@ def test_default_quick_simulation_hides_development_copy():
     assert "规则驱动 · 不需要 AI 对话" not in index
     assert "工程假设与适用范围" not in index
     assert 'id="wizardGraphShortcutBtn"' not in index
-    assert 'id="wizardProfessionalModelingBtn"' in index
+    assert 'id="wizardAdvancedBtn"' in index
     assert "renderRunEngineeringContext" not in app
-    assert "wizardProfessionalModelingBtn" in app
+    assert "wizardAdvancedBtn" in app
