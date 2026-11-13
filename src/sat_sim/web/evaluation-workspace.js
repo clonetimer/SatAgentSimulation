@@ -6,6 +6,7 @@
     entered: false, runs: [], runId: null, sources: [], metrics: [],
     reports: [], requestId: 0, busy: false,
   };
+  let nextMetricSequence = 1;
   const formulas = [
     ['sample_mean.v1', '平均值'],
     ['sample_rms.v1', '均方根'],
@@ -244,7 +245,7 @@
     const source = state.sources.find((row) => row.source_id === sourceId);
     if (!source || !source.evaluable || state.metrics.some((row) => row.source.source_id === sourceId)) return;
     state.metrics.push({
-      metricId: `metric-${state.metrics.length + 1}`, source,
+      metricId: `metric-${nextMetricSequence++}`, source,
       formula: 'sample_rms.v1', minimumSamples: 1, lower: '', upper: '',
     });
     renderSources();
