@@ -8792,6 +8792,8 @@
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
     if (name === 'continuous') window.SatContinuousConsole?.enter();
     else window.SatContinuousConsole?.exit();
+    if (name === 'scene') window.SatScene?.enter();
+    else window.SatScene?.exit();
     if (name === 'interactive') {
       loadInteractiveSessions().then(() => {
         if (!state.interactiveSession && state.interactiveSessions.length) selectInteractiveSession(state.interactiveSessions[0].session_id);
