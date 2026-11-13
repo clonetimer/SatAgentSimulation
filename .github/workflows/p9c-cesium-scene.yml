@@ -10,6 +10,7 @@ on:
       - "src/sat_sim/api.py"
       - "pyproject.toml"
       - "tests/test_p9c_satellite_scene.py"
+      - "docs/guides_zh/P9C_卫星数字场景本地运行.md"
       - ".github/workflows/p9c-cesium-scene.yml"
   workflow_dispatch:
 
