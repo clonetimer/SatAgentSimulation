@@ -1549,10 +1549,14 @@ def create_app(
         from .workbench_catalog import workbench_presentation_catalog
         from .workbench_scene_catalog import build_scene_catalog
         from .workbench_object_tree import build_object_tree
-        from .interactive.runtime_factory import runtime_capability_catalog
+        from .workbench_quantity_names import DICTIONARY_VERSION
 
-        policy = runtime_capability_catalog()
-        policy["enabled"] = interactive_manager is not None
+        if interactive_manager is None:
+            policy = {"enabled": False, "creation": []}
+        else:
+            from .interactive.runtime_factory import runtime_capability_catalog
+            policy = runtime_capability_catalog()
+            policy["enabled"] = True
         scene = build_scene_catalog(workbench_presentation_catalog(), policy)
         schemas: dict[str, Any] = {}
         for item in scene["objects"]:
@@ -1564,7 +1568,7 @@ def create_app(
             "ok": True,
             "catalog": scene,
             "tree": tree,
-            "quantity_dictionary_version": tree["schema_version"],
+            "quantity_dictionary_version": DICTIONARY_VERSION,
         }
 
     @app.get("/visual-composer/assemblies")
