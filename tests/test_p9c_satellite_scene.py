@@ -20,50 +20,50 @@ def _client(tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
-def test_scene_workspace_contract_and_local_assets(tmp_path: Path):
+def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
     with _client(tmp_path) as client:
         index = client.get("/")
         assert index.status_code == 200
         assert 'data-view="scene"' in index.text
         assert 'id="satelliteSceneView"' in index.text
         assert 'id="satelliteSceneCanvas"' in index.text
-        assert '"three":"/assets/vendor/three/build/three.module.js"' in index.text
+        assert 'src="/assets/vendor/globe/globe.gl.min.js"' in index.text
+        assert '"three":"/assets/vendor/globe/three.module.js"' in index.text
         assert 'type="module" src="/assets/satellite-scene.js' in index.text
 
-        three = client.get("/assets/vendor/three/build/three.module.js")
-        three_core = client.get("/assets/vendor/three/build/three.core.js")
-        gltf_loader = client.get("/assets/vendor/three/examples/jsm/loaders/GLTFLoader.js")
-        controls = client.get("/assets/vendor/three/examples/jsm/controls/OrbitControls.js")
-        west = client.get("/assets/vendor/earth/naturalearth-ii-west.jpg")
-        east = client.get("/assets/vendor/earth/naturalearth-ii-east.jpg")
-        model = client.get("/assets/satellite-demo.gltf")
-        manifest = client.get("/assets/vendor/scene-runtime-manifest.json")
+        globe = client.get("/assets/vendor/globe/globe.gl.min.js")
+        three = client.get("/assets/vendor/globe/three.module.js")
+        earth = client.get("/assets/vendor/globe/textures/earth-blue-marble.jpg")
+        bump = client.get("/assets/vendor/globe/textures/earth-topology.png")
+        manifest = client.get("/assets/vendor/globe/vendor-manifest.json")
 
+        assert globe.status_code == 200 and len(globe.content) > 100_000
         assert three.status_code == 200 and len(three.content) > 100_000
-        assert three_core.status_code == 200
-        assert gltf_loader.status_code == 200
-        assert controls.status_code == 200
-        assert west.status_code == 200 and east.status_code == 200
-        assert model.status_code == 200
-        assert model.json()["asset"]["extras"]["license"] == "CC0-1.0"
+        assert earth.status_code == 200 and len(earth.content) > 50_000
+        assert bump.status_code == 200
         assert manifest.status_code == 200
-        assert manifest.json()["three"]["version"] == "0.187.0"
+        payload = manifest.json()
+        assert payload["packages"]["globe.gl"]["version"] == "2.46.2"
+        assert payload["packages"]["three-globe"]["version"] == "2.45.6"
+        assert payload["packages"]["three"]["version"] == "0.186.1"
+        assert "local" in payload["network_policy"].lower()
 
         csp = index.headers["content-security-policy"]
         assert "'unsafe-eval'" not in csp
         assert "'wasm-unsafe-eval'" not in csp
 
 
-def test_scene_module_uses_local_assets_and_explicit_demo_provenance():
+def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
     scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
-    assert "naturalearth-ii-west.jpg" in scene
-    assert "naturalearth-ii-east.jpg" in scene
-    assert "satellite-demo.gltf" in scene
-    assert "不代表真实仿真遥测" in scene
+    assert "window.Globe" in scene
+    assert "earth-blue-marble.jpg" in scene
+    assert "earth-topology.png" in scene
+    assert "objectsData" in scene or ".objectsData" in scene
+    assert "pathsData" in scene or ".pathsData" in scene
+    assert "不代表真实 Basilisk 仿真遥测" in scene
     assert "window.SatScene = { enter, exit: destroy, track, freeCamera, home }" in scene
     assert "setInterval" not in scene
-    assert "eval(" not in scene
     assert "unsafe-eval" not in scene
 
 
@@ -80,6 +80,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
         )
         page = browser.new_page(viewport={"width": 1440, "height": 960})
         failures: list[str] = []
+        external_requests: list[str] = []
 
         def proxy(route):
             parsed = urlparse(route.request.url)
@@ -92,28 +93,22 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
 
         page.on("pageerror", lambda error: failures.append(str(error)))
         page.on("requestfailed", lambda request: failures.append(f"request failed: {request.url} {request.failure}"))
+        page.on("request", lambda request: external_requests.append(request.url) if urlparse(request.url).netloc != "workbench.test" else None)
         page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
         page.on("console", lambda message: failures.append(f"console error: {message.text}") if message.type == "error" else None)
         page.route("https://workbench.test/**", proxy)
         page.goto("https://workbench.test/", wait_until="domcontentloaded")
         page.locator("#wizardSceneShortcutBtn").click()
-        page.wait_for_timeout(1200)
         scene_status = page.locator("#satelliteSceneStatus")
-        status_text = scene_status.inner_text()
-        status_kind = scene_status.get_attribute("data-kind")
-        print("P9C_THREE_STATUS", status_kind, status_text)
-        print("P9C_THREE_BROWSER_FAILURES", failures)
-        assert status_kind == "success", {
-            "status": status_text,
-            "status_kind": status_kind,
-            "active_view": page.locator("body").get_attribute("data-active-view"),
-            "scene_visible": page.locator("#satelliteSceneView").is_visible(),
-            "browser_errors": failures,
-        }
+        scene_status.filter(has_text="场景已就绪").wait_for(timeout=30000)
         page.locator("#satelliteSceneCanvas canvas").first.wait_for(timeout=30000)
-        assert "演示数据" in page.locator("#satelliteSceneStatus").inner_text()
+        assert "演示数据" in scene_status.inner_text()
         page.locator('[data-scene-action="track"]').click()
         page.locator('[data-scene-action="free"]').click()
         page.locator('[data-scene-action="home"]').click()
+        assert not external_requests, external_requests
         assert not failures, failures
+
+        page.locator("#wizardAdvancedBtn").click()
+        page.locator("#wizardSceneShortcutBtn").wait_for()
         browser.close()
