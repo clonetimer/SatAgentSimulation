@@ -301,6 +301,9 @@ class EvaluationPlanBody(_Strict):
     max_sample_gap_s: Any = None
     metrics: list[EvaluationMetricBody] = Field(min_length=1, max_length=64)
 
+class EvaluationDraftBody(_Strict):
+    name: str | None = Field(default=None, min_length=1, max_length=300)
+
 
 class FormProjectionBody(_Strict):
     task_spec: dict[str, Any]
@@ -5039,6 +5042,69 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
             raise HTTPException(status_code=404, detail={"reason_code": "EVALUATION_REPORT_NOT_FOUND"})
         return {"ok": True, "report": row["report"], "plan": row["plan"],
                 "created_at": row["created_at"]}
+
+    @app.post("/evaluations/{report_id}/configuration-draft")
+    def create_evaluation_configuration_draft(
+        report_id: str, body: EvaluationDraftBody, request: Request,
+    ) -> dict[str, Any]:
+        principal_id = _evaluation_principal_id(request)
+        stored = evaluation_store.get(principal_id=principal_id, report_id=report_id)
+        if stored is None:
+            raise HTTPException(status_code=404, detail={"reason_code": "EVALUATION_REPORT_NOT_FOUND"})
+        report = stored["report"]
+        run_id = str(report.get("source_run_id") or "")
+        try:
+            root = _safe_bundle(run_root, run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail={"reason_code": "INVALID_RUN_ID"}) from exc
+        if not root.is_dir():
+            raise HTTPException(status_code=404, detail={"reason_code": "EVALUATION_SOURCE_RUN_NOT_FOUND"})
+        if not (root / "SEALED.json").is_file():
+            raise HTTPException(status_code=409, detail={"reason_code": "EVALUATION_SOURCE_RUN_NOT_SEALED"})
+        source_spec = _json(root / "input" / "task_spec.json")
+        if not isinstance(source_spec, dict):
+            raise HTTPException(status_code=409, detail={"reason_code": "EVALUATION_SOURCE_TASK_SPEC_MISSING"})
+        try:
+            canonical = canonicalize_task_spec(source_spec)
+            validation = validate_task_spec(canonical)
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail={"reason_code": "EVALUATION_SOURCE_TASK_SPEC_INVALID"}) from exc
+        original_task = canonical.get("task") if isinstance(canonical.get("task"), dict) else {}
+        new_task_id = f"task_eval_{uuid4().hex[:12]}"
+        draft_name = body.name or f"{original_task.get('name') or run_id}（评估调整草稿）"
+        canonical["task"] = {**original_task, "id": new_task_id, "name": draft_name}
+        metadata = canonical.setdefault("metadata", {})
+        metadata["evaluation_feedback"] = {
+            "source_run_id": run_id, "report_id": report_id,
+            "plan_id": report.get("plan_id"), "plan_version": report.get("plan_version"),
+            "source_digest": report.get("source_digest"), "created_from": "evaluation_report",
+            "requires_user_review": True,
+        }
+        provenance = canonical.setdefault("provenance", {})
+        fields = provenance.setdefault("fields", {})
+        fields["task.id"] = {
+            "source": "resolver_derived",
+            "evidence": f"New configuration draft copied from evaluation report {report_id}; source run {run_id}.",
+        }
+        record = task_center.save(
+            canonical, task_id=new_task_id, name=draft_name, status="DRAFT",
+            source="evaluation_feedback",
+            notes=f"由仿真运行 {run_id} 的效能评估报告 {report_id} 创建；需人工检查和确认。",
+            change_summary=f"基于评估报告 {report_id} 创建新配置草稿",
+        )
+        audit_logger.log({
+            "event": "evaluation_configuration_draft_created",
+            "principal_id": principal_id, "run_id": run_id,
+            "report_id": report_id, "task_id": record.task_id,
+            "validation_ok": validation.ok,
+        })
+        return {
+            "ok": True, "task": record.to_dict(),
+            "task_spec": canonical,
+            "source": {"run_id": run_id, "report_id": report_id},
+            "validation": validation.to_dict(),
+            "requires_user_review": True, "execution_started": False,
+        }
 
     @app.get("/runs/{run_id}/metrics")
     def get_metrics(run_id: str) -> dict[str, Any]:
