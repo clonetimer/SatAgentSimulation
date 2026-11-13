@@ -189,3 +189,75 @@ def test_missing_samples_are_not_selectable_or_filled_with_zero(tmp_path):
         response = client.post("/runs/run-001/evaluations", json=_plan(source))
         assert response.status_code == 422
         assert response.json()["detail"]["reason_code"] == "EVALUATION_SOURCE_BINDING_MISMATCH"
+
+
+
+def test_evaluation_matrix_is_bounded_before_telemetry_materialization(tmp_path):
+    from sat_sim.evaluation_service import EvaluationRunError, build_recorded_evaluation
+
+    source = {
+        "source_id": "source-1",
+        "owner_object_id": "component.reaction_wheel",
+        "source_capability_id": "component.reaction_wheel.v1",
+        "source_field": "adcs.reaction_wheel.speed_rad_s_0",
+        "display_name_zh": "反作用轮1 · 角速度",
+        "unit": "rad/s",
+        "value_type": "number",
+        "evaluable": True,
+        "sample_count": 20_000,
+        "total_samples": 20_000,
+    }
+    plan = {
+        "schema_version": "evaluation-plan.v1",
+        "plan_id": "large-evaluation",
+        "version": "1",
+        "window_s": [0.0, 20_000.0],
+        "metrics": [
+            {"metric_id": f"metric-{index}", "source_id": "source-1",
+             "formula": "sample_mean.v1", "minimum_samples": 1}
+            for index in range(64)
+        ],
+    }
+    run = {
+        "run_id": "run-large",
+        "run_status": "SUCCEEDED",
+        "validation_result": "PASS",
+        "telemetry_path": tmp_path / "telemetry-does-not-need-to-exist.jsonl",
+    }
+    with pytest.raises(EvaluationRunError) as error:
+        build_recorded_evaluation(run, [source], plan)
+    assert error.value.reason_code == "EVALUATION_WORKLOAD_LIMIT_EXCEEDED"
+
+
+def test_inconsistent_source_sample_counts_are_rejected_before_evaluation(tmp_path):
+    from sat_sim.evaluation_service import EvaluationRunError, build_recorded_evaluation
+
+    source = {
+        "source_id": "source-1",
+        "owner_object_id": "component.reaction_wheel",
+        "source_capability_id": "component.reaction_wheel.v1",
+        "source_field": "adcs.reaction_wheel.speed_rad_s_0",
+        "display_name_zh": "反作用轮1 · 角速度",
+        "unit": "rad/s",
+        "value_type": "number",
+        "evaluable": True,
+        "sample_count": 2,
+        "total_samples": 3,
+    }
+    plan = {
+        "schema_version": "evaluation-plan.v1",
+        "plan_id": "inconsistent-source",
+        "version": "1",
+        "window_s": [0.0, 2.0],
+        "metrics": [{"metric_id": "metric-1", "source_id": "source-1",
+                     "formula": "sample_mean.v1", "minimum_samples": 1}],
+    }
+    run = {
+        "run_id": "run-inconsistent",
+        "run_status": "SUCCEEDED",
+        "validation_result": "PASS",
+        "telemetry_path": tmp_path / "telemetry-does-not-need-to-exist.jsonl",
+    }
+    with pytest.raises(EvaluationRunError) as error:
+        build_recorded_evaluation(run, [source], plan)
+    assert error.value.reason_code == "EVALUATION_SOURCE_SAMPLE_COUNTS_INCONSISTENT"
