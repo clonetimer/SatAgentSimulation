@@ -60,7 +60,11 @@ def test_graph_modeling_has_conversational_guide_over_native_drag_canvas():
     assert "graphInitialize(true)" in js
     assert "graphAutoWire()" in js
     assert ".graph-conversation-guide" in css
-    assert "不会绕过端口类型、DAG、TaskSpec" in html
+    # User-facing copy must describe the modelling action, not expose implementation internals.
+    assert "图形组装" in html
+    assert "快捷操作调用现有图编辑器" not in html
+    assert "TaskSpec" not in html
+    assert "DAG" not in html
 
 
 def test_guided_task_workspace_prioritizes_common_actions_and_discloses_secondary_actions():
