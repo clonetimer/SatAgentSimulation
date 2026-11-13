@@ -73,9 +73,20 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             route.fulfill(status=response.status_code, body=response.content, headers=headers)
 
         page.on("pageerror", lambda error: failures.append(str(error)))
+        page.on("requestfailed", lambda request: failures.append(f"request failed: {request.url} {request.failure}"))
+        page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
         page.route("https://workbench.test/**", proxy)
         page.goto("https://workbench.test/", wait_until="domcontentloaded")
-        page.wait_for_function("() => Boolean(window.SatScene && window.Cesium)")
+        page.wait_for_function("() => document.readyState === 'complete'")
+        runtime_state = page.evaluate("""() => ({
+            cesium: typeof window.Cesium,
+            scene: typeof window.SatScene,
+            scripts: Array.from(document.scripts).map((item) => ({src: item.src, type: item.type})),
+            sceneStatus: document.querySelector('#satelliteSceneStatus')?.textContent
+        })""")
+        assert runtime_state["cesium"] == "object" and runtime_state["scene"] == "object", {
+            "runtime": runtime_state, "browser_errors": failures
+        }
         page.locator('[data-view="scene"]').click()
         page.locator("#satelliteSceneStatus").wait_for()
         page.wait_for_function(
