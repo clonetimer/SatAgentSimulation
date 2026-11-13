@@ -26,7 +26,7 @@ REQUIRED = {
         "package/example/img/earth-topology.png",
         "package/LICENSE",
     ),
-    "three": ("package/build/three.module.js", "package/LICENSE"),
+    "three": ("package/build/three.module.js", "package/build/three.core.js", "package/LICENSE"),
 }
 
 
@@ -80,7 +80,7 @@ def vendor(root: Path) -> dict[str, object]:
                     if package == "globe.gl":
                         relative = Path("globe.gl.min.js") if member.endswith(".js") else Path("licenses/globe.gl-LICENSE")
                     elif package == "three":
-                        relative = Path("three.module.js") if member.endswith(".js") else Path("licenses/three-LICENSE")
+                        relative = Path("three.module.js") if member.endswith("three.module.js") else Path("three.core.js") if member.endswith("three.core.js") else Path("licenses/three-LICENSE")
                     else:
                         if "earth-blue-marble" in member:
                             relative = Path("textures/earth-blue-marble.jpg")
