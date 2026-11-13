@@ -35,20 +35,20 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         three = client.get("/assets/vendor/globe/three.module.js")
         three_core = client.get("/assets/vendor/globe/three.core.js")
         earth = client.get("/assets/vendor/globe/textures/earth-blue-marble.jpg")
-        bump = client.get("/assets/vendor/globe/textures/earth-topology.png")
         manifest = client.get("/assets/vendor/globe/vendor-manifest.json")
 
         assert globe.status_code == 200 and len(globe.content) > 100_000
         assert three.status_code == 200 and len(three.content) > 100_000
         assert three_core.status_code == 200 and len(three_core.content) > 100_000
         assert earth.status_code == 200 and len(earth.content) > 50_000
-        assert bump.status_code == 200
         assert manifest.status_code == 200
         payload = manifest.json()
         assert payload["packages"]["globe.gl"]["version"] == "2.46.2"
         assert payload["packages"]["three-globe"]["version"] == "2.45.6"
         assert payload["packages"]["three"]["version"] == "0.186.1"
         assert "local" in payload["network_policy"].lower()
+        assert "NASA" in payload["textures"]["earth-blue-marble.jpg"]["credit"]
+        assert payload["textures"]["earth-blue-marble.jpg"]["license"] == "NASA public-domain imagery"
 
         csp = index.headers["content-security-policy"]
         assert "'unsafe-eval'" not in csp
@@ -60,7 +60,6 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
     assert "window.Globe" in scene
     assert "earth-blue-marble.jpg" in scene
-    assert "earth-topology.png" in scene
     assert "objectsData" in scene or ".objectsData" in scene
     assert "pathsData" in scene or ".pathsData" in scene
     assert "不代表真实 Basilisk 仿真遥测" in scene
