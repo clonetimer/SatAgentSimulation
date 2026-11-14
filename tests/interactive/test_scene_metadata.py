@@ -28,7 +28,7 @@ def test_realtime_scene_metadata_uses_native_runtime_default_epoch_without_guess
         task_spec={"simulation": {}, "parameters": {"values": {}}},
     )
     metadata = realtime_scene_metadata(spec)
-    assert metadata["epoch_utc"] == DEFAULT_EPOCH
+    assert metadata["epoch_utc"] == (DEFAULT_EPOCH.isoformat() if hasattr(DEFAULT_EPOCH, "isoformat") else str(DEFAULT_EPOCH))
     assert metadata["orbit_position_frame"] == "J2000_INERTIAL"
 
 
@@ -50,4 +50,4 @@ def test_realtime_scene_metadata_exposes_inertial_frame_for_adcs_native_runtime(
     )
     metadata = realtime_scene_metadata(spec)
     assert metadata["orbit_position_frame"] == "J2000_INERTIAL"
-    assert metadata["epoch_utc"] == DEFAULT_EPOCH
+    assert metadata["epoch_utc"] == (DEFAULT_EPOCH.isoformat() if hasattr(DEFAULT_EPOCH, "isoformat") else str(DEFAULT_EPOCH))
