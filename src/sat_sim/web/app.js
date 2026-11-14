@@ -77,6 +77,8 @@
     catalog: [],
     presentationCatalog: null,
     presentationObjects: [],
+    sceneObjectTree: null,
+    sceneTreeLoading: false,
     selectedObjectId: null,
     selectedCapabilityId: null,
     schema: null,
@@ -4447,6 +4449,100 @@
     return probe;
   }
 
+  async function loadSceneObjectTree() {
+    if (state.sceneTreeLoading) return;
+    state.sceneTreeLoading = true;
+    try {
+      const payload = await api('/workbench/scene/catalog');
+      if (!payload?.ok || payload.tree?.schema_version !== 'workbench-object-tree.v2') {
+        throw new Error('对象目录版本不兼容。');
+      }
+      state.sceneObjectTree = payload.tree;
+      renderP9DPanel();
+    } catch (error) {
+      const host = el('p9dObjectTree');
+      if (host) host.textContent = `对象目录读取失败：${error.message}`;
+    } finally {
+      state.sceneTreeLoading = false;
+    }
+  }
+
+  function renderP9DPanel() {
+    const panel = window.P9DObjectConfigPanel;
+    if (!panel || !state.sceneObjectTree) return;
+    panel.render({
+      tree: state.sceneObjectTree,
+      selectedId: state.selectedObjectId,
+      schema: state.schema,
+      formData: state.formData,
+      validated: Boolean(state.taskSpec && state.planning),
+      onSelect: (objectId) => {
+        const known = state.presentationObjects.some(item => item.object_id === objectId);
+        if (!known) {
+          state.selectedObjectId = objectId;
+          state.selectedCapabilityId = null;
+          state.schema = null;
+          state.formData = null;
+          state.taskSpec = null;
+          state.planning = null;
+          state.hasTaskSpecContext = false;
+          state.activeTaskCenterId = null;
+          updateTaskEditState();
+          el('selectedCapabilityName').textContent = '未选择可执行模型';
+          el('selectedCapabilitySummary').textContent = '该对象没有独立配置或执行能力。';
+          el('previewBtn').disabled = true;
+          el('runBtn').disabled = true;
+          el('saveTaskBtn').disabled = true;
+          renderForm();
+          renderEvents();
+          el('qoiOptions').replaceChildren();
+          el('plotOptions').replaceChildren();
+          syncTaskSpecEditor();
+          const stack = [...(state.sceneObjectTree?.roots || [])];
+          let selected = null;
+          while (stack.length) {
+            const row = stack.pop();
+            if (row?.object_id === objectId) { selected = row; break; }
+            stack.push(...(row?.children || []));
+          }
+          window.SatScene?.selectObject?.({ name: selected?.name_zh || objectId, hasSpatialAnchor: Boolean(selected?.spatial_anchor) });
+          renderP9DPanel();
+          return;
+        }
+        selectCatalogObject(objectId).then(() => renderP9DPanel());
+      },
+      onChange: (path, arrayIndex, value) => {
+        if (!state.formData) return;
+        if (arrayIndex == null) {
+          setPath(state.formData, path, value);
+        } else {
+          const current = getPath(state.formData, path);
+          if (!Array.isArray(current) || arrayIndex < 0 || arrayIndex >= current.length) return;
+          const next = current.slice();
+          next[arrayIndex] = value;
+          setPath(state.formData, path, next);
+        }
+        state.changedPaths.add(path);
+        state.taskSpec = null;
+        state.planning = null;
+        state.wizard.validated = false;
+        state.wizard.validatedForm = null;
+        updateSingleRunSummary();
+        syncTaskSpecEditor();
+        updateSingleRunGuide('configure', '物理参数已修改，旧校验结果已失效。请重新校验后运行。');
+        const validationStatus = el('p9dValidationStatus');
+        if (validationStatus) {
+          validationStatus.textContent = '配置尚未校验';
+          validationStatus.dataset.validated = 'false';
+        }
+      },
+    });
+    const validate = el('p9dValidateBtn');
+    const run = el('p9dRunBtn');
+    if (validate) validate.disabled = !state.formData || !state.selectedCapabilityId;
+    if (run) run.disabled = !state.formData || !state.selectedCapabilityId;
+  }
+
   async function loadCapabilities() {
     const previousObjectId = state.selectedObjectId;
     const compatibilityQuery = state.showCompatibilityCapabilities ? '?include_compatibility=true&include_explicit=true' : '';
@@ -4588,6 +4684,8 @@
       renderCapabilityList();
       renderForm();
       renderEvents();
+      renderP9DPanel();
+      window.SatScene?.selectObject?.({ name: object.name_zh, hasSpatialAnchor: Boolean(object.spatial_anchor) });
       el('qoiOptions').replaceChildren();
       el('plotOptions').replaceChildren();
       syncTaskSpecEditor();
@@ -4601,7 +4699,22 @@
   }
 
   async function selectCapability(capabilityId, objectOverride = null, isCurrent = () => true) {
-    if (capabilityId === state.selectedCapabilityId && state.schema && !objectOverride) return;
+    if (capabilityId === state.selectedCapabilityId && state.schema) {
+      if (objectOverride) {
+        state.selectedObjectId = objectOverride.object_id;
+        renderVariantControl(objectOverride);
+        renderCapabilityList();
+        el('selectedCapabilityName').textContent = objectOverride.name_zh || state.schema.capability.name || capabilityId;
+        el('selectedCapabilitySummary').textContent = objectOverride.summary_zh || state.schema.capability.summary || '';
+        renderForm();
+        renderEvents();
+        renderOutputs();
+        syncTaskSpecEditor();
+        renderP9DPanel();
+        window.SatScene?.selectObject?.({ name: objectOverride.name_zh, hasSpatialAnchor: Boolean(objectOverride.spatial_anchor) });
+      }
+      return true;
+    }
     const mobileCatalogHadFocus = el('mobileCatalogPanel').contains(document.activeElement);
     clearResetUndo();
     const capabilityChanged = capabilityId !== state.selectedCapabilityId;
@@ -4645,6 +4758,8 @@
       renderVariantControl(object);
       renderCapabilityList();
       renderForm();
+      renderP9DPanel();
+      window.SatScene?.selectObject?.({ name: object?.name_zh || state.schema.capability.name || capabilityId, hasSpatialAnchor: Boolean(object?.spatial_anchor) });
       renderEffectSelect();
       renderEvents();
       renderOutputs();
@@ -10962,6 +11077,25 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('wizardResetBtn').addEventListener('click', wizardReset);
     el('wizardAdvancedBtn')?.addEventListener('click', () => switchView('creator'));
     el('wizardSceneShortcutBtn')?.addEventListener('click', () => switchView('scene'));
+    el('p9dValidateBtn')?.addEventListener('click', async () => {
+      try {
+        showBusy('校验对象配置', '复用现有 TaskSpec 与 Capability Schema 校验');
+        const ok = await previewForm();
+        renderP9DPanel();
+        if (ok) showNotice('配置校验通过，尚未启动仿真。', 'success');
+      } catch (error) { showNotice(`配置校验失败：${error.message}`, 'error'); }
+      finally { hideBusy(); }
+    });
+    el('p9dRunBtn')?.addEventListener('click', async () => {
+      try {
+        if (!state.taskSpec || !state.planning) {
+          const ok = await previewForm();
+          renderP9DPanel();
+          if (!ok) return;
+        }
+        await runSimulation();
+      } catch (error) { showNotice(`仿真失败：${error.message}`, 'error'); hideBusy(); }
+    });
     $all('.wizard-tool-option[data-wizard-goal]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardGoal)));
     el('wizardGenerateFromTextBtn').addEventListener('click', async () => {
       try {
@@ -11224,6 +11358,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     await Promise.allSettled([loadHeader(), loadRuns(), loadSingleRunReadiness(), loadModelProviders(), loadTasks(), loadScenarioTemplates(), loadExperiments(), loadInteractiveAvailability()]);
     try {
       await loadCapabilities();
+      await loadSceneObjectTree();
+      renderP9DPanel();
       renderSimulationWizard();
       await loadAssemblyCatalog();
       await loadModuleLibrary();

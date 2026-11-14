@@ -118,12 +118,30 @@
 
 
     <main id="satelliteSceneView" class="satellite-scene-view app-view hidden">
-      <section class="satellite-scene-shell">
-        <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1>卫星数字场景</h1><p>以三维地球为背景观察卫星轨道与场景状态。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free">自由观察</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button><button class="button button-secondary" type="button" data-return-wizard>返回仿真向导</button></div></header>
-        <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与卫星轨道场景"></div>
-        <div id="satelliteSceneStatus" class="satellite-scene-status" role="status" aria-live="polite">等待场景引擎。</div>
-        <p class="satellite-scene-note">地球影像：NASA Blue Marble。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真结果。</p>
-      </section>
+      <div class="p9d-scene-layout">
+        <section class="satellite-scene-shell">
+          <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1>卫星数字场景</h1><p>选择对象查看其真实配置参数；场景只对具有空间锚点的对象进行定位。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free">自由观察</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button><button class="button button-secondary" type="button" data-return-wizard>返回仿真向导</button></div></header>
+          <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与卫星轨道场景"></div>
+          <div id="satelliteSceneStatus" class="satellite-scene-status" role="status" aria-live="polite">等待场景引擎。</div>
+          <p class="satellite-scene-note">地球影像：NASA Blue Marble。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真结果。</p>
+        </section>
+        <aside class="p9d-config-panel" aria-label="对象配置">
+          <section class="p9d-tree-section">
+            <div class="p9d-panel-heading"><div><h2>仿真对象</h2><p>整星 · 分系统 · 单机</p></div></div>
+            <div id="p9dObjectTree" class="p9d-object-tree" role="tree" aria-label="仿真对象树">正在读取对象目录…</div>
+          </section>
+          <section class="p9d-parameter-section">
+            <div class="p9d-panel-heading"><div><h2 id="p9dSelectedTitle">对象参数</h2><p id="p9dSelectedSummary">选择对象后显示其参数。</p></div></div>
+            <div id="p9dValidationStatus" class="p9d-validation-status" role="status">配置尚未校验</div>
+            <div id="p9dParameterHost" class="p9d-parameter-host"><p class="p9d-empty">选择对象以查看可配置参数。</p></div>
+            <div class="p9d-panel-actions">
+              <button class="button button-secondary" type="button" id="p9dValidateBtn">校验配置</button>
+              <button class="button button-primary" type="button" id="p9dRunBtn">运行仿真</button>
+            </div>
+            <p class="p9d-panel-footnote">参数修改写入当前 TaskSpec 表单；正式校验和运行仍使用原有流程。</p>
+          </section>
+        </aside>
+      </div>
     </main>
 
     <main id="wizardView" class="wizard-view app-view">
@@ -1630,7 +1648,8 @@
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
   <script type="module" src="/assets/satellite-scene.js?v=p9c-mainline-1"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
-  <script src="/assets/app.js?v=p9b-evaluation1" defer></script>
+  <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
+  <script src="/assets/app.js?v=p9d-1" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
   <script src="/assets/continuous.js?v=0.7.8" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>

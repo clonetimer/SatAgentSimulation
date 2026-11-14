@@ -287,6 +287,16 @@ function home() {
   syncCameraActions();
 }
 
+function selectObject({ name, hasSpatialAnchor = false } = {}) {
+  if (!name) return;
+  const readyPrefix = state.active && state.ready ? '场景已就绪（演示数据）。' : '';
+  if (!hasSpatialAnchor) {
+    status(`${readyPrefix}已选择：${name}。该对象没有经过审定的三维空间锚点，场景保持当前视角，不虚构部件位置。`, 'info');
+    return;
+  }
+  status(`${readyPrefix}已选择：${name}。对象空间锚点已登记；局部模型节点映射将在资产映射验收后启用。`, 'info');
+}
+
 document.addEventListener('click', (event) => {
   const action = event.target.closest('[data-scene-action]')?.dataset.sceneAction;
   if (action === 'track') track();
@@ -294,4 +304,4 @@ document.addEventListener('click', (event) => {
   if (action === 'home') home();
 });
 
-window.SatScene = { enter, exit: destroy, track, freeCamera, home };
+window.SatScene = { enter, exit: destroy, track, freeCamera, home, selectObject };
