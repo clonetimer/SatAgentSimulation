@@ -140,6 +140,10 @@
             </div>
             <p class="p9d-panel-footnote">参数修改写入当前 TaskSpec 表单；正式校验和运行仍使用原有流程。</p>
           </section>
+          <section class="p9e-run-results-section" aria-label="本次运行结果">
+            <div class="p9d-panel-heading"><div><h2>本次运行结果</h2><p>按当前对象查看同一封存 Run 中的真实记录</p></div></div>
+            <div id="p9eRunResultHost" class="p9e-run-result-host" aria-live="polite"><p class="p9d-empty">选择一条已完成运行后，这里会显示该对象关联的记录。</p></div>
+          </section>
         </aside>
       </div>
     </main>
@@ -1649,7 +1653,8 @@
   <script type="module" src="/assets/satellite-scene.js?v=p9c-mainline-1"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
-  <script src="/assets/app.js?v=p9d-1" defer></script>
+  <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
+  <script src="/assets/app.js?v=p9e-1" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
   <script src="/assets/continuous.js?v=0.7.8" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
