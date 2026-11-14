@@ -40,3 +40,14 @@ def test_realtime_scene_metadata_does_not_claim_orbit_frame_for_unsupported_capa
     metadata = realtime_scene_metadata(spec)
     assert metadata["time_system"] == "TAI"
     assert metadata["orbit_position_frame"] is None
+
+def test_realtime_scene_metadata_exposes_inertial_frame_for_adcs_native_runtime():
+    from sat_sim.interactive.runtime_factory import ADCS_UNIFIED_CAPABILITY_ID
+
+    spec = SimpleNamespace(
+        capability_id=ADCS_UNIFIED_CAPABILITY_ID,
+        task_spec={"simulation": {"time_system": "UTC"}, "parameters": {"values": {}}},
+    )
+    metadata = realtime_scene_metadata(spec)
+    assert metadata["orbit_position_frame"] == "J2000_INERTIAL"
+    assert metadata["epoch_utc"] == DEFAULT_EPOCH
