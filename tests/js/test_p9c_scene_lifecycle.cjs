@@ -271,7 +271,7 @@ test('switching telemetry sources clears the previous session ground track', asy
     values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': y, 'orbit.position_m_z': 0}
   });
   h.api.updateTelemetry(frame('live-a', 10, 1000), {epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',sourceId:'live-a'});
-  h.api.updateTelemetry(frame('live-a', 20, 2000), {epochUtc:'2026-01-01T00:00:00Z',sourceId:'live-a'});
+  h.api.updateTelemetry(frame('live-a', 20, 2000), {epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',sourceId:'live-a'});
   assert.equal(h.instances[0].pathRows[0].points.length, 2);
   h.api.updateTelemetry(frame('live-b', 0, 0), {epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',sourceId:'live-b'});
   assert.equal(h.instances[0].pathRows.length, 0);
@@ -283,11 +283,11 @@ test('invalid epoch, non-finite position and unverified Run never become real sc
   assert.equal(h.api.updateTelemetry({
     sim_time_s: 0,
     values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
-  }, {epochUtc:'not-an-epoch',sourceId:'invalid'}), false);
+  }, {epochUtc:'not-an-epoch',frame:'N_INERTIAL',sourceId:'invalid'}), false);
   assert.equal(h.api.updateTelemetry({
     sim_time_s: 0,
     values: {'orbit.position_m_x': Infinity, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
-  }, {epochUtc:'2026-01-01T00:00:00Z',sourceId:'invalid'}), false);
+  }, {epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',sourceId:'invalid'}), false);
   assert.equal(h.api.setRunTelemetry([], {runId:'unsealed',epochUtc:'2026-01-01T00:00:00Z',verified:false}), false);
   assert.match(h.status.textContent, /演示/);
 });
