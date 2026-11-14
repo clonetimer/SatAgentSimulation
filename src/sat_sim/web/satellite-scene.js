@@ -424,14 +424,14 @@ function createGlobe(host, generation) {
     .pathDashLength(0.008)
     .pathDashGap(0.004)
     .pathDashAnimateTime(0)
-    .objectsData([satellite])
     .objectLabel('name')
     .objectLat('lat')
     .objectLng('lng')
     .objectAltitude('alt')
     .objectFacesSurface(false)
     .objectRotation('rotation')
-    .objectThreeObject(() => makeSatelliteModel());
+    .objectThreeObject(() => makeSatelliteModel())
+    .objectsData([satellite]);
 
   const controls = globe.controls();
   controls.autoRotate = false;
