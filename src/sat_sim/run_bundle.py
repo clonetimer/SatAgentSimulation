@@ -363,7 +363,7 @@ def _plot_series_object_binding(spec: Mapping[str, Any], field: str) -> dict[str
                 "association_source": "capability_output_hierarchy", "unit": output_unit}
     if target_level == "whole_spacecraft":
         return {"object_id": "whole_spacecraft", "association_scope": "whole_spacecraft",
-                "association_source": "capability_output_hierarchy"}
+                "association_source": "capability_output_hierarchy", "unit": output_unit}
     return {"object_id": None, "association_scope": "unmapped",
             "association_source": "capability_output_hierarchy", "unit": output_unit,
             "association_reason": "NO_AUDITED_SUBSYSTEM_BINDING"}
@@ -388,6 +388,13 @@ def _plot_manifest_payload(spec: Mapping[str, Any], rows: Sequence[Mapping[str, 
                 continue
             selected.append(name)
 
+    model = spec.get("model") if isinstance(spec.get("model"), Mapping) else {}
+    capability_id = str(model.get("capability_id") or "")
+    try:
+        target_level = get_capability(capability_id).target_level if capability_id else ""
+    except (KeyError, ValueError):
+        target_level = ""
+
     return {
         "schema_version": "sat-sim.plot-manifest.v3",
         "source": "results/telemetry.csv",
@@ -400,9 +407,7 @@ def _plot_manifest_payload(spec: Mapping[str, Any], rows: Sequence[Mapping[str, 
                 "field": name,
                 "label": output_label(name),
                 "render": "line",
-                **output_hierarchy(name, target_level=str(
-                    get_capability(str((spec.get("model") or {}).get("capability_id") or "")).target_level
-                ) if isinstance(spec.get("model"), Mapping) and (spec.get("model") or {}).get("capability_id") else ""),
+                **output_hierarchy(name, target_level=target_level),
                 **_plot_series_object_binding(spec, name),
             }
             for name in selected
