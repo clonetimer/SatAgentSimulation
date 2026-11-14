@@ -94,6 +94,7 @@ def _import_step_assembly(path: Path):
     import cadquery as cq
 
     original_add = cq.Assembly.add
+    original_getitem = cq.Assembly.__getitem__
 
     def add_with_unique_occurrence(self, arg, **kwargs):
         requested = kwargs.get("name")
@@ -106,13 +107,22 @@ def _import_step_assembly(path: Path):
             metadata["source_component_name"] = requested
             metadata["duplicate_occurrence"] = occurrence
             kwargs["metadata"] = metadata
+            latest = dict(self.metadata.get("_cad_last_instance_by_source_name", {}))
+            latest[requested] = unique
+            self.metadata["_cad_last_instance_by_source_name"] = latest
         return original_add(self, arg, **kwargs)
 
+    def getitem_by_source_name(self, name):
+        latest = self.metadata.get("_cad_last_instance_by_source_name", {}).get(name)
+        return original_getitem(self, latest or name)
+
     cq.Assembly.add = add_with_unique_occurrence
+    cq.Assembly.__getitem__ = getitem_by_source_name
     try:
         return cq.Assembly.importStep(str(path))
     finally:
         cq.Assembly.add = original_add
+        cq.Assembly.__getitem__ = original_getitem
 
 
 def _matrix4(location: Any) -> list[list[float]]:
