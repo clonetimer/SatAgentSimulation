@@ -369,7 +369,7 @@ def _plot_series_object_binding(spec: Mapping[str, Any], field: str) -> dict[str
                 "association_source": "capability_output_hierarchy", "unit": output_unit, "label": output_label_zh}
     if target_level == "whole_spacecraft":
         return {"object_id": "whole_spacecraft", "association_scope": "whole_spacecraft",
-                "association_source": "capability_output_hierarchy", "unit": output_unit}
+                "association_source": "capability_output_hierarchy", "unit": output_unit, "label": output_label_zh}
     return {"object_id": None, "association_scope": "unmapped",
             "association_source": "capability_output_hierarchy", "unit": output_unit, "label": output_label_zh,
             "association_reason": "NO_AUDITED_SUBSYSTEM_BINDING"}
