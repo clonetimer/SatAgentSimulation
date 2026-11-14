@@ -8850,6 +8850,44 @@
     }
   }
 
+  const BOOKMARKABLE_VIEWS = new Set([
+    'wizard', 'creator', 'tasks', 'experiments', 'goals', 'runs',
+    'evaluations', 'diagnostics', 'logs', 'scene', 'interactive', 'continuous',
+  ]);
+
+  function navigateToView(name) {
+    if (!BOOKMARKABLE_VIEWS.has(name)) return false;
+    switchView(name);
+    // switchView may refuse a departure while a realtime session is active.
+    if (state.activeView !== name) return false;
+    const url = new URL(window.location.href);
+    url.hash = `view=${encodeURIComponent(name)}`;
+    window.history.pushState({ satSimView: name }, '', url);
+    return true;
+  }
+
+  function restoreViewFromLocation() {
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const requested = params.get('view');
+    if (!requested) return;
+    if (!BOOKMARKABLE_VIEWS.has(requested)
+        || (['interactive', 'continuous'].includes(requested) && !state.interactiveAvailable)) {
+      window.history.replaceState({ satSimView: state.activeView }, '', window.location.pathname + window.location.search);
+      if (['interactive', 'continuous'].includes(requested)) {
+        showNotice('实时仿真当前不可用，请从快速仿真入口进入。', 'warning');
+      }
+      return;
+    }
+    switchView(requested);
+    // A guarded realtime departure may reject a history traversal. Keep the
+    // address bar aligned with the view that actually remains active.
+    if (state.activeView !== requested) {
+      const url = new URL(window.location.href);
+      url.hash = `view=${encodeURIComponent(state.activeView)}`;
+      window.history.replaceState({ satSimView: state.activeView }, '', url);
+    }
+  }
+
   function switchView(name) {
     const previousView = state.activeView;
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
@@ -11173,8 +11211,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
-    el('wizardAdvancedBtn')?.addEventListener('click', () => switchView('creator'));
-    el('wizardSceneShortcutBtn')?.addEventListener('click', () => switchView('scene'));
+    el('wizardAdvancedBtn')?.addEventListener('click', () => navigateToView('creator'));
+    el('wizardSceneShortcutBtn')?.addEventListener('click', () => navigateToView('scene'));
     el('p9dValidateBtn')?.addEventListener('click', async () => {
       try {
         showBusy('校验对象配置', '复用现有 TaskSpec 与 Capability Schema 校验');
@@ -11335,9 +11373,9 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveCommandTarget').addEventListener('change', renderInteractiveCommandOperations);
     el('interactiveCommandOperation').addEventListener('change', renderInteractiveCommandForm);
     el('interactiveSendCommandBtn').addEventListener('click', () => sendInteractiveCommand().catch(error => interactiveNotice(error.message, 'error')));
-    $all('.nav-button[data-view]').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+    $all('.nav-button[data-view]').forEach((button) => button.addEventListener('click', () => navigateToView(button.dataset.view)));
     $all('[data-return-wizard]').forEach((button) => button.addEventListener('click', () => {
-      switchView('wizard');
+      navigateToView('wizard');
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
       renderSimulationWizard();
     }));
@@ -11438,6 +11476,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       });
     });
     $all('.result-tab').forEach((button) => button.addEventListener('click', () => switchResultTab(button.dataset.resultTab)));
+    window.addEventListener('popstate', restoreViewFromLocation);
     window.addEventListener('resize', () => {
       if (document.querySelector('.result-tab.active')?.dataset.resultTab === 'charts') drawChart();
       if (state.runCompareResult && !el('runComparePanel').classList.contains('hidden')) drawRunCompareChart();
@@ -11461,6 +11500,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       renderSimulationWizard();
       await loadAssemblyCatalog();
       await loadModuleLibrary();
+      restoreViewFromLocation();
     } catch (error) {
       showNotice(`工作台初始化失败：${error.message}`, 'error');
     }
