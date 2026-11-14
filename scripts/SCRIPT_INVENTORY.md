@@ -110,6 +110,7 @@
 | `run_native_browser_e2e.py` | 原生浏览器验收 | active | 真实 HTTP、Chromium、原生离线 Run 与实时会话控制；无物理协议桩 |
 | `run_native_endurance.py` | 原生墙钟耐久试验 | active | 真实 Basilisk、连续墙钟及独立观测；24h 仅供人工评估，不自动批准恢复 |
 | `audit_capability_output_surfaces.py` | 组件输出审计 | active | 真实注册执行链的默认工况输出与合同对照，不自动改合同或生成标签 |
+| `convert_birds4_step.py` | BIRDS-4 CAD 参考资产转换 | active | 固定上游 commit 与 Git blob SHA-1，核验 STEP 来源、单位、装配树并导出米制 GLB；仅生成参考模型和证据，不认定 as-built 安装状态 |
 
 ## 交叉检查结论
 
