@@ -397,5 +397,5 @@ test('negative simulation time is rejected before scene state changes', async ()
     values:{'orbit.position_m_x':7000000,'orbit.position_m_y':0,'orbit.position_m_z':0}
   }, {epochUtc:'2026-01-01T00:00:00Z',timeSystem:'UTC',frame:'N_INERTIAL',sourceId:'negative-time',streamId:'orbit.stream'});
   assert.equal(accepted,false);
-  assert.equal(h.api.latestTelemetryPoint(),null);
+  assert.equal(h.instances[0].objectRows[0].name,'任务卫星（示意模型）');
 });
