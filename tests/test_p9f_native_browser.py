@@ -249,6 +249,11 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             if mode == "continuous":
                 session_id = "p9f-native-browser-continuous"
                 _set_control(page, "#continuousSessionId", session_id)
+                identifier = page.locator("#continuousSessionId")
+                assert identifier.evaluate("(node) => node.checkValidity()") is True
+                identifier.fill("probe:valid-1")
+                assert identifier.evaluate("(node) => node.checkValidity()") is True
+                identifier.fill(session_id)
                 _set_control(page, "#continuousQuantum", "0.2")
                 _set_control(page, "#continuousHorizon", "120")
                 create = page.locator('#continuousCreateForm button[type="submit"]')
