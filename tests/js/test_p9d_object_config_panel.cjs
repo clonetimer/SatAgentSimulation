@@ -28,7 +28,7 @@ test('P9-D renders real object hierarchy and binds parameter edits to schema pat
   const changes = [];
   const tree = {schema_version:'workbench-object-tree.v2', roots:[{
     object_id:'whole_spacecraft', name_zh:'整星', kind:'whole_spacecraft', children:[{
-      object_id:'subsystem.adcs', name_zh:'姿态控制分系统', kind:'subsystem', children:[{
+      object_id:'subsystem.adcs', name_zh:'姿态控制分系统', kind:'subsystem', execution_capability_id:'component.reaction_wheel.v1', children:[{
         node_id:'component.reaction_wheel:physical-parameters', kind:'parameter_group',
         name_zh:'物理配置参数', children:[{
           node_id:'component.reaction_wheel:parameter:wheel_inertia_kg_m2:0',
@@ -57,7 +57,7 @@ test('P9-D renders real object hierarchy and binds parameter edits to schema pat
   const group = elements.p9dParameterHost.children[0];
   assert.equal(group.children[0].textContent,'机械参数');
   const field = group.children[1];
-  assert.equal(field.children[0].textContent,'反作用轮 1 · 转动惯量kg·m²');
+  assert.equal(field.children[0].textContent,'反作用轮 1 · 转动惯量');
   const input = field.children[1];
   assert.equal(input.type,'number');
   assert.equal(input.min,'0.001');
