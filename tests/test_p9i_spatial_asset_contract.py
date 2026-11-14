@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -71,7 +72,7 @@ def test_empty_registry_is_valid_and_does_not_invent_equipment_instances():
     assert result["semantics"]["capability_categories_are_inventory"] is False
 
 
-def test_verified_asset_and_instance_are_renderable_only_with_equipment_object():
+def test_verified_asset_and_instance_are_renderable_only_with_equipment_object(tmp_path):
     object_tree = {
         "roots": [{
             "object_id": "whole_spacecraft", "kind": "whole_spacecraft",
@@ -82,8 +83,25 @@ def test_verified_asset_and_instance_are_renderable_only_with_equipment_object()
             }],
         }]
     }
-    result = validate_spatial_asset_registry(_registry(), object_tree=object_tree)
+    registry = _registry()
+    payload = b"verified model bytes"
+    model = tmp_path / registry["assets"][0]["path"]
+    model.parent.mkdir(parents=True)
+    model.write_bytes(payload)
+    registry["assets"][0]["size_bytes"] = len(payload)
+    registry["assets"][0]["sha256"] = hashlib.sha256(payload).hexdigest()
+    registry["instances"][0]["asset_ref"]["sha256"] = registry["assets"][0]["sha256"]
+
+    metadata_only = validate_spatial_asset_registry(registry, object_tree=object_tree)
+    assert metadata_only["ok"] is True
+    assert metadata_only["asset_bytes_verified"] is False
+    assert metadata_only["renderable_instances"] == []
+
+    result = validate_spatial_asset_registry(
+        registry, object_tree=object_tree, asset_root=tmp_path
+    )
     assert result["ok"] is True
+    assert result["asset_bytes_verified"] is True
     assert len(result["renderable_instances"]) == 1
     assert result["renderable_instances"][0]["instance_id"] == "rw-1"
 
@@ -168,3 +186,56 @@ def test_json_schema_is_strict_and_accepts_empty_current_main_registry():
             "schema_version": SCHEMA_VERSION, "assets": [], "instances": [],
             "unreviewed_model": True,
         })
+
+
+def test_asset_root_verifies_real_file_size_and_sha256(tmp_path):
+    payload = b"genuine test GLB bytes"
+    model = tmp_path / "assets" / "models" / "rw.glb"
+    model.parent.mkdir(parents=True)
+    model.write_bytes(payload)
+    registry = _registry()
+    registry["assets"][0]["size_bytes"] = len(payload)
+    registry["assets"][0]["sha256"] = hashlib.sha256(payload).hexdigest()
+    registry["instances"][0]["asset_ref"]["sha256"] = registry["assets"][0]["sha256"]
+
+    result = validate_spatial_asset_registry(registry, asset_root=tmp_path)
+    assert result["ok"] is True
+    assert len(result["renderable_instances"]) == 1
+
+    model.write_bytes(b"tampered asset")
+    result = validate_spatial_asset_registry(registry, asset_root=tmp_path)
+    assert result["ok"] is False
+    assert {"ASSET_FILE_SIZE_MISMATCH", "ASSET_FILE_HASH_MISMATCH"} & _codes(result)
+    assert result["renderable_instances"] == []
+
+
+def test_asset_symlink_cannot_escape_repository_asset_root(tmp_path):
+    outside = tmp_path.parent / (tmp_path.name + "-outside.glb")
+    outside.write_bytes(b"outside")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "escape.glb").symlink_to(outside)
+    registry = _registry()
+    registry["assets"][0]["path"] = "assets/escape.glb"
+    registry["assets"][0]["size_bytes"] = len(b"outside")
+    registry["assets"][0]["sha256"] = hashlib.sha256(b"outside").hexdigest()
+    registry["instances"][0]["asset_ref"]["sha256"] = registry["assets"][0]["sha256"]
+
+    result = validate_spatial_asset_registry(registry, asset_root=tmp_path)
+    assert result["ok"] is False
+    assert "ASSET_PATH_ESCAPES_ROOT" in _codes(result)
+    assert result["renderable_instances"] == []
+
+
+def test_verified_child_cannot_render_under_unverified_parent():
+    registry = _registry()
+    parent = dict(registry["instances"][0])
+    parent["instance_id"] = "rw-mount-bracket"
+    parent["object_id"] = "component.reaction_wheel"
+    parent["verification_status"] = "reviewed"
+    registry["instances"][0]["parent_instance_id"] = "rw-mount-bracket"
+    registry["instances"].append(parent)
+
+    result = validate_spatial_asset_registry(registry)
+    assert result["ok"] is False
+    assert "INSTANCE_PARENT_NOT_VERIFIED" in _codes(result)
+    assert result["renderable_instances"] == []

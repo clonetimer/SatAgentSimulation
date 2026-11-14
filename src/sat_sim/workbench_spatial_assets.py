@@ -5,10 +5,11 @@ or turns capability categories into installed equipment instances.
 """
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from collections.abc import Mapping
-from pathlib import PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 SCHEMA_VERSION = "spatial-asset-registry.v1"
@@ -73,6 +74,7 @@ def validate_spatial_asset_registry(
     registry: Mapping[str, Any],
     *,
     object_tree: Mapping[str, Any] | None = None,
+    asset_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Validate registry metadata and return only verified, evidence-backed instances.
 
@@ -137,6 +139,23 @@ def validate_spatial_asset_registry(
             for key in ("document_id", "revision", "locator")
         ):
             _error(errors, "ASSET_SOURCE_EVIDENCE_MISSING", subject)
+        if asset_root is not None and _safe_asset_path(asset.get("path")):
+            root = Path(asset_root).resolve()
+            candidate = (root / asset["path"]).resolve()
+            try:
+                candidate.relative_to(root)
+            except ValueError:
+                _error(errors, "ASSET_PATH_ESCAPES_ROOT", subject)
+            else:
+                if not candidate.is_file():
+                    _error(errors, "ASSET_FILE_MISSING", subject)
+                else:
+                    actual_size = candidate.stat().st_size
+                    actual_digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
+                    if actual_size != size:
+                        _error(errors, "ASSET_FILE_SIZE_MISMATCH", subject)
+                    if actual_digest != digest:
+                        _error(errors, "ASSET_FILE_HASH_MISMATCH", subject)
 
     object_index = _object_rows(object_tree)
     instance_index: dict[str, Mapping[str, Any]] = {}
@@ -215,10 +234,30 @@ def validate_spatial_asset_registry(
             visited.add(current)
             current = parent_links[current]
 
+    # A verified child cannot be rendered independently of an unverified
+    # parent structure. Every ancestor in its assembly chain must be verified.
+    for instance in verified_candidates:
+        current = instance.get("parent_instance_id")
+        visited: set[str] = set()
+        while isinstance(current, str) and current not in visited:
+            visited.add(current)
+            parent_instance = instance_index.get(current)
+            if parent_instance is None:
+                break  # The unresolved-parent error is already recorded above.
+            if parent_instance.get("verification_status") != "verified":
+                _error(errors, "INSTANCE_PARENT_NOT_VERIFIED", instance["instance_id"], current)
+            parent_ref = parent_instance.get("asset_ref")
+            parent_asset = None
+            if isinstance(parent_ref, Mapping):
+                parent_asset = asset_index.get((parent_ref.get("asset_id"), parent_ref.get("asset_version")))
+            if parent_asset is None or parent_asset.get("review_status") != "verified":
+                _error(errors, "INSTANCE_PARENT_ASSET_NOT_VERIFIED", instance["instance_id"], current)
+            current = parent_instance.get("parent_instance_id")
+
     # Fail closed globally: no geometry is renderable if any registry contract
     # error exists. This prevents a partially corrupt assembly from appearing valid.
     renderable = []
-    if not errors:
+    if not errors and asset_root is not None:
         for instance in verified_candidates:
             renderable.append({
                 "instance_id": instance["instance_id"],
@@ -234,6 +273,7 @@ def validate_spatial_asset_registry(
         "schema_version": SCHEMA_VERSION,
         "asset_count": len(asset_index),
         "instance_count": len(instance_index),
+        "asset_bytes_verified": asset_root is not None and not errors,
         "renderable_instances": renderable,
         "errors": errors,
         "semantics": {
