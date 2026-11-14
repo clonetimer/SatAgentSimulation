@@ -7,6 +7,7 @@ actual object/path setters. No frame or position is injected into the page.
 from __future__ import annotations
 
 import json
+import math
 import os
 import socket
 import subprocess
