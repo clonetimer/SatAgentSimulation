@@ -123,7 +123,7 @@ def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
             status = page.locator("#satelliteSceneStatus")
-            status.filter(has_text="场景已就绪").wait_for(timeout=30000)
+            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
             result = page.evaluate("""() => {
               const epochUtc = '2026-01-01T00:00:00Z';
               const first = window.SatScene.updateTelemetry({
