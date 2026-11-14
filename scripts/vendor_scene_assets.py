@@ -27,7 +27,7 @@ REQUIRED = {
         "package/example/img/earth-blue-marble.jpg",
         "package/LICENSE",
     ),
-    "three": ("package/build/three.module.js", "package/build/three.core.js", "package/examples/jsm/loaders/GLTFLoader.js", "package/examples/jsm/libs/meshopt_decoder.module.js", "package/LICENSE"),
+    "three": ("package/build/three.module.js", "package/build/three.core.js", "package/examples/jsm/loaders/GLTFLoader.js", "package/examples/jsm/libs/meshopt_decoder.module.js", "package/examples/jsm/utils/BufferGeometryUtils.js", "package/examples/jsm/utils/SkeletonUtils.js", "package/LICENSE"),
 }
 
 
@@ -89,6 +89,10 @@ def vendor(root: Path) -> dict[str, object]:
                             relative = Path("loaders/GLTFLoader.js")
                         elif member.endswith("meshopt_decoder.module.js"):
                             relative = Path("loaders/meshopt_decoder.module.js")
+                        elif member.endswith("BufferGeometryUtils.js"):
+                            relative = Path("utils/BufferGeometryUtils.js")
+                        elif member.endswith("SkeletonUtils.js"):
+                            relative = Path("utils/SkeletonUtils.js")
                         else:
                             relative = Path("licenses/three-LICENSE")
                     else:
