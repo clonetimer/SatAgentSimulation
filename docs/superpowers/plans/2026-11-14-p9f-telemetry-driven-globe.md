@@ -15,10 +15,11 @@
 ## 实施批次
 
 ### P9-F1：真实遥测接入
-- 连续整星会话的遥测订阅契约加入三轴轨道位置字段。
+- 限时与持续整星会话均发布独立的 `whole.orbit` 位置流，仅包含 `orbit.position_m_x/y/z`；不把场景支持字段混入用户曲线/分系统综合流。
 - 有限实时整星会话的默认遥测流加入三轴轨道位置字段。
 - 实时会话元数据公开只读 `orbit_epoch_utc` 与 `orbit_frame=N_INERTIAL`。
-- 两种实时控制台复用已有 WebSocket/遥测拉取链路，不新增 socket、定时轮询或第二套遥测缓存。
+- 限时模式在现有 WebSocket 订阅中增加 `whole.orbit`；持续模式在现有 REST 轮询中独立拉取 `whole.orbit`，不新增 socket、定时器或第二套遥测缓存。
+- 场景位置流的帧质量由三轴位置字段自身决定；不因无关分系统参量缺失而将有效位置降为整帧 INVALID。
 - 从实时控制台切换到三维场景时，后台保留当前实时源的只读遥测订阅；离开场景后按原导航生命周期关闭订阅/轮询。
 
 ### P9-F2：三维地球坐标与轨迹
@@ -37,7 +38,7 @@
 
 ### P9-F4：验收
 - JavaScript：ECI→ECEF→WGS-84 测试向量、地球自转、epoch/时间处理、非法数据拒绝、轨迹边界和源切换。
-- Python：会话 epoch/frame 元数据、实时 telemetry stream position contract、trace scene-support 字段。
+- Python：会话 epoch/frame 元数据、独立 `whole.orbit` 位置流及 GOOD 帧质量；用户综合流不包含场景支持字段；trace scene-support 字段。
 - Chromium：真实场景加载、实时位置驱动、真实轨迹更新、演示模式与真实模式标签区分、无外网请求。
 - 回归 P9-C 场景生命周期、P9-D 对象配置、P9-E Run 结果、实时会话和 Basilisk 原生测试。
 
