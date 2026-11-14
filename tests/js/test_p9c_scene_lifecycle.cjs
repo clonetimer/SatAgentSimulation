@@ -316,3 +316,19 @@ test('scene refuses an undeclared or non-inertial source frame', async () => {
   assert.equal(accepted,false);
   assert.match(h.status.textContent,/演示/);
 });
+
+test('real-time ground track breaks across dropped telemetry sequence ranges', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const frame = sequence => ({
+    sequence, sim_time_s: sequence,
+    values: {'orbit.position_m_x':7000000-sequence*10,'orbit.position_m_y':sequence*1000,'orbit.position_m_z':0}
+  });
+  const options = {epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',sourceId:'gap-session'};
+  h.api.updateTelemetry(frame(1), options);
+  h.api.updateTelemetry(frame(2), options);
+  h.api.updateTelemetry(frame(5), options);
+  h.api.updateTelemetry(frame(6), options);
+  assert.equal(h.instances[0].pathRows.length, 2);
+  assert.equal(h.instances[0].pathRows[0].points.length, 2);
+  assert.equal(h.instances[0].pathRows[1].points.length, 2);
+});
