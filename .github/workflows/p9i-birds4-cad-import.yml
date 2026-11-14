@@ -5,7 +5,7 @@ on:
     paths:
       - "assets/cad-sources/birds4/**"
       - "docs/superpowers/plans/*p9i-birds4*"
-      - "tools/cad/convert_birds4_step.py"
+      - "scripts/cad/convert_birds4_step.py"
       - "tests/cad/test_birds4_step_converter.py"
       - ".github/workflows/p9i-birds4-cad-import.yml"
   workflow_dispatch:
