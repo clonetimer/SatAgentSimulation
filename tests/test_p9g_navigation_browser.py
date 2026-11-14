@@ -134,8 +134,8 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
 
             # P9-G3: navigation is bookmarkable and participates in browser history.
             page.evaluate("window.history.replaceState({}, '', window.location.pathname + window.location.search)")
-            nav.locator(':scope > button[data-view="tasks"]').click()
-            assert page.url.endswith('#view=tasks'), page.url
+            nav.locator(':scope > button[data-wizard-shortcut="history"]').click()
+            assert page.url.endswith('#view=wizard&step=tasks'), page.url
             nav.locator(':scope > button[data-view="scene"]').click()
             assert page.url.endswith('#view=scene'), page.url
             page.go_back()
