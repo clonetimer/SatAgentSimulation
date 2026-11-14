@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "spatial_asset_registry.schema.json",
+  "title": "SpatialAssetRegistry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assets",
+    "instances"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "spatial-asset-registry.v1"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    },
+    "instances": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/instance"
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "revision",
+        "locator"
+      ],
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "asset_version",
+        "asset_format",
+        "path",
+        "sha256",
+        "size_bytes",
+        "length_unit",
+        "up_axis",
+        "forward_axis",
+        "origin_semantics",
+        "source_evidence",
+        "review_status"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "asset_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "asset_format": {
+          "enum": [
+            "glb",
+            "gltf"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "length_unit": {
+          "const": "m"
+        },
+        "up_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ]
+        },
+        "forward_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ]
+        },
+        "origin_semantics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "review_status": {
+          "enum": [
+            "draft",
+            "reviewed",
+            "verified",
+            "rejected"
+          ]
+        }
+      }
+    },
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "object_id",
+        "asset_ref",
+        "parent_instance_id",
+        "mount_frame_id",
+        "translation_m",
+        "rotation_q_wxyz",
+        "source_evidence",
+        "verification_status"
+      ],
+      "properties": {
+        "instance_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "object_id": {
+          "type": "string",
+          "pattern": "^component\\.[A-Za-z0-9_.:-]+$"
+        },
+        "asset_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "asset_id",
+            "asset_version",
+            "sha256"
+          ],
+          "properties": {
+            "asset_id": {
+              "type": "string"
+            },
+            "asset_version": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "parent_instance_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mount_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "translation_m": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        },
+        "rotation_q_wxyz": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number"
+          }
+        },
+        "source_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "verification_status": {
+          "enum": [
+            "draft",
+            "reviewed",
+            "verified",
+            "rejected"
+          ]
+        }
+      }
+    }
+  }
+}
