@@ -20,7 +20,7 @@ The reproducible conversion job will import and export:
 5. `B4_battery v1.step` — battery reference.
 6. `B4_FM_+X_panel v1.step` — FM +X panel reference.
 
-All six are pinned by exact source blob SHA-1 and size. CI will compute SHA-256 after download, import STEP in metres, export GLB, and produce an assembly tree / bounding-box / conversion report. The GLB and reports are CI artifacts initially; no large third-party binary is committed to the application source tree in this stage.
+All six are pinned by exact source blob SHA-1 and size. CI will compute SHA-256 after download, let CadQuery honour any STEP-declared units, independently infer the source scale from the documented 1U full-assembly envelope, export metre-based GLB, and produce an assembly tree / bounding-box / conversion report. If the measured envelope falls outside the explicit 1U plausibility window, conversion stops rather than guessing. The GLB and reports are CI artifacts initially; no large third-party binary is committed to the application source tree in this stage.
 
 ## Critical engineering boundary
 
