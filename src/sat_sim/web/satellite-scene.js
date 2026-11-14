@@ -166,7 +166,10 @@ function pointFromTelemetry(frame, epochUtc) {
   const point = eciToGlobePoint(position, epochUtc, simTimeS);
   return point ? {
     ...point,
-    sequence: Number.isInteger(frame?.sequence) ? frame.sequence : null,
+    sequence: Number.isSafeInteger(frame?.sequence) ? frame.sequence : null,
+    session_id: typeof frame?.session_id === 'string' ? frame.session_id : null,
+    stream: typeof frame?.stream === 'string' ? frame.stream : null,
+    quality: typeof frame?.quality === 'string' ? frame.quality : null,
     name: '任务卫星（真实 Basilisk 遥测）'
   } : null;
 }
