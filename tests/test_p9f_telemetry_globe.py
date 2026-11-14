@@ -133,7 +133,7 @@ def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
               const second = window.SatScene.updateTelemetry({
                 session_id: 'p9f-browser-session', stream: 'orbit.live', sequence: 2, quality: 'GOOD', sim_time_s: 10,
                 values: {'orbit.position_m_x': 6999000, 'orbit.position_m_y': 100000, 'orbit.position_m_z': 50000}
-              }, {epochUtc, frame: 'N_INERTIAL', sourceId: 'p9f-browser-session', sourceLabel: '浏览器验收实时遥测'});
+              }, {epochUtc, timeSystem: 'UTC', frame: 'N_INERTIAL', sourceId: 'p9f-browser-session', streamId: 'orbit.live', sourceLabel: '浏览器验收实时遥测'});
               return {first, second};
             }""")
             assert result == {"first": True, "second": True}
