@@ -45,7 +45,8 @@ def test_viewer_uses_official_gltf_loader_and_meshopt_decoder():
     source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
     vendor = (ROOT / "scripts" / "vendor_scene_assets.py").read_text(encoding="utf-8")
     assert "GLTFLoader" in source and "parseAsync" in source
-    assert "setMeshoptDecoder(MeshoptDecoder)" in source
+    assert "setMeshoptDecoder" not in source
+    assert "MeshoptDecoder" not in source
     assert "loaders/GLTFLoader.js" in vendor
     assert "meshopt_decoder.module.js" in vendor
     assert "function parse(buf)" not in source
