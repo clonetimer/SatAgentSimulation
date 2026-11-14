@@ -75,6 +75,46 @@ def parse_glb(path: Path) -> dict[str, Any]:
     }
 
 
+def _unique_instance_name(name: str, existing: set[str]) -> tuple[str, int]:
+    if name not in existing:
+        return name, 1
+    occurrence = 2
+    while f"{name}__instance_{occurrence:03d}" in existing:
+        occurrence += 1
+    return f"{name}__instance_{occurrence:03d}", occurrence
+
+
+def _import_step_assembly(path: Path):
+    """Import STEP while preserving repeated CAD component occurrences.
+
+    CadQuery's XCAF importer currently uses definition names as instance names.
+    Real assemblies reuse the same part definition multiple times. We suffix
+    duplicate occurrence names and retain the original CAD label in metadata.
+    """
+    import cadquery as cq
+
+    original_add = cq.Assembly.add
+
+    def add_with_unique_occurrence(self, arg, **kwargs):
+        requested = kwargs.get("name")
+        if requested is None and isinstance(arg, cq.Assembly):
+            requested = arg.name
+        if isinstance(requested, str) and requested in self.objects:
+            unique, occurrence = _unique_instance_name(requested, set(self.objects))
+            kwargs["name"] = unique
+            metadata = dict(kwargs.get("metadata") or getattr(arg, "metadata", {}) or {})
+            metadata["source_component_name"] = requested
+            metadata["duplicate_occurrence"] = occurrence
+            kwargs["metadata"] = metadata
+        return original_add(self, arg, **kwargs)
+
+    cq.Assembly.add = add_with_unique_occurrence
+    try:
+        return cq.Assembly.importStep(str(path))
+    finally:
+        cq.Assembly.add = original_add
+
+
 def _matrix4(location: Any) -> list[list[float]]:
     transform = location.wrapped.Transformation()
     return [[float(transform.Value(row, col)) for col in range(1, 5)] for row in range(1, 5)]
@@ -119,6 +159,8 @@ def _walk_assembly(node: Any, parent_path: str | None, parent_world: list[list[f
         matrix[2][3] *= scale_to_m
     rows.append({
         "source_node_name": str(node.name),
+        "source_label_name": str(node.metadata.get("source_component_name", node.name)),
+        "duplicate_occurrence": node.metadata.get("duplicate_occurrence", 1),
         "source_node_path": path,
         "parent_node_path": parent_path,
         "direct_shape_count": len(node.shapes),
@@ -155,7 +197,7 @@ def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, s
     import cadquery as cq
 
     source_path, source_integrity = _download_pinned(record, source_cache, source_commit, cad_directory)
-    assembly = cq.Assembly.importStep(str(source_path))
+    assembly = _import_step_assembly(source_path)
     node_rows: list[dict[str, Any]] = []
     _walk_assembly(assembly, None, None, node_rows, scale_to_m)
 
@@ -239,7 +281,7 @@ def main() -> int:
         manifest["source_commit"], manifest["cad_directory"]
     )
     import cadquery as cq
-    main_assembly = cq.Assembly.importStep(str(main_path))
+    main_assembly = _import_step_assembly(main_path)
     source_unit, scale_to_m, raw_envelope = detect_source_unit(main_assembly)
     print(
         f"[CAD] Unit evidence: source={source_unit}, scale={scale_to_m}, "
