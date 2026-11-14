@@ -229,7 +229,20 @@
       const field = document.createElement('code');
       field.className = 'p9e-run-result-field';
       field.textContent = item.field;
-      card.append(label, value, field);
+      const provenance = document.createElement('span');
+      provenance.className = 'p9e-run-result-provenance';
+      const scopeLabel = {
+        component: '单机精确映射',
+        subsystem: '分系统级关联',
+        whole_spacecraft: '整星级关联'
+      }[item.association_scope] || '未指定关联层级';
+      const sourceLabel = {
+        'workbench_quantity_dictionary.v2': '已审定单机参量字典',
+        capability_output_hierarchy: 'Capability 输出层级',
+        legacy_output_hierarchy: '历史 Run 输出层级'
+      }[item.association_source] || item.association_source || '来源未提供';
+      provenance.textContent = `${scopeLabel} · ${sourceLabel}`;
+      card.append(label, value, field, provenance);
       if (item.sample) {
         const time = document.createElement('span');
         time.className = 'p9e-run-result-time';
