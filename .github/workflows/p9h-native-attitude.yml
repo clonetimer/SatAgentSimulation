@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/dataset_writer.py"
+      - "src/sat_sim/telemetry_overview.py"
+      - "src/sat_sim/api.py"
       - "src/sat_sim/interactive/api.py"
       - "src/sat_sim/web/satellite-scene.js"
       - "src/sat_sim/web/index.html"
@@ -11,6 +14,8 @@ on:
       - "src/sat_sim/web/continuous.js"
       - "tests/test_p9h_attitude_truth.py"
       - "tests/interactive/test_native_attitude_truth_telemetry.py"
+      - "tests/interactive/test_finite_telemetry_overview.py"
+      - "tests/test_p9f_telemetry_globe.py"
       - "tests/interactive/test_p9h_attitude_frame_oracle.py"
       - "tests/test_p9f_native_browser.py"
       - "tests/js/test_p9c_scene_lifecycle.cjs"
