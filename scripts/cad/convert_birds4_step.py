@@ -248,9 +248,9 @@ def audit_reference_assembly(nodes: list[dict[str, Any]]) -> dict[str, Any]:
     counts = {"fm_named": 0, "em_named": 0, "b3_named": 0, "other": 0}
     labels: dict[str, int] = {}
     categories = {
-        "reaction_wheel": re.compile(r"\bRW\b|reaction.?wheel", re.I),
-        "obc": re.compile(r"\bOBC\b", re.I),
-        "communications": re.compile(r"\bCOM\b|transceiver|trx", re.I),
+        "reaction_wheel": re.compile(r"(?:^|[^A-Z0-9])RW(?:[^A-Z0-9]|$)|reaction.?wheel", re.I),
+        "obc": re.compile(r"(?:^|[^A-Z0-9])OBC(?:[^A-Z0-9]|$)", re.I),
+        "communications": re.compile(r"(?:^|[^A-Z0-9])COM(?:[^A-Z0-9]|$)|transceiver|trx", re.I),
         "battery": re.compile(r"battery", re.I),
         "solar_panel": re.compile(r"solar.?panel|panel", re.I),
         "attitude_sensor_candidate": re.compile(r"SNSS|sun.?sensor|magnetometer|gyro|IMU", re.I),
