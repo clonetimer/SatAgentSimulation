@@ -50,6 +50,8 @@ function harness({ failAt = null } = {}) {
             const value = target[name];
             return typeof value === 'function' ? value.bind(target) : value;
           }
+          if (name === 'objectsData') return (rows) => { instance.objectRows = rows; return proxy; };
+          if (name === 'pathsData') return (rows) => { instance.pathRows = rows; return proxy; };
           return (...args) => {
             if (name === failAt) throw new Error(`internal ${name} setup failed`);
             if (name === 'onGlobeReady') instance.readyCallback = args[0];
@@ -209,4 +211,90 @@ test('returning to overview retains the current satellite in the near hemisphere
   assert.ok(Math.abs(overview.lng - satelliteView.lng) <= 30);
   assert.ok(Math.abs(overview.lat - satelliteView.lat) <= 30);
   assert.ok(overview.altitude > satelliteView.altitude, 'overview must zoom out');
+});
+
+
+test('ECI/N inertial position converts to WGS-84 geodetic coordinates using the simulation epoch', () => {
+  const h = harness();
+  const point = h.api.eciToGlobePoint([7000000, 0, 0], '2026-01-01T00:00:00Z', 0);
+  assert.ok(point);
+  assert.ok(Math.abs(point.lat) < 1e-8);
+  assert.ok(Math.abs(point.altitude_km - (7000000 - 6378137) / 1000) < 1e-5);
+  assert.ok(point.lng >= -180 && point.lng <= 180);
+});
+
+test('Earth rotation is applied from simulation time, not browser wall clock', () => {
+  const h = harness();
+  const epoch = '2026-01-01T00:00:00Z';
+  const start = h.api.eciToGlobePoint([7000000, 0, 0], epoch, 0);
+  const sixHours = h.api.eciToGlobePoint([7000000, 0, 0], epoch, 21600);
+  let delta = sixHours.lng - start.lng;
+  while (delta > 180) delta -= 360;
+  while (delta < -180) delta += 360;
+  assert.ok(delta < -90 && delta > -91, `expected ~-90.25 degrees, received ${delta}`);
+});
+
+test('real Basilisk telemetry replaces the demo orbit and draws a bounded ground track', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const epochUtc = '2026-01-01T00:00:00Z';
+  assert.match(h.status.textContent, /演示数据/);
+  assert.equal(h.api.updateTelemetry({
+    session_id: 'live-a', sequence: 1, sim_time_s: 0,
+    values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
+  }, {epochUtc, sourceId: 'live-a', sourceLabel: '实时 Basilisk 会话'}), true);
+  assert.equal(h.api.updateTelemetry({
+    session_id: 'live-a', sequence: 2, sim_time_s: 10,
+    values: {'orbit.position_m_x': 6999000, 'orbit.position_m_y': 100000, 'orbit.position_m_z': 50000}
+  }, {epochUtc, sourceId: 'live-a', sourceLabel: '实时 Basilisk 会话'}), true);
+  const globe = h.instances[0];
+  assert.equal(globe.objectRows[0].name, '任务卫星（真实 Basilisk 遥测）');
+  assert.equal(globe.objectRows[0].sim_time_s, 10);
+  assert.equal(globe.pathRows.length, 1);
+  assert.equal(globe.pathRows[0].points.length, 2);
+  assert.match(h.status.textContent, /实时 Basilisk 会话/);
+  assert.doesNotMatch(h.status.textContent, /演示数据/);
+  assert.equal(h.frames.size, 0, 'real telemetry must stop the demo animation loop');
+});
+
+test('switching telemetry sources clears the previous session ground track', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const frame = (session_id, sim_time_s, y) => ({
+    session_id, sim_time_s,
+    values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': y, 'orbit.position_m_z': 0}
+  });
+  h.api.updateTelemetry(frame('live-a', 10, 1000), {epochUtc:'2026-01-01T00:00:00Z',sourceId:'live-a'});
+  h.api.updateTelemetry(frame('live-a', 20, 2000), {epochUtc:'2026-01-01T00:00:00Z',sourceId:'live-a'});
+  assert.equal(h.instances[0].pathRows[0].points.length, 2);
+  h.api.updateTelemetry(frame('live-b', 0, 0), {epochUtc:'2026-01-01T00:00:00Z',sourceId:'live-b'});
+  assert.equal(h.instances[0].pathRows.length, 0);
+  assert.equal(h.instances[0].objectRows[0].sim_time_s, 0);
+});
+
+test('invalid epoch, non-finite position and unverified Run never become real scene telemetry', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  assert.equal(h.api.updateTelemetry({
+    sim_time_s: 0,
+    values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
+  }, {epochUtc:'not-an-epoch',sourceId:'invalid'}), false);
+  assert.equal(h.api.updateTelemetry({
+    sim_time_s: 0,
+    values: {'orbit.position_m_x': Infinity, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
+  }, {epochUtc:'2026-01-01T00:00:00Z',sourceId:'invalid'}), false);
+  assert.equal(h.api.setRunTelemetry([], {runId:'unsealed',epochUtc:'2026-01-01T00:00:00Z',verified:false}), false);
+  assert.match(h.status.textContent, /演示数据/);
+});
+
+test('verified finite Run telemetry replaces demo mode and preserves sampling provenance', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const rows = [
+    {time_s:0,'orbit.position_m_x':7000000,'orbit.position_m_y':0,'orbit.position_m_z':0},
+    {time_s:5,'orbit.position_m_x':6999900,'orbit.position_m_y':50000,'orbit.position_m_z':10000},
+  ];
+  assert.equal(h.api.setRunTelemetry(rows, {
+    runId:'sealed-run-1',epochUtc:'2026-01-01T00:00:00Z',
+    verified:true,sampled:true,totalRows:5000
+  }), true);
+  assert.equal(h.instances[0].objectRows[0].sim_time_s, 5);
+  assert.equal(h.instances[0].pathRows[0].points.length, 2);
+  assert.match(h.status.textContent, /抽样概览/);
 });
