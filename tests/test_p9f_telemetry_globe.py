@@ -63,7 +63,11 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
     assert "epochUtc: info.orbit_epoch_utc" in continuous
     assert "frame: info.orbit_frame" in continuous
     assert "timeSystem: info.orbit_time_system" in continuous
-    assert "streamId: selectedStream" in continuous
+    assert "streamId: sceneStream" in continuous
+    assert "sceneTelemetryRequest" in continuous
+    assert "sceneLastTelemetrySeq" in continuous
+    assert "whole.orbit" in continuous
+    assert "whole.orbit" in api
     assert "window.SatScene?.updateTelemetry" in app
     assert "window.SatScene?.updateTelemetry" in continuous
     assert "sceneRealtimeSource" in app
