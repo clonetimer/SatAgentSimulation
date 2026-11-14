@@ -271,18 +271,23 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             catalog_streams = detail["telemetry_catalog"]
             position_streams = [
                 stream for stream in catalog_streams
-                if set(POSITION_FIELDS) <= set(stream["fields"])
+                if stream["stream_id"] == "whole.orbit"
             ]
-            assert position_streams, "NATIVE_SESSION_CATALOG_MISSING_THREE_AXIS_POSITION"
+            assert len(position_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ORBIT_STREAM"
+            assert set(position_streams[0]["fields"]) == set(POSITION_FIELDS)
             report["telemetry_catalog"] = catalog_streams
 
             if mode == "bounded":
                 task_spec = creation_requests[-1]["task_spec"]
                 requested_streams = task_spec["outputs"]["telemetry_streams"]
                 assert requested_streams
-                assert all(set(POSITION_FIELDS) <= set(stream["fields"]) for stream in requested_streams), (
-                    "BOUNDED_UI_DID_NOT_REQUEST_POSITION_FIELDS"
-                )
+                scene_streams = [row for row in requested_streams if row["stream_id"] == "whole.orbit"]
+                assert len(scene_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ORBIT_STREAM"
+                assert set(scene_streams[0]["fields"]) == set(POSITION_FIELDS)
+                assert all(
+                    not (set(POSITION_FIELDS) & set(row["fields"]))
+                    for row in requested_streams if row["stream_id"] != "whole.orbit"
+                ), "BOUNDED_UI_MIXED_SCENE_SUPPORT_WITH_USER_CHART_STREAMS"
 
             page.locator(start_selector).wait_for(state="visible")
             page.wait_for_function(
@@ -350,7 +355,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
               };
             }""")
             assert rendered["object"]["session_id"] == session_id
-            assert rendered["object"]["stream"] in {row["stream_id"] for row in position_streams}
+            assert rendered["object"]["stream"] == "whole.orbit"
             assert rendered["object"]["sequence"] >= 0
             assert rendered["object"]["sim_time_s"] > 0
             assert rendered["objectAltitudeAccessor"] == "alt"
@@ -379,8 +384,13 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             report["page_errors"] = list(report["page_errors"])
             assert not report["page_errors"], report["page_errors"]
             if mode == "bounded":
-                assert any('"type":"telemetry"' in str(item) or '"type": "telemetry"' in str(item)
-                           for item in report["socket_messages"]), "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_TELEMETRY"
+                socket_messages = [json.loads(item) for item in report["socket_messages"] if isinstance(item, str)]
+                assert any(
+                    item.get("type") == "telemetry"
+                    and item.get("payload", {}).get("stream") == "whole.orbit"
+                    and item.get("payload", {}).get("quality") == "GOOD"
+                    for item in socket_messages
+                ), "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_GOOD_ORBIT_FRAME"
             report["status"] = "PASS"
             page.screenshot(path=str(evidence / "native-scene.png"), full_page=True)
             browser.close()
