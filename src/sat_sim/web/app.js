@@ -4495,7 +4495,9 @@
           el('saveTaskBtn').disabled = true;
           renderForm();
           renderEvents();
-          renderOutputs();
+          el('qoiOptions').replaceChildren();
+          el('plotOptions').replaceChildren();
+          syncTaskSpecEditor();
           const stack = [...(state.sceneObjectTree?.roots || [])];
           let selected = null;
           while (stack.length) {
