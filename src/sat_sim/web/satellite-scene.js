@@ -108,18 +108,56 @@ function julianDate(epochUtc, simTimeS) {
   return epochMs / 86400000 + 2440587.5 + simTimeS / 86400;
 }
 
-function eciToGlobePoint(position, epochUtc, simTimeS) {
-  if (!Array.isArray(position) || position.length !== 3 ||
-      !position.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
+function gmstAngle(epochUtc, simTimeS) {
   const jd = julianDate(epochUtc, simTimeS);
   if (jd === null) return null;
-
-  // IAU 1982 GMST approximation: adequate for scene placement, not orbit determination.
+  // IAU 1982 GMST approximation, shared by position and attitude transforms.
   const centuries = (jd - 2451545.0) / 36525.0;
   const gmstDeg = 280.46061837 + 360.98564736629 * (jd - 2451545.0)
     + 0.000387933 * centuries * centuries
     - centuries * centuries * centuries / 38710000.0;
-  const theta = THREE.MathUtils.degToRad(((gmstDeg % 360) + 360) % 360);
+  return THREE.MathUtils.degToRad(((gmstDeg % 360) + 360) % 360);
+}
+
+function quaternionMultiplyScalarFirst(a, b) {
+  const [aw, ax, ay, az] = a;
+  const [bw, bx, by, bz] = b;
+  return [
+    aw * bw - ax * bx - ay * by - az * bz,
+    aw * bx + ax * bw + ay * bz - az * by,
+    aw * by - ax * bz + ay * bw + az * bx,
+    aw * bz + ax * by - ay * bx + az * bw,
+  ];
+}
+
+function attitudeToGlobeQuaternion(quaternionBN, epochUtc, simTimeS) {
+  if (!Array.isArray(quaternionBN) || quaternionBN.length !== 4
+      || !quaternionBN.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
+  const norm = Math.hypot(...quaternionBN);
+  if (!Number.isFinite(norm) || Math.abs(norm - 1) > 1e-6) return null;
+  const theta = gmstAngle(epochUtc, simTimeS);
+  if (theta === null) return null;
+
+  // Globe.gl world axes: X=90E, Y=north, Z=prime-meridian equator.
+  // [xG,yG,zG] = [yE,zE,xE], a proper cyclic rotation.
+  const qGE = [0.5, -0.5, -0.5, -0.5];
+  // ECEF relative to inertial N: rotate around +Z by -GMST.
+  const qEN = [Math.cos(theta / 2), 0, 0, -Math.sin(theta / 2)];
+  // Basilisk q_BN maps N to B; invert it to orient B axes in N.
+  const qNB = [quaternionBN[0], -quaternionBN[1], -quaternionBN[2], -quaternionBN[3]];
+  const result = quaternionMultiplyScalarFirst(
+    quaternionMultiplyScalarFirst(qGE, qEN), qNB
+  );
+  const resultNorm = Math.hypot(...result);
+  if (!Number.isFinite(resultNorm) || resultNorm < 1e-12) return null;
+  return result.map(value => value / resultNorm);
+}
+
+function eciToGlobePoint(position, epochUtc, simTimeS) {
+  if (!Array.isArray(position) || position.length !== 3 ||
+      !position.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
+  const theta = gmstAngle(epochUtc, simTimeS);
+  if (theta === null) return null;
   const cosTheta = Math.cos(theta), sinTheta = Math.sin(theta);
   const x = Number(position[0]), y = Number(position[1]), z = Number(position[2]);
   // Rotate inertial N/ECI coordinates into Earth-fixed coordinates.
@@ -176,10 +214,23 @@ function pointFromTelemetry(frame, epochUtc) {
     && mrp.every(value => typeof value === 'number' && Number.isFinite(value))
     && quaternion.every(value => typeof value === 'number' && Number.isFinite(value))
     && Math.abs(quaternionNorm - 1) <= 1e-6;
+  const globeQuaternion = attitudeValid
+    ? attitudeToGlobeQuaternion(quaternion, epochUtc, simTimeS) : null;
+  const euler = globeQuaternion
+    ? new THREE.Euler().setFromQuaternion(
+        new THREE.Quaternion(globeQuaternion[1], globeQuaternion[2], globeQuaternion[3], globeQuaternion[0]),
+        'XYZ'
+      ) : null;
+  const rotation = euler ? {
+    x: THREE.MathUtils.radToDeg(euler.x),
+    y: THREE.MathUtils.radToDeg(euler.y),
+    z: THREE.MathUtils.radToDeg(euler.z),
+  } : {x: 0, y: 0, z: 0};
   return {
     ...point,
     attitude_truth: attitudeValid ? { mrp_BN: mrp, quaternion_BN: quaternion } : null,
-    attitude_valid: attitudeValid,
+    attitude_valid: Boolean(attitudeValid && globeQuaternion),
+    rotation,
     sequence: Number.isSafeInteger(frame?.sequence) ? frame.sequence : null,
     session_id: typeof frame?.session_id === 'string' ? frame.session_id : null,
     stream: typeof frame?.stream === 'string' ? frame.stream : null,
@@ -264,7 +315,7 @@ function updateTelemetry(frame, options = {}) {
     if (state.frame) cancelAnimationFrame(state.frame);
     state.frame = 0;
     renderTelemetryPosition();
-    status(`已接入${state.telemetrySourceLabel}：仿真时间 ${point.sim_time_s.toFixed(2)} s；高度 ${point.altitude_km.toFixed(2)} km。位置由 N 惯性系轨道遥测和仿真 epoch 换算；地球自转采用 GMST 近似与 WGS-84 椭球，仅用于场景定位。`, 'success');
+    status(`已接入${state.telemetrySourceLabel}：仿真时间 ${point.sim_time_s.toFixed(2)} s；高度 ${point.altitude_km.toFixed(2)} km；${point.attitude_valid ? '本体姿态由 Basilisk 真值驱动' : '姿态不可用，本体朝向仅为示意'}。位置使用 GMST 近似与 WGS-84 椭球进行场景定位。`, point.attitude_valid ? 'success' : 'warning');
   }
   return true;
 }
@@ -316,7 +367,7 @@ function clearTelemetrySource() {
   state.telemetrySampled = false;
   state.telemetryTotalRows = null;
   if (state.active && state.ready && state.globe && state.satellite) {
-    Object.assign(state.satellite, {name: '任务卫星（示意模型）', ...orbitPoint(0)});
+    Object.assign(state.satellite, {name: '任务卫星（示意模型）', ...orbitPoint(0), rotation: {x: 0, y: 0, z: 0}, attitude_valid: false, attitude_truth: null});
     state.globe.objectsData([state.satellite]);
     state.globe.pathsData(buildDemoOrbitPath());
     state.startedAt = performance.now();
@@ -376,6 +427,7 @@ function createGlobe(host, generation) {
     .objectLng('lng')
     .objectAltitude('alt')
     .objectFacesSurface(false)
+    .objectRotation('rotation')
     .objectThreeObject(() => makeSatelliteModel());
 
   const controls = globe.controls();
@@ -554,5 +606,5 @@ document.addEventListener('click', (event) => {
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
-  eciToGlobePoint,
+  eciToGlobePoint, attitudeToGlobeQuaternion,
 };
