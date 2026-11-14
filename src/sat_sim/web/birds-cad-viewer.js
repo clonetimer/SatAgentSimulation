@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '/assets/vendor/globe/loaders/GLTFLoader.js';
 const root=document.getElementById('birdsCadViewer');
+const orbitMode=document.getElementById('satelliteOrbitMode');
+const modeTabs=document.querySelectorAll('[data-scene-mode]');
+function setSceneMode(mode){const cad=mode==='cad';orbitMode.hidden=cad;root.hidden=!cad;modeTabs.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.sceneMode===mode)));if(window.BirdsCadViewer?.setViewerVisible)window.BirdsCadViewer.setViewerVisible(cad);}
+modeTabs.forEach(button=>button.addEventListener('click',()=>setSceneMode(button.dataset.sceneMode)));
+
 const canvas=root.querySelector('canvas'),input=root.querySelector('#birdsCadFile'),status=root.querySelector('#birdsCadStatus'),tree=root.querySelector('#birdsCadTree'),info=root.querySelector('#birdsCadInspector');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x101722);const camera=new THREE.PerspectiveCamera(42,1,.0001,1000);scene.add(new THREE.HemisphereLight(0xd9edff,0x303947,2));const key=new THREE.DirectionalLight(0xffffff,3);key.position.set(3,5,4);scene.add(key);const fill=new THREE.DirectionalLight(0x83b7e8,1.4);fill.position.set(-4,1,-3);scene.add(fill);const grid=new THREE.GridHelper(2,20,0x46576d,0x293849);scene.add(grid);const axes=new THREE.AxesHelper(.18);axes.visible=false;scene.add(axes);
