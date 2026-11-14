@@ -304,7 +304,7 @@ test('verified finite Run telemetry replaces demo mode and preserves sampling pr
     {time_s:5,'orbit.position_m_x':6999900,'orbit.position_m_y':50000,'orbit.position_m_z':10000},
   ];
   assert.equal(h.api.setRunTelemetry(rows, {
-    runId:'sealed-run-1',epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',
+    runId:'sealed-run-1',epochUtc:'2026-01-01T00:00:00Z',timeSystem:'UTC',frame:'N_INERTIAL',
     verified:true,sampled:true,totalRows:5000
   }), true);
   assert.equal(h.instances[0].objectRows[0].sim_time_s, 5);
