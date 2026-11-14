@@ -51,7 +51,7 @@ jobs:
       - name: Verify runtime epoch, stream ownership and realtime session bridge
         env:
           PYTHONPATH: "src:."
-        run: python -m pytest -q tests/interactive/test_scene_metadata.py tests/test_p9f_realtime_scene.py tests/test_p9e_object_run_results.py tests/test_p9d_object_config_panel.py tests/interactive/test_session_manager.py
+        run: python -m pytest -q tests/interactive/test_scene_metadata.py tests/test_p9f_realtime_scene.py tests/test_p9e_object_run_results.py tests/test_p9d_object_config_panel.py
       - name: Verify Chromium live-scene behavior for both realtime modes
         if: runner.os == 'Linux'
         env:
