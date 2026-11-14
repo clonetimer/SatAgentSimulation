@@ -132,6 +132,9 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
         "transport": "product UI + real HTTP/WebSocket/REST",
         "telemetry_injection": False,
         "page_errors": [],
+        "console_errors": [],
+        "request_failures": [],
+        "globe_asset_responses": [],
         "socket_messages": [],
         "samples": [],
     }
@@ -168,6 +171,14 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             )
             page = browser.new_page(viewport={"width": 1600, "height": 1000}, locale="zh-CN")
             page.on("pageerror", lambda error: report["page_errors"].append(str(error)))
+            page.on("console", lambda message: report["console_errors"].append(message.text)
+                    if message.type == "error" else None)
+            page.on("requestfailed", lambda request: report["request_failures"].append({
+                "url": request.url, "failure": request.failure,
+            }))
+            page.on("response", lambda response: report["globe_asset_responses"].append({
+                "url": response.url, "status": response.status,
+            }) if "earth-blue-marble" in response.url else None)
             page.on("dialog", lambda dialog: dialog.accept())
 
             def observe_socket(websocket):
@@ -261,6 +272,34 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
             page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
+            try:
+                page.wait_for_function(
+                    """() => {
+                      const node = document.querySelector('#satelliteSceneStatus');
+                      return !!node && !node.textContent.includes('正在加载离线地球影像');
+                    }""",
+                    timeout=20000,
+                )
+            except Exception as error:
+                report["scene_status_at_readiness_timeout"] = page.locator("#satelliteSceneStatus").inner_text()
+                report["page_errors"] = list(report["page_errors"])
+                report["console_errors"] = list(report["console_errors"])
+                try:
+                    page.screenshot(path=str(evidence / "scene-readiness-failure.png"), full_page=True)
+                except Exception:
+                    pass
+                raise AssertionError(
+                    "REAL_GLOBE_READINESS_NOT_REACHED: "
+                    + json.dumps({
+                        "status": report["scene_status_at_readiness_timeout"],
+                        "page_errors": report["page_errors"],
+                        "console_errors": report["console_errors"],
+                        "request_failures": report["request_failures"],
+                        "globe_asset_responses": report["globe_asset_responses"],
+                    }, ensure_ascii=False)
+                ) from error
+            report["scene_ready_status"] = page.locator("#satelliteSceneStatus").inner_text()
+            assert "加载超时" not in report["scene_ready_status"], report["scene_ready_status"]
             page.wait_for_function(
                 "sid => window.__p9fObservedGlobe?.objectRows?.some(row => row.session_id === sid && row.sim_time_s > 0)",
                 arg=session_id,
@@ -339,7 +378,13 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             except Exception:
                 pass
         if browser is not None:
-            browser.close()
+            try:
+                browser.close()
+            except Exception:
+                # sync_playwright owns the browser and may already have closed
+                # its event loop while unwinding the context manager. Preserve
+                # the original browser assertion rather than masking it here.
+                pass
         if server.poll() is None:
             import psutil
             try:
