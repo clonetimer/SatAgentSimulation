@@ -1,0 +1,26 @@
+name: P9-G default entry convergence
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/web/index.html"
+      - "src/sat_sim/web/styles.css"
+      - "tests/js/test_p9g_navigation.cjs"
+      - "docs/superpowers/plans/2026-11-14-p9g-default-entry-convergence.md"
+      - ".github/workflows/p9g-navigation.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: p9g-navigation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  navigation-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify primary navigation, V15 route and legacy reachability
+        run: node --test tests/js/test_p9g_navigation.cjs
