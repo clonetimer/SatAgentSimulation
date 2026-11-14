@@ -76,3 +76,10 @@ def test_cad_assembly_tree_populates_children_on_expand_and_searches_matching_pa
     assert "makeThreeTree(model,search.value)" in source
     assert "included.has(child)" in source
     assert "setTimeout" in source
+
+
+def test_cad_viewer_reports_actual_file_read_progress_and_preserves_previous_scene_on_parse_failure():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    assert "FileReader" in source and "reader.onprogress" in source
+    assert "event.loaded/event.total" in source
+    assert source.index("const gltf=await parseGlb(buf);clear();") >= 0
