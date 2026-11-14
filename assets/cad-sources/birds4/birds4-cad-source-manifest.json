@@ -272,5 +272,54 @@
       "git_blob_sha1": "803fe9bcdbd336fdc71afb8ed8d8d3cb6a97ed39"
     }
   ],
-  "cad_directory": "BIRDS-4 CAD"
+  "cad_directory": "BIRDS-4 CAD",
+  "variant_references": {
+    "repository": "https://github.com/BIRDSOpenSource/BIRDS4-AntennaPanel",
+    "source_commit": "ab53a1862caa541126d400d587ad49b9a80d1507",
+    "license": {
+      "spdx": "MIT",
+      "copyright": "Copyright (c) 2021 Kyushu Institute of Technology"
+    },
+    "documented_flight_units": [
+      "GuaraniSat",
+      "MAYA-2",
+      "TSURU"
+    ],
+    "source_files": [
+      {
+        "path": "FM_GuaraniSat/BIRDS4_-Y_panel_FM_GUARANI_v3.brd",
+        "size_bytes": 9779544,
+        "git_blob_sha1": "f9a1d4e85e82b9360a33298720a8350f0418a35b"
+      },
+      {
+        "path": "FM_MAYA-2/BIRDS4_-Y_panel_FM_MAYA-2_v6.brd",
+        "size_bytes": 3829651,
+        "git_blob_sha1": "5c2cf0eec002dba6b12d2e1672210c1ab4c48ff6"
+      },
+      {
+        "path": "FM_TSURU/BIRDS4_-Y_panel_FM_TSURU_v2.brd",
+        "size_bytes": 1015297,
+        "git_blob_sha1": "987a04ca2ca8d93e4113b647a4d8dc534929b61e"
+      },
+      {
+        "path": "mount_bottom.pdf",
+        "size_bytes": 133077,
+        "git_blob_sha1": "21f0043ba9c66d17fde4564c1fef77f46bb88a07"
+      },
+      {
+        "path": "mount_top.pdf",
+        "size_bytes": 132200,
+        "git_blob_sha1": "36c29873a146e30e62b09bb88d7983a43bf26f28"
+      }
+    ],
+    "readme_claim": "The repository README says the three flight-unit antenna-panel board files differ mainly aesthetically (logos and similar details); this claim is scoped to the -Y antenna-panel Eagle design files only and is not generalized to the complete spacecraft.",
+    "use_boundary": "These board-design references help identify flight-unit-specific -Y panel variants. They do not establish STEP geometry transforms or prove which -Y panel variant is installed in the generic BIRDS4_FM_Final v7 STEP assembly."
+  },
+  "functional_references": [
+    {
+      "title": "On-Orbit Experimental Result of a Non-Deployable 430-MHz-Band Antenna Using a 1U CubeSat Structure",
+      "url": "https://doi.org/10.3390/electronics11071163",
+      "finding": "The BIRDS-4 -X outer panel is a PCB participating in the Loop Hentenna structure; do not classify it as an ordinary solar panel without checking its function and electrical interfaces."
+    }
+  ]
 }
