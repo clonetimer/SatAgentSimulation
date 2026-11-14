@@ -90,3 +90,13 @@ def test_viewer_has_distinct_positive_and_negative_z_camera_presets_and_empty_se
     assert "v==='-z'?Math.PI:0" in source
     assert "没有找到匹配的装配部件" in source
     assert "button.textContent=hasChildren?'选择'" in source
+
+
+def test_satellite_scene_separates_orbit_and_reference_cad_modes():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    assert 'id="satelliteOrbitMode"' in html
+    assert 'data-scene-mode="orbit"' in html and 'data-scene-mode="cad"' in html
+    assert 'id="birdsCadViewer" class="birds-cad-viewer" hidden' in html
+    assert "function setSceneMode(mode)" in source
+    assert "orbitMode.hidden=cad" in source and "root.hidden=!cad" in source
