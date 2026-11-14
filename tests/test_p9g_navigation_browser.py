@@ -148,7 +148,7 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             page.reload(wait_until='networkidle')
             assert page.locator('#satelliteSceneView').is_visible()
             assert page.url == bookmarked
-            page.goto('https://workbench.test/#view=creator', wait_until='networkidle')
+            page.goto('https://workbench.test/?p9g-direct=1#view=creator', wait_until='networkidle')
             assert page.locator('#creatorView').is_visible()
             assert page.url.endswith('#view=creator'), page.url
             _evidence(page, tmp_path, f'journey-{width}', {'scope':'real browser and API, no native execution', 'requests':requests, 'errors':errors, 'history':'back-forward-reload-direct-link'})
