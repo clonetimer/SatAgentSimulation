@@ -161,7 +161,11 @@ function createGlobe(host, generation) {
 }
 
 function updateSatellite(now) {
-  if (!state.active || !state.ready || !state.globe || !state.satellite || state.mode !== 'demo') return;
+  if (!state.active || !state.ready || !state.globe || !state.satellite) return;
+  if (state.mode !== 'demo') {
+    state.frame = 0;
+    return;
+  }
   if (now - state.lastUpdateAt >= 100) {
     state.lastUpdateAt = now;
     const elapsed = (now - state.startedAt) / 1000;
@@ -381,10 +385,14 @@ function setRealtimeSession({
   const modeLabel = mode === 'continuous' ? '持续实时' : '限时实时';
   const next = {sessionId: String(sessionId), mode, modeLabel, epochUtc, timeSystem, positionFrame, streamId, sessionState};
   const changed = !state.liveSession || state.liveSession.sessionId !== next.sessionId ||
-    state.liveSession.streamId !== next.streamId || state.liveSession.epochUtc !== next.epochUtc;
+    state.liveSession.streamId !== next.streamId || state.liveSession.epochUtc !== next.epochUtc ||
+    state.liveSession.timeSystem !== next.timeSystem || state.liveSession.positionFrame !== next.positionFrame ||
+    state.liveSession.mode !== next.mode;
   state.mode = 'realtime';
   state.liveSession = next;
   if (changed) {
+    if (state.frame) cancelAnimationFrame(state.frame);
+    state.frame = 0;
     state.liveLastSequence = -1;
     state.liveTrail = [];
     state.pendingLiveFrame = null;
