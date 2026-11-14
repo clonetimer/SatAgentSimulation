@@ -33,6 +33,15 @@ function harness({ failAt = null } = {}) {
     }
     add(child) { this.children.push(child); }
   }
+  class Quaternion {
+    constructor(x, y, z, w) { this.x = x; this.y = y; this.z = z; this.w = w; }
+  }
+  class Euler {
+    setFromQuaternion(quaternion) {
+      this.x = quaternion.x; this.y = quaternion.y; this.z = quaternion.z;
+      return this;
+    }
+  }
   class Controls {
     constructor() { this.listeners = new Map(); this.disposed = false; }
     addEventListener(name, fn) { this.listeners.set(name, fn); }
@@ -89,7 +98,8 @@ function harness({ failAt = null } = {}) {
   const context = vm.createContext({
     THREE: { MathUtils: { degToRad: x => x * Math.PI / 180, radToDeg: x => x * 180 / Math.PI },
       Group: Node, Mesh: Node, BoxGeometry: Node, MeshStandardMaterial: Node,
-      CylinderGeometry: Node, ConeGeometry: Node, SphereGeometry: Node, MeshBasicMaterial: Node },
+      CylinderGeometry: Node, ConeGeometry: Node, SphereGeometry: Node, MeshBasicMaterial: Node,
+      Quaternion, Euler },
     window,
     document: {
       getElementById: id => id === 'satelliteSceneCanvas' ? host : (id === 'satelliteSceneStatus' ? status : ui.get(id) || null),
