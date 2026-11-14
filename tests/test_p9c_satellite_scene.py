@@ -36,11 +36,19 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         three_core = client.get("/assets/vendor/globe/three.core.js")
         earth = client.get("/assets/vendor/globe/textures/earth-blue-marble.jpg")
         manifest = client.get("/assets/vendor/globe/vendor-manifest.json")
+        gltf_loader = client.get("/assets/vendor/globe/loaders/GLTFLoader.js")
+        meshopt_decoder = client.get("/assets/vendor/globe/loaders/meshopt_decoder.module.js")
+        buffer_geometry_utils = client.get("/assets/vendor/globe/utils/BufferGeometryUtils.js")
+        skeleton_utils = client.get("/assets/vendor/globe/utils/SkeletonUtils.js")
 
         assert globe.status_code == 200 and len(globe.content) > 100_000
         assert three.status_code == 200 and len(three.content) > 100_000
         assert three_core.status_code == 200 and len(three_core.content) > 100_000
         assert earth.status_code == 200 and len(earth.content) > 50_000
+        assert gltf_loader.status_code == 200 and len(gltf_loader.content) > 100_000
+        assert meshopt_decoder.status_code == 200 and len(meshopt_decoder.content) > 10_000
+        assert buffer_geometry_utils.status_code == 200 and len(buffer_geometry_utils.content) > 10_000
+        assert skeleton_utils.status_code == 200 and len(skeleton_utils.content) > 10_000
         assert manifest.status_code == 200
         payload = manifest.json()
         assert payload["packages"]["globe.gl"]["version"] == "2.46.2"
