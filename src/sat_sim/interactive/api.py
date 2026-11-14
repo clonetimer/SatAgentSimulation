@@ -118,11 +118,8 @@ def create_interactive_router(
         if not epoch_utc:
             from sat_sim.bsk_engine.orbital_environment import DEFAULT_EPOCH
             epoch_utc = DEFAULT_EPOCH
-        from .runtime_factory import APPROVED_CAPABILITY_IDS
-        orbit_capabilities = {
-            "whole_spacecraft.unified_native.v1",
-            "subsystem.adcs_unified_native.v1",
-        }
+        from .runtime_factory import ADCS_UNIFIED_CAPABILITY_ID, WHOLE_UNIFIED_CAPABILITY_ID
+        orbit_capabilities = {WHOLE_UNIFIED_CAPABILITY_ID, ADCS_UNIFIED_CAPABILITY_ID}
         capability_id = session.spec.capability_id
         return {
             **session.snapshot().model_dump(mode="json"),
