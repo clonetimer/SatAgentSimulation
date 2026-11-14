@@ -97,8 +97,9 @@ def test_p9d_browser_parameter_edit_uses_the_existing_taskspec_parse_route(tmp_p
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
-            page.locator("#p9dObjectTree .p9d-tree-item").first.wait_for(timeout=30000)
+            page.locator("#p9dObjectTree .p9d-tree-item").first.wait_for(state="attached", timeout=30000)
             page.locator('.nav-button[data-view="scene"]').click()
+            page.locator("#p9dObjectTree .p9d-tree-item").first.wait_for(state="visible", timeout=15000)
             wheel = page.locator("#p9dObjectTree .p9d-tree-item").filter(has_text="反作用轮").first
             wheel.click()
             parameter = page.locator("#p9dParameterHost label.p9d-parameter").filter(has_text="转动惯量").first
