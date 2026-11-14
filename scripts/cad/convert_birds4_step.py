@@ -26,6 +26,9 @@ SELECTED = (
     "B4_COM_board v19.step",
     "B4_battery v1.step",
     "B4_FM_+X_panel v1.step",
+    "B4_FM_-X_panel v1.step",
+    "B4_FM_+Y_panel v1.step",
+    "B4_FM_-Y_panel v3.step",
 )
 
 
