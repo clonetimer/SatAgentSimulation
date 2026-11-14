@@ -51,6 +51,9 @@ function orbitPoint(phase) {
 }
 
 function makeSatelliteModel() {
+  // Schematic display frame convention: local +X follows the solar-panel
+  // span, +Y points toward the antenna, and +Z is the panel-plane normal.
+  // This is a visualization convention, not a claimed CAD/as-built mounting.
   const root = new THREE.Group();
   root.name = 'Original schematic satellite model';
 
