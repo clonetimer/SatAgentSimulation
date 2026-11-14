@@ -223,6 +223,11 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                     "BOUNDED_UI_DID_NOT_REQUEST_POSITION_FIELDS"
                 )
 
+            page.wait_for_function(
+                "selector => { const button = document.querySelector(selector); return !!button && !button.disabled; }",
+                arg="#continuousCreateForm button[type=submit]" if mode == "continuous" else "#createInteractiveSessionBtn",
+                timeout=30000,
+            )
             page.locator(start_selector).wait_for(state="visible")
             page.wait_for_function(
                 "selector => { const button = document.querySelector(selector); return !!button && !button.disabled; }",
@@ -239,7 +244,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             # This is the product's actual scene navigation action. The active
             # real session and its existing telemetry transport must survive.
             page.locator("#wizardSceneShortcutBtn").click()
-            page.locator("#satelliteSceneStatus").filter(has_text="场景已就绪").wait_for(timeout=30000)
+            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+            page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
             page.wait_for_function(
                 "sid => window.__p9fObservedGlobe?.objectRows?.some(row => row.session_id === sid && row.sim_time_s > 0)",
                 arg=session_id,
