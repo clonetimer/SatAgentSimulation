@@ -39,6 +39,8 @@ jobs:
           python -m pip install "cadquery==2.6.1" "pytest==9.0.3"
       - name: Stage pinned offline Three.js runtime and GLTFLoader
         run: python scripts/vendor_scene_assets.py
+      - name: Verify JavaScript module syntax
+        run: node --check src/sat_sim/web/birds-cad-viewer.js
       - name: Verify source pin and browser viewer contracts
         run: python -m pytest -q tests/cad/test_birds4_step_converter.py tests/test_p9i_cad_viewer_contract.py
       - name: Import pinned BIRDS-4 flight-model STEP and export reference GLB
