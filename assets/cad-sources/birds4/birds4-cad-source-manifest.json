@@ -15,7 +15,7 @@
     "nominal_envelope_mm": [
       100,
       100,
-      100
+      113.5
     ],
     "launch_date": "2021-02-21",
     "satellite_names": [
@@ -23,7 +23,13 @@
       "Guarani-1",
       "Maya-2"
     ],
-    "note": "Repository README describes the BIRDS-4 program and CAD source; do not infer a specific flight unit's as-built configuration from the CAD repository alone."
+    "note": "Repository README describes the BIRDS-4 program and CAD source; do not infer a specific flight unit's as-built configuration from the CAD repository alone.",
+    "envelope_source": {
+      "title": "BIRDS Project Newsletter Issue 42",
+      "url": "https://birds1.birds-project.com/files/BIRDS_Newsletter_Issue_No_42.pdf",
+      "page": 25,
+      "statement": "Standard 1U CubeSat mainframe dimensions are stated as 100 x 100 x 113.5 mm; use as a nominal structural envelope reference, not as a strict bound for the full CAD including panels/protrusions."
+    }
   },
   "assembly_procedure": {
     "repository": "https://github.com/BIRDSOpenSource/BIRDS4-ProceduresAndReports",
@@ -38,7 +44,8 @@
     "title": "BIRDS Newsletter Issue No.49",
     "url": "https://birds1.birds-project.com/files/BIRDS_Newsletter_Issue_No.49.pdf",
     "page": 158,
-    "role": "axis/datum orientation reference only; not a complete per-instance transform table"
+    "role": "axis/datum orientation reference only; not a complete per-instance transform table",
+    "issue49_note": "Issue 49 page 158 states rails along Z, frames in XY planes, and back-plane board coplanar in the illustrated assembly stage. It does not define a numeric origin or all six-degree-of-freedom component mounting transforms."
   },
   "cad_files": [
     {
