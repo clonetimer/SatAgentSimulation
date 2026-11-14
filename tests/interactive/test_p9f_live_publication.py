@@ -79,7 +79,14 @@ def test_default_continuous_creation_publishes_actual_basilisk_position(native_c
         None,
     )
     assert stream is not None, "P9F_DEFAULT_CONTINUOUS_POSITION_NOT_PUBLISHED"
-    assert set(stream["fields"]) == set(POSITION_FIELDS)
+    attitude_fields = {
+        "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+        "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+        "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+        "attitude.truth.valid",
+    }
+    assert set(POSITION_FIELDS) <= set(stream["fields"])
+    assert attitude_fields <= set(stream["fields"])
     primary_stream = next(row for row in detail["telemetry_catalog"] if row["stream_id"] == "whole.continuous")
     assert not (set(POSITION_FIELDS) & set(primary_stream["fields"]))
 
