@@ -538,3 +538,175 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
         (evidence / "report.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
         )
+
+
+@pytest.mark.parametrize("viewport", [{"width": 1600, "height": 1000}, {"width": 390, "height": 844}])
+def test_sealed_finite_run_attitude_is_restored_in_real_scene(viewport, tmp_path):
+    """A genuine sealed Basilisk Run must restore attitude in the user's history scene."""
+    if os.environ.get("SAT_SIM_P9F_NATIVE_BROWSER_TEST") != "1":
+        pytest.skip("Dedicated genuine Basilisk/Chromium acceptance job only")
+    import Basilisk
+    from playwright.sync_api import sync_playwright
+    from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
+    from sat_sim.scenario_templates import instantiate_scenario_template
+
+    runs_root = tmp_path / "runs"
+    spec = instantiate_scenario_template(
+        "whole_spacecraft_unified_native", task_id="p9h_sealed_scene_browser"
+    )
+    spec["simulation"].update({"duration_s": 2.0, "step_s": 0.1, "sample_s": 0.5})
+    spec.setdefault("parameters", {}).setdefault("values", {})["initial_pointing_error_deg"] = 17.0
+    # Deliberately select only an EPS curve. Scene-support channels are
+    # internal evidence and must not depend on the user's plot selection.
+    spec.setdefault("outputs", {})["plots"] = ["eps.battery.soc"]
+    prepared = prepare_run(spec, output_root=runs_root, run_id="p9h_sealed_scene_run")
+    execution = execute_prepared_run(
+        prepared.bundle_root, expected_plan_sha256=prepared.execution_plan_sha256,
+        max_attempts=1,
+    )
+    assert execution.run_record.status.value == "SUCCEEDED"
+    assert execution.run_record.sealed is True
+    assert verify_run_bundle(prepared.bundle_root)["ok"] is True
+
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    base = f"http://127.0.0.1:{port}"
+    env = {
+        **os.environ,
+        "SAT_SIM_INTERACTIVE_ENABLED": "1",
+        "SAT_SIM_SUPERVISED_NATIVE_RUNTIME": "0",
+        "SAT_SIM_AUTH_MODE": "disabled",
+        "SAT_SIM_EMBEDDED_WORKER": "0",
+        "SAT_SIM_RUNS_ROOT": str(runs_root),
+        "SAT_SIM_API_ARTIFACTS_ROOT": str(tmp_path / "api"),
+    }
+    for key in (
+        "SAT_SIM_QUEUE_DATABASE", "SAT_SIM_TASK_CENTER_DATABASE",
+        "SAT_SIM_EXPERIMENT_DATABASE", "SAT_SIM_AUDIT_LOG",
+        "SAT_SIM_WORKBENCH_LOG", "SAT_SIM_MODEL_PROVIDERS_FILE",
+    ):
+        env.pop(key, None)
+    evidence = Path(os.environ.get("SAT_SIM_P9F_EVIDENCE", str(tmp_path))) / "sealed-run"
+    evidence.mkdir(parents=True, exist_ok=True)
+    report = {
+        "status": "RUNNING", "run_id": prepared.run_id,
+        "basilisk_version": Basilisk.__version__, "sealed": True,
+        "integrity": "PASS", "selected_plot_fields": spec["outputs"]["plots"],
+        "page_errors": [], "console_errors": [], "request_failures": [],
+    }
+    server_log = (evidence / "server.log").open("w", encoding="utf-8")
+    server = subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "sat_sim.api:create_app", "--factory",
+         "--host", "127.0.0.1", "--port", str(port), "--no-access-log"],
+        cwd=ROOT, env=env, stdout=server_log, stderr=subprocess.STDOUT,
+    )
+    browser = None
+    page = None
+    try:
+        deadline = time.monotonic() + 60
+        while True:
+            assert server.poll() is None, "SEALED_RUN_API_EXITED_BEFORE_READY"
+            try:
+                _json_request(base, "/health")
+                break
+            except OSError:
+                if time.monotonic() > deadline:
+                    raise TimeoutError("SEALED_RUN_API_STARTUP_TIMEOUT")
+                time.sleep(0.2)
+
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(
+                headless=True,
+                args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
+            )
+            page = browser.new_page(viewport=viewport, locale="zh-CN")
+            page.on("pageerror", lambda error: report["page_errors"].append(str(error)))
+            page.on("console", lambda message: report["console_errors"].append(message.text)
+                    if message.type == "error" else None)
+            page.on("requestfailed", lambda request: report["request_failures"].append({
+                "url": request.url, "failure": request.failure,
+            }))
+            page.goto(base, wait_until="domcontentloaded")
+            page.evaluate(GLOBE_OBSERVER)
+            page.locator("#wizardAdvancedBtn").click()
+            page.locator("#runList [data-run-id='p9h_sealed_scene_run']").wait_for(
+                state="visible", timeout=30000
+            )
+            page.locator("#runList [data-run-id='p9h_sealed_scene_run']").click()
+            page.locator("#activeRunCard .run-id").wait_for(state="visible", timeout=30000)
+            page.locator("#wizardSceneShortcutBtn").click()
+            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+            page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
+            page.wait_for_function(
+                "() => window.__p9fObservedGlobe?.objectRows?.some(row => row.attitude_valid === true)",
+                timeout=30000,
+            )
+            rendered = page.evaluate("""() => ({
+              object: window.__p9fObservedGlobe?.objectRows?.[0] || null,
+              paths: window.__p9fObservedGlobe?.pathRows || [],
+              source: document.querySelector('#sceneDataSource')?.dataset.state,
+              truth: document.querySelector('#sceneTruthStatus')?.textContent,
+              mrp: document.querySelector('#sceneMrpValue')?.textContent,
+              quaternion: document.querySelector('#sceneQuaternionValue')?.textContent,
+              frameSource: document.querySelector('#sceneFrameSource')?.textContent,
+              frameSequence: document.querySelector('#sceneFrameSequence')?.textContent,
+              quality: document.querySelector('#sceneFrameQuality')?.textContent,
+              estimator: document.querySelector('#sceneEstimatorStatus')?.textContent,
+              status: document.querySelector('#satelliteSceneStatus')?.textContent
+            })""")
+            assert rendered["object"] is not None
+            assert rendered["object"]["attitude_valid"] is True
+            assert rendered["object"]["attitude_truth"] is not None
+            assert len(rendered["object"]["attitude_truth"]["quaternion_BN"]) == 4
+            assert sum(v*v for v in rendered["object"]["attitude_truth"]["quaternion_BN"]) == pytest.approx(1.0, abs=1e-6)
+            assert rendered["source"] == "sealed"
+            assert rendered["truth"].startswith("有效")
+            assert rendered["mrp"] != "—" and rendered["quaternion"] != "—"
+            assert rendered["frameSource"] == "run:p9h_sealed_scene_run"
+            assert rendered["frameSequence"] == "封存样本"
+            assert rendered["quality"] == "SEALED"
+            assert rendered["estimator"] == "尚未接入"
+            assert "已封存有限 Run 遥测" in rendered["status"]
+            assert "示意模型轴系" in rendered["status"]
+            assert len(rendered["paths"]) >= 1
+            assert not report["page_errors"], report["page_errors"]
+            report["rendered"] = rendered
+            report["status"] = "PASS"
+            page.screenshot(path=str(evidence / "sealed-run-scene.png"), full_page=True)
+    except Exception as error:
+        report["status"] = "FAIL"
+        report["error"] = repr(error)
+        if page is not None:
+            try:
+                page.screenshot(path=str(evidence / "failure.png"), full_page=True)
+            except Exception:
+                pass
+        raise
+    finally:
+        if browser is not None:
+            try:
+                browser.close()
+            except Exception:
+                pass
+        if server.poll() is None:
+            import psutil
+            try:
+                descendants = psutil.Process(server.pid).children(recursive=True)
+            except psutil.NoSuchProcess:
+                descendants = []
+            for child in descendants:
+                try:
+                    child.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+            server.terminate()
+            try:
+                server.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                server.kill()
+                server.wait(timeout=10)
+        server_log.close()
+        (evidence / "report.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
