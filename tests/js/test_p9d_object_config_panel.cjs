@@ -10,6 +10,7 @@ class Element {
     this.attributes = {}; this.listeners = {}; this.className = ''; this.textContent = '';
   }
   appendChild(child) { this.children.push(child); return child; }
+  append(...children) { this.children.push(...children); }
   replaceChildren(...children) { this.children = children; }
   addEventListener(name, callback) { this.listeners[name] = callback; }
   setAttribute(name, value) { this.attributes[name] = value; }
