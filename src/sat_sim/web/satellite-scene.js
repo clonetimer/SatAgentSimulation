@@ -52,7 +52,7 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
   setText('sceneAltitude', hasSource ? `${point.altitude_km.toFixed(2)} km` : '—');
   setText('sceneGeographicPosition', hasSource ? `${point.lat.toFixed(3)}°, ${point.lng.toFixed(3)}°` : '—');
   const truthValid = Boolean(hasSource && point.attitude_valid && point.attitude_truth);
-  setText('sceneTruthStatus', truthValid ? '有效 · 刚体状态真值' : (live ? '不可用 · 不使用估计值替代' : '等待真实遥测'));
+  setText('sceneTruthStatus', truthValid ? '有效 · 刚体状态真值' : (hasSource ? '不可用 · 不使用估计值替代' : '等待真实遥测'));
   setText('sceneMrpValue', truthValid ? point.attitude_truth.mrp_BN.map(value => value.toFixed(6)).join(', ') : '—');
   setText('sceneQuaternionValue', truthValid ? point.attitude_truth.quaternion_BN.map(value => value.toFixed(6)).join(', ') : '—');
   setText('sceneRotationValue', truthValid && point.rotation
