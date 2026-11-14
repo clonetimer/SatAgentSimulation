@@ -6213,8 +6213,11 @@
       try {
         const plotFields = (plotsPayload.plot_manifest?.series || [])
           .map((entry) => entry.field).filter(Boolean).slice(0, 16);
+        const sceneFields = runContext.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1'
+          ? ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] : [];
+        const overviewFields = Array.from(new Set([...plotFields, ...sceneFields]));
         const query = new URLSearchParams({
-          max_points: '3000', fields: plotFields.join(','),
+          max_points: '3000', fields: overviewFields.join(','),
         });
         telemetryOverview = await api(`/runs/${encodeURIComponent(runId)}/telemetry/overview?${query}`);
       } catch (_) { telemetryOverview = null; }
