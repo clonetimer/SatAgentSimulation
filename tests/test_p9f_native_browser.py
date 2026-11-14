@@ -384,6 +384,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert rendered["object"]["sequence"] >= 0
             assert rendered["object"]["sim_time_s"] > 0
             assert rendered["object"]["attitude_valid"] is True
+            assert "示意模型轴系" in page.locator("#satelliteSceneStatus").inner_text()
             assert len(rendered["object"]["attitude_truth"]["mrp_BN"]) == 3
             assert len(rendered["object"]["attitude_truth"]["quaternion_BN"]) == 4
             assert sum(value * value for value in rendered["object"]["attitude_truth"]["quaternion_BN"]) == pytest.approx(1.0, abs=1e-6)
