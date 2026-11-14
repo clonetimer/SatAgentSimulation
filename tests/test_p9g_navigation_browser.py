@@ -131,6 +131,31 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             assert not [r for r in requests if r[0]=='POST' and r[1].startswith(('/runs','/interactive/'))]
             assert not errors, errors
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-            _evidence(page, tmp_path, f'journey-{width}', {'scope':'real browser and API, no native execution', 'requests':requests, 'errors':errors})
+
+            # P9-G3: navigation is bookmarkable and participates in browser history.
+            nav.get_by_role('button', name=re.compile(r'任务中心
+        finally:
+            browser.close()
+)).click()
+            assert page.url.endswith('#view=tasks'), page.url
+            nav.get_by_role('button', name=re.compile(r'卫星数字场景
+        finally:
+            browser.close()
+)).click()
+            assert page.url.endswith('#view=scene'), page.url
+            page.go_back()
+            assert page.locator('#wizardTaskWorkspace').is_visible()
+            assert page.url.endswith('#view=tasks'), page.url
+            page.go_forward()
+            assert page.locator('#satelliteSceneView').is_visible()
+            assert page.url.endswith('#view=scene'), page.url
+            bookmarked = page.url
+            page.reload(wait_until='networkidle')
+            assert page.locator('#satelliteSceneView').is_visible()
+            assert page.url == bookmarked
+            page.goto('https://workbench.test/#view=creator', wait_until='networkidle')
+            assert page.locator('#creatorView').is_visible()
+            assert page.url.endswith('#view=creator'), page.url
+            _evidence(page, tmp_path, f'journey-{width}', {'scope':'real browser and API, no native execution', 'requests':requests, 'errors':errors, 'history':'back-forward-reload-direct-link'})
         finally:
             browser.close()
