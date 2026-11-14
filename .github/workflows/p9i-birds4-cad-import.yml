@@ -34,7 +34,7 @@ jobs:
       - name: Verify source pin and GLB parser unit tests
         run: python -m pytest -q tests/cad/test_birds4_step_converter.py
       - name: Import pinned BIRDS-4 flight-model STEP and export reference GLB
-        run: python tools/cad/convert_birds4_step.py
+        run: python scripts/cad/convert_birds4_step.py
       - name: Upload GLB, source integrity, assembly tree and conversion reports
         uses: actions/upload-artifact@v7
         with:
