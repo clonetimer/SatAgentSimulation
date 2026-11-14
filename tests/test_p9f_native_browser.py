@@ -76,6 +76,26 @@ def _json_request(base: str, path: str, payload: dict | None = None) -> dict:
         return json.load(response)
 
 
+def _wait_for_running(base: str, mode: str, session_id: str) -> dict:
+    deadline = time.monotonic() + 30
+    last = None
+    while time.monotonic() < deadline:
+        if mode == "continuous":
+            payload = _json_request(
+                base, f"/interactive/continuous/sessions/{quote(session_id)}/status"
+            )
+            last = payload.get("session") or {}
+        else:
+            last = _json_request(base, f"/interactive/sessions/{quote(session_id)}")
+        state = str(last.get("state") or "").upper()
+        if state == "RUNNING":
+            return last
+        if state in {"FAILED", "ABORTED", "INTERRUPTED", "COMPLETED"}:
+            pytest.fail(f"NATIVE_SESSION_TERMINATED_BEFORE_SCENE: {last}")
+        time.sleep(0.1)
+    pytest.fail(f"NATIVE_SESSION_DID_NOT_REACH_RUNNING: {last}")
+
+
 @pytest.mark.parametrize("mode", ["bounded", "continuous"])
 def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path):
     if os.environ.get("SAT_SIM_P9F_NATIVE_BROWSER_TEST") != "1":
@@ -170,7 +190,6 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 _set_control(page, "#continuousHorizon", "120")
                 create = page.locator('#continuousCreateForm button[type="submit"]')
                 create_path = "/interactive/continuous/sessions"
-                state_selector = "#continuousState"
                 start_selector = '[data-continuous-action="start"]'
             else:
                 page.locator("#interactiveCapability").select_option("whole_spacecraft.unified_native.v1")
@@ -179,7 +198,6 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 page.locator("#interactivePaced").check()
                 create = page.locator("#createInteractiveSessionBtn")
                 create_path = "/interactive/sessions"
-                state_selector = "#interactiveState"
                 start_selector = "#interactiveStartBtn"
 
             page.wait_for_function(
@@ -235,12 +253,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 timeout=30000,
             )
             page.locator(start_selector).click()
-            running_label = "运行中" if mode == "continuous" else "RUNNING"
-            page.wait_for_function(
-                "args => (document.querySelector(args.selector)?.textContent || '').includes(args.label)",
-                arg={"selector": state_selector, "label": running_label},
-                timeout=30000,
-            )
+            running_snapshot = _wait_for_running(base, mode, session_id)
+            report["running_snapshot"] = running_snapshot
 
             # This is the product's actual scene navigation action. The active
             # real session and its existing telemetry transport must survive.
