@@ -126,3 +126,48 @@ def test_saved_lmstudio_profile_uses_json_schema_and_context_safe_output_budget(
     profile = next(item for item in providers if item["provider_id"] == "local-lmstudio")
     assert profile["structured_output"] == "json_schema"
     assert profile["max_output_tokens"] == 2048
+
+
+def test_plot_manifest_binds_component_series_to_exact_reviewed_object() -> None:
+    rows = [
+        {"time_s": 0.0, "adcs.reaction_wheel.speed_rad_s_0": 10.0},
+        {"time_s": 1.0, "adcs.reaction_wheel.speed_rad_s_0": 12.0},
+    ]
+    manifest = _plot_manifest_payload({
+        "model": {"capability_id": "component.reaction_wheel.v1"},
+        "outputs": {"plots": ["adcs.reaction_wheel.speed_rad_s_0"]},
+    }, rows)
+    assert manifest["schema_version"] == "sat-sim.plot-manifest.v3"
+    series = manifest["series"][0]
+    assert series["object_id"] == "component.reaction_wheel"
+    assert series["association_scope"] == "component"
+    assert series["association_source"] == "workbench_quantity_dictionary.v2"
+    assert series["unit"] == "rad/s"
+
+
+def test_whole_spacecraft_plot_manifest_keeps_reaction_wheel_output_at_subsystem_scope() -> None:
+    rows = [
+        {"time_s": 0.0, "adcs.rw.speed_rad_s_0": 10.0},
+        {"time_s": 1.0, "adcs.rw.speed_rad_s_0": 12.0},
+    ]
+    manifest = _plot_manifest_payload({
+        "model": {"capability_id": "whole_spacecraft.unified_native.v1"},
+        "outputs": {"plots": ["adcs.rw.speed_rad_s_0"]},
+    }, rows)
+    series = manifest["series"][0]
+    assert series["object_id"] == "subsystem.adcs"
+    assert series["association_scope"] == "subsystem"
+    assert series["association_source"] == "capability_output_hierarchy"
+    assert series["scope_id"] == "component"  # display grouping remains separate from ownership scope
+
+
+def test_unmapped_component_field_does_not_receive_guessed_object_identity() -> None:
+    from sat_sim.run_bundle import _plot_series_object_binding
+
+    binding = _plot_series_object_binding(
+        {"model": {"capability_id": "component.reaction_wheel.v1"}},
+        "adcs.rw.unknown_sensor_value",
+    )
+    assert binding["object_id"] is None
+    assert binding["association_scope"] == "unmapped"
+    assert binding["association_reason"] == "FIELD_NOT_REGISTERED_FOR_COMPONENT"
