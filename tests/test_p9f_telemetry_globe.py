@@ -57,6 +57,10 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
     assert "state.snapshot?.orbit_epoch_utc" in continuous
     assert "window.SatScene?.updateTelemetry" in app
     assert "window.SatScene?.updateTelemetry" in continuous
+    assert "sceneRealtimeSource" in app
+    assert "keepSceneTelemetry" in app
+    assert "sceneNeedsInteractiveTelemetry" in app
+    assert "name === 'scene' && state.sceneRealtimeSource === 'continuous'" in app
 
 
 def test_finite_run_scene_support_is_sealed_whole_spacecraft_only():
