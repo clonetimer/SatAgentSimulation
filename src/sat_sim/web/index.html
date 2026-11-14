@@ -71,22 +71,29 @@
     <div class="app-frame">
       <aside class="app-sidebar" aria-label="工作台目录">
         <nav class="sidebar-nav" aria-label="主目录">
-          <div class="sidebar-section-title">仿真工作</div>
-          <button class="nav-button active" data-view="wizard" type="button"><span>✦</span><b>开始仿真</b></button>
+          <div class="sidebar-section-title">主要工作</div>
+          <button class="nav-button active" data-view="wizard" type="button"><span>✦</span><b>快速仿真</b></button>
+          <button class="nav-button" data-view="wizard" data-wizard-shortcut="history" type="button"><span>▣</span><b>任务中心</b></button>
           <button class="nav-button" data-view="scene" type="button"><span>◎</span><b>卫星数字场景</b></button>
           <button class="nav-button" data-view="creator" type="button"><span>◇</span><b>专业建模</b></button>
-          <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
-          <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
-          <div class="sidebar-section-title">任务与实验</div>
-          <button class="nav-button" data-view="wizard" data-wizard-shortcut="history" type="button"><span>▣</span><b>任务中心</b></button>
-          <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
-          <button class="nav-button" data-view="goals" type="button"><span>◎</span><b>目标实验</b></button>
-          <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
-          <button class="nav-button" data-view="evaluations" type="button"><span>⌁</span><b>效能评估</b></button>
-          <div class="sidebar-section-title">系统工具</div>
-          <button class="nav-button" data-view="diagnostics" type="button"><span>◉</span><b>系统诊断</b></button>
-          <button class="nav-button" data-view="logs" type="button"><span>≡</span><b>运行日志</b></button>
-          <button id="openModelSettingsBtn" class="nav-button" type="button"><span>◇</span><b>模型服务</b></button>
+          <details class="sidebar-nav-group">
+            <summary>实时仿真</summary>
+            <button id="interactiveNavButton" class="nav-button hidden" data-view="interactive" type="button"><span>◫</span><b>实时会话</b></button>
+            <button id="continuousNavButton" class="nav-button hidden" data-view="continuous" type="button"><span>∞</span><b>持续卫星仿真</b></button>
+          </details>
+          <details class="sidebar-nav-group">
+            <summary>实验与分析</summary>
+            <button class="nav-button" data-view="experiments" type="button"><span>⌘</span><b>实验中心</b></button>
+            <button class="nav-button" data-view="goals" type="button"><span>◎</span><b>目标实验</b></button>
+            <button class="nav-button" data-view="runs" type="button"><span>◫</span><b>运行中心</b></button>
+            <button class="nav-button" data-view="evaluations" type="button"><span>⌁</span><b>效能评估</b></button>
+          </details>
+          <details class="sidebar-nav-group">
+            <summary>高级工具</summary>
+            <button class="nav-button" data-view="diagnostics" type="button"><span>◉</span><b>系统诊断</b></button>
+            <button class="nav-button" data-view="logs" type="button"><span>≡</span><b>运行日志</b></button>
+            <button id="openModelSettingsBtn" class="nav-button" type="button"><span>◇</span><b>模型服务</b></button>
+          </details>
         </nav>
         <button id="toggleMobileCatalogBtn" class="button secondary mobile-workbench-toggle mobile-catalog-toggle" type="button" aria-controls="mobileCatalogPanel" aria-expanded="false" data-closed-label="选择仿真对象" data-open-label="收起仿真对象">选择仿真对象</button>
         <section id="mobileCatalogPanel" class="sidebar-capabilities" data-mobile-expanded="false" aria-label="仿真对象目录">
