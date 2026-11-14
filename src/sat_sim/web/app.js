@@ -4683,7 +4683,16 @@
   }
 
   async function selectCapability(capabilityId, objectOverride = null, isCurrent = () => true) {
-    if (capabilityId === state.selectedCapabilityId && state.schema && !objectOverride) return;
+    if (capabilityId === state.selectedCapabilityId && state.schema) {
+      if (objectOverride) {
+        state.selectedObjectId = objectOverride.object_id;
+        renderVariantControl(objectOverride);
+        renderCapabilityList();
+        renderP9DPanel();
+        window.SatScene?.selectObject?.({ name: objectOverride.name_zh, hasSpatialAnchor: Boolean(objectOverride.spatial_anchor) });
+      }
+      return true;
+    }
     const mobileCatalogHadFocus = el('mobileCatalogPanel').contains(document.activeElement);
     clearResetUndo();
     const capabilityChanged = capabilityId !== state.selectedCapabilityId;
