@@ -60,6 +60,7 @@ on:
       - "tests/interactive/test_interactive_api.py"
       - "tests/interactive/test_continuous_soak.py"
       - "tests/interactive/test_unified_segmented_execution.py"
+      - "tests/test_v15_native_visual_graph_execution.py"
       - ".github/workflows/continuous-satellite-native.yml"
   workflow_dispatch:
 
@@ -139,6 +140,11 @@ jobs:
             tests/interactive/test_unified_segmented_execution.py \
             tests/interactive/test_subsystem_persistent_runtimes.py \
             --disable-warnings
+      - name: Execute V15 visual-graph compiled TaskSpec with genuine Basilisk
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_v15_native_visual_graph_execution.py --disable-warnings
       - name: Official Vizard vizInterface genuine Basilisk .bin and no-physics-change A/B
         env:
           PYTHONPATH: "src:."
