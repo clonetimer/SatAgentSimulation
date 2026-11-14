@@ -8831,7 +8831,15 @@
     }
     if (name === 'scene') {
       const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
-      state.sceneRealtimeSource = previousView === 'continuous' ? 'continuous'
+      const runSpec = state.activeRun?.task_spec || {};
+      const verifiedWholeSpacecraftRun = state.activeRun?.sealed === true
+        && state.activeRun?.integrity?.ok === true
+        && String(state.activeRun?.run_record?.status || '').toUpperCase() === 'SUCCEEDED'
+        && runSpec.model?.capability_id === 'whole_spacecraft.unified_native.v1';
+      const enteringRunResults = previousView === 'runs'
+        || (previousView === 'wizard' && state.wizard.step === 'results');
+      state.sceneRealtimeSource = verifiedWholeSpacecraftRun && enteringRunResults ? 'run'
+        : previousView === 'continuous' ? 'continuous'
         : previousView === 'interactive' && state.interactiveSession && !terminal ? 'interactive'
         : state.interactiveSession && !terminal ? 'interactive' : 'continuous';
     } else {
