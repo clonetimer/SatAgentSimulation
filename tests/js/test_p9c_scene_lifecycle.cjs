@@ -14,6 +14,7 @@ function harness({ failAt = null } = {}) {
   const frames = new Map(), timers = new Map(), instances = [], observers = [];
   let nextId = 0, now = 0;
   const status = { textContent: '', dataset: {} };
+  const warnings = [];
   const host = { clientWidth: 1200, clientHeight: 700, children: [],
     replaceChildren(...children) { this.children = children; } };
   const buttons = ['track', 'free', 'home'].map(action => ({
@@ -95,12 +96,13 @@ function harness({ failAt = null } = {}) {
     clearTimeout: id => timers.delete(id),
     queueMicrotask,
     performance: { now: () => now },
-    console: { warn() {}, error() {} }
+    console: { warn(...args) { warnings.push(args.map(String).join(' ')); }, error() {} }
   });
   vm.runInContext(source.replace(/^import \* as THREE from 'three';\s*/, ''), context,
     {filename: 'satellite-scene.js'});
-  return { api: window.SatScene, instances, observers, host, status, frames, timers, buttons,
+  return { api: window.SatScene, instances, observers, host, status, frames, timers, buttons, warnings,
     async ready(index = instances.length - 1) {
+      if (!instances[index]) throw new Error(`scene not constructed; status=${status.textContent}; warnings=${warnings.join(' | ')}`);
       instances[index].ready(); await Promise.resolve(); await Promise.resolve();
     },
     tick() {
