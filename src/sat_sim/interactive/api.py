@@ -221,7 +221,7 @@ def create_interactive_router(
         # A three-wheel session must not claim a fabricated fourth actuator.
         native_values = body.initial_configuration.native_values()
         telemetry_fields = [
-            "orbit.radius_m", "orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z",
+            "orbit.radius_m",
             "adcs.pointing_error_deg", "eps.battery_soc",
             "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
             "adcs.rw.speed_rad_s_2", "adcs.rw.effective_max_torque_nm_0",
@@ -247,11 +247,25 @@ def create_interactive_router(
                     "solver": {"step_s": 0.1 if body.quantum_s == 0.5 else min(body.quantum_s, 0.2)},
                 },
                 "parameters": {"values": native_values},
-                "outputs": {"telemetry_streams": [{
-                    "stream_id": "whole.continuous",
-                    "sample_s": body.quantum_s,
-                    "fields": telemetry_fields,
-                }]},
+                "outputs": {"telemetry_streams": [
+                    {
+                        "stream_id": "whole.continuous",
+                        "sample_s": body.quantum_s,
+                        "fields": telemetry_fields,
+                    },
+                    {
+                        # Position-only quality domain for the real 3D scene.
+                        # Unrelated missing subsystem outputs cannot invalidate
+                        # an otherwise complete Basilisk position vector.
+                        "stream_id": "whole.orbit",
+                        "sample_s": body.quantum_s,
+                        "fields": [
+                            "orbit.position_m_x",
+                            "orbit.position_m_y",
+                            "orbit.position_m_z",
+                        ],
+                    },
+                ]},
             },
         )
         try:
