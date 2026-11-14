@@ -133,7 +133,7 @@
             input.appendChild(option);
           });
           input.value = String(value ?? field.default ?? '');
-        } else if (['object','object_editor','array'].includes(field.widget) || String(field.widget).startsWith('array[')) {
+        } else if (parameter.array_index == null && (['object','object_editor','array'].includes(field.widget) || String(field.widget).startsWith('array['))) {
           input = document.createElement('textarea');
           input.rows = 2;
           input.spellcheck = false;
