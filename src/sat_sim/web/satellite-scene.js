@@ -594,10 +594,10 @@ function selectObject({ name, hasSpatialAnchor = false } = {}) {
   if (!name) return;
   const readyPrefix = state.active && state.ready
     ? (state.telemetrySourceId
-      ? `场景已接入${state.telemetrySourceLabel || '真实仿真遥测'}。${state.latestTelemetryPoint
-        ? `仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s；高度 ${state.latestTelemetryPoint.altitude_km.toFixed(2)} km。`
+      ? `场景已就绪，当前显示${state.telemetrySourceLabel || '真实仿真遥测'}。${state.latestTelemetryPoint
+        ? `仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s；高度 ${state.latestTelemetryPoint.altitude_km.toFixed(2)} km；${state.latestTelemetryPoint.attitude_valid ? '姿态由 Basilisk 真值驱动（示意模型轴系）' : '姿态不可用，本体朝向仅为示意'}。`
         : ''}`
-      : '场景当前使用演示数据。') : '';
+      : '场景已就绪，当前使用演示数据（非仿真结果）。') : '';
   if (!hasSpatialAnchor) {
     status(`${readyPrefix}已选择：${name}。该对象没有经过审定的三维空间锚点，场景保持当前视角，不虚构部件位置。`, 'info');
     return;
