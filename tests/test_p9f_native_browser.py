@@ -68,6 +68,7 @@ GLOBE_OBSERVER = r"""
                 altitude_km: row?.altitude_km,
                 attitude_truth: row?.attitude_truth,
                 attitude_valid: row?.attitude_valid,
+                rotation: row?.rotation,
               }));
             } else if (propertyName === 'pathRows') {
               observed.pathRows = (Array.isArray(value) ? value : []).map(segment => ({
@@ -384,6 +385,19 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert len(rendered["object"]["attitude_truth"]["mrp_BN"]) == 3
             assert len(rendered["object"]["attitude_truth"]["quaternion_BN"]) == 4
             assert sum(value * value for value in rendered["object"]["attitude_truth"]["quaternion_BN"]) == pytest.approx(1.0, abs=1e-6)
+            assert set(rendered["object"]["rotation"]) == {"x", "y", "z"}
+            assert all(math.isfinite(value) for value in rendered["object"]["rotation"].values())
+            # The browser transform must preserve a unit quaternion and react
+            # to an independent body-axis rotation, not just a fixed model pose.
+            rotations = page.evaluate("""(epoch) => {
+              const convert = window.SatScene.attitudeToGlobeQuaternion;
+              const a = convert([1, 0, 0, 0], epoch, 0);
+              const b = convert([Math.SQRT1_2, Math.SQRT1_2, 0, 0], epoch, 0);
+              return {a, b, normA: Math.hypot(...a), normB: Math.hypot(...b)};
+            }""", detail["orbit_epoch_utc"])
+            assert rotations["normA"] == pytest.approx(1.0, abs=1e-6)
+            assert rotations["normB"] == pytest.approx(1.0, abs=1e-6)
+            assert rotations["a"] != pytest.approx(rotations["b"], abs=1e-5)
             assert rendered["objectAltitudeAccessor"] == "alt"
             assert rendered["pathPointAltitudeAccessor"] == "alt"
             assert any(len(segment.get("points", [])) >= 2 for segment in rendered["pathRows"])
