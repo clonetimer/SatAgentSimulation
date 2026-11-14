@@ -60,7 +60,7 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
     assert "sceneRealtimeSource" in app
     assert "keepSceneTelemetry" in app
     assert "sceneNeedsInteractiveTelemetry" in app
-    assert "name === 'scene' && state.sceneRealtimeSource === 'continuous'" in app
+    assert "name === 'scene' && state.sceneRealtimeSource === 'continuous' && state.interactiveAvailable" in app
 
 
 def test_finite_run_scene_support_is_sealed_whole_spacecraft_only():
