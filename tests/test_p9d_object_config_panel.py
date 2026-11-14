@@ -30,7 +30,7 @@ def test_scene_configuration_catalog_is_real_and_read_only(tmp_path):
         assert inertia["minimum"] is not None
         schema = capability_form_schema("component.reaction_wheel.v1")
         source_field = next(row for row in schema["fields"] if row["path"].endswith(".wheel_inertia_kg_m2"))
-        assert source_field["default"] == inertia["default"]
+        assert source_field["default"][inertia["array_index"]] == inertia["default"]
         assert source_field["unit"] == inertia["unit"]
         after = client.get("/health").json()
         assert before["features"] == after["features"]
