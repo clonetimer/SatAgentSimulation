@@ -75,10 +75,13 @@ def test_default_continuous_creation_publishes_actual_basilisk_position(native_c
     assert detail["orbit_frame"] == "N_INERTIAL"
     assert detail["orbit_epoch_utc"]
     stream = next(
-        (row for row in detail["telemetry_catalog"] if set(POSITION_FIELDS) <= set(row["fields"])),
+        (row for row in detail["telemetry_catalog"] if row["stream_id"] == "whole.orbit"),
         None,
     )
     assert stream is not None, "P9F_DEFAULT_CONTINUOUS_POSITION_NOT_PUBLISHED"
+    assert set(stream["fields"]) == set(POSITION_FIELDS)
+    primary_stream = next(row for row in detail["telemetry_catalog"] if row["stream_id"] == "whole.continuous")
+    assert not (set(POSITION_FIELDS) & set(primary_stream["fields"]))
 
     status = native_client.get(f"/interactive/continuous/sessions/{session_id}/status").json()
     assert status["orbit_epoch_utc"] == detail["orbit_epoch_utc"]
@@ -97,7 +100,7 @@ def test_default_continuous_creation_publishes_actual_basilisk_position(native_c
 
 def test_bounded_whole_spacecraft_creation_publishes_actual_basilisk_position(native_client):
     session_id = "p9f-native-bounded"
-    stream_id = "whole.bounded"
+    stream_id = "whole.orbit"
     response = native_client.post("/interactive/sessions", json={
         "session_id": session_id,
         "capability_id": WHOLE_CAPABILITY,
@@ -131,7 +134,7 @@ def test_bounded_whole_spacecraft_creation_publishes_actual_basilisk_position(na
         None,
     )
     assert stream is not None
-    assert set(POSITION_FIELDS) <= set(stream["fields"])
+    assert set(stream["fields"]) == set(POSITION_FIELDS)
 
     started = native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "start"})
     assert started.status_code == 200, started.text
