@@ -50,13 +50,18 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
     continuous = (root / "web" / "continuous.js").read_text(encoding="utf-8")
     assert '"orbit_frame": "N_INERTIAL"' in api
     assert '"orbit_epoch_utc": str(epoch)' in api
+    assert '"orbit_time_system": time_system' in api
     for field in ("orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z"):
         assert field in api
         assert field in app
     assert "state.interactiveSession.orbit_epoch_utc" in app
     assert "frame: state.interactiveSession.orbit_frame" in app
+    assert "timeSystem: state.interactiveSession.orbit_time_system" in app
+    assert "streamId: frame.stream" in app
     assert "epochUtc: info.orbit_epoch_utc" in continuous
     assert "frame: info.orbit_frame" in continuous
+    assert "timeSystem: info.orbit_time_system" in continuous
+    assert "streamId: selectedStream" in continuous
     assert "window.SatScene?.updateTelemetry" in app
     assert "window.SatScene?.updateTelemetry" in continuous
     assert "sceneRealtimeSource" in app
@@ -120,11 +125,11 @@ def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
             result = page.evaluate("""() => {
               const epochUtc = '2026-01-01T00:00:00Z';
               const first = window.SatScene.updateTelemetry({
-                session_id: 'p9f-browser-session', sequence: 1, sim_time_s: 0,
+                session_id: 'p9f-browser-session', stream: 'orbit.live', sequence: 1, quality: 'GOOD', sim_time_s: 0,
                 values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
-              }, {epochUtc, frame: 'N_INERTIAL', sourceId: 'p9f-browser-session', sourceLabel: '浏览器验收实时遥测'});
+              }, {epochUtc, timeSystem: 'UTC', frame: 'N_INERTIAL', sourceId: 'p9f-browser-session', streamId: 'orbit.live', sourceLabel: '浏览器验收实时遥测'});
               const second = window.SatScene.updateTelemetry({
-                session_id: 'p9f-browser-session', sequence: 2, sim_time_s: 10,
+                session_id: 'p9f-browser-session', stream: 'orbit.live', sequence: 2, quality: 'GOOD', sim_time_s: 10,
                 values: {'orbit.position_m_x': 6999000, 'orbit.position_m_y': 100000, 'orbit.position_m_z': 50000}
               }, {epochUtc, frame: 'N_INERTIAL', sourceId: 'p9f-browser-session', sourceLabel: '浏览器验收实时遥测'});
               return {first, second};
