@@ -39,3 +39,21 @@ def test_birds_cad_viewer_supports_search_visibility_and_isolation():
     for token in ("birdsCadSearch", "birdsCadTree", "data-cad-tree-action", "isDescendant", "is-selected", "birds-cad-visibility"):
         assert token in source or token in html
     assert "隔离选中" in html and "恢复全部" in html
+
+
+def test_viewer_uses_official_gltf_loader_and_meshopt_decoder():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    vendor = (ROOT / "scripts" / "vendor_scene_assets.py").read_text(encoding="utf-8")
+    assert "GLTFLoader" in source and "parseAsync" in source
+    assert "setMeshoptDecoder(MeshoptDecoder)" in source
+    assert "loaders/GLTFLoader.js" in vendor
+    assert "meshopt_decoder.module.js" in vendor
+    assert "function parse(buf)" not in source
+    assert "function build(doc,bin)" not in source
+
+
+def test_viewer_disposes_textures_and_keeps_selected_ancestors_visible():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    assert "textures.forEach" in source and "x.dispose()" in source
+    assert "isDescendant(n,selectedNode)||isDescendant(selectedNode,n)" in source
+    assert "async function load" in source
