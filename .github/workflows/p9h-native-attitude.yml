@@ -1,0 +1,47 @@
+name: P9-H native attitude truth contract
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/interactive/api.py"
+      - "src/sat_sim/web/satellite-scene.js"
+      - "tests/test_p9h_attitude_truth.py"
+      - "tests/interactive/test_native_attitude_truth_telemetry.py"
+      - ".github/workflows/p9h-native-attitude.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  attitude-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install unit contract dependencies
+        run: python -m pip install "pytest==9.0.3" "numpy==2.3.5"
+      - name: Verify MRP truth conversion and source separation
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/test_p9h_attitude_truth.py
+  basilisk-native-recorder:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install official Basilisk and test dependencies
+        run: |
+          python -m pip install \
+            "bsk==2.11.0" "pytest==9.0.3" "numpy==2.3.5" \
+            "colorama==0.4.6" "sgp4==2.25" "PyYAML==6.0.3" \
+            "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "joblib==1.5.3" "scikit-learn==1.9.0" "psutil==7.2.2" "numba==0.63.1"
+      - name: Prove actual Basilisk SCStatesMsg sigma_BN recorder and MRP2EP parity
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/interactive/test_native_attitude_truth_telemetry.py
