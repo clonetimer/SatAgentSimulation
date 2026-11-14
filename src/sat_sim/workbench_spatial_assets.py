@@ -257,7 +257,7 @@ def validate_spatial_asset_registry(
     # Fail closed globally: no geometry is renderable if any registry contract
     # error exists. This prevents a partially corrupt assembly from appearing valid.
     renderable = []
-    if not errors:
+    if not errors and asset_root is not None:
         for instance in verified_candidates:
             renderable.append({
                 "instance_id": instance["instance_id"],
@@ -273,6 +273,7 @@ def validate_spatial_asset_registry(
         "schema_version": SCHEMA_VERSION,
         "asset_count": len(asset_index),
         "instance_count": len(instance_index),
+        "asset_bytes_verified": asset_root is not None and not errors,
         "renderable_instances": renderable,
         "errors": errors,
         "semantics": {
