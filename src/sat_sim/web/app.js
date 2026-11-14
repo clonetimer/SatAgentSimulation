@@ -6212,9 +6212,11 @@
       // Older servers or UI fixture transports can still return the legacy page.
       let telemetryOverview = null;
       try {
+        const needsScenePosition = runContext.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1';
+        const plotFieldLimit = needsScenePosition ? 13 : 16;
         const plotFields = (plotsPayload.plot_manifest?.series || [])
-          .map((entry) => entry.field).filter(Boolean).slice(0, 16);
-        const sceneFields = runContext.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1'
+          .map((entry) => entry.field).filter(Boolean).slice(0, plotFieldLimit);
+        const sceneFields = needsScenePosition
           ? ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] : [];
         const overviewFields = Array.from(new Set([...plotFields, ...sceneFields]));
         const query = new URLSearchParams({
