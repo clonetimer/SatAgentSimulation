@@ -81,9 +81,10 @@ def test_selected_conversion_targets_exist_in_pinned_manifest():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     records = {row["path"]: row for row in manifest["cad_files"]}
     assert len(records) == 46
-    assert len(MODULE.SELECTED) == 6
+    assert len(MODULE.SELECTED) == 9
     assert all(name in records for name in MODULE.SELECTED)
     assert records["BIRDS4_FM_Final v7.step"]["size_bytes"] == 22_964_753
+    assert all(name in records for name in ("B4_FM_+X_panel v1.step", "B4_FM_-X_panel v1.step", "B4_FM_+Y_panel v1.step", "B4_FM_-Y_panel v3.step"))
 
 
 class _Bounds:
