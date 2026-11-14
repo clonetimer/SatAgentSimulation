@@ -91,7 +91,13 @@ def _step_length_unit(path: Path) -> str:
         return "MM"
     if units == {"$"}:
         return "M"
-    raise ValueError(f"STEP length unit is missing, mixed, or unsupported: {sorted(units)}")
+    declarations = re.findall(r"SI_UNIT\\(([^)]*)\\)", text)
+    conversion_units = re.findall(r"CONVERSION_BASED_UNIT\\(([^)]*)\\)", text)
+    raise ValueError(
+        "STEP length unit is missing, mixed, or unsupported: "
+        f"{sorted(units)}; SI_UNIT declarations={declarations[:12]}; "
+        f"CONVERSION_BASED_UNIT declarations={conversion_units[:12]}"
+    )
 
 
 def _walk_assembly(node: Any, parent_path: str | None, parent_world: list[list[float]] | None, rows: list[dict[str, Any]], scale_to_m: float) -> None:
