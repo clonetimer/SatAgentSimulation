@@ -49,3 +49,31 @@ The Newsletter Issue 49, page 158, is a datum/orientation reference only. It doe
 - FM assembly procedure: https://github.com/BIRDSOpenSource/BIRDS4-ProceduresAndReports/blob/main/Procedures/BIRDS4-FM%20Assembly%20Procedure.docx
 - Newsletter Issue 49: https://birds1.birds-project.com/files/BIRDS_Newsletter_Issue_No.49.pdf
 - BIRDS-3 reference (separate project): https://github.com/BIRDSOpenSource/BIRDS3-CAD
+
+
+## P9-I3-A 实际转换验收记录（2026-11-14）
+
+GitHub Actions run #21：`43611131544`，结果 PASS；项目脚本与依赖治理 run #1038：`43611131564`，结果 PASS。
+
+转换产物 artifact：
+- Artifact ID：`14120795473`
+- 名称：`birds4-fm-cad-reference-43611131544`
+- ZIP：15,670,157 bytes
+- SHA-256：`5b494816d3bf607cd6051c1130529edec273bea1bc69412e738b55bbbb5156df`
+- 内容：6 个 GLB、6 份转换报告、6 份装配树、1 份汇总报告。
+
+整星实测：
+- STEP：22,964,753 bytes；Git blob SHA-1 `0a1eea524ad16c9f06961a62bb550cad4d2d9e36`。
+- STEP 来源 SHA-256：`f59672d2bfa126474a7ddc5e06d277efe55aca7f8f30cff54648352d7da0f920`。
+- 装配树：855 nodes，其中 757 个节点直接含几何。
+- GLB：852 nodes、754 meshes，60,? bytes（以 report.json 精确值为准）。
+- 转换包围盒：104 × 108.3 × 114.5 mm；这是实际 CAD 几何包围盒，不强行缩放为 100 mm。
+- STEP 单位由 CadQuery 导入后的 1U 整星尺度独立核验，采用 mm→m 的 0.001 转换。
+
+重要审查发现：
+- 整星 STEP 装配树中出现 `B4_EM_*`、`B3_*` 命名节点，同时也出现明确的 B4 FM 面板与 B4 单机子装配。
+- 因此，文件名中的 `FM_Final` 不能作为树内每个子装配均属于同一飞行单元的充分证据。
+- 这套 CAD 只能先登记为 BIRDS-4 参考几何；不生成 as-built equipment instances，不把任何节点直接标记为可渲染的 verified 装机单机。
+- 下一轮必须对照 FM Assembly Procedure、对应型号（Tsuru / Guarani-1 / Maya-2）的机械图纸与部件版本，审定混合命名子装配的适用性；同时确认 CAD datum、手性和模型轴向。
+
+转换器新增 `assembly-review.json`，统计 FM/EM/B3 命名、重复部件 occurrence 和候选设备类别，并明确输出 `render_eligibility=false`、空装机实例列表。该报告是来源审计，不是人工装配审定。
