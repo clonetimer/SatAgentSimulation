@@ -188,7 +188,7 @@ function renderTelemetryPosition() {
 }
 
 function updateTelemetry(frame, options = {}) {
-  if ((options.frame || 'N_INERTIAL') !== 'N_INERTIAL') return false;
+  if (options.frame !== 'N_INERTIAL') return false;
   const sourceId = String(options.sourceId || frame?.session_id || 'interactive-session');
   const epochUtc = options.epochUtc || state.telemetryEpochUtc;
   if (!epochUtc) return false;
@@ -222,7 +222,7 @@ function updateTelemetry(frame, options = {}) {
 
 function setRunTelemetry(rows, options = {}) {
   if (!options.verified || !options.runId || !options.epochUtc
-      || (options.frame || 'N_INERTIAL') !== 'N_INERTIAL') {
+      || options.frame !== 'N_INERTIAL') {
     clearTelemetrySource();
     return false;
   }
