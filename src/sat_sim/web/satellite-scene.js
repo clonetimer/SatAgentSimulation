@@ -45,7 +45,7 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
   const sealedRun = Boolean(hasSource && state.telemetrySourceId.startsWith('run:'));
   const source = byId('sceneDataSource');
   if (source) {
-    source.textContent = hasSource ? (state.telemetrySourceLabel || '真实 Basilisk 遥测') : '演示数据（非仿真结果）';
+    source.textContent = sealedRun ? 'Run 历史结果（已封存）' : (hasSource ? (state.telemetrySourceLabel || '真实 Basilisk 遥测') : '演示数据（非仿真结果）');
     source.dataset.state = sealedRun ? 'sealed' : (hasSource ? 'live' : 'demo');
   }
   setText('sceneSimTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
