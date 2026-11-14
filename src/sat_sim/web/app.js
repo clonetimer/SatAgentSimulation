@@ -7467,11 +7467,12 @@
             )),
           })),
           ...(capabilityId === 'whole_spacecraft.unified_native.v1' ? [{
-            // A dedicated position-only stream keeps frame quality independent
-            // from unrelated ADCS/EPS/thermal/communications channels.
+            // A dedicated atomic spatial-state stream publishes position and
+            // body attitude from the same spacecraft recorder, independently
+            // of unrelated ADCS/EPS/thermal/communications channels.
             stream_id: 'whole.orbit',
             sample_s: quantum,
-            fields: ORBIT_POSITION_FIELDS,
+            fields: ORBIT_SCENE_FIELDS,
           }] : []),
         ] },
       },
@@ -7691,14 +7692,18 @@
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, 'CLIENT_NAVIGATION');
   }
 
-  const ORBIT_POSITION_FIELDS = Object.freeze([
+  const ORBIT_SCENE_FIELDS = Object.freeze([
     'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z',
+    'attitude.truth.mrp_BN_x', 'attitude.truth.mrp_BN_y', 'attitude.truth.mrp_BN_z',
+    'attitude.truth.quaternion_BN_q0', 'attitude.truth.quaternion_BN_q1',
+    'attitude.truth.quaternion_BN_q2', 'attitude.truth.quaternion_BN_q3',
+    'attitude.truth.valid',
   ]);
 
   function sceneOrbitStream(session) {
     const catalog = Array.isArray(session?.telemetry_catalog) ? session.telemetry_catalog : [];
     return catalog.find(stream => Array.isArray(stream.fields)
-      && ORBIT_POSITION_FIELDS.every(field => stream.fields.includes(field))) || null;
+      && ORBIT_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
   }
 
   function acceptInteractiveFrame(frame) {
