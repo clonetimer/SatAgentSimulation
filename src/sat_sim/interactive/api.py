@@ -109,7 +109,10 @@ def create_interactive_router(
         except KeyError as exc:
             raise HTTPException(404, detail={"reason_code": "INTERACTIVE_SESSION_NOT_FOUND"}) from exc
 
-    def orbit_visualization_metadata(session) -> dict[str, str]:
+    def orbit_visualization_metadata(session) -> dict[str, str | None]:
+        from sat_sim.bsk_engine.orbital_environment import DEFAULT_EPOCH
+        from .runtime_factory import ADCS_UNIFIED_CAPABILITY_ID, WHOLE_UNIFIED_CAPABILITY_ID
+
         task_spec = session.spec.task_spec if isinstance(session.spec.task_spec, dict) else {}
         simulation = task_spec.get("simulation") if isinstance(task_spec.get("simulation"), dict) else {}
         parameters = task_spec.get("parameters") if isinstance(task_spec.get("parameters"), dict) else {}
@@ -119,11 +122,16 @@ def create_interactive_router(
             values.get("epoch_utc")
             or simulation.get("epoch_utc")
             or orbit_environment.get("epoch_utc")
-            or "2026-01-01T00:00:00Z"
+            or DEFAULT_EPOCH
         )
+        time_system = str(simulation.get("time_system") or "UTC")
+        supports_native_orbit = session.spec.capability_id in {
+            WHOLE_UNIFIED_CAPABILITY_ID, ADCS_UNIFIED_CAPABILITY_ID,
+        }
         return {
             "orbit_epoch_utc": str(epoch),
-            "orbit_frame": "N_INERTIAL",
+            "orbit_time_system": time_system,
+            "orbit_frame": "N_INERTIAL" if supports_native_orbit and time_system == "UTC" else None,
         }
 
     def session_metadata(session):
