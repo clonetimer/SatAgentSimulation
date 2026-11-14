@@ -96,7 +96,7 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             assert page.locator('#wizardTaskWorkspace').is_visible()
             nav.get_by_role('button', name=re.compile(r'快速仿真$')).click()
             assert not page.locator('#wizardTaskWorkspace').is_visible()
-            assert page.get_by_role('button', name='运行正常仿真', exact=True).is_visible()
+            pw.expect(page.get_by_role('button', name='运行正常仿真')).to_be_visible()
             nav.get_by_role('button', name=re.compile(r'专业建模$')).click()
             assert inputs.evaluate_all('(items) => items.map(x => [x.id, x.value])') == initial
             more = page.locator('#workbenchMoreNavigation')
