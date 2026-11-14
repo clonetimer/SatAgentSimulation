@@ -182,6 +182,11 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 state_selector = "#interactiveState"
                 start_selector = "#interactiveStartBtn"
 
+            page.wait_for_function(
+                "selector => { const button = document.querySelector(selector); return !!button && !button.disabled; }",
+                arg="#continuousCreateForm button[type=submit]" if mode == "continuous" else "#createInteractiveSessionBtn",
+                timeout=30000,
+            )
             creation_requests: list[dict] = []
 
             def record_creation(request):
@@ -223,11 +228,6 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                     "BOUNDED_UI_DID_NOT_REQUEST_POSITION_FIELDS"
                 )
 
-            page.wait_for_function(
-                "selector => { const button = document.querySelector(selector); return !!button && !button.disabled; }",
-                arg="#continuousCreateForm button[type=submit]" if mode == "continuous" else "#createInteractiveSessionBtn",
-                timeout=30000,
-            )
             page.locator(start_selector).wait_for(state="visible")
             page.wait_for_function(
                 "selector => { const button = document.querySelector(selector); return !!button && !button.disabled; }",
