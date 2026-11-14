@@ -635,6 +635,9 @@ def test_sealed_finite_run_attitude_is_restored_in_real_scene(viewport, tmp_path
             )
             page.locator("#runList [data-run-id='p9h_sealed_scene_run']").click()
             page.locator("#activeRunCard .run-id").wait_for(state="visible", timeout=30000)
+            # Return to the guided workbench without clearing the selected Run;
+            # then use the same scene entry exposed to ordinary users.
+            page.locator("#runCenterView [data-return-wizard]").click()
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
             page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
