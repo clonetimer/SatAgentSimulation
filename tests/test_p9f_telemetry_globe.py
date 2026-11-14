@@ -60,6 +60,8 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
     assert "window.SatScene?.updateTelemetry" in app
     assert "window.SatScene?.updateTelemetry" in continuous
     assert "sceneRealtimeSource" in app
+    assert "verifiedWholeSpacecraftRun" in app
+    assert "enteringRunResults" in app
     assert "keepSceneTelemetry" in app
     assert "sceneNeedsInteractiveTelemetry" in app
     assert "name === 'scene' && state.sceneRealtimeSource === 'continuous' && state.interactiveAvailable" in app
