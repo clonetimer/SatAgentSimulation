@@ -31,6 +31,7 @@
 | `run_r84_native_imu_observability.py` | R84 原生 IMU/RW 研究执行 | active | 用途：运行 8 个唯一 Basilisk 原生工况及 1 次同种子回放；参数：--r83m-archive、--output-dir；输出：独立 IMU 观测、物理 QA、案例清单和哈希收据，不训练模型 |
 | `run_r84r1_independent_noise_observability.py` | R84-R1 独立噪声可观测性研究 | active | 用途：运行 3,159 个唯一 Basilisk 原生工况及 1 次同 seed 回放；参数：--r83m-archive、--r0-artifact、--output-dir；输出：独立原始 IMU JSONL、健康误报控制、物理 QA、分布统计和哈希收据，不训练模型 |
 | `run_r84r2_multipulse_multifeature_observability.py` | R84-R2 多脉冲多特征原生可观测性研究 | active | 用途：运行 2,862 个唯一 18 s Basilisk 原生工况及 1 次同 seed 回放；参数：--r83m-archive、--r84r1-artifact、--output-dir；输出：四脉冲原始 IMU JSONL、16 特征、健康误报控制、完整物理 QA 与哈希收据，不训练模型 |
+| `audit_r84r3b_measurement_replay.py` | R84-R3B 轮速测量敏感性回放审计 | active | 用途：只读核验固定 R3A 原生遥测、零扰动对照和敏感性观察输出；参数：--source-dir、--identity-dir、--sensitivity-dir、--report；输出：行数、缺测、通道隔离、回放一致性收据，不授予硬件或数据集资格 |
 | `audit_r84r2_raw_imu_feature_screen.py` | R84-R2-E0 原始 IMU 多特征探索审计 | active | 用途：对固定 SHA 的 R84-R1 原始 IMU artifact 做回溯式 8 维特征筛查；参数：--artifact、--report；输出：特征级和多特征健康控制/故障对照 JSON；不运行仿真、不训练模型、不作为独立确认 |
 | `audit_interactive_baseline.py` | 交互扩展兼容基线 | active | 冻结测试计数、Doctor、release-check、OpenAPI 与脚本清单哈希 |
 | `bootstrap_local.sh` | 环境初始化 | active | 保留并统一文件头与入口 |
