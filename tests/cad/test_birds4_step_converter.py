@@ -131,3 +131,14 @@ def test_duplicate_cad_component_names_get_stable_unique_occurrence_ids():
     name, occurrence = MODULE._unique_instance_name("new-part", existing)
     assert name == "new-part"
     assert occurrence == 1
+
+
+def test_glb_root_scale_converts_geometry_coordinates_to_metres(tmp_path):
+    path = tmp_path / "model.glb"
+    _minimal_glb(path)
+    MODULE.apply_glb_root_scale(path, 0.001)
+    assert MODULE.parse_glb(path)["node_count"] == 1
+    data = path.read_bytes()
+    json_length, _ = struct.unpack_from("<I4s", data, 12)
+    document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" "))
+    assert document["nodes"][0]["scale"] == pytest.approx([0.001, 0.001, 0.001])
