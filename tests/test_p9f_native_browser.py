@@ -422,6 +422,27 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert rendered["objectAltitudeAccessor"] == "alt"
             assert rendered["objectRotationAccessor"] == "rotation"
             assert rendered["pathPointAltitudeAccessor"] == "alt"
+
+            # The live scene exposes the same telemetry in a user-readable
+            # inspector and keeps estimator output explicitly separate.
+            assert page.locator("#sceneDataSource").get_attribute("data-state") == "live"
+            assert page.locator("#sceneTruthStatus").inner_text().startswith("有效")
+            assert page.locator("#sceneMrpValue").inner_text() != "—"
+            assert page.locator("#sceneQuaternionValue").inner_text() != "—"
+            assert page.locator("#sceneFrameSource").inner_text() == f"{session_id} / whole.orbit"
+            assert page.locator("#sceneFrameSequence").inner_text() == str(rendered["object"]["sequence"])
+            assert page.locator("#sceneFrameQuality").inner_text() == "GOOD"
+            assert page.locator("#sceneEstimatorStatus").inner_text() == "尚未接入"
+
+            axes_button = page.locator('[data-scene-action="axes"]')
+            assert axes_button.get_attribute("aria-pressed") == "false"
+            assert page.evaluate("window.SatScene.hasBodyAxesModel()") is True
+            axes_button.click()
+            assert axes_button.get_attribute("aria-pressed") == "true"
+            assert page.evaluate("window.SatScene.isBodyAxesVisible()") is True
+            axes_button.click()
+            assert axes_button.get_attribute("aria-pressed") == "false"
+            assert page.evaluate("window.SatScene.isBodyAxesVisible()") is False
             assert any(len(segment.get("points", [])) >= 2 for segment in rendered["pathRows"])
             assert "Basilisk" in page.locator("#satelliteSceneStatus").inner_text()
             assert "演示数据" not in page.locator("#satelliteSceneStatus").inner_text()
