@@ -6217,7 +6217,13 @@
         const plotFields = (plotsPayload.plot_manifest?.series || [])
           .map((entry) => entry.field).filter(Boolean).slice(0, plotFieldLimit);
         const sceneFields = needsScenePosition
-          ? ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] : [];
+          ? [
+            'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z',
+            'attitude.truth.mrp_BN_x', 'attitude.truth.mrp_BN_y', 'attitude.truth.mrp_BN_z',
+            'attitude.truth.quaternion_BN_q0', 'attitude.truth.quaternion_BN_q1',
+            'attitude.truth.quaternion_BN_q2', 'attitude.truth.quaternion_BN_q3',
+            'attitude.truth.valid',
+          ] : [];
         const overviewFields = Array.from(new Set([...plotFields, ...sceneFields]));
         const query = new URLSearchParams({
           max_points: '3000', fields: overviewFields.join(','),
