@@ -307,7 +307,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 assert requested_streams
                 scene_streams = [row for row in requested_streams if row["stream_id"] == "whole.orbit"]
                 assert len(scene_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ORBIT_STREAM"
-                assert set(scene_streams[0]["fields"]) == set(POSITION_FIELDS)
+                assert set(POSITION_FIELDS) <= set(scene_streams[0]["fields"])
+                assert set(ATTITUDE_FIELDS) <= set(scene_streams[0]["fields"])
                 assert all(
                     not (set(POSITION_FIELDS) & set(row["fields"]))
                     for row in requested_streams if row["stream_id"] != "whole.orbit"
