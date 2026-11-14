@@ -87,17 +87,17 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             assert primary.count() == 4 and all(item.is_visible() for item in primary.all())
             assert page.locator('#wizardView').is_visible()
             # The independent professional editor remains an actual route.
-            nav.get_by_role('button', name='专业建模', exact=True).click()
+            nav.get_by_role('button', name=re.compile(r'专业建模$')).click()
             assert page.locator('#creatorView').is_visible()
             inputs = page.locator('#dynamicForm input:not([type=checkbox]):not([type=radio])')
             initial = inputs.evaluate_all('(items) => items.map(x => [x.id, x.value])')
             assert initial
-            nav.get_by_role('button', name='任务中心', exact=True).click()
+            nav.get_by_role('button', name=re.compile(r'任务中心$')).click()
             assert page.locator('#wizardTaskWorkspace').is_visible()
-            nav.get_by_role('button', name='快速仿真', exact=True).click()
+            nav.get_by_role('button', name=re.compile(r'快速仿真$')).click()
             assert not page.locator('#wizardTaskWorkspace').is_visible()
             assert page.get_by_role('button', name='运行正常仿真', exact=True).is_visible()
-            nav.get_by_role('button', name='专业建模', exact=True).click()
+            nav.get_by_role('button', name=re.compile(r'专业建模$')).click()
             assert inputs.evaluate_all('(items) => items.map(x => [x.id, x.value])') == initial
             more = page.locator('#workbenchMoreNavigation')
             assert more.get_attribute('open') is None
@@ -106,7 +106,7 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             analysis = nav.locator('.sidebar-nav-group').filter(has=page.locator('summary', has_text='实验与分析'))
             analysis.locator(':scope > summary').click()
             for route_name, view_id in [('实验中心','experimentCenterView'), ('目标实验','goalRunView'), ('运行中心','runCenterView'), ('效能评估','evaluationView')]:
-                nav.get_by_role('button', name=route_name, exact=True).click()
+                nav.get_by_role('button', name=re.compile(re.escape(route_name) + r'$')).click()
                 assert page.locator('#'+view_id).is_visible()
             assert page.locator('#interactiveNavButton').is_hidden()
             realtime = nav.locator('.sidebar-nav-group').filter(has=page.locator('summary', has_text='实时仿真'))

@@ -66,6 +66,7 @@ jobs:
           "playwright==1.57.0"
       - name: Install offline scene assets and Chromium
         run: |
+          mkdir -p "$RUNNER_TEMP/p9g-browser"
           python scripts/vendor_scene_assets.py
           python -m playwright install chromium
           python - <<'PY' >> "$GITHUB_ENV"
