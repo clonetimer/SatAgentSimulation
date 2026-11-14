@@ -4704,6 +4704,12 @@
         state.selectedObjectId = objectOverride.object_id;
         renderVariantControl(objectOverride);
         renderCapabilityList();
+        el('selectedCapabilityName').textContent = objectOverride.name_zh || state.schema.capability.name || capabilityId;
+        el('selectedCapabilitySummary').textContent = objectOverride.summary_zh || state.schema.capability.summary || '';
+        renderForm();
+        renderEvents();
+        renderOutputs();
+        syncTaskSpecEditor();
         renderP9DPanel();
         window.SatScene?.selectObject?.({ name: objectOverride.name_zh, hasSpatialAnchor: Boolean(objectOverride.spatial_anchor) });
       }
