@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '/assets/vendor/globe/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from '/assets/vendor/globe/loaders/meshopt_decoder.module.js';
 const root=document.getElementById('birdsCadViewer');
 const canvas=root.querySelector('canvas'),input=root.querySelector('#birdsCadFile'),status=root.querySelector('#birdsCadStatus'),tree=root.querySelector('#birdsCadTree'),info=root.querySelector('#birdsCadInspector');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -9,7 +8,6 @@ let model=null,drag=null,selectionHelper=null,selectedNode=null,allNodes=[],radi
 function say(t,k){status.textContent=t;status.dataset.kind=k||'info';}function cam(){camera.position.set(target.x+radius*Math.sin(phi)*Math.sin(theta),target.y+radius*Math.cos(phi),target.z+radius*Math.sin(phi)*Math.cos(theta));camera.lookAt(target);}function fit(){if(!model)return;const b=new THREE.Box3().setFromObject(model),s=b.getSize(new THREE.Vector3());target.copy(b.getCenter(new THREE.Vector3()));const m=Math.max(s.x,s.y,s.z)||1;radius=m*2.4;camera.near=m/10000;camera.far=m*100;camera.updateProjectionMatrix();cam();grid.scale.setScalar(Math.max(m,.1));grid.position.y=b.min.y;}function resize(){const r=canvas.getBoundingClientRect();if(!r.width||!r.height)return;renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();}
 function clear(){selectedNode=null;allNodes=[];if(selectionHelper){scene.remove(selectionHelper);selectionHelper.geometry.dispose();selectionHelper.material.dispose();selectionHelper=null;}if(model){scene.remove(model);const geometries=new Set(),materials=new Set(),textures=new Set();model.traverse(n=>{if(n.geometry)geometries.add(n.geometry);const list=Array.isArray(n.material)?n.material:n.material?[n.material]:[];list.forEach(m=>{materials.add(m);Object.values(m).forEach(v=>{if(v&&v.isTexture)textures.add(v);});});});geometries.forEach(x=>x.dispose());textures.forEach(x=>{if(x.image&&typeof x.image.close==='function')x.image.close();x.dispose();});materials.forEach(x=>x.dispose());}model=null;tree.replaceChildren();info.textContent='选择部件查看原始节点名称与层级。';}
 const gltfLoader=new GLTFLoader();
-gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 async function parseGlb(buffer){
   const gltf=await gltfLoader.parseAsync(buffer,'');
   if(!gltf.scene)throw Error('GLB 中没有可显示的默认场景');
