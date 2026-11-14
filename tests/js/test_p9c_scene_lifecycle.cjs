@@ -14,10 +14,15 @@ function harness({ failAt = null } = {}) {
   const frames = new Map(), timers = new Map(), instances = [], observers = [];
   let nextId = 0, now = 0;
   const status = { textContent: '', dataset: {} };
+  const ui = new Map([
+    'sceneDataSource', 'sceneSimTime', 'sceneAltitude', 'sceneGeographicPosition',
+    'sceneTruthStatus', 'sceneMrpValue', 'sceneQuaternionValue', 'sceneRotationValue',
+    'sceneEstimatorStatus', 'sceneFrameSource', 'sceneFrameSequence', 'sceneFrameQuality'
+  ].map(id => [id, {textContent: '', dataset: {}}]));
   const warnings = [];
   const host = { clientWidth: 1200, clientHeight: 700, children: [],
     replaceChildren(...children) { this.children = children; } };
-  const buttons = ['track', 'free', 'home'].map(action => ({
+  const buttons = ['track', 'free', 'home', 'axes'].map(action => ({
     dataset: { sceneAction: action }, disabled: false, attributes: {},
     setAttribute(key, value) { this.attributes[key] = value; }
   }));
@@ -87,8 +92,9 @@ function harness({ failAt = null } = {}) {
       CylinderGeometry: Node, ConeGeometry: Node, SphereGeometry: Node, MeshBasicMaterial: Node },
     window,
     document: {
-      getElementById: id => id === 'satelliteSceneCanvas' ? host : status,
+      getElementById: id => id === 'satelliteSceneCanvas' ? host : (id === 'satelliteSceneStatus' ? status : ui.get(id) || null),
       querySelectorAll: () => buttons,
+      querySelector: selector => selector.includes('axes') ? buttons.find(button => button.dataset.sceneAction === 'axes') : null,
       addEventListener() {}
     },
     ResizeObserver: class {
@@ -106,7 +112,7 @@ function harness({ failAt = null } = {}) {
   });
   vm.runInContext(source.replace(/^import \* as THREE from 'three';\s*/, ''), context,
     {filename: 'satellite-scene.js'});
-  return { api: window.SatScene, instances, observers, host, status, frames, timers, buttons, warnings,
+  return { api: window.SatScene, instances, observers, host, status, ui, frames, timers, buttons, warnings,
     async ready(index = instances.length - 1) {
       if (!instances[index]) throw new Error(`scene not constructed; status=${status.textContent}; warnings=${warnings.join(' | ')}`);
       instances[index].ready(); await Promise.resolve(); await Promise.resolve();
@@ -303,8 +309,14 @@ test('invalid epoch, non-finite position and unverified Run never become real sc
 test('verified finite Run telemetry replaces demo mode and preserves sampling provenance', async () => {
   const h = harness(); await h.api.enter(); await h.ready();
   const rows = [
-    {time_s:0,'orbit.position_m_x':7000000,'orbit.position_m_y':0,'orbit.position_m_z':0},
-    {time_s:5,'orbit.position_m_x':6999900,'orbit.position_m_y':50000,'orbit.position_m_z':10000},
+    {time_s:0,'orbit.position_m_x':7000000,'orbit.position_m_y':0,'orbit.position_m_z':0,
+      'attitude.truth.mrp_BN_x':0,'attitude.truth.mrp_BN_y':0,'attitude.truth.mrp_BN_z':0,
+      'attitude.truth.quaternion_BN_q0':1,'attitude.truth.quaternion_BN_q1':0,
+      'attitude.truth.quaternion_BN_q2':0,'attitude.truth.quaternion_BN_q3':0,'attitude.truth.valid':1},
+    {time_s:5,'orbit.position_m_x':6999900,'orbit.position_m_y':50000,'orbit.position_m_z':10000,
+      'attitude.truth.mrp_BN_x':0.1,'attitude.truth.mrp_BN_y':0,'attitude.truth.mrp_BN_z':0,
+      'attitude.truth.quaternion_BN_q0':0.9801980198,'attitude.truth.quaternion_BN_q1':0.19801980198,
+      'attitude.truth.quaternion_BN_q2':0,'attitude.truth.quaternion_BN_q3':0,'attitude.truth.valid':1},
   ];
   assert.equal(h.api.setRunTelemetry(rows, {
     runId:'sealed-run-1',epochUtc:'2026-01-01T00:00:00Z',timeSystem:'UTC',frame:'N_INERTIAL',
@@ -313,6 +325,12 @@ test('verified finite Run telemetry replaces demo mode and preserves sampling pr
   assert.equal(h.instances[0].objectRows[0].sim_time_s, 5);
   assert.equal(h.instances[0].pathRows[0].points.length, 2);
   assert.match(h.status.textContent, /抽样概览/);
+  assert.equal(h.ui.get('sceneDataSource').dataset.state, 'live');
+  assert.equal(h.ui.get('sceneTruthStatus').textContent, '有效 · 刚体状态真值');
+  assert.notEqual(h.ui.get('sceneQuaternionValue').textContent, '—');
+  assert.equal(h.ui.get('sceneEstimatorStatus').textContent, '尚未接入');
+  assert.equal(h.ui.get('sceneFrameSource').textContent, 'run:sealed-run-1 / null');
+  assert.equal(h.ui.get('sceneFrameSequence').textContent, '—');
 });
 
 test('scene refuses an undeclared or non-inertial source frame', async () => {
