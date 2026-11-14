@@ -27,6 +27,7 @@
         button.style.setProperty('--tree-depth', String(Math.min(depth, 6)));
         button.textContent = node.name_zh || node.object_id;
         button.title = node.summary_zh || node.object_id;
+        button.setAttribute('role', 'treeitem');
         button.setAttribute('aria-current', node.object_id === selectedId ? 'true' : 'false');
         button.addEventListener('click', () => onSelect(node.object_id));
         host.appendChild(button);
@@ -122,14 +123,28 @@
         }
         input.className = 'p9d-parameter-input';
         input.setAttribute('aria-label', title.textContent);
-        input.addEventListener('change', () => {
+        const commit = () => {
           let next;
           if (input.type === 'checkbox') next = input.checked;
           else if (input.type === 'number') next = input.value === '' ? null : Number(input.value);
           else if (field.widget === 'select') next = input.value;
-          else next = input.value;
+          else if (['object','object_editor','array','number_or_array[number]','vector3_or_number'].includes(field.widget) || String(field.widget).startsWith('array[')) {
+            const raw = input.value.trim();
+            if (!raw) next = null;
+            else {
+              try { next = JSON.parse(raw); }
+              catch (error) {
+                if (['number_or_array[number]','vector3_or_number'].includes(field.widget)) {
+                  next = Number(raw);
+                  if (!Number.isFinite(next)) throw new Error('请输入数值或合法 JSON 数组。');
+                } else throw new Error('请输入合法 JSON。');
+              }
+            }
+          } else next = input.value;
           onChange(field.path, parameter.array_index, next);
-        });
+        };
+        input.addEventListener('change', commit);
+        if (input.tagName === 'TEXTAREA' || input.type === 'text') input.addEventListener('blur', commit);
         const meta = document.createElement('span');
         meta.className = 'p9d-parameter-meta';
         const defaultValue = parameter.default ?? field.default;
