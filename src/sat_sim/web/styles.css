@@ -2003,3 +2003,22 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
 
 .evaluation-report-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 @media(max-width:620px){.evaluation-report-actions{width:100%;}.evaluation-report-actions .button{flex:1 1 auto;}}
+
+/* P9-G: progressive navigation keeps advanced capabilities reachable without
+   competing with the four primary user journeys. */
+.sidebar-nav-group { display: grid; gap: 3px; }
+.sidebar-nav-group > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 9px 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 7px;
+  user-select: none;
+}
+.sidebar-nav-group > summary::-webkit-details-marker { display: none; }
+.sidebar-nav-group > summary::after { content: "＋"; float: right; color: var(--muted); }
+.sidebar-nav-group[open] > summary::after { content: "−"; }
+.sidebar-nav-group > summary:hover { color: var(--text); background: var(--panel-2); }
+.sidebar-nav-group:not([open]) > .nav-button { display: none; }
