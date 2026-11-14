@@ -85,20 +85,29 @@ def _multiply4(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
 
 
 def _step_length_unit(path: Path) -> str:
-    text = path.read_bytes()[:2_000_000].decode("latin-1").upper()
+    raw = path.read_bytes()[:2_000_000]
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = raw.decode("utf-16").upper()
+        encoding = "utf-16-bom"
+    elif raw[:256].count(b"\0") > 32:
+        text = raw.decode("utf-16-le").upper()
+        encoding = "utf-16-le"
+    else:
+        text = raw.decode("latin-1").upper()
+        encoding = "latin-1"
     units = set(re.findall(r"SI_UNIT\(\s*(\.MILLI\.|\$)\s*,\s*\.METRE\.\s*\)", text))
     if units == {".MILLI."}:
         return "MM"
     if units == {"$"}:
         return "M"
-    declarations = re.findall(r"SI_UNIT\\(([^)]*)\\)", text)
-    conversion_units = re.findall(r"CONVERSION_BASED_UNIT\\(([^)]*)\\)", text)
+    declarations = re.findall(r"SI_UNIT\(([^)]*)\)", text)
+    conversion_units = re.findall(r"CONVERSION_BASED_UNIT\(([^)]*)\)", text)
     raise ValueError(
         "STEP length unit is missing, mixed, or unsupported: "
-        f"{sorted(units)}; SI_UNIT declarations={declarations[:12]}; "
+        f"{sorted(units)}; encoding={encoding}; "
+        f"SI_UNIT declarations={declarations[:12]}; "
         f"CONVERSION_BASED_UNIT declarations={conversion_units[:12]}"
     )
-
 
 def _walk_assembly(node: Any, parent_path: str | None, parent_world: list[list[float]] | None, rows: list[dict[str, Any]], scale_to_m: float) -> None:
     local = _matrix4(node.loc)
