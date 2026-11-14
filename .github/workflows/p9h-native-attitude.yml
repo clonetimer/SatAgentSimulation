@@ -5,6 +5,8 @@ on:
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "src/sat_sim/interactive/api.py"
       - "src/sat_sim/web/satellite-scene.js"
+      - "src/sat_sim/web/index.html"
+      - "src/sat_sim/web/satellite-scene.css"
       - "src/sat_sim/web/app.js"
       - "src/sat_sim/web/continuous.js"
       - "tests/test_p9h_attitude_truth.py"
