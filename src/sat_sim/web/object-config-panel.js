@@ -19,7 +19,7 @@
     host.replaceChildren();
     const walk = (node, depth = 0) => {
       const children = nodeChildren(node);
-      const isObject = typeof node.object_id === 'string';
+      const isObject = typeof node.object_id === 'string' && !['context_group','external_group','relationship_group'].includes(node.kind);
       if (isObject) {
         const button = document.createElement('button');
         button.type = 'button';
@@ -114,10 +114,10 @@
           input.value = String(value ?? field.default ?? '');
         } else {
           input = document.createElement('input');
-          input.type = ['number','integer'].includes(field.type) ? 'number' : 'text';
+          input.type = parameter.array_index != null || ['number','integer'].includes(field.type) ? 'number' : 'text';
           input.step = field.type === 'integer' ? '1' : 'any';
-          if (parameter.minimum ?? field.minimum) input.min = String(parameter.minimum ?? field.minimum);
-          if (parameter.maximum ?? field.maximum) input.max = String(parameter.maximum ?? field.maximum);
+          if ((parameter.minimum ?? field.minimum) != null) input.min = String(parameter.minimum ?? field.minimum);
+          if ((parameter.maximum ?? field.maximum) != null) input.max = String(parameter.maximum ?? field.maximum);
           input.value = Array.isArray(value) ? JSON.stringify(value) : (value ?? '');
         }
         input.className = 'p9d-parameter-input';
