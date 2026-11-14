@@ -8,6 +8,7 @@ on:
       - "tests/interactive/test_continuous_console_browser.py"
       - "tests/test_graph_editor_containment_browser.py"
       - "tests/test_program_export_snapshot_browser.py"
+      - "tests/test_v15_visual_flow_run_browser.py"
       - "tests/test_p8_local_acceptance_ux_contracts.py"
       - "docs/superpowers/plans/2026-11-14-p9g-default-entry-convergence.md"
       - ".github/workflows/p9g-navigation.yml"
@@ -92,6 +93,7 @@ jobs:
           tests/test_compact_graph_toolbar_browser.py
           tests/test_graph_editor_containment_browser.py
           tests/test_program_export_snapshot_browser.py
+          tests/test_v15_visual_flow_run_browser.py
           tests/test_p7d_complete_user_journey.py
           tests/test_p7c_shared_workbench_context.py
           tests/test_p7c_c2_run_navigation.py
