@@ -158,6 +158,8 @@ def test_reference_assembly_audit_does_not_promote_mixed_variant_nodes():
     assert audit["source_name_classification"]["b3_named"] == 1
     assert audit["candidate_category_node_counts"]["reaction_wheel"] == 1
     assert audit["candidate_category_node_counts"]["obc"] == 1
+    assert audit["candidate_category_node_counts"]["panel_or_outer_panel"] == 1
+    assert any("Loop Hentenna" in note for note in audit["function_review_notes"])
     assert audit["identity_status"] == "flight_unit_not_identified_from_cad_tree"
     assert audit["mixed_variant_names_detected"] is True
     assert audit["render_eligibility"] is False
