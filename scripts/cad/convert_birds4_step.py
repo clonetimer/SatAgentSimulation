@@ -242,6 +242,71 @@ def _walk_assembly(node: Any, parent_path: str | None, parent_world: list[list[f
         _walk_assembly(child, path, world, rows, scale_to_m)
 
 
+def audit_reference_assembly(nodes: list[dict[str, Any]]) -> dict[str, Any]:
+    """Classify source labels conservatively; never promote CAD to as-built inventory."""
+    import re
+    counts = {"fm_named": 0, "em_named": 0, "b3_named": 0, "other": 0}
+    labels: dict[str, int] = {}
+    categories = {
+        "reaction_wheel": re.compile(r"\bRW\b|reaction.?wheel", re.I),
+        "obc": re.compile(r"\bOBC\b", re.I),
+        "communications": re.compile(r"\bCOM\b|transceiver|trx", re.I),
+        "battery": re.compile(r"battery", re.I),
+        "solar_panel": re.compile(r"solar.?panel|panel", re.I),
+        "attitude_sensor_candidate": re.compile(r"SNSS|sun.?sensor|magnetometer|gyro|IMU", re.I),
+        "antenna": re.compile(r"antenna|GPS", re.I),
+        "structure": re.compile(r"frame|rail|spacer|bracket|holder", re.I),
+    }
+    category_counts = {name: 0 for name in categories}
+    em_labels, b3_labels = set(), set()
+    for node in nodes:
+        label = str(node.get("source_label_name", node.get("source_node_name", "")))
+        labels[label] = labels.get(label, 0) + 1
+        upper = label.upper()
+        is_em = "B4_EM" in upper or re.search(r"(^|[_\s])EM([_\s]|$)", upper) is not None
+        is_b3 = "B3_" in upper or "B3 " in upper
+        is_fm = "B4_FM" in upper or "BIRDS4_FM" in upper
+        if is_em:
+            counts["em_named"] += 1
+            em_labels.add(label)
+        elif is_b3:
+            counts["b3_named"] += 1
+            b3_labels.add(label)
+        elif is_fm:
+            counts["fm_named"] += 1
+        else:
+            counts["other"] += 1
+        for category, pattern in categories.items():
+            if pattern.search(label):
+                category_counts[category] += 1
+
+    duplicate_labels = {
+        name: count for name, count in sorted(labels.items()) if count > 1
+    }
+    return {
+        "schema_version": "birds4-reference-assembly-review.v1",
+        "source_model": "BIRDS4_FM_Final v7.step",
+        "source_node_count": len(nodes),
+        "unique_source_labels": len(labels),
+        "duplicate_label_occurrences": duplicate_labels,
+        "source_name_classification": counts,
+        "em_named_labels": sorted(em_labels),
+        "b3_named_labels": sorted(b3_labels),
+        "candidate_category_node_counts": category_counts,
+        "identity_status": "flight_unit_not_identified_from_cad_tree",
+        "coordinate_status": "datum_and_axis_mapping_not_independently_reviewed",
+        "installation_status": "as_built_installation_not_verified",
+        "render_eligibility": False,
+        "generated_equipment_instances": [],
+        "required_follow_up": [
+            "Compare EM/B3-named subassemblies with the BIRDS-4 FM assembly procedure and approved FM drawings.",
+            "Identify the exact flight-unit variant before using any unit-specific panels or antenna boards.",
+            "Review the STEP root datum, handedness, up/forward axes and the source-to-body frame transform.",
+            "Promote only individually reviewed hardware occurrences to verified equipment instances.",
+        ],
+    }
+
+
 def _download_pinned(record: dict[str, Any], cache: Path, source_commit: str, cad_directory: str) -> tuple[Path, dict[str, Any]]:
     relative = record["path"]
     url_path = urllib.parse.quote(relative, safe="")
@@ -321,6 +386,11 @@ def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, s
         json.dumps({"source_path": record["path"], "nodes": node_rows}, indent=2),
         encoding="utf-8",
     )
+    if record["path"] == "BIRDS4_FM_Final v7.step":
+        assembly_review = audit_reference_assembly(node_rows)
+        (output_root / "BIRDS4_FM_Final_v7.assembly-review.json").write_text(
+            json.dumps(assembly_review, indent=2), encoding="utf-8"
+        )
     (output_root / f"{stem}.report.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
@@ -365,8 +435,10 @@ def main() -> int:
             manifest["source_commit"], manifest["cad_directory"],
             source_unit, scale_to_m
         ))
+    review_path = args.output / "BIRDS4_FM_Final_v7.assembly-review.json"
     summary = {
         "schema_version": "birds4-cad-conversion-report.v1",
+        "assembly_review": json.loads(review_path.read_text(encoding="utf-8")),
         "source_commit": manifest["source_commit"],
         "selected_step_count": len(results),
         "converted_count": len(results),
