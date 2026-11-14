@@ -13,6 +13,7 @@ on:
       - "tests/interactive/test_scene_metadata.py"
       - "tests/js/test_p9f_realtime_orbit.mjs"
       - "tests/test_p9f_realtime_scene.py"
+      - "tests/test_p9c_satellite_scene.py"
       - "docs/superpowers/plans/2026-11-14-p9f-realtime-scene.md"
       - ".github/workflows/p9f-realtime-scene.yml"
   workflow_dispatch:
