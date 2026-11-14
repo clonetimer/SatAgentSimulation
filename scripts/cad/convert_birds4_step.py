@@ -209,10 +209,14 @@ def detect_source_unit(assembly: Any) -> tuple[str, float, dict[str, float]]:
         "y": float(bounds.ylen),
         "z": float(bounds.zlen),
     }
-    maximum = max(envelope.values())
-    if 50.0 <= maximum <= 250.0:
+    dimensions = tuple(envelope.values())
+    # Newsletter 42 p.25 gives the nominal 1U mainframe as
+    # 100 x 100 x 113.5 mm. The full CAD may include panel protrusions,
+    # so use a deliberately wider 80..150 mm plausibility window on all
+    # three axes, not a single maximum-dimension check.
+    if all(80.0 <= value <= 150.0 for value in dimensions):
         return "MM", 0.001, envelope
-    if 0.05 <= maximum <= 0.25:
+    if all(0.08 <= value <= 0.15 for value in dimensions):
         return "M", 1.0, envelope
     raise ValueError(
         "BIRDS-4 FM envelope is outside the documented 1U scale window; "
