@@ -679,5 +679,7 @@ window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
-  toggleBodyAxes, isBodyAxesVisible: () => state.showBodyAxes,
+  toggleBodyAxes,
+  isBodyAxesVisible: () => Boolean(state.modelAxesGroup?.visible && state.showBodyAxes),
+  hasBodyAxesModel: () => Boolean(state.modelAxesGroup),
 };
