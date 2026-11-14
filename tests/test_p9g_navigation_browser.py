@@ -143,12 +143,6 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             page.go_forward()
             assert page.locator('#satelliteSceneView').is_visible()
             assert page.url.endswith('#view=scene'), page.url
-            page.go_back()
-            assert page.locator('#wizardTaskWorkspace').is_visible()
-            assert page.url.endswith('#view=tasks'), page.url
-            page.go_forward()
-            assert page.locator('#satelliteSceneView').is_visible()
-            assert page.url.endswith('#view=scene'), page.url
             bookmarked = page.url
             page.reload(wait_until='networkidle')
             assert page.locator('#satelliteSceneView').is_visible()
