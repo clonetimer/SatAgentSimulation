@@ -72,7 +72,7 @@ def test_empty_registry_is_valid_and_does_not_invent_equipment_instances():
     assert result["semantics"]["capability_categories_are_inventory"] is False
 
 
-def test_verified_asset_and_instance_are_renderable_only_with_equipment_object():
+def test_verified_asset_and_instance_are_renderable_only_with_equipment_object(tmp_path):
     object_tree = {
         "roots": [{
             "object_id": "whole_spacecraft", "kind": "whole_spacecraft",
@@ -83,8 +83,25 @@ def test_verified_asset_and_instance_are_renderable_only_with_equipment_object()
             }],
         }]
     }
-    result = validate_spatial_asset_registry(_registry(), object_tree=object_tree)
+    registry = _registry()
+    payload = b"verified model bytes"
+    model = tmp_path / registry["assets"][0]["path"]
+    model.parent.mkdir(parents=True)
+    model.write_bytes(payload)
+    registry["assets"][0]["size_bytes"] = len(payload)
+    registry["assets"][0]["sha256"] = hashlib.sha256(payload).hexdigest()
+    registry["instances"][0]["asset_ref"]["sha256"] = registry["assets"][0]["sha256"]
+
+    metadata_only = validate_spatial_asset_registry(registry, object_tree=object_tree)
+    assert metadata_only["ok"] is True
+    assert metadata_only["asset_bytes_verified"] is False
+    assert metadata_only["renderable_instances"] == []
+
+    result = validate_spatial_asset_registry(
+        registry, object_tree=object_tree, asset_root=tmp_path
+    )
     assert result["ok"] is True
+    assert result["asset_bytes_verified"] is True
     assert len(result["renderable_instances"]) == 1
     assert result["renderable_instances"][0]["instance_id"] == "rw-1"
 
