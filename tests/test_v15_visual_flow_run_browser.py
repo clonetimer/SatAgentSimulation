@@ -134,7 +134,9 @@ def test_v15_visual_flow_run_loads_result_and_exports_program(tmp_path, monkeypa
             assert page.locator("#graphRunBtn").is_enabled()
             page.locator("#graphRunBtn").click()
             page.wait_for_function(
-                "(runId) => document.querySelector('#activeRunCard').textContent.includes(runId)",
+                "(runId) => { const card = document.querySelector('#activeRunCard');"
+                " return !!card && card.textContent.includes(runId)"
+                " && card.querySelector('.run-status')?.textContent === 'SUCCEEDED'; }",
                 arg=run_id, timeout=60000,
             )
             assert captured["run_request"] is not None
