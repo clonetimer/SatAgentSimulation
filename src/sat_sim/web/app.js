@@ -6213,7 +6213,7 @@
       let telemetryOverview = null;
       try {
         const needsScenePosition = runContext.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1';
-        const plotFieldLimit = needsScenePosition ? 13 : 16;
+        const plotFieldLimit = 16;
         const plotFields = (plotsPayload.plot_manifest?.series || [])
           .map((entry) => entry.field).filter(Boolean).slice(0, plotFieldLimit);
         const sceneFields = needsScenePosition
