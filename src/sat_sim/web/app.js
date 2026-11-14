@@ -8841,7 +8841,7 @@
     if (name === 'scene' && ['interactive', 'continuous'].includes(previousView)) {
       state.sceneRealtimeSource = previousView;
     }
-    if (previousView === 'scene' && name !== 'scene') {
+    if ((previousView === 'scene' || ['interactive', 'continuous'].includes(previousView)) && name !== 'scene') {
       state.sceneRealtimeSource = null;
       window.SatScene?.clearRealtimeSession?.();
     }
