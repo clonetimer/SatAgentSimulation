@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[2] / "tools/cad/convert_birds4_step.py"
+SCRIPT = Path(__file__).resolve().parents[2] / "scripts/cad/convert_birds4_step.py"
 SPEC = importlib.util.spec_from_file_location("birds4_step_converter", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
