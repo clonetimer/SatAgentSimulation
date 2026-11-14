@@ -129,6 +129,23 @@
         <section class="satellite-scene-shell">
           <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1>卫星数字场景</h1><p>真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button><button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">显示机体系坐标轴</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button><button class="button button-secondary" type="button" data-return-wizard>返回仿真向导</button></div></header>
           <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与真实遥测驱动的卫星轨道及姿态场景"></div>
+          <section id="birdsCadViewer" class="birds-cad-viewer" aria-label="BIRDS-4 CAD 参考模型查看器">
+            <header class="birds-cad-toolbar">
+              <div class="birds-cad-identity"><span class="birds-cad-kicker">REFERENCE CAD · BIRDS-4</span><strong>真实卫星结构参考</strong><span>静态 CAD 模式 · 不代表当前 Basilisk 仿真卫星</span></div>
+              <label class="button button-primary birds-cad-load">打开 GLB 模型<input id="birdsCadFile" type="file" accept=".glb,model/gltf-binary" hidden></label>
+              <div class="birds-cad-view-actions">
+                <button type="button" class="button button-secondary" data-cad-view="fit">适配模型</button>
+                <button type="button" class="button button-secondary" data-cad-view="axes">坐标轴</button>
+                <button type="button" class="button button-secondary" data-cad-view="home">等轴测</button>
+              </div>
+            </header>
+            <div class="birds-cad-workspace">
+              <aside class="birds-cad-tree-panel"><div class="birds-cad-panel-title">装配结构 <span>CAD NODE</span></div><div id="birdsCadTree" class="birds-cad-tree"><p>打开整星 GLB 后显示原始装配节点。</p></div></aside>
+              <div class="birds-cad-viewport"><canvas aria-label="BIRDS-4 三维 CAD 模型，可拖动旋转、滚轮缩放、右键平移"></canvas><div class="birds-cad-viewport-hint">左键旋转 · 滚轮缩放 · 右键平移</div><div class="birds-cad-axis-cube">X <b>Y</b> Z</div></div>
+              <aside class="birds-cad-inspector"><div class="birds-cad-panel-title">部件检查器 <span>INSPECTOR</span></div><div id="birdsCadInspector">选择部件查看原始节点名称与层级。</div><div class="birds-cad-provenance"><strong>数据身份</strong><span>Kyutech · BIRDS-4 FM CAD</span><span>来源版本：pinned upstream commit</span><span>安装位置：未进行 as-built 审定</span></div></aside>
+            </div>
+            <p id="birdsCadStatus" class="birds-cad-status" role="status">等待加载 BIRDS-4 GLB 参考模型。模型文件仅在本浏览器会话中读取。</p>
+          </section>
           <section class="satellite-scene-inspector" aria-label="轨道与姿态状态">
             <div class="satellite-scene-inspector-heading"><h2>轨道与姿态状态</h2><span id="sceneDataSource" class="scene-data-source" data-state="demo">等待真实遥测</span></div>
             <div class="satellite-scene-inspector-grid">
@@ -1680,6 +1697,7 @@
   <script src="/assets/vendor/globe/globe.gl.min.js" defer></script>
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
   <script type="module" src="/assets/satellite-scene.js?v=p9f-1"></script>
+  <script type="module" src="/assets/birds-cad-viewer.js?v=p9i-cad-1"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
