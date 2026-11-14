@@ -698,14 +698,6 @@
 
   function latest() {
     const frame = state.telemetry[state.telemetry.length - 1];
-    if (frame) {
-      window.SatScene?.updateTelemetry(frame, {
-        epochUtc: state.snapshot?.orbit_epoch_utc,
-        frame: state.snapshot?.orbit_frame,
-        sourceId: state.selectedId,
-        sourceLabel: '持续原生 Basilisk 会话',
-      });
-    }
     const vals = frame?.values || {};
     const valid = (key) => typeof vals[key] === 'number' && Number.isFinite(vals[key]);
     setText('continuousOrbit', valid('orbit.radius_m') ?
@@ -770,6 +762,12 @@
         if (frame.sequence > state.lastTelemetrySeq) {
           state.telemetry.push(frame);
           state.lastTelemetrySeq = frame.sequence;
+          window.SatScene?.updateTelemetry(frame, {
+            epochUtc: info.orbit_epoch_utc,
+            frame: info.orbit_frame,
+            sourceId: selectedId,
+            sourceLabel: '持续原生 Basilisk 会话',
+          });
         }
       });
       if (state.telemetry.length > 280) state.telemetry.splice(0, state.telemetry.length - 280);
