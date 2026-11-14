@@ -18,7 +18,7 @@ def test_birds_cad_reference_viewer_is_registered_in_scene_page():
 def test_birds_cad_viewer_supports_glb_hierarchy_selection_and_camera_controls():
     source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
     for token in (
-        "GLTFLoader", "parseAsync", "scenes", "children",
+        "GLTFLoader", "parseAsync", "gltf.scene", "children",
         "pointerdown", "pointermove", "pointerup", "wheel",
         "data-cad-view", "AxesHelper", "ray.intersectObject", "compileAsync",
     ):
