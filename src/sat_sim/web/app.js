@@ -4477,6 +4477,26 @@
       formData: state.formData,
       validated: Boolean(state.taskSpec && state.planning),
       onSelect: (objectId) => {
+        const known = state.presentationObjects.some(item => item.object_id === objectId);
+        if (!known) {
+          state.selectedObjectId = objectId;
+          state.selectedCapabilityId = null;
+          state.schema = null;
+          state.formData = null;
+          state.taskSpec = null;
+          state.planning = null;
+          state.hasTaskSpecContext = false;
+          const stack = [...(state.sceneObjectTree?.roots || [])];
+          let selected = null;
+          while (stack.length) {
+            const row = stack.pop();
+            if (row?.object_id === objectId) { selected = row; break; }
+            stack.push(...(row?.children || []));
+          }
+          window.SatScene?.selectObject?.({ name: selected?.name_zh || objectId, hasSpatialAnchor: Boolean(selected?.spatial_anchor) });
+          renderP9DPanel();
+          return;
+        }
         selectCatalogObject(objectId).then(() => renderP9DPanel());
       },
       onChange: (path, arrayIndex, value) => {
