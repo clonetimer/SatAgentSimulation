@@ -7456,17 +7456,24 @@
         simulation: { duration_s: duration, sample_s: quantum, solver: { step_s: integrationStep } },
         parameters: { values: capabilityId === 'whole_spacecraft.unified_native.v1'
           ? structuredClone(state.interactivePreparedNativeValues || {}) : {} },
-        outputs: { telemetry_streams: descriptor.streams.map((stream) => ({
-          stream_id: stream.id,
-          sample_s: Math.max(quantum, Math.min(duration, quantum * stream.sampleMultiplier)),
-          fields: Array.from(new Set([
-            ...(stream.overviewOnly
-              ? descriptor.telemetryGroups[0].fields
-              : descriptor.telemetryGroups.flatMap(group => group.fields)),
-            ...(capabilityId === 'whole_spacecraft.unified_native.v1'
-              ? ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] : []),
-          ])),
-        })) },
+        outputs: { telemetry_streams: [
+          ...descriptor.streams.map((stream) => ({
+            stream_id: stream.id,
+            sample_s: Math.max(quantum, Math.min(duration, quantum * stream.sampleMultiplier)),
+            fields: Array.from(new Set(
+              stream.overviewOnly
+                ? descriptor.telemetryGroups[0].fields
+                : descriptor.telemetryGroups.flatMap(group => group.fields)
+            )),
+          })),
+          ...(capabilityId === 'whole_spacecraft.unified_native.v1' ? [{
+            // A dedicated position-only stream keeps frame quality independent
+            // from unrelated ADCS/EPS/thermal/communications channels.
+            stream_id: 'whole.orbit',
+            sample_s: quantum,
+            fields: ORBIT_POSITION_FIELDS,
+          }] : []),
+        ] },
       },
       quantum_s: quantum,
       rate,
@@ -7731,7 +7738,9 @@
     streams.forEach((stream) => {
       const option = document.createElement('option');
       option.value = stream.stream_id;
-      option.textContent = `${stream.stream_id} · ${stream.sample_s} s`;
+      option.textContent = stream.stream_id === 'whole.orbit'
+        ? `轨道定位（场景） · ${stream.sample_s} s`
+        : `${stream.stream_id} · ${stream.sample_s} s`;
       streamSelect.appendChild(option);
     });
     if (!streams.length && state.interactiveSession) {
