@@ -367,7 +367,7 @@ function applyRealtimeFrame(payload) {
     }
     syncCameraActions();
     status(
-      `真实遥测 · ${session.modeLabel} · ${session.sessionId} · ${frame.stream} · t=${Number(frame.sim_time_s).toFixed(2)} s · 序号 ${frame.sequence}。位置由 ${session.positionFrame} 经 GMST 近似换算至地固坐标，仅用于场景可视化。`,
+      `真实遥测 · ${session.modeLabel} · ${session.sessionId} · ${frame.stream} · t=${Number(frame.sim_time_s).toFixed(2)} s · 序号 ${frame.sequence} · lat=${earthFixed.latitudeDeg.toFixed(3)}° · lon=${earthFixed.longitudeDeg.toFixed(3)}° · h=${(earthFixed.altitudeM / 1000).toFixed(2)} km。位置由 ${session.positionFrame} 经 GMST 近似换算至地固坐标，仅用于场景可视化。`,
       'success'
     );
     return true;
