@@ -128,7 +128,10 @@
       <div class="p9d-scene-layout">
         <section class="satellite-scene-shell">
           <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1>卫星数字场景</h1><p>真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button><button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">显示机体系坐标轴</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button><button class="button button-secondary" type="button" data-return-wizard>返回仿真向导</button></div></header>
+          <nav class="satellite-scene-mode-tabs" aria-label="数字场景模式"><button type="button" data-scene-mode="orbit" aria-pressed="true">轨道与姿态</button><button type="button" data-scene-mode="cad" aria-pressed="false">整星 CAD 结构</button></nav>
           <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与真实遥测驱动的卫星轨道及姿态场景"></div>
+          <section id="satelliteOrbitMode" class="satellite-orbit-mode">
+          </section>
           <section id="birdsCadViewer" class="birds-cad-viewer" aria-label="BIRDS-4 CAD 参考模型查看器">
             <header class="birds-cad-toolbar">
               <div class="birds-cad-identity"><span class="birds-cad-kicker">REFERENCE CAD · BIRDS-4</span><strong>真实卫星结构参考</strong><span>静态 CAD 模式 · 不代表当前 Basilisk 仿真卫星</span></div>
