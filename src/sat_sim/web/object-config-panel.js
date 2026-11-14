@@ -170,7 +170,6 @@
           onChange(field.path, parameter.array_index, next);
         };
         input.addEventListener('change', commit);
-        if (input.tagName === 'TEXTAREA' || input.type === 'text') input.addEventListener('blur', commit);
         const meta = document.createElement('span');
         meta.className = 'p9d-parameter-meta';
         const defaultValue = parameter.default ?? field.default;
