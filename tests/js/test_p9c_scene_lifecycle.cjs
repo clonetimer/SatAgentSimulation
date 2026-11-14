@@ -95,7 +95,9 @@ function harness({ failAt = null } = {}) {
     performance: { now: () => now },
     console: { warn() {}, error() {} }
   });
-  vm.runInContext(source.replace(/^import \* as THREE from 'three';\s*/, ''), context,
+  const projection = fs.readFileSync(path.join(__dirname, '../../src/sat_sim/web/realtime-orbit.mjs'), 'utf8');
+  vm.runInContext(projection.replace(/^export /gm, ''), context);
+  vm.runInContext(source.replace(/^import[^\n]*\n/gm, ''), context,
     {filename: 'satellite-scene.js'});
   return { api: window.SatScene, instances, observers, host, status, frames, timers, buttons,
     async ready(index = instances.length - 1) {

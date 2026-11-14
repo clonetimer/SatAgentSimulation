@@ -110,11 +110,13 @@ def create_interactive_router(
             raise HTTPException(404, detail={"reason_code": "INTERACTIVE_SESSION_NOT_FOUND"}) from exc
 
     def session_metadata(session):
+        from .scene_metadata import realtime_scene_metadata
         return {
             **session.snapshot().model_dump(mode="json"),
             "continuous": session.spec.continuous,
             "telemetry_streams": session.allowed_telemetry_streams,
             "telemetry_catalog": session.telemetry_catalog,
+            **realtime_scene_metadata(session.spec),
             "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if
                              session.runtime.__class__.__name__ == "SupervisedContinuousNativeRuntime"
                              else "IN_PROCESS_NATIVE"),
@@ -195,6 +197,7 @@ def create_interactive_router(
         # A three-wheel session must not claim a fabricated fourth actuator.
         native_values = body.initial_configuration.native_values()
         telemetry_fields = [
+            "orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z",
             "orbit.radius_m", "adcs.pointing_error_deg",
             "eps.battery_soc",
             "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
@@ -261,7 +264,7 @@ def create_interactive_router(
         runtime = session.runtime
         return {
             "schema_version": "sat-continuous-status.v1",
-            "session": session.snapshot(),
+            "session": session_metadata(session),
             "telemetry_streams": session.allowed_telemetry_streams,
             "telemetry_catalog": session.telemetry_catalog,
             "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if

@@ -73,6 +73,44 @@
     return typeof detail === 'string' ? detail : (detail?.message || detail?.reason_code || fallback);
   }
 
+  const ORBIT_POSITION_FIELDS = ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'];
+
+  function telemetryStreamHasFields(stream, requiredFields) {
+    const rawFields = stream?.fields;
+    const names = Array.isArray(rawFields)
+      ? rawFields.map(field => typeof field === 'string' ? field : field?.name || field?.field || field?.field_id)
+      : Object.keys(rawFields || {});
+    return requiredFields.every(field => names.includes(field));
+  }
+
+  function syncInteractiveSceneSession() {
+    const session = state.interactiveSession;
+    if (!session) {
+      state.interactiveOrbitStream = null;
+      return;
+    }
+    const stream = (session.telemetry_catalog || []).find(item =>
+      telemetryStreamHasFields(item, ORBIT_POSITION_FIELDS)
+    );
+    state.interactiveOrbitStream = stream?.stream_id || null;
+    window.SatScene?.setRealtimeSession?.({
+      sessionId: session.session_id,
+      mode: session.continuous ? 'continuous' : 'bounded',
+      epochUtc: session.epoch_utc,
+      timeSystem: session.time_system,
+      positionFrame: session.orbit_position_frame,
+      streamId: state.interactiveOrbitStream,
+      sessionState: session.state,
+    });
+    if (stream) {
+      const frames = state.interactiveFrames[stream.stream_id] || [];
+      const frame = frames[frames.length - 1];
+      if (frame) window.SatScene?.updateRealtimeFrame?.({
+        sessionId: session.session_id, streamId: stream.stream_id, frame,
+      });
+    }
+  }
+
   const state = {
     catalog: [],
     presentationCatalog: null,
@@ -167,6 +205,8 @@
     interactiveSessions: [],
     interactiveSession: null,
     interactiveSocket: null,
+    interactiveOrbitStream: null,
+    sceneRealtimeSource: null,
     interactiveReconnectTimer: null,
     interactivePollTimer: null,
     interactiveFrames: {},
@@ -7089,7 +7129,7 @@
       targets: ['whole_spacecraft', 'subsystem.adcs', 'subsystem.eps', 'subsystem.comm_data'],
       telemetryGroups: [
         { id: 'overview', label: '整星概览', fields: ['orbit.radius_m', 'adcs.pointing_error_deg', 'eps.battery_soc', 'data.storage_bits', 'thermal.safe', 'payload.active', 'comm.active', 'propulsion.fuel_mass_kg'] },
-        { id: 'orbit', label: '轨道与环境', fields: ['orbit.radius_m', 'orbit.phase_rad', 'orbit.eclipse_factor'] },
+        { id: 'orbit', label: '轨道与环境', fields: ['orbit.radius_m', 'orbit.phase_rad', 'orbit.eclipse_factor', 'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] },
         { id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2'] },
         { id: 'eps', label: '能源', fields: ['eps.battery_soc', 'eps.net_power_w', 'eps.solar_array_power_w', 'eps.loads.adcs_power_w', 'eps.loads.payload_power_w', 'eps.loads.comm_power_w', 'eps.pdu.payload_enabled', 'eps.pdu.comm_enabled'] },
         { id: 'thermal', label: '热控', fields: ['thermal.safe', 'thermal.battery_temp_k', 'thermal.electronics_temp_k', 'thermal.payload_temp_k', 'thermal.adcs_temp_k', 'thermal.comm_temp_k', 'thermal.propulsion_temp_k'] },
@@ -7278,6 +7318,7 @@
     state.interactiveAcks = [];
     renderInteractiveStreams();
     renderInteractiveCommandTargets();
+    syncInteractiveSceneSession();
     await refreshInteractiveDetails();
     renderInteractiveSessions();
     if (selectionVersion === state.interactiveSelectionVersion) connectInteractiveSocket();
@@ -7520,6 +7561,7 @@
     ]);
     if (selectionVersion !== state.interactiveSelectionVersion || id !== encodeURIComponent(state.interactiveSession?.session_id)) return;
     state.interactiveSession = snapshot;
+    syncInteractiveSceneSession();
     state.interactiveEvents = events.events || [];
     state.interactiveAcks = acks.acks || [];
     renderInteractiveSnapshot();
@@ -7641,7 +7683,8 @@
         return;
       }
       const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
-      if (!terminal && state.activeView === 'interactive') {
+      if (!terminal && (state.activeView === 'interactive' ||
+          (state.activeView === 'scene' && state.sceneRealtimeSource === 'interactive'))) {
         clearTimeout(state.interactiveReconnectTimer);
         state.interactiveReconnectTimer = setTimeout(connectInteractiveSocket, 1200);
       }
@@ -7662,6 +7705,13 @@
     const frames = state.interactiveFrames[frame.stream] || [];
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
+    if (frame.stream === state.interactiveOrbitStream) {
+      window.SatScene?.updateRealtimeFrame?.({
+        sessionId: state.interactiveSession?.session_id,
+        streamId: frame.stream,
+        frame,
+      });
+    }
     if (el('interactiveStream').value === frame.stream) renderInteractiveTelemetry();
   }
 
@@ -8789,9 +8839,19 @@
   }
 
   function switchView(name) {
+    const previousView = state.activeView;
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
-    if (['interactive', 'continuous'].includes(state.activeView) && name !== state.activeView && wizardRealtimeSessionActive()) {
+    const leavingRealtimeView = ['interactive', 'continuous'].includes(previousView)
+      || (previousView === 'scene' && Boolean(state.sceneRealtimeSource));
+    if (leavingRealtimeView && name !== previousView && wizardRealtimeSessionActive()) {
       if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
+    }
+    if (name === 'scene' && ['interactive', 'continuous'].includes(previousView)) {
+      state.sceneRealtimeSource = previousView;
+    }
+    if ((previousView === 'scene' || ['interactive', 'continuous'].includes(previousView)) && name !== 'scene') {
+      state.sceneRealtimeSource = null;
+      window.SatScene?.clearRealtimeSession?.();
     }
     noteSharedContextTransition(name);
     state.wizardLeavingRealtimeApproved = false;
@@ -8827,10 +8887,15 @@
     if (name === 'evaluations') window.SatEvaluationWorkspace?.enter();
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
+    const keepContinuousForScene = name === 'scene' && state.sceneRealtimeSource === 'continuous';
     if (name === 'continuous') window.SatContinuousConsole?.enter();
-    else window.SatContinuousConsole?.exit();
-    if (name === 'scene') window.SatScene?.enter();
-    else window.SatScene?.exit();
+    else if (!keepContinuousForScene) window.SatContinuousConsole?.exit();
+    if (name === 'scene') {
+      if (state.sceneRealtimeSource === 'interactive') syncInteractiveSceneSession();
+      if (state.sceneRealtimeSource === 'continuous') window.SatContinuousConsole?.syncScene?.();
+      window.SatScene?.enter();
+    } else window.SatScene?.exit();
+    const keepInteractiveForScene = name === 'scene' && state.sceneRealtimeSource === 'interactive';
     if (name === 'interactive') {
       loadInteractiveSessions().then(() => {
         if (!state.interactiveSession && state.interactiveSessions.length) selectInteractiveSession(state.interactiveSessions[0].session_id);
@@ -8840,7 +8905,7 @@
       state.interactivePollTimer = setInterval(() => {
         loadInteractiveSessions().then(refreshInteractiveDetails).catch(error => interactiveNotice(`会话读取失败：${error.message}`, 'error'));
       }, 500);
-    } else {
+    } else if (!keepInteractiveForScene) {
       clearInterval(state.interactivePollTimer);
       state.interactivePollTimer = null;
       closeInteractiveSocket();

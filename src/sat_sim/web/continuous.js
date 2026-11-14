@@ -10,10 +10,12 @@
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
     rwConfiguration: null, telemetryStream: null, telemetryCatalog: [], creationPolicy: null,
+    sceneTelemetryStream: null, sceneTelemetry: [], sceneLastTelemetrySeq: -1, sceneSessionId: null,
     commandContracts: [], catalogLoading: false, commandSending: false,
     history: null,
   };
   const terminal = new Set(['COMPLETED', 'ABORTED', 'FAILED', 'INTERRUPTED']);
+  const ORBIT_POSITION_FIELDS = ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'];
   const sessionStateLabels = {
     READY: '准备就绪', PREPARING: '准备中', RUNNING: '运行中', PAUSED: '已暂停',
     STOPPING: '停止中', STOPPED: '已停止', COMPLETED: '已完成',
@@ -83,6 +85,7 @@
     state.snapshot = null; state.metrics = null; state.recovery = null; state.endurance = null;
     state.events = []; state.acks = []; state.lastEventSeq = -1;
     state.rwConfiguration = null; state.telemetryStream = null; state.telemetryCatalog = [];
+    state.sceneTelemetryStream = null; state.sceneTelemetry = []; state.sceneLastTelemetrySeq = -1; state.sceneSessionId = null;
     updateCommandAvailability();
     resetTelemetrySelection();
     refresh();
@@ -121,6 +124,17 @@
     const catalog = info.telemetry_catalog || [];
     if (!catalog.length) throw new Error('SESSION_TELEMETRY_CATALOG_EMPTY');
     state.telemetryCatalog = catalog;
+    const orbitStream = catalog.find(row => row.stream_id === 'whole.continuous'
+      && ORBIT_POSITION_FIELDS.every(field => (row.fields || []).includes(field)))
+      || catalog.find(row => ORBIT_POSITION_FIELDS.every(field => (row.fields || []).includes(field)));
+    const nextSceneStream = orbitStream?.stream_id || null;
+    const nextSceneSessionId = info.session?.session_id || state.selectedId;
+    if (state.sceneSessionId !== nextSceneSessionId || state.sceneTelemetryStream !== nextSceneStream) {
+      state.sceneSessionId = nextSceneSessionId;
+      state.sceneTelemetryStream = nextSceneStream;
+      state.sceneTelemetry = [];
+      state.sceneLastTelemetrySeq = -1;
+    }
     if (!catalog.some(row => row.stream_id === state.telemetryStream)) {
       state.telemetryStream = (catalog.find(row => row.stream_id === 'whole.continuous')
         || [...catalog].sort((a,b) => a.sample_s-b.sample_s)[0]).stream_id;
@@ -709,6 +723,28 @@
     setText('continuousGapBadge', state.gap ? '缓冲缺口 · ' +
       state.gap.dropped_count : (frame ? '遥测已同步' : '暂无遥测'));
     renderChart();
+    syncScene();
+  }
+
+  function syncScene() {
+    const session = state.snapshot?.session;
+    if (!session) return;
+    const streamId = state.sceneTelemetryStream;
+    window.SatScene?.setRealtimeSession?.({
+      sessionId: session.session_id,
+      mode: 'continuous',
+      epochUtc: session.epoch_utc,
+      timeSystem: session.time_system,
+      positionFrame: session.orbit_position_frame,
+      streamId,
+      sessionState: session.state,
+    });
+    const frame = streamId && streamId === state.telemetryStream
+      ? state.telemetry[state.telemetry.length - 1]
+      : state.sceneTelemetry[state.sceneTelemetry.length - 1];
+    if (frame) window.SatScene?.updateRealtimeFrame?.({
+      sessionId: session.session_id, streamId, frame,
+    });
   }
   async function refresh() {
     if (!state.active || state.refreshBusy) return;
@@ -738,8 +774,13 @@
       if (selectedId !== state.selectedId) return;
       renderStreamContract(info);
       const selectedStream = state.telemetryStream;
-      const [tm, events, acks, metrics, endurance, nativeConfig] = await Promise.all([
+      const sceneStream = state.sceneTelemetryStream;
+      const sceneTelemetryRequest = sceneStream && sceneStream !== selectedStream
+        ? api('/interactive/sessions/' + id + '/telemetry/' + encodeURIComponent(sceneStream) + '?after_sequence=' + state.sceneLastTelemetrySeq)
+        : Promise.resolve(null);
+      const [tm, sceneTm, events, acks, metrics, endurance, nativeConfig] = await Promise.all([
         api('/interactive/sessions/' + id + '/telemetry/' + encodeURIComponent(selectedStream) + '?after_sequence=' + state.lastTelemetrySeq),
+        sceneTelemetryRequest,
         api('/interactive/sessions/' + id + '/events?after_sequence=' + state.lastEventSeq),
         api('/interactive/sessions/' + id + '/commands'),
         api('/interactive/continuous/sessions/' + id + '/observability'),
@@ -765,6 +806,15 @@
         }
       });
       if (state.telemetry.length > 280) state.telemetry.splice(0, state.telemetry.length - 280);
+      if (sceneTm) {
+        (sceneTm.frames || []).forEach((frame) => {
+          if (frame.sequence > state.sceneLastTelemetrySeq) {
+            state.sceneTelemetry.push(frame);
+            state.sceneLastTelemetrySeq = frame.sequence;
+          }
+        });
+        if (state.sceneTelemetry.length > 360) state.sceneTelemetry.splice(0, state.sceneTelemetry.length - 360);
+      }
       (events.events || []).forEach((ev) => {
         if (ev.sequence > state.lastEventSeq) {
           state.events.push(ev);
@@ -1262,6 +1312,10 @@
   function initialize() {
     $('continuousCreateForm')?.addEventListener('submit', createSession);
     $('continuousStream')?.addEventListener('change', () => {
+      if (state.sceneTelemetryStream && state.sceneTelemetryStream === state.telemetryStream) {
+        state.sceneTelemetry = state.telemetry.slice();
+        state.sceneLastTelemetrySeq = state.lastTelemetrySeq;
+      }
       state.telemetryStream = $('continuousStream').value;
       resetTelemetrySelection();
       if (state.snapshot) renderStreamContract(state.snapshot);
@@ -1309,7 +1363,7 @@
     renderVerifiedHistory();
   }
   window.SatContinuousConsole = {
-    enter, exit, applyNativeConfiguration, selectSession,
+    enter, exit, applyNativeConfiguration, selectSession, syncScene,
     getSelectedSessionId: () => state.selectedId,
   };
   document.addEventListener('DOMContentLoaded', initialize);

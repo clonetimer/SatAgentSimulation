@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { inertialPositionToEarthFixed } from './realtime-orbit.mjs';
 
 const EARTH_ROTATION_S = 86164.0905;
 const ORBIT_PERIOD_S = 5730;
@@ -16,7 +17,13 @@ const state = {
   startedAt: 0,
   lastUpdateAt: 0,
   tracking: false,
-  frame: 0
+  frame: 0,
+  mode: 'demo',
+  liveSession: null,
+  liveLastSequence: -1,
+  liveTrail: [],
+  pendingLiveFrame: null,
+  lastLiveSimTimeS: null
 };
 
 const byId = (id) => document.getElementById(id);
@@ -101,7 +108,9 @@ function createGlobe(host, generation) {
   }
   const width = Math.max(1, host.clientWidth);
   const height = Math.max(1, host.clientHeight);
-  const satellite = { name: '任务卫星（示意模型）', ...orbitPoint(0) };
+  const satellite = state.mode === 'demo'
+    ? { name: '任务卫星（演示数据）', ...orbitPoint(0) }
+    : null;
   const globe = new window.Globe(host, {
     animateIn: false,
     waitForGlobeReady: true,
@@ -122,7 +131,7 @@ function createGlobe(host, generation) {
     .showAtmosphere(true)
     .atmosphereColor('#4a9fe5')
     .atmosphereAltitude(0.14)
-    .pathsData(buildOrbitPath())
+    .pathsData(state.mode === 'demo' ? buildOrbitPath() : [])
     .pathLabel('name')
     .pathPoints('points')
     .pathPointLat('lat')
@@ -133,7 +142,7 @@ function createGlobe(host, generation) {
     .pathDashLength(0.008)
     .pathDashGap(0.004)
     .pathDashAnimateTime(0)
-    .objectsData([satellite])
+    .objectsData(satellite ? [satellite] : [])
     .objectLabel('name')
     .objectLat('lat')
     .objectLng('lng')
@@ -146,13 +155,17 @@ function createGlobe(host, generation) {
   controls.enableDamping = true;
   controls.minDistance = globe.getGlobeRadius() * 1.08;
   controls.maxDistance = globe.getGlobeRadius() * 18;
-  globe.pointOfView(overviewPoint(satellite), 0);
+  globe.pointOfView(satellite ? overviewPoint(satellite) : { lat: 0, lng: 0, altitude: 2.8 }, 0);
   controls.addEventListener('start', freeCamera);
   return globe;
 }
 
 function updateSatellite(now) {
   if (!state.active || !state.ready || !state.globe || !state.satellite) return;
+  if (state.mode !== 'demo') {
+    state.frame = 0;
+    return;
+  }
   if (now - state.lastUpdateAt >= 100) {
     state.lastUpdateAt = now;
     const elapsed = (now - state.startedAt) / 1000;
@@ -172,7 +185,7 @@ function updateSatellite(now) {
 
 function syncCameraActions() {
   document.querySelectorAll('#satelliteSceneView [data-scene-action]').forEach((button) => {
-    button.disabled = !state.ready;
+    button.disabled = !state.ready || (button.dataset.sceneAction === 'track' && !state.satellite);
     if (button.dataset.sceneAction !== 'home') {
       const selected = button.dataset.sceneAction === 'track' ? state.tracking : !state.tracking;
       button.setAttribute('aria-pressed', String(state.ready && selected));
@@ -187,9 +200,18 @@ function markReady(globe, generation) {
   state.ready = true;
   state.startedAt = performance.now();
   state.lastUpdateAt = 0;
-  state.frame = requestAnimationFrame(updateSatellite);
   syncCameraActions();
-  status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
+  if (state.mode === 'realtime') {
+    status('三维场景已就绪，正在等待当前实时会话的有效轨道遥测。', 'info');
+    if (state.pendingLiveFrame) {
+      const pending = state.pendingLiveFrame;
+      state.pendingLiveFrame = null;
+      applyRealtimeFrame(pending);
+    }
+  } else {
+    state.frame = requestAnimationFrame(updateSatellite);
+    status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
+  }
 }
 
 function destroy() {
@@ -283,18 +305,161 @@ function freeCamera() {
 function home() {
   if (!state.ready || !state.globe) return;
   state.tracking = false;
-  state.globe.pointOfView(overviewPoint(state.satellite), 0);
+  state.globe.pointOfView(state.satellite ? overviewPoint(state.satellite) : { lat: 0, lng: 0, altitude: 2.8 }, 0);
   syncCameraActions();
 }
 
 function selectObject({ name, hasSpatialAnchor = false } = {}) {
   if (!name) return;
-  const readyPrefix = state.active && state.ready ? '场景已就绪（演示数据）。' : '';
+  const readyPrefix = state.mode === 'realtime' && state.liveSession
+    ? `实时仿真（${state.liveSession.modeLabel}） · ${state.liveSession.sessionId}。 `
+    : state.active && state.ready ? '场景已就绪（演示数据）。' : '';
   if (!hasSpatialAnchor) {
-    status(`${readyPrefix}已选择：${name}。该对象没有经过审定的三维空间锚点，场景保持当前视角，不虚构部件位置。`, 'info');
+    status(`${readyPrefix}已选择：${name}。该对象没有经过审定的局部三维资产锚点，不虚构部件坐标。`, 'info');
     return;
   }
   status(`${readyPrefix}已选择：${name}。对象空间锚点已登记；局部模型节点映射将在资产映射验收后启用。`, 'info');
+}
+
+function applyRealtimeFrame(payload) {
+  const session = state.liveSession;
+  const frame = payload?.frame;
+  if (!session || !frame || frame.session_id !== session.sessionId ||
+      (session.streamId && frame.stream !== session.streamId)) return false;
+  if (frame.quality !== 'GOOD') {
+    status(`实时遥测质量为 ${frame.quality || 'UNKNOWN'}；保留最后一个有效位置，不用无效帧更新场景。`, 'warning');
+    return false;
+  }
+  if (!Number.isSafeInteger(frame.sequence) || frame.sequence < 0 || frame.sequence <= state.liveLastSequence) return false;
+  if (!Number.isFinite(frame.sim_time_s) || frame.sim_time_s < 0 ||
+      (state.lastLiveSimTimeS !== null && frame.sim_time_s < state.lastLiveSimTimeS)) return false;
+  if (!session.streamId || session.timeSystem !== 'UTC' || session.positionFrame !== 'J2000_INERTIAL' || !session.epochUtc) {
+    status('当前会话缺少有效的轨道流、UTC 历元或惯性坐标系信息，暂不更新卫星位置。', 'warning');
+    return false;
+  }
+  const values = frame.values || {};
+  const positionM = [
+    values['orbit.position_m_x'],
+    values['orbit.position_m_y'],
+    values['orbit.position_m_z'],
+  ];
+  try {
+    const earthFixed = inertialPositionToEarthFixed({
+      positionM,
+      epochUtc: session.epochUtc,
+      simTimeS: frame.sim_time_s,
+      timeSystem: session.timeSystem,
+      positionFrame: session.positionFrame,
+    });
+    state.liveLastSequence = frame.sequence;
+    state.lastLiveSimTimeS = frame.sim_time_s;
+    state.satellite = {
+      name: `真实仿真卫星 · ${session.sessionId}`,
+      session_id: session.sessionId, stream: frame.stream,
+      sequence: frame.sequence, sim_time_s: frame.sim_time_s,
+      lat: earthFixed.latitudeDeg,
+      lng: earthFixed.longitudeDeg,
+      alt: earthFixed.altitudeRatio,
+    };
+    state.liveTrail.push({lat: earthFixed.latitudeDeg, lng: earthFixed.longitudeDeg, alt: earthFixed.altitudeRatio});
+    if (state.liveTrail.length > 360) state.liveTrail.splice(0, state.liveTrail.length - 360);
+    if (state.globe && state.ready) {
+      state.globe.objectsData([state.satellite]);
+      state.globe.pathsData([{
+        name: `实时遥测轨迹 · ${session.sessionId}`,
+        points: state.liveTrail.slice(),
+      }]);
+      if (state.tracking) {
+        state.globe.pointOfView({lat: state.satellite.lat, lng: state.satellite.lng, altitude: 1.8}, 0);
+      }
+    }
+    syncCameraActions();
+    status(
+      `真实遥测 · ${session.modeLabel} · ${session.sessionId} · ${frame.stream} · t=${Number(frame.sim_time_s).toFixed(2)} s · 序号 ${frame.sequence} · lat=${earthFixed.latitudeDeg.toFixed(3)}° · lon=${earthFixed.longitudeDeg.toFixed(3)}° · h=${(earthFixed.altitudeM / 1000).toFixed(2)} km。位置由 ${session.positionFrame} 经 GMST 近似换算至地固坐标，仅用于场景可视化。`,
+      'success'
+    );
+    return true;
+  } catch (error) {
+    status(`实时轨道定位不可用：${error.message}。不以演示轨道替代真实位置。`, 'warning');
+    return false;
+  }
+}
+
+function setRealtimeSession({
+  sessionId, mode = 'bounded', epochUtc, timeSystem,
+  positionFrame, streamId = null, sessionState = 'RUNNING'
+} = {}) {
+  if (!sessionId) return clearRealtimeSession();
+  const modeLabel = mode === 'continuous' ? '持续实时' : '限时实时';
+  const next = {sessionId: String(sessionId), mode, modeLabel, epochUtc, timeSystem, positionFrame, streamId, sessionState};
+  const changed = !state.liveSession || state.liveSession.sessionId !== next.sessionId ||
+    state.liveSession.streamId !== next.streamId || state.liveSession.epochUtc !== next.epochUtc ||
+    state.liveSession.timeSystem !== next.timeSystem || state.liveSession.positionFrame !== next.positionFrame ||
+    state.liveSession.mode !== next.mode;
+  state.mode = 'realtime';
+  state.liveSession = next;
+  if (changed) {
+    if (state.frame) cancelAnimationFrame(state.frame);
+    state.frame = 0;
+    state.liveLastSequence = -1;
+    state.liveTrail = [];
+    state.pendingLiveFrame = null;
+    state.lastLiveSimTimeS = null;
+    state.satellite = null;
+    if (state.globe && state.ready) {
+      state.globe.objectsData([]);
+      state.globe.pathsData([]);
+    }
+  }
+  if (state.active && state.ready && changed) {
+    status(`已连接实时会话 ${next.sessionId}（${modeLabel}），等待包含完整三轴位置的有效遥测。`, 'info');
+    syncCameraActions();
+  }
+}
+
+function updateRealtimeFrame(payload) {
+  if (!state.liveSession || payload?.sessionId !== state.liveSession.sessionId) return false;
+  const frame = payload.frame;
+  if (!frame || frame.session_id !== state.liveSession.sessionId ||
+      (state.liveSession.streamId && frame.stream !== state.liveSession.streamId)) return false;
+  if (!state.ready || !state.globe) {
+    const session = state.liveSession;
+    const pending = state.pendingLiveFrame?.frame;
+    if (frame.quality !== 'GOOD' || !Number.isSafeInteger(frame.sequence) || frame.sequence < 0 ||
+        frame.sequence <= state.liveLastSequence || !Number.isFinite(frame.sim_time_s) || frame.sim_time_s < 0 ||
+        (state.lastLiveSimTimeS !== null && frame.sim_time_s < state.lastLiveSimTimeS) ||
+        (pending && (frame.sequence <= pending.sequence || frame.sim_time_s < pending.sim_time_s))) return false;
+    if (!session.streamId || session.timeSystem !== 'UTC' || session.positionFrame !== 'J2000_INERTIAL' || !session.epochUtc) return false;
+    try {
+      inertialPositionToEarthFixed({
+        positionM: ['x', 'y', 'z'].map(axis => frame.values?.['orbit.position_m_' + axis]),
+        epochUtc: session.epochUtc, simTimeS: frame.sim_time_s,
+        timeSystem: session.timeSystem, positionFrame: session.positionFrame,
+      });
+    } catch (_) { return false; }
+    state.pendingLiveFrame = payload;
+    return true;
+  }
+  return applyRealtimeFrame(payload);
+}
+
+function clearRealtimeSession() {
+  state.mode = 'demo';
+  state.liveSession = null;
+  state.liveLastSequence = -1;
+  state.liveTrail = [];
+  state.pendingLiveFrame = null;
+  state.lastLiveSimTimeS = null;
+  state.satellite = {name: '任务卫星（演示数据）', ...orbitPoint(0)};
+  if (state.globe && state.ready) {
+    state.globe.objectsData([state.satellite]);
+    state.globe.pathsData(buildOrbitPath());
+    state.startedAt = performance.now();
+    state.lastUpdateAt = 0;
+    if (!state.frame) state.frame = requestAnimationFrame(updateSatellite);
+    status('已退出实时场景，当前显示恢复为演示数据；不代表真实 Basilisk 仿真遥测。', 'info');
+  }
+  syncCameraActions();
 }
 
 document.addEventListener('click', (event) => {
@@ -304,4 +469,4 @@ document.addEventListener('click', (event) => {
   if (action === 'home') home();
 });
 
-window.SatScene = { enter, exit: destroy, track, freeCamera, home, selectObject };
+window.SatScene = { enter, exit: destroy, track, freeCamera, home, selectObject, setRealtimeSession, updateRealtimeFrame, clearRealtimeSession };
