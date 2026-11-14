@@ -24,3 +24,20 @@ jobs:
           node-version: "22"
       - name: Verify primary navigation, V15 route and legacy reachability
         run: node --test tests/js/test_p9g_navigation.cjs
+      - name: Capture exact tracked source for acceptance reproduction
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/p9g-reproduction"
+          git rev-parse HEAD > "$RUNNER_TEMP/p9g-reproduction/commit.txt"
+          git archive --format=zip --output="$RUNNER_TEMP/p9g-reproduction/source.zip" HEAD
+          cd "$RUNNER_TEMP/p9g-reproduction"
+          sha256sum source.zip > SHA256SUMS
+      - name: Preserve reproducible source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p9g-reproduction-source
+          path: ${{ runner.temp }}/p9g-reproduction
+          retention-days: 7
+          if-no-files-found: error
