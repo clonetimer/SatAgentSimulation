@@ -84,29 +84,27 @@ def _multiply4(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
     return [[sum(a[r][k] * b[k][c] for k in range(4)) for c in range(4)] for r in range(4)]
 
 
-def _step_length_unit(path: Path) -> str:
-    raw = path.read_bytes()[:2_000_000]
-    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
-        text = raw.decode("utf-16").upper()
-        encoding = "utf-16-bom"
-    elif raw[:256].count(b"\0") > 32:
-        text = raw.decode("utf-16-le").upper()
-        encoding = "utf-16-le"
-    else:
-        text = raw.decode("latin-1").upper()
-        encoding = "latin-1"
-    units = set(re.findall(r"SI_UNIT\(\s*(\.MILLI\.|\$)\s*,\s*\.METRE\.\s*\)", text))
-    if units == {".MILLI."}:
-        return "MM"
-    if units == {"$"}:
-        return "M"
-    declarations = re.findall(r"SI_UNIT\(([^)]*)\)", text)
-    conversion_units = re.findall(r"CONVERSION_BASED_UNIT\(([^)]*)\)", text)
+def detect_source_unit(assembly: Any) -> tuple[str, float, dict[str, float]]:
+    """Infer the STEP model scale from the documented 1U envelope.
+
+    CadQuery honours a unit declared in STEP; the import unit is only a fallback
+    when no unit is declared. A BIRDS-4 1U assembly should be roughly 100 mm
+    across, so the measured full-assembly bounding box distinguishes mm from m.
+    """
+    bounds = assembly.toCompound().BoundingBox()
+    envelope = {
+        "x": float(bounds.xlen),
+        "y": float(bounds.ylen),
+        "z": float(bounds.zlen),
+    }
+    maximum = max(envelope.values())
+    if 50.0 <= maximum <= 250.0:
+        return "MM", 0.001, envelope
+    if 0.05 <= maximum <= 0.25:
+        return "M", 1.0, envelope
     raise ValueError(
-        "STEP length unit is missing, mixed, or unsupported: "
-        f"{sorted(units)}; encoding={encoding}; "
-        f"SI_UNIT declarations={declarations[:12]}; "
-        f"CONVERSION_BASED_UNIT declarations={conversion_units[:12]}"
+        "BIRDS-4 FM envelope is outside the documented 1U scale window; "
+        f"cannot safely infer STEP units: {envelope}"
     )
 
 def _walk_assembly(node: Any, parent_path: str | None, parent_world: list[list[float]] | None, rows: list[dict[str, Any]], scale_to_m: float) -> None:
@@ -153,13 +151,11 @@ def _download_pinned(record: dict[str, Any], cache: Path, source_commit: str, ca
     return target, {"source_url": url, **verified}
 
 
-def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, source_commit: str, cad_directory: str) -> dict[str, Any]:
+def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, source_commit: str, cad_directory: str, source_unit: str, scale_to_m: float) -> dict[str, Any]:
     import cadquery as cq
 
     source_path, source_integrity = _download_pinned(record, source_cache, source_commit, cad_directory)
-    source_unit = _step_length_unit(source_path)
-    assembly = cq.Assembly.load(str(source_path), unit=source_unit)
-    scale_to_m = 0.001 if source_unit == "MM" else 1.0
+    assembly = cq.Assembly.load(str(source_path), unit="MM")
     node_rows: list[dict[str, Any]] = []
     _walk_assembly(assembly, None, None, node_rows, scale_to_m)
 
@@ -195,6 +191,7 @@ def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, s
             "engine": "CadQuery",
             "cadquery_version": cq.__version__,
             "source_step_length_unit": source_unit,
+            "source_unit_detection": "inferred from BIRDS-4 1U FM assembly envelope after STEP unit-aware import",
             "source_to_gltf_scale": scale_to_m,
             "output_unit": "metres",
             "format": "glTF 2.0 binary GLB",
@@ -233,12 +230,30 @@ def main() -> int:
     if missing:
         raise SystemExit(f"manifest missing selected STEP files: {missing}")
 
+    # Import the full FM assembly first. CadQuery honours explicit STEP
+    # units and uses MM only as a fallback. The 1U envelope then independently
+    # distinguishes millimetres from metres before any GLB scaling is applied.
+    main_record = records["BIRDS4_FM_Final v7.step"]
+    main_path, _ = _download_pinned(
+        main_record, args.source_cache,
+        manifest["source_commit"], manifest["cad_directory"]
+    )
+    import cadquery as cq
+    main_assembly = cq.Assembly.load(str(main_path), unit="MM")
+    source_unit, scale_to_m, raw_envelope = detect_source_unit(main_assembly)
+    print(
+        f"[CAD] Unit evidence: source={source_unit}, scale={scale_to_m}, "
+        f"raw_envelope={raw_envelope}",
+        flush=True,
+    )
+
     results = []
     for name in SELECTED:
         print(f"[CAD] Importing {name}", flush=True)
         results.append(convert_one(
             records[name], args.source_cache, args.output,
-            manifest["source_commit"], manifest["cad_directory"]
+            manifest["source_commit"], manifest["cad_directory"],
+            source_unit, scale_to_m
         ))
     summary = {
         "schema_version": "birds4-cad-conversion-report.v1",
