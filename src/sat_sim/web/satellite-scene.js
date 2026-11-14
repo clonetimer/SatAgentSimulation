@@ -58,9 +58,14 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
     ? [point.rotation.x, point.rotation.y, point.rotation.z].map(value => value.toFixed(2) + '°').join(', ')
     : '—');
   setText('sceneEstimatorStatus', '尚未接入');
-  setText('sceneFrameSource', live ? `${point.session_id} / ${point.stream}` : '—');
-  setText('sceneFrameSequence', live && point.sequence !== null ? String(point.sequence) : '—');
-  setText('sceneFrameQuality', live ? (point.quality || 'UNKNOWN') : '—');
+  const frameSource = live
+    ? (point.session_id && point.stream
+      ? `${point.session_id} / ${point.stream}`
+      : (state.telemetrySourceId?.startsWith('run:') ? state.telemetrySourceId : '—'))
+    : '—';
+  setText('sceneFrameSource', frameSource);
+  setText('sceneFrameSequence', live && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
+  setText('sceneFrameQuality', live ? (point.quality || (state.telemetrySourceId?.startsWith('run:') ? 'SEALED' : 'UNKNOWN')) : '—');
 }
 
 function syncBodyAxes() {
