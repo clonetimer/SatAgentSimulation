@@ -54,7 +54,9 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
         assert field in api
         assert field in app
     assert "state.interactiveSession.orbit_epoch_utc" in app
+    assert "frame: state.interactiveSession.orbit_frame" in app
     assert "state.snapshot?.orbit_epoch_utc" in continuous
+    assert "frame: state.snapshot?.orbit_frame" in continuous
     assert "window.SatScene?.updateTelemetry" in app
     assert "window.SatScene?.updateTelemetry" in continuous
     assert "sceneRealtimeSource" in app
