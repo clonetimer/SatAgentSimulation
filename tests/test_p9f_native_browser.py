@@ -235,9 +235,10 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 timeout=30000,
             )
             page.locator(start_selector).click()
+            running_label = "运行中" if mode == "continuous" else "RUNNING"
             page.wait_for_function(
-                "selector => (document.querySelector(selector)?.textContent || '').includes('RUNNING')",
-                arg=state_selector,
+                "args => (document.querySelector(args.selector)?.textContent || '').includes(args.label)",
+                arg={"selector": state_selector, "label": running_label},
                 timeout=30000,
             )
 
