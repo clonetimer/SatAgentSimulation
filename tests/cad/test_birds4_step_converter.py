@@ -86,16 +86,38 @@ def test_selected_conversion_targets_exist_in_pinned_manifest():
     assert records["BIRDS4_FM_Final v7.step"]["size_bytes"] == 22_964_753
 
 
-@pytest.mark.parametrize("encoding", ["ascii", "utf-16-le", "utf-16"])
-def test_step_unit_parser_reads_millimetre_declarations(tmp_path, encoding):
-    path = tmp_path / "unit.step"
-    payload = "ISO-10303-21;\n#1=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));\nEND-ISO-10303-21;\n"
-    path.write_bytes(payload.encode(encoding))
-    assert MODULE._step_length_unit(path) == "MM"
+class _Bounds:
+    def __init__(self, x, y, z):
+        self.xlen, self.ylen, self.zlen = x, y, z
 
 
-def test_step_unit_parser_rejects_missing_or_ambiguous_units(tmp_path):
-    path = tmp_path / "unknown.step"
-    path.write_text("ISO-10303-21;\nEND-ISO-10303-21;\n", encoding="ascii")
-    with pytest.raises(ValueError, match="length unit is missing"):
-        MODULE._step_length_unit(path)
+class _Compound:
+    def __init__(self, bounds):
+        self._bounds = bounds
+
+    def BoundingBox(self):
+        return self._bounds
+
+
+class _Assembly:
+    def __init__(self, bounds):
+        self._compound = _Compound(bounds)
+
+    def toCompound(self):
+        return self._compound
+
+
+def test_birds4_unit_scale_is_inferred_from_nominal_1u_assembly_envelope():
+    unit, scale, envelope = MODULE.detect_source_unit(_Assembly(_Bounds(100.2, 99.8, 103.1)))
+    assert unit == "MM"
+    assert scale == pytest.approx(0.001)
+    assert envelope["z"] == pytest.approx(103.1)
+
+    unit, scale, _ = MODULE.detect_source_unit(_Assembly(_Bounds(0.1002, 0.0998, 0.1031)))
+    assert unit == "M"
+    assert scale == pytest.approx(1.0)
+
+
+def test_birds4_unit_scale_refuses_implausible_envelope():
+    with pytest.raises(ValueError, match="cannot safely infer STEP units"):
+        MODULE.detect_source_unit(_Assembly(_Bounds(10.0, 10.0, 10.0)))
