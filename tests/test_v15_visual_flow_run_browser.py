@@ -138,7 +138,7 @@ def test_v15_visual_flow_run_loads_result_and_exports_program(tmp_path, monkeypa
             assert captured["run_request"] is not None
             assert captured["task_spec"]["model"]["capability_id"]
             assert page.locator("#activeRunCard").is_visible()
-            assert page.locator("#graphResultOverlayBtn").is_enabled()
+            assert page.locator("#activeRunCard .run-status").inner_text() == "SUCCEEDED"
 
             project_actions = page.locator("#graphProjectActions")
             if project_actions.get_attribute("open") is None:
