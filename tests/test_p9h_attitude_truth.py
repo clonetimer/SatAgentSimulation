@@ -59,3 +59,19 @@ def test_native_row_builder_reads_spacecraft_truth_not_star_tracker_measurement(
     assert "_attitude_truth_from_mrp(state.sigma_BN[index])" in text
     assert '"attitude.truth.quaternion_BN_q0"' in text
     assert '"adcs.star_tracker.q0"' in text
+
+def test_bounded_and_continuous_clients_require_atomic_position_attitude_stream():
+    root = Path(__file__).resolve().parents[1]
+    app = (root / "src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    continuous = (root / "src/sat_sim/web/continuous.js").read_text(encoding="utf-8")
+    assert "const ORBIT_SCENE_FIELDS" in app
+    assert "fields: ORBIT_SCENE_FIELDS" in app
+    assert "sceneStateFields.every(field => (row.fields || []).includes(field))" in continuous
+    for field in (
+        "attitude.truth.quaternion_BN_q0",
+        "attitude.truth.quaternion_BN_q1",
+        "attitude.truth.quaternion_BN_q2",
+        "attitude.truth.quaternion_BN_q3",
+        "attitude.truth.valid",
+    ):
+        assert field in app and field in continuous
