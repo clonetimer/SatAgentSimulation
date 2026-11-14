@@ -116,7 +116,7 @@ jobs:
           PYTHONPATH: "src:."
           SAT_SIM_P9F_NATIVE_BROWSER_TEST: "1"
           SAT_SIM_P9F_EVIDENCE: "${{ runner.temp }}/p9f-native-browser"
-        run: python -m pytest -q tests/test_p9f_native_browser.py -k native_user_created_session
+        run: python -m pytest -q tests/test_p9f_native_browser.py -k "native_user_created_session or sealed_finite_run_attitude"
       - name: Preserve real native browser evidence
         if: always()
         uses: actions/upload-artifact@v4
