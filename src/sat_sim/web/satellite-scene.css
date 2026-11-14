@@ -64,3 +64,23 @@
 .p9e-run-result-footnote{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 
 .p9e-run-result-provenance{grid-column:1/-1;color:var(--muted);font-size:10px;line-height:1.4}
+
+/* P9-H: inspectable truth telemetry and clearly separated estimator status. */
+.satellite-scene-inspector{display:grid;gap:10px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--panel)}
+.satellite-scene-inspector-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.satellite-scene-inspector-heading h2{margin:0;font-size:13px}
+.scene-data-source{padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:10px;white-space:nowrap}
+.scene-data-source[data-state="live"]{color:var(--success);border-color:color-mix(in srgb,var(--success) 40%,var(--line))}
+.scene-data-source[data-state="demo"]{color:var(--warning)}
+.satellite-scene-inspector-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.scene-inspector-card{min-width:0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.scene-inspector-card h3{display:flex;align-items:center;gap:6px;margin:0 0 9px;font-size:11px}
+.scene-inspector-card dl{display:grid;gap:7px;margin:0}
+.scene-inspector-card dl>div{display:grid;gap:3px;min-width:0}
+.scene-inspector-card dt{color:var(--muted);font-size:10px}
+.scene-inspector-card dd{margin:0;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.scene-truth-tag{padding:2px 5px;border-radius:4px;background:var(--accent-soft);color:var(--accent);font-size:9px}
+.scene-estimator-card dd{color:var(--muted)}
+.satellite-scene-inspector-note{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:1100px){.satellite-scene-inspector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.satellite-scene-inspector-grid{grid-template-columns:minmax(0,1fr)}.satellite-scene-inspector{padding:9px}.satellite-scene-inspector-heading{align-items:flex-start;flex-direction:column}}
