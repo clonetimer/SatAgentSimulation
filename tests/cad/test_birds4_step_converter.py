@@ -142,3 +142,32 @@ def test_glb_root_scale_converts_geometry_coordinates_to_metres(tmp_path):
     json_length, _ = struct.unpack_from("<I4s", data, 12)
     document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" "))
     assert document["nodes"][0]["scale"] == pytest.approx([0.001, 0.001, 0.001])
+
+
+def test_reference_assembly_audit_does_not_promote_mixed_variant_nodes():
+    rows = [
+        {"source_node_name": "BIRDS4_FM_Final v7", "source_label_name": "BIRDS4_FM_Final v7"},
+        {"source_node_name": "B4_EM_-Z_panel v19", "source_label_name": "B4_EM_-Z_panel v19"},
+        {"source_node_name": "B3_GPS_patch antenna v2:1", "source_label_name": "B3_GPS_patch antenna v2:1"},
+        {"source_node_name": "B4_RW_Assembly v55", "source_label_name": "B4_RW_Assembly v55"},
+        {"source_node_name": "B4_OBC v3", "source_label_name": "B4_OBC v3"},
+    ]
+    audit = MODULE.audit_reference_assembly(rows)
+    assert audit["source_name_classification"]["fm_named"] == 1
+    assert audit["source_name_classification"]["em_named"] == 1
+    assert audit["source_name_classification"]["b3_named"] == 1
+    assert audit["candidate_category_node_counts"]["reaction_wheel"] == 1
+    assert audit["candidate_category_node_counts"]["obc"] == 1
+    assert audit["identity_status"] == "flight_unit_not_identified_from_cad_tree"
+    assert audit["render_eligibility"] is False
+    assert audit["generated_equipment_instances"] == []
+
+
+def test_reference_assembly_audit_counts_duplicate_component_occurrences():
+    rows = [
+        {"source_node_name": "B4_DepSW v3", "source_label_name": "B4_DepSW v3"},
+        {"source_node_name": "B4_DepSW v3__instance_002", "source_label_name": "B4_DepSW v3"},
+    ]
+    audit = MODULE.audit_reference_assembly(rows)
+    assert audit["duplicate_label_occurrences"] == {"B4_DepSW v3": 2}
+    assert audit["render_eligibility"] is False
