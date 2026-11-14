@@ -355,7 +355,7 @@ function setRunTelemetry(rows, options = {}) {
     if (state.frame) cancelAnimationFrame(state.frame);
     state.frame = 0;
     renderTelemetryPosition();
-    status(`已加载${state.telemetrySourceLabel}：${state.telemetryTrail.length} 个轨迹样本${state.telemetrySampled ? '（抽样概览）' : ''}；末样本仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s。`, 'success');
+    status(`已加载${state.telemetrySourceLabel}：${state.telemetryTrail.length} 个轨迹样本${state.telemetrySampled ? '（抽样概览）' : ''}；末样本仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s；${state.latestTelemetryPoint.attitude_valid ? '本体姿态由 Basilisk 真值驱动' : '姿态不可用，本体朝向仅为示意'}。`, state.latestTelemetryPoint.attitude_valid ? 'success' : 'warning');
   }
   return true;
 }
@@ -481,7 +481,7 @@ function markReady(globe, generation) {
   state.lastUpdateAt = 0;
   if (state.telemetrySourceId && state.latestTelemetryPoint) {
     renderTelemetryPosition();
-    status(`场景已就绪，当前显示${state.telemetrySourceLabel || '真实 Basilisk 遥测'}。`, 'success');
+    status(`场景已就绪，当前显示${state.telemetrySourceLabel || '真实 Basilisk 遥测'}；${state.latestTelemetryPoint.attitude_valid ? '本体姿态由 Basilisk 真值驱动' : '姿态不可用，本体朝向仅为示意'}。`, state.latestTelemetryPoint.attitude_valid ? 'success' : 'warning');
   } else {
     state.frame = requestAnimationFrame(updateSatellite);
     status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
