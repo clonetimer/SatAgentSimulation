@@ -11,8 +11,12 @@ from Basilisk.utilities import SimulationBaseClass, macros
 from sat_sim.bsk_engine.unified_native import _attitude_truth_from_mrp
 
 
-def test_real_basilisk_sc_state_recorder_exports_sigma_bn_truth():
-    sigma_initial = [0.1, -0.2, 0.05]
+@pytest.mark.parametrize(
+    "sigma_initial",
+    [[0.0, 0.0, 0.0], [0.1, -0.2, 0.05], [0.0, 0.0, 0.5]],
+    ids=["identity", "compound-attitude", "z-axis-attitude"],
+)
+def test_real_basilisk_sc_state_recorder_exports_sigma_bn_truth(sigma_initial):
     simulation = SimulationBaseClass.SimBaseClass()
     process = simulation.CreateNewProcess("p9h_attitude_process")
     process.addTask(simulation.CreateNewTask("p9h_attitude_task", macros.sec2nano(0.1)))
