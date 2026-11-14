@@ -335,7 +335,7 @@ test('verified finite Run telemetry replaces demo mode and preserves sampling pr
   assert.equal(h.instances[0].objectRows[0].sim_time_s, 5);
   assert.equal(h.instances[0].pathRows[0].points.length, 2);
   assert.match(h.status.textContent, /抽样概览/);
-  assert.equal(h.ui.get('sceneDataSource').dataset.state, 'live');
+  assert.equal(h.ui.get('sceneDataSource').dataset.state, 'sealed');
   assert.equal(h.ui.get('sceneTruthStatus').textContent, '有效 · 刚体状态真值');
   assert.notEqual(h.ui.get('sceneQuaternionValue').textContent, '—');
   assert.equal(h.ui.get('sceneEstimatorStatus').textContent, '尚未接入');
