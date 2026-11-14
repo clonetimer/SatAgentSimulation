@@ -110,11 +110,28 @@ def create_interactive_router(
             raise HTTPException(404, detail={"reason_code": "INTERACTIVE_SESSION_NOT_FOUND"}) from exc
 
     def session_metadata(session):
+        task_spec = session.spec.task_spec if isinstance(session.spec.task_spec, dict) else {}
+        simulation = task_spec.get("simulation") if isinstance(task_spec.get("simulation"), dict) else {}
+        parameters = task_spec.get("parameters") if isinstance(task_spec.get("parameters"), dict) else {}
+        values = parameters.get("values") if isinstance(parameters.get("values"), dict) else parameters
+        epoch_utc = values.get("epoch_utc")
+        if not epoch_utc:
+            from sat_sim.bsk_engine.orbital_environment import DEFAULT_EPOCH
+            epoch_utc = DEFAULT_EPOCH
+        from .runtime_factory import APPROVED_CAPABILITY_IDS
+        orbit_capabilities = {
+            "whole_spacecraft.unified_native.v1",
+            "subsystem.adcs_unified_native.v1",
+        }
+        capability_id = session.spec.capability_id
         return {
             **session.snapshot().model_dump(mode="json"),
             "continuous": session.spec.continuous,
             "telemetry_streams": session.allowed_telemetry_streams,
             "telemetry_catalog": session.telemetry_catalog,
+            "epoch_utc": str(epoch_utc),
+            "time_system": str(simulation.get("time_system") or "UTC"),
+            "orbit_position_frame": "J2000_INERTIAL" if capability_id in orbit_capabilities else None,
             "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if
                              session.runtime.__class__.__name__ == "SupervisedContinuousNativeRuntime"
                              else "IN_PROCESS_NATIVE"),
