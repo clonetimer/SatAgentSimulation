@@ -4,12 +4,13 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "src" / "sat_sim" / "web"
 
 
-def test_wizard_has_prominent_drag_graph_entry():
+def test_wizard_has_prominent_professional_entry_and_retains_graph_tool():
     html = (WEB / "index.html").read_text(encoding="utf-8")
     app = (WEB / "app.js").read_text(encoding="utf-8")
-    assert 'id="wizardGraphShortcutBtn"' in html
-    assert "wizardGraphShortcutBtn" in app
-    assert "wizardStart('graph')" in app
+    assert 'id="wizardAdvancedBtn"' in html
+    assert "wizardAdvancedBtn" in app
+    assert "if (goal === 'graph') { switchView('creator'); switchTab('graph'); return; }" in app
+    assert 'id="graphAssemblyComposer"' in html
 
 
 def test_wizard_live_mode_explains_policy_and_component_scope():

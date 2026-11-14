@@ -190,5 +190,77 @@
   }
   // Native browser validation must reveal invalid inputs in closed groups.
   document.addEventListener('invalid', event => reveal(event.target), true);
+  // Keep one navigation tree and the original app.js listeners. The guided
+  // workspace deliberately hides its catalog sidebar, not these task routes.
+  const nav = document.querySelector('.sidebar-nav');
+  const frame = document.querySelector('.app-frame');
+  if (nav && frame) {
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet'; stylesheet.href = '/assets/workbench-navigation.css?v=p9g-1';
+    document.head.append(stylesheet);
+    const host = document.createElement('div'); host.id = 'workbenchNavigation';
+    frame.before(host); host.append(nav);
+    nav.querySelector(':scope > .sidebar-section-title')?.remove();
+    const more = document.createElement('details'); more.id = 'workbenchMoreNavigation';
+    const summary = document.createElement('summary'); summary.textContent = '更多功能';
+    more.append(summary);
+    nav.querySelectorAll(':scope > .sidebar-nav-group').forEach(group => more.append(group));
+    nav.append(more);
+    const help = document.createElement('button'); help.id = 'workbenchHelpBtn';
+    help.type = 'button'; help.className = 'nav-button'; help.textContent = '使用帮助';
+    help.setAttribute('aria-haspopup', 'dialog'); nav.append(help);
+    const dialog = document.createElement('dialog'); dialog.id = 'workbenchHelpDialog';
+    dialog.setAttribute('aria-labelledby', 'workbenchHelpTitle');
+    const title = document.createElement('h2'); title.id = 'workbenchHelpTitle'; title.textContent = '使用帮助';
+    dialog.append(title);
+    for (const [label, text] of [
+      ['快速仿真', '选择整星、分系统或单机，按步骤配置参数、校验并运行，完成后查看结果。'],
+      ['任务中心', '查找已保存任务和历史记录，继续配置或回看运行结果。'],
+      ['卫星数字场景', '查看当前会话的轨道位置或已封存运行的轨迹；没有真实数据时会明确标注演示模式。'],
+      ['专业建模', '保留图形建模、模块装配、校验、运行和程序包导出。'],
+      ['更多功能', '展开后进入实时仿真、实验与分析或高级工具。切换界面不会自动停止正在运行的仿真。'],
+    ]) {
+      const heading = document.createElement('h3'); heading.textContent = label;
+      const paragraph = document.createElement('p'); paragraph.textContent = text;
+      dialog.append(heading, paragraph);
+    }
+    const close = document.createElement('button'); close.type = 'button';
+    close.className = 'button button-primary'; close.textContent = '关闭帮助';
+    close.addEventListener('click', () => dialog.close()); dialog.append(close);
+    document.body.append(dialog);
+    help.addEventListener('click', () => dialog.showModal());
+    dialog.addEventListener('close', () => help.focus());
+    // The two primary wizard entries share one authoritative state owner.
+    // Leaving history uses its existing Back action, never a new reset routine.
+    nav.querySelector(':scope > [data-view="wizard"]:not([data-wizard-shortcut])')
+      ?.addEventListener('click', () => queueMicrotask(() => {
+        if (document.body.dataset.activeView === 'wizard'
+            && !byId('wizardTaskWorkspace')?.classList.contains('hidden')) {
+          byId('wizardBackBtn')?.click();
+        }
+      }));
+    const syncNavigation = () => {
+      more.querySelectorAll('.sidebar-nav-group').forEach(group => {
+        const buttons = [...group.querySelectorAll('.nav-button')];
+        const available = buttons.some(button => !button.classList.contains('hidden'));
+        if (group.hidden === available) group.hidden = !available;
+        if (available && buttons.some(button => button.classList.contains('active'))) group.open = true;
+      });
+      nav.querySelectorAll('.nav-button[data-view]').forEach(button => {
+        const current = button.classList.contains('active') ? 'page' : null;
+        if (current && button.getAttribute('aria-current') !== current) button.setAttribute('aria-current', current);
+        if (!current) button.removeAttribute('aria-current');
+      });
+      summary.classList.toggle('has-active-view', Boolean(more.querySelector('.nav-button.active')));
+    };
+    new MutationObserver(syncNavigation).observe(nav, {
+      subtree: true, attributes: true, attributeFilter: ['class'],
+    });
+    nav.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || !more.open) return;
+      more.open = false; summary.focus(); event.preventDefault();
+    });
+    syncNavigation();
+  }
   updateCounts();
 })();

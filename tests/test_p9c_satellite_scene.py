@@ -108,7 +108,16 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             for cycle in range(3):
                 page.locator("#wizardSceneShortcutBtn").click()
                 scene_status = page.locator("#satelliteSceneStatus")
-                scene_status.filter(has_text="场景已就绪").wait_for(timeout=30000)
+                try:
+                    scene_status.filter(has_text="场景已就绪").wait_for(timeout=30000)
+                except Exception as error:
+                    diagnostic = (
+                        f"cycle={cycle}; url={page.url}; active_view={page.locator('body').get_attribute('data-active-view')}; "
+                        f"scene_status={scene_status.inner_text()!r}; canvas_count={page.locator('#satelliteSceneCanvas canvas').count()}; "
+                        f"page_failures={failures!r}; external_requests={external_requests!r}"
+                    )
+                    page.screenshot(path=str(tmp_path / f"p9c-scene-failure-{cycle}.png"), full_page=True)
+                    raise AssertionError(diagnostic) from error
                 canvas = page.locator("#satelliteSceneCanvas canvas").first
                 canvas.wait_for(timeout=30000)
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 1

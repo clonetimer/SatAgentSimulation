@@ -41,6 +41,8 @@ def test_graph_export_and_viewport_changes_keep_editor_content_inside_panel(tmp_
             page.wait_for_selector('.capability-card.active', state='attached')
             _open_settings(page)
             page.locator('#fontScaleSelect').select_option(font_scale)
+            page.locator('#wizardAdvancedBtn').click()
+            page.locator('#creatorView').wait_for(state='visible')
             page.locator('#previewBtn').click()
             page.wait_for_function("document.querySelector('#notice').className.includes('success')")
             page.locator('#creatorGraphTabButton').click()

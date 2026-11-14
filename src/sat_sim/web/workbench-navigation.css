@@ -1,0 +1,35 @@
+/* One retained navigation tree, outside the guided workspace's hidden catalog. */
+#workbenchNavigation { position: relative; z-index: 6; min-width: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+#workbenchNavigation .sidebar-nav { display: flex; flex-wrap: wrap; align-items: start; gap: 6px; padding: 8px 16px; border: 0; overflow: visible; }
+#workbenchNavigation .nav-button { width: auto; min-height: 40px; flex: 0 0 auto; padding: 8px 12px; }
+#workbenchNavigation .nav-button b { display: inline; }
+#workbenchNavigation .nav-button.hidden { display: none; }
+#workbenchMoreNavigation { margin-left: auto; min-width: 110px; }
+#workbenchMoreNavigation > summary { cursor: pointer; padding: 10px 12px; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+#workbenchMoreNavigation > summary.has-active-view { color: var(--accent-2); }
+#workbenchMoreNavigation .sidebar-nav-group { padding: 4px; min-width: 160px; }
+#workbenchMoreNavigation .sidebar-nav-group[hidden] { display: none; }
+#workbenchMoreNavigation .sidebar-nav-group > summary { font-size: 12px; min-height: 36px; }
+#workbenchMoreNavigation .sidebar-nav-group > .nav-button { width: 100%; }
+#workbenchNavigation :is(button, summary):focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+#workbenchHelpDialog { width: min(580px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; box-sizing: border-box; padding: 24px; border: 1px solid var(--line); border-radius: 14px; color: var(--text); background: var(--panel); }
+#workbenchHelpDialog::backdrop { background: rgba(0, 0, 0, .48); }
+#workbenchHelpDialog h2 { margin: 0 0 14px; font-size: 20px; }
+#workbenchHelpDialog h3 { margin: 14px 0 5px; font-size: 14px; }
+#workbenchHelpDialog p { margin: 0; line-height: 1.7; font-size: 13px; }
+#workbenchHelpDialog button { margin-top: 20px; }
+@media (max-width: 760px) {
+  #workbenchNavigation .sidebar-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 6px 10px; gap: 4px; }
+  #workbenchNavigation .nav-button { width: 100%; min-width: 0; min-height: 40px; white-space: normal; padding: 7px 9px; }
+  #workbenchNavigation .nav-button span { flex: 0 0 18px; }
+  #workbenchNavigation .nav-button b { display: inline; font-size: 12px; }
+  #workbenchMoreNavigation { margin: 0; min-width: 0; }
+  #workbenchMoreNavigation[open] { grid-column: 1 / -1; }
+  #workbenchMoreNavigation .sidebar-nav-group { min-width: 0; }
+  #workbenchHelpDialog { padding: 18px; }
+}
+
+/* The catalog belongs only to professional modeling; other workspaces already
+   own their object/result panels and must not retain an empty sidebar column. */
+body:not([data-active-view="creator"]) .app-sidebar { display: none !important; }
+body:not([data-active-view="creator"]) .app-frame { grid-template-columns: minmax(0, 1fr); }
