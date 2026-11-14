@@ -171,6 +171,7 @@
     interactivePollTimer: null,
     interactiveFrames: {},
     interactiveGaps: {},
+    sceneRealtimeSource: null,
     interactiveEvents: [],
     interactiveAcks: [],
     interactiveCommandCatalog: [],
@@ -7662,7 +7663,9 @@
         return;
       }
       const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
-      if (!terminal && state.activeView === 'interactive') {
+      const sceneNeedsInteractiveTelemetry = state.activeView === 'scene'
+        && state.sceneRealtimeSource === 'interactive';
+      if (!terminal && (state.activeView === 'interactive' || sceneNeedsInteractiveTelemetry)) {
         clearTimeout(state.interactiveReconnectTimer);
         state.interactiveReconnectTimer = setTimeout(connectInteractiveSocket, 1200);
       }
@@ -8817,9 +8820,18 @@
   }
 
   function switchView(name) {
+    const previousView = state.activeView;
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
-    if (['interactive', 'continuous'].includes(state.activeView) && name !== state.activeView && wizardRealtimeSessionActive()) {
-      if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
+    if (['interactive', 'continuous'].includes(previousView) && name !== previousView && wizardRealtimeSessionActive()) {
+      if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。切换界面不会停止仿真；三维场景可保留只读遥测订阅。确定继续吗？')) return;
+    }
+    if (name === 'scene') {
+      const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
+      state.sceneRealtimeSource = previousView === 'continuous' ? 'continuous'
+        : previousView === 'interactive' && state.interactiveSession && !terminal ? 'interactive'
+        : state.interactiveSession && !terminal ? 'interactive' : 'continuous';
+    } else {
+      state.sceneRealtimeSource = null;
     }
     noteSharedContextTransition(name);
     state.wizardLeavingRealtimeApproved = false;
@@ -8855,8 +8867,11 @@
     if (name === 'evaluations') window.SatEvaluationWorkspace?.enter();
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
-    if (name === 'continuous') window.SatContinuousConsole?.enter();
-    else window.SatContinuousConsole?.exit();
+    if (name === 'continuous' || (name === 'scene' && state.sceneRealtimeSource === 'continuous')) {
+      window.SatContinuousConsole?.enter();
+    } else {
+      window.SatContinuousConsole?.exit();
+    }
     if (name === 'scene') window.SatScene?.enter();
     else window.SatScene?.exit();
     if (name === 'interactive') {
@@ -8871,7 +8886,12 @@
     } else {
       clearInterval(state.interactivePollTimer);
       state.interactivePollTimer = null;
-      closeInteractiveSocket();
+      const keepSceneTelemetry = name === 'scene' && state.sceneRealtimeSource === 'interactive';
+      if (keepSceneTelemetry) {
+        if (state.interactiveSession && !state.interactiveSocket) connectInteractiveSocket();
+      } else {
+        closeInteractiveSocket();
+      }
     }
   }
 
