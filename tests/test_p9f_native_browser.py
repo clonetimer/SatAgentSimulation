@@ -324,6 +324,16 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
         if browser is not None:
             browser.close()
         if server.poll() is None:
+            import psutil
+            try:
+                descendants = psutil.Process(server.pid).children(recursive=True)
+            except psutil.NoSuchProcess:
+                descendants = []
+            for child in descendants:
+                try:
+                    child.terminate()
+                except psutil.NoSuchProcess:
+                    pass
             server.terminate()
             try:
                 server.wait(timeout=15)
