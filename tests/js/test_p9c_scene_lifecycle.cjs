@@ -239,7 +239,7 @@ test('Earth rotation is applied from simulation time, not browser wall clock', (
 test('real Basilisk telemetry replaces the demo orbit and draws a bounded ground track', async () => {
   const h = harness(); await h.api.enter(); await h.ready();
   const epochUtc = '2026-01-01T00:00:00Z';
-  assert.match(h.status.textContent, /演示数据/);
+  assert.match(h.status.textContent, /演示/);
   assert.equal(h.api.updateTelemetry({
     session_id: 'live-a', sequence: 1, sim_time_s: 0,
     values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
