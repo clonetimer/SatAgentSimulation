@@ -188,6 +188,80 @@
     });
   }
 
+  function renderRunResults(host, result) {
+    if (!host) return;
+    host.replaceChildren();
+    const status = document.createElement('div');
+    status.className = 'p9e-run-result-status';
+    status.dataset.state = result?.status || 'no_run';
+    const messages = {
+      no_run: '尚未选择运行。完成一次有限仿真并在结果区选择 Run 后，这里会显示对应对象的记录。',
+      unverified: '当前 Run 未同时满足成功、封存和完整性校验通过条件，因此不作为可信对象结果展示。',
+      run_mismatch: '当前加载的 Run 与结果区选中的 Run ID 不一致，已阻止展示可能过期的结果。',
+      object_unavailable: '当前对象不在已加载的对象目录中，无法建立结果关联。',
+      no_recorded_series: '该 Run 没有请求并记录可绘制的曲线参量。',
+      no_direct_association: '当前 Run 已通过封存与完整性校验，但没有可直接关联到该对象的记录输出。',
+      parent_scope_only: '该单机没有独立可追溯的输出。所属分系统存在记录，但分系统遥测不能视为该单机的独立结果。',
+      available: '已从当前封存 Run 中找到与该对象关联的真实输出。'
+    };
+    status.textContent = messages[result?.status] || '对象结果关联不可用。';
+    host.appendChild(status);
+    if (!result?.runId) return;
+    const meta = document.createElement('div');
+    meta.className = 'p9e-run-result-meta';
+    meta.textContent = `Run ID：${result.runId}`;
+    host.appendChild(meta);
+    const rows = result.status === 'available' ? result.series : result.relatedSeries || [];
+    if (!rows.length) return;
+    const list = document.createElement('div');
+    list.className = 'p9e-run-result-list';
+    rows.forEach(item => {
+      const card = document.createElement('article');
+      card.className = 'p9e-run-result-item';
+      const label = document.createElement('span');
+      label.className = 'p9e-run-result-label';
+      label.textContent = item.label || item.field;
+      const value = document.createElement('strong');
+      value.className = 'p9e-run-result-value';
+      value.textContent = item.sample
+        ? `${Number(item.sample.value).toLocaleString(undefined, {maximumFractionDigits: 6})}${item.unit ? ` ${item.unit}` : ''}`
+        : '无已加载样本';
+      const field = document.createElement('code');
+      field.className = 'p9e-run-result-field';
+      field.textContent = item.field;
+      const provenance = document.createElement('span');
+      provenance.className = 'p9e-run-result-provenance';
+      const scopeLabel = {
+        component: '单机精确映射',
+        subsystem: '分系统级关联',
+        whole_spacecraft: '整星级关联'
+      }[item.association_scope] || '未指定关联层级';
+      const sourceLabel = {
+        'workbench_quantity_dictionary.v2': '已审定单机参量字典',
+        capability_output_hierarchy: 'Capability 输出层级',
+        legacy_output_hierarchy: '历史 Run 输出层级'
+      }[item.association_source] || item.association_source || '来源未提供';
+      provenance.textContent = `${scopeLabel} · ${sourceLabel}`;
+      card.append(label, value, field, provenance);
+      if (item.sample) {
+        const time = document.createElement('span');
+        time.className = 'p9e-run-result-time';
+        time.textContent = `样本时间：${Number(item.sample.time_s).toLocaleString(undefined, {maximumFractionDigits: 4})} s`;
+        card.appendChild(time);
+      }
+      list.appendChild(card);
+    });
+    host.appendChild(list);
+    if (result.status === 'available') {
+      const note = document.createElement('p');
+      note.className = 'p9e-run-result-footnote';
+      note.textContent = result.sampled
+        ? `遥测预览：加载 ${result.telemetryRows} 条样本，来自 ${result.totalTelemetryRows} 条记录的抽样概览。数值为已加载样本中的末样本，不代表未抽样的完整终值。`
+        : `遥测预览：已加载 ${result.telemetryRows} 条记录；显示末样本值，不修改或替代 Run Bundle 中的原始遥测。`;
+      host.appendChild(note);
+    }
+  }
+
   function render(options) {
     const treeHost = byId('p9dObjectTree');
     const parameterHost = byId('p9dParameterHost');
@@ -208,6 +282,7 @@
       status.dataset.validated = options.validated ? 'true' : 'false';
     }
     renderParameters(parameterHost, {node, schema: options.schema, formData: options.formData, onChange: options.onChange, onSelect: options.onSelect});
+    renderRunResults(byId('p9eRunResultHost'), options.runResult);
   }
 
   root.P9DObjectConfigPanel = Object.freeze({render});

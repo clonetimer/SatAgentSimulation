@@ -4476,6 +4476,15 @@
       schema: state.schema,
       formData: state.formData,
       validated: Boolean(state.taskSpec && state.planning),
+      runResult: window.P9EObjectRunResults?.resolve({
+        tree: state.sceneObjectTree,
+        selectedId: state.selectedObjectId,
+        run: state.activeRun,
+        expectedRunId: state.activeRunId,
+        plotManifest: state.plotManifest,
+        telemetryRows: state.telemetry,
+        telemetryOverview: state.telemetryOverview,
+      }) || {status: 'no_run', series: [], relatedSeries: []},
       onSelect: (objectId) => {
         const known = state.presentationObjects.some(item => item.object_id === objectId);
         if (!known) {
@@ -6123,6 +6132,7 @@
       markSelectedRunInList();
       state.activeRun = null;
       state.executionState = null;
+      renderP9DPanel();
       // A new selection is not yet a loaded Run. Remove the previous Run's
       // visuals immediately, including if the new request ultimately fails.
       state.metrics = {};
@@ -6247,6 +6257,7 @@
       renderEventsResult();
       renderTraceability();
       renderArtifacts();
+      renderP9DPanel();
       const warningHost = el('activeRunCard');
       warningHost.querySelector('.run-source-warnings')?.remove();
       if (Object.keys(sourceErrors).length) {
