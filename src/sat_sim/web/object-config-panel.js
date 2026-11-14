@@ -113,12 +113,18 @@
             input.appendChild(option);
           });
           input.value = String(value ?? field.default ?? '');
+        } else if (['object','object_editor','array'].includes(field.widget) || String(field.widget).startsWith('array[')) {
+          input = document.createElement('textarea');
+          input.rows = 2;
+          input.spellcheck = false;
+          input.value = value == null ? '' : JSON.stringify(value);
         } else {
           input = document.createElement('input');
           input.type = parameter.array_index != null || ['number','integer'].includes(field.type) ? 'number' : 'text';
           input.step = field.type === 'integer' ? '1' : 'any';
           if ((parameter.minimum ?? field.minimum) != null) input.min = String(parameter.minimum ?? field.minimum);
           if ((parameter.maximum ?? field.maximum) != null) input.max = String(parameter.maximum ?? field.maximum);
+          input.placeholder = ['number_or_array[number]','vector3_or_number'].includes(field.widget) ? '输入单值，或 [1, 2, 3]' : '';
           input.value = Array.isArray(value) ? JSON.stringify(value) : (value ?? '');
         }
         input.className = 'p9d-parameter-input';
