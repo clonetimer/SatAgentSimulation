@@ -31,3 +31,11 @@ def test_birds_cad_viewer_does_not_depend_on_external_model_hosting():
     source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
     assert "https://" not in source
     assert "fetch(" not in source
+
+
+def test_birds_cad_viewer_supports_search_visibility_and_isolation():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    for token in ("birdsCadSearch", "birdsCadTree", "data-cad-tree-action", "isDescendant", "is-selected", "birds-cad-visibility"):
+        assert token in source or token in html
+    assert "隔离选中" in html and "恢复全部" in html
