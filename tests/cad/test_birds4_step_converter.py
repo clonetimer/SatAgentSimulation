@@ -175,3 +175,9 @@ def test_reference_assembly_audit_counts_duplicate_component_occurrences():
     audit = MODULE.audit_reference_assembly(rows)
     assert audit["duplicate_label_occurrences"] == {"B4_DepSW v3": 2}
     assert audit["render_eligibility"] is False
+
+def test_birds4_unit_scale_checks_all_three_axes_not_only_maximum():
+    with pytest.raises(ValueError, match="cannot safely infer STEP units"):
+        MODULE.detect_source_unit(_Assembly(_Bounds(100.0, 10.0, 110.0)))
+    with pytest.raises(ValueError, match="cannot safely infer STEP units"):
+        MODULE.detect_source_unit(_Assembly(_Bounds(0.1, 0.01, 0.11)))
