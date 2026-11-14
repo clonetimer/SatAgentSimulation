@@ -197,6 +197,7 @@
     const messages = {
       no_run: '尚未选择运行。完成一次有限仿真并在结果区选择 Run 后，这里会显示对应对象的记录。',
       unverified: '当前 Run 未同时满足成功、封存和完整性校验通过条件，因此不作为可信对象结果展示。',
+      run_mismatch: '当前加载的 Run 与结果区选中的 Run ID 不一致，已阻止展示可能过期的结果。',
       object_unavailable: '当前对象不在已加载的对象目录中，无法建立结果关联。',
       no_recorded_series: '该 Run 没有请求并记录可绘制的曲线参量。',
       no_direct_association: '当前 Run 已通过封存与完整性校验，但没有可直接关联到该对象的记录输出。',
