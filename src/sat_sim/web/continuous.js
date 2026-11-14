@@ -698,6 +698,13 @@
 
   function latest() {
     const frame = state.telemetry[state.telemetry.length - 1];
+    if (frame) {
+      window.SatScene?.updateTelemetry(frame, {
+        epochUtc: state.snapshot?.orbit_epoch_utc,
+        sourceId: state.selectedId,
+        sourceLabel: '持续原生 Basilisk 会话',
+      });
+    }
     const vals = frame?.values || {};
     const valid = (key) => typeof vals[key] === 'number' && Number.isFinite(vals[key]);
     setText('continuousOrbit', valid('orbit.radius_m') ?
