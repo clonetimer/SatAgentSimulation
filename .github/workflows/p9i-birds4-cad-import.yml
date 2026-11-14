@@ -7,6 +7,10 @@ on:
       - "docs/superpowers/plans/*p9i-birds4*"
       - "scripts/cad/convert_birds4_step.py"
       - "tests/cad/test_birds4_step_converter.py"
+      - "tests/test_p9i_cad_viewer_contract.py"
+      - "src/sat_sim/web/birds-cad-viewer.js"
+      - "src/sat_sim/web/index.html"
+      - "src/sat_sim/web/satellite-scene.css"
       - ".github/workflows/p9i-birds4-cad-import.yml"
   workflow_dispatch:
 
