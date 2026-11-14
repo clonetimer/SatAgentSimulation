@@ -108,7 +108,7 @@ function julianDate(epochUtc, simTimeS) {
 
 function eciToGlobePoint(position, epochUtc, simTimeS) {
   if (!Array.isArray(position) || position.length !== 3 ||
-      !position.every(value => Number.isFinite(Number(value)))) return null;
+      !position.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
   const jd = julianDate(epochUtc, simTimeS);
   if (jd === null) return null;
 
@@ -159,7 +159,9 @@ function eciToGlobePoint(position, epochUtc, simTimeS) {
 function pointFromTelemetry(frame, epochUtc) {
   const values = frame?.values || frame || {};
   const position = ['x', 'y', 'z'].map(axis => values[`orbit.position_m_${axis}`]);
-  const simTimeS = Number(frame?.sim_time_s ?? values.time_s);
+  const rawTime = frame?.sim_time_s ?? values.time_s;
+  if (typeof rawTime !== 'number' || !Number.isFinite(rawTime)) return null;
+  const simTimeS = rawTime;
   const point = eciToGlobePoint(position, epochUtc, simTimeS);
   return point ? {...point, name: '任务卫星（真实 Basilisk 遥测）'} : null;
 }
