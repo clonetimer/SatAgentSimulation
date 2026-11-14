@@ -260,7 +260,7 @@ test('real Basilisk telemetry replaces the demo orbit and draws a bounded ground
   assert.equal(globe.pathRows.length, 1);
   assert.equal(globe.pathRows[0].points.length, 2);
   assert.match(h.status.textContent, /实时 Basilisk 会话/);
-  assert.doesNotMatch(h.status.textContent, /演示数据/);
+  assert.doesNotMatch(h.status.textContent, /演示/);
   assert.equal(h.frames.size, 0, 'real telemetry must stop the demo animation loop');
 });
 
@@ -289,7 +289,7 @@ test('invalid epoch, non-finite position and unverified Run never become real sc
     values: {'orbit.position_m_x': Infinity, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
   }, {epochUtc:'2026-01-01T00:00:00Z',sourceId:'invalid'}), false);
   assert.equal(h.api.setRunTelemetry([], {runId:'unsealed',epochUtc:'2026-01-01T00:00:00Z',verified:false}), false);
-  assert.match(h.status.textContent, /演示数据/);
+  assert.match(h.status.textContent, /演示/);
 });
 
 test('verified finite Run telemetry replaces demo mode and preserves sampling provenance', async () => {
