@@ -22,8 +22,8 @@ def test_scene_configuration_catalog_is_real_and_read_only(tmp_path):
         tree = payload["tree"]
         assert tree["schema_version"] == "workbench-object-tree.v2"
         assert tree["tree"]["object_id"] == "whole_spacecraft"
-        adcs = next(row for row in tree["tree"]["children"] if row["object_id"] == "subsystem.adcs")
-        wheel = next(row for row in adcs["children"] if row["object_id"] == "component.reaction_wheel")
+        adcs = next(row for row in tree["tree"]["children"] if row.get("object_id") == "subsystem.adcs")
+        wheel = next(row for row in adcs["children"] if row.get("object_id") == "component.reaction_wheel")
         parameters = next(row for row in wheel["children"] if row["kind"] == "parameter_group")
         inertia = next(row for row in parameters["children"] if row["source_field"] == "wheel_inertia_kg_m2")
         assert inertia["unit"] == "kg*m^2"
