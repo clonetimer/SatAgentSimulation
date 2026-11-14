@@ -70,7 +70,8 @@
 .satellite-scene-inspector-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .satellite-scene-inspector-heading h2{margin:0;font-size:13px}
 .scene-data-source{padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:10px;white-space:nowrap}
-.scene-data-source[data-state="live"]{color:var(--success);border-color:color-mix(in srgb,var(--success) 40%,var(--line))}
+.scene-data-source[data-state="live"],.scene-data-source[data-state="sealed"]{color:var(--success);border-color:color-mix(in srgb,var(--success) 40%,var(--line))}
+.scene-data-source[data-state="sealed"]::before{content:"已封存 · ";font-weight:700}
 .scene-data-source[data-state="demo"]{color:var(--warning)}
 .satellite-scene-inspector-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .scene-inspector-card{min-width:0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
