@@ -121,6 +121,8 @@ def test_v15_visual_flow_run_loads_result_and_exports_program(tmp_path, monkeypa
             page.route("https://workbench.test/**", proxy)
             page.goto("https://workbench.test/", wait_until="networkidle")
             page.locator(".capability-card.active").wait_for(state="attached")
+            page.locator("#wizardAdvancedBtn").click()
+            page.locator("#creatorView").wait_for(state="visible")
             page.locator("#creatorGraphTabButton").click()
             page.locator("#graphNodes .graph-node").first.wait_for(state="visible")
             page.locator("#graphValidateBtn").click()
