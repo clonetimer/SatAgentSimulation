@@ -34,7 +34,7 @@ def test_realtime_scene_metadata_uses_native_runtime_default_epoch_without_guess
 
 def test_realtime_scene_metadata_does_not_claim_orbit_frame_for_unsupported_capabilities():
     spec = SimpleNamespace(
-        capability_id="subsystem.eps_unified_native.v1",
+        capability_id="subsystem.eps.unified_native.v1",
         task_spec={"simulation": {"time_system": "TAI"}, "parameters": {"values": {}}},
     )
     metadata = realtime_scene_metadata(spec)
