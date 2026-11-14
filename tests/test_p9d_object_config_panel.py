@@ -26,11 +26,11 @@ def test_scene_configuration_catalog_is_real_and_read_only(tmp_path):
         wheel = next(row for row in adcs["children"] if row["object_id"] == "component.reaction_wheel")
         parameters = next(row for row in wheel["children"] if row["kind"] == "parameter_group")
         inertia = next(row for row in parameters["children"] if row["source_field"] == "wheel_inertia_kg_m2")
-        assert inertia["unit"] == "kg·m²"
+        assert inertia["unit"] == "kg*m^2"
         assert inertia["minimum"] is not None
         schema = capability_form_schema("component.reaction_wheel.v1")
         source_field = next(row for row in schema["fields"] if row["path"].endswith(".wheel_inertia_kg_m2"))
-        assert source_field["default"][inertia["array_index"]] == inertia["default"]
+        assert (source_field["default"] if inertia.get("array_index") is None else source_field["default"][inertia["array_index"]]) == inertia["default"]
         assert source_field["unit"] == inertia["unit"]
         after = client.get("/health").json()
         assert before["features"] == after["features"]
