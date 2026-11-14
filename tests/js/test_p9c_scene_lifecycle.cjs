@@ -51,8 +51,14 @@ function harness({ failAt = null } = {}) {
             const value = target[name];
             return typeof value === 'function' ? value.bind(target) : value;
           }
-          if (name === 'objectsData') return (rows) => { instance.objectRows = rows; return proxy; };
-          if (name === 'pathsData') return (rows) => { instance.pathRows = rows; return proxy; };
+          if (name === 'objectsData') return (rows) => {
+            if (name === failAt) throw new Error(`internal ${name} setup failed`);
+            instance.objectRows = rows; return proxy;
+          };
+          if (name === 'pathsData') return (rows) => {
+            if (name === failAt) throw new Error(`internal ${name} setup failed`);
+            instance.pathRows = rows; return proxy;
+          };
           return (...args) => {
             if (name === failAt) throw new Error(`internal ${name} setup failed`);
             if (name === 'onGlobeReady') instance.readyCallback = args[0];
