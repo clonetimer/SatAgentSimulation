@@ -67,3 +67,12 @@ def test_viewer_has_six_axis_presets_and_double_click_focus():
         assert view in html
     assert "dblclick" in source and "focusNode" in source
     assert "aria-pressed" in source
+
+
+def test_cad_assembly_tree_populates_children_on_expand_and_searches_matching_paths():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    assert "wrap.addEventListener('toggle'" in source
+    assert "if(populated)return" in source
+    assert "makeThreeTree(model,search.value)" in source
+    assert "included.has(child)" in source
+    assert "setTimeout" in source
