@@ -478,6 +478,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
             report["page_errors"] = list(report["page_errors"])
             assert not report["page_errors"], report["page_errors"]
+            assert not report["console_errors"], report["console_errors"]
             if mode == "bounded":
                 socket_messages = [json.loads(item) for item in report["socket_messages"] if isinstance(item, str)]
                 assert any(
