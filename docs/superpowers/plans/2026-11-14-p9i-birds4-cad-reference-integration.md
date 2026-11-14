@@ -66,7 +66,7 @@ GitHub Actions run #21：`43611131544`，结果 PASS；项目脚本与依赖治�
 - STEP：22,964,753 bytes；Git blob SHA-1 `0a1eea524ad16c9f06961a62bb550cad4d2d9e36`。
 - STEP 来源 SHA-256：`f59672d2bfa126474a7ddc5e06d277efe55aca7f8f30cff54648352d7da0f920`。
 - 装配树：855 nodes，其中 757 个节点直接含几何。
-- GLB：852 nodes、754 meshes，60,? bytes（以 report.json 精确值为准）。
+- GLB：852 nodes、754 meshes，61,009,900 bytes（以 report.json 精确值为准）。
 - 转换包围盒：104 × 108.3 × 114.5 mm；这是实际 CAD 几何包围盒，不强行缩放为 100 mm。
 - STEP 单位由 CadQuery 导入后的 1U 整星尺度独立核验，采用 mm→m 的 0.001 转换。
 
