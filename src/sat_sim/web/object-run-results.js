@@ -104,6 +104,7 @@
       relatedSeries: related.map(({item, binding}) => ({
         field: item.field, label: item.label || item.field, unit: item.unit || null,
         object_id: binding.objectId, association_scope: binding.scope,
+        sample: latestSample(rows, item.field, timeField),
       })),
       telemetryRows: rows.length,
       sampled: Boolean(telemetryOverview?.sampled),
