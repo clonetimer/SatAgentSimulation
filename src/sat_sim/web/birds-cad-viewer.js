@@ -40,7 +40,8 @@ function focusNode(n){const b=new THREE.Box3().setFromObject(n),s=b.getSize(new 
     const button=document.createElement('button');
     button.type='button';button.className='birds-cad-tree-node';
     button.style.paddingLeft=(8+Math.min(depth,8)*10)+'px';
-    button.textContent=node.name||node.type;
+    button.textContent=hasChildren?'选择':(node.name||node.type);
+    button.setAttribute('aria-label','选择 '+(node.name||node.type));
     button.dataset.nodeIndex=node.userData.cadTreeIndex;
     button.addEventListener('click',()=>select(node));
     button.addEventListener('dblclick',()=>select(node,true));
