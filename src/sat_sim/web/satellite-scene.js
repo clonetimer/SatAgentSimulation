@@ -41,16 +41,17 @@ function setText(id, value) {
 }
 
 function renderTelemetryInspector(point = state.latestTelemetryPoint) {
-  const live = Boolean(point && state.telemetrySourceId);
+  const hasSource = Boolean(point && state.telemetrySourceId);
+  const sealedRun = Boolean(hasSource && state.telemetrySourceId.startsWith('run:'));
   const source = byId('sceneDataSource');
   if (source) {
-    source.textContent = live ? (state.telemetrySourceLabel || '真实 Basilisk 遥测') : '演示数据（非仿真结果）';
-    source.dataset.state = live ? 'live' : 'demo';
+    source.textContent = hasSource ? (state.telemetrySourceLabel || '真实 Basilisk 遥测') : '演示数据（非仿真结果）';
+    source.dataset.state = sealedRun ? 'sealed' : (hasSource ? 'live' : 'demo');
   }
-  setText('sceneSimTime', live ? `${point.sim_time_s.toFixed(2)} s` : '—');
-  setText('sceneAltitude', live ? `${point.altitude_km.toFixed(2)} km` : '—');
-  setText('sceneGeographicPosition', live ? `${point.lat.toFixed(3)}°, ${point.lng.toFixed(3)}°` : '—');
-  const truthValid = Boolean(live && point.attitude_valid && point.attitude_truth);
+  setText('sceneSimTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
+  setText('sceneAltitude', hasSource ? `${point.altitude_km.toFixed(2)} km` : '—');
+  setText('sceneGeographicPosition', hasSource ? `${point.lat.toFixed(3)}°, ${point.lng.toFixed(3)}°` : '—');
+  const truthValid = Boolean(hasSource && point.attitude_valid && point.attitude_truth);
   setText('sceneTruthStatus', truthValid ? '有效 · 刚体状态真值' : (live ? '不可用 · 不使用估计值替代' : '等待真实遥测'));
   setText('sceneMrpValue', truthValid ? point.attitude_truth.mrp_BN.map(value => value.toFixed(6)).join(', ') : '—');
   setText('sceneQuaternionValue', truthValid ? point.attitude_truth.quaternion_BN.map(value => value.toFixed(6)).join(', ') : '—');
@@ -58,14 +59,14 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
     ? [point.rotation.x, point.rotation.y, point.rotation.z].map(value => value.toFixed(2) + '°').join(', ')
     : '—');
   setText('sceneEstimatorStatus', '尚未接入');
-  const frameSource = live
+  const frameSource = hasSource
     ? (point.session_id && point.stream
       ? `${point.session_id} / ${point.stream}`
       : (state.telemetrySourceId?.startsWith('run:') ? state.telemetrySourceId : '—'))
     : '—';
   setText('sceneFrameSource', frameSource);
-  setText('sceneFrameSequence', live && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
-  setText('sceneFrameQuality', live ? (point.quality || (state.telemetrySourceId?.startsWith('run:') ? 'SEALED' : 'UNKNOWN')) : '—');
+  setText('sceneFrameSequence', hasSource && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
+  setText('sceneFrameQuality', hasSource ? (point.quality || (state.telemetrySourceId?.startsWith('run:') ? 'SEALED' : 'UNKNOWN')) : '—');
 }
 
 function syncBodyAxes() {
