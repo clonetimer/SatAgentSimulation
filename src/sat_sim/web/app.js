@@ -4486,6 +4486,16 @@
           state.taskSpec = null;
           state.planning = null;
           state.hasTaskSpecContext = false;
+          state.activeTaskCenterId = null;
+          updateTaskEditState();
+          el('selectedCapabilityName').textContent = '未选择可执行模型';
+          el('selectedCapabilitySummary').textContent = '该对象没有独立配置或执行能力。';
+          el('previewBtn').disabled = true;
+          el('runBtn').disabled = true;
+          el('saveTaskBtn').disabled = true;
+          renderForm();
+          renderEvents();
+          renderOutputs();
           const stack = [...(state.sceneObjectTree?.roots || [])];
           let selected = null;
           while (stack.length) {
