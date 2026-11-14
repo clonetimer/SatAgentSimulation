@@ -6232,6 +6232,20 @@
       state.telemetry = telemetryOverview?.source
         ? (telemetryOverview.rows || []) : (telemetryPayload.rows || []);
       state.telemetryOverview = telemetryOverview?.source ? telemetryOverview : null;
+      const runSpec = state.activeRun?.task_spec || {};
+      const runParameters = runSpec.parameters?.values || {};
+      const runEpoch = runParameters.epoch_utc || runSpec.simulation?.epoch_utc
+        || runSpec.orbit_environment?.epoch_utc || '2026-01-01T00:00:00Z';
+      const runStatus = String(state.activeRun?.run_record?.status || '').toUpperCase();
+      window.SatScene?.setRunTelemetry(state.telemetry, {
+        runId,
+        epochUtc: runEpoch,
+        verified: state.activeRun?.sealed === true && state.activeRun?.integrity?.ok === true
+          && runStatus === 'SUCCEEDED'
+          && state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1',
+        sampled: Boolean(state.telemetryOverview?.sampled),
+        totalRows: state.telemetryOverview?.total ?? telemetryPayload.total ?? state.telemetry.length,
+      });
       const coverage = el('chartTelemetryCoverage');
       if (coverage) {
         coverage.textContent = state.telemetryOverview
@@ -7437,9 +7451,13 @@
         outputs: { telemetry_streams: descriptor.streams.map((stream) => ({
           stream_id: stream.id,
           sample_s: Math.max(quantum, Math.min(duration, quantum * stream.sampleMultiplier)),
-          fields: stream.overviewOnly
-            ? descriptor.telemetryGroups[0].fields
-            : Array.from(new Set(descriptor.telemetryGroups.flatMap(group => group.fields))),
+          fields: Array.from(new Set([
+            ...(stream.overviewOnly
+              ? descriptor.telemetryGroups[0].fields
+              : descriptor.telemetryGroups.flatMap(group => group.fields)),
+            ...(capabilityId === 'whole_spacecraft.unified_native.v1'
+              ? ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] : []),
+          ])),
         })) },
       },
       quantum_s: quantum,
@@ -7662,6 +7680,13 @@
     const frames = state.interactiveFrames[frame.stream] || [];
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
+    if (state.interactiveSession?.capability_id === 'whole_spacecraft.unified_native.v1') {
+      window.SatScene?.updateTelemetry(frame, {
+        epochUtc: state.interactiveSession.orbit_epoch_utc,
+        sourceId: state.interactiveSession.session_id,
+        sourceLabel: '限时/持续实时 Basilisk 会话',
+      });
+    }
     if (el('interactiveStream').value === frame.stream) renderInteractiveTelemetry();
   }
 
