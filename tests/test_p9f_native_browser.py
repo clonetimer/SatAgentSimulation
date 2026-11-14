@@ -60,6 +60,8 @@ GLOBE_OBSERVER = r"""
                 lng: row?.lng,
                 alt: row?.alt,
                 altitude_km: row?.altitude_km,
+                attitude_truth: row?.attitude_truth,
+                attitude_valid: row?.attitude_valid,
               }));
             } else if (propertyName === 'pathRows') {
               observed.pathRows = (Array.isArray(value) ? value : []).map(segment => ({
@@ -371,6 +373,10 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert rendered["object"]["stream"] == "whole.orbit"
             assert rendered["object"]["sequence"] >= 0
             assert rendered["object"]["sim_time_s"] > 0
+            assert rendered["object"]["attitude_valid"] is True
+            assert len(rendered["object"]["attitude_truth"]["mrp_BN"]) == 3
+            assert len(rendered["object"]["attitude_truth"]["quaternion_BN"]) == 4
+            assert sum(value * value for value in rendered["object"]["attitude_truth"]["quaternion_BN"]) == pytest.approx(1.0, abs=1e-6)
             assert rendered["objectAltitudeAccessor"] == "alt"
             assert rendered["pathPointAltitudeAccessor"] == "alt"
             assert any(len(segment.get("points", [])) >= 2 for segment in rendered["pathRows"])
@@ -393,6 +399,14 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert matching["stream"] == stream_id
             assert matching["quality"] == "GOOD"
             assert set(POSITION_FIELDS) <= set(matching["values"])
+            attitude_fields = {
+                "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+                "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+                "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+                "attitude.truth.valid",
+            }
+            assert attitude_fields <= set(matching["values"])
+            assert matching["values"]["attitude.truth.valid"] == 1
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
             report["page_errors"] = list(report["page_errors"])
             assert not report["page_errors"], report["page_errors"]
