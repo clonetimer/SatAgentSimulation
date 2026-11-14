@@ -318,6 +318,40 @@ def _active_event_ratio(
     return ratio
 
 
+def _attitude_truth_from_mrp(sigma: Any) -> dict[str, float]:
+    """Return spacecraft body-to-inertial attitude from Basilisk sigma_BN.
+
+    Basilisk defines sigma_BN as the MRP attitude of body frame B with respect
+    to inertial frame N. Euler parameters are emitted scalar-first and retain
+    the same B/N mapping; this is not a star-tracker measurement.
+    """
+    values = list(sigma) if sigma is not None else []
+    if len(values) != 3:
+        raise ValueError("NATIVE_ATTITUDE_TRUTH_MRP_SHAPE_INVALID")
+    vector = [float(value) for value in values]
+    if not all(math.isfinite(value) for value in vector):
+        raise ValueError("NATIVE_ATTITUDE_TRUTH_MRP_NONFINITE")
+    magnitude_squared = sum(value * value for value in vector)
+    denominator = 1.0 + magnitude_squared
+    if not math.isfinite(denominator) or denominator <= 0.0:
+        raise ValueError("NATIVE_ATTITUDE_TRUTH_MRP_INVALID")
+    quaternion = [(1.0 - magnitude_squared) / denominator]
+    quaternion.extend(2.0 * value / denominator for value in vector)
+    norm = math.sqrt(sum(value * value for value in quaternion))
+    if not math.isfinite(norm) or abs(norm - 1.0) > 1.0e-10:
+        raise ValueError("NATIVE_ATTITUDE_TRUTH_QUATERNION_INVALID")
+    return {
+        "attitude.truth.mrp_BN_x": vector[0],
+        "attitude.truth.mrp_BN_y": vector[1],
+        "attitude.truth.mrp_BN_z": vector[2],
+        "attitude.truth.quaternion_BN_q0": quaternion[0],
+        "attitude.truth.quaternion_BN_q1": quaternion[1],
+        "attitude.truth.quaternion_BN_q2": quaternion[2],
+        "attitude.truth.quaternion_BN_q3": quaternion[3],
+        "attitude.truth.valid": 1,
+    }
+
+
 class _RecorderSnapshot:
     """One read-only view per extraction; SWIG field arrays are copied once."""
     def __init__(self, recorder):
@@ -349,6 +383,7 @@ def _build_unified_rows(
         guide = recorder_map["guid"]
         rw_rec = recorder_map["rw"]
         position = state.r_BN_N[index]
+        attitude_truth = _attitude_truth_from_mrp(state.sigma_BN[index])
         row: dict[str, Any] = {
             "time_s": float(nanos) * macros.NANO2SEC,
             "orbit.radius_m": _norm3(position),
@@ -436,6 +471,7 @@ def _build_unified_rows(
             "adcs.earth_sensor.direction_b_z": float(recorder_map["earth_sensor"].tam_S[index][2]),
             "adcs.fusion.source_mode": int(recorder_map["fusion_source_mode"].deviceStatus[index]),
         }
+        row.update(attitude_truth)
         for axis, component in enumerate('xyz'):
             row[f'orbit.position_m_{component}'] = float(position[axis])
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
