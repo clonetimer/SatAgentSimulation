@@ -123,7 +123,7 @@
           <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1>卫星数字场景</h1><p>选择对象查看其真实配置参数；场景只对具有空间锚点的对象进行定位。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free">自由观察</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button><button class="button button-secondary" type="button" data-return-wizard>返回仿真向导</button></div></header>
           <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与卫星轨道场景"></div>
           <div id="satelliteSceneStatus" class="satellite-scene-status" role="status" aria-live="polite">等待场景引擎。</div>
-          <p class="satellite-scene-note">地球影像：NASA Blue Marble。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真结果。</p>
+          <p class="satellite-scene-note">地球影像：NASA Blue Marble。无实时会话时显示演示轨道；实时模式的位置由 Basilisk 遥测换算。当前卫星模型朝向仍为示意，不代表真实本体姿态。</p>
         </section>
         <aside class="p9d-config-panel" aria-label="对象配置">
           <section class="p9d-tree-section">
@@ -1650,13 +1650,13 @@
 
   <script src="/assets/vendor/globe/globe.gl.min.js" defer></script>
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
-  <script type="module" src="/assets/satellite-scene.js?v=p9c-mainline-1"></script>
+  <script type="module" src="/assets/satellite-scene.js?v=p9f-1"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
-  <script src="/assets/app.js?v=p9e-1" defer></script>
+  <script src="/assets/app.js?v=p9f-1" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
-  <script src="/assets/continuous.js?v=0.7.8" defer></script>
+  <script src="/assets/continuous.js?v=p9f-1" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
 </body>
 </html>
