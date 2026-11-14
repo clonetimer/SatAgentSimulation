@@ -256,6 +256,9 @@ test('real Basilisk telemetry replaces the demo orbit and draws a bounded ground
   }, {epochUtc, timeSystem: 'UTC', frame: 'N_INERTIAL', sourceId: 'live-a', streamId: 'orbit.live', sourceLabel: '实时 Basilisk 会话'}), true);
   const globe = h.instances[0];
   assert.equal(globe.objectRows[0].name, '任务卫星（真实 Basilisk 遥测）');
+  assert.equal(globe.objectRows[0].session_id, 'live-a');
+  assert.equal(globe.objectRows[0].stream, 'orbit.live');
+  assert.equal(globe.objectRows[0].quality, 'GOOD');
   assert.equal(globe.objectRows[0].sim_time_s, 10);
   assert.equal(globe.pathRows.length, 1);
   assert.equal(globe.pathRows[0].points.length, 2);
