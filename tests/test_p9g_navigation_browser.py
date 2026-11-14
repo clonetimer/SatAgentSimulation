@@ -52,6 +52,12 @@ def test_default_navigation_layout_is_visible_without_runtime(tmp_path, width, h
             assert all(button.is_visible() for button in primary.all())
             assert all(label.is_visible() for label in primary.locator('b').all())
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            # Layout-only checks of the production view selectors. Moving the
+            # navigation must not leave a reserved, empty catalog column.
+            for view in ('scene', 'runs', 'experiments', 'goals', 'evaluations', 'diagnostics', 'logs'):
+                page.evaluate('(view) => { document.body.dataset.activeView = view; }', view)
+                assert page.locator('.app-sidebar').is_hidden(), view
+                assert page.locator('.app-content').bounding_box()['x'] <= 1, view
         finally:
             browser.close()
 

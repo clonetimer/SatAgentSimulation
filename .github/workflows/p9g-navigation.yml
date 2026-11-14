@@ -64,9 +64,16 @@ jobs:
           "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0"
           "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
           "playwright==1.57.0"
+      - name: Install and verify Chinese screenshot font coverage
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          fc-match -f '%{family}\n' 'sans:lang=zh-cn' | tee "$RUNNER_TEMP/p9g-font-family.txt"
+          grep -q 'Noto Sans CJK' "$RUNNER_TEMP/p9g-font-family.txt"
       - name: Install offline scene assets and Chromium
         run: |
           mkdir -p "$RUNNER_TEMP/p9g-browser"
+          cp "$RUNNER_TEMP/p9g-font-family.txt" "$RUNNER_TEMP/p9g-browser/font-family.txt"
           python scripts/vendor_scene_assets.py
           python -m playwright install chromium
           python - <<'PY' >> "$GITHUB_ENV"

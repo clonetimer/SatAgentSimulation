@@ -28,3 +28,8 @@
   #workbenchMoreNavigation .sidebar-nav-group { min-width: 0; }
   #workbenchHelpDialog { padding: 18px; }
 }
+
+/* The catalog belongs only to professional modeling; other workspaces already
+   own their object/result panels and must not retain an empty sidebar column. */
+body:not([data-active-view="creator"]) .app-sidebar { display: none !important; }
+body:not([data-active-view="creator"]) .app-frame { grid-template-columns: minmax(0, 1fr); }
