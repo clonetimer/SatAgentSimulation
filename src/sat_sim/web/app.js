@@ -8867,7 +8867,7 @@
     if (name === 'evaluations') window.SatEvaluationWorkspace?.enter();
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
-    if (name === 'continuous' || (name === 'scene' && state.sceneRealtimeSource === 'continuous')) {
+    if (name === 'continuous' || (name === 'scene' && state.sceneRealtimeSource === 'continuous' && state.interactiveAvailable)) {
       window.SatContinuousConsole?.enter();
     } else {
       window.SatContinuousConsole?.exit();
