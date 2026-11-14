@@ -20,6 +20,8 @@ def realtime_scene_metadata(spec: Any) -> dict[str, str | None]:
     parameters = task_spec.get("parameters") if isinstance(task_spec.get("parameters"), Mapping) else {}
     values = parameters.get("values") if isinstance(parameters.get("values"), Mapping) else parameters
     epoch_utc = values.get("epoch_utc") or DEFAULT_EPOCH
+    if hasattr(epoch_utc, "isoformat"):
+        epoch_utc = epoch_utc.isoformat()
     time_system = str(simulation.get("time_system") or "UTC")
     position_frame = ORBIT_POSITION_FRAME if spec.capability_id in ORBIT_POSITION_CAPABILITIES else None
     return {
