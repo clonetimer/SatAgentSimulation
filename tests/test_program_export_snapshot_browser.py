@@ -107,6 +107,8 @@ def test_program_zip_response_cannot_download_after_new_agent_task_is_applied(tm
         try:
             page.goto('https://workbench.test/', wait_until='networkidle')
             page.wait_for_selector('.capability-card.active', state='attached')
+            page.locator('#wizardAdvancedBtn').click()
+            page.locator('#creatorView').wait_for(state='visible')
 
             # Establish A through the visible JSON editor and real projection.
             page.locator('#creatorTaskSpecTabButton').click()
@@ -311,6 +313,8 @@ def test_assembly_compile_response_cannot_overwrite_new_agent_task(tmp_path):
         try:
             page.goto('https://workbench.test/', wait_until='networkidle')
             page.wait_for_selector('.capability-card.active', state='attached')
+            page.locator('#wizardAdvancedBtn').click()
+            page.locator('#creatorView').wait_for(state='visible')
             assert facts.get('served_app_js_sha256') and set(facts['served_app_js_sha256']) == {expected_asset_sha}
             page.locator('#creatorGraphTabButton').click()
             page.locator('#graphAssemblyModeBtn').click()
@@ -501,6 +505,8 @@ def test_assembly_python_response_cannot_become_current_code_after_new_task(tmp_
         try:
             page.goto('https://workbench.test/', wait_until='networkidle')
             page.wait_for_selector('.capability-card.active', state='attached')
+            page.locator('#wizardAdvancedBtn').click()
+            page.locator('#creatorView').wait_for(state='visible')
             assert facts.get('served_app_js_sha256') and set(facts['served_app_js_sha256']) == {expected_asset_sha}
             page.locator('#creatorGraphTabButton').click()
             page.locator('#graphAssemblyModeBtn').click()
