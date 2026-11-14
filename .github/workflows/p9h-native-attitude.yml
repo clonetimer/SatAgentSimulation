@@ -14,6 +14,7 @@ on:
       - "src/sat_sim/web/continuous.js"
       - "tests/test_p9h_attitude_truth.py"
       - "tests/interactive/test_native_attitude_truth_telemetry.py"
+      - "tests/interactive/test_p9h_finite_run_attitude.py"
       - "tests/interactive/test_finite_telemetry_overview.py"
       - "tests/test_p9f_telemetry_globe.py"
       - "tests/interactive/test_p9h_attitude_frame_oracle.py"
@@ -73,7 +74,7 @@ jobs:
             "joblib==1.5.3" "scikit-learn==1.9.0" "psutil==7.2.2" "numba==0.63.1"
       - name: Require real Basilisk before native tests
         run: python -c "from Basilisk.utilities import RigidBodyKinematics; print('Basilisk rigid-body oracle available')"
-      - name: Prove actual state recorder and independent DCM-to-renderer parity
+      - name: Prove actual state recorder, finite Run archive, and independent DCM-to-renderer parity
         env:
           PYTHONPATH: "src:."
-        run: python -m pytest -q tests/interactive/test_native_attitude_truth_telemetry.py tests/interactive/test_p9h_attitude_frame_oracle.py
+        run: python -m pytest -q tests/interactive/test_native_attitude_truth_telemetry.py tests/interactive/test_p9h_finite_run_attitude.py tests/interactive/test_p9h_attitude_frame_oracle.py
