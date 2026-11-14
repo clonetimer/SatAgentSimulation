@@ -16,6 +16,8 @@ const state = {
   loadingTimer: 0,
   globe: null,
   satellite: null,
+  modelAxesGroup: null,
+  showBodyAxes: false,
   resizeObserver: null,
   startedAt: 0,
   lastUpdateAt: 0,
@@ -32,6 +34,41 @@ const state = {
 };
 
 const byId = (id) => document.getElementById(id);
+
+function setText(id, value) {
+  const element = byId(id);
+  if (element) element.textContent = value;
+}
+
+function renderTelemetryInspector(point = state.latestTelemetryPoint) {
+  const live = Boolean(point && state.telemetrySourceId);
+  const source = byId('sceneDataSource');
+  if (source) {
+    source.textContent = live ? (state.telemetrySourceLabel || '真实 Basilisk 遥测') : '演示数据（非仿真结果）';
+    source.dataset.state = live ? 'live' : 'demo';
+  }
+  setText('sceneSimTime', live ? `${point.sim_time_s.toFixed(2)} s` : '—');
+  setText('sceneAltitude', live ? `${point.altitude_km.toFixed(2)} km` : '—');
+  setText('sceneGeographicPosition', live ? `${point.lat.toFixed(3)}°, ${point.lng.toFixed(3)}°` : '—');
+  const truthValid = Boolean(live && point.attitude_valid && point.attitude_truth);
+  setText('sceneTruthStatus', truthValid ? '有效 · 刚体状态真值' : (live ? '不可用 · 不使用估计值替代' : '等待真实遥测'));
+  setText('sceneMrpValue', truthValid ? point.attitude_truth.mrp_BN.map(value => value.toFixed(6)).join(', ') : '—');
+  setText('sceneQuaternionValue', truthValid ? point.attitude_truth.quaternion_BN.map(value => value.toFixed(6)).join(', ') : '—');
+  setText('sceneRotationValue', truthValid && point.rotation
+    ? [point.rotation.x, point.rotation.y, point.rotation.z].map(value => value.toFixed(2) + '°').join(', ')
+    : '—');
+  setText('sceneEstimatorStatus', '尚未接入');
+  setText('sceneFrameSource', live ? `${point.session_id} / ${point.stream}` : '—');
+  setText('sceneFrameSequence', live && point.sequence !== null ? String(point.sequence) : '—');
+  setText('sceneFrameQuality', live ? (point.quality || 'UNKNOWN') : '—');
+}
+
+function syncBodyAxes() {
+  if (state.modelAxesGroup) state.modelAxesGroup.visible = state.showBodyAxes;
+  const button = document.querySelector('#satelliteSceneView [data-scene-action="axes"]');
+  if (button) button.setAttribute('aria-pressed', String(state.ready && state.showBodyAxes));
+}
+
 const status = (message, kind = 'info') => {
   const element = byId('satelliteSceneStatus');
   if (!element) return;
@@ -94,6 +131,17 @@ function makeSatelliteModel() {
   );
   beacon.position.set(0, -1.2, 0);
   root.add(beacon);
+
+  // Optional body-frame triad: X red, Y green, Z blue.
+  const axes = new THREE.Group();
+  axes.name = 'Body frame axes (visualization convention)';
+  const axisLength = 7.2;
+  axes.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), axisLength, 0xff5d5d, 1.1, 0.55));
+  axes.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), axisLength, 0x53d68a, 1.1, 0.55));
+  axes.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), axisLength, 0x58a6ff, 1.1, 0.55));
+  axes.visible = state.showBodyAxes;
+  root.add(axes);
+  state.modelAxesGroup = axes;
   return root;
 }
 
@@ -272,6 +320,7 @@ function renderTelemetryPosition() {
   Object.assign(state.satellite, state.latestTelemetryPoint);
   state.globe.objectsData([state.satellite]);
   state.globe.pathsData(telemetryPath());
+  renderTelemetryInspector(state.latestTelemetryPoint);
   if (state.tracking) {
     state.globe.pointOfView({
       lat: state.satellite.lat, lng: state.satellite.lng, altitude: 1.8
@@ -375,6 +424,7 @@ function clearTelemetrySource() {
   state.latestTelemetryPoint = null;
   state.telemetrySampled = false;
   state.telemetryTotalRows = null;
+  renderTelemetryInspector(null);
   if (state.active && state.ready && state.globe && state.satellite) {
     Object.assign(state.satellite, {name: '任务卫星（示意模型）', ...orbitPoint(0), rotation: {x: 0, y: 0, z: 0}, attitude_valid: false, attitude_truth: null});
     state.globe.objectsData([state.satellite]);
@@ -471,9 +521,12 @@ function updateSatellite(now) {
 function syncCameraActions() {
   document.querySelectorAll('#satelliteSceneView [data-scene-action]').forEach((button) => {
     button.disabled = !state.ready;
-    if (button.dataset.sceneAction !== 'home') {
-      const selected = button.dataset.sceneAction === 'track' ? state.tracking : !state.tracking;
-      button.setAttribute('aria-pressed', String(state.ready && selected));
+    if (button.dataset.sceneAction === 'track') {
+      button.setAttribute('aria-pressed', String(state.ready && state.tracking));
+    } else if (button.dataset.sceneAction === 'free') {
+      button.setAttribute('aria-pressed', String(state.ready && !state.tracking));
+    } else if (button.dataset.sceneAction === 'axes') {
+      button.setAttribute('aria-pressed', String(state.ready && state.showBodyAxes));
     }
   });
 }
@@ -503,11 +556,13 @@ function destroy() {
   state.generation += 1;
   state.globe = null;
   state.satellite = null;
+  state.modelAxesGroup = null;
   state.tracking = false;
   clearTimeout(state.loadingTimer);
   state.loadingTimer = 0;
   if (state.frame) cancelAnimationFrame(state.frame);
   state.frame = 0;
+  renderTelemetryInspector(state.latestTelemetryPoint);
   state.resizeObserver?.disconnect();
   state.resizeObserver = null;
   if (globe) {
@@ -610,6 +665,11 @@ document.addEventListener('click', (event) => {
   if (action === 'track') track();
   if (action === 'free') freeCamera();
   if (action === 'home') home();
+  if (action === 'axes') {
+    state.showBodyAxes = !state.showBodyAxes;
+    syncBodyAxes();
+    syncCameraActions();
+  }
 });
 
 window.SatScene = {
