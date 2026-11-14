@@ -10,6 +10,7 @@
     lastTelemetrySeq: -1, lastEventSeq: -1,
     telemetry: [], events: [], acks: [], gap: null,
     rwConfiguration: null, telemetryStream: null, telemetryCatalog: [], creationPolicy: null,
+    sceneTelemetryStream: null, sceneLastTelemetrySeq: -1, sceneSessionId: null,
     commandContracts: [], catalogLoading: false, commandSending: false,
     history: null,
   };
@@ -83,6 +84,7 @@
     state.snapshot = null; state.metrics = null; state.recovery = null; state.endurance = null;
     state.events = []; state.acks = []; state.lastEventSeq = -1;
     state.rwConfiguration = null; state.telemetryStream = null; state.telemetryCatalog = [];
+    state.sceneTelemetryStream = null; state.sceneLastTelemetrySeq = -1; state.sceneSessionId = null;
     updateCommandAvailability();
     resetTelemetrySelection();
     refresh();
@@ -121,6 +123,16 @@
     const catalog = info.telemetry_catalog || [];
     if (!catalog.length) throw new Error('SESSION_TELEMETRY_CATALOG_EMPTY');
     state.telemetryCatalog = catalog;
+    const positionFields = ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'];
+    const orbitStream = catalog.find(row => row.stream_id === 'whole.orbit'
+      && positionFields.every(field => (row.fields || []).includes(field)));
+    const nextSceneStream = orbitStream?.stream_id || null;
+    const nextSceneSessionId = info.session?.session_id || state.selectedId;
+    if (state.sceneSessionId !== nextSceneSessionId || state.sceneTelemetryStream !== nextSceneStream) {
+      state.sceneSessionId = nextSceneSessionId;
+      state.sceneTelemetryStream = nextSceneStream;
+      state.sceneLastTelemetrySeq = -1;
+    }
     if (!catalog.some(row => row.stream_id === state.telemetryStream)) {
       state.telemetryStream = (catalog.find(row => row.stream_id === 'whole.continuous')
         || [...catalog].sort((a,b) => a.sample_s-b.sample_s)[0]).stream_id;
@@ -129,7 +141,7 @@
     const select = $('continuousStream');
     select.replaceChildren();
     catalog.forEach(row => {
-      const option = element('option', row.stream_id + ' / ' + row.sample_s + ' s');
+      const option = element('option', (row.stream_id === 'whole.orbit' ? '轨道定位（场景）' : row.stream_id) + ' / ' + row.sample_s + ' s');
       option.value = row.stream_id; select.append(option);
     });
     select.value = state.telemetryStream;
@@ -738,8 +750,13 @@
       if (selectedId !== state.selectedId) return;
       renderStreamContract(info);
       const selectedStream = state.telemetryStream;
-      const [tm, events, acks, metrics, endurance, nativeConfig] = await Promise.all([
+      const sceneStream = state.sceneTelemetryStream;
+      const sceneTelemetryRequest = sceneStream && sceneStream !== selectedStream
+        ? api('/interactive/sessions/' + id + '/telemetry/' + encodeURIComponent(sceneStream) + '?after_sequence=' + state.sceneLastTelemetrySeq)
+        : Promise.resolve(null);
+      const [tm, sceneTm, events, acks, metrics, endurance, nativeConfig] = await Promise.all([
         api('/interactive/sessions/' + id + '/telemetry/' + encodeURIComponent(selectedStream) + '?after_sequence=' + state.lastTelemetrySeq),
+        sceneTelemetryRequest,
         api('/interactive/sessions/' + id + '/events?after_sequence=' + state.lastEventSeq),
         api('/interactive/sessions/' + id + '/commands'),
         api('/interactive/continuous/sessions/' + id + '/observability'),
@@ -758,20 +775,26 @@
       renderRecovery();
       state.endurance = endurance;
       state.gap = tm.gap || null;
+      const applySceneFrame = (frame) => {
+        if (!sceneStream || frame.sequence <= state.sceneLastTelemetrySeq) return;
+        state.sceneLastTelemetrySeq = frame.sequence;
+        window.SatScene?.updateTelemetry(frame, {
+          epochUtc: info.orbit_epoch_utc,
+          timeSystem: info.orbit_time_system,
+          frame: info.orbit_frame,
+          sourceId: selectedId,
+          streamId: sceneStream,
+          sourceLabel: '持续原生 Basilisk 会话',
+        });
+      };
       (tm.frames || []).forEach((frame) => {
         if (frame.sequence > state.lastTelemetrySeq) {
           state.telemetry.push(frame);
           state.lastTelemetrySeq = frame.sequence;
-          window.SatScene?.updateTelemetry(frame, {
-            epochUtc: info.orbit_epoch_utc,
-            timeSystem: info.orbit_time_system,
-            frame: info.orbit_frame,
-            sourceId: selectedId,
-            streamId: selectedStream,
-            sourceLabel: '持续原生 Basilisk 会话',
-          });
+          if (selectedStream === sceneStream) applySceneFrame(frame);
         }
       });
+      if (sceneTm) (sceneTm.frames || []).forEach(applySceneFrame);
       if (state.telemetry.length > 280) state.telemetry.splice(0, state.telemetry.length - 280);
       (events.events || []).forEach((ev) => {
         if (ev.sequence > state.lastEventSeq) {
