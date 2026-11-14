@@ -207,8 +207,11 @@ function attitudeToGlobeQuaternion(quaternionBN, epochUtc, simTimeS) {
   const qGE = [0.5, -0.5, -0.5, -0.5];
   // ECEF relative to inertial N: rotate around +Z by -GMST.
   const qEN = [Math.cos(theta / 2), 0, 0, -Math.sin(theta / 2)];
-  // Basilisk q_BN maps N to B; invert it to orient B axes in N.
-  const qNB = [quaternionBN[0], -quaternionBN[1], -quaternionBN[2], -quaternionBN[3]];
+  // Basilisk EP2C(q_BN) is the passive N-to-B DCM. Three.js applies a
+  // Hamilton quaternion actively, so R_three(q_BN) = EP2C(q_BN).transpose():
+  // these SAME components already orient body axes in N. Conjugating them
+  // here would reverse every nonzero attitude. Only reorder at the THREE API.
+  const qNB = quaternionBN;
   const result = quaternionMultiplyScalarFirst(
     quaternionMultiplyScalarFirst(qGE, qEN), qNB
   );
