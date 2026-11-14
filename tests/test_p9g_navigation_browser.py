@@ -140,7 +140,7 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             assert page.url.endswith('#view=scene'), page.url
             page.go_back()
             assert page.locator('#wizardTaskWorkspace').is_visible()
-            assert page.url.endswith('#view=tasks'), page.url
+            assert page.url.endswith('#view=wizard&step=tasks'), page.url
             page.go_forward()
             assert page.locator('#satelliteSceneView').is_visible()
             assert page.url.endswith('#view=scene'), page.url
@@ -148,6 +148,9 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             page.reload(wait_until='networkidle')
             assert page.locator('#satelliteSceneView').is_visible()
             assert page.url == bookmarked
+            page.goto('https://workbench.test/?p9g-direct=tasks#view=wizard&step=tasks', wait_until='networkidle')
+            assert page.locator('#wizardTaskWorkspace').is_visible()
+            assert page.url.endswith('#view=wizard&step=tasks'), page.url
             page.goto('https://workbench.test/?p9g-direct=1#view=creator', wait_until='networkidle')
             assert page.locator('#creatorView').is_visible()
             assert page.url.endswith('#view=creator'), page.url
