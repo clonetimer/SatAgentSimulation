@@ -71,3 +71,17 @@ test('P9-E rejects unsealed, failed or integrity-invalid Runs as verified object
     assert.equal(result.status,'unverified');
   }
 });
+
+test('P9-E rejects a stale Run payload when the selected Run ID has changed', () => {
+  const window = {};
+  vm.runInNewContext(fs.readFileSync('src/sat_sim/web/object-run-results.js', 'utf8'), {window, Map, Number, String, Boolean, Array, Object});
+  const result = window.P9EObjectRunResults.resolve({
+    selectedId:'whole_spacecraft',
+    run:{run_id:'older-run',sealed:true,integrity:{ok:true},run_record:{status:'SUCCEEDED'}},
+    expectedRunId:'newer-run',
+    plotManifest:{series:[]}
+  });
+  assert.equal(result.status,'run_mismatch');
+  assert.equal(result.runId,'older-run');
+  assert.equal(result.expectedRunId,'newer-run');
+});
