@@ -76,3 +76,12 @@ def test_bounded_and_continuous_clients_require_atomic_position_attitude_stream(
         "attitude.truth.valid",
     ):
         assert field in app and field in continuous
+
+
+def test_sealed_run_scene_never_invents_missing_epoch_or_time_system():
+    root = Path(__file__).resolve().parents[1]
+    app = (root / "src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    assert "|| '2026-01-01T00:00:00Z'" not in app
+    assert "|| null;" in app
+    assert "runTimeSystem === 'UTC'" in app
+    assert "typeof runEpoch === 'string' && runEpoch.length > 0" in app
