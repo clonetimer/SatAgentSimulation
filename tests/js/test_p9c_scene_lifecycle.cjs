@@ -448,3 +448,45 @@ test('sealed Run without an explicit UTC epoch cannot borrow a demo epoch', asyn
   assert.notEqual(h.ui.get('sceneDataSource').dataset.state, 'sealed');
   assert.match(h.status.textContent, /演示/);
 });
+
+
+test('position remains usable but malformed attitude is never promoted to truth', async () => {
+  const invalidAttitudes = [
+    {'attitude.truth.valid': 1,
+      'attitude.truth.mrp_BN_x': 0, 'attitude.truth.mrp_BN_y': 0, 'attitude.truth.mrp_BN_z': 0,
+      'attitude.truth.quaternion_BN_q0': 2, 'attitude.truth.quaternion_BN_q1': 0,
+      'attitude.truth.quaternion_BN_q2': 0, 'attitude.truth.quaternion_BN_q3': 0},
+    {'attitude.truth.valid': 1,
+      'attitude.truth.mrp_BN_x': 0, 'attitude.truth.mrp_BN_y': 0, 'attitude.truth.mrp_BN_z': 0,
+      'attitude.truth.quaternion_BN_q0': NaN, 'attitude.truth.quaternion_BN_q1': 0,
+      'attitude.truth.quaternion_BN_q2': 0, 'attitude.truth.quaternion_BN_q3': 0},
+    {'attitude.truth.valid': 1,
+      'attitude.truth.mrp_BN_x': 0, 'attitude.truth.mrp_BN_y': 0,
+      'attitude.truth.quaternion_BN_q0': 1, 'attitude.truth.quaternion_BN_q1': 0,
+      'attitude.truth.quaternion_BN_q2': 0, 'attitude.truth.quaternion_BN_q3': 0},
+    {'attitude.truth.valid': 0,
+      'attitude.truth.mrp_BN_x': 0, 'attitude.truth.mrp_BN_y': 0, 'attitude.truth.mrp_BN_z': 0,
+      'attitude.truth.quaternion_BN_q0': 1, 'attitude.truth.quaternion_BN_q1': 0,
+      'attitude.truth.quaternion_BN_q2': 0, 'attitude.truth.quaternion_BN_q3': 0}
+  ];
+  for (const [index, attitude] of invalidAttitudes.entries()) {
+    const h = harness(); await h.api.enter(); await h.ready();
+    const row = {
+      time_s: index,
+      'orbit.position_m_x': 7000000, 'orbit.position_m_y': index * 1000, 'orbit.position_m_z': 0,
+      ...attitude
+    };
+    assert.equal(h.api.setRunTelemetry([row], {
+      runId: "sealed-invalid-attitude-" + index,
+      epochUtc: '2026-01-01T00:00:00Z', timeSystem: 'UTC',
+      frame: 'N_INERTIAL', verified: true
+    }), true, 'valid position can still be shown for a sealed Run');
+    const satellite = h.instances[0].objectRows[0];
+    assert.equal(satellite.attitude_valid, false);
+    assert.equal(satellite.attitude_truth, null);
+    assert.deepEqual(satellite.rotation, {x: 0, y: 0, z: 0});
+    assert.equal(h.ui.get('sceneTruthStatus').textContent, '不可用 · 不使用估计值替代');
+    assert.equal(h.ui.get('sceneQuaternionValue').textContent, '—');
+    assert.match(h.status.textContent, /姿态不可用，本体朝向仅为示意/);
+  }
+});
