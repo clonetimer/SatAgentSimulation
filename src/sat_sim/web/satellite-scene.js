@@ -351,9 +351,9 @@ function applyRealtimeFrame(payload) {
       name: `真实仿真卫星 · ${session.sessionId}`,
       lat: earthFixed.latitudeDeg,
       lng: earthFixed.longitudeDeg,
-      alt: earthFixed.altitudeRatio,
+      altitude: earthFixed.altitudeRatio,
     };
-    state.liveTrail.push({lat: earthFixed.latitudeDeg, lng: earthFixed.longitudeDeg, alt: earthFixed.altitudeRatio});
+    state.liveTrail.push({lat: earthFixed.latitudeDeg, lng: earthFixed.longitudeDeg, altitude: earthFixed.altitudeRatio});
     if (state.liveTrail.length > 360) state.liveTrail.splice(0, state.liveTrail.length - 360);
     if (state.globe && state.ready) {
       state.globe.objectsData([state.satellite]);
