@@ -164,15 +164,30 @@ function pointFromTelemetry(frame, epochUtc) {
   if (typeof rawTime !== 'number' || !Number.isFinite(rawTime)) return null;
   const simTimeS = rawTime;
   const point = eciToGlobePoint(position, epochUtc, simTimeS);
-  return point ? {...point, name: '任务卫星（真实 Basilisk 遥测）'} : null;
+  return point ? {
+    ...point,
+    sequence: Number.isInteger(frame?.sequence) ? frame.sequence : null,
+    name: '任务卫星（真实 Basilisk 遥测）'
+  } : null;
 }
 
 function telemetryPath() {
-  return state.telemetryTrail.length > 1
-    ? [{name: 'Basilisk 实际遥测地面轨迹', points: state.telemetryTrail.map(point => ({
-        lat: point.lat, lng: point.lng, alt: 0.002
-      }))}]
-    : [];
+  const segments = [];
+  let current = [];
+  for (const point of state.telemetryTrail) {
+    if (point.breakBefore && current.length > 1) {
+      segments.push(current);
+      current = [];
+    } else if (point.breakBefore && current.length === 1) {
+      current = [];
+    }
+    current.push({lat: point.lat, lng: point.lng, alt: 0.002});
+  }
+  if (current.length > 1) segments.push(current);
+  return segments.map((points, index) => ({
+    name: segments.length > 1 ? `Basilisk 实际遥测地面轨迹 · ${index + 1}` : 'Basilisk 实际遥测地面轨迹',
+    points
+  }));
 }
 
 function renderTelemetryPosition() {
@@ -202,6 +217,8 @@ function updateTelemetry(frame, options = {}) {
   const previous = state.telemetryTrail[state.telemetryTrail.length - 1];
   if (previous && point.sim_time_s < previous.sim_time_s) return false;
   if (previous && point.sim_time_s === previous.sim_time_s) state.telemetryTrail.pop();
+  if (previous && previous.sequence !== null && point.sequence !== null
+      && point.sequence > previous.sequence + 1) point.breakBefore = true;
   state.telemetryTrail.push(point);
   if (state.telemetryTrail.length > TELEMETRY_TRAIL_LIMIT) {
     state.telemetryTrail.splice(0, state.telemetryTrail.length - TELEMETRY_TRAIL_LIMIT);
