@@ -52,3 +52,66 @@ def test_p9d_ui_uses_existing_task_spec_validation_and_no_fake_anchor():
     assert "hasSpatialAnchor" in app
     assert "spatial_anchor" in panel or "spatial_anchor" in app
     assert "window.P9DObjectConfigPanel" in app
+
+def test_p9d_browser_parameter_edit_uses_the_existing_taskspec_parse_route(tmp_path):
+    import json
+    import os
+    from urllib.parse import urlsplit
+
+    import pytest
+    playwright = pytest.importorskip("playwright.sync_api")
+    if os.environ.get("SAT_SIM_BROWSER_TEST") != "1":
+        pytest.skip("Browser journey runs on the Linux Chromium acceptance job.")
+    runs = tmp_path / "runs"
+    app = create_app(runs_root=runs, artifacts_root=tmp_path / "artifacts",
+                     embedded_worker=False, auth_mode="disabled")
+    parse_requests: list[dict] = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(
+            headless=True, executable_path=pw.chromium.executable_path,
+            args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
+        )
+        try:
+            page = browser.new_page(viewport={"width": 1600, "height": 1000}, locale="zh-CN")
+            errors: list[str] = []
+
+            def proxy(route):
+                request = route.request
+                parsed = urlsplit(request.url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc != "workbench.test":
+                    route.abort()
+                    return
+                body = request.post_data_buffer
+                if parsed.path == "/tasks/parse" and body:
+                    parse_requests.append(json.loads(body.decode("utf-8")))
+                response = client.request(
+                    request.method, parsed.path + (("?" + parsed.query) if parsed.query else ""),
+                    content=body,
+                    headers={key: value for key, value in request.headers.items()
+                             if key.lower() in ("authorization", "content-type", "accept")},
+                )
+                headers = {key: value for key, value in response.headers.items()
+                           if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")}
+                route.fulfill(status=response.status_code, body=response.content, headers=headers)
+
+            page.on("pageerror", lambda error: errors.append(str(error)))
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#p9dObjectTree .p9d-tree-item").first.wait_for(timeout=30000)
+            page.locator('.nav-button[data-view="scene"]').click()
+            wheel = page.locator("#p9dObjectTree .p9d-tree-item").filter(has_text="反作用轮").first
+            wheel.click()
+            parameter = page.locator("#p9dParameterHost label.p9d-parameter").filter(has_text="转动惯量").first
+            parameter.wait_for(timeout=15000)
+            editor = parameter.locator("input, textarea").first
+            editor.fill("0.12")
+            editor.dispatch_event("change")
+            assert page.locator("#p9dValidationStatus").inner_text() == "配置尚未校验"
+            page.locator("#p9dValidateBtn").click()
+            page.wait_for_timeout(500)
+            assert parse_requests, "the configuration panel did not call the existing TaskSpec parse route"
+            form = parse_requests[-1]["form_data"]
+            assert form["parameters"]["values"]["wheel_inertia_kg_m2"] == 0.12
+            assert not errors, errors
+        finally:
+            browser.close()
