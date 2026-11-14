@@ -1,0 +1,44 @@
+name: P9-I BIRDS-4 CAD reference import
+
+on:
+  pull_request:
+    paths:
+      - "assets/cad-sources/birds4/**"
+      - "docs/superpowers/plans/*p9i-birds4*"
+      - "tools/cad/convert_birds4_step.py"
+      - "tests/cad/test_birds4_step_converter.py"
+      - ".github/workflows/p9i-birds4-cad-import.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p9i-birds4-cad-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  convert-reference-cad:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CAD conversion kernel
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "cadquery==2.5.2" "pytest==9.0.3"
+      - name: Verify source pin and GLB parser unit tests
+        run: python -m pytest -q tests/cad/test_birds4_step_converter.py
+      - name: Import pinned BIRDS-4 flight-model STEP and export reference GLB
+        run: python tools/cad/convert_birds4_step.py
+      - name: Upload GLB, source integrity, assembly tree and conversion reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: birds4-fm-cad-reference-${{ github.run_id }}
+          path: build/birds4/output/
+          if-no-files-found: error
+          retention-days: 14
