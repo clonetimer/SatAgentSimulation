@@ -302,6 +302,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                            for item in report["socket_messages"]), "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_TELEMETRY"
             report["status"] = "PASS"
             page.screenshot(path=str(evidence / "native-scene.png"), full_page=True)
+            browser.close()
+            browser = None
     except Exception as error:
         report["status"] = "FAIL"
         report["error"] = repr(error)
