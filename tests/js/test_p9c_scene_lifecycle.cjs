@@ -249,11 +249,11 @@ test('real Basilisk telemetry replaces the demo orbit and draws a bounded ground
   assert.equal(h.api.updateTelemetry({
     session_id: 'live-a', sequence: 1, sim_time_s: 0,
     values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0}
-  }, {epochUtc, sourceId: 'live-a', sourceLabel: '实时 Basilisk 会话'}), true);
+  }, {epochUtc, frame: 'N_INERTIAL', sourceId: 'live-a', sourceLabel: '实时 Basilisk 会话'}), true);
   assert.equal(h.api.updateTelemetry({
     session_id: 'live-a', sequence: 2, sim_time_s: 10,
     values: {'orbit.position_m_x': 6999000, 'orbit.position_m_y': 100000, 'orbit.position_m_z': 50000}
-  }, {epochUtc, sourceId: 'live-a', sourceLabel: '实时 Basilisk 会话'}), true);
+  }, {epochUtc, frame: 'N_INERTIAL', sourceId: 'live-a', sourceLabel: '实时 Basilisk 会话'}), true);
   const globe = h.instances[0];
   assert.equal(globe.objectRows[0].name, '任务卫星（真实 Basilisk 遥测）');
   assert.equal(globe.objectRows[0].sim_time_s, 10);
@@ -270,10 +270,10 @@ test('switching telemetry sources clears the previous session ground track', asy
     session_id, sim_time_s,
     values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': y, 'orbit.position_m_z': 0}
   });
-  h.api.updateTelemetry(frame('live-a', 10, 1000), {epochUtc:'2026-01-01T00:00:00Z',sourceId:'live-a'});
+  h.api.updateTelemetry(frame('live-a', 10, 1000), {epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',sourceId:'live-a'});
   h.api.updateTelemetry(frame('live-a', 20, 2000), {epochUtc:'2026-01-01T00:00:00Z',sourceId:'live-a'});
   assert.equal(h.instances[0].pathRows[0].points.length, 2);
-  h.api.updateTelemetry(frame('live-b', 0, 0), {epochUtc:'2026-01-01T00:00:00Z',sourceId:'live-b'});
+  h.api.updateTelemetry(frame('live-b', 0, 0), {epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',sourceId:'live-b'});
   assert.equal(h.instances[0].pathRows.length, 0);
   assert.equal(h.instances[0].objectRows[0].sim_time_s, 0);
 });
@@ -299,10 +299,20 @@ test('verified finite Run telemetry replaces demo mode and preserves sampling pr
     {time_s:5,'orbit.position_m_x':6999900,'orbit.position_m_y':50000,'orbit.position_m_z':10000},
   ];
   assert.equal(h.api.setRunTelemetry(rows, {
-    runId:'sealed-run-1',epochUtc:'2026-01-01T00:00:00Z',
+    runId:'sealed-run-1',epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',
     verified:true,sampled:true,totalRows:5000
   }), true);
   assert.equal(h.instances[0].objectRows[0].sim_time_s, 5);
   assert.equal(h.instances[0].pathRows[0].points.length, 2);
   assert.match(h.status.textContent, /抽样概览/);
+});
+
+test('scene refuses an undeclared or non-inertial source frame', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const accepted = h.api.updateTelemetry({
+    sim_time_s: 0,
+    values: {'orbit.position_m_x':7000000,'orbit.position_m_y':0,'orbit.position_m_z':0}
+  }, {epochUtc:'2026-01-01T00:00:00Z',frame:'BODY',sourceId:'wrong-frame'});
+  assert.equal(accepted,false);
+  assert.match(h.status.textContent,/演示/);
 });
