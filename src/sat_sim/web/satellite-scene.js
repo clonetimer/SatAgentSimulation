@@ -498,7 +498,11 @@ function home() {
 function selectObject({ name, hasSpatialAnchor = false } = {}) {
   if (!name) return;
   const readyPrefix = state.active && state.ready
-    ? (state.telemetrySourceId ? '场景已接入真实仿真遥测。' : '场景当前使用演示数据。') : '';
+    ? (state.telemetrySourceId
+      ? `场景已接入${state.telemetrySourceLabel || '真实仿真遥测'}。${state.latestTelemetryPoint
+        ? `仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s；高度 ${state.latestTelemetryPoint.altitude_km.toFixed(2)} km。`
+        : ''}`
+      : '场景当前使用演示数据。') : '';
   if (!hasSpatialAnchor) {
     status(`${readyPrefix}已选择：${name}。该对象没有经过审定的三维空间锚点，场景保持当前视角，不虚构部件位置。`, 'info');
     return;
