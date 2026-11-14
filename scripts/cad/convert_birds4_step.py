@@ -137,6 +137,52 @@ def _unique_instance_name(name: str, existing: set[str]) -> tuple[str, int]:
     return f"{name}__instance_{occurrence:03d}", occurrence
 
 
+def _import_step_assembly(path: Path):
+    """Import XCAF assembly while retaining duplicate part occurrences.
+
+    CadQuery's STEP importer uses definition labels as child instance names,
+    but a physical assembly can place the same definition more than once.
+    Preserve each occurrence with a stable unique node key and retain the
+    original source label as metadata. The temporary method overrides are
+    restored immediately after import.
+    """
+    import cadquery as cq
+
+    original_add = cq.Assembly.add
+    original_getitem = cq.Assembly.__getitem__
+
+    def add_unique(self, arg, **kwargs):
+        requested = kwargs.get("name")
+        if requested is None and isinstance(arg, cq.Assembly):
+            requested = arg.name
+        if isinstance(requested, str) and requested in self.objects:
+            unique, occurrence = _unique_instance_name(requested, set(self.objects))
+            kwargs["name"] = unique
+            metadata = dict(kwargs.get("metadata") or getattr(arg, "metadata", {}) or {})
+            metadata["source_component_name"] = requested
+            metadata["duplicate_occurrence"] = occurrence
+            kwargs["metadata"] = metadata
+            aliases = dict(self.metadata.get("_source_name_aliases", {}))
+            aliases[requested] = unique
+            self.metadata["_source_name_aliases"] = aliases
+        return original_add(self, arg, **kwargs)
+
+    def get_by_source_name(self, name):
+        aliases = self.metadata.get("_source_name_aliases", {})
+        target = aliases.get(name, name)
+        if not target and self.children:
+            return self.children[-1]
+        return original_getitem(self, target)
+
+    cq.Assembly.add = add_unique
+    cq.Assembly.__getitem__ = get_by_source_name
+    try:
+        return cq.Assembly.importStep(str(path))
+    finally:
+        cq.Assembly.add = original_add
+        cq.Assembly.__getitem__ = original_getitem
+
+
 def _matrix4(location: Any) -> list[list[float]]:
     transform = location.wrapped.Transformation()
     rotation = [
@@ -303,7 +349,7 @@ def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, s
     import cadquery as cq
 
     source_path, source_integrity = _download_pinned(record, source_cache, source_commit, cad_directory)
-    assembly = cq.Assembly.importStep(str(source_path))
+    assembly = _import_step_assembly(source_path)
     node_rows: list[dict[str, Any]] = []
     _walk_assembly(assembly, None, None, node_rows, scale_to_m)
 
@@ -391,7 +437,7 @@ def main() -> int:
         manifest["source_commit"], manifest["cad_directory"]
     )
     import cadquery as cq
-    main_assembly = cq.Assembly.importStep(str(main_path))
+    main_assembly = _import_step_assembly(main_path)
     source_unit, scale_to_m, raw_envelope = detect_source_unit(main_assembly)
     print(
         f"[CAD] Unit evidence: source={source_unit}, scale={scale_to_m}, "
