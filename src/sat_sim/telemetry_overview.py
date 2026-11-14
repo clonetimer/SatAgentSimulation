@@ -52,7 +52,7 @@ def read_telemetry_overview(
         raise ValueError("TELEMETRY_OVERVIEW_INVALID_TIME")
     if start_s is not None and end_s is not None and end_s < start_s:
         raise ValueError("TELEMETRY_OVERVIEW_REVERSED_TIME")
-    if len(fields) > 16 or any(not isinstance(f, str) or not f or len(f) > 128 for f in fields):
+    if len(fields) > 19 or any(not isinstance(f, str) or not f or len(f) > 128 for f in fields):
         raise ValueError("TELEMETRY_OVERVIEW_FIELD_LIMIT")
     source = root / "results" / "telemetry.jsonl"
     if not source.is_file():
