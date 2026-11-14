@@ -428,3 +428,23 @@ test('negative simulation time is rejected before scene state changes', async ()
   assert.equal(accepted,false);
   assert.equal(h.instances[0].objectRows[0].name,'任务卫星（示意模型）');
 });
+
+
+test('sealed Run without an explicit UTC epoch cannot borrow a demo epoch', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const rows = [{
+    time_s: 0,
+    'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0,
+    'attitude.truth.mrp_BN_x': 0, 'attitude.truth.mrp_BN_y': 0, 'attitude.truth.mrp_BN_z': 0,
+    'attitude.truth.quaternion_BN_q0': 1, 'attitude.truth.quaternion_BN_q1': 0,
+    'attitude.truth.quaternion_BN_q2': 0, 'attitude.truth.quaternion_BN_q3': 0,
+    'attitude.truth.valid': 1
+  }];
+  assert.equal(h.api.setRunTelemetry(rows, {
+    runId: 'sealed-run-no-epoch', verified: true,
+    timeSystem: 'UTC', frame: 'N_INERTIAL'
+  }), false);
+  assert.equal(h.ui.get('sceneDataSource').dataset.state, 'demo');
+  assert.notEqual(h.ui.get('sceneDataSource').dataset.state, 'sealed');
+  assert.match(h.status.textContent, /演示/);
+});
