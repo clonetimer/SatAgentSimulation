@@ -218,6 +218,19 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
 
             page.locator("#wizardAdvancedBtn").click()
             nav = "#continuousNavButton" if mode == "continuous" else "#interactiveNavButton"
+            page.locator(nav + ":not(.hidden)").wait_for(state="attached", timeout=30000)
+            # Follow the product's progressive navigation using real keyboard
+            # actions; never force a click or inject disclosure/telemetry state.
+            more = page.locator("#workbenchMoreNavigation")
+            if more.get_attribute("open") is None:
+                more.locator(":scope > summary").focus()
+                more.locator(":scope > summary").press("Enter")
+            realtime = page.locator(".sidebar-nav-group").filter(
+                has=page.locator("summary", has_text="实时仿真")
+            )
+            if realtime.get_attribute("open") is None:
+                realtime.locator(":scope > summary").focus()
+                realtime.locator(":scope > summary").press("Enter")
             page.locator(nav).wait_for(state="visible", timeout=30000)
             page.locator(nav).click()
 
