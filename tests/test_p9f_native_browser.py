@@ -405,11 +405,17 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
               const convert = window.SatScene.attitudeToGlobeQuaternion;
               const a = convert([1, 0, 0, 0], epoch, 0);
               const b = convert([Math.SQRT1_2, Math.SQRT1_2, 0, 0], epoch, 0);
-              return {a, b, normA: Math.hypot(...a), normB: Math.hypot(...b)};
+              const badNorm = convert([2, 0, 0, 0], epoch, 0);
+              const badEpoch = convert([1, 0, 0, 0], 'not-an-epoch', 0);
+              const nonfinite = convert([NaN, 0, 0, 0], epoch, 0);
+              return {a, b, normA: Math.hypot(...a), normB: Math.hypot(...b), badNorm, badEpoch, nonfinite};
             }""", detail["orbit_epoch_utc"])
             assert rotations["normA"] == pytest.approx(1.0, abs=1e-6)
             assert rotations["normB"] == pytest.approx(1.0, abs=1e-6)
             assert rotations["a"] != pytest.approx(rotations["b"], abs=1e-5)
+            assert rotations["badNorm"] is None
+            assert rotations["badEpoch"] is None
+            assert rotations["nonfinite"] is None
             assert rendered["objectAltitudeAccessor"] == "alt"
             assert rendered["pathPointAltitudeAccessor"] == "alt"
             assert any(len(segment.get("points", [])) >= 2 for segment in rendered["pathRows"])
