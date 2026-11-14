@@ -233,11 +233,12 @@ def _rows_to_dicts(rows: Iterable[Any]) -> list[dict[str, Any]]:
 def _filter_rows(
     rows: Sequence[dict[str, Any]], fields: Sequence[str] | None,
     *, plots: Sequence[str] | None = None,
+    include_fields: Sequence[str] = (),
 ) -> list[dict[str, Any]]:
     if not fields:
         return list(rows)
     import fnmatch
-    patterns = [*fields, *(plots or [])]
+    patterns = [*fields, *(plots or []), *include_fields]
     observed = dict.fromkeys(key for row in rows for key in row)
     # A selected curve needs its independent coordinate in the exported data.
     # Match only observed fields; never fabricate values for missing patterns.
@@ -483,7 +484,19 @@ def write_task_dataset(
     if not isinstance(summary_dict, Mapping):
         summary_dict = {"value": summary_dict}
     all_rows = _rows_to_dicts(trace_rows)
-    rows = _filter_rows(all_rows, compiled.outputs.get("record_fields"), plots=compiled.outputs.get("plots"))
+    model = task_spec.get("model") if isinstance(task_spec.get("model"), Mapping) else {}
+    capability_id = str(model.get("capability_id") or task_spec.get("capability_id") or "")
+    # The real 3D scene needs the native inertial position vector even when a
+    # user chooses unrelated chart curves. Keep these support channels in the
+    # Run trace without adding them to the user's selected plot manifest.
+    scene_support_fields = (
+        ("orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z")
+        if capability_id == "whole_spacecraft.unified_native.v1" else ()
+    )
+    rows = _filter_rows(
+        all_rows, compiled.outputs.get("record_fields"),
+        plots=compiled.outputs.get("plots"), include_fields=scene_support_fields,
+    )
 
     files: dict[str, str] = {}
     task_spec_path = output_root / "task_spec.json"

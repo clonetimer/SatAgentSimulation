@@ -109,9 +109,35 @@ def create_interactive_router(
         except KeyError as exc:
             raise HTTPException(404, detail={"reason_code": "INTERACTIVE_SESSION_NOT_FOUND"}) from exc
 
+    def orbit_visualization_metadata(session) -> dict[str, str | None]:
+        from sat_sim.bsk_engine.orbital_environment import DEFAULT_EPOCH
+        from .runtime_factory import ADCS_UNIFIED_CAPABILITY_ID, WHOLE_UNIFIED_CAPABILITY_ID
+
+        task_spec = session.spec.task_spec if isinstance(session.spec.task_spec, dict) else {}
+        simulation = task_spec.get("simulation") if isinstance(task_spec.get("simulation"), dict) else {}
+        parameters = task_spec.get("parameters") if isinstance(task_spec.get("parameters"), dict) else {}
+        values = parameters.get("values") if isinstance(parameters.get("values"), dict) else {}
+        orbit_environment = task_spec.get("orbit_environment") if isinstance(task_spec.get("orbit_environment"), dict) else {}
+        epoch = (
+            values.get("epoch_utc")
+            or simulation.get("epoch_utc")
+            or orbit_environment.get("epoch_utc")
+            or DEFAULT_EPOCH
+        )
+        time_system = str(simulation.get("time_system") or "UTC")
+        supports_native_orbit = session.spec.capability_id in {
+            WHOLE_UNIFIED_CAPABILITY_ID, ADCS_UNIFIED_CAPABILITY_ID,
+        }
+        return {
+            "orbit_epoch_utc": str(epoch),
+            "orbit_time_system": time_system,
+            "orbit_frame": "N_INERTIAL" if supports_native_orbit and time_system == "UTC" else None,
+        }
+
     def session_metadata(session):
         return {
             **session.snapshot().model_dump(mode="json"),
+            **orbit_visualization_metadata(session),
             "continuous": session.spec.continuous,
             "telemetry_streams": session.allowed_telemetry_streams,
             "telemetry_catalog": session.telemetry_catalog,
@@ -195,8 +221,8 @@ def create_interactive_router(
         # A three-wheel session must not claim a fabricated fourth actuator.
         native_values = body.initial_configuration.native_values()
         telemetry_fields = [
-            "orbit.radius_m", "adcs.pointing_error_deg",
-            "eps.battery_soc",
+            "orbit.radius_m",
+            "adcs.pointing_error_deg", "eps.battery_soc",
             "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
             "adcs.rw.speed_rad_s_2", "adcs.rw.effective_max_torque_nm_0",
         ]
@@ -221,11 +247,25 @@ def create_interactive_router(
                     "solver": {"step_s": 0.1 if body.quantum_s == 0.5 else min(body.quantum_s, 0.2)},
                 },
                 "parameters": {"values": native_values},
-                "outputs": {"telemetry_streams": [{
-                    "stream_id": "whole.continuous",
-                    "sample_s": body.quantum_s,
-                    "fields": telemetry_fields,
-                }]},
+                "outputs": {"telemetry_streams": [
+                    {
+                        "stream_id": "whole.continuous",
+                        "sample_s": body.quantum_s,
+                        "fields": telemetry_fields,
+                    },
+                    {
+                        # Position-only quality domain for the real 3D scene.
+                        # Unrelated missing subsystem outputs cannot invalidate
+                        # an otherwise complete Basilisk position vector.
+                        "stream_id": "whole.orbit",
+                        "sample_s": body.quantum_s,
+                        "fields": [
+                            "orbit.position_m_x",
+                            "orbit.position_m_y",
+                            "orbit.position_m_z",
+                        ],
+                    },
+                ]},
             },
         )
         try:
@@ -262,6 +302,7 @@ def create_interactive_router(
         return {
             "schema_version": "sat-continuous-status.v1",
             "session": session.snapshot(),
+            **orbit_visualization_metadata(session),
             "telemetry_streams": session.allowed_telemetry_streams,
             "telemetry_catalog": session.telemetry_catalog,
             "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if

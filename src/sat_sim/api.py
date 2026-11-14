@@ -5171,7 +5171,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
         if not root.exists():
             raise HTTPException(status_code=404, detail="run not found")
         names = tuple(dict.fromkeys(item.strip() for item in fields.split(",") if item.strip()))
-        if len(names) > 16:
+        if len(names) > 19:
             raise HTTPException(422, detail={"reason_code": "TELEMETRY_OVERVIEW_FIELD_LIMIT"})
         try:
             result = read_telemetry_overview(

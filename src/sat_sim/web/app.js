@@ -171,6 +171,7 @@
     interactivePollTimer: null,
     interactiveFrames: {},
     interactiveGaps: {},
+    sceneRealtimeSource: null,
     interactiveEvents: [],
     interactiveAcks: [],
     interactiveCommandCatalog: [],
@@ -6211,10 +6212,15 @@
       // Older servers or UI fixture transports can still return the legacy page.
       let telemetryOverview = null;
       try {
+        const needsScenePosition = runContext.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1';
+        const plotFieldLimit = 16;
         const plotFields = (plotsPayload.plot_manifest?.series || [])
-          .map((entry) => entry.field).filter(Boolean).slice(0, 16);
+          .map((entry) => entry.field).filter(Boolean).slice(0, plotFieldLimit);
+        const sceneFields = needsScenePosition
+          ? ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] : [];
+        const overviewFields = Array.from(new Set([...plotFields, ...sceneFields]));
         const query = new URLSearchParams({
-          max_points: '3000', fields: plotFields.join(','),
+          max_points: '3000', fields: overviewFields.join(','),
         });
         telemetryOverview = await api(`/runs/${encodeURIComponent(runId)}/telemetry/overview?${query}`);
       } catch (_) { telemetryOverview = null; }
@@ -6232,6 +6238,22 @@
       state.telemetry = telemetryOverview?.source
         ? (telemetryOverview.rows || []) : (telemetryPayload.rows || []);
       state.telemetryOverview = telemetryOverview?.source ? telemetryOverview : null;
+      const runSpec = state.activeRun?.task_spec || {};
+      const runParameters = runSpec.parameters?.values || {};
+      const runEpoch = runParameters.epoch_utc || runSpec.simulation?.epoch_utc
+        || runSpec.orbit_environment?.epoch_utc || '2026-01-01T00:00:00Z';
+      const runStatus = String(state.activeRun?.run_record?.status || '').toUpperCase();
+      window.SatScene?.setRunTelemetry(state.telemetry, {
+        runId,
+        epochUtc: runEpoch,
+        frame: 'N_INERTIAL',
+        timeSystem: runSpec.simulation?.time_system || 'UTC',
+        verified: state.activeRun?.sealed === true && state.activeRun?.integrity?.ok === true
+          && runStatus === 'SUCCEEDED'
+          && state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1',
+        sampled: Boolean(state.telemetryOverview?.sampled),
+        totalRows: state.telemetryOverview?.total ?? telemetryPayload.total ?? state.telemetry.length,
+      });
       const coverage = el('chartTelemetryCoverage');
       if (coverage) {
         coverage.textContent = state.telemetryOverview
@@ -7434,13 +7456,24 @@
         simulation: { duration_s: duration, sample_s: quantum, solver: { step_s: integrationStep } },
         parameters: { values: capabilityId === 'whole_spacecraft.unified_native.v1'
           ? structuredClone(state.interactivePreparedNativeValues || {}) : {} },
-        outputs: { telemetry_streams: descriptor.streams.map((stream) => ({
-          stream_id: stream.id,
-          sample_s: Math.max(quantum, Math.min(duration, quantum * stream.sampleMultiplier)),
-          fields: stream.overviewOnly
-            ? descriptor.telemetryGroups[0].fields
-            : Array.from(new Set(descriptor.telemetryGroups.flatMap(group => group.fields))),
-        })) },
+        outputs: { telemetry_streams: [
+          ...descriptor.streams.map((stream) => ({
+            stream_id: stream.id,
+            sample_s: Math.max(quantum, Math.min(duration, quantum * stream.sampleMultiplier)),
+            fields: Array.from(new Set(
+              stream.overviewOnly
+                ? descriptor.telemetryGroups[0].fields
+                : descriptor.telemetryGroups.flatMap(group => group.fields)
+            )),
+          })),
+          ...(capabilityId === 'whole_spacecraft.unified_native.v1' ? [{
+            // A dedicated position-only stream keeps frame quality independent
+            // from unrelated ADCS/EPS/thermal/communications channels.
+            stream_id: 'whole.orbit',
+            sample_s: quantum,
+            fields: ORBIT_POSITION_FIELDS,
+          }] : []),
+        ] },
       },
       quantum_s: quantum,
       rate,
@@ -7641,7 +7674,9 @@
         return;
       }
       const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
-      if (!terminal && state.activeView === 'interactive') {
+      const sceneNeedsInteractiveTelemetry = state.activeView === 'scene'
+        && state.sceneRealtimeSource === 'interactive';
+      if (!terminal && (state.activeView === 'interactive' || sceneNeedsInteractiveTelemetry)) {
         clearTimeout(state.interactiveReconnectTimer);
         state.interactiveReconnectTimer = setTimeout(connectInteractiveSocket, 1200);
       }
@@ -7656,12 +7691,37 @@
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, 'CLIENT_NAVIGATION');
   }
 
+  const ORBIT_POSITION_FIELDS = Object.freeze([
+    'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z',
+  ]);
+
+  function sceneOrbitStream(session) {
+    const catalog = Array.isArray(session?.telemetry_catalog) ? session.telemetry_catalog : [];
+    return catalog.find(stream => Array.isArray(stream.fields)
+      && ORBIT_POSITION_FIELDS.every(field => stream.fields.includes(field))) || null;
+  }
+
   function acceptInteractiveFrame(frame) {
     state.interactiveLastTelemetryReceivedAt ||= {};
     state.interactiveLastTelemetryReceivedAt[frame.stream] = Date.now();
     const frames = state.interactiveFrames[frame.stream] || [];
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
+    if (state.interactiveSession?.capability_id === 'whole_spacecraft.unified_native.v1') {
+      const orbitStream = sceneOrbitStream(state.interactiveSession);
+      // The UI subscribes to multiple streams, each with its own sequence
+      // counter. Only the catalog-declared orbit stream may drive the globe.
+      if (orbitStream?.stream_id === frame.stream) {
+        window.SatScene?.updateTelemetry(frame, {
+          epochUtc: state.interactiveSession.orbit_epoch_utc,
+          timeSystem: state.interactiveSession.orbit_time_system,
+          frame: state.interactiveSession.orbit_frame,
+          sourceId: state.interactiveSession.session_id,
+          streamId: orbitStream.stream_id,
+          sourceLabel: '限时/持续实时 Basilisk 会话',
+        });
+      }
+    }
     if (el('interactiveStream').value === frame.stream) renderInteractiveTelemetry();
   }
 
@@ -7678,7 +7738,9 @@
     streams.forEach((stream) => {
       const option = document.createElement('option');
       option.value = stream.stream_id;
-      option.textContent = `${stream.stream_id} · ${stream.sample_s} s`;
+      option.textContent = stream.stream_id === 'whole.orbit'
+        ? `轨道定位（场景） · ${stream.sample_s} s`
+        : `${stream.stream_id} · ${stream.sample_s} s`;
       streamSelect.appendChild(option);
     });
     if (!streams.length && state.interactiveSession) {
@@ -8789,9 +8851,26 @@
   }
 
   function switchView(name) {
+    const previousView = state.activeView;
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
-    if (['interactive', 'continuous'].includes(state.activeView) && name !== state.activeView && wizardRealtimeSessionActive()) {
-      if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。离开将断开当前控制界面，但不会自动停止仿真。确定离开吗？')) return;
+    if (['interactive', 'continuous'].includes(previousView) && name !== previousView && wizardRealtimeSessionActive()) {
+      if (!state.wizardLeavingRealtimeApproved && !window.confirm('实时会话仍处于活动状态。切换界面不会停止仿真；三维场景可保留只读遥测订阅。确定继续吗？')) return;
+    }
+    if (name === 'scene') {
+      const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
+      const runSpec = state.activeRun?.task_spec || {};
+      const verifiedWholeSpacecraftRun = state.activeRun?.sealed === true
+        && state.activeRun?.integrity?.ok === true
+        && String(state.activeRun?.run_record?.status || '').toUpperCase() === 'SUCCEEDED'
+        && runSpec.model?.capability_id === 'whole_spacecraft.unified_native.v1';
+      const enteringRunResults = previousView === 'runs'
+        || (previousView === 'wizard' && state.wizard.step === 'results');
+      state.sceneRealtimeSource = verifiedWholeSpacecraftRun && enteringRunResults ? 'run'
+        : previousView === 'continuous' ? 'continuous'
+        : previousView === 'interactive' && state.interactiveSession && !terminal ? 'interactive'
+        : state.interactiveSession && !terminal ? 'interactive' : 'continuous';
+    } else {
+      state.sceneRealtimeSource = null;
     }
     noteSharedContextTransition(name);
     state.wizardLeavingRealtimeApproved = false;
@@ -8827,8 +8906,11 @@
     if (name === 'evaluations') window.SatEvaluationWorkspace?.enter();
     if (name === 'diagnostics') loadDiagnostics().catch((error) => { el('diagnosticDetails').textContent = `诊断失败：${error.message}`; });
     if (name === 'logs') loadLogs().catch((error) => { el('logSummary').textContent = `日志读取失败：${error.message}`; });
-    if (name === 'continuous') window.SatContinuousConsole?.enter();
-    else window.SatContinuousConsole?.exit();
+    if (name === 'continuous' || (name === 'scene' && state.sceneRealtimeSource === 'continuous' && state.interactiveAvailable)) {
+      window.SatContinuousConsole?.enter();
+    } else {
+      window.SatContinuousConsole?.exit();
+    }
     if (name === 'scene') window.SatScene?.enter();
     else window.SatScene?.exit();
     if (name === 'interactive') {
@@ -8843,7 +8925,12 @@
     } else {
       clearInterval(state.interactivePollTimer);
       state.interactivePollTimer = null;
-      closeInteractiveSocket();
+      const keepSceneTelemetry = name === 'scene' && state.sceneRealtimeSource === 'interactive';
+      if (keepSceneTelemetry) {
+        if (state.interactiveSession && !state.interactiveSocket) connectInteractiveSocket();
+      } else {
+        closeInteractiveSocket();
+      }
     }
   }
 

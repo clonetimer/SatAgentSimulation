@@ -1021,7 +1021,7 @@
               <p id="continuousCreationPolicy" class="continuous-muted" role="status">正在读取服务器创建能力…</p>
               <button id="continuousImportOfflineConfigBtn" class="button button-secondary" type="button">从当前离线整星配置导入修改项</button>
               <p id="continuousOfflineConfigStatus" class="continuous-muted" role="status">导入前核对差异与实时支持范围；不会自动创建会话。</p>
-              <label>会话标识<input id="continuousSessionId" maxlength="128" pattern="[A-Za-z0-9][A-Za-z0-9_.:-]*" required value="satellite-continuous-1"></label>
+              <label>会话标识<input id="continuousSessionId" maxlength="128" pattern="[A-Za-z0-9][A-Za-z0-9_.:\\-]*" required value="satellite-continuous-1"></label>
               <label>仿真推进步长<select id="continuousQuantum"><option value="0.1">0.1 s</option><option value="0.2">0.2 s</option><option value="0.5" selected>0.5 s（推荐）</option><option value="1">1 s</option></select></label>
               <label>运行倍速<select id="continuousRate"><option value="0.1">0.1×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="5">5×</option><option value="10">10×</option></select></label>
               <label>初始化时长（非运行上限）<input id="continuousHorizon" type="number" min="1" max="86400" step="1" value="60" required></label>
@@ -1650,13 +1650,13 @@
 
   <script src="/assets/vendor/globe/globe.gl.min.js" defer></script>
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
-  <script type="module" src="/assets/satellite-scene.js?v=p9c-mainline-1"></script>
+  <script type="module" src="/assets/satellite-scene.js?v=p9f-1"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
-  <script src="/assets/app.js?v=p9e-1" defer></script>
+  <script src="/assets/app.js?v=p9f-1" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
-  <script src="/assets/continuous.js?v=0.7.8" defer></script>
+  <script src="/assets/continuous.js?v=p9f-1" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
 </body>
 </html>

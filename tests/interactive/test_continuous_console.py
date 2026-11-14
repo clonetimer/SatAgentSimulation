@@ -155,7 +155,7 @@ def test_continuous_new_page_creates_actual_session_control_and_tm_api(tmp_path,
         assert p["activate_native_queue_allowed"] is False
         assert p["runtime_mode"] == "IN_PROCESS_NATIVE"
         assert p["writer_epoch"] == 1
-        assert p["telemetry_streams"] == ["whole.continuous"]
+        assert p["telemetry_streams"] == ["whole.continuous", "whole.orbit"]
 
         commands = {
             "command_id": "ui-set-target", "session_id": "continuous-web",
