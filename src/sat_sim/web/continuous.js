@@ -764,8 +764,10 @@
           state.lastTelemetrySeq = frame.sequence;
           window.SatScene?.updateTelemetry(frame, {
             epochUtc: info.orbit_epoch_utc,
+            timeSystem: info.orbit_time_system,
             frame: info.orbit_frame,
             sourceId: selectedId,
+            streamId: selectedStream,
             sourceLabel: '持续原生 Basilisk 会话',
           });
         }
