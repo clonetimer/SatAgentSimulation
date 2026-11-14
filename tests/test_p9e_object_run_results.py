@@ -101,6 +101,7 @@ def test_p9e_chromium_renders_run_bundle_results_inside_the_selected_object_pane
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator("#p9eRunResultHost").wait_for(state="visible", timeout=20000)
+            page.locator("#p9dObjectTree .p9d-tree-item").first.wait_for(state="visible", timeout=20000)
             page.evaluate("""async () => {
               const response = await fetch('/workbench/scene/catalog');
               const payload = await response.json();
