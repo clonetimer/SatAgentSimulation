@@ -247,12 +247,12 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.locator("#birdsCadStatus").filter(has_text="已加载 birds4-fixture.glb").wait_for(timeout=30000)
             tree_nodes = page.locator("#birdsCadTree .birds-cad-tree-node")
             assert tree_nodes.count() >= 1
-            tree_nodes.filter(has_text="BIRDS4_fixture_root").first.click()
+            page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').first.click()
             assert "BIRDS4_fixture_root" in page.locator("#birdsCadInspector").inner_text()
 
             search = page.locator("#birdsCadSearch")
             search.fill("fixture")
-            page.locator("#birdsCadTree .birds-cad-tree-node").filter(has_text="BIRDS4_fixture_root").wait_for()
+            page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').wait_for()
             visibility = page.locator("#birdsCadTree .birds-cad-visibility").first
             visibility.click()
             assert visibility.get_attribute("aria-pressed") == "true"
