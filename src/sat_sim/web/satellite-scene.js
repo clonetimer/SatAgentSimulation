@@ -156,6 +156,20 @@ function attitudeToGlobeQuaternion(quaternionBN, epochUtc, simTimeS) {
   return result.map(value => value / resultNorm);
 }
 
+function attitudeToGlobeRotation(quaternionBN, epochUtc, simTimeS) {
+  const globeQuaternion = attitudeToGlobeQuaternion(quaternionBN, epochUtc, simTimeS);
+  if (!globeQuaternion) return null;
+  const euler = new THREE.Euler().setFromQuaternion(
+    new THREE.Quaternion(globeQuaternion[1], globeQuaternion[2], globeQuaternion[3], globeQuaternion[0]),
+    'XYZ'
+  );
+  return {
+    x: THREE.MathUtils.radToDeg(euler.x),
+    y: THREE.MathUtils.radToDeg(euler.y),
+    z: THREE.MathUtils.radToDeg(euler.z),
+  };
+}
+
 function eciToGlobePoint(position, epochUtc, simTimeS) {
   if (!Array.isArray(position) || position.length !== 3 ||
       !position.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
@@ -217,23 +231,15 @@ function pointFromTelemetry(frame, epochUtc) {
     && mrp.every(value => typeof value === 'number' && Number.isFinite(value))
     && quaternion.every(value => typeof value === 'number' && Number.isFinite(value))
     && Math.abs(quaternionNorm - 1) <= 1e-6;
-  const globeQuaternion = attitudeValid
-    ? attitudeToGlobeQuaternion(quaternion, epochUtc, simTimeS) : null;
-  const euler = globeQuaternion
-    ? new THREE.Euler().setFromQuaternion(
-        new THREE.Quaternion(globeQuaternion[1], globeQuaternion[2], globeQuaternion[3], globeQuaternion[0]),
-        'XYZ'
-      ) : null;
-  const rotation = euler ? {
-    x: THREE.MathUtils.radToDeg(euler.x),
-    y: THREE.MathUtils.radToDeg(euler.y),
-    z: THREE.MathUtils.radToDeg(euler.z),
-  } : {x: 0, y: 0, z: 0};
+  const rotation = attitudeValid
+    ? attitudeToGlobeRotation(quaternion, epochUtc, simTimeS)
+    : null;
+  const validRotation = rotation || {x: 0, y: 0, z: 0};
   return {
     ...point,
     attitude_truth: attitudeValid ? { mrp_BN: mrp, quaternion_BN: quaternion } : null,
-    attitude_valid: Boolean(attitudeValid && globeQuaternion),
-    rotation,
+    attitude_valid: Boolean(attitudeValid && rotation),
+    rotation: validRotation,
     sequence: Number.isSafeInteger(frame?.sequence) ? frame.sequence : null,
     session_id: typeof frame?.session_id === 'string' ? frame.session_id : null,
     stream: typeof frame?.stream === 'string' ? frame.stream : null,
@@ -609,5 +615,5 @@ document.addEventListener('click', (event) => {
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
-  eciToGlobePoint, attitudeToGlobeQuaternion,
+  eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
 };
