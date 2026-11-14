@@ -34,7 +34,7 @@ from .capability_registry import get_capability
 from .assertions import evaluate_assertions
 from .reporting import generate_run_report
 from .dataset_writer import write_jsonl, write_task_dataset, write_trace_csv
-from .form_schema import output_hierarchy, output_label
+from .form_schema import capability_form_schema, output_hierarchy, output_label
 from .execution_planner import (
     ExecutionPlan,
     ResolvedSpec,
@@ -341,10 +341,15 @@ def _plot_series_object_binding(spec: Mapping[str, Any], field: str) -> dict[str
                 "association_source": "capability_contract_unavailable"}
 
     target_level = str(contract.target_level or "").strip().lower()
-    contract_outputs = contract.data.get("outputs") if isinstance(contract.data.get("outputs"), Mapping) else {}
-    trace_rows = contract_outputs.get("trace") or contract_outputs.get("trace_fields") or []
+    try:
+        schema = capability_form_schema(capability_id)
+    except (KeyError, ValueError):
+        schema = {}
+    schema_outputs = schema.get("outputs") if isinstance(schema.get("outputs"), Mapping) else {}
+    trace_rows = schema_outputs.get("trace_options") if isinstance(schema_outputs.get("trace_options"), list) else []
     output_row = next((row for row in trace_rows if isinstance(row, Mapping) and row.get("name") == field), None)
     output_unit = output_row.get("unit") if isinstance(output_row, Mapping) else None
+    output_label_zh = output_row.get("label") if isinstance(output_row, Mapping) else None
     if target_level == "component":
         from .workbench_quantity_names import output_definition
         definition = output_definition(field, capability_id=capability_id, kind="trace")
@@ -354,18 +359,19 @@ def _plot_series_object_binding(spec: Mapping[str, Any], field: str) -> dict[str
                     "association_reason": "FIELD_NOT_REGISTERED_FOR_COMPONENT"}
         return {"object_id": definition["object_id"], "association_scope": "component",
                 "association_source": "workbench_quantity_dictionary.v2",
-                "unit": definition.get("unit") or output_unit, "label": definition.get("display_name_zh")}
+                "unit": definition.get("unit") or output_unit,
+                "label": definition.get("display_name_zh") or output_label_zh}
 
     hierarchy = output_hierarchy(field, target_level=target_level)
     subsystem_id = str(hierarchy.get("subsystem_id") or "whole_spacecraft")
     if subsystem_id != "whole_spacecraft":
         return {"object_id": f"subsystem.{subsystem_id}", "association_scope": "subsystem",
-                "association_source": "capability_output_hierarchy", "unit": output_unit}
+                "association_source": "capability_output_hierarchy", "unit": output_unit, "label": output_label_zh}
     if target_level == "whole_spacecraft":
         return {"object_id": "whole_spacecraft", "association_scope": "whole_spacecraft",
                 "association_source": "capability_output_hierarchy", "unit": output_unit}
     return {"object_id": None, "association_scope": "unmapped",
-            "association_source": "capability_output_hierarchy", "unit": output_unit,
+            "association_source": "capability_output_hierarchy", "unit": output_unit, "label": output_label_zh,
             "association_reason": "NO_AUDITED_SUBSYSTEM_BINDING"}
 
 
