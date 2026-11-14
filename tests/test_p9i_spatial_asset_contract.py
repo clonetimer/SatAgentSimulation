@@ -5,10 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from sat_sim.workbench_spatial_assets import (
-    SCHEMA_VERSION,
-    validate_spatial_asset_registry,
-)
+import importlib.util
+
+_MODULE_PATH = Path(__file__).resolve().parents[1] / "src/sat_sim/workbench_spatial_assets.py"
+_MODULE_SPEC = importlib.util.spec_from_file_location("p9i_spatial_assets", _MODULE_PATH)
+assert _MODULE_SPEC is not None and _MODULE_SPEC.loader is not None
+_spatial_assets = importlib.util.module_from_spec(_MODULE_SPEC)
+_MODULE_SPEC.loader.exec_module(_spatial_assets)
+SCHEMA_VERSION = _spatial_assets.SCHEMA_VERSION
+validate_spatial_asset_registry = _spatial_assets.validate_spatial_asset_registry
 
 
 def _registry():
