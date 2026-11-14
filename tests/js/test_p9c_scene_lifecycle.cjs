@@ -329,8 +329,9 @@ test('verified finite Run telemetry replaces demo mode and preserves sampling pr
   assert.equal(h.ui.get('sceneTruthStatus').textContent, '有效 · 刚体状态真值');
   assert.notEqual(h.ui.get('sceneQuaternionValue').textContent, '—');
   assert.equal(h.ui.get('sceneEstimatorStatus').textContent, '尚未接入');
-  assert.equal(h.ui.get('sceneFrameSource').textContent, 'run:sealed-run-1 / null');
-  assert.equal(h.ui.get('sceneFrameSequence').textContent, '—');
+  assert.equal(h.ui.get('sceneFrameQuality').textContent, 'SEALED');
+  assert.equal(h.ui.get('sceneFrameSource').textContent, 'run:sealed-run-1');
+  assert.equal(h.ui.get('sceneFrameSequence').textContent, '封存样本');
 });
 
 test('scene refuses an undeclared or non-inertial source frame', async () => {
