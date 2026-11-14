@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -93,7 +93,7 @@ def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
                     external.append(route.request.url)
                     route.abort()
                     return
-                response = client.get(parsed.path, params=dict(__import__("urllib.parse").parse.parse_qsl(parsed.query)))
+                response = client.get(parsed.path, params=dict(parse_qsl(parsed.query)))
                 headers = {
                     key: value for key, value in response.headers.items()
                     if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")
