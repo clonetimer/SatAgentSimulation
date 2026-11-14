@@ -4480,6 +4480,7 @@
         tree: state.sceneObjectTree,
         selectedId: state.selectedObjectId,
         run: state.activeRun,
+        expectedRunId: state.activeRunId,
         plotManifest: state.plotManifest,
         telemetryRows: state.telemetry,
         telemetryOverview: state.telemetryOverview,
