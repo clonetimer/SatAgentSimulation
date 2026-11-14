@@ -484,7 +484,9 @@ test('position remains usable but malformed attitude is never promoted to truth'
     const satellite = h.instances[0].objectRows[0];
     assert.equal(satellite.attitude_valid, false);
     assert.equal(satellite.attitude_truth, null);
-    assert.deepEqual(satellite.rotation, {x: 0, y: 0, z: 0});
+    assert.equal(satellite.rotation.x, 0);
+    assert.equal(satellite.rotation.y, 0);
+    assert.equal(satellite.rotation.z, 0);
     assert.equal(h.ui.get('sceneTruthStatus').textContent, '不可用 · 不使用估计值替代');
     assert.equal(h.ui.get('sceneQuaternionValue').textContent, '—');
     assert.match(h.status.textContent, /姿态不可用，本体朝向仅为示意/);
