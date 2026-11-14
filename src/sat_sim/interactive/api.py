@@ -197,6 +197,7 @@ def create_interactive_router(
         # A three-wheel session must not claim a fabricated fourth actuator.
         native_values = body.initial_configuration.native_values()
         telemetry_fields = [
+            "orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z",
             "orbit.radius_m", "adcs.pointing_error_deg",
             "eps.battery_soc",
             "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
@@ -263,7 +264,7 @@ def create_interactive_router(
         runtime = session.runtime
         return {
             "schema_version": "sat-continuous-status.v1",
-            "session": session.snapshot(),
+            "session": session_metadata(session),
             "telemetry_streams": session.allowed_telemetry_streams,
             "telemetry_catalog": session.telemetry_catalog,
             "runtime_mode": ("SUPERVISED_NATIVE_CHILD" if

@@ -7129,7 +7129,7 @@
       targets: ['whole_spacecraft', 'subsystem.adcs', 'subsystem.eps', 'subsystem.comm_data'],
       telemetryGroups: [
         { id: 'overview', label: '整星概览', fields: ['orbit.radius_m', 'adcs.pointing_error_deg', 'eps.battery_soc', 'data.storage_bits', 'thermal.safe', 'payload.active', 'comm.active', 'propulsion.fuel_mass_kg'] },
-        { id: 'orbit', label: '轨道与环境', fields: ['orbit.radius_m', 'orbit.phase_rad', 'orbit.eclipse_factor'] },
+        { id: 'orbit', label: '轨道与环境', fields: ['orbit.radius_m', 'orbit.phase_rad', 'orbit.eclipse_factor', 'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'] },
         { id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2'] },
         { id: 'eps', label: '能源', fields: ['eps.battery_soc', 'eps.net_power_w', 'eps.solar_array_power_w', 'eps.loads.adcs_power_w', 'eps.loads.payload_power_w', 'eps.loads.comm_power_w', 'eps.pdu.payload_enabled', 'eps.pdu.comm_enabled'] },
         { id: 'thermal', label: '热控', fields: ['thermal.safe', 'thermal.battery_temp_k', 'thermal.electronics_temp_k', 'thermal.payload_temp_k', 'thermal.adcs_temp_k', 'thermal.comm_temp_k', 'thermal.propulsion_temp_k'] },

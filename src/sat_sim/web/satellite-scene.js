@@ -330,7 +330,13 @@ function applyRealtimeFrame(payload) {
     status(`实时遥测质量为 ${frame.quality || 'UNKNOWN'}；保留最后一个有效位置，不用无效帧更新场景。`, 'warning');
     return false;
   }
-  if (!Number.isInteger(frame.sequence) || frame.sequence <= state.liveLastSequence) return false;
+  if (!Number.isSafeInteger(frame.sequence) || frame.sequence < 0 || frame.sequence <= state.liveLastSequence) return false;
+  if (!Number.isFinite(frame.sim_time_s) || frame.sim_time_s < 0 ||
+      (state.lastLiveSimTimeS !== null && frame.sim_time_s < state.lastLiveSimTimeS)) return false;
+  if (!session.streamId || session.timeSystem !== 'UTC' || session.positionFrame !== 'J2000_INERTIAL' || !session.epochUtc) {
+    status('当前会话缺少有效的轨道流、UTC 历元或惯性坐标系信息，暂不更新卫星位置。', 'warning');
+    return false;
+  }
   const values = frame.values || {};
   const positionM = [
     values['orbit.position_m_x'],
@@ -349,11 +355,13 @@ function applyRealtimeFrame(payload) {
     state.lastLiveSimTimeS = frame.sim_time_s;
     state.satellite = {
       name: `真实仿真卫星 · ${session.sessionId}`,
+      session_id: session.sessionId, stream: frame.stream,
+      sequence: frame.sequence, sim_time_s: frame.sim_time_s,
       lat: earthFixed.latitudeDeg,
       lng: earthFixed.longitudeDeg,
-      altitude: earthFixed.altitudeRatio,
+      alt: earthFixed.altitudeRatio,
     };
-    state.liveTrail.push({lat: earthFixed.latitudeDeg, lng: earthFixed.longitudeDeg, altitude: earthFixed.altitudeRatio});
+    state.liveTrail.push({lat: earthFixed.latitudeDeg, lng: earthFixed.longitudeDeg, alt: earthFixed.altitudeRatio});
     if (state.liveTrail.length > 360) state.liveTrail.splice(0, state.liveTrail.length - 360);
     if (state.globe && state.ready) {
       state.globe.objectsData([state.satellite]);
@@ -378,7 +386,7 @@ function applyRealtimeFrame(payload) {
 }
 
 function setRealtimeSession({
-  sessionId, mode = 'bounded', epochUtc, timeSystem = 'UTC',
+  sessionId, mode = 'bounded', epochUtc, timeSystem,
   positionFrame, streamId = null, sessionState = 'RUNNING'
 } = {}) {
   if (!sessionId) return clearRealtimeSession();
@@ -415,6 +423,20 @@ function updateRealtimeFrame(payload) {
   if (!frame || frame.session_id !== state.liveSession.sessionId ||
       (state.liveSession.streamId && frame.stream !== state.liveSession.streamId)) return false;
   if (!state.ready || !state.globe) {
+    const session = state.liveSession;
+    const pending = state.pendingLiveFrame?.frame;
+    if (frame.quality !== 'GOOD' || !Number.isSafeInteger(frame.sequence) || frame.sequence < 0 ||
+        frame.sequence <= state.liveLastSequence || !Number.isFinite(frame.sim_time_s) || frame.sim_time_s < 0 ||
+        (state.lastLiveSimTimeS !== null && frame.sim_time_s < state.lastLiveSimTimeS) ||
+        (pending && (frame.sequence <= pending.sequence || frame.sim_time_s < pending.sim_time_s))) return false;
+    if (!session.streamId || session.timeSystem !== 'UTC' || session.positionFrame !== 'J2000_INERTIAL' || !session.epochUtc) return false;
+    try {
+      inertialPositionToEarthFixed({
+        positionM: ['x', 'y', 'z'].map(axis => frame.values?.['orbit.position_m_' + axis]),
+        epochUtc: session.epochUtc, simTimeS: frame.sim_time_s,
+        timeSystem: session.timeSystem, positionFrame: session.positionFrame,
+      });
+    } catch (_) { return false; }
     state.pendingLiveFrame = payload;
     return true;
   }
