@@ -75,6 +75,14 @@
 
   const ORBIT_POSITION_FIELDS = ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'];
 
+  function telemetryStreamHasFields(stream, requiredFields) {
+    const rawFields = stream?.fields;
+    const names = Array.isArray(rawFields)
+      ? rawFields.map(field => typeof field === 'string' ? field : field?.name || field?.field || field?.field_id)
+      : Object.keys(rawFields || {});
+    return requiredFields.every(field => names.includes(field));
+  }
+
   function syncInteractiveSceneSession() {
     const session = state.interactiveSession;
     if (!session) {
@@ -82,7 +90,7 @@
       return;
     }
     const stream = (session.telemetry_catalog || []).find(item =>
-      ORBIT_POSITION_FIELDS.every(field => (item.fields || []).includes(field))
+      telemetryStreamHasFields(item, ORBIT_POSITION_FIELDS)
     );
     state.interactiveOrbitStream = stream?.stream_id || null;
     window.SatScene?.setRealtimeSession?.({
