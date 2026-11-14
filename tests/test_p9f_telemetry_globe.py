@@ -75,6 +75,7 @@ def test_finite_run_scene_support_is_sealed_whole_spacecraft_only():
     assert "state.activeRun?.integrity?.ok === true" in app
     assert "state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1'" in app
     assert "orbit.position_m_x" in app and "overviewFields" in app
+    assert "const plotFieldLimit = needsScenePosition ? 13 : 16" in app
 
 
 def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
