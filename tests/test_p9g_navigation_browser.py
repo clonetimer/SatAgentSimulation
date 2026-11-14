@@ -133,6 +133,7 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
             # P9-G3: navigation is bookmarkable and participates in browser history.
+            page.evaluate("window.history.replaceState({}, '', window.location.pathname + window.location.search)")
             nav.get_by_role('button', name='任务中心').click()
             assert page.url.endswith('#view=tasks'), page.url
             nav.get_by_role('button', name='卫星数字场景').click()
