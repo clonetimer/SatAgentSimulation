@@ -30,7 +30,9 @@
     "path": "Procedures/BIRDS4-FM Assembly Procedure.docx",
     "git_blob_sha1": "4236578c000b413773399d91e094b57a20a52e28",
     "size_bytes": 61750445,
-    "role": "assembly evidence; extract and review before promoting individual transforms to verified"
+    "role": "assembly evidence; extract and review before promoting individual transforms to verified",
+    "source_commit": "d7eadd98f5327e1ddea82b640293d49bfdb09555",
+    "license_observed": "MIT License\n\nCopyright (c) 2021 Kyushu I"
   },
   "coordinate_reference": {
     "title": "BIRDS Newsletter Issue No.49",
