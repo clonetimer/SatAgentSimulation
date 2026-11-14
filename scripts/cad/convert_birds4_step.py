@@ -47,6 +47,55 @@ def verify_source_bytes(data: bytes, expected_size: int, expected_git_blob_sha1:
     }
 
 
+def apply_glb_root_scale(path: Path, scale: float) -> None:
+    """Apply a uniform source-unit to metre scale at glTF scene roots."""
+    if scale == 1.0:
+        return
+    data = path.read_bytes()
+    magic, version, declared_length = struct.unpack_from("<4sII", data, 0)
+    if magic != b"glTF" or version != 2 or declared_length != len(data):
+        raise ValueError("cannot scale an invalid GLB")
+    chunks = []
+    offset = 12
+    document = None
+    while offset < len(data):
+        chunk_length, chunk_type = struct.unpack_from("<I4s", data, offset)
+        offset += 8
+        chunk = data[offset:offset + chunk_length]
+        if len(chunk) != chunk_length:
+            raise ValueError("truncated GLB chunk")
+        offset += chunk_length
+        if chunk_type == b"JSON":
+            document = json.loads(chunk.decode("utf-8").rstrip(" \0"))
+        else:
+            chunks.append((chunk_type, chunk))
+    if document is None:
+        raise ValueError("GLB has no JSON chunk")
+    nodes = document.get("nodes", [])
+    scenes = document.get("scenes", [])
+    if not scenes:
+        raise ValueError("GLB has no scenes to scale")
+    root_indices = scenes[document.get("scene", 0)].get("nodes", [])
+    if not root_indices:
+        raise ValueError("GLB default scene has no root nodes")
+    for index in root_indices:
+        node = nodes[index]
+        if "matrix" in node:
+            matrix = node["matrix"]
+            if len(matrix) != 16:
+                raise ValueError("invalid glTF node matrix")
+            for component in (0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14):
+                matrix[component] *= scale
+        else:
+            node["scale"] = [float(value) * scale for value in node.get("scale", [1, 1, 1])]
+            node["translation"] = [float(value) * scale for value in node.get("translation", [0, 0, 0])]
+    json_chunk = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    json_chunk += b" " * ((4 - len(json_chunk) % 4) % 4)
+    encoded_chunks = [(b"JSON", json_chunk), *chunks]
+    body = b"".join(struct.pack("<I4s", len(chunk), kind) + chunk for kind, chunk in encoded_chunks)
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
+
+
 def parse_glb(path: Path) -> dict[str, Any]:
     data = path.read_bytes()
     if len(data) < 20:
@@ -211,16 +260,14 @@ def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, s
     node_rows: list[dict[str, Any]] = []
     _walk_assembly(assembly, None, None, node_rows, scale_to_m)
 
-    # glTF uses metres. Apply one root scale so the STEP hierarchy and all
-    # relative placements remain intact while converting millimetres to metres.
-    if scale_to_m != 1.0:
-        from OCP.gp import gp_Pnt, gp_Trsf
-        scale_transform = gp_Trsf()
-        scale_transform.SetScale(gp_Pnt(0.0, 0.0, 0.0), scale_to_m)
-        assembly.loc = cq.Location(scale_transform) * assembly.loc
-
+    # Measure the source model before applying the unit conversion. GLB
+    # scaling is applied to the exported root node, preserving all STEP placements.
     bounds = assembly.toCompound().BoundingBox()
-    envelope = {"x_m": float(bounds.xlen), "y_m": float(bounds.ylen), "z_m": float(bounds.zlen)}
+    envelope = {
+        "x_m": float(bounds.xlen) * scale_to_m,
+        "y_m": float(bounds.ylen) * scale_to_m,
+        "z_m": float(bounds.zlen) * scale_to_m,
+    }
     if not all(math.isfinite(v) and v > 0 for v in envelope.values()):
         raise ValueError(f"invalid model envelope: {envelope}")
 
@@ -228,6 +275,7 @@ def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, s
     stem = Path(record["path"]).stem.replace(" ", "_").replace("+", "plus").replace("-", "minus")
     glb_path = output_root / f"{stem}.glb"
     assembly.export(str(glb_path), tolerance=0.0005, angularTolerance=0.1)
+    apply_glb_root_scale(glb_path, scale_to_m)
     glb = parse_glb(glb_path)
     if not node_rows or not any(row["direct_shape_count"] for row in node_rows):
         raise ValueError("STEP import did not produce named shape-bearing assembly nodes")
