@@ -253,7 +253,7 @@ test('real Basilisk telemetry replaces the demo orbit and draws a bounded ground
   assert.equal(h.api.updateTelemetry({
     session_id: 'live-a', stream: 'orbit.live', sequence: 2, quality: 'GOOD', sim_time_s: 10,
     values: {'orbit.position_m_x': 6999000, 'orbit.position_m_y': 100000, 'orbit.position_m_z': 50000}
-  }, {epochUtc, frame: 'N_INERTIAL', sourceId: 'live-a', sourceLabel: '实时 Basilisk 会话'}), true);
+  }, {epochUtc, timeSystem: 'UTC', frame: 'N_INERTIAL', sourceId: 'live-a', streamId: 'orbit.live', sourceLabel: '实时 Basilisk 会话'}), true);
   const globe = h.instances[0];
   assert.equal(globe.objectRows[0].name, '任务卫星（真实 Basilisk 遥测）');
   assert.equal(globe.objectRows[0].sim_time_s, 10);
@@ -351,7 +351,7 @@ test('real-time scene rejects non-GOOD, cross-session, wrong-stream and non-mono
   assert.equal(h.api.updateTelemetry(frame(1,1), options), true);
   assert.equal(h.api.updateTelemetry(frame(2,2,{quality:'GAP'}), options), false);
   assert.equal(h.api.updateTelemetry(frame(1,3), options), false, 'sequence rollback is rejected');
-  assert.equal(h.api.updateTelemetry(frame(3,1.5), options), false, 'simulation time rollback is rejected');
+  assert.equal(h.api.updateTelemetry(frame(3,0.5), options), false, 'simulation time rollback is rejected');
   assert.equal(h.api.updateTelemetry(frame(3,3,{session_id:'other-session'}), options), false);
   assert.equal(h.api.updateTelemetry(frame(3,3,{stream:'other.stream'}), options), false);
   assert.equal(h.instances[0].objectRows[0].sim_time_s, 1);
