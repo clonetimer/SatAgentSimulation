@@ -155,7 +155,7 @@ def convert_one(record: dict[str, Any], source_cache: Path, output_root: Path, s
     import cadquery as cq
 
     source_path, source_integrity = _download_pinned(record, source_cache, source_commit, cad_directory)
-    assembly = cq.Assembly.importStep(str(source_path), unit="MM")
+    assembly = cq.Assembly.importStep(str(source_path))
     node_rows: list[dict[str, Any]] = []
     _walk_assembly(assembly, None, None, node_rows, scale_to_m)
 
@@ -239,7 +239,7 @@ def main() -> int:
         manifest["source_commit"], manifest["cad_directory"]
     )
     import cadquery as cq
-    main_assembly = cq.Assembly.importStep(str(main_path), unit="MM")
+    main_assembly = cq.Assembly.importStep(str(main_path))
     source_unit, scale_to_m, raw_envelope = detect_source_unit(main_assembly)
     print(
         f"[CAD] Unit evidence: source={source_unit}, scale={scale_to_m}, "
