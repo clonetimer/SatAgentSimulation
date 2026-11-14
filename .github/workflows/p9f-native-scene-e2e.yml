@@ -8,6 +8,7 @@ on:
       - 'src/sat_sim/interactive/**'
       - 'tests/test_p9f_native_browser.py'
       - 'tests/test_p9f_wheel_assets.py'
+      - 'tests/js/test_p9f_bounded_streams.cjs'
       - 'pyproject.toml'
       - '.github/workflows/p9f-native-scene-e2e.yml'
   workflow_dispatch:
@@ -31,10 +32,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Align browser journey with existing supported controls
+      - name: Reproduce unsupported bounded subscriptions
+        id: topology_red
+        continue-on-error: true
+        run: node --test tests/js/test_p9f_bounded_streams.cjs
+      - name: Prepare exact subscription and browser-control repair
+        env:
+          RED_OUTCOME: ${{ steps.topology_red.outcome }}
         run: |
+          test "$RED_OUTCOME" = failure
           python - <<'PY'
           from pathlib import Path
+          p=Path('src/sat_sim/web/app.js');s=p.read_text()
+          old='''          fields: stream.overviewOnly
+            ? descriptor.telemetryGroups[0].fields
+            : Array.from(new Set(descriptor.telemetryGroups.flatMap(group => group.fields))),'''
+          new='''          // Optional propulsion measurements exist only in an enabled native graph.
+          // Keep the enabled flag, but never request fabricated fuel/thrust values.
+          fields: (stream.overviewOnly
+            ? descriptor.telemetryGroups[0].fields
+            : Array.from(new Set(descriptor.telemetryGroups.flatMap(group => group.fields))))
+            .filter(field => capabilityId !== 'whole_spacecraft.unified_native.v1'
+              || !field.startsWith('propulsion.') || field === 'propulsion.enabled'
+              || state.interactivePreparedNativeValues?.propulsion_enabled === true),'''
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new))
           p=Path('tests/test_p9f_native_browser.py');s=p.read_text()
           old='set_control(page,"#interactiveQuantum","0.2")'
           assert s.count(old)==1
@@ -42,8 +64,26 @@ jobs:
           old='                for _ in range(2):\n                    page.evaluate('
           new='                page.locator(\'[data-scene-action="track"]\').click()\n                for _ in range(2):\n                    if report["samples"]:\n                        page.wait_for_function("seq=>window.__p9fObservedGlobe.objectsData()[0].sequence>seq",arg=report["samples"][-1]["rendered"]["sequence"],timeout=20000)\n                    page.evaluate('
           assert s.count(old)==1
+          s=s.replace(old,new)
+          old='''                report["status"] = "FAIL"
+                try:
+                    page.screenshot'''
+          new='''                report["status"] = "FAIL"
+                report["creation_requests"] = creates
+                report["last_socket_messages"] = [str(row) for row in socket_messages[-12:]]
+                try:
+                    if report.get("session_id"):
+                        detail = get("/interactive/sessions/"+quote(report["session_id"]))
+                        report["failed_session_detail"] = detail
+                        report["failed_streams"] = {row["stream_id"]:get("/interactive/sessions/"+quote(report["session_id"])+"/telemetry/"+quote(row["stream_id"])) for row in detail.get("telemetry_catalog",[])}
+                except Exception as diagnostic_error:
+                    report["diagnostic_error"] = repr(diagnostic_error)
+                try:
+                    page.screenshot'''
+          assert s.count(old)==1
           p.write_text(s.replace(old,new))
           PY
+          node --test tests/js/test_p9f_bounded_streams.cjs
       - name: Install exact native browser and build dependencies
         run: >-
           python -m pip install bsk==2.11.0 sgp4==2.25 colorama==0.4.6
@@ -82,14 +122,14 @@ jobs:
         run: |
           python -m build --wheel --no-isolation --outdir dist-p9f
           python -m pytest -q tests/test_p9f_wheel_assets.py
-      - name: Store validated test and packaging blobs, no ref mutation
+      - name: Store validated source, test and packaging blobs, no ref mutation
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
           import pathlib,os,json,urllib.request,hashlib
           out=[]
-          for name in ['tests/test_p9f_native_browser.py','tests/test_p9f_wheel_assets.py','pyproject.toml']:
+          for name in ['src/sat_sim/web/app.js','tests/test_p9f_native_browser.py','tests/test_p9f_wheel_assets.py','tests/js/test_p9f_bounded_streams.cjs','pyproject.toml']:
               text=pathlib.Path(name).read_text()
               request=urllib.request.Request('https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/git/blobs',data=json.dumps({'content':text,'encoding':'utf-8'}).encode(),method='POST',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
               with urllib.request.urlopen(request,timeout=30) as response: blob=json.load(response)
