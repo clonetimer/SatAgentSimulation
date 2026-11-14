@@ -122,6 +122,8 @@ def test_p9e_chromium_renders_run_bundle_results_inside_the_selected_object_pane
                     field: 'adcs.reaction_wheel.speed_rad_s_0',
                     label: '反作用轮 1 · 角速度',
                     unit: 'rad/s',
+                    association_scope: 'component',
+                    association_source: 'workbench_quantity_dictionary.v2',
                     sample: {time_s: 12, value: 42.5}
                   }],
                   relatedSeries: [],
@@ -136,6 +138,8 @@ def test_p9e_chromium_renders_run_bundle_results_inside_the_selected_object_pane
             assert "反作用轮 1" in host.inner_text()
             assert "42.5 rad/s" in host.inner_text()
             assert "12 s" in host.inner_text()
+            assert "单机精确映射" in host.inner_text()
+            assert "已审定单机参量字典" in host.inner_text()
             assert not failures, failures
         finally:
             browser.close()
