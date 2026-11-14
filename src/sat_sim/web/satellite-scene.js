@@ -165,14 +165,27 @@ function pointFromTelemetry(frame, epochUtc) {
   if (typeof rawTime !== 'number' || !Number.isFinite(rawTime) || rawTime < 0) return null;
   const simTimeS = rawTime;
   const point = eciToGlobePoint(position, epochUtc, simTimeS);
-  return point ? {
+  if (!point) return null;
+  const quaternion = ['q0', 'q1', 'q2', 'q3']
+    .map(axis => values[`attitude.truth.quaternion_BN_${axis}`]);
+  const mrp = ['x', 'y', 'z']
+    .map(axis => values[`attitude.truth.mrp_BN_${axis}`]);
+  const quaternionNorm = quaternion.every(value => typeof value === 'number' && Number.isFinite(value))
+    ? Math.hypot(...quaternion) : NaN;
+  const attitudeValid = values['attitude.truth.valid'] === 1
+    && mrp.every(value => typeof value === 'number' && Number.isFinite(value))
+    && quaternion.every(value => typeof value === 'number' && Number.isFinite(value))
+    && Math.abs(quaternionNorm - 1) <= 1e-6;
+  return {
     ...point,
+    attitude_truth: attitudeValid ? { mrp_BN: mrp, quaternion_BN: quaternion } : null,
+    attitude_valid: attitudeValid,
     sequence: Number.isSafeInteger(frame?.sequence) ? frame.sequence : null,
     session_id: typeof frame?.session_id === 'string' ? frame.session_id : null,
     stream: typeof frame?.stream === 'string' ? frame.stream : null,
     quality: typeof frame?.quality === 'string' ? frame.quality : null,
     name: '任务卫星（真实 Basilisk 遥测）'
-  } : null;
+  };
 }
 
 function telemetryPath() {
