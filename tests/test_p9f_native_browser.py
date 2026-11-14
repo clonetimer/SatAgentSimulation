@@ -388,6 +388,15 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert sum(value * value for value in rendered["object"]["attitude_truth"]["quaternion_BN"]) == pytest.approx(1.0, abs=1e-6)
             assert set(rendered["object"]["rotation"]) == {"x", "y", "z"}
             assert all(math.isfinite(value) for value in rendered["object"]["rotation"].values())
+            expected_rotation = page.evaluate("""({quaternion, epoch, simTime}) =>
+              window.SatScene.attitudeToGlobeRotation(quaternion, epoch, simTime)
+            """, {
+                "quaternion": rendered["object"]["attitude_truth"]["quaternion_BN"],
+                "epoch": detail["orbit_epoch_utc"],
+                "simTime": rendered["object"]["sim_time_s"],
+            })
+            for axis in ("x", "y", "z"):
+                assert rendered["object"]["rotation"][axis] == pytest.approx(expected_rotation[axis], abs=1e-6)
             # The browser transform must preserve a unit quaternion and react
             # to an independent body-axis rotation, not just a fixed model pose.
             rotations = page.evaluate("""(epoch) => {
