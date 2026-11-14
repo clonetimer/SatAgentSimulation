@@ -14,6 +14,12 @@ from fastapi.testclient import TestClient
 from sat_sim.api import create_app
 
 POSITION_FIELDS = tuple(f"orbit.position_m_{axis}" for axis in "xyz")
+ATTITUDE_FIELDS = (
+    "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+    "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+    "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+    "attitude.truth.valid",
+)
 WHOLE_CAPABILITY = "whole_spacecraft.unified_native.v1"
 
 
@@ -57,6 +63,11 @@ def _assert_real_position_frame(frame: dict, session_id: str, stream_id: str) ->
     assert all(isinstance(value, (int, float)) and math.isfinite(value) for value in position)
     radius = math.sqrt(sum(value * value for value in position))
     assert 6_378_137 < radius < 100_000_000
+    assert set(ATTITUDE_FIELDS) <= set(values)
+    assert values["attitude.truth.valid"] == 1
+    quaternion = [values[f"attitude.truth.quaternion_BN_q{i}"] for i in range(4)]
+    assert all(math.isfinite(value) for value in quaternion)
+    assert math.sqrt(sum(value * value for value in quaternion)) == pytest.approx(1.0, abs=1e-6)
 
 
 def test_default_continuous_creation_publishes_actual_basilisk_position(native_client):
@@ -79,14 +90,8 @@ def test_default_continuous_creation_publishes_actual_basilisk_position(native_c
         None,
     )
     assert stream is not None, "P9F_DEFAULT_CONTINUOUS_POSITION_NOT_PUBLISHED"
-    attitude_fields = {
-        "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
-        "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
-        "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
-        "attitude.truth.valid",
-    }
     assert set(POSITION_FIELDS) <= set(stream["fields"])
-    assert attitude_fields <= set(stream["fields"])
+    assert set(ATTITUDE_FIELDS) <= set(stream["fields"])
     primary_stream = next(row for row in detail["telemetry_catalog"] if row["stream_id"] == "whole.continuous")
     assert not (set(POSITION_FIELDS) & set(primary_stream["fields"]))
 
@@ -121,7 +126,7 @@ def test_bounded_whole_spacecraft_creation_publishes_actual_basilisk_position(na
             "outputs": {"telemetry_streams": [{
                 "stream_id": stream_id,
                 "sample_s": 0.2,
-                "fields": list(POSITION_FIELDS),
+                "fields": [*POSITION_FIELDS, *ATTITUDE_FIELDS],
             }]},
         },
         "quantum_s": 0.2,
@@ -141,7 +146,7 @@ def test_bounded_whole_spacecraft_creation_publishes_actual_basilisk_position(na
         None,
     )
     assert stream is not None
-    assert set(stream["fields"]) == set(POSITION_FIELDS)
+    assert set(stream["fields"]) == set(POSITION_FIELDS) | set(ATTITUDE_FIELDS)
 
     started = native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "start"})
     assert started.status_code == 200, started.text
