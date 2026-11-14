@@ -84,3 +84,34 @@
 .satellite-scene-inspector-note{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:1100px){.satellite-scene-inspector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.satellite-scene-inspector-grid{grid-template-columns:minmax(0,1fr)}.satellite-scene-inspector{padding:9px}.satellite-scene-inspector-heading{align-items:flex-start;flex-direction:column}}
+
+
+.birds-cad-viewer{display:grid;gap:12px;margin:14px 0 20px;padding:14px;border:1px solid rgba(137,164,192,.22);border-radius:18px;background:linear-gradient(145deg,#121c29,#0d141e 72%);color:#e6edf5;box-shadow:0 18px 48px rgba(0,0,0,.18)}
+.birds-cad-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.birds-cad-identity{display:grid;gap:3px;margin-right:auto}.birds-cad-identity strong{font-size:15px;letter-spacing:.02em}.birds-cad-identity>span:last-child{font-size:11px;color:#91a2b7}
+.birds-cad-kicker{font-size:9px;letter-spacing:.16em;color:#73c7e8;font-weight:700}
+.birds-cad-load{position:relative;overflow:hidden;cursor:pointer}
+.birds-cad-view-actions{display:flex;gap:6px;flex-wrap:wrap}
+.birds-cad-view-actions .button,.birds-cad-load{font-size:11px;min-height:32px;padding:6px 10px}
+.birds-cad-workspace{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr) minmax(170px,230px);min-height:520px;border:1px solid rgba(133,160,187,.16);border-radius:13px;overflow:hidden;background:#0c131d}
+.birds-cad-tree-panel,.birds-cad-inspector{min-width:0;padding:12px;background:rgba(20,31,45,.82)}
+.birds-cad-tree-panel{border-right:1px solid rgba(133,160,187,.16)}.birds-cad-inspector{border-left:1px solid rgba(133,160,187,.16)}
+.birds-cad-panel-title{display:flex;justify-content:space-between;gap:8px;padding-bottom:10px;border-bottom:1px solid rgba(133,160,187,.16);font-size:12px;font-weight:650}
+.birds-cad-panel-title span{font-size:8px;letter-spacing:.12em;color:#73869b}
+.birds-cad-tree{display:grid;gap:2px;max-height:450px;overflow:auto;padding-top:8px}
+.birds-cad-tree p{font-size:11px;color:#8293a7;line-height:1.6}
+.birds-cad-tree-node{display:block;width:100%;border:0;border-radius:6px;background:transparent;color:#bdc9d8;text-align:left;padding:6px 7px;font-size:10px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.birds-cad-tree-node:hover,.birds-cad-tree-node:focus-visible{background:rgba(78,161,205,.16);color:#fff;outline:1px solid rgba(104,195,231,.42)}
+.birds-cad-viewport{position:relative;min-width:0;min-height:520px;background:radial-gradient(ellipse at 50% 42%,#26374a 0,#172331 42%,#0c131d 82%)}
+.birds-cad-viewport canvas{display:block;width:100%;height:100%;min-height:520px;touch-action:none;cursor:grab}.birds-cad-viewport canvas:active{cursor:grabbing}
+.birds-cad-viewport-hint{position:absolute;left:12px;bottom:10px;padding:6px 9px;border-radius:7px;background:rgba(8,14,22,.72);color:#9eafc1;font-size:9px;pointer-events:none}
+.birds-cad-axis-cube{position:absolute;right:14px;top:12px;font-size:10px;color:#ff8a78;pointer-events:none}.birds-cad-axis-cube b{color:#72d3a2}
+.birds-cad-inspector #birdsCadInspector{padding:12px 0;font-size:11px;line-height:1.7;color:#d9e5f0;overflow-wrap:anywhere}
+.birds-cad-provenance{display:grid;gap:7px;margin-top:14px;padding:10px;border-radius:9px;background:rgba(255,255,255,.035);font-size:10px;color:#94a7ba}
+.birds-cad-provenance strong{color:#c9d7e6;font-size:11px}.birds-cad-status{margin:0;padding:8px 10px;border-radius:8px;background:rgba(94,142,181,.09);color:#9eb2c8;font-size:10px}.birds-cad-status[data-kind="error"]{color:#ffaaa1;background:rgba(180,65,55,.12)}
+@media(max-width:900px){.birds-cad-workspace{grid-template-columns:150px minmax(0,1fr);}.birds-cad-inspector{grid-column:1/-1;border-left:0;border-top:1px solid rgba(133,160,187,.16)}.birds-cad-viewport,.birds-cad-viewport canvas{min-height:430px}}
+@media(max-width:600px){.birds-cad-viewer{padding:9px;border-radius:12px}.birds-cad-workspace{grid-template-columns:1fr;}.birds-cad-tree-panel{border-right:0;border-bottom:1px solid rgba(133,160,187,.16);max-height:160px}.birds-cad-tree{max-height:110px}.birds-cad-viewport,.birds-cad-viewport canvas{min-height:360px}.birds-cad-inspector{grid-column:auto}.birds-cad-toolbar{align-items:flex-start}.birds-cad-view-actions{width:100%}}
+
+.birds-cad-tree-group{min-width:0}.birds-cad-tree-group>summary{padding:6px 4px;color:#a9bacd;font-size:10px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.birds-cad-tree-children{padding-left:8px;border-left:1px solid rgba(133,160,187,.16);margin-left:5px}.birds-cad-tree-node{max-width:100%}.birds-cad-tree-group[open]>summary{color:#d8e8f6}
+
+.birds-cad-tree-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:5px;padding:8px 0}.birds-cad-tree-tools input{min-width:0;width:100%;border:1px solid rgba(133,160,187,.24);border-radius:7px;background:#0c1520;color:#dce8f4;padding:7px 8px;font-size:10px}.birds-cad-tree-tools .button{min-height:28px;padding:4px 7px;font-size:9px}.birds-cad-tree-row{display:flex;align-items:center;gap:3px;min-width:0}.birds-cad-tree-row[hidden]{display:none}.birds-cad-tree-row .birds-cad-tree-node{flex:1;min-width:0}.birds-cad-tree-node.is-selected{background:rgba(66,169,218,.2);color:#fff;outline:1px solid rgba(85,199,255,.48)}.birds-cad-visibility{flex:0 0 auto;border:0;border-radius:5px;background:transparent;color:#8196aa;padding:4px;font-size:9px;cursor:pointer}.birds-cad-visibility:hover{background:rgba(255,255,255,.07);color:#dce8f4}@media(max-width:600px){.birds-cad-tree-tools{grid-template-columns:1fr 1fr}.birds-cad-tree-tools input{grid-column:1/-1}}
