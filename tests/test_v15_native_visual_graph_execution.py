@@ -60,10 +60,18 @@ def _visual_graph(capability: str) -> dict:
     }
 
 
-def test_v15_visual_graph_compiled_task_executes_with_real_basilisk(tmp_path):
+def test_v15_visual_graph_compiled_task_executes_with_real_basilisk(tmp_path, monkeypatch):
     import Basilisk
 
     capability = "whole_spacecraft.unified_native.v1"
+    for key, filename in (
+        ("SAT_SIM_QUEUE_DATABASE", "queue.sqlite"),
+        ("SAT_SIM_TASK_CENTER_DATABASE", "tasks.sqlite"),
+        ("SAT_SIM_EXPERIMENT_DATABASE", "experiments.sqlite"),
+        ("SAT_SIM_AUDIT_LOG", "audit.jsonl"),
+        ("SAT_SIM_WORKBENCH_LOG", "workbench.jsonl"),
+    ):
+        monkeypatch.setenv(key, str(tmp_path / filename))
     app = create_app(
         runs_root=tmp_path / "runs",
         artifacts_root=tmp_path / "api",
