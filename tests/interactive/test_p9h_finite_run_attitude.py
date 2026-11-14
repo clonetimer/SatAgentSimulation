@@ -1,16 +1,13 @@
-"""P9-H: real finite Basilisk attitude survives Run trace filtering and overview."""
+"""P9-H: real finite Basilisk Run preserves attitude through sealing and overview."""
 
 from __future__ import annotations
 
 import math
+
 import pytest
 
-from sat_sim.bsk_engine.unified_native import (
-    WHOLE_UNIFIED_CAPABILITY_ID,
-    UnifiedNativeRuntime,
-    UnifiedRuntimeConfig,
-)
-from sat_sim.dataset_writer import _filter_rows, write_jsonl
+from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
+from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.telemetry_overview import read_telemetry_overview
 
 
@@ -23,46 +20,41 @@ SCENE_FIELDS = (
 )
 
 
-def test_real_finite_basilisk_run_keeps_atomic_attitude_truth_in_run_overview(tmp_path):
-    """Exercise real spacecraft state -> trace writer filter -> bounded Run overview."""
-    runtime = UnifiedNativeRuntime(UnifiedRuntimeConfig(
-        capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
-        duration_s=2.0,
-        step_s=0.1,
-        sample_s=0.5,
-        adcs_only=False,
-        values={"initial_pointing_error_deg": 17.0},
-        events=(),
-    )).run()
-
-    assert str(runtime.summary.get("overall_status", "")).lower() not in {"failed", "error", "incomplete"}
-    raw_rows = list(runtime.trace_rows)
-    assert len(raw_rows) >= 4
-    assert all("attitude.truth.quaternion_BN_q0" in row for row in raw_rows)
-
-    # Mimic a user selecting only an unrelated chart curve. The dataset writer
-    # must still preserve scene support channels in the same immutable rows.
-    selected_rows = _filter_rows(
-        raw_rows,
-        ("eps.battery.soc",),
-        include_fields=SCENE_FIELDS,
+def test_real_finite_basilisk_run_keeps_atomic_attitude_truth_after_seal(tmp_path):
+    """Exercise actual Run Bundle execution, writer filtering, seal, and overview API."""
+    spec = instantiate_scenario_template(
+        "whole_spacecraft_unified_native", task_id="p9h_finite_attitude_e2e"
     )
-    assert len(selected_rows) == len(raw_rows)
-    assert all(set(SCENE_FIELDS) <= set(row) for row in selected_rows)
+    spec["simulation"].update({"duration_s": 2.0, "step_s": 0.1, "sample_s": 0.5})
+    spec.setdefault("parameters", {}).setdefault("values", {})["initial_pointing_error_deg"] = 17.0
 
-    run_root = tmp_path / "finite-run"
+    # Select only an unrelated chart output. Scene support fields must remain
+    # in the archived trace without being added to the user's plot selection.
+    outputs = spec.setdefault("outputs", {})
+    outputs["plots"] = ["eps.battery.soc"]
+    prepared = prepare_run(spec, output_root=tmp_path / "runs", run_id="p9h_finite_attitude")
+    execution = execute_prepared_run(
+        prepared.bundle_root,
+        expected_plan_sha256=prepared.execution_plan_sha256,
+        max_attempts=1,
+    )
+    assert execution.run_record.status.value == "SUCCEEDED"
+    assert execution.run_record.sealed is True
+
+    integrity = verify_run_bundle(prepared.bundle_root)
+    assert integrity["ok"] is True, integrity
+    run_root = tmp_path / "runs" / "p9h_finite_attitude"
     telemetry_path = run_root / "results" / "telemetry.jsonl"
-    write_jsonl(telemetry_path, selected_rows)
+    assert telemetry_path.is_file()
+
     overview = read_telemetry_overview(
         run_root, max_points=100, fields=SCENE_FIELDS,
     )
-
     assert overview["source"] == "results/telemetry.jsonl"
-    assert overview["total"] == len(raw_rows)
+    assert overview["total"] >= 4
     assert overview["sampled"] is False
-    assert [row["time_s"] for row in overview["rows"]] == [
-        row["time_s"] for row in raw_rows
-    ]
+    assert all(set(SCENE_FIELDS) <= set(row) for row in overview["rows"])
+
     for row in overview["rows"]:
         assert row["attitude.truth.valid"] == 1
         quaternion = [
@@ -71,8 +63,10 @@ def test_real_finite_basilisk_run_keeps_atomic_attitude_truth_in_run_overview(tm
         assert all(math.isfinite(value) for value in quaternion)
         assert math.hypot(*quaternion) == pytest.approx(1.0, abs=1e-10)
         assert all(math.isfinite(row[field]) for field in SCENE_FIELDS[:-1])
-    # Position and attitude must be present on exactly the same sample.
-    assert all(
-        all(field in row for field in SCENE_FIELDS)
-        for row in overview["rows"]
-    )
+
+    # Position and attitude must be archived on precisely the same samples.
+    with telemetry_path.open("r", encoding="utf-8") as stream:
+        archived = [__import__("json").loads(line) for line in stream if line.strip()]
+    assert [row["time_s"] for row in overview["rows"]] == [
+        row["time_s"] for row in archived
+    ]
