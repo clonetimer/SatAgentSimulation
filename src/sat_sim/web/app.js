@@ -6244,6 +6244,7 @@
       window.SatScene?.setRunTelemetry(state.telemetry, {
         runId,
         epochUtc: runEpoch,
+        frame: 'N_INERTIAL',
         verified: state.activeRun?.sealed === true && state.activeRun?.integrity?.ok === true
           && runStatus === 'SUCCEEDED'
           && state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1',
@@ -7689,6 +7690,7 @@
     if (state.interactiveSession?.capability_id === 'whole_spacecraft.unified_native.v1') {
       window.SatScene?.updateTelemetry(frame, {
         epochUtc: state.interactiveSession.orbit_epoch_utc,
+        frame: state.interactiveSession.orbit_frame,
         sourceId: state.interactiveSession.session_id,
         sourceLabel: '限时/持续实时 Basilisk 会话',
       });
