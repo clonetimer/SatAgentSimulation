@@ -7684,6 +7684,16 @@
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, 'CLIENT_NAVIGATION');
   }
 
+  const ORBIT_POSITION_FIELDS = Object.freeze([
+    'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z',
+  ]);
+
+  function sceneOrbitStream(session) {
+    const catalog = Array.isArray(session?.telemetry_catalog) ? session.telemetry_catalog : [];
+    return catalog.find(stream => Array.isArray(stream.fields)
+      && ORBIT_POSITION_FIELDS.every(field => stream.fields.includes(field))) || null;
+  }
+
   function acceptInteractiveFrame(frame) {
     state.interactiveLastTelemetryReceivedAt ||= {};
     state.interactiveLastTelemetryReceivedAt[frame.stream] = Date.now();
@@ -7691,14 +7701,19 @@
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
     if (state.interactiveSession?.capability_id === 'whole_spacecraft.unified_native.v1') {
-      window.SatScene?.updateTelemetry(frame, {
-        epochUtc: state.interactiveSession.orbit_epoch_utc,
-        timeSystem: state.interactiveSession.orbit_time_system,
-        frame: state.interactiveSession.orbit_frame,
-        sourceId: state.interactiveSession.session_id,
-        streamId: frame.stream,
-        sourceLabel: '限时/持续实时 Basilisk 会话',
-      });
+      const orbitStream = sceneOrbitStream(state.interactiveSession);
+      // The UI subscribes to multiple streams, each with its own sequence
+      // counter. Only the catalog-declared orbit stream may drive the globe.
+      if (orbitStream?.stream_id === frame.stream) {
+        window.SatScene?.updateTelemetry(frame, {
+          epochUtc: state.interactiveSession.orbit_epoch_utc,
+          timeSystem: state.interactiveSession.orbit_time_system,
+          frame: state.interactiveSession.orbit_frame,
+          sourceId: state.interactiveSession.session_id,
+          streamId: orbitStream.stream_id,
+          sourceLabel: '限时/持续实时 Basilisk 会话',
+        });
+      }
     }
     if (el('interactiveStream').value === frame.stream) renderInteractiveTelemetry();
   }
