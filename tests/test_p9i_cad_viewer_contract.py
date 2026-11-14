@@ -18,9 +18,9 @@ def test_birds_cad_reference_viewer_is_registered_in_scene_page():
 def test_birds_cad_viewer_supports_glb_hierarchy_selection_and_camera_controls():
     source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
     for token in (
-        "GLB 2.0", "bufferViews", "accessors", "scenes", "children",
+        "GLTFLoader", "parseAsync", "scenes", "children",
         "pointerdown", "pointermove", "pointerup", "wheel",
-        "data-cad-view", "AxesHelper", "ray.intersectObject",
+        "data-cad-view", "AxesHelper", "ray.intersectObject", "compileAsync",
     ):
         assert token in source
     assert "BIRDS-4 CAD 参考模型" in source
@@ -57,3 +57,12 @@ def test_viewer_disposes_textures_and_keeps_selected_ancestors_visible():
     assert "textures.forEach" in source and "x.dispose()" in source
     assert "isDescendant(n,selectedNode)||isDescendant(selectedNode,n)" in source
     assert "async function load" in source
+
+
+def test_viewer_has_six_axis_presets_and_double_click_focus():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    for view in ('data-cad-view="x"', 'data-cad-view="-x"', 'data-cad-view="y"', 'data-cad-view="-y"', 'data-cad-view="z"', 'data-cad-view="-z"'):
+        assert view in html
+    assert "dblclick" in source and "focusNode" in source
+    assert "aria-pressed" in source
