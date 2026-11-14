@@ -376,7 +376,7 @@ function markReady(globe, generation) {
     status(`场景已就绪，当前显示${state.telemetrySourceLabel || '真实 Basilisk 遥测'}。`, 'success');
   } else {
     state.frame = requestAnimationFrame(updateSatellite);
-    status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'warning');
+    status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
   }
   syncCameraActions();
 }
