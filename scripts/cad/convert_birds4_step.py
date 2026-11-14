@@ -127,6 +127,16 @@ def parse_glb(path: Path) -> dict[str, Any]:
     }
 
 
+def _unique_instance_name(name: str, existing: set[str]) -> tuple[str, int]:
+    """Create a stable occurrence key without changing the source CAD label."""
+    if name not in existing:
+        return name, 1
+    occurrence = 2
+    while f"{name}__instance_{occurrence:03d}" in existing:
+        occurrence += 1
+    return f"{name}__instance_{occurrence:03d}", occurrence
+
+
 def _matrix4(location: Any) -> list[list[float]]:
     transform = location.wrapped.Transformation()
     rotation = [
