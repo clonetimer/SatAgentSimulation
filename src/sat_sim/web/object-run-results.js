@@ -55,8 +55,11 @@
     return latest;
   }
 
-  function resolve({tree, selectedId, run, plotManifest, telemetryRows, telemetryOverview} = {}) {
+  function resolve({tree, selectedId, run, expectedRunId, plotManifest, telemetryRows, telemetryOverview} = {}) {
     if (!run) return {status: 'no_run', series: [], relatedSeries: []};
+    if (expectedRunId && run.run_id !== expectedRunId) {
+      return {status: 'run_mismatch', runId: run.run_id, expectedRunId, series: [], relatedSeries: []};
+    }
     if (run.sealed !== true || run.integrity?.ok !== true ||
         String(run.run_record?.status || '').toUpperCase() !== 'SUCCEEDED') {
       return {status: 'unverified', runId: run.run_id, series: [], relatedSeries: []};
