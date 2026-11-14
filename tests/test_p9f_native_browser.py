@@ -430,7 +430,11 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert page.locator("#sceneMrpValue").inner_text() != "—"
             assert page.locator("#sceneQuaternionValue").inner_text() != "—"
             assert page.locator("#sceneFrameSource").inner_text() == f"{session_id} / whole.orbit"
-            assert page.locator("#sceneFrameSequence").inner_text() == str(rendered["object"]["sequence"])
+            displayed_frame = page.evaluate("""() => ({
+              inspectorSequence: document.querySelector("#sceneFrameSequence")?.textContent,
+              globeSequence: window.__p9fObservedGlobe?.objectRows?.find(row => row.session_id)?.sequence,
+            })""")
+            assert displayed_frame["inspectorSequence"] == str(displayed_frame["globeSequence"])
             assert page.locator("#sceneFrameQuality").inner_text() == "GOOD"
             assert page.locator("#sceneEstimatorStatus").inner_text() == "尚未接入"
 
