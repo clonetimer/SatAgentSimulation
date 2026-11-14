@@ -84,3 +84,18 @@ def test_selected_conversion_targets_exist_in_pinned_manifest():
     assert len(MODULE.SELECTED) == 6
     assert all(name in records for name in MODULE.SELECTED)
     assert records["BIRDS4_FM_Final v7.step"]["size_bytes"] == 22_964_753
+
+
+@pytest.mark.parametrize("encoding", ["ascii", "utf-16-le", "utf-16"])
+def test_step_unit_parser_reads_millimetre_declarations(tmp_path, encoding):
+    path = tmp_path / "unit.step"
+    payload = "ISO-10303-21;\n#1=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));\nEND-ISO-10303-21;\n"
+    path.write_bytes(payload.encode(encoding))
+    assert MODULE._step_length_unit(path) == "MM"
+
+
+def test_step_unit_parser_rejects_missing_or_ambiguous_units(tmp_path):
+    path = tmp_path / "unknown.step"
+    path.write_text("ISO-10303-21;\nEND-ISO-10303-21;\n", encoding="ascii")
+    with pytest.raises(ValueError, match="length unit is missing"):
+        MODULE._step_length_unit(path)
