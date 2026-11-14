@@ -62,3 +62,5 @@
 .p9e-run-result-field{grid-column:1/-1;color:var(--muted);font-size:10px;overflow-wrap:anywhere}
 .p9e-run-result-time{grid-column:1/-1;color:var(--muted);font-size:10px}
 .p9e-run-result-footnote{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+
+.p9e-run-result-provenance{grid-column:1/-1;color:var(--muted);font-size:10px;line-height:1.4}
