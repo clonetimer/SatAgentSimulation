@@ -341,27 +341,31 @@ def _plot_series_object_binding(spec: Mapping[str, Any], field: str) -> dict[str
                 "association_source": "capability_contract_unavailable"}
 
     target_level = str(contract.target_level or "").strip().lower()
+    contract_outputs = contract.data.get("outputs") if isinstance(contract.data.get("outputs"), Mapping) else {}
+    trace_rows = contract_outputs.get("trace") or contract_outputs.get("trace_fields") or []
+    output_row = next((row for row in trace_rows if isinstance(row, Mapping) and row.get("name") == field), None)
+    output_unit = output_row.get("unit") if isinstance(output_row, Mapping) else None
     if target_level == "component":
         from .workbench_quantity_names import output_definition
         definition = output_definition(field, capability_id=capability_id, kind="trace")
         if definition is None:
             return {"object_id": None, "association_scope": "unmapped",
-                    "association_source": "component_quantity_dictionary",
+                    "association_source": "component_quantity_dictionary", "unit": output_unit,
                     "association_reason": "FIELD_NOT_REGISTERED_FOR_COMPONENT"}
         return {"object_id": definition["object_id"], "association_scope": "component",
                 "association_source": "workbench_quantity_dictionary.v2",
-                "unit": definition.get("unit"), "label": definition.get("display_name_zh")}
+                "unit": definition.get("unit") or output_unit, "label": definition.get("display_name_zh")}
 
     hierarchy = output_hierarchy(field, target_level=target_level)
     subsystem_id = str(hierarchy.get("subsystem_id") or "whole_spacecraft")
     if subsystem_id != "whole_spacecraft":
         return {"object_id": f"subsystem.{subsystem_id}", "association_scope": "subsystem",
-                "association_source": "capability_output_hierarchy"}
+                "association_source": "capability_output_hierarchy", "unit": output_unit}
     if target_level == "whole_spacecraft":
         return {"object_id": "whole_spacecraft", "association_scope": "whole_spacecraft",
                 "association_source": "capability_output_hierarchy"}
     return {"object_id": None, "association_scope": "unmapped",
-            "association_source": "capability_output_hierarchy",
+            "association_source": "capability_output_hierarchy", "unit": output_unit,
             "association_reason": "NO_AUDITED_SUBSYSTEM_BINDING"}
 
 
