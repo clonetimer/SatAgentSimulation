@@ -254,15 +254,24 @@ def create_interactive_router(
                         "fields": telemetry_fields,
                     },
                     {
-                        # Position-only quality domain for the real 3D scene.
-                        # Unrelated missing subsystem outputs cannot invalidate
-                        # an otherwise complete Basilisk position vector.
+                        # Spatial state quality domain for the real 3D scene.
+                        # Position and rigid-body attitude are emitted atomically
+                        # from the same Basilisk spacecraft state recorder.
+                        # Unrelated subsystem/sensor outputs cannot invalidate it.
                         "stream_id": "whole.orbit",
                         "sample_s": body.quantum_s,
                         "fields": [
                             "orbit.position_m_x",
                             "orbit.position_m_y",
                             "orbit.position_m_z",
+                            "attitude.truth.mrp_BN_x",
+                            "attitude.truth.mrp_BN_y",
+                            "attitude.truth.mrp_BN_z",
+                            "attitude.truth.quaternion_BN_q0",
+                            "attitude.truth.quaternion_BN_q1",
+                            "attitude.truth.quaternion_BN_q2",
+                            "attitude.truth.quaternion_BN_q3",
+                            "attitude.truth.valid",
                         ],
                     },
                 ]},
