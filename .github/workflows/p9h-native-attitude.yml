@@ -7,6 +7,7 @@ on:
       - "src/sat_sim/web/satellite-scene.js"
       - "tests/test_p9h_attitude_truth.py"
       - "tests/interactive/test_native_attitude_truth_telemetry.py"
+      - "tests/test_p9f_native_browser.py"
       - ".github/workflows/p9h-native-attitude.yml"
   workflow_dispatch:
 permissions:
