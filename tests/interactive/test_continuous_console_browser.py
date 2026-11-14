@@ -543,6 +543,8 @@ def test_command_availability_when_catalog_arrives_after_session(
             # Enter the retained engineering workspace through the visible wizard action;
             # the guided shell intentionally hides the legacy sidebar in realtime mode.
             page.locator("#wizardAdvancedBtn").click()
+            page.locator("#continuousNavButton:not(.hidden)").wait_for(state="attached", timeout=30000)
+            _reveal_with_keyboard(page, "#continuousNavButton", "late-catalog-navigation", tmp_path, [])
             page.locator("#continuousNavButton").wait_for(state="visible", timeout=30000)
             delay_catalog = True
             page.locator("#continuousNavButton").click(timeout=30000)
@@ -616,6 +618,8 @@ def test_fourth_wheel_catalog_does_not_enable_unobserved_channel(tmp_path, monke
             page.route("https://workbench.test/**",proxy)
             page.goto("https://workbench.test/",wait_until="domcontentloaded")
             page.locator("#wizardAdvancedBtn").click()
+            page.locator("#continuousNavButton:not(.hidden)").wait_for(state="attached", timeout=30000)
+            _reveal_with_keyboard(page, "#continuousNavButton", "fourth-wheel-navigation", tmp_path, [])
             page.locator("#continuousNavButton").click(timeout=30000)
             page.wait_for_function("() => document.querySelector('#continuousStream').options.length > 0")
             # Contract has arrived, but no frame has reached this page yet.

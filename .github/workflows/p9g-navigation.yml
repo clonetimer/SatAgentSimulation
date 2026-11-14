@@ -6,6 +6,8 @@ on:
       - "tests/js/test_p9g_navigation.cjs"
       - "tests/test_p9g_navigation_browser.py"
       - "tests/interactive/test_continuous_console_browser.py"
+      - "tests/test_graph_editor_containment_browser.py"
+      - "tests/test_p8_local_acceptance_ux_contracts.py"
       - "docs/superpowers/plans/2026-11-14-p9g-default-entry-convergence.md"
       - ".github/workflows/p9g-navigation.yml"
   workflow_dispatch:
@@ -77,12 +79,14 @@ jobs:
           SAT_SIM_P9G_EVIDENCE: "${{ runner.temp }}/p9g-browser"
         run: >-
           python -m pytest -q
+          tests/test_p9g_navigation_browser.py
           tests/test_compact_graph_toolbar_browser.py
           tests/test_graph_editor_containment_browser.py
           tests/test_p7d_complete_user_journey.py
           tests/test_p7c_shared_workbench_context.py
           tests/test_p7c_c2_run_navigation.py
           tests/test_p8_local_acceptance_ux_contracts.py
+          --basetemp=${{ runner.temp }}/p9g-browser/pytest
           --junitxml=${{ runner.temp }}/p9g-browser/junit.xml
       - name: Preserve browser evidence
         if: always()
