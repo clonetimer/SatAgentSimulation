@@ -215,7 +215,7 @@ function updateTelemetry(frame, options = {}) {
     if (state.frame) cancelAnimationFrame(state.frame);
     state.frame = 0;
     renderTelemetryPosition();
-    status(`已接入${state.telemetrySourceLabel}：仿真时间 ${point.sim_time_s.toFixed(2)} s；高度 ${point.altitude_km.toFixed(2)} km。位置由 N 惯性系轨道遥测和仿真 epoch 换算。`, 'success');
+    status(`已接入${state.telemetrySourceLabel}：仿真时间 ${point.sim_time_s.toFixed(2)} s；高度 ${point.altitude_km.toFixed(2)} km。位置由 N 惯性系轨道遥测和仿真 epoch 换算；地球自转采用 GMST 近似与 WGS-84 椭球，仅用于场景定位。`, 'success');
   }
   return true;
 }
