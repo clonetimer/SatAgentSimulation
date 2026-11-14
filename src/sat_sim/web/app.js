@@ -4530,7 +4530,11 @@
         updateSingleRunSummary();
         syncTaskSpecEditor();
         updateSingleRunGuide('configure', '物理参数已修改，旧校验结果已失效。请重新校验后运行。');
-        renderP9DPanel();
+        const validationStatus = el('p9dValidationStatus');
+        if (validationStatus) {
+          validationStatus.textContent = '配置尚未校验';
+          validationStatus.dataset.validated = 'false';
+        }
       },
     });
     const validate = el('p9dValidateBtn');
