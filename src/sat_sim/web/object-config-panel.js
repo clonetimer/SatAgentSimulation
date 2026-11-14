@@ -43,7 +43,7 @@
     (roots || []).forEach(node => walk(node));
   }
 
-  function renderParameters(host, {node, schema, formData, onChange}) {
+  function renderParameters(host, {node, schema, formData, onChange, onSelect}) {
     host.replaceChildren();
     if (!node) {
       host.textContent = '请选择整星、分系统或单机。';
@@ -53,10 +53,20 @@
     if (!capabilityId || !schema || schema.capability?.capability_id !== capabilityId) {
       const empty = document.createElement('p');
       empty.className = 'p9d-empty';
-      empty.textContent = node.independently_executable === false
-        ? '该对象通过所属模型组合配置，或当前没有独立配置能力。'
-        : '该对象尚无可用的参数配置合同。';
+      empty.textContent = node.configuration_scope === 'parent'
+        ? '该单机通过所属分系统组合配置；请在所属分系统中编辑其模型参数。'
+        : node.independently_executable === false
+          ? '该对象当前没有独立配置能力。'
+          : '该对象尚无可用的参数配置合同。';
       host.appendChild(empty);
+      if (node.configuration_scope === 'parent' && node.parent_object_id && onSelect) {
+        const parent = document.createElement('button');
+        parent.type = 'button';
+        parent.className = 'button button-secondary';
+        parent.textContent = '查看所属分系统参数';
+        parent.addEventListener('click', () => onSelect(node.parent_object_id));
+        host.appendChild(parent);
+      }
       return;
     }
     const parameterNodes = nodeChildren(node).filter(group => group.kind === 'parameter_group')
@@ -71,8 +81,18 @@
     if (!rows.length) {
       const empty = document.createElement('p');
       empty.className = 'p9d-empty';
-      empty.textContent = '当前对象没有已审定且可编辑的物理配置参数。';
+      empty.textContent = node.configuration_scope === 'parent'
+        ? '该单机通过所属分系统组合配置；请在所属分系统中编辑其模型参数。'
+        : '当前对象没有已审定且可编辑的物理配置参数。';
       host.appendChild(empty);
+      if (node.configuration_scope === 'parent' && node.parent_object_id && onSelect) {
+        const parent = document.createElement('button');
+        parent.type = 'button';
+        parent.className = 'button button-secondary';
+        parent.textContent = '查看所属分系统参数';
+        parent.addEventListener('click', () => onSelect(node.parent_object_id));
+        host.appendChild(parent);
+      }
       return;
     }
     const groups = new Map();
@@ -188,7 +208,7 @@
       status.textContent = options.validated ? '已通过正式校验' : '配置尚未校验';
       status.dataset.validated = options.validated ? 'true' : 'false';
     }
-    renderParameters(parameterHost, {node, schema: options.schema, formData: options.formData, onChange: options.onChange});
+    renderParameters(parameterHost, {node, schema: options.schema, formData: options.formData, onChange: options.onChange, onSelect: options.onSelect});
   }
 
   root.P9DObjectConfigPanel = Object.freeze({render});
