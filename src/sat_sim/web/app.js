@@ -8861,8 +8861,23 @@
     // switchView may refuse a departure while a realtime session is active.
     if (state.activeView !== name) return false;
     const url = new URL(window.location.href);
-    url.hash = `view=${encodeURIComponent(name)}`;
-    window.history.pushState({ satSimView: name }, '', url);
+    const params = new URLSearchParams();
+    params.set('view', name);
+    if (name === 'wizard' && state.wizard.step === 'tasks') params.set('step', 'tasks');
+    url.hash = params.toString();
+    window.history.pushState({ satSimView: name, wizardStep: state.wizard.step }, '', url);
+    return true;
+  }
+
+  function navigateToWizardShortcut(shortcut) {
+    wizardStart(shortcut);
+    if (state.activeView !== 'wizard') return false;
+    const url = new URL(window.location.href);
+    const params = new URLSearchParams();
+    params.set('view', 'wizard');
+    if (state.wizard.step === 'tasks') params.set('step', 'tasks');
+    url.hash = params.toString();
+    window.history.pushState({ satSimView: 'wizard', wizardStep: state.wizard.step }, '', url);
     return true;
   }
 
@@ -8879,6 +8894,9 @@
       return;
     }
     switchView(requested);
+    if (requested === 'wizard' && params.get('step') === 'tasks') {
+      if (state.wizard.step !== 'tasks') wizardStart('history');
+    }
     // A guarded realtime departure may reject a history traversal. Keep the
     // address bar aligned with the view that actually remains active.
     if (state.activeView !== requested) {
@@ -11379,7 +11397,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
       renderSimulationWizard();
     }));
-    $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => wizardStart(button.dataset.wizardShortcut)));
+    $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => navigateToWizardShortcut(button.dataset.wizardShortcut)));
     el('wizardTaskSearch').addEventListener('input', () => { el('taskSearch').value = el('wizardTaskSearch').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
     el('wizardTaskStatus').addEventListener('change', () => { el('taskStatusFilter').value = el('wizardTaskStatus').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
     el('wizardRefreshTasksBtn').addEventListener('click', () => loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }));
