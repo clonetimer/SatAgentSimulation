@@ -69,6 +69,13 @@ function syncBodyAxes() {
   if (button) button.setAttribute('aria-pressed', String(state.ready && state.showBodyAxes));
 }
 
+function toggleBodyAxes() {
+  state.showBodyAxes = !state.showBodyAxes;
+  syncBodyAxes();
+  syncCameraActions();
+  return state.showBodyAxes;
+}
+
 const status = (message, kind = 'info') => {
   const element = byId('satelliteSceneStatus');
   if (!element) return;
@@ -665,15 +672,12 @@ document.addEventListener('click', (event) => {
   if (action === 'track') track();
   if (action === 'free') freeCamera();
   if (action === 'home') home();
-  if (action === 'axes') {
-    state.showBodyAxes = !state.showBodyAxes;
-    syncBodyAxes();
-    syncCameraActions();
-  }
+  if (action === 'axes') toggleBodyAxes();
 });
 
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
+  toggleBodyAxes, isBodyAxesVisible: () => state.showBodyAxes,
 };
