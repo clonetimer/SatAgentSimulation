@@ -156,6 +156,10 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
             assert not external_requests, external_requests
             assert not failures, failures
+            orbit_tab.click()
+            assert orbit_tab.get_attribute("aria-pressed") == "true"
+            assert page.locator("#birdsCadViewer").is_hidden()
+            assert page.locator("#satelliteOrbitMode").is_visible()
         finally:
             browser.close()
 
@@ -269,11 +273,6 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
                 page.locator(f'[data-cad-view="{view}"]').click()
             assert not external_requests, external_requests
             assert not failures, failures
-            orbit_tab.click()
-            assert orbit_tab.get_attribute("aria-pressed") == "true"
-            assert page.locator("#birdsCadViewer").is_hidden()
-            assert page.locator("#satelliteOrbitMode").is_visible()
-
             if evidence_dir:
                 output = Path(evidence_dir)
                 output.mkdir(parents=True, exist_ok=True)
