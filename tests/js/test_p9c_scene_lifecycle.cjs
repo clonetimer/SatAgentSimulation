@@ -373,3 +373,29 @@ test('invalid frame from a new source cannot erase the previous valid source tra
   assert.equal(h.instances[0].objectRows[0].sim_time_s,1);
   assert.equal(h.instances[0].pathRows.length,0);
 });
+
+
+test('same-session stream changes start a new track instead of mixing per-stream sequences', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const base = {epochUtc:'2026-01-01T00:00:00Z',timeSystem:'UTC',frame:'N_INERTIAL',sourceId:'one-session'};
+  const frame = (stream, sequence, sim_time_s) => ({
+    session_id:'one-session',stream,sequence,quality:'GOOD',sim_time_s,
+    values:{'orbit.position_m_x':7000000,'orbit.position_m_y':sequence*1000,'orbit.position_m_z':0}
+  });
+  assert.equal(h.api.updateTelemetry(frame('orbit.stream',1,1),{...base,streamId:'orbit.stream'}),true);
+  assert.equal(h.api.updateTelemetry(frame('other.stream',1,2),{...base,streamId:'other.stream'}),true);
+  assert.equal(h.instances[0].pathRows.length,0,'a new stream must not inherit the prior stream track');
+  assert.equal(h.api.updateTelemetry(frame('orbit.stream',2,3),{...base,streamId:'orbit.stream'}),true);
+  assert.equal(h.instances[0].pathRows.length,0,'switching back must start a fresh track');
+  assert.equal(h.instances[0].objectRows[0].stream,'orbit.stream');
+});
+
+test('negative simulation time is rejected before scene state changes', async () => {
+  const h = harness(); await h.api.enter(); await h.ready();
+  const accepted = h.api.updateTelemetry({
+    session_id:'negative-time',stream:'orbit.stream',sequence:1,quality:'GOOD',sim_time_s:-0.1,
+    values:{'orbit.position_m_x':7000000,'orbit.position_m_y':0,'orbit.position_m_z':0}
+  }, {epochUtc:'2026-01-01T00:00:00Z',timeSystem:'UTC',frame:'N_INERTIAL',sourceId:'negative-time',streamId:'orbit.stream'});
+  assert.equal(accepted,false);
+  assert.equal(h.api.latestTelemetryPoint(),null);
+});
