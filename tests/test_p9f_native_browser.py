@@ -430,6 +430,11 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert page.locator("#sceneMrpValue").inner_text() != "—"
             assert page.locator("#sceneQuaternionValue").inner_text() != "—"
             assert page.locator("#sceneFrameSource").inner_text() == f"{session_id} / whole.orbit"
+            page.wait_for_function("""() => {
+              const inspector = document.querySelector("#sceneFrameSequence")?.textContent;
+              const row = window.__p9fObservedGlobe?.objectRows?.find(item => item.session_id);
+              return row && inspector === String(row.sequence);
+            }""", timeout=10000)
             displayed_frame = page.evaluate("""() => ({
               inspectorSequence: document.querySelector("#sceneFrameSequence")?.textContent,
               globeSequence: window.__p9fObservedGlobe?.objectRows?.find(row => row.session_id)?.sequence,
