@@ -57,7 +57,7 @@ def test_p9e_existing_run_result_chain_is_reused_and_scene_panel_is_read_only():
     assert "renderP9DPanel();" in app[app.index("async function loadRun("):app.index("function renderActiveRun(")]
     assert "verify_run_bundle" not in panel
     assert "run.integrity?.ok !== true" in resolver
-    assert "association_scope === 'component'" in resolver
+    assert "binding.scope === 'component'" in resolver
     assert "parent_scope_only" in resolver
 
 
