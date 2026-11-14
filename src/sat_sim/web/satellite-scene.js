@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 
+const EARTH_ROTATION_S = 86164.0905;
 const ORBIT_PERIOD_S = 5730;
 const ORBIT_ALTITUDE_KM = 550;
 const EARTH_RADIUS_KM = 6371;
