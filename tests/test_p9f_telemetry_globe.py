@@ -97,8 +97,8 @@ def test_finite_run_scene_support_is_sealed_whole_spacecraft_only():
         assert field in writer
         assert field in app
     assert "const plotFieldLimit = 16" in app
-    assert "if len(names) > 19:" in (root / "api.py").read_text(encoding="utf-8")
-    assert "if len(fields) > 19 or any(" in (root / "telemetry_overview.py").read_text(encoding="utf-8")
+    assert "if len(names) > 32:" in (root / "api.py").read_text(encoding="utf-8")
+    assert "if len(fields) > 32 or any(" in (root / "telemetry_overview.py").read_text(encoding="utf-8")
 
 
 def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
