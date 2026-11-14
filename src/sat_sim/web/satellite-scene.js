@@ -22,6 +22,7 @@ const state = {
   tracking: false,
   frame: 0,
   telemetrySourceId: null,
+  telemetryStreamId: null,
   telemetrySourceLabel: null,
   telemetryEpochUtc: null,
   telemetryTrail: [],
@@ -161,7 +162,7 @@ function pointFromTelemetry(frame, epochUtc) {
   const values = frame?.values || frame || {};
   const position = ['x', 'y', 'z'].map(axis => values[`orbit.position_m_${axis}`]);
   const rawTime = frame?.sim_time_s ?? values.time_s;
-  if (typeof rawTime !== 'number' || !Number.isFinite(rawTime)) return null;
+  if (typeof rawTime !== 'number' || !Number.isFinite(rawTime) || rawTime < 0) return null;
   const simTimeS = rawTime;
   const point = eciToGlobePoint(position, epochUtc, simTimeS);
   return point ? {
@@ -223,7 +224,8 @@ function updateTelemetry(frame, options = {}) {
 
   // Validate the new source frame before clearing an existing source. A stale
   // or malformed frame from a different session must not erase a valid track.
-  const sourceChanged = state.telemetrySourceId !== sourceId;
+  const streamId = options.streamId;
+  const sourceChanged = state.telemetrySourceId !== sourceId || state.telemetryStreamId !== streamId;
   const previous = sourceChanged ? null : state.telemetryTrail[state.telemetryTrail.length - 1];
   if (previous && point.sim_time_s <= previous.sim_time_s) return false;
   if (previous && previous.sequence !== null && point.sequence <= previous.sequence) return false;
@@ -232,6 +234,7 @@ function updateTelemetry(frame, options = {}) {
   }
   if (sourceChanged) {
     state.telemetrySourceId = sourceId;
+    state.telemetryStreamId = streamId;
     state.telemetryTrail = [];
     state.latestTelemetryPoint = null;
   }
@@ -261,6 +264,7 @@ function setRunTelemetry(rows, options = {}) {
   }
   const sourceId = `run:${options.runId}`;
   state.telemetrySourceId = sourceId;
+  state.telemetryStreamId = null;
   state.telemetrySourceLabel = '已封存有限 Run 遥测';
   state.telemetryEpochUtc = options.epochUtc;
   const valid = (Array.isArray(rows) ? rows : [])
@@ -291,6 +295,7 @@ function setRunTelemetry(rows, options = {}) {
 
 function clearTelemetrySource() {
   state.telemetrySourceId = null;
+  state.telemetryStreamId = null;
   state.telemetrySourceLabel = null;
   state.telemetryEpochUtc = null;
   state.telemetryTrail = [];
