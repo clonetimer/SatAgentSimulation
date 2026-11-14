@@ -6,7 +6,13 @@ on:
       - "assets/cad-sources/birds4/**"
       - "docs/superpowers/plans/*p9i-birds4*"
       - "scripts/cad/convert_birds4_step.py"
+      - "scripts/vendor_scene_assets.py"
       - "tests/cad/test_birds4_step_converter.py"
+      - "tests/test_p9i_cad_viewer_contract.py"
+      - "src/sat_sim/web/vendor/globe/**"
+      - "src/sat_sim/web/birds-cad-viewer.js"
+      - "src/sat_sim/web/index.html"
+      - "src/sat_sim/web/satellite-scene.css"
       - ".github/workflows/p9i-birds4-cad-import.yml"
   workflow_dispatch:
 
@@ -31,8 +37,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install "cadquery==2.6.1" "pytest==9.0.3"
-      - name: Verify source pin and GLB parser unit tests
-        run: python -m pytest -q tests/cad/test_birds4_step_converter.py
+      - name: Stage pinned offline Three.js runtime and GLTFLoader
+        run: python scripts/vendor_scene_assets.py
+      - name: Verify CAD viewer module syntax
+        run: node --input-type=module --check < src/sat_sim/web/birds-cad-viewer.js
+      - name: Verify source pin and CAD viewer contracts
+        run: python -m pytest -q tests/cad/test_birds4_step_converter.py tests/test_p9i_cad_viewer_contract.py
       - name: Import pinned BIRDS-4 flight-model STEP and export reference GLB
         run: python scripts/cad/convert_birds4_step.py
       - name: Upload GLB, source integrity, assembly tree and conversion reports
