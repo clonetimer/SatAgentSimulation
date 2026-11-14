@@ -20,6 +20,12 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 POSITION_FIELDS = tuple(f"orbit.position_m_{axis}" for axis in "xyz")
+ATTITUDE_FIELDS = (
+    "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+    "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+    "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+    "attitude.truth.valid",
+)
 
 GLOBE_OBSERVER = r"""
 () => {
@@ -289,7 +295,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 if stream["stream_id"] == "whole.orbit"
             ]
             assert len(position_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ORBIT_STREAM"
-            assert set(position_streams[0]["fields"]) == set(POSITION_FIELDS)
+            assert set(POSITION_FIELDS) <= set(position_streams[0]["fields"])
+            assert set(ATTITUDE_FIELDS) <= set(position_streams[0]["fields"])
             report["telemetry_catalog"] = catalog_streams
 
             if mode == "bounded":
@@ -399,13 +406,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert matching["stream"] == stream_id
             assert matching["quality"] == "GOOD"
             assert set(POSITION_FIELDS) <= set(matching["values"])
-            attitude_fields = {
-                "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
-                "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
-                "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
-                "attitude.truth.valid",
-            }
-            assert attitude_fields <= set(matching["values"])
+            assert set(ATTITUDE_FIELDS) <= set(matching["values"])
+            assert matching["values"]["attitude.truth.valid"] == 1
             assert matching["values"]["attitude.truth.valid"] == 1
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
             report["page_errors"] = list(report["page_errors"])
