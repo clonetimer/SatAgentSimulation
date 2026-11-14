@@ -269,12 +269,12 @@ def audit_reference_assembly(nodes: list[dict[str, Any]]) -> dict[str, Any]:
         if is_em:
             counts["em_named"] += 1
             em_labels.add(label)
-        elif is_b3:
+        if is_b3:
             counts["b3_named"] += 1
             b3_labels.add(label)
-        elif is_fm:
+        if is_fm:
             counts["fm_named"] += 1
-        else:
+        if not (is_em or is_b3 or is_fm):
             counts["other"] += 1
         for category, pattern in categories.items():
             if pattern.search(label):
@@ -292,6 +292,7 @@ def audit_reference_assembly(nodes: list[dict[str, Any]]) -> dict[str, Any]:
         "source_name_classification": counts,
         "em_named_labels": sorted(em_labels),
         "b3_named_labels": sorted(b3_labels),
+        "mixed_variant_names_detected": bool(em_labels or b3_labels),
         "candidate_category_node_counts": category_counts,
         "identity_status": "flight_unit_not_identified_from_cad_tree",
         "coordinate_status": "datum_and_axis_mapping_not_independently_reviewed",
