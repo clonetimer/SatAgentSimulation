@@ -147,7 +147,7 @@ function eciToGlobePoint(position, epochUtc, simTimeS) {
     ? p / Math.cos(latitude) - primeVertical
     : Math.abs(z) - primeVertical * (1 - WGS84_E2);
   const altitudeKm = altitudeM / 1000;
-  if (![latitude, longitude, altitudeKm].every(Number.isFinite) || altitudeKm < -1) return null;
+  if (![latitude, longitude, altitudeKm].every(Number.isFinite) || altitudeKm < -1 || altitudeKm > 100_000) return null;
   return {
     lat: THREE.MathUtils.radToDeg(latitude),
     lng: THREE.MathUtils.radToDeg(longitude),
@@ -203,22 +203,35 @@ function renderTelemetryPosition() {
 }
 
 function updateTelemetry(frame, options = {}) {
-  if (options.frame !== 'N_INERTIAL') return false;
-  const sourceId = String(options.sourceId || frame?.session_id || 'interactive-session');
-  const epochUtc = options.epochUtc || state.telemetryEpochUtc;
-  if (!epochUtc) return false;
-  if (state.telemetrySourceId !== sourceId) {
+  // A real session frame is accepted only with an explicit, matching source
+  // contract. Missing quality/session/stream metadata is not promoted to data.
+  if (options.frame !== 'N_INERTIAL' || options.timeSystem !== 'UTC') return false;
+  if (!frame || frame.quality !== 'GOOD' ||
+      !Number.isSafeInteger(frame.sequence) || frame.sequence < 0 ||
+      typeof frame.session_id !== 'string' || !frame.session_id ||
+      typeof frame.stream !== 'string' || !frame.stream) return false;
+  const sourceId = String(options.sourceId || '');
+  const epochUtc = options.epochUtc;
+  if (!sourceId || frame.session_id !== sourceId ||
+      typeof options.streamId !== 'string' || frame.stream !== options.streamId ||
+      !epochUtc) return false;
+  const point = pointFromTelemetry(frame, epochUtc);
+  if (!point || point.sequence === null) return false;
+
+  // Validate the new source frame before clearing an existing source. A stale
+  // or malformed frame from a different session must not erase a valid track.
+  const sourceChanged = state.telemetrySourceId !== sourceId;
+  const previous = sourceChanged ? null : state.telemetryTrail[state.telemetryTrail.length - 1];
+  if (previous && point.sim_time_s <= previous.sim_time_s) return false;
+  if (previous && previous.sequence !== null && point.sequence <= previous.sequence) return false;
+  if (previous && previous.sequence !== null && point.sequence > previous.sequence + 1) {
+    point.breakBefore = true;
+  }
+  if (sourceChanged) {
     state.telemetrySourceId = sourceId;
     state.telemetryTrail = [];
     state.latestTelemetryPoint = null;
   }
-  const point = pointFromTelemetry(frame, epochUtc);
-  if (!point) return false;
-  const previous = state.telemetryTrail[state.telemetryTrail.length - 1];
-  if (previous && point.sim_time_s < previous.sim_time_s) return false;
-  if (previous && point.sim_time_s === previous.sim_time_s) state.telemetryTrail.pop();
-  if (previous && previous.sequence !== null && point.sequence !== null
-      && point.sequence > previous.sequence + 1) point.breakBefore = true;
   state.telemetryTrail.push(point);
   if (state.telemetryTrail.length > TELEMETRY_TRAIL_LIMIT) {
     state.telemetryTrail.splice(0, state.telemetryTrail.length - TELEMETRY_TRAIL_LIMIT);
@@ -239,7 +252,7 @@ function updateTelemetry(frame, options = {}) {
 
 function setRunTelemetry(rows, options = {}) {
   if (!options.verified || !options.runId || !options.epochUtc
-      || options.frame !== 'N_INERTIAL') {
+      || options.frame !== 'N_INERTIAL' || options.timeSystem !== 'UTC') {
     clearTelemetrySource();
     return false;
   }
