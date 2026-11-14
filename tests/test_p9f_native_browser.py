@@ -39,12 +39,14 @@ GLOBE_OBSERVER = r"""
         objectRows: null,
         pathRows: null,
         objectAltitudeAccessor: null,
+        objectRotationAccessor: null,
         pathPointAltitudeAccessor: null
       };
       const bindings = [
         ['objectsData', 'objectRows'],
         ['pathsData', 'pathRows'],
         ['objectAltitude', 'objectAltitudeAccessor'],
+        ['objectRotation', 'objectRotationAccessor'],
         ['pathPointAlt', 'pathPointAltitudeAccessor']
       ];
       for (const [methodName, propertyName] of bindings) {
@@ -376,6 +378,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 object,
                 pathRows: paths,
                 objectAltitudeAccessor: observed?.objectAltitudeAccessor,
+                objectRotationAccessor: observed?.objectRotationAccessor,
                 pathPointAltitudeAccessor: observed?.pathPointAltitudeAccessor,
               };
             }""")
@@ -417,6 +420,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert rotations["badEpoch"] is None
             assert rotations["nonfinite"] is None
             assert rendered["objectAltitudeAccessor"] == "alt"
+            assert rendered["objectRotationAccessor"] == "rotation"
             assert rendered["pathPointAltitudeAccessor"] == "alt"
             assert any(len(segment.get("points", [])) >= 2 for segment in rendered["pathRows"])
             assert "Basilisk" in page.locator("#satelliteSceneStatus").inner_text()
