@@ -6247,16 +6247,19 @@
       const runSpec = state.activeRun?.task_spec || {};
       const runParameters = runSpec.parameters?.values || {};
       const runEpoch = runParameters.epoch_utc || runSpec.simulation?.epoch_utc
-        || runSpec.orbit_environment?.epoch_utc || '2026-01-01T00:00:00Z';
+        || runSpec.orbit_environment?.epoch_utc || null;
+      const runTimeSystem = runSpec.simulation?.time_system || null;
       const runStatus = String(state.activeRun?.run_record?.status || '').toUpperCase();
       window.SatScene?.setRunTelemetry(state.telemetry, {
         runId,
         epochUtc: runEpoch,
         frame: 'N_INERTIAL',
-        timeSystem: runSpec.simulation?.time_system || 'UTC',
+        timeSystem: runTimeSystem,
         verified: state.activeRun?.sealed === true && state.activeRun?.integrity?.ok === true
           && runStatus === 'SUCCEEDED'
-          && state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1',
+          && state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1'
+          && typeof runEpoch === 'string' && runEpoch.length > 0
+          && runTimeSystem === 'UTC',
         sampled: Boolean(state.telemetryOverview?.sampled),
         totalRows: state.telemetryOverview?.total ?? telemetryPayload.total ?? state.telemetry.length,
       });
