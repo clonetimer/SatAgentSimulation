@@ -176,7 +176,17 @@ def _import_step_assembly(path: Path):
 
 def _matrix4(location: Any) -> list[list[float]]:
     transform = location.wrapped.Transformation()
-    return [[float(transform.Value(row, col)) for col in range(1, 5)] for row in range(1, 5)]
+    rotation = [
+        [float(transform.Value(row, col)) for col in range(1, 4)]
+        for row in range(1, 4)
+    ]
+    translation = transform.TranslationPart()
+    return [
+        rotation[0] + [float(translation.X())],
+        rotation[1] + [float(translation.Y())],
+        rotation[2] + [float(translation.Z())],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
 
 
 def _multiply4(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
