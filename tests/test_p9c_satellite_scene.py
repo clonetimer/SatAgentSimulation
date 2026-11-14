@@ -241,6 +241,12 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator("#satelliteSceneStatus").filter(has_text="场景已就绪").wait_for(timeout=30000)
+            orbit_tab = page.locator('[data-scene-mode="orbit"]')
+            cad_tab = page.locator('[data-scene-mode="cad"]')
+            assert orbit_tab.get_attribute("aria-pressed") == "true"
+            assert page.locator("#birdsCadViewer").is_hidden()
+            cad_tab.click()
+            assert cad_tab.get_attribute("aria-pressed") == "true"
             viewer = page.locator("#birdsCadViewer")
             viewer.wait_for(state="visible", timeout=10000)
             page.locator("#birdsCadFile").set_input_files(str(glb_path))
@@ -263,6 +269,10 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
                 page.locator(f'[data-cad-view="{view}"]').click()
             assert not external_requests, external_requests
             assert not failures, failures
+            orbit_tab.click()
+            assert orbit_tab.get_attribute("aria-pressed") == "true"
+            assert page.locator("#birdsCadViewer").is_hidden()
+            assert page.locator("#satelliteOrbitMode").is_visible()
 
             if evidence_dir:
                 output = Path(evidence_dir)
