@@ -7,6 +7,7 @@ actual object/path setters. No frame or position is injected into the page.
 from __future__ import annotations
 
 import json
+import math
 import os
 import socket
 import subprocess
@@ -20,6 +21,12 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 POSITION_FIELDS = tuple(f"orbit.position_m_{axis}" for axis in "xyz")
+ATTITUDE_FIELDS = (
+    "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+    "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+    "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+    "attitude.truth.valid",
+)
 
 GLOBE_OBSERVER = r"""
 () => {
@@ -32,12 +39,14 @@ GLOBE_OBSERVER = r"""
         objectRows: null,
         pathRows: null,
         objectAltitudeAccessor: null,
+        objectRotationAccessor: null,
         pathPointAltitudeAccessor: null
       };
       const bindings = [
         ['objectsData', 'objectRows'],
         ['pathsData', 'pathRows'],
         ['objectAltitude', 'objectAltitudeAccessor'],
+        ['objectRotation', 'objectRotationAccessor'],
         ['pathPointAlt', 'pathPointAltitudeAccessor']
       ];
       for (const [methodName, propertyName] of bindings) {
@@ -60,6 +69,9 @@ GLOBE_OBSERVER = r"""
                 lng: row?.lng,
                 alt: row?.alt,
                 altitude_km: row?.altitude_km,
+                attitude_truth: row?.attitude_truth,
+                attitude_valid: row?.attitude_valid,
+                rotation: row?.rotation,
               }));
             } else if (propertyName === 'pathRows') {
               observed.pathRows = (Array.isArray(value) ? value : []).map(segment => ({
@@ -237,6 +249,11 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             if mode == "continuous":
                 session_id = "p9f-native-browser-continuous"
                 _set_control(page, "#continuousSessionId", session_id)
+                identifier = page.locator("#continuousSessionId")
+                assert identifier.evaluate("(node) => node.checkValidity()") is True
+                identifier.fill("probe:valid-1")
+                assert identifier.evaluate("(node) => node.checkValidity()") is True
+                identifier.fill(session_id)
                 _set_control(page, "#continuousQuantum", "0.2")
                 _set_control(page, "#continuousHorizon", "120")
                 create = page.locator('#continuousCreateForm button[type="submit"]')
@@ -287,7 +304,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 if stream["stream_id"] == "whole.orbit"
             ]
             assert len(position_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ORBIT_STREAM"
-            assert set(position_streams[0]["fields"]) == set(POSITION_FIELDS)
+            assert set(POSITION_FIELDS) <= set(position_streams[0]["fields"])
+            assert set(ATTITUDE_FIELDS) <= set(position_streams[0]["fields"])
             report["telemetry_catalog"] = catalog_streams
 
             if mode == "bounded":
@@ -296,7 +314,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 assert requested_streams
                 scene_streams = [row for row in requested_streams if row["stream_id"] == "whole.orbit"]
                 assert len(scene_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ORBIT_STREAM"
-                assert set(scene_streams[0]["fields"]) == set(POSITION_FIELDS)
+                assert set(POSITION_FIELDS) <= set(scene_streams[0]["fields"])
+                assert set(ATTITUDE_FIELDS) <= set(scene_streams[0]["fields"])
                 assert all(
                     not (set(POSITION_FIELDS) & set(row["fields"]))
                     for row in requested_streams if row["stream_id"] != "whole.orbit"
@@ -364,6 +383,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 object,
                 pathRows: paths,
                 objectAltitudeAccessor: observed?.objectAltitudeAccessor,
+                objectRotationAccessor: observed?.objectRotationAccessor,
                 pathPointAltitudeAccessor: observed?.pathPointAltitudeAccessor,
               };
             }""")
@@ -371,8 +391,72 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert rendered["object"]["stream"] == "whole.orbit"
             assert rendered["object"]["sequence"] >= 0
             assert rendered["object"]["sim_time_s"] > 0
+            assert rendered["object"]["attitude_valid"] is True
+            assert "示意模型轴系" in page.locator("#satelliteSceneStatus").inner_text()
+            assert len(rendered["object"]["attitude_truth"]["mrp_BN"]) == 3
+            assert len(rendered["object"]["attitude_truth"]["quaternion_BN"]) == 4
+            assert sum(value * value for value in rendered["object"]["attitude_truth"]["quaternion_BN"]) == pytest.approx(1.0, abs=1e-6)
+            assert set(rendered["object"]["rotation"]) == {"x", "y", "z"}
+            assert all(math.isfinite(value) for value in rendered["object"]["rotation"].values())
+            expected_rotation = page.evaluate("""({quaternion, epoch, simTime}) =>
+              window.SatScene.attitudeToGlobeRotation(quaternion, epoch, simTime)
+            """, {
+                "quaternion": rendered["object"]["attitude_truth"]["quaternion_BN"],
+                "epoch": detail["orbit_epoch_utc"],
+                "simTime": rendered["object"]["sim_time_s"],
+            })
+            for axis in ("x", "y", "z"):
+                assert rendered["object"]["rotation"][axis] == pytest.approx(expected_rotation[axis], abs=1e-6)
+            # The browser transform must preserve a unit quaternion and react
+            # to an independent body-axis rotation, not just a fixed model pose.
+            rotations = page.evaluate("""(epoch) => {
+              const convert = window.SatScene.attitudeToGlobeQuaternion;
+              const a = convert([1, 0, 0, 0], epoch, 0);
+              const b = convert([Math.SQRT1_2, Math.SQRT1_2, 0, 0], epoch, 0);
+              const badNorm = convert([2, 0, 0, 0], epoch, 0);
+              const badEpoch = convert([1, 0, 0, 0], 'not-an-epoch', 0);
+              const nonfinite = convert([NaN, 0, 0, 0], epoch, 0);
+              return {a, b, normA: Math.hypot(...a), normB: Math.hypot(...b), badNorm, badEpoch, nonfinite};
+            }""", detail["orbit_epoch_utc"])
+            assert rotations["normA"] == pytest.approx(1.0, abs=1e-6)
+            assert rotations["normB"] == pytest.approx(1.0, abs=1e-6)
+            assert rotations["a"] != pytest.approx(rotations["b"], abs=1e-5)
+            assert rotations["badNorm"] is None
+            assert rotations["badEpoch"] is None
+            assert rotations["nonfinite"] is None
             assert rendered["objectAltitudeAccessor"] == "alt"
+            assert rendered["objectRotationAccessor"] == "rotation"
             assert rendered["pathPointAltitudeAccessor"] == "alt"
+
+            # The live scene exposes the same telemetry in a user-readable
+            # inspector and keeps estimator output explicitly separate.
+            assert page.locator("#sceneDataSource").get_attribute("data-state") == "live"
+            assert page.locator("#sceneTruthStatus").inner_text().startswith("有效")
+            assert page.locator("#sceneMrpValue").inner_text() != "—"
+            assert page.locator("#sceneQuaternionValue").inner_text() != "—"
+            assert page.locator("#sceneFrameSource").inner_text() == f"{session_id} / whole.orbit"
+            page.wait_for_function("""() => {
+              const inspector = document.querySelector("#sceneFrameSequence")?.textContent;
+              const row = window.__p9fObservedGlobe?.objectRows?.find(item => item.session_id);
+              return row && inspector === String(row.sequence);
+            }""", timeout=10000)
+            displayed_frame = page.evaluate("""() => ({
+              inspectorSequence: document.querySelector("#sceneFrameSequence")?.textContent,
+              globeSequence: window.__p9fObservedGlobe?.objectRows?.find(row => row.session_id)?.sequence,
+            })""")
+            assert displayed_frame["inspectorSequence"] == str(displayed_frame["globeSequence"])
+            assert page.locator("#sceneFrameQuality").inner_text() == "GOOD"
+            assert page.locator("#sceneEstimatorStatus").inner_text() == "尚未接入"
+
+            axes_button = page.locator('[data-scene-action="axes"]')
+            assert axes_button.get_attribute("aria-pressed") == "false"
+            assert page.evaluate("window.SatScene.hasBodyAxesModel()") is True
+            axes_button.click()
+            assert axes_button.get_attribute("aria-pressed") == "true"
+            assert page.evaluate("window.SatScene.isBodyAxesVisible()") is True
+            axes_button.click()
+            assert axes_button.get_attribute("aria-pressed") == "false"
+            assert page.evaluate("window.SatScene.isBodyAxesVisible()") is False
             assert any(len(segment.get("points", [])) >= 2 for segment in rendered["pathRows"])
             assert "Basilisk" in page.locator("#satelliteSceneStatus").inner_text()
             assert "演示数据" not in page.locator("#satelliteSceneStatus").inner_text()
@@ -393,9 +477,13 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert matching["stream"] == stream_id
             assert matching["quality"] == "GOOD"
             assert set(POSITION_FIELDS) <= set(matching["values"])
+            assert set(ATTITUDE_FIELDS) <= set(matching["values"])
+            assert matching["values"]["attitude.truth.valid"] == 1
+            assert matching["values"]["attitude.truth.valid"] == 1
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
             report["page_errors"] = list(report["page_errors"])
             assert not report["page_errors"], report["page_errors"]
+            assert not report["console_errors"], report["console_errors"]
             if mode == "bounded":
                 socket_messages = [json.loads(item) for item in report["socket_messages"] if isinstance(item, str)]
                 assert any(
@@ -434,6 +522,180 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 # sync_playwright owns the browser and may already have closed
                 # its event loop while unwinding the context manager. Preserve
                 # the original browser assertion rather than masking it here.
+                pass
+        if server.poll() is None:
+            import psutil
+            try:
+                descendants = psutil.Process(server.pid).children(recursive=True)
+            except psutil.NoSuchProcess:
+                descendants = []
+            for child in descendants:
+                try:
+                    child.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+            server.terminate()
+            try:
+                server.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                server.kill()
+                server.wait(timeout=10)
+        server_log.close()
+        (evidence / "report.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+
+@pytest.mark.parametrize("viewport", [{"width": 1600, "height": 1000}, {"width": 390, "height": 844}])
+def test_sealed_finite_run_attitude_is_restored_in_real_scene(viewport, tmp_path):
+    """A genuine sealed Basilisk Run must restore attitude in the user's history scene."""
+    if os.environ.get("SAT_SIM_P9F_NATIVE_BROWSER_TEST") != "1":
+        pytest.skip("Dedicated genuine Basilisk/Chromium acceptance job only")
+    import Basilisk
+    from playwright.sync_api import sync_playwright
+    from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
+    from sat_sim.scenario_templates import instantiate_scenario_template
+
+    runs_root = tmp_path / "runs"
+    spec = instantiate_scenario_template(
+        "whole_spacecraft_unified_native", task_id="p9h_sealed_scene_browser"
+    )
+    spec["simulation"].update({"duration_s": 2.0, "step_s": 0.1, "sample_s": 0.5})
+    spec.setdefault("parameters", {}).setdefault("values", {})["initial_pointing_error_deg"] = 17.0
+    # Deliberately select only an EPS curve. Scene-support channels are
+    # internal evidence and must not depend on the user's plot selection.
+    spec.setdefault("outputs", {})["plots"] = ["eps.battery.soc"]
+    prepared = prepare_run(spec, output_root=runs_root, run_id="p9h_sealed_scene_run")
+    execution = execute_prepared_run(
+        prepared.bundle_root, expected_plan_sha256=prepared.execution_plan_sha256,
+        max_attempts=1,
+    )
+    assert execution.run_record.status.value == "SUCCEEDED"
+    assert execution.run_record.sealed is True
+    assert verify_run_bundle(prepared.bundle_root)["ok"] is True
+
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    base = f"http://127.0.0.1:{port}"
+    env = {
+        **os.environ,
+        "SAT_SIM_INTERACTIVE_ENABLED": "1",
+        "SAT_SIM_SUPERVISED_NATIVE_RUNTIME": "0",
+        "SAT_SIM_AUTH_MODE": "disabled",
+        "SAT_SIM_EMBEDDED_WORKER": "0",
+        "SAT_SIM_RUNS_ROOT": str(runs_root),
+        "SAT_SIM_API_ARTIFACTS_ROOT": str(tmp_path / "api"),
+    }
+    for key in (
+        "SAT_SIM_QUEUE_DATABASE", "SAT_SIM_TASK_CENTER_DATABASE",
+        "SAT_SIM_EXPERIMENT_DATABASE", "SAT_SIM_AUDIT_LOG",
+        "SAT_SIM_WORKBENCH_LOG", "SAT_SIM_MODEL_PROVIDERS_FILE",
+    ):
+        env.pop(key, None)
+    evidence = Path(os.environ.get("SAT_SIM_P9F_EVIDENCE", str(tmp_path))) / "sealed-run"
+    evidence.mkdir(parents=True, exist_ok=True)
+    report = {
+        "status": "RUNNING", "run_id": prepared.run_id,
+        "basilisk_version": Basilisk.__version__, "sealed": True,
+        "integrity": "PASS", "selected_plot_fields": spec["outputs"]["plots"],
+        "page_errors": [], "console_errors": [], "request_failures": [],
+    }
+    server_log = (evidence / "server.log").open("w", encoding="utf-8")
+    server = subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "sat_sim.api:create_app", "--factory",
+         "--host", "127.0.0.1", "--port", str(port), "--no-access-log"],
+        cwd=ROOT, env=env, stdout=server_log, stderr=subprocess.STDOUT,
+    )
+    browser = None
+    page = None
+    try:
+        deadline = time.monotonic() + 60
+        while True:
+            assert server.poll() is None, "SEALED_RUN_API_EXITED_BEFORE_READY"
+            try:
+                _json_request(base, "/health")
+                break
+            except OSError:
+                if time.monotonic() > deadline:
+                    raise TimeoutError("SEALED_RUN_API_STARTUP_TIMEOUT")
+                time.sleep(0.2)
+
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(
+                headless=True,
+                args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
+            )
+            page = browser.new_page(viewport=viewport, locale="zh-CN")
+            page.on("pageerror", lambda error: report["page_errors"].append(str(error)))
+            page.on("console", lambda message: report["console_errors"].append(message.text)
+                    if message.type == "error" else None)
+            page.on("requestfailed", lambda request: report["request_failures"].append({
+                "url": request.url, "failure": request.failure,
+            }))
+            page.goto(base, wait_until="domcontentloaded")
+            page.evaluate(GLOBE_OBSERVER)
+            page.locator("#wizardAdvancedBtn").click()
+            page.locator("#runList [data-run-id='p9h_sealed_scene_run']").wait_for(
+                state="visible", timeout=30000
+            )
+            page.locator("#runList [data-run-id='p9h_sealed_scene_run']").click()
+            page.locator("#activeRunCard .run-id").wait_for(state="visible", timeout=30000)
+            # Use the primary navigation scene entry from the selected Run;
+            # the loaded Run remains the scene's authoritative data source.
+            page.locator('.sidebar-nav button[data-view="scene"]').click()
+            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+            page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
+            page.wait_for_function(
+                "() => window.__p9fObservedGlobe?.objectRows?.some(row => row.attitude_valid === true)",
+                timeout=30000,
+            )
+            rendered = page.evaluate("""() => ({
+              object: window.__p9fObservedGlobe?.objectRows?.[0] || null,
+              paths: window.__p9fObservedGlobe?.pathRows || [],
+              source: document.querySelector('#sceneDataSource')?.dataset.state,
+              truth: document.querySelector('#sceneTruthStatus')?.textContent,
+              mrp: document.querySelector('#sceneMrpValue')?.textContent,
+              quaternion: document.querySelector('#sceneQuaternionValue')?.textContent,
+              frameSource: document.querySelector('#sceneFrameSource')?.textContent,
+              frameSequence: document.querySelector('#sceneFrameSequence')?.textContent,
+              quality: document.querySelector('#sceneFrameQuality')?.textContent,
+              estimator: document.querySelector('#sceneEstimatorStatus')?.textContent,
+              status: document.querySelector('#satelliteSceneStatus')?.textContent
+            })""")
+            assert rendered["object"] is not None
+            assert rendered["object"]["attitude_valid"] is True
+            assert rendered["object"]["attitude_truth"] is not None
+            assert len(rendered["object"]["attitude_truth"]["quaternion_BN"]) == 4
+            assert sum(v*v for v in rendered["object"]["attitude_truth"]["quaternion_BN"]) == pytest.approx(1.0, abs=1e-6)
+            assert rendered["source"] == "sealed"
+            assert rendered["truth"].startswith("有效")
+            assert rendered["mrp"] != "—" and rendered["quaternion"] != "—"
+            assert rendered["frameSource"] == "run:p9h_sealed_scene_run"
+            assert rendered["frameSequence"] == "封存样本"
+            assert rendered["quality"] == "SEALED"
+            assert rendered["estimator"] == "尚未接入"
+            assert "已封存有限 Run 遥测" in rendered["status"]
+            assert "示意模型轴系" in rendered["status"]
+            assert len(rendered["paths"]) >= 1
+            assert not report["page_errors"], report["page_errors"]
+            report["rendered"] = rendered
+            report["status"] = "PASS"
+            page.screenshot(path=str(evidence / "sealed-run-scene.png"), full_page=True)
+    except Exception as error:
+        report["status"] = "FAIL"
+        report["error"] = repr(error)
+        if page is not None:
+            try:
+                page.screenshot(path=str(evidence / "failure.png"), full_page=True)
+            except Exception:
+                pass
+        raise
+    finally:
+        if browser is not None:
+            try:
+                browser.close()
+            except Exception:
                 pass
         if server.poll() is None:
             import psutil

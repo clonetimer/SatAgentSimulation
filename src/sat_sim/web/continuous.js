@@ -123,9 +123,15 @@
     const catalog = info.telemetry_catalog || [];
     if (!catalog.length) throw new Error('SESSION_TELEMETRY_CATALOG_EMPTY');
     state.telemetryCatalog = catalog;
-    const positionFields = ['orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z'];
+    const sceneStateFields = [
+      'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z',
+      'attitude.truth.mrp_BN_x', 'attitude.truth.mrp_BN_y', 'attitude.truth.mrp_BN_z',
+      'attitude.truth.quaternion_BN_q0', 'attitude.truth.quaternion_BN_q1',
+      'attitude.truth.quaternion_BN_q2', 'attitude.truth.quaternion_BN_q3',
+      'attitude.truth.valid',
+    ];
     const orbitStream = catalog.find(row => row.stream_id === 'whole.orbit'
-      && positionFields.every(field => (row.fields || []).includes(field)));
+      && sceneStateFields.every(field => (row.fields || []).includes(field)));
     const nextSceneStream = orbitStream?.stream_id || null;
     const nextSceneSessionId = info.session?.session_id || state.selectedId;
     if (state.sceneSessionId !== nextSceneSessionId || state.sceneTelemetryStream !== nextSceneStream) {

@@ -16,6 +16,8 @@ const state = {
   loadingTimer: 0,
   globe: null,
   satellite: null,
+  modelAxesGroup: null,
+  showBodyAxes: false,
   resizeObserver: null,
   startedAt: 0,
   lastUpdateAt: 0,
@@ -32,6 +34,54 @@ const state = {
 };
 
 const byId = (id) => document.getElementById(id);
+
+function setText(id, value) {
+  const element = byId(id);
+  if (element) element.textContent = value;
+}
+
+function renderTelemetryInspector(point = state.latestTelemetryPoint) {
+  const hasSource = Boolean(point && state.telemetrySourceId);
+  const sealedRun = Boolean(hasSource && state.telemetrySourceId.startsWith('run:'));
+  const source = byId('sceneDataSource');
+  if (source) {
+    source.textContent = sealedRun ? 'Run 历史结果（已封存）' : (hasSource ? (state.telemetrySourceLabel || '真实 Basilisk 遥测') : '演示数据（非仿真结果）');
+    source.dataset.state = sealedRun ? 'sealed' : (hasSource ? 'live' : 'demo');
+  }
+  setText('sceneSimTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
+  setText('sceneAltitude', hasSource ? `${point.altitude_km.toFixed(2)} km` : '—');
+  setText('sceneGeographicPosition', hasSource ? `${point.lat.toFixed(3)}°, ${point.lng.toFixed(3)}°` : '—');
+  const truthValid = Boolean(hasSource && point.attitude_valid && point.attitude_truth);
+  setText('sceneTruthStatus', truthValid ? '有效 · 刚体状态真值' : (hasSource ? '不可用 · 不使用估计值替代' : '等待真实遥测'));
+  setText('sceneMrpValue', truthValid ? point.attitude_truth.mrp_BN.map(value => value.toFixed(6)).join(', ') : '—');
+  setText('sceneQuaternionValue', truthValid ? point.attitude_truth.quaternion_BN.map(value => value.toFixed(6)).join(', ') : '—');
+  setText('sceneRotationValue', truthValid && point.rotation
+    ? [point.rotation.x, point.rotation.y, point.rotation.z].map(value => value.toFixed(2) + '°').join(', ')
+    : '—');
+  setText('sceneEstimatorStatus', '尚未接入');
+  const frameSource = hasSource
+    ? (point.session_id && point.stream
+      ? `${point.session_id} / ${point.stream}`
+      : (state.telemetrySourceId?.startsWith('run:') ? state.telemetrySourceId : '—'))
+    : '—';
+  setText('sceneFrameSource', frameSource);
+  setText('sceneFrameSequence', hasSource && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
+  setText('sceneFrameQuality', hasSource ? (point.quality || (state.telemetrySourceId?.startsWith('run:') ? 'SEALED' : 'UNKNOWN')) : '—');
+}
+
+function syncBodyAxes() {
+  if (state.modelAxesGroup) state.modelAxesGroup.visible = state.showBodyAxes;
+  const button = document.querySelector('#satelliteSceneView [data-scene-action="axes"]');
+  if (button) button.setAttribute('aria-pressed', String(state.ready && state.showBodyAxes));
+}
+
+function toggleBodyAxes() {
+  state.showBodyAxes = !state.showBodyAxes;
+  syncBodyAxes();
+  syncCameraActions();
+  return state.showBodyAxes;
+}
+
 const status = (message, kind = 'info') => {
   const element = byId('satelliteSceneStatus');
   if (!element) return;
@@ -51,6 +101,9 @@ function orbitPoint(phase) {
 }
 
 function makeSatelliteModel() {
+  // Schematic display frame convention: local +X follows the solar-panel
+  // span, +Y points toward the antenna/panel normal, and +Z lies in the panel plane.
+  // This is a visualization convention, not a claimed CAD/as-built mounting.
   const root = new THREE.Group();
   root.name = 'Original schematic satellite model';
 
@@ -91,6 +144,17 @@ function makeSatelliteModel() {
   );
   beacon.position.set(0, -1.2, 0);
   root.add(beacon);
+
+  // Optional body-frame triad: X red, Y green, Z blue.
+  const axes = new THREE.Group();
+  axes.name = 'Body frame axes (visualization convention)';
+  const axisLength = 7.2;
+  axes.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), axisLength, 0xff5d5d, 1.1, 0.55));
+  axes.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), axisLength, 0x53d68a, 1.1, 0.55));
+  axes.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), axisLength, 0x58a6ff, 1.1, 0.55));
+  axes.visible = state.showBodyAxes;
+  root.add(axes);
+  state.modelAxesGroup = axes;
   return root;
 }
 
@@ -108,18 +172,73 @@ function julianDate(epochUtc, simTimeS) {
   return epochMs / 86400000 + 2440587.5 + simTimeS / 86400;
 }
 
-function eciToGlobePoint(position, epochUtc, simTimeS) {
-  if (!Array.isArray(position) || position.length !== 3 ||
-      !position.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
+function gmstAngle(epochUtc, simTimeS) {
   const jd = julianDate(epochUtc, simTimeS);
   if (jd === null) return null;
-
-  // IAU 1982 GMST approximation: adequate for scene placement, not orbit determination.
+  // IAU 1982 GMST approximation, shared by position and attitude transforms.
   const centuries = (jd - 2451545.0) / 36525.0;
   const gmstDeg = 280.46061837 + 360.98564736629 * (jd - 2451545.0)
     + 0.000387933 * centuries * centuries
     - centuries * centuries * centuries / 38710000.0;
-  const theta = THREE.MathUtils.degToRad(((gmstDeg % 360) + 360) % 360);
+  return THREE.MathUtils.degToRad(((gmstDeg % 360) + 360) % 360);
+}
+
+function quaternionMultiplyScalarFirst(a, b) {
+  const [aw, ax, ay, az] = a;
+  const [bw, bx, by, bz] = b;
+  return [
+    aw * bw - ax * bx - ay * by - az * bz,
+    aw * bx + ax * bw + ay * bz - az * by,
+    aw * by - ax * bz + ay * bw + az * bx,
+    aw * bz + ax * by - ay * bx + az * bw,
+  ];
+}
+
+function attitudeToGlobeQuaternion(quaternionBN, epochUtc, simTimeS) {
+  if (!Array.isArray(quaternionBN) || quaternionBN.length !== 4
+      || !quaternionBN.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
+  const norm = Math.hypot(...quaternionBN);
+  if (!Number.isFinite(norm) || Math.abs(norm - 1) > 1e-6) return null;
+  const theta = gmstAngle(epochUtc, simTimeS);
+  if (theta === null) return null;
+
+  // Globe.gl world axes: X=90E, Y=north, Z=prime-meridian equator.
+  // [xG,yG,zG] = [yE,zE,xE], a proper cyclic rotation.
+  const qGE = [0.5, -0.5, -0.5, -0.5];
+  // ECEF relative to inertial N: rotate around +Z by -GMST.
+  const qEN = [Math.cos(theta / 2), 0, 0, -Math.sin(theta / 2)];
+  // Basilisk EP2C(q_BN) is the passive N-to-B DCM. Three.js applies a
+  // Hamilton quaternion actively, so R_three(q_BN) = EP2C(q_BN).transpose():
+  // these SAME components already orient body axes in N. Conjugating them
+  // here would reverse every nonzero attitude. Only reorder at the THREE API.
+  const qNB = quaternionBN;
+  const result = quaternionMultiplyScalarFirst(
+    quaternionMultiplyScalarFirst(qGE, qEN), qNB
+  );
+  const resultNorm = Math.hypot(...result);
+  if (!Number.isFinite(resultNorm) || resultNorm < 1e-12) return null;
+  return result.map(value => value / resultNorm);
+}
+
+function attitudeToGlobeRotation(quaternionBN, epochUtc, simTimeS) {
+  const globeQuaternion = attitudeToGlobeQuaternion(quaternionBN, epochUtc, simTimeS);
+  if (!globeQuaternion) return null;
+  const euler = new THREE.Euler().setFromQuaternion(
+    new THREE.Quaternion(globeQuaternion[1], globeQuaternion[2], globeQuaternion[3], globeQuaternion[0]),
+    'XYZ'
+  );
+  return {
+    x: THREE.MathUtils.radToDeg(euler.x),
+    y: THREE.MathUtils.radToDeg(euler.y),
+    z: THREE.MathUtils.radToDeg(euler.z),
+  };
+}
+
+function eciToGlobePoint(position, epochUtc, simTimeS) {
+  if (!Array.isArray(position) || position.length !== 3 ||
+      !position.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
+  const theta = gmstAngle(epochUtc, simTimeS);
+  if (theta === null) return null;
   const cosTheta = Math.cos(theta), sinTheta = Math.sin(theta);
   const x = Number(position[0]), y = Number(position[1]), z = Number(position[2]);
   // Rotate inertial N/ECI coordinates into Earth-fixed coordinates.
@@ -165,14 +284,32 @@ function pointFromTelemetry(frame, epochUtc) {
   if (typeof rawTime !== 'number' || !Number.isFinite(rawTime) || rawTime < 0) return null;
   const simTimeS = rawTime;
   const point = eciToGlobePoint(position, epochUtc, simTimeS);
-  return point ? {
+  if (!point) return null;
+  const quaternion = ['q0', 'q1', 'q2', 'q3']
+    .map(axis => values[`attitude.truth.quaternion_BN_${axis}`]);
+  const mrp = ['x', 'y', 'z']
+    .map(axis => values[`attitude.truth.mrp_BN_${axis}`]);
+  const quaternionNorm = quaternion.every(value => typeof value === 'number' && Number.isFinite(value))
+    ? Math.hypot(...quaternion) : NaN;
+  const attitudeValid = values['attitude.truth.valid'] === 1
+    && mrp.every(value => typeof value === 'number' && Number.isFinite(value))
+    && quaternion.every(value => typeof value === 'number' && Number.isFinite(value))
+    && Math.abs(quaternionNorm - 1) <= 1e-6;
+  const rotation = attitudeValid
+    ? attitudeToGlobeRotation(quaternion, epochUtc, simTimeS)
+    : null;
+  const validRotation = rotation || {x: 0, y: 0, z: 0};
+  return {
     ...point,
+    attitude_truth: attitudeValid ? { mrp_BN: mrp, quaternion_BN: quaternion } : null,
+    attitude_valid: Boolean(attitudeValid && rotation),
+    rotation: validRotation,
     sequence: Number.isSafeInteger(frame?.sequence) ? frame.sequence : null,
     session_id: typeof frame?.session_id === 'string' ? frame.session_id : null,
     stream: typeof frame?.stream === 'string' ? frame.stream : null,
     quality: typeof frame?.quality === 'string' ? frame.quality : null,
     name: '任务卫星（真实 Basilisk 遥测）'
-  } : null;
+  };
 }
 
 function telemetryPath() {
@@ -199,6 +336,7 @@ function renderTelemetryPosition() {
   Object.assign(state.satellite, state.latestTelemetryPoint);
   state.globe.objectsData([state.satellite]);
   state.globe.pathsData(telemetryPath());
+  renderTelemetryInspector(state.latestTelemetryPoint);
   if (state.tracking) {
     state.globe.pointOfView({
       lat: state.satellite.lat, lng: state.satellite.lng, altitude: 1.8
@@ -251,7 +389,7 @@ function updateTelemetry(frame, options = {}) {
     if (state.frame) cancelAnimationFrame(state.frame);
     state.frame = 0;
     renderTelemetryPosition();
-    status(`已接入${state.telemetrySourceLabel}：仿真时间 ${point.sim_time_s.toFixed(2)} s；高度 ${point.altitude_km.toFixed(2)} km。位置由 N 惯性系轨道遥测和仿真 epoch 换算；地球自转采用 GMST 近似与 WGS-84 椭球，仅用于场景定位。`, 'success');
+    status(`已接入${state.telemetrySourceLabel}：仿真时间 ${point.sim_time_s.toFixed(2)} s；高度 ${point.altitude_km.toFixed(2)} km；${point.attitude_valid ? '本体姿态由 Basilisk 真值驱动（示意模型轴系）' : '姿态不可用，本体朝向仅为示意'}。位置使用 GMST 近似与 WGS-84 椭球进行场景定位。`, point.attitude_valid ? 'success' : 'warning');
   }
   return true;
 }
@@ -288,7 +426,7 @@ function setRunTelemetry(rows, options = {}) {
     if (state.frame) cancelAnimationFrame(state.frame);
     state.frame = 0;
     renderTelemetryPosition();
-    status(`已加载${state.telemetrySourceLabel}：${state.telemetryTrail.length} 个轨迹样本${state.telemetrySampled ? '（抽样概览）' : ''}；末样本仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s。`, 'success');
+    status(`已加载${state.telemetrySourceLabel}：${state.telemetryTrail.length} 个轨迹样本${state.telemetrySampled ? '（抽样概览）' : ''}；末样本仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s；${state.latestTelemetryPoint.attitude_valid ? '本体姿态由 Basilisk 真值驱动（示意模型轴系）' : '姿态不可用，本体朝向仅为示意'}。`, state.latestTelemetryPoint.attitude_valid ? 'success' : 'warning');
   }
   return true;
 }
@@ -302,8 +440,9 @@ function clearTelemetrySource() {
   state.latestTelemetryPoint = null;
   state.telemetrySampled = false;
   state.telemetryTotalRows = null;
+  renderTelemetryInspector(null);
   if (state.active && state.ready && state.globe && state.satellite) {
-    Object.assign(state.satellite, {name: '任务卫星（示意模型）', ...orbitPoint(0)});
+    Object.assign(state.satellite, {name: '任务卫星（示意模型）', ...orbitPoint(0), rotation: {x: 0, y: 0, z: 0}, attitude_valid: false, attitude_truth: null});
     state.globe.objectsData([state.satellite]);
     state.globe.pathsData(buildDemoOrbitPath());
     state.startedAt = performance.now();
@@ -357,13 +496,14 @@ function createGlobe(host, generation) {
     .pathDashLength(0.008)
     .pathDashGap(0.004)
     .pathDashAnimateTime(0)
-    .objectsData([satellite])
     .objectLabel('name')
     .objectLat('lat')
     .objectLng('lng')
     .objectAltitude('alt')
     .objectFacesSurface(false)
-    .objectThreeObject(() => makeSatelliteModel());
+    .objectRotation('rotation')
+    .objectThreeObject(() => makeSatelliteModel())
+    .objectsData([satellite]);
 
   const controls = globe.controls();
   controls.autoRotate = false;
@@ -397,9 +537,12 @@ function updateSatellite(now) {
 function syncCameraActions() {
   document.querySelectorAll('#satelliteSceneView [data-scene-action]').forEach((button) => {
     button.disabled = !state.ready;
-    if (button.dataset.sceneAction !== 'home') {
-      const selected = button.dataset.sceneAction === 'track' ? state.tracking : !state.tracking;
-      button.setAttribute('aria-pressed', String(state.ready && selected));
+    if (button.dataset.sceneAction === 'track') {
+      button.setAttribute('aria-pressed', String(state.ready && state.tracking));
+    } else if (button.dataset.sceneAction === 'free') {
+      button.setAttribute('aria-pressed', String(state.ready && !state.tracking));
+    } else if (button.dataset.sceneAction === 'axes') {
+      button.setAttribute('aria-pressed', String(state.ready && state.showBodyAxes));
     }
   });
 }
@@ -413,7 +556,7 @@ function markReady(globe, generation) {
   state.lastUpdateAt = 0;
   if (state.telemetrySourceId && state.latestTelemetryPoint) {
     renderTelemetryPosition();
-    status(`场景已就绪，当前显示${state.telemetrySourceLabel || '真实 Basilisk 遥测'}。`, 'success');
+    status(`场景已就绪，当前显示${state.telemetrySourceLabel || '真实 Basilisk 遥测'}；${state.latestTelemetryPoint.attitude_valid ? '本体姿态由 Basilisk 真值驱动（示意模型轴系）' : '姿态不可用，本体朝向仅为示意'}。`, state.latestTelemetryPoint.attitude_valid ? 'success' : 'warning');
   } else {
     state.frame = requestAnimationFrame(updateSatellite);
     status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
@@ -429,11 +572,13 @@ function destroy() {
   state.generation += 1;
   state.globe = null;
   state.satellite = null;
+  state.modelAxesGroup = null;
   state.tracking = false;
   clearTimeout(state.loadingTimer);
   state.loadingTimer = 0;
   if (state.frame) cancelAnimationFrame(state.frame);
   state.frame = 0;
+  renderTelemetryInspector(state.latestTelemetryPoint);
   state.resizeObserver?.disconnect();
   state.resizeObserver = null;
   if (globe) {
@@ -520,10 +665,10 @@ function selectObject({ name, hasSpatialAnchor = false } = {}) {
   if (!name) return;
   const readyPrefix = state.active && state.ready
     ? (state.telemetrySourceId
-      ? `场景已接入${state.telemetrySourceLabel || '真实仿真遥测'}。${state.latestTelemetryPoint
-        ? `仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s；高度 ${state.latestTelemetryPoint.altitude_km.toFixed(2)} km。`
+      ? `场景已就绪，当前显示${state.telemetrySourceLabel || '真实仿真遥测'}。${state.latestTelemetryPoint
+        ? `仿真时间 ${state.latestTelemetryPoint.sim_time_s.toFixed(2)} s；高度 ${state.latestTelemetryPoint.altitude_km.toFixed(2)} km；${state.latestTelemetryPoint.attitude_valid ? '姿态由 Basilisk 真值驱动（示意模型轴系）' : '姿态不可用，本体朝向仅为示意'}。`
         : ''}`
-      : '场景当前使用演示数据。') : '';
+      : '场景已就绪，当前使用演示数据（非仿真结果）。') : '';
   if (!hasSpatialAnchor) {
     status(`${readyPrefix}已选择：${name}。该对象没有经过审定的三维空间锚点，场景保持当前视角，不虚构部件位置。`, 'info');
     return;
@@ -536,10 +681,14 @@ document.addEventListener('click', (event) => {
   if (action === 'track') track();
   if (action === 'free') freeCamera();
   if (action === 'home') home();
+  if (action === 'axes') toggleBodyAxes();
 });
 
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
-  eciToGlobePoint,
+  eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
+  toggleBodyAxes,
+  isBodyAxesVisible: () => Boolean(state.modelAxesGroup?.visible && state.showBodyAxes),
+  hasBodyAxesModel: () => Boolean(state.modelAxesGroup),
 };

@@ -57,6 +57,43 @@ def test_time_window_is_recomputed_on_original_data_and_not_proxy_interpolation(
         read_telemetry_overview(root, max_points=30)
 
 
+def test_overview_preserves_atomic_orbit_and_attitude_truth_fields(tmp_path):
+    fields = (
+        "orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z",
+        "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+        "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+        "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+        "attitude.truth.valid",
+    )
+    rows = [
+        {"time_s": float(i), "sample_index": i, **{
+            field: (1.0 if field.endswith("_q0") or field == "attitude.truth.valid" else float(i))
+            for field in fields
+        }}
+        for i in range(600)
+    ]
+    root = _bundle(tmp_path, rows)
+    data = read_telemetry_overview(root, max_points=100, fields=fields)
+    assert data["sampled"] is True
+    assert data["rows"][0]["attitude.truth.quaternion_BN_q0"] == 1.0
+    assert data["rows"][-1]["attitude.truth.valid"] == 1.0
+    assert all(set(fields) <= set(row) for row in data["rows"])
+
+    from fastapi.testclient import TestClient
+    from sat_sim.api import create_app
+    runs = tmp_path / "api-runs"
+    api_root = _bundle(runs, rows)
+    app = create_app(runs_root=runs, artifacts_root=tmp_path / "api-artifacts",
+                     embedded_worker=False, auth_mode="disabled")
+    with TestClient(app) as client:
+        response = client.get(
+            "/runs/run-001/telemetry/overview",
+            params={"max_points": 100, "fields": ",".join(fields)},
+        )
+    assert response.status_code == 200, response.text
+    assert all(set(fields) <= set(row) for row in response.json()["rows"])
+
+
 def test_malformed_original_fails_closed(tmp_path):
     root = _bundle(tmp_path, [{"time_s": 0, "x": 1}])
     with (root / "results" / "telemetry.jsonl").open("a", encoding="utf-8") as stream:

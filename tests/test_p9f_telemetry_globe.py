@@ -88,9 +88,17 @@ def test_finite_run_scene_support_is_sealed_whole_spacecraft_only():
     assert "state.activeRun?.integrity?.ok === true" in app
     assert "state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1'" in app
     assert "orbit.position_m_x" in app and "overviewFields" in app
+    for field in (
+        "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+        "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+        "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+        "attitude.truth.valid",
+    ):
+        assert field in writer
+        assert field in app
     assert "const plotFieldLimit = 16" in app
-    assert "if len(names) > 19:" in (root / "api.py").read_text(encoding="utf-8")
-    assert "if len(fields) > 19 or any(" in (root / "telemetry_overview.py").read_text(encoding="utf-8")
+    assert "if len(names) > 32:" in (root / "api.py").read_text(encoding="utf-8")
+    assert "if len(fields) > 32 or any(" in (root / "telemetry_overview.py").read_text(encoding="utf-8")
 
 
 def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):

@@ -490,7 +490,13 @@ def write_task_dataset(
     # user chooses unrelated chart curves. Keep these support channels in the
     # Run trace without adding them to the user's selected plot manifest.
     scene_support_fields = (
-        ("orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z")
+        (
+            "orbit.position_m_x", "orbit.position_m_y", "orbit.position_m_z",
+            "attitude.truth.mrp_BN_x", "attitude.truth.mrp_BN_y", "attitude.truth.mrp_BN_z",
+            "attitude.truth.quaternion_BN_q0", "attitude.truth.quaternion_BN_q1",
+            "attitude.truth.quaternion_BN_q2", "attitude.truth.quaternion_BN_q3",
+            "attitude.truth.valid",
+        )
         if capability_id == "whole_spacecraft.unified_native.v1" else ()
     )
     rows = _filter_rows(
