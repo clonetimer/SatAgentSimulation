@@ -121,3 +121,13 @@ def test_birds4_unit_scale_is_inferred_from_nominal_1u_assembly_envelope():
 def test_birds4_unit_scale_refuses_implausible_envelope():
     with pytest.raises(ValueError, match="cannot safely infer STEP units"):
         MODULE.detect_source_unit(_Assembly(_Bounds(10.0, 10.0, 10.0)))
+
+
+def test_duplicate_cad_component_names_get_stable_unique_occurrence_ids():
+    existing = {"root", "B4_DepSW v3", "B4_DepSW v3__instance_002"}
+    name, occurrence = MODULE._unique_instance_name("B4_DepSW v3", existing)
+    assert name == "B4_DepSW v3__instance_003"
+    assert occurrence == 3
+    name, occurrence = MODULE._unique_instance_name("new-part", existing)
+    assert name == "new-part"
+    assert occurrence == 1
