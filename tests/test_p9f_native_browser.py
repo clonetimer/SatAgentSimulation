@@ -44,7 +44,34 @@ GLOBE_OBSERVER = r"""
         const originalMethod = globe[methodName]?.bind(globe);
         if (typeof originalMethod !== 'function') continue;
         globe[methodName] = function(value) {
-          if (arguments.length) observed[propertyName] = structuredClone(value);
+          if (arguments.length) {
+            if (propertyName === 'objectRows') {
+              // Globe.gl may attach THREE objects/functions to source rows.
+              // Snapshot only the public telemetry fields; never structuredClone
+              // renderer-owned objects or interfere with the real setter.
+              observed.objectRows = (Array.isArray(value) ? value : []).map(row => ({
+                name: row?.name,
+                session_id: row?.session_id,
+                stream: row?.stream,
+                sequence: row?.sequence,
+                quality: row?.quality,
+                sim_time_s: row?.sim_time_s,
+                lat: row?.lat,
+                lng: row?.lng,
+                alt: row?.alt,
+                altitude_km: row?.altitude_km,
+              }));
+            } else if (propertyName === 'pathRows') {
+              observed.pathRows = (Array.isArray(value) ? value : []).map(segment => ({
+                name: segment?.name,
+                points: (Array.isArray(segment?.points) ? segment.points : []).map(point => ({
+                  lat: point?.lat, lng: point?.lng, alt: point?.alt,
+                })),
+              }));
+            } else {
+              observed[propertyName] = value;
+            }
+          }
           return arguments.length ? originalMethod(value) : observed[propertyName];
         };
       }
