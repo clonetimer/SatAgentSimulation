@@ -701,6 +701,7 @@
     if (frame) {
       window.SatScene?.updateTelemetry(frame, {
         epochUtc: state.snapshot?.orbit_epoch_utc,
+        frame: state.snapshot?.orbit_frame,
         sourceId: state.selectedId,
         sourceLabel: '持续原生 Basilisk 会话',
       });
