@@ -83,3 +83,10 @@ def test_cad_viewer_reports_actual_file_read_progress_and_preserves_previous_sce
     assert "FileReader" in source and "reader.onprogress" in source
     assert "event.loaded/event.total" in source
     assert source.index("const gltf=await parseGlb(buf);clear();") >= 0
+
+
+def test_viewer_has_distinct_positive_and_negative_z_camera_presets_and_empty_search_state():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    assert "v==='-z'?Math.PI:0" in source
+    assert "没有找到匹配的装配部件" in source
+    assert "button.textContent=hasChildren?'选择'" in source
