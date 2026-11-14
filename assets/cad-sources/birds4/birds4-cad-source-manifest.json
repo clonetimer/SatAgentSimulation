@@ -1,0 +1,273 @@
+{
+  "schema_version": "birds-cad-source-manifest.v1",
+  "source_project": "BIRDS-4 CubeSat",
+  "source_organization": "Kyushu Institute of Technology / BIRDS Open Source",
+  "source_repository": "https://github.com/BIRDSOpenSource/BIRDS4-CAD",
+  "source_commit": "3bab47a0f53410ef79005d21321ff659726f0a1c",
+  "source_tree_sha": "0b84617fd98db32b5d997dc24585da95d5bd2b55",
+  "license": {
+    "spdx": "MIT",
+    "copyright": "Copyright (c) 2021 Kyushu Institute of Technology",
+    "license_file": "https://github.com/BIRDSOpenSource/BIRDS4-CAD/blob/main/LICENSE"
+  },
+  "project_facts": {
+    "form_factor": "1U CubeSat",
+    "nominal_envelope_mm": [
+      100,
+      100,
+      100
+    ],
+    "launch_date": "2021-02-21",
+    "satellite_names": [
+      "Tsuru",
+      "Guarani-1",
+      "Maya-2"
+    ],
+    "note": "Repository README describes the BIRDS-4 program and CAD source; do not infer a specific flight unit's as-built configuration from the CAD repository alone."
+  },
+  "assembly_procedure": {
+    "repository": "https://github.com/BIRDSOpenSource/BIRDS4-ProceduresAndReports",
+    "path": "Procedures/BIRDS4-FM Assembly Procedure.docx",
+    "git_blob_sha1": "4236578c000b413773399d91e094b57a20a52e28",
+    "size_bytes": 61750445,
+    "role": "assembly evidence; extract and review before promoting individual transforms to verified"
+  },
+  "coordinate_reference": {
+    "title": "BIRDS Newsletter Issue No.49",
+    "url": "https://birds1.birds-project.com/files/BIRDS_Newsletter_Issue_No.49.pdf",
+    "page": 158,
+    "role": "axis/datum orientation reference only; not a complete per-instance transform table"
+  },
+  "cad_files": [
+    {
+      "path": "B3_+Z_panel v26.step",
+      "size_bytes": 570289,
+      "git_blob_sha1": "1b52d5dc00668a66f8180fb9ef29bef88ce5b0da"
+    },
+    {
+      "path": "B4_COM_board v19.step",
+      "size_bytes": 1275201,
+      "git_blob_sha1": "34a294d5828ee622d6246d7696d987cde6c1bb12"
+    },
+    {
+      "path": "B4_DepSW v3.step",
+      "size_bytes": 57011,
+      "git_blob_sha1": "c1fd42911872be6b41740fe3681ffef09ec7f220"
+    },
+    {
+      "path": "B4_EM_-Z_panel v19.step",
+      "size_bytes": 584319,
+      "git_blob_sha1": "85b1134a1d334bad7319520e43039795411d730a"
+    },
+    {
+      "path": "B4_EM_Back_Plane_Board v19.step",
+      "size_bytes": 1565474,
+      "git_blob_sha1": "a1176624db3b0fcd8c60b54470e40b1c0f78c488"
+    },
+    {
+      "path": "B4_EM_FAB_Simple v30.step",
+      "size_bytes": 2772473,
+      "git_blob_sha1": "d6a57b6e9053d44ac92c418706448a36473c52fa"
+    },
+    {
+      "path": "B4_EM_MB2 v29.step",
+      "size_bytes": 2196028,
+      "git_blob_sha1": "ad635d8986e54d6e61bbb231655ee4a56f1a67bb"
+    },
+    {
+      "path": "B4_EM_RAB v21.step",
+      "size_bytes": 2591494,
+      "git_blob_sha1": "55b8ec5c4fbec04645bd5f324f8093c2ef4748d2"
+    },
+    {
+      "path": "B4_EM_Spacer1_C5.step",
+      "size_bytes": 10194,
+      "git_blob_sha1": "7773b7e3b48158722cf11e0204b7a84b7e32b6c2"
+    },
+    {
+      "path": "B4_EM_Spacer2_C17.5.step",
+      "size_bytes": 10288,
+      "git_blob_sha1": "0f389b5a84912ebb03e85e728b5c1c826e350b53"
+    },
+    {
+      "path": "B4_EM_Spacer4_C5.5_set v1.step",
+      "size_bytes": 10227,
+      "git_blob_sha1": "524109a411209cdd56a490347d48b473fe28251d"
+    },
+    {
+      "path": "B4_EM_Spacer5_C15.step",
+      "size_bytes": 10229,
+      "git_blob_sha1": "7acf9233b901816b633424ea559a886d59f2611c"
+    },
+    {
+      "path": "B4_EM_Spacer6_C8.step",
+      "size_bytes": 9040,
+      "git_blob_sha1": "bde7c9e79d4f6d31ebb627c0bd88786706216b16"
+    },
+    {
+      "path": "B4_EM_Spacer7_C9.step",
+      "size_bytes": 9040,
+      "git_blob_sha1": "d71f55582954f7b292d319f7be01c596830a6c70"
+    },
+    {
+      "path": "B4_EM_Spacer8_C9.5.step",
+      "size_bytes": 10248,
+      "git_blob_sha1": "d0227513c941257e27e4ab91fe484c49360a8b04"
+    },
+    {
+      "path": "B4_EM_frame6X v14.step",
+      "size_bytes": 95087,
+      "git_blob_sha1": "fa9826820d0d2395dc405bac49d065a4f81d8180"
+    },
+    {
+      "path": "B4_FM_+X_panel v1.step",
+      "size_bytes": 306935,
+      "git_blob_sha1": "87f0b741ca6b39da1c4cefb5f9bbcbe5cef1690f"
+    },
+    {
+      "path": "B4_FM_+Y_panel v1.step",
+      "size_bytes": 334469,
+      "git_blob_sha1": "805de0642d3677ad767d9d14f31f2f95ad820410"
+    },
+    {
+      "path": "B4_FM_-X_panel v1.step",
+      "size_bytes": 307037,
+      "git_blob_sha1": "f208ce7387e49ae96e30136e0f5d7b4f44d375be"
+    },
+    {
+      "path": "B4_FM_-Y_panel v3.step",
+      "size_bytes": 2618890,
+      "git_blob_sha1": "a90e452cf5a67eaa7f17f87cd80829286f59e3ff"
+    },
+    {
+      "path": "B4_MB1 v52.step",
+      "size_bytes": 3843148,
+      "git_blob_sha1": "94f992de0670baa81c6c7376dbf64dbfcc6de54d"
+    },
+    {
+      "path": "B4_OBC v3.step",
+      "size_bytes": 1290708,
+      "git_blob_sha1": "26915cf342acbc783679c2e0ddfd1760cd6444d9"
+    },
+    {
+      "path": "B4_RW_Assembly v55.step",
+      "size_bytes": 330894,
+      "git_blob_sha1": "1b4e407d70cdd76a9171f8dee056b8cd34f0f162"
+    },
+    {
+      "path": "B4_battery v1.step",
+      "size_bytes": 133698,
+      "git_blob_sha1": "40ecf6b2d276717c0d1bc3b90be0cbc0cfe21d2b"
+    },
+    {
+      "path": "B4_frame1 v6.step",
+      "size_bytes": 36325,
+      "git_blob_sha1": "6d2bc7ded317a485294a38afb5dd569dcb2704be"
+    },
+    {
+      "path": "B4_frame1F v12.step",
+      "size_bytes": 54850,
+      "git_blob_sha1": "ee5920542f8965e44559443fcd58841de49dce3a"
+    },
+    {
+      "path": "B4_frame2 v6.step",
+      "size_bytes": 37404,
+      "git_blob_sha1": "64aaed29ee5ef71233a2cb59edcc9078429440c9"
+    },
+    {
+      "path": "B4_frame2S v15.step",
+      "size_bytes": 64385,
+      "git_blob_sha1": "55b537864bf8a9db63af8015d317583e906be2f1"
+    },
+    {
+      "path": "B4_frame3 v15.step",
+      "size_bytes": 54948,
+      "git_blob_sha1": "a107279d6cc93b1c7edfaaecf0eb9d202fdc4dac"
+    },
+    {
+      "path": "B4_frame4 v8.step",
+      "size_bytes": 27917,
+      "git_blob_sha1": "598cc5caddae434948bd9ae27f16549e031824bc"
+    },
+    {
+      "path": "B4_frame5A v29.step",
+      "size_bytes": 81927,
+      "git_blob_sha1": "aec23863b172293e9453fdc21631969447c84d8a"
+    },
+    {
+      "path": "B4_frame5B v14.step",
+      "size_bytes": 85957,
+      "git_blob_sha1": "b0ae00717919c37535c20f845fc65e99ea653c2b"
+    },
+    {
+      "path": "B4_frame6Y v15.step",
+      "size_bytes": 66132,
+      "git_blob_sha1": "de97190ed6db4435db6acf219fc9702ad7ff2ad7"
+    },
+    {
+      "path": "B4_frame7_updated_after_FM v2.step",
+      "size_bytes": 15469,
+      "git_blob_sha1": "1044500cbd3855a7857c5b0c8f62746ec5f2df32"
+    },
+    {
+      "path": "BIRDS4_FM_Final v7.step",
+      "size_bytes": 22964753,
+      "git_blob_sha1": "0a1eea524ad16c9f06961a62bb550cad4d2d9e36"
+    },
+    {
+      "path": "CBSTSR2-6 v1.step",
+      "size_bytes": 29312,
+      "git_blob_sha1": "92f0240ae62e0e6e3fb0ca5dd57cf250c9de2b21"
+    },
+    {
+      "path": "Cu_Coils_EM v8.step",
+      "size_bytes": 80571,
+      "git_blob_sha1": "a26659b5d858f0f3615b36b6e41568f187105495"
+    },
+    {
+      "path": "DepSW_Holder v1.step",
+      "size_bytes": 38034,
+      "git_blob_sha1": "2aece1e0e52c59e91c94fc44459528f0bb09c13d"
+    },
+    {
+      "path": "Deployment_Switch_J-7-V22 v4.step",
+      "size_bytes": 101155,
+      "git_blob_sha1": "b4f8351c743b1dd2c543266b46cf2ea4f0283f91"
+    },
+    {
+      "path": "FABS3-96 v1.step",
+      "size_bytes": 9096,
+      "git_blob_sha1": "54ae397870d5c9bb43534d63001990e6d6948475"
+    },
+    {
+      "path": "SLBNR3 v1.step",
+      "size_bytes": 27265,
+      "git_blob_sha1": "3a7a096f4771c1f79c33cfdd9b8ecd3b12f38b2d"
+    },
+    {
+      "path": "SLHS-M2-8 v1.step",
+      "size_bytes": 18718,
+      "git_blob_sha1": "05a31b2863258da0bc6c747e352a2ba86bfc7b79"
+    },
+    {
+      "path": "SNSS-M1_6-6 v1.step",
+      "size_bytes": 18648,
+      "git_blob_sha1": "aec9332c61ac4194137e4c885f8e651ab7ed7601"
+    },
+    {
+      "path": "SNSS-M2-4 v1.step",
+      "size_bytes": 18664,
+      "git_blob_sha1": "f71df96699bcb2c20fd8703864ec709054f4a5c1"
+    },
+    {
+      "path": "SNSS-M2-5 v1.step",
+      "size_bytes": 18580,
+      "git_blob_sha1": "5c94954eaef43a7c7bc613554687ad9eaf20b7c2"
+    },
+    {
+      "path": "SNSS-M2-6-SD v1.step",
+      "size_bytes": 34574,
+      "git_blob_sha1": "803fe9bcdbd336fdc71afb8ed8d8d3cb6a97ed39"
+    }
+  ]
+}
