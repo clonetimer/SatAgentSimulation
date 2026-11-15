@@ -1045,7 +1045,7 @@ function setOrbitSceneVisible(visible) {
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible,
-  setOrbitSceneVisible, imuPlatformAxesInBodyFrame,
+  setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
