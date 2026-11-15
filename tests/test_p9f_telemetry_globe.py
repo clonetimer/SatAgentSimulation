@@ -134,6 +134,10 @@ def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
+            playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
+            playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
+            page.locator('[data-scene-mode="orbit"]').click()
+            playwright.expect(page.locator('[data-scene-action="track"]')).to_be_enabled(timeout=30000)
             status = page.locator("#satelliteSceneStatus")
             page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
             result = page.evaluate("""() => {

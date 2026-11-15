@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import struct
+import subprocess
 import time
 from pathlib import Path
 from urllib.parse import parse_qsl, urlparse
@@ -110,7 +112,7 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "adcs.rw.effective_max_torque_nm_0" in scene
     assert "反作用轮 RW" in scene
     assert "updateSimulationWheelMotion" in scene
-    assert "speed * time" in scene
+    assert "speed * time" not in scene
     assert "simulationWheelMeshes.push" in scene
     assert "renderSensorTelemetry" in scene
     for element_id in ("simulationHubMass", "simulationHubIxx", "simulationHubIyy", "simulationHubIzz"):
@@ -186,9 +188,19 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             for cycle in range(3):
                 page.locator("#wizardSceneShortcutBtn").click()
+                if cycle == 0:
+                    playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
+                    playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
+                    playwright.expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
+                    playwright.expect(page.locator(".satellite-scene-actions")).to_be_hidden()
+                    playwright.expect(page.locator("#satelliteSceneTitle")).to_have_text("ADCS 仿真构型")
+                # Orbit tests must explicitly enter the orbit mode; the user's
+                # physical-configuration default is not reverted for CI.
+                page.locator('[data-scene-mode="orbit"]').click()
                 scene_status = page.locator("#satelliteSceneStatus")
                 try:
-                    scene_status.filter(has_text="场景已就绪").wait_for(timeout=30000)
+                    page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+                    playwright.expect(page.locator('[data-scene-action="track"]')).to_be_enabled(timeout=30000)
                 except Exception as error:
                     diagnostic = (
                         f"cycle={cycle}; url={page.url}; active_view={page.locator('body').get_attribute('data-active-view')}; "
@@ -200,8 +212,10 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 canvas = page.locator("#satelliteSceneCanvas canvas").first
                 canvas.wait_for(timeout=30000)
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 1
-                scene_text = scene_status.inner_text()
-                assert any(label in scene_text for label in ("演示数据", "已封存有限 Run 遥测", "实时 Basilisk 遥测"))
+                # Readiness is a renderer state, not one particular status message.
+                # A retained Run may already have supplied a later telemetry status.
+                assert "加载超时" not in scene_status.inner_text()
+                assert page.locator("#sceneDataSource").get_attribute("data-state") in {"demo", "sealed", "live"}
                 semantic_node = page.locator(".p9d-tree-item").first
                 semantic_node.wait_for(state="visible", timeout=15000)
                 selected_name = semantic_node.inner_text()
@@ -273,18 +287,15 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     ], {verified:true,runId:'rw-phase-integral',epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',timeSystem:'UTC'});
                     return window.SatScene.integrateWheelPhaseFromTelemetry(0,2);
                 }""")
-                import math
                 assert abs(phase - (300.0 % (2 * math.pi))) < 1e-8
+                physical_coordinates = page.locator("#simulationGeometryRows").inner_text()
                 page.locator("#simulationExplodeToggle").click()
+                assert page.locator("#simulationGeometryRows").inner_text() == physical_coordinates
                 assert page.locator("#simulationExplodeToggle").get_attribute("aria-pressed") == "true"
                 assert "视觉分离" in page.locator("#simulationGeometryStatus").inner_text()
                 page.locator("#simulationExplodeToggle").click()
                 assert page.locator("#simulationExplodeToggle").get_attribute("aria-pressed") == "false"
-                wheel_phase = page.evaluate("""() => {
-                    const wheel = window.SatScene;
-                    return typeof wheel.setRunTelemetry === 'function';
-                }""")
-                assert wheel_phase is True
+                assert page.locator("#simulationGeometryRows").inner_text() == physical_coordinates
                 assert "已封存有限 Run 遥测" in page.locator("#simulationSensorTelemetrySource").inner_text()
                 page.evaluate("""() => window.SatScene.setRunTelemetry([{
                     sim_time_s: 13.0,
@@ -433,10 +444,13 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
-            page.locator("#satelliteSceneStatus").filter(has_text="场景已就绪").wait_for(timeout=30000)
+            playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
+            playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
+            playwright.expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
+            # CAD is independent of orbit imagery readiness.
             orbit_tab = page.locator('[data-scene-mode="orbit"]')
             cad_tab = page.locator('[data-scene-mode="cad"]')
-            assert orbit_tab.get_attribute("aria-pressed") == "true"
+            assert orbit_tab.get_attribute("aria-pressed") == "false"
             assert page.locator("#birdsCadViewer").is_hidden()
             cad_tab.click()
             assert cad_tab.get_attribute("aria-pressed") == "true"
@@ -548,6 +562,8 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
                 page.screenshot(path=str(Path(evidence_dir) / ("birds4-cad-viewer-real-mobile.png" if real_glb else "birds4-cad-viewer-mobile.png")), full_page=True)
             page.set_viewport_size({"width": 1440, "height": 960})
             orbit_tab.click()
+            playwright.expect(page.locator("#satelliteSceneCanvas canvas")).to_be_visible(timeout=30000)
+            playwright.expect(page.locator('[data-scene-action="track"]')).to_be_enabled(timeout=30000)
             assert page.locator("#birdsCadViewer").is_hidden()
             assert page.locator("#satelliteSceneTitle").inner_text() == "卫星数字场景"
             assert page.locator(".satellite-scene-actions").is_visible()
@@ -573,3 +589,13 @@ def test_scene_object_selection_preserves_physical_and_assembly_semantics_withou
     for element_id in ("sceneObjectName", "sceneObjectClass", "sceneObjectTarget", "sceneObjectConfigScope",
                        "sceneObjectAnchor", "sceneObjectMapping", "sceneObjectInventory", "sceneObjectSemanticsNote"):
         assert f'id="{element_id}"' in html
+
+
+def test_default_scene_mode_initialization_and_renderer_ownership():
+    """Execute the production DOM mode controller without loading WebGL."""
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        ["node", "--test", str(root / "tests/js/test_p9j_default_scene_mode.cjs")],
+        cwd=root, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

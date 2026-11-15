@@ -95,6 +95,19 @@ GLOBE_OBSERVER = r"""
 """
 
 
+def _open_orbit_from_physical_default(page) -> None:
+    """Use real mode controls; never inject telemetry or click a hidden canvas."""
+    from playwright.sync_api import expect
+
+    expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
+    expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
+    page.locator('[data-scene-mode="orbit"]').click()
+    expect(page.locator('[data-scene-mode="orbit"]')).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#satelliteSceneCanvas canvas")).to_be_visible(timeout=30000)
+    expect(page.locator('[data-scene-action="track"]')).to_be_enabled(timeout=30000)
+
+
 def _set_control(page, selector: str, value: str) -> None:
     control = page.locator(selector)
     tag = control.evaluate("(node) => node.tagName")
@@ -334,7 +347,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             # This is the product's actual scene navigation action. The active
             # real session and its existing telemetry transport must survive.
             page.locator("#wizardSceneShortcutBtn").click()
-            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+            _open_orbit_from_physical_default(page)
             page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
             try:
                 page.wait_for_function(
@@ -644,7 +657,7 @@ def test_sealed_finite_run_attitude_is_restored_in_real_scene(viewport, tmp_path
             # Use the primary navigation scene entry from the selected Run;
             # the loaded Run remains the scene's authoritative data source.
             page.locator('.sidebar-nav button[data-view="scene"]').click()
-            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+            _open_orbit_from_physical_default(page)
             page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
             page.wait_for_function(
                 "() => window.__p9fObservedGlobe?.objectRows?.some(row => row.attitude_valid === true)",
