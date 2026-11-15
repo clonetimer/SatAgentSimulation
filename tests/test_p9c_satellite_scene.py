@@ -253,7 +253,8 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             cad_tab.click()
             assert cad_tab.get_attribute("aria-pressed") == "true"
             assert page.locator(".p9d-config-panel").is_hidden()
-            assert page.locator(".p9d-scene-layout").evaluate("(node) => getComputedStyle(node).gridTemplateColumns") .split(" ").length == 1
+            grid_columns = page.locator(".p9d-scene-layout").evaluate("(node) => getComputedStyle(node).gridTemplateColumns")
+            assert len(grid_columns.split()) == 1, grid_columns
             viewer = page.locator("#birdsCadViewer")
             viewer.wait_for(state="visible", timeout=10000)
             page.locator("#birdsCadFile").set_input_files(str(glb_path))
