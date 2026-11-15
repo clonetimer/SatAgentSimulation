@@ -114,5 +114,7 @@ def test_scene_heading_and_orbit_controls_follow_active_scene_mode():
     source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
     css = (WEB / "satellite-scene.css").read_text(encoding="utf-8")
     assert 'id="satelliteSceneTitle"' in html and 'id="satelliteSceneDescription"' in html
-    assert "BIRDS-4 整星 CAD 参考" in source
+    assert "BIRDS-4 参考 CAD" in source
+    assert "ADCS 仿真构型" in source
+    assert "simulation-geometry-mode" in css
     assert ".p9d-scene-layout.is-cad-mode .satellite-scene-actions{display:none}" in css
