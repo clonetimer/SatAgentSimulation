@@ -4478,6 +4478,11 @@
       stack.push(...(candidate?.children || []));
     }
     const source = row || fallback || {};
+    const selectedCapability = source.execution_capability_id || source.configuration_capability_id
+      || fallback.primary_capability_id || state.selectedCapabilityId || '';
+    if (!String(selectedCapability).startsWith('whole_spacecraft.')) {
+      window.SatScene?.clearSimulationConfiguration?.();
+    }
     window.SatScene?.selectObject?.({
       objectId,
       name: source.name_zh || fallback.name_zh || objectId,
