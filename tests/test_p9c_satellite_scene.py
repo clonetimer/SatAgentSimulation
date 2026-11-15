@@ -80,6 +80,23 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "unsafe-eval" not in scene
 
 
+def test_simulation_geometry_view_requires_validated_whole_spacecraft_configuration():
+    root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
+    html = (root / "index.html").read_text(encoding="utf-8")
+    viewer = (root / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
+    app = (root / "app.js").read_text(encoding="utf-8")
+    assert 'data-scene-mode="simulation"' in html
+    assert 'id="simulationGeometryCanvas"' in html
+    assert 'id="simulationGeometryRows"' in html
+    assert "setSimulationConfiguration" in app and "validated: true" in app
+    assert "whole_spacecraft." in scene
+    assert "rw_mount_b_" in scene and "rw_axis_b_" in scene
+    assert "rWB_B" in html and "gsHat_B" in html
+    assert "不是型号 as-built 安装证明" in html
+    assert "simulationRoot.hidden=!simulation" in viewer
+
+
 def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
     playwright = pytest.importorskip("playwright.sync_api")
     executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
