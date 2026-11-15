@@ -260,6 +260,8 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert page.locator("#birdsCadViewer").is_hidden()
             cad_tab.click()
             assert cad_tab.get_attribute("aria-pressed") == "true"
+            assert page.locator("#satelliteSceneTitle").inner_text() == "BIRDS-4 整星 CAD 参考"
+            assert page.locator(".satellite-scene-actions").is_hidden()
             assert page.locator(".p9d-config-panel").is_hidden()
             grid_columns = page.locator(".p9d-scene-layout").evaluate("(node) => getComputedStyle(node).gridTemplateColumns")
             assert len(grid_columns.split()) == 1, grid_columns
@@ -341,6 +343,8 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.set_viewport_size({"width": 1440, "height": 960})
             orbit_tab.click()
             assert page.locator("#birdsCadViewer").is_hidden()
+            assert page.locator("#satelliteSceneTitle").inner_text() == "卫星数字场景"
+            assert page.locator(".satellite-scene-actions").is_visible()
             assert page.locator(".p9d-config-panel").is_visible()
             assert len(page.locator(".p9d-scene-layout").evaluate("(node) => getComputedStyle(node).gridTemplateColumns").split()) == 2
             assert not external_requests, external_requests
