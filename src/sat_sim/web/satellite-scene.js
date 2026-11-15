@@ -926,6 +926,7 @@ function clearSimulationConfiguration() {
   const summary=byId('simulationGeometrySummary');if(summary)summary.textContent='请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。';
   const host=byId('simulationGeometryRows');if(host)host.innerHTML='<tr><td colspan="3">尚无已校验配置</td></tr>';
   const status=byId('simulationGeometryStatus');if(status)status.textContent='没有已校验的整星构型。';
+  if(state.simulationGeometryVisible)renderSimulationGeometry();
 }
 function setSimulationGeometryVisible(visible) {
   state.simulationGeometryVisible=Boolean(visible);
