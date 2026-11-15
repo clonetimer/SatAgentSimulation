@@ -764,8 +764,10 @@ const DEFAULT_RW_AXES = {
   }),
 };
 function resolveDisplayRwGeometry(values) {
-  if (!values || typeof values !== 'object') return null;
-  const configuration = values.rw_configuration || 'orthogonal_3';
+  if (!values || typeof values !== 'object'
+      || !Object.prototype.hasOwnProperty.call(values,'rw_configuration')
+      || !Object.prototype.hasOwnProperty.call(values,'rw_geometry_mode')) return null;
+  const configuration = values.rw_configuration;
   const defaults = DEFAULT_RW_AXES[configuration];
   if (!defaults) return null;
   const mode = values.rw_geometry_mode || 'legacy_axis_offset';
