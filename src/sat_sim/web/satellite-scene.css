@@ -155,3 +155,5 @@
 .simulation-geometry-note{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:1050px){.simulation-geometry-layout{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){.p9d-scene-layout.is-simulation-mode{grid-template-columns:minmax(0,1fr)}.simulation-geometry-viewport,.simulation-geometry-viewport canvas{min-height:340px}}
+
+.simulation-geometry-mode[hidden]{display:none!important}
