@@ -87,6 +87,12 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
     app = (root / "app.js").read_text(encoding="utf-8")
     assert 'data-scene-mode="simulation"' in html
+    assert 'data-scene-mode="simulation" aria-pressed="true">物理构型' in html
+    assert 'data-scene-mode="orbit" aria-pressed="false"' in html
+    assert 'id="simulationGeometryMode" class="simulation-geometry-mode" aria-label=' in html
+    assert 'id="satelliteOrbitMode" class="satellite-orbit-mode" hidden' in html
+    assert "integrateWheelPhaseFromTelemetry" in scene
+    assert "0.5 * (previous.speed + current) * (time - previous.time)" in scene
     assert 'id="simulationGeometryCanvas"' in html
     assert 'id="simulationGeometryRows"' in html
     assert 'id="simulationSensorRows"' in html
