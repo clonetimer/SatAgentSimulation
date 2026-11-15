@@ -783,9 +783,12 @@ function resolveDisplayRwGeometry(values) {
     }
   } else if (mode === 'per_wheel') {
     if (Number(values.rw_mount_radius_m ?? 0) !== 0) return null;
+    let anyOverride = false;
     for (let i=0;i<count;i+=1) {
       const axisKeys = ['x','y','z'].map(axis => 'rw_axis_b_'+axis+'_'+i);
       const supplied = axisKeys.map(key => values[key] != null);
+      anyOverride ||= supplied.some(Boolean)
+        || ['x','y','z'].some(axis => values['rw_mount_b_'+axis+'_m_'+i] != null);
       if (supplied.some(Boolean) && !supplied.every(Boolean)) return null;
       const axis = supplied.every(Boolean) ? axisKeys.map(key => Number(values[key])) : defaults[i];
       const norm2 = axis.reduce((sum,v)=>sum+v*v,0);
@@ -795,6 +798,7 @@ function resolveDisplayRwGeometry(values) {
       if (!pos.every(v=>Number.isFinite(v)&&Math.abs(v)<=0.25)) return null;
       positions.push(pos);
     }
+    if (!anyOverride) return null;
   } else return null;
   return {configuration,mode,axes,positions,count};
 }
