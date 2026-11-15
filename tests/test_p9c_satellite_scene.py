@@ -92,6 +92,10 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert 'id="simulationGeometryMode" class="simulation-geometry-mode" aria-label=' in html
     assert 'id="satelliteOrbitMode" class="satellite-orbit-mode" hidden' in html
     assert "integrateWheelPhaseFromTelemetry" in scene
+    assert "setSimulationExplodedView" in scene
+    assert "simulationExplodedView" in scene
+    assert 'id="simulationExplodeToggle"' in html
+    assert "physicalPosition" in scene
     assert "0.5 * (previous.speed + current) * (time - previous.time)" in scene
     assert 'id="simulationGeometryCanvas"' in html
     assert 'id="simulationGeometryRows"' in html
@@ -261,6 +265,20 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "125.500 rad/s" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                phase = page.evaluate("""() => {
+                    window.SatScene.setRunTelemetry([
+                      {sim_time_s: 0, values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0, 'adcs.rw.speed_rad_s_0': 100}},
+                      {sim_time_s: 2, values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 100, 'orbit.position_m_z': 0, 'adcs.rw.speed_rad_s_0': 200}}
+                    ], {verified:true,runId:'rw-phase-integral',epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',timeSystem:'UTC'});
+                    return window.SatScene.integrateWheelPhaseFromTelemetry(0,2);
+                }""")
+                import math
+                assert abs(phase - (300.0 % (2 * math.pi))) < 1e-8
+                page.locator("#simulationExplodeToggle").click()
+                assert page.locator("#simulationExplodeToggle").get_attribute("aria-pressed") == "true"
+                assert "视觉分离" in page.locator("#simulationGeometryStatus").inner_text()
+                page.locator("#simulationExplodeToggle").click()
+                assert page.locator("#simulationExplodeToggle").get_attribute("aria-pressed") == "false"
                 wheel_phase = page.evaluate("""() => {
                     const wheel = window.SatScene;
                     return typeof wheel.setRunTelemetry === 'function';
