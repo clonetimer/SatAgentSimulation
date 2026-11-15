@@ -9021,8 +9021,17 @@
     } else {
       window.SatContinuousConsole?.exit();
     }
-    if (name === 'scene') window.SatScene?.enter();
-    else window.SatScene?.exit();
+    if (name === 'scene') {
+      const simulationMode = Boolean(el('simulationGeometryMode') && !el('simulationGeometryMode').hidden);
+      const cadMode = Boolean(el('birdsCadViewer') && !el('birdsCadViewer').hidden);
+      window.SatScene?.setOrbitSceneVisible?.(!simulationMode && !cadMode);
+      window.SatScene?.setSimulationGeometryVisible?.(simulationMode);
+      window.SatScene?.enter();
+    } else {
+      window.SatScene?.setOrbitSceneVisible?.(false);
+      window.SatScene?.setSimulationGeometryVisible?.(false);
+      window.SatScene?.exit();
+    }
     if (name === 'interactive') {
       loadInteractiveSessions().then(() => {
         if (!state.interactiveSession && state.interactiveSessions.length) selectInteractiveSession(state.interactiveSessions[0].session_id);
