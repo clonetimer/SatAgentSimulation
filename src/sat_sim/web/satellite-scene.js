@@ -371,7 +371,10 @@ function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
     const value=values[key];
     return value===true||value===1?'有效':value===false||value===0?'无效':'未提供';
   };
-  const vector=(keys,scale=1)=>keys.every(finite)?keys.map(key=>(values[key]*scale).toExponential(4)).join(', '):'未提供完整三轴测量';
+  const vector=(keys,scale=1)=>keys.every(finite)?keys.map(key=>{
+    const value=values[key]*scale;
+    return Math.abs(value)>0&&Math.abs(value)<1e-3?value.toExponential(4):value.toFixed(4);
+  }).join(', '):'未提供完整三轴测量';
   const rows=[
     ['IMU 陀螺','('+vector(['adcs.imu.gyro_x_rad_s','adcs.imu.gyro_y_rad_s','adcs.imu.gyro_z_rad_s'])+') rad/s','—'],
     ['IMU 加速度计','('+vector(['adcs.imu.accel_x_m_s2','adcs.imu.accel_y_m_s2','adcs.imu.accel_z_m_s2'])+') m/s²','—'],
