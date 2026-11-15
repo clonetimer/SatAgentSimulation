@@ -30,7 +30,8 @@ const state = {
   telemetryTrail: [],
   latestTelemetryPoint: null,
   telemetrySampled: false,
-  telemetryTotalRows: null
+  telemetryTotalRows: null,
+  selectedObject: null
 };
 
 const byId = (id) => document.getElementById(id);
@@ -661,8 +662,60 @@ function home() {
   syncCameraActions();
 }
 
-function selectObject({ name, hasSpatialAnchor = false } = {}) {
-  if (!name) return;
+const OBJECT_CLASS_LABELS = {
+  spacecraft: '整星', physical_group: '物理分组', equipment: '物理单机模型',
+  external_equipment: '外部设备', logical: '逻辑对象', environment: '环境对象',
+  control_function: '控制功能', region: '分系统区域', orbit: '轨道对象',
+};
+const OBJECT_KIND_LABELS = {
+  whole_spacecraft: '整星对象', subsystem: '分系统', component: '部件类别',
+  equipment: '设备模型类别', context_object: '上下文对象', context_group: '上下文分组',
+  function: '功能对象', environment: '环境对象',
+};
+function renderSelectedObjectSemantics() {
+  const selected = state.selectedObject;
+  const set = (id, value) => setText(id, value == null || value === '' ? '未提供' : String(value));
+  if (!selected) {
+    set('sceneObjectName', '尚未选择对象');
+    set('sceneObjectKind', '—');
+    set('sceneObjectClass', '—');
+    set('sceneObjectCapability', '—');
+    set('sceneObjectAnchor', '未审定');
+    set('sceneObjectMapping', '未建立');
+    set('sceneObjectInventory', '不推断实装数量');
+    set('sceneObjectSemanticsNote', '选择对象树中的整星、分系统或部件后，这里显示模型类别、能力归属和空间证据。');
+    return;
+  }
+  set('sceneObjectName', selected.name);
+  set('sceneObjectKind', OBJECT_KIND_LABELS[selected.kind] || selected.kind || '未分类');
+  set('sceneObjectClass', OBJECT_CLASS_LABELS[selected.physicalClass] || selected.physicalClass || '未分类');
+  set('sceneObjectCapability', selected.executionCapabilityId || '无独立执行能力');
+  set('sceneObjectAnchor', selected.spatialAnchor ? '已登记，待坐标系审查' : '未审定，不生成三维位置');
+  set('sceneObjectMapping', '未建立 CAD / GLB 节点映射');
+  const inventory = selected.instanceSemantics === 'capability_model_not_vehicle_inventory'
+    ? '模型类别，不代表实装设备数量'
+    : (Number.isInteger(selected.inventoryCount) && selected.inventoryCountSource
+      ? String(selected.inventoryCount) + '（来源：' + selected.inventoryCountSource + '）'
+      : '无经审定的实装数量');
+  set('sceneObjectInventory', inventory);
+  const note = selected.spatialAnchor
+    ? '对象已有空间锚点记录；只有完成坐标系、安装变换和资产节点映射审查后，才允许在三维场景中定位。'
+    : '对象保留在工程对象树中，但没有经审定的空间锚点。场景不会为它虚构安装位置、朝向或实体模型。';
+  set('sceneObjectSemanticsNote', note);
+}
+
+function selectObject(metadata = {}) {
+  const { name, objectId = null, kind = null, physicalClass = null, sceneTarget = null,
+    spatialAnchor = null, executionCapabilityId = null, configurationScope = null,
+    instanceSemantics = null, inventoryCount = null, inventoryCountSource = null } = metadata;
+  if (!name && !objectId) return;
+  state.selectedObject = {
+    objectId, name: name || objectId, kind, physicalClass, sceneTarget,
+    spatialAnchor, executionCapabilityId, configurationScope,
+    instanceSemantics, inventoryCount, inventoryCountSource,
+  };
+  renderSelectedObjectSemantics();
+  const hasSpatialAnchor = Boolean(spatialAnchor);
   const readyPrefix = state.active && state.ready
     ? (state.telemetrySourceId
       ? `场景已就绪，当前显示${state.telemetrySourceLabel || '真实仿真遥测'}。${state.latestTelemetryPoint
