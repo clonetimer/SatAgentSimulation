@@ -90,6 +90,8 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert 'id="simulationGeometryCanvas"' in html
     assert 'id="simulationGeometryRows"' in html
     assert 'id="simulationSensorRows"' in html
+    for element_id in ("simulationHubMass", "simulationHubIxx", "simulationHubIyy", "simulationHubIzz"):
+        assert f'id="{element_id}"' in html
     assert "setSimulationConfiguration" in app and "validated: true" in app
     assert "clearSimulationConfiguration" in app
     assert "whole_spacecraft." in scene
@@ -102,6 +104,8 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "magnetometer_mount_" in scene
     assert "sun_sensor_normal_b_" in scene
     assert "B→P 321" in scene and "B→S 321" in scene
+    assert "spacecraft_mass_kg" in scene
+    assert "spacecraft_inertia_xx_kg_m2" in scene
     assert "不是型号 as-built 安装证明" in html
     assert "simulationRoot.hidden=!simulation" in viewer
 
