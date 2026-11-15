@@ -208,6 +208,8 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     page.set_viewport_size({"width": 1440, "height": 960})
                 page.evaluate("window.SatScene.clearSimulationConfiguration()")
                 assert page.locator("#simulationGeometryRows tr").count() == 1
+                assert page.locator("#simulationSensorRows tr").count() == 1
+                assert page.locator("#simulationHubMass").inner_text() == "—"
                 assert "等待整星 TaskSpec 校验" in page.locator("#simulationGeometryBadge").inner_text()
                 page.locator('[data-scene-mode="orbit"]').click()
                 track = page.locator('[data-scene-action="track"]')
