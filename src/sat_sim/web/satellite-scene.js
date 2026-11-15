@@ -889,11 +889,44 @@ function renderSimulationGeometryRows(geometry) {
     row.append(wheel,position,direction);host.append(row);
   });
 }
+function renderSensorGeometryRows(values) {
+  const host=byId('simulationSensorRows');if(!host)return;
+  host.replaceChildren();
+  const row=(name,position,orientation)=>{
+    const tr=document.createElement('tr');
+    [name,position,orientation].forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td);});
+    host.append(tr);
+  };
+  const number=(key,fallback=0)=>Number(values[key] ?? fallback);
+  const imuPosition=['x','y','z'].map(axis=>number('imu_position_b_'+axis+'_m'));
+  const imuAngles=['yaw','pitch','roll'].map(axis=>number('imu_mount_'+axis+'_deg'));
+  if(imuPosition.every(v=>Number.isFinite(v)&&Math.abs(v)<=2)
+      && imuAngles.every(Number.isFinite)) {
+    row('IMU',imuPosition.map(v=>v.toFixed(4)).join(', '),
+      'B→P 321: '+imuAngles.map(v=>v.toFixed(2)+'°').join(' / '));
+    const marker=new THREE.Mesh(
+      new THREE.SphereGeometry(0.008,16,12),
+      new THREE.MeshStandardMaterial({color:0x72d7e8,emissive:0x17404a,roughness:0.35})
+    );
+    marker.position.set(...imuPosition);
+    state.simulationGeometryGroup.add(marker);
+  } else row('IMU','配置范围无效','不显示');
+  const magAngles=['yaw','pitch','roll'].map(axis=>number('magnetometer_mount_'+axis+'_deg'));
+  if(magAngles.every(Number.isFinite)) {
+    row('磁强计','安装位置未提供','B→S 321: '+magAngles.map(v=>v.toFixed(2)+'°').join(' / '));
+  } else row('磁强计','安装位置未提供','配置无效');
+  const normal=['x','y','z'].map(axis=>number('sun_sensor_normal_b_'+axis,axis==='z'?-1:0));
+  const norm2=normal.reduce((sum,v)=>sum+v*v,0);
+  if(normal.every(Number.isFinite)&&norm2>=0.999&&norm2<=1.001) {
+    row('太阳敏感器','安装位置未提供','nHat_B: ('+normal.map(v=>v.toFixed(4)).join(', ')+')');
+  } else row('太阳敏感器','安装位置未提供','法线未通过单位向量检查');
+}
 function setSimulationConfiguration(payload) {
   if(!payload||payload.validated!==true||!String(payload.capabilityId||'').startsWith('whole_spacecraft.')) {
     clearSimulationConfiguration();return false;
   }
-  const geometry=resolveDisplayRwGeometry(payload.values?.parameters?.values || payload.values);
+  const values=payload.values?.parameters?.values || payload.values;
+  const geometry=resolveDisplayRwGeometry(values);
   if(!geometry || !ensureSimulationGeometryViewer()) { clearSimulationConfiguration();return false; }
   state.simulationGeometry={...geometry,capabilityId:payload.capabilityId,validated:true};
   disposeSimulationGeometryGroup();
@@ -910,6 +943,7 @@ function setSimulationConfiguration(payload) {
     state.simulationGeometryGroup.add(arrow);
   });
   renderSimulationGeometryRows(geometry);
+  renderSensorGeometryRows(values);
   const badge=byId('simulationGeometryBadge');
   if(badge){badge.textContent='TaskSpec 校验通过 · '+geometry.capabilityId;badge.dataset.state='live';}
   const summary=byId('simulationGeometrySummary');
@@ -925,6 +959,7 @@ function clearSimulationConfiguration() {
   const badge=byId('simulationGeometryBadge');if(badge){badge.textContent='等待整星 TaskSpec 校验';badge.dataset.state='demo';}
   const summary=byId('simulationGeometrySummary');if(summary)summary.textContent='请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。';
   const host=byId('simulationGeometryRows');if(host)host.innerHTML='<tr><td colspan="3">尚无已校验配置</td></tr>';
+  const sensors=byId('simulationSensorRows');if(sensors)sensors.innerHTML='<tr><td colspan="3">尚无已校验配置</td></tr>';
   const status=byId('simulationGeometryStatus');if(status)status.textContent='没有已校验的整星构型。';
   if(state.simulationGeometryVisible)renderSimulationGeometry();
 }
