@@ -157,6 +157,24 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 page.locator("#sceneObjectName").filter(has_text=selected_name).wait_for(timeout=10000)
                 assert "未建立 CAD / GLB 节点映射" in page.locator("#sceneObjectMapping").inner_text()
                 assert "未审定，不生成三维位置" in page.locator("#sceneObjectAnchor").inner_text()
+                simulation_tab = page.locator('[data-scene-mode="simulation"]')
+                simulation_tab.click()
+                page.locator("#simulationGeometryCanvas").wait_for(state="visible")
+                rejected = page.evaluate("""() => window.SatScene.setSimulationConfiguration({
+                    capabilityId: 'whole_spacecraft.unified_native.v1',
+                    values: {parameters: {values: {rw_configuration: 'pyramid_4', rw_geometry_mode: 'per_wheel', rw_mount_radius_m: 0, rw_mount_b_x_m_0: 0.12}}},
+                    validated: false
+                })""")
+                assert rejected is False
+                accepted = page.evaluate("""() => window.SatScene.setSimulationConfiguration({
+                    capabilityId: 'whole_spacecraft.unified_native.v1',
+                    values: {parameters: {values: {rw_configuration: 'pyramid_4', rw_geometry_mode: 'per_wheel', rw_mount_radius_m: 0, rw_mount_b_x_m_0: 0.12}}},
+                    validated: true
+                })""")
+                assert accepted is True
+                assert page.locator("#simulationGeometryRows tr").count() == 4
+                assert "TaskSpec 校验通过" in page.locator("#simulationGeometryBadge").inner_text()
+                page.locator('[data-scene-mode="orbit"]').click()
                 track = page.locator('[data-scene-action="track"]')
                 free = page.locator('[data-scene-action="free"]')
                 track.click()
