@@ -377,3 +377,19 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert not failures, failures
         finally:
             browser.close()
+
+def test_scene_object_selection_preserves_physical_and_assembly_semantics_without_fabricating_anchors():
+    root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
+    scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
+    app = (root / "app.js").read_text(encoding="utf-8")
+    html = (root / "index.html").read_text(encoding="utf-8")
+    for field in ("physicalClass", "sceneTarget", "spatialAnchor", "executionCapabilityId",
+                  "configurationScope", "instanceSemantics", "inventoryCount"):
+        assert field in app and field in scene
+    assert "notifySceneObjectSelection" in app
+    assert "未审定，不生成三维位置" in scene
+    assert "未建立 CAD / GLB 节点映射" in scene
+    assert "不代表实装设备数量" in scene
+    for element_id in ("sceneObjectName", "sceneObjectClass", "sceneObjectAnchor",
+                       "sceneObjectMapping", "sceneObjectInventory", "sceneObjectSemanticsNote"):
+        assert f'id="{element_id}"' in html
