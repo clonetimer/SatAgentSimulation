@@ -427,9 +427,13 @@ function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
       rows.push(['反作用轮 RW'+(wheel+1),speed+' · '+torque,'—']);
     }
   }
-  let available=0;
+  // values is the typed channel allowlist produced by pointFromTelemetry.
+  // Availability belongs to the sample, not to translated display strings:
+  // an absent optional torque field must not hide an observed wheel speed.
+  // A published false validity flag is data too, but remains marked invalid.
+  const available=Object.values(values).some(value=>
+    (typeof value==='number'&&Number.isFinite(value))||typeof value==='boolean');
   rows.forEach(([name,measurement,quality])=>{
-    if(measurement!=='未提供完整三轴测量'&&!measurement.includes('未提供'))available+=1;
     const tr=document.createElement('tr');
     [name,measurement,quality].forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td);});
     host.append(tr);

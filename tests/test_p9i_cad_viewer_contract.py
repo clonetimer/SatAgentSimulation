@@ -98,7 +98,8 @@ def test_satellite_scene_separates_orbit_and_reference_cad_modes():
     assert 'id="satelliteOrbitMode"' in html
     assert 'data-scene-mode="orbit"' in html and 'data-scene-mode="cad"' in html
     assert 'id="birdsCadViewer" class="birds-cad-viewer" hidden' in html
-    assert "function setSceneMode(mode)" in source
+    assert "function setSceneMode(" in source
+    assert "setSceneMode(initialSceneMode,false)" in source
     assert "orbitMode.hidden=cad" in source and "root.hidden=!cad" in source
 
 

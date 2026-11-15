@@ -69,3 +69,6 @@ test('CAD navigation remains explicit and physical return restores configuration
   assert.equal(h.layout.classList.contains('is-cad-mode'), false);
   assert.equal(h.tabs.find(tab => tab.dataset.sceneMode === 'simulation').getAttribute('aria-pressed'), 'true');
 });
+
+// Keep partial-channel regressions in the same CI entrypoint.
+require('./test_p9j_sensor_telemetry.cjs');
