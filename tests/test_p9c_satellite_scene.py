@@ -176,6 +176,10 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert accepted is True
                 assert page.locator("#simulationGeometryRows tr").count() == 4
                 assert "TaskSpec 校验通过" in page.locator("#simulationGeometryBadge").inner_text()
+                if evidence_dir and cycle == 2:
+                    output = Path(evidence_dir)
+                    output.mkdir(parents=True, exist_ok=True)
+                    page.screenshot(path=str(output / "simulation-rw-geometry-desktop.png"), full_page=True)
                 page.evaluate("window.SatScene.clearSimulationConfiguration()")
                 assert page.locator("#simulationGeometryRows tr").count() == 1
                 assert "等待整星 TaskSpec 校验" in page.locator("#simulationGeometryBadge").inner_text()
