@@ -323,3 +323,6 @@ IMU 三轴显示不再只列 Euler 数值。本轮核对了 Basilisk 上游实�
 ### P9-J2-F：星敏安装方向纳入统一构型
 
 将已经由 Basilisk 原生 `StarTracker.dcm_CB` 使用的 3-2-1 安装角补登记到整星 Capability schema（默认 0°，航向/横滚 ±180°、俯仰 ±89°），使其不再只存在于连续会话配置而缺席有限 TaskSpec/Workbench 参数目录。仿真构型检查器新增 B→C 星敏三轴方向参考箭头；由于整星 Capability 没有星敏安装位置字段，箭头只从 B 系原点发出，明确不表示实际安装点。Chromium 测试增加 90° yaw 的独立基向量检查和 schema 字段存在性检查。
+
+
+**上游实现核对（StarTracker）**：Basilisk `AVSLab/basilisk` 的 `RigidBodyKinematics.Euler3212C` 在提交 `4faddaa0e32097f423002984b0c19bfcd606256d` 的 `src/architecture/utilities/rigidBodyKinematics.c` 中显式给出 3-2-1 DCM 元素。它与当前公共矩阵实现一致；`StarTracker.dcm_CB` 表示 B→C，显示 C 系三轴在 B 系中的方向时使用其转置。星敏三个安装角现已加入整星 Capability schema，默认 0°，有限 TaskSpec/Workbench 可以配置；没有安装位置字段，方向箭头只从 B 系原点发出。
