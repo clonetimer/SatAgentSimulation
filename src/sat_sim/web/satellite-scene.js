@@ -911,10 +911,11 @@ function imuPlatformAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
   // dcm_BP = transpose(dcm_PB), i.e. rows of dcm_PB.
   return dcmPB.map(row=>row.slice());
 }
-// IMU marker position is the validated Basilisk sensorPos_B input; orientation
-// angles are reported in the native 3-2-1 interface convention, not guessed
-// into a rendered body-to-platform matrix. Magnetometer has no configured
-// installation position, so only its B-to-S angles are reported.
+// The native Basilisk IMU and magnetometer APIs both compose their body-to-sensor
+// DCM as M1(roll) * M2(pitch) * M3(yaw). Sensor axes expressed in B are the
+// rows of that body-to-sensor DCM. The IMU origin is its validated sensorPos_B;
+// magnetometer and CSS have no configured position and their arrows originate
+// at B origin solely as direction references, never as inferred mounting points.
 function renderRigidBodyProperties(values) {
   const format=(value,unit)=>{
     const number=Number(value);
@@ -959,12 +960,20 @@ function renderSensorGeometryRows(values) {
   } else row('IMU','配置范围无效','不显示');
   const magAngles=['yaw','pitch','roll'].map(axis=>number('magnetometer_mount_'+axis+'_deg'));
   if(magAngles.every(Number.isFinite)) {
-    row('磁强计','安装位置未提供','B→S 321: '+magAngles.map(v=>v.toFixed(2)+'°').join(' / '));
+    row('磁强计','未配置；方向参考自 B 原点','B→S 321: '+magAngles.map(v=>v.toFixed(2)+'°').join(' / '));
+    const magAxes=imuPlatformAxesInBodyFrame(...magAngles);
+    const axisColors=[0xffb45f,0x9ad47a,0x85b9ff];
+    magAxes?.forEach((axis,index)=>{
+      const arrow=new THREE.ArrowHelper(new THREE.Vector3(...axis).normalize(),new THREE.Vector3(0,0,0),0.095,axisColors[index],0.014,0.007);
+      state.simulationGeometryGroup.add(arrow);
+    });
   } else row('磁强计','安装位置未提供','配置无效');
   const normal=['x','y','z'].map(axis=>number('sun_sensor_normal_b_'+axis,axis==='z'?-1:0));
   const norm2=normal.reduce((sum,v)=>sum+v*v,0);
   if(normal.every(Number.isFinite)&&norm2>=0.999&&norm2<=1.001) {
-    row('太阳敏感器','安装位置未提供','nHat_B: ('+normal.map(v=>v.toFixed(4)).join(', ')+')');
+    row('太阳敏感器','未配置；方向参考自 B 原点','nHat_B: ('+normal.map(v=>v.toFixed(4)).join(', ')+')');
+    const arrow=new THREE.ArrowHelper(new THREE.Vector3(...normal).normalize(),new THREE.Vector3(0,0,0),0.16,0xd28cf2,0.022,0.012);
+    state.simulationGeometryGroup.add(arrow);
   } else row('太阳敏感器','安装位置未提供','法线未通过单位向量检查');
 }
 function setSimulationConfiguration(payload) {
