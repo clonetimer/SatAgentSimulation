@@ -110,6 +110,8 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     capability = (Path(__file__).resolve().parents[1] / "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml").read_text(encoding="utf-8")
     for key in ("star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg", "star_tracker_mount_roll_deg"):
         assert key in capability
+    assert "label: 星敏安装航向角" in capability
+    assert "description: 机体系 B 到星敏机壳系 C" in capability
     assert "setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame" in scene
     assert "new THREE.Vector3(...normal).normalize()" in scene
     assert "方向参考自 B 原点" in scene
