@@ -125,3 +125,16 @@
 .p9d-scene-layout.is-cad-mode{grid-template-columns:minmax(0,1fr)}.p9d-scene-layout.is-cad-mode>.p9d-config-panel{display:none}.p9d-scene-layout.is-cad-mode>.satellite-scene-shell{grid-column:1/-1;min-width:0}.p9d-scene-layout.is-cad-mode .birds-cad-workspace{grid-template-columns:minmax(180px,240px) minmax(0,1fr) minmax(190px,260px)}@media(max-width:900px){.p9d-scene-layout.is-cad-mode .birds-cad-workspace{grid-template-columns:minmax(145px,190px) minmax(0,1fr)}.p9d-scene-layout.is-cad-mode .birds-cad-inspector{grid-column:1/-1}}@media(max-width:600px){.p9d-scene-layout.is-cad-mode .birds-cad-workspace{grid-template-columns:minmax(0,1fr)}}
 
 .p9d-scene-layout.is-cad-mode .satellite-scene-actions{display:none}.p9d-scene-layout.is-cad-mode .satellite-scene-heading h1{font-size:21px}.p9d-scene-layout.is-cad-mode .satellite-scene-heading p{color:var(--muted);max-width:72ch}
+
+/* Engineering object semantics: separate model taxonomy from as-built placement evidence. */
+.scene-object-semantics{display:grid;gap:9px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.scene-object-semantics-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.scene-object-semantics-heading h3{margin:0;font-size:12px}
+.scene-object-semantics-heading span{color:var(--muted);font-size:9px;letter-spacing:.08em}
+.scene-object-semantics dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+.scene-object-semantics dl>div{display:grid;gap:3px;min-width:0;padding:7px 8px;border-radius:7px;background:var(--panel)}
+.scene-object-semantics dt{font-size:9px;color:var(--muted)}
+.scene-object-semantics dd{margin:0;font-size:10px;font-weight:650;overflow-wrap:anywhere}
+.scene-object-semantics p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:900px){.scene-object-semantics dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.scene-object-semantics dl{grid-template-columns:minmax(0,1fr)}}
