@@ -723,10 +723,10 @@ function selectObject(metadata = {}) {
         : ''}`
       : '场景已就绪，当前使用演示数据（非仿真结果）。') : '';
   if (!hasSpatialAnchor) {
-    status(`${readyPrefix}已选择：${name}。该对象没有经过审定的三维空间锚点，场景保持当前视角，不虚构部件位置。`, 'info');
+    status(`${readyPrefix}已选择：${state.selectedObject.name}。该对象没有经过审定的三维空间锚点，场景保持当前视角，不虚构部件位置。`, 'info');
     return;
   }
-  status(`${readyPrefix}已选择：${name}。对象空间锚点已登记；局部模型节点映射将在资产映射验收后启用。`, 'info');
+  status(`${readyPrefix}已选择：${state.selectedObject.name}。对象空间锚点已登记；局部模型节点映射将在资产映射验收后启用。`, 'info');
 }
 
 document.addEventListener('click', (event) => {
