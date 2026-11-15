@@ -397,6 +397,6 @@ def test_scene_object_selection_preserves_physical_and_assembly_semantics_withou
     assert "未审定，不生成三维位置" in scene
     assert "未建立 CAD / GLB 节点映射" in scene
     assert "不代表实装设备数量" in scene
-    for element_id in ("sceneObjectName", "sceneObjectClass", "sceneObjectAnchor",
-                       "sceneObjectMapping", "sceneObjectInventory", "sceneObjectSemanticsNote"):
+    for element_id in ("sceneObjectName", "sceneObjectClass", "sceneObjectTarget", "sceneObjectConfigScope",
+                       "sceneObjectAnchor", "sceneObjectMapping", "sceneObjectInventory", "sceneObjectSemanticsNote"):
         assert f'id="{element_id}"' in html
