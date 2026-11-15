@@ -313,8 +313,23 @@ function pointFromTelemetry(frame, epochUtc) {
     ? attitudeToGlobeRotation(quaternion, epochUtc, simTimeS)
     : null;
   const validRotation = rotation || {x: 0, y: 0, z: 0};
+  const sensorKeys = [
+    'adcs.imu.gyro_x_rad_s','adcs.imu.gyro_y_rad_s','adcs.imu.gyro_z_rad_s',
+    'adcs.imu.accel_x_m_s2','adcs.imu.accel_y_m_s2','adcs.imu.accel_z_m_s2',
+    'adcs.magnetometer.field_x_t','adcs.magnetometer.field_y_t','adcs.magnetometer.field_z_t',
+    'adcs.star_tracker.valid','adcs.star_tracker.sigma_x','adcs.star_tracker.sigma_y','adcs.star_tracker.sigma_z',
+    'adcs.sun_sensor.valid','adcs.sun_sensor.intensity','adcs.sun_sensor.direction_x','adcs.sun_sensor.direction_y','adcs.sun_sensor.direction_z'
+  ];
+  const sensorMeasurements = {};
+  sensorKeys.forEach(key => {
+    const value = values[key];
+    if ((typeof value === 'number' && Number.isFinite(value)) || typeof value === 'boolean') {
+      sensorMeasurements[key] = value;
+    }
+  });
   return {
     ...point,
+    sensorMeasurements,
     attitude_truth: attitudeValid ? { mrp_BN: mrp, quaternion_BN: quaternion } : null,
     attitude_valid: Boolean(attitudeValid && rotation),
     rotation: validRotation,
@@ -345,9 +360,40 @@ function telemetryPath() {
   }));
 }
 
+function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
+  const host=byId('simulationSensorTelemetryRows');
+  const source=byId('simulationSensorTelemetrySource');
+  if(!host||!source)return;
+  host.replaceChildren();
+  const values=measurements&&typeof measurements==='object'?measurements:{};
+  const finite=key=>typeof values[key]==='number'&&Number.isFinite(values[key]);
+  const valid=key=>{
+    const value=values[key];
+    return value===true||value===1?'有效':value===false||value===0?'无效':'未提供';
+  };
+  const vector=(keys,scale=1)=>keys.every(finite)?keys.map(key=>(values[key]*scale).toExponential(4)).join(', '):'未提供完整三轴测量';
+  const rows=[
+    ['IMU 陀螺','('+vector(['adcs.imu.gyro_x_rad_s','adcs.imu.gyro_y_rad_s','adcs.imu.gyro_z_rad_s'])+') rad/s','—'],
+    ['IMU 加速度计','('+vector(['adcs.imu.accel_x_m_s2','adcs.imu.accel_y_m_s2','adcs.imu.accel_z_m_s2'])+') m/s²','—'],
+    ['磁强计','('+vector(['adcs.magnetometer.field_x_t','adcs.magnetometer.field_y_t','adcs.magnetometer.field_z_t'])+') T','—'],
+    ['星敏感器','MRP ('+vector(['adcs.star_tracker.sigma_x','adcs.star_tracker.sigma_y','adcs.star_tracker.sigma_z'])+')',valid('adcs.star_tracker.valid')],
+    ['太阳敏感器',finite('adcs.sun_sensor.intensity')?values['adcs.sun_sensor.intensity'].toFixed(5):'未提供光强',valid('adcs.sun_sensor.valid')+(finite('adcs.sun_sensor.direction_x')&&finite('adcs.sun_sensor.direction_y')&&finite('adcs.sun_sensor.direction_z')?' · 方向已提供':'')]
+  ];
+  let available=0;
+  rows.forEach(([name,measurement,quality])=>{
+    if(measurement!=='未提供完整三轴测量'&&!measurement.includes('未提供'))available+=1;
+    const tr=document.createElement('tr');
+    [name,measurement,quality].forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td);});
+    host.append(tr);
+  });
+  source.textContent=available
+    ? (sourceLabel||'Basilisk 遥测')+' · 仿真时间 '+Number(simTimeS||0).toFixed(3)+' s'
+    : '当前数据源没有发布这些传感器测量字段；不以配置参数替代真实测量。';
+}
 function renderTelemetryPosition() {
   if (!state.globe || !state.satellite || !state.latestTelemetryPoint) return;
   Object.assign(state.satellite, state.latestTelemetryPoint);
+  renderSensorTelemetry(state.latestTelemetryPoint.sensorMeasurements,state.telemetrySourceLabel,state.latestTelemetryPoint.sim_time_s);
   state.globe.objectsData([state.satellite]);
   state.globe.pathsData(telemetryPath());
   renderTelemetryInspector(state.latestTelemetryPoint);
@@ -455,6 +501,7 @@ function clearTelemetrySource() {
   state.telemetrySampled = false;
   state.telemetryTotalRows = null;
   renderTelemetryInspector(null);
+  renderSensorTelemetry(null,null,0);
   if (state.active && state.ready && state.globe && state.satellite) {
     Object.assign(state.satellite, {name: '任务卫星（示意模型）', ...orbitPoint(0), rotation: {x: 0, y: 0, z: 0}, attitude_valid: false, attitude_truth: null});
     state.globe.objectsData([state.satellite]);
