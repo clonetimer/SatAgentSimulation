@@ -1180,6 +1180,14 @@ function setOrbitSceneVisible(visible) {
   state.globe.resumeAnimation?.();
   if(!state.telemetrySourceId&&!state.frame)state.frame=requestAnimationFrame(updateSatellite);
 }
+document.addEventListener('click', event => {
+  const button = event.target?.closest?.('#simulationExplodeToggle');
+  if (!button) return;
+  const enabled = button.getAttribute('aria-pressed') !== 'true';
+  setSimulationExplodedView(enabled);
+  button.setAttribute('aria-pressed', String(enabled));
+  button.textContent = enabled ? '返回物理构型' : '工程分解视图';
+});
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible, setSimulationExplodedView,
