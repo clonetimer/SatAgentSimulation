@@ -245,6 +245,17 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     }
                 }], {verified: true, runId: 'browser-test-run', epochUtc: '2026-01-01T00:00:00Z', frame: 'N_INERTIAL', timeSystem: 'UTC'})""")
                 assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert "已封存有限 Run 遥测" in page.locator("#simulationSensorTelemetrySource").inner_text()
+                page.evaluate("""() => window.SatScene.setRunTelemetry([{
+                    sim_time_s: 13.0,
+                    values: {
+                      'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0,
+                      'adcs.imu.gyro_x_rad_s': 0.02, 'adcs.imu.gyro_y_rad_s': 0.03, 'adcs.imu.gyro_z_rad_s': 0.04
+                    }
+                }], {verified: true, runId: 'browser-test-partial-run', epochUtc: '2026-01-01T00:00:00Z', frame: 'N_INERTIAL', timeSystem: 'UTC'})""")
+                partial_text = page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert "未提供完整三轴测量" in partial_text
+                assert "未提供" in partial_text
                 if cycle == 2:
                     if evidence_dir:
                         output = Path(evidence_dir)
