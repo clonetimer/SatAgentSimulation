@@ -888,7 +888,7 @@ function setSimulationConfiguration(payload) {
     clearSimulationConfiguration();return false;
   }
   const geometry=resolveDisplayRwGeometry(payload.values?.parameters?.values || payload.values);
-  if(!geometry) { clearSimulationConfiguration();return false; }
+  if(!geometry || !ensureSimulationGeometryViewer()) { clearSimulationConfiguration();return false; }
   state.simulationGeometry={...geometry,capabilityId:payload.capabilityId,validated:true};
   disposeSimulationGeometryGroup();
   geometry.positions.forEach((position,index)=>{
