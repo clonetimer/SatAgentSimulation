@@ -896,7 +896,7 @@ function renderSimulationGeometryRows(geometry) {
 function multiplyMatrix3(a,b) {
   return a.map((row,i)=>b[0].map((_,j)=>row.reduce((sum,value,k)=>sum+value*b[k][j],0)));
 }
-function imuPlatformAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
+function bodyToSensorAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
   const values=[yawDeg,pitchDeg,rollDeg].map(Number);
   if(!values.every(Number.isFinite))return null;
   const [yaw,pitch,roll]=values.map(value=>THREE.MathUtils.degToRad(value));
@@ -910,6 +910,12 @@ function imuPlatformAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
   // The platform axes expressed in body coordinates are the columns of
   // dcm_BP = transpose(dcm_PB), i.e. rows of dcm_PB.
   return dcmPB.map(row=>row.slice());
+}
+function imuPlatformAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
+  return bodyToSensorAxesInBodyFrame(yawDeg,pitchDeg,rollDeg);
+}
+function magnetometerAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
+  return bodyToSensorAxesInBodyFrame(yawDeg,pitchDeg,rollDeg);
 }
 // The native Basilisk IMU and magnetometer APIs both compose their body-to-sensor
 // DCM as M1(roll) * M2(pitch) * M3(yaw). Sensor axes expressed in B are the
@@ -961,7 +967,7 @@ function renderSensorGeometryRows(values) {
   const magAngles=['yaw','pitch','roll'].map(axis=>number('magnetometer_mount_'+axis+'_deg'));
   if(magAngles.every(Number.isFinite)) {
     row('磁强计','未配置；方向参考自 B 原点','B→S 321: '+magAngles.map(v=>v.toFixed(2)+'°').join(' / '));
-    const magAxes=imuPlatformAxesInBodyFrame(...magAngles);
+    const magAxes=magnetometerAxesInBodyFrame(...magAngles);
     const axisColors=[0xffb45f,0x9ad47a,0x85b9ff];
     magAxes?.forEach((axis,index)=>{
       const arrow=new THREE.ArrowHelper(new THREE.Vector3(...axis).normalize(),new THREE.Vector3(0,0,0),0.095,axisColors[index],0.014,0.007);
