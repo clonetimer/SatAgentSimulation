@@ -271,6 +271,24 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.locator("#birdsCadFile").set_input_files(str(glb_path))
             page.locator("#birdsCadStatus").filter(has_text=f"已加载 {model_name}").wait_for(timeout=180000)
             load_seconds = time.monotonic() - load_started
+            # Preserve the untouched initial fit separately from later inspection
+            # actions (which deliberately focus individual assembly occurrences).
+            page.wait_for_timeout(250)
+            initial_render_state = page.evaluate("window.BirdsCadViewer.getDiagnostics()")
+            if evidence_dir and real_glb:
+                output = Path(evidence_dir)
+                output.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=str(output / "birds4-cad-viewer-real-overview-desktop.png"), full_page=True)
+                (output / "birds4-real-model-overview-performance.json").write_text(
+                    json.dumps({
+                        "model": model_name,
+                        "file_size_bytes": glb_path.stat().st_size,
+                        "load_seconds": round(load_seconds, 3),
+                        "initial_render": initial_render_state,
+                        "browser_heap_used_bytes": page.evaluate("performance.memory?.usedJSHeapSize ?? null"),
+                        "desktop_viewport": {"width": 1440, "height": 960},
+                    }, indent=2), encoding="utf-8"
+                )
             tree_nodes = page.locator("#birdsCadTree .birds-cad-tree-node")
             assert tree_nodes.count() >= 1
             if real_glb:
