@@ -90,6 +90,12 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert 'id="simulationGeometryCanvas"' in html
     assert 'id="simulationGeometryRows"' in html
     assert 'id="simulationSensorRows"' in html
+    assert 'id="simulationSensorTelemetryRows"' in html
+    assert "adcs.imu.gyro_x_rad_s" in scene
+    assert "adcs.magnetometer.field_x_t" in scene
+    assert "adcs.star_tracker.valid" in scene
+    assert "adcs.sun_sensor.valid" in scene
+    assert "renderSensorTelemetry" in scene
     for element_id in ("simulationHubMass", "simulationHubIxx", "simulationHubIyy", "simulationHubIzz"):
         assert f'id="{element_id}"' in html
     assert "setSimulationConfiguration" in app and "validated: true" in app
@@ -227,6 +233,18 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert "120.0000 kg" in page.locator("#simulationHubMass").inner_text()
                 assert "110.0000 kg·m²" in page.locator("#simulationHubIxx").inner_text()
                 assert "TaskSpec 校验通过" in page.locator("#simulationGeometryBadge").inner_text()
+                page.evaluate("""() => window.SatScene.setRunTelemetry([{
+                    sim_time_s: 12.5, orbit: {position_m: {x: 7000000, y: 0, z: 0}},
+                    values: {
+                      'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0,
+                      'adcs.imu.gyro_x_rad_s': 0.01, 'adcs.imu.gyro_y_rad_s': 0.02, 'adcs.imu.gyro_z_rad_s': 0.03,
+                      'adcs.imu.accel_x_m_s2': 1, 'adcs.imu.accel_y_m_s2': 2, 'adcs.imu.accel_z_m_s2': 3,
+                      'adcs.magnetometer.field_x_t': 1e-5, 'adcs.magnetometer.field_y_t': 2e-5, 'adcs.magnetometer.field_z_t': 3e-5,
+                      'adcs.star_tracker.valid': 1, 'adcs.star_tracker.sigma_x': 0.1, 'adcs.star_tracker.sigma_y': 0.2, 'adcs.star_tracker.sigma_z': 0.3,
+                      'adcs.sun_sensor.valid': 1, 'adcs.sun_sensor.intensity': 0.8, 'adcs.sun_sensor.direction_x': 1, 'adcs.sun_sensor.direction_y': 0, 'adcs.sun_sensor.direction_z': 0
+                    }
+                }], {verified: true, runId: 'browser-test-run', epochUtc: '2026-01-01T00:00:00Z', frame: 'N_INERTIAL', timeSystem: 'UTC'})""")
+                assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 if cycle == 2:
                     if evidence_dir:
                         output = Path(evidence_dir)
