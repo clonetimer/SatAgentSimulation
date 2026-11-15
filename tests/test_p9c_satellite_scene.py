@@ -93,6 +93,7 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert 'id="satelliteOrbitMode" class="satellite-orbit-mode" hidden' in html
     assert "integrateWheelPhaseFromTelemetry" in scene
     assert "setSimulationExplodedView" in scene
+    assert "closest?.('#simulationExplodeToggle')" in scene
     assert "simulationExplodedView" in scene
     assert 'id="simulationExplodeToggle"' in html
     assert "physicalPosition" in scene
