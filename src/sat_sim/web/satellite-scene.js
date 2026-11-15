@@ -31,7 +31,19 @@ const state = {
   latestTelemetryPoint: null,
   telemetrySampled: false,
   telemetryTotalRows: null,
-  selectedObject: null
+  selectedObject: null,
+  simulationGeometry: null,
+  simulationGeometryRenderer: null,
+  simulationGeometryScene: null,
+  simulationGeometryCamera: null,
+  simulationGeometryGroup: null,
+  simulationGeometryResizeObserver: null,
+  simulationGeometryFrame: 0,
+  simulationGeometryVisible: false,
+  simulationGeometryDrag: null,
+  simulationGeometryRadius: 0.75,
+  simulationGeometryTheta: 0.78,
+  simulationGeometryPhi: 1.05
 };
 
 const byId = (id) => document.getElementById(id);
@@ -743,8 +755,180 @@ document.addEventListener('click', (event) => {
   if (action === 'axes') toggleBodyAxes();
 });
 
+
+const DEFAULT_RW_AXES = {
+  orthogonal_3: [[1,0,0],[0,1,0],[0,0,1]],
+  pyramid_4: [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].map(axis => {
+    const scale = 1 / Math.sqrt(3);
+    return axis.map(value => value * scale);
+  }),
+};
+function resolveDisplayRwGeometry(values) {
+  if (!values || typeof values !== 'object') return null;
+  const configuration = values.rw_configuration || 'orthogonal_3';
+  const defaults = DEFAULT_RW_AXES[configuration];
+  if (!defaults) return null;
+  const mode = values.rw_geometry_mode || 'legacy_axis_offset';
+  const count = defaults.length;
+  const axes = [];
+  const positions = [];
+  if (mode === 'legacy_axis_offset') {
+    const radius = Number(values.rw_mount_radius_m ?? 0);
+    if (!Number.isFinite(radius) || radius < 0 || radius > 0.25) return null;
+    for (let i=0;i<count;i+=1) {
+      axes.push(defaults[i]);
+      positions.push(defaults[i].map(v => v * radius));
+    }
+  } else if (mode === 'per_wheel') {
+    if (Number(values.rw_mount_radius_m ?? 0) !== 0) return null;
+    for (let i=0;i<count;i+=1) {
+      const axisKeys = ['x','y','z'].map(axis => 'rw_axis_b_'+axis+'_'+i);
+      const supplied = axisKeys.map(key => values[key] != null);
+      if (supplied.some(Boolean) && !supplied.every(Boolean)) return null;
+      const axis = supplied.every(Boolean) ? axisKeys.map(key => Number(values[key])) : defaults[i];
+      const norm2 = axis.reduce((sum,v)=>sum+v*v,0);
+      if (!axis.every(Number.isFinite) || norm2 < 0.999 || norm2 > 1.001) return null;
+      axes.push(axis);
+      const pos = ['x','y','z'].map(axisName => Number(values['rw_mount_b_'+axisName+'_m_'+i] ?? 0));
+      if (!pos.every(v=>Number.isFinite(v)&&Math.abs(v)<=0.25)) return null;
+      positions.push(pos);
+    }
+  } else return null;
+  return {configuration,mode,axes,positions,count};
+}
+function disposeSimulationGeometryGroup() {
+  if (!state.simulationGeometryGroup) return;
+  state.simulationGeometryGroup.traverse(node => {
+    node.geometry?.dispose?.();
+    const materials = Array.isArray(node.material) ? node.material : node.material ? [node.material] : [];
+    materials.forEach(material => material.dispose?.());
+  });
+  state.simulationGeometryGroup.clear();
+}
+function ensureSimulationGeometryViewer() {
+  if (state.simulationGeometryRenderer) return true;
+  const canvas = byId('simulationGeometryCanvas');
+  if (!canvas) return false;
+  try {
+    const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    const world = new THREE.Scene();
+    world.background = new THREE.Color(0x0d1724);
+    world.add(new THREE.HemisphereLight(0xe5f1ff,0x263345,2.1));
+    const key = new THREE.DirectionalLight(0xffffff,2.5); key.position.set(1.5,2,2); world.add(key);
+    const fill = new THREE.DirectionalLight(0x78aee8,1.1); fill.position.set(-2,-1,-1); world.add(fill);
+    const grid = new THREE.GridHelper(0.6,12,0x45586d,0x26384b); world.add(grid);
+    const axes = new THREE.AxesHelper(0.22); world.add(axes);
+    const camera = new THREE.PerspectiveCamera(42,1,0.001,20);
+    state.simulationGeometryRenderer=renderer;
+    state.simulationGeometryScene=world;
+    state.simulationGeometryCamera=camera;
+    state.simulationGeometryGroup=new THREE.Group();
+    world.add(state.simulationGeometryGroup);
+    const resize = () => {
+      const rect=canvas.getBoundingClientRect();
+      if(!rect.width||!rect.height)return;
+      renderer.setSize(rect.width,rect.height,false);
+      camera.aspect=rect.width/rect.height;
+      camera.updateProjectionMatrix();
+      renderSimulationGeometry();
+    };
+    state.simulationGeometryResizeObserver=new ResizeObserver(resize);
+    state.simulationGeometryResizeObserver.observe(canvas);
+    canvas.addEventListener('pointerdown',event=>{
+      state.simulationGeometryDrag={x:event.clientX,y:event.clientY};
+      canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove',event=>{
+      const drag=state.simulationGeometryDrag;if(!drag)return;
+      state.simulationGeometryTheta-=(event.clientX-drag.x)*0.008;
+      state.simulationGeometryPhi=THREE.MathUtils.clamp(state.simulationGeometryPhi+(event.clientY-drag.y)*0.008,0.08,Math.PI-0.08);
+      drag.x=event.clientX;drag.y=event.clientY;renderSimulationGeometry();
+    });
+    canvas.addEventListener('pointerup',()=>{state.simulationGeometryDrag=null;});
+    canvas.addEventListener('wheel',event=>{
+      event.preventDefault();
+      state.simulationGeometryRadius=THREE.MathUtils.clamp(state.simulationGeometryRadius*Math.exp(event.deltaY*0.001),0.12,5);
+      renderSimulationGeometry();
+    },{passive:false});
+    resize();
+    return true;
+  } catch(error) {
+    const status=byId('simulationGeometryStatus');
+    if(status)status.textContent='仿真构型视图初始化失败；轨道与 CAD 参考视图不受影响。';
+    return false;
+  }
+}
+function renderSimulationGeometry() {
+  if(!state.simulationGeometryRenderer||!state.simulationGeometryCamera||!state.simulationGeometryVisible)return;
+  const camera=state.simulationGeometryCamera,r=state.simulationGeometryRadius,phi=state.simulationGeometryPhi,theta=state.simulationGeometryTheta;
+  camera.position.set(r*Math.sin(phi)*Math.sin(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.cos(theta));
+  camera.lookAt(0,0,0);
+  if(state.simulationGeometryFrame)return;
+  state.simulationGeometryFrame=requestAnimationFrame(()=>{
+    state.simulationGeometryFrame=0;
+    if(state.simulationGeometryVisible)state.simulationGeometryRenderer.render(state.simulationGeometryScene,camera);
+  });
+}
+function renderSimulationGeometryRows(geometry) {
+  const host=byId('simulationGeometryRows');if(!host)return;
+  host.replaceChildren();
+  geometry.axes.forEach((axis,index)=>{
+    const row=document.createElement('tr');
+    const values=[geometry.positions[index].map(v=>v.toFixed(4)).join(', '),axis.map(v=>v.toFixed(4)).join(', ')];
+    const wheel=document.createElement('td');wheel.textContent='RW'+(index+1);
+    const position=document.createElement('td');position.textContent=values[0];
+    const direction=document.createElement('td');direction.textContent=values[1];
+    row.append(wheel,position,direction);host.append(row);
+  });
+}
+function setSimulationConfiguration(payload) {
+  if(!payload||payload.validated!==true||!String(payload.capabilityId||'').startsWith('whole_spacecraft.')) {
+    clearSimulationConfiguration();return false;
+  }
+  const geometry=resolveDisplayRwGeometry(payload.values?.parameters?.values || payload.values);
+  if(!geometry) { clearSimulationConfiguration();return false; }
+  state.simulationGeometry={...geometry,capabilityId:payload.capabilityId,validated:true};
+  disposeSimulationGeometryGroup();
+  geometry.positions.forEach((position,index)=>{
+    const axis=geometry.axes[index];
+    const material=new THREE.MeshStandardMaterial({color:[0x69b8f2,0xe4b65e,0x7acb9b,0xb79be8][index%4],metalness:0.55,roughness:0.35});
+    const wheel=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.012,24),material);
+    wheel.position.set(...position);
+    wheel.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...axis));
+    state.simulationGeometryGroup.add(wheel);
+    const marker=new THREE.Mesh(new THREE.SphereGeometry(0.004,12,8),new THREE.MeshBasicMaterial({color:material.color}));
+    marker.position.set(...position);state.simulationGeometryGroup.add(marker);
+    const arrow=new THREE.ArrowHelper(new THREE.Vector3(...axis),new THREE.Vector3(...position),0.085,material.color.getHex(),0.018,0.009);
+    state.simulationGeometryGroup.add(arrow);
+  });
+  renderSimulationGeometryRows(geometry);
+  const badge=byId('simulationGeometryBadge');
+  if(badge){badge.textContent='TaskSpec 校验通过 · '+geometry.capabilityId;badge.dataset.state='live';}
+  const summary=byId('simulationGeometrySummary');
+  if(summary)summary.textContent=geometry.count+' 个反作用轮；构型 '+(geometry.configuration==='pyramid_4'?'四轮金字塔':'三轮正交')+'；几何模式 '+(geometry.mode==='per_wheel'?'逐轮安装':'预设轴向与共用偏置')+'。位置和轴向均以 B 系表示。';
+  const status=byId('simulationGeometryStatus');
+  if(status)status.textContent='显示的是已通过后端 TaskSpec 校验的仿真输入几何，不是 as-built 安装证明。';
+  if(state.simulationGeometryVisible)renderSimulationGeometry();
+  return true;
+}
+function clearSimulationConfiguration() {
+  state.simulationGeometry=null;
+  disposeSimulationGeometryGroup();
+  const badge=byId('simulationGeometryBadge');if(badge){badge.textContent='等待整星 TaskSpec 校验';badge.dataset.state='demo';}
+  const summary=byId('simulationGeometrySummary');if(summary)summary.textContent='请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。';
+  const host=byId('simulationGeometryRows');if(host)host.innerHTML='<tr><td colspan="3">尚无已校验配置</td></tr>';
+  const status=byId('simulationGeometryStatus');if(status)status.textContent='没有已校验的整星构型。';
+}
+function setSimulationGeometryVisible(visible) {
+  state.simulationGeometryVisible=Boolean(visible);
+  if(state.simulationGeometryVisible&&ensureSimulationGeometryViewer())renderSimulationGeometry();
+  else if(state.simulationGeometryFrame){cancelAnimationFrame(state.simulationGeometryFrame);state.simulationGeometryFrame=0;}
+}
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
+  setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
