@@ -91,6 +91,8 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert 'id="simulationGeometryRows"' in html
     assert "setSimulationConfiguration" in app and "validated: true" in app
     assert "whole_spacecraft." in scene
+    assert "hasOwnProperty.call(values,'rw_configuration')" in scene
+    assert "hasOwnProperty.call(values,'rw_geometry_mode')" in scene
     assert "rw_mount_b_" in scene and "rw_axis_b_" in scene
     assert "rWB_B" in html and "gsHat_B" in html
     assert "不是型号 as-built 安装证明" in html
