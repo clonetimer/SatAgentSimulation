@@ -154,3 +154,23 @@ BIRDS Project Newsletter Issue 42 第 25 页给出的标准 1U CubeSat 主框架
 进一步将 P9-I 转换工作流扩展为在同一 CI job 内加载刚生成的 `BIRDS4_FM_Final_v7.glb`，通过官方 GLTFLoader 在真实 Chromium 中验收整星模型，而不再只依赖小型 fixture。验收记录模型文件大小、加载耗时、场景节点数、可见 Mesh、三角形数、WebGL 资源计数和浏览器 heap（若浏览器提供），并保存桌面 1440×960 与移动端 390×844 截图。真实整星门槛：文件大于 10 MB、场景节点不少于 500、可见 Mesh 不少于 100、三角形不少于 1000；同时要求页面无控制台/网络错误、无外部网络请求、移动视口无横向溢出。
 
 CI artifact 同时保留 STEP→GLB 转换报告、GLB、装配树、来源审查和真实浏览器性能/截图证据，保留 30 天。
+
+## P9-I5-B 真实整星浏览器验收结果（2026-11-15）
+
+最新已完成工作流：[P9-I run 43692477458](https://github.com/clonetimer/SatAgentSimulation/actions/runs/43692477458)，结果 **PASS**。真实整星浏览器专项 1 passed、0 failed、0 skipped；Playwright 用时 143.977 s，整个 pytest 命令用时 152.256 s。
+
+本次验收使用转换器刚生成的真实 `BIRDS4_FM_Final_v7.glb`，不是三角形 fixture：
+- GLB：61,009,900 bytes；SHA-256 `f00cabfc02218a50ef807c06281a7d9e5a1cd93178635476aa153fea1c6b4b12`。
+- 浏览器加载耗时：12.336 s。
+- Three.js 场景节点：27,278；可见 Mesh：26,425；三角形：3,104,231。
+- WebGL render calls：26,427；GPU geometry：15,733；textures：1。
+- Chromium reported JS heap：183,682,643 bytes。
+- 桌面视口：1440×960；移动视口：390×844，横向溢出检查通过。
+- 浏览器控制台错误、页面异常、HTTP 4xx/5xx、请求失败和外部网络请求门禁均通过。
+- 转换与浏览器证据 artifact：ID `14153195945`，ZIP 21,118,534 bytes，SHA-256 `ac98ec8ad356c7636271be894bc79b2497446dd416f09a5c98349ad89231ce6a`。
+
+视觉证据审查发现，既有桌面/移动截图是在完成搜索、隔离、视角预设和双击聚焦之后截取的，不能单独代表模型初始总览。已在后续提交 `7f35afdf5ae60d74dcacac4253404673354fda36` 增加“初始整星总览”独立截图与性能记录，避免将局部聚焦画面误作默认视图验收证据。
+
+**性能整改项仍保留：** 26,425 个可见 Mesh 对应 26,427 次 render calls，说明该 GLB 的细粒度网格数量较高。按需渲染已消除静止时的持续 RAF 空转，但并未减少单帧 draw calls。下一步评估不损失装配层级和单件可选性的批处理/LOD/分层加载策略，并以真实浏览器帧耗时、交互延迟和内存数据验证，不以压低网格数替代结构正确性。
+
+**身份边界保持不变：** `promotion_status=reference_cad_imported_not_as_built_verified`；855 个 STEP 源装配节点、852 个 GLB 节点；`render_eligibility=false`，不生成装机实例。混合 EM/B3 命名、具体飞行单元、基准坐标和安装矩阵仍须由正式装配文件审定。
