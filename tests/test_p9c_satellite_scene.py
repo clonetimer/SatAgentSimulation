@@ -194,7 +194,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert rejected is False
                 accepted = page.evaluate("""() => window.SatScene.setSimulationConfiguration({
                     capabilityId: 'whole_spacecraft.unified_native.v1',
-                    values: {parameters: {values: {rw_configuration: 'pyramid_4', rw_geometry_mode: 'per_wheel', rw_mount_radius_m: 0, rw_mount_b_x_m_0: 0.12, spacecraft_mass_kg: 120, spacecraft_inertia_xx_kg_m2: 110, spacecraft_inertia_yy_kg_m2: 90, spacecraft_inertia_zz_kg_m2: 70, imu_position_b_x_m: 0.02, imu_position_b_y_m: -0.01, imu_position_b_z_m: 0.03, imu_mount_yaw_deg: 10, imu_mount_pitch_deg: -2, imu_mount_roll_deg: 1, magnetometer_mount_yaw_deg: 2, magnetometer_mount_pitch_deg: 3, magnetometer_mount_roll_deg: 4, sun_sensor_normal_b_x: 0, sun_sensor_normal_b_y: 0, sun_sensor_normal_b_z: -1}}},
+                    values: {parameters: {values: {rw_configuration: 'pyramid_4', rw_geometry_mode: 'per_wheel', rw_mount_radius_m: 0, rw_mount_b_x_m_0: 0.12, spacecraft_mass_kg: 120, spacecraft_inertia_xx_kg_m2: 110, spacecraft_inertia_yy_kg_m2: 90, spacecraft_inertia_zz_kg_m2: 70, imu_position_b_x_m: 0.02, imu_position_b_y_m: -0.01, imu_position_b_z_m: 0.03, imu_mount_yaw_deg: 10, imu_mount_pitch_deg: -2, imu_mount_roll_deg: 1, magnetometer_mount_yaw_deg: 2, magnetometer_mount_pitch_deg: 3, magnetometer_mount_roll_deg: 4, star_tracker_mount_yaw_deg: 90, star_tracker_mount_pitch_deg: 0, star_tracker_mount_roll_deg: 0, sun_sensor_normal_b_x: 0, sun_sensor_normal_b_y: 0, sun_sensor_normal_b_z: -1}}},
                     validated: true
                 })""")
                 assert accepted is True
