@@ -38,6 +38,7 @@ const state = {
   simulationGeometryCamera: null,
   simulationGeometryGroup: null,
   simulationWheelMeshes: [],
+  simulationExplodedView: false,
   simulationGeometryResizeObserver: null,
   simulationGeometryFrame: 0,
   simulationGeometryVisible: false,
@@ -1102,16 +1103,18 @@ function setSimulationConfiguration(payload) {
   geometry.positions.forEach((position,index)=>{
     const axis=geometry.axes[index];
     const material=new THREE.MeshStandardMaterial({color:[0x69b8f2,0xe4b65e,0x7acb9b,0xb79be8][index%4],metalness:0.55,roughness:0.35});
+    const wheelGroup=new THREE.Group();
+    wheelGroup.position.set(...position);
     const wheel=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.012,24),material);
-    wheel.position.set(...position);
     const alignment = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...axis));
     wheel.quaternion.copy(alignment);
-    state.simulationGeometryGroup.add(wheel);
-    state.simulationWheelMeshes.push({mesh:wheel,alignment,index});
+    wheelGroup.add(wheel);
     const marker=new THREE.Mesh(new THREE.SphereGeometry(0.004,12,8),new THREE.MeshBasicMaterial({color:material.color}));
-    marker.position.set(...position);state.simulationGeometryGroup.add(marker);
-    const arrow=new THREE.ArrowHelper(new THREE.Vector3(...axis),new THREE.Vector3(...position),0.085,material.color.getHex(),0.018,0.009);
-    state.simulationGeometryGroup.add(arrow);
+    wheelGroup.add(marker);
+    const arrow=new THREE.ArrowHelper(new THREE.Vector3(...axis),new THREE.Vector3(0,0,0),0.085,material.color.getHex(),0.018,0.009);
+    wheelGroup.add(arrow);
+    state.simulationGeometryGroup.add(wheelGroup);
+    state.simulationWheelMeshes.push({mesh:wheel,group:wheelGroup,alignment,index,physicalPosition:[...position]});
   });
   renderSimulationGeometryRows(geometry);
   renderSensorGeometryRows(values);
@@ -1128,6 +1131,8 @@ function setSimulationConfiguration(payload) {
 function clearSimulationConfiguration() {
   state.simulationGeometry=null;
   state.simulationWheelMeshes=[];
+  state.simulationExplodedView=false;
+  const explodeButton=byId('simulationExplodeToggle');if(explodeButton){explodeButton.setAttribute('aria-pressed','false');explodeButton.textContent='工程分解视图';}
   disposeSimulationGeometryGroup();
   const badge=byId('simulationGeometryBadge');if(badge){badge.textContent='等待整星 TaskSpec 校验';badge.dataset.state='demo';}
   const summary=byId('simulationGeometrySummary');if(summary)summary.textContent='请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。';
@@ -1136,6 +1141,28 @@ function clearSimulationConfiguration() {
   ['simulationHubMass','simulationHubIxx','simulationHubIyy','simulationHubIzz'].forEach(id=>{const node=byId(id);if(node)node.textContent='—';});
   const status=byId('simulationGeometryStatus');if(status)status.textContent='没有已校验的整星构型。';
   if(state.simulationGeometryVisible)renderSimulationGeometry();
+}
+function setSimulationExplodedView(enabled) {
+  state.simulationExplodedView=Boolean(enabled);
+  const count=state.simulationWheelMeshes.length;
+  state.simulationWheelMeshes.forEach(({group,index,physicalPosition})=>{
+    if(state.simulationExplodedView) {
+      const angle=(index/count)*Math.PI*2;
+      const radius=0.09;
+      group.position.set(
+        physicalPosition[0]+radius*Math.cos(angle),
+        physicalPosition[1]+(index%2===0?0.045:-0.045),
+        physicalPosition[2]+radius*Math.sin(angle)
+      );
+    } else {
+      group.position.set(...physicalPosition);
+    }
+  });
+  const status=byId('simulationGeometryStatus');
+  if(status)status.textContent=state.simulationExplodedView
+    ? '工程分解视图：反作用轮符号仅作视觉分离；表格仍保留真实物理安装坐标，不代表实际装配偏移。'
+    : '物理构型视图：所有反作用轮均按已校验 TaskSpec 的 B 系安装坐标显示。';
+  renderSimulationGeometry();
 }
 function setSimulationGeometryVisible(visible) {
   state.simulationGeometryVisible=Boolean(visible);
@@ -1155,7 +1182,8 @@ function setOrbitSceneVisible(visible) {
 }
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
-  setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible,
+  setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible, setSimulationExplodedView,
+  integrateWheelPhaseFromTelemetry,
   setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame, starTrackerAxesInBodyFrame,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
