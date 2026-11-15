@@ -90,6 +90,7 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert 'id="simulationGeometryCanvas"' in html
     assert 'id="simulationGeometryRows"' in html
     assert "setSimulationConfiguration" in app and "validated: true" in app
+    assert "clearSimulationConfiguration" in app
     assert "whole_spacecraft." in scene
     assert "hasOwnProperty.call(values,'rw_configuration')" in scene
     assert "hasOwnProperty.call(values,'rw_geometry_mode')" in scene
