@@ -274,7 +274,15 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             tree_nodes = page.locator("#birdsCadTree .birds-cad-tree-node")
             assert tree_nodes.count() >= 1
             if real_glb:
-                tree_nodes.first.click()
+                # Real assemblies start with their top-level groups collapsed.
+                # Exercise the same disclosure interaction a user performs before
+                # selecting a component; never click a hidden descendant.
+                first_group = page.locator("#birdsCadTree details.birds-cad-tree-group").first
+                if first_group.count():
+                    first_group.locator(":scope > summary").click()
+                visible_node = page.locator("#birdsCadTree .birds-cad-tree-node:visible").first
+                visible_node.wait_for(state="visible")
+                visible_node.click()
             else:
                 page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').first.click()
             inspector_text = page.locator("#birdsCadInspector").inner_text()
