@@ -105,6 +105,11 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "sun_sensor_normal_b_" in scene
     assert "B→P 321" in scene and "B→S 321" in scene
     assert "magAxes=magnetometerAxesInBodyFrame" in scene
+    assert "starAxes=starTrackerAxesInBodyFrame" in scene
+    assert "star_tracker_mount_" in scene
+    capability = (Path(__file__).resolve().parents[1] / "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml").read_text(encoding="utf-8")
+    for key in ("star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg", "star_tracker_mount_roll_deg"):
+        assert key in capability
     assert "setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame" in scene
     assert "new THREE.Vector3(...normal).normalize()" in scene
     assert "方向参考自 B 原点" in scene
@@ -183,7 +188,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 page.locator("#simulationGeometryCanvas").wait_for(state="visible")
                 rejected = page.evaluate("""() => window.SatScene.setSimulationConfiguration({
                     capabilityId: 'whole_spacecraft.unified_native.v1',
-                    values: {parameters: {values: {rw_configuration: 'pyramid_4', rw_geometry_mode: 'per_wheel', rw_mount_radius_m: 0, rw_mount_b_x_m_0: 0.12, spacecraft_mass_kg: 120, spacecraft_inertia_xx_kg_m2: 110, spacecraft_inertia_yy_kg_m2: 90, spacecraft_inertia_zz_kg_m2: 70, imu_position_b_x_m: 0.02, imu_position_b_y_m: -0.01, imu_position_b_z_m: 0.03, imu_mount_yaw_deg: 10, imu_mount_pitch_deg: -2, imu_mount_roll_deg: 1, magnetometer_mount_yaw_deg: 2, magnetometer_mount_pitch_deg: 3, magnetometer_mount_roll_deg: 4, sun_sensor_normal_b_x: 0, sun_sensor_normal_b_y: 0, sun_sensor_normal_b_z: -1}}},
+                    values: {parameters: {values: {rw_configuration: 'pyramid_4', rw_geometry_mode: 'per_wheel', rw_mount_radius_m: 0, rw_mount_b_x_m_0: 0.12, spacecraft_mass_kg: 120, spacecraft_inertia_xx_kg_m2: 110, spacecraft_inertia_yy_kg_m2: 90, spacecraft_inertia_zz_kg_m2: 70, imu_position_b_x_m: 0.02, imu_position_b_y_m: -0.01, imu_position_b_z_m: 0.03, imu_mount_yaw_deg: 10, imu_mount_pitch_deg: -2, imu_mount_roll_deg: 1, magnetometer_mount_yaw_deg: 2, magnetometer_mount_pitch_deg: 3, magnetometer_mount_roll_deg: 4, star_tracker_mount_yaw_deg: 90, star_tracker_mount_pitch_deg: 0, star_tracker_mount_roll_deg: 0, sun_sensor_normal_b_x: 0, sun_sensor_normal_b_y: 0, sun_sensor_normal_b_z: -1}}},
                     validated: false
                 })""")
                 assert rejected is False
@@ -194,15 +199,20 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 })""")
                 assert accepted is True
                 assert page.locator("#simulationGeometryRows tr").count() == 4
-                assert page.locator("#simulationSensorRows tr").count() == 3
+                assert page.locator("#simulationSensorRows tr").count() == 4
                 assert "IMU" in page.locator("#simulationSensorRows").inner_text()
                 assert "B→P 321" in page.locator("#simulationSensorRows").inner_text()
+                assert "B→C 321" in page.locator("#simulationSensorRows").inner_text()
                 imu_axes = page.evaluate("window.SatScene.imuPlatformAxesInBodyFrame(90, 0, 0)")
                 assert all(abs(a-b) < 1e-9 for a,b in zip(imu_axes[0], [0, 1, 0]))
                 assert all(abs(a-b) < 1e-9 for a,b in zip(imu_axes[1], [-1, 0, 0]))
                 assert all(abs(a-b) < 1e-9 for a,b in zip(imu_axes[2], [0, 0, 1]))
                 assert "B→S 321" in page.locator("#simulationSensorRows").inner_text()
                 assert "nHat_B" in page.locator("#simulationSensorRows").inner_text()
+                star_axes = page.evaluate("window.SatScene.starTrackerAxesInBodyFrame(90, 0, 0)")
+                assert all(abs(a-b) < 1e-9 for a,b in zip(star_axes[0], [0, 1, 0]))
+                assert all(abs(a-b) < 1e-9 for a,b in zip(star_axes[1], [-1, 0, 0]))
+                assert all(abs(a-b) < 1e-9 for a,b in zip(star_axes[2], [0, 0, 1]))
                 mag_axes = page.evaluate("window.SatScene.magnetometerAxesInBodyFrame(90, 0, 0)")
                 assert all(abs(a-b) < 1e-9 for a,b in zip(mag_axes[0], [0, 1, 0]))
                 assert all(abs(a-b) < 1e-9 for a,b in zip(mag_axes[1], [-1, 0, 0]))
