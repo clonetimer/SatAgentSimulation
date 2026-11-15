@@ -318,3 +318,8 @@ IMU 三轴显示不再只列 Euler 数值。本轮核对了 Basilisk 上游实�
 
 
 **上游实现核对（Magnetometer）**：固定核对 Basilisk `AVSLab/basilisk` develop 源码提交 `2f8e5d7a8c7ddf55983916cd5640d442ddc99c7c` 的 `src/simulation/sensors/magnetometer/magnetometer.cpp`。其中 `Magnetometer::setBodyToSensorDCM(yaw,pitch,roll)` 明确计算 `dcm_SB = eigenM1(roll) * eigenM2(pitch) * eigenM3(yaw)`。因此 S 系三轴在 B 系中的方向由该矩阵的转置给出。前端已将公共数学实现命名为 `bodyToSensorAxesInBodyFrame`，并通过 IMU 与磁强计各自的语义包装函数调用，避免把磁强计错误标成 IMU。
+
+
+### P9-J2-F：星敏安装方向纳入统一构型
+
+将已经由 Basilisk 原生 `StarTracker.dcm_CB` 使用的 3-2-1 安装角补登记到整星 Capability schema（默认 0°，航向/横滚 ±180°、俯仰 ±89°），使其不再只存在于连续会话配置而缺席有限 TaskSpec/Workbench 参数目录。仿真构型检查器新增 B→C 星敏三轴方向参考箭头；由于整星 Capability 没有星敏安装位置字段，箭头只从 B 系原点发出，明确不表示实际安装点。Chromium 测试增加 90° yaw 的独立基向量检查和 schema 字段存在性检查。
