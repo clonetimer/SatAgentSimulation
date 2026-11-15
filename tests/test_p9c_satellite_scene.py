@@ -108,6 +108,8 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "spacecraft_inertia_xx_kg_m2" in scene
     assert "不是型号 as-built 安装证明" in html
     assert "simulationRoot.hidden=!simulation" in viewer
+    assert "setOrbitSceneVisible" in viewer
+    assert "pauseAnimation" in scene and "resumeAnimation" in scene
 
 
 def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
