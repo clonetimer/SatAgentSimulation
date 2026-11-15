@@ -182,6 +182,11 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 })""")
                 assert accepted is True
                 assert page.locator("#simulationGeometryRows tr").count() == 4
+                assert page.locator("#simulationSensorRows tr").count() == 3
+                assert "IMU" in page.locator("#simulationSensorRows").inner_text()
+                assert "B→P 321" in page.locator("#simulationSensorRows").inner_text()
+                assert "B→S 321" in page.locator("#simulationSensorRows").inner_text()
+                assert "nHat_B" in page.locator("#simulationSensorRows").inner_text()
                 assert "TaskSpec 校验通过" in page.locator("#simulationGeometryBadge").inner_text()
                 if cycle == 2:
                     if evidence_dir:
