@@ -37,6 +37,7 @@ const state = {
   simulationGeometryScene: null,
   simulationGeometryCamera: null,
   simulationGeometryGroup: null,
+  simulationWheelMeshes: [],
   simulationGeometryResizeObserver: null,
   simulationGeometryFrame: 0,
   simulationGeometryVisible: false,
@@ -362,12 +363,28 @@ function telemetryPath() {
   }));
 }
 
+function updateSimulationWheelMotion(measurements, simTimeS) {
+  if (!state.simulationWheelMeshes.length) return;
+  const values = measurements && typeof measurements === 'object' ? measurements : {};
+  const time = Number(simTimeS);
+  if (!Number.isFinite(time) || time < 0) return;
+  state.simulationWheelMeshes.forEach(({mesh, alignment, index}) => {
+    const speed = values['adcs.rw.speed_rad_s_' + index];
+    if (typeof speed !== 'number' || !Number.isFinite(speed)) return;
+    const phase = THREE.MathUtils.euclideanModulo(speed * time, 2 * Math.PI);
+    mesh.quaternion.copy(alignment).multiply(
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), phase)
+    );
+  });
+  renderSimulationGeometry();
+}
 function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
   const host=byId('simulationSensorTelemetryRows');
   const source=byId('simulationSensorTelemetrySource');
   if(!host||!source)return;
   host.replaceChildren();
   const values=measurements&&typeof measurements==='object'?measurements:{};
+  updateSimulationWheelMotion(values, simTimeS);
   const finite=key=>typeof values[key]==='number'&&Number.isFinite(values[key]);
   const valid=key=>{
     const value=values[key];
@@ -1064,14 +1081,17 @@ function setSimulationConfiguration(payload) {
   const geometry=resolveDisplayRwGeometry(values);
   if(!geometry || !ensureSimulationGeometryViewer()) { clearSimulationConfiguration();return false; }
   state.simulationGeometry={...geometry,capabilityId:payload.capabilityId,validated:true};
+  state.simulationWheelMeshes = [];
   disposeSimulationGeometryGroup();
   geometry.positions.forEach((position,index)=>{
     const axis=geometry.axes[index];
     const material=new THREE.MeshStandardMaterial({color:[0x69b8f2,0xe4b65e,0x7acb9b,0xb79be8][index%4],metalness:0.55,roughness:0.35});
     const wheel=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.012,24),material);
     wheel.position.set(...position);
-    wheel.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...axis));
+    const alignment = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...axis));
+    wheel.quaternion.copy(alignment);
     state.simulationGeometryGroup.add(wheel);
+    state.simulationWheelMeshes.push({mesh:wheel,alignment,index});
     const marker=new THREE.Mesh(new THREE.SphereGeometry(0.004,12,8),new THREE.MeshBasicMaterial({color:material.color}));
     marker.position.set(...position);state.simulationGeometryGroup.add(marker);
     const arrow=new THREE.ArrowHelper(new THREE.Vector3(...axis),new THREE.Vector3(...position),0.085,material.color.getHex(),0.018,0.009);
@@ -1091,6 +1111,7 @@ function setSimulationConfiguration(payload) {
 }
 function clearSimulationConfiguration() {
   state.simulationGeometry=null;
+  state.simulationWheelMeshes=[];
   disposeSimulationGeometryGroup();
   const badge=byId('simulationGeometryBadge');if(badge){badge.textContent='等待整星 TaskSpec 校验';badge.dataset.state='demo';}
   const summary=byId('simulationGeometrySummary');if(summary)summary.textContent='请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。';
