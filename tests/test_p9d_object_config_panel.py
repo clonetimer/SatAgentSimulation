@@ -49,8 +49,11 @@ def test_p9d_ui_uses_existing_task_spec_validation_and_no_fake_anchor():
     assert "previewForm()" in app
     assert "api('/tasks/parse'" in app
     assert "state.formData" in app
-    assert "hasSpatialAnchor" in app
-    assert "spatial_anchor" in panel or "spatial_anchor" in app
+    assert "notifySceneObjectSelection" in app
+    assert "spatial_anchor" in app
+    assert "spatialAnchor" in app
+    assert "instanceSemantics" in app
+    assert "inventoryCount" in app
     assert "window.P9DObjectConfigPanel" in app
 
 def test_p9d_browser_parameter_edit_uses_the_existing_taskspec_parse_route(tmp_path):
