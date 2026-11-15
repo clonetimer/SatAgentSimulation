@@ -4468,6 +4468,31 @@
     }
   }
 
+  function notifySceneObjectSelection(objectId, fallback = {}) {
+    const roots = state.sceneObjectTree?.roots || [];
+    const stack = [...roots];
+    let row = null;
+    while (stack.length) {
+      const candidate = stack.pop();
+      if (candidate?.object_id === objectId) { row = candidate; break; }
+      stack.push(...(candidate?.children || []));
+    }
+    const source = row || fallback || {};
+    window.SatScene?.selectObject?.({
+      objectId,
+      name: source.name_zh || fallback.name_zh || objectId,
+      kind: source.kind || null,
+      physicalClass: source.physical_class || null,
+      sceneTarget: source.scene_target || null,
+      spatialAnchor: source.spatial_anchor || null,
+      executionCapabilityId: source.execution_capability_id || fallback.primary_capability_id || null,
+      configurationScope: source.configuration_scope || null,
+      instanceSemantics: source.instance_semantics || null,
+      inventoryCount: source.inventory_count ?? null,
+      inventoryCountSource: source.inventory_count_source || null,
+    });
+  }
+
   function renderP9DPanel() {
     const panel = window.P9DObjectConfigPanel;
     if (!panel || !state.sceneObjectTree) return;
@@ -4515,7 +4540,7 @@
             if (row?.object_id === objectId) { selected = row; break; }
             stack.push(...(row?.children || []));
           }
-          window.SatScene?.selectObject?.({ name: selected?.name_zh || objectId, hasSpatialAnchor: Boolean(selected?.spatial_anchor) });
+          notifySceneObjectSelection(objectId, selected || {});
           renderP9DPanel();
           return;
         }
@@ -4695,7 +4720,7 @@
       renderForm();
       renderEvents();
       renderP9DPanel();
-      window.SatScene?.selectObject?.({ name: object.name_zh, hasSpatialAnchor: Boolean(object.spatial_anchor) });
+      notifySceneObjectSelection(object.object_id, object);
       el('qoiOptions').replaceChildren();
       el('plotOptions').replaceChildren();
       syncTaskSpecEditor();
@@ -4721,7 +4746,7 @@
         renderOutputs();
         syncTaskSpecEditor();
         renderP9DPanel();
-        window.SatScene?.selectObject?.({ name: objectOverride.name_zh, hasSpatialAnchor: Boolean(objectOverride.spatial_anchor) });
+        notifySceneObjectSelection(objectOverride.object_id, objectOverride);
       }
       return true;
     }
@@ -4769,7 +4794,7 @@
       renderCapabilityList();
       renderForm();
       renderP9DPanel();
-      window.SatScene?.selectObject?.({ name: object?.name_zh || state.schema.capability.name || capabilityId, hasSpatialAnchor: Boolean(object?.spatial_anchor) });
+      notifySceneObjectSelection(object?.object_id || capabilityId, object || {});
       renderEffectSelect();
       renderEvents();
       renderOutputs();
