@@ -189,6 +189,10 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert page.locator("#simulationSensorRows tr").count() == 3
                 assert "IMU" in page.locator("#simulationSensorRows").inner_text()
                 assert "B→P 321" in page.locator("#simulationSensorRows").inner_text()
+                imu_axes = page.evaluate("window.SatScene.imuPlatformAxesInBodyFrame(90, 0, 0)")
+                assert all(abs(a-b) < 1e-9 for a,b in zip(imu_axes[0], [0, 1, 0]))
+                assert all(abs(a-b) < 1e-9 for a,b in zip(imu_axes[1], [-1, 0, 0]))
+                assert all(abs(a-b) < 1e-9 for a,b in zip(imu_axes[2], [0, 0, 1]))
                 assert "B→S 321" in page.locator("#simulationSensorRows").inner_text()
                 assert "nHat_B" in page.locator("#simulationSensorRows").inner_text()
                 assert "0.0200, -0.0100, 0.0300" in page.locator("#simulationSensorRows").inner_text()
