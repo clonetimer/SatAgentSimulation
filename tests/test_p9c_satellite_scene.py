@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import struct
+import time
 from pathlib import Path
 from urllib.parse import parse_qsl, urlparse
 
@@ -211,8 +212,15 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
     if not executable:
         pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to an installed Chromium browser")
 
-    glb_path = tmp_path / "birds4-fixture.glb"
-    _write_triangle_glb(glb_path)
+    real_glb = os.environ.get("SAT_SIM_BIRDS4_REAL_GLB_PATH")
+    if real_glb:
+        glb_path = Path(real_glb).resolve()
+        assert glb_path.is_file(), glb_path
+        assert glb_path.stat().st_size > 10 * 1024 * 1024, "real BIRDS-4 assembly GLB must be a full-size model"
+    else:
+        glb_path = tmp_path / "birds4-fixture.glb"
+        _write_triangle_glb(glb_path)
+    model_name = glb_path.name
     evidence_dir = os.environ.get("SAT_SIM_SCENE_EVIDENCE_DIR")
     with _client(tmp_path) as client, playwright.sync_playwright() as pw:
         browser = pw.chromium.launch(
@@ -257,19 +265,32 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert len(grid_columns.split()) == 1, grid_columns
             viewer = page.locator("#birdsCadViewer")
             viewer.wait_for(state="visible", timeout=10000)
+            load_started = time.monotonic()
             page.locator("#birdsCadFile").set_input_files(str(glb_path))
-            page.locator("#birdsCadStatus").filter(has_text="已加载 birds4-fixture.glb").wait_for(timeout=30000)
+            page.locator("#birdsCadStatus").filter(has_text=f"已加载 {model_name}").wait_for(timeout=180000)
+            load_seconds = time.monotonic() - load_started
             tree_nodes = page.locator("#birdsCadTree .birds-cad-tree-node")
             assert tree_nodes.count() >= 1
-            page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').first.click()
-            assert "BIRDS4_fixture_root" in page.locator("#birdsCadInspector").inner_text()
+            if real_glb:
+                tree_nodes.first.click()
+            else:
+                page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').first.click()
+            inspector_text = page.locator("#birdsCadInspector").inner_text()
+            assert inspector_text.strip()
             render_state = page.evaluate("window.BirdsCadViewer.getDiagnostics()")
             assert render_state["visible_meshes"] >= 1, render_state
             assert render_state["triangles"] >= 1, render_state
+            if real_glb:
+                assert render_state["scene_nodes"] >= 500, render_state
+                assert render_state["visible_meshes"] >= 100, render_state
+                assert render_state["triangles"] >= 1000, render_state
 
             search = page.locator("#birdsCadSearch")
-            search.fill("fixture")
-            page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').wait_for()
+            search.fill("B4" if real_glb else "fixture")
+            if real_glb:
+                page.wait_for_function("document.querySelectorAll('#birdsCadTree .birds-cad-tree-node').length > 0")
+            else:
+                page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').wait_for()
             visibility = page.locator("#birdsCadTree .birds-cad-visibility").first
             visibility.click()
             assert visibility.get_attribute("aria-pressed") == "true"
@@ -283,7 +304,19 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             if evidence_dir:
                 output = Path(evidence_dir)
                 output.mkdir(parents=True, exist_ok=True)
-                page.screenshot(path=str(output / "birds4-cad-viewer-desktop.png"), full_page=True)
+                page.screenshot(path=str(output / ("birds4-cad-viewer-real-desktop.png" if real_glb else "birds4-cad-viewer-desktop.png")), full_page=True)
+                metrics = {
+                    "model": model_name,
+                    "real_assembly": bool(real_glb),
+                    "file_size_bytes": glb_path.stat().st_size,
+                    "load_seconds": round(load_seconds, 3),
+                    "render": render_state,
+                    "browser_heap_used_bytes": page.evaluate("performance.memory?.usedJSHeapSize ?? null"),
+                    "desktop_viewport": {"width": 1440, "height": 960},
+                }
+                (output / ("birds4-real-model-performance.json" if real_glb else "birds4-fixture-performance.json")).write_text(
+                    json.dumps(metrics, indent=2), encoding="utf-8"
+                )
 
             page.set_viewport_size({"width": 390, "height": 844})
             page.wait_for_timeout(300)
@@ -294,7 +327,7 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert layout["scrollWidth"] <= layout["width"] + 2, layout
             assert layout["viewport"] >= 280, layout
             if evidence_dir:
-                page.screenshot(path=str(Path(evidence_dir) / "birds4-cad-viewer-mobile.png"), full_page=True)
+                page.screenshot(path=str(Path(evidence_dir) / ("birds4-cad-viewer-real-mobile.png" if real_glb else "birds4-cad-viewer-mobile.png")), full_page=True)
             assert not external_requests, external_requests
             assert not failures, failures
         finally:
