@@ -315,3 +315,6 @@ IMU 三轴显示不再只列 Euler 数值。本轮核对了 Basilisk 上游实�
 - 太阳敏感器：官方 `CoarseSunSensor.nHat_B` 本身就是 B 系法线向量，不需要 Euler 变换；在三维视图直接按单位向量绘制视场轴，并检查单位长度与默认 -Z 方向。
 - 两者都没有经审定的安装位置，因此方向箭头只从 B 系原点发出，作为坐标方向参考；表格明确写“未配置；方向参考自 B 原点”，绝不解释成实际安装点。
 - 方向箭头的长度和颜色仅为图形辅助，不代表传感器外形、尺寸或安装距离。
+
+
+**上游实现核对（Magnetometer）**：固定核对 Basilisk `AVSLab/basilisk` develop 源码提交 `2f8e5d7a8c7ddf55983916cd5640d442ddc99c7c` 的 `src/simulation/sensors/magnetometer/magnetometer.cpp`。其中 `Magnetometer::setBodyToSensorDCM(yaw,pitch,roll)` 明确计算 `dcm_SB = eigenM1(roll) * eigenM2(pitch) * eigenM3(yaw)`。因此 S 系三轴在 B 系中的方向由该矩阵的转置给出。前端已将公共数学实现命名为 `bodyToSensorAxesInBodyFrame`，并通过 IMU 与磁强计各自的语义包装函数调用，避免把磁强计错误标成 IMU。
