@@ -893,6 +893,19 @@ function renderSimulationGeometryRows(geometry) {
 // angles are reported in the native 3-2-1 interface convention, not guessed
 // into a rendered body-to-platform matrix. Magnetometer has no configured
 // installation position, so only its B-to-S angles are reported.
+function renderRigidBodyProperties(values) {
+  const format=(value,unit)=>{
+    const number=Number(value);
+    return Number.isFinite(number)?number.toFixed(4)+' '+unit:'未提供';
+  };
+  const fields=[
+    ['simulationHubMass','spacecraft_mass_kg','kg'],
+    ['simulationHubIxx','spacecraft_inertia_xx_kg_m2','kg·m²'],
+    ['simulationHubIyy','spacecraft_inertia_yy_kg_m2','kg·m²'],
+    ['simulationHubIzz','spacecraft_inertia_zz_kg_m2','kg·m²'],
+  ];
+  fields.forEach(([id,key,unit])=>{const node=byId(id);if(node)node.textContent=format(values[key],unit);});
+}
 function renderSensorGeometryRows(values) {
   const host=byId('simulationSensorRows');if(!host)return;
   host.replaceChildren();
@@ -948,6 +961,7 @@ function setSimulationConfiguration(payload) {
   });
   renderSimulationGeometryRows(geometry);
   renderSensorGeometryRows(values);
+  renderRigidBodyProperties(values);
   const badge=byId('simulationGeometryBadge');
   if(badge){badge.textContent='TaskSpec 校验通过 · '+geometry.capabilityId;badge.dataset.state='live';}
   const summary=byId('simulationGeometrySummary');
@@ -964,6 +978,7 @@ function clearSimulationConfiguration() {
   const summary=byId('simulationGeometrySummary');if(summary)summary.textContent='请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。';
   const host=byId('simulationGeometryRows');if(host)host.innerHTML='<tr><td colspan="3">尚无已校验配置</td></tr>';
   const sensors=byId('simulationSensorRows');if(sensors)sensors.innerHTML='<tr><td colspan="3">尚无已校验配置</td></tr>';
+  ['simulationHubMass','simulationHubIxx','simulationHubIyy','simulationHubIzz'].forEach(id=>{const node=byId(id);if(node)node.textContent='—';});
   const status=byId('simulationGeometryStatus');if(status)status.textContent='没有已校验的整星构型。';
   if(state.simulationGeometryVisible)renderSimulationGeometry();
 }
