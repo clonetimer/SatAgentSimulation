@@ -283,3 +283,18 @@ CI artifact 同时保留 STEP→GLB 转换报告、GLB、装配树、来源审�
 ### P9-J2-B：整星 Hub 物理属性检查器
 
 新增当前已校验整星 TaskSpec 的 Hub 质量与 B 系对角惯量检查器，字段分别对应 `spacecraft_mass_kg` 和 `spacecraft_inertia_{xx,yy,zz}_kg_m2`。只展示实际输入，不从对角惯量推导外壳、质心或惯量椭球；当前模型未提供惯性积和独立质心输入字段，因此明确显示这些表达边界。清除配置时同步清空所有数值。
+
+
+### IMU 安装方向的 DCM 依据
+
+IMU 三轴显示不再只列 Euler 数值。本轮核对了 Basilisk 上游实现：
+- `ImuSensor::setBodyToPlatformDCM(yaw,pitch,roll)` 直接计算 `dcm_PB = eigenM1(roll) * eigenM2(pitch) * eigenM3(yaw)`。
+- `eigenM1/eigenM2/eigenM3` 的具体矩阵实现来自 AVSLab/basilisk `src/architecture/utilities/avsEigenSupport.cpp`。
+- 为了把平台 P 系三轴画在 B 系视图中，使用 `dcm_BP = transpose(dcm_PB)`；其三列（即 `dcm_PB` 的三行）分别是平台 X/Y/Z 轴在 B 系中的方向。
+- Chromium 测试加入 yaw=+90° 的独立基向量检查：P-X→B+Y，P-Y→B−X，P-Z→B+Z。
+
+上游依据：
+- https://github.com/AVSLab/basilisk/blob/develop/src/simulation/sensors/imuSensor/imuSensor.cpp
+- https://github.com/AVSLab/basilisk/blob/develop/src/architecture/utilities/avsEigenSupport.cpp
+
+箭头长度只是方向识别符号，不代表 IMU 物理尺寸。磁强计同样使用 Basilisk 的 `eigenM1*eigenM2*eigenM3` 组合，但尚未绘制安装方向箭头；先补独立基向量测试，再接入同一坐标显示。
