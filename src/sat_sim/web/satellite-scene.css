@@ -157,3 +157,6 @@
 @media(max-width:760px){.p9d-scene-layout.is-simulation-mode{grid-template-columns:minmax(0,1fr)}.simulation-geometry-viewport,.simulation-geometry-viewport canvas{min-height:340px}}
 
 .simulation-geometry-mode[hidden]{display:none!important}
+
+.simulation-sensor-geometry{display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.simulation-sensor-geometry h3{margin:0;font-size:11px}
