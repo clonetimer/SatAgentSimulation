@@ -43,7 +43,8 @@ const state = {
   simulationGeometryDrag: null,
   simulationGeometryRadius: 0.75,
   simulationGeometryTheta: 0.78,
-  simulationGeometryPhi: 1.05
+  simulationGeometryPhi: 1.05,
+  orbitVisible: true
 };
 
 const byId = (id) => document.getElementById(id);
@@ -544,7 +545,7 @@ function updateSatellite(now) {
       }, 0);
     }
   }
-  if (!state.telemetrySourceId) state.frame = requestAnimationFrame(updateSatellite);
+  if (!state.telemetrySourceId && state.orbitVisible) state.frame = requestAnimationFrame(updateSatellite);
 }
 
 function syncCameraActions() {
@@ -570,10 +571,13 @@ function markReady(globe, generation) {
   if (state.telemetrySourceId && state.latestTelemetryPoint) {
     renderTelemetryPosition();
     status(`场景已就绪，当前显示${state.telemetrySourceLabel || '真实 Basilisk 遥测'}；${state.latestTelemetryPoint.attitude_valid ? '本体姿态由 Basilisk 真值驱动（示意模型轴系）' : '姿态不可用，本体朝向仅为示意'}。`, state.latestTelemetryPoint.attitude_valid ? 'success' : 'warning');
-  } else {
+  } else if (state.orbitVisible) {
     state.frame = requestAnimationFrame(updateSatellite);
     status('场景已就绪。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真遥测。', 'success');
+  } else {
+    status('轨道视图已暂停；切回轨道与姿态模式后继续。', 'info');
   }
+  if (!state.orbitVisible) globe.pauseAnimation();
   syncCameraActions();
 }
 
@@ -1012,10 +1016,21 @@ function setSimulationGeometryVisible(visible) {
   if(state.simulationGeometryVisible&&ensureSimulationGeometryViewer())renderSimulationGeometry();
   else if(state.simulationGeometryFrame){cancelAnimationFrame(state.simulationGeometryFrame);state.simulationGeometryFrame=0;}
 }
+function setOrbitSceneVisible(visible) {
+  state.orbitVisible=Boolean(visible);
+  if(!state.orbitVisible) {
+    if(state.frame){cancelAnimationFrame(state.frame);state.frame=0;}
+    state.globe?.pauseAnimation?.();
+    return;
+  }
+  if(!state.active||!state.ready||!state.globe)return;
+  state.globe.resumeAnimation?.();
+  if(!state.telemetrySourceId&&!state.frame)state.frame=requestAnimationFrame(updateSatellite);
+}
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible,
-  imuPlatformAxesInBodyFrame,
+  setOrbitSceneVisible, imuPlatformAxesInBodyFrame,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
