@@ -100,3 +100,10 @@ def test_satellite_scene_separates_orbit_and_reference_cad_modes():
     assert 'id="birdsCadViewer" class="birds-cad-viewer" hidden' in html
     assert "function setSceneMode(mode)" in source
     assert "orbitMode.hidden=cad" in source and "root.hidden=!cad" in source
+
+
+def test_viewer_exposes_read_only_render_diagnostics_for_geometry_acceptance():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    assert "function getDiagnostics()" in source
+    assert "visible_meshes" in source and "rendered_triangles" in source
+    assert "window.BirdsCadViewer={load,clear,fit,select,setViewerVisible,getDiagnostics}" in source
