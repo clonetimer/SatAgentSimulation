@@ -349,6 +349,8 @@ parameters:
     max: 3600
   star_tracker_mount_yaw_deg:
     type: number
+    label: 星敏安装航向角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第一项；传入 Basilisk StarTracker.dcm_CB，单位为度。
     unit: deg
     required: false
     default: 0
@@ -356,6 +358,8 @@ parameters:
     max: 180
   star_tracker_mount_pitch_deg:
     type: number
+    label: 星敏安装俯仰角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第二项；限制在 ±89° 以避开欧拉奇异姿态。
     unit: deg
     required: false
     default: 0
@@ -363,6 +367,8 @@ parameters:
     max: 89
   star_tracker_mount_roll_deg:
     type: number
+    label: 星敏安装横滚角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第三项；单位为度。
     unit: deg
     required: false
     default: 0
