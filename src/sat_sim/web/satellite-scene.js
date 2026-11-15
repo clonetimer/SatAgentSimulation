@@ -318,7 +318,9 @@ function pointFromTelemetry(frame, epochUtc) {
     'adcs.imu.accel_x_m_s2','adcs.imu.accel_y_m_s2','adcs.imu.accel_z_m_s2',
     'adcs.magnetometer.field_x_t','adcs.magnetometer.field_y_t','adcs.magnetometer.field_z_t',
     'adcs.star_tracker.valid','adcs.star_tracker.sigma_x','adcs.star_tracker.sigma_y','adcs.star_tracker.sigma_z',
-    'adcs.sun_sensor.valid','adcs.sun_sensor.intensity','adcs.sun_sensor.direction_x','adcs.sun_sensor.direction_y','adcs.sun_sensor.direction_z'
+    'adcs.sun_sensor.valid','adcs.sun_sensor.intensity','adcs.sun_sensor.direction_x','adcs.sun_sensor.direction_y','adcs.sun_sensor.direction_z',
+    'adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2','adcs.rw.speed_rad_s_3',
+    'adcs.rw.effective_max_torque_nm_0','adcs.rw.effective_max_torque_nm_1','adcs.rw.effective_max_torque_nm_2','adcs.rw.effective_max_torque_nm_3'
   ];
   const sensorMeasurements = {};
   sensorKeys.forEach(key => {
@@ -382,6 +384,15 @@ function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
     ['星敏感器','MRP ('+vector(['adcs.star_tracker.sigma_x','adcs.star_tracker.sigma_y','adcs.star_tracker.sigma_z'])+')',valid('adcs.star_tracker.valid')],
     ['太阳敏感器',finite('adcs.sun_sensor.intensity')?values['adcs.sun_sensor.intensity'].toFixed(5):'未提供光强',valid('adcs.sun_sensor.valid')+(finite('adcs.sun_sensor.direction_x')&&finite('adcs.sun_sensor.direction_y')&&finite('adcs.sun_sensor.direction_z')?' · 方向已提供':'')]
   ];
+  for(let wheel=0;wheel<4;wheel+=1) {
+    const speedKey='adcs.rw.speed_rad_s_'+wheel;
+    const torqueKey='adcs.rw.effective_max_torque_nm_'+wheel;
+    if(finite(speedKey)||finite(torqueKey)) {
+      const speed=finite(speedKey)?values[speedKey].toFixed(3)+' rad/s':'转速未提供';
+      const torque=finite(torqueKey)?values[torqueKey].toFixed(4)+' N·m':'力矩能力未提供';
+      rows.push(['反作用轮 RW'+(wheel+1),speed+' · '+torque,'—']);
+    }
+  }
   let available=0;
   rows.forEach(([name,measurement,quality])=>{
     if(measurement!=='未提供完整三轴测量'&&!measurement.includes('未提供'))available+=1;
