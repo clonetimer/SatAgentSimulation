@@ -180,6 +180,16 @@
                 <h3>原生配置几何</h3>
                 <div id="simulationGeometrySummary" class="simulation-geometry-summary">请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。</div>
                 <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>轮组</th><th>安装位置 rWB_B（m）</th><th>自旋轴 gsHat_B</th></tr></thead><tbody id="simulationGeometryRows"><tr><td colspan="3">尚无已校验配置</td></tr></tbody></table></div>
+                <section class="simulation-rigid-body-properties">
+                  <h3>整星刚体参数</h3>
+                  <dl>
+                    <div><dt>Hub 质量</dt><dd id="simulationHubMass">—</dd></div>
+                    <div><dt>惯量 Ixx</dt><dd id="simulationHubIxx">—</dd></div>
+                    <div><dt>惯量 Iyy</dt><dd id="simulationHubIyy">—</dd></div>
+                    <div><dt>惯量 Izz</dt><dd id="simulationHubIzz">—</dd></div>
+                  </dl>
+                  <p>显示当前 TaskSpec 中的 Basilisk Hub 质量和 B 系对角惯量输入。该模型输入不包含惯性积，也没有独立的整星质心配置字段；因此不推导惯量椭球或虚构质心位置。</p>
+                </section>
                 <section class="simulation-sensor-geometry">
                   <h3>传感器安装配置</h3>
                   <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>传感器</th><th>机体系 B 位置（m）</th><th>安装方向 / 法线</th></tr></thead><tbody id="simulationSensorRows"><tr><td colspan="3">尚无已校验配置</td></tr></tbody></table></div>
