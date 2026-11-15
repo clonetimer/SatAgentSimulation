@@ -889,6 +889,10 @@ function renderSimulationGeometryRows(geometry) {
     row.append(wheel,position,direction);host.append(row);
   });
 }
+// IMU marker position is the validated Basilisk sensorPos_B input; orientation
+// angles are reported in the native 3-2-1 interface convention, not guessed
+// into a rendered body-to-platform matrix. Magnetometer has no configured
+// installation position, so only its B-to-S angles are reported.
 function renderSensorGeometryRows(values) {
   const host=byId('simulationSensorRows');if(!host)return;
   host.replaceChildren();
