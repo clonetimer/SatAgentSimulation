@@ -5647,6 +5647,7 @@
       });
     }
     if (!payload.ok) {
+      window.SatScene?.clearSimulationConfiguration?.();
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
       showValidationIssues(errors,'TaskSpec 校验失败');
       updateSingleRunGuide('configure', '后端校验未通过；请按错误提示修正参数再提交。');
