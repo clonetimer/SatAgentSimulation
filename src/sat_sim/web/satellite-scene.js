@@ -363,20 +363,36 @@ function telemetryPath() {
   }));
 }
 
+function integrateWheelPhaseFromTelemetry(index, simTimeS) {
+  const targetTime = Number(simTimeS);
+  if (!Number.isFinite(targetTime) || targetTime < 0) return null;
+  const samples = state.telemetryTrail || [];
+  let phase = 0;
+  let previous = null;
+  for (const sample of samples) {
+    const time = Number(sample.sim_time_s);
+    if (!Number.isFinite(time) || time < 0 || time > targetTime) continue;
+    const speed = sample.sensorMeasurements?.['adcs.rw.speed_rad_s_' + index];
+    const current = typeof speed === 'number' && Number.isFinite(speed) ? speed : null;
+    if (previous && current !== null && time > previous.time) {
+      phase += 0.5 * (previous.speed + current) * (time - previous.time);
+    }
+    previous = current === null ? null : {time, speed: current};
+  }
+  return THREE.MathUtils.euclideanModulo(phase, 2 * Math.PI);
+}
 function updateSimulationWheelMotion(measurements, simTimeS) {
   if (!state.simulationWheelMeshes.length) return;
-  const values = measurements && typeof measurements === 'object' ? measurements : {};
-  const time = Number(simTimeS);
-  if (!Number.isFinite(time) || time < 0) return;
+  let updated = false;
   state.simulationWheelMeshes.forEach(({mesh, alignment, index}) => {
-    const speed = values['adcs.rw.speed_rad_s_' + index];
-    if (typeof speed !== 'number' || !Number.isFinite(speed)) return;
-    const phase = THREE.MathUtils.euclideanModulo(speed * time, 2 * Math.PI);
+    const phase = integrateWheelPhaseFromTelemetry(index, simTimeS);
+    if (phase === null) return;
     mesh.quaternion.copy(alignment).multiply(
       new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), phase)
     );
+    updated = true;
   });
-  renderSimulationGeometry();
+  if (updated) renderSimulationGeometry();
 }
 function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
   const host=byId('simulationSensorTelemetryRows');
