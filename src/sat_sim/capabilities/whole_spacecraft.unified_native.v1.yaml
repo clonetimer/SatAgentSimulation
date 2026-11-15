@@ -347,6 +347,27 @@ parameters:
     default: 0
     min: 0
     max: 3600
+  star_tracker_mount_yaw_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0
+    min: -180
+    max: 180
+  star_tracker_mount_pitch_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0
+    min: -89
+    max: 89
+  star_tracker_mount_roll_deg:
+    type: number
+    unit: deg
+    required: false
+    default: 0
+    min: -180
+    max: 180
   imu_mount_yaw_deg:
     type: number
     unit: deg
