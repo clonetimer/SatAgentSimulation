@@ -5,7 +5,7 @@ const orbitMode=document.getElementById('satelliteOrbitMode');
 const sceneLayout=document.querySelector('.p9d-scene-layout');
 const configPanel=document.querySelector('.p9d-config-panel');
 const modeTabs=document.querySelectorAll('[data-scene-mode]');
-function setSceneMode(mode){const cad=mode==='cad';orbitMode.hidden=cad;root.hidden=!cad;sceneLayout?.classList.toggle('is-cad-mode',cad);if(configPanel)configPanel.hidden=cad;modeTabs.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.sceneMode===mode)));if(window.BirdsCadViewer?.setViewerVisible)window.BirdsCadViewer.setViewerVisible(cad);}
+function setSceneMode(mode){const cad=mode==='cad';orbitMode.hidden=cad;root.hidden=!cad;sceneLayout?.classList.toggle('is-cad-mode',cad);if(configPanel)configPanel.hidden=cad;const title=document.getElementById('satelliteSceneTitle');const description=document.getElementById('satelliteSceneDescription');if(title)title.textContent=cad?'BIRDS-4 整星 CAD 参考':'卫星数字场景';if(description)description.textContent=cad?'静态参考几何 · 可检查整星装配与单机结构 · 不代表当前 Basilisk 仿真实装':'真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。';modeTabs.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.sceneMode===mode)));if(window.BirdsCadViewer?.setViewerVisible)window.BirdsCadViewer.setViewerVisible(cad);}
 modeTabs.forEach(button=>button.addEventListener('click',()=>setSceneMode(button.dataset.sceneMode)));
 
 const canvas=root.querySelector('canvas'),input=root.querySelector('#birdsCadFile'),status=root.querySelector('#birdsCadStatus'),tree=root.querySelector('#birdsCadTree'),info=root.querySelector('#birdsCadInspector');
