@@ -128,7 +128,7 @@
       <div class="p9d-scene-layout">
         <section class="satellite-scene-shell">
           <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1 id="satelliteSceneTitle">卫星数字场景</h1><p id="satelliteSceneDescription">真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button><button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">显示机体系坐标轴</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button><button class="button button-secondary" type="button" data-return-wizard>返回仿真向导</button></div></header>
-          <nav class="satellite-scene-mode-tabs" aria-label="数字场景模式"><button type="button" data-scene-mode="orbit" aria-pressed="true">轨道与姿态</button><button type="button" data-scene-mode="cad" aria-pressed="false">整星 CAD 结构</button></nav>
+          <nav class="satellite-scene-mode-tabs" aria-label="数字场景模式"><button type="button" data-scene-mode="orbit" aria-pressed="true">轨道与姿态</button><button type="button" data-scene-mode="simulation" aria-pressed="false">仿真构型</button><button type="button" data-scene-mode="cad" aria-pressed="false">参考 CAD</button></nav>
           <section id="satelliteOrbitMode" class="satellite-orbit-mode">
           <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与真实遥测驱动的卫星轨道及姿态场景"></div>
           <section class="satellite-scene-inspector" aria-label="轨道与姿态状态">
@@ -168,6 +168,22 @@
               <p id="sceneObjectSemanticsNote">选择对象树中的整星、分系统或部件后，这里显示模型类别、能力归属和空间证据。</p>
             </section>
           </section>
+          </section>
+          <section id="simulationGeometryMode" class="simulation-geometry-mode" hidden aria-label="已校验仿真构型几何">
+            <header class="simulation-geometry-heading">
+              <div><h2>ADCS 反作用轮仿真构型</h2><p>安装点 rWB_B 与自旋轴 gsHat_B，均以航天器机体系 B 表示。</p></div>
+              <span id="simulationGeometryBadge" class="scene-data-source" data-state="demo">等待整星 TaskSpec 校验</span>
+            </header>
+            <div class="simulation-geometry-layout">
+              <div class="simulation-geometry-viewport"><canvas id="simulationGeometryCanvas" aria-label="反作用轮机体系安装点与自旋轴三维视图"></canvas><div class="simulation-geometry-hint">拖动旋转 · 滚轮缩放 · X 红 / Y 绿 / Z 蓝</div></div>
+              <aside class="simulation-geometry-details">
+                <h3>原生配置几何</h3>
+                <div id="simulationGeometrySummary" class="simulation-geometry-summary">请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。</div>
+                <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>轮组</th><th>安装位置 rWB_B（m）</th><th>自旋轴 gsHat_B</th></tr></thead><tbody id="simulationGeometryRows"><tr><td colspan="3">尚无已校验配置</td></tr></tbody></table></div>
+                <p class="simulation-geometry-note">这是当前 TaskSpec 的仿真模型配置几何，不是型号 as-built 安装证明。轮体符号尺寸仅用于识别，不代表真实单机外形；机身尺寸未审定，因此不绘制虚构外壳。</p>
+              </aside>
+            </div>
+            <p id="simulationGeometryStatus" class="birds-cad-status" role="status">没有已校验的整星构型。</p>
           </section>
           <section id="birdsCadViewer" class="birds-cad-viewer" hidden aria-label="BIRDS-4 CAD 参考模型查看器">
             <header class="birds-cad-toolbar">
