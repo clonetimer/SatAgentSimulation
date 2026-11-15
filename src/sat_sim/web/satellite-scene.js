@@ -917,6 +917,9 @@ function imuPlatformAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
 function magnetometerAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
   return bodyToSensorAxesInBodyFrame(yawDeg,pitchDeg,rollDeg);
 }
+function starTrackerAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
+  return bodyToSensorAxesInBodyFrame(yawDeg,pitchDeg,rollDeg);
+}
 // The native Basilisk IMU and magnetometer APIs both compose their body-to-sensor
 // DCM as M1(roll) * M2(pitch) * M3(yaw). Sensor axes expressed in B are the
 // rows of that body-to-sensor DCM. The IMU origin is its validated sensorPos_B;
@@ -964,6 +967,16 @@ function renderSensorGeometryRows(values) {
       state.simulationGeometryGroup.add(arrow);
     });
   } else row('IMU','配置范围无效','不显示');
+  const starAngles=['yaw','pitch','roll'].map(axis=>number('star_tracker_mount_'+axis+'_deg'));
+  if(starAngles.every(Number.isFinite)) {
+    row('星敏感器','未配置；方向参考自 B 原点','B→C 321: '+starAngles.map(v=>v.toFixed(2)+'°').join(' / '));
+    const starAxes=starTrackerAxesInBodyFrame(...starAngles);
+    const axisColors=[0xf3a7cf,0xe7d28b,0x9bc7f4];
+    starAxes?.forEach((axis,index)=>{
+      const arrow=new THREE.ArrowHelper(new THREE.Vector3(...axis).normalize(),new THREE.Vector3(0,0,0),0.125,axisColors[index],0.016,0.008);
+      state.simulationGeometryGroup.add(arrow);
+    });
+  } else row('星敏感器','安装位置未提供','配置无效');
   const magAngles=['yaw','pitch','roll'].map(axis=>number('magnetometer_mount_'+axis+'_deg'));
   if(magAngles.every(Number.isFinite)) {
     row('磁强计','未配置；方向参考自 B 原点','B→S 321: '+magAngles.map(v=>v.toFixed(2)+'°').join(' / '));
@@ -1045,7 +1058,7 @@ function setOrbitSceneVisible(visible) {
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible,
-  setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame,
+  setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame, starTrackerAxesInBodyFrame,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
