@@ -110,6 +110,8 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "simulationRoot.hidden=!simulation" in viewer
     assert "setOrbitSceneVisible" in viewer
     assert "pauseAnimation" in scene and "resumeAnimation" in scene
+    assert "setSimulationGeometryVisible?.(false)" in app
+    assert "setOrbitSceneVisible?.(false)" in app
 
 
 def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
