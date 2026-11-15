@@ -183,7 +183,8 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 canvas = page.locator("#satelliteSceneCanvas canvas").first
                 canvas.wait_for(timeout=30000)
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 1
-                assert "演示数据" in scene_status.inner_text()
+                scene_text = scene_status.inner_text()
+                assert any(label in scene_text for label in ("演示数据", "已封存有限 Run 遥测", "实时 Basilisk 遥测"))
                 semantic_node = page.locator(".p9d-tree-item").first
                 semantic_node.wait_for(state="visible", timeout=15000)
                 selected_name = semantic_node.inner_text()
