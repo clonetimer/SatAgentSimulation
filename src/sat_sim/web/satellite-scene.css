@@ -169,3 +169,6 @@
 .simulation-rigid-body-properties dd{margin:0;font-size:10px;font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .simulation-rigid-body-properties p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:560px){.simulation-rigid-body-properties dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.simulation-sensor-telemetry{display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.simulation-sensor-telemetry h3{margin:0;font-size:11px}
