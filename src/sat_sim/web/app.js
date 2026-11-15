@@ -4560,6 +4560,7 @@
         state.changedPaths.add(path);
         state.taskSpec = null;
         state.planning = null;
+        window.SatScene?.clearSimulationConfiguration?.();
         state.wizard.validated = false;
         state.wizard.validatedForm = null;
         updateSingleRunSummary();
@@ -5631,7 +5632,15 @@
       return false;
     }
     const result=payload.result; state.taskSpec=result.task_spec || null; state.planning=result.planning || null; syncTaskSpecEditor();
-    if (payload.ok && state.taskSpec) { state.hasTaskSpecContext = true; captureTaskSource(payload); }
+    if (payload.ok && state.taskSpec) {
+      state.hasTaskSpecContext = true;
+      captureTaskSource(payload);
+      window.SatScene?.setSimulationConfiguration?.({
+        capabilityId: requestedCapabilityId,
+        values: clone(state.formData),
+        validated: true,
+      });
+    }
     if (!payload.ok) {
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
       showValidationIssues(errors,'TaskSpec 校验失败');
