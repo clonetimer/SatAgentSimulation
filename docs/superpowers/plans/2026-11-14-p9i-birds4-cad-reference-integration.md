@@ -326,3 +326,14 @@ IMU 三轴显示不再只列 Euler 数值。本轮核对了 Basilisk 上游实�
 
 
 **上游实现核对（StarTracker）**：Basilisk `AVSLab/basilisk` 的 `RigidBodyKinematics.Euler3212C` 在提交 `4faddaa0e32097f423002984b0c19bfcd606256d` 的 `src/architecture/utilities/rigidBodyKinematics.c` 中显式给出 3-2-1 DCM 元素。它与当前公共矩阵实现一致；`StarTracker.dcm_CB` 表示 B→C，显示 C 系三轴在 B 系中的方向时使用其转置。星敏三个安装角现已加入整星 Capability schema，默认 0°，有限 TaskSpec/Workbench 可以配置；没有安装位置字段，方向箭头只从 B 系原点发出。
+
+
+### P9-J3-A：真实传感器遥测检查器
+
+仿真构型视图新增独立的「真实传感器遥测」表，直接读取当前有效实时 session/stream 或已封存 Run 的 frame `values`，只展示实际出现且通过数值类型检查的通道：
+- IMU：三轴陀螺角速度（rad/s）、三轴加速度（m/s²）。
+- 磁强计：三轴磁场测量（T）。
+- 星敏：测量有效标志与三轴姿态误差 MRP。
+- 太阳敏感器：有效标志、光强和太阳方向（若对应字段存在）。
+
+每次显示同时标注真实数据源和仿真时间。没有发布某个通道时明确显示“未提供”，不能用安装参数、姿态真值或其他传感器量代替。当前没有任何真实遥测源时保持“等待”状态；切断遥测时清除旧值。Chromium 测试用带有 session Run 语义的 sealed Run 数据帧验证这些读数从遥测值渲染，而非从 TaskSpec 配置推导。
