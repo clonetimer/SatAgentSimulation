@@ -298,3 +298,12 @@ IMU 三轴显示不再只列 Euler 数值。本轮核对了 Basilisk 上游实�
 - https://github.com/AVSLab/basilisk/blob/develop/src/architecture/utilities/avsEigenSupport.cpp
 
 箭头长度只是方向识别符号，不代表 IMU 物理尺寸。磁强计同样使用 Basilisk 的 `eigenM1*eigenM2*eigenM3` 组合，但尚未绘制安装方向箭头；先补独立基向量测试，再接入同一坐标显示。
+
+
+### P9-J2-D：场景模式渲染资源管理
+
+轨道/姿态、仿真构型和参考 CAD 不再同时保持动画循环：
+- 切换到仿真构型或参考 CAD 时调用 Globe.gl `pauseAnimation()`，并取消演示轨道 RAF；回到轨道模式时调用 `resumeAnimation()`，仅在演示轨道源存在时恢复位置更新 RAF。
+- 离开卫星工作区时同时暂停 Globe.gl 和仿真构型 WebGL renderer；再次进入时按当前保留的场景模式恢复正确渲染器。
+- 不清除当前有效 Run/遥测和已校验 TaskSpec；只暂停隐藏视图的渲染，不改变仿真时钟和数据流。
+- 对应 Globe.gl 2.46.2 的官方 `pauseAnimation/resumeAnimation` API 已核对。
