@@ -180,6 +180,12 @@
                 <h3>原生配置几何</h3>
                 <div id="simulationGeometrySummary" class="simulation-geometry-summary">请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。</div>
                 <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>轮组</th><th>安装位置 rWB_B（m）</th><th>自旋轴 gsHat_B</th></tr></thead><tbody id="simulationGeometryRows"><tr><td colspan="3">尚无已校验配置</td></tr></tbody></table></div>
+                <section class="simulation-sensor-telemetry">
+                  <h3>真实传感器遥测</h3>
+                  <p id="simulationSensorTelemetrySource" class="simulation-geometry-note">等待已关联的 Basilisk 实时遥测或已封存 Run。</p>
+                  <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>传感器</th><th>测量值</th><th>有效性</th></tr></thead><tbody id="simulationSensorTelemetryRows"><tr><td colspan="3">暂无真实传感器遥测</td></tr></tbody></table></div>
+                  <p class="simulation-geometry-note">仅显示当前 session/stream 或已封存 Run 中实际发布的测量字段；缺失字段保持空缺，不使用仿真配置值代替测量值。</p>
+                </section>
                 <section class="simulation-rigid-body-properties">
                   <h3>整星刚体参数</h3>
                   <dl>
