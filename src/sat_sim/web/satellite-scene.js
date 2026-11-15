@@ -889,6 +889,24 @@ function renderSimulationGeometryRows(geometry) {
     row.append(wheel,position,direction);host.append(row);
   });
 }
+function multiplyMatrix3(a,b) {
+  return a.map((row,i)=>b[0].map((_,j)=>row.reduce((sum,value,k)=>sum+value*b[k][j],0)));
+}
+function imuPlatformAxesInBodyFrame(yawDeg,pitchDeg,rollDeg) {
+  const values=[yawDeg,pitchDeg,rollDeg].map(Number);
+  if(!values.every(Number.isFinite))return null;
+  const [yaw,pitch,roll]=values.map(value=>THREE.MathUtils.degToRad(value));
+  const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch),cr=Math.cos(roll),sr=Math.sin(roll);
+  // Exact Basilisk ImuSensor.setBodyToPlatformDCM implementation:
+  // dcm_PB = eigenM1(roll) * eigenM2(pitch) * eigenM3(yaw).
+  const m1=[[1,0,0],[0,cr,sr],[0,-sr,cr]];
+  const m2=[[cp,0,-sp],[0,1,0],[sp,0,cp]];
+  const m3=[[cy,sy,0],[-sy,cy,0],[0,0,1]];
+  const dcmPB=multiplyMatrix3(multiplyMatrix3(m1,m2),m3);
+  // The platform axes expressed in body coordinates are the columns of
+  // dcm_BP = transpose(dcm_PB), i.e. rows of dcm_PB.
+  return dcmPB.map(row=>row.slice());
+}
 // IMU marker position is the validated Basilisk sensorPos_B input; orientation
 // angles are reported in the native 3-2-1 interface convention, not guessed
 // into a rendered body-to-platform matrix. Magnetometer has no configured
@@ -927,6 +945,13 @@ function renderSensorGeometryRows(values) {
     );
     marker.position.set(...imuPosition);
     state.simulationGeometryGroup.add(marker);
+    const imuAxes=imuPlatformAxesInBodyFrame(...imuAngles);
+    const axisColors=[0xe56b6f,0x6fca8a,0x6da9f5];
+    imuAxes?.forEach((axis,index)=>{
+      const direction=new THREE.Vector3(...axis).normalize();
+      const arrow=new THREE.ArrowHelper(direction,new THREE.Vector3(...imuPosition),0.12,axisColors[index],0.018,0.009);
+      state.simulationGeometryGroup.add(arrow);
+    });
   } else row('IMU','配置范围无效','不显示');
   const magAngles=['yaw','pitch','roll'].map(axis=>number('magnetometer_mount_'+axis+'_deg'));
   if(magAngles.every(Number.isFinite)) {
@@ -990,6 +1015,7 @@ function setSimulationGeometryVisible(visible) {
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible,
+  imuPlatformAxesInBodyFrame,
   updateTelemetry, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
