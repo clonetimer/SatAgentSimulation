@@ -299,6 +299,16 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.locator('[data-cad-tree-action="isolate"]').click()
             for view in ("fit", "axes", "home", "x", "-x", "y", "-y", "z", "-z"):
                 page.locator(f'[data-cad-view="{view}"]').click()
+            tree_nodes.first.dblclick()
+            canvas = viewer.locator(".birds-cad-viewport canvas")
+            box = canvas.bounding_box()
+            assert box is not None
+            cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+            page.mouse.move(cx, cy)
+            page.mouse.down()
+            page.mouse.move(cx + 24, cy + 12, steps=3)
+            page.mouse.up()
+            page.mouse.wheel(0, -120)
             assert not external_requests, external_requests
             assert not failures, failures
             if evidence_dir:
@@ -328,6 +338,11 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert layout["viewport"] >= 280, layout
             if evidence_dir:
                 page.screenshot(path=str(Path(evidence_dir) / ("birds4-cad-viewer-real-mobile.png" if real_glb else "birds4-cad-viewer-mobile.png")), full_page=True)
+            page.set_viewport_size({"width": 1440, "height": 960})
+            orbit_tab.click()
+            assert page.locator("#birdsCadViewer").is_hidden()
+            assert page.locator(".p9d-config-panel").is_visible()
+            assert len(page.locator(".p9d-scene-layout").evaluate("(node) => getComputedStyle(node).gridTemplateColumns").split()) == 2
             assert not external_requests, external_requests
             assert not failures, failures
         finally:
