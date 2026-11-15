@@ -138,3 +138,20 @@
 .scene-object-semantics p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:900px){.scene-object-semantics dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.scene-object-semantics dl{grid-template-columns:minmax(0,1fr)}}
+
+/* P9-J1: validated simulation configuration geometry, explicitly separate from as-built CAD. */
+.p9d-scene-layout.is-simulation-mode{grid-template-columns:minmax(0,1fr) minmax(300px,390px)}
+.p9d-scene-layout.is-simulation-mode .satellite-scene-actions{display:none}
+.simulation-geometry-mode{display:grid;gap:12px;margin:12px 0 18px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel);min-width:0}
+.simulation-geometry-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.simulation-geometry-heading h2{margin:0;font-size:16px}.simulation-geometry-heading p{margin:5px 0 0;color:var(--muted);font-size:11px}
+.simulation-geometry-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.85fr);gap:12px;min-width:0}
+.simulation-geometry-viewport{position:relative;min-width:0;min-height:420px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#26374a 0,#121d2b 56%,#0a111b 100%)}
+.simulation-geometry-viewport canvas{display:block;width:100%;height:100%;min-height:420px;touch-action:none;cursor:grab}.simulation-geometry-viewport canvas:active{cursor:grabbing}
+.simulation-geometry-hint{position:absolute;left:10px;bottom:9px;padding:5px 8px;border-radius:6px;background:rgba(8,14,22,.75);color:#a9b9ca;font-size:9px;pointer-events:none}
+.simulation-geometry-details{display:grid;align-content:start;gap:9px;min-width:0}.simulation-geometry-details h3{margin:0;font-size:12px}
+.simulation-geometry-summary{padding:8px 9px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:10px;line-height:1.5}
+.simulation-geometry-table-wrap{min-width:0;overflow:auto}.simulation-geometry-table{width:100%;border-collapse:collapse;font-size:10px;font-variant-numeric:tabular-nums}.simulation-geometry-table th,.simulation-geometry-table td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.simulation-geometry-table th{color:var(--muted);font-weight:600}
+.simulation-geometry-note{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:1050px){.simulation-geometry-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.p9d-scene-layout.is-simulation-mode{grid-template-columns:minmax(0,1fr)}.simulation-geometry-viewport,.simulation-geometry-viewport canvas{min-height:340px}}
