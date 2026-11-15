@@ -663,12 +663,12 @@ function home() {
 }
 
 const OBJECT_CLASS_LABELS = {
-  spacecraft: '整星', physical_group: '物理分组', equipment: '物理单机模型',
+  physical: '物理对象', spacecraft: '整星', physical_group: '物理分组', equipment: '物理单机模型',
   external_equipment: '外部设备', logical: '逻辑对象', environment: '环境对象',
   control_function: '控制功能', region: '分系统区域', orbit: '轨道对象',
 };
 const OBJECT_KIND_LABELS = {
-  whole_spacecraft: '整星对象', subsystem: '分系统', component: '部件类别',
+  whole_spacecraft: '整星', subsystem: '分系统', component: '部件类别',
   equipment: '设备模型类别', context_object: '上下文对象', context_group: '上下文分组',
   function: '功能对象', environment: '环境对象',
 };
@@ -680,6 +680,8 @@ function renderSelectedObjectSemantics() {
     set('sceneObjectKind', '—');
     set('sceneObjectClass', '—');
     set('sceneObjectCapability', '—');
+    set('sceneObjectTarget', '—');
+    set('sceneObjectConfigScope', '—');
     set('sceneObjectAnchor', '未审定');
     set('sceneObjectMapping', '未建立');
     set('sceneObjectInventory', '不推断实装数量');
@@ -690,6 +692,10 @@ function renderSelectedObjectSemantics() {
   set('sceneObjectKind', OBJECT_KIND_LABELS[selected.kind] || selected.kind || '未分类');
   set('sceneObjectClass', OBJECT_CLASS_LABELS[selected.physicalClass] || selected.physicalClass || '未分类');
   set('sceneObjectCapability', selected.executionCapabilityId || '无独立执行能力');
+  const targetLabels = {spacecraft:'整星',region:'分系统区域',part:'物理部件',ground:'外部地面设备',relationship:'逻辑关系',logical:'逻辑对象',environment:'轨道环境',orbit:'轨道对象'};
+  const scopeLabels = {self:'本对象配置',parent:'所属分系统配置',none:'无独立配置'};
+  set('sceneObjectTarget', targetLabels[selected.sceneTarget] || selected.sceneTarget || '未分类');
+  set('sceneObjectConfigScope', scopeLabels[selected.configurationScope] || selected.configurationScope || '未声明');
   set('sceneObjectAnchor', selected.spatialAnchor ? '已登记，待坐标系审查' : '未审定，不生成三维位置');
   set('sceneObjectMapping', '未建立 CAD / GLB 节点映射');
   const inventory = selected.instanceSemantics === 'capability_model_not_vehicle_inventory'
