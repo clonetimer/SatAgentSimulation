@@ -95,6 +95,9 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "adcs.magnetometer.field_x_t" in scene
     assert "adcs.star_tracker.valid" in scene
     assert "adcs.sun_sensor.valid" in scene
+    assert "adcs.rw.speed_rad_s_0" in scene
+    assert "adcs.rw.effective_max_torque_nm_0" in scene
+    assert "反作用轮 RW" in scene
     assert "renderSensorTelemetry" in scene
     for element_id in ("simulationHubMass", "simulationHubIxx", "simulationHubIyy", "simulationHubIzz"):
         assert f'id="{element_id}"' in html
@@ -242,10 +245,13 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                       'adcs.imu.accel_x_m_s2': 1, 'adcs.imu.accel_y_m_s2': 2, 'adcs.imu.accel_z_m_s2': 3,
                       'adcs.magnetometer.field_x_t': 1e-5, 'adcs.magnetometer.field_y_t': 2e-5, 'adcs.magnetometer.field_z_t': 3e-5,
                       'adcs.star_tracker.valid': 1, 'adcs.star_tracker.sigma_x': 0.1, 'adcs.star_tracker.sigma_y': 0.2, 'adcs.star_tracker.sigma_z': 0.3,
-                      'adcs.sun_sensor.valid': 1, 'adcs.sun_sensor.intensity': 0.8, 'adcs.sun_sensor.direction_x': 1, 'adcs.sun_sensor.direction_y': 0, 'adcs.sun_sensor.direction_z': 0
+                      'adcs.sun_sensor.valid': 1, 'adcs.sun_sensor.intensity': 0.8, 'adcs.sun_sensor.direction_x': 1, 'adcs.sun_sensor.direction_y': 0, 'adcs.sun_sensor.direction_z': 0,
+                      'adcs.rw.speed_rad_s_0': 125.5, 'adcs.rw.effective_max_torque_nm_0': 0.25
                     }
                 }], {verified: true, runId: 'browser-test-run', epochUtc: '2026-01-01T00:00:00Z', frame: 'N_INERTIAL', timeSystem: 'UTC'})""")
                 assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert "125.500 rad/s" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "已封存有限 Run 遥测" in page.locator("#simulationSensorTelemetrySource").inner_text()
                 page.evaluate("""() => window.SatScene.setRunTelemetry([{
                     sim_time_s: 13.0,
