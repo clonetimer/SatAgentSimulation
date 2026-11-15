@@ -104,7 +104,7 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "magnetometer_mount_" in scene
     assert "sun_sensor_normal_b_" in scene
     assert "B→P 321" in scene and "B→S 321" in scene
-    assert "magAxes=imuPlatformAxesInBodyFrame" in scene
+    assert "magAxes=magnetometerAxesInBodyFrame" in scene
     assert "new THREE.Vector3(...normal).normalize()" in scene
     assert "方向参考自 B 原点" in scene
     assert "spacecraft_mass_kg" in scene
@@ -202,7 +202,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert all(abs(a-b) < 1e-9 for a,b in zip(imu_axes[2], [0, 0, 1]))
                 assert "B→S 321" in page.locator("#simulationSensorRows").inner_text()
                 assert "nHat_B" in page.locator("#simulationSensorRows").inner_text()
-                mag_axes = page.evaluate("window.SatScene.imuPlatformAxesInBodyFrame(90, 0, 0)")
+                mag_axes = page.evaluate("window.SatScene.magnetometerAxesInBodyFrame(90, 0, 0)")
                 assert all(abs(a-b) < 1e-9 for a,b in zip(mag_axes[0], [0, 1, 0]))
                 assert all(abs(a-b) < 1e-9 for a,b in zip(mag_axes[1], [-1, 0, 0]))
                 css_normal = page.evaluate("""() => {
