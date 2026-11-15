@@ -105,6 +105,7 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "sun_sensor_normal_b_" in scene
     assert "B→P 321" in scene and "B→S 321" in scene
     assert "magAxes=magnetometerAxesInBodyFrame" in scene
+    assert "setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame" in scene
     assert "new THREE.Vector3(...normal).normalize()" in scene
     assert "方向参考自 B 原点" in scene
     assert "spacecraft_mass_kg" in scene
