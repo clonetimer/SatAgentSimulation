@@ -168,8 +168,9 @@ def _write_triangle_glb(path: Path) -> None:
          0.05, -0.05, 0.0,
          0.00,  0.05, 0.0,
     )
+    normals = struct.pack("<9f", 0, 0, 1, 0, 0, 1, 0, 0, 1)
     indices = struct.pack("<3H", 0, 1, 2)
-    binary = positions + indices
+    binary = positions + normals + indices
     document = {
         "asset": {"version": "2.0", "generator": "SatAgentSimulation browser fixture"},
         "scene": 0,
@@ -177,17 +178,21 @@ def _write_triangle_glb(path: Path) -> None:
         "nodes": [{"name": "BIRDS4_fixture_root", "mesh": 0}],
         "meshes": [{
             "name": "FixtureTriangle",
-            "primitives": [{"attributes": {"POSITION": 0}, "indices": 1, "mode": 4}],
+            "primitives": [{"attributes": {"POSITION": 0, "NORMAL": 1}, "indices": 2, "material": 0, "mode": 4}],
         }],
+        "materials": [{"pbrMetallicRoughness": {"baseColorFactor": [0.12, 0.72, 0.94, 1], "metallicFactor": 0.12, "roughnessFactor": 0.38}}],
         "buffers": [{"byteLength": len(binary)}],
         "bufferViews": [
             {"buffer": 0, "byteOffset": 0, "byteLength": len(positions), "target": 34962},
-            {"buffer": 0, "byteOffset": len(positions), "byteLength": len(indices), "target": 34963},
+            {"buffer": 0, "byteOffset": len(positions), "byteLength": len(normals), "target": 34962},
+            {"buffer": 0, "byteOffset": len(positions) + len(normals), "byteLength": len(indices), "target": 34963},
         ],
         "accessors": [
             {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3",
              "min": [-0.05, -0.05, 0.0], "max": [0.05, 0.05, 0.0]},
-            {"bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR"},
+            {"bufferView": 1, "componentType": 5126, "count": 3, "type": "VEC3",
+             "min": [0.0, 0.0, 1.0], "max": [0.0, 0.0, 1.0]},
+            {"bufferView": 2, "componentType": 5123, "count": 3, "type": "SCALAR"},
         ],
     }
     json_chunk = json.dumps(document, separators=(",", ":")).encode("utf-8")
@@ -247,6 +252,8 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert page.locator("#birdsCadViewer").is_hidden()
             cad_tab.click()
             assert cad_tab.get_attribute("aria-pressed") == "true"
+            assert page.locator(".p9d-config-panel").is_hidden()
+            assert page.locator(".p9d-scene-layout").evaluate("(node) => getComputedStyle(node).gridTemplateColumns") .split(" ").length == 1
             viewer = page.locator("#birdsCadViewer")
             viewer.wait_for(state="visible", timeout=10000)
             page.locator("#birdsCadFile").set_input_files(str(glb_path))
@@ -255,6 +262,9 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert tree_nodes.count() >= 1
             page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').first.click()
             assert "BIRDS4_fixture_root" in page.locator("#birdsCadInspector").inner_text()
+            render_state = page.evaluate("window.BirdsCadViewer.getDiagnostics()")
+            assert render_state["visible_meshes"] >= 1, render_state
+            assert render_state["triangles"] >= 1, render_state
 
             search = page.locator("#birdsCadSearch")
             search.fill("fixture")
