@@ -98,6 +98,9 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "adcs.rw.speed_rad_s_0" in scene
     assert "adcs.rw.effective_max_torque_nm_0" in scene
     assert "反作用轮 RW" in scene
+    assert "updateSimulationWheelMotion" in scene
+    assert "speed * time" in scene
+    assert "simulationWheelMeshes.push" in scene
     assert "renderSensorTelemetry" in scene
     for element_id in ("simulationHubMass", "simulationHubIxx", "simulationHubIyy", "simulationHubIzz"):
         assert f'id="{element_id}"' in html
@@ -252,6 +255,11 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "125.500 rad/s" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                wheel_phase = page.evaluate("""() => {
+                    const wheel = window.SatScene;
+                    return typeof wheel.setRunTelemetry === 'function';
+                }""")
+                assert wheel_phase is True
                 assert "已封存有限 Run 遥测" in page.locator("#simulationSensorTelemetrySource").inner_text()
                 page.evaluate("""() => window.SatScene.setRunTelemetry([{
                     sim_time_s: 13.0,
