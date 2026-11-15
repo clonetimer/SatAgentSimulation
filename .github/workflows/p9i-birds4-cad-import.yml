@@ -61,15 +61,17 @@ jobs:
           SAT_SIM_BIRDS4_REAL_GLB_PATH: build/birds4/output/BIRDS4_FM_Final_v7.glb
           SAT_SIM_SCENE_EVIDENCE_DIR: reports/p9i/browser
         run: |
+          mkdir -p reports/p9i/browser
           SAT_SIM_BROWSER_EXECUTABLE="$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')" \
             python -m pytest -q tests/test_p9c_satellite_scene.py::test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions \
             --junitxml=reports/p9i/browser/real-model-browser-tests.xml
-      - name: Upload GLB, source integrity, assembly tree and conversion reports
+      - name: Upload GLB, source integrity, browser evidence and conversion reports
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: birds4-fm-cad-reference-${{ github.run_id }}
           path: |
             build/birds4/output/
             reports/p9i/browser/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
