@@ -4481,9 +4481,9 @@
     const selectedCapability = source.execution_capability_id || source.configuration_capability_id
       || fallback.primary_capability_id || state.selectedCapabilityId || '';
     if (!String(selectedCapability).startsWith('whole_spacecraft.')) {
-      window.SatScene?.clearSimulationConfiguration?.();
+      if (typeof window !== 'undefined') window.SatScene?.clearSimulationConfiguration?.();
     }
-    window.SatScene?.selectObject?.({
+    if (typeof window !== 'undefined') window.SatScene?.selectObject?.({
       objectId,
       name: source.name_zh || fallback.name_zh || objectId,
       kind: source.kind || null,
@@ -4565,7 +4565,7 @@
         state.changedPaths.add(path);
         state.taskSpec = null;
         state.planning = null;
-        window.SatScene?.clearSimulationConfiguration?.();
+        if (typeof window !== 'undefined') window.SatScene?.clearSimulationConfiguration?.();
         state.wizard.validated = false;
         state.wizard.validatedForm = null;
         updateSingleRunSummary();
@@ -5640,7 +5640,7 @@
     if (payload.ok && state.taskSpec) {
       state.hasTaskSpecContext = true;
       captureTaskSource(payload);
-      window.SatScene?.setSimulationConfiguration?.({
+      if (typeof window !== 'undefined') window.SatScene?.setSimulationConfiguration?.({
         capabilityId: requestedCapabilityId,
         values: clone(state.formData),
         validated: true,
