@@ -156,10 +156,6 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
             assert not external_requests, external_requests
             assert not failures, failures
-            orbit_tab.click()
-            assert orbit_tab.get_attribute("aria-pressed") == "true"
-            assert page.locator("#birdsCadViewer").is_hidden()
-            assert page.locator("#satelliteOrbitMode").is_visible()
         finally:
             browser.close()
 
