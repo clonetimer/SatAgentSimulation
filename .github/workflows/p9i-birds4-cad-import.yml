@@ -9,6 +9,7 @@ on:
       - "scripts/vendor_scene_assets.py"
       - "tests/cad/test_birds4_step_converter.py"
       - "tests/test_p9i_cad_viewer_contract.py"
+      - "tests/test_p9c_satellite_scene.py"
       - "src/sat_sim/web/vendor/globe/**"
       - "src/sat_sim/web/birds-cad-viewer.js"
       - "src/sat_sim/web/index.html"
@@ -45,10 +46,30 @@ jobs:
         run: python -m pytest -q tests/cad/test_birds4_step_converter.py tests/test_p9i_cad_viewer_contract.py
       - name: Import pinned BIRDS-4 flight-model STEP and export reference GLB
         run: python scripts/cad/convert_birds4_step.py
+      - name: Install real-model browser acceptance dependencies
+        run: |
+          python -m pip install \
+            "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "PyYAML==6.0.3" "colorama==0.4.6" \
+            "sgp4==2.25" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1" \
+            "playwright==1.57.0"
+          python -m playwright install --with-deps chromium
+      - name: Verify the actual full-size BIRDS-4 assembly in Chromium
+        env:
+          PYTHONPATH: "src:."
+          SAT_SIM_BIRDS4_REAL_GLB_PATH: build/birds4/output/BIRDS4_FM_Final_v7.glb
+          SAT_SIM_SCENE_EVIDENCE_DIR: reports/p9i/browser
+        run: |
+          SAT_SIM_BROWSER_EXECUTABLE="$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')" \
+            python -m pytest -q tests/test_p9c_satellite_scene.py::test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions \
+            --junitxml=reports/p9i/browser/real-model-browser-tests.xml
       - name: Upload GLB, source integrity, assembly tree and conversion reports
         uses: actions/upload-artifact@v7
         with:
           name: birds4-fm-cad-reference-${{ github.run_id }}
-          path: build/birds4/output/
+          path: |
+            build/birds4/output/
+            reports/p9i/browser/
           if-no-files-found: error
           retention-days: 30
