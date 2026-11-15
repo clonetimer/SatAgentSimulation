@@ -307,3 +307,11 @@ IMU 三轴显示不再只列 Euler 数值。本轮核对了 Basilisk 上游实�
 - 离开卫星工作区时同时暂停 Globe.gl 和仿真构型 WebGL renderer；再次进入时按当前保留的场景模式恢复正确渲染器。
 - 不清除当前有效 Run/遥测和已校验 TaskSpec；只暂停隐藏视图的渲染，不改变仿真时钟和数据流。
 - 对应 Globe.gl 2.46.2 的官方 `pauseAnimation/resumeAnimation` API 已核对。
+
+
+### P9-J2-E：磁强计与太阳敏感器方向语义
+
+- 磁强计：上游 `Magnetometer::setBodyToSensorDCM` 与 IMU 使用相同的 `M1(roll)·M2(pitch)·M3(yaw)` 构造方式。显示 S 系三轴在 B 系中的方向时，采用 body-to-sensor DCM 的转置方向；新增 90° yaw 基向量检查。
+- 太阳敏感器：官方 `CoarseSunSensor.nHat_B` 本身就是 B 系法线向量，不需要 Euler 变换；在三维视图直接按单位向量绘制视场轴，并检查单位长度与默认 -Z 方向。
+- 两者都没有经审定的安装位置，因此方向箭头只从 B 系原点发出，作为坐标方向参考；表格明确写“未配置；方向参考自 B 原点”，绝不解释成实际安装点。
+- 方向箭头的长度和颜色仅为图形辅助，不代表传感器外形、尺寸或安装距离。
