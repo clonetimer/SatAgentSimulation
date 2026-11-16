@@ -186,3 +186,23 @@
   box-shadow: 0 12px 32px rgba(0,0,0,.28);
 }
 .scene-task-launch-menu .button { width: 100%; justify-content: flex-start; }
+
+
+/* In-scene task creation dialog */
+.scene-task-create-card { width: min(820px, 100%); }
+.scene-task-create-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.scene-task-create-option {
+  display:flex; flex-direction:column; align-items:flex-start; gap:10px; min-width:0;
+  padding:16px; text-align:left; color:var(--text); background:var(--panel-2);
+  border:1px solid var(--line); border-radius:12px; cursor:pointer;
+  transition:border-color .16s ease, transform .16s ease, background .16s ease;
+}
+.scene-task-create-option:hover,.scene-task-create-option:focus-visible {
+  border-color:var(--accent); background:var(--panel); transform:translateY(-2px);
+}
+.scene-task-option-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; background:var(--surface); font-size:22px; }
+.scene-task-create-option strong { font-size:13px; }
+.scene-task-create-option span:not(.scene-task-option-icon) { color:var(--muted); font-size:11px; line-height:1.6; }
+.scene-task-create-option em { margin-top:auto; color:var(--accent); font-size:10px; font-style:normal; }
+.scene-task-create-footnote { margin:14px 0 0; color:var(--muted); font-size:10px; line-height:1.6; }
+@media(max-width:680px) { .scene-task-create-options { grid-template-columns:1fr; } }
