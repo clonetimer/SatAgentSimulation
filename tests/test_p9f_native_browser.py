@@ -500,6 +500,12 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert set(POSITION_FIELDS) <= set(matching["values"])
             assert set(ATTITUDE_FIELDS) <= set(matching["values"])
             assert matching["values"]["attitude.truth.valid"] == 1
+            page.wait_for_function(
+                "() => document.querySelector('#sceneAdcsFrameSource')?.textContent.includes('whole.adcs')",
+                timeout=15000,
+            )
+            assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
+            assert "whole.adcs" in page.locator("#sceneAdcsFrameSource").inner_text()
             assert matching["values"]["attitude.truth.valid"] == 1
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
             report["page_errors"] = list(report["page_errors"])
