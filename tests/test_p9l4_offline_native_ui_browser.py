@@ -111,10 +111,11 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
             expect(page.locator("#wizardConfigSections")).to_be_visible()
 
-            duration = page.locator('[data-path="simulation.duration_s"]').first
-            if duration.count():
-                duration.fill("2")
-                duration.press("Tab")
+            # Runtime fields are rendered in the guided step; dynamicForm belongs to the inactive advanced workspace.
+            duration = page.locator('[data-wizard-field="simulation.duration_s"]')
+            expect(duration).to_be_visible()
+            duration.fill("2")
+            duration.press("Tab")
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
             page.wait_for_function(
