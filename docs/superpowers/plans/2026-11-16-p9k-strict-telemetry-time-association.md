@@ -69,3 +69,12 @@
 ### Native browser evidence extension
 
 P9-F product-browser acceptance requires GOOD `whole.orbit` and `whole.adcs` frames from the UI-created session and at least one exact `sim_time_s` pair with matching session ID. The catalog alone is not accepted as evidence of published matching frames.
+
+
+### Root-cause finding and correction (2026-11-16)
+
+The first real-browser P9-K attempt failed even though both WebSocket streams were present and had matching GOOD frames. The join's catalog selector used the first stream containing the three RW speed fields. Catalog order places `whole.fast` before `whole.adcs`; `whole.fast` is a mixed-quality stream and is INVALID when unrelated propulsion fields are missing. Thus the browser buffered every orbit frame while never subscribing the join to the dedicated ADCS quality domain. This was a stream-selection bug, not a timestamp mismatch or missing Basilisk data.
+
+Correction: `sceneAdcsStream()` now requires the exact stream ID `whole.adcs` in addition to the required ADCS fields; it does not fall back to a mixed stream even if that stream contains a superset of the same fields. Added Node contract tests for both cases: prefer exact `whole.adcs` when `whole.fast` appears first, and return no ADCS stream if the dedicated stream is absent. This preserves the quality-domain boundary instead of weakening GOOD-quality checks.
+
+Commit `817809304dbe18dceb36e886eb30f02a3c2fef64` adds the failing selector contract tests; `210978d1086e804fe000c0cb75eb62584f0f5657` applies the minimal selector fix. Full P9-F native-browser rerun is the acceptance gate.
