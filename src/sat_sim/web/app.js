@@ -7767,11 +7767,18 @@
     return catalog.find(stream => Array.isArray(stream.fields)
       && ADCS_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
   }
+  function setSceneAdcsJoinStatus(message) {
+    const node = document.getElementById('sceneAdcsFrameSource');
+    if (node) node.textContent = 'ADCS: ' + message;
+  }
   function sceneTelemetryJoin(session) {
     const orbit = sceneOrbitStream(session), adcs = sceneAdcsStream(session);
-    if (!orbit || !adcs || orbit.sample_s !== adcs.sample_s
-        || !session?.session_id || !session?.orbit_epoch_utc
-        || session.orbit_frame !== 'N_INERTIAL' || session.orbit_time_system !== 'UTC') return null;
+    if (!orbit || !adcs) { setSceneAdcsJoinStatus('目录未同时声明 whole.orbit / whole.adcs'); return null; }
+    if (orbit.sample_s !== adcs.sample_s) { setSceneAdcsJoinStatus('两个流的采样周期不一致'); return null; }
+    if (!session?.session_id || !session?.orbit_epoch_utc
+        || session.orbit_frame !== 'N_INERTIAL' || session.orbit_time_system !== 'UTC') {
+      setSceneAdcsJoinStatus('Session / Epoch / 参考系元数据不完整'); return null;
+    }
     const key = JSON.stringify([session.session_id, session.orbit_epoch_utc, orbit.stream_id, adcs.stream_id]);
     if (state.sceneTelemetryJoinKey !== key) {
       state.sceneTelemetryJoinKey = key;
@@ -7812,6 +7819,7 @@
             timeSystem: state.interactiveSession.orbit_time_system, frame: state.interactiveSession.orbit_frame,
             orbitStreamId: contract.orbit.stream_id, adcsStreamId: contract.adcs.stream_id,
           });
+          else setSceneAdcsJoinStatus(`等待精确配对 · orbit seq ${frame.sequence} · pending ${contract.join.pendingCount()}`);
         }
       } else if (contract?.adcs.stream_id === frame.stream) {
         const pair = contract.join.accept('adcs', frame, contract.meta);
@@ -7820,6 +7828,7 @@
           timeSystem: state.interactiveSession.orbit_time_system, frame: state.interactiveSession.orbit_frame,
           orbitStreamId: contract.orbit.stream_id, adcsStreamId: contract.adcs.stream_id,
         });
+        else setSceneAdcsJoinStatus(`等待精确配对 · ADCS seq ${frame.sequence} · pending ${contract.join.pendingCount()}`);
       }
     }
     if (el('interactiveStream').value === frame.stream) renderInteractiveTelemetry();
