@@ -31,6 +31,11 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert index.status_code == 200
         assert 'data-view="scene"' in index.text
         assert 'id="satelliteSceneView"' in index.text
+        assert 'id="sceneWorkspaceTaskCenterBtn"' in index.text
+        assert 'id="sceneWorkspaceSceneBtn"' in index.text
+        assert 'id="sceneWorkspaceCreatorBtn"' in index.text
+        assert 'class="scene-editor-controls"' in index.text
+        assert 'class="satellite-scene-heading"' not in index.text
         assert 'data-scene-create="offline"' in index.text
         assert 'data-scene-create="interactive"' in index.text
         assert 'data-scene-create="continuous"' in index.text
@@ -237,12 +242,21 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             for cycle in range(3):
-                page.locator("#wizardSceneShortcutBtn").click()
+                # Each cycle ends with browser Back returning from professional
+                # modeling to the scene. Do not click the wizard-only shortcut
+                # when the scene is already active on the next iteration.
+                if page.locator("body").get_attribute("data-active-view") != "scene":
+                    page.locator("#wizardSceneShortcutBtn").click()
+                playwright.expect(page.locator(".app-sidebar")).to_be_hidden()
+                playwright.expect(page.locator("#workbenchNavigation")).to_be_hidden()
+                playwright.expect(page.locator(".scene-workspace-nav")).to_be_visible()
+                playwright.expect(page.locator("#sceneWorkspaceTaskCenterBtn")).to_be_visible()
+                playwright.expect(page.locator("#sceneWorkspaceCreatorBtn")).to_be_visible()
                 if cycle == 0:
                     playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
                     playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
                     playwright.expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
-                    playwright.expect(page.locator(".satellite-scene-actions")).to_be_hidden()
+                    playwright.expect(page.locator(".satellite-scene-actions")).to_be_visible()
                     playwright.expect(page.locator("#satelliteSceneTitle")).to_have_text("ADCS 仿真构型")
                 # Orbit tests must explicitly enter the orbit mode; the user's
                 # physical-configuration default is not reverted for CI.
@@ -451,8 +465,8 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "scene")
                     page.locator('[data-scene-mode="orbit"]').click()
                     page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
-                return_button = page.locator("#satelliteSceneView [data-return-wizard]")
-                return_hit_test = return_button.evaluate("""node => {
+                task_center_button = page.locator("#sceneWorkspaceTaskCenterBtn")
+                task_center_hit_test = task_center_button.evaluate("""node => {
                     const rect = node.getBoundingClientRect();
                     const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
                     return {
@@ -460,10 +474,17 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                       receivesPointer: Boolean(top && (top === node || node.contains(top))),
                     };
                 }""")
-                assert return_hit_test["receivesPointer"], f"SCENE_RETURN_POINTER_INTERCEPTED: {return_hit_test}"
-                return_button.click()
+                assert task_center_hit_test["receivesPointer"], f"SCENE_TASK_CENTER_POINTER_INTERCEPTED: {task_center_hit_test}"
+                task_center_button.click()
                 page.locator("#wizardView").wait_for(state="visible")
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
+                page.locator("#wizardSceneShortcutBtn").click()
+                page.locator("#sceneWorkspaceCreatorBtn").click()
+                page.locator("#creatorView").wait_for(state="visible")
+                assert page.locator("body").get_attribute("data-active-view") == "creator"
+                page.go_back()
+                page.locator("#satelliteSceneView").wait_for(state="visible")
+                assert page.locator("body").get_attribute("data-active-view") == "scene"
             assert not external_requests, external_requests
             assert not failures, failures
         finally:
@@ -574,9 +595,11 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             assert cad_tab.get_attribute("aria-pressed") == "true"
             assert page.locator("#satelliteSceneTitle").inner_text() == "BIRDS-4 参考 CAD"
             assert page.locator(".satellite-scene-actions").is_hidden()
-            assert page.locator(".p9d-config-panel").is_hidden()
+            assert page.locator(".p9d-config-panel").is_visible()
+            assert page.locator(".scene-workspace-nav").is_visible()
+            assert page.locator('[data-scene-mode="orbit"]').is_visible()
             grid_columns = page.locator(".p9d-scene-layout").evaluate("(node) => getComputedStyle(node).gridTemplateColumns")
-            assert len(grid_columns.split()) == 1, grid_columns
+            assert len(grid_columns.split()) == 2, grid_columns
             viewer = page.locator("#birdsCadViewer")
             viewer.wait_for(state="visible", timeout=10000)
             load_started = time.monotonic()

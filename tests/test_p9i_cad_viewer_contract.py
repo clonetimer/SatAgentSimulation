@@ -110,15 +110,20 @@ def test_viewer_exposes_read_only_render_diagnostics_for_geometry_acceptance():
     assert "window.BirdsCadViewer={load,clear,fit,select,setViewerVisible,getDiagnostics}" in source
 
 
-def test_scene_heading_and_orbit_controls_follow_active_scene_mode():
+def test_scene_editor_title_and_orbit_controls_follow_active_scene_mode():
     html = (WEB / "index.html").read_text(encoding="utf-8")
     source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
     css = (WEB / "satellite-scene.css").read_text(encoding="utf-8")
-    assert 'id="satelliteSceneTitle"' in html and 'id="satelliteSceneDescription"' in html
+    assert 'id="satelliteSceneTitle"' in html
+    assert 'id="satelliteSceneDescription"' not in html
+    assert 'class="scene-editor-controls"' in html
+    assert 'class="scene-workspace-nav"' in html
     assert "BIRDS-4 参考 CAD" in source
     assert "ADCS 仿真构型" in source
     assert "simulation-geometry-mode" in css
     assert ".p9d-scene-layout.is-cad-mode .satellite-scene-actions{display:none}" in css
+    assert "is-cad-mode > .p9d-config-panel" in css
+    assert "is-cad-mode .p9d-tree-section" in css
 
 
 def test_cad_inspector_exposes_reference_occurrence_path_and_transform_without_claiming_as_built():
