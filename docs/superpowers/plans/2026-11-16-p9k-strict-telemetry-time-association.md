@@ -83,3 +83,44 @@ Commit `817809304dbe18dceb36e886eb30f02a3c2fef64` adds the failing selector cont
 ### Successful-pair observability
 
 On a successful exact-time pair, the scene inspector now replaces the pending status with the dedicated ADCS stream ID, GOOD quality, exact simulation time, ADCS sequence, and a sequence-gap indicator when applicable. This makes the successful association visible to operators and gives the native-browser acceptance a user-visible assertion; it does not change acceptance rules.
+
+
+---
+
+## P9-L: native ADCS sensor telemetry in the physical scene (2026-11-16)
+
+### Scope
+Extend the already validated continuous `whole.adcs` quality domain from wheel speed alone to actual Basilisk recorder outputs. Do not substitute configuration values for measurements.
+
+The stream now declares:
+- RW state speed, measured speed, command torque, applied torque and effective torque limit for the active wheel topology.
+- IMU measured angular rate and acceleration.
+- Star-tracker measured quaternion and explicit device-validity flag.
+- Magnetometer three-axis measurement.
+- Coarse-sun-sensor output, direction and explicit device-validity flag.
+
+The scene adapter preserves native source fields and creates presentation aliases only at the display boundary. Sensor validity flags remain independent of stream transport quality: a structurally GOOD frame may correctly report an instrument as invalid.
+
+### Physical semantics
+- `whole.orbit` remains the exclusive source for position and rigid-body attitude.
+- `whole.adcs` remains the independent source for sensor and actuator telemetry.
+- Only exact same-session, same-epoch, same-frame and same-simulation-time pairs are associated.
+- RW phase integration uses measured state speed; command torque and applied torque are displayed separately from effective torque limit.
+- On stream loss or non-GOOD quality, ADCS values are cleared; stale sensor values must not persist in the inspector.
+
+### Added acceptance
+- Real Basilisk continuous-session test asserts catalog fields and actual finite IMU, star-tracker, magnetometer and CSS values.
+- Four-wheel test checks RW4 state, measured speed and applied torque fields.
+- Node tests verify native field-to-inspector mapping and independent star/CSS validity.
+- P9-F Ubuntu/Windows and native-browser jobs are the acceptance gate; the catalog declaration alone is not evidence of actual sensor publication.
+
+### P9-C scene interaction defect
+A native Chromium regression found the scene shell's stacking context intercepted pointer events over the right-hand object configuration panel. The correction places the panel above the scene layer and isolates its stacking context. Acceptance must use a normal Playwright click on the object tree, not `force=True` or DOM event injection.
+
+Latest implementation commits:
+- `d79db4b`: publish native ADCS sensor and actuator telemetry.
+- `a17a609`: map native measurements into scene inspector channels.
+- `00e2643`: distinguish RW state, measured speed, command, applied torque and limit.
+- `9244feb`: restore object-panel hit testing above scene overlays.
+
+The latest P9-F/P9-C reruns remain mandatory before declaring P9-L or P9-C closed.
