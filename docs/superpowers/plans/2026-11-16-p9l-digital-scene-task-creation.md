@@ -33,6 +33,9 @@ No path may silently substitute a proxy backend, start a real-time session witho
 - Timed and continuous real-time selections route to their existing creation workspaces; real-time service availability is checked and no automatic start is performed.
 - Existing scene right-side object configuration panel retains the direct validated single-Run path.
 - Scene uses the existing independent orbit/ADCS contracts and strict same-simulation-time GOOD-quality association.
+- Scene header uses an accessible task-creation dialog (offline / timed real-time / continuous real-time) with Escape handling, focus restoration and focus trapping; selections route to existing workflows.
+- Scene provenance strip is bound to the active telemetry source and displays Run/session ID, simulation time and orbit quality. Sealed Run is explicitly distinguished from live session data.
+- Chromium regression exercises dialog open/close and offline wizard handoff; P9-C is rerun on the latest branch head.
 
 ## Remaining work
 
