@@ -194,7 +194,7 @@ function provenanceHarness() {
     telemetryEpochUtc:'2026-01-01T00:00:00Z',
     telemetryCapabilityId:'whole_spacecraft.unified_native.v1',
     telemetryLifecycleState:'RUNNING',
-    adcsTelemetryStatus:{quality:'GOOD',simTimeS:12.5,reason:null},
+    adcsTelemetryStatus:{quality:'GOOD',simTimeS:12.5,reason:null,source:point.adcsSource},
     latestTelemetryPoint:point,
   };
   const context = vm.createContext({
