@@ -317,6 +317,10 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 if stream["stream_id"] == "whole.orbit"
             ]
             assert len(position_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ORBIT_STREAM"
+            adcs_streams = [stream for stream in catalog_streams if stream["stream_id"] == "whole.adcs"]
+            assert len(adcs_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ADCS_STREAM"
+            assert adcs_streams[0]["sample_s"] == position_streams[0]["sample_s"]
+            assert set(adcs_streams[0]["fields"]) == {f"adcs.rw.speed_rad_s_{index}" for index in range(3)}
             assert set(POSITION_FIELDS) <= set(position_streams[0]["fields"])
             assert set(ATTITUDE_FIELDS) <= set(position_streams[0]["fields"])
             report["telemetry_catalog"] = catalog_streams
@@ -327,6 +331,10 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 assert requested_streams
                 scene_streams = [row for row in requested_streams if row["stream_id"] == "whole.orbit"]
                 assert len(scene_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ORBIT_STREAM"
+                adcs_task_streams = [row for row in requested_streams if row["stream_id"] == "whole.adcs"]
+                assert len(adcs_task_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ADCS_STREAM"
+                assert adcs_task_streams[0]["sample_s"] == scene_streams[0]["sample_s"]
+                assert set(adcs_task_streams[0]["fields"]) == {f"adcs.rw.speed_rad_s_{index}" for index in range(3)}
                 assert set(POSITION_FIELDS) <= set(scene_streams[0]["fields"])
                 assert set(ATTITUDE_FIELDS) <= set(scene_streams[0]["fields"])
                 assert all(
@@ -505,6 +513,24 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                     and item.get("payload", {}).get("quality") == "GOOD"
                     for item in socket_messages
                 ), "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_GOOD_ORBIT_FRAME"
+                adcs_messages = [
+                    item.get("payload", {}) for item in socket_messages
+                    if item.get("type") == "telemetry"
+                    and item.get("payload", {}).get("stream") == "whole.adcs"
+                    and item.get("payload", {}).get("quality") == "GOOD"
+                ]
+                orbit_messages = [
+                    item.get("payload", {}) for item in socket_messages
+                    if item.get("type") == "telemetry"
+                    and item.get("payload", {}).get("stream") == "whole.orbit"
+                    and item.get("payload", {}).get("quality") == "GOOD"
+                ]
+                assert adcs_messages, "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_GOOD_ADCS_FRAME"
+                assert any(
+                    orbit["session_id"] == adcs["session_id"] == session_id
+                    and orbit["sim_time_s"] == adcs["sim_time_s"]
+                    for orbit in orbit_messages for adcs in adcs_messages
+                ), "BOUNDED_BROWSER_NO_EXACT_ORBIT_ADCS_TIME_PAIR"
             report["status"] = "PASS"
             page.screenshot(path=str(evidence / "native-scene.png"), full_page=True)
             browser.close()
