@@ -44,6 +44,10 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert "closeSceneTaskModal" in app.text
         assert "event.key === 'Escape'" in app.text
         assert "sceneTaskModal.querySelectorAll" in app.text
+        assert 'id="sceneTaskContextState"' in index.text
+        assert 'id="sceneTaskContextId"' in index.text
+        assert 'id="sceneTaskContextTime"' in index.text
+        assert 'id="sceneTaskContextQuality"' in index.text
         assert 'id="satelliteSceneCanvas"' in index.text
         assert 'src="/assets/vendor/globe/globe.gl.min.js"' in index.text
         assert '"three":"/assets/vendor/globe/three.module.js"' in index.text
@@ -90,6 +94,9 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "pathsData" in scene
     assert "不代表真实 Basilisk 仿真遥测" in scene
     assert "window.SatScene = {" in scene
+    assert "sceneTaskContextState" in scene
+    assert "历史 Run · 已封存" in scene
+    assert "实时仿真 · 已关联" in scene
     assert "updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource" in scene
     assert "setInterval" not in scene
     assert "unsafe-eval" not in scene
