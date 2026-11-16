@@ -860,7 +860,11 @@
           return;
         }
         if (state.sceneTelemetryJoin) {
-          applyScenePair(state.sceneTelemetryJoin.accept('adcs', frame, joinMeta));
+          const pair = state.sceneTelemetryJoin.accept('adcs', frame, joinMeta);
+          if (pair) applyScenePair(pair);
+          else window.SatScene?.setAdcsTelemetryPending?.(
+            `等待精确配对 · ADCS seq ${frame.sequence} · pending ${state.sceneTelemetryJoin.pendingCount()}`
+          );
         }
       };
       (tm.frames || []).forEach(frame => {
