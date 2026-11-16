@@ -99,7 +99,10 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "simulationExplodedView" in scene
     assert 'id="simulationExplodeToggle"' in html
     assert "physicalPosition" in scene
-    assert "0.5 * (previous.speed + current) * (time - previous.time)" in scene
+    assert "function advanceWheelPhaseState(" in scene
+    assert "function integrateWheelPhaseFromTelemetry(index, simTimeS, wheelPhases" in scene
+    assert "wheelPhases" in scene
+    assert "phaseState.valid" in scene
     assert 'id="simulationGeometryCanvas"' in html
     assert 'id="simulationGeometryRows"' in html
     assert 'id="simulationSensorRows"' in html
