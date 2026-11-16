@@ -381,14 +381,9 @@ function invalidateAdcsTelemetry(reason = '遥测不可用') {
   state.wheelPhaseStates = Object.create(null);
   if (point) {
     point.sensorMeasurements = {...(point.sensorMeasurements || {})};
-    [
-      ...ADCS_SCENE_FIELDS,
-      'adcs.rw.speed_rad_s_3',
-      'adcs.rw.effective_max_torque_nm_0',
-      'adcs.rw.effective_max_torque_nm_1',
-      'adcs.rw.effective_max_torque_nm_2',
-      'adcs.rw.effective_max_torque_nm_3',
-    ].forEach(key => delete point.sensorMeasurements[key]);
+    Object.keys(point.sensorMeasurements).forEach(key => {
+      if (key.startsWith('adcs.')) delete point.sensorMeasurements[key];
+    });
     point.adcsSource = null;
     point.adcsBreakBefore = true;
     point.wheelPhases = {};
@@ -424,12 +419,30 @@ function updateAdcsTelemetry(pair, options = {}) {
     if (typeof value === 'number' && Number.isFinite(value)) measurements[key] = value;
     else missingFields.push(key);
   }
-  const fourthWheelSpeed = pair.adcs.values?.['adcs.rw.speed_rad_s_3'];
-  if (typeof fourthWheelSpeed === 'number' && Number.isFinite(fourthWheelSpeed)) {
-    measurements['adcs.rw.speed_rad_s_3'] = fourthWheelSpeed;
-  }
+  Object.entries(pair.adcs.values || {}).forEach(([key, value]) => {
+    if (key.startsWith('adcs.') && (
+      (typeof value === 'number' && Number.isFinite(value)) || typeof value === 'boolean'
+    )) measurements[key] = value;
+  });
+  const aliasPairs = [
+    ...['x','y','z'].flatMap(axis => [
+      ['adcs.imu.gyro_'+axis+'_rad_s', 'adcs.sensor.gyro_measured_rad_s_'+axis],
+      ['adcs.imu.accel_'+axis+'_m_s2', 'adcs.sensor.accel_measured_m_s2_'+axis],
+      ['adcs.magnetometer.field_'+axis+'_t', 'adcs.magnetometer.tesla_'+axis],
+      ['adcs.sun_sensor.direction_'+axis, 'adcs.sun_sensor.direction_b_'+axis],
+    ]),
+    ['adcs.sun_sensor.intensity', 'adcs.sun_sensor.cosine_output'],
+  ];
+  aliasPairs.forEach(([target, source]) => {
+    const value = measurements[source];
+    if ((typeof value === 'number' && Number.isFinite(value)) || typeof value === 'boolean') {
+      measurements[target] = value;
+    }
+  });
   point.sensorMeasurements = {...(point.sensorMeasurements || {})};
-  [...ADCS_SCENE_FIELDS, 'adcs.rw.speed_rad_s_3'].forEach(key => delete point.sensorMeasurements[key]);
+  Object.keys(point.sensorMeasurements).forEach(key => {
+    if (key.startsWith('adcs.')) delete point.sensorMeasurements[key];
+  });
   Object.assign(point.sensorMeasurements, measurements);
   point.adcsSource = {session_id:pair.session_id,stream:pair.adcs.stream,
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
@@ -475,13 +488,20 @@ function pointFromTelemetry(frame, epochUtc) {
     : null;
   const validRotation = rotation || {x: 0, y: 0, z: 0};
   const sensorKeys = [
-    'adcs.imu.gyro_x_rad_s','adcs.imu.gyro_y_rad_s','adcs.imu.gyro_z_rad_s',
-    'adcs.imu.accel_x_m_s2','adcs.imu.accel_y_m_s2','adcs.imu.accel_z_m_s2',
-    'adcs.magnetometer.field_x_t','adcs.magnetometer.field_y_t','adcs.magnetometer.field_z_t',
-    'adcs.star_tracker.valid','adcs.star_tracker.sigma_x','adcs.star_tracker.sigma_y','adcs.star_tracker.sigma_z',
-    'adcs.sun_sensor.valid','adcs.sun_sensor.intensity','adcs.sun_sensor.direction_x','adcs.sun_sensor.direction_y','adcs.sun_sensor.direction_z',
-    'adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2','adcs.rw.speed_rad_s_3',
-    'adcs.rw.effective_max_torque_nm_0','adcs.rw.effective_max_torque_nm_1','adcs.rw.effective_max_torque_nm_2','adcs.rw.effective_max_torque_nm_3'
+    ...['x','y','z'].flatMap(axis => [
+      'adcs.imu.gyro_'+axis+'_rad_s', 'adcs.imu.accel_'+axis+'_m_s2',
+      'adcs.magnetometer.field_'+axis+'_t', 'adcs.sun_sensor.direction_'+axis,
+      'adcs.sensor.gyro_measured_rad_s_'+axis, 'adcs.sensor.accel_measured_m_s2_'+axis,
+      'adcs.magnetometer.tesla_'+axis, 'adcs.sun_sensor.direction_b_'+axis,
+    ]),
+    ...[0,1,2,3].flatMap(index => [
+      'adcs.rw.speed_rad_s_'+index, 'adcs.rw.measured_speed_rad_s_'+index,
+      'adcs.rw.command_torque_nm_'+index, 'adcs.control.applied_torque_nm_'+index,
+      'adcs.rw.effective_max_torque_nm_'+index,
+    ]),
+    ...[0,1,2,3].map(index => 'adcs.star_tracker.q'+index),
+    'adcs.star_tracker.valid', 'adcs.sun_sensor.valid',
+    'adcs.sun_sensor.intensity', 'adcs.sun_sensor.cosine_output',
   ];
   const sensorMeasurements = {};
   sensorKeys.forEach(key => {
@@ -568,7 +588,7 @@ function renderSensorTelemetry(measurements, sourceLabel, simTimeS, wheelPhases 
     ['IMU 陀螺','('+vector(['adcs.imu.gyro_x_rad_s','adcs.imu.gyro_y_rad_s','adcs.imu.gyro_z_rad_s'])+') rad/s','—'],
     ['IMU 加速度计','('+vector(['adcs.imu.accel_x_m_s2','adcs.imu.accel_y_m_s2','adcs.imu.accel_z_m_s2'])+') m/s²','—'],
     ['磁强计','('+vector(['adcs.magnetometer.field_x_t','adcs.magnetometer.field_y_t','adcs.magnetometer.field_z_t'])+') T','—'],
-    ['星敏感器','MRP ('+vector(['adcs.star_tracker.sigma_x','adcs.star_tracker.sigma_y','adcs.star_tracker.sigma_z'])+')',valid('adcs.star_tracker.valid')],
+    ['星敏感器','q ('+vector(['adcs.star_tracker.q0','adcs.star_tracker.q1','adcs.star_tracker.q2','adcs.star_tracker.q3'])+')',valid('adcs.star_tracker.valid')],
     ['太阳敏感器',finite('adcs.sun_sensor.intensity')?values['adcs.sun_sensor.intensity'].toFixed(5):'未提供光强',valid('adcs.sun_sensor.valid')+(finite('adcs.sun_sensor.direction_x')&&finite('adcs.sun_sensor.direction_y')&&finite('adcs.sun_sensor.direction_z')?' · 方向已提供':'')]
   ];
   for(let wheel=0;wheel<4;wheel+=1) {
