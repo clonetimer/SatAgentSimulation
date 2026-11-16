@@ -56,7 +56,7 @@ test('bounds unmatched frame cache and evicts oldest unmatched simulation times'
   for (let i=0;i<4;i++) join.accept('whole.orbit',frame('whole.orbit',i,i+1),meta);
   assert.equal(join.pendingCount(),2);
   assert.equal(join.accept('whole.adcs',frame('whole.adcs',0,1),meta),null);
-  assert.equal(join.pendingCount(),2);
+  assert.equal(join.pendingCount(),3); // two orbit entries plus the unmatched ADCS entry
 });
 test('zero-valued ADCS measurement is valid when frame quality is GOOD', () => {
   const join=createJoin(meta);
