@@ -10,8 +10,9 @@
 ## 三条旅程
 
 1. **离线单次仿真（finite / sealed Run）**
-   - 用户通过快速仿真向导配置并完成离线任务入口检查。
-   - 由官方 Basilisk 执行有限 Run，验证 SUCCEEDED、SEALED 和完整性校验。
+   - Chromium 通过快速仿真向导选择整星和离线模式，编辑时长、执行正式 TaskSpec 校验并提交真实 `POST /runs`。
+   - 由现有嵌入式执行队列调用官方 Basilisk 完成有限 Run，浏览器等待 SUCCEEDED/PASS。
+   - 验证 Run Bundle SEALED、完整性校验通过，再从运行结果进入场景。
    - 浏览器从运行历史选择该 Run，进入卫星数字场景。
    - 核验 Run 身份、封存质量、轨道/姿态字段及历史轨迹；不以 fixture 遥测替代物理结果。
 2. **限时实时仿真（bounded session）**
@@ -27,18 +28,19 @@
 ## 当前复用的权威验收
 
 - `tests/test_p9f_native_browser.py`：真实浏览器创建 bounded/continuous 会话，真实 Basilisk 执行、产品 WebSocket/REST 遥测、Globe.gl 渲染；另有真实有限 Basilisk Run 封存后在浏览器历史场景恢复姿态的桌面/窄屏测试。
+- `tests/test_p9l4_offline_native_ui_browser.py`：新增真实 Chromium 向导创建整星离线任务、真实 POST /runs、嵌入式执行队列、官方 Basilisk、封存校验及场景恢复闭环；不使用 API fixture。
 - `tests/test_p9c_satellite_scene.py`：离线场景资源、场景导航、任务创建对话框、实时服务不可用反馈、场景/专业建模切换及浏览器错误审计。
 - `tests/test_p7d_complete_user_journey.py` 与 `tests/interactive/test_single_run_creator_ux.py`：快速仿真向导的用户交互、配置校验、运行结果 UI、返回配置和旧功能兼容性。
 - `tests/interactive/test_unified_segmented_execution.py`：原生有限/分段执行物理回归。
 
 ## P9-L4 新增门禁
 
-新增 `.github/workflows/p9l4-three-mode-journeys.yml`，将向导/场景对话框浏览器旅程与真实 Basilisk 三模式场景旅程放入同一候选提交的 CI。原生 Job 必须使用官方 Basilisk 2.11.0、离线环境资源和本地 Globe.gl 资产；保存浏览器报告及截图。
+新增 `.github/workflows/p9l4-three-mode-journeys.yml`，将向导/场景对话框浏览器旅程与真实 Basilisk 三模式场景旅程放入同一候选提交的 CI。原生 Job 必须使用官方 Basilisk 2.11.0、离线环境资源和本地 Globe.gl 资产；同时运行真实 UI 创建的整星有限 Run 和两种真实实时会话，保存浏览器报告及截图。
 
 ## 真实性边界
 
 - P7-D 向导测试中的 API 路由 fixture 仅验收前端工作流，不计为物理执行证据。
-- 有限 Run 的物理执行与封存由官方 Basilisk 完成；浏览器历史恢复另行验收。
+- P9-L4 的离线有限 Run 另由真实 Chromium 产品向导提交到真实 API 和执行队列，并由官方 Basilisk 执行、封存；不得以 P7-D fixture 替代。
 - bounded 与 continuous 的创建、启动和遥测链路由真实 Chromium 产品 UI 驱动。
 - 演示遥测、前端注入帧、旧提交结果和被跳过的 Job 均不得计入 P9-L4 PASS。
 - 本工作流把既有权威测试组合为同一提交的综合门禁，不声称新增了一套仿真后端。
