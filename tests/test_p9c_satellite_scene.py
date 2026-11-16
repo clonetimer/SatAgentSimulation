@@ -315,7 +315,8 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 }], {verified: true, runId: 'browser-test-run', epochUtc: '2026-01-01T00:00:00Z', frame: 'N_INERTIAL', timeSystem: 'UTC'})""")
                 assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
-                assert "状态 125.50" in page.locator("#simulationSensorTelemetryRows").inner_text()\n                assert "限幅 0.2500" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert "状态 125.50" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert "限幅 0.2500" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert page.locator("#sceneTaskContextState").inner_text() == "历史 Run · 已封存"
                 assert page.locator("#sceneTaskContextId").inner_text() == "browser-test-run"
                 assert page.locator("#sceneTaskContextTime").inner_text() == "12.50 s"
