@@ -254,11 +254,6 @@ def create_interactive_router(
                         "fields": telemetry_fields,
                     },
                     {
-                        # Spatial state quality domain for the real 3D scene.
-                        # Position and rigid-body attitude are emitted atomically
-                        # from the same Basilisk spacecraft state recorder.
-                        # Unrelated subsystem/sensor outputs cannot invalidate it.
-                    {
                         # ADCS has an independent quality contract and only
                         # declares fields emitted by the native whole-spacecraft runtime.
                         "stream_id": "whole.adcs",
@@ -269,6 +264,11 @@ def create_interactive_router(
                             "adcs.rw.speed_rad_s_2",
                         ],
                     },
+                    {
+                        # Spatial state quality domain for the real 3D scene.
+                        # Position and rigid-body attitude are emitted atomically
+                        # from the same Basilisk spacecraft state recorder.
+                        # Unrelated subsystem/sensor outputs cannot invalidate it.
                         "stream_id": "whole.orbit",
                         "sample_s": body.quantum_s,
                         "fields": [
