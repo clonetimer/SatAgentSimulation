@@ -110,3 +110,65 @@ test('native Basilisk sensor channel names render without substituting configure
   assert.match(h.row('太阳敏感器')[1], /0\.75000/);
   assert.match(h.row('太阳敏感器')[2], /无效/);
 });
+
+const sceneSource = fs.readFileSync(path.join(__dirname, '../../src/sat_sim/web/satellite-scene.js'), 'utf8');
+const associationStart = sceneSource.indexOf('function advanceWheelPhaseState(');
+const associationEnd = sceneSource.indexOf('function pointFromTelemetry', associationStart);
+assert.ok(associationStart >= 0 && associationEnd > associationStart,
+  'native ADCS-to-scene measurement association must exist');
+function associationHarness() {
+  const point = {
+    sim_time_s:2, sequence:7, session_id:'session-A', stream:'whole.orbit',
+    sensorMeasurements:{'adcs.imu.gyro_x_rad_s':-1},
+  };
+  const ui = {};
+  const state = {
+    latestTelemetryPoint:point, telemetrySourceId:'session-A', telemetryEpochUtc:'2026-01-01T00:00:00Z',
+    telemetryTrail:[point], wheelPhaseStates:{},
+  };
+  const context = vm.createContext({
+    state,
+    ADCS_SCENE_FIELDS:['adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2'],
+    setText(id,value){ui[id]=value;},
+    renderTelemetryPosition(){},
+  });
+  vm.runInContext(sceneSource.slice(associationStart,associationEnd)
+    + '\\nglobalThis.updateAdcsTelemetry = updateAdcsTelemetry;', context);
+  return {point,ui,update:context.updateAdcsTelemetry};
+}
+test('strictly associated native ADCS frame maps real Basilisk IMU, CSS, star and magnetometer outputs', () => {
+  const h=associationHarness();
+  const values={
+    'adcs.rw.speed_rad_s_0':10,'adcs.rw.speed_rad_s_1':20,'adcs.rw.speed_rad_s_2':30,
+    'adcs.sensor.gyro_measured_rad_s_x':0.01,
+    'adcs.sensor.gyro_measured_rad_s_y':0.02,
+    'adcs.sensor.gyro_measured_rad_s_z':0.03,
+    'adcs.sensor.accel_measured_m_s2_x':1,
+    'adcs.sensor.accel_measured_m_s2_y':2,
+    'adcs.sensor.accel_measured_m_s2_z':3,
+    'adcs.star_tracker.q0':1,'adcs.star_tracker.q1':0,
+    'adcs.star_tracker.q2':0,'adcs.star_tracker.q3':0,'adcs.star_tracker.valid':1,
+    'adcs.magnetometer.tesla_x':1e-5,'adcs.magnetometer.tesla_y':2e-5,'adcs.magnetometer.tesla_z':3e-5,
+    'adcs.sun_sensor.cosine_output':0.75,
+    'adcs.sun_sensor.direction_b_x':0,'adcs.sun_sensor.direction_b_y':0,'adcs.sun_sensor.direction_b_z':-1,
+    'adcs.sun_sensor.valid':0,
+  };
+  const pair={
+    session_id:'session-A',epoch_utc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',time_system:'UTC',sim_time_s:2,
+    orbit:{session_id:'session-A',stream:'whole.orbit',sequence:7,sim_time_s:2,quality:'GOOD'},
+    adcs:{session_id:'session-A',stream:'whole.adcs',sequence:7,sim_time_s:2,quality:'GOOD',values},
+  };
+  const accepted=h.update(pair,{
+    sourceId:'session-A',epochUtc:'2026-01-01T00:00:00Z',frame:'N_INERTIAL',
+    timeSystem:'UTC',orbitStreamId:'whole.orbit',adcsStreamId:'whole.adcs',
+  });
+  assert.equal(accepted,true);
+  assert.equal(h.point.sensorMeasurements['adcs.imu.gyro_x_rad_s'],0.01);
+  assert.equal(h.point.sensorMeasurements['adcs.imu.accel_z_m_s2'],3);
+  assert.equal(h.point.sensorMeasurements['adcs.star_tracker.q0'],1);
+  assert.equal(h.point.sensorMeasurements['adcs.star_tracker.valid'],1);
+  assert.equal(h.point.sensorMeasurements['adcs.magnetometer.field_y_t'],2e-5);
+  assert.equal(h.point.sensorMeasurements['adcs.sun_sensor.intensity'],0.75);
+  assert.equal(h.point.sensorMeasurements['adcs.sun_sensor.valid'],0);
+  assert.equal(h.point.sensorMeasurements['adcs.imu.gyro_x_rad_s'],0.01);
+});
