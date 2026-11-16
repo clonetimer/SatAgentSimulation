@@ -476,8 +476,10 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 page.locator("#wizardSceneShortcutBtn").click()
                 page.locator("#sceneWorkspaceCreatorBtn").click()
                 page.locator("#creatorView").wait_for(state="visible")
-                page.locator('.app-sidebar [data-view="scene"]').click()
+                assert page.locator("body").get_attribute("data-active-view") == "creator"
+                page.go_back()
                 page.locator("#satelliteSceneView").wait_for(state="visible")
+                assert page.locator("body").get_attribute("data-active-view") == "scene"
             assert not external_requests, external_requests
             assert not failures, failures
         finally:
