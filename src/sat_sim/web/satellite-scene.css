@@ -106,7 +106,15 @@
 .birds-cad-viewport canvas{display:block;width:100%;height:100%;min-height:520px;touch-action:none;cursor:grab}.birds-cad-viewport canvas:active{cursor:grabbing}
 .birds-cad-viewport-hint{position:absolute;left:12px;bottom:10px;padding:6px 9px;border-radius:7px;background:rgba(8,14,22,.72);color:#9eafc1;font-size:9px;pointer-events:none}
 .birds-cad-axis-cube{position:absolute;right:14px;top:12px;font-size:10px;color:#ff8a78;pointer-events:none}.birds-cad-axis-cube b{color:#72d3a2}
-.birds-cad-inspector #birdsCadInspector{padding:12px 0;font-size:11px;line-height:1.7;color:#d9e5f0;overflow-wrap:anywhere}
+.birds-cad-inspector #birdsCadInspector{display:grid;gap:10px;padding:12px 0;font-size:11px;line-height:1.6;color:#d9e5f0;overflow-wrap:anywhere}
+.birds-cad-inspector-name{font-size:12px;line-height:1.4}
+.birds-cad-inspector-note{margin:0;padding:8px;border:1px solid rgba(228,176,96,.24);border-radius:7px;background:rgba(228,176,96,.07);color:#d9c49f;font-size:9px;line-height:1.55}
+.birds-cad-inspector-section{display:grid;gap:6px;padding-top:9px;border-top:1px solid rgba(133,160,187,.16);min-width:0}
+.birds-cad-inspector-section>strong{color:#9fb4c8;font-size:9px;font-weight:700}
+.birds-cad-inspector-section>p{margin:0;color:#c8d5e2;font-size:9px;line-height:1.55;overflow-wrap:anywhere}
+.birds-cad-inspector-line{display:grid;grid-template-columns:minmax(88px,.75fr) minmax(0,1.25fr);gap:8px;align-items:start;font-size:9px}
+.birds-cad-inspector-line>span{color:#8296aa}
+.birds-cad-inspector-line>strong{color:#dce7f1;font-weight:550;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:right}
 .birds-cad-provenance{display:grid;gap:7px;margin-top:14px;padding:10px;border-radius:9px;background:rgba(255,255,255,.035);font-size:10px;color:#94a7ba}
 .birds-cad-provenance strong{color:#c9d7e6;font-size:11px}.birds-cad-status{margin:0;padding:8px 10px;border-radius:8px;background:rgba(94,142,181,.09);color:#9eb2c8;font-size:10px}.birds-cad-status[data-kind="error"]{color:#ffaaa1;background:rgba(180,65,55,.12)}
 @media(max-width:900px){.birds-cad-workspace{grid-template-columns:150px minmax(0,1fr);}.birds-cad-inspector{grid-column:1/-1;border-left:0;border-top:1px solid rgba(133,160,187,.16)}.birds-cad-viewport,.birds-cad-viewport canvas{min-height:430px}}
