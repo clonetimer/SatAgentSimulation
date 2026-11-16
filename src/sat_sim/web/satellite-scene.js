@@ -30,6 +30,9 @@ const state = {
   telemetryStreamId: null,
   telemetrySourceLabel: null,
   telemetryEpochUtc: null,
+  telemetryCapabilityId: null,
+  telemetryLifecycleState: null,
+  adcsTelemetryStatus: {quality:'UNAVAILABLE',simTimeS:null,reason:'尚未关联 ADCS 遥测'},
   telemetryTrail: [],
   latestTelemetryPoint: null,
   telemetrySampled: false,
@@ -60,6 +63,29 @@ function setText(id, value) {
   if (element) element.textContent = value;
 }
 
+function lifecycleStateLabel(value) {
+  const labels = {
+    READY:'准备就绪', PREPARING:'准备中', RUNNING:'运行中', PAUSED:'已暂停',
+    STOPPING:'停止中', STOPPED:'已停止', COMPLETED:'已完成', SUCCEEDED:'已成功',
+    FAILED:'失败', ABORTED:'已中止', INTERRUPTED:'已中断', UNKNOWN:'未知',
+  };
+  const stateName = String(value || '').toUpperCase();
+  return labels[stateName] || (stateName || '—');
+}
+
+function setTelemetrySessionContext(context = {}) {
+  const sourceId = String(context.sourceId || '');
+  if (!sourceId || sourceId !== state.telemetrySourceId) return false;
+  if (typeof context.capabilityId === 'string' && context.capabilityId.trim()) {
+    state.telemetryCapabilityId = context.capabilityId.trim();
+  }
+  if (typeof context.lifecycleState === 'string' && context.lifecycleState.trim()) {
+    state.telemetryLifecycleState = context.lifecycleState.trim().toUpperCase();
+  }
+  renderTelemetryInspector();
+  return true;
+}
+
 function renderTelemetryInspector(point = state.latestTelemetryPoint) {
   const hasSource = Boolean(point && state.telemetrySourceId);
   const sealedRun = Boolean(hasSource && state.telemetrySourceId.startsWith('run:'));
@@ -70,8 +96,19 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
   }
   setText('sceneTaskContextState', sealedRun ? '历史 Run · 已封存' : (hasSource ? '实时仿真 · 已关联' : '未关联仿真任务'));
   setText('sceneTaskContextId', hasSource ? (sealedRun ? state.telemetrySourceId.slice(4) : state.telemetrySourceId) : '—');
+  setText('sceneTaskContextCapability', hasSource ? (state.telemetryCapabilityId || '未声明') : '—');
+  setText('sceneTaskContextLifecycle', hasSource
+    ? lifecycleStateLabel(state.telemetryLifecycleState || (sealedRun ? 'SUCCEEDED' : 'UNKNOWN')) : '—');
   setText('sceneTaskContextTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
   setText('sceneTaskContextQuality', hasSource ? (point.quality || (sealedRun ? 'SEALED' : 'UNKNOWN')) : '—');
+  const adcsStatus = state.adcsTelemetryStatus || {};
+  const adcsSource = point?.adcsSource;
+  const adcsQuality = adcsSource?.quality || adcsStatus.quality;
+  setText('sceneTaskContextAdcsQuality', hasSource
+    ? (adcsQuality === 'GOOD'
+      ? `GOOD · ${Number(adcsSource?.sim_time_s ?? adcsStatus.simTimeS).toFixed(2)} s`
+      : (adcsStatus.reason || '等待同一仿真时刻的 GOOD 帧'))
+    : '—');
   setText('sceneSimTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
   setText('sceneAltitude', hasSource ? `${point.altitude_km.toFixed(2)} km` : '—');
   setText('sceneGeographicPosition', hasSource ? `${point.lat.toFixed(3)}°, ${point.lng.toFixed(3)}°` : '—');
@@ -89,10 +126,9 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
       : (state.telemetrySourceId?.startsWith('run:') ? state.telemetrySourceId : '—'))
     : '—';
   setText('sceneFrameSource', frameSource);
-  const adcsSource = point?.adcsSource;
   setText('sceneAdcsFrameSource', adcsSource
-    ? `ADCS: ${adcsSource.session_id} / ${adcsSource.stream} · seq ${adcsSource.sequence} · ${adcsSource.sim_time_s.toFixed(3)} s${adcsSource.sequence_gap_before ? ' · 序号缺口' : ''}`
-    : 'ADCS: 等待同一仿真时刻的 GOOD 遥测');
+    ? `ADCS: ${adcsSource.session_id} / ${adcsSource.stream} · ${adcsSource.quality} · seq ${adcsSource.sequence} · ${adcsSource.sim_time_s.toFixed(3)} s${adcsSource.sequence_gap_before ? ' · 序号缺口' : ''}`
+    : `ADCS: ${adcsStatus.reason || '等待同一仿真时刻的 GOOD 遥测'}`);
   setText('sceneFrameSequence', hasSource && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
   setText('sceneFrameQuality', hasSource ? (point.quality || (state.telemetrySourceId?.startsWith('run:') ? 'SEALED' : 'UNKNOWN')) : '—');
 }
@@ -378,6 +414,7 @@ function advanceWheelPhaseState(previous, sample) {
 
 function invalidateAdcsTelemetry(reason = '遥测不可用') {
   const point = state.latestTelemetryPoint;
+  state.adcsTelemetryStatus = {quality:'UNAVAILABLE',simTimeS:null,reason:String(reason)};
   state.wheelPhaseStates = Object.create(null);
   if (point) {
     point.sensorMeasurements = {...(point.sensorMeasurements || {})};
@@ -444,6 +481,7 @@ function updateAdcsTelemetry(pair, options = {}) {
     if (key.startsWith('adcs.')) delete point.sensorMeasurements[key];
   });
   Object.assign(point.sensorMeasurements, measurements);
+  state.adcsTelemetryStatus = {quality:'GOOD',simTimeS:pair.sim_time_s,reason:null};
   point.adcsSource = {session_id:pair.session_id,stream:pair.adcs.stream,
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
     epoch_utc:pair.epoch_utc,sequence_gap_before:Boolean(pair.adcs_sequence_gap)};
@@ -670,10 +708,15 @@ function updateTelemetry(frame, options = {}) {
   if (sourceChanged) {
     state.telemetrySourceId = sourceId;
     state.telemetryStreamId = streamId;
+    state.telemetryCapabilityId = null;
+    state.telemetryLifecycleState = null;
+    state.adcsTelemetryStatus = {quality:'UNAVAILABLE',simTimeS:null,reason:'等待同一仿真时刻的 GOOD 遥测'};
     state.wheelPhaseStates = Object.create(null);
     state.telemetryTrail = [];
     state.latestTelemetryPoint = null;
   }
+  if (typeof options.capabilityId === 'string') state.telemetryCapabilityId = options.capabilityId;
+  if (typeof options.lifecycleState === 'string') state.telemetryLifecycleState = options.lifecycleState;
   state.telemetryTrail.push(point);
   if (state.telemetryTrail.length > TELEMETRY_TRAIL_LIMIT) {
     state.telemetryTrail.splice(0, state.telemetryTrail.length - TELEMETRY_TRAIL_LIMIT);
@@ -703,6 +746,9 @@ function setRunTelemetry(rows, options = {}) {
   state.telemetryStreamId = null;
   state.telemetrySourceLabel = '已封存有限 Run 遥测';
   state.telemetryEpochUtc = options.epochUtc;
+  state.telemetryCapabilityId = options.capabilityId || 'whole_spacecraft.unified_native.v1';
+  state.telemetryLifecycleState = options.lifecycleState || 'SUCCEEDED';
+  state.adcsTelemetryStatus = {quality:'UNAVAILABLE',simTimeS:null,reason:'封存 Run 尚未提供 ADCS 同时刻记录'};
   state.wheelPhaseStates = Object.create(null);
   const valid = (Array.isArray(rows) ? rows : [])
     .map(row => pointFromTelemetry(row, options.epochUtc))
@@ -765,6 +811,9 @@ function clearTelemetrySource() {
   state.telemetryStreamId = null;
   state.telemetrySourceLabel = null;
   state.telemetryEpochUtc = null;
+  state.telemetryCapabilityId = null;
+  state.telemetryLifecycleState = null;
+  state.adcsTelemetryStatus = {quality:'UNAVAILABLE',simTimeS:null,reason:'尚未关联 ADCS 遥测'};
   state.telemetryTrail = [];
   state.latestTelemetryPoint = null;
   state.telemetrySampled = false;
@@ -1415,7 +1464,8 @@ window.SatScene = {
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible, setSimulationExplodedView,
   integrateWheelPhaseFromTelemetry,
   setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame, starTrackerAxesInBodyFrame,
-  updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource,
+  updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin,
+  setTelemetrySessionContext, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
   isBodyAxesVisible: () => Boolean(state.modelAxesGroup?.visible && state.showBodyAxes),
