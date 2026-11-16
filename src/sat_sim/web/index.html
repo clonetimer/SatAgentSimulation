@@ -127,17 +127,6 @@
     <main id="satelliteSceneView" class="satellite-scene-view app-view hidden">
       <div class="p9d-scene-layout">
         <section class="satellite-scene-shell">
-          <header class="satellite-scene-heading"><div class="satellite-scene-title-block"><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1 id="satelliteSceneTitle">卫星数字场景</h1><p id="satelliteSceneDescription">真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。</p><button class="button button-secondary satellite-scene-return" type="button" data-return-wizard>返回仿真向导</button></div><div class="satellite-scene-actions"><button id="sceneCreateTaskBtn" class="button button-primary" type="button">创建仿真任务</button><button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button><button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">显示机体系坐标轴</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button></div></header>
-          <section class="scene-task-context" aria-label="当前仿真数据源与运行状态">
-            <div><span>数据来源</span><strong id="sceneTaskContextState">未关联仿真任务</strong></div>
-            <div><span>任务 / 会话 ID</span><strong id="sceneTaskContextId">—</strong></div>
-            <div><span>Capability</span><strong id="sceneTaskContextCapability">—</strong></div>
-            <div><span>运行状态</span><strong id="sceneTaskContextLifecycle">—</strong></div>
-            <div><span>仿真时间</span><strong id="sceneTaskContextTime">—</strong></div>
-            <div><span>轨道遥测质量</span><strong id="sceneTaskContextQuality">—</strong></div>
-            <div><span>ADCS 遥测质量</span><strong id="sceneTaskContextAdcsQuality">—</strong></div>
-          </section>
-          <nav class="satellite-scene-mode-tabs" aria-label="数字场景模式"><button type="button" data-scene-mode="orbit" aria-pressed="false">轨道与姿态</button><button type="button" data-scene-mode="simulation" aria-pressed="true">物理构型</button><button type="button" data-scene-mode="cad" aria-pressed="false">参考 CAD</button></nav>
           <section id="satelliteOrbitMode" class="satellite-orbit-mode" hidden>
           <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与真实遥测驱动的卫星轨道及姿态场景"></div>
           <section class="satellite-scene-inspector" aria-label="轨道与姿态状态">
@@ -233,10 +222,41 @@
             </div>
             <p id="birdsCadStatus" class="birds-cad-status" role="status">等待加载 BIRDS-4 GLB 参考模型。模型文件仅在本浏览器会话中读取。</p>
           </section>
-          <div id="satelliteSceneStatus" class="satellite-scene-status" role="status" aria-live="polite">等待场景引擎。</div>
           <p class="satellite-scene-note">地球影像：NASA Blue Marble。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真结果。</p>
         </section>
-        <aside class="p9d-config-panel" aria-label="对象配置">
+        <aside class="p9d-config-panel" aria-label="卫星数字场景编辑区域">
+          <section class="scene-editor-controls" aria-label="场景工作区与控制">
+            <div class="scene-editor-title-row">
+              <h1 id="satelliteSceneTitle">卫星数字场景</h1>
+              <button class="button button-primary" id="sceneCreateTaskBtn" type="button">创建仿真任务</button>
+            </div>
+            <nav class="scene-workspace-nav" aria-label="工作区切换">
+              <button class="scene-workspace-link" type="button" data-view="wizard" data-wizard-shortcut="history">任务中心</button>
+              <button class="scene-workspace-link is-active" type="button" data-view="scene" aria-current="page">卫星数字场景</button>
+              <button class="scene-workspace-link" type="button" data-view="creator">专业建模</button>
+            </nav>
+            <nav class="satellite-scene-mode-tabs" aria-label="数字场景模式">
+              <button type="button" data-scene-mode="orbit" aria-pressed="false">轨道与姿态</button>
+              <button type="button" data-scene-mode="simulation" aria-pressed="true">物理构型</button>
+              <button type="button" data-scene-mode="cad" aria-pressed="false">参考 CAD</button>
+            </nav>
+            <div class="satellite-scene-actions" aria-label="场景视角控制">
+              <button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪</button>
+              <button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button>
+              <button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">机体系坐标轴</button>
+              <button class="button button-secondary" type="button" data-scene-action="home">全景</button>
+            </div>
+            <section class="scene-task-context" aria-label="当前仿真数据源与运行状态">
+              <div><span>数据来源</span><strong id="sceneTaskContextState">未关联仿真任务</strong></div>
+              <div><span>任务 / 会话 ID</span><strong id="sceneTaskContextId">—</strong></div>
+              <div><span>Capability</span><strong id="sceneTaskContextCapability">—</strong></div>
+              <div><span>运行状态</span><strong id="sceneTaskContextLifecycle">—</strong></div>
+              <div><span>仿真时间</span><strong id="sceneTaskContextTime">—</strong></div>
+              <div><span>轨道遥测质量</span><strong id="sceneTaskContextQuality">—</strong></div>
+              <div><span>ADCS 遥测质量</span><strong id="sceneTaskContextAdcsQuality">—</strong></div>
+            </section>
+            <div id="satelliteSceneStatus" class="satellite-scene-status" role="status" aria-live="polite">等待场景引擎。</div>
+          </section>
           <section class="p9d-tree-section">
             <div class="p9d-panel-heading"><div><h2>仿真对象</h2><p>整星 · 分系统 · 单机</p></div></div>
             <div id="p9dObjectTree" class="p9d-object-tree" role="tree" aria-label="仿真对象树">正在读取对象目录…</div>
