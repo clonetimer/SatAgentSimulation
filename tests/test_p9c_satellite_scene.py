@@ -100,7 +100,7 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "sceneTaskContextState" in scene
     assert "历史 Run · 已封存" in scene
     assert "实时仿真 · 已关联" in scene
-    assert "updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource" in scene
+    assert "updateTelemetry, updateAdcsTelemetry, setAdcsTelemetryPending, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin" in scene
     assert "setInterval" not in scene
     assert "unsafe-eval" not in scene
 
