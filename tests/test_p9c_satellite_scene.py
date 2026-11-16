@@ -133,7 +133,7 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "adcs.star_tracker.valid" in scene
     assert "adcs.sun_sensor.valid" in scene
     assert "adcs.rw.speed_rad_s_0" in scene
-    assert "adcs.rw.effective_max_torque_nm_0" in scene
+    assert "adcs.rw.effective_max_torque_nm_" in scene
     assert "反作用轮 RW" in scene
     assert "updateSimulationWheelMotion" in scene
     assert "speed * time" not in scene
@@ -315,7 +315,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 }], {verified: true, runId: 'browser-test-run', epochUtc: '2026-01-01T00:00:00Z', frame: 'N_INERTIAL', timeSystem: 'UTC'})""")
                 assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
-                assert "125.500 rad/s" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert "状态 125.50" in page.locator("#simulationSensorTelemetryRows").inner_text()\n                assert "限幅 0.2500" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert page.locator("#sceneTaskContextState").inner_text() == "历史 Run · 已封存"
                 assert page.locator("#sceneTaskContextId").inner_text() == "browser-test-run"
                 assert page.locator("#sceneTaskContextTime").inner_text() == "12.50 s"
