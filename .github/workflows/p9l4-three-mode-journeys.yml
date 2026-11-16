@@ -16,6 +16,7 @@ on:
       - "tests/interactive/test_single_run_creator_ux.py"
       - "tests/interactive/test_unified_segmented_execution.py"
       - "docs/superpowers/plans/2026-11-16-p9l4-three-mode-user-journeys.md"
+      - "docs/development-experience/p9-browser-acceptance.md"
       - ".github/workflows/p9l4-three-mode-journeys.yml"
   workflow_dispatch:
 
