@@ -293,6 +293,86 @@ function eciToGlobePoint(position, epochUtc, simTimeS) {
   };
 }
 
+function createStrictTelemetryTimeJoin(options = {}) {
+  const sessionId = options.sessionId, epochUtc = options.epochUtc;
+  const frame = options.frame, timeSystem = options.timeSystem;
+  const streams = {orbit: options.orbitStreamId, adcs: options.adcsStreamId};
+  const maxPending = Number.isSafeInteger(options.maxPending) && options.maxPending > 0
+    ? Math.min(options.maxPending, 256) : 256;
+  const pending = {orbit: new Map(), adcs: new Map()};
+  const lastSequence = {orbit: null, adcs: null};
+  function validContract(meta) {
+    return Boolean(sessionId && epochUtc && frame === 'N_INERTIAL' && timeSystem === 'UTC'
+      && meta && meta.sessionId === sessionId && meta.epochUtc === epochUtc
+      && meta.frame === frame && meta.timeSystem === timeSystem
+      && meta.orbitStreamId === streams.orbit && meta.adcsStreamId === streams.adcs);
+  }
+  function accept(kind, sample, meta) {
+    if (!['orbit', 'adcs'].includes(kind) || !validContract(meta)) return null;
+    if (!sample || sample.stream !== streams[kind] || sample.session_id !== sessionId
+        || sample.quality !== 'GOOD' || !Number.isSafeInteger(sample.sequence)
+        || sample.sequence < 0 || typeof sample.sim_time_s !== 'number'
+        || !Number.isFinite(sample.sim_time_s) || sample.sim_time_s < 0
+        || !sample.values || typeof sample.values !== 'object' || Array.isArray(sample.values)) return null;
+    if (lastSequence[kind] !== null && sample.sequence <= lastSequence[kind]) return null;
+    const sequenceGap = lastSequence[kind] !== null && sample.sequence > lastSequence[kind] + 1;
+    lastSequence[kind] = sample.sequence;
+    const key = sample.sim_time_s, current = {sample, sequenceGap};
+    if (pending[kind].has(key)) return null;
+    const other = kind === 'orbit' ? 'adcs' : 'orbit';
+    const counterpart = pending[other].get(key);
+    if (counterpart) {
+      pending[other].delete(key);
+      const orbitItem = kind === 'orbit' ? current : counterpart;
+      const adcsItem = kind === 'adcs' ? current : counterpart;
+      return {
+        session_id: sessionId, epoch_utc: epochUtc, frame, time_system: timeSystem,
+        sim_time_s: key, orbit: orbitItem.sample, adcs: adcsItem.sample,
+        adcs_sequence_gap: adcsItem.sequenceGap,
+      };
+    }
+    pending[kind].set(key, current);
+    while (pending[kind].size > maxPending) pending[kind].delete(pending[kind].keys().next().value);
+    return null;
+  }
+  return {accept, pendingCount: () => pending.orbit.size + pending.adcs.size,
+    reset() {
+      pending.orbit.clear(); pending.adcs.clear();
+      lastSequence.orbit = null; lastSequence.adcs = null;
+    }};
+}
+
+function updateAdcsTelemetry(pair, options = {}) {
+  if (!pair || pair.session_id !== state.telemetrySourceId
+      || pair.epoch_utc !== state.telemetryEpochUtc
+      || pair.frame !== 'N_INERTIAL' || pair.time_system !== 'UTC'
+      || options.sourceId !== pair.session_id || options.epochUtc !== pair.epoch_utc
+      || options.frame !== pair.frame || options.timeSystem !== pair.time_system
+      || pair.orbit?.stream !== options.orbitStreamId
+      || pair.adcs?.stream !== options.adcsStreamId
+      || pair.orbit?.session_id !== pair.session_id || pair.adcs?.session_id !== pair.session_id
+      || pair.orbit?.quality !== 'GOOD' || pair.adcs?.quality !== 'GOOD'
+      || pair.orbit?.sim_time_s !== pair.adcs?.sim_time_s
+      || pair.sim_time_s !== pair.orbit?.sim_time_s) return false;
+  const point = state.telemetryTrail.find(item =>
+    item.sim_time_s === pair.sim_time_s && item.sequence === pair.orbit.sequence
+      && item.session_id === pair.session_id && item.stream === pair.orbit.stream);
+  if (!point) return false;
+  const measurements = {};
+  for (const key of ADCS_SCENE_FIELDS) {
+    const value = pair.adcs.values?.[key];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return false;
+    measurements[key] = value;
+  }
+  point.sensorMeasurements = {...(point.sensorMeasurements || {}), ...measurements};
+  point.adcsSource = {session_id:pair.session_id,stream:pair.adcs.stream,
+    sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
+    epoch_utc:pair.epoch_utc,sequence_gap_before:Boolean(pair.adcs_sequence_gap)};
+  point.adcsBreakBefore = Boolean(pair.adcs_sequence_gap);
+  if (state.latestTelemetryPoint === point) renderTelemetryPosition();
+  return true;
+}
+
 function pointFromTelemetry(frame, epochUtc) {
   const values = frame?.values || frame || {};
   const position = ['x', 'y', 'z'].map(axis => values[`orbit.position_m_${axis}`]);
@@ -373,7 +453,10 @@ function integrateWheelPhaseFromTelemetry(index, simTimeS) {
   for (const sample of samples) {
     const time = Number(sample.sim_time_s);
     if (!Number.isFinite(time) || time < 0 || time > targetTime) continue;
-    const speed = sample.sensorMeasurements?.['adcs.rw.speed_rad_s_' + index];
+    if (!sample.adcsSource || sample.adcsSource.quality !== 'GOOD'
+        || sample.adcsSource.sim_time_s !== time || sample.adcsBreakBefore) previous = null;
+    const speed = sample.adcsSource?.quality === 'GOOD' && sample.adcsSource.sim_time_s === time
+      ? sample.sensorMeasurements?.['adcs.rw.speed_rad_s_' + index] : null;
     const current = typeof speed === 'number' && Number.isFinite(speed) ? speed : null;
     if (previous && current !== null && time > previous.time) {
       phase += 0.5 * (previous.speed + current) * (time - previous.time);
@@ -1197,7 +1280,7 @@ window.SatScene = {
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible, setSimulationExplodedView,
   integrateWheelPhaseFromTelemetry,
   setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame, starTrackerAxesInBodyFrame,
-  updateTelemetry, setRunTelemetry, clearTelemetrySource,
+  updateTelemetry, updateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
   isBodyAxesVisible: () => Boolean(state.modelAxesGroup?.visible && state.showBodyAxes),
