@@ -397,12 +397,14 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     # the invoking control when dismissed.
                     offline_option = dialog.locator('[data-scene-create="offline"]')
                     continuous_option = dialog.locator('[data-scene-create="continuous"]')
+                    close_button = dialog.locator("[data-scene-dialog-close]")
                     playwright.expect(offline_option).to_be_focused()
+                    close_button.focus()
                     page.keyboard.press("Shift+Tab")
                     playwright.expect(continuous_option).to_be_focused()
                     page.keyboard.press("Tab")
-                    playwright.expect(offline_option).to_be_focused()
-                    dialog.locator("[data-scene-dialog-close]").click()
+                    playwright.expect(close_button).to_be_focused()
+                    close_button.click()
                     playwright.expect(dialog).to_be_hidden()
                     playwright.expect(page.locator("#sceneCreateTaskBtn")).to_be_focused()
 
