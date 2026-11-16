@@ -229,6 +229,7 @@
    workspace switching inside the existing object editor. */
 body[data-active-view="scene"] .app-frame {
   grid-template-columns:minmax(0,1fr) !important;
+  min-height:calc(100vh - 52px);
 }
 body[data-active-view="scene"] .app-sidebar {
   display:none !important;
