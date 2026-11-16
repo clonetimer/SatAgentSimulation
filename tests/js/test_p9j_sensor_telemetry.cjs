@@ -234,3 +234,21 @@ test('missing ADCS association is shown independently instead of inheriting orbi
   assert.equal(h.values.sceneTaskContextAdcsQuality,'ADCS 遥测序列缺口 2');
   assert.match(h.values.sceneAdcsFrameSource,/ADCS 遥测序列缺口 2/);
 });
+
+
+const pendingStart = sceneSource.indexOf('function setAdcsTelemetryPending(');
+const pendingEnd = sceneSource.indexOf('function invalidateAdcsTelemetry(', pendingStart);
+assert.ok(pendingStart >= 0 && pendingEnd > pendingStart,
+  'pending ADCS join state must be explicit');
+test('an unmatched orbit or ADCS frame supersedes stale GOOD status with pending',()=>{
+  const state={adcsTelemetryStatus:{quality:'GOOD',simTimeS:4,reason:null}};
+  let rendered=0;
+  const context=vm.createContext({state,renderTelemetryInspector(){rendered+=1;}});
+  vm.runInContext(sceneSource.slice(pendingStart,pendingEnd)
+    + '\nglobalThis.setAdcsTelemetryPending = setAdcsTelemetryPending;',context);
+  assert.equal(context.setAdcsTelemetryPending('等待精确配对 · orbit seq 9'),true);
+  assert.equal(state.adcsTelemetryStatus.quality,'PENDING');
+  assert.equal(state.adcsTelemetryStatus.simTimeS,null);
+  assert.match(state.adcsTelemetryStatus.reason,/orbit seq 9/);
+  assert.equal(rendered,1);
+});
