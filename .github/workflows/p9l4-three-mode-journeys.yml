@@ -11,6 +11,7 @@ on:
       - "src/sat_sim/dataset_writer.py"
       - "tests/test_p9c_satellite_scene.py"
       - "tests/test_p9f_native_browser.py"
+      - "tests/test_p9l4_offline_native_ui_browser.py"
       - "tests/test_p7d_complete_user_journey.py"
       - "tests/interactive/test_single_run_creator_ux.py"
       - "tests/interactive/test_unified_segmented_execution.py"
@@ -105,9 +106,12 @@ jobs:
           PYTHONPATH: "src:."
           SAT_SIM_P9F_NATIVE_BROWSER_TEST: "1"
           SAT_SIM_P9F_EVIDENCE: "${{ runner.temp }}/p9l4-three-mode-evidence"
+          SAT_SIM_P9L4_NATIVE_UI_TEST: "1"
+          SAT_SIM_P9L4_EVIDENCE: "${{ runner.temp }}/p9l4-three-mode-evidence/offline-ui"
         run: |
           python -m pytest -q -s \
             tests/test_p9f_native_browser.py \
+            tests/test_p9l4_offline_native_ui_browser.py \
             tests/interactive/test_unified_segmented_execution.py
       - name: Preserve three-mode browser and native execution evidence
         if: always()
