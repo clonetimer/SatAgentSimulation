@@ -7726,6 +7726,10 @@
       if (message.type === 'telemetry') acceptInteractiveFrame(message.payload);
       if (message.type === 'gap') {
         state.interactiveGaps[message.payload.stream] = message.payload;
+        if (message.payload.stream === 'whole.adcs'
+            && state.activeView === 'scene' && state.sceneRealtimeSource === 'interactive') {
+          window.SatScene?.invalidateAdcsTelemetry?.('遥测序列缺口 ' + message.payload.dropped_count);
+        }
         renderInteractiveTelemetry();
       }
       if (message.type === 'session_event') {
@@ -7851,6 +7855,10 @@
           else setSceneAdcsJoinStatus(`等待精确配对 · orbit seq ${frame.sequence} · pending ${contract.join.pendingCount()}`);
         }
       } else if (contract?.adcs.stream_id === frame.stream) {
+        if (frame.quality !== 'GOOD') {
+          window.SatScene?.invalidateAdcsTelemetry?.('ADCS 数据质量 ' + String(frame.quality || 'UNKNOWN'));
+          return;
+        }
         const pair = contract.join.accept('adcs', frame, contract.meta);
         if (pair) window.SatScene?.updateAdcsTelemetry(pair, {
           sourceId: state.interactiveSession.session_id, epochUtc: state.interactiveSession.orbit_epoch_utc,
