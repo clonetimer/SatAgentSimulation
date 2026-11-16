@@ -92,7 +92,7 @@ On a successful exact-time pair, the scene inspector now replaces the pending st
 ### Scope
 Extend the already validated continuous `whole.adcs` quality domain from wheel speed alone to actual Basilisk recorder outputs. Do not substitute configuration values for measurements.
 
-The stream now declares:
+Both bounded WebSocket sessions and continuous REST sessions declare the same dedicated `whole.adcs` telemetry contract. The stream now declares:
 - RW state speed, measured speed, command torque, applied torque and effective torque limit for the active wheel topology.
 - IMU measured angular rate and acceleration.
 - Star-tracker measured quaternion and explicit device-validity flag.
@@ -110,6 +110,7 @@ The scene adapter preserves native source fields and creates presentation aliase
 
 ### Added acceptance
 - Real Basilisk continuous-session test asserts catalog fields and actual finite IMU, star-tracker, magnetometer and CSS values.
+- Real Chromium acceptance checks both bounded and continuous user-created sessions, including bounded TaskSpec stream declarations and visible sensor rows from actual telemetry.
 - Four-wheel test checks RW4 state, measured speed and applied torque fields.
 - Node tests verify native field-to-inspector mapping and independent star/CSS validity.
 - P9-F Ubuntu/Windows and native-browser jobs are the acceptance gate; the catalog declaration alone is not evidence of actual sensor publication.
