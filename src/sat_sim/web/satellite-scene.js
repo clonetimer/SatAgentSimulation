@@ -397,6 +397,10 @@ function updateAdcsTelemetry(pair, options = {}) {
     if (typeof value !== 'number' || !Number.isFinite(value)) return reject('ADCS 通道缺失或非有限：' + key);
     measurements[key] = value;
   }
+  const fourthWheelSpeed = pair.adcs.values?.['adcs.rw.speed_rad_s_3'];
+  if (typeof fourthWheelSpeed === 'number' && Number.isFinite(fourthWheelSpeed)) {
+    measurements['adcs.rw.speed_rad_s_3'] = fourthWheelSpeed;
+  }
   point.sensorMeasurements = {...(point.sensorMeasurements || {}), ...measurements};
   point.adcsSource = {session_id:pair.session_id,stream:pair.adcs.stream,
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
