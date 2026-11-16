@@ -79,3 +79,24 @@ test('zero-valued ADCS measurement is valid when frame quality is GOOD', () => {
   const pair=join.accept('adcs',b,meta);
   assert.equal(pair.adcs.values.sample,0);
 });
+
+const appSource = fs.readFileSync(path.join(__dirname, '../../src/sat_sim/web/app.js'), 'utf8');
+const adcsStart = appSource.indexOf('function sceneAdcsStream(');
+const adcsEnd = appSource.indexOf('\\n  function setSceneAdcsJoinStatus', adcsStart);
+assert.ok(adcsStart >= 0 && adcsEnd > adcsStart, 'ADCS stream selector must exist');
+const adcsSelectorContext = vm.createContext({});
+vm.runInContext(appSource.slice(adcsStart, adcsEnd)
+  + '\\nglobalThis.sceneAdcsStream = sceneAdcsStream;', adcsSelectorContext);
+const selectAdcsStream = adcsSelectorContext.sceneAdcsStream;
+test('selects the dedicated whole.adcs quality domain, never the INVALID whole.fast superset', () => {
+  const catalog = [
+    {stream_id:'whole.fast', fields:['adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2']},
+    {stream_id:'whole.adcs', fields:['adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2']},
+    {stream_id:'whole.orbit', fields:['orbit.position_m_x']},
+  ];
+  assert.equal(selectAdcsStream({telemetry_catalog:catalog}).stream_id, 'whole.adcs');
+});
+test('does not fall back to a mixed-quality stream when dedicated whole.adcs is absent', () => {
+  const catalog = [{stream_id:'whole.fast', fields:['adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2']}];
+  assert.equal(selectAdcsStream({telemetry_catalog:catalog}), null);
+});
