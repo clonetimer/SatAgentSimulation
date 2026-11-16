@@ -794,7 +794,14 @@ function setRunTelemetry(rows, options = {}) {
   state.telemetryTotalRows = Number(options.totalRows ?? valid.length);
   if (!state.latestTelemetryPoint) {
     state.telemetrySourceId = null;
+    state.telemetryStreamId = null;
+    state.telemetrySourceLabel = null;
+    state.telemetryEpochUtc = null;
+    state.telemetryCapabilityId = null;
+    state.telemetryLifecycleState = null;
+    state.adcsTelemetryStatus = {quality:'UNAVAILABLE',simTimeS:null,reason:'Run 未提供有效轨道遥测'};
     state.telemetryTrail = [];
+    renderTelemetryInspector(null);
     return false;
   }
   if (state.active && state.ready) {
