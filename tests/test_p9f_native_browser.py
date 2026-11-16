@@ -234,6 +234,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             page.on("dialog", lambda dialog: dialog.accept())
 
             def observe_socket(websocket):
+                websocket.on("framesent", lambda data: report.setdefault("socket_sent", []).append(data))
                 websocket.on("framereceived", lambda data: report["socket_messages"].append(data))
 
             page.on("websocket", observe_socket)
@@ -526,6 +527,11 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                         for row in orbit_payload.get("frames", [])[-12:]
                     ],
                     "scene_status": page.locator("#sceneAdcsFrameSource").inner_text(),
+                    "socket_sent": report.get("socket_sent", [])[-12:],
+                    "socket_received": [
+                        json.loads(item) for item in report.get("socket_messages", [])[-80:]
+                        if isinstance(item, str) and item.startswith("{")
+                    ],
                 }
                 raise AssertionError(
                     "P9K_STRICT_ADCS_ASSOCIATION_FAILED: "
