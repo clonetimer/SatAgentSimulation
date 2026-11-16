@@ -335,6 +335,7 @@ function createStrictTelemetryTimeJoin(options = {}) {
       return {
         session_id: sessionId, epoch_utc: epochUtc, frame, time_system: timeSystem,
         sim_time_s: key, orbit: orbitItem.sample, adcs: adcsItem.sample,
+        orbit_sequence_gap: orbitItem.sequenceGap,
         adcs_sequence_gap: adcsItem.sequenceGap,
       };
     }
@@ -375,7 +376,7 @@ function updateAdcsTelemetry(pair, options = {}) {
   point.adcsSource = {session_id:pair.session_id,stream:pair.adcs.stream,
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
     epoch_utc:pair.epoch_utc,sequence_gap_before:Boolean(pair.adcs_sequence_gap)};
-  point.adcsBreakBefore = Boolean(pair.adcs_sequence_gap);
+  point.adcsBreakBefore = Boolean(pair.adcs_sequence_gap || pair.orbit_sequence_gap);
   if (state.latestTelemetryPoint === point) renderTelemetryPosition();
   return true;
 }
