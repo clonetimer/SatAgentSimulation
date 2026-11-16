@@ -551,7 +551,10 @@ function renderSensorTelemetry(measurements, sourceLabel, simTimeS, wheelPhases 
     if(finite(speedKey)||finite(torqueKey)) {
       const speed=finite(speedKey)?values[speedKey].toFixed(3)+' rad/s':'转速未提供';
       const torque=finite(torqueKey)?values[torqueKey].toFixed(4)+' N·m':'力矩能力未提供';
-      rows.push(['反作用轮 RW'+(wheel+1),speed+' · '+torque,'—']);
+      const phase=wheelPhases?.[wheel];
+      const phaseLabel=!phase?.valid?'相位不可用'
+        :phase.reason==='relative-rebase'?'相对基准已重置':'相对累计（非绝对相位）';
+      rows.push(['反作用轮 RW'+(wheel+1),speed+' · '+torque,phaseLabel]);
     }
   }
   // values is the typed channel allowlist produced by pointFromTelemetry.
