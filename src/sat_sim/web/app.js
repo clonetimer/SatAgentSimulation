@@ -7516,6 +7516,11 @@
             )),
           })),
           ...(capabilityId === 'whole_spacecraft.unified_native.v1' ? [{
+            stream_id: 'whole.adcs',
+            sample_s: quantum,
+            fields: ADCS_SCENE_FIELDS,
+          }] : []),
+          ...(capabilityId === 'whole_spacecraft.unified_native.v1' ? [{
             // A dedicated atomic spatial-state stream publishes position and
             // body attitude from the same spacecraft recorder, independently
             // of unrelated ADCS/EPS/thermal/communications channels.
@@ -7741,6 +7746,9 @@
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, 'CLIENT_NAVIGATION');
   }
 
+  const ADCS_SCENE_FIELDS = Object.freeze([
+    'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2',
+  ]);
   const ORBIT_SCENE_FIELDS = Object.freeze([
     'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z',
     'attitude.truth.mrp_BN_x', 'attitude.truth.mrp_BN_y', 'attitude.truth.mrp_BN_z',
@@ -7754,6 +7762,30 @@
     return catalog.find(stream => Array.isArray(stream.fields)
       && ORBIT_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
   }
+  function sceneAdcsStream(session) {
+    const catalog = Array.isArray(session?.telemetry_catalog) ? session.telemetry_catalog : [];
+    return catalog.find(stream => Array.isArray(stream.fields)
+      && ADCS_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
+  }
+  function sceneTelemetryJoin(session) {
+    const orbit = sceneOrbitStream(session), adcs = sceneAdcsStream(session);
+    if (!orbit || !adcs || !session?.session_id || !session?.orbit_epoch_utc
+        || session.orbit_frame !== 'N_INERTIAL' || session.orbit_time_system !== 'UTC') return null;
+    const key = JSON.stringify([session.session_id, session.orbit_epoch_utc, orbit.stream_id, adcs.stream_id]);
+    if (state.sceneTelemetryJoinKey !== key) {
+      state.sceneTelemetryJoinKey = key;
+      state.sceneTelemetryJoin = window.SatScene?.createStrictTelemetryTimeJoin?.({
+        sessionId: session.session_id, epochUtc: session.orbit_epoch_utc,
+        frame: session.orbit_frame, timeSystem: session.orbit_time_system,
+        orbitStreamId: orbit.stream_id, adcsStreamId: adcs.stream_id, maxPending: 256,
+      }) || null;
+    }
+    return state.sceneTelemetryJoin ? {join:state.sceneTelemetryJoin,orbit,adcs,meta:{
+      sessionId:session.session_id,epochUtc:session.orbit_epoch_utc,
+      frame:session.orbit_frame,timeSystem:session.orbit_time_system,
+      orbitStreamId:orbit.stream_id,adcsStreamId:adcs.stream_id,
+    }} : null;
+  }
 
   function acceptInteractiveFrame(frame) {
     state.interactiveLastTelemetryReceivedAt ||= {};
@@ -7762,17 +7794,30 @@
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
     if (state.interactiveSession?.capability_id === 'whole_spacecraft.unified_native.v1') {
-      const orbitStream = sceneOrbitStream(state.interactiveSession);
-      // The UI subscribes to multiple streams, each with its own sequence
-      // counter. Only the catalog-declared orbit stream may drive the globe.
-      if (orbitStream?.stream_id === frame.stream) {
-        window.SatScene?.updateTelemetry(frame, {
+      const contract = sceneTelemetryJoin(state.interactiveSession);
+      if (contract?.orbit.stream_id === frame.stream) {
+        const accepted = window.SatScene?.updateTelemetry(frame, {
           epochUtc: state.interactiveSession.orbit_epoch_utc,
           timeSystem: state.interactiveSession.orbit_time_system,
           frame: state.interactiveSession.orbit_frame,
           sourceId: state.interactiveSession.session_id,
-          streamId: orbitStream.stream_id,
-          sourceLabel: '限时/持续实时 Basilisk 会话',
+          streamId: contract.orbit.stream_id,
+          sourceLabel: '真实 Basilisk 轨道 + ADCS 遥测',
+        });
+        if (accepted) {
+          const pair = contract.join.accept('orbit', frame, contract.meta);
+          if (pair) window.SatScene?.updateAdcsTelemetry(pair, {
+            sourceId: state.interactiveSession.session_id, epochUtc: state.interactiveSession.orbit_epoch_utc,
+            timeSystem: state.interactiveSession.orbit_time_system, frame: state.interactiveSession.orbit_frame,
+            orbitStreamId: contract.orbit.stream_id, adcsStreamId: contract.adcs.stream_id,
+          });
+        }
+      } else if (contract?.adcs.stream_id === frame.stream) {
+        const pair = contract.join.accept('adcs', frame, contract.meta);
+        if (pair) window.SatScene?.updateAdcsTelemetry(pair, {
+          sourceId: state.interactiveSession.session_id, epochUtc: state.interactiveSession.orbit_epoch_utc,
+          timeSystem: state.interactiveSession.orbit_time_system, frame: state.interactiveSession.orbit_frame,
+          orbitStreamId: contract.orbit.stream_id, adcsStreamId: contract.adcs.stream_id,
         });
       }
     }
