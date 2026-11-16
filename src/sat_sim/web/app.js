@@ -7764,7 +7764,12 @@
   }
   function sceneAdcsStream(session) {
     const catalog = Array.isArray(session?.telemetry_catalog) ? session.telemetry_catalog : [];
-    return catalog.find(stream => Array.isArray(stream.fields)
+    // Do not select whole.fast merely because it contains the same RW fields.
+    // whole.fast is a mixed subsystem quality domain and can be INVALID due to
+    // unrelated propulsion channels; only whole.adcs is eligible for strict
+    // orbit/ADCS scene association.
+    return catalog.find(stream => stream?.stream_id === 'whole.adcs'
+      && Array.isArray(stream.fields)
       && ADCS_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
   }
   function setSceneAdcsJoinStatus(message) {
