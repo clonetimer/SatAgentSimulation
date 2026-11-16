@@ -102,12 +102,12 @@ test('does not fall back to a mixed-quality stream when dedicated whole.adcs is 
 });
 
 const subscriptionStart = appSource.indexOf('function interactiveSubscriptionStreams(');
-const subscriptionEnd = appSource.indexOf('\\n  function connectInteractiveSocket', subscriptionStart);
+const subscriptionEnd = appSource.indexOf('\n  function connectInteractiveSocket', subscriptionStart);
 assert.ok(subscriptionStart >= 0 && subscriptionEnd > subscriptionStart,
   'scene telemetry subscription helper must exist');
 const subscriptionContext = vm.createContext({});
 vm.runInContext(appSource.slice(subscriptionStart, subscriptionEnd)
-  + '\\nglobalThis.interactiveSubscriptionStreams = interactiveSubscriptionStreams;', subscriptionContext);
+  + '\nglobalThis.interactiveSubscriptionStreams = interactiveSubscriptionStreams;', subscriptionContext);
 const sceneSubscriptionStreams = subscriptionContext.interactiveSubscriptionStreams;
 test('always subscribes dedicated orbit and ADCS streams for whole-spacecraft scene independently of chart selection', () => {
   const session = {capability_id:'whole_spacecraft.unified_native.v1', telemetry_catalog:[
