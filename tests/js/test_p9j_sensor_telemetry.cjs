@@ -37,20 +37,20 @@ test('speed-only telemetry retains provenance and does not invent torque authori
   const h = harness(); h.render({'adcs.rw.speed_rad_s_0': 200});
   assert.match(h.label.textContent, /已封存有限 Run 遥测/);
   assert.match(h.label.textContent, /2\.000 s/);
-  assert.match(h.row('反作用轮 RW1')[1], /200\.000 rad\/s/);
-  assert.match(h.row('反作用轮 RW1')[1], /力矩能力未提供/);
+  assert.match(h.row('反作用轮 RW1')[1], /状态 200\.00/);
+  assert.match(h.row('反作用轮 RW1')[1], /限幅 —/);
   assert.equal(h.row('反作用轮 RW4'), undefined);
 });
 test('torque-authority-only telemetry retains provenance without inventing speed', () => {
   const h = harness(); h.render({'adcs.rw.effective_max_torque_nm_0': 0.25});
   assert.match(h.label.textContent, /已封存有限 Run 遥测/);
-  assert.match(h.row('反作用轮 RW1')[1], /转速未提供/);
-  assert.match(h.row('反作用轮 RW1')[1], /0\.2500 N·m/);
+  assert.match(h.row('反作用轮 RW1')[1], /状态 —/);
+  assert.match(h.row('反作用轮 RW1')[1], /限幅 0\.2500/);
 });
 test('zero wheel speed is observed data rather than missing data', () => {
   const h = harness(); h.render({'adcs.rw.speed_rad_s_0': 0});
   assert.match(h.label.textContent, /已封存有限 Run 遥测/);
-  assert.match(h.row('反作用轮 RW1')[1], /0\.000 rad\/s/);
+  assert.match(h.row('反作用轮 RW1')[1], /状态 0\.00/);
 });
 test('published false validity remains invalid telemetry with its source', () => {
   const h = harness(); h.render({'adcs.star_tracker.valid': false});
