@@ -9,6 +9,9 @@ const WGS84_F = 1 / 298.257223563;
 const WGS84_E2 = WGS84_F * (2 - WGS84_F);
 const INCLINATION = THREE.MathUtils.degToRad(51.6);
 const TELEMETRY_TRAIL_LIMIT = 600;
+const ADCS_SCENE_FIELDS = Object.freeze([
+  'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2',
+]);
 const state = {
   active: false,
   ready: false,
@@ -81,6 +84,10 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
       : (state.telemetrySourceId?.startsWith('run:') ? state.telemetrySourceId : '—'))
     : '—';
   setText('sceneFrameSource', frameSource);
+  const adcsSource = point?.adcsSource;
+  setText('sceneAdcsFrameSource', adcsSource
+    ? `ADCS: ${adcsSource.session_id} / ${adcsSource.stream} · seq ${adcsSource.sequence} · ${adcsSource.sim_time_s.toFixed(3)} s${adcsSource.sequence_gap_before ? ' · 序号缺口' : ''}`
+    : 'ADCS: 等待同一仿真时刻的 GOOD 遥测');
   setText('sceneFrameSequence', hasSource && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
   setText('sceneFrameQuality', hasSource ? (point.quality || (state.telemetrySourceId?.startsWith('run:') ? 'SEALED' : 'UNKNOWN')) : '—');
 }
