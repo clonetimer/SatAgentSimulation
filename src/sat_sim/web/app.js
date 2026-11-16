@@ -7788,11 +7788,15 @@
         orbitStreamId: orbit.stream_id, adcsStreamId: adcs.stream_id, maxPending: 256,
       }) || null;
     }
-    return state.sceneTelemetryJoin ? {join:state.sceneTelemetryJoin,orbit,adcs,meta:{
+    if (!state.sceneTelemetryJoin) {
+      setSceneAdcsJoinStatus('严格时间关联器未初始化');
+      return null;
+    }
+    return {join:state.sceneTelemetryJoin,orbit,adcs,meta:{
       sessionId:session.session_id,epochUtc:session.orbit_epoch_utc,
       frame:session.orbit_frame,timeSystem:session.orbit_time_system,
       orbitStreamId:orbit.stream_id,adcsStreamId:adcs.stream_id,
-    }} : null;
+    }};
   }
 
   function acceptInteractiveFrame(frame) {
