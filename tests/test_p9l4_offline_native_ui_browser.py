@@ -119,9 +119,22 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
             page.wait_for_function(
-                "() => document.querySelector('#wizardNotice')?.textContent.includes('校验通过')",
+                """() => {
+                  const text = document.querySelector('#wizardNotice')?.textContent || '';
+                  return text.length > 0 && !text.includes('正在校验配置');
+                }""",
                 timeout=60000,
             )
+            validation_notice = page.locator("#wizardNotice").inner_text()
+            validation_summary = page.locator("#formValidationSummary").inner_text()
+            report["validation_notice"] = validation_notice
+            report["validation_summary"] = validation_summary
+            assert "校验通过" in validation_notice, {
+                "notice": validation_notice,
+                "summary": validation_summary,
+                "selected_capability": page.locator("#selectedCapabilityName").inner_text(),
+                "duration_s": duration.input_value(),
+            }
             report["task_spec_validated"] = True
 
             with page.expect_request(
