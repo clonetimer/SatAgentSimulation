@@ -844,6 +844,10 @@
       const applyAdcsFrame = frame => {
         if (!state.sceneAdcsStream || frame.sequence <= state.sceneAdcsLastTelemetrySeq) return;
         state.sceneAdcsLastTelemetrySeq = frame.sequence;
+        if (frame.quality !== 'GOOD') {
+          window.SatScene?.invalidateAdcsTelemetry?.('ADCS 数据质量 ' + String(frame.quality || 'UNKNOWN'));
+          return;
+        }
         if (state.sceneTelemetryJoin) {
           applyScenePair(state.sceneTelemetryJoin.accept('adcs', frame, joinMeta));
         }
@@ -856,6 +860,13 @@
           if (selectedStream === state.sceneAdcsStream) applyAdcsFrame(frame);
         }
       });
+      if (sceneTm?.gap) {
+        // A dropped spatial frame breaks the physical-time association chain.
+        window.SatScene?.invalidateAdcsTelemetry?.('轨道遥测序列缺口 ' + sceneTm.gap.dropped_count);
+      }
+      if (sceneAdcsTm?.gap) {
+        window.SatScene?.invalidateAdcsTelemetry?.('ADCS 遥测序列缺口 ' + sceneAdcsTm.gap.dropped_count);
+      }
       if (sceneTm) (sceneTm.frames || []).forEach(applySceneFrame);
       if (sceneAdcsTm) (sceneAdcsTm.frames || []).forEach(applyAdcsFrame);
       if (state.telemetry.length > 280) state.telemetry.splice(0, state.telemetry.length - 280);
