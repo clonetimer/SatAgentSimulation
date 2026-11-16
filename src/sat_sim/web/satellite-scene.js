@@ -68,6 +68,10 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
     source.textContent = sealedRun ? 'Run 历史结果（已封存）' : (hasSource ? (state.telemetrySourceLabel || '真实 Basilisk 遥测') : '演示数据（非仿真结果）');
     source.dataset.state = sealedRun ? 'sealed' : (hasSource ? 'live' : 'demo');
   }
+  setText('sceneTaskContextState', sealedRun ? '历史 Run · 已封存' : (hasSource ? '实时仿真 · 已关联' : '未关联仿真任务'));
+  setText('sceneTaskContextId', hasSource ? (sealedRun ? state.telemetrySourceId.slice(4) : state.telemetrySourceId) : '—');
+  setText('sceneTaskContextTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
+  setText('sceneTaskContextQuality', hasSource ? (point.quality || (sealedRun ? 'SEALED' : 'UNKNOWN')) : '—');
   setText('sceneSimTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
   setText('sceneAltitude', hasSource ? `${point.altitude_km.toFixed(2)} km` : '—');
   setText('sceneGeographicPosition', hasSource ? `${point.lat.toFixed(3)}°, ${point.lng.toFixed(3)}°` : '—');
