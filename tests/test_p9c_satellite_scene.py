@@ -392,8 +392,29 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     playwright.expect(dialog.locator('[data-scene-create="offline"]')).to_contain_text("离线仿真任务")
                     playwright.expect(dialog.locator('[data-scene-create="interactive"]')).to_contain_text("限时实时仿真")
                     playwright.expect(dialog.locator('[data-scene-create="continuous"]')).to_contain_text("持续实时仿真")
-                    page.keyboard.press("Escape")
+
+                    # The guided dialog must keep keyboard focus inside and restore
+                    # the invoking control when dismissed.
+                    offline_option = dialog.locator('[data-scene-create="offline"]')
+                    continuous_option = dialog.locator('[data-scene-create="continuous"]')
+                    playwright.expect(offline_option).to_be_focused()
+                    page.keyboard.press("Shift+Tab")
+                    playwright.expect(continuous_option).to_be_focused()
+                    page.keyboard.press("Tab")
+                    playwright.expect(offline_option).to_be_focused()
+                    dialog.locator("[data-scene-dialog-close]").click()
                     playwright.expect(dialog).to_be_hidden()
+                    playwright.expect(page.locator("#sceneCreateTaskBtn")).to_be_focused()
+
+                    # This test client deliberately has no real-time service.
+                    # Both real-time choices must fail with actionable feedback,
+                    # rather than navigating into a dead workspace or starting a session.
+                    for mode in ("interactive", "continuous"):
+                        page.locator("#sceneCreateTaskBtn").click()
+                        dialog.locator(f'[data-scene-create="{mode}"]').click()
+                        playwright.expect(dialog).to_be_hidden()
+                        playwright.expect(page.locator("#notice")).to_contain_text("实时仿真服务当前不可用")
+
                     page.locator("#sceneCreateTaskBtn").click()
                     dialog.locator('[data-scene-create="offline"]').click()
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "wizard")
