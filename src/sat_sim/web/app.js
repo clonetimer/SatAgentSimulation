@@ -11584,6 +11584,14 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveCommandOperation').addEventListener('change', renderInteractiveCommandForm);
     el('interactiveSendCommandBtn').addEventListener('click', () => sendInteractiveCommand().catch(error => interactiveNotice(error.message, 'error')));
     $all('.nav-button[data-view]').forEach((button) => button.addEventListener('click', () => navigateToView(button.dataset.view)));
+    $all('.scene-workspace-link[data-view]').forEach((button) => button.addEventListener('click', () => {
+      if (button.dataset.view === 'wizard' && button.dataset.wizardShortcut) {
+        navigateToView('wizard');
+        navigateToWizardShortcut(button.dataset.wizardShortcut);
+      } else {
+        navigateToView(button.dataset.view);
+      }
+    }));
     $all('[data-return-wizard]').forEach((button) => button.addEventListener('click', () => {
       navigateToView('wizard');
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
