@@ -845,7 +845,11 @@
           lifecycleState: info.session?.state,
         });
         if (accepted && state.sceneTelemetryJoin) {
-          applyScenePair(state.sceneTelemetryJoin.accept('orbit', frame, joinMeta));
+          const pair = state.sceneTelemetryJoin.accept('orbit', frame, joinMeta);
+          if (pair) applyScenePair(pair);
+          else window.SatScene?.setAdcsTelemetryPending?.(
+            `等待精确配对 · orbit seq ${frame.sequence} · pending ${state.sceneTelemetryJoin.pendingCount()}`
+          );
         }
       };
       const applyAdcsFrame = frame => {
