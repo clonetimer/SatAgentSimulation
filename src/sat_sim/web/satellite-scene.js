@@ -623,7 +623,7 @@ function setRunTelemetry(rows, options = {}) {
   // streams, its row itself is the atomic same-time evidence record.
   valid.forEach((point, index) => {
     const speedKeys = ADCS_SCENE_FIELDS;
-    if (speedKeys.every(key => typeof point.sensorMeasurements?.[key] === 'number'
+    if (speedKeys.some(key => typeof point.sensorMeasurements?.[key] === 'number'
         && Number.isFinite(point.sensorMeasurements[key]))) {
       point.adcsSource = {session_id:sourceId,stream:'sealed.run.telemetry',
         sequence:index,sim_time_s:point.sim_time_s,quality:'GOOD',epoch_utc:options.epochUtc,
