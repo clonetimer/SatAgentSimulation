@@ -24,7 +24,53 @@ async function parseGlb(buffer){
   if(!gltf.scene)throw Error('GLB 中没有可显示的默认场景');
   return gltf;
 }
-function focusNode(n){const b=new THREE.Box3().setFromObject(n),s=b.getSize(new THREE.Vector3());target.copy(b.getCenter(new THREE.Vector3()));radius=Math.max(s.x,s.y,s.z,.001)*2.8;cam();}function select(n,focus=false){selectedNode=n;if(selectionHelper){scene.remove(selectionHelper);selectionHelper.geometry.dispose();selectionHelper.material.dispose();}const b=new THREE.Box3().setFromObject(n),s=b.getSize(new THREE.Vector3());selectionHelper=new THREE.Box3Helper(b,0x55c7ff);scene.add(selectionHelper);tree.querySelectorAll('.birds-cad-tree-node').forEach(x=>x.classList.toggle('is-selected',Number(x.dataset.nodeIndex)===n.userData.cadTreeIndex));if(focus)focusNode(n);requestRender();info.textContent=(n.name||n.type)+' · '+s.x.toFixed(4)+' × '+s.y.toFixed(4)+' × '+s.z.toFixed(4)+' m';say('已选择 '+(n.name||n.type)+'。BIRDS-4 CAD 参考模型，不代表当前 Basilisk 仿真卫星实装配置。');}function makeThreeTree(modelRoot,query=''){
+function focusNode(n){const b=new THREE.Box3().setFromObject(n),s=b.getSize(new THREE.Vector3());target.copy(b.getCenter(new THREE.Vector3()));radius=Math.max(s.x,s.y,s.z,.001)*2.8;cam();}
+function inspectorLine(label,value){const row=document.createElement('div');row.className='birds-cad-inspector-line';const name=document.createElement('span');name.textContent=label;const text=document.createElement('strong');text.textContent=value;row.append(name,text);return row;}
+function vectorText(v,digits=4){return [v.x,v.y,v.z].map(value=>Number(value).toFixed(digits)).join(', ');}
+function quaternionText(q){return [q.w,q.x,q.y,q.z].map(value=>Number(value).toFixed(5)).join(', ');}
+function renderNodeInspector(n,bounds,size){
+  n.updateWorldMatrix(true,false);
+  const worldPosition=n.getWorldPosition(new THREE.Vector3());
+  const worldQuaternion=n.getWorldQuaternion(new THREE.Quaternion());
+  const worldScale=n.getWorldScale(new THREE.Vector3());
+  const localPosition=n.position,localQuaternion=n.quaternion,localScale=n.scale;
+  const ancestry=[];let current=n;
+  while(current){ancestry.unshift(current.name||current.type);current=current.parent;}
+  let meshCount=0;n.traverse(child=>{if(child.isMesh)meshCount+=1;});
+  info.replaceChildren();
+  const title=document.createElement('strong');title.className='birds-cad-inspector-name';title.textContent=n.name||n.type;info.append(title);
+  const provenance=document.createElement('p');provenance.className='birds-cad-inspector-note';
+  provenance.textContent='参考 CAD 装配坐标；尚未审定为航天器 B 系安装锚点或 as-built 实例。';
+  info.append(provenance);
+  const path=document.createElement('div');path.className='birds-cad-inspector-section';
+  const pathTitle=document.createElement('strong');pathTitle.textContent='装配层级路径';path.append(pathTitle);
+  const pathValue=document.createElement('p');pathValue.textContent=ancestry.join(' / ');path.append(pathValue);info.append(path);
+  const dimensions=document.createElement('div');dimensions.className='birds-cad-inspector-section';
+  const dimensionsTitle=document.createElement('strong');dimensionsTitle.textContent='几何范围（GLB 根坐标系，m）';dimensions.append(dimensionsTitle);
+  dimensions.append(inspectorLine('包围盒 XYZ',vectorText(size)));
+  dimensions.append(inspectorLine('网格数量',String(meshCount)));
+  info.append(dimensions);
+  const local=document.createElement('div');local.className='birds-cad-inspector-section';
+  const localTitle=document.createElement('strong');localTitle.textContent='局部变换（父节点坐标）';local.append(localTitle);
+  local.append(inspectorLine('位置 · GLB 层级单位',vectorText(localPosition)));
+  local.append(inspectorLine('四元数 · w,x,y,z',quaternionText(localQuaternion)));
+  local.append(inspectorLine('缩放',vectorText(localScale,5)));info.append(local);
+  const world=document.createElement('div');world.className='birds-cad-inspector-section';
+  const worldTitle=document.createElement('strong');worldTitle.textContent='参考装配根坐标变换';world.append(worldTitle);
+  world.append(inspectorLine('位置 · m',vectorText(worldPosition)));
+  world.append(inspectorLine('四元数 · w,x,y,z',quaternionText(worldQuaternion)));
+  world.append(inspectorLine('缩放',vectorText(worldScale,5)));info.append(world);
+}
+function select(n,focus=false){
+  selectedNode=n;
+  if(selectionHelper){scene.remove(selectionHelper);selectionHelper.geometry.dispose();selectionHelper.material.dispose();}
+  const b=new THREE.Box3().setFromObject(n),s=b.getSize(new THREE.Vector3());
+  selectionHelper=new THREE.Box3Helper(b,0x55c7ff);scene.add(selectionHelper);
+  tree.querySelectorAll('.birds-cad-tree-node').forEach(x=>x.classList.toggle('is-selected',Number(x.dataset.nodeIndex)===n.userData.cadTreeIndex));
+  if(focus)focusNode(n);
+  renderNodeInspector(n,b,s);requestRender();
+  say('已选择 '+(n.name||n.type)+'。坐标属于 BIRDS-4 CAD 参考装配，不代表当前 Basilisk 仿真卫星实装配置。');
+}function makeThreeTree(modelRoot,query=''){
   tree.replaceChildren();
   allNodes=[];
   let nodeIndex=0;
