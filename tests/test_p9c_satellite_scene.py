@@ -85,7 +85,7 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "pathsData" in scene
     assert "不代表真实 Basilisk 仿真遥测" in scene
     assert "window.SatScene = {" in scene
-    assert "updateTelemetry, updateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource" in scene
+    assert "updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource" in scene
     assert "setInterval" not in scene
     assert "unsafe-eval" not in scene
 
@@ -110,7 +110,8 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "function advanceWheelPhaseState(" in scene
     assert "function integrateWheelPhaseFromTelemetry(index, simTimeS, wheelPhases" in scene
     assert "wheelPhases" in scene
-    assert "phaseState.valid" in scene
+    assert "phase?.valid" in scene
+    assert "相对累计（非绝对相位）" in scene
     assert 'id="simulationGeometryCanvas"' in html
     assert 'id="simulationGeometryRows"' in html
     assert 'id="simulationSensorRows"' in html
