@@ -232,12 +232,31 @@ def create_interactive_router(
                 "adcs.rw.effective_max_torque_nm_3",
             ])
         adcs_telemetry_fields = [
-            "adcs.rw.speed_rad_s_0",
-            "adcs.rw.speed_rad_s_1",
-            "adcs.rw.speed_rad_s_2",
+            # Reaction-wheel state, measured speed and control authority.
+            *[f"adcs.rw.speed_rad_s_{i}" for i in range(3)],
+            *[f"adcs.rw.measured_speed_rad_s_{i}" for i in range(3)],
+            *[f"adcs.rw.command_torque_nm_{i}" for i in range(3)],
+            *[f"adcs.control.applied_torque_nm_{i}" for i in range(3)],
+            *[f"adcs.rw.effective_max_torque_nm_{i}" for i in range(3)],
+            # Native IMU measurements (not configured bias/noise parameters).
+            *[f"adcs.sensor.gyro_measured_rad_s_{axis}" for axis in "xyz"],
+            *[f"adcs.sensor.accel_measured_m_s2_{axis}" for axis in "xyz"],
+            # Native star-tracker, magnetometer and coarse-sun-sensor outputs.
+            *[f"adcs.star_tracker.q{i}" for i in range(4)],
+            "adcs.star_tracker.valid",
+            *[f"adcs.magnetometer.tesla_{axis}" for axis in "xyz"],
+            "adcs.sun_sensor.cosine_output",
+            *[f"adcs.sun_sensor.direction_b_{axis}" for axis in "xyz"],
+            "adcs.sun_sensor.valid",
         ]
         if native_values.get("rw_configuration") == "pyramid_4":
-            adcs_telemetry_fields.append("adcs.rw.speed_rad_s_3")
+            adcs_telemetry_fields.extend([
+                "adcs.rw.speed_rad_s_3",
+                "adcs.rw.measured_speed_rad_s_3",
+                "adcs.rw.command_torque_nm_3",
+                "adcs.control.applied_torque_nm_3",
+                "adcs.rw.effective_max_torque_nm_3",
+            ])
         spec = InteractiveSessionSpec(
             session_id=body.session_id,
             capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
