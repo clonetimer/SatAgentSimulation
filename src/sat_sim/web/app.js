@@ -11552,9 +11552,28 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
       renderSimulationWizard();
     }));
+    let sceneTaskCreateInvoker = null;
+    const sceneTaskModal = el('sceneTaskCreateModal');
+    const closeSceneTaskModal = () => {
+      sceneTaskModal?.classList.add('hidden');
+      if (sceneTaskCreateInvoker?.isConnected) sceneTaskCreateInvoker.focus();
+    };
+    el('sceneCreateTaskBtn')?.addEventListener('click', () => {
+      sceneTaskCreateInvoker = document.activeElement;
+      sceneTaskModal?.classList.remove('hidden');
+      sceneTaskModal?.querySelector('[data-scene-create]')?.focus();
+    });
+    $all('[data-scene-dialog-close]').forEach(button => button.addEventListener('click', closeSceneTaskModal));
+    sceneTaskModal?.addEventListener('click', event => {
+      if (event.target === sceneTaskModal) closeSceneTaskModal();
+    });
+    document.addEventListener('keydown', event => {
+      if (sceneTaskModal?.classList.contains('hidden')) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeSceneTaskModal(); }
+    });
     $all('[data-scene-create]').forEach((button) => button.addEventListener('click', () => {
       const kind = button.dataset.sceneCreate;
-      button.closest('details')?.removeAttribute('open');
+      closeSceneTaskModal();
       if (kind === 'offline') {
         switchView('wizard');
         if (state.activeView === 'wizard') {
