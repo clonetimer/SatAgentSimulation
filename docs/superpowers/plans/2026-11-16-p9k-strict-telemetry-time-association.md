@@ -78,3 +78,8 @@ The first real-browser P9-K attempt failed even though both WebSocket streams we
 Correction: `sceneAdcsStream()` now requires the exact stream ID `whole.adcs` in addition to the required ADCS fields; it does not fall back to a mixed stream even if that stream contains a superset of the same fields. Added Node contract tests for both cases: prefer exact `whole.adcs` when `whole.fast` appears first, and return no ADCS stream if the dedicated stream is absent. This preserves the quality-domain boundary instead of weakening GOOD-quality checks.
 
 Commit `817809304dbe18dceb36e886eb30f02a3c2fef64` adds the failing selector contract tests; `210978d1086e804fe000c0cb75eb62584f0f5657` applies the minimal selector fix. Full P9-F native-browser rerun is the acceptance gate.
+
+
+### Successful-pair observability
+
+On a successful exact-time pair, the scene inspector now replaces the pending status with the dedicated ADCS stream ID, GOOD quality, exact simulation time, ADCS sequence, and a sequence-gap indicator when applicable. This makes the successful association visible to operators and gives the native-browser acceptance a user-visible assertion; it does not change acceptance rules.
