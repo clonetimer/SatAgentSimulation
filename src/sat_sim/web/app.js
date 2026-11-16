@@ -7831,6 +7831,7 @@
       && ADCS_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
   }
   function setSceneAdcsJoinStatus(message) {
+    window.SatScene?.setAdcsTelemetryPending?.(message);
     const node = document.getElementById('sceneAdcsFrameSource');
     if (node) node.textContent = 'ADCS: ' + message;
   }
