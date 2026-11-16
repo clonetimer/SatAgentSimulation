@@ -71,3 +71,21 @@ Do not count fixture-backed journeys as physics evidence. Do not mark a mode PAS
 - [ ] Failure diagnostics cannot throw and mask the primary failure.
 - [ ] Product UI -> API -> execution engine -> persisted evidence -> scene replay is verified end to end where claimed.
 - [ ] Fixture, preflight, native physics and visual evidence are explicitly distinguished.
+
+## Case 5 — Cross-field physical constraints must be represented in browser scenarios
+
+### Symptom
+The true UI-created offline Run journey reached the authoritative TaskSpec validator, which rejected the submitted form because the output sampling interval exceeded the total simulation duration.
+
+### Root cause
+The test shortened `simulation.duration_s` to 2 seconds to keep the native run fast, but retained the model's default `simulation.sample_s`. The UI correctly preserved the model default; the backend correctly enforced the cross-field constraint. This was a test-fixture design error, not a backend defect.
+
+### Corrective rule
+When a browser scenario overrides a parameter that participates in cross-field constraints:
+1. Identify the complete constraint set from the authoritative schema/validator.
+2. Set all dependent values through the visible product controls.
+3. Assert the relationship before submitting, e.g. `sample_s <= duration_s`.
+4. Record all submitted values in the run evidence.
+5. Keep the authoritative backend validation enabled; never weaken a physical/configuration guard to accommodate a test shortcut.
+
+This case generalizes to duration/sample cadence, event start/end bounds, actuator count/vector lengths, and resource/geometry parameter dependencies.
