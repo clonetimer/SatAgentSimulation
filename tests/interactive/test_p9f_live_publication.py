@@ -167,9 +167,18 @@ def test_default_continuous_adcs_stream_is_independent_and_time_aligned(native_c
     assert catalog["whole.orbit"]["sample_s"] == catalog["whole.adcs"]["sample_s"] == 0.2
     assert set(POSITION_FIELDS) <= set(catalog["whole.orbit"]["fields"])
     assert set(ATTITUDE_FIELDS) <= set(catalog["whole.orbit"]["fields"])
-    adcs_fields = {f"adcs.rw.speed_rad_s_{index}" for index in range(3)}
-    assert set(catalog["whole.adcs"]["fields"]) == adcs_fields
-    assert not (adcs_fields & set(catalog["whole.orbit"]["fields"]))
+    wheel_fields = {f"adcs.rw.speed_rad_s_{index}" for index in range(3)}
+    native_sensor_fields = {
+        *[f"adcs.sensor.gyro_measured_rad_s_{axis}" for axis in "xyz"],
+        *[f"adcs.sensor.accel_measured_m_s2_{axis}" for axis in "xyz"],
+        *[f"adcs.star_tracker.q{index}" for index in range(4)],
+        "adcs.star_tracker.valid",
+        *[f"adcs.magnetometer.tesla_{axis}" for axis in "xyz"],
+        "adcs.sun_sensor.cosine_output", "adcs.sun_sensor.valid",
+        *[f"adcs.sun_sensor.direction_b_{axis}" for axis in "xyz"],
+    }
+    assert wheel_fields | native_sensor_fields <= set(catalog["whole.adcs"]["fields"])
+    assert not ((wheel_fields | native_sensor_fields) & set(catalog["whole.orbit"]["fields"]))
     started = native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "start"})
     assert started.status_code == 200, started.text
     try:
@@ -182,8 +191,12 @@ def test_default_continuous_adcs_stream_is_independent_and_time_aligned(native_c
         for orbit_frame, adcs_frame in pairs:
             assert orbit_frame["session_id"] == adcs_frame["session_id"] == session_id
             assert orbit_frame["sim_time_s"] == adcs_frame["sim_time_s"]
-            assert set(adcs_fields) <= set(adcs_frame["values"])
-            assert all(math.isfinite(adcs_frame["values"][field]) for field in adcs_fields)
+            assert wheel_fields | native_sensor_fields <= set(adcs_frame["values"])
+            assert all(math.isfinite(adcs_frame["values"][field])
+                       for field in wheel_fields | native_sensor_fields
+                       if field != "adcs.star_tracker.valid")
+            assert adcs_frame["values"]["adcs.star_tracker.valid"] in (0, 1)
+            assert adcs_frame["values"]["adcs.sun_sensor.valid"] in (0, 1)
     finally:
         native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "stop"})
 
@@ -202,11 +215,11 @@ def test_four_wheel_continuous_session_declares_fourth_speed_in_dedicated_adcs_s
     try:
         detail = native_client.get(f"/interactive/sessions/{session_id}").json()
         adcs = next(row for row in detail["telemetry_catalog"] if row["stream_id"] == "whole.adcs")
-        assert set(adcs["fields"]) == {
-            "adcs.rw.speed_rad_s_0",
-            "adcs.rw.speed_rad_s_1",
-            "adcs.rw.speed_rad_s_2",
-            "adcs.rw.speed_rad_s_3",
-        }
+        assert {
+            "adcs.rw.speed_rad_s_0", "adcs.rw.speed_rad_s_1",
+            "adcs.rw.speed_rad_s_2", "adcs.rw.speed_rad_s_3",
+            "adcs.rw.measured_speed_rad_s_3",
+            "adcs.control.applied_torque_nm_3",
+        } <= set(adcs["fields"])
     finally:
         native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "stop"})
