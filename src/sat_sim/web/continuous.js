@@ -826,6 +826,11 @@
           orbitStreamId: sceneStream, adcsStreamId: state.sceneAdcsStream,
         });
       };
+      window.SatScene?.setTelemetrySessionContext?.({
+        sourceId: selectedId,
+        capabilityId: info.session?.capability_id,
+        lifecycleState: info.session?.state,
+      });
       const applySceneFrame = frame => {
         if (!sceneStream || frame.sequence <= state.sceneLastTelemetrySeq) return;
         state.sceneLastTelemetrySeq = frame.sequence;
@@ -836,6 +841,8 @@
           sourceId: selectedId,
           streamId: sceneStream,
           sourceLabel: '持续原生 Basilisk 会话',
+          capabilityId: info.session?.capability_id,
+          lifecycleState: info.session?.state,
         });
         if (accepted && state.sceneTelemetryJoin) {
           applyScenePair(state.sceneTelemetryJoin.accept('orbit', frame, joinMeta));
