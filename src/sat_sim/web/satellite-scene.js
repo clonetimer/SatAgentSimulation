@@ -593,14 +593,22 @@ function renderSensorTelemetry(measurements, sourceLabel, simTimeS, wheelPhases 
   ];
   for(let wheel=0;wheel<4;wheel+=1) {
     const speedKey='adcs.rw.speed_rad_s_'+wheel;
-    const torqueKey='adcs.rw.effective_max_torque_nm_'+wheel;
-    if(finite(speedKey)||finite(torqueKey)) {
-      const speed=finite(speedKey)?values[speedKey].toFixed(3)+' rad/s':'转速未提供';
-      const torque=finite(torqueKey)?values[torqueKey].toFixed(4)+' N·m':'力矩能力未提供';
+    const measuredKey='adcs.rw.measured_speed_rad_s_'+wheel;
+    const commandKey='adcs.rw.command_torque_nm_'+wheel;
+    const appliedKey='adcs.control.applied_torque_nm_'+wheel;
+    const limitKey='adcs.rw.effective_max_torque_nm_'+wheel;
+    if([speedKey,measuredKey,commandKey,appliedKey,limitKey].some(finite)) {
+      const speed=finite(speedKey)?'状态 '+values[speedKey].toFixed(2):'状态 —';
+      const measured=finite(measuredKey)?'测量 '+values[measuredKey].toFixed(2):'测量 —';
+      const command=finite(commandKey)?'指令 '+values[commandKey].toFixed(4):'指令 —';
+      const applied=finite(appliedKey)?'实际 '+values[appliedKey].toFixed(4):'实际 —';
+      const limit=finite(limitKey)?'限幅 '+values[limitKey].toFixed(4):'限幅 —';
       const phase=wheelPhases?.[wheel];
       const phaseLabel=!phase?.valid?'相位不可用'
         :phase.reason==='relative-rebase'?'相对基准已重置':'相对累计（非绝对相位）';
-      rows.push(['反作用轮 RW'+(wheel+1),speed+' · '+torque,phaseLabel]);
+      rows.push(['反作用轮 RW'+(wheel+1),
+        speed+' / '+measured+' rad/s · '+command+' / '+applied+' / '+limit+' N·m',
+        phaseLabel]);
     }
   }
   // values is the typed channel allowlist produced by pointFromTelemetry.
