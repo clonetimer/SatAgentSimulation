@@ -74,3 +74,19 @@ test('replacing a complete sample with a partial sample clears stale fields', ()
   assert.match(h.row('反作用轮 RW1')[1], /力矩能力未提供/);
   assert.doesNotMatch(h.row('反作用轮 RW1')[1], /0\.2500/);
 });
+
+test('wheel phase provenance distinguishes relative origin from unavailable phase', () => {
+  const h = harness();
+  h.render({'adcs.rw.speed_rad_s_0': 100}, {
+    0:{valid:true,reason:'relative-rebase',phaseRad:0},
+  });
+  assert.equal(h.row('反作用轮 RW1')[2], '相对基准已重置');
+  h.render({'adcs.rw.speed_rad_s_0': 100}, {
+    0:{valid:true,reason:null,phaseRad:100},
+  });
+  assert.equal(h.row('反作用轮 RW1')[2], '相对累计（非绝对相位）');
+  h.render({'adcs.rw.speed_rad_s_0': 100}, {
+    0:{valid:false,reason:'missing-or-invalid-sample',phaseRad:null},
+  });
+  assert.equal(h.row('反作用轮 RW1')[2], '相位不可用');
+});
