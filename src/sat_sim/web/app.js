@@ -11569,7 +11569,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
         navigateToView(target);
         if (state.activeView === target) {
           const label = kind === 'interactive' ? '限时交互式实时仿真' : '持续实时仿真';
-          interactiveNotice('已进入' + label + '创建工作区。请检查运行参数并显式创建会话；不会自动启动仿真。');
+          showNotice('已进入' + label + '创建工作区。请检查运行参数并显式创建会话；不会自动启动仿真。', 'success');
         }
       }
     }));
