@@ -43,6 +43,19 @@ test('rejects wrong session, epoch, reference frame and time system', () => {
   }
   assert.equal(join.pendingCount(),0);
 });
+test('reports sequence gaps independently for both streams', () => {
+  const join=createJoin(meta);
+  join.accept('orbit',frame('whole.orbit',0,1),meta);
+  join.accept('adcs',frame('whole.adcs',0,1),meta);
+  join.accept('orbit',frame('whole.orbit',2,3),meta);
+  const pair=join.accept('adcs',frame('whole.adcs',1,3),meta);
+  assert.equal(pair.orbit_sequence_gap,true);
+  assert.equal(pair.adcs_sequence_gap,false);
+  join.accept('orbit',frame('whole.orbit',3,4),meta);
+  const next=join.accept('adcs',frame('whole.adcs',3,4),meta);
+  assert.equal(next.orbit_sequence_gap,false);
+  assert.equal(next.adcs_sequence_gap,true);
+});
 test('rejects non-GOOD quality, duplicate sequence and out-of-order frames', () => {
   const join=createJoin(meta);
   assert.equal(join.accept('whole.orbit',frame('whole.orbit',0,1,'INVALID'),meta),null);
