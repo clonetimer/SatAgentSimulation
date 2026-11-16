@@ -34,6 +34,7 @@ const state = {
   latestTelemetryPoint: null,
   telemetrySampled: false,
   telemetryTotalRows: null,
+  wheelPhaseStates: Object.create(null),
   selectedObject: null,
   simulationGeometry: null,
   simulationGeometryRenderer: null,
@@ -350,6 +351,27 @@ function createStrictTelemetryTimeJoin(options = {}) {
     }};
 }
 
+function advanceWheelPhaseState(previous, sample) {
+  const time = Number(sample?.simTimeS);
+  const speed = sample?.speed;
+  const sourceKey = String(sample?.sourceKey || '');
+  if (!sourceKey || !Number.isFinite(time) || time < 0
+      || typeof speed !== 'number' || !Number.isFinite(speed)) {
+    return {valid:false, sourceKey, simTimeS:Number.isFinite(time) ? time : null,
+      speed:null, phaseRad:null, reason:'missing-or-invalid-sample', relativeOrigin:true};
+  }
+  const compatible = Boolean(previous?.valid && previous.sourceKey === sourceKey
+    && Number.isFinite(previous.simTimeS) && Number.isFinite(previous.speed)
+    && Number.isFinite(previous.phaseRad));
+  const dt = compatible ? time - previous.simTimeS : 0;
+  const discontinuity = Boolean(sample.discontinuity || !compatible || !(dt > 0));
+  const phaseRad = discontinuity
+    ? 0
+    : previous.phaseRad + 0.5 * (previous.speed + speed) * dt;
+  return {valid:true, sourceKey, simTimeS:time, speed, phaseRad,
+    reason:discontinuity ? 'relative-rebase' : null, relativeOrigin:true};
+}
+
 function updateAdcsTelemetry(pair, options = {}) {
   const reject = reason => {
     setText('sceneAdcsFrameSource', 'ADCS: 未关联 · ' + reason);
@@ -380,6 +402,17 @@ function updateAdcsTelemetry(pair, options = {}) {
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
     epoch_utc:pair.epoch_utc,sequence_gap_before:Boolean(pair.adcs_sequence_gap)};
   point.adcsBreakBefore = Boolean(pair.adcs_sequence_gap || pair.orbit_sequence_gap);
+  const sourceKey = [pair.session_id, pair.epoch_utc, pair.adcs.stream].join('|');
+  point.wheelPhases = {};
+  for (let index = 0; index < 4; index += 1) {
+    const speed = pair.adcs.values?.['adcs.rw.speed_rad_s_' + index];
+    const next = advanceWheelPhaseState(state.wheelPhaseStates[index], {
+      sourceKey, simTimeS:pair.sim_time_s, speed,
+      discontinuity:Boolean(point.breakBefore || point.adcsBreakBefore),
+    });
+    state.wheelPhaseStates[index] = next;
+    point.wheelPhases[index] = next;
+  }
   setText('sceneAdcsFrameSource',
     `ADCS: ${pair.adcs.stream} · GOOD · t=${pair.sim_time_s.toFixed(3)} s · seq=${pair.adcs.sequence}${point.adcsBreakBefore ? ' · 序号存在间隙' : ''}`);
   if (state.latestTelemetryPoint === point) renderTelemetryPosition();
@@ -457,32 +490,19 @@ function telemetryPath() {
   }));
 }
 
-function integrateWheelPhaseFromTelemetry(index, simTimeS) {
+function integrateWheelPhaseFromTelemetry(index, simTimeS, wheelPhases = state.latestTelemetryPoint?.wheelPhases) {
   const targetTime = Number(simTimeS);
   if (!Number.isFinite(targetTime) || targetTime < 0) return null;
-  const samples = state.telemetryTrail || [];
-  let phase = 0;
-  let previous = null;
-  for (const sample of samples) {
-    const time = Number(sample.sim_time_s);
-    if (!Number.isFinite(time) || time < 0 || time > targetTime) continue;
-    if (!sample.adcsSource || sample.adcsSource.quality !== 'GOOD'
-        || sample.adcsSource.sim_time_s !== time || sample.adcsBreakBefore) previous = null;
-    const speed = sample.adcsSource?.quality === 'GOOD' && sample.adcsSource.sim_time_s === time
-      ? sample.sensorMeasurements?.['adcs.rw.speed_rad_s_' + index] : null;
-    const current = typeof speed === 'number' && Number.isFinite(speed) ? speed : null;
-    if (previous && current !== null && time > previous.time) {
-      phase += 0.5 * (previous.speed + current) * (time - previous.time);
-    }
-    previous = current === null ? null : {time, speed: current};
-  }
-  return THREE.MathUtils.euclideanModulo(phase, 2 * Math.PI);
+  const phaseState = wheelPhases?.[index];
+  if (!phaseState?.valid || phaseState.simTimeS !== targetTime
+      || !Number.isFinite(phaseState.phaseRad)) return null;
+  return THREE.MathUtils.euclideanModulo(phaseState.phaseRad, 2 * Math.PI);
 }
-function updateSimulationWheelMotion(measurements, simTimeS) {
+function updateSimulationWheelMotion(measurements, simTimeS, wheelPhases) {
   if (!state.simulationWheelMeshes.length) return;
   let updated = false;
   state.simulationWheelMeshes.forEach(({mesh, alignment, index}) => {
-    const phase = integrateWheelPhaseFromTelemetry(index, simTimeS);
+    const phase = integrateWheelPhaseFromTelemetry(index, simTimeS, wheelPhases);
     if (phase === null) return;
     mesh.quaternion.copy(alignment).multiply(
       new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), phase)
@@ -491,13 +511,13 @@ function updateSimulationWheelMotion(measurements, simTimeS) {
   });
   if (updated) renderSimulationGeometry();
 }
-function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
+function renderSensorTelemetry(measurements, sourceLabel, simTimeS, wheelPhases = null) {
   const host=byId('simulationSensorTelemetryRows');
   const source=byId('simulationSensorTelemetrySource');
   if(!host||!source)return;
   host.replaceChildren();
   const values=measurements&&typeof measurements==='object'?measurements:{};
-  updateSimulationWheelMotion(values, simTimeS);
+  updateSimulationWheelMotion(values, simTimeS, wheelPhases);
   const finite=key=>typeof values[key]==='number'&&Number.isFinite(values[key]);
   const valid=key=>{
     const value=values[key];
@@ -541,7 +561,8 @@ function renderSensorTelemetry(measurements, sourceLabel, simTimeS) {
 function renderTelemetryPosition() {
   if (!state.globe || !state.satellite || !state.latestTelemetryPoint) return;
   Object.assign(state.satellite, state.latestTelemetryPoint);
-  renderSensorTelemetry(state.latestTelemetryPoint.sensorMeasurements,state.telemetrySourceLabel,state.latestTelemetryPoint.sim_time_s);
+  renderSensorTelemetry(state.latestTelemetryPoint.sensorMeasurements,state.telemetrySourceLabel,
+    state.latestTelemetryPoint.sim_time_s,state.latestTelemetryPoint.wheelPhases);
   state.globe.objectsData([state.satellite]);
   state.globe.pathsData(telemetryPath());
   renderTelemetryInspector(state.latestTelemetryPoint);
@@ -581,6 +602,7 @@ function updateTelemetry(frame, options = {}) {
   if (sourceChanged) {
     state.telemetrySourceId = sourceId;
     state.telemetryStreamId = streamId;
+    state.wheelPhaseStates = Object.create(null);
     state.telemetryTrail = [];
     state.latestTelemetryPoint = null;
   }
@@ -613,6 +635,7 @@ function setRunTelemetry(rows, options = {}) {
   state.telemetryStreamId = null;
   state.telemetrySourceLabel = '已封存有限 Run 遥测';
   state.telemetryEpochUtc = options.epochUtc;
+  state.wheelPhaseStates = Object.create(null);
   const valid = (Array.isArray(rows) ? rows : [])
     .map(row => pointFromTelemetry(row, options.epochUtc))
     .filter(Boolean)
@@ -631,6 +654,25 @@ function setRunTelemetry(rows, options = {}) {
         sequence:index,sim_time_s:point.sim_time_s,quality:'GOOD',epoch_utc:options.epochUtc,
         sequence_gap_before:false};
     }
+  });
+  const runPhaseStates = Object.create(null);
+  let previousRunSequence = null;
+  valid.forEach(point => {
+    point.wheelPhases = {};
+    const sequenceGap = Number.isSafeInteger(point.sequence) && Number.isSafeInteger(previousRunSequence)
+      && point.sequence > previousRunSequence + 1;
+    for (let index = 0; index < 4; index += 1) {
+      const speed = options.sampled
+        ? null : point.sensorMeasurements?.['adcs.rw.speed_rad_s_' + index];
+      const next = advanceWheelPhaseState(runPhaseStates[index], {
+        sourceKey:[sourceId,options.epochUtc,'sealed.run.telemetry'].join('|'),
+        simTimeS:point.sim_time_s, speed,
+        discontinuity:Boolean(point.breakBefore || sequenceGap),
+      });
+      runPhaseStates[index] = next;
+      point.wheelPhases[index] = next;
+    }
+    if (Number.isSafeInteger(point.sequence)) previousRunSequence = point.sequence;
   });
   state.telemetryTrail = bounded;
   state.latestTelemetryPoint = bounded.at(-1) || null;
@@ -659,6 +701,7 @@ function clearTelemetrySource() {
   state.latestTelemetryPoint = null;
   state.telemetrySampled = false;
   state.telemetryTotalRows = null;
+  state.wheelPhaseStates = Object.create(null);
   renderTelemetryInspector(null);
   renderSensorTelemetry(null,null,0);
   if (state.active && state.ready && state.globe && state.satellite) {
