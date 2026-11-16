@@ -321,7 +321,17 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             adcs_streams = [stream for stream in catalog_streams if stream["stream_id"] == "whole.adcs"]
             assert len(adcs_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ADCS_STREAM"
             assert adcs_streams[0]["sample_s"] == position_streams[0]["sample_s"]
-            assert set(adcs_streams[0]["fields"]) == {f"adcs.rw.speed_rad_s_{index}" for index in range(3)}
+            required_adcs_fields = {
+                *[f"adcs.rw.speed_rad_s_{index}" for index in range(3)],
+                *[f"adcs.sensor.gyro_measured_rad_s_{axis}" for axis in "xyz"],
+                *[f"adcs.sensor.accel_measured_m_s2_{axis}" for axis in "xyz"],
+                *[f"adcs.star_tracker.q{index}" for index in range(4)],
+                "adcs.star_tracker.valid",
+                *[f"adcs.magnetometer.tesla_{axis}" for axis in "xyz"],
+                "adcs.sun_sensor.cosine_output", "adcs.sun_sensor.valid",
+                *[f"adcs.sun_sensor.direction_b_{axis}" for axis in "xyz"],
+            }
+            assert required_adcs_fields <= set(adcs_streams[0]["fields"])
             assert set(POSITION_FIELDS) <= set(position_streams[0]["fields"])
             assert set(ATTITUDE_FIELDS) <= set(position_streams[0]["fields"])
             report["telemetry_catalog"] = catalog_streams
@@ -335,7 +345,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 adcs_task_streams = [row for row in requested_streams if row["stream_id"] == "whole.adcs"]
                 assert len(adcs_task_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ADCS_STREAM"
                 assert adcs_task_streams[0]["sample_s"] == scene_streams[0]["sample_s"]
-                assert set(adcs_task_streams[0]["fields"]) == {f"adcs.rw.speed_rad_s_{index}" for index in range(3)}
+                assert required_adcs_fields <= set(adcs_task_streams[0]["fields"])
                 assert set(POSITION_FIELDS) <= set(scene_streams[0]["fields"])
                 assert set(ATTITUDE_FIELDS) <= set(scene_streams[0]["fields"])
                 assert all(
@@ -537,7 +547,13 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                     "P9K_STRICT_ADCS_ASSOCIATION_FAILED: "
                     + json.dumps(report["p9k_join_diagnostic"], ensure_ascii=False)
                 ) from error
-            assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
+            sensor_rows = page.locator("#simulationSensorTelemetryRows").inner_text()
+            assert "RW1" in sensor_rows
+            assert "IMU 陀螺" in sensor_rows
+            assert "IMU 加速度计" in sensor_rows
+            assert "磁强计" in sensor_rows
+            assert "星敏感器" in sensor_rows
+            assert "太阳敏感器" in sensor_rows
             assert "whole.adcs" in page.locator("#sceneAdcsFrameSource").inner_text()
             assert matching["values"]["attitude.truth.valid"] == 1
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
@@ -565,6 +581,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                     and item.get("payload", {}).get("quality") == "GOOD"
                 ]
                 assert adcs_messages, "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_GOOD_ADCS_FRAME"
+                assert required_adcs_fields <= set(adcs_messages[-1].get("values", {})), \
+                    "BOUNDED_BROWSER_ADCS_SENSOR_FIELDS_NOT_PUBLISHED"
                 assert any(
                     orbit["session_id"] == adcs["session_id"] == session_id
                     and orbit["sim_time_s"] == adcs["sim_time_s"]
