@@ -130,5 +130,7 @@ test('continuous console independently polls whole.adcs and joins it with the wh
   assert.match(continuousSource, /sceneTelemetryJoin\.accept\('orbit', frame, joinMeta\)/);
   assert.match(continuousSource, /sceneTelemetryJoin\.accept\('adcs', frame, joinMeta\)/);
   assert.match(continuousSource, /updateAdcsTelemetry\(pair/);
+  assert.match(continuousSource, /invalidateAdcsTelemetry/);
   assert.match(continuousSource, /whole\.adcs/);
+  assert.match(appSource, /invalidateAdcsTelemetry/);
 });
