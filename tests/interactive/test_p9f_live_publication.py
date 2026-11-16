@@ -153,3 +153,36 @@ def test_bounded_whole_spacecraft_creation_publishes_actual_basilisk_position(na
     frames = _wait_for_position_frames(native_client, session_id, stream_id, 0.4)
     _assert_real_position_frame(frames[-1], session_id, stream_id)
     assert frames[-1]["sim_time_s"] >= 0.4
+
+def test_default_continuous_adcs_stream_is_independent_and_time_aligned(native_client):
+    session_id = "p9k-native-adcs"
+    response = native_client.post("/interactive/continuous/sessions", json={
+        "session_id": session_id, "quantum_s": 0.2, "rate": 1.0,
+        "paced": True, "initial_horizon_s": 60.0,
+    })
+    assert response.status_code == 201, response.text
+    detail = native_client.get(f"/interactive/sessions/{session_id}").json()
+    catalog = {row["stream_id"]: row for row in detail["telemetry_catalog"]}
+    assert "whole.orbit" in catalog and "whole.adcs" in catalog
+    assert catalog["whole.orbit"]["sample_s"] == catalog["whole.adcs"]["sample_s"] == 0.2
+    assert set(POSITION_FIELDS) <= set(catalog["whole.orbit"]["fields"])
+    assert set(ATTITUDE_FIELDS) <= set(catalog["whole.orbit"]["fields"])
+    adcs_fields = {f"adcs.rw.speed_rad_s_{index}" for index in range(3)}
+    assert set(catalog["whole.adcs"]["fields"]) == adcs_fields
+    assert not (adcs_fields & set(catalog["whole.orbit"]["fields"]))
+    started = native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "start"})
+    assert started.status_code == 200, started.text
+    try:
+        orbit = _wait_for_position_frames(native_client, session_id, "whole.orbit", 0.4)
+        adcs = _wait_for_position_frames(native_client, session_id, "whole.adcs", 0.4)
+        by_time = {frame["sim_time_s"]: frame for frame in adcs if frame["quality"] == "GOOD"}
+        pairs = [(frame, by_time[frame["sim_time_s"]]) for frame in orbit
+                 if frame["quality"] == "GOOD" and frame["sim_time_s"] in by_time]
+        assert pairs, "P9K_NO_EXACT_SIM_TIME_PAIRS"
+        for orbit_frame, adcs_frame in pairs:
+            assert orbit_frame["session_id"] == adcs_frame["session_id"] == session_id
+            assert orbit_frame["sim_time_s"] == adcs_frame["sim_time_s"]
+            assert set(adcs_fields) <= set(adcs_frame["values"])
+            assert all(math.isfinite(adcs_frame["values"][field]) for field in adcs_fields)
+    finally:
+        native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "stop"})
