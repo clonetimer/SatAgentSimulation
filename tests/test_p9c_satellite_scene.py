@@ -229,6 +229,24 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 canvas = page.locator("#satelliteSceneCanvas canvas").first
                 canvas.wait_for(timeout=30000)
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 1
+                if cycle == 0:
+                    page.locator("#sceneCreateTaskBtn").click()
+                    dialog = page.locator("#sceneTaskCreateModal")
+                    playwright.expect(dialog).to_be_visible()
+                    playwright.expect(dialog.locator("[data-scene-create]")).to_have_count(3)
+                    playwright.expect(dialog.locator('[data-scene-create="offline"]')).to_contain_text("离线仿真任务")
+                    playwright.expect(dialog.locator('[data-scene-create="interactive"]')).to_contain_text("限时实时仿真")
+                    playwright.expect(dialog.locator('[data-scene-create="continuous"]')).to_contain_text("持续实时仿真")
+                    page.keyboard.press("Escape")
+                    playwright.expect(dialog).to_be_hidden()
+                    page.locator("#sceneCreateTaskBtn").click()
+                    dialog.locator('[data-scene-create="offline"]').click()
+                    playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "wizard")
+                    playwright.expect(page.locator("#wizardView")).to_be_visible()
+                    page.locator("#wizardSceneShortcutBtn").click()
+                    playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "scene")
+                    page.locator('[data-scene-mode="orbit"]').click()
+                    page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
                 # Readiness is a renderer state, not one particular status message.
                 # A retained Run may already have supplied a later telemetry status.
                 assert "加载超时" not in scene_status.inner_text()
