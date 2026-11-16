@@ -11552,6 +11552,27 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
       renderSimulationWizard();
     }));
+    $all('[data-scene-create]').forEach((button) => button.addEventListener('click', () => {
+      const kind = button.dataset.sceneCreate;
+      button.closest('details')?.removeAttribute('open');
+      if (kind === 'offline') {
+        navigateToWizardShortcut('normal_run');
+        wizardMessage('assistant', '已从卫星数字场景进入离线仿真配置。完成整星/分系统/部件选择、参数校验后即可创建并运行任务。');
+        return;
+      }
+      if (kind === 'interactive' || kind === 'continuous') {
+        if (!state.interactiveAvailable) {
+          showNotice('实时仿真服务当前不可用；离线仿真仍可从仿真向导或场景右侧配置面板运行。', 'warning');
+          return;
+        }
+        const target = kind === 'interactive' ? 'interactive' : 'continuous';
+        navigateToView(target);
+        if (state.activeView === target) {
+          const label = kind === 'interactive' ? '限时交互式实时仿真' : '持续实时仿真';
+          interactiveNotice('已进入' + label + '创建工作区。请检查运行参数并显式创建会话；不会自动启动仿真。');
+        }
+      }
+    }));
     $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => navigateToWizardShortcut(button.dataset.wizardShortcut)));
     el('wizardTaskSearch').addEventListener('input', () => { el('taskSearch').value = el('wizardTaskSearch').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
     el('wizardTaskStatus').addEventListener('change', () => { el('taskStatusFilter').value = el('wizardTaskStatus').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
