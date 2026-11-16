@@ -122,6 +122,8 @@ def test_scene_source_context_exposes_capability_lifecycle_and_independent_adcs_
     assert "setTelemetrySessionContext?.({" in app
     assert "capabilityId: state.interactiveSession.capability_id" in app
     assert "setTelemetrySessionContext?.({" in continuous
+    assert "setAdcsTelemetryPending?.(" in app
+    assert "setAdcsTelemetryPending?.(" in continuous
     assert "capabilityId: info.session?.capability_id" in continuous
     assert "lifecycleState: info.session?.state" in continuous
 
