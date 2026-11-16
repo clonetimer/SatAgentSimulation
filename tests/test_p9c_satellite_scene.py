@@ -304,6 +304,10 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 assert "0.0100" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
                 assert "125.500 rad/s" in page.locator("#simulationSensorTelemetryRows").inner_text()
+                assert page.locator("#sceneTaskContextState").inner_text() == "历史 Run · 已封存"
+                assert page.locator("#sceneTaskContextId").inner_text() == "browser-test-run"
+                assert page.locator("#sceneTaskContextTime").inner_text() == "12.50 s"
+                assert page.locator("#sceneTaskContextQuality").inner_text() == "SEALED"
                 phase = page.evaluate("""() => {
                     window.SatScene.setRunTelemetry([
                       {sim_time_s: 0, values: {'orbit.position_m_x': 7000000, 'orbit.position_m_y': 0, 'orbit.position_m_z': 0, 'adcs.rw.speed_rad_s_0': 100}},
