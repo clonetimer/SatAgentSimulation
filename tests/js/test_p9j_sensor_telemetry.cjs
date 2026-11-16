@@ -71,7 +71,7 @@ test('replacing a complete sample with a partial sample clears stale fields', ()
   h.render({'adcs.rw.speed_rad_s_0': 10, 'adcs.rw.effective_max_torque_nm_0': 0.25});
   h.render({'adcs.rw.speed_rad_s_0': 20});
   assert.match(h.label.textContent, /已封存有限 Run 遥测/);
-  assert.match(h.row('反作用轮 RW1')[1], /力矩能力未提供/);
+  assert.match(h.row('反作用轮 RW1')[1], /限幅 —/);
   assert.doesNotMatch(h.row('反作用轮 RW1')[1], /0\.2500/);
 });
 
