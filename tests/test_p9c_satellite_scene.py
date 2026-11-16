@@ -34,11 +34,16 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert 'data-scene-create="offline"' in index.text
         assert 'data-scene-create="interactive"' in index.text
         assert 'data-scene-create="continuous"' in index.text
+        assert 'id="sceneTaskCreateModal"' in index.text
+        assert 'aria-modal="true"' in index.text
         app = client.get("/assets/app.js")
         assert app.status_code == 200
         assert "switchView('wizard');" in app.text
         assert "navigateToWizardShortcut('normal_run');" in app.text
         assert "navigateToView(target);" in app.text
+        assert "closeSceneTaskModal" in app.text
+        assert "event.key === 'Escape'" in app.text
+        assert "sceneTaskModal.querySelectorAll" in app.text
         assert 'id="satelliteSceneCanvas"' in index.text
         assert 'src="/assets/vendor/globe/globe.gl.min.js"' in index.text
         assert '"three":"/assets/vendor/globe/three.module.js"' in index.text
