@@ -103,11 +103,13 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
   setText('sceneTaskContextQuality', hasSource ? (point.quality || (sealedRun ? 'SEALED' : 'UNKNOWN')) : '—');
   const adcsStatus = state.adcsTelemetryStatus || {};
   const adcsSource = point?.adcsSource;
-  const adcsQuality = adcsSource?.quality || adcsStatus.quality;
+  const sealedAdcs = sealedRun && adcsSource?.quality === 'GOOD';
+  const adcsQuality = sealedAdcs ? adcsSource.quality : (adcsStatus.quality || 'UNAVAILABLE');
+  const adcsTime = sealedAdcs ? adcsSource.sim_time_s : adcsStatus.simTimeS;
   setText('sceneTaskContextAdcsQuality', hasSource
     ? (adcsQuality === 'GOOD'
-      ? `GOOD · ${Number(adcsSource?.sim_time_s ?? adcsStatus.simTimeS).toFixed(2)} s`
-      : (adcsStatus.reason || '等待同一仿真时刻的 GOOD 帧'))
+      ? `GOOD · ${Number(adcsTime).toFixed(2)} s`
+      : (adcsStatus.reason || (adcsQuality === 'PENDING' ? '等待精确配对' : 'ADCS 遥测不可用')))
     : '—');
   setText('sceneSimTime', hasSource ? `${point.sim_time_s.toFixed(2)} s` : '—');
   setText('sceneAltitude', hasSource ? `${point.altitude_km.toFixed(2)} km` : '—');
@@ -126,8 +128,9 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
       : (state.telemetrySourceId?.startsWith('run:') ? state.telemetrySourceId : '—'))
     : '—';
   setText('sceneFrameSource', frameSource);
-  setText('sceneAdcsFrameSource', adcsSource
-    ? `ADCS: ${adcsSource.session_id} / ${adcsSource.stream} · ${adcsSource.quality} · seq ${adcsSource.sequence} · ${adcsSource.sim_time_s.toFixed(3)} s${adcsSource.sequence_gap_before ? ' · 序号缺口' : ''}`
+  const visibleAdcsSource = sealedRun && adcsSource?.quality === 'GOOD' ? adcsSource : adcsStatus.source;
+  setText('sceneAdcsFrameSource', visibleAdcsSource && adcsStatus.quality === 'GOOD'
+    ? `ADCS: ${visibleAdcsSource.session_id} / ${visibleAdcsSource.stream} · GOOD · seq ${visibleAdcsSource.sequence} · ${visibleAdcsSource.sim_time_s.toFixed(3)} s${visibleAdcsSource.sequence_gap_before ? ' · 序号缺口' : ''}`
     : `ADCS: ${adcsStatus.reason || '等待同一仿真时刻的 GOOD 遥测'}`);
   setText('sceneFrameSequence', hasSource && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
   setText('sceneFrameQuality', hasSource ? (point.quality || (state.telemetrySourceId?.startsWith('run:') ? 'SEALED' : 'UNKNOWN')) : '—');
@@ -412,6 +415,12 @@ function advanceWheelPhaseState(previous, sample) {
     reason:discontinuity ? 'relative-rebase' : null, relativeOrigin:true};
 }
 
+function setAdcsTelemetryPending(reason = '等待精确配对') {
+  state.adcsTelemetryStatus = {quality:'PENDING',simTimeS:null,reason:String(reason)};
+  renderTelemetryInspector();
+  return true;
+}
+
 function invalidateAdcsTelemetry(reason = '遥测不可用') {
   const point = state.latestTelemetryPoint;
   state.adcsTelemetryStatus = {quality:'UNAVAILABLE',simTimeS:null,reason:String(reason)};
@@ -481,10 +490,11 @@ function updateAdcsTelemetry(pair, options = {}) {
     if (key.startsWith('adcs.')) delete point.sensorMeasurements[key];
   });
   Object.assign(point.sensorMeasurements, measurements);
-  state.adcsTelemetryStatus = {quality:'GOOD',simTimeS:pair.sim_time_s,reason:null};
-  point.adcsSource = {session_id:pair.session_id,stream:pair.adcs.stream,
+  const associatedSource = {session_id:pair.session_id,stream:pair.adcs.stream,
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
     epoch_utc:pair.epoch_utc,sequence_gap_before:Boolean(pair.adcs_sequence_gap)};
+  state.adcsTelemetryStatus = {quality:'GOOD',simTimeS:pair.sim_time_s,reason:null,source:associatedSource};
+  point.adcsSource = associatedSource;
   point.adcsBreakBefore = Boolean(pair.adcs_sequence_gap || pair.orbit_sequence_gap);
   const sourceKey = [pair.session_id, pair.epoch_utc, pair.adcs.stream].join('|');
   point.wheelPhases = {};
@@ -1471,7 +1481,7 @@ window.SatScene = {
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible, setSimulationExplodedView,
   integrateWheelPhaseFromTelemetry,
   setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame, starTrackerAxesInBodyFrame,
-  updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin,
+  updateTelemetry, updateAdcsTelemetry, setAdcsTelemetryPending, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin,
   setTelemetrySessionContext, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
