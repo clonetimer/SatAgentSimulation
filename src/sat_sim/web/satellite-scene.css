@@ -427,3 +427,11 @@ body[data-active-view="scene"] .p9d-scene-layout.is-simulation-mode .scene-edito
     grid-row:2;
   }
 }
+
+body[data-active-view="scene"] .topbar {
+  min-height:52px;
+  padding-block:6px;
+}
+body[data-active-view="scene"] .brand-subtitle {
+  display:none;
+}
