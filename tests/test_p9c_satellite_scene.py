@@ -243,6 +243,10 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             for cycle in range(3):
                 page.locator("#wizardSceneShortcutBtn").click()
+                playwright.expect(page.locator(".app-sidebar")).to_be_hidden()
+                playwright.expect(page.locator(".scene-workspace-nav")).to_be_visible()
+                playwright.expect(page.locator("#sceneWorkspaceTaskCenterBtn")).to_be_visible()
+                playwright.expect(page.locator("#sceneWorkspaceCreatorBtn")).to_be_visible()
                 if cycle == 0:
                     playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
                     playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
@@ -469,6 +473,11 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 task_center_button.click()
                 page.locator("#wizardView").wait_for(state="visible")
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
+                page.locator("#wizardSceneShortcutBtn").click()
+                page.locator("#sceneWorkspaceCreatorBtn").click()
+                page.locator("#creatorView").wait_for(state="visible")
+                page.locator('.app-sidebar [data-view="scene"]').click()
+                page.locator("#satelliteSceneView").wait_for(state="visible")
             assert not external_requests, external_requests
             assert not failures, failures
         finally:
