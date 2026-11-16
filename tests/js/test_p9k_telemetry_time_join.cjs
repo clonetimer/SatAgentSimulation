@@ -82,11 +82,11 @@ test('zero-valued ADCS measurement is valid when frame quality is GOOD', () => {
 
 const appSource = fs.readFileSync(path.join(__dirname, '../../src/sat_sim/web/app.js'), 'utf8');
 const adcsStart = appSource.indexOf('function sceneAdcsStream(');
-const adcsEnd = appSource.indexOf('\\n  function setSceneAdcsJoinStatus', adcsStart);
+const adcsEnd = appSource.indexOf('\n  function setSceneAdcsJoinStatus', adcsStart);
 assert.ok(adcsStart >= 0 && adcsEnd > adcsStart, 'ADCS stream selector must exist');
 const adcsSelectorContext = vm.createContext({});
 vm.runInContext(appSource.slice(adcsStart, adcsEnd)
-  + '\\nglobalThis.sceneAdcsStream = sceneAdcsStream;', adcsSelectorContext);
+  + '\nglobalThis.sceneAdcsStream = sceneAdcsStream;', adcsSelectorContext);
 const selectAdcsStream = adcsSelectorContext.sceneAdcsStream;
 test('selects the dedicated whole.adcs quality domain, never the INVALID whole.fast superset', () => {
   const catalog = [
