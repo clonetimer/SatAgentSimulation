@@ -77,7 +77,7 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "pathsData" in scene
     assert "不代表真实 Basilisk 仿真遥测" in scene
     assert "window.SatScene = {" in scene
-    assert "updateTelemetry, setRunTelemetry, clearTelemetrySource" in scene
+    assert "updateTelemetry, updateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource" in scene
     assert "setInterval" not in scene
     assert "unsafe-eval" not in scene
 
