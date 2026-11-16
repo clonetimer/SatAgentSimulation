@@ -242,7 +242,11 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             for cycle in range(3):
-                page.locator("#wizardSceneShortcutBtn").click()
+                # Each cycle ends with browser Back returning from professional
+                # modeling to the scene. Do not click the wizard-only shortcut
+                # when the scene is already active on the next iteration.
+                if page.locator("body").get_attribute("data-active-view") != "scene":
+                    page.locator("#wizardSceneShortcutBtn").click()
                 playwright.expect(page.locator(".app-sidebar")).to_be_hidden()
                 playwright.expect(page.locator("#workbenchNavigation")).to_be_hidden()
                 playwright.expect(page.locator(".scene-workspace-nav")).to_be_visible()
