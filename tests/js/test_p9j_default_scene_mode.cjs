@@ -58,9 +58,9 @@ test('explicit orbit navigation resumes only the orbit renderer', () => {
   assert.equal(h.layout.classList.contains('is-simulation-mode'), false);
   assert.deepEqual(h.calls, [['cad', false], ['orbit', true], ['simulation', false]]);
 });
-test('CAD navigation remains explicit and physical return restores configuration panel', () => {
+test('CAD navigation remains explicit while compact editor navigation stays available', () => {
   const h = harness(); h.click('cad');
-  assert.equal(h.panel.hidden, true);
+  assert.equal(h.panel.hidden, false);
   assert.equal(h.elements.birdsCadViewer.hidden, false);
   assert.equal(h.layout.classList.contains('is-cad-mode'), true);
   h.click('simulation');
