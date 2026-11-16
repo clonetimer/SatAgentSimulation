@@ -128,8 +128,10 @@ function renderTelemetryInspector(point = state.latestTelemetryPoint) {
       : (state.telemetrySourceId?.startsWith('run:') ? state.telemetrySourceId : '—'))
     : '—';
   setText('sceneFrameSource', frameSource);
-  const visibleAdcsSource = sealedRun && adcsSource?.quality === 'GOOD' ? adcsSource : adcsStatus.source;
-  setText('sceneAdcsFrameSource', visibleAdcsSource && adcsStatus.quality === 'GOOD'
+  const sealedAdcsGood = sealedRun && adcsSource?.quality === 'GOOD';
+  const visibleAdcsSource = sealedAdcsGood ? adcsSource : adcsStatus.source;
+  const liveAdcsGood = adcsStatus.quality === 'GOOD';
+  setText('sceneAdcsFrameSource', visibleAdcsSource && (sealedAdcsGood || liveAdcsGood)
     ? `ADCS: ${visibleAdcsSource.session_id} / ${visibleAdcsSource.stream} · GOOD · seq ${visibleAdcsSource.sequence} · ${visibleAdcsSource.sim_time_s.toFixed(3)} s${visibleAdcsSource.sequence_gap_before ? ' · 序号缺口' : ''}`
     : `ADCS: ${adcsStatus.reason || '等待同一仿真时刻的 GOOD 遥测'}`);
   setText('sceneFrameSequence', hasSource && point.sequence !== null ? String(point.sequence) : (state.telemetrySourceId?.startsWith('run:') ? '封存样本' : '—'));
