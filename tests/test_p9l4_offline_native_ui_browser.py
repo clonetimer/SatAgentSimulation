@@ -116,8 +116,15 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             expect(duration).to_be_visible()
             duration.fill("2")
             duration.press("Tab")
+            sample = page.locator('[data-wizard-field="simulation.sample_s"]')
+            expect(sample).to_be_visible()
+            sample.fill("0.5")
+            sample.press("Tab")
             submitted_duration_s = duration.input_value()
+            submitted_sample_s = sample.input_value()
             report["configured_duration_s"] = submitted_duration_s
+            report["configured_sample_s"] = submitted_sample_s
+            assert float(submitted_sample_s) <= float(submitted_duration_s)
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
             page.wait_for_function(
