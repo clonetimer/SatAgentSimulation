@@ -258,6 +258,17 @@ def create_interactive_router(
                         # Position and rigid-body attitude are emitted atomically
                         # from the same Basilisk spacecraft state recorder.
                         # Unrelated subsystem/sensor outputs cannot invalidate it.
+                    {
+                        # ADCS has an independent quality contract and only
+                        # declares fields emitted by the native whole-spacecraft runtime.
+                        "stream_id": "whole.adcs",
+                        "sample_s": body.quantum_s,
+                        "fields": [
+                            "adcs.rw.speed_rad_s_0",
+                            "adcs.rw.speed_rad_s_1",
+                            "adcs.rw.speed_rad_s_2",
+                        ],
+                    },
                         "stream_id": "whole.orbit",
                         "sample_s": body.quantum_s,
                         "fields": [
