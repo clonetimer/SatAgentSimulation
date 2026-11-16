@@ -203,8 +203,8 @@ function provenanceHarness() {
     setText:(id,value)=>{values[id]=value;},
   });
   vm.runInContext(sceneSource.slice(contextStart,contextEnd)
-    + '\\nglobalThis.renderTelemetryInspector = renderTelemetryInspector;'
-    + '\\nglobalThis.setTelemetrySessionContext = setTelemetrySessionContext;',context);
+    + '\nglobalThis.renderTelemetryInspector = renderTelemetryInspector;'
+    + '\nglobalThis.setTelemetrySessionContext = setTelemetrySessionContext;',context);
   return {state,values,source,render:context.renderTelemetryInspector,set:context.setTelemetrySessionContext};
 }
 test('scene provenance shows source, capability, lifecycle, simulation time and separate ADCS quality',()=>{
