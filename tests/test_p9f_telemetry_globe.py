@@ -57,7 +57,10 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
     assert "state.interactiveSession.orbit_epoch_utc" in app
     assert "frame: state.interactiveSession.orbit_frame" in app
     assert "timeSystem: state.interactiveSession.orbit_time_system" in app
-    assert "streamId: orbitStream.stream_id" in app
+    assert "streamId: contract.orbit.stream_id" in app
+    assert "createStrictTelemetryTimeJoin" in app
+    assert "updateAdcsTelemetry" in app
+    assert "whole.adcs" in app
     assert "orbitStream?.stream_id === frame.stream" in app
     assert "function sceneOrbitStream(session)" in app
     assert "epochUtc: info.orbit_epoch_utc" in continuous
