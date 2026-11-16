@@ -500,10 +500,16 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert set(POSITION_FIELDS) <= set(matching["values"])
             assert set(ATTITUDE_FIELDS) <= set(matching["values"])
             assert matching["values"]["attitude.truth.valid"] == 1
-            page.wait_for_function(
-                "() => document.querySelector('#sceneAdcsFrameSource')?.textContent.includes('whole.adcs')",
-                timeout=15000,
-            )
+            try:
+                page.wait_for_function(
+                    "() => document.querySelector('#sceneAdcsFrameSource')?.textContent.includes('whole.adcs')",
+                    timeout=15000,
+                )
+            except Exception as error:
+                raise AssertionError(
+                    "P9K_STRICT_ADCS_ASSOCIATION_FAILED: "
+                    + page.locator("#sceneAdcsFrameSource").inner_text()
+                ) from error
             assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
             assert "whole.adcs" in page.locator("#sceneAdcsFrameSource").inner_text()
             assert matching["values"]["attitude.truth.valid"] == 1
