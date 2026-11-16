@@ -31,6 +31,11 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert index.status_code == 200
         assert 'data-view="scene"' in index.text
         assert 'id="satelliteSceneView"' in index.text
+        assert 'id="sceneWorkspaceTaskCenterBtn"' in index.text
+        assert 'id="sceneWorkspaceSceneBtn"' in index.text
+        assert 'id="sceneWorkspaceCreatorBtn"' in index.text
+        assert 'class="scene-editor-controls"' in index.text
+        assert 'class="satellite-scene-heading"' not in index.text
         assert 'data-scene-create="offline"' in index.text
         assert 'data-scene-create="interactive"' in index.text
         assert 'data-scene-create="continuous"' in index.text
