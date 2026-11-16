@@ -7769,7 +7769,8 @@
   }
   function sceneTelemetryJoin(session) {
     const orbit = sceneOrbitStream(session), adcs = sceneAdcsStream(session);
-    if (!orbit || !adcs || !session?.session_id || !session?.orbit_epoch_utc
+    if (!orbit || !adcs || orbit.sample_s !== adcs.sample_s
+        || !session?.session_id || !session?.orbit_epoch_utc
         || session.orbit_frame !== 'N_INERTIAL' || session.orbit_time_system !== 'UTC') return null;
     const key = JSON.stringify([session.session_id, session.orbit_epoch_utc, orbit.stream_id, adcs.stream_id]);
     if (state.sceneTelemetryJoinKey !== key) {
