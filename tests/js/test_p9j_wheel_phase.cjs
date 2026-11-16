@@ -74,7 +74,7 @@ test('invalidating ADCS clears stale wheel values and cumulative phase state', (
       'adcs.rw.speed_rad_s_0':123,
       'adcs.rw.speed_rad_s_1':234,
       'adcs.rw.speed_rad_s_2':345,
-      'adcs.imu.gyro_x_rad_s':0.01,
+      'eps.battery_soc':0.85,
     },
     adcsSource:{quality:'GOOD'},
     wheelPhases:{0:{valid:true,phaseRad:12}},
@@ -93,7 +93,7 @@ test('invalidating ADCS clears stale wheel values and cumulative phase state', (
   assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_0'], undefined);
   assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_1'], undefined);
   assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_2'], undefined);
-  assert.equal(latest.sensorMeasurements['adcs.imu.gyro_x_rad_s'], 0.01);
+  assert.equal(latest.sensorMeasurements['eps.battery_soc'], 0.85);
   assert.equal(latest.adcsSource, null);
   assert.equal(Object.keys(latest.wheelPhases).length, 0);
   assert.deepEqual(Object.keys(context.state.wheelPhaseStates), []);
