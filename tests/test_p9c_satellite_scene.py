@@ -402,7 +402,17 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "scene")
                     page.locator('[data-scene-mode="orbit"]').click()
                     page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
-                page.locator("#satelliteSceneView [data-return-wizard]").click()
+                return_button = page.locator("#satelliteSceneView [data-return-wizard]")
+                return_hit_test = return_button.evaluate("""node => {
+                    const rect = node.getBoundingClientRect();
+                    const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                    return {
+                      top: top?.outerHTML || null,
+                      receivesPointer: Boolean(top && (top === node || node.contains(top))),
+                    };
+                }""")
+                assert return_hit_test["receivesPointer"], f"SCENE_RETURN_POINTER_INTERCEPTED: {return_hit_test}"
+                return_button.click()
                 page.locator("#wizardView").wait_for(state="visible")
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
             assert not external_requests, external_requests
