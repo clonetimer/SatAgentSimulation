@@ -389,3 +389,41 @@ body[data-active-view="scene"] .satellite-scene-note {
   .scene-editor-title-row h1 { font-size:14px; }
   .scene-workspace-link { font-size:10px; }
 }
+
+
+/* The CAD mode keeps the editor's workspace/mode switcher visible. Only the
+   object-parameter and sealed-run inspectors are irrelevant to static CAD. */
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode {
+  grid-template-columns:minmax(0,1fr) minmax(320px,370px);
+}
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode > .p9d-config-panel {
+  display:grid;
+}
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode > .satellite-scene-shell {
+  grid-column:auto;
+}
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode .p9d-tree-section,
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode .p9d-parameter-section,
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode .p9e-run-results-section {
+  display:none;
+}
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode .scene-editor-controls {
+  border-bottom:0;
+}
+body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode .satellite-scene-actions {
+  display:none;
+}
+body[data-active-view="scene"] .p9d-scene-layout.is-simulation-mode .scene-editor-controls .satellite-scene-actions {
+  display:grid;
+}
+@media(max-width:820px) {
+  body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode {
+    grid-template-columns:minmax(0,1fr);
+  }
+  body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode > .p9d-config-panel {
+    grid-row:1;
+  }
+  body[data-active-view="scene"] .p9d-scene-layout.is-cad-mode > .satellite-scene-shell {
+    grid-row:2;
+  }
+}
