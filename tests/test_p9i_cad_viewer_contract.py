@@ -119,3 +119,17 @@ def test_scene_heading_and_orbit_controls_follow_active_scene_mode():
     assert "ADCS 仿真构型" in source
     assert "simulation-geometry-mode" in css
     assert ".p9d-scene-layout.is-cad-mode .satellite-scene-actions{display:none}" in css
+
+
+def test_cad_inspector_exposes_reference_occurrence_path_and_transform_without_claiming_as_built():
+    source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
+    css = (WEB / "satellite-scene.css").read_text(encoding="utf-8")
+    for token in (
+        "function renderNodeInspector(", "装配层级路径",
+        "几何范围（GLB 根坐标系，m）", "局部变换（父节点坐标）",
+        "参考装配根坐标变换", "getWorldPosition", "getWorldQuaternion",
+        "尚未审定为航天器 B 系安装锚点或 as-built 实例",
+    ):
+        assert token in source
+    assert ".birds-cad-inspector-section" in css
+    assert "BIRDS-4 CAD 参考装配" in source
