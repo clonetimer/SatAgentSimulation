@@ -506,9 +506,30 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                     timeout=15000,
                 )
             except Exception as error:
+                adcs_payload = _json_request(
+                    base,
+                    f"/interactive/sessions/{quote(session_id)}/telemetry/whole.adcs?after_sequence=0",
+                )
+                orbit_payload = _json_request(
+                    base,
+                    f"/interactive/sessions/{quote(session_id)}/telemetry/whole.orbit?after_sequence=0",
+                )
+                report["p9k_join_diagnostic"] = {
+                    "adcs_frames": [
+                        {"sequence": row.get("sequence"), "sim_time_s": row.get("sim_time_s"),
+                         "quality": row.get("quality"), "stream": row.get("stream")}
+                        for row in adcs_payload.get("frames", [])[-12:]
+                    ],
+                    "orbit_frames": [
+                        {"sequence": row.get("sequence"), "sim_time_s": row.get("sim_time_s"),
+                         "quality": row.get("quality"), "stream": row.get("stream")}
+                        for row in orbit_payload.get("frames", [])[-12:]
+                    ],
+                    "scene_status": page.locator("#sceneAdcsFrameSource").inner_text(),
+                }
                 raise AssertionError(
                     "P9K_STRICT_ADCS_ASSOCIATION_FAILED: "
-                    + page.locator("#sceneAdcsFrameSource").inner_text()
+                    + json.dumps(report["p9k_join_diagnostic"], ensure_ascii=False)
                 ) from error
             assert "RW1" in page.locator("#simulationSensorTelemetryRows").inner_text()
             assert "whole.adcs" in page.locator("#sceneAdcsFrameSource").inner_text()
