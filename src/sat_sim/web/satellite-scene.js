@@ -616,6 +616,17 @@ function setRunTelemetry(rows, options = {}) {
     ? valid.filter((_, index) => index === valid.length - 1 ||
         index % Math.ceil(valid.length / TELEMETRY_TRAIL_LIMIT) === 0).slice(-TELEMETRY_TRAIL_LIMIT)
     : valid;
+  // A sealed Run stores orbit and ADCS channels in one row. Unlike live
+  // streams, its row itself is the atomic same-time evidence record.
+  valid.forEach((point, index) => {
+    const speedKeys = ADCS_SCENE_FIELDS;
+    if (speedKeys.every(key => typeof point.sensorMeasurements?.[key] === 'number'
+        && Number.isFinite(point.sensorMeasurements[key]))) {
+      point.adcsSource = {session_id:sourceId,stream:'sealed.run.telemetry',
+        sequence:index,sim_time_s:point.sim_time_s,quality:'GOOD',epoch_utc:options.epochUtc,
+        sequence_gap_before:false};
+    }
+  });
   state.telemetryTrail = bounded;
   state.latestTelemetryPoint = bounded.at(-1) || null;
   state.telemetrySampled = Boolean(options.sampled || valid.length > bounded.length);
