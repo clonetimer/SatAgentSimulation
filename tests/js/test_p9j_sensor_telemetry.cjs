@@ -133,7 +133,7 @@ function associationHarness() {
     renderTelemetryPosition(){},
   });
   vm.runInContext(sceneSource.slice(associationStart,associationEnd)
-    + '\\nglobalThis.updateAdcsTelemetry = updateAdcsTelemetry;', context);
+    + '\nglobalThis.updateAdcsTelemetry = updateAdcsTelemetry;', context);
   return {point,ui,update:context.updateAdcsTelemetry};
 }
 test('strictly associated native ADCS frame maps real Basilisk IMU, CSS, star and magnetometer outputs', () => {
