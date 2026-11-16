@@ -129,6 +129,8 @@ def test_cad_inspector_exposes_reference_occurrence_path_and_transform_without_c
         "几何范围（GLB 根坐标系，m）", "局部变换（父节点坐标）",
         "参考装配根坐标变换", "getWorldPosition", "getWorldQuaternion",
         "尚未审定为航天器 B 系安装锚点或 as-built 实例",
+        "getWorldScale", "局部位置（GLB 层级单位）",
+        "四元数 · w,x,y,z", "包围盒 XYZ",
     ):
         assert token in source
     assert ".birds-cad-inspector-section" in css
