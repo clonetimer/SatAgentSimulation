@@ -90,3 +90,23 @@ test('wheel phase provenance distinguishes relative origin from unavailable phas
   });
   assert.equal(h.row('反作用轮 RW1')[2], '相位不可用');
 });
+
+test('native Basilisk sensor channel names render without substituting configured parameters', () => {
+  const h = harness();
+  h.render({
+    'adcs.imu.gyro_x_rad_s':0.01,'adcs.imu.gyro_y_rad_s':0.02,'adcs.imu.gyro_z_rad_s':0.03,
+    'adcs.imu.accel_x_m_s2':1,'adcs.imu.accel_y_m_s2':2,'adcs.imu.accel_z_m_s2':3,
+    'adcs.magnetometer.field_x_t':1e-5,'adcs.magnetometer.field_y_t':2e-5,'adcs.magnetometer.field_z_t':3e-5,
+    'adcs.star_tracker.q0':1,'adcs.star_tracker.q1':0,'adcs.star_tracker.q2':0,'adcs.star_tracker.q3':0,
+    'adcs.star_tracker.valid':1,
+    'adcs.sun_sensor.intensity':0.75,'adcs.sun_sensor.direction_x':0,'adcs.sun_sensor.direction_y':0,'adcs.sun_sensor.direction_z':-1,
+    'adcs.sun_sensor.valid':0,
+  });
+  assert.match(h.row('IMU 陀螺')[1], /0\.0100, 0\.0200, 0\.0300/);
+  assert.match(h.row('IMU 加速度计')[1], /1\.0000, 2\.0000, 3\.0000/);
+  assert.match(h.row('磁强计')[1], /1\.0000e-5|1\.0000e-5/);
+  assert.match(h.row('星敏感器')[1], /1\.0000, 0\.0000, 0\.0000, 0\.0000/);
+  assert.equal(h.row('星敏感器')[2], '有效');
+  assert.match(h.row('太阳敏感器')[1], /0\.75000/);
+  assert.match(h.row('太阳敏感器')[2], /无效/);
+});
