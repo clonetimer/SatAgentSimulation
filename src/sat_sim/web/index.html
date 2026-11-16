@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-realtime-width-20261111-2">
-  <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9c-mainline-1">
+  <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9l-scene-provenance-2">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -127,7 +127,15 @@
     <main id="satelliteSceneView" class="satellite-scene-view app-view hidden">
       <div class="p9d-scene-layout">
         <section class="satellite-scene-shell">
-          <header class="satellite-scene-heading"><div><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1>卫星数字场景</h1><p>真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。</p></div><div class="satellite-scene-actions"><button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button><button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">显示机体系坐标轴</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button><button class="button button-secondary" type="button" data-return-wizard>返回仿真向导</button></div></header>
+          <header class="satellite-scene-heading"><div class="satellite-scene-title-block"><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1 id="satelliteSceneTitle">卫星数字场景</h1><p id="satelliteSceneDescription">真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。</p><button class="button button-secondary satellite-scene-return" type="button" data-return-wizard>返回仿真向导</button></div><div class="satellite-scene-actions"><button id="sceneCreateTaskBtn" class="button button-primary" type="button">创建仿真任务</button><button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button><button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">显示机体系坐标轴</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button></div></header>
+          <section class="scene-task-context" aria-label="当前仿真数据源">
+            <div><span>当前数据源</span><strong id="sceneTaskContextState">未关联仿真任务</strong></div>
+            <div><span>任务 / 会话 ID</span><strong id="sceneTaskContextId">—</strong></div>
+            <div><span>仿真时间</span><strong id="sceneTaskContextTime">—</strong></div>
+            <div><span>轨道遥测质量</span><strong id="sceneTaskContextQuality">—</strong></div>
+          </section>
+          <nav class="satellite-scene-mode-tabs" aria-label="数字场景模式"><button type="button" data-scene-mode="orbit" aria-pressed="false">轨道与姿态</button><button type="button" data-scene-mode="simulation" aria-pressed="true">物理构型</button><button type="button" data-scene-mode="cad" aria-pressed="false">参考 CAD</button></nav>
+          <section id="satelliteOrbitMode" class="satellite-orbit-mode" hidden>
           <div id="satelliteSceneCanvas" class="satellite-scene-canvas" role="img" aria-label="三维地球与真实遥测驱动的卫星轨道及姿态场景"></div>
           <section class="satellite-scene-inspector" aria-label="轨道与姿态状态">
             <div class="satellite-scene-inspector-heading"><h2>轨道与姿态状态</h2><span id="sceneDataSource" class="scene-data-source" data-state="demo">等待真实遥测</span></div>
@@ -146,10 +154,81 @@
               </article>
               <article class="scene-inspector-card">
                 <h3>遥测质量</h3>
-                <dl><div><dt>会话 / 数据流</dt><dd id="sceneFrameSource">—</dd></div><div><dt>序号</dt><dd id="sceneFrameSequence">—</dd></div><div><dt>质量</dt><dd id="sceneFrameQuality">—</dd></div></dl>
+                <dl><div><dt>轨道流</dt><dd id="sceneFrameSource">—</dd></div><div><dt>ADCS 同时刻关联</dt><dd id="sceneAdcsFrameSource">等待同一仿真时刻的 GOOD 遥测</dd></div><div><dt>轨道序号</dt><dd id="sceneFrameSequence">—</dd></div><div><dt>质量</dt><dd id="sceneFrameQuality">—</dd></div></dl>
               </article>
             </div>
             <p class="satellite-scene-inspector-note">姿态真值来自 Basilisk 整星刚体状态；组合定姿须由独立传感器融合算法产生。当前示意卫星的机体系轴向仅用于姿态可视化，不代表真实 CAD 安装定义。</p>
+            <section class="scene-object-semantics" aria-label="工程对象语义">
+              <div class="scene-object-semantics-heading"><h3>工程对象语义</h3><span>MODEL · PHYSICS · ASSEMBLY</span></div>
+              <dl>
+                <div><dt>当前对象</dt><dd id="sceneObjectName">尚未选择对象</dd></div>
+                <div><dt>对象层级</dt><dd id="sceneObjectKind">—</dd></div>
+                <div><dt>物理类别</dt><dd id="sceneObjectClass">—</dd></div>
+                <div><dt>执行能力</dt><dd id="sceneObjectCapability">—</dd></div>
+                <div><dt>场景归属</dt><dd id="sceneObjectTarget">—</dd></div>
+                <div><dt>参数归属</dt><dd id="sceneObjectConfigScope">—</dd></div>
+                <div><dt>空间锚点</dt><dd id="sceneObjectAnchor">未审定</dd></div>
+                <div><dt>三维资产映射</dt><dd id="sceneObjectMapping">未建立</dd></div>
+                <div><dt>实装数量</dt><dd id="sceneObjectInventory">不推断实装数量</dd></div>
+              </dl>
+              <p id="sceneObjectSemanticsNote">选择对象树中的整星、分系统或部件后，这里显示模型类别、能力归属和空间证据。</p>
+            </section>
+          </section>
+          </section>
+          <section id="simulationGeometryMode" class="simulation-geometry-mode" aria-label="已校验仿真构型几何">
+            <header class="simulation-geometry-heading">
+              <div><h2>ADCS 反作用轮仿真构型</h2><p>安装点 rWB_B 与自旋轴 gsHat_B，均以航天器机体系 B 表示。</p></div>
+              <button id="simulationExplodeToggle" type="button" class="button button-secondary" aria-pressed="false">工程分解视图</button>
+              <span id="simulationGeometryBadge" class="scene-data-source" data-state="demo">等待整星 TaskSpec 校验</span>
+            </header>
+            <div class="simulation-geometry-layout">
+              <div class="simulation-geometry-viewport"><canvas id="simulationGeometryCanvas" aria-label="反作用轮机体系安装点与自旋轴三维视图"></canvas><div class="simulation-geometry-hint">拖动旋转 · 滚轮缩放 · X 红 / Y 绿 / Z 蓝</div></div>
+              <aside class="simulation-geometry-details">
+                <h3>原生配置几何</h3>
+                <div id="simulationGeometrySummary" class="simulation-geometry-summary">请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。</div>
+                <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>轮组</th><th>安装位置 rWB_B（m）</th><th>自旋轴 gsHat_B</th></tr></thead><tbody id="simulationGeometryRows"><tr><td colspan="3">尚无已校验配置</td></tr></tbody></table></div>
+                <section class="simulation-sensor-telemetry">
+                  <h3>真实传感器遥测</h3>
+                  <p id="simulationSensorTelemetrySource" class="simulation-geometry-note">等待已关联的 Basilisk 实时遥测或已封存 Run。</p>
+                  <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>传感器</th><th>测量值</th><th>有效性</th></tr></thead><tbody id="simulationSensorTelemetryRows"><tr><td colspan="3">暂无真实传感器遥测</td></tr></tbody></table></div>
+                  <p class="simulation-geometry-note">仅显示当前 session/stream 或已封存 Run 中实际发布的测量字段；缺失字段保持空缺，不使用仿真配置值代替测量值。</p>
+                </section>
+                <section class="simulation-rigid-body-properties">
+                  <h3>整星刚体参数</h3>
+                  <dl>
+                    <div><dt>Hub 质量</dt><dd id="simulationHubMass">—</dd></div>
+                    <div><dt>惯量 Ixx</dt><dd id="simulationHubIxx">—</dd></div>
+                    <div><dt>惯量 Iyy</dt><dd id="simulationHubIyy">—</dd></div>
+                    <div><dt>惯量 Izz</dt><dd id="simulationHubIzz">—</dd></div>
+                  </dl>
+                  <p>显示当前 TaskSpec 中的 Basilisk Hub 质量和 B 系对角惯量输入。该模型输入不包含惯性积，也没有独立的整星质心配置字段；因此不推导惯量椭球或虚构质心位置。</p>
+                </section>
+                <section class="simulation-sensor-geometry">
+                  <h3>传感器安装配置</h3>
+                  <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>传感器</th><th>机体系 B 位置（m）</th><th>安装方向 / 法线</th></tr></thead><tbody id="simulationSensorRows"><tr><td colspan="3">尚无已校验配置</td></tr></tbody></table></div>
+                  <p class="simulation-geometry-note">IMU 位置来自原生 sensorPos_B；IMU、星敏和磁强计方向均按各自 Basilisk 原生 DCM 转换到 B 系（箭头长度仅用于方向识别）；太阳敏感器仅列出原生 nHat_B 法线。未提供安装位置的星敏、磁强计和太阳敏感器仅从 B 系原点绘制方向参考箭头，箭头不代表安装位置或实体尺寸。</p>
+                </section>
+                <p class="simulation-geometry-note">这是当前 TaskSpec 的仿真模型配置几何，不是型号 as-built 安装证明。轮体符号尺寸仅用于识别，不代表真实单机外形；机身尺寸未审定，因此不绘制虚构外壳。</p>
+              </aside>
+            </div>
+            <p id="simulationGeometryStatus" class="birds-cad-status" role="status">没有已校验的整星构型。</p>
+          </section>
+          <section id="birdsCadViewer" class="birds-cad-viewer" hidden aria-label="BIRDS-4 CAD 参考模型查看器">
+            <header class="birds-cad-toolbar">
+              <div class="birds-cad-identity"><span class="birds-cad-kicker">REFERENCE CAD · BIRDS-4</span><strong>真实卫星结构参考</strong><span>静态 CAD 模式 · 不代表当前 Basilisk 仿真卫星</span></div>
+              <label class="button button-primary birds-cad-load">打开 GLB 模型<input id="birdsCadFile" type="file" accept=".glb,model/gltf-binary" hidden></label>
+              <div class="birds-cad-view-actions">
+                <button type="button" class="button button-secondary" data-cad-view="fit">适配模型</button>
+                <button type="button" class="button button-secondary" data-cad-view="axes">坐标轴</button>
+                <button type="button" class="button button-secondary" data-cad-view="home">等轴测</button><button type="button" class="button button-secondary" data-cad-view="x">+X</button><button type="button" class="button button-secondary" data-cad-view="-x">-X</button><button type="button" class="button button-secondary" data-cad-view="y">+Y</button><button type="button" class="button button-secondary" data-cad-view="-y">-Y</button><button type="button" class="button button-secondary" data-cad-view="z">+Z</button><button type="button" class="button button-secondary" data-cad-view="-z">-Z</button>
+              </div>
+            </header>
+            <div class="birds-cad-workspace">
+              <aside class="birds-cad-tree-panel"><div class="birds-cad-panel-title">装配结构 <span>CAD NODE</span></div><div class="birds-cad-tree-tools"><input id="birdsCadSearch" type="search" placeholder="搜索装配部件…" aria-label="搜索装配部件"><button type="button" class="button button-secondary" data-cad-tree-action="isolate">隔离选中</button><button type="button" class="button button-secondary" data-cad-tree-action="restore">恢复全部</button></div><div id="birdsCadTree" class="birds-cad-tree"><p>打开整星 GLB 后显示原始装配节点。</p></div></aside>
+              <div class="birds-cad-viewport"><canvas aria-label="BIRDS-4 三维 CAD 模型，可拖动旋转、滚轮缩放、右键平移"></canvas><div class="birds-cad-viewport-hint">左键旋转 · 滚轮缩放 · 右键平移</div><div class="birds-cad-axis-cube">X <b>Y</b> Z</div></div>
+              <aside class="birds-cad-inspector"><div class="birds-cad-panel-title">部件检查器 <span>INSPECTOR</span></div><div id="birdsCadInspector">选择部件查看原始节点名称与层级。</div><div class="birds-cad-provenance"><strong>数据身份</strong><span>Kyutech · BIRDS-4 FM CAD</span><span>来源版本：pinned upstream commit</span><span>安装位置：未进行 as-built 审定</span></div></aside>
+            </div>
+            <p id="birdsCadStatus" class="birds-cad-status" role="status">等待加载 BIRDS-4 GLB 参考模型。模型文件仅在本浏览器会话中读取。</p>
           </section>
           <div id="satelliteSceneStatus" class="satellite-scene-status" role="status" aria-live="polite">等待场景引擎。</div>
           <p class="satellite-scene-note">地球影像：NASA Blue Marble。当前轨道与卫星位置为演示数据，不代表真实 Basilisk 仿真结果。</p>
@@ -174,6 +253,32 @@
             <div id="p9eRunResultHost" class="p9e-run-result-host" aria-live="polite"><p class="p9d-empty">选择一条已完成运行后，这里会显示该对象关联的记录。</p></div>
           </section>
         </aside>
+      </div>
+      <div id="sceneTaskCreateModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="sceneTaskCreateTitle">
+        <section class="modal-card scene-task-create-card">
+          <header class="modal-header">
+            <div><div class="eyebrow">MISSION WORKSPACE</div><h2 id="sceneTaskCreateTitle">创建仿真任务</h2><p>选择运行方式。后续配置与执行复用现有 TaskSpec 和 Basilisk 会话工作流。</p></div>
+            <button class="icon-button" type="button" data-scene-dialog-close aria-label="关闭">×</button>
+          </header>
+          <div class="scene-task-create-options">
+            <button class="scene-task-create-option" type="button" data-scene-create="offline">
+              <span class="scene-task-option-icon">◉</span><strong>离线仿真任务</strong>
+              <span>配置整星、分系统或单机，完成 TaskSpec 校验后执行单次仿真并生成 Run 结果。</span>
+              <em>配置与结果可保存、回放和复核</em>
+            </button>
+            <button class="scene-task-create-option" type="button" data-scene-create="interactive">
+              <span class="scene-task-option-icon">⌁</span><strong>限时实时仿真</strong>
+              <span>创建交互式 Basilisk 会话，支持启动、暂停、步进、遥控和实时遥测。</span>
+              <em>适合短时交互验证与故障注入</em>
+            </button>
+            <button class="scene-task-create-option" type="button" data-scene-create="continuous">
+              <span class="scene-task-option-icon">∞</span><strong>持续实时仿真</strong>
+              <span>创建常驻整星仿真会话，持续发布轨道、姿态和分系统遥测。</span>
+              <em>适合长时运行、监控与耐久性试验</em>
+            </button>
+          </div>
+          <p class="scene-task-create-footnote">选择后进入对应配置工作区；不会自动启动仿真，也不会停止已有实时会话。</p>
+        </section>
       </div>
     </main>
 
@@ -1679,13 +1784,14 @@
 
   <script src="/assets/vendor/globe/globe.gl.min.js" defer></script>
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
-  <script type="module" src="/assets/satellite-scene.js?v=p9f-1"></script>
+  <script type="module" src="/assets/satellite-scene.js?v=p9l-scene-provenance-2"></script>
+  <script type="module" src="/assets/birds-cad-viewer.js?v=p9i-cad-1"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
-  <script src="/assets/app.js?v=p9f-1" defer></script>
+  <script src="/assets/app.js?v=p9l-scene-provenance-2" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
-  <script src="/assets/continuous.js?v=p9f-1" defer></script>
+  <script src="/assets/continuous.js?v=p9l-scene-provenance-2" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
 </body>
 </html>

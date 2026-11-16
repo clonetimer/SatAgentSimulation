@@ -95,6 +95,19 @@ GLOBE_OBSERVER = r"""
 """
 
 
+def _open_orbit_from_physical_default(page) -> None:
+    """Use real mode controls; never inject telemetry or click a hidden canvas."""
+    from playwright.sync_api import expect
+
+    expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
+    expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
+    page.locator('[data-scene-mode="orbit"]').click()
+    expect(page.locator('[data-scene-mode="orbit"]')).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#satelliteSceneCanvas canvas")).to_be_visible(timeout=30000)
+    expect(page.locator('[data-scene-action="track"]')).to_be_enabled(timeout=30000)
+
+
 def _set_control(page, selector: str, value: str) -> None:
     control = page.locator(selector)
     tag = control.evaluate("(node) => node.tagName")
@@ -221,6 +234,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             page.on("dialog", lambda dialog: dialog.accept())
 
             def observe_socket(websocket):
+                websocket.on("framesent", lambda data: report.setdefault("socket_sent", []).append(data))
                 websocket.on("framereceived", lambda data: report["socket_messages"].append(data))
 
             page.on("websocket", observe_socket)
@@ -304,6 +318,20 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 if stream["stream_id"] == "whole.orbit"
             ]
             assert len(position_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ORBIT_STREAM"
+            adcs_streams = [stream for stream in catalog_streams if stream["stream_id"] == "whole.adcs"]
+            assert len(adcs_streams) == 1, "NATIVE_SESSION_CATALOG_MISSING_DEDICATED_ADCS_STREAM"
+            assert adcs_streams[0]["sample_s"] == position_streams[0]["sample_s"]
+            required_adcs_fields = {
+                *[f"adcs.rw.speed_rad_s_{index}" for index in range(3)],
+                *[f"adcs.sensor.gyro_measured_rad_s_{axis}" for axis in "xyz"],
+                *[f"adcs.sensor.accel_measured_m_s2_{axis}" for axis in "xyz"],
+                *[f"adcs.star_tracker.q{index}" for index in range(4)],
+                "adcs.star_tracker.valid",
+                *[f"adcs.magnetometer.tesla_{axis}" for axis in "xyz"],
+                "adcs.sun_sensor.cosine_output", "adcs.sun_sensor.valid",
+                *[f"adcs.sun_sensor.direction_b_{axis}" for axis in "xyz"],
+            }
+            assert required_adcs_fields <= set(adcs_streams[0]["fields"])
             assert set(POSITION_FIELDS) <= set(position_streams[0]["fields"])
             assert set(ATTITUDE_FIELDS) <= set(position_streams[0]["fields"])
             report["telemetry_catalog"] = catalog_streams
@@ -314,6 +342,10 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                 assert requested_streams
                 scene_streams = [row for row in requested_streams if row["stream_id"] == "whole.orbit"]
                 assert len(scene_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ORBIT_STREAM"
+                adcs_task_streams = [row for row in requested_streams if row["stream_id"] == "whole.adcs"]
+                assert len(adcs_task_streams) == 1, "BOUNDED_UI_MISSING_DEDICATED_ADCS_STREAM"
+                assert adcs_task_streams[0]["sample_s"] == scene_streams[0]["sample_s"]
+                assert required_adcs_fields <= set(adcs_task_streams[0]["fields"])
                 assert set(POSITION_FIELDS) <= set(scene_streams[0]["fields"])
                 assert set(ATTITUDE_FIELDS) <= set(scene_streams[0]["fields"])
                 assert all(
@@ -334,7 +366,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             # This is the product's actual scene navigation action. The active
             # real session and its existing telemetry transport must survive.
             page.locator("#wizardSceneShortcutBtn").click()
-            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+            _open_orbit_from_physical_default(page)
             page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
             try:
                 page.wait_for_function(
@@ -479,6 +511,50 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             assert set(POSITION_FIELDS) <= set(matching["values"])
             assert set(ATTITUDE_FIELDS) <= set(matching["values"])
             assert matching["values"]["attitude.truth.valid"] == 1
+            try:
+                page.wait_for_function(
+                    "() => document.querySelector('#sceneAdcsFrameSource')?.textContent.includes('whole.adcs')",
+                    timeout=15000,
+                )
+            except Exception as error:
+                adcs_payload = _json_request(
+                    base,
+                    f"/interactive/sessions/{quote(session_id)}/telemetry/whole.adcs?after_sequence=0",
+                )
+                orbit_payload = _json_request(
+                    base,
+                    f"/interactive/sessions/{quote(session_id)}/telemetry/whole.orbit?after_sequence=0",
+                )
+                report["p9k_join_diagnostic"] = {
+                    "adcs_frames": [
+                        {"sequence": row.get("sequence"), "sim_time_s": row.get("sim_time_s"),
+                         "quality": row.get("quality"), "stream": row.get("stream")}
+                        for row in adcs_payload.get("frames", [])[-12:]
+                    ],
+                    "orbit_frames": [
+                        {"sequence": row.get("sequence"), "sim_time_s": row.get("sim_time_s"),
+                         "quality": row.get("quality"), "stream": row.get("stream")}
+                        for row in orbit_payload.get("frames", [])[-12:]
+                    ],
+                    "scene_status": page.locator("#sceneAdcsFrameSource").inner_text(),
+                    "socket_sent": report.get("socket_sent", [])[-12:],
+                    "socket_received": [
+                        json.loads(item) for item in report.get("socket_messages", [])[-80:]
+                        if isinstance(item, str) and item.startswith("{")
+                    ],
+                }
+                raise AssertionError(
+                    "P9K_STRICT_ADCS_ASSOCIATION_FAILED: "
+                    + json.dumps(report["p9k_join_diagnostic"], ensure_ascii=False)
+                ) from error
+            sensor_rows = page.locator("#simulationSensorTelemetryRows").inner_text()
+            assert "RW1" in sensor_rows
+            assert "IMU 陀螺" in sensor_rows
+            assert "IMU 加速度计" in sensor_rows
+            assert "磁强计" in sensor_rows
+            assert "星敏感器" in sensor_rows
+            assert "太阳敏感器" in sensor_rows
+            assert "whole.adcs" in page.locator("#sceneAdcsFrameSource").inner_text()
             assert matching["values"]["attitude.truth.valid"] == 1
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
             report["page_errors"] = list(report["page_errors"])
@@ -492,6 +568,26 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
                     and item.get("payload", {}).get("quality") == "GOOD"
                     for item in socket_messages
                 ), "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_GOOD_ORBIT_FRAME"
+                adcs_messages = [
+                    item.get("payload", {}) for item in socket_messages
+                    if item.get("type") == "telemetry"
+                    and item.get("payload", {}).get("stream") == "whole.adcs"
+                    and item.get("payload", {}).get("quality") == "GOOD"
+                ]
+                orbit_messages = [
+                    item.get("payload", {}) for item in socket_messages
+                    if item.get("type") == "telemetry"
+                    and item.get("payload", {}).get("stream") == "whole.orbit"
+                    and item.get("payload", {}).get("quality") == "GOOD"
+                ]
+                assert adcs_messages, "BOUNDED_BROWSER_WEBSOCKET_DID_NOT_DELIVER_GOOD_ADCS_FRAME"
+                assert required_adcs_fields <= set(adcs_messages[-1].get("values", {})), \
+                    "BOUNDED_BROWSER_ADCS_SENSOR_FIELDS_NOT_PUBLISHED"
+                assert any(
+                    orbit["session_id"] == adcs["session_id"] == session_id
+                    and orbit["sim_time_s"] == adcs["sim_time_s"]
+                    for orbit in orbit_messages for adcs in adcs_messages
+                ), "BOUNDED_BROWSER_NO_EXACT_ORBIT_ADCS_TIME_PAIR"
             report["status"] = "PASS"
             page.screenshot(path=str(evidence / "native-scene.png"), full_page=True)
             browser.close()
@@ -644,7 +740,7 @@ def test_sealed_finite_run_attitude_is_restored_in_real_scene(viewport, tmp_path
             # Use the primary navigation scene entry from the selected Run;
             # the loaded Run remains the scene's authoritative data source.
             page.locator('.sidebar-nav button[data-view="scene"]').click()
-            page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
+            _open_orbit_from_physical_default(page)
             page.wait_for_function("() => !!window.__p9fObservedGlobe", timeout=30000)
             page.wait_for_function(
                 "() => window.__p9fObservedGlobe?.objectRows?.some(row => row.attitude_valid === true)",

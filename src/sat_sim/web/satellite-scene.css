@@ -84,3 +84,141 @@
 .satellite-scene-inspector-note{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:1100px){.satellite-scene-inspector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.satellite-scene-inspector-grid{grid-template-columns:minmax(0,1fr)}.satellite-scene-inspector{padding:9px}.satellite-scene-inspector-heading{align-items:flex-start;flex-direction:column}}
+
+
+.birds-cad-viewer{display:grid;gap:12px;margin:14px 0 20px;padding:14px;border:1px solid rgba(137,164,192,.22);border-radius:18px;background:linear-gradient(145deg,#121c29,#0d141e 72%);color:#e6edf5;box-shadow:0 18px 48px rgba(0,0,0,.18)}
+.birds-cad-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.birds-cad-identity{display:grid;gap:3px;margin-right:auto}.birds-cad-identity strong{font-size:15px;letter-spacing:.02em}.birds-cad-identity>span:last-child{font-size:11px;color:#91a2b7}
+.birds-cad-kicker{font-size:9px;letter-spacing:.16em;color:#73c7e8;font-weight:700}
+.birds-cad-load{position:relative;overflow:hidden;cursor:pointer}
+.birds-cad-view-actions{display:flex;gap:6px;flex-wrap:wrap}
+.birds-cad-view-actions .button,.birds-cad-load{font-size:11px;min-height:32px;padding:6px 10px}
+.birds-cad-workspace{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr) minmax(170px,230px);min-height:520px;border:1px solid rgba(133,160,187,.16);border-radius:13px;overflow:hidden;background:#0c131d}
+.birds-cad-tree-panel,.birds-cad-inspector{min-width:0;padding:12px;background:rgba(20,31,45,.82)}
+.birds-cad-tree-panel{border-right:1px solid rgba(133,160,187,.16)}.birds-cad-inspector{border-left:1px solid rgba(133,160,187,.16)}
+.birds-cad-panel-title{display:flex;justify-content:space-between;gap:8px;padding-bottom:10px;border-bottom:1px solid rgba(133,160,187,.16);font-size:12px;font-weight:650}
+.birds-cad-panel-title span{font-size:8px;letter-spacing:.12em;color:#73869b}
+.birds-cad-tree{display:grid;gap:2px;max-height:450px;overflow:auto;padding-top:8px}
+.birds-cad-tree p{font-size:11px;color:#8293a7;line-height:1.6}
+.birds-cad-tree-node{display:block;width:100%;border:0;border-radius:6px;background:transparent;color:#bdc9d8;text-align:left;padding:6px 7px;font-size:10px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.birds-cad-tree-node:hover,.birds-cad-tree-node:focus-visible{background:rgba(78,161,205,.16);color:#fff;outline:1px solid rgba(104,195,231,.42)}
+.birds-cad-viewport{position:relative;min-width:0;min-height:520px;background:radial-gradient(ellipse at 50% 42%,#26374a 0,#172331 42%,#0c131d 82%)}
+.birds-cad-viewport canvas{display:block;width:100%;height:100%;min-height:520px;touch-action:none;cursor:grab}.birds-cad-viewport canvas:active{cursor:grabbing}
+.birds-cad-viewport-hint{position:absolute;left:12px;bottom:10px;padding:6px 9px;border-radius:7px;background:rgba(8,14,22,.72);color:#9eafc1;font-size:9px;pointer-events:none}
+.birds-cad-axis-cube{position:absolute;right:14px;top:12px;font-size:10px;color:#ff8a78;pointer-events:none}.birds-cad-axis-cube b{color:#72d3a2}
+.birds-cad-inspector #birdsCadInspector{display:grid;gap:10px;padding:12px 0;font-size:11px;line-height:1.6;color:#d9e5f0;overflow-wrap:anywhere}
+.birds-cad-inspector-name{font-size:12px;line-height:1.4}
+.birds-cad-inspector-note{margin:0;padding:8px;border:1px solid rgba(228,176,96,.24);border-radius:7px;background:rgba(228,176,96,.07);color:#d9c49f;font-size:9px;line-height:1.55}
+.birds-cad-inspector-section{display:grid;gap:6px;padding-top:9px;border-top:1px solid rgba(133,160,187,.16);min-width:0}
+.birds-cad-inspector-section>strong{color:#9fb4c8;font-size:9px;font-weight:700}
+.birds-cad-inspector-section>p{margin:0;color:#c8d5e2;font-size:9px;line-height:1.55;overflow-wrap:anywhere}
+.birds-cad-inspector-line{display:grid;grid-template-columns:minmax(88px,.75fr) minmax(0,1.25fr);gap:8px;align-items:start;font-size:9px}
+.birds-cad-inspector-line>span{color:#8296aa}
+.birds-cad-inspector-line>strong{color:#dce7f1;font-weight:550;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:right}
+.birds-cad-provenance{display:grid;gap:7px;margin-top:14px;padding:10px;border-radius:9px;background:rgba(255,255,255,.035);font-size:10px;color:#94a7ba}
+.birds-cad-provenance strong{color:#c9d7e6;font-size:11px}.birds-cad-status{margin:0;padding:8px 10px;border-radius:8px;background:rgba(94,142,181,.09);color:#9eb2c8;font-size:10px}.birds-cad-status[data-kind="error"]{color:#ffaaa1;background:rgba(180,65,55,.12)}
+@media(max-width:900px){.birds-cad-workspace{grid-template-columns:150px minmax(0,1fr);}.birds-cad-inspector{grid-column:1/-1;border-left:0;border-top:1px solid rgba(133,160,187,.16)}.birds-cad-viewport,.birds-cad-viewport canvas{min-height:430px}}
+@media(max-width:600px){.birds-cad-viewer{padding:9px;border-radius:12px}.birds-cad-workspace{grid-template-columns:1fr;}.birds-cad-tree-panel{border-right:0;border-bottom:1px solid rgba(133,160,187,.16);max-height:160px}.birds-cad-tree{max-height:110px}.birds-cad-viewport,.birds-cad-viewport canvas{min-height:360px}.birds-cad-inspector{grid-column:auto}.birds-cad-toolbar{align-items:flex-start}.birds-cad-view-actions{width:100%}}
+
+.birds-cad-tree-group{min-width:0}.birds-cad-tree-group>summary{padding:6px 4px;color:#a9bacd;font-size:10px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.birds-cad-tree-children{padding-left:8px;border-left:1px solid rgba(133,160,187,.16);margin-left:5px}.birds-cad-tree-node{max-width:100%}.birds-cad-tree-group[open]>summary{color:#d8e8f6}
+
+.birds-cad-tree-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:5px;padding:8px 0}.birds-cad-tree-tools input{min-width:0;width:100%;border:1px solid rgba(133,160,187,.24);border-radius:7px;background:#0c1520;color:#dce8f4;padding:7px 8px;font-size:10px}.birds-cad-tree-tools .button{min-height:28px;padding:4px 7px;font-size:9px}.birds-cad-tree-row{display:flex;align-items:center;gap:3px;min-width:0}.birds-cad-tree-row[hidden]{display:none}.birds-cad-tree-row .birds-cad-tree-node{flex:1;min-width:0}.birds-cad-tree-node.is-selected{background:rgba(66,169,218,.2);color:#fff;outline:1px solid rgba(85,199,255,.48)}.birds-cad-visibility{flex:0 0 auto;border:0;border-radius:5px;background:transparent;color:#8196aa;padding:4px;font-size:9px;cursor:pointer}.birds-cad-visibility:hover{background:rgba(255,255,255,.07);color:#dce8f4}@media(max-width:600px){.birds-cad-tree-tools{grid-template-columns:1fr 1fr}.birds-cad-tree-tools input{grid-column:1/-1}}
+
+.satellite-scene-mode-tabs{display:flex;gap:6px;margin:10px 0 14px;padding:4px;width:max-content;max-width:100%;border:1px solid rgba(133,160,187,.2);border-radius:10px;background:rgba(16,27,40,.72)}.satellite-scene-mode-tabs button{border:0;border-radius:7px;padding:8px 13px;background:transparent;color:var(--muted,#8b9caf);font-size:12px;cursor:pointer}.satellite-scene-mode-tabs button[aria-pressed=true]{background:rgba(79,160,207,.2);color:var(--text,#e5edf5);box-shadow:inset 0 0 0 1px rgba(104,191,229,.28)}.satellite-orbit-mode[hidden],.birds-cad-viewer[hidden]{display:none!important}@media(max-width:600px){.satellite-scene-mode-tabs{width:100%}.satellite-scene-mode-tabs button{flex:1}}
+
+/* P9-I5: keep scene controls clear of the fixed application header and adjacent config panel during scroll. */
+.satellite-scene-shell{position:relative;z-index:0;min-width:0}.p9d-config-panel{position:relative;z-index:2;isolation:isolate}.satellite-scene-heading{scroll-margin-top:104px}.satellite-scene-title-block{min-width:0;flex:1 1 100%}.satellite-scene-return{margin-top:9px}.satellite-scene-actions{position:relative;z-index:2;flex:1 1 100%;min-width:0;max-width:100%;justify-content:flex-start}.satellite-scene-actions button{scroll-margin-top:104px}
+
+/* CAD reference mode is an inspection workspace, not a simulation configuration view. */
+.p9d-scene-layout.is-cad-mode{grid-template-columns:minmax(0,1fr)}.p9d-scene-layout.is-cad-mode>.p9d-config-panel{display:none}.p9d-scene-layout.is-cad-mode>.satellite-scene-shell{grid-column:1/-1;min-width:0}.p9d-scene-layout.is-cad-mode .birds-cad-workspace{grid-template-columns:minmax(180px,240px) minmax(0,1fr) minmax(190px,260px)}@media(max-width:900px){.p9d-scene-layout.is-cad-mode .birds-cad-workspace{grid-template-columns:minmax(145px,190px) minmax(0,1fr)}.p9d-scene-layout.is-cad-mode .birds-cad-inspector{grid-column:1/-1}}@media(max-width:600px){.p9d-scene-layout.is-cad-mode .birds-cad-workspace{grid-template-columns:minmax(0,1fr)}}
+
+.p9d-scene-layout.is-cad-mode .satellite-scene-actions{display:none}.p9d-scene-layout.is-cad-mode .satellite-scene-heading h1{font-size:21px}.p9d-scene-layout.is-cad-mode .satellite-scene-heading p{color:var(--muted);max-width:72ch}
+
+/* Engineering object semantics: separate model taxonomy from as-built placement evidence. */
+.scene-object-semantics{display:grid;gap:9px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.scene-object-semantics-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.scene-object-semantics-heading h3{margin:0;font-size:12px}
+.scene-object-semantics-heading span{color:var(--muted);font-size:9px;letter-spacing:.08em}
+.scene-object-semantics dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+.scene-object-semantics dl>div{display:grid;gap:3px;min-width:0;padding:7px 8px;border-radius:7px;background:var(--panel)}
+.scene-object-semantics dt{font-size:9px;color:var(--muted)}
+.scene-object-semantics dd{margin:0;font-size:10px;font-weight:650;overflow-wrap:anywhere}
+.scene-object-semantics p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:900px){.scene-object-semantics dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.scene-object-semantics dl{grid-template-columns:minmax(0,1fr)}}
+
+/* P9-J1: validated simulation configuration geometry, explicitly separate from as-built CAD. */
+.p9d-scene-layout.is-simulation-mode{grid-template-columns:minmax(0,1fr) minmax(300px,390px)}
+.p9d-scene-layout.is-simulation-mode .satellite-scene-actions{display:none}
+.simulation-geometry-mode{display:grid;gap:12px;margin:12px 0 18px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel);min-width:0}
+.simulation-geometry-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.simulation-geometry-heading h2{margin:0;font-size:16px}.simulation-geometry-heading p{margin:5px 0 0;color:var(--muted);font-size:11px}
+.simulation-geometry-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.85fr);gap:12px;min-width:0}
+.simulation-geometry-viewport{position:relative;min-width:0;min-height:420px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#26374a 0,#121d2b 56%,#0a111b 100%)}
+.simulation-geometry-viewport canvas{display:block;width:100%;height:100%;min-height:420px;touch-action:none;cursor:grab}.simulation-geometry-viewport canvas:active{cursor:grabbing}
+.simulation-geometry-hint{position:absolute;left:10px;bottom:9px;padding:5px 8px;border-radius:6px;background:rgba(8,14,22,.75);color:#a9b9ca;font-size:9px;pointer-events:none}
+.simulation-geometry-details{display:grid;align-content:start;gap:9px;min-width:0}.simulation-geometry-details h3{margin:0;font-size:12px}
+.simulation-geometry-summary{padding:8px 9px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:10px;line-height:1.5}
+.simulation-geometry-table-wrap{min-width:0;overflow:auto}.simulation-geometry-table{width:100%;border-collapse:collapse;font-size:10px;font-variant-numeric:tabular-nums}.simulation-geometry-table th,.simulation-geometry-table td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.simulation-geometry-table th{color:var(--muted);font-weight:600}
+.simulation-geometry-note{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:1050px){.simulation-geometry-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.p9d-scene-layout.is-simulation-mode{grid-template-columns:minmax(0,1fr)}.simulation-geometry-viewport,.simulation-geometry-viewport canvas{min-height:340px}}
+
+.simulation-geometry-mode[hidden]{display:none!important}
+
+.simulation-sensor-geometry{display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.simulation-sensor-geometry h3{margin:0;font-size:11px}
+
+.simulation-rigid-body-properties{display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.simulation-rigid-body-properties h3{margin:0;font-size:11px}
+.simulation-rigid-body-properties dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:0}
+.simulation-rigid-body-properties dl>div{display:grid;gap:3px;padding:7px;border-radius:7px;background:var(--surface);min-width:0}
+.simulation-rigid-body-properties dt{font-size:9px;color:var(--muted)}
+.simulation-rigid-body-properties dd{margin:0;font-size:10px;font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.simulation-rigid-body-properties p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:560px){.simulation-rigid-body-properties dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.simulation-sensor-telemetry{display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.simulation-sensor-telemetry h3{margin:0;font-size:11px}
+
+
+/* Scene task creation: keep launch choices grouped without crowding camera controls. */
+.scene-task-launch { position: relative; }
+.scene-task-launch > summary { list-style: none; cursor: pointer; }
+.scene-task-launch > summary::-webkit-details-marker { display: none; }
+.scene-task-launch-menu {
+  position: absolute; z-index: 30; top: calc(100% + 8px); right: 0;
+  display: grid; grid-template-columns: 1fr; gap: 6px; min-width: 210px;
+  padding: 10px; border: 1px solid var(--border, #34445c);
+  border-radius: 12px; background: var(--panel, #101a2b);
+  box-shadow: 0 12px 32px rgba(0,0,0,.28);
+}
+.scene-task-launch-menu .button { width: 100%; justify-content: flex-start; }
+
+
+/* In-scene task creation dialog */
+.scene-task-create-card { width: min(820px, 100%); }
+.scene-task-create-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.scene-task-create-option {
+  display:flex; flex-direction:column; align-items:flex-start; gap:10px; min-width:0;
+  padding:16px; text-align:left; color:var(--text); background:var(--panel-2);
+  border:1px solid var(--line); border-radius:12px; cursor:pointer;
+  transition:border-color .16s ease, transform .16s ease, background .16s ease;
+}
+.scene-task-create-option:hover,.scene-task-create-option:focus-visible {
+  border-color:var(--accent); background:var(--panel); transform:translateY(-2px);
+}
+.scene-task-option-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; background:var(--surface); font-size:22px; }
+.scene-task-create-option strong { font-size:13px; }
+.scene-task-create-option span:not(.scene-task-option-icon) { color:var(--muted); font-size:11px; line-height:1.6; }
+.scene-task-create-option em { margin-top:auto; color:var(--accent); font-size:10px; font-style:normal; }
+.scene-task-create-footnote { margin:14px 0 0; color:var(--muted); font-size:10px; line-height:1.6; }
+@media(max-width:680px) { .scene-task-create-options { grid-template-columns:1fr; } }
+
+
+/* Active Run/session identity strip for scene provenance. */
+.scene-task-context { display:grid; grid-template-columns:1.2fr 1.5fr .8fr .8fr; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); }
+.scene-task-context>div { display:grid; gap:3px; min-width:0; }
+.scene-task-context span { color:var(--muted); font-size:9px; }
+.scene-task-context strong { color:var(--text); font-size:11px; font-weight:650; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+@media(max-width:680px) { .scene-task-context { grid-template-columns:repeat(2,minmax(0,1fr)); } }

@@ -4468,6 +4468,36 @@
     }
   }
 
+  function notifySceneObjectSelection(objectId, fallback = {}) {
+    const roots = state.sceneObjectTree?.roots || [];
+    const stack = [...roots];
+    let row = null;
+    while (stack.length) {
+      const candidate = stack.pop();
+      if (candidate?.object_id === objectId) { row = candidate; break; }
+      stack.push(...(candidate?.children || []));
+    }
+    const source = row || fallback || {};
+    const selectedCapability = source.execution_capability_id || source.configuration_capability_id
+      || fallback.primary_capability_id || state.selectedCapabilityId || '';
+    if (!String(selectedCapability).startsWith('whole_spacecraft.')) {
+      if (typeof window !== 'undefined') window.SatScene?.clearSimulationConfiguration?.();
+    }
+    if (typeof window !== 'undefined') window.SatScene?.selectObject?.({
+      objectId,
+      name: source.name_zh || fallback.name_zh || objectId,
+      kind: source.kind || null,
+      physicalClass: source.physical_class || null,
+      sceneTarget: source.scene_target || null,
+      spatialAnchor: source.spatial_anchor || null,
+      executionCapabilityId: source.execution_capability_id || fallback.primary_capability_id || null,
+      configurationScope: source.configuration_scope || null,
+      instanceSemantics: source.instance_semantics || null,
+      inventoryCount: source.inventory_count ?? null,
+      inventoryCountSource: source.inventory_count_source || null,
+    });
+  }
+
   function renderP9DPanel() {
     const panel = window.P9DObjectConfigPanel;
     if (!panel || !state.sceneObjectTree) return;
@@ -4515,7 +4545,7 @@
             if (row?.object_id === objectId) { selected = row; break; }
             stack.push(...(row?.children || []));
           }
-          window.SatScene?.selectObject?.({ name: selected?.name_zh || objectId, hasSpatialAnchor: Boolean(selected?.spatial_anchor) });
+          notifySceneObjectSelection(objectId, selected || {});
           renderP9DPanel();
           return;
         }
@@ -4535,6 +4565,7 @@
         state.changedPaths.add(path);
         state.taskSpec = null;
         state.planning = null;
+        if (typeof window !== 'undefined') window.SatScene?.clearSimulationConfiguration?.();
         state.wizard.validated = false;
         state.wizard.validatedForm = null;
         updateSingleRunSummary();
@@ -4695,7 +4726,7 @@
       renderForm();
       renderEvents();
       renderP9DPanel();
-      window.SatScene?.selectObject?.({ name: object.name_zh, hasSpatialAnchor: Boolean(object.spatial_anchor) });
+      notifySceneObjectSelection(object.object_id, object);
       el('qoiOptions').replaceChildren();
       el('plotOptions').replaceChildren();
       syncTaskSpecEditor();
@@ -4721,7 +4752,7 @@
         renderOutputs();
         syncTaskSpecEditor();
         renderP9DPanel();
-        window.SatScene?.selectObject?.({ name: objectOverride.name_zh, hasSpatialAnchor: Boolean(objectOverride.spatial_anchor) });
+        notifySceneObjectSelection(objectOverride.object_id, objectOverride);
       }
       return true;
     }
@@ -4769,7 +4800,7 @@
       renderCapabilityList();
       renderForm();
       renderP9DPanel();
-      window.SatScene?.selectObject?.({ name: object?.name_zh || state.schema.capability.name || capabilityId, hasSpatialAnchor: Boolean(object?.spatial_anchor) });
+      notifySceneObjectSelection(object?.object_id || capabilityId, object || {});
       renderEffectSelect();
       renderEvents();
       renderOutputs();
@@ -5606,8 +5637,17 @@
       return false;
     }
     const result=payload.result; state.taskSpec=result.task_spec || null; state.planning=result.planning || null; syncTaskSpecEditor();
-    if (payload.ok && state.taskSpec) { state.hasTaskSpecContext = true; captureTaskSource(payload); }
+    if (payload.ok && state.taskSpec) {
+      state.hasTaskSpecContext = true;
+      captureTaskSource(payload);
+      if (typeof window !== 'undefined') window.SatScene?.setSimulationConfiguration?.({
+        capabilityId: requestedCapabilityId,
+        values: clone(state.formData),
+        validated: true,
+      });
+    }
     if (!payload.ok) {
+      if (typeof window !== 'undefined') window.SatScene?.clearSimulationConfiguration?.();
       const errors=[...(result.validation?.errors || []),...(result.guards?.issues || []),...(result.planning?.validation?.errors || [])];
       showValidationIssues(errors,'TaskSpec 校验失败');
       updateSingleRunGuide('configure', '后端校验未通过；请按错误提示修正参数再提交。');
@@ -7307,9 +7347,12 @@
     state.interactiveGaps = {};
     state.interactiveEvents = [];
     state.interactiveAcks = [];
-    renderInteractiveStreams();
     renderInteractiveCommandTargets();
     await refreshInteractiveDetails();
+    // The detail snapshot is authoritative for the complete telemetry catalog.
+    // Rebuild the selector only after it has replaced the initial session snapshot.
+    renderInteractiveStreams();
+    renderInteractiveCommandTargets();
     renderInteractiveSessions();
     if (selectionVersion === state.interactiveSelectionVersion) connectInteractiveSocket();
   }
@@ -7476,6 +7519,20 @@
             )),
           })),
           ...(capabilityId === 'whole_spacecraft.unified_native.v1' ? [{
+            stream_id: 'whole.adcs',
+            sample_s: quantum,
+            fields: [
+              ...ADCS_TELEMETRY_FIELDS,
+              ...(state.interactivePreparedNativeValues?.rw_configuration === 'pyramid_4' ? [
+                'adcs.rw.speed_rad_s_3',
+                'adcs.rw.measured_speed_rad_s_3',
+                'adcs.rw.command_torque_nm_3',
+                'adcs.control.applied_torque_nm_3',
+                'adcs.rw.effective_max_torque_nm_3',
+              ] : []),
+            ],
+          }] : []),
+          ...(capabilityId === 'whole_spacecraft.unified_native.v1' ? [{
             // A dedicated atomic spatial-state stream publishes position and
             // body attitude from the same spacecraft recorder, independently
             // of unrelated ADCS/EPS/thermal/communications channels.
@@ -7636,6 +7693,20 @@
     return ['sat-sim-v1', `sat-auth.${encoded}`];
   }
 
+  function interactiveSubscriptionStreams(session, visibleStreams = []) {
+    const selected = new Set(visibleStreams.filter(value => typeof value === 'string' && value));
+    if (session?.capability_id === 'whole_spacecraft.unified_native.v1') {
+      const catalog = new Set((session.telemetry_catalog || []).map(item => item?.stream_id).filter(Boolean));
+      // Scene association consumes two independent quality domains. They must
+      // be subscribed even when the user's chart selector currently shows
+      // only one stream; never substitute whole.fast for either dedicated stream.
+      for (const required of ['whole.orbit', 'whole.adcs']) {
+        if (catalog.has(required)) selected.add(required);
+      }
+    }
+    return [...selected];
+  }
+
   function connectInteractiveSocket() {
     if (!state.interactiveSession || !state.interactiveAvailable || !state.interactiveSession.telemetry_streams?.length) return;
     closeInteractiveSocket(false);
@@ -7647,7 +7718,10 @@
       if (state.interactiveSocket !== socket) { socket.close(1000, 'CLIENT_NAVIGATION'); return; }
       el('interactiveConnectionBadge').className = 'status-chip status-ok';
       el('interactiveConnectionBadge').innerHTML = '<span class="status-dot"></span>已连接';
-      const streams = Array.from(el('interactiveStream').options).map(option => option.value).filter(Boolean);
+      const streams = interactiveSubscriptionStreams(
+        state.interactiveSession,
+        Array.from(el('interactiveStream').options).map(option => option.value).filter(Boolean),
+      );
       const afterSequences = {};
       streams.forEach((stream) => {
         const frames = state.interactiveFrames[stream] || [];
@@ -7661,6 +7735,10 @@
       if (message.type === 'telemetry') acceptInteractiveFrame(message.payload);
       if (message.type === 'gap') {
         state.interactiveGaps[message.payload.stream] = message.payload;
+        if (message.payload.stream === 'whole.adcs'
+            && state.activeView === 'scene' && state.sceneRealtimeSource === 'interactive') {
+          window.SatScene?.invalidateAdcsTelemetry?.('遥测序列缺口 ' + message.payload.dropped_count);
+        }
         renderInteractiveTelemetry();
       }
       if (message.type === 'session_event') {
@@ -7701,6 +7779,27 @@
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, 'CLIENT_NAVIGATION');
   }
 
+  const ADCS_SCENE_FIELDS = Object.freeze([
+    'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2',
+  ]);
+  const ADCS_TELEMETRY_FIELDS = Object.freeze([
+    ...ADCS_SCENE_FIELDS,
+    ...[0,1,2].flatMap(index => [
+      'adcs.rw.measured_speed_rad_s_'+index,
+      'adcs.rw.command_torque_nm_'+index,
+      'adcs.control.applied_torque_nm_'+index,
+      'adcs.rw.effective_max_torque_nm_'+index,
+    ]),
+    ...['x','y','z'].flatMap(axis => [
+      'adcs.sensor.gyro_measured_rad_s_'+axis,
+      'adcs.sensor.accel_measured_m_s2_'+axis,
+    ]),
+    ...[0,1,2,3].map(index => 'adcs.star_tracker.q'+index),
+    'adcs.star_tracker.valid',
+    ...['x','y','z'].map(axis => 'adcs.magnetometer.tesla_'+axis),
+    'adcs.sun_sensor.cosine_output', 'adcs.sun_sensor.valid',
+    ...['x','y','z'].map(axis => 'adcs.sun_sensor.direction_b_'+axis),
+  ]);
   const ORBIT_SCENE_FIELDS = Object.freeze([
     'orbit.position_m_x', 'orbit.position_m_y', 'orbit.position_m_z',
     'attitude.truth.mrp_BN_x', 'attitude.truth.mrp_BN_y', 'attitude.truth.mrp_BN_z',
@@ -7714,6 +7813,47 @@
     return catalog.find(stream => Array.isArray(stream.fields)
       && ORBIT_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
   }
+  function sceneAdcsStream(session) {
+    const catalog = Array.isArray(session?.telemetry_catalog) ? session.telemetry_catalog : [];
+    // Do not select whole.fast merely because it contains the same RW fields.
+    // whole.fast is a mixed subsystem quality domain and can be INVALID due to
+    // unrelated propulsion channels; only whole.adcs is eligible for strict
+    // orbit/ADCS scene association.
+    return catalog.find(stream => stream?.stream_id === 'whole.adcs'
+      && Array.isArray(stream.fields)
+      && ADCS_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
+  }
+  function setSceneAdcsJoinStatus(message) {
+    const node = document.getElementById('sceneAdcsFrameSource');
+    if (node) node.textContent = 'ADCS: ' + message;
+  }
+  function sceneTelemetryJoin(session) {
+    const orbit = sceneOrbitStream(session), adcs = sceneAdcsStream(session);
+    if (!orbit || !adcs) { setSceneAdcsJoinStatus('目录未同时声明 whole.orbit / whole.adcs'); return null; }
+    if (orbit.sample_s !== adcs.sample_s) { setSceneAdcsJoinStatus('两个流的采样周期不一致'); return null; }
+    if (!session?.session_id || !session?.orbit_epoch_utc
+        || session.orbit_frame !== 'N_INERTIAL' || session.orbit_time_system !== 'UTC') {
+      setSceneAdcsJoinStatus('Session / Epoch / 参考系元数据不完整'); return null;
+    }
+    const key = JSON.stringify([session.session_id, session.orbit_epoch_utc, orbit.stream_id, adcs.stream_id]);
+    if (state.sceneTelemetryJoinKey !== key) {
+      state.sceneTelemetryJoinKey = key;
+      state.sceneTelemetryJoin = window.SatScene?.createStrictTelemetryTimeJoin?.({
+        sessionId: session.session_id, epochUtc: session.orbit_epoch_utc,
+        frame: session.orbit_frame, timeSystem: session.orbit_time_system,
+        orbitStreamId: orbit.stream_id, adcsStreamId: adcs.stream_id, maxPending: 256,
+      }) || null;
+    }
+    if (!state.sceneTelemetryJoin) {
+      setSceneAdcsJoinStatus('严格时间关联器未初始化');
+      return null;
+    }
+    return {join:state.sceneTelemetryJoin,orbit,adcs,meta:{
+      sessionId:session.session_id,epochUtc:session.orbit_epoch_utc,
+      frame:session.orbit_frame,timeSystem:session.orbit_time_system,
+      orbitStreamId:orbit.stream_id,adcsStreamId:adcs.stream_id,
+    }};
+  }
 
   function acceptInteractiveFrame(frame) {
     state.interactiveLastTelemetryReceivedAt ||= {};
@@ -7722,18 +7862,37 @@
     if (!frames.length || frame.sequence > frames[frames.length - 1].sequence) frames.push(frame);
     state.interactiveFrames[frame.stream] = frames.slice(-600);
     if (state.interactiveSession?.capability_id === 'whole_spacecraft.unified_native.v1') {
-      const orbitStream = sceneOrbitStream(state.interactiveSession);
-      // The UI subscribes to multiple streams, each with its own sequence
-      // counter. Only the catalog-declared orbit stream may drive the globe.
-      if (orbitStream?.stream_id === frame.stream) {
-        window.SatScene?.updateTelemetry(frame, {
+      const contract = sceneTelemetryJoin(state.interactiveSession);
+      if (contract?.orbit.stream_id === frame.stream) {
+        const accepted = window.SatScene?.updateTelemetry(frame, {
           epochUtc: state.interactiveSession.orbit_epoch_utc,
           timeSystem: state.interactiveSession.orbit_time_system,
           frame: state.interactiveSession.orbit_frame,
           sourceId: state.interactiveSession.session_id,
-          streamId: orbitStream.stream_id,
-          sourceLabel: '限时/持续实时 Basilisk 会话',
+          streamId: contract.orbit.stream_id,
+          sourceLabel: '真实 Basilisk 轨道 + ADCS 遥测',
         });
+        if (accepted) {
+          const pair = contract.join.accept('orbit', frame, contract.meta);
+          if (pair) window.SatScene?.updateAdcsTelemetry(pair, {
+            sourceId: state.interactiveSession.session_id, epochUtc: state.interactiveSession.orbit_epoch_utc,
+            timeSystem: state.interactiveSession.orbit_time_system, frame: state.interactiveSession.orbit_frame,
+            orbitStreamId: contract.orbit.stream_id, adcsStreamId: contract.adcs.stream_id,
+          });
+          else setSceneAdcsJoinStatus(`等待精确配对 · orbit seq ${frame.sequence} · pending ${contract.join.pendingCount()}`);
+        }
+      } else if (contract?.adcs.stream_id === frame.stream) {
+        if (frame.quality !== 'GOOD') {
+          window.SatScene?.invalidateAdcsTelemetry?.('ADCS 数据质量 ' + String(frame.quality || 'UNKNOWN'));
+          return;
+        }
+        const pair = contract.join.accept('adcs', frame, contract.meta);
+        if (pair) window.SatScene?.updateAdcsTelemetry(pair, {
+          sourceId: state.interactiveSession.session_id, epochUtc: state.interactiveSession.orbit_epoch_utc,
+          timeSystem: state.interactiveSession.orbit_time_system, frame: state.interactiveSession.orbit_frame,
+          orbitStreamId: contract.orbit.stream_id, adcsStreamId: contract.adcs.stream_id,
+        });
+        else setSceneAdcsJoinStatus(`等待精确配对 · ADCS seq ${frame.sequence} · pending ${contract.join.pendingCount()}`);
       }
     }
     if (el('interactiveStream').value === frame.stream) renderInteractiveTelemetry();
@@ -8981,8 +9140,17 @@
     } else {
       window.SatContinuousConsole?.exit();
     }
-    if (name === 'scene') window.SatScene?.enter();
-    else window.SatScene?.exit();
+    if (name === 'scene') {
+      const simulationMode = Boolean(el('simulationGeometryMode') && !el('simulationGeometryMode').hidden);
+      const cadMode = Boolean(el('birdsCadViewer') && !el('birdsCadViewer').hidden);
+      window.SatScene?.setOrbitSceneVisible?.(!simulationMode && !cadMode);
+      window.SatScene?.setSimulationGeometryVisible?.(simulationMode);
+      window.SatScene?.enter();
+    } else {
+      window.SatScene?.setOrbitSceneVisible?.(false);
+      window.SatScene?.setSimulationGeometryVisible?.(false);
+      window.SatScene?.exit();
+    }
     if (name === 'interactive') {
       loadInteractiveSessions().then(() => {
         if (!state.interactiveSession && state.interactiveSessions.length) selectInteractiveSession(state.interactiveSessions[0].session_id);
@@ -11410,6 +11578,59 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       navigateToView('wizard');
       wizardMessage('assistant', '已返回仿真向导；当前配置、任务版本和已有运行记录保持不变。');
       renderSimulationWizard();
+    }));
+    let sceneTaskCreateInvoker = null;
+    const sceneTaskModal = el('sceneTaskCreateModal');
+    const closeSceneTaskModal = () => {
+      sceneTaskModal?.classList.add('hidden');
+      if (sceneTaskCreateInvoker?.isConnected) sceneTaskCreateInvoker.focus();
+    };
+    el('sceneCreateTaskBtn')?.addEventListener('click', () => {
+      sceneTaskCreateInvoker = document.activeElement;
+      sceneTaskModal?.classList.remove('hidden');
+      sceneTaskModal?.querySelector('[data-scene-create]')?.focus();
+    });
+    $all('[data-scene-dialog-close]').forEach(button => button.addEventListener('click', closeSceneTaskModal));
+    sceneTaskModal?.addEventListener('click', event => {
+      if (event.target === sceneTaskModal) closeSceneTaskModal();
+    });
+    document.addEventListener('keydown', event => {
+      if (sceneTaskModal?.classList.contains('hidden')) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeSceneTaskModal(); return; }
+      if (event.key !== 'Tab') return;
+      const controls = [...sceneTaskModal.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+        .filter(node => !node.disabled && node.getClientRects().length);
+      if (!controls.length) return;
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !sceneTaskModal.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !sceneTaskModal.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    });
+    $all('[data-scene-create]').forEach((button) => button.addEventListener('click', () => {
+      const kind = button.dataset.sceneCreate;
+      closeSceneTaskModal();
+      if (kind === 'offline') {
+        switchView('wizard');
+        if (state.activeView === 'wizard') {
+          navigateToWizardShortcut('normal_run');
+          wizardMessage('assistant', '已从卫星数字场景进入离线仿真配置。完成整星/分系统/部件选择、参数校验后即可创建并运行任务。');
+        }
+        return;
+      }
+      if (kind === 'interactive' || kind === 'continuous') {
+        if (!state.interactiveAvailable) {
+          showNotice('实时仿真服务当前不可用；离线仿真仍可从仿真向导或场景右侧配置面板运行。', 'warning');
+          return;
+        }
+        const target = kind === 'interactive' ? 'interactive' : 'continuous';
+        navigateToView(target);
+        if (state.activeView === target) {
+          const label = kind === 'interactive' ? '限时交互式实时仿真' : '持续实时仿真';
+          showNotice('已进入' + label + '创建工作区。请检查运行参数并显式创建会话；不会自动启动仿真。', 'success');
+        }
+      }
     }));
     $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => navigateToWizardShortcut(button.dataset.wizardShortcut)));
     el('wizardTaskSearch').addEventListener('input', () => { el('taskSearch').value = el('wizardTaskSearch').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });

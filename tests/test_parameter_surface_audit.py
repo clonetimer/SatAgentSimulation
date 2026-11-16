@@ -50,7 +50,10 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert whole["continuous_initial_field_count"] == 165
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 159
+    assert whole["registered_parameter_count"] == 162
+    for key in ("star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg", "star_tracker_mount_roll_deg"):
+        assert key in whole["continuous_groups"]["adcs"]
+        assert key not in whole["native_source_keys_missing_whole_registry"]
     assert "solar_panel_structure_conductance_w_k" in whole["continuous_groups"]["thermal"]
     integrated = next(c for c in report["capabilities"] if c["capability_id"] == "whole_spacecraft.unified_native.v1")
     link = next(p for p in integrated["parameters"] if p["key"] == "solar_panel_structure_conductance_w_k")

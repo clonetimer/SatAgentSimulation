@@ -57,8 +57,12 @@ def test_realtime_whole_spacecraft_contract_publishes_epoch_frame_and_position_c
     assert "state.interactiveSession.orbit_epoch_utc" in app
     assert "frame: state.interactiveSession.orbit_frame" in app
     assert "timeSystem: state.interactiveSession.orbit_time_system" in app
-    assert "streamId: orbitStream.stream_id" in app
-    assert "orbitStream?.stream_id === frame.stream" in app
+    assert "streamId: contract.orbit.stream_id" in app
+    assert "createStrictTelemetryTimeJoin" in app
+    assert "updateAdcsTelemetry" in app
+    assert "whole.adcs" in app
+    assert "contract?.orbit.stream_id === frame.stream" in app
+    assert "contract?.adcs.stream_id === frame.stream" in app
     assert "function sceneOrbitStream(session)" in app
     assert "epochUtc: info.orbit_epoch_utc" in continuous
     assert "frame: info.orbit_frame" in continuous
@@ -134,6 +138,10 @@ def test_telemetry_driven_globe_browser_acceptance(tmp_path: Path):
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
+            playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
+            playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
+            page.locator('[data-scene-mode="orbit"]').click()
+            playwright.expect(page.locator('[data-scene-action="track"]')).to_be_enabled(timeout=30000)
             status = page.locator("#satelliteSceneStatus")
             page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
             result = page.evaluate("""() => {
