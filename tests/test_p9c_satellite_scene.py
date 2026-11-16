@@ -31,6 +31,9 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert index.status_code == 200
         assert 'data-view="scene"' in index.text
         assert 'id="satelliteSceneView"' in index.text
+        assert 'data-scene-create="offline"' in index.text
+        assert 'data-scene-create="interactive"' in index.text
+        assert 'data-scene-create="continuous"' in index.text
         assert 'id="satelliteSceneCanvas"' in index.text
         assert 'src="/assets/vendor/globe/globe.gl.min.js"' in index.text
         assert '"three":"/assets/vendor/globe/three.module.js"' in index.text
