@@ -252,3 +252,19 @@ test('an unmatched orbit or ADCS frame supersedes stale GOOD status with pending
   assert.match(state.adcsTelemetryStatus.reason,/orbit seq 9/);
   assert.equal(rendered,1);
 });
+
+test('sealed Run ADCS source remains visible without a live-session status object',()=>{
+  const h=provenanceHarness();
+  h.state.telemetrySourceId='run:sealed-A';
+  h.state.telemetrySourceLabel='已封存有限 Run 遥测';
+  h.state.telemetryCapabilityId='whole_spacecraft.unified_native.v1';
+  h.state.telemetryLifecycleState='SUCCEEDED';
+  h.state.adcsTelemetryStatus={quality:'UNAVAILABLE',simTimeS:null,reason:'封存 Run 尚未提供 ADCS 同时刻记录'};
+  h.state.latestTelemetryPoint.adcsSource={
+    session_id:'run:sealed-A',stream:'sealed.run.telemetry',sequence:3,
+    sim_time_s:12.5,quality:'GOOD',sequence_gap_before:false,
+  };
+  h.render();
+  assert.equal(h.values.sceneTaskContextAdcsQuality,'GOOD · 12.50 s');
+  assert.match(h.values.sceneAdcsFrameSource,/sealed.run.telemetry.*GOOD/);
+});
