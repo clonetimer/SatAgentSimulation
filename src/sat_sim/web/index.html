@@ -128,11 +128,14 @@
       <div class="p9d-scene-layout">
         <section class="satellite-scene-shell">
           <header class="satellite-scene-heading"><div class="satellite-scene-title-block"><div class="eyebrow">SATELLITE DIGITAL SCENE</div><h1 id="satelliteSceneTitle">卫星数字场景</h1><p id="satelliteSceneDescription">真实仿真轨道与姿态驱动；可切换跟踪、自由观察并检查状态数据。</p><button class="button button-secondary satellite-scene-return" type="button" data-return-wizard>返回仿真向导</button></div><div class="satellite-scene-actions"><button id="sceneCreateTaskBtn" class="button button-primary" type="button">创建仿真任务</button><button class="button button-secondary" type="button" data-scene-action="track" aria-pressed="false">跟踪卫星</button><button class="button button-secondary" type="button" data-scene-action="free" aria-pressed="true">自由观察</button><button class="button button-secondary" type="button" data-scene-action="axes" aria-pressed="false">显示机体系坐标轴</button><button class="button button-ghost" type="button" data-scene-action="home">返回全景</button></div></header>
-          <section class="scene-task-context" aria-label="当前仿真数据源">
-            <div><span>当前数据源</span><strong id="sceneTaskContextState">未关联仿真任务</strong></div>
+          <section class="scene-task-context" aria-label="当前仿真数据源与运行状态">
+            <div><span>数据来源</span><strong id="sceneTaskContextState">未关联仿真任务</strong></div>
             <div><span>任务 / 会话 ID</span><strong id="sceneTaskContextId">—</strong></div>
+            <div><span>Capability</span><strong id="sceneTaskContextCapability">—</strong></div>
+            <div><span>运行状态</span><strong id="sceneTaskContextLifecycle">—</strong></div>
             <div><span>仿真时间</span><strong id="sceneTaskContextTime">—</strong></div>
             <div><span>轨道遥测质量</span><strong id="sceneTaskContextQuality">—</strong></div>
+            <div><span>ADCS 遥测质量</span><strong id="sceneTaskContextAdcsQuality">—</strong></div>
           </section>
           <nav class="satellite-scene-mode-tabs" aria-label="数字场景模式"><button type="button" data-scene-mode="orbit" aria-pressed="false">轨道与姿态</button><button type="button" data-scene-mode="simulation" aria-pressed="true">物理构型</button><button type="button" data-scene-mode="cad" aria-pressed="false">参考 CAD</button></nav>
           <section id="satelliteOrbitMode" class="satellite-orbit-mode" hidden>
