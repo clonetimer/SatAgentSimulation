@@ -372,9 +372,31 @@ function advanceWheelPhaseState(previous, sample) {
     reason:discontinuity ? 'relative-rebase' : null, relativeOrigin:true};
 }
 
+function invalidateAdcsTelemetry(reason = '遥测不可用') {
+  const point = state.latestTelemetryPoint;
+  state.wheelPhaseStates = Object.create(null);
+  if (point) {
+    point.sensorMeasurements = {...(point.sensorMeasurements || {})};
+    [
+      ...ADCS_SCENE_FIELDS,
+      'adcs.rw.speed_rad_s_3',
+      'adcs.rw.effective_max_torque_nm_0',
+      'adcs.rw.effective_max_torque_nm_1',
+      'adcs.rw.effective_max_torque_nm_2',
+      'adcs.rw.effective_max_torque_nm_3',
+    ].forEach(key => delete point.sensorMeasurements[key]);
+    point.adcsSource = null;
+    point.adcsBreakBefore = true;
+    point.wheelPhases = {};
+    renderTelemetryPosition();
+  }
+  setText('sceneAdcsFrameSource', 'ADCS: 不可用 · ' + String(reason));
+  return true;
+}
+
 function updateAdcsTelemetry(pair, options = {}) {
   const reject = reason => {
-    setText('sceneAdcsFrameSource', 'ADCS: 未关联 · ' + reason);
+    invalidateAdcsTelemetry('未关联 · ' + reason);
     return false;
   };
   if (!pair) return reject('没有同时间配对帧');
@@ -1361,7 +1383,7 @@ window.SatScene = {
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible, setSimulationExplodedView,
   integrateWheelPhaseFromTelemetry,
   setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame, starTrackerAxesInBodyFrame,
-  updateTelemetry, updateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource,
+  updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource,
   eciToGlobePoint, attitudeToGlobeQuaternion, attitudeToGlobeRotation,
   toggleBodyAxes,
   isBodyAxesVisible: () => Boolean(state.modelAxesGroup?.visible && state.showBodyAxes),
