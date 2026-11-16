@@ -100,3 +100,25 @@ test('does not fall back to a mixed-quality stream when dedicated whole.adcs is 
   const catalog = [{stream_id:'whole.fast', fields:['adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2']}];
   assert.equal(selectAdcsStream({telemetry_catalog:catalog}), null);
 });
+
+const subscriptionStart = appSource.indexOf('function interactiveSubscriptionStreams(');
+const subscriptionEnd = appSource.indexOf('\\n  function connectInteractiveSocket', subscriptionStart);
+assert.ok(subscriptionStart >= 0 && subscriptionEnd > subscriptionStart,
+  'scene telemetry subscription helper must exist');
+const subscriptionContext = vm.createContext({});
+vm.runInContext(appSource.slice(subscriptionStart, subscriptionEnd)
+  + '\\nglobalThis.interactiveSubscriptionStreams = interactiveSubscriptionStreams;', subscriptionContext);
+const sceneSubscriptionStreams = subscriptionContext.interactiveSubscriptionStreams;
+test('always subscribes dedicated orbit and ADCS streams for whole-spacecraft scene independently of chart selection', () => {
+  const session = {capability_id:'whole_spacecraft.unified_native.v1', telemetry_catalog:[
+    {stream_id:'whole.fast'}, {stream_id:'whole.orbit'}, {stream_id:'whole.adcs'},
+  ]};
+  const streams = sceneSubscriptionStreams(session, ['whole.fast']);
+  assert.deepEqual(Array.from(streams).sort(), ['whole.adcs','whole.fast','whole.orbit']);
+});
+test('does not invent missing scene streams or substitute whole.fast', () => {
+  const session = {capability_id:'whole_spacecraft.unified_native.v1', telemetry_catalog:[
+    {stream_id:'whole.fast'}, {stream_id:'whole.orbit'},
+  ]};
+  assert.deepEqual(Array.from(sceneSubscriptionStreams(session, ['whole.fast'])), ['whole.fast','whole.orbit']);
+});
