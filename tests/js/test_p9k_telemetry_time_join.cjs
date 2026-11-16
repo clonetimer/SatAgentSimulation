@@ -122,3 +122,13 @@ test('does not invent missing scene streams or substitute whole.fast', () => {
   ]};
   assert.deepEqual(Array.from(sceneSubscriptionStreams(session, ['whole.fast'])), ['whole.fast','whole.orbit']);
 });
+
+const continuousSource = fs.readFileSync(path.join(__dirname, '../../src/sat_sim/web/continuous.js'), 'utf8');
+test('continuous console independently polls whole.adcs and joins it with the whole.orbit scene stream', () => {
+  assert.match(continuousSource, /sceneAdcsTelemetryRequest/);
+  assert.match(continuousSource, /state\.sceneAdcsStream/);
+  assert.match(continuousSource, /sceneTelemetryJoin\.accept\('orbit', frame, joinMeta\)/);
+  assert.match(continuousSource, /sceneTelemetryJoin\.accept\('adcs', frame, joinMeta\)/);
+  assert.match(continuousSource, /updateAdcsTelemetry\(pair/);
+  assert.match(continuousSource, /whole\.adcs/);
+});
