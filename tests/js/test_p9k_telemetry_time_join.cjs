@@ -133,4 +133,7 @@ test('continuous console independently polls whole.adcs and joins it with the wh
   assert.match(continuousSource, /invalidateAdcsTelemetry/);
   assert.match(continuousSource, /whole\.adcs/);
   assert.match(appSource, /invalidateAdcsTelemetry/);
+  assert.match(appSource, /const ADCS_TELEMETRY_FIELDS = Object\.freeze/);
+  assert.match(appSource, /\.\.\.ADCS_TELEMETRY_FIELDS/);
+  assert.match(appSource, /rw_configuration === 'pyramid_4'/);
 });
