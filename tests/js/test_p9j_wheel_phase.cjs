@@ -88,7 +88,7 @@ test('invalidating ADCS clears stale wheel values and cumulative phase state', (
     setText(id,value){ui[id]=value;},
   });
   vm.runInContext(source.slice(start,end)
-    + '\\nglobalThis.invalidateAdcsTelemetry = invalidateAdcsTelemetry;', context);
+    + '\nglobalThis.invalidateAdcsTelemetry = invalidateAdcsTelemetry;', context);
   context.invalidateAdcsTelemetry('sequence gap');
   assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_0'], undefined);
   assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_1'], undefined);
