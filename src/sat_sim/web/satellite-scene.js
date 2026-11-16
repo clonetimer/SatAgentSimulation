@@ -380,6 +380,8 @@ function updateAdcsTelemetry(pair, options = {}) {
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
     epoch_utc:pair.epoch_utc,sequence_gap_before:Boolean(pair.adcs_sequence_gap)};
   point.adcsBreakBefore = Boolean(pair.adcs_sequence_gap || pair.orbit_sequence_gap);
+  setText('sceneAdcsFrameSource',
+    `ADCS: ${pair.adcs.stream} · GOOD · t=${pair.sim_time_s.toFixed(3)} s · seq=${pair.adcs.sequence}${point.adcsBreakBefore ? ' · 序号存在间隙' : ''}`);
   if (state.latestTelemetryPoint === point) renderTelemetryPosition();
   return true;
 }
