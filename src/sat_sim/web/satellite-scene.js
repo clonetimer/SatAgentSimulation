@@ -392,16 +392,19 @@ function updateAdcsTelemetry(pair, options = {}) {
       && item.session_id === pair.session_id && item.stream === pair.orbit.stream);
   if (!point) return reject('同时间轨道帧尚未进入场景轨迹');
   const measurements = {};
+  const missingFields = [];
   for (const key of ADCS_SCENE_FIELDS) {
     const value = pair.adcs.values?.[key];
-    if (typeof value !== 'number' || !Number.isFinite(value)) return reject('ADCS 通道缺失或非有限：' + key);
-    measurements[key] = value;
+    if (typeof value === 'number' && Number.isFinite(value)) measurements[key] = value;
+    else missingFields.push(key);
   }
   const fourthWheelSpeed = pair.adcs.values?.['adcs.rw.speed_rad_s_3'];
   if (typeof fourthWheelSpeed === 'number' && Number.isFinite(fourthWheelSpeed)) {
     measurements['adcs.rw.speed_rad_s_3'] = fourthWheelSpeed;
   }
-  point.sensorMeasurements = {...(point.sensorMeasurements || {}), ...measurements};
+  point.sensorMeasurements = {...(point.sensorMeasurements || {})};
+  [...ADCS_SCENE_FIELDS, 'adcs.rw.speed_rad_s_3'].forEach(key => delete point.sensorMeasurements[key]);
+  Object.assign(point.sensorMeasurements, measurements);
   point.adcsSource = {session_id:pair.session_id,stream:pair.adcs.stream,
     sequence:pair.adcs.sequence,sim_time_s:pair.sim_time_s,quality:pair.adcs.quality,
     epoch_utc:pair.epoch_utc,sequence_gap_before:Boolean(pair.adcs_sequence_gap)};
@@ -418,7 +421,7 @@ function updateAdcsTelemetry(pair, options = {}) {
     point.wheelPhases[index] = next;
   }
   setText('sceneAdcsFrameSource',
-    `ADCS: ${pair.adcs.stream} · GOOD · t=${pair.sim_time_s.toFixed(3)} s · seq=${pair.adcs.sequence}${point.adcsBreakBefore ? ' · 序号存在间隙' : ''}`);
+    `ADCS: ${pair.adcs.stream} · GOOD${missingFields.length ? ' · 部分轮速缺失' : ''} · t=${pair.sim_time_s.toFixed(3)} s · seq=${pair.adcs.sequence}${point.adcsBreakBefore ? ' · 序号存在间隙' : ''}`);
   if (state.latestTelemetryPoint === point) renderTelemetryPosition();
   return true;
 }
@@ -507,7 +510,11 @@ function updateSimulationWheelMotion(measurements, simTimeS, wheelPhases) {
   let updated = false;
   state.simulationWheelMeshes.forEach(({mesh, alignment, index}) => {
     const phase = integrateWheelPhaseFromTelemetry(index, simTimeS, wheelPhases);
-    if (phase === null) return;
+    if (phase === null) {
+      mesh.quaternion.copy(alignment);
+      updated = true;
+      return;
+    }
     mesh.quaternion.copy(alignment).multiply(
       new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), phase)
     );
