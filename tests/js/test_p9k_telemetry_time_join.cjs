@@ -21,9 +21,9 @@ test('pairs orbit and ADCS frames only at exact simulation time in either arriva
   for (const reverse of [false,true]) {
     const join=createJoin(meta);
     const a=frame('whole.orbit',0,1.0), b=frame('whole.adcs',0,1.0);
-    const first=reverse?join.accept('whole.adcs',b,meta):join.accept('whole.orbit',a,meta);
+    const first=reverse?join.accept('adcs',b,meta):join.accept('orbit',a,meta);
     assert.equal(first,null);
-    const pair=reverse?join.accept('whole.orbit',a,meta):join.accept('whole.adcs',b,meta);
+    const pair=reverse?join.accept('orbit',a,meta):join.accept('adcs',b,meta);
     assert.equal(pair.sim_time_s,1.0);
     assert.equal(pair.orbit,a);
     assert.equal(pair.adcs,b);
@@ -31,15 +31,15 @@ test('pairs orbit and ADCS frames only at exact simulation time in either arriva
 });
 test('does not nearest-neighbor match different floating simulation times', () => {
   const join=createJoin(meta);
-  assert.equal(join.accept('whole.orbit',frame('whole.orbit',0,1.0),meta),null);
-  assert.equal(join.accept('whole.adcs',frame('whole.adcs',0,1.000000001),meta),null);
+  assert.equal(join.accept('orbit',frame('whole.orbit',0,1.0),meta),null);
+  assert.equal(join.accept('adcs',frame('whole.adcs',0,1.000000001),meta),null);
   assert.equal(join.pendingCount(),2);
 });
 test('rejects wrong session, epoch, reference frame and time system', () => {
   const join=createJoin(meta);
-  assert.equal(join.accept('whole.orbit',frame('whole.orbit',0,1,'GOOD','other'),meta),null);
+  assert.equal(join.accept('orbit',frame('whole.orbit',0,1,'GOOD','other'),meta),null);
   for (const patch of [{epochUtc:'2026-01-02T00:00:00Z'},{frame:'BODY'},{timeSystem:'TAI'}]) {
-    assert.equal(join.accept('whole.adcs',frame('whole.adcs',0,1),{...meta,...patch}),null);
+    assert.equal(join.accept('adcs',frame('whole.adcs',0,1),{...meta,...patch}),null);
   }
   assert.equal(join.pendingCount(),0);
 });
@@ -58,24 +58,24 @@ test('reports sequence gaps independently for both streams', () => {
 });
 test('rejects non-GOOD quality, duplicate sequence and out-of-order frames', () => {
   const join=createJoin(meta);
-  assert.equal(join.accept('whole.orbit',frame('whole.orbit',0,1,'INVALID'),meta),null);
-  assert.equal(join.accept('whole.orbit',frame('whole.orbit',1,1),meta),null);
-  assert.equal(join.accept('whole.orbit',frame('whole.orbit',1,2),meta),null);
-  assert.equal(join.accept('whole.orbit',frame('whole.orbit',0,3),meta),null);
+  assert.equal(join.accept('orbit',frame('whole.orbit',0,1,'INVALID'),meta),null);
+  assert.equal(join.accept('orbit',frame('whole.orbit',1,1),meta),null);
+  assert.equal(join.accept('orbit',frame('whole.orbit',1,2),meta),null);
+  assert.equal(join.accept('orbit',frame('whole.orbit',0,3),meta),null);
   assert.equal(join.pendingCount(),1);
 });
 test('bounds unmatched frame cache and evicts oldest unmatched simulation times', () => {
   const join=createJoin(meta);
-  for (let i=0;i<4;i++) join.accept('whole.orbit',frame('whole.orbit',i,i+1),meta);
+  for (let i=0;i<4;i++) join.accept('orbit',frame('whole.orbit',i,i+1),meta);
   assert.equal(join.pendingCount(),2);
-  assert.equal(join.accept('whole.adcs',frame('whole.adcs',0,1),meta),null);
+  assert.equal(join.accept('adcs',frame('whole.adcs',0,1),meta),null);
   assert.equal(join.pendingCount(),3); // two orbit entries plus the unmatched ADCS entry
 });
 test('zero-valued ADCS measurement is valid when frame quality is GOOD', () => {
   const join=createJoin(meta);
   const a=frame('whole.orbit',0,0), b=frame('whole.adcs',0,0);
   b.values.sample=0;
-  join.accept('whole.orbit',a,meta);
-  const pair=join.accept('whole.adcs',b,meta);
+  join.accept('orbit',a,meta);
+  const pair=join.accept('adcs',b,meta);
   assert.equal(pair.adcs.values.sample,0);
 });
