@@ -568,6 +568,10 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
                 page.locator('#birdsCadTree [aria-label="选择 BIRDS4_fixture_root"]').first.click()
             inspector_text = page.locator("#birdsCadInspector").inner_text()
             assert inspector_text.strip()
+            for detail in ("装配层级路径", "几何范围（GLB 根坐标系，m）",
+                           "局部变换（父节点坐标）", "参考装配根坐标变换",
+                           "尚未审定为航天器 B 系安装锚点或 as-built 实例"):
+                assert detail in inspector_text, (detail, inspector_text)
             render_state = page.evaluate("window.BirdsCadViewer.getDiagnostics()")
             assert render_state["visible_meshes"] >= 1, render_state
             assert render_state["triangles"] >= 1, render_state
