@@ -64,3 +64,39 @@ test('production wheel rendering reads accumulated phase state rather than recom
   assert.match(implementation, /wheelPhases/);
   assert.doesNotMatch(implementation, /telemetryTrail/);
 });
+
+test('invalidating ADCS clears stale wheel values and cumulative phase state', () => {
+  const start = source.indexOf('function invalidateAdcsTelemetry(');
+  const end = source.indexOf('function updateAdcsTelemetry', start);
+  assert.ok(start >= 0 && end > start, 'ADCS invalidation function must exist');
+  const latest = {
+    sensorMeasurements:{
+      'adcs.rw.speed_rad_s_0':123,
+      'adcs.rw.speed_rad_s_1':234,
+      'adcs.rw.speed_rad_s_2':345,
+      'adcs.imu.gyro_x_rad_s':0.01,
+    },
+    adcsSource:{quality:'GOOD'},
+    wheelPhases:{0:{valid:true,phaseRad:12}},
+  };
+  const ui = {};
+  let rendered = 0;
+  const context = vm.createContext({
+    state:{latestTelemetryPoint:latest,wheelPhaseStates:{0:{valid:true,phaseRad:12}}},
+    ADCS_SCENE_FIELDS:['adcs.rw.speed_rad_s_0','adcs.rw.speed_rad_s_1','adcs.rw.speed_rad_s_2'],
+    renderTelemetryPosition(){rendered+=1;},
+    setText(id,value){ui[id]=value;},
+  });
+  vm.runInContext(source.slice(start,end)
+    + '\\nglobalThis.invalidateAdcsTelemetry = invalidateAdcsTelemetry;', context);
+  context.invalidateAdcsTelemetry('sequence gap');
+  assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_0'], undefined);
+  assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_1'], undefined);
+  assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_2'], undefined);
+  assert.equal(latest.sensorMeasurements['adcs.imu.gyro_x_rad_s'], 0.01);
+  assert.equal(latest.adcsSource, null);
+  assert.deepEqual(latest.wheelPhases, {});
+  assert.deepEqual(Object.keys(context.state.wheelPhaseStates), []);
+  assert.equal(rendered, 1);
+  assert.equal(ui.sceneAdcsFrameSource, 'ADCS: 不可用 · sequence gap');
+});
