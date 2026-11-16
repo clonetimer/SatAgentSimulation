@@ -244,6 +244,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             for cycle in range(3):
                 page.locator("#wizardSceneShortcutBtn").click()
                 playwright.expect(page.locator(".app-sidebar")).to_be_hidden()
+                playwright.expect(page.locator("#workbenchNavigation")).to_be_hidden()
                 playwright.expect(page.locator(".scene-workspace-nav")).to_be_visible()
                 playwright.expect(page.locator("#sceneWorkspaceTaskCenterBtn")).to_be_visible()
                 playwright.expect(page.locator("#sceneWorkspaceCreatorBtn")).to_be_visible()
