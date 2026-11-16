@@ -7347,9 +7347,12 @@
     state.interactiveGaps = {};
     state.interactiveEvents = [];
     state.interactiveAcks = [];
-    renderInteractiveStreams();
     renderInteractiveCommandTargets();
     await refreshInteractiveDetails();
+    // The detail snapshot is authoritative for the complete telemetry catalog.
+    // Rebuild the selector only after it has replaced the initial session snapshot.
+    renderInteractiveStreams();
+    renderInteractiveCommandTargets();
     renderInteractiveSessions();
     if (selectionVersion === state.interactiveSelectionVersion) connectInteractiveSocket();
   }
@@ -7681,6 +7684,20 @@
     return ['sat-sim-v1', `sat-auth.${encoded}`];
   }
 
+  function interactiveSubscriptionStreams(session, visibleStreams = []) {
+    const selected = new Set(visibleStreams.filter(value => typeof value === 'string' && value));
+    if (session?.capability_id === 'whole_spacecraft.unified_native.v1') {
+      const catalog = new Set((session.telemetry_catalog || []).map(item => item?.stream_id).filter(Boolean));
+      // Scene association consumes two independent quality domains. They must
+      // be subscribed even when the user's chart selector currently shows
+      // only one stream; never substitute whole.fast for either dedicated stream.
+      for (const required of ['whole.orbit', 'whole.adcs']) {
+        if (catalog.has(required)) selected.add(required);
+      }
+    }
+    return [...selected];
+  }
+
   function connectInteractiveSocket() {
     if (!state.interactiveSession || !state.interactiveAvailable || !state.interactiveSession.telemetry_streams?.length) return;
     closeInteractiveSocket(false);
@@ -7692,7 +7709,10 @@
       if (state.interactiveSocket !== socket) { socket.close(1000, 'CLIENT_NAVIGATION'); return; }
       el('interactiveConnectionBadge').className = 'status-chip status-ok';
       el('interactiveConnectionBadge').innerHTML = '<span class="status-dot"></span>已连接';
-      const streams = Array.from(el('interactiveStream').options).map(option => option.value).filter(Boolean);
+      const streams = interactiveSubscriptionStreams(
+        state.interactiveSession,
+        Array.from(el('interactiveStream').options).map(option => option.value).filter(Boolean),
+      );
       const afterSequences = {};
       streams.forEach((stream) => {
         const frames = state.interactiveFrames[stream] || [];
