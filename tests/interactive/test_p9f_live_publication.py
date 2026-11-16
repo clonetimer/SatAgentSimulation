@@ -186,3 +186,27 @@ def test_default_continuous_adcs_stream_is_independent_and_time_aligned(native_c
             assert all(math.isfinite(adcs_frame["values"][field]) for field in adcs_fields)
     finally:
         native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "stop"})
+
+
+def test_four_wheel_continuous_session_declares_fourth_speed_in_dedicated_adcs_stream(native_client):
+    session_id = "p9f-native-continuous-four-wheel"
+    response = native_client.post("/interactive/continuous/sessions", json={
+        "session_id": session_id,
+        "quantum_s": 0.2,
+        "rate": 1.0,
+        "paced": True,
+        "initial_horizon_s": 10.0,
+        "initial_configuration": {"adcs": {"rw_configuration": "pyramid_4"}},
+    })
+    assert response.status_code == 201, response.text
+    try:
+        detail = native_client.get(f"/interactive/sessions/{session_id}").json()
+        adcs = next(row for row in detail["telemetry_catalog"] if row["stream_id"] == "whole.adcs")
+        assert set(adcs["fields"]) == {
+            "adcs.rw.speed_rad_s_0",
+            "adcs.rw.speed_rad_s_1",
+            "adcs.rw.speed_rad_s_2",
+            "adcs.rw.speed_rad_s_3",
+        }
+    finally:
+        native_client.post(f"/interactive/sessions/{session_id}/control", json={"action": "stop"})
