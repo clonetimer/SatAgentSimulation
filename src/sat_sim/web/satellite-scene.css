@@ -440,3 +440,9 @@ body[data-active-view="scene"] .topbar {
 body[data-active-view="scene"] .brand-subtitle {
   display:none;
 }
+
+/* P9-G relocates the primary navigation into a top-level host outside
+   .app-sidebar. Hide that host as well while the scene editor owns navigation. */
+body[data-active-view="scene"] #workbenchNavigation {
+  display:none !important;
+}
