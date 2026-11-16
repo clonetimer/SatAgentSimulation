@@ -11556,8 +11556,11 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       const kind = button.dataset.sceneCreate;
       button.closest('details')?.removeAttribute('open');
       if (kind === 'offline') {
-        navigateToWizardShortcut('normal_run');
-        wizardMessage('assistant', '已从卫星数字场景进入离线仿真配置。完成整星/分系统/部件选择、参数校验后即可创建并运行任务。');
+        switchView('wizard');
+        if (state.activeView === 'wizard') {
+          navigateToWizardShortcut('normal_run');
+          wizardMessage('assistant', '已从卫星数字场景进入离线仿真配置。完成整星/分系统/部件选择、参数校验后即可创建并运行任务。');
+        }
         return;
       }
       if (kind === 'interactive' || kind === 'continuous') {
