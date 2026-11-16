@@ -231,6 +231,13 @@ def create_interactive_router(
                 "adcs.rw.speed_rad_s_3",
                 "adcs.rw.effective_max_torque_nm_3",
             ])
+        adcs_telemetry_fields = [
+            "adcs.rw.speed_rad_s_0",
+            "adcs.rw.speed_rad_s_1",
+            "adcs.rw.speed_rad_s_2",
+        ]
+        if native_values.get("rw_configuration") == "pyramid_4":
+            adcs_telemetry_fields.append("adcs.rw.speed_rad_s_3")
         spec = InteractiveSessionSpec(
             session_id=body.session_id,
             capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
@@ -258,11 +265,7 @@ def create_interactive_router(
                         # declares fields emitted by the native whole-spacecraft runtime.
                         "stream_id": "whole.adcs",
                         "sample_s": body.quantum_s,
-                        "fields": [
-                            "adcs.rw.speed_rad_s_0",
-                            "adcs.rw.speed_rad_s_1",
-                            "adcs.rw.speed_rad_s_2",
-                        ],
+                        "fields": adcs_telemetry_fields,
                     },
                     {
                         # Spatial state quality domain for the real 3D scene.
