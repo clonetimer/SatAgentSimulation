@@ -243,6 +243,18 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 semantic_node = page.locator(".p9d-tree-item").first
                 semantic_node.wait_for(state="visible", timeout=15000)
                 selected_name = semantic_node.inner_text()
+                hit_test = semantic_node.evaluate("""node => {
+                    const rect = node.getBoundingClientRect();
+                    const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                    return {
+                      target: node.outerHTML,
+                      top: top?.outerHTML || null,
+                      panelZ: getComputedStyle(node.closest('.p9d-config-panel')).zIndex,
+                      sceneZ: getComputedStyle(document.querySelector('.satellite-scene-shell')).zIndex,
+                      receivesPointer: Boolean(top && (top === node || node.contains(top))),
+                    };
+                }""")
+                assert hit_test["receivesPointer"], f"OBJECT_TREE_POINTER_INTERCEPTED: {hit_test}"
                 semantic_node.click()
                 page.locator("#sceneObjectName").filter(has_text=selected_name).wait_for(timeout=10000)
                 assert "未建立 CAD / GLB 节点映射" in page.locator("#sceneObjectMapping").inner_text()
