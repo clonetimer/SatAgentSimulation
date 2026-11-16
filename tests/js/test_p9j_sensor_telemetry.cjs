@@ -26,8 +26,8 @@ function harness() {
     updateSimulationWheelMotion() {},
   });
   vm.runInContext(renderer, context);
-  return {host, label, render(values) {
-    context.renderSensorTelemetry(values, '已封存有限 Run 遥测', 2);
+  return {host, label, render(values, wheelPhases = null) {
+    context.renderSensorTelemetry(values, '已封存有限 Run 遥测', 2, wheelPhases);
   }, row(name) {
     const row = host.children.find(row => row.children[0].textContent === name);
     return row?.children.map(cell => cell.textContent);
