@@ -9,6 +9,10 @@ on:
       - "src/sat_sim/dataset_writer.py"
       - "src/sat_sim/web/**"
       - "tests/js/test_p9c_scene_lifecycle.cjs"
+      - "tests/js/test_p9j_default_scene_mode.cjs"
+      - "tests/js/test_p9j_sensor_telemetry.cjs"
+      - "tests/js/test_p9j_wheel_phase.cjs"
+      - "tests/js/test_p9k_telemetry_time_join.cjs"
       - "tests/test_p9f_telemetry_globe.py"
       - "tests/interactive/test_p9f_live_publication.py"
       - "tests/test_p9f_native_browser.py"
@@ -37,7 +41,13 @@ jobs:
         with:
           node-version: "22"
       - name: Verify globe lifecycle and ECI telemetry conversion
-        run: node --test tests/js/test_p9c_scene_lifecycle.cjs
+        run: >-
+          node --test
+          tests/js/test_p9c_scene_lifecycle.cjs
+          tests/js/test_p9j_default_scene_mode.cjs
+          tests/js/test_p9j_sensor_telemetry.cjs
+          tests/js/test_p9j_wheel_phase.cjs
+          tests/js/test_p9k_telemetry_time_join.cjs
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
@@ -62,7 +72,13 @@ jobs:
         with:
           node-version: "22"
       - name: Verify globe lifecycle and ECI telemetry conversion
-        run: node --test tests/js/test_p9c_scene_lifecycle.cjs
+        run: >-
+          node --test
+          tests/js/test_p9c_scene_lifecycle.cjs
+          tests/js/test_p9j_default_scene_mode.cjs
+          tests/js/test_p9j_sensor_telemetry.cjs
+          tests/js/test_p9j_wheel_phase.cjs
+          tests/js/test_p9k_telemetry_time_join.cjs
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
