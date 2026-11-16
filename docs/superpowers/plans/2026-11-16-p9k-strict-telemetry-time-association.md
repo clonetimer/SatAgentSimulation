@@ -65,3 +65,7 @@
 - [ ] Run full P9-F Ubuntu/Windows contracts and native-live Chromium bounded/continuous tests.
 - [ ] Run P9-C scene regression, native Basilisk suite, and existing P9-I CAD acceptance.
 - [ ] Record run IDs, artifacts and exact evidence; do not merge if any required job is skipped or failing.
+
+### Native browser evidence extension
+
+P9-F product-browser acceptance requires GOOD `whole.orbit` and `whole.adcs` frames from the UI-created session and at least one exact `sim_time_s` pair with matching session ID. The catalog alone is not accepted as evidence of published matching frames.
