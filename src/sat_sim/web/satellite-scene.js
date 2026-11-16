@@ -351,25 +351,28 @@ function createStrictTelemetryTimeJoin(options = {}) {
 }
 
 function updateAdcsTelemetry(pair, options = {}) {
-  if (!pair || pair.session_id !== state.telemetrySourceId
-      || pair.epoch_utc !== state.telemetryEpochUtc
-      || pair.frame !== 'N_INERTIAL' || pair.time_system !== 'UTC'
-      || options.sourceId !== pair.session_id || options.epochUtc !== pair.epoch_utc
-      || options.frame !== pair.frame || options.timeSystem !== pair.time_system
-      || pair.orbit?.stream !== options.orbitStreamId
-      || pair.adcs?.stream !== options.adcsStreamId
-      || pair.orbit?.session_id !== pair.session_id || pair.adcs?.session_id !== pair.session_id
-      || pair.orbit?.quality !== 'GOOD' || pair.adcs?.quality !== 'GOOD'
-      || pair.orbit?.sim_time_s !== pair.adcs?.sim_time_s
-      || pair.sim_time_s !== pair.orbit?.sim_time_s) return false;
+  const reject = reason => {
+    setText('sceneAdcsFrameSource', 'ADCS: 未关联 · ' + reason);
+    return false;
+  };
+  if (!pair) return reject('没有同时间配对帧');
+  if (pair.session_id !== state.telemetrySourceId) return reject('会话不一致');
+  if (pair.epoch_utc !== state.telemetryEpochUtc || options.epochUtc !== pair.epoch_utc) return reject('UTC Epoch 不一致');
+  if (pair.frame !== 'N_INERTIAL' || pair.time_system !== 'UTC'
+      || options.frame !== pair.frame || options.timeSystem !== pair.time_system) return reject('参考系或时标不一致');
+  if (options.sourceId !== pair.session_id
+      || pair.orbit?.stream !== options.orbitStreamId || pair.adcs?.stream !== options.adcsStreamId) return reject('数据源或流标识不一致');
+  if (pair.orbit?.session_id !== pair.session_id || pair.adcs?.session_id !== pair.session_id) return reject('遥测会话标识不一致');
+  if (pair.orbit?.quality !== 'GOOD' || pair.adcs?.quality !== 'GOOD') return reject('数据质量不是 GOOD');
+  if (pair.orbit?.sim_time_s !== pair.adcs?.sim_time_s || pair.sim_time_s !== pair.orbit?.sim_time_s) return reject('仿真时间不是精确相等');
   const point = state.telemetryTrail.find(item =>
     item.sim_time_s === pair.sim_time_s && item.sequence === pair.orbit.sequence
       && item.session_id === pair.session_id && item.stream === pair.orbit.stream);
-  if (!point) return false;
+  if (!point) return reject('同时间轨道帧尚未进入场景轨迹');
   const measurements = {};
   for (const key of ADCS_SCENE_FIELDS) {
     const value = pair.adcs.values?.[key];
-    if (typeof value !== 'number' || !Number.isFinite(value)) return false;
+    if (typeof value !== 'number' || !Number.isFinite(value)) return reject('ADCS 通道缺失或非有限：' + key);
     measurements[key] = value;
   }
   point.sensorMeasurements = {...(point.sensorMeasurements || {}), ...measurements};
