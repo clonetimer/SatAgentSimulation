@@ -11569,7 +11569,17 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     document.addEventListener('keydown', event => {
       if (sceneTaskModal?.classList.contains('hidden')) return;
-      if (event.key === 'Escape') { event.preventDefault(); closeSceneTaskModal(); }
+      if (event.key === 'Escape') { event.preventDefault(); closeSceneTaskModal(); return; }
+      if (event.key !== 'Tab') return;
+      const controls = [...sceneTaskModal.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+        .filter(node => !node.disabled && node.getClientRects().length);
+      if (!controls.length) return;
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !sceneTaskModal.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !sceneTaskModal.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
     });
     $all('[data-scene-create]').forEach((button) => button.addEventListener('click', () => {
       const kind = button.dataset.sceneCreate;
