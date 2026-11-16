@@ -172,3 +172,65 @@ test('strictly associated native ADCS frame maps real Basilisk IMU, CSS, star an
   assert.equal(h.point.sensorMeasurements['adcs.sun_sensor.valid'],0);
   assert.equal(h.point.sensorMeasurements['adcs.imu.gyro_x_rad_s'],0.01);
 });
+
+
+const contextStart = sceneSource.indexOf('function lifecycleStateLabel(');
+const contextEnd = sceneSource.indexOf('function syncBodyAxes()', contextStart);
+assert.ok(contextStart >= 0 && contextEnd > contextStart,
+  'scene provenance renderer and session context updater must exist');
+function provenanceHarness() {
+  const values = {};
+  const source = {textContent:'',dataset:{}};
+  const point = {
+    sim_time_s:12.5, altitude_km:550, lat:1, lng:2, sequence:8,
+    session_id:'session-A',stream:'whole.orbit',quality:'GOOD',
+    attitude_valid:false, attitude_truth:null,
+    adcsSource:{session_id:'session-A',stream:'whole.adcs',sequence:8,
+      sim_time_s:12.5,quality:'GOOD',sequence_gap_before:false},
+  };
+  const state = {
+    telemetrySourceId:'session-A', telemetryStreamId:'whole.orbit',
+    telemetrySourceLabel:'真实 Basilisk 轨道 + ADCS 遥测',
+    telemetryEpochUtc:'2026-01-01T00:00:00Z',
+    telemetryCapabilityId:'whole_spacecraft.unified_native.v1',
+    telemetryLifecycleState:'RUNNING',
+    adcsTelemetryStatus:{quality:'GOOD',simTimeS:12.5,reason:null},
+    latestTelemetryPoint:point,
+  };
+  const context = vm.createContext({
+    state,
+    byId:id=>id==='sceneDataSource'?source:null,
+    setText:(id,value)=>{values[id]=value;},
+  });
+  vm.runInContext(sceneSource.slice(contextStart,contextEnd)
+    + '\\nglobalThis.renderTelemetryInspector = renderTelemetryInspector;'
+    + '\\nglobalThis.setTelemetrySessionContext = setTelemetrySessionContext;',context);
+  return {state,values,source,render:context.renderTelemetryInspector,set:context.setTelemetrySessionContext};
+}
+test('scene provenance shows source, capability, lifecycle, simulation time and separate ADCS quality',()=>{
+  const h=provenanceHarness();h.render();
+  assert.equal(h.values.sceneTaskContextState,'实时仿真 · 已关联');
+  assert.equal(h.values.sceneTaskContextId,'session-A');
+  assert.equal(h.values.sceneTaskContextCapability,'whole_spacecraft.unified_native.v1');
+  assert.equal(h.values.sceneTaskContextLifecycle,'运行中');
+  assert.equal(h.values.sceneTaskContextTime,'12.50 s');
+  assert.equal(h.values.sceneTaskContextQuality,'GOOD');
+  assert.equal(h.values.sceneTaskContextAdcsQuality,'GOOD · 12.50 s');
+  assert.match(h.values.sceneAdcsFrameSource,/whole.adcs.*GOOD/);
+});
+test('session lifecycle updates only for the active telemetry source',()=>{
+  const h=provenanceHarness();
+  assert.equal(h.set({sourceId:'other-session',lifecycleState:'STOPPED'}),false);
+  assert.equal(h.state.telemetryLifecycleState,'RUNNING');
+  assert.equal(h.set({sourceId:'session-A',lifecycleState:'PAUSED'}),true);
+  assert.equal(h.values.sceneTaskContextLifecycle,'已暂停');
+});
+test('missing ADCS association is shown independently instead of inheriting orbit GOOD quality',()=>{
+  const h=provenanceHarness();
+  h.state.latestTelemetryPoint.adcsSource=null;
+  h.state.adcsTelemetryStatus={quality:'UNAVAILABLE',simTimeS:null,reason:'ADCS 遥测序列缺口 2'};
+  h.render();
+  assert.equal(h.values.sceneTaskContextQuality,'GOOD');
+  assert.equal(h.values.sceneTaskContextAdcsQuality,'ADCS 遥测序列缺口 2');
+  assert.match(h.values.sceneAdcsFrameSource,/ADCS 遥测序列缺口 2/);
+});
