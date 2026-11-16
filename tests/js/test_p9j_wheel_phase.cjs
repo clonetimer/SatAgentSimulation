@@ -95,7 +95,7 @@ test('invalidating ADCS clears stale wheel values and cumulative phase state', (
   assert.equal(latest.sensorMeasurements['adcs.rw.speed_rad_s_2'], undefined);
   assert.equal(latest.sensorMeasurements['adcs.imu.gyro_x_rad_s'], 0.01);
   assert.equal(latest.adcsSource, null);
-  assert.deepEqual(latest.wheelPhases, {});
+  assert.equal(Object.keys(latest.wheelPhases).length, 0);
   assert.deepEqual(Object.keys(context.state.wheelPhaseStates), []);
   assert.equal(rendered, 1);
   assert.equal(ui.sceneAdcsFrameSource, 'ADCS: 不可用 · sequence gap');
