@@ -72,3 +72,6 @@ test('CAD navigation remains explicit and physical return restores configuration
 
 // Keep partial-channel regressions in the same CI entrypoint.
 require('./test_p9j_sensor_telemetry.cjs');
+
+// Strict independent-stream time association contract.
+require('./test_p9k_telemetry_time_join.cjs');
