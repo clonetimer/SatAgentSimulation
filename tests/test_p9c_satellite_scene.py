@@ -48,6 +48,9 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert 'id="sceneTaskContextId"' in index.text
         assert 'id="sceneTaskContextTime"' in index.text
         assert 'id="sceneTaskContextQuality"' in index.text
+        assert 'id="sceneTaskContextCapability"' in index.text
+        assert 'id="sceneTaskContextLifecycle"' in index.text
+        assert 'id="sceneTaskContextAdcsQuality"' in index.text
         assert 'id="satelliteSceneCanvas"' in index.text
         assert 'src="/assets/vendor/globe/globe.gl.min.js"' in index.text
         assert '"three":"/assets/vendor/globe/three.module.js"' in index.text
@@ -97,9 +100,32 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "sceneTaskContextState" in scene
     assert "历史 Run · 已封存" in scene
     assert "实时仿真 · 已关联" in scene
-    assert "updateTelemetry, updateAdcsTelemetry, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin, setRunTelemetry, clearTelemetrySource" in scene
+    assert "updateTelemetry, updateAdcsTelemetry, setAdcsTelemetryPending, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin" in scene
     assert "setInterval" not in scene
     assert "unsafe-eval" not in scene
+
+
+def test_scene_source_context_exposes_capability_lifecycle_and_independent_adcs_quality():
+    root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
+    html = (root / "index.html").read_text(encoding="utf-8")
+    scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
+    app = (root / "app.js").read_text(encoding="utf-8")
+    continuous = (root / "continuous.js").read_text(encoding="utf-8")
+    for element_id in (
+        "sceneTaskContextCapability", "sceneTaskContextLifecycle",
+        "sceneTaskContextAdcsQuality",
+    ):
+        assert f'id="{element_id}"' in html
+    assert "function setTelemetrySessionContext(context = {})" in scene
+    assert "lifecycleStateLabel(state.telemetryLifecycleState" in scene
+    assert "state.adcsTelemetryStatus" in scene
+    assert "setTelemetrySessionContext?.({" in app
+    assert "capabilityId: state.interactiveSession.capability_id" in app
+    assert "setTelemetrySessionContext?.({" in continuous
+    assert "setAdcsTelemetryPending?.(" in app
+    assert "setAdcsTelemetryPending?.(" in continuous
+    assert "capabilityId: info.session?.capability_id" in continuous
+    assert "lifecycleState: info.session?.state" in continuous
 
 
 def test_simulation_geometry_view_requires_validated_whole_spacecraft_configuration():

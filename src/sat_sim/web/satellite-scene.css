@@ -217,8 +217,9 @@
 
 
 /* Active Run/session identity strip for scene provenance. */
-.scene-task-context { display:grid; grid-template-columns:1.2fr 1.5fr .8fr .8fr; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); }
+.scene-task-context { display:grid; grid-template-columns:1.05fr 1.25fr 1.45fr .8fr .7fr .75fr .8fr; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); }
 .scene-task-context>div { display:grid; gap:3px; min-width:0; }
 .scene-task-context span { color:var(--muted); font-size:9px; }
 .scene-task-context strong { color:var(--text); font-size:11px; font-weight:650; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+@media(max-width:1100px) { .scene-task-context { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 @media(max-width:680px) { .scene-task-context { grid-template-columns:repeat(2,minmax(0,1fr)); } }

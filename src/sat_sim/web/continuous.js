@@ -826,6 +826,11 @@
           orbitStreamId: sceneStream, adcsStreamId: state.sceneAdcsStream,
         });
       };
+      window.SatScene?.setTelemetrySessionContext?.({
+        sourceId: selectedId,
+        capabilityId: info.session?.capability_id,
+        lifecycleState: info.session?.state,
+      });
       const applySceneFrame = frame => {
         if (!sceneStream || frame.sequence <= state.sceneLastTelemetrySeq) return;
         state.sceneLastTelemetrySeq = frame.sequence;
@@ -836,9 +841,15 @@
           sourceId: selectedId,
           streamId: sceneStream,
           sourceLabel: '持续原生 Basilisk 会话',
+          capabilityId: info.session?.capability_id,
+          lifecycleState: info.session?.state,
         });
         if (accepted && state.sceneTelemetryJoin) {
-          applyScenePair(state.sceneTelemetryJoin.accept('orbit', frame, joinMeta));
+          const pair = state.sceneTelemetryJoin.accept('orbit', frame, joinMeta);
+          if (pair) applyScenePair(pair);
+          else window.SatScene?.setAdcsTelemetryPending?.(
+            `等待精确配对 · orbit seq ${frame.sequence} · pending ${state.sceneTelemetryJoin.pendingCount()}`
+          );
         }
       };
       const applyAdcsFrame = frame => {
@@ -849,7 +860,11 @@
           return;
         }
         if (state.sceneTelemetryJoin) {
-          applyScenePair(state.sceneTelemetryJoin.accept('adcs', frame, joinMeta));
+          const pair = state.sceneTelemetryJoin.accept('adcs', frame, joinMeta);
+          if (pair) applyScenePair(pair);
+          else window.SatScene?.setAdcsTelemetryPending?.(
+            `等待精确配对 · ADCS seq ${frame.sequence} · pending ${state.sceneTelemetryJoin.pendingCount()}`
+          );
         }
       };
       (tm.frames || []).forEach(frame => {

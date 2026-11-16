@@ -6295,6 +6295,8 @@
         epochUtc: runEpoch,
         frame: 'N_INERTIAL',
         timeSystem: runTimeSystem,
+        capabilityId: runSpec.model?.capability_id || null,
+        lifecycleState: runStatus,
         verified: state.activeRun?.sealed === true && state.activeRun?.integrity?.ok === true
           && runStatus === 'SUCCEEDED'
           && state.activeRun?.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1'
@@ -7748,6 +7750,11 @@
       }
       if (message.type === 'heartbeat') {
         state.interactiveSession = { ...state.interactiveSession, ...message.payload };
+        window.SatScene?.setTelemetrySessionContext?.({
+          sourceId: state.interactiveSession?.session_id,
+          capabilityId: state.interactiveSession?.capability_id,
+          lifecycleState: state.interactiveSession?.state,
+        });
         renderInteractiveSnapshot();
       }
     });
@@ -7824,6 +7831,7 @@
       && ADCS_SCENE_FIELDS.every(field => stream.fields.includes(field))) || null;
   }
   function setSceneAdcsJoinStatus(message) {
+    window.SatScene?.setAdcsTelemetryPending?.(message);
     const node = document.getElementById('sceneAdcsFrameSource');
     if (node) node.textContent = 'ADCS: ' + message;
   }
@@ -7871,6 +7879,8 @@
           sourceId: state.interactiveSession.session_id,
           streamId: contract.orbit.stream_id,
           sourceLabel: '真实 Basilisk 轨道 + ADCS 遥测',
+          capabilityId: state.interactiveSession.capability_id,
+          lifecycleState: state.interactiveSession.state,
         });
         if (accepted) {
           const pair = contract.join.accept('orbit', frame, contract.meta);
