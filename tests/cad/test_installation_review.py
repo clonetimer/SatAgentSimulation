@@ -150,7 +150,13 @@ def test_missing_candidate_node_fails_closed():
 
 def test_procedure_source_is_pinned_but_not_misrepresented_as_reviewed():
     extraction = {
-        "source": {"sha256": "abc123", "verification_status": "source_bytes_verified"},
+        "source": {
+            "sha256": "abc123",
+            "verification_status": "source_bytes_verified",
+            "source_commit": _manifest()["assembly_procedure"]["source_commit"],
+            "git_blob_sha1": _manifest()["assembly_procedure"]["git_blob_sha1"],
+            "size_bytes": _manifest()["assembly_procedure"]["size_bytes"],
+        },
         "extraction": {"paragraph_count": 42, "table_count": 8, "human_review_status": "not_reviewed"},
     }
     report = build_installation_review_packets(_candidate_payload(), _assembly(), _manifest(), extraction)
@@ -162,3 +168,17 @@ def test_procedure_source_is_pinned_but_not_misrepresented_as_reviewed():
     assert source["extracted_table_count"] == 8
     assert source["source_status"] == "retrieved_and_hash_verified_raw_text_not_human_reviewed"
     assert report["evidence_catalog"]["coordinate_reference"]["source_status"] == "orientation_reference_only_not_complete_transform_evidence"
+
+
+def test_procedure_extraction_receipt_must_match_pinned_manifest():
+    extraction = {
+        "source": {
+            "verification_status": "source_bytes_verified",
+            "source_commit": _manifest()["assembly_procedure"]["source_commit"],
+            "git_blob_sha1": "wrong-hash",
+            "size_bytes": _manifest()["assembly_procedure"]["size_bytes"],
+        },
+        "extraction": {},
+    }
+    with pytest.raises(ValueError, match="PROCEDURE_GIT_BLOB_MISMATCH"):
+        build_installation_review_packets(_candidate_payload(), _assembly(), _manifest(), extraction)
