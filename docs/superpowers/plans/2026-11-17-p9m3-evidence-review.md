@@ -79,3 +79,20 @@ CI 从固定上游 commit 下载 FM Assembly Procedure DOCX，并核对字节数
 ## Workflow activation
 
 The P9-M3 workflow is registered in the base repository so pull-request path filtering can execute it for this branch. The PR run must validate the merge candidate, not only the feature branch in isolation.
+
+
+## First source-document locator findings (raw text, not approval)
+
+The hash-verified DOCX body extraction identifies the following review locations:
+- Paragraph 21: the document states it guides assembly of the BIRDS-4 **Structural Testing Model**. This limits the claim scope; it is not itself a flight-unit as-built record.
+- Paragraph 39 and paragraph 42: axis definition and its figure are present. The figure must be visually reviewed against the coordinate convention; the paragraph locator is not a numeric datum definition.
+- Paragraph 106 and Tables 12–14: battery assembly procedure and associated parts/harness/checklist tables.
+- Paragraph 113 and Tables 15–17: reaction-wheel assembly procedure and associated parts/fasteners/checklist tables.
+- Paragraph 137 and Tables 20–37: -Y panel assembly procedure and associated parts/harness/checklist tables.
+- Table 9, row 7: Perovskite solar cells appears in the adhesive-applied-location checklist; Table 9 also identifies the -Y panel context.
+- Table 3, row 4 lists one Battery; Table 3, row 8 lists one -Y panel. Table 5, row 45 lists one brushless motor (reaction wheel).
+- Paragraph 495 describes July 2020 rework on BIRDS-4 FM satellites and specifically mentions Maya-2 / Frame 5A. This is rework context for a named unit, not evidence that every assembly item or current CAD transform applies to Maya-2.
+
+The extractor now creates a keyword locator index for battery, reaction wheel, Perovskite Solar Cells, -Y panel, Structural Testing Model, axis definition and named flight units. The review packet associates candidate-relevant paragraph/table/cell locations. These locators are navigation aids only; they do not assert the content is an approved configuration or prove an as-built installation transform.
+
+**Immediate review priorities:** inspect the actual axis-definition figure; visually inspect the battery/RW/PSC assembly illustrations and relevant table rows; determine whether the document's Structural Testing Model configuration corresponds to any of the three flight units; and retrieve the approved flight-unit-specific BOM/drawings before any coordinate promotion.
