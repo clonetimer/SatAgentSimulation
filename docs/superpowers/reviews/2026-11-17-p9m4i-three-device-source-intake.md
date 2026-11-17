@@ -76,9 +76,9 @@
 ### 星敏感器
 
 - 本轮未在 BIRDS4-CAD 文件清单中找到可明确识别的星敏感器 STEP。
-- KAIROSPACE KSST-01 产品页列出 56 × 60 × 93 mm、197 g（含遮光罩）及 CAD model / datasheet 下载项；当前页面的 CAD 下载需经站点请求/下载入口，尚未取得原始 CAD 字节及许可授权。
+- KAIROSPACE KSST-01 产品页列出 56 × 60 × 93 mm、197 g（含遮光罩），并明确列出 2.88 MB CAD model 下载项及 10.68 MB datasheet。当前尚未取得可校验的原始 CAD 文件字节、SHA-256 和再使用许可；产品型号也尚未确认与项目目标星敏感器一致。
 - CubeSpace Gen2 CubeStar 页面也列出 CAD Model Request，不能把产品页的尺寸/照片等同于可用的原始 CAD。
-- 初步结论：星敏感器仍是最适合优先验证 image-to-3D 的候选，但在取得可追溯原始图片、许可和尺寸/接口依据前，只能生成 G1 synthetic preview，不能验收 G2。
+- 初步结论：星敏感器仍是唯一需要重点处理的缺 CAD 对象，但不能直接认定没有 CAD。先尝试取得 KSST-01 页面列出的原始 CAD 与许可/来源证明；若文件可取得且目标型号一致，优先走真实 reference CAD 路线。只有文件不可取得、许可不允许使用或目标型号不同，才启动 image-to-3D。若先做生成预览，在取得来源许可和尺寸/接口证据前仅限 G1，不验收 G2。
 
 ### 调整后的实验顺序
 
@@ -86,6 +86,8 @@
 2. 对正控制组从 STEP 渲染固定视角图像，再进行 image-to-3D；比较生成网格与真实 STEP 的包围盒、表面距离、拓扑/接口特征和人工修复时间。
 3. 星敏感器作为“CAD 缺失”候选；在取得真实输入资料前，不填充未知尺寸、不声称工程精度。
 4. 三类对象均保留来源哈希、许可、模型版本、参数、渲染视角、生成日志和人工评审记录。
+
+资料获取门禁：KAIROSPACE 页面列出 CAD model 2.88 MB，但本轮页面解析只确认到下载条目，未取得可复验的 STEP/IGES/GLB 字节，也未核实文件许可。不得将“页面列出 CAD”写成“已获得 CAD”，也不得将第三方产品尺寸直接当作本项目设备尺寸。
 
 公开来源：
 - BIRDS4-CAD：`https://github.com/BIRDSOpenSource/BIRDS4-CAD`
@@ -100,7 +102,7 @@
 |---|---|---|---|---|---|
 | 电池组 | 用户目标设备图片未提供 | M4-A 已注册真实 STEP 候选，尚未完成节点渲染验收 | 需从 STEP/装配证据核验 | BIRDS4 B4_battery v1 | reference_cad_registered_not_as_built |
 | 反作用轮 | 用户目标设备图片未提供 | M4-A 已注册真实 STEP 候选，尚未完成节点渲染验收 | 需核验安装面与旋转轴 | BIRDS4 B4_RW_Assembly v55 | reference_cad_registered_not_as_built |
-| 星敏感器 | KAIROSPACE 产品页图片候选 | 产品页列出 56×60×93 mm | 产品页列出 CAN/RS485，机械接口未取得 | KAIROSPACE KSST-01 | CAD_request_required |
+| 星敏感器 | KAIROSPACE 产品页图片候选 | 产品页列出 56×60×93 mm | 产品页列出 CAN/RS485，机械接口未取得 | KAIROSPACE KSST-01 | CAD_listed_2.88MB_bytes_and_license_unverified |
 
 ## 生成实验的输入对齐
 
