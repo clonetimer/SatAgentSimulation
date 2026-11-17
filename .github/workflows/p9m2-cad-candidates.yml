@@ -5,6 +5,8 @@ on:
     paths:
       - "src/sat_sim/cad_candidate_mapping.py"
       - "scripts/cad/build_engineering_candidates.py"
+      - "scripts/cad/export_workbench_engineering_tree.py"
+      - "scripts/SCRIPT_INVENTORY.md"
       - "tests/cad/test_candidate_mapping.py"
       - "scripts/cad/convert_birds4_step.py"
       - "src/sat_sim/workbench_object_tree.py"
@@ -15,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: p9m2-cad-candidates-${{ github.event.pull_request.number || github.ref }}
@@ -37,6 +40,48 @@ jobs:
             "joblib==1.5.3" "scikit-learn==1.9.0" \
             "pydantic==2.13.4" "jsonschema==4.26.0" "psutil==7.2.2" \
             "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+      - name: Download pinned BIRDS-4 full-FM CAD evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: birds4-fm-cad-reference-43692477458
+          repository: clonetimer/SatAgentSimulation
+          run-id: 43692477458
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/birds4-reference
+      - name: Export authoritative engineering object tree
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/cad/export_workbench_engineering_tree.py \
+            --output "${{ runner.temp }}/p9m2/workbench-object-tree.v2.json"
+      - name: Build candidate mapping against real 855-node BIRDS-4 assembly
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/cad/build_engineering_candidates.py \
+            --engineering-tree "${{ runner.temp }}/p9m2/workbench-object-tree.v2.json" \
+            --assembly-tree "${{ runner.temp }}/birds4-reference/build/birds4/output/BIRDS4_FM_Final_v7.assembly-tree.json" \
+            --source-model "BIRDS4_FM_Final v7.step" \
+            --source-revision "3bab47a0f53410ef79005d21321ff659726f0a1c" \
+            --output "${{ runner.temp }}/p9m2/BIRDS4_FM_Final_v7.candidate-mapping.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ["RUNNER_TEMP"]) / "p9m2" / "BIRDS4_FM_Final_v7.candidate-mapping.json"
+          report = json.loads(path.read_text(encoding="utf-8"))
+          assert report["source"]["cad_node_count"] == 855
+          assert report["summary"]["render_eligible_candidate_count"] == 0
+          assert report["semantics"]["requires_p9m3_evidence_review_before_p9m4_promotion"] is True
+          assert all(row["review_status"] == "candidate_only" for row in report["candidates"])
+          assert all(row["instance_id"] is None and row["spatial_anchor"] is None for row in report["candidates"])
+          print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))
+          PY
+      - name: Preserve real CAD candidate audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: p9m2-birds4-candidate-audit
+          path: ${{ runner.temp }}/p9m2/
+          if-no-files-found: error
       - name: Validate candidate mapping and CAD provenance contracts
         env:
           PYTHONPATH: "src:."
