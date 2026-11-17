@@ -149,6 +149,17 @@ def build_installation_review_packets(
     source_tree_sha = source_manifest.get("source_tree_sha")
     if not source_commit or not source_tree_sha:
         raise ValueError("P9M3_CAD_SOURCE_PIN_MISSING")
+    if procedure_extraction is not None:
+        extracted_source = procedure_extraction.get("source", {})
+        expected_procedure = source_manifest.get("assembly_procedure", {})
+        if extracted_source.get("verification_status") != "source_bytes_verified":
+            raise ValueError("P9M3_PROCEDURE_SOURCE_NOT_VERIFIED")
+        if extracted_source.get("source_commit") != expected_procedure.get("source_commit"):
+            raise ValueError("P9M3_PROCEDURE_COMMIT_MISMATCH")
+        if extracted_source.get("git_blob_sha1") != expected_procedure.get("git_blob_sha1"):
+            raise ValueError("P9M3_PROCEDURE_GIT_BLOB_MISMATCH")
+        if extracted_source.get("size_bytes") != expected_procedure.get("size_bytes"):
+            raise ValueError("P9M3_PROCEDURE_SIZE_MISMATCH")
 
     packets = []
     for candidate in candidates:
