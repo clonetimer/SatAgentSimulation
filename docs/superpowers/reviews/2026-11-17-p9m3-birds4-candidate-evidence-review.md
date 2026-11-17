@@ -102,3 +102,38 @@ Reviewer disposition:
 - Do not infer a specific flight unit from `FM_Final` in the file name.
 - A candidate remains blocked unless every required claim has a traceable, reviewed source and an explicit decision.
 - No candidate may receive an instance ID, installation transform, spatial anchor or render eligibility from this worksheet alone.
+
+
+## 5. Flight-unit test-report evidence — source verified, interpretation bounded
+
+The four additional documents were downloaded from the pinned ProceduresAndReports commit and verified against their Git blob SHA-1 values. SHA-256 receipts and OOXML text/table indices are preserved in CI artifact `p9m3-birds4-flight-unit-test-reports`.
+
+### Vibration reports
+
+- Guarani-1 report: paragraph 9 title; paragraph 24 states the report applies to a vibration test for GuaraniSat-1; paragraph 36 names GuaraniSat-1 as the tested satellite; paragraph 245 concludes the tested GuaraniSat-1 passed its vibration requirements.
+- Maya-2 report: paragraph 9 title; paragraph 24 states the report applies to Maya-2; paragraph 36 names Maya-2 as the tested satellite; paragraph 243 concludes the tested Maya-2 passed its vibration requirements.
+- Tsuru report: paragraph 9 title; paragraph 24 states the report applies to Tsuru; paragraph 36 names Tsuru as the tested satellite; paragraph 244 concludes the tested Tsuru passed its vibration requirements.
+- Each report's Table 3 is a common test-article inventory listing all three BIRDS-4 FM units (Tsuru, Maya-2 and GuaraniSat-1) and the 3U deployment pod. The individual report title and scope paragraphs, not the common inventory table alone, identify the test article for that report.
+
+These reports establish that each named unit underwent a vibration test and passed the stated vibration acceptance criteria. They do not supply the detailed component BOM, six-degree-of-freedom component mounting matrices or a final as-built assembly drawing. Therefore they strengthen flight-unit provenance but do not close the installation-transform gate.
+
+### FM thermal-vacuum report
+
+- Paragraph 4 defines the test as BIRDS-4 Flight Model thermal-vacuum qualification.
+- Paragraph 6 states the scope is the BIRDS-4 FM thermal-vacuum test.
+- Paragraph 121 states the test subjects had the same hardware as the satellite EM model. This is an explicit reason to keep the test report separate from flight-unit-specific hardware configuration approval.
+- Table 11 identifies temperature measurement points including battery box, reaction-wheel assembly and six external panels.
+- Table 12 groups external panels and internal components, including battery box and reaction-wheel assembly.
+- Table 17 gives component operating temperature ranges; Table 18 records temperature ranges by Paraguay, Philippines and Japan columns.
+
+This is valuable evidence that the FM TVT campaign instrumented the battery box, reaction-wheel assembly and external panels. The country columns are useful for locating unit-specific test traces, but must not be interpreted as proof of different part numbers or approved installation transforms.
+
+### Effect on the three candidate decisions
+
+| Candidate | Additional evidence | What it supports | What remains open |
+|---|---|---|---|
+| Battery | Three unit-specific vibration reports; FM TVT battery-box sensors and temperature limits | Flight-unit test provenance and battery-box thermal monitoring | Approved battery part number/revision, unit BOM, datum and installed transform |
+| Reaction wheel | Three unit-specific vibration reports; FM TVT reaction-wheel sensor locations and temperature limits | Flight-unit test provenance and reaction-wheel thermal monitoring | Approved wheel/holder configuration, unit BOM, datum and installed transform |
+| Perovskite payload | FM Assembly Procedure Table 9 adhesive checklist and -Y panel procedure | Structural Testing Model procedure's payload-to--Y-panel assembly context | Flight-unit payload configuration, approved payload interface drawing, final unit applicability and installed transform |
+
+**No promotion is authorized by these reports.** All three candidates remain `blocked_evidence_incomplete`, with null instance/installation transform/spatial anchor and `render_eligible=false`.
