@@ -124,3 +124,14 @@ G3 as-built:
 
 ## 当前技术选择
 第一轮只实施 TRELLIS.2 作为可选 G1 生成 worker，参数化 CAD 作为工程主基线。Hunyuan3D 先不部署，直到许可评审完成。任何生成模型的输出都进入 `synthetic_reference_geometry`，不得隐式转换为 P9-M4 的 `reference_cad` 或 `as_built_verified`。
+
+
+## 实施进展：参数化基线先行
+
+已新增：
+- `p9m4i-parametric-input.v1` 输入 schema：每个尺寸都必须带数值、原始来源定位和来源 SHA-256。
+- FreeCAD macro `scripts/cad/build_parametric_synthetic_asset.FCMacro`：按显式 box/cylinder 特征构建 FCStd 和 STEP；不含任何预设卫星单机尺寸。
+- 位置坐标也必须带独立来源定位和 SHA-256；缺少任一项即拒绝构建。
+- CI 对宏的源约束拒绝逻辑进行静态回归检查。
+
+该宏当前是确定性几何基线，不是三个设备的最终工程模型。尚未提供真实设备尺寸图/安装接口图，因此没有生成或伪造任何具体尺寸。实际 FreeCAD 几何执行需在安装 FreeCAD 的隔离环境完成，随后再导出/转换 GLB 并用独立审计器检查。
