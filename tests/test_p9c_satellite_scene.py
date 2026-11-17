@@ -1023,8 +1023,16 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
                 for descendant in candidate["candidate_descendant_mesh_nodes"]:
                     assert descendant["name"] in card.inner_text()
                 card.get_by_role("button", name="定位候选组").click()
-                inspector_name = page.locator("#birdsCadInspector .birds-cad-inspector-name")
-                inspector_name.filter(has_text=candidate["candidate_glb_node_name"]).wait_for(timeout=10000)
+                try:
+                    page.locator("#birdsCadStatus").filter(has_text="已选择").wait_for(timeout=10000)
+                except Exception as error:
+                    raise AssertionError(
+                        "registered candidate node could not be focused: "
+                        f"object_id={object_id}, candidate_index={candidate['candidate_glb_node_index']}, "
+                        f"candidate_name={candidate['candidate_glb_node_name']}, "
+                        f"status={page.locator('#birdsCadStatus').inner_text()}, "
+                        f"viewer_diagnostics={page.evaluate('window.BirdsCadViewer?.getDiagnostics?.()')}"
+                    ) from error
                 inspector_text = page.locator("#birdsCadInspector").inner_text()
                 assert f"GLB 原始节点索引\n{candidate['candidate_glb_node_index']}" in inspector_text
                 assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in inspector_text
