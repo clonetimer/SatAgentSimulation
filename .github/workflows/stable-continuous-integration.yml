@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   stable-source-wheel:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'integration/stable-continuous-native-r9k-candidate'
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'integration/stable-continuous-native-r9k-candidate' || github.head_ref == 'feat/p9m4-real-evidence-registry-20261117'
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
@@ -93,7 +93,7 @@ jobs:
           retention-days: 7
 
   stable-change-governance:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'integration/stable-continuous-native-r9k-candidate'
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'integration/stable-continuous-native-r9k-candidate' || github.head_ref == 'feat/p9m4-real-evidence-registry-20261117'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
