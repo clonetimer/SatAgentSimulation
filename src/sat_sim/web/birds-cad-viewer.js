@@ -6,6 +6,8 @@ const sceneLayout=document.querySelector('.p9d-scene-layout');
 const modeTabs=document.querySelectorAll('[data-scene-mode]');
 function setSceneMode(mode,syncRenderers=true){const cad=mode==='cad',simulation=mode==='simulation';orbitMode.hidden=cad||simulation;root.hidden=!cad;const simulationRoot=document.getElementById('simulationGeometryMode');if(simulationRoot)simulationRoot.hidden=!simulation;sceneLayout?.classList.toggle('is-cad-mode',cad);sceneLayout?.classList.toggle('is-simulation-mode',simulation);const title=document.getElementById('satelliteSceneTitle');if(title)title.textContent=cad?'BIRDS-4 参考 CAD':simulation?'ADCS 仿真构型':'卫星数字场景';modeTabs.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.sceneMode===mode)));if(!syncRenderers)return;if(window.BirdsCadViewer?.setViewerVisible)window.BirdsCadViewer.setViewerVisible(cad);window.SatScene?.setOrbitSceneVisible?.(!cad&&!simulation);if(simulation)window.SatScene?.setSimulationGeometryVisible?.(true);else window.SatScene?.setSimulationGeometryVisible?.(false);}
 modeTabs.forEach(button=>button.addEventListener('click',()=>setSceneMode(button.dataset.sceneMode)));
+// Explicit readiness signal for browser acceptance and scene-mode orchestration.
+document.documentElement.dataset.birdsCadModeTabsReady='true';
 // Match the initial selected tab without starting renderers in the hidden workspace.
 // app.js owns renderer activation when the satellite workspace is actually entered.
 const initialSceneMode=Array.from(modeTabs).find(button=>button.getAttribute('aria-pressed')==='true')?.dataset.sceneMode||'simulation';
