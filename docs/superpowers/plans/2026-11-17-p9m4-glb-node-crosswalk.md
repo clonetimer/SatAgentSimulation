@@ -34,3 +34,13 @@ M3 候选保存的是 STEP assembly occurrence path；三维渲染器需要 glTF
 4. 父节点名称不一致标记 mismatch，不输出 index。
 5. 正式 selector 始终为 null，renderable 始终 false。
 6. M3 五项审批门禁、零 as-built、零 telemetry binding 保持不变。
+
+
+## 补充：容器完整性与父链证据门禁
+
+- GLB inventory 不再只读取 JSON chunk：遍历完整 chunk envelope，校验 chunk 边界、4-byte 对齐、JSON 首块、BIN 第二块（存在时）和重复 chunk。
+- 校验节点 mesh 引用、child index、multiple-parent、hierarchy cycle 与 scene root。
+- STEP 节点名称缺失、父节点路径/名称缺失时，状态必须为 incomplete，不得因“唯一同名”输出候选 index。
+- STEP 根节点只可与 GLB 根节点形成候选；STEP 子节点必须与 GLB 父节点名称一致。
+- 增加负向回归：missing parent name、root/child mismatch、chunk overrun、node cycle。
+- 所有输出仍为 candidate-only；即使候选唯一，也不代表几何、坐标基准或安装身份通过审查。
