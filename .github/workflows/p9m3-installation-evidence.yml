@@ -90,6 +90,7 @@ jobs:
             --assembly-tree "${{ runner.temp }}/p9m3/cad/build/birds4/output/BIRDS4_FM_Final_v7.assembly-tree.json" \
             --source-manifest assets/cad-sources/birds4/birds4-cad-source-manifest.json \
             --procedure-extraction "${{ runner.temp }}/p9m3/procedure-extraction.json" \
+            --unit-report-index "${{ runner.temp }}/p9m3/unit-reports/extracted/flight-unit-report-index.json" \
             --output "${{ runner.temp }}/p9m3/BIRDS4_FM_Final_v7.installation-review.json"
           python - <<'PY'
           import json, os
@@ -97,6 +98,8 @@ jobs:
           report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "p9m3" / "BIRDS4_FM_Final_v7.installation-review.json").read_text(encoding="utf-8"))
           assert report["source"]["cad_node_count"] == 855
           assert report["summary"]["review_packet_count"] == 3
+          assert report["summary"]["unit_test_report_count"] == 4
+          assert report["semantics"]["unit_test_reports_are_not_approved_bom"] is True
           assert report["summary"]["cad_local_transform_valid_count"] == 3
           assert report["summary"]["cad_world_transform_valid_count"] == 3
           assert report["summary"]["parent_composition_pass_count"] == 3
@@ -111,6 +114,10 @@ jobs:
           assert by_object["component.reaction_wheel"]["procedure_text_evidence_locators"]["references"]["reaction wheel"]
           assert by_object["component.payload"]["procedure_text_evidence_locators"]["references"]["perovskite solar cells"]
           assert by_object["component.payload"]["procedure_text_evidence_locators"]["references"]["-y panel"]
+          for packet in report["review_packets"]:
+              assert len(packet["flight_unit_test_report_evidence"]["documents"]) == 4
+              assert packet["flight_unit_test_report_evidence"]["configuration_authority"] == "test_reports_are_not_approved_as_built_BOM"
+              assert all(doc["human_review_status"] == "not_reviewed" for doc in packet["flight_unit_test_report_evidence"]["documents"])
           print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))
           PY
       - name: Preserve P9-M3 review packets and extracted source evidence
