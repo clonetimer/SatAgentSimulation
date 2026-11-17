@@ -203,3 +203,18 @@ Correct pattern:
 - Keep the browser test's HTTP >=400 and module-readiness diagnostics so missing vendor files are distinguished from scene-mode and geometry failures.
 
 The review now stages the same offline Globe.gl/Three.js runtime as P9-C before loading the actual BIRDS-4 GLB.
+
+
+## P9-M4-D final Chromium acceptance: resolve candidate nodes through the GLTFParser dependency cache
+
+The full-size BIRDS-4 review exposed a real integration gap after the GLB hash gate passed: the registry candidate index was valid, but the viewer's scene-traversal association lookup did not resolve the battery node. The viewer now builds a candidate lookup using both the GLTFLoader association map and `gltf.parser.getDependency('node', originalIndex)`, then verifies the resolved Object3D is actually part of the displayed default scene before allowing focus. A missing/unattached node fails closed and reports diagnostics rather than focusing a traversal ordinal or adding an off-scene object.
+
+Final evidence:
+- Exact SHA-matched BIRDS-4 GLB: 852 nodes / 754 meshes.
+- Battery node #545: 14 descendant meshes.
+- Reaction-wheel assembly node #560: 24 descendant meshes.
+- Payload candidate node #759: 1 descendant mesh.
+- Chromium located all three and recorded per-candidate screenshots.
+- Formal selector promotion, as-built approval and telemetry binding remain zero.
+
+Lesson: GLTFLoader's parser dependency cache is the authoritative way to resolve an original glTF `nodes[]` index to its Object3D. The association map remains useful for reverse lookup/diagnostics, but the viewer should not assume every target group is reachable by a hand-maintained traversal-index translation.
