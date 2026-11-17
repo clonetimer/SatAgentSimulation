@@ -229,6 +229,8 @@ def test_satellite_scene_exposes_evidence_classes_without_fake_geometry():
     assert "loadedGlbSha256!==expected" in cad_viewer
     assert "selectByIndex" in cad_viewer
     assert "gltf.parser?.associations" in cad_viewer
+    assert "gltf.parser.getDependency('node',index)" in cad_viewer
+    assert "review_candidate_nodes_resolved" in cad_viewer
     assert "item.userData.gltfNodeIndex===index" in cad_viewer
     assert "item.userData.cadTreeIndex===index" not in cad_viewer
     assert ".birds-cad-review-panel" in css
