@@ -46,6 +46,15 @@ def extract_docx(path: Path) -> list[dict]:
             xml = archive.read("word/document.xml")
         except KeyError as error:
             raise ValueError("P9M3_DOCX_MAIN_DOCUMENT_MISSING") from error
+        try:
+            relationships_xml = archive.read("word/_rels/document.xml.rels")
+            relationships_root = ET.fromstring(relationships_xml)
+            relationships = {
+                relation.attrib.get("Id"): relation.attrib.get("Target")
+                for relation in relationships_root
+            }
+        except KeyError:
+            relationships = {}
     root = ET.fromstring(xml)
     body = root.find(".//w:body", NS)
     if body is None:
@@ -58,12 +67,18 @@ def extract_docx(path: Path) -> list[dict]:
         if child.tag == W + "p":
             paragraph_index += 1
             text = _paragraph_text(child)
-            if text:
+            if text or list(child.iter(A + "blip")):
+                image_refs = []
+                for blip in child.iter(A + "blip"):
+                    rel_id = blip.attrib.get(R + "embed")
+                    if rel_id:
+                        image_refs.append({"relationship_id": rel_id, "target": relationships.get(rel_id)})
                 records.append({
                     "block_index": block_index,
                     "kind": "paragraph",
                     "paragraph_index": paragraph_index,
                     "text": text,
+                    "embedded_media_refs": image_refs,
                 })
             block_index += 1
         elif child.tag == W + "tbl":
@@ -79,11 +94,17 @@ def extract_docx(path: Path) -> list[dict]:
                         "text": "\n".join(text for text in paragraphs if text),
                     })
                 rows.append({"row_index": row_index, "cells": cells})
+            image_refs = []
+            for blip in child.iter(A + "blip"):
+                rel_id = blip.attrib.get(R + "embed")
+                if rel_id:
+                    image_refs.append({"relationship_id": rel_id, "target": relationships.get(rel_id)})
             records.append({
                 "block_index": block_index,
                 "kind": "table",
                 "table_index": table_index,
                 "rows": rows,
+                "embedded_media_refs": image_refs,
             })
             block_index += 1
     return records
