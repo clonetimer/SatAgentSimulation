@@ -20,6 +20,11 @@ def test_basilisk_native_reaction_wheel_template_is_a_valid_component_task() -> 
     assert spec["parameters"]["values"]["physics_backend"] == "basilisk_native"
     assert spec["parameters"]["values"]["num_wheels"] == 1
     assert spec["parameters"]["values"]["max_motor_torque_nm"] == 0.005
+    assert spec["outputs"]["plots"] == [
+        "adcs.reaction_wheel.speed_rad_s_0",
+        "adcs.reaction_wheel.applied_torque_nm_0",
+    ]
+    assert "qoi.adcs.reaction_wheel.final_speed_rad_s_0" in spec["outputs"]["qoi"]
     validation = validate_task_spec(spec)
     assert validation.ok, validation.to_dict()
 
