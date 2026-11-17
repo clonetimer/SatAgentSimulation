@@ -77,7 +77,7 @@ jobs:
           )
           import tomllib
           import re
-          project = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']
+          project = tomllib.loads((Path(os.environ['GITHUB_WORKSPACE']) / 'pyproject.toml').read_text(encoding='utf-8'))['project']
           declared = [
               re.sub(r'\s+', '', item).lower()
               for item in project.get('dependencies', [])
