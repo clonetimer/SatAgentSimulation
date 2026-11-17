@@ -65,7 +65,7 @@ def inputs(tmp_path):
         {"object_id": "component.imu", "kind": "equipment", "name_zh": "惯性测量单元", "children": []},
         {"object_id": "external.station", "kind": "external_object", "children": []},
     ]}]}
-    assembly = {"source_path": "fixture.step", "nodes": [{"source_node_path": "root", "parent_node_path": None}, node]}
+    assembly = {"source_path": "fixture.step", "nodes": [{"source_node_path": "root", "parent_node_path": None, "source_node_name": "root"}, node]}
     conversion = {"source": {"commit": commit, "path": "fixture.step"}, "conversion": {"output_unit": "metres"}, "geometry": {"assembly_node_count": 2, "sha256": hashlib.sha256(glb.read_bytes()).hexdigest(), "size_bytes": glb.stat().st_size}, "promotion_status": "reference_cad_imported_not_as_built_verified"}
     return [review, tree, assembly, conversion, glb]
 
