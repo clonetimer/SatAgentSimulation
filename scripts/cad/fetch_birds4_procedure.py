@@ -32,7 +32,8 @@ def main() -> int:
     record = manifest["assembly_procedure"]
     relative = record["path"]
     encoded_path = urllib.parse.quote(relative, safe="/")
-    url = f"{record['repository']}/raw/{record['source_commit']}/{encoded_path}"
+    repository = record["repository"].removeprefix("https://github.com/")
+    url = f"https://raw.githubusercontent.com/{repository}/{record['source_commit']}/{encoded_path}"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(url, headers={"User-Agent": "SatAgentSimulation-P9M3-evidence/1.0"})
     with urllib.request.urlopen(request, timeout=180) as response, args.output.open("wb") as output:
