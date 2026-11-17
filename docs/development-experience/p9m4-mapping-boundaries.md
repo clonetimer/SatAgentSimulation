@@ -44,3 +44,6 @@ Correct pattern:
 The new read-only \`/workbench/engineering-mapping\` endpoint accepts only a deployment-configured mapping bundle path (\`SAT_SIM_ENGINEERING_MAPPING_BUNDLE\`). It validates the complete bundle before returning a minimal public projection. Missing configuration is reported as \`not_configured\`; malformed bundles are rejected as \`invalid\`; no path or raw evidence content is returned.
 
 The satellite scene inspector displays only mapping counts and object-to-mapping-kind status. It does not load a GLB, infer STEP-to-GLB node selectors, create telemetry bindings, or draw unlocated hardware. This keeps the UI useful while preserving the distinction between reference CAD, simulation configuration and approved as-built geometry.
+
+
+The first workspace-path correction still failed because the stable check's Python heredoc did not import \`os\`. The traceback correctly identified \`NameError: os is not defined\`. When moving checks into an isolated \`/tmp\` working directory, explicitly audit the complete imports used by the snippet (including environment access); do not assume a prior module-level import is in scope inside a standalone heredoc.
