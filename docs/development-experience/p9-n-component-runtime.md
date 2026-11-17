@@ -39,3 +39,16 @@ P9-N 增加的端到端验收从 `instantiate_scenario_template` 构造正式 co
 IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntime 中已有官方 Basilisk 模块，但独立传感器运行需要显式定义 truth/environment input、采样周期、安装坐标、随机种子和原生 recorder。不能把整星运行图中的传感器输出切片后标记为 standalone component run。
 
 先保留当前 component source-native capability，并在 P9-N2 分别建立独立官方 Basilisk sensor graph；若环境输入不完整，结果应标记为输入受限，不伪造光学/星表/地磁环境。
+
+
+## P9-N 实测补充：从物理探针到工作台入口
+
+2026-11-17，PR #165 合入后，新增可直接从场景模板目录选择的 `component_reaction_wheel_basilisk_native`。该模板固定为单轮标称原生执行，显式设置 `physics_backend=basilisk_native`，并提供可审计的初始转速、轮惯量、最大力矩、转速上限、指令力矩和阻尼。`physics_backend` 已在表单中标记为 common，因此默认“推荐参数”视图可见，不必切换到“全部参数”。
+
+验收证据：
+- 原生 RW 物理 A/B 工作流：PASS；
+- TaskSpec → ExecutionPlan → registered adapter → sealed Run Bundle：PASS；
+- 模板规范化与 TaskSpec 校验：PASS；
+- 原生 backend 参数表单可见性与中文说明：PASS。
+
+这意味着 P9-N1 不需要再另建单机任务系统；应继续复用现有仿真向导、模板选择、参数表单、任务中心和结果分析。下一步重点是浏览器端从选择反作用轮对象到运行原生模板、查看真实曲线和历史 Run 的完整用户旅程。
