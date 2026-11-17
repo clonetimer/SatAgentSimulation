@@ -71,6 +71,9 @@ jobs:
           report = json.loads(path.read_text(encoding="utf-8"))
           assert report["source"]["cad_node_count"] == 855
           assert report["summary"]["render_eligible_candidate_count"] == 0
+          assert report["source"]["source_contains_mixed_em_or_b3_nodes"] is True
+          assert report["summary"]["identity_review_candidate_count"] == report["summary"]["candidate_count"]
+          assert all(row["identity_review_required"] for row in report["candidates"])
           assert report["semantics"]["requires_p9m3_evidence_review_before_p9m4_promotion"] is True
           assert all(row["review_status"] == "candidate_only" for row in report["candidates"])
           assert all(row["instance_id"] is None and row["spatial_anchor"] is None for row in report["candidates"])
