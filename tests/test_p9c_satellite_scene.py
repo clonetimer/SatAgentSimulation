@@ -1014,6 +1014,7 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
             panel.get_by_text("GLB 哈希一致", exact=True).wait_for(timeout=10000)
             assert all(button.is_enabled() for button in panel.get_by_role("button", name="定位候选组").all())
 
+            visual_review_records = []
             for object_id, expected_mesh_count in expected.items():
                 row = reference_rows[object_id]
                 candidate = row["geometry_asset"]["glb_node_binding_candidate"]
@@ -1037,6 +1038,25 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
                 assert f"GLB 原始节点索引\n{candidate['candidate_glb_node_index']}" in inspector_text
                 assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in inspector_text
                 assert "参考装配根坐标变换" in inspector_text
+                visual_review_records.append({
+                    "object_id": object_id,
+                    "registry_node_index": candidate["candidate_glb_node_index"],
+                    "registry_node_name": candidate["candidate_glb_node_name"],
+                    "inspected_node_index": candidate["candidate_glb_node_index"],
+                    "descendant_mesh_count": expected_mesh_count,
+                })
+                if evidence_dir:
+                    output = Path(evidence_dir)
+                    output.mkdir(parents=True, exist_ok=True)
+                    screenshot_name = {
+                        "component.battery": "battery",
+                        "component.reaction_wheel": "reaction-wheel",
+                        "component.payload": "payload",
+                    }[object_id]
+                    page.screenshot(
+                        path=str(output / f"p9m4-d-real-birds4-{screenshot_name}-focus.png"),
+                        full_page=True,
+                    )
 
             if evidence_dir:
                 output = Path(evidence_dir)
@@ -1047,6 +1067,7 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
                     "glb_node_count": registry["glb_node_inventory"]["node_count"],
                     "mesh_count": registry["glb_node_inventory"]["mesh_count"],
                     "reviewed_objects": list(expected),
+                    "visual_review_records": visual_review_records,
                     "descendant_mesh_counts": expected,
                     "selector_promotion_count": registry["glb_node_binding_audit"]["selector_promotion_count"],
                     "as_built_verified_count": registry["summary"]["as_built_verified_count"],
