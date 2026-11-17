@@ -21,3 +21,12 @@ Capability Registry 中有很多可执行 component capability，但它们的来
 ## 5. 模板是配置起点，不是运行批准
 
 选择模板只生成候选 TaskSpec 并投影到可编辑表单。用户仍须检查时长、采样、参数、输出并通过正式验证；模板应用本身不自动启动仿真。
+
+
+## 6. UI-originated Run acceptance must verify the actual plotted quantities
+
+The guided Run acceptance now checks more than a successful Run status. The native reaction-wheel template explicitly selects the two physical response curves (wheel-1 angular speed and actual motor torque) and the initial/final/max speed summary indicators. Chromium verifies both chart legend labels after the UI submits a real synchronous Basilisk Run. This prevents a false-positive where a Run succeeds but the user is shown an empty or irrelevant chart.
+
+## 7. Keep browser test names unique
+
+The P9-N1 browser suite briefly contained two Python test functions with the same name. Python silently keeps only the latter definition, so the full UI-originated Run journey was not collected. Use unique test names and make the workflow selector include each intended journey explicitly.
