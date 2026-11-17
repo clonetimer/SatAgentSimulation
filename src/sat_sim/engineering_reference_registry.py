@@ -120,6 +120,9 @@ def _glb_node_inventory(path: Path) -> dict[str, Any]:
         mesh_index = node.get("mesh")
         _require(mesh_index is None or (type(mesh_index) is int and 0 <= mesh_index < len(raw_meshes)),
                  "GLB_NODE_MESH_REFERENCE")
+        if mesh_index is not None:
+            primitives = raw_meshes[mesh_index].get("primitives") if isinstance(raw_meshes[mesh_index], Mapping) else None
+            _require(isinstance(primitives, list) and bool(primitives), "GLB_MESH_PRIMITIVES")
         for child in children:
             _require(type(child) is int and 0 <= child < len(raw_nodes), "GLB_CHILD_INDEX")
             _require(child != index and child not in parents, "GLB_NODE_MULTIPLE_PARENTS")
@@ -190,7 +193,9 @@ def _candidate_glb_binding(step_node: Mapping[str, Any], step_nodes: Mapping[str
             parent_index = candidate.get("parent_node_index")
             glb_parent = next((row for row in glb_nodes["nodes"] if row["node_index"] == parent_index), None)
             glb_parent_name = glb_parent.get("name") if glb_parent else None
-            if parent_path is None:
+            if candidate.get("mesh_index") is None:
+                status = "matched_node_without_mesh"
+            elif parent_path is None:
                 if parent_index is not None:
                     status = "parent_name_mismatch"
                 else:
