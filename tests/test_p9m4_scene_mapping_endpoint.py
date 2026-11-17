@@ -75,6 +75,7 @@ def test_engineering_mapping_endpoint_returns_only_validated_public_projection(t
     assert payload["summary"]["as_built_verified_count"] == 0
     assert payload["mappings"] == [{
         "object_id": "component.imu",
+        "name_zh": "component.imu",
         "mapping_kind": "unlocated",
         "as_built_eligible": False,
         "render_views": [],
@@ -102,6 +103,7 @@ def _reference_bundle(candidate=None):
         "mappings": [{
             "mapping_id": "reference:battery",
             "object_id": "component.battery",
+            "name_zh": "电池组",
             "mapping_kind": "reference_cad",
             "asset_instance_id": None,
             "geometry_asset": {
