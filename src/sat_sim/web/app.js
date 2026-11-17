@@ -78,6 +78,7 @@
     presentationCatalog: null,
     presentationObjects: [],
     sceneObjectTree: null,
+    sceneEngineeringMapping: null,
     sceneTreeLoading: false,
     selectedObjectId: null,
     selectedCapabilityId: null,
@@ -4450,6 +4451,67 @@
     return probe;
   }
 
+  function renderP9M4MappingPanel() {
+    const status = el('p9m4MappingStatus');
+    const detail = el('p9m4MappingDetail');
+    if (!status || !detail) return;
+    const payload = state.sceneEngineeringMapping;
+    status.dataset.state = payload?.status || 'unavailable';
+    status.textContent = payload?.message_zh || '工程映射状态不可用。';
+    detail.replaceChildren();
+    if (!payload?.ok || !payload.configured || !payload.summary) {
+      const note = document.createElement('p');
+      note.className = 'p9d-empty';
+      note.textContent = payload?.status === 'invalid'
+        ? '映射文件未通过校验，已拒绝加载。'
+        : '部署经校验的 M4 映射清单后，此处显示参考 CAD 与未定位对象状态。';
+      detail.append(note);
+      return;
+    }
+    const counts = document.createElement('div');
+    counts.className = 'p9m4-mapping-counts';
+    const labels = {
+      reference_cad: '参考 CAD',
+      simulation_configuration_geometry: '仿真构型',
+      as_built_verified: '已审定实装',
+      unlocated: '未定位',
+    };
+    for (const [kind, label] of Object.entries(labels)) {
+      const card = document.createElement('div');
+      card.className = 'p9m4-mapping-count';
+      const value = document.createElement('strong');
+      value.textContent = String(payload.summary.counts_by_kind?.[kind] || 0);
+      const caption = document.createElement('span');
+      caption.textContent = label;
+      card.append(value, caption);
+      counts.append(card);
+    }
+    detail.append(counts);
+    const list = document.createElement('div');
+    list.className = 'p9m4-mapping-list';
+    const selected = state.selectedObjectId;
+    for (const row of payload.mappings || []) {
+      if (selected && row.object_id !== selected) continue;
+      const item = document.createElement('div');
+      item.className = 'p9m4-mapping-row';
+      const name = document.createElement('strong');
+      name.textContent = row.object_id;
+      const kind = document.createElement('span');
+      kind.className = 'p9m4-mapping-kind';
+      kind.textContent = labels[row.mapping_kind] || row.mapping_kind;
+      item.append(name, kind);
+      list.append(item);
+    }
+    if (!list.childElementCount) {
+      const note = document.createElement('p');
+      note.className = 'p9d-empty';
+      note.textContent = selected ? '当前对象没有独立映射记录。' : '没有可展示的映射记录。';
+      detail.append(note);
+    } else {
+      detail.append(list);
+    }
+  }
+
   async function loadSceneObjectTree() {
     if (state.sceneTreeLoading) return;
     state.sceneTreeLoading = true;
@@ -4459,6 +4521,11 @@
         throw new Error('对象目录版本不兼容。');
       }
       state.sceneObjectTree = payload.tree;
+      try {
+        state.sceneEngineeringMapping = await api('/workbench/engineering-mapping');
+      } catch (mappingError) {
+        state.sceneEngineeringMapping = {ok: false, status: 'unavailable', message_zh: '工程映射服务暂不可用。'};
+      }
       renderP9DPanel();
     } catch (error) {
       const host = el('p9dObjectTree');
@@ -4501,6 +4568,7 @@
   function renderP9DPanel() {
     const panel = window.P9DObjectConfigPanel;
     if (!panel || !state.sceneObjectTree) return;
+    renderP9M4MappingPanel();
     panel.render({
       tree: state.sceneObjectTree,
       selectedId: state.selectedObjectId,
