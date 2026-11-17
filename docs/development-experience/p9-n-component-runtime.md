@@ -52,3 +52,12 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - 原生 backend 参数表单可见性与中文说明：PASS。
 
 这意味着 P9-N1 不需要再另建单机任务系统；应继续复用现有仿真向导、模板选择、参数表单、任务中心和结果分析。下一步重点是浏览器端从选择反作用轮对象到运行原生模板、查看真实曲线和历史 Run 的完整用户旅程。
+
+
+## P9-N1 workbench/API integration lessons
+
+1. **Use the public form API envelope exactly.** `GET /forms/capabilities/{capability_id}` returns `{ok, form_schema: {...}}`; fields are nested under `form_schema.fields`. Do not treat the response as the raw schema. The first P9-N1 CI attempt exposed a `KeyError: fields`; the API test now follows the public envelope.
+2. **Fetch registered templates; do not duplicate defaults in JavaScript.** The guided preset button calls the scenario-template instantiate endpoint, then uses the existing lossless `projectTaskSpecToForm` projection. This keeps the capability registry/template as the source of truth and preserves provenance.
+3. **Make backend choice visible at the point of use.** A component may default to a project reference backend even when an official native backend is available. The backend field must be common/recommended and its parameter group expanded by default; otherwise users can unknowingly run the non-native model.
+4. **A guided preset is not a new execution path.** It only selects a registered TaskSpec. Execution still passes through the same validator, planner, registered adapter, Run Bundle, and seal/integrity pipeline.
+5. **Keep unsupported native modes explicit.** The single-wheel Basilisk template is nominal-only. Do not let project-reference fault options appear as if they are available in the native backend. The run validator/adapter remains authoritative and must fail closed.
