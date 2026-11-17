@@ -7,6 +7,7 @@ Token/RBAC controls, audit evidence, and a sealed remote-Worker bundle protocol.
 from __future__ import annotations
 
 import copy
+import hashlib
 import csv
 import io
 import json
@@ -1599,10 +1600,11 @@ def create_app(
     def workbench_engineering_mapping_endpoint() -> dict[str, Any]:
         """Return validated mapping status without loading or rendering CAD geometry."""
         configured = os.environ.get("SAT_SIM_ENGINEERING_MAPPING_BUNDLE")
-        if not configured:
+        expected_sha256 = os.environ.get("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256")
+        if not configured or not expected_sha256:
             return {
                 "ok": True, "configured": False, "status": "not_configured",
-                "message_zh": "尚未部署工程映射清单；当前不显示参考 CAD 或实装几何。",
+                "message_zh": "尚未部署带 SHA-256 校验的工程映射清单；当前不显示参考 CAD 或实装几何。",
                 "summary": None, "mappings": [],
             }
         path = Path(configured).expanduser()
@@ -1614,8 +1616,21 @@ def create_app(
             }
         try:
             from .engineering_asset_mapping import validate_mapping_bundle
+            actual_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+            if actual_sha256 != expected_sha256.strip().lower():
+                raise ValueError("P9M4_MAPPING_BUNDLE_DIGEST_MISMATCH")
             bundle = json.loads(path.read_text(encoding="utf-8"))
+            if bundle.get("intake", {}).get("scope") != "reference_registration_only_not_as_built_approval":
+                raise ValueError("P9M4_REFERENCE_REGISTRY_SCOPE_REQUIRED")
             validation = validate_mapping_bundle(bundle)
+            summary = bundle.get("summary", {})
+            if (
+                validation["as_built_verified_count"] != 0
+                or summary.get("as_built_verified_count") != 0
+                or summary.get("telemetry_binding_count") != 0
+                or summary.get("node_renderable_count") != 0
+            ):
+                raise ValueError("P9M4_REFERENCE_REGISTRY_PROMOTION_FORBIDDEN")
             mappings = [
                 {
                     "object_id": row["object_id"],
