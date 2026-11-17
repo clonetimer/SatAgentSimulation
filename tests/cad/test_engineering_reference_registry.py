@@ -23,6 +23,7 @@ def _write_glb(path, nodes):
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": nodes,
+        "meshes": [{"primitives": []}],
     }
     body = json.dumps(document, separators=(",", ":")).encode("utf-8")
     body += b" " * (-len(body) % 4)
