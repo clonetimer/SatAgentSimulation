@@ -194,3 +194,44 @@ def test_procedure_extraction_receipt_must_match_pinned_manifest():
     }
     with pytest.raises(ValueError, match="PROCEDURE_GIT_BLOB_MISMATCH"):
         build_installation_review_packets(_candidate_payload(), _assembly(), _manifest(), extraction)
+
+
+def test_unit_test_reports_are_attached_as_non_authoritative_identity_evidence():
+    unit_index = {
+        "schema_version": "birds4-flight-unit-report-index.v1",
+        "configuration_authority": "test_reports_are_not_approved_as_built_BOM",
+        "documents": [{
+            "source_unit": "Maya-2",
+            "document_role": "flight_unit_vibration_test_report",
+            "path": "Reports/25_BIRDS4-VT-01_001R_MAYA-2_200816_2.docx",
+            "source_commit": "d7eadd98f5327e1ddea82b640293d49bfdb09555",
+            "git_blob_sha1": "verified-sha",
+            "sha256": "verified-sha256",
+            "verification_status": "source_bytes_verified",
+            "human_review_status": "not_reviewed",
+            "configuration_authority": "test_report_not_approved_as_built_BOM",
+            "paragraph_count": 10,
+            "table_count": 3,
+            "keyword_index": {"battery": [{"paragraph_index": 5, "text": "battery test"}]},
+        }],
+    }
+    report = build_installation_review_packets(_candidate_payload(), _assembly(), _manifest(), None, unit_index)
+    packet = report["review_packets"][0]
+    assert report["summary"]["unit_test_report_count"] == 1
+    assert report["semantics"]["unit_test_reports_are_not_approved_bom"] is True
+    evidence = packet["flight_unit_test_report_evidence"]
+    assert evidence["status"] == "source_verified_raw_test_reports_not_approved_configuration"
+    assert evidence["documents"][0]["source_unit"] == "Maya-2"
+    assert evidence["documents"][0]["human_review_status"] == "not_reviewed"
+    assert packet["flight_unit_identity"]["target_flight_unit"] is None
+    assert packet["promotion"]["status"] == "blocked_evidence_incomplete"
+
+
+def test_unit_report_index_with_wrong_authority_fails_closed():
+    bad_index = {
+        "schema_version": "birds4-flight-unit-report-index.v1",
+        "configuration_authority": "approved_as_built_BOM",
+        "documents": [],
+    }
+    with pytest.raises(ValueError, match="UNIT_REPORT_AUTHORITY_BOUNDARY_MISSING"):
+        build_installation_review_packets(_candidate_payload(), _assembly(), _manifest(), None, bad_index)
