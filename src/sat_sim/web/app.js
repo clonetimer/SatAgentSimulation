@@ -4526,6 +4526,7 @@
       } catch (mappingError) {
         state.sceneEngineeringMapping = {ok: false, status: 'unavailable', message_zh: '工程映射服务暂不可用。'};
       }
+      window.BirdsCadViewer?.setEngineeringReviewData?.(state.sceneEngineeringMapping);
       renderP9DPanel();
     } catch (error) {
       const host = el('p9dObjectTree');
