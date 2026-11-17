@@ -6429,6 +6429,43 @@
     }
   }
 
+  function runPhysicsSourceDetails(run) {
+    const spec = run?.task_spec || {};
+    const summary = run?.summary || {};
+    const metadata = summary.adapter_metadata || {};
+    const backend = metadata.physics_backend
+      || summary.physics_backend
+      || spec.parameters?.values?.physics_backend
+      || null;
+    const backendLabels = {
+      basilisk_native: 'Basilisk 官方原生',
+      project_reference: '项目参考模型（非 Basilisk 原生）',
+      source_native: '项目 source-native 模型',
+      python: '项目 Python 模型',
+    };
+    const items = [];
+    if (spec.simulation?.level) {
+      const levelLabels = {
+        component: '单机 / 部件',
+        subsystem: '分系统',
+        whole_spacecraft: '整星',
+        orbit_environment: '轨道环境',
+      };
+      items.push(['仿真层级', levelLabels[spec.simulation.level] || spec.simulation.level]);
+    }
+    if (backend) items.push(['物理计算后端', backendLabels[backend] || String(backend)]);
+    const provenance = metadata.native_provenance || metadata.model_source || null;
+    if (provenance) items.push(['模型来源标识', String(provenance)]);
+    const truth = summary.runtime_truth_status || null;
+    if (truth) {
+      const truthLabels = {
+        real_native_rw_spacecraft_recorded: '已记录官方 Basilisk 反作用轮与航天器状态',
+      };
+      items.push(['运行证据', truthLabels[truth] || String(truth)]);
+    }
+    return items;
+  }
+
   function renderActiveRun() {
     el('cancelRunBtn').classList.add('hidden');
     el('openRunReportBtn').classList.toggle('hidden', !state.activeRunId || !state.activeRun?.sealed);
@@ -6469,6 +6506,7 @@
       ['制品完整性', run.integrity?.ok ? 'VERIFIED' : 'NOT VERIFIED'],
       ['任务 ID', record.task_id || '—'],
       ['尝试次数', Array.isArray(record.attempts) ? record.attempts.length : (record.attempts ?? '—')],
+      ...runPhysicsSourceDetails(run),
     ];
     items.forEach(([label, value]) => {
       const item = document.createElement('div');
