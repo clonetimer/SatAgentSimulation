@@ -44,3 +44,6 @@ M3 候选保存的是 STEP assembly occurrence path；三维渲染器需要 glTF
 - STEP 根节点只可与 GLB 根节点形成候选；STEP 子节点必须与 GLB 父节点名称一致。
 - 增加负向回归：missing parent name、root/child mismatch、chunk overrun、node cycle。
 - 所有输出仍为 candidate-only；即使候选唯一，也不代表几何、坐标基准或安装身份通过审查。
+
+
+- A unique name/parent match is only a candidate when the GLB node references a valid mesh with at least one primitive. Meshless group nodes are classified as matched-but-not-geometry and receive no candidate index.
