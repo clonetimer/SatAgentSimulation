@@ -89,6 +89,31 @@ def extract_docx(path: Path) -> list[dict]:
     return records
 
 
+KEYWORD_TERMS = (
+    "structural testing model", "battery", "reaction wheel",
+    "perovskite solar cells", "-y panel", "axis definition",
+    "maya-2", "tsuru", "guarani-1",
+)
+
+def build_keyword_index(blocks: list[dict]) -> dict[str, list[dict]]:
+    """Return raw source locators only; do not interpret or approve claims."""
+    index: dict[str, list[dict]] = {term: [] for term in KEYWORD_TERMS}
+    for block in blocks:
+        if block["kind"] == "paragraph":
+            text = block["text"]
+            for term in KEYWORD_TERMS:
+                if term in text.casefold():
+                    index[term].append({"kind": "paragraph", "block_index": block["block_index"], "paragraph_index": block["paragraph_index"], "text": text})
+        elif block["kind"] == "table":
+            for row in block["rows"]:
+                for cell in row["cells"]:
+                    text = cell["text"]
+                    for term in KEYWORD_TERMS:
+                        if term in text.casefold():
+                            index[term].append({"kind": "table_cell", "block_index": block["block_index"], "table_index": block["table_index"], "row_index": row["row_index"], "cell_index": cell["cell_index"], "text": text})
+    return index
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docx", type=Path, required=True)
@@ -104,6 +129,7 @@ def main() -> int:
     if actual_git_sha1 != args.expected_git_blob_sha1:
         raise ValueError(f"P9M3_PROCEDURE_GIT_BLOB_SHA1_MISMATCH:{actual_git_sha1}")
     blocks = extract_docx(args.docx)
+    keyword_index = build_keyword_index(blocks)
     report = {
         "schema_version": "birds4-fm-assembly-procedure-extract.v1",
         "source": {
@@ -122,13 +148,17 @@ def main() -> int:
             "human_review_status": "not_reviewed",
             "pagination_status": "not_available_from_docx_body_extraction",
             "interpretation_status": "raw_text_evidence_only",
+            "keyword_index_status": "source_locators_only_not_claim_approval",
+            "keyword_hit_count": sum(len(matches) for matches in keyword_index.values()),
         },
+        "keyword_index": keyword_index,
         "blocks": blocks,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"paragraph_count": report["extraction"]["paragraph_count"],
                       "table_count": report["extraction"]["table_count"],
+                      "keyword_hit_count": report["extraction"]["keyword_hit_count"],
                       "source_sha256": report["source"]["sha256"],
                       "human_review_status": report["extraction"]["human_review_status"]},
                      ensure_ascii=False, sort_keys=True))

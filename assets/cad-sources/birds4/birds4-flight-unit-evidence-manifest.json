@@ -1,0 +1,33 @@
+{
+  "schema_version": "birds4-flight-unit-evidence-manifest.v1",
+  "source_repository": "https://github.com/BIRDSOpenSource/BIRDS4-ProceduresAndReports",
+  "source_commit": "d7eadd98f5327e1ddea82b640293d49bfdb09555",
+  "source_license": "MIT",
+  "purpose": "Pinned documentary evidence sources for P9-M3 flight-unit applicability review. These documents are test/rework evidence, not automatically approved as-built configuration records.",
+  "documents": [
+    {
+      "path": "Reports/25_BIRDS4-VT-01_001N_GUARANISAT-1_200816.docx",
+      "git_blob_sha1": "f51e83f989f3ee84ea77695c8053fce48eea0da1",
+      "document_role": "flight_unit_vibration_test_report",
+      "source_unit": "Guarani-1"
+    },
+    {
+      "path": "Reports/25_BIRDS4-VT-01_001R_MAYA-2_200816_2.docx",
+      "git_blob_sha1": "8fda52fd2e5a5b95bab0536923f95c28f19566d9",
+      "document_role": "flight_unit_vibration_test_report",
+      "source_unit": "Maya-2"
+    },
+    {
+      "path": "Reports/25_BIRDS4-VT-01_001U_TSURU_200816.docx",
+      "git_blob_sha1": "fe0b307cb98b4b8fc79170dd6b93c5f83fe6be92",
+      "document_role": "flight_unit_vibration_test_report",
+      "source_unit": "Tsuru"
+    },
+    {
+      "path": "Reports/BIRDS4_FM_TVT_Report_200714.docx",
+      "git_blob_sha1": "be6d082df100ca22b743b5cc0b71e92af356367d",
+      "document_role": "fm_thermal_vacuum_test_report",
+      "source_unit": "BIRDS-4 FM test campaign"
+    }
+  ]
+}
