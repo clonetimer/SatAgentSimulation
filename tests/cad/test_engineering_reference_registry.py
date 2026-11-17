@@ -174,6 +174,9 @@ def test_real_pinned_m3_evidence_maps_three_candidates_and_sixteen_unlocated():
     assert all(r["review"]["required_reviews"]["coordinate_datum"] == "blocked" for r in refs)
     assert all(r["geometry_asset"]["glb_node_binding"] is None for r in refs)
     assert all(r["geometry_asset"]["glb_node_binding_candidate"]["selector_promoted"] is False for r in refs)
+    assert all(r["geometry_asset"]["glb_node_binding_candidate"]["status"] == "unique_exact_name_parent_match_group_candidate" for r in refs)
+    assert all(r["geometry_asset"]["glb_node_binding_candidate"]["candidate_glb_node_index"] is not None for r in refs)
+    assert all(r["geometry_asset"]["glb_node_binding_candidate"]["candidate_descendant_mesh_nodes"] for r in refs)
     assert all(r["render"]["renderable"] is False for r in refs)
     assert result["glb_node_binding_audit"]["selector_promotion_count"] == 0
     print("P9M4_GLB_NODE_BINDING_AUDIT=" + json.dumps(result["glb_node_binding_audit"], sort_keys=True))
