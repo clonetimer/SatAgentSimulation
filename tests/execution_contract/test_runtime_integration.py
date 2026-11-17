@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from sat_sim.run_bundle import execute_prepared_run, prepare_run, request_cancel
+from sat_sim.run_bundle import execute_prepared_run, prepare_run, request_cancel, verify_run_bundle
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.task_compiler import compile_task_spec
 from sat_sim.unified_execution import execute_compiled_task
@@ -121,6 +121,7 @@ def test_native_reaction_wheel_component_survives_full_sealed_run_bundle(tmp_pat
     assert result.validation.result.value == "PASS"
     assert result.run_record.sealed is True
     assert result.bundle_manifest
+    assert verify_run_bundle(result.bundle_root)["ok"] is True
     assert result.summary["physics_backend"] == "basilisk_native"
     assert result.summary["runtime_truth_status"] == "real_native_rw_spacecraft_recorded"
     assert result.summary["target_level"] == "component"
