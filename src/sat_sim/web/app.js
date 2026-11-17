@@ -5122,6 +5122,10 @@
           if (value === undefined) deletePath(state.formData,field.path); else setPath(state.formData,field.path,value);
           state.taskSpec=null; state.changedPaths.delete(field.path); wrapper.classList.remove('agent-changed','field-error'); wrapper.querySelector('.field-error-message')?.remove();
           validateClientForm({show:false}); renderAgentChangePanel();
+          if (field.path === 'parameters.values.physics_backend') {
+            renderEffectSelect();
+            renderEvents();
+          }
           if (state.activeView === 'wizard') renderWizardParameterControls();
         } catch (error) {
           setFieldError(field.path,error.message);
@@ -5182,6 +5186,13 @@
   function renderEffectSelect() {
     const kind = el('effectKind').value;
     const select = el('effectSelect');
+    const nativeRwNominalOnly = state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native';
+    const kindSelect = el('effectKind');
+    const limitNote = el('eventBackendLimitNote');
+    if (limitNote) limitNote.classList.toggle('hidden', !nativeRwNominalOnly);
+    if (kindSelect) kindSelect.disabled = nativeRwNominalOnly;
+    select.disabled = nativeRwNominalOnly;
     select.replaceChildren();
     effectCatalog(kind).forEach((item) => {
       const option = document.createElement('option');
@@ -5189,10 +5200,15 @@
       option.textContent = item.label || item.effect;
       select.appendChild(option);
     });
-    el('addEffectBtn').disabled = !select.options.length;
+    el('addEffectBtn').disabled = nativeRwNominalOnly || !select.options.length;
   }
 
   function addEffect() {
+    if (state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native') {
+      el('eventBackendLimitNote')?.classList.remove('hidden');
+      return;
+    }
     const kind = el('effectKind').value;
     const effect = el('effectSelect').value;
     const template = effectCatalog(kind).find((item) => item.effect === effect);
