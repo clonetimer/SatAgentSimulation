@@ -1,3 +1,4 @@
+# P9-M3 merge-candidate acceptance; do not weaken evidence gates to make fixtures pass.
 name: P9-M3 CAD installation evidence review
 
 on:
