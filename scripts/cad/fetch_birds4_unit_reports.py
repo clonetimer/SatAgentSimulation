@@ -50,9 +50,10 @@ def main() -> int:
             while chunk := response.read(1024 * 1024):
                 stream.write(chunk)
         actual = git_blob_sha1(output)
-        if actual != record["git_blob_sha1"]:
+        expected = str(record["git_blob_sha1"]).strip().lower()
+        if actual != expected:
             output.unlink(missing_ok=True)
-            raise ValueError(f"P9M3_UNIT_REPORT_GIT_BLOB_MISMATCH:{relative}:{actual}")
+            raise ValueError(f"P9M3_UNIT_REPORT_GIT_BLOB_MISMATCH:{relative}:expected={expected!r}:actual={actual!r}")
         receipts.append({
             **record,
             "source_repository": manifest["source_repository"],
