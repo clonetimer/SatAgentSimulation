@@ -109,6 +109,18 @@ def test_native_reaction_wheel_component_survives_full_sealed_run_bundle(tmp_pat
         "command_torque_nm": 0.05,
         "damping_nms": 0.0,
     })
+    # A component run must not inherit spacecraft-wide checks that require
+    # orbit, attitude, EPS or thermal fields. Apply explicit component QoI
+    # assertions instead; the native recorder bounds are checked below.
+    spec.setdefault("model", {}).setdefault("validation", {}).update({
+        "physical_checks": [],
+        "acceptance_assertions": [{
+            "id": "native_rw_speed_response",
+            "metric": "qoi.adcs.reaction_wheel.final_speed_rad_s_0",
+            "operator": ">",
+            "value": 0.02,
+        }],
+    })
     prepared = prepare_run(spec, output_root=tmp_path / "runs")
     result = execute_prepared_run(
         prepared.bundle_root,
