@@ -164,3 +164,27 @@ def test_published_schema_rejects_telemetry_and_as_built_claims(tmp_path):
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     with pytest.raises(Exception):
         Draft202012Validator(schema).validate(record)
+
+
+def test_glb_rejects_invalid_material_reference(tmp_path):
+    path = tmp_path / "bad-material.glb"
+    _write_glb(path)
+    doc = json.loads(path.read_bytes()[20:].decode().rstrip(" \\0"))
+    doc["meshes"][0]["primitives"][0]["material"] = 99
+    raw = json.dumps(doc, separators=(",", ":")).encode()
+    raw += b" " * (-len(raw) % 4)
+    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+    with pytest.raises(ValueError, match="MATERIAL_REFERENCE_INVALID"):
+        audit_glb(path)
+
+
+def test_glb_rejects_triangle_vertex_count_not_divisible_by_three(tmp_path):
+    path = tmp_path / "bad-triangle-count.glb"
+    _write_glb(path)
+    doc = json.loads(path.read_bytes()[20:].decode().rstrip(" \\0"))
+    doc["accessors"][0]["count"] = 7
+    raw = json.dumps(doc, separators=(",", ":")).encode()
+    raw += b" " * (-len(raw) % 4)
+    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+    with pytest.raises(ValueError, match="TRIANGLE_VERTEX_COUNT_INVALID"):
+        audit_glb(path)
