@@ -25,13 +25,13 @@ function renderReviewPanel(){
   const subtitle=document.createElement('span');subtitle.textContent='候选组定位仅用于人工几何核查，不批准实装身份。';titleBlock.append(title,subtitle);
   const gate=document.createElement('span');gate.className='birds-cad-review-gate';
   const payload=engineeringReviewPayload,expected=payload?.intake?.glb_sha256;
+  const candidates=(payload?.mappings||[]).filter(row=>row.mapping_kind==='reference_cad'&&row.review_candidate);
   const digestMatch=Boolean(expected&&loadedGlbSha256&&expected===loadedGlbSha256);
-  gate.dataset.state=digestMatch?'matched':payload?.ok?'mismatch':'unavailable';
-  gate.textContent=digestMatch?'GLB 哈希一致':payload?.ok?'等待匹配的 GLB':'映射证据未就绪';
+  gate.dataset.state=digestMatch?'matched':candidates.length?'mismatch':'unavailable';
+  gate.textContent=digestMatch?'GLB 哈希一致':candidates.length?'等待匹配的 GLB':'候选证据未就绪';
   heading.append(titleBlock,gate);reviewPanel.append(heading);
   const note=document.createElement('p');note.className='birds-cad-review-empty';
   if(!payload?.ok||!payload?.configured){note.textContent='尚无可用的已校验工程映射清单。';reviewPanel.append(note);return;}
-  const candidates=(payload.mappings||[]).filter(row=>row.mapping_kind==='reference_cad'&&row.review_candidate);
   if(!candidates.length){note.textContent='当前映射清单没有可审查的参考 CAD 候选组。';reviewPanel.append(note);return;}
   note.textContent=digestMatch
     ? '已验证加载文件与注册清单的 SHA-256 一致。可定位候选组并检查装配层级、几何范围及局部/全局变换。'
