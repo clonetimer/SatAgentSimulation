@@ -175,3 +175,8 @@ Correct sequence:
 6. Only then interact with the candidate review panel or upload GLB files.
 
 The earlier diagnosis that the issue was solely ES-module listener readiness was incomplete. Preserve the P9-I sequence as the canonical end-to-end route; do not enter a scene sub-mode before the scene workspace itself is active.
+
+
+### Follow-up refinement: do not re-click the already selected simulation mode
+
+A second browser run showed that clicking the simulation tab again immediately after the scene shortcut still left the CAD viewer hidden. The scene shortcut already selects simulation mode by default. The stable transition is to wait until `#simulationGeometryCanvas` is visible and confirm `data-scene-mode="simulation"` has `aria-pressed=true`; only then click CAD and confirm its `aria-pressed=true` state before waiting for `#birdsCadViewer`. Re-clicking the already selected tab is unnecessary and can introduce a second mode transition during scene activation.
