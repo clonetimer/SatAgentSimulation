@@ -215,7 +215,7 @@ def test_ambiguous_glb_names_do_not_produce_node_selector(inputs):
     _write_glb(path, [
         {"name": "root", "children": [1, 2]},
         {"name": "battery", "mesh": 0},
-        {"name": "battery", "mesh": 1},
+        {"name": "battery", "mesh": 0},
     ])
     inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
