@@ -90,17 +90,31 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
                 raise ValueError(f"P9M4I_POSITION_BOUNDS_NONFINITE:{position_index}")
             if any(float(bounds_min[i]) > float(bounds_max[i]) for i in range(3)):
                 raise ValueError(f"P9M4I_POSITION_BOUNDS_INVERTED:{position_index}")
+            mode = primitive.get("mode", 4)
+            if type(mode) is not int or mode not in range(7):
+                raise ValueError(f"P9M4I_PRIMITIVE_MODE_INVALID:{mesh_index}")
+            material_index = primitive.get("material")
+            if material_index is not None and (
+                type(material_index) is not int or not 0 <= material_index < len(materials)
+            ):
+                raise ValueError(f"P9M4I_MATERIAL_REFERENCE_INVALID:{mesh_index}")
             index_accessor = primitive.get("indices")
             if index_accessor is not None:
                 if type(index_accessor) is not int or not 0 <= index_accessor < len(accessors):
                     raise ValueError(f"P9M4I_INDEX_ACCESSOR_INVALID:{mesh_index}")
-                index_count = accessors[index_accessor].get("count", 0)
+                index_data = accessors[index_accessor]
+                index_count = index_data.get("count", 0)
                 if type(index_count) is not int or index_count <= 0:
                     raise ValueError(f"P9M4I_INDEX_ACCESSOR_EMPTY:{mesh_index}")
-                mode = primitive.get("mode", 4)
+                if index_data.get("componentType") not in (5121, 5123, 5125) or index_data.get("type") != "SCALAR":
+                    raise ValueError(f"P9M4I_INDEX_ACCESSOR_TYPE_INVALID:{mesh_index}")
                 if mode == 4:
+                    if index_count % 3:
+                        raise ValueError(f"P9M4I_TRIANGLE_INDEX_COUNT_INVALID:{mesh_index}")
                     triangle_count += index_count // 3
-            elif primitive.get("mode", 4) == 4:
+            elif mode == 4:
+                if accessor["count"] % 3:
+                    raise ValueError(f"P9M4I_TRIANGLE_VERTEX_COUNT_INVALID:{mesh_index}")
                 triangle_count += accessor["count"] // 3
     if not nodes or not meshes or not position_accessor_indices:
         raise ValueError("P9M4I_GLB_NO_RENDERABLE_GEOMETRY")
