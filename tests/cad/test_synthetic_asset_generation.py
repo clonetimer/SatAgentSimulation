@@ -19,7 +19,7 @@ def _write_glb(path, *, nodes=None, bounds=None):
         "nodes": nodes or [{"name": "battery", "mesh": 0}],
         "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
         "accessors": [{
-            "componentType": 5126, "count": 8, "type": "VEC3",
+            "componentType": 5126, "count": 6, "type": "VEC3",
             "min": bounds[0] if bounds else [-0.03, -0.02, -0.01],
             "max": bounds[1] if bounds else [0.03, 0.02, 0.01],
         }],
