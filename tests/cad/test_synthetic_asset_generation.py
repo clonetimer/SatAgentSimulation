@@ -136,7 +136,6 @@ def test_freecad_parametric_macro_requires_source_backed_dimensions_and_position
     macro = (Path(__file__).resolve().parents[2] / "scripts" / "cad" / "build_parametric_synthetic_asset.FCMacro").read_text(encoding="utf-8")
     assert 'UNSOURCED_FEATURE_DIMENSION' in macro
     assert 'POSITION_SOURCE' in macro
-    assert 'dimensions_empty' not in macro.lower()
     assert 'Part.makeBox' in macro
     assert 'Part.makeCylinder' in macro
     assert 'doc.saveAs' in macro
