@@ -113,6 +113,39 @@ jobs:
           PYTHONPATH: "src"
           SAT_SIM_P9M4_REAL_EVIDENCE: ${{ runner.temp }}/p9m4/inputs
         run: python -m pytest -q -s tests/cad/test_engineering_reference_registry.py -k real_pinned --junitxml=reports/p9m4-real.xml
+      - name: Verify real assembly-group candidates and descendant mesh inventory
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "p9m4" / "inputs"
+          bundle = json.loads((root / "p9m4-reference-registry.json").read_text(encoding="utf-8"))
+          expected = {
+              "component.battery": 14,
+              "component.reaction_wheel": 24,
+              "component.payload": 1,
+          }
+          refs = {row["object_id"]: row for row in bundle["mappings"] if row["mapping_kind"] == "reference_cad"}
+          assert set(refs) == set(expected), f"P9M4_REAL_REFERENCE_SET_INVALID:{sorted(refs)}"
+          for object_id, mesh_count in expected.items():
+              row = refs[object_id]
+              candidate = row["geometry_asset"]["glb_node_binding_candidate"]
+              assert candidate["status"] == "unique_exact_name_parent_match_group_candidate", (
+                  f"P9M4_GROUP_CANDIDATE_STATUS_INVALID:{object_id}:{candidate['status']}"
+              )
+              assert candidate["candidate_glb_node_index"] is not None
+              assert candidate["candidate_glb_mesh_index"] is None
+              assert len(candidate["candidate_descendant_mesh_nodes"]) == mesh_count
+              assert candidate["candidate_geometry_node_count"] == mesh_count
+              assert candidate["selector_promoted"] is False
+              assert row["geometry_asset"]["glb_node_binding"] is None
+              assert row["render"]["renderable"] is False
+          audit = bundle["glb_node_binding_audit"]
+          assert audit["selector_promotion_count"] == 0
+          assert bundle["summary"]["as_built_verified_count"] == 0
+          assert bundle["summary"]["telemetry_binding_count"] == 0
+          print("P9M4_REAL_GROUP_CROSSWALK_VALID: battery=14 RW=24 payload=1; selectors=0")
+          PY
       - name: Create deployment digest receipt for reference-only registry
         run: |
           python - <<'PY'

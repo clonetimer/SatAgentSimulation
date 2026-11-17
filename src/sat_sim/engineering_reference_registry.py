@@ -182,6 +182,7 @@ def _candidate_glb_binding(step_node: Mapping[str, Any], step_nodes: Mapping[str
             status = "pending_exact_name_match"
             selected = None
 
+    descendant_mesh_nodes = []
     if status in {"pending_root_check", "pending_exact_name_match"}:
         matches = [row for row in glb_nodes["nodes"] if row.get("name") == source_name]
         if not matches:
@@ -193,19 +194,33 @@ def _candidate_glb_binding(step_node: Mapping[str, Any], step_nodes: Mapping[str
             parent_index = candidate.get("parent_node_index")
             glb_parent = next((row for row in glb_nodes["nodes"] if row["node_index"] == parent_index), None)
             glb_parent_name = glb_parent.get("name") if glb_parent else None
-            if candidate.get("mesh_index") is None:
-                status = "matched_node_without_mesh"
-            elif parent_path is None:
-                if parent_index is not None:
-                    status = "parent_name_mismatch"
-                else:
-                    status = "unique_exact_name_parent_match_candidate"
-                    selected = candidate
-            elif glb_parent_name != parent_name:
+            parent_matches = (
+                parent_index is None if parent_path is None
+                else glb_parent_name == parent_name
+            )
+            if not parent_matches:
                 status = "parent_name_mismatch"
             else:
-                status = "unique_exact_name_parent_match_candidate"
-                selected = candidate
+                nodes_by_index = {row["node_index"]: row for row in glb_nodes["nodes"]}
+                pending = list(candidate.get("child_node_indices", []))
+                while pending:
+                    child_index = pending.pop(0)
+                    child = nodes_by_index[child_index]
+                    if child.get("mesh_index") is not None:
+                        descendant_mesh_nodes.append({
+                            "node_index": child["node_index"],
+                            "name": child.get("name"),
+                            "mesh_index": child["mesh_index"],
+                        })
+                    pending.extend(child.get("child_node_indices", []))
+                if candidate.get("mesh_index") is not None:
+                    status = "unique_exact_name_parent_match_candidate"
+                    selected = candidate
+                elif descendant_mesh_nodes:
+                    status = "unique_exact_name_parent_match_group_candidate"
+                    selected = candidate
+                else:
+                    status = "matched_node_without_mesh"
 
     return {
         "status": status,
@@ -215,6 +230,8 @@ def _candidate_glb_binding(step_node: Mapping[str, Any], step_nodes: Mapping[str
         "candidate_glb_node_name": selected.get("name") if selected else None,
         "candidate_glb_parent_index": selected.get("parent_node_index") if selected else None,
         "candidate_glb_mesh_index": selected.get("mesh_index") if selected else None,
+        "candidate_descendant_mesh_nodes": descendant_mesh_nodes,
+        "candidate_geometry_node_count": len(descendant_mesh_nodes) + (1 if selected and selected.get("mesh_index") is not None else 0),
         "selector_promoted": False,
         "requires_visual_review": True,
     }
