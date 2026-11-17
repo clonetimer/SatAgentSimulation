@@ -23,7 +23,7 @@ def _write_glb(path, nodes):
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": nodes,
-        "meshes": [{"primitives": []}],
+        "meshes": [{"primitives": [{"attributes": {}}]}],
     }
     body = json.dumps(document, separators=(",", ":")).encode("utf-8")
     body += b" " * (-len(body) % 4)
@@ -193,6 +193,21 @@ def test_unique_exact_glb_node_name_and_parent_is_candidate_only(inputs):
     assert reference["geometry_asset"]["glb_node_binding"] is None
     assert reference["render"]["renderable"] is False
     assert reference["review"]["node_binding_status"] == "unique_exact_name_parent_match_candidate"
+
+
+def test_unique_name_without_mesh_is_not_a_renderable_node_candidate(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "root", "children": [1]},
+        {"name": "battery"},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "matched_node_without_mesh"
+    assert candidate["candidate_glb_node_index"] is None
 
 
 def test_ambiguous_glb_names_do_not_produce_node_selector(inputs):
