@@ -8431,6 +8431,11 @@
     if (goal === 'diagnostics') { switchView('diagnostics'); return; }
     if (goal === 'graph') { switchView('creator'); switchTab('graph'); return; }
     if (goal === 'advanced') { switchView('creator'); return; }
+    if (goal === 'component_native') {
+      state.wizard.level = 'component';
+      wizardSetStep('object', '首批开放已完成独立原生物理验收的单机。当前先从反作用轮开始；其他设备将在各自模型完成验证后加入。', '单机独立仿真');
+      return;
+    }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
   }
 
@@ -8458,6 +8463,19 @@
     if (el('wizardOutputSearch')) el('wizardOutputSearch').value = '';
     if (el('wizardParameterSearch')) el('wizardParameterSearch').value = '';
     const label = object.name_zh || object.name_en || objectId;
+    if (state.wizard.goal === 'component_native' && objectId === 'component.reaction_wheel') {
+      const payload = await api('/scenario-templates/component_reaction_wheel_basilisk_native/instantiate', {
+        method: 'POST', body: apiBody({}),
+      });
+      const projected = await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生单机模板');
+      if (projected === null) throw new Error('反作用轮原生模板未能投影到当前配置，请重试。');
+      state.planning = payload.planning;
+      state.wizard.mode = 'offline';
+      state.wizard.parameterMode = 'recommended';
+      state.wizard.validated = false;
+      wizardSetStep('configure', '已加载官方 Basilisk 原生反作用轮模型。当前运行方式为单次离线仿真；可调整时长、采样和机械参数，检查配置后再执行。', label);
+      return;
+    }
     if (state.wizard.goal === 'fault_run') {
       wizardSetStep('fault', '该对象已加载。请选择一个当前模型正式注册的故障类型。', label);
     } else {
@@ -8952,6 +8970,7 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
+        ['component_native', '单机独立仿真', '从已验证的真实设备模型开始；首批开放 Basilisk 原生反作用轮'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
@@ -8966,7 +8985,13 @@
     } else if (state.wizard.step === 'level') {
       [['whole_spacecraft','整星','运行整星集成模型'],['subsystem','分系统','选择 ADCS、EPS、通信等'],['component','部件','单独运行已注册部件模型']].forEach((item) => option(item[1], item[2], { 'data-wizard-level': item[0] }, () => wizardChooseLevel(item[0])));
     } else if (state.wizard.step === 'object') {
-      const rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id));
+      let rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id));
+      if (state.wizard.goal === 'component_native') {
+        rows = rows.filter((item) => item.object_id === 'component.reaction_wheel');
+        const note = document.createElement('p'); note.className = 'wizard-panel-help';
+        note.textContent = '当前首批已完成官方 Basilisk 独立物理验证的设备为反作用轮。这里不会把项目参考模型标记成 Basilisk 原生模型。';
+        options.appendChild(note);
+      }
       if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); }
       rows.forEach((item) => option(item.name_zh || item.name_en || item.object_id, item.summary_zh || (item.independently_executable ? '可独立配置和运行' : '使用所属模型配置'), { 'data-wizard-object': item.object_id }, () => wizardChooseObject(item.object_id).catch((error) => { el('wizardNotice').textContent = error.message; })));
     } else if (state.wizard.step === 'fault') {
@@ -8991,7 +9016,10 @@
         ['limited_realtime','限时实时仿真','按设定时长运行；支持暂停、继续、单步和实时遥控。到达时长上限后结束并归档。'],
         ['continuous_realtime','持续实时仿真','面向长时间运行与持续遥测；由用户主动停止并归档，提供资源监测和长稳证据工具。'],
       ];
-      modes.forEach(([mode,title,detail]) => {
+      const visibleModes = state.wizard.goal === 'component_native'
+        ? modes.filter(([mode]) => mode === 'offline')
+        : modes;
+      visibleModes.forEach(([mode,title,detail]) => {
         const support = mode === 'offline' ? { supported: true, reason: '适用于当前已选模型' } : wizardLiveModeSupport(mode);
         const explanation = mode === 'limited_realtime'
           ? '适合交互调试和短时控制；结束条件由会话时长决定。'
