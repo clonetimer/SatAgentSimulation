@@ -55,7 +55,7 @@ jobs:
       - name: Verify user-selectable native component template and form contract
         env:
           PYTHONPATH: "src:."
-        run: python -m pytest -q -s tests/test_p9n_component_simulation.py tests/test_parameter_presentation.py
+        run: python -m pytest -q -s tests/test_p9n_component_simulation.py tests/test_parameter_presentation.py tests/test_p9n_run_provenance_presentation.py
 
       - name: Archive Basilisk-native measured RW traces and A/B metrics
         uses: actions/upload-artifact@v7
