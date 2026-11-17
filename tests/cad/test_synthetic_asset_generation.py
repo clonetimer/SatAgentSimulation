@@ -149,6 +149,34 @@ def test_glb_audit_rejects_missing_embedded_binary_chunk(tmp_path):
         audit_glb(path)
 
 
+def test_glb_audit_rejects_non_aligned_chunk_length(tmp_path):
+    path = tmp_path / "misaligned-chunk.glb"
+    _write_glb(path)
+    data = bytearray(path.read_bytes())
+    struct.pack_into("<I", data, 12, 1)
+    with pytest.raises(ValueError, match="CHUNK_ALIGNMENT_INVALID"):
+        audit_glb(path)
+
+
+def test_glb_audit_rejects_bin_chunk_after_unknown_chunk(tmp_path):
+    path = tmp_path / "misordered-bin.glb"
+    _write_glb(path)
+    document, binary = _read_glb_document(path)
+    raw_json = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    raw_json += b" " * (-len(raw_json) % 4)
+    binary += b"\\0" * (-len(binary) % 4)
+    unknown = b"test"
+    total = 12 + 8 + len(raw_json) + 8 + len(unknown) + 8 + len(binary)
+    path.write_bytes(
+        struct.pack("<4sII", b"glTF", 2, total)
+        + struct.pack("<I4s", len(raw_json), b"JSON") + raw_json
+        + struct.pack("<I4s", len(unknown), b"TEST") + unknown
+        + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
+    )
+    with pytest.raises(ValueError, match="BIN_CHUNK_ORDER_INVALID"):
+        audit_glb(path)
+
+
 def test_glb_audit_rejects_position_bounds_that_do_not_match_binary_payload(tmp_path):
     path = tmp_path / "mismatched-bounds.glb"
     _write_glb(path)
