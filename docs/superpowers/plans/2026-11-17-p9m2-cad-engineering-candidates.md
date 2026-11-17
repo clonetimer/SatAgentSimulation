@@ -68,3 +68,10 @@ The BIRDS-4 on-orbit paper separately lists the Perovskite Solar Cell (PSC) Miss
 - The mapper now maps the explicit Perovskite Solar Cells label to \`component.payload\` and excludes it from \`component.solar_panel\`.
 
 This correction demonstrates why lexical aliases must be reviewed against mission function, not just shared words such as “solar cell”.
+
+
+## P9-M2 source-level variant identity gate
+
+The full \`BIRDS4_FM_Final v7.step\` source tree contains both EM- and B3-labelled nodes in addition to FM-labelled nodes. Even when an individual candidate path itself carries an FM label, the parent full-reference assembly is not a clean flight-unit-specific inventory. Therefore every candidate derived from this mixed full assembly now inherits \`identity_review_required=true\`. This is a source-level identity gate, not a claim that the candidate part itself is EM or B3.
+
+P9-M3 must resolve each candidate against the pinned FM Assembly Procedure, the relevant approved drawing/revision and the exact flight-unit variant before any instance can be promoted. The CAD label and full-assembly filename alone are insufficient.
