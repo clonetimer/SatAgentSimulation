@@ -108,3 +108,15 @@ The pinned STEP assembly tree and the converted GLB scene are separate represent
 
 
 P9-M4-D CI exposed a Windows shell mismatch: the cross-platform validation step now uses Bash syntax including stdin redirection for Node's ES-module syntax checker. A preceding workflow step declaring Bash does not change the shell of later steps. Set `shell: bash` on each multi-command step that uses Bash syntax; do not rely on runner defaults or neighboring step settings.
+
+
+## Never translate a glTF node index using Three.js traversal order
+
+The registry's index is the original index in the GLB JSON `nodes[]` array. The Three.js scene graph may contain an extra scene-root Group, may omit nodes outside the selected scene, and may arrange Object3D instances differently from the source array. The viewer's UI tree index is therefore not a valid GLB node index.
+
+Correct pattern:
+- Use GLTFLoader's `gltf.parser.associations` map to read the original `nodes` index for each loaded Object3D.
+- Keep a separate `cadTreeIndex` only for DOM tree row selection/highlighting.
+- Candidate review lookup must use the original glTF node association and fail if that node is not present in the loaded default scene.
+- Display the original GLB node index in the inspector so a reviewer can compare it with the registry evidence.
+- Add a Chromium test where a scene wrapper and a multi-level assembly group exist; the candidate index must focus the intended group, not the object at the same traversal ordinal.
