@@ -27,7 +27,7 @@
 - API endpoint 单测：unlocated-only bundle 保持兼容；reference candidate 返回最小审查投影；promotion、digest、index、descendant 不一致全部拒绝。
 - 前端契约：审查面板存在；客户端 SHA-256 必须先于 candidate focus；候选按钮只有 digest match 后可用。
 - 跨平台：Ubuntu 24.04 / Windows 2022 契约测试与 JS 语法检查。
-- 后续独立浏览器验收：使用与注册产物 SHA 完全一致的 GLB，逐一定位 battery / reaction wheel / payload，并保存 Chromium 截图和选择证据。
+- Chromium 浏览器回归：使用带 scene wrapper 与 assembly group 的真实 GLB fixture，先加载错误 revision 验证定位按钮保持禁用，再加载 SHA 一致的 GLB，确认只定位原始 glTF node index 指向的 group，并检查 inspector 的原始索引。后续真实 BIRDS-4 产物验收仍需逐一定位 battery / reaction wheel / payload 并保存截图。
 
 ## 明确不在本阶段
 
