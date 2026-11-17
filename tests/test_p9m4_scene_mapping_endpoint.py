@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -19,6 +20,7 @@ def _client(tmp_path):
 
 def test_engineering_mapping_endpoint_is_explicitly_unconfigured_by_default(tmp_path, monkeypatch):
     monkeypatch.delenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", raising=False)
+    monkeypatch.delenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256", raising=False)
     with _client(tmp_path) as client:
         response = client.get("/workbench/engineering-mapping")
     assert response.status_code == 200
@@ -34,6 +36,7 @@ def test_engineering_mapping_endpoint_rejects_invalid_bundle_without_leaking_pat
     path = tmp_path / "bad-registry.json"
     path.write_text(json.dumps({"schema_version": "wrong", "mappings": []}), encoding="utf-8")
     monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256", hashlib.sha256(path.read_bytes()).hexdigest())
     with _client(tmp_path / "app") as client:
         payload = client.get("/workbench/engineering-mapping").json()
     assert payload["ok"] is False
@@ -44,7 +47,7 @@ def test_engineering_mapping_endpoint_rejects_invalid_bundle_without_leaking_pat
 
 def test_engineering_mapping_endpoint_returns_only_validated_public_projection(tmp_path, monkeypatch):
     path = tmp_path / "registry.json"
-    path.write_text(json.dumps({
+    bundle = {
         "schema_version": "engineering-asset-mapping.v1",
         "mappings": [{
             "mapping_id": "unlocated:component.imu",
@@ -58,8 +61,12 @@ def test_engineering_mapping_endpoint_returns_only_validated_public_projection(t
             "evidence": [],
             "render": {"as_built_eligible": False, "renderable": False, "views": []},
         }],
-    }), encoding="utf-8")
+        "intake": {"scope": "reference_registration_only_not_as_built_approval"},
+        "summary": {"as_built_verified_count": 0, "telemetry_binding_count": 0, "node_renderable_count": 0},
+    }
+    path.write_text(json.dumps(bundle), encoding="utf-8")
     monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256", hashlib.sha256(path.read_bytes()).hexdigest())
     with _client(tmp_path / "app") as client:
         payload = client.get("/workbench/engineering-mapping").json()
     assert payload["ok"] is True
@@ -74,6 +81,18 @@ def test_engineering_mapping_endpoint_returns_only_validated_public_projection(t
     }]
     assert "evidence" not in json.dumps(payload)
     assert "geometry_asset" not in json.dumps(payload)
+
+
+def test_engineering_mapping_endpoint_rejects_registry_digest_mismatch(tmp_path, monkeypatch):
+    path = tmp_path / "registry.json"
+    path.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256", "0" * 64)
+    with _client(tmp_path / "app") as client:
+        payload = client.get("/workbench/engineering-mapping").json()
+    assert payload["ok"] is False
+    assert payload["status"] == "invalid"
+    assert payload["mappings"] == []
 
 
 def test_satellite_scene_exposes_evidence_classes_without_fake_geometry():
