@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 import os
 import struct
@@ -879,6 +880,131 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             assert "GLB 原始节点索引\n1" in page.locator("#birdsCadInspector").inner_text()
             assert "battery" in page.locator("#birdsCadStatus").inner_text()
             assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in page.locator("#birdsCadInspector").inner_text()
+            assert not external_requests, external_requests
+            assert not failures, failures
+        finally:
+            browser.close()
+
+
+def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monkeypatch):
+    """Review the actual pinned BIRDS-4 GLB against the registry built from the same bytes."""
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    registry_path_value = os.environ.get("SAT_SIM_P9M4_REVIEW_REGISTRY_PATH")
+    real_glb_value = os.environ.get("SAT_SIM_BIRDS4_REAL_GLB_PATH")
+    if not executable or not registry_path_value or not real_glb_value:
+        pytest.skip("Requires the P9-M4 registry artifact, pinned BIRDS-4 GLB and Chromium")
+
+    registry_path = Path(registry_path_value).resolve()
+    glb_path = Path(real_glb_value).resolve()
+    assert registry_path.is_file(), registry_path
+    assert glb_path.is_file() and glb_path.stat().st_size > 10 * 1024 * 1024, glb_path
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    digest = hashlib.sha256(glb_path.read_bytes()).hexdigest()
+    assert registry["intake"]["glb_sha256"] == digest
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(registry_path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256",
+                       hashlib.sha256(registry_path.read_bytes()).hexdigest())
+
+    expected = {
+        "component.battery": 14,
+        "component.reaction_wheel": 24,
+        "component.payload": 1,
+    }
+    reference_rows = {
+        row["object_id"]: row for row in registry["mappings"]
+        if row["mapping_kind"] == "reference_cad"
+    }
+    assert set(reference_rows) == set(expected)
+    for object_id, count in expected.items():
+        candidate = reference_rows[object_id]["geometry_asset"]["glb_node_binding_candidate"]
+        assert candidate["status"] == "unique_exact_name_parent_match_group_candidate"
+        assert len(candidate["candidate_descendant_mesh_nodes"]) == count
+        assert candidate["selector_promoted"] is False
+        assert reference_rows[object_id]["geometry_asset"]["glb_node_binding"] is None
+        assert reference_rows[object_id]["render"]["renderable"] is False
+
+    wrong_glb = tmp_path / "wrong-revision.glb"
+    _write_triangle_glb(wrong_glb)
+    evidence_dir = os.environ.get("SAT_SIM_SCENE_EVIDENCE_DIR")
+    with _client(tmp_path / "app") as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(
+            headless=True,
+            executable_path=executable,
+            args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
+        )
+        try:
+            page = browser.new_page(viewport={"width": 1600, "height": 1000}, locale="zh-CN")
+            failures: list[str] = []
+            external_requests: list[str] = []
+
+            def proxy(route):
+                parsed = urlparse(route.request.url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc != "workbench.test":
+                    external_requests.append(route.request.url)
+                    route.abort()
+                    return
+                response = client.get(parsed.path, params=dict(parse_qsl(parsed.query)))
+                headers = {
+                    key: value for key, value in response.headers.items()
+                    if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")
+                }
+                route.fulfill(status=response.status_code, body=response.content, headers=headers)
+
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("console", lambda message: failures.append(message.text) if message.type == "error" else None)
+            page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardSceneShortcutBtn").click()
+            page.locator('[data-scene-mode="cad"]').click()
+            panel = page.locator("#birdsCadReviewPanel")
+            panel.get_by_text("蓄电池", exact=True).wait_for(timeout=30000)
+            assert panel.locator(".birds-cad-review-card").count() == 3
+            assert "852" in panel.inner_text()
+            action = panel.get_by_role("button", name="等待 GLB 哈希匹配").first
+            assert action.is_disabled()
+
+            page.locator("#birdsCadFile").set_input_files(str(wrong_glb))
+            page.locator("#birdsCadStatus").filter(has_text="已加载 wrong-revision.glb").wait_for(timeout=60000)
+            assert panel.get_by_role("button", name="等待 GLB 哈希匹配").count() == 3
+            assert all(button.is_disabled() for button in panel.get_by_role("button").all())
+
+            page.locator("#birdsCadFile").set_input_files(str(glb_path))
+            page.locator("#birdsCadStatus").filter(has_text=f"已加载 {glb_path.name}").wait_for(timeout=240000)
+            panel.get_by_text("GLB 哈希一致", exact=True).wait_for(timeout=10000)
+            assert all(button.is_enabled() for button in panel.get_by_role("button", name="定位候选组").all())
+
+            for object_id, expected_mesh_count in expected.items():
+                row = reference_rows[object_id]
+                candidate = row["geometry_asset"]["glb_node_binding_candidate"]
+                card = panel.locator(".birds-cad-review-card").filter(has_text=row["name_zh"])
+                card.get_by_text("查看后代网格清单").click()
+                assert len(candidate["candidate_descendant_mesh_nodes"]) == expected_mesh_count
+                for descendant in candidate["candidate_descendant_mesh_nodes"]:
+                    assert descendant["name"] in card.inner_text()
+                card.get_by_role("button", name="定位候选组").click()
+                inspector_name = page.locator("#birdsCadInspector .birds-cad-inspector-name")
+                inspector_name.filter(has_text=candidate["candidate_glb_node_name"]).wait_for(timeout=10000)
+                inspector_text = page.locator("#birdsCadInspector").inner_text()
+                assert f"GLB 原始节点索引\n{candidate['candidate_glb_node_index']}" in inspector_text
+                assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in inspector_text
+                assert "参考装配根坐标变换" in inspector_text
+
+            if evidence_dir:
+                output = Path(evidence_dir)
+                output.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=str(output / "p9m4-d-real-birds4-review-desktop.png"), full_page=True)
+                (output / "p9m4-d-real-birds4-review-summary.json").write_text(json.dumps({
+                    "glb_sha256": digest,
+                    "glb_node_count": registry["glb_node_inventory"]["node_count"],
+                    "mesh_count": registry["glb_node_inventory"]["mesh_count"],
+                    "reviewed_objects": list(expected),
+                    "descendant_mesh_counts": expected,
+                    "selector_promotion_count": registry["glb_node_binding_audit"]["selector_promotion_count"],
+                    "as_built_verified_count": registry["summary"]["as_built_verified_count"],
+                    "telemetry_binding_count": registry["summary"]["telemetry_binding_count"],
+                }, ensure_ascii=False, indent=2), encoding="utf-8")
             assert not external_requests, external_requests
             assert not failures, failures
         finally:
