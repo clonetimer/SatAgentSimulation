@@ -45,3 +45,12 @@
 - 新增 API 状态测试与前端面板静态契约测试，并纳入 Ubuntu/Windows M4 工作流。
 
 Stable 工作流另外修复了旧 Basilisk pin 硬编码和 \`/tmp\` 工作目录读取 \`pyproject.toml\` 的问题；版本比较改为项目声明与 wheel 元数据逐项一致。
+
+
+### Runtime deployment guard
+
+The scene-facing API now requires both:
+- \`SAT_SIM_ENGINEERING_MAPPING_BUNDLE\`: absolute path to the generated registry JSON;
+- \`SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256\`: SHA-256 of that exact JSON file.
+
+The API verifies the byte digest before parsing, then requires the registry scope \`reference_registration_only_not_as_built_approval\` and enforces zero as-built instances, zero telemetry bindings and zero node-renderable candidates. This prevents a generic or hand-edited mapping bundle from being presented as the accepted P9-M4 reference registry. The CI deployment receipt must supply the JSON SHA-256; neither the file path nor raw evidence is exposed by the API.
