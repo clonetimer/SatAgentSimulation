@@ -161,6 +161,11 @@ def build_installation_review_packets(
         if extracted_source.get("size_bytes") != expected_procedure.get("size_bytes"):
             raise ValueError("P9M3_PROCEDURE_SIZE_MISMATCH")
 
+    keyword_index = (
+        procedure_extraction.get("keyword_index", {})
+        if isinstance(procedure_extraction, Mapping) else {}
+    )
+    general_procedure_terms = ["structural testing model", "axis definition"]
     packets = []
     for candidate in candidates:
         path = candidate.get("cad_node_path")
@@ -187,6 +192,15 @@ def build_installation_review_packets(
             "source_tree_sha": source_tree_sha,
             "node": node,
         })
+        candidate_terms = {
+            "component.battery": ["battery"],
+            "component.reaction_wheel": ["reaction wheel"],
+            "component.payload": ["perovskite solar cells", "-y panel"],
+        }.get(str(candidate.get("engineering_object_id")), [])
+        procedure_locators = {
+            term: keyword_index.get(term, [])
+            for term in [*general_procedure_terms, *candidate_terms]
+        }
         packets.append({
             "review_packet_id": hashlib.sha256(
                 f"{candidate.get('candidate_id')}\0{source_commit}\0{source_tree_sha}".encode("utf-8")
@@ -229,8 +243,12 @@ def build_installation_review_packets(
                 "target_flight_unit_status": "unresolved",
                 "fm_em_revision_applicability": "unresolved",
             },
+            "procedure_text_evidence_locators": {
+                "status": "raw_text_source_locators_only_not_claim_approval",
+                "references": procedure_locators,
+            },
             "installation_evidence": {
-                "assembly_procedure": "pinned_but_not_reviewed",
+                "assembly_procedure": "pinned_and_extracted_but_not_human_reviewed",
                 "approved_drawing": "missing",
                 "bom_or_configuration_list": "missing",
                 "datum_and_axis_drawing": "missing",
