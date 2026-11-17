@@ -146,3 +146,17 @@ Evidence chain now includes: independently pinned GLB download → same-run regi
 
 
 5. **Workflow path filters must include shared integration-test files.** The P9-M4 workflow originally watched its dedicated endpoint tests but not the shared Chromium scene test file that now hosts the real BIRDS-4 review. Add that exact path to the workflow's PR path filter; otherwise a test-only fix can trigger P9-C/P9-L4 while silently leaving the dedicated P9-M4 acceptance stale.
+
+
+## P9-M4-D real Chromium review: assert observable UI state, not module globals
+
+The first real-browser review attempt timed out while polling `window.BirdsCadViewer && window.SatScene` immediately after `DOMContentLoaded`. This precondition was stronger than the actual user journey and did not prove that the CAD workspace had entered its visible mode. The existing accepted P9-I browser journey already provides a deterministic contract: navigate to the scene, click the CAD mode control, then wait for `#birdsCadViewer` to become visible.
+
+Correct pattern:
+- Drive the same visible UI transition a user performs.
+- Wait for the target viewer's visible state, not a set of implementation globals.
+- Use the established `_client(tmp_path)` test fixture consistently with the P9-I browser acceptance; avoid creating a second, unnecessary root path for the same app.
+- Only after the viewer is visible, inspect the review panel and assert the digest gate and candidate controls.
+- Keep browser failures actionable by collecting page errors, console errors, failed requests and HTTP >=400 responses.
+
+The first attempt failed at the module-global readiness precondition before it reached GLB upload or candidate review. Do not interpret that timeout as evidence of a geometry mismatch; rerun the actual UI journey after correcting the precondition.
