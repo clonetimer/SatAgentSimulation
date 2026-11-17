@@ -97,7 +97,7 @@ def _glb_node_inventory(path: Path) -> dict[str, Any]:
                 document = json.loads(data[offset:chunk_end].decode("utf-8").rstrip(" "))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise ValueError("P9M4_INTAKE_GLB_JSON_INVALID") from exc
-        elif chunk_type == b"BIN\\0":
+        elif chunk_type == b"BIN\0":
             _require(document is not None and not binary_seen, "GLB_BIN_CHUNK_ORDER_OR_DUPLICATE")
             binary_seen = True
         # Unknown extension chunks are retained by the GLB format and ignored here.
