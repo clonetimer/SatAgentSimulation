@@ -1,0 +1,119 @@
+{
+  "schema_version": "p9m4i-generation-benchmark.v1",
+  "status": "pilot_specification_not_yet_executed",
+  "objects": [
+    {
+      "engineering_object_id": "component.battery",
+      "display_name_zh": "电池组",
+      "geometry_profile": "rectangular_enclosure_with_lid_connectors_and_mounting_features",
+      "parametric_baseline": {
+        "features": [
+          "housing",
+          "lid",
+          "mounting_holes",
+          "connectors"
+        ],
+        "dimensions_source": "source_document_required",
+        "unknown_dimensions": "must_remain_unknown"
+      },
+      "image_to_3d_input": {
+        "required_views": [
+          "front",
+          "side",
+          "top"
+        ],
+        "minimum_source_quality": "traceable_original_image"
+      },
+      "acceptance_focus": [
+        "bounding_box",
+        "mounting_hole_presence",
+        "connector_placement",
+        "visual_recognition"
+      ]
+    },
+    {
+      "engineering_object_id": "component.reaction_wheel",
+      "display_name_zh": "反作用轮",
+      "geometry_profile": "rotating_mechanical_unit_with_wheel_housing_mounting_interface",
+      "parametric_baseline": {
+        "features": [
+          "housing",
+          "rotor_envelope",
+          "shaft_axis",
+          "mounting_face"
+        ],
+        "dimensions_source": "source_document_required",
+        "unknown_dimensions": "must_remain_unknown"
+      },
+      "image_to_3d_input": {
+        "required_views": [
+          "front",
+          "side",
+          "top"
+        ],
+        "minimum_source_quality": "traceable_original_image"
+      },
+      "acceptance_focus": [
+        "rotor_axis_semantics",
+        "housing_envelope",
+        "mounting_interface",
+        "visual_recognition"
+      ]
+    },
+    {
+      "engineering_object_id": "component.star_tracker",
+      "display_name_zh": "星敏感器",
+      "geometry_profile": "optical_sensor_housing_with_baffle_and_aperture",
+      "parametric_baseline": {
+        "features": [
+          "housing",
+          "baffle",
+          "optical_aperture",
+          "mounting_face",
+          "boresight_axis"
+        ],
+        "dimensions_source": "source_document_required",
+        "unknown_dimensions": "must_remain_unknown"
+      },
+      "image_to_3d_input": {
+        "required_views": [
+          "front",
+          "side",
+          "top"
+        ],
+        "minimum_source_quality": "traceable_original_image"
+      },
+      "acceptance_focus": [
+        "aperture_location",
+        "boresight_axis",
+        "housing_envelope",
+        "visual_recognition"
+      ]
+    }
+  ],
+  "metrics": [
+    "source_provenance_completeness",
+    "glb_structural_validity",
+    "bounding_box_relative_error",
+    "topology_integrity",
+    "interface_feature_completeness",
+    "visual_review_score",
+    "manual_repair_minutes",
+    "generation_wall_time_seconds",
+    "peak_gpu_memory_gb",
+    "estimated_cost"
+  ],
+  "comparison_methods": [
+    "parametric_cad_baseline",
+    "trellis2_image_to_3d",
+    "hunyuan3d_2_1_optional_license_review"
+  ],
+  "safety_rules": [
+    "no_invented_dimensions",
+    "no_as_built_promotion",
+    "no_telemetry_binding",
+    "no_spatial_anchor",
+    "human_visual_review_required",
+    "g2_requires_source_backed_dimensions_and_interface_evidence"
+  ]
+}
