@@ -74,6 +74,10 @@ jobs:
           assert report["semantics"]["requires_p9m3_evidence_review_before_p9m4_promotion"] is True
           assert all(row["review_status"] == "candidate_only" for row in report["candidates"])
           assert all(row["instance_id"] is None and row["spatial_anchor"] is None for row in report["candidates"])
+          perovskite = [row for row in report["candidates"] if "Perovskite_Solar_Cells" in row["cad_source_label_name"]]
+          assert len(perovskite) == 1
+          assert perovskite[0]["engineering_object_id"] == "component.payload"
+          assert all(row["engineering_object_id"] != "component.solar_panel" for row in perovskite)
           print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))
           PY
       - name: Preserve real CAD candidate audit report
