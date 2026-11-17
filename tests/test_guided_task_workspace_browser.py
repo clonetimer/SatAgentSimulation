@@ -509,3 +509,63 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                 assert not errors, errors
             finally:
                 browser.close()
+
+
+def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_path):
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                response = client.request(
+                    request.method,
+                    url.path + ("?" + url.query if url.query else ""),
+                    content=request.post_data_buffer,
+                    headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
+                )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")},
+                )
+
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="networkidle")
+            page.locator('#wizardOptions [data-wizard-goal="normal_run"]').click()
+            page.locator('#wizardOptions [data-wizard-level="component"]').click()
+            page.locator('#wizardOptions [data-wizard-object="component.reaction_wheel"]').click()
+            page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+
+            parameters = page.locator("#wizardParametersPanel")
+            if parameters.get_attribute("open") is None:
+                parameters.locator("summary").click()
+            preset = page.locator("#wizardNativeRwPreset")
+            preset.wait_for(state="visible", timeout=10000)
+            assert "官方 Basilisk 原生反作用轮" in preset.inner_text()
+            preset.get_by_role("button", name="应用原生单轮配置").click()
+
+            backend = page.locator('#dynamicForm [data-path="parameters.values.physics_backend"]')
+            backend.wait_for(state="visible", timeout=15000)
+            assert backend.input_value() == "basilisk_native"
+            assert page.locator('#dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
+            assert "仅支持单轮标称工况" in page.locator("#wizardNotice").inner_text()
+            assert not errors, errors
+        finally:
+            browser.close()
