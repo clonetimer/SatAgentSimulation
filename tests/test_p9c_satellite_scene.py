@@ -857,6 +857,10 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
+            # Enter the scene through the supported simulation mode first,
+            # then switch to CAD, matching the accepted P9-I user journey.
+            page.locator('[data-scene-mode="simulation"]').click()
+            page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
             page.locator('[data-scene-mode="cad"]').click()
             page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
             panel = page.locator("#birdsCadReviewPanel")
@@ -963,9 +967,9 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
             page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
-            # Both viewers are ES modules. Do not click a mode before the
-            # module has attached its tab listeners; otherwise the click is lost.
             page.locator("#wizardSceneShortcutBtn").click()
+            page.locator('[data-scene-mode="simulation"]').click()
+            page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
             page.locator('[data-scene-mode="cad"]').click()
             page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
             panel = page.locator("#birdsCadReviewPanel")
