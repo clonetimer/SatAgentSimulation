@@ -5016,6 +5016,8 @@
       ? state.wizard.parameterMode : 'recommended';
     state.wizard.parameterMode = mode;
     const fields = (state.schema?.fields || []).filter((field) => String(field.path || '').startsWith('parameters.values.'));
+    const nativeRwPreset = el('wizardNativeRwPreset');
+    nativeRwPreset?.classList.toggle('hidden', state.selectedCapabilityId !== 'component.reaction_wheel.v1');
     const recommended = fields.filter((field) => field.importance !== 'advanced').length;
     const advanced = fields.length - recommended;
     const nonDefault = fields.filter((field) => field.default !== undefined
@@ -5129,6 +5131,10 @@
           if (value === undefined) deletePath(state.formData,field.path); else setPath(state.formData,field.path,value);
           state.taskSpec=null; state.changedPaths.delete(field.path); wrapper.classList.remove('agent-changed','field-error'); wrapper.querySelector('.field-error-message')?.remove();
           validateClientForm({show:false}); renderAgentChangePanel();
+          if (field.path === 'parameters.values.physics_backend') {
+            renderEffectSelect();
+            renderEvents();
+          }
           if (state.activeView === 'wizard') renderWizardParameterControls();
         } catch (error) {
           setFieldError(field.path,error.message);
@@ -5148,12 +5154,12 @@
       });
       if (!filtered.length) return;
       const collapsible=Boolean(section.parameter_group) && section.parameter_group !== 'general';
-      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section';
+      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section'; card.dataset.sectionId=section.id;
       if (collapsible) {
         card.classList.add('parameter-section');
         const key=`${state.schema.capability.capability_id}:${section.id}`;
         const changed=filtered.some((field)=>state.changedPaths.has(field.path));
-        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? wizardParameterMode === 'all' : section.parameter_group === 'orbit'));
+        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? (wizardParameterMode === 'all' || section.parameter_group === 'backend') : section.parameter_group === 'orbit'));
         card.addEventListener('toggle',()=>{
           if (!query && !showAdvanced && !changed) state.formSectionOpen.set(key,card.open);
         });
@@ -5189,6 +5195,13 @@
   function renderEffectSelect() {
     const kind = el('effectKind').value;
     const select = el('effectSelect');
+    const nativeRwNominalOnly = state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native';
+    const kindSelect = el('effectKind');
+    const limitNote = el('eventBackendLimitNote');
+    if (limitNote) limitNote.classList.toggle('hidden', !nativeRwNominalOnly);
+    if (kindSelect) kindSelect.disabled = nativeRwNominalOnly;
+    select.disabled = nativeRwNominalOnly;
     select.replaceChildren();
     effectCatalog(kind).forEach((item) => {
       const option = document.createElement('option');
@@ -5196,10 +5209,15 @@
       option.textContent = item.label || item.effect;
       select.appendChild(option);
     });
-    el('addEffectBtn').disabled = !select.options.length;
+    el('addEffectBtn').disabled = nativeRwNominalOnly || !select.options.length;
   }
 
   function addEffect() {
+    if (state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native') {
+      el('eventBackendLimitNote')?.classList.remove('hidden');
+      return;
+    }
     const kind = el('effectKind').value;
     const effect = el('effectSelect').value;
     const template = effectCatalog(kind).find((item) => item.effect === effect);
@@ -6453,6 +6471,15 @@
     const run = state.activeRun || {};
     const record = run.run_record || {};
     const validation = run.validation_outcome || {};
+    const runSummary = run.summary || {};
+    const physicsBackend = runSummary.physics_backend === 'basilisk_native'
+      ? 'Basilisk 官方原生'
+      : runSummary.physics_backend === 'project_reference'
+        ? '项目参考模型'
+        : (runSummary.physics_backend || '未声明');
+    const nativeProvenance = runSummary.adapter_metadata?.native_provenance
+      || runSummary.runtime_truth_status
+      || '未声明';
     const card = el('activeRunCard');
     card.className = 'active-run';
     card.replaceChildren();
@@ -6477,6 +6504,8 @@
       ['验证结果', validation.result || record.validation_result || '—'],
       ['制品完整性', run.integrity?.ok ? 'VERIFIED' : 'NOT VERIFIED'],
       ['任务 ID', record.task_id || '—'],
+      ['物理计算后端', physicsBackend],
+      ['模型来源证据', nativeProvenance],
       ['尝试次数', Array.isArray(record.attempts) ? record.attempts.length : (record.attempts ?? '—')],
     ];
     items.forEach(([label, value]) => {
@@ -8434,6 +8463,31 @@
     } else {
       wizardSetStep('mode', '对象已准备好。接下来选择运行方式：离线、限时实时或持续实时。', label);
     }
+  }
+
+  async function wizardApplyNativeRwPreset() {
+    if (state.selectedCapabilityId !== 'component.reaction_wheel.v1') {
+      throw new Error('该原生配置仅适用于独立反作用轮单机。');
+    }
+    const payload = await api('/scenario-templates/component_reaction_wheel_basilisk_native/instantiate', {
+      method: 'POST',
+      body: apiBody({}),
+    });
+    if (!payload?.task_spec || payload.task_spec.parameters?.values?.physics_backend !== 'basilisk_native') {
+      throw new Error('服务端未返回经过注册的 Basilisk 原生反作用轮配置。');
+    }
+    await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生反作用轮模板');
+    state.activeTaskCenterId = null;
+    updateTaskEditState();
+    state.planning = payload.planning;
+    state.wizard.parameterMode = 'recommended';
+    renderWizardParameterControls();
+    renderSimulationWizard();
+    const parameters = el('wizardParametersPanel');
+    if (parameters) parameters.open = true;
+    const backendGroup = el('dynamicForm')?.querySelector('[data-section-id="parameters_backend"]');
+    if (backendGroup) backendGroup.open = true;
+    el('wizardNotice').textContent = '已加载官方 Basilisk 原生反作用轮配置。运行前仍需校验；当前仅支持单轮标称工况。';
   }
 
   function wizardChooseFault(effect) {
@@ -11263,6 +11317,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('agentBackend').addEventListener('change', (event) => { state.selectedProviderId = event.target.value; });
     el('variantSelect').addEventListener('change', (event) => selectCapability(event.target.value));
     el('applyScenarioTemplateBtn').addEventListener('click', () => applyScenarioTemplate().catch(error => showNotice(error.message, 'error')));
+    el('wizardApplyNativeRwPresetBtn')?.addEventListener('click', () => wizardApplyNativeRwPreset().catch(error => { el('wizardNotice').textContent = error.message; }));
     el('capabilitySearch').addEventListener('input', renderCapabilityList);
     el('levelFilter').addEventListener('change', renderCapabilityList);
     el('showCompatibilityCapabilities').addEventListener('change', async (event) => {
