@@ -135,3 +135,10 @@ G3 as-built:
 - CI 对宏的源约束拒绝逻辑进行静态回归检查。
 
 该宏当前是确定性几何基线，不是三个设备的最终工程模型。尚未提供真实设备尺寸图/安装接口图，因此没有生成或伪造任何具体尺寸。实际 FreeCAD 几何执行需在安装 FreeCAD 的隔离环境完成，随后再导出/转换 GLB 并用独立审计器检查。
+
+
+## GLB audit hardening and source intake
+
+The GLB auditor now also checks primitive mode, material references, index accessor scalar/component types, triangle index divisibility and non-indexed triangle vertex divisibility. These checks are structural validation only, not proof of geometric accuracy.
+
+A three-device source-intake worksheet has been added. It specifies the minimum original photos, dimensions, interface drawings and hardware identity needed for battery, reaction wheel and star tracker. Current source status is explicitly `blocked_source_intake`; no device-specific dimensions or models have been fabricated.
