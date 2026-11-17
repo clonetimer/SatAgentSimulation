@@ -46,7 +46,8 @@ jobs:
       - name: Validate declarations and negative evidence-intake cases
         env:
           PYTHONPATH: "src"
-        run: python -m pytest -q tests/cad/test_engineering_asset_mapping.py tests/cad/test_engineering_reference_registry.py tests/test_p9m4_scene_mapping_endpoint.py -k "not real_pinned" --junitxml=reports/p9m4-contract.xml
+        run: |
+          python -m pytest -q tests/cad/test_engineering_asset_mapping.py tests/cad/test_engineering_reference_registry.py tests/test_p9m4_scene_mapping_endpoint.py -k "not real_pinned" --junitxml=reports/p9m4-contract.xml
           node --check src/sat_sim/web/app.js
       - uses: actions/upload-artifact@v4
         if: always()
