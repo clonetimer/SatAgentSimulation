@@ -229,6 +229,12 @@
     visualTuningBestRunId: null,
   };
 
+  window.addEventListener('birds-cad-viewer-ready', () => {
+    if (state.sceneEngineeringMapping) {
+      window.BirdsCadViewer?.setEngineeringReviewData?.(state.sceneEngineeringMapping);
+    }
+  });
+
   const el = (id) => document.getElementById(id);
   const $all = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
