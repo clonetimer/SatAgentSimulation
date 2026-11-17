@@ -11,7 +11,7 @@
 | `diagnose_native_timing.py` | 独立进程原生节拍诊断 | active | 用途：复制应用并在自建进程运行诊断；参数：--output-dir、--wall-seconds（默认 60 s、至少 10 s）、--inject-fsync-delay-s（默认 0）；输出：副本、原始记录、日志与状态摘要，不接管既有耐久进程，不替代正式验收 |
 | `preview_compact_workbench.py` | 独立紧凑工作台预览 | active | 用途：准备独立预览副本并按需启动本地服务；参数：--port（默认自动）、--prepare-only、--native-runtime、--dependency-dir；输出：预览副本、preview-state.json 和 URL，不修改生产源码或主环境 |
 | `run_native_failure_recreation.py` | 原生异常与新建场景验收 | active | 只终止脚本自己新建的原生子进程，核验原始证据保留及新场景独立运行，不冒充断点续算 |
-| `benchmark_iss_oem.py` | 外部轨道参考对照 | active | 离线核验 NASA OEM 哈希、坐标系与时间，比较真实原生轨道残差；不冒充飞行标定 |
+| `build_engineering_candidates.py` | CAD 工程对象候选映射 | active | 用途：将 workbench 设备类别与 CAD 装配节点建立保守候选关系；参数：--engineering-tree、--assembly-tree、--source-model、--source-revision、--output；输出：候选 JSON、命中依据及歧义/型号审查标记，不生成装机实例、空间锚点或 verified 映射 |\n| `benchmark_iss_oem.py` | 外部轨道参考对照 | active | 离线核验 NASA OEM 哈希、坐标系与时间，比较真实原生轨道残差；不冒充飞行标定 |
 | `check_sft_chunked_loss.py` | 微调损失等价验证 | active | 比较分块/完整损失及隐状态、输出头梯度，保留张量级证据 |
 | `inspect_sft_data.py` | 微调序列审计 | active | 使用实际 tokenizer 检查长度与监督 token，不截断或静默丢弃样本 |
 | `build_sft_dataset.py` | 微调数据构建 | active | 注册模板标签经 schema/compile 校验；按语义族隔离训练与验证，排除正式评测请求 |
