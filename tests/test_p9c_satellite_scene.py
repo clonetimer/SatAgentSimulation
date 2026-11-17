@@ -876,8 +876,7 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             assert "battery-shell" in panel.inner_text()
             action.click()
             page.locator("#birdsCadInspector .birds-cad-inspector-name").filter(has_text="battery").wait_for()
-            assert "GLB 原始节点索引" in page.locator("#birdsCadInspector").inner_text()
-            assert "1" in page.locator("#birdsCadInspector").inner_text()
+            assert "GLB 原始节点索引\n1" in page.locator("#birdsCadInspector").inner_text()
             assert "battery" in page.locator("#birdsCadStatus").inner_text()
             assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in page.locator("#birdsCadInspector").inner_text()
             assert not external_requests, external_requests
