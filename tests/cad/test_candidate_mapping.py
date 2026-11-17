@@ -72,7 +72,6 @@ def test_builds_candidates_for_specific_component_aliases_without_promoting_inst
     assert by_label["B4_FM_MTB v1"]["engineering_object_id"] == "component.mtb"
     assert "B4_EM_SNSS v1" in by_label
     assert by_label["B4_EM_SNSS v1"]["identity_review_required"] is True
-    assert by_label["B4_FM_-X_panel v1"] if "B4_FM_-X_panel v1" in by_label else True
     assert all(row["review_status"] == "candidate_only" for row in rows)
     assert all(row["verification_status"] == "draft" for row in rows)
     assert all(row["instance_id"] is None and row["spatial_anchor"] is None for row in rows)
