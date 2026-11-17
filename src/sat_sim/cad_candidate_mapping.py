@@ -186,6 +186,11 @@ def build_candidate_mapping(
     cad_nodes = _cad_node_rows(assembly_tree)
     equipment_by_id = {row["object_id"]: row for row in equipment}
     candidates: list[dict[str, Any]] = []
+    source_variant_counts = Counter(
+        tag for node in cad_nodes
+        for tag in _variant_tags(node["source_label_name"] + " " + node["source_node_path"])
+    )
+    source_has_mixed_variants = source_variant_counts["em"] > 0 or source_variant_counts["b3"] > 0
 
     for node in cad_nodes:
         label = node["source_label_name"]
@@ -208,7 +213,10 @@ def build_candidate_mapping(
             if not hits:
                 continue
             best = max(hits, key=lambda item: item["lexical_match_strength"])
-            identity_review = bool({"em", "b3"}.intersection(variant_tags))
+            identity_review = (
+                bool({"em", "b3"}.intersection(variant_tags))
+                or source_has_mixed_variants
+            )
             candidate_key = hashlib.sha256(
                 f"{object_id}\0{node['source_node_path']}".encode("utf-8")
             ).hexdigest()[:20]
@@ -231,6 +239,7 @@ def build_candidate_mapping(
                 "lexical_match_strength": best["lexical_match_strength"],
                 "variant_tags": variant_tags,
                 "identity_review_required": identity_review,
+                "source_model_identity_review_required": source_has_mixed_variants,
                 "geometry_review_required": True,
                 "coordinate_review_required": True,
                 "installation_evidence_required": True,
@@ -262,6 +271,8 @@ def build_candidate_mapping(
             "cad_node_count": len(cad_nodes),
             "cad_assembly_node_count": sum(1 for node in cad_nodes if isinstance(node["child_count"], int) and node["child_count"] > 0),
             "cad_leaf_geometry_node_count": sum(1 for node in cad_nodes if not isinstance(node["child_count"], int) or node["child_count"] <= 0),
+            "source_variant_node_counts": dict(source_variant_counts),
+            "source_contains_mixed_em_or_b3_nodes": source_has_mixed_variants,
             "engineering_equipment_category_count": len(equipment),
         },
         "semantics": {
