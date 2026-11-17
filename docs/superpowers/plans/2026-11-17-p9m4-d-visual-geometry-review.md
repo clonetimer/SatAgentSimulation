@@ -36,3 +36,13 @@
 - 不从 GLB 坐标推导航天器 B 系安装变换。
 - 不把 CAD node index 绑定实时 Basilisk 遥测。
 - 不以 AI 生成模型替代缺失的工程尺寸、接口或安装证据。
+
+
+## 真实 BIRDS-4 Chromium 集成验收
+
+P9-M4 unified mapping workflow now has a downstream `reference-cad-browser-review` job:
+- It downloads the registry produced by the same workflow run and the independently pinned P9-I full-FM GLB artifact.
+- Before launching Chromium it verifies the registry deployment receipt SHA-256 and the exact GLB SHA-256 against `intake.glb_sha256`.
+- It loads the real 61 MB BIRDS-4 full assembly in the browser and locates battery, reaction-wheel and payload group nodes by the original GLB node indices.
+- It verifies the expected 14 / 24 / 1 mesh descendants, displays original node index and transform inspector, and saves screenshot plus a machine-readable review summary.
+- A wrong-revision GLB is loaded first and must keep every candidate-location action disabled.
