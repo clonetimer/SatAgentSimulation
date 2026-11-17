@@ -154,6 +154,7 @@ def test_glb_audit_rejects_non_aligned_chunk_length(tmp_path):
     _write_glb(path)
     data = bytearray(path.read_bytes())
     struct.pack_into("<I", data, 12, 1)
+    path.write_bytes(data)
     with pytest.raises(ValueError, match="CHUNK_ALIGNMENT_INVALID"):
         audit_glb(path)
 
