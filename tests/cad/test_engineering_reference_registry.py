@@ -175,6 +175,7 @@ def test_real_pinned_m3_evidence_maps_three_candidates_and_sixteen_unlocated():
     assert all(r["geometry_asset"]["glb_node_binding_candidate"]["selector_promoted"] is False for r in refs)
     assert all(r["render"]["renderable"] is False for r in refs)
     assert result["glb_node_binding_audit"]["selector_promotion_count"] == 0
+    print("P9M4_GLB_NODE_BINDING_AUDIT=" + json.dumps(result["glb_node_binding_audit"], sort_keys=True))
     (root / "p9m4-reference-registry.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
