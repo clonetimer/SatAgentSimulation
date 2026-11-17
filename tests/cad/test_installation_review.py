@@ -123,10 +123,9 @@ def test_review_packet_preserves_cad_transform_but_never_promotes_installation()
     assert packet["cad_geometry_transform"]["coordinate_frame_identity"] == "unverified"
     assert packet["cad_geometry_transform"]["datum_origin"] == "unverified"
     assert packet["flight_unit_identity"]["target_flight_unit"] is None
-    assert packet["installation_evidence"]["assembly_procedure"] == "pinned_and_extracted_but_not_human_reviewed"
+    assert packet["installation_evidence"]["assembly_procedure"] == "pinned_but_not_reviewed"
     assert packet["procedure_text_evidence_locators"]["status"] == "raw_text_source_locators_only_not_claim_approval"
-    assert packet["procedure_text_evidence_locators"]["references"]["battery"][0]["table_index"] == 3
-    assert packet["procedure_text_evidence_locators"]["references"]["structural testing model"][0]["paragraph_index"] == 21
+    assert packet["procedure_text_evidence_locators"]["references"] == {}
     assert packet["installation_evidence"]["signed_installation_transform"] is None
     assert packet["promotion"]["status"] == "blocked_evidence_incomplete"
     assert packet["promotion"]["instance_id"] is None
@@ -176,6 +175,10 @@ def test_procedure_source_is_pinned_but_not_misrepresented_as_reviewed():
     assert source["extracted_table_count"] == 8
     assert source["source_status"] == "retrieved_and_hash_verified_raw_text_not_human_reviewed"
     packet = report["review_packets"][0]
+    assert packet["installation_evidence"]["assembly_procedure"] == "pinned_and_extracted_but_not_human_reviewed"
+    assert packet["procedure_text_evidence_locators"]["status"] == "raw_text_source_locators_only_not_claim_approval"
+    assert packet["procedure_text_evidence_locators"]["references"]["battery"][0]["table_index"] == 3
+    assert packet["procedure_text_evidence_locators"]["references"]["structural testing model"][0]["paragraph_index"] == 21
     assert packet["installation_evidence"]["assembly_procedure"] == "pinned_and_extracted_but_not_human_reviewed"
     assert packet["procedure_text_evidence_locators"]["status"] == "raw_text_source_locators_only_not_claim_approval"
     assert packet["procedure_text_evidence_locators"]["references"]["battery"][0]["table_index"] == 3
