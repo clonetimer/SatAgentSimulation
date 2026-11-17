@@ -121,7 +121,7 @@ def _reference_bundle(candidate=None):
             "scope": "reference_registration_only_not_as_built_approval",
             "glb_sha256": "a" * 64,
         },
-        "glb_node_inventory": {"node_count": 852, "scene_count": 1},
+        "glb_node_inventory": {"node_count": 852, "mesh_count": 477, "scene_count": 1},
         "summary": {
             "as_built_verified_count": 0,
             "telemetry_binding_count": 0,
@@ -139,7 +139,7 @@ def test_engineering_mapping_endpoint_projects_candidate_only_review_data(tmp_pa
         payload = client.get("/workbench/engineering-mapping").json()
     assert payload["ok"] is True
     assert payload["intake"]["glb_sha256"] == "a" * 64
-    assert payload["glb_node_inventory"] == {"node_count": 852}
+    assert payload["glb_node_inventory"] == {"node_count": 852, "mesh_count": 477}
     candidate = payload["mappings"][0]["review_candidate"]
     assert candidate == {
         "status": "unique_exact_name_parent_match_group_candidate",
@@ -166,6 +166,20 @@ def test_engineering_mapping_endpoint_rejects_promoted_review_candidate(tmp_path
     candidate = _reference_bundle()["mappings"][0]["geometry_asset"]["glb_node_binding_candidate"]
     candidate["selector_promoted"] = True
     path.write_text(json.dumps(_reference_bundle(candidate)), encoding="utf-8")
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256", hashlib.sha256(path.read_bytes()).hexdigest())
+    with _client(tmp_path / "app") as client:
+        payload = client.get("/workbench/engineering-mapping").json()
+    assert payload["ok"] is False
+    assert payload["status"] == "invalid"
+    assert payload["mappings"] == []
+
+
+def test_engineering_mapping_endpoint_rejects_reference_row_render_promotion(tmp_path, monkeypatch):
+    path = tmp_path / "render-promoted-registry.json"
+    bundle = _reference_bundle()
+    bundle["mappings"][0]["render"]["renderable"] = True
+    path.write_text(json.dumps(bundle), encoding="utf-8")
     monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(path))
     monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256", hashlib.sha256(path.read_bytes()).hexdigest())
     with _client(tmp_path / "app") as client:
