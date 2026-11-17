@@ -47,3 +47,10 @@ The satellite scene inspector displays only mapping counts and object-to-mapping
 
 
 The first workspace-path correction still failed because the stable check's Python heredoc did not import \`os\`. The traceback correctly identified \`NameError: os is not defined\`. When moving checks into an isolated \`/tmp\` working directory, explicitly audit the complete imports used by the snippet (including environment access); do not assume a prior module-level import is in scope inside a standalone heredoc.
+
+
+## Do not trust an arbitrary mapping bundle path at runtime
+
+The first scene endpoint draft validated a JSON bundle's internal schema but did not pin the file bytes or restrict its intake scope. That could allow a hand-authored bundle to claim an \`as_built_verified\` count based only on self-declared evidence metadata.
+
+The endpoint now requires a separately configured SHA-256 for the exact bundle file and accepts only the pinned reference-registration scope. It additionally enforces zero as-built instances, zero telemetry bindings and zero node-renderable candidates. A future approved as-built registry requires a separate trust/approval workflow; it must not be enabled by simply changing a JSON field.
