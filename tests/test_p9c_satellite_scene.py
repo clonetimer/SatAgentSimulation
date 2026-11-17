@@ -851,13 +851,13 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
             try:
-    page.wait_for_function("() => document.documentElement.dataset.birdsCadModeTabsReady === 'true'", timeout=30000)
-except Exception as error:
-    raise AssertionError(
-        "CAD mode module did not become ready; "
-        f"failures={failures}; external_requests={external_requests}; "
-        f"script_src={page.locator('script[src*="birds-cad-viewer"]').get_attribute('src')}"
-    ) from error
+                page.wait_for_function("() => document.documentElement.dataset.birdsCadModeTabsReady === 'true'", timeout=30000)
+            except Exception as error:
+                raise AssertionError(
+                    "CAD mode module did not become ready; "
+                    f"failures={failures}; external_requests={external_requests}; "
+                    f"module_scripts={page.locator('script[type=module]').count()}"
+                ) from error
             # Enter the scene through the supported simulation mode first,
             # then switch to CAD, matching the accepted P9-I user journey.
             page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
@@ -970,13 +970,13 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
             try:
-    page.wait_for_function("() => document.documentElement.dataset.birdsCadModeTabsReady === 'true'", timeout=30000)
-except Exception as error:
-    raise AssertionError(
-        "CAD mode module did not become ready; "
-        f"failures={failures}; external_requests={external_requests}; "
-        f"script_src={page.locator('script[src*="birds-cad-viewer"]').get_attribute('src')}"
-    ) from error
+                page.wait_for_function("() => document.documentElement.dataset.birdsCadModeTabsReady === 'true'", timeout=30000)
+            except Exception as error:
+                raise AssertionError(
+                    "CAD mode module did not become ready; "
+                    f"failures={failures}; external_requests={external_requests}; "
+                    f"module_scripts={page.locator('script[type=module]').count()}"
+                ) from error
             page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
             assert page.locator('[data-scene-mode="simulation"]').get_attribute("aria-pressed") == "true"
             page.locator('[data-scene-mode="cad"]').click()
