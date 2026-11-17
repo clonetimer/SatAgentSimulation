@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -73,3 +74,16 @@ def test_engineering_mapping_endpoint_returns_only_validated_public_projection(t
     }]
     assert "evidence" not in json.dumps(payload)
     assert "geometry_asset" not in json.dumps(payload)
+
+
+def test_satellite_scene_exposes_evidence_classes_without_fake_geometry():
+    root = Path(__file__).resolve().parents[1] / "src" / "sat_sim" / "web"
+    html = (root / "index.html").read_text(encoding="utf-8")
+    app = (root / "app.js").read_text(encoding="utf-8")
+    css = (root / "satellite-scene.css").read_text(encoding="utf-8")
+    assert 'id="p9m4MappingStatus"' in html
+    assert 'id="p9m4MappingDetail"' in html
+    assert "api('/workbench/engineering-mapping')" in app
+    assert "renderP9M4MappingPanel" in app
+    assert "glb_node_binding" not in app
+    assert ".p9m4-mapping-section" in css
