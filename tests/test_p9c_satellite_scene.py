@@ -827,7 +827,7 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
     monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256",
                        __import__("hashlib").sha256(registry_path.read_bytes()).hexdigest())
 
-    with _client(tmp_path / "app") as client, playwright.sync_playwright() as pw:
+    with _client(tmp_path) as client, playwright.sync_playwright() as pw:
         browser = pw.chromium.launch(
             headless=True,
             executable_path=executable,
@@ -928,7 +928,7 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
     wrong_glb = tmp_path / "wrong-revision.glb"
     _write_triangle_glb(wrong_glb)
     evidence_dir = os.environ.get("SAT_SIM_SCENE_EVIDENCE_DIR")
-    with _client(tmp_path / "app") as client, playwright.sync_playwright() as pw:
+    with _client(tmp_path) as client, playwright.sync_playwright() as pw:
         api_payload = client.get("/workbench/engineering-mapping").json()
         assert api_payload["ok"] is True, api_payload
         assert api_payload["summary"]["visual_review_candidate_count"] == 3, api_payload
