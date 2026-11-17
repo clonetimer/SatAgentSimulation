@@ -16,6 +16,8 @@ NS = {
     "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
 }
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
 
 def _sha256(path: Path) -> str:
