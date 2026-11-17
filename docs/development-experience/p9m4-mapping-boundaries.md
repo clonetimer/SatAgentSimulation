@@ -54,3 +54,8 @@ The first workspace-path correction still failed because the stable check's Pyth
 The first scene endpoint draft validated a JSON bundle's internal schema but did not pin the file bytes or restrict its intake scope. That could allow a hand-authored bundle to claim an \`as_built_verified\` count based only on self-declared evidence metadata.
 
 The endpoint now requires a separately configured SHA-256 for the exact bundle file and accepts only the pinned reference-registration scope. It additionally enforces zero as-built instances, zero telemetry bindings and zero node-renderable candidates. A future approved as-built registry requires a separate trust/approval workflow; it must not be enabled by simply changing a JSON field.
+
+
+## Cross-platform workflow commands: keep pytest and Node checks in separate YAML block lines
+
+The first M4 API/UI workflow revision placed a second \`node --check\` command under a single-line YAML \`run:\` scalar. On Windows PowerShell, it was appended to the pytest argument list, producing \`pytest: unrecognized arguments: --check\` before tests ran. Use \`run: |\` for multi-command steps and keep each command on its own indented line. Verify the resulting workflow text after editing; a visually intended newline in a string replacement is not proof that YAML contains a block scalar.
