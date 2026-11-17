@@ -152,8 +152,8 @@ def build_installation_review_packets(
         world = validate_rigid_transform(node.get("world_transform_m"), f"{path}.world")
         parent_consistency = "root"
         if parent is not None:
-            parent_world = validate_rigid_transform(parent.get("world_transform_m"), f"{parent_path}.world")
-            composed = _matmul(parent_world_matrix := _matrix4(parent.get("world_transform_m"), f"{parent_path}.world"),
+            validate_rigid_transform(parent.get("world_transform_m"), f"{parent_path}.world")
+            composed = _matmul(_matrix4(parent.get("world_transform_m"), f"{parent_path}.world"),
                                _matrix4(node.get("local_transform_m"), f"{path}.local"))
             declared_world = _matrix4(node.get("world_transform_m"), f"{path}.world")
             error = max(abs(composed[i][j] - declared_world[i][j]) for i in range(4) for j in range(4))
