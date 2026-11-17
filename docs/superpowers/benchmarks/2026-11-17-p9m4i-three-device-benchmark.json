@@ -36,6 +36,15 @@
         "file": "B4_battery v1.step",
         "license": "MIT",
         "role": "external_reference_control_not_target_identity"
+      },
+      "primary_ai_generation_target": false,
+      "benchmark_role": "real_reference_control_only",
+      "reference_registry_mapping": {
+        "object_id": "component.battery",
+        "source_node_path": "BIRDS4_FM_Final v7/B4_battery v1",
+        "mapping_kind": "reference_cad",
+        "node_renderable": false,
+        "as_built_eligible": false
       }
     },
     {
@@ -72,6 +81,15 @@
         "file": "B4_RW_Assembly v55.step",
         "license": "MIT",
         "role": "external_reference_control_not_target_identity"
+      },
+      "primary_ai_generation_target": false,
+      "benchmark_role": "real_reference_control_only",
+      "reference_registry_mapping": {
+        "object_id": "component.reaction_wheel",
+        "source_node_path": "BIRDS4_FM_Final v7/B4_RW_Assembly v55",
+        "mapping_kind": "reference_cad",
+        "node_renderable": false,
+        "as_built_eligible": false
       }
     },
     {
@@ -104,7 +122,10 @@
         "housing_envelope",
         "visual_recognition"
       ],
-      "source_status": "original_star_tracker_CAD_not_yet_obtained"
+      "source_status": "original_star_tracker_CAD_not_yet_obtained",
+      "primary_ai_generation_target": true,
+      "benchmark_role": "missing_CAD_generation_candidate",
+      "reference_registry_mapping": null
     }
   ],
   "metrics": [
@@ -134,5 +155,6 @@
     "human_visual_review_required",
     "g2_requires_source_backed_dimensions_and_interface_evidence",
     "no_target_hardware_identity_inference_from_external_reference_models"
-  ]
+  ],
+  "execution_scope": "Only star_tracker is the primary missing-CAD generation target; battery and reaction_wheel are reference-geometry controls from the accepted M4-A evidence registry."
 }
