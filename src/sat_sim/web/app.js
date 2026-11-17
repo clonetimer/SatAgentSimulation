@@ -5007,6 +5007,8 @@
       ? state.wizard.parameterMode : 'recommended';
     state.wizard.parameterMode = mode;
     const fields = (state.schema?.fields || []).filter((field) => String(field.path || '').startsWith('parameters.values.'));
+    const nativeRwPreset = el('wizardNativeRwPreset');
+    nativeRwPreset?.classList.toggle('hidden', state.selectedCapabilityId !== 'component.reaction_wheel.v1');
     const recommended = fields.filter((field) => field.importance !== 'advanced').length;
     const advanced = fields.length - recommended;
     const nonDefault = fields.filter((field) => field.default !== undefined
@@ -5144,7 +5146,7 @@
         card.classList.add('parameter-section');
         const key=`${state.schema.capability.capability_id}:${section.id}`;
         const changed=filtered.some((field)=>state.changedPaths.has(field.path));
-        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? wizardParameterMode === 'all' : section.parameter_group === 'orbit'));
+        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? (wizardParameterMode === 'all' || section.parameter_group === 'backend') : section.parameter_group === 'orbit'));
         card.addEventListener('toggle',()=>{
           if (!query && !showAdvanced && !changed) state.formSectionOpen.set(key,card.open);
         });
@@ -8427,6 +8429,31 @@
     }
   }
 
+  async function wizardApplyNativeRwPreset() {
+    if (state.selectedCapabilityId !== 'component.reaction_wheel.v1') {
+      throw new Error('该原生配置仅适用于独立反作用轮单机。');
+    }
+    const payload = await api('/scenario-templates/component_reaction_wheel_basilisk_native/instantiate', {
+      method: 'POST',
+      body: apiBody({}),
+    });
+    if (!payload?.task_spec || payload.task_spec.parameters?.values?.physics_backend !== 'basilisk_native') {
+      throw new Error('服务端未返回经过注册的 Basilisk 原生反作用轮配置。');
+    }
+    await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生反作用轮模板');
+    state.activeTaskCenterId = null;
+    updateTaskEditState();
+    state.planning = payload.planning;
+    state.wizard.parameterMode = 'recommended';
+    renderWizardParameterControls();
+    renderSimulationWizard();
+    const parameters = el('wizardParametersPanel');
+    if (parameters) parameters.open = true;
+    const backendGroup = el('dynamicForm')?.querySelector('[data-section-id="parameters_backend"]');
+    if (backendGroup) backendGroup.open = true;
+    el('wizardNotice').textContent = '已加载官方 Basilisk 原生反作用轮配置。运行前仍需校验；当前仅支持单轮标称工况。';
+  }
+
   function wizardChooseFault(effect) {
     const item = effectCatalog('fault').find((entry) => entry.effect === effect);
     if (!item) {
@@ -11254,6 +11281,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('agentBackend').addEventListener('change', (event) => { state.selectedProviderId = event.target.value; });
     el('variantSelect').addEventListener('change', (event) => selectCapability(event.target.value));
     el('applyScenarioTemplateBtn').addEventListener('click', () => applyScenarioTemplate().catch(error => showNotice(error.message, 'error')));
+    el('wizardApplyNativeRwPresetBtn')?.addEventListener('click', () => wizardApplyNativeRwPreset().catch(error => { el('wizardNotice').textContent = error.message; }));
     el('capabilitySearch').addEventListener('input', renderCapabilityList);
     el('levelFilter').addEventListener('change', renderCapabilityList);
     el('showCompatibilityCapabilities').addEventListener('change', async (event) => {
