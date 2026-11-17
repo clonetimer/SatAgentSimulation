@@ -78,6 +78,14 @@ def validate_mapping_record(record: Mapping[str, Any]) -> dict[str, Any]:
     telemetry = record.get("telemetry_binding")
     render = record.get("render", {})
     evidence = record.get("evidence", [])
+    if not isinstance(render, Mapping):
+        raise ValueError(f"P9M4_RENDER_POLICY_REQUIRED:{mapping_id}")
+    if evidence is None:
+        evidence = []
+    if not isinstance(evidence, list):
+        raise ValueError(f"P9M4_EVIDENCE_LIST_REQUIRED:{mapping_id}")
+    if telemetry is not None and not isinstance(telemetry, Mapping):
+        raise ValueError(f"P9M4_TELEMETRY_BINDING_INVALID:{mapping_id}")
 
     if kind == "as_built_verified":
         if not isinstance(asset, Mapping) or not asset.get("sha256") or not asset.get("source_node_path"):
@@ -86,11 +94,17 @@ def validate_mapping_record(record: Mapping[str, Any]) -> dict[str, Any]:
             raise ValueError(f"P9M4_AS_BUILT_INSTANCE_ID_REQUIRED:{mapping_id}")
         if not isinstance(spatial_anchor, Mapping) or not spatial_anchor.get("parent_instance_id"):
             raise ValueError(f"P9M4_AS_BUILT_PARENT_ANCHOR_REQUIRED:{mapping_id}")
-        if not isinstance(frame, Mapping) or frame.get("identity_status") != "approved" or frame.get("handedness") != "right":
+        if (
+            not isinstance(frame, Mapping)
+            or frame.get("identity_status") != "approved"
+            or frame.get("handedness") != "right"
+            or not frame.get("frame_id")
+            or not frame.get("parent_frame_id")
+        ):
             raise ValueError(f"P9M4_AS_BUILT_FRAME_APPROVAL_REQUIRED:{mapping_id}")
         _validate_matrix(frame.get("installation_transform_parent_from_child"), mapping_id)
         applicability = record.get("applicability", {})
-        if not all(applicability.get(key) for key in ("spacecraft_model", "flight_unit", "hardware_part_number", "hardware_revision")):
+        if not isinstance(applicability, Mapping) or not all(applicability.get(key) for key in ("spacecraft_model", "flight_unit", "hardware_part_number", "hardware_revision")):
             raise ValueError(f"P9M4_AS_BUILT_APPLICABILITY_REQUIRED:{mapping_id}")
         approved = {
             item.get("claim_type") for item in evidence
@@ -115,7 +129,12 @@ def validate_mapping_record(record: Mapping[str, Any]) -> dict[str, Any]:
             raise ValueError(f"P9M4_SIMULATION_GEOMETRY_MUST_NOT_CLAIM_AS_BUILT_INSTANCE:{mapping_id}")
         if not isinstance(frame, Mapping) or frame.get("identity_status") != "task_spec_configuration":
             raise ValueError(f"P9M4_SIMULATION_CONFIGURATION_FRAME_REQUIRED:{mapping_id}")
-        if not isinstance(record.get("simulation_binding"), Mapping):
+        simulation_binding = record.get("simulation_binding")
+        if (
+            not isinstance(simulation_binding, Mapping)
+            or not simulation_binding.get("run_id")
+            or not simulation_binding.get("taskspec_sha256")
+        ):
             raise ValueError(f"P9M4_SIMULATION_RUN_BINDING_REQUIRED:{mapping_id}")
         if render.get("as_built_eligible") is not False:
             raise ValueError(f"P9M4_SIMULATION_GEOMETRY_AS_BUILT_FORBIDDEN:{mapping_id}")
