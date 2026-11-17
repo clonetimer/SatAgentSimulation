@@ -7,6 +7,9 @@ on:
       - "scripts/cad/build_installation_review_packets.py"
       - "scripts/cad/extract_birds4_procedure_evidence.py"
       - "scripts/cad/fetch_birds4_procedure.py"
+      - "scripts/cad/fetch_birds4_unit_reports.py"
+      - "scripts/cad/extract_birds4_unit_reports.py"
+      - "assets/cad-sources/birds4/birds4-flight-unit-evidence-manifest.json"
       - "tests/cad/test_installation_review.py"
       - "tests/cad/test_procedure_extractor.py"
       - "docs/superpowers/plans/2026-11-17-p9m3-evidence-review.md"
@@ -60,6 +63,16 @@ jobs:
           python scripts/cad/fetch_birds4_procedure.py \
             --manifest assets/cad-sources/birds4/birds4-cad-source-manifest.json \
             --output "${{ runner.temp }}/p9m3/procedure/BIRDS4-FM-Assembly-Procedure.docx"
+      - name: Fetch and verify flight-unit VT and FM TVT reports
+        run: |
+          python scripts/cad/fetch_birds4_unit_reports.py \
+            --manifest assets/cad-sources/birds4/birds4-flight-unit-evidence-manifest.json \
+            --output-dir "${{ runner.temp }}/p9m3/unit-reports"
+      - name: Extract flight-unit test report text and locators
+        run: |
+          python scripts/cad/extract_birds4_unit_reports.py \
+            --receipts "${{ runner.temp }}/p9m3/unit-reports/flight-unit-evidence-receipts.json" \
+            --output-dir "${{ runner.temp }}/p9m3/unit-reports/extracted"
       - name: Extract raw procedure text with source receipt
         run: |
           python scripts/cad/extract_birds4_procedure_evidence.py \
@@ -107,6 +120,7 @@ jobs:
           path: |
             ${{ runner.temp }}/p9m3/BIRDS4_FM_Final_v7.installation-review.json
             ${{ runner.temp }}/p9m3/procedure-extraction.json
+            ${{ runner.temp }}/p9m3/unit-reports/
           if-no-files-found: error
       - name: Validate P9-M3 transform and evidence contracts
         env:
