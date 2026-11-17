@@ -612,6 +612,35 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             legend_text = legend.inner_text()
             assert "反作用轮1 · 角速度" in legend_text, legend_text
             assert "反作用轮1 · 实际电机力矩" in legend_text, legend_text
+
+            # Re-open the sealed run from Run Center and verify the same
+            # native provenance and physical charts survive history navigation.
+            runs_payload = client.get("/runs?limit=200")
+            assert runs_payload.status_code == 200, runs_payload.text
+            native_runs = [
+                row for row in runs_payload.json().get("runs", [])
+                if row.get("primary_capability_id") == "component.reaction_wheel.v1"
+                and row.get("status") == "SUCCEEDED"
+            ]
+            assert len(native_runs) == 1, native_runs
+            run_id = native_runs[0]["run_id"]
+            analysis_nav = page.locator(".sidebar-nav-group").filter(has_text="实验与分析")
+            analysis_nav.locator(":scope > summary").click()
+            analysis_nav.locator('[data-view="runs"]').click()
+            page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
+            run_row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
+            run_row.wait_for(state="visible", timeout=15000)
+            run_row.get_by_role("button", name="查看").click()
+            page.locator("#creatorView").wait_for(state="visible", timeout=20000)
+            replayed = page.locator("#activeRunCard")
+            replayed.wait_for(state="visible", timeout=15000)
+            assert "Basilisk 官方原生" in replayed.inner_text()
+            assert "Basilisk.simulation.reactionWheelStateEffector" in replayed.inner_text()
+            page.locator('[data-result-tab="charts"]').click()
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.innerText.includes('反作用轮1 · 实际电机力矩')",
+                timeout=15000,
+            )
             assert not errors, errors
         finally:
             browser.close()
