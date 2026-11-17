@@ -214,6 +214,9 @@ def test_satellite_scene_exposes_evidence_classes_without_fake_geometry():
     assert "sha256Hex" in cad_viewer
     assert "loadedGlbSha256!==expected" in cad_viewer
     assert "selectByIndex" in cad_viewer
+    assert "gltf.parser?.associations" in cad_viewer
+    assert "item.userData.gltfNodeIndex===index" in cad_viewer
+    assert "item.userData.cadTreeIndex===index" not in cad_viewer
     assert ".birds-cad-review-panel" in css
     assert 'id="p9m4MappingDetail"' in html
     assert "api('/workbench/engineering-mapping')" in app
