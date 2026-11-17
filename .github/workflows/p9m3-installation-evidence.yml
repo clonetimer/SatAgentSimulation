@@ -73,6 +73,14 @@ jobs:
           python scripts/cad/extract_birds4_unit_reports.py \
             --receipts "${{ runner.temp }}/p9m3/unit-reports/flight-unit-evidence-receipts.json" \
             --output-dir "${{ runner.temp }}/p9m3/unit-reports/extracted"
+      - name: Preserve source-verified flight-unit report evidence immediately
+        uses: actions/upload-artifact@v4
+        with:
+          name: p9m3-birds4-flight-unit-test-reports
+          path: |
+            ${{ runner.temp }}/p9m3/unit-reports/flight-unit-evidence-receipts.json
+            ${{ runner.temp }}/p9m3/unit-reports/extracted/
+          if-no-files-found: error
       - name: Extract raw procedure text with source receipt
         run: |
           python scripts/cad/extract_birds4_procedure_evidence.py \
