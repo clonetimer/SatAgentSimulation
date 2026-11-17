@@ -51,5 +51,14 @@ jobs:
               "component.battery", "component.reaction_wheel", "component.star_tracker"
           }
           assert "no_invented_dimensions" in data["safety_rules"]
-          print("P9M4I_BENCHMARK_SPEC_VALID:3 devices")
+          targets = [x["engineering_object_id"] for x in data["objects"] if x.get("primary_ai_generation_target")]
+          assert targets == ["component.star_tracker"], f"P9M4I_PRIMARY_TARGET_SCOPE_INVALID:{targets}"
+          controls = {x["engineering_object_id"]: x for x in data["objects"] if x.get("benchmark_role") == "real_reference_control_only"}
+          assert set(controls) == {"component.battery", "component.reaction_wheel"}
+          for object_id, item in controls.items():
+              mapping = item["reference_registry_mapping"]
+              assert mapping["mapping_kind"] == "reference_cad"
+              assert mapping["node_renderable"] is False
+              assert mapping["as_built_eligible"] is False
+          print("P9M4I_BENCHMARK_SPEC_VALID:1 generation target + 2 real-CAD controls")
           PY
