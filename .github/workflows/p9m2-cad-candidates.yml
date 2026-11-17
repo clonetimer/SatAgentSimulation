@@ -1,0 +1,42 @@
+name: P9-M2 CAD engineering candidate mapping
+
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/cad_candidate_mapping.py"
+      - "scripts/cad/build_engineering_candidates.py"
+      - "tests/cad/test_candidate_mapping.py"
+      - "scripts/cad/convert_birds4_step.py"
+      - "src/sat_sim/workbench_object_tree.py"
+      - "src/sat_sim/workbench_scene_catalog.py"
+      - "docs/superpowers/plans/2026-11-17-p9m2-cad-engineering-candidates.md"
+      - ".github/workflows/p9m2-cad-candidates.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p9m2-cad-candidates-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate-mapping-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install "pytest==9.0.3" "PyYAML==6.0.3"
+      - name: Validate candidate mapping and CAD provenance contracts
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q \
+            tests/cad/test_candidate_mapping.py \
+            tests/cad/test_birds4_step_converter.py \
+            tests/test_p9a_object_tree_quantities.py
