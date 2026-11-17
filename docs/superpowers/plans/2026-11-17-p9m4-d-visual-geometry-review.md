@@ -46,3 +46,15 @@ P9-M4 unified mapping workflow now has a downstream `reference-cad-browser-revie
 - It loads the real 61 MB BIRDS-4 full assembly in the browser and locates battery, reaction-wheel and payload group nodes by the original GLB node indices.
 - It verifies the expected 14 / 24 / 1 mesh descendants, displays original node index and transform inspector, and saves screenshot plus a machine-readable review summary.
 - A wrong-revision GLB is loaded first and must keep every candidate-location action disabled.
+
+
+## 用户可理解的五项审查清单
+
+审查面板新增明确的五项状态，避免把“哈希一致”误解成“设备验收通过”：
+1. 文件版本一致性：本地 GLB 与证据清单 SHA-256 是否一致。
+2. 装配组与网格清单：候选节点和后代网格是否已读取。
+3. 三维外形与遮挡关系：待工程人员目视核对。
+4. 局部坐标与安装基准：待核对，GLB 根坐标不等于航天器 B 系安装变换。
+5. 实装身份与遥测关联：本阶段不批准、不建立绑定。
+
+面板不提供“批准实装”按钮。完成候选定位只代表审查对象可被检查，正式映射仍需独立工程签核。
