@@ -177,6 +177,20 @@ def test_engineering_mapping_endpoint_rejects_promoted_review_candidate(tmp_path
     assert payload["mappings"] == []
 
 
+def test_engineering_mapping_endpoint_rejects_descendant_mesh_outside_glb_inventory(tmp_path, monkeypatch):
+    path = tmp_path / "out-of-range-mesh-registry.json"
+    bundle = _reference_bundle()
+    bundle["mappings"][0]["geometry_asset"]["glb_node_binding_candidate"]["candidate_descendant_mesh_nodes"][0]["mesh_index"] = 477
+    path.write_text(json.dumps(bundle), encoding="utf-8")
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256", hashlib.sha256(path.read_bytes()).hexdigest())
+    with _client(tmp_path / "app") as client:
+        payload = client.get("/workbench/engineering-mapping").json()
+    assert payload["ok"] is False
+    assert payload["status"] == "invalid"
+    assert payload["mappings"] == []
+
+
 def test_engineering_mapping_endpoint_rejects_reference_row_render_promotion(tmp_path, monkeypatch):
     path = tmp_path / "render-promoted-registry.json"
     bundle = _reference_bundle()
