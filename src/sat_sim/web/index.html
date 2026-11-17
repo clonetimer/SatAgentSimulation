@@ -328,6 +328,10 @@
           <details id="wizardParametersPanel" class="wizard-config-panel">
             <summary>模型参数（按需调整）</summary>
             <p class="wizard-panel-help">默认沿用当前模型推荐值。先完成运行时长和采样间隔即可开始；只有需要改变物理工况或模型特性时，再展开参数。</p>
+            <div id="wizardNativeRwPreset" class="wizard-native-preset hidden">
+              <div><strong>官方 Basilisk 原生反作用轮</strong><span>加载已验证的单轮物理配置，使用 Basilisk ReactionWheelStateEffector 运行；仅支持标称工况。</span></div>
+              <button id="wizardApplyNativeRwPresetBtn" class="button button-secondary" type="button">应用原生单轮配置</button>
+            </div>
             <div class="wizard-parameter-controls">
               <div class="wizard-parameter-mode" role="group" aria-label="参数显示级别">
                 <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="runtime" aria-pressed="false">仅运行参数</button>
