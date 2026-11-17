@@ -23,6 +23,10 @@ def _engineering_tree():
                     {"object_id": "component.solar_panel", "kind": "equipment", "name_zh": "太阳电池阵",
                      "instance_semantics": "capability_model_not_vehicle_inventory", "inventory_count": None, "children": []},
                 ]},
+                {"object_id": "subsystem.payload", "kind": "subsystem", "children": [
+                    {"object_id": "component.payload", "kind": "equipment", "name_zh": "载荷仪器",
+                     "instance_semantics": "capability_model_not_vehicle_inventory", "inventory_count": None, "children": []},
+                ]},
             ],
         },
         "roots": [
@@ -188,3 +192,22 @@ def test_geometry_leaf_nodes_and_antenna_mounting_hardware_are_not_component_can
     assert result["summary"]["skipped_leaf_geometry_node_count"] == 1
     assert result["summary"]["render_eligible_candidate_count"] == 0
     assert result["candidates"][0]["node_granularity"] == "assembly_occurrence"
+
+
+def test_perovskite_solar_cell_mission_is_payload_not_bus_solar_array():
+    result = build_candidate_mapping(
+        _engineering_tree(),
+        {"nodes": [
+            _cad_node(
+                "BIRDS4_FM_Final v7/B4_FM_-Y_panel v3/Perovskite_Solar_Cells v3",
+                "Perovskite_Solar_Cells v3",
+                "BIRDS4_FM_Final v7/B4_FM_-Y_panel v3",
+            ),
+        ]},
+    )
+    assert len(result["candidates"]) == 1
+    candidate = result["candidates"][0]
+    assert candidate["engineering_object_id"] == "component.payload"
+    assert candidate["match_evidence"][0]["reason"] == "perovskite_solar_cell_mission_payload_candidate"
+    assert candidate["verification_status"] == "draft"
+    assert candidate["render_eligible"] is False
