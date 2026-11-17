@@ -171,6 +171,10 @@ def test_real_pinned_m3_evidence_maps_three_candidates_and_sixteen_unlocated():
     refs = [r for r in result["mappings"] if r["mapping_kind"] == "reference_cad"]
     assert {r["object_id"] for r in refs} == {"component.battery", "component.reaction_wheel", "component.payload"}
     assert all(r["review"]["required_reviews"]["coordinate_datum"] == "blocked" for r in refs)
+    assert all(r["geometry_asset"]["glb_node_binding"] is None for r in refs)
+    assert all(r["geometry_asset"]["glb_node_binding_candidate"]["selector_promoted"] is False for r in refs)
+    assert all(r["render"]["renderable"] is False for r in refs)
+    assert result["glb_node_binding_audit"]["selector_promotion_count"] == 0
     (root / "p9m4-reference-registry.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
