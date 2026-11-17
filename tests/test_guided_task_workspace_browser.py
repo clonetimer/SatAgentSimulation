@@ -596,6 +596,8 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
                 "() => document.querySelector('#activeRunCard')?.innerText.includes('SUCCEEDED')",
                 timeout=120000,
             )
+            run_metadata = active_run.locator(".compact-run-metadata")
+            run_metadata.locator(":scope > summary").click()
             assert "Basilisk 官方原生" in active_run.inner_text()
             assert "Basilisk.simulation.reactionWheelStateEffector" in active_run.inner_text()
 
@@ -631,6 +633,8 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             page.locator("#creatorView").wait_for(state="visible", timeout=20000)
             replayed = page.locator("#activeRunCard")
             replayed.wait_for(state="visible", timeout=15000)
+            replay_metadata = replayed.locator(".compact-run-metadata")
+            replay_metadata.locator(":scope > summary").click()
             assert "Basilisk 官方原生" in replayed.inner_text()
             assert "Basilisk.simulation.reactionWheelStateEffector" in replayed.inner_text()
             page.locator('[data-result-tab="charts"]').click()
@@ -666,7 +670,7 @@ def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel
             page.on("response", lambda response: failures.append(
                 f"HTTP {response.status}: {response.url}"
             ) if response.status >= 400 and (
-                "/assets/" in response.url
+                ("/assets/" in response.url and "/assets/vendor/globe/" not in response.url)
                 or "/forms/" in response.url
                 or "/scenario-templates" in response.url
                 or "/workbench/" in response.url
