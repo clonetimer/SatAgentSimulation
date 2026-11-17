@@ -555,7 +555,7 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
 
             parameters = page.locator("#wizardParametersPanel")
             if parameters.get_attribute("open") is None:
-                parameters.locator("summary").click()
+                parameters.locator(":scope > summary").click()
             preset = page.locator("#wizardNativeRwPreset")
             preset.wait_for(state="visible", timeout=10000)
             assert "官方 Basilisk 原生反作用轮" in preset.inner_text()
