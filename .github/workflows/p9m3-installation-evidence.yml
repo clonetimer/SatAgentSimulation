@@ -1,0 +1,115 @@
+name: P9-M3 CAD installation evidence review
+
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/cad_installation_review.py"
+      - "scripts/cad/build_installation_review_packets.py"
+      - "scripts/cad/extract_birds4_procedure_evidence.py"
+      - "scripts/cad/fetch_birds4_procedure.py"
+      - "tests/cad/test_installation_review.py"
+      - "tests/cad/test_procedure_extractor.py"
+      - "docs/superpowers/plans/2026-11-17-p9m3-evidence-review.md"
+      - "scripts/SCRIPT_INVENTORY.md"
+      - ".github/workflows/p9m3-installation-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: p9m3-installation-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evidence-review-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install focused project and test dependencies
+        run: |
+          python -m pip install \
+            "pytest==9.0.3" "PyYAML==6.0.3" "numpy==2.3.5" \
+            "colorama==0.4.6" "sgp4==2.25" "numba==0.63.1" \
+            "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "pydantic==2.13.4" "jsonschema==4.26.0" "psutil==7.2.2" \
+            "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+      - name: Download pinned P9-I BIRDS-4 CAD source evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: birds4-fm-cad-reference-43692477458
+          repository: clonetimer/SatAgentSimulation
+          run-id: 43692477458
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p9m3/cad
+      - name: Download latest accepted P9-M2 candidate mapping
+        uses: actions/download-artifact@v4
+        with:
+          name: p9m2-birds4-candidate-audit
+          repository: clonetimer/SatAgentSimulation
+          run-id: 44001085568
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p9m3/candidates
+      - name: Fetch and verify pinned BIRDS-4 FM Assembly Procedure
+        run: |
+          python scripts/cad/fetch_birds4_procedure.py \
+            --manifest assets/cad-sources/birds4/birds4-cad-source-manifest.json \
+            --output "${{ runner.temp }}/p9m3/procedure/BIRDS4-FM-Assembly-Procedure.docx"
+      - name: Extract raw procedure text with source receipt
+        run: |
+          python scripts/cad/extract_birds4_procedure_evidence.py \
+            --docx "${{ runner.temp }}/p9m3/procedure/BIRDS4-FM-Assembly-Procedure.docx" \
+            --expected-size 61750445 \
+            --expected-git-blob-sha1 4236578c000b413773399d91e094b57a20a52e28 \
+            --source-commit d7eadd98f5327e1ddea82b640293d49bfdb09555 \
+            --output "${{ runner.temp }}/p9m3/procedure-extraction.json"
+      - name: Build P9-M3 evidence review packets and validate source CAD transforms
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/cad/build_installation_review_packets.py \
+            --candidate-mapping "${{ runner.temp }}/p9m3/candidates/BIRDS4_FM_Final_v7.candidate-mapping.json" \
+            --assembly-tree "${{ runner.temp }}/p9m3/cad/build/birds4/output/BIRDS4_FM_Final_v7.assembly-tree.json" \
+            --source-manifest assets/cad-sources/birds4/birds4-cad-source-manifest.json \
+            --procedure-extraction "${{ runner.temp }}/p9m3/procedure-extraction.json" \
+            --output "${{ runner.temp }}/p9m3/BIRDS4_FM_Final_v7.installation-review.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "p9m3" / "BIRDS4_FM_Final_v7.installation-review.json").read_text(encoding="utf-8"))
+          assert report["source"]["cad_node_count"] == 855
+          assert report["summary"]["review_packet_count"] == 3
+          assert report["summary"]["cad_local_transform_valid_count"] == 3
+          assert report["summary"]["cad_world_transform_valid_count"] == 3
+          assert report["summary"]["parent_composition_pass_count"] == 3
+          assert report["summary"]["identity_review_required_count"] == 3
+          assert report["summary"]["promoted_instance_count"] == 0
+          assert report["summary"]["render_eligible_count"] == 0
+          assert all(p["promotion"]["status"] == "blocked_evidence_incomplete" for p in report["review_packets"])
+          assert all(p["promotion"]["installation_transform"] is None for p in report["review_packets"])
+          assert report["evidence_catalog"]["assembly_procedure_source"]["source_status"] == "retrieved_and_hash_verified_raw_text_not_human_reviewed"
+          print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))
+          PY
+      - name: Preserve P9-M3 review packets and extracted source evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: p9m3-birds4-installation-evidence-review
+          path: |
+            ${{ runner.temp }}/p9m3/BIRDS4_FM_Final_v7.installation-review.json
+            ${{ runner.temp }}/p9m3/procedure-extraction.json
+          if-no-files-found: error
+      - name: Validate P9-M3 transform and evidence contracts
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q \
+            tests/cad/test_installation_review.py \
+            tests/cad/test_procedure_extractor.py \
+            tests/cad/test_candidate_mapping.py \
+            tests/cad/test_birds4_step_converter.py \
+            tests/test_p9a_object_tree_quantities.py
