@@ -76,3 +76,15 @@ The Khronos glTF 2.0 specification requires the JSON chunk first, the BIN chunk 
 
 
 A further crosswalk guard is required: a unique node name and parent match is not a useful geometry candidate if the node is only a group or has no mesh. Require the referenced mesh to exist and contain at least one primitive; classify a unique meshless name as matched_node_without_mesh with no candidate index. This still does not prove the mesh corresponds to the STEP occurrence; it only prevents obvious non-geometry nodes from entering the visual-review queue.
+
+
+## Real assembly occurrence nodes may be groups, not mesh-bearing leaves
+
+The first real M4 crosswalk report classified the battery, reaction-wheel and payload occurrence names as matched_node_without_mesh. Inspection of the pinned BIRDS-4 full assembly GLB showed these are intentional assembly group nodes: battery node 545 owns 14 mesh-bearing descendants; reaction-wheel node 560 owns 24; the perovskite panel node 759 owns one. Rejecting all meshless nodes therefore discarded the correct assembly-level occurrence identity.
+
+Correct pattern:
+- Keep rejecting a meshless leaf with no geometry descendants.
+- For a unique exact-name + exact-parent group node, traverse its validated child subtree and collect mesh-bearing descendants.
+- If the subtree has geometry, emit a group-level candidate with the group node index plus a complete descendant mesh inventory; do not pretend the group itself has a mesh.
+- Keep formal selector null, rendering disabled and visual review required. The candidate establishes a plausible assembly occurrence grouping, not geometry identity or installed-unit approval.
+- The real pinned 855-node BIRDS-4 test must assert the three known reference groups resolve to group candidates and enumerate descendant meshes; synthetic fixtures alone cannot expose this assembly-export convention.
