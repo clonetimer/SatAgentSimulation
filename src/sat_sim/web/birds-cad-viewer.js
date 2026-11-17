@@ -40,6 +40,9 @@ function renderReviewPanel(){
   const digest=document.createElement('div');digest.className='birds-cad-review-digest';
   digest.textContent='证据 SHA-256：'+String(expected||'缺失')+(loadedGlbSha256?' · 当前文件：'+loadedGlbSha256:'');
   reviewPanel.append(digest);
+  const inventory=document.createElement('div');inventory.className='birds-cad-review-digest';
+  inventory.textContent='GLB 场景清单：'+String(payload.glb_node_inventory?.node_count??'—')+' 个节点 · '+String(payload.glb_node_inventory?.mesh_count??'—')+' 个网格';
+  reviewPanel.append(inventory);
   const list=document.createElement('div');list.className='birds-cad-review-list';
   for(const row of candidates){
     const candidate=row.review_candidate,card=document.createElement('article');card.className='birds-cad-review-card';
