@@ -61,3 +61,6 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 3. **Make backend choice visible at the point of use.** A component may default to a project reference backend even when an official native backend is available. The backend field must be common/recommended and its parameter group expanded by default; otherwise users can unknowingly run the non-native model.
 4. **A guided preset is not a new execution path.** It only selects a registered TaskSpec. Execution still passes through the same validator, planner, registered adapter, Run Bundle, and seal/integrity pipeline.
 5. **Keep unsupported native modes explicit.** The single-wheel Basilisk template is nominal-only. Do not let project-reference fault options appear as if they are available in the native backend. The run validator/adapter remains authoritative and must fail closed.
+
+
+6. **Pin Playwright browser jobs to a supported runner image.** The first P9-N1 guided-browser CI extension used `ubuntu-latest`, which resolved to Ubuntu 26.04 x64 in this run; Playwright 1.57.0 did not provide a supported Chromium install for that image (`Playwright does not support chromium on ubuntu26.04-x64`). Pin the browser acceptance job to `ubuntu-24.04`, matching the project's other Chromium acceptance workflows. This is an environment compatibility failure, not a workbench/browser test failure.
