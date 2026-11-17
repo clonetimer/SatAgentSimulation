@@ -176,7 +176,7 @@ def test_glb_audit_rejects_misaligned_buffer_view_position_data(tmp_path):
     document["buffers"][0]["byteLength"] = len(binary) + 4
     document["bufferViews"][0]["byteOffset"] = 2
     document["bufferViews"][0]["byteLength"] = len(binary)
-    _write_glb_document(path, document, b"\\0\\0" + binary + b"\\0\\0")
+    _write_glb_document(path, document, b"\0\0" + binary + b"\0\0")
     with pytest.raises(ValueError, match="ACCESSOR_ALIGNMENT_INVALID"):
         audit_glb(path)
 
