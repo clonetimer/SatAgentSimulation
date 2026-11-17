@@ -113,6 +113,26 @@ jobs:
           PYTHONPATH: "src"
           SAT_SIM_P9M4_REAL_EVIDENCE: ${{ runner.temp }}/p9m4/inputs
         run: python -m pytest -q tests/cad/test_engineering_reference_registry.py -k real_pinned --junitxml=reports/p9m4-real.xml
+      - name: Create deployment digest receipt for reference-only registry
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "p9m4" / "inputs"
+          bundle = root / "p9m4-reference-registry.json"
+          digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
+          receipt = {
+              "bundle_file": bundle.name,
+              "bundle_sha256": digest,
+              "scope": "reference_registration_only_not_as_built_approval",
+              "required_environment": {
+                  "SAT_SIM_ENGINEERING_MAPPING_BUNDLE": "absolute path to p9m4-reference-registry.json",
+                  "SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256": digest,
+              },
+          }
+          (root / "registry-deployment-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+          print(f"P9M4_REFERENCE_REGISTRY_SHA256={digest}")
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -120,5 +140,6 @@ jobs:
           path: |
             ${{ runner.temp }}/p9m4/inputs/p9m4-reference-registry.json
             ${{ runner.temp }}/p9m4/inputs/input-verification.json
+            ${{ runner.temp }}/p9m4/inputs/registry-deployment-receipt.json
             reports/p9m4-real.xml
           if-no-files-found: error
