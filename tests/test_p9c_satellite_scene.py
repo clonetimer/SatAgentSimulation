@@ -983,6 +983,9 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
                 ) from error
             assert panel.get_by_text("蓄电池", exact=True).is_visible()
             assert panel.locator(".birds-cad-review-card").count() == 3
+            assert panel.locator(".birds-cad-review-checklist li").count() == 5
+            assert "待工程人员目视核对" in panel.inner_text()
+            assert "未批准；本审查不建立实装或遥测绑定" in panel.inner_text()
             assert "852" in panel.inner_text()
             action = panel.get_by_role("button", name="等待 GLB 哈希匹配").first
             assert action.is_disabled()
