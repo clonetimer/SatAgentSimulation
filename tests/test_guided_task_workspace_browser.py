@@ -665,6 +665,7 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").click()
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=20000)
             assert "官方 Basilisk 原生反作用轮模型" in page.locator("#wizardConversation").inner_text()
+            assert "原生故障、退化及实时单机运行尚未开放" in page.locator("#wizardConversation").inner_text()
             assert page.locator("#wizardOptions [data-wizard-mode]").count() == 0
 
             page.locator("#wizardParametersPanel > summary").click()
