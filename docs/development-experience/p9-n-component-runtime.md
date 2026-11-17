@@ -70,3 +70,6 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 
 
 8. **Guided native preset Chromium acceptance now passes.** On Ubuntu 24.04 with real Chromium, the user journey selects component level, selects `component.reaction_wheel`, chooses offline simulation, applies the registered native preset, and verifies the form holds `physics_backend=basilisk_native` with the backend section expanded. This confirms the preset is reachable from the guided workflow; it does not yet prove the browser-submitted Run produces a displayed result chart. That remains the next P9-N1 acceptance increment.
+
+
+9. **Guided event controls are nested disclosures.** In the guided workbench, `#compactEvents` is mounted inside the outer `#wizardFaultPanel`. A browser test (or user journey) must open the outer fault/event panel before interacting with the nested event disclosure. The native-backend limit note is inside the nested event panel; its visibility is intentionally scoped to the panel rather than shown as a global warning.
