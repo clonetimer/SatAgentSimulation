@@ -6446,6 +6446,15 @@
     const run = state.activeRun || {};
     const record = run.run_record || {};
     const validation = run.validation_outcome || {};
+    const runSummary = run.summary || {};
+    const physicsBackend = runSummary.physics_backend === 'basilisk_native'
+      ? 'Basilisk 官方原生'
+      : runSummary.physics_backend === 'project_reference'
+        ? '项目参考模型'
+        : (runSummary.physics_backend || '未声明');
+    const nativeProvenance = runSummary.adapter_metadata?.native_provenance
+      || runSummary.runtime_truth_status
+      || '未声明';
     const card = el('activeRunCard');
     card.className = 'active-run';
     card.replaceChildren();
@@ -6470,6 +6479,8 @@
       ['验证结果', validation.result || record.validation_result || '—'],
       ['制品完整性', run.integrity?.ok ? 'VERIFIED' : 'NOT VERIFIED'],
       ['任务 ID', record.task_id || '—'],
+      ['物理计算后端', physicsBackend],
+      ['模型来源证据', nativeProvenance],
       ['尝试次数', Array.isArray(record.attempts) ? record.attempts.length : (record.attempts ?? '—')],
     ];
     items.forEach(([label, value]) => {
