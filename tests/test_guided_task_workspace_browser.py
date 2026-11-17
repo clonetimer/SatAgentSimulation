@@ -670,7 +670,7 @@ def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel
             assert "原生故障、退化及实时单机运行尚未开放" in page.locator("#wizardConversation").inner_text()
             assert page.locator("#wizardOptions [data-wizard-mode]").count() == 0
 
-            page.locator("#wizardParametersPanel > summary").click()
+            assert page.locator("#wizardParametersPanel").evaluate("(node) => node.open")
             form = page.locator("#wizardParameterHost #dynamicForm")
             form.wait_for(state="attached", timeout=10000)
             backend = form.locator('[data-field-path="parameters.values.physics_backend"] select')
