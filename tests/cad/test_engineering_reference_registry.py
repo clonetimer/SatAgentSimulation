@@ -195,6 +195,30 @@ def test_unique_exact_glb_node_name_and_parent_is_candidate_only(inputs):
     assert reference["review"]["node_binding_status"] == "unique_exact_name_parent_match_candidate"
 
 
+def test_group_node_with_mesh_descendants_is_candidate_only(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "root", "children": [1]},
+        {"name": "battery", "children": [2]},
+        {"name": "battery-case", "mesh": 0},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "unique_exact_name_parent_match_group_candidate"
+    assert candidate["candidate_glb_node_index"] == 1
+    assert candidate["candidate_glb_mesh_index"] is None
+    assert candidate["candidate_descendant_mesh_nodes"] == [
+        {"node_index": 2, "name": "battery-case", "mesh_index": 0}
+    ]
+    assert candidate["selector_promoted"] is False
+    assert candidate["requires_visual_review"] is True
+    assert reference["geometry_asset"]["glb_node_binding"] is None
+    assert reference["render"]["renderable"] is False
+
+
 def test_unique_name_without_mesh_is_not_a_renderable_node_candidate(inputs):
     path = inputs[-1]
     _write_glb(path, [
