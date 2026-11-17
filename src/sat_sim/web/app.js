@@ -8473,7 +8473,7 @@
       state.wizard.mode = 'offline';
       state.wizard.parameterMode = 'recommended';
       state.wizard.validated = false;
-      wizardSetStep('configure', '已加载官方 Basilisk 原生反作用轮模型。当前运行方式为单次离线仿真；可调整时长、采样和机械参数，检查配置后再执行。', label);
+      wizardSetStep('configure', '已加载官方 Basilisk 原生反作用轮模型。当前只开放标称工况和单次离线仿真；原生故障、退化及实时单机运行尚未开放。可调整时长、采样和机械参数，检查配置后再执行。', label);
       return;
     }
     if (state.wizard.goal === 'fault_run') {
