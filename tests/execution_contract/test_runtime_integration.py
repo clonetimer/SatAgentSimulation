@@ -90,3 +90,54 @@ def test_pre_execution_cancel_persists_execution_port_evidence(tmp_path: Path) -
     assert attempt["artifacts"]["execution_port"] == "execution_port.json"
     root_evidence = json.loads((root / "runtime" / "execution_port.json").read_text(encoding="utf-8"))
     assert root_evidence["status"] == "CANCELLED_BEFORE_EXECUTION"
+
+
+def test_native_reaction_wheel_component_survives_full_sealed_run_bundle(tmp_path: Path) -> None:
+    """P9-N1: official Basilisk RW must execute through TaskSpec and sealed Run Bundle."""
+    import pytest
+    pytest.importorskip("Basilisk")
+
+    spec = _small_rw_spec("p9n_native_rw_run_bundle")
+    spec["simulation"].update({"duration_s": 2.0, "step_s": 0.1, "sample_s": 0.1})
+    spec["parameters"]["values"].update({
+        "physics_backend": "basilisk_native",
+        "num_wheels": 1,
+        "wheel_inertia_kg_m2": 0.1,
+        "max_motor_torque_nm": 0.005,
+        "max_speed_rad_s": 1000.0,
+        "initial_wheel_speeds_rad_s": 0.0,
+        "command_torque_nm": 0.05,
+        "damping_nms": 0.0,
+    })
+    prepared = prepare_run(spec, output_root=tmp_path / "runs")
+    result = execute_prepared_run(
+        prepared.bundle_root,
+        expected_plan_sha256=prepared.execution_plan_sha256,
+        max_attempts=1,
+        hard_timeout=True,
+    )
+
+    assert result.run_record.status.value == "SUCCEEDED"
+    assert result.validation.result.value == "PASS"
+    assert result.run_record.sealed is True
+    assert result.bundle_manifest
+    assert result.summary["physics_backend"] == "basilisk_native"
+    assert result.summary["runtime_truth_status"] == "real_native_rw_spacecraft_recorded"
+    assert result.summary["target_level"] == "component"
+    assert result.summary["target_name"] == "reaction_wheel"
+    assert len(result.trace_rows) > 5
+    speeds = [float(row["adcs.reaction_wheel.speed_rad_s_0"]) for row in result.trace_rows]
+    applied = [float(row["adcs.reaction_wheel.applied_torque_nm_0"]) for row in result.trace_rows]
+    assert abs(speeds[-1] - speeds[0]) > 0.02
+    assert max(abs(value) for value in applied) == pytest.approx(0.005, abs=1e-5)
+    assert all(abs(value) <= 0.005 + 1e-8 for value in applied)
+
+    root = Path(result.bundle_root)
+    evidence = json.loads((root / "runtime" / "execution_port.json").read_text(encoding="utf-8"))
+    assert evidence["route"] == "registered_capability_adapter"
+    assert evidence["legacy_mode"] is False
+    assert evidence["capability_id"] == "component.reaction_wheel.v1"
+    assert evidence["capability_adapter"] == "sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter"
+    assert evidence["execution_plan_sha256"] == prepared.execution_plan_sha256
+    assert evidence["request_sha256"]
+    assert result.bundle_manifest["integrity"]["ok"] is True
