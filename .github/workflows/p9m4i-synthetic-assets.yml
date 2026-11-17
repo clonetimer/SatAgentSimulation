@@ -58,6 +58,8 @@ jobs:
           assert "no_invented_dimensions" in data["safety_rules"]
           targets = [x["engineering_object_id"] for x in data["objects"] if x.get("primary_ai_generation_target")]
           assert targets == ["component.star_tracker"], f"P9M4I_PRIMARY_TARGET_SCOPE_INVALID:{targets}"
+          star_tracker = next(x for x in data["objects"] if x["engineering_object_id"] == "component.star_tracker")
+          assert "Attempt acquisition" in star_tracker["generation_gate"]
           controls = {x["engineering_object_id"]: x for x in data["objects"] if x.get("benchmark_role") == "real_reference_control_only"}
           assert set(controls) == {"component.battery", "component.reaction_wheel"}
           for object_id, item in controls.items():
