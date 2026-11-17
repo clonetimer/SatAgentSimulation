@@ -79,15 +79,15 @@ jobs:
           import re
           project = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']
           declared = [
-              re.sub(r'\\s+', '', item).lower()
+              re.sub(r'\s+', '', item).lower()
               for item in project.get('dependencies', [])
-              if re.match(r'\\s*bsk\\s*==', item, re.I)
+              if re.match(r'\s*bsk\s*==', item, re.I)
           ]
           dist=distribution('satellite-simulation-platform')
           installed = [
-              re.sub(r'\\s+', '', item).lower()
+              re.sub(r'\s+', '', item).lower()
               for item in (dist.requires or [])
-              if re.match(r'\\s*bsk\\s*==', item, re.I)
+              if re.match(r'\s*bsk\s*==', item, re.I)
           ]
           assert len(declared) == 1, f'STABLE_BSK_DECLARATION_AMBIGUOUS:{declared}'
           assert installed == declared, (
