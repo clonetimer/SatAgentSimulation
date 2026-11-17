@@ -102,7 +102,7 @@ def _load_nodes(assembly_payload: Mapping[str, Any]) -> dict[str, dict[str, Any]
     return result
 
 
-def _evidence_requirements(manifest: Mapping[str, Any]) -> dict[str, Any]:
+def _evidence_requirements(manifest: Mapping[str, Any], procedure_extraction: Mapping[str, Any] | None = None) -> dict[str, Any]:
     procedure = manifest.get("assembly_procedure", {})
     coordinate = manifest.get("coordinate_reference", {})
     extraction_source = procedure_extraction.get("source", {}) if isinstance(procedure_extraction, Mapping) else {}
