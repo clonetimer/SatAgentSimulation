@@ -33,3 +33,15 @@
 ## Execution ruling
 
 当前运行容器不能解析 github.com；本地使用连接器读取且 Git blob SHA-1 校验一致的相关模块/测试快照，CI 使用完整仓库。没有修改用户 main，也不以局部运行替代全仓验收。暂不做 GUI/实际坐标审批，先完成可复用的真实证据输入层。
+
+
+## P9-M4-B：只读映射状态接入卫星场景
+
+- 新增 \`GET /workbench/engineering-mapping\`，仅从部署环境变量 \`SAT_SIM_ENGINEERING_MAPPING_BUNDLE\` 指定的本地只读文件加载映射清单。
+- 每次请求均重新执行统一映射契约校验；未配置返回 \`not_configured\`，文件缺失或声明不合法返回 \`invalid\`，不回显本地路径或原始证据。
+- 场景检查器显示四类映射计数及当前所选对象的映射类型。
+- 当前不加载 GLB，不推断 STEP occurrence 到 GLB node selector，不创建逐节点渲染、遥测绑定或安装坐标。
+- 无映射文件部署时明确显示“未配置”，不以硬编码的 3/16 数量冒充运行时数据。
+- 新增 API 状态测试与前端面板静态契约测试，并纳入 Ubuntu/Windows M4 工作流。
+
+Stable 工作流另外修复了旧 Basilisk pin 硬编码和 \`/tmp\` 工作目录读取 \`pyproject.toml\` 的问题；版本比较改为项目声明与 wheel 元数据逐项一致。
