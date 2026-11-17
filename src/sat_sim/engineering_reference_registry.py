@@ -154,6 +154,7 @@ def _glb_node_inventory(path: Path) -> dict[str, Any]:
             _require(root_index not in parents, "GLB_SCENE_ROOT_HAS_PARENT")
     return {
         "node_count": len(rows),
+        "mesh_count": len(raw_meshes),
         "scene_count": len(raw_scenes),
         "nodes": rows,
     }
@@ -338,7 +339,7 @@ def build_reference_registry(
             "canonical_json_sha256": {"m3_review": _digest(review), "engineering_tree": _digest(engineering_tree),
                 "assembly_tree": _digest(assembly_tree), "conversion_report": _digest(conversion_report)},
             "scope": "reference_registration_only_not_as_built_approval"},
-        "glb_node_inventory": {"node_count": glb_inventory["node_count"], "scene_count": glb_inventory["scene_count"]},
+        "glb_node_inventory": {"node_count": glb_inventory["node_count"], "mesh_count": glb_inventory["mesh_count"], "scene_count": glb_inventory["scene_count"]},
         "glb_node_binding_audit": {
             "status_counts": dict(sorted(glb_binding_status_counts.items())),
             "selector_promotion_count": 0,
