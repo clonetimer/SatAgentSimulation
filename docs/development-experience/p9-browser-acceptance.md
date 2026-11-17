@@ -89,3 +89,13 @@ When a browser scenario overrides a parameter that participates in cross-field c
 5. Keep the authoritative backend validation enabled; never weaken a physical/configuration guard to accommodate a test shortcut.
 
 This case generalizes to duration/sample cadence, event start/end bounds, actuator count/vector lengths, and resource/geometry parameter dependencies.
+
+### P9-L4 follow-up correction: sampling cadence is bounded on both sides
+
+A subsequent same-head CI run showed that setting `sample_s=0.5 s` while retaining the whole-spacecraft integrator default `step_s=10 s` still violates the authoritative contract. The actual admissible interval is:
+
+```text
+simulation.step_s <= simulation.sample_s <= simulation.duration_s
+```
+
+The P9-L4 offline UI scenario now uses a 20 s finite duration and 10 s output sampling interval, matching the 10 s integrator default. This keeps the physical execution short while satisfying both inequalities. The test records duration, sampling interval and integrator step in its evidence report. Do not infer the constraint from duration/sample alone; inspect the capability's resolved simulation defaults and full cross-field validation rule.
