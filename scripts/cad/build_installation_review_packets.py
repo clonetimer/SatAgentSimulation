@@ -23,13 +23,15 @@ def main() -> int:
     parser.add_argument("--assembly-tree", type=Path, required=True)
     parser.add_argument("--source-manifest", type=Path, default=ROOT / "assets/cad-sources/birds4/birds4-cad-source-manifest.json")
     parser.add_argument("--procedure-extraction", type=Path)
+    parser.add_argument("--unit-report-index", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     candidates = json.loads(args.candidate_mapping.read_text(encoding="utf-8"))
     assembly = json.loads(args.assembly_tree.read_text(encoding="utf-8"))
     manifest = json.loads(args.source_manifest.read_text(encoding="utf-8"))
     extraction = json.loads(args.procedure_extraction.read_text(encoding="utf-8")) if args.procedure_extraction else None
-    report = build_installation_review_packets(candidates, assembly, manifest, extraction)
+    unit_reports = json.loads(args.unit_report_index.read_text(encoding="utf-8")) if args.unit_report_index else None
+    report = build_installation_review_packets(candidates, assembly, manifest, extraction, unit_reports)
     output = args.output if args.output.is_absolute() else ROOT / args.output
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
