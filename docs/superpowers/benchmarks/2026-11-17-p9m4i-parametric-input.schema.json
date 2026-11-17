@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clonetimer.github.io/SatAgentSimulation/schemas/p9m4i-parametric-input.v1.schema.json",
+  "title": "Source-backed parametric geometry input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "engineering_object_id",
+    "unit",
+    "dimensions",
+    "source_inputs",
+    "features"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "p9m4i-parametric-input.v1"
+    },
+    "engineering_object_id": {
+      "enum": [
+        "component.battery",
+        "component.reaction_wheel",
+        "component.star_tracker"
+      ]
+    },
+    "unit": {
+      "const": "mm"
+    },
+    "dimensions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "value",
+          "source_locator",
+          "source_sha256"
+        ],
+        "properties": {
+          "value": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "source_locator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "source_inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "source_uri",
+          "sha256"
+        ],
+        "properties": {
+          "source_uri": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "feature_id",
+          "kind",
+          "dimensions"
+        ],
+        "properties": {
+          "feature_id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "box",
+              "cylinder"
+            ]
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "position_mm": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      }
+    }
+  }
+}
