@@ -211,6 +211,56 @@ def test_ambiguous_glb_names_do_not_produce_node_selector(inputs):
     assert reference["geometry_asset"]["glb_node_binding"] is None
 
 
+def test_missing_step_parent_name_never_produces_candidate_selector(inputs):
+    inputs[2]["nodes"][0]["source_node_name"] = None
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "step_parent_name_missing"
+    assert candidate["candidate_glb_node_index"] is None
+    assert candidate["selector_promoted"] is False
+
+
+def test_step_root_cannot_match_non_root_glb_node(inputs):
+    node = inputs[2]["nodes"][1]
+    node["parent_node_path"] = None
+    inputs[0]["review_packets"][0]["cad_source"]["parent_node_path"] = None
+    inputs[0]["review_packets"][0]["cad_source"]["evidence_sha256"] = _digest({
+        "candidate_id": "battery-candidate",
+        "source_commit": inputs[0]["source"]["source_commit"],
+        "source_tree_sha": inputs[0]["source"]["source_tree_sha"],
+        "node": node,
+    })
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "parent_name_mismatch"
+    assert candidate["candidate_glb_node_index"] is None
+
+
+def test_glb_chunk_overrun_is_rejected_after_hash_receipt_matches(inputs):
+    path = inputs[-1]
+    data = bytearray(path.read_bytes())
+    struct.pack_into("<I", data, 12, 0xFFFFFFFC)
+    path.write_bytes(data)
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(data).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = len(data)
+    with pytest.raises(ValueError, match="GLB_CHUNK_RANGE"):
+        _builder()(*inputs)
+
+
+def test_glb_node_hierarchy_cycle_is_rejected(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "root", "children": [1]},
+        {"name": "battery", "children": [0], "mesh": 0},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    with pytest.raises(ValueError, match="GLB_NODE_HIERARCHY_CYCLE"):
+        _builder()(*inputs)
+
+
 def test_glb_parent_name_mismatch_does_not_produce_node_selector(inputs):
     path = inputs[-1]
     _write_glb(path, [
