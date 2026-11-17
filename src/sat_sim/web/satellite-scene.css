@@ -446,3 +446,19 @@ body[data-active-view="scene"] .brand-subtitle {
 body[data-active-view="scene"] #workbenchNavigation {
   display:none !important;
 }
+
+
+/* P9-M4: evidence-class mapping inspector; deliberately no geometry rendering. */
+.p9m4-mapping-section{min-width:0;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:9px}
+.p9m4-mapping-status{padding:8px 9px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:11px;line-height:1.5}
+.p9m4-mapping-status[data-state="validated"]{color:var(--success)}
+.p9m4-mapping-status[data-state="invalid"]{color:var(--danger)}
+.p9m4-mapping-detail{display:grid;gap:6px;min-width:0}
+.p9m4-mapping-counts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.p9m4-mapping-count{padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);min-width:0}
+.p9m4-mapping-count strong{display:block;font-size:16px;font-variant-numeric:tabular-nums}
+.p9m4-mapping-count span{display:block;margin-top:2px;color:var(--muted);font-size:10px}
+.p9m4-mapping-list{display:grid;gap:5px}
+.p9m4-mapping-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:11px;min-width:0}
+.p9m4-mapping-row strong{min-width:0;overflow-wrap:anywhere}
+.p9m4-mapping-kind{color:var(--muted);font-size:10px;white-space:nowrap}
