@@ -40,6 +40,8 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
         end = offset + chunk_length
         if end > len(data):
             raise ValueError("P9M4I_GLB_CHUNK_OUT_OF_BOUNDS")
+        if chunk_length % 4:
+            raise ValueError("P9M4I_GLB_CHUNK_ALIGNMENT_INVALID")
         if chunk_number == 0 and chunk_type != b"JSON":
             raise ValueError("P9M4I_GLB_JSON_CHUNK_ORDER_INVALID")
         if chunk_type == b"JSON":
@@ -50,6 +52,8 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise ValueError("P9M4I_GLB_JSON_INVALID") from exc
         elif chunk_type == b"BIN\0":
+            if chunk_number != 1:
+                raise ValueError("P9M4I_GLB_BIN_CHUNK_ORDER_INVALID")
             if binary_chunk is not None:
                 raise ValueError("P9M4I_GLB_DUPLICATE_BIN_CHUNK")
             binary_chunk = data[offset:end]
