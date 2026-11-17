@@ -89,7 +89,7 @@ The hash-verified DOCX body extraction identifies the following review locations
 - Paragraph 106 and Tables 12–14: battery assembly procedure and associated parts/harness/checklist tables.
 - Paragraph 113 and Tables 15–17: reaction-wheel assembly procedure and associated parts/fasteners/checklist tables.
 - Paragraph 137 and Tables 20–37: -Y panel assembly procedure and associated parts/harness/checklist tables.
-- Table 9, checklist item 7 (the table's body row 8 including its header): Perovskite solar cells appears in the adhesive-applied-location checklist; Table 9 also identifies the -Y panel context.
+- Table 9, checklist item 7 (table row 9, including title and header rows): Perovskite solar cells appears in the adhesive-applied-location checklist; Table 9 also identifies the -Y panel context.
 - Table 3 parts-list item 4 lists one Battery; item 8 lists one -Y panel. Table 5 parts-list item 45 lists one brushless motor (reaction wheel).
 - Paragraph 495 describes July 2020 rework on BIRDS-4 FM satellites and specifically mentions Maya-2 / Frame 5A. This is rework context for a named unit, not evidence that every assembly item or current CAD transform applies to Maya-2.
 
