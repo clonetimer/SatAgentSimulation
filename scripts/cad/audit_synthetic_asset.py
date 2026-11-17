@@ -7,12 +7,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from sat_sim.synthetic_asset_generation import validate_synthetic_asset
 
 
 def main() -> int:
+    # argparse help includes the Chinese CLI description; force UTF-8 on Windows
+    # consoles that otherwise default to a legacy code page such as cp1252.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--glb", type=Path, required=True)
