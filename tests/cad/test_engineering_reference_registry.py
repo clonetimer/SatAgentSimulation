@@ -17,6 +17,21 @@ def _digest(value):
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
+def _write_glb(path, nodes):
+    document = {
+        "asset": {"version": "2.0"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": nodes,
+        "meshes": [{"primitives": [{"attributes": {}}]}],
+    }
+    body = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    body += b" " * (-len(body) % 4)
+    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(body), len(body), b"JSON") + body)
+
+
+
+
 def _builder():
     name = "sat_sim.engineering_reference_registry"
     assert importlib.util.find_spec(name) is not None, "M4 real evidence intake is not implemented"
@@ -28,9 +43,10 @@ def inputs(tmp_path):
     """Synthetic input is deliberately not a flight-unit evidence record."""
     commit, tree_sha = "a" * 40, "b" * 40
     glb = tmp_path / "fixture.glb"
-    body = b'{"asset":{"version":"2.0"}}'
-    body += b" " * (-len(body) % 4)
-    glb.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(body), len(body), b"JSON") + body)
+    _write_glb(glb, [
+        {"name": "root", "children": [1]},
+        {"name": "battery", "mesh": 0},
+    ])
     node = {"source_node_path": "root/battery", "parent_node_path": "root", "source_node_name": "battery", "child_count": 1}
     node_hash = _digest({"candidate_id": "battery-candidate", "source_commit": commit, "source_tree_sha": tree_sha, "node": node})
     review = {
@@ -50,7 +66,7 @@ def inputs(tmp_path):
         {"object_id": "component.imu", "kind": "equipment", "name_zh": "惯性测量单元", "children": []},
         {"object_id": "external.station", "kind": "external_object", "children": []},
     ]}]}
-    assembly = {"source_path": "fixture.step", "nodes": [{"source_node_path": "root", "parent_node_path": None}, node]}
+    assembly = {"source_path": "fixture.step", "nodes": [{"source_node_path": "root", "parent_node_path": None, "source_node_name": "root"}, node]}
     conversion = {"source": {"commit": commit, "path": "fixture.step"}, "conversion": {"output_unit": "metres"}, "geometry": {"assembly_node_count": 2, "sha256": hashlib.sha256(glb.read_bytes()).hexdigest(), "size_bytes": glb.stat().st_size}, "promotion_status": "reference_cad_imported_not_as_built_verified"}
     return [review, tree, assembly, conversion, glb]
 
@@ -156,4 +172,142 @@ def test_real_pinned_m3_evidence_maps_three_candidates_and_sixteen_unlocated():
     refs = [r for r in result["mappings"] if r["mapping_kind"] == "reference_cad"]
     assert {r["object_id"] for r in refs} == {"component.battery", "component.reaction_wheel", "component.payload"}
     assert all(r["review"]["required_reviews"]["coordinate_datum"] == "blocked" for r in refs)
+    assert all(r["geometry_asset"]["glb_node_binding"] is None for r in refs)
+    assert all(r["geometry_asset"]["glb_node_binding_candidate"]["selector_promoted"] is False for r in refs)
+    assert all(r["render"]["renderable"] is False for r in refs)
+    assert result["glb_node_binding_audit"]["selector_promotion_count"] == 0
+    print("P9M4_GLB_NODE_BINDING_AUDIT=" + json.dumps(result["glb_node_binding_audit"], sort_keys=True))
     (root / "p9m4-reference-registry.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_unique_exact_glb_node_name_and_parent_is_candidate_only(inputs):
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "unique_exact_name_parent_match_candidate"
+    assert candidate["candidate_glb_node_index"] == 1
+    assert candidate["candidate_glb_node_name"] == "battery"
+    assert candidate["candidate_glb_parent_index"] == 0
+    assert candidate["selector_promoted"] is False
+    assert candidate["requires_visual_review"] is True
+    assert reference["geometry_asset"]["glb_node_binding"] is None
+    assert reference["render"]["renderable"] is False
+    assert reference["review"]["node_binding_status"] == "unique_exact_name_parent_match_candidate"
+
+
+def test_unique_name_without_mesh_is_not_a_renderable_node_candidate(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "root", "children": [1]},
+        {"name": "battery"},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "matched_node_without_mesh"
+    assert candidate["candidate_glb_node_index"] is None
+
+
+def test_ambiguous_glb_names_do_not_produce_node_selector(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "root", "children": [1, 2]},
+        {"name": "battery", "mesh": 0},
+        {"name": "battery", "mesh": 0},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "ambiguous_exact_name"
+    assert candidate["candidate_glb_node_index"] is None
+    assert reference["geometry_asset"]["glb_node_binding"] is None
+
+
+def test_missing_step_parent_name_never_produces_candidate_selector(inputs):
+    inputs[2]["nodes"][0]["source_node_name"] = None
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "step_parent_name_missing"
+    assert candidate["candidate_glb_node_index"] is None
+    assert candidate["selector_promoted"] is False
+
+
+def test_step_root_cannot_match_non_root_glb_node(inputs):
+    node = inputs[2]["nodes"][1]
+    node["parent_node_path"] = None
+    inputs[0]["review_packets"][0]["cad_source"]["parent_node_path"] = None
+    inputs[0]["review_packets"][0]["cad_source"]["evidence_sha256"] = _digest({
+        "candidate_id": "battery-candidate",
+        "source_commit": inputs[0]["source"]["source_commit"],
+        "source_tree_sha": inputs[0]["source"]["source_tree_sha"],
+        "node": node,
+    })
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "parent_name_mismatch"
+    assert candidate["candidate_glb_node_index"] is None
+
+
+def test_glb_chunk_overrun_is_rejected_after_hash_receipt_matches(inputs):
+    path = inputs[-1]
+    data = bytearray(path.read_bytes())
+    struct.pack_into("<I", data, 12, 0xFFFFFFFC)
+    path.write_bytes(data)
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(data).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = len(data)
+    with pytest.raises(ValueError, match="GLB_CHUNK_RANGE"):
+        _builder()(*inputs)
+
+
+def test_glb_bin_chunk_must_follow_json_directly(inputs):
+    path = inputs[-1]
+    _write_glb(path, [{"name": "battery", "mesh": 0}])
+    data = path.read_bytes()
+    json_length = struct.unpack_from("<I", data, 12)[0]
+    json_chunk = data[12:20 + json_length]
+    unknown = b"test"
+    binary = b"\0\0\0\0"
+    chunks = (
+        json_chunk
+        + struct.pack("<I4s", len(unknown), b"TEST") + unknown
+        + struct.pack("<I4s", len(binary), b"BIN\0") + binary
+    )
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(chunks)) + chunks)
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    with pytest.raises(ValueError, match="GLB_BIN_CHUNK_ORDER_OR_DUPLICATE"):
+        _builder()(*inputs)
+
+
+def test_glb_node_hierarchy_cycle_is_rejected(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "root", "children": [1]},
+        {"name": "battery", "children": [0], "mesh": 0},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    with pytest.raises(ValueError, match="GLB_NODE_HIERARCHY_CYCLE"):
+        _builder()(*inputs)
+
+
+def test_glb_parent_name_mismatch_does_not_produce_node_selector(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "different-root", "children": [1]},
+        {"name": "battery", "mesh": 0},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "parent_name_mismatch"
+    assert candidate["candidate_glb_node_index"] is None
+    assert reference["geometry_asset"]["glb_node_binding"] is None

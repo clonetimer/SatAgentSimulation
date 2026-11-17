@@ -72,6 +72,154 @@ def _glb_identity(path: Path, geometry: Mapping[str, Any]) -> str:
     return expected
 
 
+def _glb_node_inventory(path: Path) -> dict[str, Any]:
+    """Read the complete GLB chunk envelope and node hierarchy without promotion."""
+    data = path.read_bytes()
+    _require(len(data) >= 20, "GLB_JSON_HEADER")
+    magic, version, declared_length = struct.unpack_from("<4sII", data, 0)
+    _require(magic == b"glTF" and version == 2 and declared_length == len(data), "GLB_JSON_HEADER")
+
+    offset = 12
+    document = None
+    binary_seen = False
+    chunk_index = 0
+    while offset < len(data):
+        _require(offset + 8 <= len(data), "GLB_CHUNK_HEADER")
+        chunk_length, chunk_type = struct.unpack_from("<I4s", data, offset)
+        offset += 8
+        chunk_end = offset + chunk_length
+        _require(chunk_end <= len(data) and chunk_length % 4 == 0, "GLB_CHUNK_RANGE")
+        if chunk_index == 0:
+            _require(chunk_type == b"JSON", "GLB_JSON_CHUNK_ORDER")
+        if chunk_type == b"JSON":
+            _require(document is None, "GLB_DUPLICATE_JSON_CHUNK")
+            try:
+                document = json.loads(data[offset:chunk_end].decode("utf-8").rstrip(" "))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise ValueError("P9M4_INTAKE_GLB_JSON_INVALID") from exc
+        elif chunk_type == b"BIN\0":
+            _require(chunk_index == 1 and document is not None and not binary_seen,
+                     "GLB_BIN_CHUNK_ORDER_OR_DUPLICATE")
+            binary_seen = True
+        # Unknown extension chunks are retained by the GLB format and ignored here.
+        offset = chunk_end
+        chunk_index += 1
+    _require(offset == len(data) and isinstance(document, Mapping), "GLB_CHUNK_LAYOUT")
+
+    raw_nodes = document.get("nodes")
+    raw_meshes = document.get("meshes", [])
+    raw_scenes = document.get("scenes", [])
+    _require(isinstance(raw_nodes, list), "GLB_NODES")
+    _require(isinstance(raw_meshes, list) and isinstance(raw_scenes, list), "GLB_SCENE_OR_MESH_ARRAY")
+    parents: dict[int, int] = {}
+    rows = []
+    for index, node in enumerate(raw_nodes):
+        _require(isinstance(node, Mapping), "GLB_NODE")
+        children = node.get("children", [])
+        _require(isinstance(children, list), "GLB_NODE_CHILDREN")
+        mesh_index = node.get("mesh")
+        _require(mesh_index is None or (type(mesh_index) is int and 0 <= mesh_index < len(raw_meshes)),
+                 "GLB_NODE_MESH_REFERENCE")
+        if mesh_index is not None:
+            primitives = raw_meshes[mesh_index].get("primitives") if isinstance(raw_meshes[mesh_index], Mapping) else None
+            _require(isinstance(primitives, list) and bool(primitives), "GLB_MESH_PRIMITIVES")
+        for child in children:
+            _require(type(child) is int and 0 <= child < len(raw_nodes), "GLB_CHILD_INDEX")
+            _require(child != index and child not in parents, "GLB_NODE_MULTIPLE_PARENTS")
+            parents[child] = index
+        name = node.get("name")
+        _require(name is None or isinstance(name, str), "GLB_NODE_NAME_TYPE")
+        rows.append({
+            "node_index": index,
+            "name": name,
+            "mesh_index": mesh_index,
+            "parent_node_index": None,
+            "child_node_indices": list(children),
+        })
+    for row in rows:
+        row["parent_node_index"] = parents.get(row["node_index"])
+    for node_index in range(len(rows)):
+        visited = set()
+        cursor = node_index
+        while cursor in parents:
+            _require(cursor not in visited, "GLB_NODE_HIERARCHY_CYCLE")
+            visited.add(cursor)
+            cursor = parents[cursor]
+    for scene in raw_scenes:
+        _require(isinstance(scene, Mapping), "GLB_SCENE")
+        roots = scene.get("nodes", [])
+        _require(isinstance(roots, list), "GLB_SCENE_ROOTS")
+        for root_index in roots:
+            _require(type(root_index) is int and 0 <= root_index < len(rows), "GLB_SCENE_ROOT_INDEX")
+            _require(root_index not in parents, "GLB_SCENE_ROOT_HAS_PARENT")
+    return {
+        "node_count": len(rows),
+        "scene_count": len(raw_scenes),
+        "nodes": rows,
+    }
+
+
+def _candidate_glb_binding(step_node: Mapping[str, Any], step_nodes: Mapping[str, Mapping[str, Any]],
+                           glb_nodes: Mapping[str, Any]) -> dict[str, Any]:
+    source_name = step_node.get("source_node_name")
+    parent_path = step_node.get("parent_node_path")
+    parent_name = None
+    if not isinstance(source_name, str) or not source_name.strip():
+        status = "step_node_name_missing"
+        selected = None
+    elif parent_path is None:
+        status = "pending_root_check"
+        selected = None
+    elif parent_path not in step_nodes:
+        status = "step_parent_unresolved"
+        selected = None
+    else:
+        parent_name = step_nodes[parent_path].get("source_node_name")
+        if not isinstance(parent_name, str) or not parent_name.strip():
+            status = "step_parent_name_missing"
+            selected = None
+        else:
+            status = "pending_exact_name_match"
+            selected = None
+
+    if status in {"pending_root_check", "pending_exact_name_match"}:
+        matches = [row for row in glb_nodes["nodes"] if row.get("name") == source_name]
+        if not matches:
+            status = "unmatched_exact_name"
+        elif len(matches) > 1:
+            status = "ambiguous_exact_name"
+        else:
+            candidate = matches[0]
+            parent_index = candidate.get("parent_node_index")
+            glb_parent = next((row for row in glb_nodes["nodes"] if row["node_index"] == parent_index), None)
+            glb_parent_name = glb_parent.get("name") if glb_parent else None
+            if candidate.get("mesh_index") is None:
+                status = "matched_node_without_mesh"
+            elif parent_path is None:
+                if parent_index is not None:
+                    status = "parent_name_mismatch"
+                else:
+                    status = "unique_exact_name_parent_match_candidate"
+                    selected = candidate
+            elif glb_parent_name != parent_name:
+                status = "parent_name_mismatch"
+            else:
+                status = "unique_exact_name_parent_match_candidate"
+                selected = candidate
+
+    return {
+        "status": status,
+        "source_step_node_name": source_name if isinstance(source_name, str) else None,
+        "expected_step_parent_name": parent_name,
+        "candidate_glb_node_index": selected.get("node_index") if selected else None,
+        "candidate_glb_node_name": selected.get("name") if selected else None,
+        "candidate_glb_parent_index": selected.get("parent_node_index") if selected else None,
+        "candidate_glb_mesh_index": selected.get("mesh_index") if selected else None,
+        "selector_promoted": False,
+        "requires_visual_review": True,
+    }
+
+
 def build_reference_registry(
     review: Mapping[str, Any],
     engineering_tree: Mapping[str, Any],
@@ -94,6 +242,7 @@ def build_reference_registry(
     _require(conversion_report.get("promotion_status") == "reference_cad_imported_not_as_built_verified", "CONVERSION_PROMOTION")
     _require(conversion_report.get("conversion", {}).get("output_unit") == "metres", "CONVERSION_UNITS")
     glb_sha = _glb_identity(Path(glb_path), geometry)
+    glb_inventory = _glb_node_inventory(Path(glb_path))
     equipment = _equipment(engineering_tree)
     raw_nodes = assembly_tree.get("nodes")
     _require(isinstance(raw_nodes, list), "ASSEMBLY_NODES")
@@ -105,6 +254,7 @@ def build_reference_registry(
         nodes[path] = node
     _require(len(nodes) == source.get("cad_node_count") == geometry.get("assembly_node_count"), "NODE_COUNT")
     _require(len(packets) == source.get("candidate_count") == review.get("summary", {}).get("review_packet_count"), "PACKET_COUNT")
+    glb_binding_status_counts: dict[str, int] = {}
     mappings, covered = [], set()
     seen_candidates, seen_packets, seen_pairs = set(), set(), set()
     for packet in packets:
@@ -135,20 +285,23 @@ def build_reference_registry(
                  and all(promotion.get(k) is None for k in ("instance_id", "installation_transform", "spatial_anchor")), "PROMOTION_FORBIDDEN")
         gates = packet.get("required_reviews")
         _require(isinstance(gates, Mapping) and REQUIRED_AS_BUILT_EVIDENCE.issubset(gates), "REVIEW_GATES")
+        binding_candidate = _candidate_glb_binding(node, nodes, glb_inventory)
+        glb_binding_status_counts[binding_candidate["status"]] = glb_binding_status_counts.get(binding_candidate["status"], 0) + 1
         mapping_id = "reference:" + _digest([glb_sha, object_id, path])[:24]
         mappings.append({
             "mapping_id": mapping_id, "object_id": object_id, "name_zh": equipment[object_id],
             "mapping_kind": "reference_cad", "asset_instance_id": None,
             "geometry_asset": {"asset_id": "glb:" + glb_sha, "sha256": glb_sha,
                 "source_revision": commit, "source_node_path": path,
-                "node_path_space": "step_assembly_occurrence", "glb_node_binding": None},
+                "node_path_space": "step_assembly_occurrence", "glb_node_binding": None,
+                "glb_node_binding_candidate": binding_candidate},
             "geometry_frame": {"identity_status": "unverified"},
             "spatial_anchor": None, "telemetry_binding": None, "evidence": [],
             "render": {"as_built_eligible": False, "renderable": False, "views": ["reference_cad"]},
             "review": {"packet_id": packet_id, "candidate_id": candidate_id,
                 "packet_canonical_sha256": _digest(packet), "node_evidence_sha256": node_digest,
                 "status": promotion["status"], "required_reviews": copy.deepcopy(dict(gates)),
-                "node_binding_status": "step_path_only_glb_binding_unresolved"},
+                "node_binding_status": binding_candidate["status"]},
         })
         covered.add(object_id)
     for object_id in sorted(set(equipment) - covered):
@@ -168,6 +321,12 @@ def build_reference_registry(
             "canonical_json_sha256": {"m3_review": _digest(review), "engineering_tree": _digest(engineering_tree),
                 "assembly_tree": _digest(assembly_tree), "conversion_report": _digest(conversion_report)},
             "scope": "reference_registration_only_not_as_built_approval"},
+        "glb_node_inventory": {"node_count": glb_inventory["node_count"], "scene_count": glb_inventory["scene_count"]},
+        "glb_node_binding_audit": {
+            "status_counts": dict(sorted(glb_binding_status_counts.items())),
+            "selector_promotion_count": 0,
+            "visual_review_required": True,
+        },
         "summary": {"equipment_category_count": len(equipment), "reference_candidate_count": len(packets),
             "unlocated_equipment_count": len(equipment) - len(covered), "as_built_verified_count": 0,
             "node_renderable_count": 0, "telemetry_binding_count": 0},
