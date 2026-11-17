@@ -60,3 +60,16 @@ def test_keyword_index_returns_stable_paragraph_and_table_cell_locators():
     assert index["perovskite solar cells"][0]["table_index"] == 9
     assert index["perovskite solar cells"][0]["row_index"] == 7
     assert index["-y panel"][0]["cell_index"] == 2
+
+
+def test_embedded_docx_media_is_extracted_unchanged_with_hash_receipt(tmp_path):
+    path = tmp_path / "procedure.docx"
+    media = b"\x89PNG\r\n\x1a\nsynthetic-figure-bytes"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("word/document.xml", b"<w:document xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'><w:body/></w:document>")
+        archive.writestr("word/media/image1.png", media)
+    records = MODULE.extract_docx_media(path, tmp_path / "media")
+    assert len(records) == 1
+    assert (tmp_path / "media" / "image1.png").read_bytes() == media
+    assert records[0]["review_status"] == "not_visually_reviewed"
+    assert records[0]["sha256"] == __import__("hashlib").sha256(media).hexdigest()
