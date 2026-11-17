@@ -74,3 +74,8 @@ CI 从固定上游 commit 下载 FM Assembly Procedure DOCX，并核对字节数
 2. 逐项取得并校验目标飞行单元的批准 BOM、零件图、装配图和 datum/坐标图。
 3. 记录每项 claim 的证据定位、冲突、审查人和决定。
 4. 只有证据完整、坐标链自洽且审查批准后，才允许向 P9-M4 提交 verified instance mapping。
+
+
+## Workflow activation
+
+The P9-M3 workflow is registered in the base repository so pull-request path filtering can execute it for this branch. The PR run must validate the merge candidate, not only the feature branch in isolation.
