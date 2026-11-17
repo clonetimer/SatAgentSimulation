@@ -77,3 +77,13 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - P9-M4 工程几何审查仍独立推进。P9-N 可以先做无 CAD 依赖的物理单机实验；完成后再把经审查的 CAD/安装坐标接入单机视图。
 - P9-O 分系统仿真后续复用 component capability 与物理接口；P9-N 不在此阶段实现跨设备闭环。
 - 整星 UnifiedNativeRuntime 保持现有运行图，不因 component 单机能力而拆分或替换。
+
+
+## P9-N1 guided-workbench delivery update (2026-11-17)
+
+- The native single-wheel template is now exposed directly inside the guided component workflow after the user selects the reaction-wheel object and chooses offline simulation.
+- The preset action fetches the authoritative registered scenario template from `/scenario-templates/component_reaction_wheel_basilisk_native/instantiate`; browser code does not duplicate physics defaults.
+- The form projection preserves the TaskSpec and shows `physics_backend=basilisk_native` in the recommended parameter view. The backend group is expanded by default so the user can distinguish the project reference model from the official Basilisk model.
+- The UI explicitly states that the preset is single-wheel nominal-only. Native faults, degradation and continuous component sessions remain unavailable.
+- API tests verify template listing, instantiation and form metadata. A Chromium journey verifies component selection and preset application without starting a run.
+- Remaining P9-N1 work: execute the browser journey in CI; add real curve/result provenance display and history replay evidence; then complete one-click user workflow acceptance.
