@@ -105,6 +105,8 @@ def _load_nodes(assembly_payload: Mapping[str, Any]) -> dict[str, dict[str, Any]
 def _evidence_requirements(manifest: Mapping[str, Any]) -> dict[str, Any]:
     procedure = manifest.get("assembly_procedure", {})
     coordinate = manifest.get("coordinate_reference", {})
+    extraction_source = procedure_extraction.get("source", {}) if isinstance(procedure_extraction, Mapping) else {}
+    extraction = procedure_extraction.get("extraction", {}) if isinstance(procedure_extraction, Mapping) else {}
     return {
         "assembly_procedure_source": {
             "repository": procedure.get("repository"),
@@ -112,7 +114,14 @@ def _evidence_requirements(manifest: Mapping[str, Any]) -> dict[str, Any]:
             "source_commit": procedure.get("source_commit"),
             "git_blob_sha1": procedure.get("git_blob_sha1"),
             "size_bytes": procedure.get("size_bytes"),
-            "source_status": "pinned_in_manifest_not_yet_independently_reviewed",
+            "extracted_source_sha256": extraction_source.get("sha256"),
+            "extracted_paragraph_count": extraction.get("paragraph_count"),
+            "extracted_table_count": extraction.get("table_count"),
+            "source_status": (
+                "retrieved_and_hash_verified_raw_text_not_human_reviewed"
+                if extraction_source.get("verification_status") == "source_bytes_verified"
+                else "pinned_in_manifest_not_retrieved_or_independently_reviewed"
+            ),
         },
         "coordinate_reference": {
             "title": coordinate.get("title"),
@@ -131,6 +140,7 @@ def build_installation_review_packets(
     candidate_payload: Mapping[str, Any],
     assembly_payload: Mapping[str, Any],
     source_manifest: Mapping[str, Any],
+    procedure_extraction: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create review packets. Missing evidence remains missing; no auto-approval."""
     candidates = _load_candidate_rows(candidate_payload)
@@ -251,7 +261,7 @@ def build_installation_review_packets(
             "manual_evidence_review_required": True,
             "unreviewed_evidence_fails_closed": True,
         },
-        "evidence_catalog": _evidence_requirements(source_manifest),
+        "evidence_catalog": _evidence_requirements(source_manifest, procedure_extraction),
         "summary": {
             "review_packet_count": len(packets),
             "cad_local_transform_valid_count": sum(1 for p in packets if p["cad_geometry_transform"]["local_transform_check"]["valid_rigid_transform"]),
