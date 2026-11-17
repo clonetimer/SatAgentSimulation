@@ -73,3 +73,6 @@ Correct pattern:
 - Add negative tests for missing parent name, root-vs-child mismatch, malformed chunk bounds and hierarchy cycles. Hash receipts must be updated in the test when mutating GLB bytes, so the test reaches the structural validator rather than stopping at the earlier digest gate.
 
 The Khronos glTF 2.0 specification requires the JSON chunk first, the BIN chunk second when present, and bounded/aligned chunks; bufferView/accessor offsets and ranges must also be checked by geometry auditors. Use the official specification as the format authority, not assumptions based on one exported GLB sample.
+
+
+A further crosswalk guard is required: a unique node name and parent match is not a useful geometry candidate if the node is only a group or has no mesh. Require the referenced mesh to exist and contain at least one primitive; classify a unique meshless name as matched_node_without_mesh with no candidate index. This still does not prove the mesh corresponds to the STEP occurrence; it only prevents obvious non-geometry nodes from entering the visual-review queue.
