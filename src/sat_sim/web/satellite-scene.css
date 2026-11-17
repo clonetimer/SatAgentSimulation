@@ -486,3 +486,10 @@ body[data-active-view="scene"] #workbenchNavigation {
 .birds-cad-review-descendants{display:grid;gap:3px;max-height:105px;overflow:auto;margin:5px 0 0;padding-left:15px;color:#b5c4d2}
 @media(max-width:900px){.birds-cad-review-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.birds-cad-review-list{grid-template-columns:1fr}.birds-cad-review-panel{padding:9px}}
+
+.birds-cad-review-checklist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.birds-cad-review-checklist li{display:grid;align-content:start;gap:4px;min-width:0;padding:7px 8px;border:1px solid rgba(137,164,192,.14);border-radius:7px;background:rgba(7,14,23,.24)}
+.birds-cad-review-checklist strong{font-size:9px;color:#c8d7e5;font-weight:650}
+.birds-cad-review-checklist span{font-size:9px;color:#91a5b9;line-height:1.45}
+@media(max-width:1000px){.birds-cad-review-checklist{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.birds-cad-review-checklist{grid-template-columns:repeat(2,minmax(0,1fr))}}
