@@ -1638,10 +1638,12 @@ def create_app(
             glb_sha256 = bundle.get("intake", {}).get("glb_sha256")
             inventory = bundle.get("glb_node_inventory", {})
             node_count = inventory.get("node_count") if isinstance(inventory, dict) else None
+            mesh_count = inventory.get("mesh_count") if isinstance(inventory, dict) else None
             if has_reference_rows and (
                 not isinstance(glb_sha256, str) or len(glb_sha256) != 64
                 or any(ch not in "0123456789abcdef" for ch in glb_sha256.lower())
                 or type(node_count) is not int or node_count < 1
+                or type(mesh_count) is not int or mesh_count < 1
             ):
                 raise ValueError("P9M4_REFERENCE_GLB_PROVENANCE_REQUIRED")
             mappings = []
@@ -1654,7 +1656,19 @@ def create_app(
                 }
                 source_row = bundle["mappings"][index]
                 if row["mapping_kind"] == "reference_cad":
-                    candidate = source_row.get("geometry_asset", {}).get("glb_node_binding_candidate")
+                    source_asset = source_row.get("geometry_asset")
+                    source_render = source_row.get("render")
+                    if (
+                        not isinstance(source_asset, dict)
+                        or source_asset.get("glb_node_binding") is not None
+                        or not isinstance(source_render, dict)
+                        or source_render.get("renderable") is not False
+                        or source_render.get("as_built_eligible") is not False
+                        or source_row.get("spatial_anchor") is not None
+                        or source_row.get("telemetry_binding") is not None
+                    ):
+                        raise ValueError("P9M4_REFERENCE_PROMOTION_FORBIDDEN")
+                    candidate = source_asset.get("glb_node_binding_candidate")
                     if not isinstance(candidate, dict):
                         raise ValueError("P9M4_REFERENCE_CANDIDATE_REQUIRED")
                     status = candidate.get("status")
@@ -1671,7 +1685,7 @@ def create_app(
                     if (
                         type(node_index) is not int or not 0 <= node_index < node_count
                         or not isinstance(node_name, str) or not node_name
-                        or (node_mesh_index is not None and (type(node_mesh_index) is not int or node_mesh_index < 0))
+                        or (node_mesh_index is not None and (type(node_mesh_index) is not int or not 0 <= node_mesh_index < mesh_count))
                         or type(geometry_node_count) is not int or geometry_node_count < 1
                         or candidate.get("selector_promoted") is not False
                         or candidate.get("requires_visual_review") is not True
@@ -1686,7 +1700,7 @@ def create_app(
                         child_index, mesh_index, child_name = child.get("node_index"), child.get("mesh_index"), child.get("name")
                         if (
                             type(child_index) is not int or not 0 <= child_index < node_count
-                            or type(mesh_index) is not int or mesh_index < 0
+                            or type(mesh_index) is not int or not 0 <= mesh_index < mesh_count
                             or not isinstance(child_name, str) or not child_name
                         ):
                             raise ValueError("P9M4_REFERENCE_DESCENDANT_INVALID")
@@ -1722,7 +1736,7 @@ def create_app(
                     "visual_review_candidate_count": sum(1 for row in mappings if row.get("review_candidate")),
                 },
                 "intake": {"glb_sha256": glb_sha256.lower() if isinstance(glb_sha256, str) else None},
-                "glb_node_inventory": {"node_count": node_count} if type(node_count) is int else None,
+                "glb_node_inventory": {"node_count": node_count, "mesh_count": mesh_count} if type(node_count) is int and type(mesh_count) is int else None,
                 "mappings": mappings,
             }
         except Exception:
