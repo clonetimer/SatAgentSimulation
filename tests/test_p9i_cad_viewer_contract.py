@@ -107,7 +107,9 @@ def test_viewer_exposes_read_only_render_diagnostics_for_geometry_acceptance():
     source = (WEB / "birds-cad-viewer.js").read_text(encoding="utf-8")
     assert "function getDiagnostics()" in source
     assert "visible_meshes" in source and "rendered_triangles" in source
-    assert "window.BirdsCadViewer={load,clear,fit,select,setViewerVisible,getDiagnostics}" in source
+    assert "window.BirdsCadViewer={load,clear,fit,select,selectByIndex,setEngineeringReviewData,setViewerVisible,getDiagnostics}" in source
+    assert "birds-cad-viewer-ready" in source
+    assert "gltf.parser?.associations" in source
 
 
 def test_scene_editor_title_and_orbit_controls_follow_active_scene_mode():
