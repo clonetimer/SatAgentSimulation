@@ -179,10 +179,6 @@ def test_procedure_source_is_pinned_but_not_misrepresented_as_reviewed():
     assert packet["procedure_text_evidence_locators"]["status"] == "raw_text_source_locators_only_not_claim_approval"
     assert packet["procedure_text_evidence_locators"]["references"]["battery"][0]["table_index"] == 3
     assert packet["procedure_text_evidence_locators"]["references"]["structural testing model"][0]["paragraph_index"] == 21
-    assert packet["installation_evidence"]["assembly_procedure"] == "pinned_and_extracted_but_not_human_reviewed"
-    assert packet["procedure_text_evidence_locators"]["status"] == "raw_text_source_locators_only_not_claim_approval"
-    assert packet["procedure_text_evidence_locators"]["references"]["battery"][0]["table_index"] == 3
-    assert packet["procedure_text_evidence_locators"]["references"]["structural testing model"][0]["paragraph_index"] == 21
     assert report["evidence_catalog"]["coordinate_reference"]["source_status"] == "orientation_reference_only_not_complete_transform_evidence"
 
 
