@@ -11,6 +11,7 @@ on:
       - "tests/cad/test_synthetic_asset_generation.py"
       - "docs/superpowers/plans/2026-11-17-p9m4i-ai-engineering-asset-generation.md"
       - "docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json"
+      - "docs/superpowers/reviews/2026-11-17-p9m4i-three-device-source-intake.md"
       - ".github/workflows/p9m4i-synthetic-assets.yml"
   workflow_dispatch:
 
