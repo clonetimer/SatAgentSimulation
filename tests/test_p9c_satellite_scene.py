@@ -248,6 +248,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 # when the scene is already active on the next iteration.
                 if page.locator("body").get_attribute("data-active-view") != "scene":
                     page.locator("#wizardSceneShortcutBtn").click()
+            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
                 playwright.expect(page.locator(".app-sidebar")).to_be_hidden()
                 playwright.expect(page.locator("#workbenchNavigation")).to_be_hidden()
                 playwright.expect(page.locator(".scene-workspace-nav")).to_be_visible()
@@ -463,6 +464,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "wizard")
                     playwright.expect(page.locator("#wizardView")).to_be_visible()
                     page.locator("#wizardSceneShortcutBtn").click()
+            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "scene")
                     page.locator('[data-scene-mode="orbit"]').click()
                     page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
@@ -480,6 +482,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 page.locator("#wizardView").wait_for(state="visible")
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
                 page.locator("#wizardSceneShortcutBtn").click()
+            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
                 page.locator("#sceneWorkspaceCreatorBtn").click()
                 page.locator("#creatorView").wait_for(state="visible")
                 assert page.locator("body").get_attribute("data-active-view") == "creator"
@@ -584,6 +587,7 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
+            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
             playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
             playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
             playwright.expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
@@ -857,6 +861,7 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
+            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
             # Enter the scene through the supported simulation mode first,
             # then switch to CAD, matching the accepted P9-I user journey.
             page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
@@ -969,6 +974,7 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
+            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
             page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
             assert page.locator('[data-scene-mode="simulation"]').get_attribute("aria-pressed") == "true"
             page.locator('[data-scene-mode="cad"]').click()
