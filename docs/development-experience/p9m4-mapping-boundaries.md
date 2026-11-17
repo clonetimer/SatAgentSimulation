@@ -131,3 +131,15 @@ Correct pattern:
 - Pass the registry projection to the CAD viewer as soon as it is available.
 - Keep catalogue failures local to simulation object selection/configuration; they must not suppress Reference-CAD inspection.
 - Test the API projection separately from the browser handoff, and report panel text/visibility when the browser does not render candidate cards.
+
+
+## P9-M4-D CI regression: browser module readiness and test-fixture isolation
+
+Two independent test defects were found while integrating the real BIRDS-4 browser review:
+
+1. **ES-module listener race.** The CAD mode buttons are wired by `birds-cad-viewer.js`, loaded as a module. A Playwright click immediately after `DOMContentLoaded` can occur before the module has executed and attached its event listeners. The click is then lost, leaving `#birdsCadViewer` hidden. Before clicking mode controls, wait for both `window.BirdsCadViewer` and `window.SatScene`; after the click, assert the actual mode state (for CAD, `#birdsCadViewer.hidden === false`). A fixed sleep is weaker and less deterministic.
+2. **Fixture expectation leakage.** The small one-candidate browser fixture was accidentally given assertions intended for the three-candidate real BIRDS-4 registry. This made unrelated P9-C and P9-L4 workflows fail even though their test inputs were correct. Keep fixture cardinality assertions local to each fixture; assert the three real objects only in the dedicated real-artifact integration test. Avoid broad edits at repeated setup anchors without checking the enclosing test function.
+3. **Cross-workflow validation.** A test file may be collected by multiple workflows. A newly added test must either be self-contained and correctly skipped when its required real-artifact environment is absent, or be explicitly selected by the relevant workflow. Verify P9-C and P9-L4 after adding tests to a shared file.
+4. **Asset cache versions.** When changing module behavior or module initialization contracts, bump the corresponding query-string cache version in the HTML. Otherwise a deployed browser may continue to execute a stale module while the HTML and server code have moved forward.
+
+Evidence chain now includes: independently pinned GLB download → same-run registry artifact → both SHA-256 checks → API candidate projection → Chromium group-location test. Do not mark the real browser acceptance complete until all three real assembly groups are located and the evidence artifact is uploaded.
