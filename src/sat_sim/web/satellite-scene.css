@@ -462,3 +462,27 @@ body[data-active-view="scene"] #workbenchNavigation {
 .p9m4-mapping-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:11px;min-width:0}
 .p9m4-mapping-row strong{min-width:0;overflow-wrap:anywhere}
 .p9m4-mapping-kind{color:var(--muted);font-size:10px;white-space:nowrap}
+
+
+/* P9-M4-D: evidence-bound geometry review, not an as-built promotion surface. */
+.birds-cad-review-panel{display:grid;gap:9px;padding:11px 13px;border:1px solid rgba(116,163,196,.22);border-radius:11px;background:linear-gradient(110deg,rgba(31,52,72,.72),rgba(15,25,38,.88));color:#dce8f4}
+.birds-cad-review-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.birds-cad-review-heading>div{display:grid;gap:3px}
+.birds-cad-review-heading strong{font-size:12px;letter-spacing:.02em}
+.birds-cad-review-heading span{font-size:10px;color:#94a9bd}
+.birds-cad-review-gate{padding:4px 7px;border:1px solid rgba(228,176,96,.3);border-radius:6px;color:#e4c58e!important;background:rgba(228,176,96,.07);white-space:nowrap}
+.birds-cad-review-gate[data-state="matched"]{border-color:rgba(95,193,151,.34);color:#8ed9b8!important;background:rgba(95,193,151,.08)}
+.birds-cad-review-gate[data-state="mismatch"],.birds-cad-review-gate[data-state="unavailable"]{border-color:rgba(232,126,116,.3);color:#f0a49c!important;background:rgba(232,126,116,.07)}
+.birds-cad-review-empty{margin:0;color:#91a5b9;font-size:10px;line-height:1.55}
+.birds-cad-review-digest{font-size:9px;color:#8197ad;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.birds-cad-review-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.birds-cad-review-card{display:grid;align-content:start;gap:6px;min-width:0;padding:9px;border:1px solid rgba(137,164,192,.17);border-radius:8px;background:rgba(7,14,23,.35)}
+.birds-cad-review-card>strong{font-size:11px;color:#e6edf5;overflow-wrap:anywhere}
+.birds-cad-review-meta{font-size:9px;color:#91a5b9;line-height:1.5}
+.birds-cad-review-card button{justify-self:start;min-height:28px;padding:5px 9px;font-size:9px}
+.birds-cad-review-card button:disabled{opacity:.5;cursor:not-allowed}
+.birds-cad-review-card details{font-size:9px;color:#91a5b9}
+.birds-cad-review-card summary{cursor:pointer}
+.birds-cad-review-descendants{display:grid;gap:3px;max-height:105px;overflow:auto;margin:5px 0 0;padding-left:15px;color:#b5c4d2}
+@media(max-width:900px){.birds-cad-review-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.birds-cad-review-list{grid-template-columns:1fr}.birds-cad-review-panel{padding:9px}}
