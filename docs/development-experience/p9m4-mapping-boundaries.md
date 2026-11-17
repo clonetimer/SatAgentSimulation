@@ -105,3 +105,6 @@ Correct pattern:
 ## Distinguish STEP source node counts from GLB scene node counts
 
 The pinned STEP assembly tree and the converted GLB scene are separate representations. The current accepted registry reports 852 GLB scene nodes; do not repeat the STEP-side source-node count as if it were the GLB inventory count. Always read the count from the exact registry artifact being reviewed.
+
+
+P9-M4-D CI exposed a Windows shell mismatch: the cross-platform validation step now uses Bash syntax including stdin redirection for Node's ES-module syntax checker. A preceding workflow step declaring Bash does not change the shell of later steps. Set `shell: bash` on each multi-command step that uses Bash syntax; do not rely on runner defaults or neighboring step settings.
