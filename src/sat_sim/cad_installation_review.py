@@ -165,6 +165,10 @@ def build_installation_review_packets(
         procedure_extraction.get("keyword_index", {})
         if isinstance(procedure_extraction, Mapping) else {}
     )
+    procedure_source_verified = (
+        isinstance(procedure_extraction, Mapping)
+        and procedure_extraction.get("source", {}).get("verification_status") == "source_bytes_verified"
+    )
     general_procedure_terms = ["structural testing model", "axis definition"]
     packets = []
     for candidate in candidates:
@@ -248,7 +252,10 @@ def build_installation_review_packets(
                 "references": procedure_locators,
             },
             "installation_evidence": {
-                "assembly_procedure": "pinned_and_extracted_but_not_human_reviewed",
+                "assembly_procedure": (
+                    "pinned_and_extracted_but_not_human_reviewed"
+                    if procedure_source_verified else "pinned_but_not_reviewed"
+                ),
                 "approved_drawing": "missing",
                 "bom_or_configuration_list": "missing",
                 "datum_and_axis_drawing": "missing",
