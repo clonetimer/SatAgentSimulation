@@ -63,6 +63,42 @@ def _write_glb(path, *, nodes=None, bounds=None):
     _write_glb_document(path, document, binary)
 
 
+
+def _write_indexed_glb(path, *, indices=(0, 1, 2, 3, 4, 5), index_stride=None):
+    points = [
+        [-0.03, -0.02, -0.01],
+        [0.03, 0.02, 0.01],
+        [-0.03, 0.02, -0.01],
+        [0.03, -0.02, 0.01],
+        [-0.03, -0.02, 0.01],
+        [0.03, 0.02, -0.01],
+    ]
+    position_bytes = struct.pack("<18f", *(value for point in points for value in point))
+    index_bytes = struct.pack("<6H", *indices)
+    binary = position_bytes + index_bytes
+    index_view = {"buffer": 0, "byteOffset": len(position_bytes), "byteLength": len(index_bytes)}
+    if index_stride is not None:
+        index_view["byteStride"] = index_stride
+    document = {
+        "asset": {"version": "2.0"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": [{"name": "battery", "mesh": 0}],
+        "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1}]}],
+        "buffers": [{"byteLength": len(binary)}],
+        "bufferViews": [
+            {"buffer": 0, "byteOffset": 0, "byteLength": len(position_bytes)},
+            index_view,
+        ],
+        "accessors": [
+            {"bufferView": 0, "componentType": 5126, "count": 6, "type": "VEC3",
+             "min": [-0.03, -0.02, -0.01], "max": [0.03, 0.02, 0.01]},
+            {"bufferView": 1, "componentType": 5123, "count": 6, "type": "SCALAR"},
+        ],
+    }
+    _write_glb_document(path, document, binary)
+
+
 def _record(path):
     from sat_sim.synthetic_asset_generation import _sha256
     return {
@@ -121,6 +157,51 @@ def test_glb_audit_rejects_position_bounds_that_do_not_match_binary_payload(tmp_
     struct.pack_into("<f", payload, 0, -0.5)
     _write_glb_document(path, document, bytes(payload))
     with pytest.raises(ValueError, match="POSITION_BOUNDS_DATA_MISMATCH"):
+        audit_glb(path)
+
+
+def test_glb_audit_accepts_omitted_buffer_view_byte_offset(tmp_path):
+    path = tmp_path / "implicit-zero-offset.glb"
+    _write_glb(path)
+    document, binary = _read_glb_document(path)
+    del document["bufferViews"][0]["byteOffset"]
+    _write_glb_document(path, document, binary)
+    assert audit_glb(path)["status"] == "structurally_valid"
+
+
+def test_glb_audit_rejects_misaligned_buffer_view_position_data(tmp_path):
+    path = tmp_path / "misaligned-position.glb"
+    _write_glb(path)
+    document, binary = _read_glb_document(path)
+    document["buffers"][0]["byteLength"] = len(binary) + 4
+    document["bufferViews"][0]["byteOffset"] = 2
+    document["bufferViews"][0]["byteLength"] = len(binary)
+    _write_glb_document(path, document, b"\\0\\0" + binary + b"\\0\\0")
+    with pytest.raises(ValueError, match="ACCESSOR_ALIGNMENT_INVALID"):
+        audit_glb(path)
+
+
+def test_glb_audit_rejects_sparse_position_accessor_until_supported(tmp_path):
+    path = tmp_path / "sparse-position.glb"
+    _write_glb(path)
+    document, binary = _read_glb_document(path)
+    document["accessors"][0]["sparse"] = {"count": 1}
+    _write_glb_document(path, document, binary)
+    with pytest.raises(ValueError, match="SPARSE_ACCESSOR_UNSUPPORTED"):
+        audit_glb(path)
+
+
+def test_glb_audit_rejects_byte_stride_on_index_accessor(tmp_path):
+    path = tmp_path / "strided-index.glb"
+    _write_indexed_glb(path, index_stride=4)
+    with pytest.raises(ValueError, match="INDEX_BUFFER_VIEW_STRIDE_FORBIDDEN"):
+        audit_glb(path)
+
+
+def test_glb_audit_rejects_index_values_outside_position_accessor(tmp_path):
+    path = tmp_path / "index-out-of-range.glb"
+    _write_indexed_glb(path, indices=(0, 1, 2, 3, 4, 6))
+    with pytest.raises(ValueError, match="INDEX_VALUE_OUT_OF_RANGE"):
         audit_glb(path)
 
 
