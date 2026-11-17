@@ -90,6 +90,19 @@ jobs:
             --source-commit d7eadd98f5327e1ddea82b640293d49bfdb09555 \
             --media-dir "${{ runner.temp }}/p9m3/procedure/media" \
             --output "${{ runner.temp }}/p9m3/procedure-extraction.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "p9m3" / "procedure-extraction.json").read_text(encoding="utf-8"))
+          assert report["extraction"]["embedded_media_count"] == 208
+          blocks = {b.get("paragraph_index"): b for b in report["blocks"] if b["kind"] == "paragraph"}
+          axis_figure = blocks[41]["embedded_media_refs"]
+          assert [ref["target"] for ref in axis_figure] == ["media/image4.png", "media/image5.png"]
+          media = {item["source_member"]: item for item in report["embedded_media"]}
+          assert media["word/media/image4.png"]["sha256"] == "1b16a76cdbf476c70b59cf14920eddbef769b4ee979f72ee8d709cb89e242d3f"
+          assert media["word/media/image5.png"]["sha256"] == "a36aea0e68e66c639919b041ad8cda0615ce90f7684729a0e63eb95c377e35a7"
+          print(json.dumps({"embedded_media_count": len(media), "axis_paragraph": 41, "axis_media": axis_figure}, ensure_ascii=False))
+          PY
       - name: Build P9-M3 evidence review packets and validate source CAD transforms
         env:
           PYTHONPATH: "src:."
