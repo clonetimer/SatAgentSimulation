@@ -93,6 +93,11 @@ jobs:
           assert all(p["promotion"]["status"] == "blocked_evidence_incomplete" for p in report["review_packets"])
           assert all(p["promotion"]["installation_transform"] is None for p in report["review_packets"])
           assert report["evidence_catalog"]["assembly_procedure_source"]["source_status"] == "retrieved_and_hash_verified_raw_text_not_human_reviewed"
+          by_object = {p["engineering_object_id"]: p for p in report["review_packets"]}
+          assert by_object["component.battery"]["procedure_text_evidence_locators"]["references"]["battery"]
+          assert by_object["component.reaction_wheel"]["procedure_text_evidence_locators"]["references"]["reaction wheel"]
+          assert by_object["component.payload"]["procedure_text_evidence_locators"]["references"]["perovskite solar cells"]
+          assert by_object["component.payload"]["procedure_text_evidence_locators"]["references"]["-y panel"]
           print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))
           PY
       - name: Preserve P9-M3 review packets and extracted source evidence
