@@ -18,7 +18,7 @@
 1. API 只返回经过 bundle SHA-256 与 mapping contract 校验的最小审查投影：GLB SHA-256、GLB node count、reference candidate 的 group node index/name、mesh descendant node index/name/mesh index、候选状态和人工审查标志。不返回原始 geometry_asset、安装变换、证据文件路径或遥测绑定。
 2. API 必须拒绝 selector_promoted=true、错误候选状态、越界 node index、重复 descendant index、无效 mesh index、几何节点数不一致等记录。
 3. 浏览器本地读取用户选择的 GLB，在 Web Crypto 可用时计算完整文件 SHA-256。只有本地 GLB digest 与 API 证据 digest 完全一致，才启用“定位候选组”。
-4. 定位动作只在已加载 Reference CAD 场景中选择并聚焦对应 group node；不隔离/隐藏其他节点，不自动修改 GLB，不创建 formal selector，不进入仿真实装视图。
+4. 定位动作只在已加载 Reference CAD 场景中选择并聚焦对应 group node；必须通过 GLTFLoader 的 `gltf.parser.associations` 取得 GLB 原始 `nodes[]` index，不能使用 Three.js traversal ordinal；不隔离/隐藏其他节点，不自动修改 GLB，不创建 formal selector，不进入仿真实装视图。
 5. 候选卡片显示设备名称、组节点 index、几何节点数量和 descendant mesh 清单。点击定位后复用既有 inspector，显示装配路径、包围盒、局部 TRS 和根坐标 TRS。
 6. 缺少 Web Crypto、digest 不匹配、node index 不存在、候选证据不完整时均 fail closed；仍允许用户手动浏览整个参考 CAD，但禁止依据不匹配的证据索引定位。
 
