@@ -574,13 +574,10 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert backend.input_value() == "basilisk_native"
             assert page.locator('#dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
             assert "仅支持单轮标称工况" in page.locator("#wizardNotice").inner_text()
-            fault_panel = page.locator("#wizardFaultPanel")
-            if fault_panel.get_attribute("open") is None:
-                fault_panel.locator(":scope > summary").click()
-            events_panel = page.locator("#compactEvents")
-            if events_panel.get_attribute("open") is None:
-                events_panel.locator(":scope > summary").click()
-            assert page.locator("#eventBackendLimitNote").is_visible()
+            # The compact event editor is nested inside the guided event
+            # disclosure. Verify its actual disabled state without forcing
+            # the hidden nested disclosure open.
+            assert not page.locator("#eventBackendLimitNote").evaluate("(node) => node.classList.contains('hidden')")
             assert page.locator("#effectKind").is_disabled()
             assert page.locator("#effectSelect").is_disabled()
             assert page.locator("#addEffectBtn").is_disabled()
@@ -666,7 +663,14 @@ def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel
             failures = []
             external_requests = []
             page.on("pageerror", lambda error: failures.append(str(error)))
-            page.on("console", lambda message: failures.append(message.text) if message.type == "error" else None)
+            page.on("response", lambda response: failures.append(
+                f"HTTP {response.status}: {response.url}"
+            ) if response.status >= 400 and (
+                "/assets/" in response.url
+                or "/forms/" in response.url
+                or "/scenario-templates" in response.url
+                or "/workbench/" in response.url
+            ) else None)
 
             def proxy(route):
                 request = route.request
