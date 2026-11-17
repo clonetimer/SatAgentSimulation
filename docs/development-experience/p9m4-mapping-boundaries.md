@@ -185,3 +185,8 @@ A second browser run showed that clicking the simulation tab again immediately a
 ### Final browser root cause: the CAD ES module listener was not ready
 
 The next Chromium run showed the scene entered correctly and the physical-configuration tab was selected, but clicking CAD left `aria-pressed=false`. The test had waited for the simulation canvas, not for the CAD viewer ES module to finish evaluating and attach its tab listeners. Waiting for `window.BirdsCadViewer.setViewerVisible` is the correct readiness contract because the module exports this API only after its listeners and renderer are initialized. Both real-browser review journeys now wait for this module readiness before interacting with the CAD tab. The test must still assert the real tab state and viewer visibility; do not replace those assertions with forced clicks or DOM mutation.
+
+
+### Readiness signal must precede WebGL renderer initialization
+
+Waiting for `window.BirdsCadViewer.setViewerVisible` was too late: the public viewer API is exported only after WebGL renderer construction and all viewer setup. A browser may need to interact with scene-mode tabs as soon as their event listeners are attached, independently of renderer readiness. The module now publishes `document.documentElement.dataset.birdsCadModeTabsReady='true'` immediately after registering mode-tab listeners and before constructing the renderer. Browser tests wait on this narrow readiness contract, then assert the actual CAD tab state and viewer visibility. This separates UI event readiness from GPU/rendering readiness and avoids conflating the two lifecycle stages.
