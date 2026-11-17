@@ -1595,6 +1595,54 @@ def create_app(
             "quantity_dictionary_version": DICTIONARY_VERSION,
         }
 
+    @app.get("/workbench/engineering-mapping")
+    def workbench_engineering_mapping_endpoint() -> dict[str, Any]:
+        """Return validated mapping status without loading or rendering CAD geometry."""
+        configured = os.environ.get("SAT_SIM_ENGINEERING_MAPPING_BUNDLE")
+        if not configured:
+            return {
+                "ok": True, "configured": False, "status": "not_configured",
+                "message_zh": "尚未部署工程映射清单；当前不显示参考 CAD 或实装几何。",
+                "summary": None, "mappings": [],
+            }
+        path = Path(configured).expanduser()
+        if not path.is_file():
+            return {
+                "ok": False, "configured": True, "status": "invalid",
+                "message_zh": "工程映射清单不可读取，请检查部署配置。",
+                "summary": None, "mappings": [],
+            }
+        try:
+            from .engineering_asset_mapping import validate_mapping_bundle
+            bundle = json.loads(path.read_text(encoding="utf-8"))
+            validation = validate_mapping_bundle(bundle)
+            mappings = [
+                {
+                    "object_id": row["object_id"],
+                    "mapping_kind": row["mapping_kind"],
+                    "as_built_eligible": row["as_built_eligible"],
+                    "render_views": row["render_views"],
+                }
+                for row in validation["mappings"]
+            ]
+            return {
+                "ok": True, "configured": True, "status": "validated",
+                "message_zh": "映射清单已校验；参考 CAD、仿真构型与实装视图严格隔离。",
+                "summary": {
+                    "mapping_count": validation["mapping_count"],
+                    "counts_by_kind": validation["counts_by_kind"],
+                    "as_built_verified_count": validation["as_built_verified_count"],
+                    "render_eligible_as_built_count": validation["render_eligible_as_built_count"],
+                },
+                "mappings": mappings,
+            }
+        except Exception:
+            return {
+                "ok": False, "configured": True, "status": "invalid",
+                "message_zh": "工程映射清单未通过完整性校验，已阻止加载。",
+                "summary": None, "mappings": [],
+            }
+
     @app.get("/visual-composer/assemblies")
     def visual_assembly_catalog() -> dict[str, Any]:
         return {"ok": True, "assemblies": assembly_catalog()}
