@@ -1634,13 +1634,16 @@ def create_app(
             # Only publish a deliberately small, candidate-only projection.
             # The browser must independently hash the user-selected GLB before
             # it may use these node indices to focus the existing reference viewer.
+            has_reference_rows = any(row["mapping_kind"] == "reference_cad" for row in validation["mappings"])
             glb_sha256 = bundle.get("intake", {}).get("glb_sha256")
-            if not isinstance(glb_sha256, str) or len(glb_sha256) != 64 or any(ch not in "0123456789abcdef" for ch in glb_sha256.lower()):
-                raise ValueError("P9M4_REFERENCE_GLB_DIGEST_REQUIRED")
             inventory = bundle.get("glb_node_inventory", {})
             node_count = inventory.get("node_count") if isinstance(inventory, dict) else None
-            if type(node_count) is not int or node_count < 1:
-                raise ValueError("P9M4_REFERENCE_GLB_INVENTORY_REQUIRED")
+            if has_reference_rows and (
+                not isinstance(glb_sha256, str) or len(glb_sha256) != 64
+                or any(ch not in "0123456789abcdef" for ch in glb_sha256.lower())
+                or type(node_count) is not int or node_count < 1
+            ):
+                raise ValueError("P9M4_REFERENCE_GLB_PROVENANCE_REQUIRED")
             mappings = []
             for index, row in enumerate(validation["mappings"]):
                 projected = {
@@ -1710,8 +1713,8 @@ def create_app(
                     "render_eligible_as_built_count": validation["render_eligible_as_built_count"],
                     "visual_review_candidate_count": sum(1 for row in mappings if row.get("review_candidate")),
                 },
-                "intake": {"glb_sha256": glb_sha256.lower()},
-                "glb_node_inventory": {"node_count": node_count},
+                "intake": {"glb_sha256": glb_sha256.lower() if isinstance(glb_sha256, str) else None},
+                "glb_node_inventory": {"node_count": node_count} if type(node_count) is int else None,
                 "mappings": mappings,
             }
         except Exception:
