@@ -11,6 +11,8 @@ import math
 from collections import Counter
 from typing import Any, Mapping
 
+from sat_sim.engineering_mapping_policy import validate_mapping_policy
+
 SCHEMA_VERSION = "engineering-asset-mapping.v1"
 MAPPING_KINDS = {
     "as_built_verified",
@@ -61,6 +63,7 @@ def _validate_matrix(matrix: Any, mapping_id: str) -> None:
 
 
 def validate_mapping_record(record: Mapping[str, Any]) -> dict[str, Any]:
+    validate_mapping_policy(record)
     mapping_id = record.get("mapping_id")
     object_id = record.get("object_id")
     kind = record.get("mapping_kind")
@@ -164,6 +167,8 @@ def validate_mapping_record(record: Mapping[str, Any]) -> dict[str, Any]:
         "object_id": object_id,
         "mapping_kind": kind,
         "validation_status": "valid",
+        "validation_scope": "declaration_consistency_only",
+        "approval_authenticity_verified": False,
         "asset_instance_id": instance_id,
         "as_built_eligible": bool(render.get("as_built_eligible")),
         "render_views": list(render.get("views", [])),
@@ -172,7 +177,7 @@ def validate_mapping_record(record: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def validate_mapping_bundle(payload: Mapping[str, Any]) -> dict[str, Any]:
-    if payload.get("schema_version") != SCHEMA_VERSION:
+    if not isinstance(payload, Mapping) or payload.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("P9M4_UNSUPPORTED_SCHEMA_VERSION")
     records = payload.get("mappings")
     if not isinstance(records, list):

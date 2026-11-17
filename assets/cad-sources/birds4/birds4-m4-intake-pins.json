@@ -1,0 +1,52 @@
+{
+  "schema_version": "birds4-m4-intake-pins.v1",
+  "repository": "clonetimer/SatAgentSimulation",
+  "artifacts": {
+    "m3": {
+      "run_id": 44012793630,
+      "artifact_id": 14298010746,
+      "name": "p9m3-birds4-installation-evidence-review",
+      "sha256": "669c820d872407695478d7cc76b6de222f6b168ad42fe17f36f7d27868046dea"
+    },
+    "m2": {
+      "run_id": 44001085568,
+      "artifact_id": 14291767773,
+      "name": "p9m2-birds4-candidate-audit",
+      "sha256": "b5defd2f1494f5064cb633a88fd08aa31aaedc3233aa7ebc05cf3f9f314e8bee"
+    },
+    "cad": {
+      "run_id": 43692477458,
+      "artifact_id": 14153195945,
+      "name": "birds4-fm-cad-reference-43692477458",
+      "sha256": "ac98ec8ad356c7636271be894bc79b2497446dd416f09a5c98349ad89231ce6a"
+    }
+  },
+  "files": {
+    "BIRDS4_FM_Final_v7.installation-review.json": {
+      "artifact": "m3",
+      "member": "BIRDS4_FM_Final_v7.installation-review.json",
+      "sha256": "abe578f3a68230e363a945f7ed9fbbf8c30546a12553a130d8919b16c2a3dc1b"
+    },
+    "workbench-object-tree.v2.json": {
+      "artifact": "m2",
+      "member": "workbench-object-tree.v2.json",
+      "sha256": "9fce53940a609a4d5d24c4f0192cc0c5d8c363195c3b4f9c311c378a198c3ff3"
+    },
+    "BIRDS4_FM_Final_v7.assembly-tree.json": {
+      "artifact": "cad",
+      "member": "build/birds4/output/BIRDS4_FM_Final_v7.assembly-tree.json",
+      "sha256": "cfb82d5db51e7204a9e2ebe33ac7fc80217787dd0137ad6cc04f503bd4e8f89b"
+    },
+    "BIRDS4_FM_Final_v7.report.json": {
+      "artifact": "cad",
+      "member": "build/birds4/output/BIRDS4_FM_Final_v7.report.json",
+      "sha256": "bb8d8d5943aff1fb30f3d91d8d6e738e5aaf6548a64663ffa5d6afae73db88b4"
+    },
+    "BIRDS4_FM_Final_v7.glb": {
+      "artifact": "cad",
+      "member": "build/birds4/output/BIRDS4_FM_Final_v7.glb",
+      "sha256": "f00cabfc02218a50ef807c06281a7d9e5a1cd93178635476aa153fea1c6b4b12"
+    }
+  },
+  "scope": "Accepted reference evidence only; these pins do not approve as-built installations."
+}

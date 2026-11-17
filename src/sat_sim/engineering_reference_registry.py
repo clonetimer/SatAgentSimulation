@@ -1,0 +1,191 @@
+"""Read-only M3-to-M4 intake. No approval, installed instance or GLB selector inference.
+
+Run as ``python -m sat_sim.engineering_reference_registry --help``. Only the
+pinned, blocked M3 reference-evidence path is supported; as-built approval is
+intentionally a separate future operation.
+"""
+from __future__ import annotations
+
+import argparse
+import copy
+import hashlib
+import json
+import re
+import struct
+from pathlib import Path
+from typing import Any, Mapping
+
+from sat_sim.engineering_asset_mapping import (
+    REQUIRED_AS_BUILT_EVIDENCE, SCHEMA_VERSION, validate_mapping_bundle,
+)
+from sat_sim.engineering_mapping_policy import require_sha256, require_text
+
+
+def _digest(value: Any) -> str:
+    data = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
+def _require(condition: bool, code: str) -> None:
+    if not condition:
+        raise ValueError(f"P9M4_INTAKE_{code}")
+
+
+def _equipment(tree: Mapping[str, Any]) -> dict[str, str]:
+    _require(tree.get("schema_version") == "workbench-object-tree.v2", "ENGINEERING_SCHEMA")
+    roots = tree.get("roots")
+    if roots is None:
+        roots = [tree.get("tree")]
+    _require(isinstance(roots, list) and bool(roots), "ENGINEERING_ROOTS")
+    result: dict[str, str] = {}
+
+    def visit(node: Any) -> None:
+        _require(isinstance(node, Mapping), "ENGINEERING_NODE")
+        if node.get("kind") == "equipment":
+            object_id = require_text(node.get("object_id"), "equipment.object_id")
+            _require(object_id not in result, "DUPLICATE_EQUIPMENT")
+            result[object_id] = str(node.get("name_zh") or object_id)
+        children = node.get("children", [])
+        _require(isinstance(children, list), "ENGINEERING_CHILDREN")
+        for child in children:
+            visit(child)
+
+    for root in roots:
+        visit(root)
+    _require(bool(result), "EMPTY_EQUIPMENT")
+    return result
+
+
+def _glb_identity(path: Path, geometry: Mapping[str, Any]) -> str:
+    expected = require_sha256(geometry.get("sha256"), "conversion.geometry.sha256")
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        header = stream.read(12)
+        digest.update(header)
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    size = path.stat().st_size
+    _require(size == geometry.get("size_bytes") and digest.hexdigest() == expected, "GLB_IDENTITY")
+    _require(len(header) == 12, "GLB_HEADER")
+    magic, version, declared_size = struct.unpack("<4sII", header)
+    _require(magic == b"glTF" and version == 2 and declared_size == size, "GLB_HEADER")
+    return expected
+
+
+def build_reference_registry(
+    review: Mapping[str, Any],
+    engineering_tree: Mapping[str, Any],
+    assembly_tree: Mapping[str, Any],
+    conversion_report: Mapping[str, Any],
+    glb_path: Path,
+) -> dict[str, Any]:
+    """Validate source linkage and retain every physical category without promotion."""
+    _require(all(isinstance(x, Mapping) for x in (review, engineering_tree, assembly_tree, conversion_report)), "INPUT_OBJECTS")
+    _require(review.get("schema_version") == "cad-installation-evidence-review.v1", "REVIEW_SCHEMA")
+    packets = review.get("review_packets")
+    _require(isinstance(packets, list) and bool(packets), "EMPTY_REVIEW")
+    source, converted = review.get("source", {}), conversion_report.get("source", {})
+    geometry = conversion_report.get("geometry", {})
+    _require(all(isinstance(x, Mapping) for x in (source, converted, geometry)), "SOURCE_OBJECTS")
+    commit, tree_sha = source.get("source_commit"), source.get("source_tree_sha")
+    _require(all(isinstance(x, str) and re.fullmatch(r"[0-9a-f]{40}", x) for x in (commit, tree_sha)), "SOURCE_IDENTITY")
+    _require(commit == source.get("cad_revision") == converted.get("commit"), "SOURCE_IDENTITY")
+    _require(source.get("cad_model") == converted.get("path") == assembly_tree.get("source_path"), "SOURCE_IDENTITY")
+    _require(conversion_report.get("promotion_status") == "reference_cad_imported_not_as_built_verified", "CONVERSION_PROMOTION")
+    _require(conversion_report.get("conversion", {}).get("output_unit") == "metres", "CONVERSION_UNITS")
+    glb_sha = _glb_identity(Path(glb_path), geometry)
+    equipment = _equipment(engineering_tree)
+    raw_nodes = assembly_tree.get("nodes")
+    _require(isinstance(raw_nodes, list), "ASSEMBLY_NODES")
+    nodes = {}
+    for node in raw_nodes:
+        _require(isinstance(node, Mapping), "ASSEMBLY_NODE")
+        path = require_text(node.get("source_node_path"), "assembly.source_node_path")
+        _require(path not in nodes, "DUPLICATE_CAD_PATH")
+        nodes[path] = node
+    _require(len(nodes) == source.get("cad_node_count") == geometry.get("assembly_node_count"), "NODE_COUNT")
+    _require(len(packets) == source.get("candidate_count") == review.get("summary", {}).get("review_packet_count"), "PACKET_COUNT")
+    mappings, covered = [], set()
+    seen_candidates, seen_packets, seen_pairs = set(), set(), set()
+    for packet in packets:
+        _require(isinstance(packet, Mapping), "PACKET_OBJECT")
+        candidate_id = require_text(packet.get("candidate_id"), "candidate_id")
+        packet_id = require_text(packet.get("review_packet_id"), "review_packet_id")
+        _require(candidate_id not in seen_candidates and packet_id not in seen_packets, "DUPLICATE_PACKET")
+        seen_candidates.add(candidate_id)
+        seen_packets.add(packet_id)
+        object_id = packet.get("engineering_object_id")
+        _require(isinstance(object_id, str) and object_id in equipment, "UNKNOWN_EQUIPMENT")
+        cad = packet.get("cad_source", {})
+        _require(isinstance(cad, Mapping), "CAD_SOURCE")
+        path = cad.get("source_node_path")
+        _require(isinstance(path, str) and path in nodes, "NODE_NOT_FOUND")
+        _require((object_id, path) not in seen_pairs, "DUPLICATE_PACKET")
+        seen_pairs.add((object_id, path))
+        node = nodes[path]
+        _require(cad.get("parent_node_path") == node.get("parent_node_path"), "PARENT_MISMATCH")
+        parent = node.get("parent_node_path")
+        _require(parent is None or parent in nodes, "PARENT_NOT_FOUND")
+        _require(cad.get("upstream_commit") == cad.get("revision") == commit and cad.get("source_tree_sha") == tree_sha and cad.get("model") == source.get("cad_model"), "SOURCE_IDENTITY")
+        node_digest = _digest({"candidate_id": candidate_id, "source_commit": commit, "source_tree_sha": tree_sha, "node": node})
+        _require(cad.get("evidence_sha256") == node_digest, "NODE_EVIDENCE")
+        promotion = packet.get("promotion", {})
+        _require(isinstance(promotion, Mapping) and promotion.get("status") == "blocked_evidence_incomplete"
+                 and promotion.get("render_eligible") is False
+                 and all(promotion.get(k) is None for k in ("instance_id", "installation_transform", "spatial_anchor")), "PROMOTION_FORBIDDEN")
+        gates = packet.get("required_reviews")
+        _require(isinstance(gates, Mapping) and REQUIRED_AS_BUILT_EVIDENCE.issubset(gates), "REVIEW_GATES")
+        mapping_id = "reference:" + _digest([glb_sha, object_id, path])[:24]
+        mappings.append({
+            "mapping_id": mapping_id, "object_id": object_id, "name_zh": equipment[object_id],
+            "mapping_kind": "reference_cad", "asset_instance_id": None,
+            "geometry_asset": {"asset_id": "glb:" + glb_sha, "sha256": glb_sha,
+                "source_revision": commit, "source_node_path": path,
+                "node_path_space": "step_assembly_occurrence", "glb_node_binding": None},
+            "geometry_frame": {"identity_status": "unverified"},
+            "spatial_anchor": None, "telemetry_binding": None, "evidence": [],
+            "render": {"as_built_eligible": False, "renderable": False, "views": ["reference_cad"]},
+            "review": {"packet_id": packet_id, "candidate_id": candidate_id,
+                "packet_canonical_sha256": _digest(packet), "node_evidence_sha256": node_digest,
+                "status": promotion["status"], "required_reviews": copy.deepcopy(dict(gates)),
+                "node_binding_status": "step_path_only_glb_binding_unresolved"},
+        })
+        covered.add(object_id)
+    for object_id in sorted(set(equipment) - covered):
+        mappings.append({
+            "mapping_id": "unlocated:" + object_id, "object_id": object_id,
+            "name_zh": equipment[object_id], "mapping_kind": "unlocated",
+            "asset_instance_id": None, "geometry_asset": None, "geometry_frame": None,
+            "spatial_anchor": None, "telemetry_binding": None, "evidence": [],
+            "render": {"as_built_eligible": False, "renderable": False, "views": []},
+        })
+    mappings.sort(key=lambda x: (x["object_id"], x["mapping_id"]))
+    bundle = {"schema_version": SCHEMA_VERSION, "mappings": mappings}
+    validation = validate_mapping_bundle(bundle)
+    return {
+        **bundle, "validation": validation,
+        "intake": {"source_commit": commit, "glb_sha256": glb_sha,
+            "canonical_json_sha256": {"m3_review": _digest(review), "engineering_tree": _digest(engineering_tree),
+                "assembly_tree": _digest(assembly_tree), "conversion_report": _digest(conversion_report)},
+            "scope": "reference_registration_only_not_as_built_approval"},
+        "summary": {"equipment_category_count": len(equipment), "reference_candidate_count": len(packets),
+            "unlocated_equipment_count": len(equipment) - len(covered), "as_built_verified_count": 0,
+            "node_renderable_count": 0, "telemetry_binding_count": 0},
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ("review", "engineering-tree", "assembly-tree", "conversion-report", "glb", "output"):
+        parser.add_argument("--" + name, type=Path, required=True)
+    args = parser.parse_args()
+    load = lambda path: json.loads(path.read_text(encoding="utf-8"))
+    result = build_reference_registry(load(args.review), load(args.engineering_tree), load(args.assembly_tree), load(args.conversion_report), args.glb)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    print(json.dumps(result["summary"], ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
