@@ -14,12 +14,12 @@ from sat_sim.synthetic_asset_generation import audit_glb, validate_synthetic_ass
 def _write_glb_document(path, document, binary):
     raw = json.dumps(document, separators=(",", ":")).encode("utf-8")
     raw += b" " * (-len(raw) % 4)
-    binary += b"\\0" * (-len(binary) % 4)
+    binary += b"\0" * (-len(binary) % 4)
     total_length = 12 + 8 + len(raw) + 8 + len(binary)
     path.write_bytes(
         struct.pack("<4sII", b"glTF", 2, total_length)
         + struct.pack("<I4s", len(raw), b"JSON") + raw
-        + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
+        + struct.pack("<I4s", len(binary), b"BIN\0") + binary
     )
 
 
@@ -27,10 +27,10 @@ def _read_glb_document(path):
     data = path.read_bytes()
     json_length, chunk_type = struct.unpack_from("<I4s", data, 12)
     assert chunk_type == b"JSON"
-    document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" \\0"))
+    document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" \0"))
     binary_offset = 20 + json_length
     binary_length, binary_type = struct.unpack_from("<I4s", data, binary_offset)
-    assert binary_type == b"BIN\\0"
+    assert binary_type == b"BIN\0"
     return document, data[binary_offset + 8:binary_offset + 8 + binary_length]
 
 
