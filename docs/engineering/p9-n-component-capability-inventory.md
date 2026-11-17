@@ -2,7 +2,7 @@
 
 | 单机/设备 | 当前 capability / 入口 | 当前实际模型来源 | 当前可独立执行 | 当前边界 / P9-N 处理 |
 |---|---|---|---|---|
-| 反作用轮 | `component.reaction_wheel.v1` | 默认项目 source-native Python；显式 `physics_backend=basilisk_native` 时官方 Basilisk Spacecraft + ReactionWheelStateEffector | 是，有限时长 TaskSpec；1/3/4 轮 native 路径 | Native 仅 nominal；无 native fault/degradation/constraint/profile；首个 P9-N 验收对象 |
+| 反作用轮 | `component.reaction_wheel.v1` | 默认项目 source-native Python；显式 `physics_backend=basilisk_native` 时官方 Basilisk Spacecraft + ReactionWheelStateEffector | 是，有限时长 TaskSpec；1/3/4 轮 native 路径 | 1-wheel 原生 Run Bundle 已 PASS；新增 `component_reaction_wheel_basilisk_native` 工作台模板；Native 仅 nominal，无 native fault/degradation/constraint/profile |
 | IMU | `component.imu.v1` | 项目确定性 scale/bias source-native；整星图中另有官方 Basilisk ImuSensor | 是，项目模型可独立运行 | 尚无独立 Basilisk IMU graph；P9-N2 单独构建 truth-driven sensor graph |
 | 星敏感器 | `component.star_tracker.v1` | 项目确定性姿态/漂移 source-native；整星图中另有官方 Basilisk StarTracker | 是，项目模型可独立运行 | 当前无星表/光学场景仿真；P9-N2 验证官方模块独立输入条件 |
 | 磁强计 | `component.magnetometer.v1` | 项目 source-native；整星图中有官方 Basilisk Magnetometer + 磁场环境 | 是，项目模型可独立运行 | 独立运行需明确地磁场输入与坐标系；P9-N2 |
@@ -27,3 +27,12 @@
 3. **工程参考/代理模型**：为任务链或系统级耦合提供的工程近似。
 
 这三个标签必须在设备选择、参数配置、运行摘要和导出 Run Bundle 中保持一致。
+
+
+## P9-N 实测结果（2026-11-17）
+
+- 官方上游 `bsk==2.11.0` 安装与版本 provenance 检查 PASS。
+- 原生 RW 单轮、三轮、四轮 SWIG 物理测试 PASS。
+- 正式 component TaskSpec 经 registered capability adapter 执行并封存 Run Bundle：SUCCEEDED / validation PASS / integrity PASS。
+- 原生 recorder 输出包括 wheel speed、physically applied motor torque 和 friction torque；实际施加力矩受原生硬件 `u_max` 限制。
+- 新增原生反作用轮场景模板，默认使用 1-wheel nominal 和 Basilisk native backend；表单中 backend 字段属于 common 参数，在“推荐参数”模式可见，且明确区分项目参考模型与 Basilisk 原生模型。
