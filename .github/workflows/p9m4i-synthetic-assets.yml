@@ -44,6 +44,7 @@ jobs:
           python -m pytest -q tests/cad/test_synthetic_asset_generation.py
           python scripts/cad/audit_synthetic_asset.py --help
       - name: Validate benchmark manifest
+        shell: bash
         run: |
           python - <<'PY'
           import json
