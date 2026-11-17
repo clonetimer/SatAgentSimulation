@@ -129,3 +129,16 @@ def test_glb_rejects_missing_position_accessor(tmp_path):
     path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
     with pytest.raises(ValueError, match="POSITION_ACCESSOR_MISSING"):
         audit_glb(path)
+from pathlib import Path
+
+
+def test_freecad_parametric_macro_requires_source_backed_dimensions_and_positions():
+    macro = (Path(__file__).resolve().parents[2] / "scripts" / "cad" / "build_parametric_synthetic_asset.FCMacro").read_text(encoding="utf-8")
+    assert 'UNSOURCED_FEATURE_DIMENSION' in macro
+    assert 'POSITION_SOURCE' in macro
+    assert 'dimensions_empty' not in macro.lower()
+    assert 'Part.makeBox' in macro
+    assert 'Part.makeCylinder' in macro
+    assert 'doc.saveAs' in macro
+    assert 'Import.export' in macro
+    assert 'telemetry' not in macro.lower()
