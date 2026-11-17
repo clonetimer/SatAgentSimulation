@@ -160,3 +160,18 @@ Correct pattern:
 - Keep browser failures actionable by collecting page errors, console errors, failed requests and HTTP >=400 responses.
 
 The first attempt failed at the module-global readiness precondition before it reached GLB upload or candidate review. Do not interpret that timeout as evidence of a geometry mismatch; rerun the actual UI journey after correcting the precondition.
+
+
+## P9-M4-D Chromium failure root cause: enter the scene before selecting its sub-mode
+
+The subsequent real Chromium run proved that waiting for `#birdsCadViewer` visibility was not sufficient when the test clicked the CAD sub-mode directly from the wizard. The CAD tab belongs to the scene workspace; the user journey must first enter the scene workspace via the simulation mode, then switch to CAD. The accepted P9-I browser journey already encodes this ordering.
+
+Correct sequence:
+1. Click the scene shortcut.
+2. Click `[data-scene-mode="simulation"]`.
+3. Wait for `#simulationGeometryCanvas` to become visible.
+4. Click `[data-scene-mode="cad"]`.
+5. Wait for `#birdsCadViewer` to become visible.
+6. Only then interact with the candidate review panel or upload GLB files.
+
+The earlier diagnosis that the issue was solely ES-module listener readiness was incomplete. Preserve the P9-I sequence as the canonical end-to-end route; do not enter a scene sub-mode before the scene workspace itself is active.
