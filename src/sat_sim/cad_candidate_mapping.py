@@ -82,6 +82,9 @@ _ALIASES: dict[str, tuple[tuple[str, str, float], ...]] = {
 _NON_EQUIPMENT_ROLE_PATTERNS: dict[str, re.Pattern[str]] = {
     # Mechanical installation aids are not the antenna itself.
     "component.antenna": re.compile(r"fixing|guide|washer|bracket|mount|holder|support|connector|parts", re.I),
+    # BIRDS-4 Perovskite Solar Cells are a technology-demonstration payload,
+    # not the bus power-generation solar array.
+    "component.solar_panel": re.compile(r"perovskite", re.I),
 }
 
 _VARIANT_PATTERNS = (
