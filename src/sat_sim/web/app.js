@@ -8469,6 +8469,8 @@
       });
       const projected = await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生单机模板');
       if (projected === null) throw new Error('反作用轮原生模板未能投影到当前配置，请重试。');
+      state.activeTaskCenterId = null;
+      updateTaskEditState();
       state.planning = payload.planning;
       state.wizard.mode = 'offline';
       state.wizard.parameterMode = 'recommended';
