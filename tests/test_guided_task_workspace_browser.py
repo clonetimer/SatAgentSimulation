@@ -613,3 +613,74 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert not errors, errors
         finally:
             browser.close()
+
+
+def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_path):
+    """The novice workflow must select a real component and load its native preset."""
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 1000}, locale="zh-CN")
+            failures = []
+            external_requests = []
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("console", lambda message: failures.append(message.text) if message.type == "error" else None)
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                if url.scheme in {"http", "https"} and url.netloc != "workbench.test":
+                    external_requests.append(request.url)
+                    route.abort()
+                    return
+                response = client.request(
+                    request.method,
+                    url.path + ("?" + url.query if url.query else ""),
+                    content=request.post_data_buffer,
+                    headers={key: value for key, value in request.headers.items()
+                             if key in ("content-type", "accept")},
+                )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/octet-stream")},
+                )
+
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardOptions [data-wizard-goal='component_native']").click()
+            page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").wait_for(timeout=20000)
+            assert page.locator("#wizardOptions [data-wizard-object]").count() == 1
+            page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=20000)
+            assert "官方 Basilisk 原生反作用轮模型" in page.locator("#wizardConversation").inner_text()
+            assert page.locator("#wizardOptions [data-wizard-mode]").count() == 0
+
+            page.locator("#wizardParametersPanel > summary").click()
+            form = page.locator("#wizardParameterHost #dynamicForm")
+            form.wait_for(state="attached", timeout=10000)
+            backend = form.locator('[data-field-path="parameters.values.physics_backend"] select')
+            assert backend.input_value() == "basilisk_native"
+            assert backend.locator("option").count() == 2
+            assert "Basilisk 原生物理" in backend.locator('option[value="basilisk_native"]').inner_text()
+
+            wheels = form.locator('[data-field-path="parameters.values.num_wheels"] input')
+            assert wheels.input_value() == "1"
+            torque = form.locator('[data-field-path="parameters.values.max_motor_torque_nm"] input')
+            assert float(torque.input_value()) == pytest.approx(0.005)
+            assert page.locator("#wizardRuntimeFields").count() == 0 or page.locator("#wizardConfigSections").is_visible()
+            assert not external_requests, external_requests
+            assert not failures, failures
+        finally:
+            browser.close()
