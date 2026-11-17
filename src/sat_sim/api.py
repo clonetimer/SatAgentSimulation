@@ -1648,13 +1648,14 @@ def create_app(
                 raise ValueError("P9M4_REFERENCE_GLB_PROVENANCE_REQUIRED")
             mappings = []
             for index, row in enumerate(validation["mappings"]):
+                source_row = bundle["mappings"][index]
                 projected = {
                     "object_id": row["object_id"],
+                    "name_zh": source_row.get("name_zh") if isinstance(source_row.get("name_zh"), str) else row["object_id"],
                     "mapping_kind": row["mapping_kind"],
                     "as_built_eligible": row["as_built_eligible"],
                     "render_views": row["render_views"],
                 }
-                source_row = bundle["mappings"][index]
                 if row["mapping_kind"] == "reference_cad":
                     source_asset = source_row.get("geometry_asset")
                     source_render = source_row.get("render")
