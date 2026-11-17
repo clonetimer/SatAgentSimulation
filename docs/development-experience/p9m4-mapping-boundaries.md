@@ -190,3 +190,16 @@ The next Chromium run showed the scene entered correctly and the physical-config
 ### Readiness signal must precede WebGL renderer initialization
 
 Waiting for `window.BirdsCadViewer.setViewerVisible` was too late: the public viewer API is exported only after WebGL renderer construction and all viewer setup. A browser may need to interact with scene-mode tabs as soon as their event listeners are attached, independently of renderer readiness. The module now publishes `document.documentElement.dataset.birdsCadModeTabsReady='true'` immediately after registering mode-tab listeners and before constructing the renderer. Browser tests wait on this narrow readiness contract, then assert the actual CAD tab state and viewer visibility. This separates UI event readiness from GPU/rendering readiness and avoids conflating the two lifecycle stages.
+
+
+### Real CAD browser review must stage the same pinned offline vendor runtime as P9-C
+
+The first P9-M4 Chromium review after the readiness-marker fix showed the module itself was not the root cause: the browser received HTTP 404 for `/assets/vendor/globe/globe.gl.min.js`, `three.module.js` and `GLTFLoader.js`. The dedicated P9-M4 workflow had installed Playwright but had not run the repository's pinned vendor staging script. P9-C already owns the canonical offline asset pipeline.
+
+Correct pattern:
+- Set up Node.js 22 before Python/browser dependencies.
+- Run `python scripts/vendor_scene_assets.py` before starting the TestClient/Chromium review.
+- Reuse the pinned local runtime, GLTFLoader and dependency manifest; do not fetch CDN assets during review.
+- Keep the browser test's HTTP >=400 and module-readiness diagnostics so missing vendor files are distinguished from scene-mode and geometry failures.
+
+The review now stages the same offline Globe.gl/Three.js runtime as P9-C before loading the actual BIRDS-4 GLB.
