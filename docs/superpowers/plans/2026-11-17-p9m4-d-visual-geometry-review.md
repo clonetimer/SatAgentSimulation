@@ -58,3 +58,23 @@ P9-M4 unified mapping workflow now has a downstream `reference-cad-browser-revie
 5. 实装身份与遥测关联：本阶段不批准、不建立绑定。
 
 面板不提供“批准实装”按钮。完成候选定位只代表审查对象可被检查，正式映射仍需独立工程签核。
+
+
+## P9-M4-D software acceptance evidence (2026-11-17)
+
+Dedicated workflow run `44098366231` completed successfully:
+- Ubuntu 24.04 mapping contract: PASS.
+- Windows 2022 mapping contract: PASS.
+- Real M3-to-M4 reference registry generation and receipt: PASS.
+- Real BIRDS-4 GLB digest-bound Chromium review: PASS (both the digest-mismatch fixture and the full real assembly review).
+
+The exact pinned GLB reviewed by Chromium:
+- SHA-256: `f00cabfc02218a50ef807c06281a7d9e5a1cd93178635476aa153fea1c6b4b12`
+- 852 GLB scene nodes, 754 meshes.
+- Battery: original GLB node #545, `B4_battery v1`, 14 descendant meshes.
+- Reaction-wheel assembly: original GLB node #560, `B4_RW_Assembly_v55`, 24 descendant meshes.
+- Payload candidate: original GLB node #759, `Perovskite_Solar_Cells_v3`, 1 mesh.
+
+Evidence artifact `p9m4-d-real-birds4-geometry-review` contains the machine-readable summary, browser test report, an overall desktop capture, and one focused Chromium capture per candidate. The test verified that all three registered node indices resolve to the intended nodes in the exact SHA-matched GLB.
+
+**Acceptance boundary:** P9-M4-D's reference-geometry browser workflow is complete. This does not constitute final engineering/as-built approval. In particular, the payload candidate's identity and all spacecraft-B installation transforms remain subject to engineering review. Selector promotion, as-built verification and telemetry binding remain zero.
