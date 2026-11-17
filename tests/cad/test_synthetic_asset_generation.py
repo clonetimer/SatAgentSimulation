@@ -1,0 +1,131 @@
+from __future__ import annotations
+
+import json
+import struct
+
+import pytest
+
+from sat_sim.synthetic_asset_generation import audit_glb, validate_synthetic_asset
+
+
+def _write_glb(path, *, nodes=None, bounds=None):
+    document = {
+        "asset": {"version": "2.0"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": nodes or [{"name": "battery", "mesh": 0}],
+        "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+        "accessors": [{
+            "componentType": 5126, "count": 8, "type": "VEC3",
+            "min": bounds[0] if bounds else [-0.03, -0.02, -0.01],
+            "max": bounds[1] if bounds else [0.03, 0.02, 0.01],
+        }],
+        "materials": [{"name": "housing"}],
+    }
+    raw = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    raw += b" " * (-len(raw) % 4)
+    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+
+
+def _record(path):
+    from sat_sim.synthetic_asset_generation import _sha256
+    return {
+        "schema_version": "synthetic-reference-geometry.v1",
+        "asset_id": "synthetic:battery:g1",
+        "engineering_object_id": "component.battery",
+        "mapping_kind": "synthetic_reference_geometry",
+        "generation_method": "image_to_3d",
+        "quality_grade": "G1",
+        "geometry": {"file": "battery.glb", "sha256": _sha256(path.read_bytes()), "unit": "m"},
+        "provenance": {
+            "generator": "TRELLIS.2",
+            "model_version": "4B",
+            "model_revision": "pinned-test-revision",
+            "source_inputs": [{"source_uri": "https://example.invalid/battery-reference.png", "sha256": "a" * 64}],
+        },
+        "review": {"visual_review": "approved", "engineering_review": "not_applicable", "reviewer": "test-reviewer"},
+        "render_view": "synthetic_preview",
+        "as_built_eligible": False,
+        "asset_instance_id": None,
+        "spatial_anchor": None,
+        "telemetry_binding": None,
+    }
+
+
+def test_glb_audit_reports_structure_digest_and_bounds(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    report = audit_glb(path)
+    assert report["status"] == "structurally_valid"
+    assert len(report["sha256"]) == 64
+    assert report["node_count"] == 1
+    assert report["mesh_count"] == 1
+    assert report["triangle_count_estimate"] == 2
+    assert report["bounds"]["dimensions"] == pytest.approx([0.06, 0.04, 0.02])
+
+
+def test_synthetic_g1_asset_requires_visual_review_and_stays_out_of_as_built(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    result = validate_synthetic_asset(_record(path), path)
+    assert result["validation_status"] == "valid_for_synthetic_preview"
+    assert result["mapping_kind"] == "synthetic_reference_geometry"
+    assert result["as_built_eligible"] is False
+    assert result["asset_instance_id"] is None
+    assert result["telemetry_binding"] is None
+
+
+def test_synthetic_asset_rejects_digest_mismatch(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["geometry"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="GENERATED_GLB_DIGEST_MISMATCH"):
+        validate_synthetic_asset(record, path)
+
+
+def test_synthetic_asset_rejects_attempted_as_built_promotion(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["as_built_eligible"] = True
+    with pytest.raises(ValueError, match="AS_BUILT_PROMOTION_FORBIDDEN"):
+        validate_synthetic_asset(record, path)
+
+
+def test_synthetic_asset_rejects_missing_source_provenance(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["provenance"]["source_inputs"] = []
+    with pytest.raises(ValueError, match="SOURCE_PROVENANCE_REQUIRED"):
+        validate_synthetic_asset(record, path)
+
+
+def test_g2_requires_engineering_review_and_dimension_interface_evidence(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["quality_grade"] = "G2"
+    record["review"]["engineering_review"] = "pending"
+    with pytest.raises(ValueError, match="G2_ENGINEERING_REVIEW_REQUIRED"):
+        validate_synthetic_asset(record, path)
+
+
+def test_glb_rejects_invalid_header(tmp_path):
+    path = tmp_path / "bad.glb"
+    path.write_bytes(b"not a glb")
+    with pytest.raises(ValueError, match="GLB_TOO_SHORT"):
+        audit_glb(path)
+
+
+def test_glb_rejects_missing_position_accessor(tmp_path):
+    path = tmp_path / "bad.glb"
+    _write_glb(path)
+    doc = json.loads(path.read_bytes()[20:].decode().rstrip(" \0"))
+    doc["meshes"][0]["primitives"][0]["attributes"] = {}
+    raw = json.dumps(doc, separators=(",", ":")).encode()
+    raw += b" " * (-len(raw) % 4)
+    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+    with pytest.raises(ValueError, match="POSITION_ACCESSOR_MISSING"):
+        audit_glb(path)
