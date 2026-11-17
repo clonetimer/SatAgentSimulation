@@ -96,3 +96,14 @@ The hash-verified DOCX body extraction identifies the following review locations
 The extractor now creates a keyword locator index for battery, reaction wheel, Perovskite Solar Cells, -Y panel, Structural Testing Model, axis definition and named flight units. The review packet associates candidate-relevant paragraph/table/cell locations. These locators are navigation aids only; they do not assert the content is an approved configuration or prove an as-built installation transform.
 
 **Immediate review priorities:** inspect the actual axis-definition figure; visually inspect the battery/RW/PSC assembly illustrations and relevant table rows; determine whether the document's Structural Testing Model configuration corresponds to any of the three flight units; and retrieve the approved flight-unit-specific BOM/drawings before any coordinate promotion.
+
+
+## Flight-unit-specific documentary evidence expansion
+
+The P9-M3 pipeline now also retrieves four immutable BIRDS-4 test documents from the same upstream ProceduresAndReports commit:
+- Guarani-1 vibration test report;
+- Maya-2 vibration test report;
+- Tsuru vibration test report;
+- BIRDS-4 FM thermal-vacuum test report.
+
+Each source file is checked against its pinned Git blob SHA-1 and SHA-256 is recorded. The DOCX body paragraphs and tables are extracted with stable source locators and added to every candidate's identity-review packet. This is additional unit-specific test-campaign evidence, **not** an approved BOM, mechanical installation drawing, or final as-built configuration record. The reports remain `human_review_status=not_reviewed`; they cannot promote an installation transform or resolve FM/EM/B3 applicability by themselves.
