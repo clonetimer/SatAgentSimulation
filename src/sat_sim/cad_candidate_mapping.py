@@ -72,6 +72,7 @@ _ALIASES: dict[str, tuple[tuple[str, str, float], ...]] = {
     ),
     "component.payload": (
         (r"payload[ _-]?(?:instrument|unit|module)", "explicit_payload_name", 0.9),
+        (r"perovskite[ _-]?solar[ _-]?cells?", "perovskite_solar_cell_mission_payload_candidate", 0.95),
     ),
     "component.payload_sensor": (
         (r"payload[ _-]?sensor", "explicit_payload_sensor_name", 1.0),
