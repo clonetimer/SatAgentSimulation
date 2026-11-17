@@ -100,6 +100,17 @@ def test_glb_audit_reports_structure_digest_and_bounds(tmp_path):
     assert report["bounds"]["dimensions"] == pytest.approx([0.06, 0.04, 0.02])
 
 
+def test_glb_audit_rejects_position_bounds_that_do_not_match_binary_payload(tmp_path):
+    path = tmp_path / "mismatched-bounds.glb"
+    _write_glb(path)
+    document, binary = _read_glb_document(path)
+    payload = bytearray(binary)
+    struct.pack_into("<f", payload, 0, -0.5)
+    _write_glb_document(path, document, bytes(payload))
+    with pytest.raises(ValueError, match="POSITION_BOUNDS_DATA_MISMATCH"):
+        audit_glb(path)
+
+
 def test_synthetic_g1_asset_requires_visual_review_and_stays_out_of_as_built(tmp_path):
     path = tmp_path / "battery.glb"
     _write_glb(path)
