@@ -32,20 +32,29 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
         raise ValueError("P9M4I_GLB_HEADER_INVALID")
     offset = 12
     document = None
+    binary_chunk = None
+    chunk_number = 0
     while offset + 8 <= len(data):
         chunk_length, chunk_type = struct.unpack_from("<I4s", data, offset)
         offset += 8
         end = offset + chunk_length
         if end > len(data):
             raise ValueError("P9M4I_GLB_CHUNK_OUT_OF_BOUNDS")
+        if chunk_number == 0 and chunk_type != b"JSON":
+            raise ValueError("P9M4I_GLB_JSON_CHUNK_ORDER_INVALID")
         if chunk_type == b"JSON":
             if document is not None:
                 raise ValueError("P9M4I_GLB_DUPLICATE_JSON_CHUNK")
             try:
-                document = json.loads(data[offset:end].decode("utf-8").rstrip(" \0"))
+                document = json.loads(data[offset:end].decode("utf-8").rstrip(" \\0"))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise ValueError("P9M4I_GLB_JSON_INVALID") from exc
+        elif chunk_type == b"BIN\\0":
+            if binary_chunk is not None:
+                raise ValueError("P9M4I_GLB_DUPLICATE_BIN_CHUNK")
+            binary_chunk = data[offset:end]
         offset = end
+        chunk_number += 1
     if offset != len(data) or not isinstance(document, dict):
         raise ValueError("P9M4I_GLB_CHUNK_LAYOUT_INVALID")
     if document.get("asset", {}).get("version") != "2.0":
@@ -54,10 +63,47 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
     nodes = document.get("nodes", [])
     meshes = document.get("meshes", [])
     accessors = document.get("accessors", [])
+    buffer_views = document.get("bufferViews", [])
+    buffers = document.get("buffers", [])
     materials = document.get("materials", [])
     scenes = document.get("scenes", [])
-    if not isinstance(nodes, list) or not isinstance(meshes, list) or not isinstance(accessors, list):
+    if not all(isinstance(value, list) for value in (nodes, meshes, accessors, buffer_views, buffers)):
         raise ValueError("P9M4I_GLTF_ARRAY_INVALID")
+    if len(buffers) != 1 or not isinstance(buffers[0], dict) or "uri" in buffers[0] or binary_chunk is None:
+        raise ValueError("P9M4I_GLB_EMBEDDED_BINARY_BUFFER_REQUIRED")
+    declared_buffer_length = buffers[0].get("byteLength")
+    if type(declared_buffer_length) is not int or declared_buffer_length <= 0:
+        raise ValueError("P9M4I_GLB_BUFFER_LENGTH_INVALID")
+    if declared_buffer_length > len(binary_chunk) or len(binary_chunk) - declared_buffer_length > 3:
+        raise ValueError("P9M4I_GLB_BUFFER_LENGTH_MISMATCH")
+    for view_index, view in enumerate(buffer_views):
+        if not isinstance(view, dict) or view.get("buffer") != 0:
+            raise ValueError(f"P9M4I_BUFFER_VIEW_REFERENCE_INVALID:{view_index}")
+        view_offset = view.get("byteOffset", 0)
+        view_length = view.get("byteLength")
+        if type(view_offset) is not int or type(view_length) is not int or view_offset < 0 or view_length <= 0:
+            raise ValueError(f"P9M4I_BUFFER_VIEW_RANGE_INVALID:{view_index}")
+        if view_offset + view_length > declared_buffer_length:
+            raise ValueError(f"P9M4I_BUFFER_VIEW_OUT_OF_BOUNDS:{view_index}")
+
+    def _accessor_layout(accessor: Mapping[str, Any], *, component_size: int, element_size: int, label: str):
+        view_index = accessor.get("bufferView")
+        if type(view_index) is not int or not 0 <= view_index < len(buffer_views):
+            raise ValueError(f"P9M4I_{label}_BUFFER_VIEW_MISSING")
+        view = buffer_views[view_index]
+        accessor_offset = accessor.get("byteOffset", 0)
+        stride = view.get("byteStride", element_size)
+        if type(accessor_offset) is not int or accessor_offset < 0 or accessor_offset % component_size:
+            raise ValueError(f"P9M4I_{label}_ACCESSOR_OFFSET_INVALID")
+        if type(stride) is not int or stride < element_size or stride % component_size or stride > 252:
+            raise ValueError(f"P9M4I_{label}_BYTE_STRIDE_INVALID")
+        count = accessor.get("count")
+        if type(count) is not int or count <= 0:
+            raise ValueError(f"P9M4I_{label}_ACCESSOR_EMPTY")
+        required_end = accessor_offset + (count - 1) * stride + element_size
+        if required_end > view["byteLength"]:
+            raise ValueError(f"P9M4I_{label}_ACCESSOR_OUT_OF_BOUNDS")
+        return view["byteOffset"] + accessor_offset, stride
     for index, node in enumerate(nodes):
         if not isinstance(node, dict):
             raise ValueError(f"P9M4I_NODE_INVALID:{index}")
@@ -81,8 +127,9 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
             accessor = accessors[position_index]
             if accessor.get("type") != "VEC3" or accessor.get("componentType") not in (5126,):
                 raise ValueError(f"P9M4I_POSITION_ACCESSOR_TYPE_INVALID:{position_index}")
-            if type(accessor.get("count")) is not int or accessor["count"] <= 0:
-                raise ValueError(f"P9M4I_POSITION_ACCESSOR_EMPTY:{position_index}")
+            position_offset, position_stride = _accessor_layout(
+                accessor, component_size=4, element_size=12, label=f"POSITION_{position_index}"
+            )
             bounds_min, bounds_max = accessor.get("min"), accessor.get("max")
             if not isinstance(bounds_min, list) or not isinstance(bounds_max, list) or len(bounds_min) != 3 or len(bounds_max) != 3:
                 raise ValueError(f"P9M4I_POSITION_BOUNDS_MISSING:{position_index}")
@@ -90,6 +137,21 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
                 raise ValueError(f"P9M4I_POSITION_BOUNDS_NONFINITE:{position_index}")
             if any(float(bounds_min[i]) > float(bounds_max[i]) for i in range(3)):
                 raise ValueError(f"P9M4I_POSITION_BOUNDS_INVERTED:{position_index}")
+            actual_min = [math.inf, math.inf, math.inf]
+            actual_max = [-math.inf, -math.inf, -math.inf]
+            for vertex_index in range(accessor["count"]):
+                vertex = struct.unpack_from("<3f", binary_chunk, position_offset + vertex_index * position_stride)
+                if any(not math.isfinite(value) for value in vertex):
+                    raise ValueError(f"P9M4I_POSITION_DATA_NONFINITE:{position_index}")
+                for axis, value in enumerate(vertex):
+                    actual_min[axis] = min(actual_min[axis], value)
+                    actual_max[axis] = max(actual_max[axis], value)
+            if any(
+                abs(actual_min[i] - float(bounds_min[i])) > 1e-5
+                or abs(actual_max[i] - float(bounds_max[i])) > 1e-5
+                for i in range(3)
+            ):
+                raise ValueError(f"P9M4I_POSITION_BOUNDS_DATA_MISMATCH:{position_index}")
             mode = primitive.get("mode", 4)
             if type(mode) is not int or mode not in range(7):
                 raise ValueError(f"P9M4I_PRIMITIVE_MODE_INVALID:{mesh_index}")
@@ -103,11 +165,18 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
                 if type(index_accessor) is not int or not 0 <= index_accessor < len(accessors):
                     raise ValueError(f"P9M4I_INDEX_ACCESSOR_INVALID:{mesh_index}")
                 index_data = accessors[index_accessor]
-                index_count = index_data.get("count", 0)
-                if type(index_count) is not int or index_count <= 0:
-                    raise ValueError(f"P9M4I_INDEX_ACCESSOR_EMPTY:{mesh_index}")
-                if index_data.get("componentType") not in (5121, 5123, 5125) or index_data.get("type") != "SCALAR":
+                index_component = index_data.get("componentType")
+                index_format = {5121: ("<B", 1), 5123: ("<H", 2), 5125: ("<I", 4)}.get(index_component)
+                if index_data.get("type") != "SCALAR" or index_format is None:
                     raise ValueError(f"P9M4I_INDEX_ACCESSOR_TYPE_INVALID:{mesh_index}")
+                index_count = index_data.get("count", 0)
+                index_offset, index_stride = _accessor_layout(
+                    index_data, component_size=index_format[1], element_size=index_format[1], label=f"INDEX_{mesh_index}"
+                )
+                for item_index in range(index_count):
+                    value = struct.unpack_from(index_format[0], binary_chunk, index_offset + item_index * index_stride)[0]
+                    if value >= accessor["count"]:
+                        raise ValueError(f"P9M4I_INDEX_VALUE_OUT_OF_RANGE:{mesh_index}")
                 if mode == 4:
                     if index_count % 3:
                         raise ValueError(f"P9M4I_TRIANGLE_INDEX_COUNT_INVALID:{mesh_index}")
