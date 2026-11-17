@@ -67,3 +67,6 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 
 
 7. **Scope Playwright locators to the intended disclosure control.** The guided wizard contains nested `details/summary` elements inside the outer parameter panel. A locator such as `parameters.locator("summary")` is ambiguous and triggers strict-mode failure. Use `:scope > summary` for the panel's direct disclosure control, then target nested parameter-group summaries separately.
+
+
+8. **Guided native preset Chromium acceptance now passes.** On Ubuntu 24.04 with real Chromium, the user journey selects component level, selects `component.reaction_wheel`, chooses offline simulation, applies the registered native preset, and verifies the form holds `physics_backend=basilisk_native` with the backend section expanded. This confirms the preset is reachable from the guided workflow; it does not yet prove the browser-submitted Run produces a displayed result chart. That remains the next P9-N1 acceptance increment.
