@@ -609,7 +609,9 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
                 "() => document.querySelector('#chartLegend')?.children.length > 0",
                 timeout=15000,
             )
-            assert legend.inner_text().strip()
+            legend_text = legend.inner_text()
+            assert "反作用轮1 · 角速度" in legend_text, legend_text
+            assert "反作用轮1 · 实际电机力矩" in legend_text, legend_text
             assert not errors, errors
         finally:
             browser.close()
