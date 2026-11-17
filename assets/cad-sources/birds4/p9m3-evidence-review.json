@@ -1,0 +1,196 @@
+{
+  "schema_version": "p9m3-asbuilt-evidence-review.v1",
+  "review_scope": "BIRDS-4 reference CAD candidates only; not the user's Basilisk spacecraft as-built inventory",
+  "source_model": {
+    "name": "BIRDS4_FM_Final v7.step",
+    "repository": "https://github.com/BIRDSOpenSource/BIRDS4-CAD",
+    "source_commit": "3bab47a0f53410ef79005d21321ff659726f0a1c",
+    "git_blob_sha1": "0a1eea524ad16c9f06961a62bb550cad4d2d9e36",
+    "size_bytes": 22964753,
+    "sha256": "f59672d2bfa126474a7ddc5e06d277efe55aca7f8f30cff54648352d7da0f920",
+    "assembly_node_count": 855,
+    "assembly_occurrence_candidate_count": 3,
+    "geometry_leaf_count": 757,
+    "source_variant_node_counts": {
+      "fm": 855,
+      "em": 315,
+      "b3": 32
+    },
+    "source_contains_mixed_em_or_b3_nodes": true,
+    "candidate_audit_artifact": {
+      "run_id": 44001085568,
+      "artifact_id": 14291767773,
+      "sha256": "b5defd2f1494f5064cb633a88fd08aa31aaedc3233aa7ebc05cf3f9f314e8bee"
+    }
+  },
+  "coordinate_reference_review": {
+    "body_axis_reference": {
+      "source": "BIRDS Project Newsletter Issue No.49",
+      "url": "https://birds1.birds-project.com/files/BIRDS_Newsletter_Issue_No.49.pdf",
+      "page": 158,
+      "supported_claims": [
+        "BIRDS-4 structural rails are aligned along Z",
+        "structural frames lie in XY planes",
+        "the backplane board is assembled coplanar with the frame at the illustrated stage"
+      ],
+      "unsupported_claims": [
+        "numeric spacecraft datum origin",
+        "complete right-handed axis sign convention for every part",
+        "per-instance six-degree-of-freedom installation transforms",
+        "flight-unit-specific as-built placement"
+      ],
+      "review_status": "orientation_reference_only"
+    },
+    "nominal_envelope_reference": {
+      "source": "BIRDS Project Newsletter Issue No.42",
+      "url": "https://birds1.birds-project.com/files/BIRDS_Newsletter_Issue_No_42.pdf",
+      "page": 25,
+      "nominal_mainframe_mm": [100, 100, 113.5],
+      "review_status": "nominal_scale_context_only",
+      "not_an_installation_transform": true
+    },
+    "excluded_reference": {
+      "source": "BIRDS-X ICD",
+      "url": "https://birds-x.birds-project.com/wp-content/uploads/2023/08/ICD-V1.4-2.pdf",
+      "reason": "BIRDS-X is a different spacecraft generation; its coordinate origin and ICD dimensions must not be transferred to BIRDS-4."
+    }
+  },
+  "assembly_evidence_source": {
+    "title": "BIRDS4-FM Assembly Procedure.docx",
+    "repository": "https://github.com/BIRDSOpenSource/BIRDS4-ProceduresAndReports",
+    "source_commit": "d7eadd98f5327e1ddea82b640293d49bfdb09555",
+    "git_blob_sha1": "4236578c000b413773399d91e094b57a20a52e28",
+    "size_bytes": 61750445,
+    "role": "primary FM assembly evidence",
+    "review_status": "pinned_not_yet_content_reviewed",
+    "promotion_blocker": true
+  },
+  "global_promotion_gates": {
+    "all_candidates_require_flight_unit_identity_review": true,
+    "reason": "The full reference assembly contains EM- and B3-labelled nodes as well as FM-labelled nodes; an FM-looking candidate path does not establish the identity of the complete flight-unit configuration.",
+    "numeric_installation_transforms_approved": false,
+    "spatial_anchors_approved": false,
+    "as_built_instances_created": false,
+    "render_eligible_candidate_count": 0,
+    "required_coordinate_chain": [
+      "N (Basilisk inertial)",
+      "B (spacecraft body)",
+      "spacecraft datum",
+      "panel or bracket datum",
+      "equipment mounting datum",
+      "CAD asset local frame"
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "cfb4b56ae914d62350af",
+      "engineering_object_id": "component.battery",
+      "cad_source_label_name": "B4_battery v1",
+      "cad_node_path": "BIRDS4_FM_Final v7/B4_battery v1",
+      "parent_node_path": "BIRDS4_FM_Final v7",
+      "child_count": 14,
+      "variant_tags": ["fm"],
+      "identity_review_required": true,
+      "identity_review_status": "in_progress",
+      "functional_identity_evidence": [
+        {
+          "source": "BIRDS-4 1U CubeSat Missions and On-Orbit Results",
+          "url": "https://nanosat11th.itu.edu.tr/assets/papers/BIRDS-4.pdf",
+          "claim": "The BIRDS-4 bus uses a NiMH battery pack; the paper lists the battery configuration as 3S2P.",
+          "evidence_scope": "functional_and_configuration_context",
+          "status": "public_reference"
+        },
+        {
+          "source": "BIRDS Project Newsletter Issue No.42",
+          "url": "https://birds1.birds-project.com/files/BIRDS_Newsletter_Issue_No_42.pdf",
+          "page": 40,
+          "claim": "Battery screening and matching are described; six-cell packs and FM/EM/backup pack allocation are discussed.",
+          "evidence_scope": "selection_and_pack_context_not_as_built_coordinates",
+          "status": "public_reference"
+        }
+      ],
+      "assembly_evidence_status": "pending_fm_procedure_extraction",
+      "parent_mount_frame_status": "not_established",
+      "installation_transform_status": "not_established",
+      "installation_transform": null,
+      "instance_id": null,
+      "spatial_anchor": null,
+      "verification_status": "draft",
+      "render_eligible": false,
+      "unresolved": [
+        "Confirm the exact battery-pack variant for the intended flight unit (Tsuru, Guarani-1 or Maya-2).",
+        "Confirm the six-cell pack and internal cell arrangement against the FM assembly procedure and approved drawings.",
+        "Identify the approved parent board/bracket instance and mounting datum.",
+        "Obtain the numeric body-datum-to-battery-mount transform and its drawing revision."
+      ]
+    },
+    {
+      "candidate_id": "e1b8eab38cdce8b1f1d8",
+      "engineering_object_id": "component.reaction_wheel",
+      "cad_source_label_name": "B4_RW_Assembly v55",
+      "cad_node_path": "BIRDS4_FM_Final v7/B4_RW_Assembly v55",
+      "parent_node_path": "BIRDS4_FM_Final v7",
+      "child_count": 24,
+      "variant_tags": ["fm"],
+      "identity_review_required": true,
+      "identity_review_status": "in_progress",
+      "functional_identity_evidence": [
+        {
+          "source": "BIRDS-4 1U CubeSat Missions and On-Orbit Results",
+          "url": "https://nanosat11th.itu.edu.tr/assets/papers/BIRDS-4.pdf",
+          "claim": "The BIRDS-4 attitude-control system includes a reaction wheel and magnetic torquers.",
+          "evidence_scope": "subsystem_function_context",
+          "status": "public_reference"
+        }
+      ],
+      "assembly_evidence_status": "pending_fm_procedure_extraction",
+      "parent_mount_frame_status": "not_established",
+      "installation_transform_status": "not_established",
+      "installation_transform": null,
+      "instance_id": null,
+      "spatial_anchor": null,
+      "verification_status": "draft",
+      "render_eligible": false,
+      "unresolved": [
+        "Confirm the exact reaction-wheel assembly revision used by the selected flight unit.",
+        "Review the 24 child occurrences and determine which are wheel assembly parts versus unrelated imported subassembly content.",
+        "Identify the actual structural mounting face, fastener pattern and parent bracket/frame.",
+        "Obtain the numeric wheel mounting position and axis direction in the approved spacecraft body datum."
+      ]
+    },
+    {
+      "candidate_id": "07bf37336149e0d57609",
+      "engineering_object_id": "component.payload",
+      "cad_source_label_name": "Perovskite_Solar_Cells v3",
+      "cad_node_path": "BIRDS4_FM_Final v7/B4_FM_-Y_panel v3/Perovskite_Solar_Cells v3",
+      "parent_node_path": "BIRDS4_FM_Final v7/B4_FM_-Y_panel v3",
+      "child_count": 1,
+      "variant_tags": ["fm"],
+      "identity_review_required": true,
+      "identity_review_status": "in_progress",
+      "functional_identity_evidence": [
+        {
+          "source": "BIRDS-4 1U CubeSat Missions and On-Orbit Results",
+          "url": "https://nanosat11th.itu.edu.tr/assets/papers/BIRDS-4.pdf",
+          "claim": "The Perovskite Solar Cell (PSC) mission is listed separately from the bus power-generation solar cells; the bus uses Azur 3C30 cells and five external solar panels.",
+          "evidence_scope": "mission_function_classification_payload_not_bus_solar_array",
+          "status": "public_reference"
+        }
+      ],
+      "assembly_evidence_status": "pending_fm_procedure_extraction",
+      "parent_mount_frame_status": "B4_FM_-Y_panel_candidate_parent_only",
+      "installation_transform_status": "not_established",
+      "installation_transform": null,
+      "instance_id": null,
+      "spatial_anchor": null,
+      "verification_status": "draft",
+      "render_eligible": false,
+      "unresolved": [
+        "Confirm the PSC assembly revision and flight-unit applicability.",
+        "Verify the -Y panel attachment sequence and the exact parent mounting interface.",
+        "Establish the approved -Y panel datum and the PSC module local frame.",
+        "Obtain the numeric panel-datum-to-PSC transform and drawing revision."
+      ]
+    }
+  ]
+}
