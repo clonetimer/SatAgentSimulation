@@ -16,6 +16,8 @@ NS = {
     "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
 }
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
 
 def _sha256(path: Path) -> str:
@@ -46,6 +48,15 @@ def extract_docx(path: Path) -> list[dict]:
             xml = archive.read("word/document.xml")
         except KeyError as error:
             raise ValueError("P9M3_DOCX_MAIN_DOCUMENT_MISSING") from error
+        try:
+            relationships_xml = archive.read("word/_rels/document.xml.rels")
+            relationships_root = ET.fromstring(relationships_xml)
+            relationships = {
+                relation.attrib.get("Id"): relation.attrib.get("Target")
+                for relation in relationships_root
+            }
+        except KeyError:
+            relationships = {}
     root = ET.fromstring(xml)
     body = root.find(".//w:body", NS)
     if body is None:
@@ -58,12 +69,18 @@ def extract_docx(path: Path) -> list[dict]:
         if child.tag == W + "p":
             paragraph_index += 1
             text = _paragraph_text(child)
-            if text:
+            if text or list(child.iter(A + "blip")):
+                image_refs = []
+                for blip in child.iter(A + "blip"):
+                    rel_id = blip.attrib.get(R + "embed")
+                    if rel_id:
+                        image_refs.append({"relationship_id": rel_id, "target": relationships.get(rel_id)})
                 records.append({
                     "block_index": block_index,
                     "kind": "paragraph",
                     "paragraph_index": paragraph_index,
                     "text": text,
+                    "embedded_media_refs": image_refs,
                 })
             block_index += 1
         elif child.tag == W + "tbl":
@@ -79,11 +96,17 @@ def extract_docx(path: Path) -> list[dict]:
                         "text": "\n".join(text for text in paragraphs if text),
                     })
                 rows.append({"row_index": row_index, "cells": cells})
+            image_refs = []
+            for blip in child.iter(A + "blip"):
+                rel_id = blip.attrib.get(R + "embed")
+                if rel_id:
+                    image_refs.append({"relationship_id": rel_id, "target": relationships.get(rel_id)})
             records.append({
                 "block_index": block_index,
                 "kind": "table",
                 "table_index": table_index,
                 "rows": rows,
+                "embedded_media_refs": image_refs,
             })
             block_index += 1
     return records
@@ -114,12 +137,28 @@ def build_keyword_index(blocks: list[dict]) -> dict[str, list[dict]]:
     return index
 
 
+def extract_docx_media(path: Path, output_dir: Path) -> list[dict]:
+    """Extract embedded Word media unchanged and record hashes; no image interpretation."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    records = []
+    with zipfile.ZipFile(path) as archive:
+        for name in sorted(archive.namelist()):
+            if not name.startswith("word/media/") or name.endswith("/"):
+                continue
+            data = archive.read(name)
+            target = output_dir / Path(name).name
+            target.write_bytes(data)
+            records.append({"source_member": name, "output_path": str(target), "size_bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(), "review_status": "not_visually_reviewed"})
+    return records
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docx", type=Path, required=True)
     parser.add_argument("--expected-size", type=int, required=True)
     parser.add_argument("--expected-git-blob-sha1", required=True)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--media-dir", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -130,6 +169,7 @@ def main() -> int:
         raise ValueError(f"P9M3_PROCEDURE_GIT_BLOB_SHA1_MISMATCH:{actual_git_sha1}")
     blocks = extract_docx(args.docx)
     keyword_index = build_keyword_index(blocks)
+    media = extract_docx_media(args.docx, args.media_dir) if args.media_dir else []
     report = {
         "schema_version": "birds4-fm-assembly-procedure-extract.v1",
         "source": {
@@ -150,8 +190,11 @@ def main() -> int:
             "interpretation_status": "raw_text_evidence_only",
             "keyword_index_status": "source_locators_only_not_claim_approval",
             "keyword_hit_count": sum(len(matches) for matches in keyword_index.values()),
+            "embedded_media_count": len(media),
+            "embedded_media_status": "extracted_unchanged_not_visually_reviewed",
         },
         "keyword_index": keyword_index,
+        "embedded_media": media,
         "blocks": blocks,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -159,6 +202,7 @@ def main() -> int:
     print(json.dumps({"paragraph_count": report["extraction"]["paragraph_count"],
                       "table_count": report["extraction"]["table_count"],
                       "keyword_hit_count": report["extraction"]["keyword_hit_count"],
+                      "embedded_media_count": report["extraction"]["embedded_media_count"],
                       "source_sha256": report["source"]["sha256"],
                       "human_review_status": report["extraction"]["human_review_status"]},
                      ensure_ascii=False, sort_keys=True))

@@ -60,3 +60,40 @@ def test_keyword_index_returns_stable_paragraph_and_table_cell_locators():
     assert index["perovskite solar cells"][0]["table_index"] == 9
     assert index["perovskite solar cells"][0]["row_index"] == 7
     assert index["-y panel"][0]["cell_index"] == 2
+
+
+def test_embedded_docx_media_is_extracted_unchanged_with_hash_receipt(tmp_path):
+    path = tmp_path / "procedure.docx"
+    media = b"\x89PNG\r\n\x1a\nsynthetic-figure-bytes"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("word/document.xml", b"<w:document xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'><w:body/></w:document>")
+        archive.writestr("word/media/image1.png", media)
+    records = MODULE.extract_docx_media(path, tmp_path / "media")
+    assert len(records) == 1
+    assert (tmp_path / "media" / "image1.png").read_bytes() == media
+    assert records[0]["review_status"] == "not_visually_reviewed"
+    assert records[0]["sha256"] == __import__("hashlib").sha256(media).hexdigest()
+
+
+def test_embedded_figure_relationship_is_tied_to_source_paragraph_locator(tmp_path):
+    path = tmp_path / "procedure.docx"
+    document = b"""<?xml version="1.0"?>
+    <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+      xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <w:body>
+        <w:p><w:r><w:t>Axis definition</w:t></w:r></w:p>
+        <w:p><w:r><w:drawing><a:graphic><a:graphicData><a:blip r:embed="rId7"/></a:graphicData></a:graphic></w:drawing></w:r></w:p>
+      </w:body>
+    </w:document>"""
+    relationships = b"""<?xml version="1.0"?>
+    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+      <Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image7.png"/>
+    </Relationships>"""
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("word/document.xml", document)
+        archive.writestr("word/_rels/document.xml.rels", relationships)
+        archive.writestr("word/media/image7.png", b"figure")
+    blocks = MODULE.extract_docx(path)
+    assert blocks[1]["paragraph_index"] == 2
+    assert blocks[1]["embedded_media_refs"] == [{"relationship_id": "rId7", "target": "media/image7.png"}]

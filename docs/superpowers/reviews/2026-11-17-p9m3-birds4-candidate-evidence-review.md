@@ -137,3 +137,12 @@ This is valuable evidence that the FM TVT campaign instrumented the battery box,
 | Perovskite payload | FM Assembly Procedure Table 9 adhesive checklist and -Y panel procedure | Structural Testing Model procedure's payload-to--Y-panel assembly context | Flight-unit payload configuration, approved payload interface drawing, final unit applicability and installed transform |
 
 **No promotion is authorized by these reports.** All three candidates remain `blocked_evidence_incomplete`, with null instance/installation transform/spatial anchor and `render_eligible=false`.
+
+
+## 6. Axis-definition figure screening
+
+The pinned Assembly Procedure's paragraph 41 contains two embedded media references:
+- `word/media/image4.png`, SHA-256 `1b16a76cdbf476c70b59cf14920eddbef769b4ee979f72ee8d709cb89e242d3f`: qualitative axis triad with +Z upward, +X upward/right and +Y upward/left.
+- `word/media/image5.png`, SHA-256 `a36aea0e68e66c639919b041ad8cda0615ce90f7684729a0e63eb95c377e35a7`: perspective satellite structure illustration.
+
+The figure gives qualitative axis directions but does not identify a numeric spacecraft datum origin, an explicit handedness statement, or a complete CAD-to-body transform chain. It is not sufficient to approve installation transforms for any candidate.

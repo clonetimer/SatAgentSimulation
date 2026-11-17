@@ -107,3 +107,26 @@ The P9-M3 pipeline now also retrieves four immutable BIRDS-4 test documents from
 - BIRDS-4 FM thermal-vacuum test report.
 
 Each source file is checked against its pinned Git blob SHA-1 and SHA-256 is recorded. The DOCX body paragraphs and tables are extracted with stable source locators and added to every candidate's identity-review packet. This is additional unit-specific test-campaign evidence, **not** an approved BOM, mechanical installation drawing, or final as-built configuration record. The reports remain `human_review_status=not_reviewed`; they cannot promote an installation transform or resolve FM/EM/B3 applicability by themselves.
+
+
+## Embedded figure extraction for coordinate review
+
+The FM Assembly Procedure DOCX contains figures that cannot be interpreted from extracted paragraph text alone, particularly the axis-definition illustration referenced in paragraphs 39–42. The extraction tool now exports every `word/media/*` asset unchanged, records the original OOXML member path, byte count and SHA-256, and labels each image `not_visually_reviewed`. CI preserves these files with the text evidence package.
+
+This enables direct inspection of the original axis-definition and assembly illustrations. It does not automatically assign a datum, infer image geometry or convert a drawing into a numeric installation transform.
+
+
+## Visual screening of the axis-definition figure (P9-M3, 2026-11-17)
+
+The DOCX relationship index now ties paragraph 41 to two original media members:
+- `word/media/image4.png` — 9,401 bytes, SHA-256 `1b16a76cdbf476c70b59cf14920eddbef769b4ee979f72ee8d709cb89e242d3f`.
+- `word/media/image5.png` — 73,731 bytes, SHA-256 `a36aea0e68e66c639919b041ad8cda0615ce90f7684729a0e63eb95c377e35a7`.
+
+Visual screening:
+- Image 4 is the axis triad illustration: +Z is drawn upward, +X diagonally upward/right, and +Y diagonally upward/left, with the three arrows meeting at a common illustrated origin.
+- Image 5 is a perspective illustration of the satellite structure, showing external panels and an end-face assembly. It is a visual assembly reference, not a dimensioned datum drawing.
+- The drawing does not identify a numeric origin on the spacecraft body, provide axis-to-CAD transformation parameters, specify a complete frame transformation chain, or state an explicit handedness convention in the figure itself.
+
+Therefore the figure supports the qualitative axis-label orientation used by the procedure, but does not close the engineering datum-origin, handedness or six-DOF installation-transform evidence requirements. It must not be used to calculate or approve battery/RW/PSC installation matrices.
+
+The original extracted files remain unchanged. A white-background derivative of image 4 is used only to make its transparent palette visible during review; the source SHA-256 above refers to the original PNG, not the derivative.
