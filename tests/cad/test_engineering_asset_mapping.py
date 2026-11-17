@@ -180,3 +180,24 @@ def test_unknown_schema_and_kind_fail_closed():
     record["mapping_kind"] = "verified_by_filename"
     with pytest.raises(ValueError, match="UNKNOWN_MAPPING_KIND"):
         validate_mapping_record(record)
+
+
+def test_as_built_mapping_requires_named_parent_and_child_frames():
+    record = _as_built()
+    record["geometry_frame"]["frame_id"] = None
+    with pytest.raises(ValueError, match="AS_BUILT_FRAME_APPROVAL_REQUIRED"):
+        validate_mapping_record(record)
+
+
+def test_simulation_geometry_requires_run_and_taskspec_identity():
+    record = _simulation_configuration()
+    record["simulation_binding"] = {"run_id": "run-123"}
+    with pytest.raises(ValueError, match="SIMULATION_RUN_BINDING_REQUIRED"):
+        validate_mapping_record(record)
+
+
+def test_non_mapping_render_policy_fails_closed():
+    record = _reference_cad()
+    record["render"] = True
+    with pytest.raises(ValueError, match="RENDER_POLICY_REQUIRED"):
+        validate_mapping_record(record)
