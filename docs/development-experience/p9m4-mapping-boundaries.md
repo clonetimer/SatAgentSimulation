@@ -143,3 +143,6 @@ Two independent test defects were found while integrating the real BIRDS-4 brows
 4. **Asset cache versions.** When changing module behavior or module initialization contracts, bump the corresponding query-string cache version in the HTML. Otherwise a deployed browser may continue to execute a stale module while the HTML and server code have moved forward.
 
 Evidence chain now includes: independently pinned GLB download → same-run registry artifact → both SHA-256 checks → API candidate projection → Chromium group-location test. Do not mark the real browser acceptance complete until all three real assembly groups are located and the evidence artifact is uploaded.
+
+
+5. **Workflow path filters must include shared integration-test files.** The P9-M4 workflow originally watched its dedicated endpoint tests but not the shared Chromium scene test file that now hosts the real BIRDS-4 review. Add that exact path to the workflow's PR path filter; otherwise a test-only fix can trigger P9-C/P9-L4 while silently leaving the dedicated P9-M4 acceptance stale.
