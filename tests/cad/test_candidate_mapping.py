@@ -211,3 +211,23 @@ def test_perovskite_solar_cell_mission_is_payload_not_bus_solar_array():
     assert candidate["match_evidence"][0]["reason"] == "perovskite_solar_cell_mission_payload_candidate"
     assert candidate["verification_status"] == "draft"
     assert candidate["render_eligible"] is False
+
+
+def test_mixed_em_or_b3_nodes_in_full_reference_model_flag_all_candidates_for_identity_review():
+    result = build_candidate_mapping(
+        _engineering_tree(),
+        {"nodes": [
+            _cad_node("BIRDS4_FM_Final v7/B4_battery v1", "B4_battery v1"),
+            _cad_node("BIRDS4_FM_Final v7/B4_EM_panel v19", "B4_EM_panel v19"),
+            _cad_node("BIRDS4_FM_Final v7/B3_panel v26", "B3_panel v26"),
+        ]},
+    )
+    assert result["source"]["source_contains_mixed_em_or_b3_nodes"] is True
+    assert result["source"]["source_variant_node_counts"]["em"] == 1
+    assert result["source"]["source_variant_node_counts"]["b3"] == 1
+    assert len(result["candidates"]) == 1
+    candidate = result["candidates"][0]
+    assert candidate["engineering_object_id"] == "component.battery"
+    assert candidate["variant_tags"] == ["fm"]
+    assert candidate["source_model_identity_review_required"] is True
+    assert candidate["identity_review_required"] is True
