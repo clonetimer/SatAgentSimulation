@@ -29,3 +29,6 @@ A valid GLB proves file structure and internal consistency only. It does not pro
 ## Windows CLI help must encode Chinese text explicitly
 
 After fixing PYTHONPATH, the Windows 2022 job reached the CLI smoke check and failed because argparse printed the Chinese module docstring through a cp1252 console stream. This is a real Windows usability issue, not a test-only issue. Reconfigure stdout/stderr to UTF-8 before argparse emits help; keep the user-facing Chinese description rather than deleting it to satisfy CI.
+
+
+A second Windows-only workflow failure occurred after the CLI passed: the benchmark-manifest step used a Bash heredoc but inherited the Windows runner's default PowerShell shell. Set the shell explicitly to bash on heredoc steps. Do not assume a multi-line run block selects Bash; on Windows it still defaults to PowerShell unless the shell is declared.
