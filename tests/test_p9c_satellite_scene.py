@@ -15,7 +15,6 @@ from fastapi.testclient import TestClient
 
 from sat_sim.api import create_app
 
-
 def _client(tmp_path: Path) -> TestClient:
     app = create_app(
         runs_root=tmp_path / "runs",
@@ -24,7 +23,6 @@ def _client(tmp_path: Path) -> TestClient:
         auth_mode="disabled",
     )
     return TestClient(app)
-
 
 def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
     with _client(tmp_path) as client:
@@ -93,7 +91,6 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert "'unsafe-eval'" not in csp
         assert "'wasm-unsafe-eval'" not in csp
 
-
 def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
     scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
@@ -109,7 +106,6 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "updateTelemetry, updateAdcsTelemetry, setAdcsTelemetryPending, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin" in scene
     assert "setInterval" not in scene
     assert "unsafe-eval" not in scene
-
 
 def test_scene_source_context_exposes_capability_lifecycle_and_independent_adcs_quality():
     root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
@@ -132,7 +128,6 @@ def test_scene_source_context_exposes_capability_lifecycle_and_independent_adcs_
     assert "setAdcsTelemetryPending?.(" in continuous
     assert "capabilityId: info.session?.capability_id" in continuous
     assert "lifecycleState: info.session?.state" in continuous
-
 
 def test_simulation_geometry_view_requires_validated_whole_spacecraft_configuration():
     root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
@@ -205,7 +200,6 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "setSimulationGeometryVisible?.(false)" in app
     assert "setOrbitSceneVisible?.(false)" in app
 
-
 def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
     playwright = pytest.importorskip("playwright.sync_api")
     executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
@@ -248,7 +242,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 # when the scene is already active on the next iteration.
                 if page.locator("body").get_attribute("data-active-view") != "scene":
                     page.locator("#wizardSceneShortcutBtn").click()
-            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
+
                 playwright.expect(page.locator(".app-sidebar")).to_be_hidden()
                 playwright.expect(page.locator("#workbenchNavigation")).to_be_hidden()
                 playwright.expect(page.locator(".scene-workspace-nav")).to_be_visible()
@@ -464,7 +458,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "wizard")
                     playwright.expect(page.locator("#wizardView")).to_be_visible()
                     page.locator("#wizardSceneShortcutBtn").click()
-            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
+
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "scene")
                     page.locator('[data-scene-mode="orbit"]').click()
                     page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
@@ -482,7 +476,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 page.locator("#wizardView").wait_for(state="visible")
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
                 page.locator("#wizardSceneShortcutBtn").click()
-            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
+
                 page.locator("#sceneWorkspaceCreatorBtn").click()
                 page.locator("#creatorView").wait_for(state="visible")
                 assert page.locator("body").get_attribute("data-active-view") == "creator"
@@ -493,7 +487,6 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             assert not failures, failures
         finally:
             browser.close()
-
 
 def _write_triangle_glb(path: Path) -> None:
     """Create a tiny valid glTF 2.0 binary fixture for real browser loader tests."""
@@ -538,7 +531,6 @@ def _write_triangle_glb(path: Path) -> None:
         + struct.pack("<I4s", len(binary_chunk), b"BIN\0") + binary_chunk
     )
     path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
-
 
 def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_path: Path):
     playwright = pytest.importorskip("playwright.sync_api")
@@ -587,7 +579,7 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
-            page.wait_for_function("() => Boolean(window.BirdsCadViewer?.setViewerVisible)", timeout=30000)
+
             playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
             playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
             playwright.expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
@@ -740,7 +732,6 @@ def test_scene_object_selection_preserves_physical_and_assembly_semantics_withou
                        "sceneObjectAnchor", "sceneObjectMapping", "sceneObjectInventory", "sceneObjectSemanticsNote"):
         assert f'id="{element_id}"' in html
 
-
 def test_default_scene_mode_initialization_and_renderer_ownership():
     """Execute the production DOM mode controller without loading WebGL."""
     root = Path(__file__).resolve().parents[1]
@@ -749,7 +740,6 @@ def test_default_scene_mode_initialization_and_renderer_ownership():
         cwd=root, capture_output=True, text=True, timeout=30,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-
 
 def _write_review_group_glb(path: Path) -> None:
     """Turn the triangle fixture into a two-level assembly group with one mesh descendant."""
@@ -769,7 +759,6 @@ def _write_review_group_glb(path: Path) -> None:
     binary_chunk = data[20 + json_length:]
     body = struct.pack("<I4s", len(json_chunk), b"JSON") + json_chunk + binary_chunk
     path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
-
 
 def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp_path: Path, monkeypatch):
     playwright = pytest.importorskip("playwright.sync_api")
@@ -895,7 +884,6 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             assert not failures, failures
         finally:
             browser.close()
-
 
 def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monkeypatch):
     """Review the actual pinned BIRDS-4 GLB against the registry built from the same bytes."""
