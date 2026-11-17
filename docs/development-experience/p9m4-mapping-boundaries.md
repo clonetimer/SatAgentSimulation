@@ -27,3 +27,20 @@
 先复现 26 个策略失败，再修改生产代码；注册器的 16 个用例（含真实包接入）在未实现时失败，再实现。保留原 11 项行为测试。源代码/测试本地快照的 Git blob SHA-1 与连接器读取值一致；本地为相关模块验证，完整包导入和跨平台结果以新 CI 为准。
 
 后续独立任务：GLB occurrence 显式绑定、API/检查器只读展示、浏览器验收、真实三模式长序列；不得将本轮 JSON 注册验收表述为整个平台完成。
+
+
+## Stable gate maintenance: dependency pin must follow the project declaration
+
+P9-M4 triggered the Stable source-wheel gate and exposed a stale assertion hard-coded to \`bsk==2.11.0+satfix1\`, while the current \`pyproject.toml\` declares \`bsk==2.11.0+satfix2\`. The first attempted repair then read \`pyproject.toml\` relative to \`/tmp\`, because the installed-wheel verification intentionally runs outside the checkout.
+
+Correct pattern:
+- Run installed-package checks from an isolated working directory to prove the wheel is importable independently of the checkout.
+- Read source metadata through \`GITHUB_WORKSPACE/pyproject.toml\`, not the current working directory.
+- Compare the single declared \`bsk==...\` requirement with the installed wheel's \`Requires-Dist\` metadata after whitespace normalization.
+- Do not hard-code an obsolete version and do not remove the pin check.
+
+## Scene integration: display evidence class, never fabricate a model
+
+The new read-only \`/workbench/engineering-mapping\` endpoint accepts only a deployment-configured mapping bundle path (\`SAT_SIM_ENGINEERING_MAPPING_BUNDLE\`). It validates the complete bundle before returning a minimal public projection. Missing configuration is reported as \`not_configured\`; malformed bundles are rejected as \`invalid\`; no path or raw evidence content is returned.
+
+The satellite scene inspector displays only mapping counts and object-to-mapping-kind status. It does not load a GLB, infer STEP-to-GLB node selectors, create telemetry bindings, or draw unlocated hardware. This keeps the UI useful while preserving the distinction between reference CAD, simulation configuration and approved as-built geometry.
