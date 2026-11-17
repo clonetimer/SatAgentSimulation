@@ -6,6 +6,8 @@ on:
       - "src/sat_sim/synthetic_asset_generation.py"
       - "src/sat_sim/schemas/synthetic-reference-geometry.v1.schema.json"
       - "scripts/cad/audit_synthetic_asset.py"
+      - "scripts/cad/build_parametric_synthetic_asset.FCMacro"
+      - "docs/superpowers/benchmarks/2026-11-17-p9m4i-parametric-input.schema.json"
       - "tests/cad/test_synthetic_asset_generation.py"
       - "docs/superpowers/plans/2026-11-17-p9m4i-ai-engineering-asset-generation.md"
       - "docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json"
