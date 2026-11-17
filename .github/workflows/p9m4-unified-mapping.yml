@@ -252,7 +252,7 @@ jobs:
         run: |
           mkdir -p reports/p9m4-d
           python -m pytest -q tests/test_p9c_satellite_scene.py \
-            -k p9m4_real_birds4_review --junitxml=reports/p9m4-d/real-browser-review.xml
+            -k p9m4_ --junitxml=reports/p9m4-d/browser-review.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
