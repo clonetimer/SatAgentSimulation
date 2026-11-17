@@ -164,14 +164,14 @@ def test_glb_audit_rejects_bin_chunk_after_unknown_chunk(tmp_path):
     document, binary = _read_glb_document(path)
     raw_json = json.dumps(document, separators=(",", ":")).encode("utf-8")
     raw_json += b" " * (-len(raw_json) % 4)
-    binary += b"\\0" * (-len(binary) % 4)
+    binary += b"\0" * (-len(binary) % 4)
     unknown = b"test"
     total = 12 + 8 + len(raw_json) + 8 + len(unknown) + 8 + len(binary)
     path.write_bytes(
         struct.pack("<4sII", b"glTF", 2, total)
         + struct.pack("<I4s", len(raw_json), b"JSON") + raw_json
         + struct.pack("<I4s", len(unknown), b"TEST") + unknown
-        + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
+        + struct.pack("<I4s", len(binary), b"BIN\0") + binary
     )
     with pytest.raises(ValueError, match="BIN_CHUNK_ORDER_INVALID"):
         audit_glb(path)
