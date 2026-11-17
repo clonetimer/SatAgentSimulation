@@ -139,6 +139,6 @@ G3 as-built:
 
 ## GLB audit hardening and source intake
 
-The GLB auditor now also checks primitive mode, material references, index accessor scalar/component types, triangle index divisibility and non-indexed triangle vertex divisibility. These checks are structural validation only, not proof of geometric accuracy.
+The GLB auditor now also checks primitive mode, material references, index accessor scalar/component types, triangle index divisibility and non-indexed triangle vertex divisibility. These checks are structural validation only, not proof of geometric accuracy. It additionally requires the embedded GLB BIN payload, validates bufferView/accessor byte ranges, reads the actual float32 POSITION records, and checks that declared accessor bounds agree with the decoded vertex payload. A regression fixture deliberately corrupts vertex data while leaving metadata unchanged.
 
 A three-device source-intake worksheet has been added. It specifies the minimum original photos, dimensions, interface drawings and hardware identity needed for battery, reaction wheel and star tracker. Current source status is explicitly `blocked_source_intake`; no device-specific dimensions or models have been fabricated.
