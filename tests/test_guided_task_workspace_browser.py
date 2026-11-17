@@ -574,6 +574,9 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert backend.input_value() == "basilisk_native"
             assert page.locator('#dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
             assert "仅支持单轮标称工况" in page.locator("#wizardNotice").inner_text()
+            fault_panel = page.locator("#wizardFaultPanel")
+            if fault_panel.get_attribute("open") is None:
+                fault_panel.locator(":scope > summary").click()
             events_panel = page.locator("#compactEvents")
             if events_panel.get_attribute("open") is None:
                 events_panel.locator(":scope > summary").click()
