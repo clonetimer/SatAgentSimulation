@@ -43,3 +43,20 @@ def test_git_blob_sha1_uses_git_object_header(tmp_path):
     data = path.read_bytes()
     expected = hashlib.sha1(f"blob {len(data)}\0".encode("ascii") + data).hexdigest()
     assert MODULE.git_blob_sha1(path) == expected
+
+
+def test_keyword_index_returns_stable_paragraph_and_table_cell_locators():
+    blocks = [
+        {"kind": "paragraph", "block_index": 1, "paragraph_index": 20, "text": "Structural Testing Model assembly procedure"},
+        {"kind": "table", "block_index": 2, "table_index": 9, "rows": [
+            {"row_index": 7, "cells": [
+                {"cell_index": 1, "text": "Perovskite solar cells"},
+                {"cell_index": 2, "text": "-Y panel"},
+            ]}
+        ]},
+    ]
+    index = MODULE.build_keyword_index(blocks)
+    assert index["structural testing model"][0]["paragraph_index"] == 20
+    assert index["perovskite solar cells"][0]["table_index"] == 9
+    assert index["perovskite solar cells"][0]["row_index"] == 7
+    assert index["-y panel"][0]["cell_index"] == 2
