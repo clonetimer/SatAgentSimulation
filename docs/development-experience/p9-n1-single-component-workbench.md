@@ -39,3 +39,8 @@ The compact event editor is nested inside the guided event panel. A Playwright t
 ## 9. Browser smoke should distinguish critical asset/API failures from optional browser resources
 
 Some browser consoles report 404s for optional resources (for example favicon or ancillary resources) that are unrelated to the workbench journey. For this component workflow, collect uncaught page errors and fail on 4xx/5xx responses for required /assets/, form, scenario-template and workbench API paths. Do not hide missing application assets, but do not treat unrelated browser metadata requests as application failures.
+
+
+## 10. Provenance fields are intentionally collapsed in compact result mode
+
+The compact workbench moves secondary Run details into a disclosure labelled "运行信息". A browser test must open that disclosure before asserting backend/provenance values; the fields are present in the result DOM but intentionally not shown in the compact card by default. This keeps the initial result summary concise while retaining auditable detail on demand.
