@@ -64,3 +64,6 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 
 
 6. **Pin Playwright browser jobs to a supported runner image.** The first P9-N1 guided-browser CI extension used `ubuntu-latest`, which resolved to Ubuntu 26.04 x64 in this run; Playwright 1.57.0 did not provide a supported Chromium install for that image (`Playwright does not support chromium on ubuntu26.04-x64`). Pin the browser acceptance job to `ubuntu-24.04`, matching the project's other Chromium acceptance workflows. This is an environment compatibility failure, not a workbench/browser test failure.
+
+
+7. **Scope Playwright locators to the intended disclosure control.** The guided wizard contains nested `details/summary` elements inside the outer parameter panel. A locator such as `parameters.locator("summary")` is ambiguous and triggers strict-mode failure. Use `:scope > summary` for the panel's direct disclosure control, then target nested parameter-group summaries separately.
