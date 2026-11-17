@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import struct
+from pathlib import Path
+
+from jsonschema import Draft202012Validator
 
 import pytest
 
@@ -141,3 +144,23 @@ def test_freecad_parametric_macro_requires_source_backed_dimensions_and_position
     assert 'doc.saveAs' in macro
     assert 'Import.export' in macro
     assert 'telemetry' not in macro.lower()
+
+
+def test_synthetic_asset_record_conforms_to_published_json_schema(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    schema_path = Path(__file__).resolve().parents[2] / "src" / "sat_sim" / "schemas" / "synthetic-reference-geometry.v1.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
+    Draft202012Validator(schema).validate(_record(path))
+
+
+def test_published_schema_rejects_telemetry_and_as_built_claims(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["telemetry_binding"] = {"binding_status": "approved"}
+    schema_path = Path(__file__).resolve().parents[2] / "src" / "sat_sim" / "schemas" / "synthetic-reference-geometry.v1.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    with pytest.raises(Exception):
+        Draft202012Validator(schema).validate(record)
