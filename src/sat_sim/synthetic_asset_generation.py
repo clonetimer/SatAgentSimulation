@@ -108,7 +108,7 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
         required_end = accessor_offset + (count - 1) * stride + element_size
         if required_end > view["byteLength"]:
             raise ValueError(f"P9M4I_{label}_ACCESSOR_OUT_OF_BOUNDS")
-        return view["byteOffset"] + accessor_offset, stride
+        return view_offset + accessor_offset, stride
     for index, node in enumerate(nodes):
         if not isinstance(node, dict):
             raise ValueError(f"P9M4I_NODE_INVALID:{index}")
