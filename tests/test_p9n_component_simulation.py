@@ -79,7 +79,7 @@ def test_native_reaction_wheel_template_is_published_by_the_workbench_api(tmp_pa
         form = client.get("/forms/capabilities/component.reaction_wheel.v1")
         assert form.status_code == 200, form.text
         backend = next(
-            field for field in form.json()["fields"]
+            field for field in form.json()["form_schema"]["fields"]
             if field["path"] == "parameters.values.physics_backend"
         )
         assert backend["importance"] == "common"
