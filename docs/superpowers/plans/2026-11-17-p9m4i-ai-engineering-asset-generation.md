@@ -94,3 +94,33 @@ G3 as-built:
 - 许可、硬件、模型隔离和质量门禁文档；
 - 单元测试与 CI；
 - 不修改 Basilisk 仿真模型，不新增核心运行时 AI 依赖。
+
+
+## 公开技术调研依据（2026-11-17）
+
+### TRELLIS.2
+- 官方仓库：`https://github.com/microsoft/TRELLIS.2`
+- 官方项目页：`https://microsoft.github.io/TRELLIS.2/`
+- 4B image-to-3D，输出 PBR textured mesh，支持 512³–1536³。
+- 官方安装说明要求 Linux、NVIDIA GPU ≥24GB、推荐 CUDA 12.4；官方性能数据基于 H100，不能外推到笔记本 RTX 5060。
+- 仓库主许可证标示 MIT；第三方依赖仍需分别核对许可证。
+- 适配结论：作为隔离 GPU worker 的 G1 外观生成候选；不作为参数化工程几何来源。
+
+### Hunyuan3D-2.1
+- 官方仓库：`https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1`
+- 官方 API 示例支持异步生成、状态查询及 GLB/OBJ 输出。
+- 模型采用 Tencent Hunyuan 3D 2.1 Community License，而非 MIT；许可存在地域、分发和使用条件，且第三方依赖有独立许可。
+- 适配结论：只作为可选对照，完成许可证/地区/分发审查前不纳入默认路线。
+
+### 工业机械重建
+- DOGREAT3D，Journal of Manufacturing Systems，2026，DOI: `10.1016/j.jmsy.2026.03.024`。
+- 论文摘要报告单图机械零件重建、置信度感知多模态融合；F-score@1mm 为 0.526，Chamfer Distance 相对改善 14.1%。
+- 适配结论：证明机械重建研究正在进步，但该指标不足以证明卫星单机接口达到 1mm 工程验收；作为研究对照，不直接依赖其模型。
+
+### 参数化 CAD
+- 本项目优先使用 FreeCAD Python API / OpenCascade 做确定性参数化几何。
+- GPT/VLM 仅产出有来源的结构化参数建议；所有数值保留来源定位和置信/未知状态。
+- CAD 内核负责执行与导出，独立审计器负责验证 GLB 结构；不把 LLM 文本输出直接当成几何事实。
+
+## 当前技术选择
+第一轮只实施 TRELLIS.2 作为可选 G1 生成 worker，参数化 CAD 作为工程主基线。Hunyuan3D 先不部署，直到许可评审完成。任何生成模型的输出都进入 `synthetic_reference_geometry`，不得隐式转换为 P9-M4 的 `reference_cad` 或 `as_built_verified`。
