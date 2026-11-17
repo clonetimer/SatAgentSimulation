@@ -1665,14 +1665,21 @@ def create_app(
                         raise ValueError("P9M4_REFERENCE_CANDIDATE_STATUS_INVALID")
                     node_index = candidate.get("candidate_glb_node_index")
                     descendants = candidate.get("candidate_descendant_mesh_nodes")
+                    node_name = candidate.get("candidate_glb_node_name")
+                    node_mesh_index = candidate.get("candidate_glb_mesh_index")
+                    geometry_node_count = candidate.get("candidate_geometry_node_count")
                     if (
                         type(node_index) is not int or not 0 <= node_index < node_count
+                        or not isinstance(node_name, str) or not node_name
+                        or (node_mesh_index is not None and (type(node_mesh_index) is not int or node_mesh_index < 0))
+                        or type(geometry_node_count) is not int or geometry_node_count < 1
                         or candidate.get("selector_promoted") is not False
                         or candidate.get("requires_visual_review") is not True
                         or not isinstance(descendants, list)
                     ):
                         raise ValueError("P9M4_REFERENCE_CANDIDATE_BOUNDARY_INVALID")
                     safe_descendants = []
+                    descendant_indices = set()
                     for child in descendants:
                         if not isinstance(child, dict):
                             raise ValueError("P9M4_REFERENCE_DESCENDANT_INVALID")
@@ -1683,21 +1690,22 @@ def create_app(
                             or not isinstance(child_name, str) or not child_name
                         ):
                             raise ValueError("P9M4_REFERENCE_DESCENDANT_INVALID")
+                        if child_index == node_index or child_index in descendant_indices:
+                            raise ValueError("P9M4_REFERENCE_DESCENDANT_DUPLICATE")
+                        descendant_indices.add(child_index)
                         safe_descendants.append({
                             "node_index": child_index,
                             "name": child_name,
                             "mesh_index": mesh_index,
                         })
-                    if candidate.get("candidate_geometry_node_count") != len(safe_descendants) + (
-                        1 if candidate.get("candidate_glb_mesh_index") is not None else 0
-                    ):
+                    if geometry_node_count != len(safe_descendants) + (1 if node_mesh_index is not None else 0):
                         raise ValueError("P9M4_REFERENCE_GEOMETRY_COUNT_INVALID")
                     projected["review_candidate"] = {
                         "status": status,
                         "node_index": node_index,
-                        "node_name": candidate.get("candidate_glb_node_name"),
-                        "mesh_index": candidate.get("candidate_glb_mesh_index"),
-                        "geometry_node_count": candidate["candidate_geometry_node_count"],
+                        "node_name": node_name,
+                        "mesh_index": node_mesh_index,
+                        "geometry_node_count": geometry_node_count,
                         "descendant_mesh_nodes": safe_descendants,
                         "selector_promoted": False,
                         "requires_visual_review": True,
