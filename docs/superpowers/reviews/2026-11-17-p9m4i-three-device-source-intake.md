@@ -98,9 +98,9 @@
 
 | 对象 | 原始图片 | 尺寸依据 | 接口依据 | 型号/版本 | 当前状态 |
 |---|---|---|---|---|---|
-| 电池组 | 未提供 | 未提供 | 未提供 | 未提供 | blocked_source_intake |
-| 反作用轮 | 未提供 | 未提供 | 未提供 | 未提供 | blocked_source_intake |
-| 星敏感器 | 未提供 | 未提供 | 未提供 | 未提供 | blocked_source_intake |
+| 电池组 | 用户目标设备图片未提供 | BIRDS4 STEP 候选，尚未独立测量 | 需从 STEP/装配证据核验 | BIRDS4 B4_battery v1 | external_reference_candidate_only |
+| 反作用轮 | 用户目标设备图片未提供 | BIRDS4 STEP 候选，尚未独立测量 | 需核验安装面与旋转轴 | BIRDS4 B4_RW_Assembly v55 | external_reference_candidate_only |
+| 星敏感器 | KAIROSPACE 产品页图片候选 | 产品页列出 56×60×93 mm | 产品页列出 CAN/RS485，机械接口未取得 | KAIROSPACE KSST-01 | CAD_request_required |
 
 ## 生成实验的输入对齐
 
