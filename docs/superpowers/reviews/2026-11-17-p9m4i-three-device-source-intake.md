@@ -57,6 +57,43 @@
 - 光轴与本体坐标系关系；
 - 产品技术手册。
 
+## 公开来源初筛（2026-11-17）
+
+本轮公开检索发现两类可用于对照的真实 CAD 来源。它们是独立参考型号，不自动等同于当前项目的具体设备身份，也不自动获得安装映射批准。
+
+### 电池组
+
+- BIRDS4-CAD（Kyushu Institute of Technology / BIRDS Open Source）公开仓库列出 `B4_battery v1.step`；仓库标示 MIT 许可证。
+- OreSat 的 `oresat-batteries` 公开项目说明 v3 电池包于 2021-03-15 随 OreSat0 飞行，机械 CAD 在 Onshape；这是另一套真实飞行硬件参考。
+- 初步结论：电池组不应默认进入 AI 补 CAD 队列。先验证 BIRDS-4 STEP 是否与本项目目标设备一致；若一致，走真实 reference CAD 路线；若不一致，再考虑合成外观。
+
+### 反作用轮
+
+- BIRDS4-CAD 公开仓库列出 `B4_RW_Assembly v55.step`，可作为实际小卫星反作用轮装配参考。
+- 另有公开 CubeSat reaction-wheel 项目提供 3D 打印硬件文件，但其 GPL-3.0 许可证和教育/原型定位需要单独审查，不能直接当作航天飞行硬件证据。
+- 初步结论：优先评估 BIRDS-4 真实 STEP；AI 生成只作为缺失外观或不同型号的补充，不重复生成已有真实几何。
+
+### 星敏感器
+
+- 本轮未在 BIRDS4-CAD 文件清单中找到可明确识别的星敏感器 STEP。
+- KAIROSPACE KSST-01 产品页列出 56 × 60 × 93 mm、197 g（含遮光罩）及 CAD model / datasheet 下载项；当前页面的 CAD 下载需经站点请求/下载入口，尚未取得原始 CAD 字节及许可授权。
+- CubeSpace Gen2 CubeStar 页面也列出 CAD Model Request，不能把产品页的尺寸/照片等同于可用的原始 CAD。
+- 初步结论：星敏感器仍是最适合优先验证 image-to-3D 的候选，但在取得可追溯原始图片、许可和尺寸/接口依据前，只能生成 G1 synthetic preview，不能验收 G2。
+
+### 调整后的实验顺序
+
+1. 先从已固定哈希的 BIRDS4 CAD 输入中定位电池与反作用轮 STEP 的实际节点、装配关系和尺寸；用它们作为“有真实 CAD ground truth”的正控制组。
+2. 对正控制组从 STEP 渲染固定视角图像，再进行 image-to-3D；比较生成网格与真实 STEP 的包围盒、表面距离、拓扑/接口特征和人工修复时间。
+3. 星敏感器作为“CAD 缺失”候选；在取得真实输入资料前，不填充未知尺寸、不声称工程精度。
+4. 三类对象均保留来源哈希、许可、模型版本、参数、渲染视角、生成日志和人工评审记录。
+
+公开来源：
+- BIRDS4-CAD：`https://github.com/BIRDSOpenSource/BIRDS4-CAD`
+- OreSat battery CAD：`https://github.com/oresat/oresat-batteries`
+- CubeSat reaction-wheel prototype：`https://github.com/Harveyn4444/cubesat-reaction-wheel`
+- KAIROSPACE KSST-01：`https://satsearch.co/products/kairospace-star-tracker`
+- CubeSpace Gen2 CubeStar：`https://satsearch.co/products/cubespace-gen2-cubestar-miniature-star-tracker`
+
 ## 资料验收状态
 
 | 对象 | 原始图片 | 尺寸依据 | 接口依据 | 型号/版本 | 当前状态 |
