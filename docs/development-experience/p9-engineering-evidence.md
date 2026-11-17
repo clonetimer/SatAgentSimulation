@@ -54,3 +54,15 @@ Until all required claims have reviewed evidence and explicit approval:
 - no CAD candidate enters the as-built satellite view or telemetry binding.
 
 A useful M3 deliverable is an honest evidence-gap packet, not a fabricated complete digital satellite.
+
+
+## Pinned binary source hashes must be copied and checked mechanically
+
+During P9-M3 flight-unit report intake, the Guarani-1 report's manifest SHA-1 was missing its final hexadecimal character. The fetcher correctly rejected the downloaded source. The actual Git blob SHA-1 matched the upstream repository's blob SHA; the manifest transcription was wrong.
+
+Rules:
+- Copy binary blob IDs directly from the repository metadata/API response; do not manually retype them.
+- Validate SHA-1 length is exactly 40 lowercase hexadecimal characters and SHA-256 length exactly 64.
+- On mismatch, log both expected and actual values using repr-safe formatting.
+- Never replace the expected hash with the computed value simply to make the download pass.
+- Keep byte count, Git blob SHA-1 and SHA-256 as separate source identity checks.
