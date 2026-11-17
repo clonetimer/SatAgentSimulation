@@ -219,9 +219,9 @@ jobs:
           import hashlib, json
           from pathlib import Path
           root = Path(__import__("os").environ["RUNNER_TEMP"]) / "p9m4"
-          registry = root / "registry" / "p9m4-reference-registry.json"
+          registry = next((root / "registry").rglob("p9m4-reference-registry.json"))
           glb = root / "cad" / "build" / "birds4" / "output" / "BIRDS4_FM_Final_v7.glb"
-          receipt = root / "registry" / "registry-deployment-receipt.json"
+          receipt = next((root / "registry").rglob("registry-deployment-receipt.json"))
           bundle = json.loads(registry.read_text(encoding="utf-8"))
           deploy = json.loads(receipt.read_text(encoding="utf-8"))
           registry_sha = hashlib.sha256(registry.read_bytes()).hexdigest()
