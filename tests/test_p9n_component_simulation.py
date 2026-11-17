@@ -30,7 +30,7 @@ def test_native_backend_is_visible_in_recommended_component_parameters() -> None
     assert backend["importance"] == "common"
     assert backend["widget"] == "select"
     assert backend["enum"] == ["project_reference", "basilisk_native"]
-    assert backend["enum_labels"]["basilisk_native"].startswith("Basilisk 官方原生")
+    assert backend["enum_labels"]["basilisk_native"].startswith("Basilisk 原生物理")
     assert "不等同于 Basilisk 原生物理" in backend["description"]
 
 
