@@ -52,6 +52,10 @@ jobs:
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q -s tests/execution_contract/test_runtime_integration.py -k native_reaction_wheel_component_survives_full_sealed_run_bundle
+      - name: Verify user-selectable native component template and form contract
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q -s tests/test_p9n_component_simulation.py tests/test_parameter_presentation.py
 
       - name: Archive Basilisk-native measured RW traces and A/B metrics
         uses: actions/upload-artifact@v7
