@@ -130,7 +130,7 @@ def test_native_reaction_wheel_component_survives_full_sealed_run_bundle(tmp_pat
     )
 
     assert result.run_record.status.value == "SUCCEEDED"
-    assert result.validation.result.value == "PASS"
+    assert result.validation.result.value == "PASS", [(item.check_id, item.reason_code, item.message) for item in result.validation.checks]
     assert result.run_record.sealed is True
     assert result.bundle_manifest
     assert verify_run_bundle(result.bundle_root)["ok"] is True
