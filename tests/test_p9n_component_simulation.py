@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from sat_sim.api import create_app
 from sat_sim.form_schema import capability_form_schema
-from sat_sim.scenario_templates import instantiate_scenario_template
+from sat_sim.scenario_templates import instantiate_scenario_template, list_scenario_templates
 from sat_sim.task_validator import validate_task_spec
 
 
@@ -110,3 +110,18 @@ def test_native_rw_backend_limits_events_and_run_results_show_model_provenance()
     assert "Basilisk 官方原生" in source
     assert "runSummary.adapter_metadata?.native_provenance" in source
     assert 'id="eventBackendLimitNote"' in html
+
+
+def test_official_basilisk_reaction_wheel_template_is_product_visible() -> None:
+    catalog = list_scenario_templates(
+        level="component",
+        capability_id="component.reaction_wheel.v1",
+        product_visible_only=True,
+    )
+    row = next(
+        item for item in catalog["templates"]
+        if item["template_id"] == "component_reaction_wheel_basilisk_native"
+    )
+    assert row["recommended"] is True
+    assert row["object_id"] == "component.reaction_wheel"
+    assert row["execution_scope"] == "direct"
