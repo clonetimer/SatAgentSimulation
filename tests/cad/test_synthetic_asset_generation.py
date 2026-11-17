@@ -100,6 +100,19 @@ def test_glb_audit_reports_structure_digest_and_bounds(tmp_path):
     assert report["bounds"]["dimensions"] == pytest.approx([0.06, 0.04, 0.02])
 
 
+def test_glb_audit_rejects_missing_embedded_binary_chunk(tmp_path):
+    path = tmp_path / "missing-binary.glb"
+    _write_glb(path)
+    data = path.read_bytes()
+    json_length, chunk_type = struct.unpack_from("<I4s", data, 12)
+    assert chunk_type == b"JSON"
+    json_end = 20 + json_length
+    json_only = data[12:json_end]
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(json_only)) + json_only)
+    with pytest.raises(ValueError, match="EMBEDDED_BINARY_BUFFER_REQUIRED"):
+        audit_glb(path)
+
+
 def test_glb_audit_rejects_position_bounds_that_do_not_match_binary_payload(tmp_path):
     path = tmp_path / "mismatched-bounds.glb"
     _write_glb(path)
