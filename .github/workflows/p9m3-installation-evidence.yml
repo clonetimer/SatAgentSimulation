@@ -88,6 +88,7 @@ jobs:
             --expected-size 61750445 \
             --expected-git-blob-sha1 4236578c000b413773399d91e094b57a20a52e28 \
             --source-commit d7eadd98f5327e1ddea82b640293d49bfdb09555 \
+            --media-dir "${{ runner.temp }}/p9m3/procedure/media" \
             --output "${{ runner.temp }}/p9m3/procedure-extraction.json"
       - name: Build P9-M3 evidence review packets and validate source CAD transforms
         env:
@@ -135,6 +136,7 @@ jobs:
           path: |
             ${{ runner.temp }}/p9m3/BIRDS4_FM_Final_v7.installation-review.json
             ${{ runner.temp }}/p9m3/procedure-extraction.json
+            ${{ runner.temp }}/p9m3/procedure/media/
             ${{ runner.temp }}/p9m3/unit-reports/
           if-no-files-found: error
       - name: Validate P9-M3 transform and evidence contracts
