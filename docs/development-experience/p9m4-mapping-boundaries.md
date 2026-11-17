@@ -120,3 +120,14 @@ Correct pattern:
 - Candidate review lookup must use the original glTF node association and fail if that node is not present in the loaded default scene.
 - Display the original GLB node index in the inspector so a reviewer can compare it with the registry evidence.
 - Add a Chromium test where a scene wrapper and a multi-level assembly group exist; the candidate index must focus the intended group, not the object at the same traversal ordinal.
+
+
+## Keep Reference-CAD evidence loading independent from the simulation object catalogue
+
+The first full BIRDS-4 browser integration showed that a valid reference registry can exist while the Workbench's simulation object-tree catalogue is unavailable or still loading. If CAD evidence is fetched only after the catalogue succeeds, the geometry review panel silently remains empty even though the registry API is valid.
+
+Correct pattern:
+- Fetch the engineering mapping registry independently of the simulation object-tree catalogue.
+- Pass the registry projection to the CAD viewer as soon as it is available.
+- Keep catalogue failures local to simulation object selection/configuration; they must not suppress Reference-CAD inspection.
+- Test the API projection separately from the browser handoff, and report panel text/visibility when the browser does not render candidate cards.
