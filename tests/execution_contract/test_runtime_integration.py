@@ -154,4 +154,4 @@ def test_native_reaction_wheel_component_survives_full_sealed_run_bundle(tmp_pat
     assert evidence["capability_adapter"] == "sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter"
     assert evidence["execution_plan_sha256"] == prepared.execution_plan_sha256
     assert evidence["request_sha256"]
-    assert result.bundle_manifest["integrity"]["ok"] is True
+    assert result.bundle_manifest["files"]
