@@ -59,3 +59,17 @@ The endpoint now requires a separately configured SHA-256 for the exact bundle f
 ## Cross-platform workflow commands: keep pytest and Node checks in separate YAML block lines
 
 The first M4 API/UI workflow revision placed a second \`node --check\` command under a single-line YAML \`run:\` scalar. On Windows PowerShell, it was appended to the pytest argument list, producing \`pytest: unrecognized arguments: --check\` before tests ran. Use \`run: |\` for multi-command steps and keep each command on its own indented line. Verify the resulting workflow text after editing; a visually intended newline in a string replacement is not proof that YAML contains a block scalar.
+
+
+## GLB crosswalk candidate audit: parse the whole container and fail closed on incomplete ancestry
+
+The first STEP-occurrence → GLB-node candidate audit extracted the JSON chunk after checking only the GLB header and JSON chunk length. That was sufficient for the happy-path fixture but did not validate the complete chunk envelope. It also treated a missing STEP parent name as if no parent constraint existed, allowing a unique child-name match to become a candidate despite incomplete ancestry evidence.
+
+Correct pattern:
+- Walk every GLB chunk from byte 12 to the declared file end; require JSON as chunk 0, bounded/aligned chunk lengths, no duplicate JSON, and BIN only as chunk 1 when present. Ignore unknown extension chunks after the standard leading chunks.
+- Validate node mesh references, child indices, multiple-parent conflicts, hierarchy cycles and scene-root references before producing any inventory.
+- A candidate requires a non-empty STEP node name and complete parent identity. A STEP root must match a GLB root; a child with missing/unresolved parent name is classified as parent identity incomplete, never a candidate.
+- Preserve candidate-only status. Even exact unique node+parent name matching does not prove geometry identity, datum, transform or installed hardware; formal selector stays null and rendering stays disabled until visual review.
+- Add negative tests for missing parent name, root-vs-child mismatch, malformed chunk bounds and hierarchy cycles. Hash receipts must be updated in the test when mutating GLB bytes, so the test reaches the structural validator rather than stopping at the earlier digest gate.
+
+The Khronos glTF 2.0 specification requires the JSON chunk first, the BIN chunk second when present, and bounded/aligned chunks; bufferView/accessor offsets and ranges must also be checked by geometry auditors. Use the official specification as the format authority, not assumptions based on one exported GLB sample.
