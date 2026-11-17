@@ -47,3 +47,13 @@ M3 候选保存的是 STEP assembly occurrence path；三维渲染器需要 glTF
 
 
 - A unique name/parent match is only a candidate when the GLB node references a valid mesh with at least one primitive. Meshless group nodes are classified as matched-but-not-geometry and receive no candidate index.
+
+
+## Real assembly-group nodes
+
+The pinned BIRDS-4 full assembly GLB represents the battery, reaction wheel and perovskite panel occurrences as group nodes with no mesh directly attached, while their child nodes contain the actual meshes. Therefore:
+- a meshless leaf with no mesh-bearing descendants is not a candidate;
+- a uniquely matched group with a non-empty mesh-bearing descendant subtree is a group-level candidate;
+- include the group node index and every mesh-bearing descendant node index/name/mesh index;
+- never promote the group index or descendants to a formal selector or renderable object until visual review confirms the occurrence/subtree correspondence.
+The real pinned 855-node regression must validate these three known groups.
