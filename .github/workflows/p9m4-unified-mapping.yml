@@ -4,13 +4,24 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/engineering_asset_mapping.py"
+      - "src/sat_sim/engineering_mapping_policy.py"
+      - "src/sat_sim/engineering_reference_registry.py"
+      - "src/sat_sim/api.py"
+      - "src/sat_sim/web/app.js"
+      - "src/sat_sim/web/index.html"
+      - "src/sat_sim/web/satellite-scene.css"
+      - "tests/test_p9m4_scene_mapping_endpoint.py"
       - "tests/cad/test_engineering_asset_mapping.py"
-      - "docs/superpowers/plans/2026-11-17-p9m4-unified-asset-mapping.md"
+      - "tests/cad/test_engineering_reference_registry.py"
+      - "assets/cad-sources/birds4/birds4-m4-intake-pins.json"
+      - "docs/superpowers/plans/2026-11-17-p9m4*.md"
+      - "docs/development-experience/p9m4-mapping-boundaries.md"
       - ".github/workflows/p9m4-unified-mapping.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: p9m4-unified-mapping-${{ github.event.pull_request.number || github.ref }}
@@ -18,19 +29,150 @@ concurrency:
 
 jobs:
   unified-mapping-contract:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - name: Install test runner
-        run: python -m pip install \
-            "pytest==9.0.3" "PyYAML==6.0.3" "numpy==2.3.5" \
-            "pydantic==2.13.4" "jsonschema==4.26.0" "psutil==7.2.2" \
-            "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
-      - name: Validate unified engineering asset mapping gates
+      - name: Install existing contract-test dependencies
+        shell: bash
+        run: python -m pip install "pytest==9.0.3" "PyYAML==6.0.3" "numpy==2.3.5" "pydantic==2.13.4" "jsonschema==4.26.0" "psutil==7.2.2" "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+      - name: Validate declarations and negative evidence-intake cases
         env:
-          PYTHONPATH: "src:."
-        run: python -m pytest -q tests/cad/test_engineering_asset_mapping.py
+          PYTHONPATH: "src"
+        run: |
+          python -m pytest -q tests/cad/test_engineering_asset_mapping.py tests/cad/test_engineering_reference_registry.py tests/test_p9m4_scene_mapping_endpoint.py -k "not real_pinned" --junitxml=reports/p9m4-contract.xml
+          node --check src/sat_sim/web/app.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p9m4-contract-${{ matrix.os }}
+          path: reports/p9m4-contract.xml
+          if-no-files-found: error
+
+  real-evidence-registry:
+    needs: unified-mapping-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install existing contract-test dependencies
+        run: python -m pip install "pytest==9.0.3" "PyYAML==6.0.3" "numpy==2.3.5" "pydantic==2.13.4" "jsonschema==4.26.0" "psutil==7.2.2" "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+      - name: Download accepted M3 review evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: p9m3-birds4-installation-evidence-review
+          run-id: 44012793630
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p9m4/m3
+      - name: Download accepted engineering object tree
+        uses: actions/download-artifact@v4
+        with:
+          name: p9m2-birds4-candidate-audit
+          run-id: 44001085568
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p9m4/m2
+      - name: Download accepted source CAD conversion
+        uses: actions/download-artifact@v4
+        with:
+          name: birds4-fm-cad-reference-43692477458
+          run-id: 43692477458
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p9m4/cad
+      - name: Verify every consumed input against independent file pins
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, shutil
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "p9m4"
+          output = root / "inputs"
+          output.mkdir(parents=True, exist_ok=True)
+          pins = json.loads(Path("assets/cad-sources/birds4/birds4-m4-intake-pins.json").read_text())
+          receipts = []
+          for name, pin in pins["files"].items():
+              source = root / pin["artifact"] / pin["member"]
+              actual = hashlib.sha256(source.read_bytes()).hexdigest()
+              if actual != pin["sha256"]:
+                  raise ValueError(f"P9M4_INPUT_PIN_MISMATCH:{name}:{actual}")
+              shutil.copyfile(source, output / name)
+              receipts.append({"file": name, "sha256": actual, "artifact": pins["artifacts"][pin["artifact"]]})
+          (output / "input-verification.json").write_text(json.dumps(receipts, indent=2) + "\n")
+          print(f"Verified {len(receipts)} consumed input files")
+          PY
+      - name: Run real M3-to-M4 registration (no fixtures)
+        env:
+          PYTHONPATH: "src"
+          SAT_SIM_P9M4_REAL_EVIDENCE: ${{ runner.temp }}/p9m4/inputs
+        run: python -m pytest -q -s tests/cad/test_engineering_reference_registry.py -k real_pinned --junitxml=reports/p9m4-real.xml
+      - name: Verify real assembly-group candidates and descendant mesh inventory
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "p9m4" / "inputs"
+          bundle = json.loads((root / "p9m4-reference-registry.json").read_text(encoding="utf-8"))
+          expected = {
+              "component.battery": 14,
+              "component.reaction_wheel": 24,
+              "component.payload": 1,
+          }
+          refs = {row["object_id"]: row for row in bundle["mappings"] if row["mapping_kind"] == "reference_cad"}
+          assert set(refs) == set(expected), f"P9M4_REAL_REFERENCE_SET_INVALID:{sorted(refs)}"
+          for object_id, mesh_count in expected.items():
+              row = refs[object_id]
+              candidate = row["geometry_asset"]["glb_node_binding_candidate"]
+              assert candidate["status"] == "unique_exact_name_parent_match_group_candidate", (
+                  f"P9M4_GROUP_CANDIDATE_STATUS_INVALID:{object_id}:{candidate['status']}"
+              )
+              assert candidate["candidate_glb_node_index"] is not None
+              assert candidate["candidate_glb_mesh_index"] is None
+              assert len(candidate["candidate_descendant_mesh_nodes"]) == mesh_count
+              assert candidate["candidate_geometry_node_count"] == mesh_count
+              assert candidate["selector_promoted"] is False
+              assert row["geometry_asset"]["glb_node_binding"] is None
+              assert row["render"]["renderable"] is False
+          audit = bundle["glb_node_binding_audit"]
+          assert audit["selector_promotion_count"] == 0
+          assert bundle["summary"]["as_built_verified_count"] == 0
+          assert bundle["summary"]["telemetry_binding_count"] == 0
+          print("P9M4_REAL_GROUP_CROSSWALK_VALID: battery=14 RW=24 payload=1; selectors=0")
+          PY
+      - name: Create deployment digest receipt for reference-only registry
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "p9m4" / "inputs"
+          bundle = root / "p9m4-reference-registry.json"
+          digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
+          receipt = {
+              "bundle_file": bundle.name,
+              "bundle_sha256": digest,
+              "scope": "reference_registration_only_not_as_built_approval",
+              "required_environment": {
+                  "SAT_SIM_ENGINEERING_MAPPING_BUNDLE": "absolute path to p9m4-reference-registry.json",
+                  "SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256": digest,
+              },
+          }
+          (root / "registry-deployment-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+          print(f"P9M4_REFERENCE_REGISTRY_SHA256={digest}")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p9m4-real-reference-registry
+          path: |
+            ${{ runner.temp }}/p9m4/inputs/p9m4-reference-registry.json
+            ${{ runner.temp }}/p9m4/inputs/input-verification.json
+            ${{ runner.temp }}/p9m4/inputs/registry-deployment-receipt.json
+            reports/p9m4-real.xml
+          if-no-files-found: error

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 
 import pytest
 
@@ -22,7 +23,7 @@ def _evidence():
     ]
     return [{
         "claim_type": claim,
-        "source_sha256": f"sha256-{claim}",
+        "source_sha256": hashlib.sha256(claim.encode()).hexdigest(),
         "source_locator": f"doc:{claim}:page-1",
         "reviewer": "independent-reviewer",
         "decision": "approved",
@@ -74,7 +75,7 @@ def _simulation_configuration():
         },
         "spatial_anchor": None,
         "simulation_binding": {"run_id": "run-123", "taskspec_sha256": "b" * 64},
-        "telemetry_binding": {"binding_status": "run_scoped"},
+        "telemetry_binding": {"binding_status": "run_scoped", "run_id": "run-123", "taskspec_sha256": "b" * 64},
         "render": {"as_built_eligible": False, "views": ["simulation_configuration"]},
     }
 
@@ -201,3 +202,79 @@ def test_non_mapping_render_policy_fails_closed():
     record["render"] = True
     with pytest.raises(ValueError, match="RENDER_POLICY_REQUIRED"):
         validate_mapping_record(record)
+
+
+@pytest.mark.parametrize("factory,forbidden", [
+    (_reference_cad, "as_built"), (_reference_cad, "simulation_configuration"),
+    (_simulation_configuration, "as_built"), (_as_built, "reference_cad"),
+    (_unlocated, "reference_cad"),
+])
+def test_mapping_cannot_add_a_view_from_another_identity(factory, forbidden):
+    record = factory()
+    record["render"]["views"].append(forbidden)
+    with pytest.raises(ValueError, match="VIEW_ISOLATION"):
+        validate_mapping_record(record)
+
+
+@pytest.mark.parametrize("views", ["reference_cad", None, {}, [1], ["reference_cad", "reference_cad"]])
+def test_views_are_a_unique_list_not_a_string_or_arbitrary_container(views):
+    record = _reference_cad()
+    record["render"]["views"] = views
+    with pytest.raises(ValueError, match="VIEW_LIST"):
+        validate_mapping_record(record)
+
+
+@pytest.mark.parametrize("digest", ["x", "a" * 63, "g" * 64, 64, True])
+def test_asset_hash_is_a_real_sha256_shape(digest):
+    record = _reference_cad()
+    record["geometry_asset"]["sha256"] = digest
+    with pytest.raises(ValueError, match="SHA256"):
+        validate_mapping_record(record)
+
+
+def test_approved_claim_cannot_use_a_placeholder_hash():
+    record = _as_built()
+    record["evidence"][0]["source_sha256"] = "sha256-not-a-digest"
+    with pytest.raises(ValueError, match="SHA256"):
+        validate_mapping_record(record)
+
+
+@pytest.mark.parametrize("record", [None, [], "reference_cad", 7])
+def test_invalid_record_types_have_structured_validation_errors(record):
+    with pytest.raises(ValueError, match="RECORD_REQUIRED"):
+        validate_mapping_record(record)
+
+
+def test_unknown_kind_container_fails_closed_without_typeerror():
+    record = _reference_cad()
+    record["mapping_kind"] = []
+    with pytest.raises(ValueError, match="UNKNOWN_MAPPING_KIND"):
+        validate_mapping_record(record)
+
+
+def test_reference_cad_cannot_smuggle_a_simulation_binding():
+    record = _reference_cad()
+    record["simulation_binding"] = {"run_id": "run-123", "taskspec_sha256": "a" * 64}
+    with pytest.raises(ValueError, match="REFERENCE_CAD_SIMULATION_BINDING"):
+        validate_mapping_record(record)
+
+
+def test_reference_frame_cannot_claim_an_approved_installation_transform():
+    record = _reference_cad()
+    record["geometry_frame"] = {"identity_status": "approved", "installation_transform_parent_from_child": IDENTITY}
+    with pytest.raises(ValueError, match="REFERENCE_CAD_FRAME"):
+        validate_mapping_record(record)
+
+
+@pytest.mark.parametrize("field,value", [("run_id", "other-run"), ("taskspec_sha256", "c" * 64)])
+def test_telemetry_identity_must_equal_the_simulation_binding(field, value):
+    record = _simulation_configuration()
+    record["telemetry_binding"][field] = value
+    with pytest.raises(ValueError, match="TELEMETRY_SCOPE"):
+        validate_mapping_record(record)
+
+
+def test_declaration_validation_does_not_authenticate_approvals():
+    result = validate_mapping_record(_as_built())
+    assert result["validation_scope"] == "declaration_consistency_only"
+    assert result["approval_authenticity_verified"] is False
