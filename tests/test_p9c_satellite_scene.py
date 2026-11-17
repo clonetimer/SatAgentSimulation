@@ -856,10 +856,9 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
-            page.wait_for_function("() => Boolean(window.BirdsCadViewer && window.SatScene)")
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator('[data-scene-mode="cad"]').click()
-            page.wait_for_function("() => document.querySelector('#birdsCadViewer')?.hidden === false")
+            page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
             panel = page.locator("#birdsCadReviewPanel")
             panel.get_by_text("电池组", exact=True).wait_for(timeout=30000)
             action = panel.get_by_role("button", name="等待 GLB 哈希匹配")
@@ -966,10 +965,9 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             # Both viewers are ES modules. Do not click a mode before the
             # module has attached its tab listeners; otherwise the click is lost.
-            page.wait_for_function("() => Boolean(window.BirdsCadViewer && window.SatScene)")
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator('[data-scene-mode="cad"]').click()
-            page.wait_for_function("() => document.querySelector('#birdsCadViewer')?.hidden === false")
+            page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
             panel = page.locator("#birdsCadReviewPanel")
             try:
                 page.wait_for_function(
