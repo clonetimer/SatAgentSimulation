@@ -46,10 +46,10 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
             if document is not None:
                 raise ValueError("P9M4I_GLB_DUPLICATE_JSON_CHUNK")
             try:
-                document = json.loads(data[offset:end].decode("utf-8").rstrip(" \\0"))
+                document = json.loads(data[offset:end].decode("utf-8").rstrip(" \0"))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise ValueError("P9M4I_GLB_JSON_INVALID") from exc
-        elif chunk_type == b"BIN\\0":
+        elif chunk_type == b"BIN\0":
             if binary_chunk is not None:
                 raise ValueError("P9M4I_GLB_DUPLICATE_BIN_CHUNK")
             binary_chunk = data[offset:end]
