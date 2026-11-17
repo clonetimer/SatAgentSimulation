@@ -229,6 +229,12 @@
     visualTuningBestRunId: null,
   };
 
+  window.addEventListener('birds-cad-viewer-ready', () => {
+    if (state.sceneEngineeringMapping) {
+      window.BirdsCadViewer?.setEngineeringReviewData?.(state.sceneEngineeringMapping);
+    }
+  });
+
   const el = (id) => document.getElementById(id);
   const $all = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
@@ -4516,16 +4522,19 @@
     if (state.sceneTreeLoading) return;
     state.sceneTreeLoading = true;
     try {
-      const payload = await api('/workbench/scene/catalog');
-      if (!payload?.ok || payload.tree?.schema_version !== 'workbench-object-tree.v2') {
-        throw new Error('对象目录版本不兼容。');
-      }
-      state.sceneObjectTree = payload.tree;
+      // Geometry evidence is independent of the simulation object-tree catalogue.
+      // Load it first so a catalogue failure cannot suppress Reference-CAD review.
       try {
         state.sceneEngineeringMapping = await api('/workbench/engineering-mapping');
       } catch (mappingError) {
         state.sceneEngineeringMapping = {ok: false, status: 'unavailable', message_zh: '工程映射服务暂不可用。'};
       }
+      window.BirdsCadViewer?.setEngineeringReviewData?.(state.sceneEngineeringMapping);
+      const payload = await api('/workbench/scene/catalog');
+      if (!payload?.ok || payload.tree?.schema_version !== 'workbench-object-tree.v2') {
+        throw new Error('对象目录版本不兼容。');
+      }
+      state.sceneObjectTree = payload.tree;
       renderP9DPanel();
     } catch (error) {
       const host = el('p9dObjectTree');

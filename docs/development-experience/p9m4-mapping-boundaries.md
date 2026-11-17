@@ -88,3 +88,133 @@ Correct pattern:
 - If the subtree has geometry, emit a group-level candidate with the group node index plus a complete descendant mesh inventory; do not pretend the group itself has a mesh.
 - Keep formal selector null, rendering disabled and visual review required. The candidate establishes a plausible assembly occurrence grouping, not geometry identity or installed-unit approval.
 - The real pinned 855-node BIRDS-4 test must assert the three known reference groups resolve to group candidates and enumerate descendant meshes; synthetic fixtures alone cannot expose this assembly-export convention.
+
+
+## P9-M4-D: candidate indices must be bound to the exact GLB bytes loaded by the browser
+
+A node index is meaningful only inside the exact GLB file from which it was inventoried. A user may select another revision, re-export, or similarly named model; applying the registry's node index to that file can focus an unrelated part while appearing plausible.
+
+Correct pattern:
+- Include only the expected GLB SHA-256 and a minimal candidate projection in the API response; do not expose full geometry records, source paths, installation transforms or telemetry metadata.
+- Compute SHA-256 over the exact ArrayBuffer selected by the browser before enabling any candidate index action.
+- Require strict equality between local file digest and the registered GLB digest. If Web Crypto is unavailable or hashes differ, disable all candidate-location actions.
+- Keep manual whole-model browsing available; the digest gate applies specifically to evidence-driven node location.
+- A successful digest match only proves file identity. It does not prove the candidate's visual identity, physical installation, coordinate datum or as-built status.
+- Reject candidate projections with selector_promoted=true, invalid status, out-of-range indices, duplicate descendants or inconsistent geometry-node counts.
+
+## Distinguish STEP source node counts from GLB scene node counts
+
+The pinned STEP assembly tree and the converted GLB scene are separate representations. The current accepted registry reports 852 GLB scene nodes; do not repeat the STEP-side source-node count as if it were the GLB inventory count. Always read the count from the exact registry artifact being reviewed.
+
+
+P9-M4-D CI exposed a Windows shell mismatch: the cross-platform validation step now uses Bash syntax including stdin redirection for Node's ES-module syntax checker. A preceding workflow step declaring Bash does not change the shell of later steps. Set `shell: bash` on each multi-command step that uses Bash syntax; do not rely on runner defaults or neighboring step settings.
+
+
+## Never translate a glTF node index using Three.js traversal order
+
+The registry's index is the original index in the GLB JSON `nodes[]` array. The Three.js scene graph may contain an extra scene-root Group, may omit nodes outside the selected scene, and may arrange Object3D instances differently from the source array. The viewer's UI tree index is therefore not a valid GLB node index.
+
+Correct pattern:
+- Use GLTFLoader's `gltf.parser.associations` map to read the original `nodes` index for each loaded Object3D.
+- Keep a separate `cadTreeIndex` only for DOM tree row selection/highlighting.
+- Candidate review lookup must use the original glTF node association and fail if that node is not present in the loaded default scene.
+- Display the original GLB node index in the inspector so a reviewer can compare it with the registry evidence.
+- Add a Chromium test where a scene wrapper and a multi-level assembly group exist; the candidate index must focus the intended group, not the object at the same traversal ordinal.
+
+
+## Keep Reference-CAD evidence loading independent from the simulation object catalogue
+
+The first full BIRDS-4 browser integration showed that a valid reference registry can exist while the Workbench's simulation object-tree catalogue is unavailable or still loading. If CAD evidence is fetched only after the catalogue succeeds, the geometry review panel silently remains empty even though the registry API is valid.
+
+Correct pattern:
+- Fetch the engineering mapping registry independently of the simulation object-tree catalogue.
+- Pass the registry projection to the CAD viewer as soon as it is available.
+- Keep catalogue failures local to simulation object selection/configuration; they must not suppress Reference-CAD inspection.
+- Test the API projection separately from the browser handoff, and report panel text/visibility when the browser does not render candidate cards.
+
+
+## P9-M4-D CI regression: browser module readiness and test-fixture isolation
+
+Two independent test defects were found while integrating the real BIRDS-4 browser review:
+
+1. **ES-module listener race.** The CAD mode buttons are wired by `birds-cad-viewer.js`, loaded as a module. A Playwright click immediately after `DOMContentLoaded` can occur before the module has executed and attached its event listeners. The click is then lost, leaving `#birdsCadViewer` hidden. Before clicking mode controls, wait for both `window.BirdsCadViewer` and `window.SatScene`; after the click, assert the actual mode state (for CAD, `#birdsCadViewer.hidden === false`). A fixed sleep is weaker and less deterministic.
+2. **Fixture expectation leakage.** The small one-candidate browser fixture was accidentally given assertions intended for the three-candidate real BIRDS-4 registry. This made unrelated P9-C and P9-L4 workflows fail even though their test inputs were correct. Keep fixture cardinality assertions local to each fixture; assert the three real objects only in the dedicated real-artifact integration test. Avoid broad edits at repeated setup anchors without checking the enclosing test function.
+3. **Cross-workflow validation.** A test file may be collected by multiple workflows. A newly added test must either be self-contained and correctly skipped when its required real-artifact environment is absent, or be explicitly selected by the relevant workflow. Verify P9-C and P9-L4 after adding tests to a shared file.
+4. **Asset cache versions.** When changing module behavior or module initialization contracts, bump the corresponding query-string cache version in the HTML. Otherwise a deployed browser may continue to execute a stale module while the HTML and server code have moved forward.
+
+Evidence chain now includes: independently pinned GLB download → same-run registry artifact → both SHA-256 checks → API candidate projection → Chromium group-location test. Do not mark the real browser acceptance complete until all three real assembly groups are located and the evidence artifact is uploaded.
+
+
+5. **Workflow path filters must include shared integration-test files.** The P9-M4 workflow originally watched its dedicated endpoint tests but not the shared Chromium scene test file that now hosts the real BIRDS-4 review. Add that exact path to the workflow's PR path filter; otherwise a test-only fix can trigger P9-C/P9-L4 while silently leaving the dedicated P9-M4 acceptance stale.
+
+
+## P9-M4-D real Chromium review: assert observable UI state, not module globals
+
+The first real-browser review attempt timed out while polling `window.BirdsCadViewer && window.SatScene` immediately after `DOMContentLoaded`. This precondition was stronger than the actual user journey and did not prove that the CAD workspace had entered its visible mode. The existing accepted P9-I browser journey already provides a deterministic contract: navigate to the scene, click the CAD mode control, then wait for `#birdsCadViewer` to become visible.
+
+Correct pattern:
+- Drive the same visible UI transition a user performs.
+- Wait for the target viewer's visible state, not a set of implementation globals.
+- Use the established `_client(tmp_path)` test fixture consistently with the P9-I browser acceptance; avoid creating a second, unnecessary root path for the same app.
+- Only after the viewer is visible, inspect the review panel and assert the digest gate and candidate controls.
+- Keep browser failures actionable by collecting page errors, console errors, failed requests and HTTP >=400 responses.
+
+The first attempt failed at the module-global readiness precondition before it reached GLB upload or candidate review. Do not interpret that timeout as evidence of a geometry mismatch; rerun the actual UI journey after correcting the precondition.
+
+
+## P9-M4-D Chromium failure root cause: enter the scene before selecting its sub-mode
+
+The subsequent real Chromium run proved that waiting for `#birdsCadViewer` visibility was not sufficient when the test clicked the CAD sub-mode directly from the wizard. The CAD tab belongs to the scene workspace; the user journey must first enter the scene workspace via the simulation mode, then switch to CAD. The accepted P9-I browser journey already encodes this ordering.
+
+Correct sequence:
+1. Click the scene shortcut.
+2. Click `[data-scene-mode="simulation"]`.
+3. Wait for `#simulationGeometryCanvas` to become visible.
+4. Click `[data-scene-mode="cad"]`.
+5. Wait for `#birdsCadViewer` to become visible.
+6. Only then interact with the candidate review panel or upload GLB files.
+
+The earlier diagnosis that the issue was solely ES-module listener readiness was incomplete. Preserve the P9-I sequence as the canonical end-to-end route; do not enter a scene sub-mode before the scene workspace itself is active.
+
+
+### Follow-up refinement: do not re-click the already selected simulation mode
+
+A second browser run showed that clicking the simulation tab again immediately after the scene shortcut still left the CAD viewer hidden. The scene shortcut already selects simulation mode by default. The stable transition is to wait until `#simulationGeometryCanvas` is visible and confirm `data-scene-mode="simulation"` has `aria-pressed=true`; only then click CAD and confirm its `aria-pressed=true` state before waiting for `#birdsCadViewer`. Re-clicking the already selected tab is unnecessary and can introduce a second mode transition during scene activation.
+
+
+### Final browser root cause: the CAD ES module listener was not ready
+
+The next Chromium run showed the scene entered correctly and the physical-configuration tab was selected, but clicking CAD left `aria-pressed=false`. The test had waited for the simulation canvas, not for the CAD viewer ES module to finish evaluating and attach its tab listeners. Waiting for `window.BirdsCadViewer.setViewerVisible` is the correct readiness contract because the module exports this API only after its listeners and renderer are initialized. Both real-browser review journeys now wait for this module readiness before interacting with the CAD tab. The test must still assert the real tab state and viewer visibility; do not replace those assertions with forced clicks or DOM mutation.
+
+
+### Readiness signal must precede WebGL renderer initialization
+
+Waiting for `window.BirdsCadViewer.setViewerVisible` was too late: the public viewer API is exported only after WebGL renderer construction and all viewer setup. A browser may need to interact with scene-mode tabs as soon as their event listeners are attached, independently of renderer readiness. The module now publishes `document.documentElement.dataset.birdsCadModeTabsReady='true'` immediately after registering mode-tab listeners and before constructing the renderer. Browser tests wait on this narrow readiness contract, then assert the actual CAD tab state and viewer visibility. This separates UI event readiness from GPU/rendering readiness and avoids conflating the two lifecycle stages.
+
+
+### Real CAD browser review must stage the same pinned offline vendor runtime as P9-C
+
+The first P9-M4 Chromium review after the readiness-marker fix showed the module itself was not the root cause: the browser received HTTP 404 for `/assets/vendor/globe/globe.gl.min.js`, `three.module.js` and `GLTFLoader.js`. The dedicated P9-M4 workflow had installed Playwright but had not run the repository's pinned vendor staging script. P9-C already owns the canonical offline asset pipeline.
+
+Correct pattern:
+- Set up Node.js 22 before Python/browser dependencies.
+- Run `python scripts/vendor_scene_assets.py` before starting the TestClient/Chromium review.
+- Reuse the pinned local runtime, GLTFLoader and dependency manifest; do not fetch CDN assets during review.
+- Keep the browser test's HTTP >=400 and module-readiness diagnostics so missing vendor files are distinguished from scene-mode and geometry failures.
+
+The review now stages the same offline Globe.gl/Three.js runtime as P9-C before loading the actual BIRDS-4 GLB.
+
+
+## P9-M4-D final Chromium acceptance: resolve candidate nodes through the GLTFParser dependency cache
+
+The full-size BIRDS-4 review exposed a real integration gap after the GLB hash gate passed: the registry candidate index was valid, but the viewer's scene-traversal association lookup did not resolve the battery node. The viewer now builds a candidate lookup using both the GLTFLoader association map and `gltf.parser.getDependency('node', originalIndex)`, then verifies the resolved Object3D is actually part of the displayed default scene before allowing focus. A missing/unattached node fails closed and reports diagnostics rather than focusing a traversal ordinal or adding an off-scene object.
+
+Final evidence:
+- Exact SHA-matched BIRDS-4 GLB: 852 nodes / 754 meshes.
+- Battery node #545: 14 descendant meshes.
+- Reaction-wheel assembly node #560: 24 descendant meshes.
+- Payload candidate node #759: 1 descendant mesh.
+- Chromium located all three and recorded per-candidate screenshots.
+- Formal selector promotion, as-built approval and telemetry binding remain zero.
+
+Lesson: GLTFLoader's parser dependency cache is the authoritative way to resolve an original glTF `nodes[]` index to its Object3D. The association map remains useful for reverse lookup/diagnostics, but the viewer should not assume every target group is reachable by a hand-maintained traversal-index translation.

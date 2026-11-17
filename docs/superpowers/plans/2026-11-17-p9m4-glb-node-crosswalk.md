@@ -56,4 +56,4 @@ The pinned BIRDS-4 full assembly GLB represents the battery, reaction wheel and 
 - a uniquely matched group with a non-empty mesh-bearing descendant subtree is a group-level candidate;
 - include the group node index and every mesh-bearing descendant node index/name/mesh index;
 - never promote the group index or descendants to a formal selector or renderable object until visual review confirms the occurrence/subtree correspondence.
-The real pinned 855-node regression must validate these three known groups.
+The real pinned regression must validate these three known groups. The accepted registry reports 852 GLB scene nodes; keep this separate from the STEP source assembly-tree count.

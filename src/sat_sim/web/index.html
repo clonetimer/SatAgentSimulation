@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-realtime-width-20261111-2">
-  <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9m4-engineering-mapping-1">
+  <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9m4-d-review-5">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -215,6 +215,10 @@
                 <button type="button" class="button button-secondary" data-cad-view="home">等轴测</button><button type="button" class="button button-secondary" data-cad-view="x">+X</button><button type="button" class="button button-secondary" data-cad-view="-x">-X</button><button type="button" class="button button-secondary" data-cad-view="y">+Y</button><button type="button" class="button button-secondary" data-cad-view="-y">-Y</button><button type="button" class="button button-secondary" data-cad-view="z">+Z</button><button type="button" class="button button-secondary" data-cad-view="-z">-Z</button>
               </div>
             </header>
+            <section id="birdsCadReviewPanel" class="birds-cad-review-panel" aria-label="工程几何候选审查">
+              <div class="birds-cad-review-heading"><div><strong>工程映射审查</strong><span>仅定位经来源校验的参考 CAD 候选，不代表实装批准</span></div><span class="birds-cad-review-gate">待校验 GLB</span></div>
+              <p class="birds-cad-review-empty">读取工程映射清单后，将显示可审查的设备装配组。请加载与证据 SHA-256 一致的 GLB 文件。</p>
+            </section>
             <div class="birds-cad-workspace">
               <aside class="birds-cad-tree-panel"><div class="birds-cad-panel-title">装配结构 <span>CAD NODE</span></div><div class="birds-cad-tree-tools"><input id="birdsCadSearch" type="search" placeholder="搜索装配部件…" aria-label="搜索装配部件"><button type="button" class="button button-secondary" data-cad-tree-action="isolate">隔离选中</button><button type="button" class="button button-secondary" data-cad-tree-action="restore">恢复全部</button></div><div id="birdsCadTree" class="birds-cad-tree"><p>打开整星 GLB 后显示原始装配节点。</p></div></aside>
               <div class="birds-cad-viewport"><canvas aria-label="BIRDS-4 三维 CAD 模型，可拖动旋转、滚轮缩放、右键平移"></canvas><div class="birds-cad-viewport-hint">左键旋转 · 滚轮缩放 · 右键平移</div><div class="birds-cad-axis-cube">X <b>Y</b> Z</div></div>
@@ -1814,11 +1818,11 @@
   <script src="/assets/vendor/globe/globe.gl.min.js" defer></script>
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
   <script type="module" src="/assets/satellite-scene.js?v=p9m4-engineering-mapping-1"></script>
-  <script type="module" src="/assets/birds-cad-viewer.js?v=p9i-cad-1"></script>
+  <script type="module" src="/assets/birds-cad-viewer.js?v=p9m4-d-review-5"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
-  <script src="/assets/app.js?v=p9m4-engineering-mapping-1" defer></script>
+  <script src="/assets/app.js?v=p9m4-d-review-5" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
   <script src="/assets/continuous.js?v=p9m4-engineering-mapping-1" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>

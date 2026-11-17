@@ -1631,15 +1631,101 @@ def create_app(
                 or summary.get("node_renderable_count") != 0
             ):
                 raise ValueError("P9M4_REFERENCE_REGISTRY_PROMOTION_FORBIDDEN")
-            mappings = [
-                {
+            # Only publish a deliberately small, candidate-only projection.
+            # The browser must independently hash the user-selected GLB before
+            # it may use these node indices to focus the existing reference viewer.
+            has_reference_rows = any(row["mapping_kind"] == "reference_cad" for row in validation["mappings"])
+            glb_sha256 = bundle.get("intake", {}).get("glb_sha256")
+            inventory = bundle.get("glb_node_inventory", {})
+            node_count = inventory.get("node_count") if isinstance(inventory, dict) else None
+            mesh_count = inventory.get("mesh_count") if isinstance(inventory, dict) else None
+            if has_reference_rows and (
+                not isinstance(glb_sha256, str) or len(glb_sha256) != 64
+                or any(ch not in "0123456789abcdef" for ch in glb_sha256.lower())
+                or type(node_count) is not int or node_count < 1
+                or type(mesh_count) is not int or mesh_count < 1
+            ):
+                raise ValueError("P9M4_REFERENCE_GLB_PROVENANCE_REQUIRED")
+            mappings = []
+            for index, row in enumerate(validation["mappings"]):
+                source_row = bundle["mappings"][index]
+                projected = {
                     "object_id": row["object_id"],
+                    "name_zh": source_row.get("name_zh") if isinstance(source_row.get("name_zh"), str) else row["object_id"],
                     "mapping_kind": row["mapping_kind"],
                     "as_built_eligible": row["as_built_eligible"],
                     "render_views": row["render_views"],
                 }
-                for row in validation["mappings"]
-            ]
+                if row["mapping_kind"] == "reference_cad":
+                    source_asset = source_row.get("geometry_asset")
+                    source_render = source_row.get("render")
+                    if (
+                        not isinstance(source_asset, dict)
+                        or source_asset.get("glb_node_binding") is not None
+                        or not isinstance(source_render, dict)
+                        or source_render.get("renderable") is not False
+                        or source_render.get("as_built_eligible") is not False
+                        or source_row.get("spatial_anchor") is not None
+                        or source_row.get("telemetry_binding") is not None
+                    ):
+                        raise ValueError("P9M4_REFERENCE_PROMOTION_FORBIDDEN")
+                    candidate = source_asset.get("glb_node_binding_candidate")
+                    if not isinstance(candidate, dict):
+                        raise ValueError("P9M4_REFERENCE_CANDIDATE_REQUIRED")
+                    status = candidate.get("status")
+                    if status not in (
+                        "unique_exact_name_parent_match_candidate",
+                        "unique_exact_name_parent_match_group_candidate",
+                    ):
+                        raise ValueError("P9M4_REFERENCE_CANDIDATE_STATUS_INVALID")
+                    node_index = candidate.get("candidate_glb_node_index")
+                    descendants = candidate.get("candidate_descendant_mesh_nodes")
+                    node_name = candidate.get("candidate_glb_node_name")
+                    node_mesh_index = candidate.get("candidate_glb_mesh_index")
+                    geometry_node_count = candidate.get("candidate_geometry_node_count")
+                    if (
+                        type(node_index) is not int or not 0 <= node_index < node_count
+                        or not isinstance(node_name, str) or not node_name
+                        or (node_mesh_index is not None and (type(node_mesh_index) is not int or not 0 <= node_mesh_index < mesh_count))
+                        or type(geometry_node_count) is not int or geometry_node_count < 1
+                        or candidate.get("selector_promoted") is not False
+                        or candidate.get("requires_visual_review") is not True
+                        or not isinstance(descendants, list)
+                    ):
+                        raise ValueError("P9M4_REFERENCE_CANDIDATE_BOUNDARY_INVALID")
+                    safe_descendants = []
+                    descendant_indices = set()
+                    for child in descendants:
+                        if not isinstance(child, dict):
+                            raise ValueError("P9M4_REFERENCE_DESCENDANT_INVALID")
+                        child_index, mesh_index, child_name = child.get("node_index"), child.get("mesh_index"), child.get("name")
+                        if (
+                            type(child_index) is not int or not 0 <= child_index < node_count
+                            or type(mesh_index) is not int or not 0 <= mesh_index < mesh_count
+                            or not isinstance(child_name, str) or not child_name
+                        ):
+                            raise ValueError("P9M4_REFERENCE_DESCENDANT_INVALID")
+                        if child_index == node_index or child_index in descendant_indices:
+                            raise ValueError("P9M4_REFERENCE_DESCENDANT_DUPLICATE")
+                        descendant_indices.add(child_index)
+                        safe_descendants.append({
+                            "node_index": child_index,
+                            "name": child_name,
+                            "mesh_index": mesh_index,
+                        })
+                    if geometry_node_count != len(safe_descendants) + (1 if node_mesh_index is not None else 0):
+                        raise ValueError("P9M4_REFERENCE_GEOMETRY_COUNT_INVALID")
+                    projected["review_candidate"] = {
+                        "status": status,
+                        "node_index": node_index,
+                        "node_name": node_name,
+                        "mesh_index": node_mesh_index,
+                        "geometry_node_count": geometry_node_count,
+                        "descendant_mesh_nodes": safe_descendants,
+                        "selector_promoted": False,
+                        "requires_visual_review": True,
+                    }
+                mappings.append(projected)
             return {
                 "ok": True, "configured": True, "status": "validated",
                 "message_zh": "映射清单已校验；参考 CAD、仿真构型与实装视图严格隔离。",
@@ -1648,7 +1734,10 @@ def create_app(
                     "counts_by_kind": validation["counts_by_kind"],
                     "as_built_verified_count": validation["as_built_verified_count"],
                     "render_eligible_as_built_count": validation["render_eligible_as_built_count"],
+                    "visual_review_candidate_count": sum(1 for row in mappings if row.get("review_candidate")),
                 },
+                "intake": {"glb_sha256": glb_sha256.lower() if isinstance(glb_sha256, str) else None},
+                "glb_node_inventory": {"node_count": node_count, "mesh_count": mesh_count} if type(node_count) is int and type(mesh_count) is int else None,
                 "mappings": mappings,
             }
         except Exception:
