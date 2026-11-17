@@ -333,6 +333,7 @@ def build_installation_review_packets(
         "evidence_catalog": _evidence_requirements(source_manifest, procedure_extraction),
         "summary": {
             "review_packet_count": len(packets),
+            "unit_test_report_count": len(unit_report_documents),
             "cad_local_transform_valid_count": sum(1 for p in packets if p["cad_geometry_transform"]["local_transform_check"]["valid_rigid_transform"]),
             "cad_world_transform_valid_count": sum(1 for p in packets if p["cad_geometry_transform"]["world_transform_check"]["valid_rigid_transform"]),
             "parent_composition_pass_count": sum(1 for p in packets if p["cad_geometry_transform"]["parent_composition_check"] in ("pass", "root")),
