@@ -122,10 +122,11 @@
         "housing_envelope",
         "visual_recognition"
       ],
-      "source_status": "original_star_tracker_CAD_not_yet_obtained",
+      "source_status": "KAIROSPACE KSST-01 product listing advertises a 2.88 MB CAD model; raw file bytes, SHA-256 and reuse license not yet verified; target hardware identity not confirmed.",
       "primary_ai_generation_target": true,
       "benchmark_role": "missing_CAD_generation_candidate",
-      "reference_registry_mapping": null
+      "reference_registry_mapping": null,
+      "generation_gate": "Attempt acquisition and provenance/license verification of listed CAD first; use image-to-3D only if the model cannot be acquired, reuse is not permitted, or the target hardware is a different model."
     }
   ],
   "metrics": [
@@ -156,5 +157,5 @@
     "g2_requires_source_backed_dimensions_and_interface_evidence",
     "no_target_hardware_identity_inference_from_external_reference_models"
   ],
-  "execution_scope": "Only star_tracker is the primary missing-CAD generation target; battery and reaction_wheel are reference-geometry controls from the accepted M4-A evidence registry."
+  "execution_scope": "Battery and reaction_wheel are real-CAD reference controls. Star tracker is the sole unresolved geometry candidate; verify advertised KSST-01 CAD access, provenance and reuse rights before any AI generation."
 }
