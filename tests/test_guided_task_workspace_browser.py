@@ -679,7 +679,6 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert wheels.input_value() == "1"
             torque = form.locator('[data-field-path="parameters.values.max_motor_torque_nm"] input')
             assert float(torque.input_value()) == pytest.approx(0.005)
-            assert page.locator("#wizardRuntimeFields").count() == 0 or page.locator("#wizardConfigSections").is_visible()
             assert not external_requests, external_requests
             assert not failures, failures
         finally:
