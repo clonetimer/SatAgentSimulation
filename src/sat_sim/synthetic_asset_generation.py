@@ -92,9 +92,14 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
             raise ValueError(f"P9M4I_{label}_BUFFER_VIEW_MISSING")
         view = buffer_views[view_index]
         accessor_offset = accessor.get("byteOffset", 0)
+        view_offset = view.get("byteOffset", 0)
         stride = view.get("byteStride", element_size)
-        if type(accessor_offset) is not int or accessor_offset < 0 or accessor_offset % component_size:
+        if "sparse" in accessor:
+            raise ValueError(f"P9M4I_{label}_SPARSE_ACCESSOR_UNSUPPORTED")
+        if type(accessor_offset) is not int or accessor_offset < 0:
             raise ValueError(f"P9M4I_{label}_ACCESSOR_OFFSET_INVALID")
+        if type(view_offset) is not int or view_offset < 0 or (view_offset + accessor_offset) % component_size:
+            raise ValueError(f"P9M4I_{label}_ACCESSOR_ALIGNMENT_INVALID")
         if type(stride) is not int or stride < element_size or stride % component_size or stride > 252:
             raise ValueError(f"P9M4I_{label}_BYTE_STRIDE_INVALID")
         count = accessor.get("count")
@@ -169,6 +174,13 @@ def audit_glb(path: str | Path) -> dict[str, Any]:
                 index_format = {5121: ("<B", 1), 5123: ("<H", 2), 5125: ("<I", 4)}.get(index_component)
                 if index_data.get("type") != "SCALAR" or index_format is None:
                     raise ValueError(f"P9M4I_INDEX_ACCESSOR_TYPE_INVALID:{mesh_index}")
+                if "sparse" in index_data:
+                    raise ValueError(f"P9M4I_INDEX_SPARSE_ACCESSOR_UNSUPPORTED:{mesh_index}")
+                index_view_index = index_data.get("bufferView")
+                if type(index_view_index) is not int or not 0 <= index_view_index < len(buffer_views):
+                    raise ValueError(f"P9M4I_INDEX_BUFFER_VIEW_MISSING:{mesh_index}")
+                if "byteStride" in buffer_views[index_view_index]:
+                    raise ValueError(f"P9M4I_INDEX_BUFFER_VIEW_STRIDE_FORBIDDEN:{mesh_index}")
                 index_count = index_data.get("count", 0)
                 index_offset, index_stride = _accessor_layout(
                     index_data, component_size=index_format[1], element_size=index_format[1], label=f"INDEX_{mesh_index}"
