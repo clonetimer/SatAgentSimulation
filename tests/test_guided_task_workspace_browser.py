@@ -615,7 +615,7 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             browser.close()
 
 
-def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_path):
+def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel(tmp_path):
     """The novice workflow must select a real component and load its native preset."""
     playwright = pytest.importorskip("playwright.sync_api")
     executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
