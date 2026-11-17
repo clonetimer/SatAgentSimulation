@@ -30,3 +30,12 @@ The guided Run acceptance now checks more than a successful Run status. The nati
 ## 7. Keep browser test names unique
 
 The P9-N1 browser suite briefly contained two Python test functions with the same name. Python silently keeps only the latter definition, so the full UI-originated Run journey was not collected. Use unique test names and make the workflow selector include each intended journey explicitly.
+
+
+## 8. Test nested event controls without bypassing their parent disclosure
+
+The compact event editor is nested inside the guided event panel. A Playwright test that clicks the nested #compactEvents > summary while its ancestor panel is closed will time out because the nested summary is not visible. For a backend policy test, inspect the underlying disabled state and the note's own hidden class; test the full disclosure interaction separately only when the user-facing visibility of that nested panel is the subject.
+
+## 9. Browser smoke should distinguish critical asset/API failures from optional browser resources
+
+Some browser consoles report 404s for optional resources (for example favicon or ancillary resources) that are unrelated to the workbench journey. For this component workflow, collect uncaught page errors and fail on 4xx/5xx responses for required /assets/, form, scenario-template and workbench API paths. Do not hide missing application assets, but do not treat unrelated browser metadata requests as application failures.
