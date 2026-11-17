@@ -964,8 +964,21 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator('[data-scene-mode="cad"]').click()
+            page.locator("#birdsCadViewer").wait_for(state="visible", timeout=10000)
             panel = page.locator("#birdsCadReviewPanel")
-            panel.get_by_text("蓄电池", exact=True).wait_for(timeout=30000)
+            try:
+                page.wait_for_function(
+                    "() => document.querySelectorAll('#birdsCadReviewPanel .birds-cad-review-card').length === 3",
+                    timeout=30000,
+                )
+            except Exception as error:
+                raise AssertionError(
+                    "Real registry was valid but review cards did not render; "
+                    f"viewer_visible={page.locator('#birdsCadViewer').is_visible()}; "
+                    f"panel_text={panel.inner_text()}; "
+                    f"viewer_api={page.evaluate('Boolean(window.BirdsCadViewer)')}"
+                ) from error
+            assert panel.get_by_text("蓄电池", exact=True).is_visible()
             assert panel.locator(".birds-cad-review-card").count() == 3
             assert "852" in panel.inner_text()
             action = panel.get_by_role("button", name="等待 GLB 哈希匹配").first
