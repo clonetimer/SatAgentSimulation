@@ -1,11 +1,11 @@
 # P9-M4-I：AI-assisted Engineering Asset Generation
 
 日期：2026-11-17  
-基线：P9-M4 统一映射契约已进入主线；PR #159/#160 仍是相邻的映射与 GLB 节点交叉核验工作，不依赖本实验分支合并。
+基线：P9-M4-A（PR #159）和 P9-M4-C（PR #160）仍处于 Open；#160 以 #159 为 base，均未合入 main。本实验分支 #161 独立以 main 为 base。
 
 ## 目标
 
-验证生成式 3D 与参数化 CAD 能否经济地补全缺少原始 CAD 映射的设备外观，并将结果安全接入 SatAgentSimulation。第一轮只做三个代表对象：电池组、反作用轮、星敏感器。
+验证生成式 3D 与参数化 CAD 能否经济地补全缺少原始 CAD 映射的设备外观，并将结果安全接入 SatAgentSimulation。第一轮保留三个代表对象作对照，但 AI 补 CAD 主目标收敛为星敏感器：M4-A 已将电池组和反作用轮登记为真实 BIRDS-4 reference CAD；二者转为 ground-truth controls，不再重复生成。
 
 本阶段交付的是资产生产与质量审计工具链，不把 AI 生成模型作为运行时依赖，不生成 as-built 实装证据，不将合成几何提升为 reference CAD。
 
@@ -32,11 +32,11 @@ B. 图像到 3D（外观补充路线）
 
 ## 三个试验对象
 
-| 对象 | 参数化路线 | 图像生成路线 | 主要验证 |
+| 对象 | 当前 CAD 状态 | 本轮角色 | 主要验证 |
 |---|---|---|---|
-| 电池组 | 长方体壳体、盖板、接口和安装孔 | 单机照片生成外观网格 | 包络尺寸、孔位、连接器 |
-| 反作用轮 | 圆柱/轮体、轴线、支架与安装面 | 多视角产品图生成外观 | 轴线、包络、安装接口、旋转语义 |
-| 星敏感器 | 外壳、遮光罩、光学窗口和安装基准 | 产品图生成外观 | 光轴方向、窗口位置、包络 |
+| 电池组 | BIRDS4 `B4_battery v1.step`，M4-A reference_cad | 真实几何对照组 | STEP→GLB 节点映射、包络与装配证据 |
+| 反作用轮 | BIRDS4 `B4_RW_Assembly v55.step`，M4-A reference_cad | 真实几何对照组 | STEP→GLB 节点映射、旋转轴和安装面 |
+| 星敏感器 | 尚未取得可核验原始 CAD；KSST-01 CAD 需请求 | 唯一 AI 补 CAD 目标 | G1 外观、光轴/窗口的未知边界、来源可追溯性 |
 
 若缺少有来源的尺寸图，参数化模型只允许使用明确标记的展示占位参数；不能宣称 G2。
 
@@ -60,12 +60,12 @@ G3 as-built:
 
 ## 第一轮实验设计
 
-1. 资料准备：每个对象至少收集一份来源可追溯的正视/侧视/俯视或产品图；有尺寸图则优先。
-2. 参数化基线：构建简化但尺寸可控的 FreeCAD/OpenCascade 模型。
-3. 生成模型：在隔离 Linux GPU worker 上运行 TRELLIS.2；对同一输入记录模型 commit、checkpoint、配置、耗时和资源峰值。
+1. 固定 M4-A 的电池组/反作用轮真实 STEP，导出可复现多视角图像，作为 image-to-3D 正控制组；原 STEP 是几何 ground truth。
+2. 对星敏感器取得来源许可明确的多视图图片、尺寸与接口依据；未取得前只允许 G1 占位预览，不允许 G2。
+3. 在隔离 Linux GPU worker 上运行 TRELLIS.2；记录模型 commit、checkpoint、配置、耗时和资源峰值。
 4. 输出统一为 GLB；保留原始 STEP/FCStd（若有）、源图、生成日志和哈希。
 5. 运行本仓库的无第三方依赖 GLB 审计器。
-6. 比较参数化与生成式输出：包围盒偏差、网格完整性、尺度一致性、外观可辨识性、人工修复时间、生成耗时和成本。
+6. 以电池组/反作用轮真实 STEP 做对照，比较包围盒偏差、对称表面距离、网格完整性、尺度一致性、人工修复时间、生成耗时和成本。
 
 ## 自动质量审计
 
@@ -84,7 +84,7 @@ G3 as-built:
 
 ## 预算与成功标准
 
-第一轮技术试验规划 5–8 人日；该数字为工程计划估算，不是模型服务商报价。只有在三个设备都能完成端到端生成/审计/加载，且人工修复时间低于手工从零建模基线时，才扩大到 16 类批量补全。
+第一轮技术试验规划 5–8 人日；该数字为工程计划估算，不是模型服务商报价。先完成两个真实 CAD 对照组的视图与几何基准，再对唯一缺失目标星敏感器进行生成试验；只有 G1 审计通过且人工修复成本优于手工建模基线，才扩大到其他未映射类别。
 
 ## 本阶段交付
 
@@ -141,4 +141,4 @@ G3 as-built:
 
 The GLB auditor now also checks primitive mode, material references, index accessor scalar/component types, triangle index divisibility and non-indexed triangle vertex divisibility. These checks are structural validation only, not proof of geometric accuracy. It additionally requires the embedded GLB BIN payload, validates bufferView/accessor byte ranges, reads the actual float32 POSITION records, and checks that declared accessor bounds agree with the decoded vertex payload. A regression fixture deliberately corrupts vertex data while leaving metadata unchanged.
 
-A three-device source-intake worksheet has been added. It specifies the minimum original photos, dimensions, interface drawings and hardware identity needed for battery, reaction wheel and star tracker. Current source status is explicitly `blocked_source_intake`; no device-specific dimensions or models have been fabricated.
+A three-device source-intake worksheet has been added. Battery and reaction wheel now have real BIRDS-4 reference CAD registrations but are not node-renderable or as-built verified. Star-tracker source CAD has not been obtained and remains blocked pending an auditable source package. No device-specific dimensions or models have been fabricated.
