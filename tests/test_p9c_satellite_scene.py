@@ -828,6 +828,12 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
                        __import__("hashlib").sha256(registry_path.read_bytes()).hexdigest())
 
     with _client(tmp_path / "app") as client, playwright.sync_playwright() as pw:
+        api_payload = client.get("/workbench/engineering-mapping").json()
+        assert api_payload["ok"] is True, api_payload
+        assert api_payload["summary"]["visual_review_candidate_count"] == 3, api_payload
+        assert {row["name_zh"] for row in api_payload["mappings"] if row.get("review_candidate")} == {
+            "蓄电池", "反作用轮", "载荷仪器"
+        }
         browser = pw.chromium.launch(
             headless=True,
             executable_path=executable,
