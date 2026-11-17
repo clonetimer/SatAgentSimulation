@@ -5141,7 +5141,7 @@
       });
       if (!filtered.length) return;
       const collapsible=Boolean(section.parameter_group) && section.parameter_group !== 'general';
-      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section';
+      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section'; card.dataset.sectionId=section.id;
       if (collapsible) {
         card.classList.add('parameter-section');
         const key=`${state.schema.capability.capability_id}:${section.id}`;
