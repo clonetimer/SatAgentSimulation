@@ -17,6 +17,20 @@ def _digest(value):
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
+def _write_glb(path, nodes):
+    document = {
+        "asset": {"version": "2.0"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": nodes,
+    }
+    body = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    body += b" " * (-len(body) % 4)
+    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(body), len(body), b"JSON") + body)
+
+
+
+
 def _builder():
     name = "sat_sim.engineering_reference_registry"
     assert importlib.util.find_spec(name) is not None, "M4 real evidence intake is not implemented"
@@ -28,9 +42,10 @@ def inputs(tmp_path):
     """Synthetic input is deliberately not a flight-unit evidence record."""
     commit, tree_sha = "a" * 40, "b" * 40
     glb = tmp_path / "fixture.glb"
-    body = b'{"asset":{"version":"2.0"}}'
-    body += b" " * (-len(body) % 4)
-    glb.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(body), len(body), b"JSON") + body)
+    _write_glb(glb, [
+        {"name": "root", "children": [1]},
+        {"name": "battery", "mesh": 0},
+    ])
     node = {"source_node_path": "root/battery", "parent_node_path": "root", "source_node_name": "battery", "child_count": 1}
     node_hash = _digest({"candidate_id": "battery-candidate", "source_commit": commit, "source_tree_sha": tree_sha, "node": node})
     review = {
@@ -157,3 +172,51 @@ def test_real_pinned_m3_evidence_maps_three_candidates_and_sixteen_unlocated():
     assert {r["object_id"] for r in refs} == {"component.battery", "component.reaction_wheel", "component.payload"}
     assert all(r["review"]["required_reviews"]["coordinate_datum"] == "blocked" for r in refs)
     (root / "p9m4-reference-registry.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_unique_exact_glb_node_name_and_parent_is_candidate_only(inputs):
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "unique_exact_name_parent_match_candidate"
+    assert candidate["candidate_glb_node_index"] == 1
+    assert candidate["candidate_glb_node_name"] == "battery"
+    assert candidate["candidate_glb_parent_index"] == 0
+    assert candidate["selector_promoted"] is False
+    assert candidate["requires_visual_review"] is True
+    assert reference["geometry_asset"]["glb_node_binding"] is None
+    assert reference["render"]["renderable"] is False
+    assert reference["review"]["node_binding_status"] == "unique_exact_name_parent_match_candidate"
+
+
+def test_ambiguous_glb_names_do_not_produce_node_selector(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "root", "children": [1, 2]},
+        {"name": "battery", "mesh": 0},
+        {"name": "battery", "mesh": 1},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "ambiguous_exact_name"
+    assert candidate["candidate_glb_node_index"] is None
+    assert reference["geometry_asset"]["glb_node_binding"] is None
+
+
+def test_glb_parent_name_mismatch_does_not_produce_node_selector(inputs):
+    path = inputs[-1]
+    _write_glb(path, [
+        {"name": "different-root", "children": [1]},
+        {"name": "battery", "mesh": 0},
+    ])
+    inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    inputs[3]["geometry"]["size_bytes"] = path.stat().st_size
+    result = _builder()(*inputs)
+    reference = next(row for row in result["mappings"] if row["mapping_kind"] == "reference_cad")
+    candidate = reference["geometry_asset"]["glb_node_binding_candidate"]
+    assert candidate["status"] == "parent_name_mismatch"
+    assert candidate["candidate_glb_node_index"] is None
+    assert reference["geometry_asset"]["glb_node_binding"] is None
