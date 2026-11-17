@@ -112,7 +112,7 @@ jobs:
         env:
           PYTHONPATH: "src"
           SAT_SIM_P9M4_REAL_EVIDENCE: ${{ runner.temp }}/p9m4/inputs
-        run: python -m pytest -q tests/cad/test_engineering_reference_registry.py -k real_pinned --junitxml=reports/p9m4-real.xml
+        run: python -m pytest -q -s tests/cad/test_engineering_reference_registry.py -k real_pinned --junitxml=reports/p9m4-real.xml
       - name: Create deployment digest receipt for reference-only registry
         run: |
           python - <<'PY'
