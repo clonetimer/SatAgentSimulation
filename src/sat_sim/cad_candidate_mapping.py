@@ -11,7 +11,7 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 SCHEMA_VERSION = "cad-engineering-candidate-mapping.v1"
 
@@ -93,7 +93,12 @@ def _flatten_equipment(tree_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Accept workbench_object_tree response (tree/roots) or a raw tree node."""
     roots: list[Any]
     if isinstance(tree_payload.get("roots"), list):
-        roots = tree_payload["roots"]
+        roots = list(tree_payload["roots"])
+        tree_root = tree_payload.get("tree")
+        if isinstance(tree_root, Mapping):
+            tree_root_id = tree_root.get("object_id")
+            if not any(isinstance(root, Mapping) and root.get("object_id") == tree_root_id for root in roots):
+                roots.insert(0, tree_root)
     elif isinstance(tree_payload.get("tree"), Mapping):
         roots = [tree_payload["tree"]]
     elif isinstance(tree_payload.get("object_id"), str):
@@ -176,7 +181,6 @@ def build_candidate_mapping(
     for node in cad_nodes:
         label = node["source_label_name"]
         variant_tags = _variant_tags(label + " " + node["source_node_path"])
-        normalized = label.casefold().replace("_", " ").replace("-", " ")
         for object_id, aliases in _ALIASES.items():
             if object_id not in equipment_by_id:
                 continue
