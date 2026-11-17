@@ -124,6 +124,7 @@ def test_native_reaction_wheel_component_survives_full_sealed_run_bundle(tmp_pat
     assert verify_run_bundle(result.bundle_root)["ok"] is True
     assert result.summary["physics_backend"] == "basilisk_native"
     assert result.summary["runtime_truth_status"] == "real_native_rw_spacecraft_recorded"
+    assert result.summary["adapter_metadata"]["native_provenance"] == "Basilisk.simulation.reactionWheelStateEffector"
     assert result.summary["target_level"] == "component"
     assert result.summary["target_name"] == "reaction_wheel"
     assert len(result.trace_rows) > 5
