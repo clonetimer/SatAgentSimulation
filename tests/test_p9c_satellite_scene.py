@@ -744,3 +744,141 @@ def test_default_scene_mode_initialization_and_renderer_ownership():
         cwd=root, capture_output=True, text=True, timeout=30,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def _write_review_group_glb(path: Path) -> None:
+    """Turn the triangle fixture into a two-level assembly group with one mesh descendant."""
+    _write_triangle_glb(path)
+    data = path.read_bytes()
+    json_length, json_type = struct.unpack_from("<I4s", data, 12)
+    assert json_type == b"JSON"
+    document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" "))
+    document["nodes"] = [
+        {"name": "spacecraft", "children": [1]},
+        {"name": "battery", "children": [2]},
+        {"name": "battery-shell", "mesh": 0},
+    ]
+    document["scenes"] = [{"nodes": [0]}]
+    json_chunk = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    json_chunk += b" " * ((4 - len(json_chunk) % 4) % 4)
+    binary_chunk = data[20 + json_length:]
+    body = struct.pack("<I4s", len(json_chunk), b"JSON") + json_chunk + binary_chunk
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
+
+
+def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp_path: Path, monkeypatch):
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to an installed Chromium browser")
+
+    expected_glb = tmp_path / "review-candidate.glb"
+    wrong_glb = tmp_path / "wrong-revision.glb"
+    _write_review_group_glb(expected_glb)
+    _write_triangle_glb(wrong_glb)
+    digest = __import__("hashlib").sha256(expected_glb.read_bytes()).hexdigest()
+    registry = {
+        "schema_version": "engineering-asset-mapping.v1",
+        "mappings": [{
+            "mapping_id": "reference:battery",
+            "object_id": "component.battery",
+            "name_zh": "电池组",
+            "mapping_kind": "reference_cad",
+            "asset_instance_id": None,
+            "geometry_asset": {
+                "asset_id": "glb:" + digest,
+                "sha256": digest,
+                "source_node_path": "root/battery",
+                "glb_node_binding": None,
+                "glb_node_binding_candidate": {
+                    "status": "unique_exact_name_parent_match_group_candidate",
+                    "candidate_glb_node_index": 1,
+                    "candidate_glb_node_name": "battery",
+                    "candidate_glb_mesh_index": None,
+                    "candidate_geometry_node_count": 1,
+                    "candidate_descendant_mesh_nodes": [
+                        {"node_index": 2, "name": "battery-shell", "mesh_index": 0},
+                    ],
+                    "selector_promoted": False,
+                    "requires_visual_review": True,
+                },
+            },
+            "geometry_frame": {"identity_status": "unverified"},
+            "spatial_anchor": None,
+            "telemetry_binding": None,
+            "evidence": [],
+            "render": {"as_built_eligible": False, "renderable": False, "views": ["reference_cad"]},
+        }],
+        "intake": {
+            "scope": "reference_registration_only_not_as_built_approval",
+            "glb_sha256": digest,
+        },
+        "glb_node_inventory": {"node_count": 3, "mesh_count": 1, "scene_count": 1},
+        "summary": {
+            "as_built_verified_count": 0,
+            "telemetry_binding_count": 0,
+            "node_renderable_count": 0,
+        },
+    }
+    registry_path = tmp_path / "engineering-reference-registry.json"
+    registry_path.write_text(json.dumps(registry), encoding="utf-8")
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(registry_path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256",
+                       __import__("hashlib").sha256(registry_path.read_bytes()).hexdigest())
+
+    with _client(tmp_path / "app") as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(
+            headless=True,
+            executable_path=executable,
+            args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
+        )
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 960}, locale="zh-CN")
+            failures: list[str] = []
+            external_requests: list[str] = []
+
+            def proxy(route):
+                parsed = urlparse(route.request.url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc != "workbench.test":
+                    external_requests.append(route.request.url)
+                    route.abort()
+                    return
+                response = client.get(parsed.path, params=dict(parse_qsl(parsed.query)))
+                headers = {
+                    key: value for key, value in response.headers.items()
+                    if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")
+                }
+                route.fulfill(status=response.status_code, body=response.content, headers=headers)
+
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("console", lambda message: failures.append(message.text) if message.type == "error" else None)
+            page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardSceneShortcutBtn").click()
+            page.locator('[data-scene-mode="cad"]').click()
+            panel = page.locator("#birdsCadReviewPanel")
+            panel.get_by_text("电池组", exact=True).wait_for(timeout=30000)
+            action = panel.get_by_role("button", name="等待 GLB 哈希匹配")
+            assert action.is_disabled()
+
+            page.locator("#birdsCadFile").set_input_files(str(wrong_glb))
+            page.locator("#birdsCadStatus").filter(has_text="已加载 wrong-revision.glb").wait_for(timeout=60000)
+            assert panel.get_by_role("button", name="等待 GLB 哈希匹配").is_disabled()
+            assert "SHA-256" in panel.inner_text()
+
+            page.locator("#birdsCadFile").set_input_files(str(expected_glb))
+            page.locator("#birdsCadStatus").filter(has_text="已加载 review-candidate.glb").wait_for(timeout=60000)
+            page.get_by_text("GLB 哈希一致", exact=True).wait_for(timeout=10000)
+            action = panel.get_by_role("button", name="定位候选组")
+            assert action.is_enabled()
+            panel.get_by_text("查看后代网格清单").click()
+            assert "battery-shell" in panel.inner_text()
+            action.click()
+            page.locator("#birdsCadInspector .birds-cad-inspector-name").filter(has_text="battery").wait_for()
+            assert "battery" in page.locator("#birdsCadStatus").inner_text()
+            assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in page.locator("#birdsCadInspector").inner_text()
+            assert not external_requests, external_requests
+            assert not failures, failures
+        finally:
+            browser.close()
