@@ -84,3 +84,15 @@ def test_native_reaction_wheel_template_is_published_by_the_workbench_api(tmp_pa
         )
         assert backend["importance"] == "common"
         assert backend["enum_labels"]["basilisk_native"].startswith("Basilisk 原生物理")
+
+
+def test_native_backend_is_exposed_in_the_guided_parameter_workspace() -> None:
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    html = (root / "src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    assert "wizardApplyNativeRwPreset" in source
+    assert "section.parameter_group === 'backend'" in source
+    assert 'id="wizardApplyNativeRwPresetBtn"' in html
+    assert "component_reaction_wheel_basilisk_native" in source
