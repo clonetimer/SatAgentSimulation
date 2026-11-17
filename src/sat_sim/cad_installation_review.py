@@ -141,6 +141,7 @@ def build_installation_review_packets(
     assembly_payload: Mapping[str, Any],
     source_manifest: Mapping[str, Any],
     procedure_extraction: Mapping[str, Any] | None = None,
+    unit_report_index: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create review packets. Missing evidence remains missing; no auto-approval."""
     candidates = _load_candidate_rows(candidate_payload)
@@ -170,6 +171,15 @@ def build_installation_review_packets(
         and procedure_extraction.get("source", {}).get("verification_status") == "source_bytes_verified"
     )
     general_procedure_terms = ["structural testing model", "axis definition"]
+    unit_report_documents = (
+        unit_report_index.get("documents", [])
+        if isinstance(unit_report_index, Mapping) else []
+    )
+    if isinstance(unit_report_index, Mapping):
+        if unit_report_index.get("schema_version") != "birds4-flight-unit-report-index.v1":
+            raise ValueError("P9M3_UNSUPPORTED_UNIT_REPORT_INDEX")
+        if unit_report_index.get("configuration_authority") != "test_reports_are_not_approved_as_built_BOM":
+            raise ValueError("P9M3_UNIT_REPORT_AUTHORITY_BOUNDARY_MISSING")
     packets = []
     for candidate in candidates:
         path = candidate.get("cad_node_path")
@@ -240,6 +250,27 @@ def build_installation_review_packets(
                 "units": "metre_after_source_scale_conversion",
                 "transform_semantics": "source_CAD_geometry_transform_not_as_built_installation_transform",
             },
+            "flight_unit_test_report_evidence": {
+                "status": "source_verified_raw_test_reports_not_approved_configuration",
+                "configuration_authority": "test_reports_are_not_approved_as_built_BOM",
+                "documents": [
+                    {
+                        "source_unit": doc.get("source_unit"),
+                        "document_role": doc.get("document_role"),
+                        "path": doc.get("path"),
+                        "source_commit": doc.get("source_commit"),
+                        "git_blob_sha1": doc.get("git_blob_sha1"),
+                        "sha256": doc.get("sha256"),
+                        "verification_status": doc.get("verification_status"),
+                        "human_review_status": doc.get("human_review_status"),
+                        "configuration_authority": doc.get("configuration_authority"),
+                        "paragraph_count": doc.get("paragraph_count"),
+                        "table_count": doc.get("table_count"),
+                        "keyword_index": doc.get("keyword_index", {}),
+                    }
+                    for doc in unit_report_documents
+                ],
+            },
             "flight_unit_identity": {
                 "candidate_variant_tags": candidate.get("variant_tags", []),
                 "source_contains_mixed_em_or_b3_nodes": candidate.get("source_model_identity_review_required", False),
@@ -288,6 +319,7 @@ def build_installation_review_packets(
             "source_tree_sha": source_tree_sha,
             "cad_node_count": len(nodes),
             "candidate_count": len(packets),
+            "unit_test_report_count": len(unit_report_documents),
         },
         "semantics": {
             "cad_transform_is_not_installation_transform": True,
@@ -295,6 +327,7 @@ def build_installation_review_packets(
             "no_as_built_truth_inferred": True,
             "no_instance_or_spatial_anchor_created": True,
             "manual_evidence_review_required": True,
+            "unit_test_reports_are_not_approved_bom": True,
             "unreviewed_evidence_fails_closed": True,
         },
         "evidence_catalog": _evidence_requirements(source_manifest, procedure_extraction),
