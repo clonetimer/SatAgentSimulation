@@ -75,11 +75,25 @@ jobs:
           assert status['native_cpp_patch_abi_available'] is False, (
               'STABLE_WHEEL_MUST_NOT_BUNDLE_EXPERIMENTAL_BASILISK_BINARY'
           )
+          import tomllib
+          import re
+          project = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']
+          declared = [
+              re.sub(r'\\s+', '', item).lower()
+              for item in project.get('dependencies', [])
+              if re.match(r'\\s*bsk\\s*==', item, re.I)
+          ]
           dist=distribution('satellite-simulation-platform')
-          deps=dist.requires or []
-          assert any('bsk==2.11.0+satfix1' in dep.replace(' ','') for dep in deps), (
-              'STABLE_BSK_PIN_CHANGED_WITHOUT_DEPENDENCY_REVIEW'
+          installed = [
+              re.sub(r'\\s+', '', item).lower()
+              for item in (dist.requires or [])
+              if re.match(r'\\s*bsk\\s*==', item, re.I)
+          ]
+          assert len(declared) == 1, f'STABLE_BSK_DECLARATION_AMBIGUOUS:{declared}'
+          assert installed == declared, (
+              f'STABLE_BSK_WHEEL_METADATA_MISMATCH:declared={declared}:installed={installed}'
           )
+          print(f'STABLE_BSK_PIN_MATCHES_PROJECT_DECLARATION:{declared[0]}')
           print('STABLE_SOURCE_ONLY_PACKAGE_INSTALLED_WITH_REQUIRED_WEB_ASSETS')
           print('STABLE_WHOLE_NATIVE_RECOVERY_BLOCKED_12_OWNERS_0_COMPLETE')
           print('STABLE_BSK_SATFIX1_REQUIRES_SEPARATE_WHEEL_PROVENANCE_REVIEW')
