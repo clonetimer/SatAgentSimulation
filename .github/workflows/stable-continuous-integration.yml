@@ -96,7 +96,7 @@ jobs:
           print(f'STABLE_BSK_PIN_MATCHES_PROJECT_DECLARATION:{declared[0]}')
           print('STABLE_SOURCE_ONLY_PACKAGE_INSTALLED_WITH_REQUIRED_WEB_ASSETS')
           print('STABLE_WHOLE_NATIVE_RECOVERY_BLOCKED_12_OWNERS_0_COMPLETE')
-          print('STABLE_BSK_SATFIX1_REQUIRES_SEPARATE_WHEEL_PROVENANCE_REVIEW')
+          print('STABLE_BSK_PIN_REQUIRES_SEPARATE_WHEEL_PROVENANCE_REVIEW')
           PY
       - name: Archive source-only integration wheel (not a complete offline release)
         uses: actions/upload-artifact@v7
