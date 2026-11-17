@@ -32,3 +32,8 @@ After fixing PYTHONPATH, the Windows 2022 job reached the CLI smoke check and fa
 
 
 A second Windows-only workflow failure occurred after the CLI passed: the benchmark-manifest step used a Bash heredoc but inherited the Windows runner's default PowerShell shell. Set the shell explicitly to bash on heredoc steps. Do not assume a multi-line run block selects Bash; on Windows it still defaults to PowerShell unless the shell is declared.
+
+
+## Distinguish a listed CAD download from acquired CAD evidence
+
+A supplier marketplace page may list a CAD model and file size without exposing the actual file bytes or reuse terms to an automated fetch. Record the state as "CAD listed, bytes/license not verified", not "CAD acquired" and not "no CAD exists". Attempt the source acquisition and SHA-256/license check first; only fall back to image-to-3D if access, permitted reuse or target-model identity prevents use of the real CAD.
