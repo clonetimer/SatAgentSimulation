@@ -11,23 +11,56 @@ import pytest
 from sat_sim.synthetic_asset_generation import audit_glb, validate_synthetic_asset
 
 
+def _write_glb_document(path, document, binary):
+    raw = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    raw += b" " * (-len(raw) % 4)
+    binary += b"\\0" * (-len(binary) % 4)
+    total_length = 12 + 8 + len(raw) + 8 + len(binary)
+    path.write_bytes(
+        struct.pack("<4sII", b"glTF", 2, total_length)
+        + struct.pack("<I4s", len(raw), b"JSON") + raw
+        + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
+    )
+
+
+def _read_glb_document(path):
+    data = path.read_bytes()
+    json_length, chunk_type = struct.unpack_from("<I4s", data, 12)
+    assert chunk_type == b"JSON"
+    document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" \\0"))
+    binary_offset = 20 + json_length
+    binary_length, binary_type = struct.unpack_from("<I4s", data, binary_offset)
+    assert binary_type == b"BIN\\0"
+    return document, data[binary_offset + 8:binary_offset + 8 + binary_length]
+
+
 def _write_glb(path, *, nodes=None, bounds=None):
+    minimum, maximum = bounds if bounds else ([-0.03, -0.02, -0.01], [0.03, 0.02, 0.01])
+    points = [
+        minimum,
+        maximum,
+        [minimum[0], maximum[1], minimum[2]],
+        [maximum[0], minimum[1], maximum[2]],
+        [minimum[0], minimum[1], maximum[2]],
+        [maximum[0], maximum[1], minimum[2]],
+    ]
+    binary = struct.pack("<18f", *(coordinate for point in points for coordinate in point))
     document = {
         "asset": {"version": "2.0"},
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": nodes or [{"name": "battery", "mesh": 0}],
         "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+        "buffers": [{"byteLength": len(binary)}],
+        "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": len(binary)}],
         "accessors": [{
+            "bufferView": 0, "byteOffset": 0,
             "componentType": 5126, "count": 6, "type": "VEC3",
-            "min": bounds[0] if bounds else [-0.03, -0.02, -0.01],
-            "max": bounds[1] if bounds else [0.03, 0.02, 0.01],
+            "min": minimum, "max": maximum,
         }],
         "materials": [{"name": "housing"}],
     }
-    raw = json.dumps(document, separators=(",", ":")).encode("utf-8")
-    raw += b" " * (-len(raw) % 4)
-    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+    _write_glb_document(path, document, binary)
 
 
 def _record(path):
@@ -125,11 +158,9 @@ def test_glb_rejects_invalid_header(tmp_path):
 def test_glb_rejects_missing_position_accessor(tmp_path):
     path = tmp_path / "bad.glb"
     _write_glb(path)
-    doc = json.loads(path.read_bytes()[20:].decode().rstrip(" \0"))
+    doc, binary = _read_glb_document(path)
     doc["meshes"][0]["primitives"][0]["attributes"] = {}
-    raw = json.dumps(doc, separators=(",", ":")).encode()
-    raw += b" " * (-len(raw) % 4)
-    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+    _write_glb_document(path, doc, binary)
     with pytest.raises(ValueError, match="POSITION_ACCESSOR_MISSING"):
         audit_glb(path)
 from pathlib import Path
@@ -169,11 +200,9 @@ def test_published_schema_rejects_telemetry_and_as_built_claims(tmp_path):
 def test_glb_rejects_invalid_material_reference(tmp_path):
     path = tmp_path / "bad-material.glb"
     _write_glb(path)
-    doc = json.loads(path.read_bytes()[20:].decode().rstrip(" \\0"))
+    doc, binary = _read_glb_document(path)
     doc["meshes"][0]["primitives"][0]["material"] = 99
-    raw = json.dumps(doc, separators=(",", ":")).encode()
-    raw += b" " * (-len(raw) % 4)
-    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+    _write_glb_document(path, doc, binary)
     with pytest.raises(ValueError, match="MATERIAL_REFERENCE_INVALID"):
         audit_glb(path)
 
@@ -181,10 +210,8 @@ def test_glb_rejects_invalid_material_reference(tmp_path):
 def test_glb_rejects_triangle_vertex_count_not_divisible_by_three(tmp_path):
     path = tmp_path / "bad-triangle-count.glb"
     _write_glb(path)
-    doc = json.loads(path.read_bytes()[20:].decode().rstrip(" \\0"))
-    doc["accessors"][0]["count"] = 7
-    raw = json.dumps(doc, separators=(",", ":")).encode()
-    raw += b" " * (-len(raw) % 4)
-    path.write_bytes(struct.pack("<4sIII4s", b"glTF", 2, 20 + len(raw), len(raw), b"JSON") + raw)
+    doc, binary = _read_glb_document(path)
+    doc["accessors"][0]["count"] = 5
+    _write_glb_document(path, doc, binary)
     with pytest.raises(ValueError, match="TRIANGLE_VERTEX_COUNT_INVALID"):
         audit_glb(path)
