@@ -78,6 +78,11 @@ _ALIASES: dict[str, tuple[tuple[str, str, float], ...]] = {
     ),
 }
 
+_NON_EQUIPMENT_ROLE_PATTERNS: dict[str, re.Pattern[str]] = {
+    # Mechanical installation aids are not the antenna itself.
+    "component.antenna": re.compile(r"fixing|guide|washer|bracket|mount|holder|support|connector|parts", re.I),
+}
+
 _VARIANT_PATTERNS = (
     ("em", re.compile(r"B4_EM|(?:^|[_\s])EM(?:[_\s]|$)", re.I)),
     ("b3", re.compile(r"B3[_\s]", re.I)),
@@ -181,8 +186,16 @@ def build_candidate_mapping(
     for node in cad_nodes:
         label = node["source_label_name"]
         variant_tags = _variant_tags(label + " " + node["source_node_path"])
+        # A CAD leaf with one or more direct shapes is geometry, not necessarily
+        # a component occurrence. Only assembly nodes provide a stable candidate
+        # boundary at this stage; leaf geometry is retained in the source tree.
+        if not isinstance(node["child_count"], int) or node["child_count"] <= 0:
+            continue
         for object_id, aliases in _ALIASES.items():
             if object_id not in equipment_by_id:
+                continue
+            excluded_role = _NON_EQUIPMENT_ROLE_PATTERNS.get(object_id)
+            if excluded_role and excluded_role.search(label):
                 continue
             hits = []
             for pattern, reason, strength in aliases:
@@ -206,6 +219,9 @@ def build_candidate_mapping(
                 "cad_source_node_name": node["source_node_name"],
                 "cad_source_label_name": label,
                 "duplicate_occurrence": node["duplicate_occurrence"],
+                "direct_shape_count": node["direct_shape_count"],
+                "child_count": node["child_count"],
+                "node_granularity": "assembly_occurrence",
                 "match_method": "conservative_source_name_alias",
                 "match_evidence": hits,
                 "lexical_match_strength": best["lexical_match_strength"],
@@ -240,6 +256,8 @@ def build_candidate_mapping(
             "cad_model": source_model,
             "cad_revision": source_revision,
             "cad_node_count": len(cad_nodes),
+            "cad_assembly_node_count": sum(1 for node in cad_nodes if isinstance(node["child_count"], int) and node["child_count"] > 0),
+            "cad_leaf_geometry_node_count": sum(1 for node in cad_nodes if not isinstance(node["child_count"], int) or node["child_count"] <= 0),
             "engineering_equipment_category_count": len(equipment),
         },
         "semantics": {
@@ -256,6 +274,7 @@ def build_candidate_mapping(
             "candidate_cad_node_count": len(mapped_nodes),
             "unmatched_engineering_object_ids": sorted(set(equipment_by_id) - mapped_objects),
             "unmatched_cad_node_count": len(cad_nodes) - len(mapped_nodes),
+            "skipped_leaf_geometry_node_count": sum(1 for node in cad_nodes if not isinstance(node["child_count"], int) or node["child_count"] <= 0),
             "ambiguous_candidate_count": sum(1 for item in candidates if item["ambiguous"]),
             "identity_review_candidate_count": sum(1 for item in candidates if item["identity_review_required"]),
             "render_eligible_candidate_count": sum(1 for item in candidates if item["render_eligible"]),
