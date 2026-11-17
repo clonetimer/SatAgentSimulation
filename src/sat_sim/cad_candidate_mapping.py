@@ -72,6 +72,7 @@ _ALIASES: dict[str, tuple[tuple[str, str, float], ...]] = {
     ),
     "component.payload": (
         (r"payload[ _-]?(?:instrument|unit|module)", "explicit_payload_name", 0.9),
+        (r"perovskite[ _-]?solar[ _-]?cells?", "perovskite_solar_cell_mission_payload_candidate", 0.95),
     ),
     "component.payload_sensor": (
         (r"payload[ _-]?sensor", "explicit_payload_sensor_name", 1.0),
@@ -81,6 +82,9 @@ _ALIASES: dict[str, tuple[tuple[str, str, float], ...]] = {
 _NON_EQUIPMENT_ROLE_PATTERNS: dict[str, re.Pattern[str]] = {
     # Mechanical installation aids are not the antenna itself.
     "component.antenna": re.compile(r"fixing|guide|washer|bracket|mount|holder|support|connector|parts", re.I),
+    # BIRDS-4 Perovskite Solar Cells are a technology-demonstration payload,
+    # not the bus power-generation solar array.
+    "component.solar_panel": re.compile(r"perovskite", re.I),
 }
 
 _VARIANT_PATTERNS = (
@@ -182,6 +186,11 @@ def build_candidate_mapping(
     cad_nodes = _cad_node_rows(assembly_tree)
     equipment_by_id = {row["object_id"]: row for row in equipment}
     candidates: list[dict[str, Any]] = []
+    source_variant_counts = Counter(
+        tag for node in cad_nodes
+        for tag in _variant_tags(node["source_label_name"] + " " + node["source_node_path"])
+    )
+    source_has_mixed_variants = source_variant_counts["em"] > 0 or source_variant_counts["b3"] > 0
 
     for node in cad_nodes:
         label = node["source_label_name"]
@@ -204,7 +213,10 @@ def build_candidate_mapping(
             if not hits:
                 continue
             best = max(hits, key=lambda item: item["lexical_match_strength"])
-            identity_review = bool({"em", "b3"}.intersection(variant_tags))
+            identity_review = (
+                bool({"em", "b3"}.intersection(variant_tags))
+                or source_has_mixed_variants
+            )
             candidate_key = hashlib.sha256(
                 f"{object_id}\0{node['source_node_path']}".encode("utf-8")
             ).hexdigest()[:20]
@@ -227,6 +239,7 @@ def build_candidate_mapping(
                 "lexical_match_strength": best["lexical_match_strength"],
                 "variant_tags": variant_tags,
                 "identity_review_required": identity_review,
+                "source_model_identity_review_required": source_has_mixed_variants,
                 "geometry_review_required": True,
                 "coordinate_review_required": True,
                 "installation_evidence_required": True,
@@ -245,7 +258,6 @@ def build_candidate_mapping(
         item["ambiguous"] = (
             item["multiple_cad_candidates_for_object"]
             or item["multiple_engineering_candidates_for_node"]
-            or item["identity_review_required"]
         )
 
     mapped_objects = set(by_object)
@@ -258,6 +270,8 @@ def build_candidate_mapping(
             "cad_node_count": len(cad_nodes),
             "cad_assembly_node_count": sum(1 for node in cad_nodes if isinstance(node["child_count"], int) and node["child_count"] > 0),
             "cad_leaf_geometry_node_count": sum(1 for node in cad_nodes if not isinstance(node["child_count"], int) or node["child_count"] <= 0),
+            "source_variant_node_counts": dict(source_variant_counts),
+            "source_contains_mixed_em_or_b3_nodes": source_has_mixed_variants,
             "engineering_equipment_category_count": len(equipment),
         },
         "semantics": {

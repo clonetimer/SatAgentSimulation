@@ -56,3 +56,22 @@ Lexical match strength 是规则强度，不是概率，不代表真实性。泛
 
 - P9-M3：结合 FM Assembly Procedure、型号/版本图纸和 datum 证据，逐项审查候选身份、父子装配关系、坐标系和刚体变换。
 - P9-M4：只有经过审定的实例才进入统一映射契约；未审定候选继续保持 draft，不影响仿真。
+
+
+## P9-M2 classification correction — Perovskite Solar Cells
+
+The first full-FM candidate audit exposed a semantic collision: the CAD node \`Perovskite_Solar_Cells v3\` was lexically matched to the bus \`component.solar_panel\` category. This is not supported by the mission documentation.
+
+The BIRDS-4 on-orbit paper separately lists the Perovskite Solar Cell (PSC) Mission and describes the bus power source as Azur 3C30 solar cells; it also describes five bus solar panels on the external spacecraft faces. Therefore the perovskite cell assembly is treated as a **payload candidate**, not the spacecraft bus solar array:
+- Paper: [BIRDS-4 1U CubeSat Missions and On-Orbit Results](https://nanosat11th.itu.edu.tr/assets/papers/BIRDS-4.pdf)
+- The assembly remains a candidate only; the paper does not establish a specific flight-unit as-built placement transform.
+- The mapper now maps the explicit Perovskite Solar Cells label to \`component.payload\` and excludes it from \`component.solar_panel\`.
+
+This correction demonstrates why lexical aliases must be reviewed against mission function, not just shared words such as “solar cell”.
+
+
+## P9-M2 source-level variant identity gate
+
+The full \`BIRDS4_FM_Final v7.step\` source tree contains both EM- and B3-labelled nodes in addition to FM-labelled nodes. Even when an individual candidate path itself carries an FM label, the parent full-reference assembly is not a clean flight-unit-specific inventory. Therefore every candidate derived from this mixed full assembly now inherits \`identity_review_required=true\`. This is a source-level identity gate, not a claim that the candidate part itself is EM or B3.
+
+P9-M3 must resolve each candidate against the pinned FM Assembly Procedure, the relevant approved drawing/revision and the exact flight-unit variant before any instance can be promoted. The CAD label and full-assembly filename alone are insufficient.

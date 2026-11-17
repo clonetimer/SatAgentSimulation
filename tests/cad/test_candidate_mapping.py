@@ -23,6 +23,10 @@ def _engineering_tree():
                     {"object_id": "component.solar_panel", "kind": "equipment", "name_zh": "太阳电池阵",
                      "instance_semantics": "capability_model_not_vehicle_inventory", "inventory_count": None, "children": []},
                 ]},
+                {"object_id": "subsystem.payload", "kind": "subsystem", "children": [
+                    {"object_id": "component.payload", "kind": "equipment", "name_zh": "载荷仪器",
+                     "instance_semantics": "capability_model_not_vehicle_inventory", "inventory_count": None, "children": []},
+                ]},
             ],
         },
         "roots": [
@@ -123,7 +127,7 @@ def test_em_and_b3_variant_tags_require_identity_review():
     assert by_path["root/B4_FM_RW"]["variant_tags"] == ["fm"]
     assert by_path["root/B4_EM_RW"]["identity_review_required"] is True
     assert by_path["root/B3_RW"]["identity_review_required"] is True
-    assert by_path["root/B4_FM_RW"]["identity_review_required"] is False
+    assert by_path["root/B4_FM_RW"]["identity_review_required"] is True
 
 
 def test_external_context_and_relationship_nodes_are_not_equipment_targets():
@@ -188,3 +192,42 @@ def test_geometry_leaf_nodes_and_antenna_mounting_hardware_are_not_component_can
     assert result["summary"]["skipped_leaf_geometry_node_count"] == 1
     assert result["summary"]["render_eligible_candidate_count"] == 0
     assert result["candidates"][0]["node_granularity"] == "assembly_occurrence"
+
+
+def test_perovskite_solar_cell_mission_is_payload_not_bus_solar_array():
+    result = build_candidate_mapping(
+        _engineering_tree(),
+        {"nodes": [
+            _cad_node(
+                "BIRDS4_FM_Final v7/B4_FM_-Y_panel v3/Perovskite_Solar_Cells v3",
+                "Perovskite_Solar_Cells v3",
+                "BIRDS4_FM_Final v7/B4_FM_-Y_panel v3",
+            ),
+        ]},
+    )
+    assert len(result["candidates"]) == 1
+    candidate = result["candidates"][0]
+    assert candidate["engineering_object_id"] == "component.payload"
+    assert candidate["match_evidence"][0]["reason"] == "perovskite_solar_cell_mission_payload_candidate"
+    assert candidate["verification_status"] == "draft"
+    assert candidate["render_eligible"] is False
+
+
+def test_mixed_em_or_b3_nodes_in_full_reference_model_flag_all_candidates_for_identity_review():
+    result = build_candidate_mapping(
+        _engineering_tree(),
+        {"nodes": [
+            _cad_node("BIRDS4_FM_Final v7/B4_battery v1", "B4_battery v1"),
+            _cad_node("BIRDS4_FM_Final v7/B4_EM_panel v19", "B4_EM_panel v19"),
+            _cad_node("BIRDS4_FM_Final v7/B3_panel v26", "B3_panel v26"),
+        ]},
+    )
+    assert result["source"]["source_contains_mixed_em_or_b3_nodes"] is True
+    assert result["source"]["source_variant_node_counts"]["em"] == 1
+    assert result["source"]["source_variant_node_counts"]["b3"] == 1
+    assert len(result["candidates"]) == 1
+    candidate = result["candidates"][0]
+    assert candidate["engineering_object_id"] == "component.battery"
+    assert candidate["variant_tags"] == ["fm"]
+    assert candidate["source_model_identity_review_required"] is True
+    assert candidate["identity_review_required"] is True
