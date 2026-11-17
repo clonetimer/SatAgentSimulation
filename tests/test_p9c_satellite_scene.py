@@ -859,9 +859,10 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             page.locator("#wizardSceneShortcutBtn").click()
             # Enter the scene through the supported simulation mode first,
             # then switch to CAD, matching the accepted P9-I user journey.
-            page.locator('[data-scene-mode="simulation"]').click()
             page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
+            assert page.locator('[data-scene-mode="simulation"]').get_attribute("aria-pressed") == "true"
             page.locator('[data-scene-mode="cad"]').click()
+            assert page.locator('[data-scene-mode="cad"]').get_attribute("aria-pressed") == "true"
             page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
             panel = page.locator("#birdsCadReviewPanel")
             panel.get_by_text("电池组", exact=True).wait_for(timeout=30000)
@@ -968,9 +969,10 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
-            page.locator('[data-scene-mode="simulation"]').click()
             page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
+            assert page.locator('[data-scene-mode="simulation"]').get_attribute("aria-pressed") == "true"
             page.locator('[data-scene-mode="cad"]').click()
+            assert page.locator('[data-scene-mode="cad"]').get_attribute("aria-pressed") == "true"
             page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
             panel = page.locator("#birdsCadReviewPanel")
             try:
