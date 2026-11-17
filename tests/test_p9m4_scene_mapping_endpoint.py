@@ -232,6 +232,9 @@ def test_satellite_scene_exposes_evidence_classes_without_fake_geometry():
     assert "item.userData.gltfNodeIndex===index" in cad_viewer
     assert "item.userData.cadTreeIndex===index" not in cad_viewer
     assert ".birds-cad-review-panel" in css
+    assert ".birds-cad-review-checklist" in css
+    assert "待工程人员目视核对" in cad_viewer
+    assert "未批准；本审查不建立实装或遥测绑定" in cad_viewer
     assert 'id="p9m4MappingDetail"' in html
     assert "api('/workbench/engineering-mapping')" in app
     assert "renderP9M4MappingPanel" in app
