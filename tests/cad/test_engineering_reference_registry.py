@@ -256,11 +256,11 @@ def test_glb_bin_chunk_must_follow_json_directly(inputs):
     json_length = struct.unpack_from("<I", data, 12)[0]
     json_chunk = data[12:20 + json_length]
     unknown = b"test"
-    binary = b"\\0\\0\\0\\0"
+    binary = b"\0\0\0\0"
     chunks = (
         json_chunk
         + struct.pack("<I4s", len(unknown), b"TEST") + unknown
-        + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
+        + struct.pack("<I4s", len(binary), b"BIN\0") + binary
     )
     path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(chunks)) + chunks)
     inputs[3]["geometry"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
