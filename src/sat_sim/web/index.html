@@ -275,6 +275,12 @@
             <div class="p9d-panel-heading"><div><h2>本次运行结果</h2><p>按当前对象查看同一封存 Run 中的真实记录</p></div></div>
             <div id="p9eRunResultHost" class="p9e-run-result-host" aria-live="polite"><p class="p9d-empty">选择一条已完成运行后，这里会显示该对象关联的记录。</p></div>
           </section>
+          <section class="p9m4-mapping-section" aria-label="工程资产映射">
+            <div class="p9d-panel-heading"><div><h2>工程资产映射</h2><p>参考 CAD · 仿真构型 · 已审定实装</p></div></div>
+            <div id="p9m4MappingStatus" class="p9m4-mapping-status" role="status" aria-live="polite">正在读取工程映射状态…</div>
+            <div id="p9m4MappingDetail" class="p9m4-mapping-detail"><p class="p9d-empty">映射状态仅用于区分证据等级，不代表几何已加载。</p></div>
+            <p class="p9d-panel-footnote">参考 CAD 不绑定遥测、不生成实装坐标；未定位对象不创建虚假几何。只有通过独立证据审批的实例才能进入实装视图。</p>
+          </section>
         </aside>
       </div>
       <div id="sceneTaskCreateModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="sceneTaskCreateTitle">
