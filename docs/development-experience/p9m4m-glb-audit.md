@@ -24,3 +24,8 @@ The original synthetic fixture described POSITION vertices but contained no actu
 ## Scope boundary
 
 A valid GLB proves file structure and internal consistency only. It does not prove real device identity, dimensions, mounting interfaces, optical boresight, rotor axis, or as-built installation. Those require source-backed evidence and engineering review.
+
+
+## Windows CLI help must encode Chinese text explicitly
+
+After fixing PYTHONPATH, the Windows 2022 job reached the CLI smoke check and failed because argparse printed the Chinese module docstring through a cp1252 console stream. This is a real Windows usability issue, not a test-only issue. Reconfigure stdout/stderr to UTF-8 before argparse emits help; keep the user-facing Chinese description rather than deleting it to satisfy CI.
