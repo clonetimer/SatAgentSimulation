@@ -41,7 +41,7 @@ def _cad_node(path, name, parent=None, occurrence=1):
         "source_label_name": name,
         "duplicate_occurrence": occurrence,
         "direct_shape_count": 1,
-        "child_count": 0,
+        "child_count": 1,
         "local_transform_m": None,
         "world_transform_m": None,
     }
@@ -170,3 +170,21 @@ def test_mapping_is_deterministic_and_lexical_strength_is_not_probability():
     second = build_candidate_mapping(**kwargs)
     assert first == second
     assert first["semantics"]["lexical_strength_is_not_probability"] is True
+
+
+def test_geometry_leaf_nodes_and_antenna_mounting_hardware_are_not_component_candidates():
+    leaf = _cad_node("root/SNSS-M2-4:1", "SNSS-M2-4 v1:1")
+    leaf["child_count"] = 0
+    antenna_mount = _cad_node("root/B4_antenna_fixing_parts", "B4_antenna_fixing_parts v7")
+    result = build_candidate_mapping(
+        _engineering_tree(),
+        {"nodes": [
+            leaf,
+            antenna_mount,
+            _cad_node("root/B4_RW_Assembly", "B4_RW_Assembly v55"),
+        ]},
+    )
+    assert [row["engineering_object_id"] for row in result["candidates"]] == ["component.reaction_wheel"]
+    assert result["summary"]["skipped_leaf_geometry_node_count"] == 1
+    assert result["summary"]["render_eligible_candidate_count"] == 0
+    assert result["candidates"][0]["node_granularity"] == "assembly_occurrence"
