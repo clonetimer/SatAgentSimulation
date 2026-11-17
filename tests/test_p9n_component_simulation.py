@@ -96,3 +96,17 @@ def test_native_backend_is_exposed_in_the_guided_parameter_workspace() -> None:
     assert "section.parameter_group === 'backend'" in source
     assert 'id="wizardApplyNativeRwPresetBtn"' in html
     assert "component_reaction_wheel_basilisk_native" in source
+
+
+def test_native_rw_backend_limits_events_and_run_results_show_model_provenance() -> None:
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    html = (root / "src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    assert "nativeRwNominalOnly" in source
+    assert "eventBackendLimitNote" in source
+    assert "nativeProvenance" in source
+    assert "Basilisk 官方原生" in source
+    assert "runSummary.adapter_metadata?.native_provenance" in source
+    assert 'id="eventBackendLimitNote"' in html
