@@ -9,7 +9,7 @@
 
 ## 数据输入
 
-- 工程侧：现有 `workbench_object_tree.py` 输出。仅将 `kind=equipment` 的设备类别作为候选目标；外部设施、任务上下文、链路关系和分组节点不参与硬件匹配。
+- 工程侧：通过 `scripts/cad/export_workbench_engineering_tree.py` 从正式 workbench presentation catalog、scene catalog 和 capability schemas 实时生成 `workbench-object-tree.v2`。仅将 `kind=equipment` 的设备类别作为候选目标；外部设施、任务上下文、链路关系和分组节点不参与硬件匹配。
 - CAD 侧：`convert_birds4_step.py` 生成的 assembly-tree JSON，保留 `source_node_path`、原始标签、父节点、重复 occurrence、局部/世界变换和几何/子节点计数。
 - 来源身份：CAD 模型、上游固定 commit、STEP 文件路径及后续转换报告哈希。
 
@@ -40,7 +40,8 @@ Lexical match strength 是规则强度，不是概率，不代表真实性。泛
 - `src/sat_sim/cad_candidate_mapping.py`：纯函数候选生成器及 JSON CLI。
 - `scripts/cad/build_engineering_candidates.py`：仓库内 CLI 入口。
 - `tests/cad/test_candidate_mapping.py`：别名、变体、重复 occurrence、外部对象排除、歧义、确定性及 fail-closed 测试。
-- `.github/workflows/p9m2-cad-candidates.yml`：候选映射、CAD 来源和现有对象树契约的联合门禁。
+- `scripts/cad/export_workbench_engineering_tree.py`：导出正式工程对象树，避免手工维护第二份设备类别清单。
+- `.github/workflows/p9m2-cad-candidates.yml`：候选映射、CAD 来源和现有对象树契约的联合门禁；从 P9-I 真实浏览器验收所用的固定 BIRDS-4 CAD artifact 读取 855 节点 assembly tree，生成可下载的真实候选审计报告。
 
 ## P9-M2 验收
 
