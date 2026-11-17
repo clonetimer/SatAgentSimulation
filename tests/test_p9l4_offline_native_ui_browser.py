@@ -122,10 +122,11 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             sample.press("Tab")
             submitted_duration_s = duration.input_value()
             submitted_sample_s = sample.input_value()
+            configured_step_s = 10.0  # whole-spacecraft form-schema fallback resolved by _simulation_defaults
             report["configured_duration_s"] = submitted_duration_s
             report["configured_sample_s"] = submitted_sample_s
-            report["configured_step_s"] = 10.0  # authoritative whole-spacecraft default from form_schema._simulation_defaults
-            assert 0 < float(submitted_sample_s) <= float(submitted_duration_s)
+            report["configured_step_s"] = configured_step_s
+            assert configured_step_s <= float(submitted_sample_s) <= float(submitted_duration_s)
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
             page.wait_for_function(
