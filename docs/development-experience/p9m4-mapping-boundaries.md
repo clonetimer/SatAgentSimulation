@@ -180,3 +180,8 @@ The earlier diagnosis that the issue was solely ES-module listener readiness was
 ### Follow-up refinement: do not re-click the already selected simulation mode
 
 A second browser run showed that clicking the simulation tab again immediately after the scene shortcut still left the CAD viewer hidden. The scene shortcut already selects simulation mode by default. The stable transition is to wait until `#simulationGeometryCanvas` is visible and confirm `data-scene-mode="simulation"` has `aria-pressed=true`; only then click CAD and confirm its `aria-pressed=true` state before waiting for `#birdsCadViewer`. Re-clicking the already selected tab is unnecessary and can introduce a second mode transition during scene activation.
+
+
+### Final browser root cause: the CAD ES module listener was not ready
+
+The next Chromium run showed the scene entered correctly and the physical-configuration tab was selected, but clicking CAD left `aria-pressed=false`. The test had waited for the simulation canvas, not for the CAD viewer ES module to finish evaluating and attach its tab listeners. Waiting for `window.BirdsCadViewer.setViewerVisible` is the correct readiness contract because the module exports this API only after its listeners and renderer are initialized. Both real-browser review journeys now wait for this module readiness before interacting with the CAD tab. The test must still assert the real tab state and viewer visibility; do not replace those assertions with forced clicks or DOM mutation.
