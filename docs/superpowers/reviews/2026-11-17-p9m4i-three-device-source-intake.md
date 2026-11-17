@@ -65,13 +65,13 @@
 
 - BIRDS4-CAD（Kyushu Institute of Technology / BIRDS Open Source）公开仓库列出 `B4_battery v1.step`；仓库标示 MIT 许可证。
 - OreSat 的 `oresat-batteries` 公开项目说明 v3 电池包于 2021-03-15 随 OreSat0 飞行，机械 CAD 在 Onshape；这是另一套真实飞行硬件参考。
-- 初步结论：电池组不应默认进入 AI 补 CAD 队列。先验证 BIRDS-4 STEP 是否与本项目目标设备一致；若一致，走真实 reference CAD 路线；若不一致，再考虑合成外观。
+- 初步结论：M4-A 真实证据注册产物已将 `component.battery` 关联到 `BIRDS4_FM_Final v7/B4_battery v1`。它是 reference CAD，不是已验证实装，也尚未具备 GLB 节点渲染资格。电池组应退出“缺失 CAD 生成对象”队列，转入真实 STEP→GLB crosswalk / 视图验收；只有目标硬件型号不一致时才考虑合成补形。
 
 ### 反作用轮
 
 - BIRDS4-CAD 公开仓库列出 `B4_RW_Assembly v55.step`，可作为实际小卫星反作用轮装配参考。
 - 另有公开 CubeSat reaction-wheel 项目提供 3D 打印硬件文件，但其 GPL-3.0 许可证和教育/原型定位需要单独审查，不能直接当作航天飞行硬件证据。
-- 初步结论：优先评估 BIRDS-4 真实 STEP；AI 生成只作为缺失外观或不同型号的补充，不重复生成已有真实几何。
+- 初步结论：M4-A 真实证据注册产物已将 `component.reaction_wheel` 关联到 `BIRDS4_FM_Final v7/B4_RW_Assembly v55`。它同样只是 reference CAD，仍需完成 STEP occurrence→GLB node crosswalk、旋转轴/安装面检查和人工视图验收。反作用轮应退出当前 AI 补 CAD 主生成队列，作为有真实几何 ground truth 的对照组。
 
 ### 星敏感器
 
@@ -98,8 +98,8 @@
 
 | 对象 | 原始图片 | 尺寸依据 | 接口依据 | 型号/版本 | 当前状态 |
 |---|---|---|---|---|---|
-| 电池组 | 用户目标设备图片未提供 | BIRDS4 STEP 候选，尚未独立测量 | 需从 STEP/装配证据核验 | BIRDS4 B4_battery v1 | external_reference_candidate_only |
-| 反作用轮 | 用户目标设备图片未提供 | BIRDS4 STEP 候选，尚未独立测量 | 需核验安装面与旋转轴 | BIRDS4 B4_RW_Assembly v55 | external_reference_candidate_only |
+| 电池组 | 用户目标设备图片未提供 | M4-A 已注册真实 STEP 候选，尚未完成节点渲染验收 | 需从 STEP/装配证据核验 | BIRDS4 B4_battery v1 | reference_cad_registered_not_as_built |
+| 反作用轮 | 用户目标设备图片未提供 | M4-A 已注册真实 STEP 候选，尚未完成节点渲染验收 | 需核验安装面与旋转轴 | BIRDS4 B4_RW_Assembly v55 | reference_cad_registered_not_as_built |
 | 星敏感器 | KAIROSPACE 产品页图片候选 | 产品页列出 56×60×93 mm | 产品页列出 CAN/RS485，机械接口未取得 | KAIROSPACE KSST-01 | CAD_request_required |
 
 ## 生成实验的输入对齐
