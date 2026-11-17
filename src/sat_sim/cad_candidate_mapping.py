@@ -258,7 +258,6 @@ def build_candidate_mapping(
         item["ambiguous"] = (
             item["multiple_cad_candidates_for_object"]
             or item["multiple_engineering_candidates_for_node"]
-            or item["identity_review_required"]
         )
 
     mapped_objects = set(by_object)
