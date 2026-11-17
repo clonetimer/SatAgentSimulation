@@ -125,7 +125,7 @@ def test_review_packet_preserves_cad_transform_but_never_promotes_installation()
     assert packet["flight_unit_identity"]["target_flight_unit"] is None
     assert packet["installation_evidence"]["assembly_procedure"] == "pinned_but_not_reviewed"
     assert packet["procedure_text_evidence_locators"]["status"] == "raw_text_source_locators_only_not_claim_approval"
-    assert packet["procedure_text_evidence_locators"]["references"] == {}
+    assert packet["procedure_text_evidence_locators"]["references"] == {"structural testing model": [], "axis definition": [], "battery": []}
     assert packet["installation_evidence"]["signed_installation_transform"] is None
     assert packet["promotion"]["status"] == "blocked_evidence_incomplete"
     assert packet["promotion"]["instance_id"] is None
