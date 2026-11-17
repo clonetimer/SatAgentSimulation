@@ -533,12 +533,20 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             def proxy(route):
                 request = route.request
                 url = urlsplit(request.url)
-                response = client.request(
-                    request.method,
-                    url.path + ("?" + url.query if url.query else ""),
-                    content=request.post_data_buffer,
-                    headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
-                )
+                request_path = url.path + ("?" + url.query if url.query else "")
+                if request.method == "POST" and url.path == "/runs":
+                    # Execute synchronously inside TestClient so the real
+                    # Basilisk Run Bundle is complete before browser assertions.
+                    payload = json.loads(request.post_data or "{}")
+                    payload["execution_mode"] = "sync"
+                    response = client.post(request_path, json=payload)
+                else:
+                    response = client.request(
+                        request.method,
+                        request_path,
+                        content=request.post_data_buffer,
+                        headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
+                    )
                 route.fulfill(
                     status=response.status_code,
                     body=response.content,
@@ -566,6 +574,32 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert backend.input_value() == "basilisk_native"
             assert page.locator('#dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
             assert "仅支持单轮标称工况" in page.locator("#wizardNotice").inner_text()
+
+            page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+            page.wait_for_function(
+                "() => document.querySelector('#wizardNotice')?.textContent.includes('配置校验通过')",
+                timeout=30000,
+            )
+            page.locator("#wizardOptions").get_by_role("button", name="运行仿真").click()
+            page.locator("#wizardRunResultsHost").wait_for(state="visible", timeout=120000)
+            active_run = page.locator("#activeRunCard")
+            active_run.wait_for(state="visible", timeout=30000)
+            page.wait_for_function(
+                "() => document.querySelector('#activeRunCard')?.innerText.includes('SUCCEEDED')",
+                timeout=120000,
+            )
+            assert "Basilisk 官方原生" in active_run.inner_text()
+            assert "Basilisk.simulation.reactionWheelStateEffector" in active_run.inner_text()
+
+            page.locator('[data-result-tab="charts"]').click()
+            page.locator("#telemetryChart").wait_for(state="visible", timeout=15000)
+            legend = page.locator("#chartLegend")
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.children.length > 0",
+                timeout=15000,
+            )
+            assert legend.inner_text().strip()
             assert not errors, errors
         finally:
             browser.close()
