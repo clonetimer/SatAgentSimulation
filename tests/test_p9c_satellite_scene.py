@@ -828,12 +828,6 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
                        __import__("hashlib").sha256(registry_path.read_bytes()).hexdigest())
 
     with _client(tmp_path / "app") as client, playwright.sync_playwright() as pw:
-        api_payload = client.get("/workbench/engineering-mapping").json()
-        assert api_payload["ok"] is True, api_payload
-        assert api_payload["summary"]["visual_review_candidate_count"] == 3, api_payload
-        assert {row["name_zh"] for row in api_payload["mappings"] if row.get("review_candidate")} == {
-            "蓄电池", "反作用轮", "载荷仪器"
-        }
         browser = pw.chromium.launch(
             headless=True,
             executable_path=executable,
@@ -862,8 +856,10 @@ def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp
             page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.wait_for_function("() => Boolean(window.BirdsCadViewer && window.SatScene)")
             page.locator("#wizardSceneShortcutBtn").click()
             page.locator('[data-scene-mode="cad"]').click()
+            page.wait_for_function("() => document.querySelector('#birdsCadViewer')?.hidden === false")
             panel = page.locator("#birdsCadReviewPanel")
             panel.get_by_text("电池组", exact=True).wait_for(timeout=30000)
             action = panel.get_by_role("button", name="等待 GLB 哈希匹配")
@@ -934,6 +930,12 @@ def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monke
     _write_triangle_glb(wrong_glb)
     evidence_dir = os.environ.get("SAT_SIM_SCENE_EVIDENCE_DIR")
     with _client(tmp_path / "app") as client, playwright.sync_playwright() as pw:
+        api_payload = client.get("/workbench/engineering-mapping").json()
+        assert api_payload["ok"] is True, api_payload
+        assert api_payload["summary"]["visual_review_candidate_count"] == 3, api_payload
+        assert {row["name_zh"] for row in api_payload["mappings"] if row.get("review_candidate")} == {
+            "蓄电池", "反作用轮", "载荷仪器"
+        }
         browser = pw.chromium.launch(
             headless=True,
             executable_path=executable,
