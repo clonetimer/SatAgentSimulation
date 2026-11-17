@@ -88,3 +88,20 @@ Correct pattern:
 - If the subtree has geometry, emit a group-level candidate with the group node index plus a complete descendant mesh inventory; do not pretend the group itself has a mesh.
 - Keep formal selector null, rendering disabled and visual review required. The candidate establishes a plausible assembly occurrence grouping, not geometry identity or installed-unit approval.
 - The real pinned 855-node BIRDS-4 test must assert the three known reference groups resolve to group candidates and enumerate descendant meshes; synthetic fixtures alone cannot expose this assembly-export convention.
+
+
+## P9-M4-D: candidate indices must be bound to the exact GLB bytes loaded by the browser
+
+A node index is meaningful only inside the exact GLB file from which it was inventoried. A user may select another revision, re-export, or similarly named model; applying the registry's node index to that file can focus an unrelated part while appearing plausible.
+
+Correct pattern:
+- Include only the expected GLB SHA-256 and a minimal candidate projection in the API response; do not expose full geometry records, source paths, installation transforms or telemetry metadata.
+- Compute SHA-256 over the exact ArrayBuffer selected by the browser before enabling any candidate index action.
+- Require strict equality between local file digest and the registered GLB digest. If Web Crypto is unavailable or hashes differ, disable all candidate-location actions.
+- Keep manual whole-model browsing available; the digest gate applies specifically to evidence-driven node location.
+- A successful digest match only proves file identity. It does not prove the candidate's visual identity, physical installation, coordinate datum or as-built status.
+- Reject candidate projections with selector_promoted=true, invalid status, out-of-range indices, duplicate descendants or inconsistent geometry-node counts.
+
+## Distinguish STEP source node counts from GLB scene node counts
+
+The pinned STEP assembly tree and the converted GLB scene are separate representations. The current accepted registry reports 852 GLB scene nodes; do not repeat the STEP-side source-node count as if it were the GLB inventory count. Always read the count from the exact registry artifact being reviewed.
