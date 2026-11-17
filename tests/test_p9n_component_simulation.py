@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+
+from sat_sim.api import create_app
 from sat_sim.form_schema import capability_form_schema
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.task_validator import validate_task_spec
@@ -43,3 +46,67 @@ def test_native_rw_template_does_not_enable_unsupported_events() -> None:
     assert spec["events"]["degradations"] == []
     assert spec["events"]["constraints"] == []
     assert spec["model"]["target"]["mode"] == "nominal"
+
+
+def test_native_reaction_wheel_template_is_published_by_the_workbench_api(tmp_path) -> None:
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    with TestClient(app) as client:
+        catalog = client.get(
+            "/scenario-templates",
+            params={"level": "component", "capability_id": "component.reaction_wheel.v1"},
+        )
+        assert catalog.status_code == 200, catalog.text
+        templates = {item["template_id"]: item for item in catalog.json()["templates"]}
+        native = templates["component_reaction_wheel_basilisk_native"]
+        assert native["object_id"] == "component.reaction_wheel"
+        assert native["level"] == "component"
+
+        instantiated = client.post(
+            "/scenario-templates/component_reaction_wheel_basilisk_native/instantiate",
+            json={"task_id": "p9n_native_rw_api"},
+        )
+        assert instantiated.status_code == 200, instantiated.text
+        spec = instantiated.json()["task_spec"]
+        assert spec["simulation"]["level"] == "component"
+        assert spec["model"]["capability_id"] == "component.reaction_wheel.v1"
+        assert spec["parameters"]["values"]["physics_backend"] == "basilisk_native"
+
+        form = client.get("/forms/capabilities/component.reaction_wheel.v1")
+        assert form.status_code == 200, form.text
+        backend = next(
+            field for field in form.json()["form_schema"]["fields"]
+            if field["path"] == "parameters.values.physics_backend"
+        )
+        assert backend["importance"] == "common"
+        assert backend["enum_labels"]["basilisk_native"].startswith("Basilisk 原生物理")
+
+
+def test_native_backend_is_exposed_in_the_guided_parameter_workspace() -> None:
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    html = (root / "src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    assert "wizardApplyNativeRwPreset" in source
+    assert "section.parameter_group === 'backend'" in source
+    assert 'id="wizardApplyNativeRwPresetBtn"' in html
+    assert "component_reaction_wheel_basilisk_native" in source
+
+
+def test_native_rw_backend_limits_events_and_run_results_show_model_provenance() -> None:
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "src/sat_sim/web/app.js").read_text(encoding="utf-8")
+    html = (root / "src/sat_sim/web/index.html").read_text(encoding="utf-8")
+    assert "nativeRwNominalOnly" in source
+    assert "eventBackendLimitNote" in source
+    assert "nativeProvenance" in source
+    assert "Basilisk 官方原生" in source
+    assert "runSummary.adapter_metadata?.native_provenance" in source
+    assert 'id="eventBackendLimitNote"' in html
