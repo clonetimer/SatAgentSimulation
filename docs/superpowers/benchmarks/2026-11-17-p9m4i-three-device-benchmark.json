@@ -22,14 +22,21 @@
           "side",
           "top"
         ],
-        "minimum_source_quality": "traceable_original_image"
+        "minimum_source_quality": "rendered_from_pinned_reference_step",
+        "purpose": "blind_reconstruction_against_known_STEP_geometry"
       },
       "acceptance_focus": [
         "bounding_box",
         "mounting_hole_presence",
         "connector_placement",
         "visual_recognition"
-      ]
+      ],
+      "ground_truth_reference": {
+        "repository": "BIRDSOpenSource/BIRDS4-CAD",
+        "file": "B4_battery v1.step",
+        "license": "MIT",
+        "role": "external_reference_control_not_target_identity"
+      }
     },
     {
       "engineering_object_id": "component.reaction_wheel",
@@ -51,14 +58,21 @@
           "side",
           "top"
         ],
-        "minimum_source_quality": "traceable_original_image"
+        "minimum_source_quality": "rendered_from_pinned_reference_step",
+        "purpose": "blind_reconstruction_against_known_STEP_geometry"
       },
       "acceptance_focus": [
         "rotor_axis_semantics",
         "housing_envelope",
         "mounting_interface",
         "visual_recognition"
-      ]
+      ],
+      "ground_truth_reference": {
+        "repository": "BIRDSOpenSource/BIRDS4-CAD",
+        "file": "B4_RW_Assembly v55.step",
+        "license": "MIT",
+        "role": "external_reference_control_not_target_identity"
+      }
     },
     {
       "engineering_object_id": "component.star_tracker",
@@ -81,14 +95,16 @@
           "side",
           "top"
         ],
-        "minimum_source_quality": "traceable_original_image"
+        "minimum_source_quality": "traceable_original_image",
+        "purpose": "G1_synthetic_preview_only_until_dimension_and_interface_evidence_is_available"
       },
       "acceptance_focus": [
         "aperture_location",
         "boresight_axis",
         "housing_envelope",
         "visual_recognition"
-      ]
+      ],
+      "source_status": "original_star_tracker_CAD_not_yet_obtained"
     }
   ],
   "metrics": [
@@ -101,9 +117,11 @@
     "manual_repair_minutes",
     "generation_wall_time_seconds",
     "peak_gpu_memory_gb",
-    "estimated_cost"
+    "estimated_cost",
+    "symmetric_surface_distance_against_reference_step"
   ],
   "comparison_methods": [
+    "pinned_reference_step_ground_truth",
     "parametric_cad_baseline",
     "trellis2_image_to_3d",
     "hunyuan3d_2_1_optional_license_review"
@@ -114,6 +132,7 @@
     "no_telemetry_binding",
     "no_spatial_anchor",
     "human_visual_review_required",
-    "g2_requires_source_backed_dimensions_and_interface_evidence"
+    "g2_requires_source_backed_dimensions_and_interface_evidence",
+    "no_target_hardware_identity_inference_from_external_reference_models"
   ]
 }
