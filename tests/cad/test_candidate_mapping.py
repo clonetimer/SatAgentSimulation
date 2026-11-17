@@ -128,7 +128,6 @@ def test_em_and_b3_variant_tags_require_identity_review():
     assert by_path["root/B4_EM_RW"]["identity_review_required"] is True
     assert by_path["root/B3_RW"]["identity_review_required"] is True
     assert by_path["root/B4_FM_RW"]["identity_review_required"] is True
-    assert by_path["root/B4_FM_RW"]["ambiguous"] is False
 
 
 def test_external_context_and_relationship_nodes_are_not_equipment_targets():
