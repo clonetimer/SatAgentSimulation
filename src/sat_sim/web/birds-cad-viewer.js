@@ -43,6 +43,16 @@ function renderReviewPanel(){
   const inventory=document.createElement('div');inventory.className='birds-cad-review-digest';
   inventory.textContent='GLB 场景清单：'+String(payload.glb_node_inventory?.node_count??'—')+' 个节点 · '+String(payload.glb_node_inventory?.mesh_count??'—')+' 个网格';
   reviewPanel.append(inventory);
+  const checklist=document.createElement('ol');checklist.className='birds-cad-review-checklist';
+  const checks=[
+    ['文件版本一致性',digestMatch?'已通过 SHA-256 核对':'等待加载并核对原始文件'],
+    ['装配组与网格清单', '已读取注册候选及后代网格'],
+    ['三维外形与遮挡关系', '待工程人员目视核对'],
+    ['局部坐标与安装基准', '待核对；当前不是航天器 B 系安装变换'],
+    ['实装身份与遥测关联', '未批准；本审查不建立实装或遥测绑定'],
+  ];
+  checks.forEach(([label,value],index)=>{const item=document.createElement('li');const name=document.createElement('strong');name.textContent=(index+1)+'. '+label;const result=document.createElement('span');result.textContent=value;item.append(name,result);checklist.append(item);});
+  reviewPanel.append(checklist);
   const list=document.createElement('div');list.className='birds-cad-review-list';
   for(const row of candidates){
     const candidate=row.review_candidate,card=document.createElement('article');card.className='birds-cad-review-card';
