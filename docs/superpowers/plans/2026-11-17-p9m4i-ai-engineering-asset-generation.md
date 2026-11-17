@@ -142,3 +142,15 @@ G3 as-built:
 The GLB auditor now also checks primitive mode, material references, index accessor scalar/component types, triangle index divisibility and non-indexed triangle vertex divisibility. These checks are structural validation only, not proof of geometric accuracy. It additionally requires the embedded GLB BIN payload, validates bufferView/accessor byte ranges, reads the actual float32 POSITION records, and checks that declared accessor bounds agree with the decoded vertex payload. A regression fixture deliberately corrupts vertex data while leaving metadata unchanged.
 
 A three-device source-intake worksheet has been added. Battery and reaction wheel now have real BIRDS-4 reference CAD registrations but are not node-renderable or as-built verified. Star-tracker source CAD has not been obtained and remains blocked pending an auditable source package. No device-specific dimensions or models have been fabricated.
+
+
+## GLB binary-backed accessor audit hardening
+
+The GLB audit now validates the actual embedded BIN payload rather than trusting only JSON metadata:
+- require the embedded GLB buffer and validate bufferView bounds;
+- validate accessor byte ranges and combined bufferView/accessor alignment;
+- decode float32 POSITION records and compare their actual extrema with declared accessor min/max;
+- reject sparse POSITION/index accessors until sparse decoding is implemented;
+- reject byteStride on index accessors and validate every index against the POSITION vertex count.
+
+This remains a bounded structural audit, not a replacement for the Khronos glTF Validator or an engineering geometry acceptance review. The audit deliberately fails closed on unsupported accessor forms rather than silently interpreting incomplete data.
