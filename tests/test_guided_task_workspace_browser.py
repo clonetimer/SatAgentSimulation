@@ -225,10 +225,10 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert "官方 Basilisk 原生反作用轮" in preset.inner_text()
             preset.get_by_role("button", name="应用原生单轮配置").click()
 
-            backend = page.locator('#dynamicForm [data-path="parameters.values.physics_backend"]')
+            backend = page.locator('#wizardParameterHost #dynamicForm [data-field-path="parameters.values.physics_backend"] select')
             backend.wait_for(state="visible", timeout=15000)
             assert backend.input_value() == "basilisk_native"
-            assert page.locator('#dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
+            assert page.locator('#wizardParameterHost #dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
             assert "仅支持单轮标称工况" in page.locator("#wizardNotice").inner_text()
             # The compact event editor is nested inside the guided event
             # disclosure. Verify its actual disabled state without forcing
