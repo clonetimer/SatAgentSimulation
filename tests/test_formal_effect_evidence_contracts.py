@@ -104,6 +104,9 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
             assert profile is not None
             assert profile.classification == EffectEvidenceClassification.VERIFIED_NATIVE_EFFECT
             assert profile.assertions
+            if capability_id in {"subsystem.eps.unified_native.v1", "subsystem.comm_data.unified_native.v1"}:
+                assert profile.implementation == "basilisk_native"
+                assert contract.observability.effect_evidence[effect_id] == list(profile.evidence_fields)
 
 
 @pytest.mark.parametrize(
