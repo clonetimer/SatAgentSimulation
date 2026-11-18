@@ -62,3 +62,13 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - 通过四元数归一性、有限性、采样长度和输入参数 fail-closed 检查。
 - 证据范围不包含星表、光学成像、质心提取、遮挡/FOV 可见性或星敏 blinding 场景；这些仍需独立环境模型。
 - 原则：N1 浏览器历史导航问题不再阻塞 N2 物理图建设；N1 只保留必要产品闭环验收，N2/N3 按独立物理输入与 recorder 证据并行推进。
+
+
+## P9-N2 四类传感器原生图（2026-11-18）
+
+- **StarTracker**：官方模块接收显式 SCStates 姿态真值，直接记录 `qInrtl2Case`。不将其描述为光学星敏仿真。
+- **IMU**：官方 ImuSensor 接收显式 SCStates 真值；当前先验证 identity mounting、零杆臂、零噪声条件下的 `AngVelPlatform`。加速度计输出需要明确比力来源，不能把位置/速度常量误当加速度真值。
+- **Magnetometer**：官方 Magnetometer 接收显式 MagneticFieldMsg 和 SCStates；当前使用均匀场输入验证 sensor-frame 输出。地磁场模型、轨道/姿态变化另行加入。
+- **CoarseSunSensor**：官方 CSS 接收 Sun ephemeris message 和 Eclipse message；当前验证照明和余弦/FOV 响应。真实 SPICE 太阳历元、地球遮挡和轨道环境另行加入。
+- 四类传感器的共同规则：真实官方模块、显式输入消息、原生输出 recorder、独立模型图；不得从整星 Run Bundle 裁剪字段后宣称单机独立执行。
+- 为避免 N1 浏览器测试阻塞物理主线，N2 使用独立轻量 CI workflow，固定 `bsk==2.11.0`，只运行原生传感器专项与输入边界测试。
