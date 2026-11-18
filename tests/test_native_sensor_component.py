@@ -256,3 +256,75 @@ def test_star_tracker_component_adapter_fails_closed_for_native_drift_modifier()
     }
     with pytest.raises(ValueError, match="DRIFT_RATE_NOT_SUPPORTED"):
         StarTrackerAdapter().run(spec)
+
+
+def test_native_imu_and_magnetometer_execute_through_sealed_run_bundle(tmp_path):
+    pytest.importorskip("Basilisk")
+    from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
+
+    cases = [
+        {
+            "task_id": "p9n2_native_imu_run_bundle",
+            "capability_id": "component.imu.v1",
+            "target": {"level": "component", "name": "imu", "mode": "nominal"},
+            "parameters": {
+                "physics_backend": "basilisk_native",
+                "true_gyro_rad_s": [0.012, -0.004, 0.003],
+                "true_accel_m_s2": [0.2, -0.1, 0.05],
+                "gyro_scale": [1.0, 1.0, 1.0],
+                "accel_scale": [1.0, 1.0, 1.0],
+                "gyro_bias_rad_s": [0.0, 0.0, 0.0],
+                "accel_bias_m_s2": [0.0, 0.0, 0.0],
+            },
+            "expected_fields": ["adcs.imu.gyro_x_rad_s", "adcs.imu.accel_x_m_s2"],
+        },
+        {
+            "task_id": "p9n2_native_magnetometer_run_bundle",
+            "capability_id": "component.magnetometer.v1",
+            "target": {"level": "component", "name": "magnetometer", "mode": "nominal"},
+            "parameters": {
+                "physics_backend": "basilisk_native",
+                "magnetic_field_t": [2.0e-5, -1.0e-5, 3.0e-5],
+                "axis_scale": [1.0, 1.0, 1.0],
+                "bias_t": [0.0, 0.0, 0.0],
+            },
+            "expected_fields": ["adcs.magnetometer.field_x_t", "adcs.magnetometer.field_y_t"],
+        },
+    ]
+    for case in cases:
+        spec = {
+            "schema_version": "0.1.0",
+            "task_id": case["task_id"],
+            "task_type": "component",
+            "description": "P9-N2 official Basilisk sensor Run Bundle acceptance",
+            "capability_id": case["capability_id"],
+            "simulation": {"duration_s": 1.0, "sample_s": 0.1},
+            "target": case["target"],
+            "parameters": case["parameters"],
+            "faults": [],
+            "modifiers": {"faults": [], "degradations": []},
+            "outputs": {
+                "include_summary": True,
+                "include_trace": True,
+                "include_labels": True,
+                "include_manifest": True,
+            },
+        }
+        prepared = prepare_run(
+            spec,
+            output_root=tmp_path / case["task_id"],
+            run_id=case["task_id"],
+        )
+        executed = execute_prepared_run(
+            prepared.bundle_root,
+            expected_plan_sha256=prepared.execution_plan_sha256,
+            max_attempts=1,
+        )
+        assert executed.run_record.status.value == "SUCCEEDED"
+        assert executed.run_record.sealed is True
+        assert executed.validation.result.value == "PASS"
+        assert executed.trace_rows
+        for field in case["expected_fields"]:
+            assert field in executed.trace_rows[-1]
+        integrity = verify_run_bundle(prepared.bundle_root)
+        assert integrity["ok"] is True, integrity
