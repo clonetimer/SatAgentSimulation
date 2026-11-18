@@ -90,15 +90,15 @@
 
 | 设备 | 官方 native TaskSpec / sealed 证据 | N4 产品入口决策 |
 |---|---|---|
-| 反作用轮 | 已通过；含官方 ReactionWheelStateEffector recorder | N4-A 首批开放；本 PR 验收 |
-| IMU | 已通过；官方 ImuSensor 独立图 | N4-C 已补 native 模板与 gyro/accel 曲线合同；待本轮 Chromium 真实 Run CI 验收 |
-| 星敏感器 | 已通过；官方 StarTracker quaternion recorder | N4-C 已补 native 模板与 MRP/valid 语义说明；待本轮 Chromium 真实 Run CI 验收 |
-| 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C 已补 native 模板与三轴测量合同；待本轮 Chromium 真实 Run CI 验收 |
-| 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C2 已补 native 模板、SOC/储能/功率曲线与能量指标；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
-| 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C2 已补 native 模板、阵列功率/入射余弦/阴影曲线；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
-| 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C3 已补 native 模板、点火配置/推力 recorder/冲量积分合同；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
-| 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C3 已补 native 模板与质量/质量变化率/容量输出白名单；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
-| 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C3 已补 native 模板与 K/°C 温度曲线、固定辐射板边界说明；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
+| 反作用轮 | 已通过；含官方 ReactionWheelStateEffector recorder | N4-A 已合入 main（PR #178） |
+| IMU | 已通过；官方 ImuSensor 独立图 | N4-C1 已合入 main（PR #179）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 星敏感器 | 已通过；官方 StarTracker quaternion recorder | N4-C1 已合入 main（PR #179）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C1 已合入 main（PR #179）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C2 已合入 main（PR #180）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C2 已合入 main（PR #180）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C3 已补 native 模板、点火配置/推力 recorder/冲量积分合同；workflow #44318739045 官方物理与 Chromium 真实 Run/历史回放 PASS，待 PR 合入 |
+| 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C3 已补 native 模板与质量/质量变化率/容量输出白名单；workflow #44318739045 官方物理与 Chromium 真实 Run/历史回放 PASS，待 PR 合入 |
+| 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C3 已补 native 模板与 K/°C 温度曲线、固定辐射板边界说明；workflow #44318739045 官方物理与 Chromium 真实 Run/历史回放 PASS，待 PR 合入 |
 | 太阳敏感器 CSS | 仅官方标量光强 probe，未接入现有三轴方向 capability contract | 暂不开放 native 单机入口 |
 | 加热器、散热器及其他项目模型 | 当前为项目 reference/source-native | 可在后续独立分组标明来源，不得混入 Basilisk-native 白名单 |
 
@@ -137,3 +137,8 @@ EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口�
 - 推力器 native 结果 summary 补齐顶层 backend 来源字段，与 adapter metadata 一致。
 - 新增三类模板/API合同、真实 Chromium Run/历史回放旅程和官方 Basilisk 原生物理 JUnit 归档。待同 head CI 完成后正式准入。
 - 开发经验：`docs/development-experience/p9-n4-c3-native-propulsion-thermal-workbench.md`。
+
+
+## N4-C3 专项验收结果（2026-11-18）
+
+分支 `feat/p9-n4-c3-native-propulsion-thermal-20261118` 首轮官方 Basilisk 2.11.0 + Chromium 专项 #44318739045 通过：RW 18、传感器 26、EPS 24、推力器/贮箱/热节点 218；Chromium 4 passed / 4 deselected；原生物理/JUnit 证据已归档。共享回归 19 项全部成功，失败 0 项。N4-C3 待创建/合并 PR；仅在 PR 同 head 复跑后正式进入 main。
