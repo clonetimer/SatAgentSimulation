@@ -412,6 +412,7 @@ def _build_unified_rows(
             "adcs.sensor.gyro_measured_platform_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
             "adcs.sensor.gyro_measured_platform_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
             "adcs.sensor.gyro_measured_platform_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
+            "adcs.sensor.imu_sample_valid": int(recorder_map["imu_valid"].deviceStatus[index]),
             "adcs.sensor.gyro_measured_body_rad_s_x": float(recorder_map["fusion_attitude"].omega_BN_B[index][0]),
             "adcs.sensor.gyro_measured_body_rad_s_y": float(recorder_map["fusion_attitude"].omega_BN_B[index][1]),
             "adcs.sensor.gyro_measured_body_rad_s_z": float(recorder_map["fusion_attitude"].omega_BN_B[index][2]),
@@ -490,6 +491,7 @@ def _build_unified_rows(
             "adcs.earth_sensor.direction_b_z": float(recorder_map["earth_sensor"].tam_S[index][2]),
             "adcs.fusion.source_mode": int(recorder_map["fusion_source_mode"].deviceStatus[index]),
             "adcs.fusion.magnetometer_used": int(recorder_map["fusion_mag_used"].deviceStatus[index]),
+            "adcs.fusion.body_rate_valid": int(recorder_map["fusion_body_rate_valid"].deviceStatus[index]),
             "adcs.fusion.estimated_mrp_BN_x": float(recorder_map["fusion_attitude"].sigma_BN[index][0]),
             "adcs.fusion.estimated_mrp_BN_y": float(recorder_map["fusion_attitude"].sigma_BN[index][1]),
             "adcs.fusion.estimated_mrp_BN_z": float(recorder_map["fusion_attitude"].sigma_BN[index][2]),
@@ -1206,6 +1208,7 @@ class UnifiedNativeRuntime:
         fusion.magMountDcmSB = magnetometer_dcm_sb.tolist()
         fusion.starInMsg.subscribeTo(star_fault.starOutMsg)
         fusion.imuInMsg.subscribeTo(imu_fault.imuOutMsg)
+        fusion.imuValidInMsg.subscribeTo(imu_fault.imuValidOutMsg)
         fusion.magInMsg.subscribeTo(magnetometer_model.tamDataOutMsg)
         fusion.magReferenceInMsg.subscribeTo(magnetic.envOutMsgs[0])
         fusion.sunBodyInMsg.subscribeTo(sun_fault.vectorOutMsg)
@@ -1802,6 +1805,7 @@ class UnifiedNativeRuntime:
             "star_valid": star_fault.validOutMsg,
             "imu_raw": imu.sensorOutMsg,
             "imu": imu_fault.imuOutMsg,
+            "imu_valid": imu_fault.imuValidOutMsg,
             "imu_bias": imu_fault.biasOutMsg,
             "imu_noise": imu_fault.noiseOutMsg,
             "mag": magnetometer_model.tamDataOutMsg,
@@ -1812,6 +1816,7 @@ class UnifiedNativeRuntime:
             "sun_valid": sun_fault.validOutMsg,
             "fusion_source_mode": fusion.sourceModeOutMsg,
             "fusion_mag_used": fusion.magUsedOutMsg,
+            "fusion_body_rate_valid": fusion.bodyRateValidOutMsg,
             "fusion_attitude": fusion.attOutMsg,
             "earth_sensor": earth_sensor.directionOutMsg,
             "earth_reference": earth_sensor.referenceOutMsg,
