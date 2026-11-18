@@ -136,7 +136,7 @@ def test_adcs_native_subsystem_sealed_run_bundle_and_frame_contract(
     assert durable["summary"]["adcs_fusion"]["magnetometer_used_sample_count"] > 0
     assert telemetry.json()["rows"]
     assert plots.json()["plot_manifest"]["series"]
-    stream_ids = {item["stream_id"] for item in streams.json()["streams"]}
+    stream_ids = {item["stream_id"] for item in streams.json()["multi_rate_telemetry"]["streams"]}
     assert {"adcs_fast", "adcs_housekeeping"} <= stream_ids
 
     assert bundle.status_code == 200, bundle.text
