@@ -154,6 +154,7 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
         else:
             assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
             assert active["eps.battery_capacity_j"] < active["eps.nominal_battery_capacity_j"]
+            assert active["eps.solar_panel_efficiency"] < baseline["eps.solar_panel_efficiency"]
             assert active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
             later = _at(injected.trace_rows, 20.0)
             assert later["eps.battery_capacity_j"] < _at(nominal.trace_rows, 20.0)["eps.battery_capacity_j"]
