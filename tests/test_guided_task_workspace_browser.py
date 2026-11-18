@@ -1410,15 +1410,50 @@ def test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation(tm
 
 
 @pytest.mark.parametrize(
-    "object_id,capability_id,source_text,stream_ids,telemetry_fields,plot_fields,project_module_count",
+    "object_id,capability_id,source_text,stream_ids,telemetry_fields,plot_fields,project_module_count,event_kind,event_effect",
     [
         (
             "subsystem.eps",
             "subsystem.eps.unified_native.v1",
             "SimpleBattery",
             {"eps_fast", "eps_housekeeping"},
+            {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w", "eps.pdu_payload_channel_enabled", "eps.pdu_shed_reason"},
             {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w"},
-            {"eps.battery_soc", "eps.net_power_w"},
+            None,
+            None,
+            None,
+        ),
+        (
+            "subsystem.eps",
+            "subsystem.eps.unified_native.v1",
+            "SimpleBattery",
+            {"eps_fast", "eps_housekeeping"},
+            {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w", "eps.pdu_payload_channel_enabled", "eps.pdu_shed_reason", "eps.battery_capacity_j", "eps.nominal_battery_capacity_j"},
+            {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w", "eps.payload_load_enabled_w"},
+            None,
+            "fault",
+            "generation_storage_distribution_failure",
+        ),
+        (
+            "subsystem.eps",
+            "subsystem.eps.unified_native.v1",
+            "SimpleBattery",
+            {"eps_fast", "eps_housekeeping"},
+            {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w", "eps.battery_capacity_j", "eps.nominal_battery_capacity_j", "eps.nominal_solar_power_w"},
+            {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w"},
+            None,
+            "degradation",
+            "energy_margin_degradation",
+        ),
+        (
+            "subsystem.comm_data",
+            "subsystem.comm_data.unified_native.v1",
+            "SimpleInstrument",
+            {"data_fast", "data_summary"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_baud_bps", "comm_data.transmitter_storage_node_rate_abs_bps", "comm_data.nominal_transmitter_storage_node_baud_bps"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_rate_abs_bps"},
+            0,
+            None,
             None,
         ),
         (
@@ -1426,9 +1461,22 @@ def test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation(tm
             "subsystem.comm_data.unified_native.v1",
             "SimpleInstrument",
             {"data_fast", "data_summary"},
-            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_baud_bps"},
-            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_baud_bps", "comm_data.transmitter_storage_node_rate_abs_bps", "comm_data.nominal_transmitter_storage_node_baud_bps"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_rate_abs_bps"},
             0,
+            "fault",
+            "transmitter_rate_loss",
+        ),
+        (
+            "subsystem.comm_data",
+            "subsystem.comm_data.unified_native.v1",
+            "SimpleInstrument",
+            {"data_fast", "data_summary"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_baud_bps", "comm_data.transmitter_storage_node_rate_abs_bps", "comm_data.nominal_transmitter_storage_node_baud_bps"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_rate_abs_bps"},
+            0,
+            "degradation",
+            "transmitter_rate_degradation",
         ),
     ],
 )
@@ -1441,6 +1489,8 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
     telemetry_fields,
     plot_fields,
     project_module_count,
+    event_kind,
+    event_effect,
 ):
     """EPS and Comm/Data must use registered Basilisk subsystem templates in the guided Run Center."""
     pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
