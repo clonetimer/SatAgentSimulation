@@ -156,6 +156,8 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
             assert restored["eps.solar_power_w"] == pytest.approx(nominal_after["eps.solar_power_w"], rel=1e-8)
             assert restored["eps.pdu_payload_channel_enabled"] is True
             assert "payload_channel_trip" not in restored["eps.pdu_shed_reason"]
+            if restored["eps.payload_load_enabled_w"] <= 0.0:
+                assert "payload_low_soc" in restored["eps.pdu_shed_reason"]
             assert restored["label.health_state"] == "nominal"
         else:
             assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
