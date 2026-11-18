@@ -10,6 +10,12 @@ on:
       - "src/sat_sim/adapters/subsystem_comm_data_unified_native.py"
       - "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml"
       - "src/sat_sim/capabilities/subsystem.comm_data.unified_native.v1.yaml"
+      - "src/subsystems/event_severity.py"
+      - "src/sat_sim/form_schema.py"
+      - "configs/acceptance/scenario_baseline.json"
+      - "tests/test_event_severity.py"
+      - "tests/test_eps_unified_effects.py"
+      - "tests/test_comm_data_unified_effects.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
@@ -126,6 +132,14 @@ jobs:
         run: |
           mkdir -p reports/native_subsystem_eps_comm_data
           python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/subsystem_api.xml tests/test_multi_rate_fmea_unified_subsystems.py
+      - name: Verify EPS and Comm/Data event severity against native Basilisk inputs
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/effect_events.xml \
+            tests/test_event_severity.py \
+            tests/test_eps_unified_effects.py \
+            tests/test_comm_data_unified_effects.py
       - name: Verify ADCS sensor-frame transformations and native closed-loop Run Bundle
         env:
           PYTHONPATH: "src:."
@@ -204,6 +218,7 @@ jobs:
             reports/native_adcs/adcs_sealed_bundle.xml
             reports/native_adcs/adcs_fault_effects.xml
             reports/native_subsystem_eps_comm_data/subsystem_api.xml
+            reports/native_subsystem_eps_comm_data/effect_events.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
