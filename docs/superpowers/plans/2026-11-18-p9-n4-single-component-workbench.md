@@ -40,6 +40,20 @@
 
 ### N4-C：按证据扩展单机目录
 
+#### N4-C1：传感器首批产品化（本轮实施）
+
+- 在现有 N4 工作台中开放 IMU、星敏感器、磁强计三个已通过官方 Basilisk 独立物理与 sealed Run Bundle 验收的设备。
+- 每个设备使用独立注册的 `basilisk_native` Scenario Template；前端不复制默认物理参数。
+- 结果只显示各自官方 recorder 字段和已有 QOI；单位从 Capability 输出合同读取。
+- 单机向导对 native sensor/RW 统一只开放 nominal、有限时长离线运行，隐藏不支持的故障/退化事件编辑入口。
+- 浏览器旅程必须实际执行三个设备并验证同一 Run ID、backend provenance、sealed/integrity、遥测字段和图表空/非空状态。
+
+边界：
+- IMU：显式角速度与非保守比力真值输入；identity mounting、零杆臂、无随机噪声，不宣称导航解算。
+- 星敏感器：四元数转 MRP；valid 只表示 recorder 样本存在且四元数归一化，不宣称星表识别、光学成像或 FOV。
+- 磁强计：显式均匀磁场真值；identity mounting/姿态、统一三轴 scale，不宣称地球磁场环境模型。
+- 任何 native fault/degradation、安装姿态变化、实时单机和跨设备耦合仍保持未开放。
+
 - 逐个评估 N2 传感器和 N3 EPS、推进、贮箱、热节点是否具备完整的用户模板与结果输出合同。
 - 仅在独立物理、TaskSpec sealed Run、参数字典、浏览器结果和历史回放证据齐全后加入入口。
 - 对暂不支持的 CSS 三轴方向、native fault/degradation、安装几何、跨设备闭环继续显示为未开放，不用邻近模型补位。
