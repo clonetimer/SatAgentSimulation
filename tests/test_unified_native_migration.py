@@ -50,6 +50,10 @@ def test_adcs_unified_runtime_is_closed_loop_and_recorder_grounded() -> None:
     assert result.summary["adcs_closed_loop_improved"] is True
     assert result.trace_rows[-1]["adcs.pointing_error_deg"] < result.trace_rows[0]["adcs.pointing_error_deg"]
     assert any(abs(row["adcs.magnetometer.tesla_z"]) > 0.0 for row in result.trace_rows)
+    assert result.summary["adcs_fusion"]["magnetometer_used_sample_count"] > 0
+    assert any(row["adcs.fusion.magnetometer_used"] == 1 for row in result.trace_rows)
+    assert all("adcs.fusion.estimated_mrp_BN_x" in row for row in result.trace_rows)
+    assert all("adcs.fusion.estimated_omega_BN_B_x" in row for row in result.trace_rows)
     boundary = result.metadata["model_source_boundary"]
     assert "star_tracker" in boundary["basilisk_official_native"]
     assert "imu" in boundary["basilisk_official_native"]
@@ -58,6 +62,47 @@ def test_adcs_unified_runtime_is_closed_loop_and_recorder_grounded() -> None:
     assert "project_imu_fault_injector" in boundary["basilisk_project_native"]
     assert "project_rw_command_fault_manager" in boundary["basilisk_project_native"]
     assert boundary["external_or_proxy"] == []
+
+
+def test_adcs_fusion_transforms_non_identity_sensor_mounts_into_body_frame() -> None:
+    adapter = get_adapter_for_capability(ADCS_ID)
+    result = adapter.run(
+        _short_spec(
+            ADCS_ID,
+            values={
+                "initial_pointing_error_deg": 12.0,
+                "star_tracker_mount_yaw_deg": 13.0,
+                "star_tracker_mount_pitch_deg": -7.0,
+                "star_tracker_mount_roll_deg": 5.0,
+                "imu_mount_yaw_deg": -11.0,
+                "imu_mount_pitch_deg": 6.0,
+                "imu_mount_roll_deg": 9.0,
+                "magnetometer_mount_yaw_deg": 8.0,
+                "magnetometer_mount_pitch_deg": -4.0,
+                "magnetometer_mount_roll_deg": 12.0,
+                "star_tracker_noise_std_arcsec": 0.0,
+                "gyro_base_noise_std_rad_s": 0.0,
+            },
+            duration_s=20.0,
+        )
+    )
+    assert result.summary["adcs_closed_loop_improved"] is True
+    assert result.summary["adcs_fusion"]["magnetometer_used_sample_count"] > 0
+    assert result.summary["adcs_fusion"]["attitude_frame"] == "body_B_relative_to_inertial_N"
+    assert result.summary["adcs_fusion"]["body_rate_frame"] == "body_B"
+
+    first = result.trace_rows[0]
+    assert first["adcs.fusion.magnetometer_used"] == 1
+    for axis in "xyz":
+        assert first[f"adcs.fusion.estimated_mrp_BN_{axis}"] == pytest.approx(
+            first[f"attitude.truth.mrp_BN_{axis}"],
+            abs=2.0e-4,
+        )
+        assert first[f"adcs.fusion.estimated_omega_BN_B_{axis}"] == pytest.approx(
+            first[f"attitude.truth.omega_BN_B_{axis}"],
+            abs=2.0e-6,
+        )
+    assert result.trace_rows[-1]["adcs.pointing_error_deg"] < first["adcs.pointing_error_deg"]
 
 
 def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> None:
