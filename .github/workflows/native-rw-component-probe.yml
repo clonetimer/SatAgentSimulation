@@ -30,7 +30,7 @@ permissions:
   contents: read
 
 jobs:
-  original-basilisk-rw-physics:
+  official-basilisk-native-components:
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     steps:
@@ -53,7 +53,7 @@ jobs:
           assert version("bsk") == "2.11.0"
           print("OFFICIAL_BASILISK_NATIVE", Basilisk.__version__, version("bsk"))
           PY
-      - name: Native SWIG RW state/torque/inertia physical A/B
+      - name: Native SWIG reaction-wheel physical A/B
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q -s tests/test_native_rw_component_probe.py tests/test_native_rw_cluster.py tests/test_component_rw_native_entry.py tests/test_component_rw_native_cluster_entry.py
@@ -64,7 +64,9 @@ jobs:
       - name: Official Basilisk IMU, StarTracker and Magnetometer physical/Run Bundle contracts
         env:
           PYTHONPATH: "src:."
-        run: python -m pytest -q -s tests/test_native_sensor_component.py
+        run: |
+          mkdir -p reports/native_component_sensor
+          python -m pytest -q -s --junitxml=reports/native_component_sensor/junit.xml tests/test_native_sensor_component.py
       - name: Verify user-selectable native component template and form contract
         env:
           PYTHONPATH: "src:."
@@ -84,18 +86,19 @@ jobs:
           with sync_playwright() as playwright:
               print(f"SAT_SIM_BROWSER_EXECUTABLE={playwright.chromium.executable_path}")
           PY
-      - name: Verify guided component selection and native reaction wheel Run
+      - name: Verify guided native component selection and real Runs
         env:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
             -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench"
 
-      - name: Archive Basilisk-native measured RW traces and A/B metrics
+      - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7
         with:
           name: native-component-physical-evidence
           path: |
+            reports/native_component_sensor/junit.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
