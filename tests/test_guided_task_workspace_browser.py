@@ -933,8 +933,9 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
                 assert durable["sealed"] is True
                 assert durable["integrity"]["ok"] is True
                 assert durable["validation_outcome"]["result"] == "PASS"
-                assert durable["summary"]["physics_backend"] == "basilisk_native"
-                assert durable["summary"]["adapter_metadata"]["native_provenance"] == provenance
+                adapter_metadata = durable["summary"].get("adapter_metadata") or {}
+                assert adapter_metadata["physics_backend"] == "basilisk_native"
+                assert adapter_metadata["native_provenance"] == provenance
 
                 telemetry = client.get(f"/runs/{run_id}/telemetry?limit=100")
                 assert telemetry.status_code == 200, telemetry.text
