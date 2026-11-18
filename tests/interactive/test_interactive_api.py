@@ -49,6 +49,7 @@ def test_feature_flag_off_preserves_openapi_and_creates_no_manager(monkeypatch, 
     assert not any(path.startswith("/interactive/") for path in paths)
     assert "/runs/{run_id}/dataset" in paths
     assert "/runs/{run_id}/dataset/download" in paths
+    assert "/runs/{run_id}/bundle/download" in paths
     assert not hasattr(app.state, "interactive_manager")
 
 
