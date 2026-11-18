@@ -822,7 +822,7 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                 browser.close()
 
 
-def test_guided_native_sensor_and_eps_workbench_runs_verified_devices(tmp_path):
+def test_guided_native_sensor_workbench_runs_all_verified_adcs_and_eps_devices(tmp_path):
     """Each admitted native device must use its registered template and real sealed Run."""
     pytest.importorskip("Basilisk", reason="requires official Basilisk; covered by native-sensor-component gate")
     from importlib.metadata import version
