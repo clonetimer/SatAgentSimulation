@@ -103,7 +103,7 @@
 
 - paired Run Bundle 对照发现：EPS nominal/injected 的 solar_power_w 完全相同，说明虽然 SimpleSolarPanel 模块已实例化，但旧的 output_power_w -> nodePowerOut 映射并不适用于 SimpleSolarPanel。不能用“模块已实例化”推断某个参数已被实际改变。
 - 核对 Basilisk SimpleSolarPanel 官方接口后，确认可写参数为 panelArea、panelEfficiency、nHat_B；setPanelParameters 同时设置前述构型参数。已将 string_availability 映射到 panelArea，将 cell_efficiency/output_power_w 映射到 panelEfficiency（SimplePowerSink fallback 仍保留 nodePowerOut 回退）。
-- EPS adapter 增加 solar_panel_area_m2、solar_panel_efficiency 及其 nominal 对照字段；sealed A/B 现在要求确认使用官方 SimpleSolarPanel，并直接比较面积/效率参数，而非只看功率曲线。
+- EPS adapter 增加逐 Run 的 pre-event solar recorder baseline；sealed A/B 要求确认使用官方 SimpleSolarPanel，并直接比较故障/退化期间的 nodePowerOut 与同一 Run 事件前的 recorder 样本。panelArea/panelEfficiency 是运行时注入目标，不把仿真结束后的参数快照伪装成逐样本遥测。
 - EPS fault profile 验证 panelArea 下降；EPS degradation profile 验证 panelEfficiency 下降。Comm/Data 与 EPS fault profile 的 active 样本范围改为 active_any，避免在事件起始采样时刻尚未完成调度更新就要求每个样本都偏离标称。
 - 最新官方 Basilisk 回归正在执行；在最终同一 PR head 全部 PASS 前，不把这轮映射修复记为通过。
 
