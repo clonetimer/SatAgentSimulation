@@ -1,0 +1,84 @@
+# P9-N5：ADCS 分系统独立闭环仿真产品化
+
+日期：2026-11-19
+状态：实施中；先完成物理测量链与坐标系审计，再准入用户向导。
+
+## 目标
+
+在统一 Basilisk Process/Task 中完成 ADCS 分系统闭环：航天器刚体与反作用轮动力学、官方 StarTracker / IMU / Magnetometer 测量、项目明确标注的辅助向量传感器、姿态估计、惯性参考、MRP feedback 控制、轮电机力矩和真实 ReactionWheelStateEffector。通过正式 TaskSpec → registered adapter → sealed Run Bundle → Chromium 用户旅程交付。
+
+不把 component 单机 Run 拼接成分系统闭环；不另建 ADCS runtime；不将该工程预览描述成飞行软件或飞行相关估计器。
+
+## 当前代码审计发现
+
+1. 当前 `AdcsSensorFusion` 读取 Magnetometer `tam_S` 后直接丢弃；磁强计并未参与估计。
+2. `StarTracker.qInrtl2Case` 是惯性到 case 的姿态，`dcm_CB` 是 body 到 case；当前融合直接将 case MRP 当作 body MRP，非零安装角时坐标系不一致。
+3. `ImuSensor.AngVelPlatform` 属于 platform frame P；当前融合直接写入 `NavAttMsg.omega_BN_B`，非零 IMU 安装角时坐标系不一致。
+4. `Magnetometer.tam_S` 属于 sensor frame S；`dcm_SB` 是 body 到 sensor，融合若使用该数据必须先转换回 body frame。
+5. `MagneticFieldBase.envOutMsgs[0].magField_N` 是惯性系 N 的磁场参考，可与 Magnetometer body-frame 测量组成 TRIAD 向量对。
+6. `EarthHorizonSensor` 文档声称不进入控制回路，但实际被 `AdcsSensorFusion` 用作 coarse TRIAD 输入；它是项目理想几何传感器，不是官方 Basilisk Earth sensor。
+7. `SunDirectionSensor` 同样是项目理想几何向量测量；官方 `CoarseSunSensor` 当前输出标量照度，不能称为三轴方向测量。
+8. 当前融合采用 MRP 分量线性加权，计划改为四元数球面插值（SLERP），并明确它仍是确定性工程估计器，不是 MEKF/Kalman 滤波器。
+
+## 物理与坐标系合同
+
+- 惯性系：N；航天器本体系：B；星敏 case：C；IMU platform：P；磁强计 sensor：S。
+- StarTracker 输出 `qInrtl2Case` 表示 N→C；`dcm_CB` 表示 B→C。融合前使用 `dcm_BC = dcm_CB.T` 将 N→C 转换为 N→B。
+- IMU 输出角速度在 P 系；`dcm_PB` 表示 B→P。融合前使用 `omega_BN_B = dcm_BP * omega_BN_P`，其中 `dcm_BP = dcm_PB.T`。
+- Magnetometer 输出 `tam_S` 在 S 系；`dcm_SB` 表示 B→S。融合前使用 `tam_B = dcm_SB.T * tam_S`。
+- 磁场参考 `magField_N` 在 N 系；与 body-frame 磁场测量一起进入 TRIAD。退化/近共线时必须显式标记不可用并回退，不允许 NaN 或伪造有效姿态。
+- `NavAttMsg.sigma_BN` 与 `omega_BN_B` 必须分别表达 B/N 姿态与 B 系角速度。
+- 轮安装默认 orthogonal_3、零偏置安装位置；FSW 使用实际 Hub inertia / COM；轮电机命令经项目 fault manager 后进入官方 ReactionWheelStateEffector。
+
+## 测量来源与适用范围
+
+- 官方 Basilisk：StarTracker、ImuSensor、Magnetometer、MagneticFieldCenteredDipole、ReactionWheelStateEffector、inertial3D、attTrackingError、mrpFeedback、rwMotorTorque、Spacecraft。
+- 项目 SysModel：IMU/StarTracker fault injector、RW command fault manager、SunDirectionSensor、EarthHorizonSensor、AdcsSensorFusion。
+- Sun/Earth 向量是由真实环境与航天器状态生成的理想项目测量；不是官方 CSS 三轴输出，也不包含光学/FOV/遮挡误差模型。
+- StarTracker 使用官方模块对 SCStates 的姿态测量，不包含星表、光学成像、星点检测和 FOV 可见性。
+- Magnetometer 使用官方磁场模型和官方传感器，经过安装变换后参与 coarse TRIAD；不代表 WMM/IGRF 高阶地磁精度已完成飞行验证。
+- IMU 使用官方传感器模型，噪声/偏置由项目模块注入；当前不是完整惯导/MEKF。
+- 该闭环为工程级 ADCS 单分系统试验台，不包含整星 CAD 惯量、柔性附件、推进/电源/热控耦合。
+
+## 实施阶段
+
+### N5-A：传感器坐标系与融合链修正
+
+1. 修正 StarTracker case→body 姿态转换。
+2. 修正 IMU platform→body 角速度转换。
+3. 修正 Magnetometer sensor→body 磁场转换，并接入惯性系磁场参考。
+4. 使用 Sun/Mag TRIAD；Sun 不可用时使用 Earth/Mag；向量退化时 fail closed 或回退到有效 StarTracker。
+5. 使用 quaternion SLERP 代替 MRP 分量线性平均。
+6. 增加估计姿态、估计 body-rate、融合来源和磁强计使用标记遥测。
+7. 修正文档中 EarthHorizonSensor 的实际用途说明。
+
+### N5-B：正式 TaskSpec 与 sealed Run Bundle
+
+1. 使用注册模板 `adcs_unified_native` 创建 canonical subsystem TaskSpec。
+2. 官方 Basilisk 2.11.0 下执行 30–60 s nominal 闭环；验证初始/最终 pointing error、控制力矩、轮速和估计器输出。
+3. 验证 non-identity StarTracker / IMU / Magnetometer mounting 下，融合输出仍处于 B 系且与真值一致。
+4. 验证 Run 状态 SUCCEEDED、validation PASS、sealed、integrity PASS；导出完整 Run Bundle 并逐文件核验 SHA-256。
+5. 仅在 nominal 闭环和安装变换验收通过后，将 capability `operator.effects.nominal` 标记为 verified。
+
+### N5-C：ADCS 用户向导入口
+
+1. 在快速仿真增加“ADCS 分系统独立仿真”目标；只显示 `subsystem.adcs`。
+2. 从服务端 Scenario Template 加载 `adcs_unified_native`，不在前端复制物理默认值。
+3. 当前只开放 finite/offline nominal；未通过 N5-D 验收的 fault/degradation/constraint 不进入该向导。
+4. 显示来源边界、坐标系、安装角、控制周期、轮配置、单位和适用范围。
+5. 结果展示 pointing error、body rate、estimated attitude、RW speed/command/applied torque、sensor provenance。
+
+### N5-D：真实 Chromium 旅程与故障效果
+
+1. 浏览器真实选择模板、校验、运行、读取曲线、历史重开和完整 Run Bundle 下载。
+2. 对 RW jamming / motor failure、gyro bias/noise、torque authority loss 等事件逐项做物理 A/B 和 recorder 证据验收。
+3. 未通过物理效果门禁的 fault/degradation 仍保持不可选；不得仅凭 effect registry 声明支持。
+
+## 验收门槛
+
+- 同一最终 PR head：官方 Basilisk 2.11.0、坐标系/物理专项、TaskSpec sealed Run、预检、Chromium 真实用户旅程和共享回归均通过。
+- 真实测量数据进入控制回路；禁止以 spacecraft truth 直接替代 attitude estimate。
+- 安装变换非零时，估计姿态和 body-rate 必须正确转换到 B 系。
+- 磁强计必须实际参与融合，或在产品/UI/文档中明确标记为仅 telemetry；本阶段目标为实际参与融合。
+- 不能以曲线存在、模块实例存在或单测通过替代闭环物理响应。
+- 未验证的 fault/degradation 不开放；单机实时和跨分系统耦合不在本阶段范围。
