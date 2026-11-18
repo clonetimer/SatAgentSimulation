@@ -852,7 +852,9 @@
         "eps.payload_load_enabled_w",
         "eps.nominal_payload_load_w",
         "eps.net_power_w",
-        "label.fault_active"
+        "label.fault_active",
+        "eps.pdu_payload_channel_enabled",
+        "eps.pdu_shed_reason"
       ],
       "runtime_assertions": [
         {
@@ -884,6 +886,14 @@
           "field": "eps.solar_power_w",
           "operator": "lt",
           "right_field": "eps.nominal_solar_power_w",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "native_pdu_payload_channel_is_open",
+          "field": "eps.pdu_payload_channel_enabled",
+          "operator": "eq",
+          "value": false,
           "scope": "active_any",
           "tolerance": 1e-9
         }
