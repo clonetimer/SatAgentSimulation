@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from sat_sim.adapter_base import SimulationResult
 from sat_sim.task_validator import ValidationIssue
+from subsystems.event_severity import event_severity, scale_parameter_effects
 
 CAPABILITY_ID = "subsystem.eps.unified_native.v1"
 
@@ -84,6 +85,12 @@ class EpsUnifiedNativeAdapter:
             effect = _effect_id(event, "degradation")
             if effect not in self.degradation_effects:
                 issues.append(ValidationIssue("error", f"$.events.degradations[{index}]", f"unsupported EPS degradation effect {effect!r}", "event_effect"))
+        for kind in ("fault", "degradation"):
+            for index, event in enumerate(_event_rows(spec, kind)):
+                try:
+                    event_severity(event)
+                except ValueError as exc:
+                    issues.append(ValidationIssue("error", f"$.events.{kind}s[{index}].severity", str(exc), "range"))
         constraints = _event_rows(spec, "constraint")
         if constraints:
             issues.append(ValidationIssue("error", "$.events.constraints", "runtime EPS constraints are not supported", "event_effect"))
@@ -123,14 +130,19 @@ class EpsUnifiedNativeAdapter:
         fault_specs: list[dict[str, Any]] = []
         for event in fault_events:
             start_s, end_s = _event_window(event)
+            severity = event_severity(event)
             generated = build_fault_event_specs(default_fault_scenarios()["combined_eps_fault"])
             for item in generated:
                 row = dict(item)
+                row["effects"] = scale_parameter_effects(tuple(row.get("effects", ())), severity)
+                row["severity"] = 1.0
+                row["requested_severity"] = severity
                 row["time_s"] = start_s if row.get("phase") == "start" else (end_s if end_s is not None else config.duration_s + config.step_s)
                 fault_specs.append(row)
         degradation_specs: list[dict[str, Any]] = []
         for event in degradation_events:
             start_s, _ = _event_window(event)
+            severity = event_severity(event)
             generated = build_degradation_update_specs(
                 default_degradation_scenarios()["combined_eps_aging"],
                 update_period_s=max(config.step_s, 1.0),
@@ -140,7 +152,8 @@ class EpsUnifiedNativeAdapter:
                 row["start_s"] = start_s
                 degradation = row.get("degradation")
                 if degradation is not None and hasattr(degradation, "start_s"):
-                    row["degradation"] = replace(degradation, start_s=start_s)
+                    base_severity = float(getattr(degradation, "severity", 1.0))
+                    row["degradation"] = replace(degradation, start_s=start_s, severity=base_severity * severity)
                 degradation_specs.append(row)
         summary, rows, context = run_eps_basilisk_scenario(
             config,
