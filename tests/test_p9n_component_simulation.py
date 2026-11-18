@@ -101,6 +101,14 @@ def test_native_backend_is_exposed_in_the_guided_parameter_workspace() -> None:
     assert "section.parameter_group === 'backend'" in source
     assert 'id="wizardApplyNativeRwPresetBtn"' in html
     assert "component_reaction_wheel_basilisk_native" in source
+    for template_id in (
+        "component_imu_basilisk_native",
+        "component_star_tracker_basilisk_native",
+        "component_magnetometer_basilisk_native",
+    ):
+        assert template_id in source
+    assert "wizardEventHost" in source
+    assert "nativeSingleComponent" in source
 
 
 def test_native_rw_backend_limits_events_and_run_results_show_model_provenance() -> None:
