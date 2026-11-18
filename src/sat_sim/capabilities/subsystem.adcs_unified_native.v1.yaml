@@ -360,6 +360,8 @@ outputs:
   - adcs.fusion.estimated_omega_BN_B_*
   - adcs.fusion.source_mode
   - adcs.fusion.magnetometer_used
+  - adcs.fusion.body_rate_valid
+  - adcs.sensor.imu_sample_valid
   - adcs.magnetometer.reference_n_tesla_*
   - adcs.magnetometer.measured_body_tesla_*
   - adcs.sensor.gyro_measured_platform_rad_s_*
