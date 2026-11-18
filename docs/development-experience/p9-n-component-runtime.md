@@ -52,3 +52,12 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - 原生 backend 参数表单可见性与中文说明：PASS。
 
 这意味着 P9-N1 不需要再另建单机任务系统；应继续复用现有仿真向导、模板选择、参数表单、任务中心和结果分析。下一步重点是浏览器端从选择反作用轮对象到运行原生模板、查看真实曲线和历史 Run 的完整用户旅程。
+
+
+## P9-N3 官方 Basilisk 电池接入经验（2026-11-18）
+
+- 现有 battery builder 已提供真实 `SimpleBattery` 与 `SimplePowerSink`，优先复用，不重复实现储能方程。
+- Native backend 只声明 builder 当前支持的工况：恒定净功率、unity charge/discharge efficiency、SOC [0,1]、nominal no modifiers。
+- Native SimpleBattery 不暴露 project reference model 的全部效率、时变 profile、故障和退化能力；不支持的参数必须 fail closed。
+- 官方模型返回 `storage_j` / `capacity_j`，映射到 Wh 时必须除以 3600；SOC 使用官方 recorder 输出。
+- 端到端验收复用 `prepare_run → execute_prepared_run → sealed Run Bundle`，核验 validation PASS 与 Bundle integrity。
