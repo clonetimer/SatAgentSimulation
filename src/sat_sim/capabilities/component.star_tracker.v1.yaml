@@ -24,6 +24,13 @@ modes:
     supported: true
     degradation_types: [centroid_noise_growth, boresight_drift]
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    required: false
+    default: project_reference
+    description: Explicit engine. basilisk_native uses official Basilisk StarTracker attitude measurement from prescribed SCStates truth; nominal only, identity mounting, no optical star catalog/FOV/occultation or drift-rate modifier.
   true_sigma_bn: {type: "array[number]", unit: MRP, required: false, default: [0.1, 0.0, 0.0]}
   drift_rate_mrp_s: {type: "array[number]", unit: MRP/s, required: false, default: [0.0, 0.0, 0.0]}
   max_drift_norm: {type: number, unit: MRP, required: false, default: 1.0, min: 0.0}
