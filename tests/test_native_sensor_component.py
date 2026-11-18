@@ -24,6 +24,9 @@ def test_native_star_tracker_probe_uses_official_sensor_and_records_truth_respon
     assert result.times_s[0] >= 0.0
     assert result.times_s[-1] >= 1.0
     assert all(abs(sum(value * value for value in q) - 1.0) < 0.02 for q in result.q_inrtl_to_case)
+    from Basilisk.utilities import RigidBodyKinematics as rbk
+    for quaternion in result.q_inrtl_to_case:
+        assert tuple(float(value) for value in rbk.EP2MRP(quaternion)) == pytest.approx(result.truth_sigma_bn, abs=1e-6)
 
 
 @pytest.mark.parametrize(
