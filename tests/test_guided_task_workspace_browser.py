@@ -1596,6 +1596,9 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
 
             form = page.locator("#wizardParameterHost #dynamicForm")
             form.wait_for(state="attached", timeout=15000)
+            outputs_panel = page.locator("#compactOutputs")
+            if outputs_panel.get_attribute("open") is None:
+                outputs_panel.locator(":scope > summary").click()
             for plot_field in sorted(plot_fields):
                 plot_search = page.locator("#plotOptions input[type='search']")
                 plot_search.fill(plot_field)
