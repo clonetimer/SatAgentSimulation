@@ -58,7 +58,7 @@ def parameter_definition(capability_id: str, parameter_name: str) -> dict[str, A
     row = _PARAMETERS.get(capability_id, {}).get(parameter_name)
     if key is None or row is None:
         return None
-    if key == "reaction_wheel" and parameter_name == "physics_backend":
+    if parameter_name == "physics_backend":
         display_name = "物理计算后端"
     else:
         display_name = f"{_COMPONENTS[key]['name']} · {row[0]}"
