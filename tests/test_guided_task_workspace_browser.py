@@ -1407,3 +1407,216 @@ def test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation(tm
         finally:
             browser.close()
     assert not errors, errors
+
+
+@pytest.mark.parametrize(
+    "object_id,capability_id,display_name,source_text,stream_ids,telemetry_fields,plot_fields,project_module_count",
+    [
+        (
+            "subsystem.eps",
+            "subsystem.eps.unified_native.v1",
+            "电源",
+            "SimpleBattery",
+            {"eps_fast", "eps_housekeeping"},
+            {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w"},
+            {"eps.battery_soc", "eps.net_power_w"},
+            1,
+        ),
+        (
+            "subsystem.comm_data",
+            "subsystem.comm_data.unified_native.v1",
+            "通信与数据管理",
+            "SimpleInstrument",
+            {"data_fast", "data_summary"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_baud_bps"},
+            {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps"},
+            0,
+        ),
+    ],
+)
+def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle(
+    tmp_path,
+    object_id,
+    capability_id,
+    display_name,
+    source_text,
+    stream_ids,
+    telemetry_fields,
+    plot_fields,
+    project_module_count,
+):
+    """EPS and Comm/Data must use registered Basilisk subsystem templates in the guided Run Center."""
+    pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
+    from importlib.metadata import version
+    assert version("bsk") == "2.11.0"
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=True,
+        auth_mode="disabled",
+    )
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                request_path = url.path + ("?" + url.query if url.query else "")
+                if request.method == "POST" and url.path == "/runs":
+                    payload = json.loads(request.post_data or "{}")
+                    assert payload.get("execute") is True, payload
+                    assert payload.get("execution_mode") == "async", payload
+                    response = client.post(request_path, json=payload)
+                else:
+                    response = client.request(
+                        request.method,
+                        request_path,
+                        content=request.post_data_buffer,
+                        headers={key: value for key, value in request.headers.items() if key in ("content-type", "accept")},
+                    )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")},
+                )
+
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="networkidle")
+            page.locator('#wizardOptions [data-wizard-goal="subsystem_native"]').click()
+
+            visible_objects = page.locator("#wizardOptions [data-wizard-object]")
+            visible_objects.first.wait_for(state="visible", timeout=15000)
+            assert {
+                visible_objects.nth(index).get_attribute("data-wizard-object")
+                for index in range(visible_objects.count())
+            } == {"subsystem.adcs", "subsystem.eps", "subsystem.comm_data"}
+
+            object_option = page.locator(f'#wizardOptions [data-wizard-object="{object_id}"]')
+            object_option.click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+            assert source_text in page.locator("#wizardConversation").inner_text()
+
+            # N5-E's event allowlist is ADCS-only. EPS and Comm/Data stay nominal-only.
+            assert page.locator("#wizardFaultPanel").evaluate("(node) => node.classList.contains('hidden')")
+            assert page.locator("#wizardEventHost").evaluate("(node) => node.classList.contains('hidden')")
+            assert page.locator("#wizardNativeAdcsFaultNote").evaluate("(node) => node.classList.contains('hidden')")
+
+            form = page.locator("#wizardParameterHost #dynamicForm")
+            form.wait_for(state="attached", timeout=15000)
+            page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+            page.wait_for_function(
+                "() => document.querySelector('#wizardNotice')?.textContent.includes('配置校验通过')",
+                timeout=30000,
+            )
+            page.locator("#wizardOptions").get_by_role("button", name="运行仿真").click()
+            page.locator("#wizardRunResultsHost").wait_for(state="visible", timeout=120000)
+            page.wait_for_function(
+                "() => document.querySelector('#activeRunCard')?.innerText.includes('SUCCEEDED')",
+                timeout=120000,
+            )
+
+            run_rows = client.get("/runs?limit=200").json().get("runs", [])
+            matching = [
+                row for row in run_rows
+                if row.get("primary_capability_id") == capability_id
+                and row.get("status") == "SUCCEEDED"
+            ]
+            assert len(matching) == 1, matching
+            run_id = matching[0]["run_id"]
+            detail = client.get(f"/runs/{run_id}")
+            assert detail.status_code == 200, detail.text
+            durable = detail.json()["run"]
+            assert durable["task_spec"]["simulation"]["level"] == "subsystem"
+            assert durable["task_spec"]["simulation"]["backend"] == "basilisk"
+            assert durable["task_spec"]["assurance"]["allow_proxy"] is False
+            assert durable["task_spec"]["model"]["capability_id"] == capability_id
+            assert durable["sealed"] is True
+            assert durable["integrity"]["ok"] is True
+            assert durable["validation_outcome"]["result"] == "PASS"
+            summary = durable["summary"]
+            assert summary["runtime_truth_status"] == "instantiated_connected_recorded"
+            assert summary["official_module_count"] >= 3
+            assert summary["project_native_module_count"] == project_module_count
+            assert summary["external_or_proxy_module_count"] == 0
+
+            telemetry = client.get(f"/runs/{run_id}/telemetry?limit=500")
+            assert telemetry.status_code == 200, telemetry.text
+            rows = telemetry.json()["rows"]
+            assert rows
+            assert telemetry_fields <= set(rows[-1]), (telemetry_fields, rows[-1])
+
+            streams = client.get(f"/runs/{run_id}/telemetry-streams")
+            assert streams.status_code == 200, streams.text
+            stream_manifest = streams.json()["multi_rate_telemetry"]
+            assert {item["stream_id"] for item in stream_manifest["streams"]} == stream_ids
+            assert stream_manifest["interpolation_used"] is False
+            for stream_id in stream_ids:
+                stream = client.get(f"/runs/{run_id}/telemetry-streams/{stream_id}?limit=5")
+                assert stream.status_code == 200, stream.text
+                assert stream.json()["stream"]["stream_id"] == stream_id
+                assert stream.json()["count"] > 0
+
+            plots = client.get(f"/runs/{run_id}/plots")
+            assert plots.status_code == 200, plots.text
+            actual_plot_fields = {item["field"] for item in plots.json()["plot_manifest"]["series"]}
+            assert plot_fields <= actual_plot_fields, (plot_fields, actual_plot_fields)
+            fmea = client.get(f"/runs/{run_id}/fmea")
+            assert fmea.status_code == 200, fmea.text
+            assert "no risk score is fabricated" in fmea.json()["manifest"]["warning"]
+
+            with page.expect_download(timeout=30000) as bundle_download_info:
+                page.locator("#downloadRunBundleBtn").click()
+            bundle_download = bundle_download_info.value
+            bundle_path = tmp_path / f"{object_id.replace('.', '_')}_run_bundle.zip"
+            bundle_download.save_as(str(bundle_path))
+            with zipfile.ZipFile(bundle_path) as archive:
+                prefix = f"{run_id}/"
+                manifest_name = f"{prefix}bundle_manifest.json"
+                seal_name = f"{prefix}SEALED.json"
+                archive_names = set(archive.namelist())
+                manifest_bytes = archive.read(manifest_name)
+                manifest = json.loads(manifest_bytes)
+                seal = json.loads(archive.read(seal_name))
+                expected = {f"{prefix}{relative}" for relative in manifest["files"]}
+                assert archive_names == expected | {manifest_name, seal_name}
+                assert seal["run_id"] == run_id
+                assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
+                for relative, entry in manifest["files"].items():
+                    assert hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest() == entry["sha256"]
+
+            # Reopen the same sealed Run through Run Center; do not create a second run.
+            page.locator('[data-result-tab="charts"]').click()
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.children.length > 0",
+                timeout=15000,
+            )
+            page.locator("#wizardOpenRunCenterBtn").wait_for(state="visible", timeout=10000)
+            page.locator("#wizardOpenRunCenterBtn").click()
+            page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
+            history_row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
+            history_row.wait_for(state="visible", timeout=15000)
+            history_row.get_by_role("button", name="查看").click()
+            page.locator("#creatorView").wait_for(state="visible", timeout=20000)
+            replayed = page.locator("#activeRunCard")
+            replayed.wait_for(state="visible", timeout=15000)
+            assert run_id in replayed.inner_text()
+            assert display_name in replayed.inner_text()
+            page.locator('[data-result-tab="charts"]').click()
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.children.length > 0",
+                timeout=15000,
+            )
+            page.close()
+        finally:
+            browser.close()
+    assert not errors, errors
