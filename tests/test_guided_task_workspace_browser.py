@@ -1173,6 +1173,7 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
             assert durable["validation_outcome"]["result"] == "PASS"
             assert durable["summary"]["adcs_closed_loop_improved"] is True
             assert durable["summary"]["adcs_fusion"]["magnetometer_used_sample_count"] > 0
+            assert durable["summary"]["adcs_fusion"]["body_rate_valid_sample_count"] > 0
             assert durable["summary"]["external_or_proxy_module_count"] == 0
 
             telemetry = client.get(f"/runs/{run_id}/telemetry?limit=500")
