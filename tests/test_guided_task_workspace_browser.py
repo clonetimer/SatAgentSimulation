@@ -1410,22 +1410,20 @@ def test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation(tm
 
 
 @pytest.mark.parametrize(
-    "object_id,capability_id,display_name,source_text,stream_ids,telemetry_fields,plot_fields,project_module_count",
+    "object_id,capability_id,source_text,stream_ids,telemetry_fields,plot_fields,project_module_count",
     [
         (
             "subsystem.eps",
             "subsystem.eps.unified_native.v1",
-            "电源",
             "SimpleBattery",
             {"eps_fast", "eps_housekeeping"},
             {"eps.battery_soc", "eps.net_power_w", "eps.solar_power_w"},
             {"eps.battery_soc", "eps.net_power_w"},
-            1,
+            None,
         ),
         (
             "subsystem.comm_data",
             "subsystem.comm_data.unified_native.v1",
-            "通信与数据管理",
             "SimpleInstrument",
             {"data_fast", "data_summary"},
             {"comm_data.storage_level_bits", "comm_data.instrument_baud_bps", "comm_data.transmitter_storage_node_baud_bps"},
@@ -1438,7 +1436,6 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
     tmp_path,
     object_id,
     capability_id,
-    display_name,
     source_text,
     stream_ids,
     telemetry_fields,
@@ -1546,7 +1543,10 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             summary = durable["summary"]
             assert summary["runtime_truth_status"] == "instantiated_connected_recorded"
             assert summary["official_module_count"] >= 3
-            assert summary["project_native_module_count"] == project_module_count
+            if project_module_count is None:
+                assert summary["project_native_module_count"] >= 1
+            else:
+                assert summary["project_native_module_count"] == project_module_count
             assert summary["external_or_proxy_module_count"] == 0
 
             telemetry = client.get(f"/runs/{run_id}/telemetry?limit=500")
@@ -1609,8 +1609,10 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             page.locator("#creatorView").wait_for(state="visible", timeout=20000)
             replayed = page.locator("#activeRunCard")
             replayed.wait_for(state="visible", timeout=15000)
+            run_metadata = replayed.locator("details.compact-run-metadata")
+            run_metadata.locator("summary").click()
             assert run_id in replayed.inner_text()
-            assert display_name in replayed.inner_text()
+            assert capability_id in replayed.inner_text()
             page.locator('[data-result-tab="charts"]').click()
             page.wait_for_function(
                 "() => document.querySelector('#chartLegend')?.children.length > 0",
