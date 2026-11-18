@@ -107,12 +107,26 @@ _TEMPLATES = [
         "component_reaction_wheel_basilisk_native", "反作用轮原生物理仿真", "部件", "component",
         "component.reaction_wheel.v1", "使用官方 Basilisk Spacecraft 与 ReactionWheelStateEffector 独立运行单个反作用轮；输出原生记录的轮速、实际施加力矩和摩擦力矩。",
         duration_s=3.0,
-        patch={"simulation": {"step_s": 0.1, "sample_s": 0.1}, "parameters": {"values": {
-            "physics_backend": "basilisk_native", "num_wheels": 1,
-            "wheel_inertia_kg_m2": 0.1, "max_motor_torque_nm": 0.005,
-            "max_speed_rad_s": 1000.0, "initial_wheel_speeds_rad_s": 0.0,
-            "command_torque_nm": 0.01, "damping_nms": 0.00001,
-        }}},
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native", "num_wheels": 1,
+                "wheel_inertia_kg_m2": 0.1, "max_motor_torque_nm": 0.005,
+                "max_speed_rad_s": 1000.0, "initial_wheel_speeds_rad_s": 0.0,
+                "command_torque_nm": 0.01, "damping_nms": 0.00001,
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.reaction_wheel.speed_rad_s_0",
+                    "adcs.reaction_wheel.applied_torque_nm_0",
+                ],
+                "qoi": [
+                    "qoi.adcs.reaction_wheel.initial_speed_rad_s_0",
+                    "qoi.adcs.reaction_wheel.final_speed_rad_s_0",
+                    "qoi.adcs.reaction_wheel.max_abs_speed_rad_s",
+                ],
+            },
+        },
         recommended=True,
     ),
     _template(
