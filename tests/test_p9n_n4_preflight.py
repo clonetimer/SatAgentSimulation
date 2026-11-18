@@ -154,7 +154,7 @@ def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_
     assert report.json()["summary"]["physics_backend"] == "basilisk_native"
     assert report.json()["integrity"]["ok"] is True
     assert metrics.json()["metrics"]
-    assert plots.json()["plots"]
-    assert telemetry.json()["telemetry"]["rows"]
+    assert plots.json()["plot_manifest"]
+    assert telemetry.json()["rows"]
     artifact_paths = {item["path"] for item in artifacts.json()["artifacts"]}
     assert "runtime/execution_port.json" in artifact_paths
