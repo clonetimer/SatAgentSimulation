@@ -38,3 +38,15 @@ CI 必须在同一 PR head 完成：
 - 反作用轮既有旅程不回归；整星/分系统和 P9-C 至 P9-M 既有合同不回归。
 
 不把本轮结果扩大解释为传感器随机噪声标定、非 identity 安装、地球磁场模型、光学星表/FOV、故障/退化或单机实时能力。
+
+
+## Chromium 首轮失败复盘：Run 摘要后端来源字段（2026-11-18）
+
+首轮三传感器真实 Chromium 测试中，IMU Run 成功，但星敏感器 Run 的 sealed detail 摘要缺少顶层 `physics_backend`，导致 UI 来源字段只能显示“未声明”。原因是 IMU native 分支已有 `summary["physics_backend"]`，而 StarTracker / Magnetometer native 分支只在 `SimulationResult.metadata` 中记录 backend，未写入用户结果摘要。
+
+修复：
+- StarTracker、Magnetometer native 分支均将 `physics_backend=basilisk_native` 写入 summary。
+- Run Bundle 合同测试对三种传感器统一断言 summary backend、adapter metadata backend、native provenance 均存在。
+- Chromium 仍按真实 sealed Run detail 验证 backend 与 provenance，不降低断言、不用 metadata-only 结果掩盖产品摘要缺口。
+
+经验：adapter metadata 是工程证据存储，summary 是用户结果合同；两者都要保留 backend。仅 metadata 正确，用户结果页仍可能误报“未声明”。
