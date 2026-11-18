@@ -101,3 +101,14 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 | 太阳电池阵 | `component_solar_panel_basilisk_native` | `SimpleSolarPanel` | N4-C2 实现中；单板全展开、固定安装、静态 Sun/Eclipse；阵列功率/入射/阴影/能量合同待同 head CI 验收 |
 
 两设备继续复用既有 `component.battery.v1` 与 `component.solar_panel.v1` capability 和 native adapter。默认 backend 不变，只有注册模板显式选择 `basilisk_native`。电池不宣称电芯等效电路/温度模型；太阳电池阵不宣称轨道光照环境或太阳跟踪。正式准入须通过官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 用户旅程验收。
+
+
+## N4-C3 推进与热控单机入口候选（2026-11-18）
+
+| 设备 | 注册模板 | 官方原生模型 | 当前产品入口边界 |
+|---|---|---|---|
+| 推力器 | `component_thruster_basilisk_native` | ThrusterDynamicEffector + FuelTank + Spacecraft free-carrier fixture | N4-C3 实现中；单个连续标称点火脉冲，输出推力 recorder、冲量积分和推进剂质量差；非整星安装/耦合 |
+| 燃料贮箱 | `component_fuel_tank_basilisk_native` | `Basilisk.simulation.fuelTank.FuelTank` | N4-C3 实现中；恒定质量流量，质量/质量变化率/容量 recorder；不提供压力/热力学状态 |
+| 热节点 | `component_thermal_node_basilisk_native` | `Basilisk.simulation.sensorThermal.SensorThermal` | N4-C3 实现中；固定辐射板、恒定电功率、显式太阳/日食 fixture；温度 K/°C，不含轨道传播或地球 IR/albedo 闭环 |
+
+三者继续复用已有 capability 与 native adapter。推力器原生点火时间步与标准 simulation step 必须纳秒舍入后匹配；FuelTank native 输出不得请求 project_reference 压力代理；热节点的 Celsius recorder 与 Kelvin 派生字段必须分别注明来源。正式准入需要同 head 的官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 真实 Run/历史回放验收。
