@@ -9293,7 +9293,7 @@
         const nativeObjects = new Set(Object.keys(NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT));
         rows = rows.filter((item) => nativeObjects.has(item.object_id));
         const note = document.createElement('p'); note.className = 'wizard-panel-help';
-        note.textContent = '当前仅开放已完成统一 Process/Task 闭环、坐标系与测量来源审查的 ADCS 分系统。EPS、通信等其他分系统不会被提前标记为已验收。';
+        note.textContent = '当前开放 ADCS、EPS 和通信数据三个已通过独立验收的 Basilisk 分系统。它们分别运行，不代表跨分系统联合闭环；各自只开放标称有限时长离线场景。';
         options.appendChild(note);
       }
       if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); }
