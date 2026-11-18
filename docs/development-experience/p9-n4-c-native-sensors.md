@@ -31,3 +31,10 @@
 ## 验收状态
 
 当前代码新增三个注册模板和浏览器旅程；最终准入以 PR 的官方 Basilisk 2.11.0 物理/Run Bundle 测试、真实 Chromium Run 及历史证据为准。在 CI 完成前不宣称 N4-C1 已验收。
+
+
+## 首次 Chromium 失败复盘
+
+第一次真实浏览器 Run 已经执行成功、Run Bundle 已封存，失败发生在验收断言：测试错误地期待 sensor 的 `summary.json` 顶层含有 `physics_backend`。实际合同将后端与模型来源保存在 `summary.adapter_metadata`，与前端 `nativeProvenance` 显示逻辑一致。已将断言修正为检查 `adapter_metadata.physics_backend` 和 `adapter_metadata.native_provenance`，不改动运行时模型或结果格式。
+
+经验：不能为了让测试通过而把 metadata 任意复制到 summary 顶层；应遵循 Run Bundle 既有来源合同，确认 UI 与 API 使用同一证据字段。
