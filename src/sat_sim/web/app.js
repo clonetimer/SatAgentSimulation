@@ -7425,7 +7425,7 @@
     },
     'subsystem.adcs_unified_native.v1': {
       scope: 'subsystem', streams: [{ id: 'adcs.fast', label: '实时', sampleMultiplier: 1 }, { id: 'adcs.housekeeping', label: '慢速', sampleMultiplier: 10, overviewOnly: true }],
-      targets: ['subsystem.adcs'], telemetryGroups: [{ id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2'] }],
+      targets: ['subsystem.adcs'], telemetryGroups: [{ id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.fusion.estimated_mrp_BN_x', 'adcs.fusion.estimated_omega_BN_B_x', 'adcs.fusion.magnetometer_used', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2', 'adcs.control.applied_torque_nm_0'] }],
     },
     'subsystem.eps.unified_native.v1': {
       scope: 'subsystem', streams: [{ id: 'eps.fast', label: '实时', sampleMultiplier: 1 }, { id: 'eps.housekeeping', label: '慢速', sampleMultiplier: 10, overviewOnly: true }],
