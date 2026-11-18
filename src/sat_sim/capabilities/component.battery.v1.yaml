@@ -35,6 +35,13 @@ modes:
     - capacity_loss_pct
     - internal_resistance_increase_pct
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    required: false
+    default: project_reference
+    description: Explicit engine. basilisk_native uses official Basilisk SimpleBattery and SimplePowerSink; nominal only, constant net power, unity charge/discharge efficiency, and full SOC interval.
   capacity_wh:
     type: number
     unit: Wh
