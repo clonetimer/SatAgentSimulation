@@ -51,6 +51,7 @@ def test_adcs_unified_runtime_is_closed_loop_and_recorder_grounded() -> None:
     assert result.trace_rows[-1]["adcs.pointing_error_deg"] < result.trace_rows[0]["adcs.pointing_error_deg"]
     assert any(abs(row["adcs.magnetometer.tesla_z"]) > 0.0 for row in result.trace_rows)
     assert result.summary["adcs_fusion"]["magnetometer_used_sample_count"] > 0
+    assert result.summary["adcs_fusion"]["body_rate_valid_sample_count"] > 0
     assert any(row["adcs.fusion.magnetometer_used"] == 1 for row in result.trace_rows)
     assert all("adcs.fusion.estimated_mrp_BN_x" in row for row in result.trace_rows)
     assert all("adcs.fusion.estimated_omega_BN_B_x" in row for row in result.trace_rows)
