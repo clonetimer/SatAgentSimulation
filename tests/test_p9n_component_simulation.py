@@ -213,3 +213,70 @@ def test_native_sensor_templates_are_published_by_workbench_api(tmp_path) -> Non
             task_spec = response.json()["task_spec"]
             assert task_spec["parameters"]["values"]["physics_backend"] == "basilisk_native"
             assert task_spec["model"]["target"]["mode"] == "nominal"
+
+
+def test_native_eps_templates_are_registered_valid_and_product_visible() -> None:
+    cases = (
+        (
+            "component_battery_basilisk_native",
+            "component.battery.v1",
+            "component.battery",
+            "eps.battery.soc",
+            "eps.battery.net_power_w",
+        ),
+        (
+            "component_solar_panel_basilisk_native",
+            "component.solar_panel.v1",
+            "component.solar_panel",
+            "eps.solar.array_power_w",
+            "eps.solar.incidence_cos",
+        ),
+    )
+    for template_id, capability_id, object_id, first_trace, second_trace in cases:
+        spec = instantiate_scenario_template(template_id, task_id=f"n4c2_{object_id.replace('.', '_')}")
+        assert spec["simulation"]["level"] == "component"
+        assert spec["model"]["capability_id"] == capability_id
+        assert spec["model"]["target"]["level"] == "component"
+        assert spec["parameters"]["values"]["physics_backend"] == "basilisk_native"
+        assert spec["model"]["target"]["mode"] == "nominal"
+        assert spec["events"]["faults"] == []
+        assert spec["events"]["degradations"] == []
+        assert first_trace in spec["outputs"]["plots"]
+        assert second_trace in spec["outputs"]["plots"]
+        validation = validate_task_spec(spec)
+        assert validation.ok, (template_id, validation.to_dict())
+
+        catalog = list_scenario_templates(
+            level="component",
+            capability_id=capability_id,
+            product_visible_only=True,
+        )
+        row = next(item for item in catalog["templates"] if item["template_id"] == template_id)
+        assert row["recommended"] is True
+        assert row["object_id"] == object_id
+        assert row["execution_scope"] == "direct"
+
+        schema = capability_form_schema(capability_id)
+        backend = next(field for field in schema["fields"] if field["path"] == "parameters.values.physics_backend")
+        assert backend["widget"] == "select"
+        assert backend["enum"] == ["project_reference", "basilisk_native"]
+
+
+def test_native_eps_templates_are_published_by_workbench_api(tmp_path) -> None:
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    template_ids = (
+        "component_battery_basilisk_native",
+        "component_solar_panel_basilisk_native",
+    )
+    with TestClient(app) as client:
+        for template_id in template_ids:
+            response = client.post(f"/scenario-templates/{template_id}/instantiate", json={})
+            assert response.status_code == 200, (template_id, response.text)
+            task_spec = response.json()["task_spec"]
+            assert task_spec["parameters"]["values"]["physics_backend"] == "basilisk_native"
+            assert task_spec["model"]["target"]["mode"] == "nominal"
