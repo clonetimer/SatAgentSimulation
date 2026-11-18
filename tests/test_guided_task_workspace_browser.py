@@ -854,13 +854,13 @@ def test_guided_native_sensor_workbench_runs_all_verified_adcs_and_eps_devices(t
         (
             "component.battery",
             "components.battery.builder.run_battery_native_case",
-            "电池",
+            "蓄电池",
             ("eps.battery.soc", "eps.battery.net_power_w"),
         ),
         (
             "component.solar_panel",
             "Basilisk.simulation.simpleSolarPanel.SimpleSolarPanel",
-            "太阳翼",
+            "太阳电池阵",
             ("eps.solar.array_power_w", "eps.solar.incidence_cos"),
         ),
     )
