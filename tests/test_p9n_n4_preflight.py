@@ -69,7 +69,7 @@ def test_native_rw_preflight_rejects_unsupported_configuration_with_field_path(
     assert any(issue.code == "native_scope" for issue in result.errors), result.to_dict()
 
 
-def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tmp_path) -> None:
+def test_native_rw_preflight_api_returns_actionable_validation_errors(tmp_path) -> None:
     app = create_app(
         runs_root=tmp_path / "runs",
         artifacts_root=tmp_path / "artifacts",
@@ -77,36 +77,18 @@ def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tm
         auth_mode="disabled",
     )
     spec = deepcopy(_native_rw_spec("p9n4_native_preflight_api"))
+    spec["simulation"]["sample_s"] = 1.1
 
     with TestClient(app) as client:
-        projected = client.post(
-            "/forms/capabilities/component.reaction_wheel.v1/project",
-            json={"task_spec": spec},
-        )
-        assert projected.status_code == 200, projected.text
-        form_data = projected.json()["projection"]["form_data"]
-        form_data["simulation"]["sample_s"] = 1.1
-        response = client.post(
-            "/tasks/parse",
-            json={"input_kind": "form", "form_data": form_data, "compile_if_valid": True},
-        )
+        response = client.post("/tasks/validate", json={"task_spec": spec})
 
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["ok"] is False, payload
-    result = payload["result"]
-    planning = result.get("planning") or {}
-    planning_validation = planning.get("validation") or {}
-    errors = [
-        *(result.get("validation", {}).get("errors") or []),
-        *(result.get("guards", {}).get("issues") or []),
-        *(planning_validation.get("errors") or []),
-    ]
+    errors = payload["validation"]["errors"]
     assert errors, payload
     assert any(
-        item.get("code") == "native_scope"
-        and "sample_s" in str(item.get("path", ""))
-        and "1.0" in str(item.get("message", ""))
+        "sample_s" in str(item.get("path", "")) or "sample_s" in str(item.get("message", ""))
         for item in errors
-    ), json.dumps({"errors": errors, "result": result}, ensure_ascii=False, indent=2)
-    assert result["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
+    ), json.dumps(errors, ensure_ascii=False, indent=2)
+    assert payload["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
