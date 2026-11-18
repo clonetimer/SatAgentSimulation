@@ -100,3 +100,12 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 ### O2-B 首次失败与修复经验（2026-11-19）
 
 首轮 sealed Run Bundle 测试 4/4 在 canonicalization 阶段失败，原因不是 Basilisk 物理模型，而是 TaskSpec 的 BaseEvent 严格 schema 使用 magnitude（[0,1]），不接受额外 severity 字段。修复后测试改用 canonical magnitude；adapter helper 继续兼容显式 severity，仅供直接 adapter 集成调用。必须以 canonical TaskSpec schema 为准，不能把内部语义字段直接写进用户任务文档。
+
+
+## O2-C evidence profiles and PDU causal binding (2026-11-19)
+
+- Added four effect-specific VERIFIED_NATIVE_EFFECT profiles for EPS aggregate fault/degradation and Comm/Data transmitter rate fault/degradation. Profiles assert direct recorder fields against nominal references, with explicit claim limitations.
+- Added explicit operator observability.effect_evidence bindings and formal runtime tests for all four profiles; CI now runs the full formal runtime suite rather than only checking profile registration.
+- The EPS PDU trip was previously described by an unused trip_state parameter. The native PDU SysModel now owns a scheduled channel_enabled state and applies it to the payload command gate; the combined EPS fault targets this real field.
+- A PDU trip sheds payload load, so net_power_w can become less negative. A former assertion that every EPS fault must lower net_power_w was physically incorrect. Tests now assert direct payload load cut-off and the PDU shed reason instead.
+- The latest regression run exposed that assertion error; corrected tests are on the current branch, and their official Basilisk re-run is pending. O2-C is not yet promoted until formal runtime profiles pass on one final head.
