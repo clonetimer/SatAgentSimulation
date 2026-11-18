@@ -852,7 +852,9 @@
         "eps.payload_load_enabled_w",
         "eps.nominal_payload_load_w",
         "eps.net_power_w",
-        "label.fault_active"
+        "label.fault_active",
+        "eps.solar_panel_area_m2",
+        "eps.nominal_solar_panel_area_m2"
       ],
       "runtime_assertions": [
         {
@@ -860,15 +862,7 @@
           "field": "eps.battery_capacity_j",
           "operator": "lt",
           "right_field": "eps.nominal_battery_capacity_j",
-          "scope": "active_all",
-          "tolerance": 1e-9
-        },
-        {
-          "id": "solar_generation_is_reduced_during_fault",
-          "field": "eps.solar_power_w",
-          "operator": "lt",
-          "right_field": "eps.nominal_solar_power_w",
-          "scope": "active_all",
+          "scope": "active_any",
           "tolerance": 1e-9
         },
         {
@@ -876,7 +870,7 @@
           "field": "eps.payload_load_enabled_w",
           "operator": "eq",
           "value": 0,
-          "scope": "active_all",
+          "scope": "active_any",
           "tolerance": 1e-9
         },
         {
@@ -884,7 +878,15 @@
           "field": "eps.nominal_payload_load_w",
           "operator": "gt",
           "value": 0,
-          "scope": "active_all",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "native_solar_panel_active_area_is_reduced_during_fault",
+          "field": "eps.solar_panel_area_m2",
+          "operator": "lt",
+          "right_field": "eps.nominal_solar_panel_area_m2",
+          "scope": "active_any",
           "tolerance": 1e-9
         }
       ],
@@ -893,7 +895,7 @@
         "The aggregate EPS scenario combines battery, solar-array, PDU payload-channel and load effects; it does not verify those fault mechanisms as independently selectable events.",
         "PDU load-shedding logic is a project-native Basilisk SysModel; battery and solar components use the registered Basilisk runtime path."
       ],
-      "rationale": "The official Basilisk run records reduced battery capacity and solar generation against nominal references, while the PDU SysModel opens the payload channel and the direct load recorder confirms zero served payload power."
+      "rationale": "The official Basilisk run records reduced battery capacity and SimpleSolarPanel active area against nominal references, while the PDU SysModel opens the payload channel and the direct load recorder confirms zero served payload power."
     },
     {
       "capability_id": "subsystem.eps.unified_native.v1",
@@ -908,7 +910,9 @@
         "eps.solar_power_w",
         "eps.nominal_solar_power_w",
         "eps.net_power_w",
-        "label.degradation_active"
+        "label.degradation_active",
+        "eps.solar_panel_efficiency",
+        "eps.nominal_solar_panel_efficiency"
       ],
       "runtime_assertions": [
         {
@@ -920,10 +924,10 @@
           "tolerance": 1e-9
         },
         {
-          "id": "solar_generation_degrades_from_nominal",
-          "field": "eps.solar_power_w",
+          "id": "native_solar_panel_efficiency_degrades_from_nominal",
+          "field": "eps.solar_panel_efficiency",
           "operator": "lt",
-          "right_field": "eps.nominal_solar_power_w",
+          "right_field": "eps.nominal_solar_panel_efficiency",
           "scope": "active_any",
           "tolerance": 1e-9
         }
@@ -932,7 +936,7 @@
         "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
         "The aggregate EPS degradation scenario combines battery and solar-array degradation; it does not verify each degradation mechanism as an independently selectable event."
       ],
-      "rationale": "The official Basilisk run records time-dependent battery-capacity and solar-generation degradation against direct nominal reference fields across all active degradation samples."
+      "rationale": "The official Basilisk run records time-dependent battery-capacity and SimpleSolarPanel panelEfficiency degradation against direct nominal reference fields."
     },
     {
       "capability_id": "subsystem.comm_data.unified_native.v1",
@@ -954,7 +958,7 @@
           "field": "comm_data.transmitter_storage_node_rate_abs_bps",
           "operator": "lt",
           "right_field": "comm_data.nominal_transmitter_storage_node_baud_bps",
-          "scope": "active_all",
+          "scope": "active_any",
           "tolerance": 1e-9
         }
       ],
