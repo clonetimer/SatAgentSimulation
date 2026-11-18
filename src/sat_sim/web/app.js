@@ -8605,7 +8605,7 @@
     'component.imu': {
       templateId: 'component_imu_basilisk_native',
       label: 'Basilisk 原生 IMU 模板',
-      prompt: '已加载官方 Basilisk ImuSensor。当前输入为显式角速度与非保守比力真值；仅开放标称有限时长测量，不包含随机噪声特性、安装杆臂或导航解算。',
+      prompt: '已加载官方 Basilisk IMU（ImuSensor）。当前输入为显式角速度与非保守比力真值；仅开放标称有限时长测量，不包含随机噪声特性、安装杆臂或导航解算。',
     },
     'component.star_tracker': {
       templateId: 'component_star_tracker_basilisk_native',
