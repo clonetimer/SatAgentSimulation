@@ -44,6 +44,7 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - 已建立独立官方 Basilisk StarTracker probe graph：显式 `SCStatesMsg` truth fixture → 官方 `sensorOutMsg.qInrtl2Case` recorder。
 - 已建立独立官方 Basilisk IMU probe：显式 `SCStatesMsg` 真值（角速度 + 非保守加速度）、零随机噪声、identity mounting、零杆臂 → 官方 `AngVelPlatform` 与 `AccelPlatform` recorder。
 - 已把 `physics_backend=basilisk_native` 接入 `component.imu.v1` 的现有 adapter/TaskSpec 路径；可配置原有 gyro/accel truth、scale 和 bias，Run 结果保留 native provenance；fault/degradation 和非 nominal 工况 fail closed。
+- 已把 `physics_backend=basilisk_native` 接入 `component.magnetometer.v1`；可配置磁场、bias 和统一三轴 scale；非均匀轴 scale、fault/degradation 和非 nominal 工况 fail closed。
 - 已建立独立官方 Basilisk Magnetometer probe：显式 `SCStatesMsg` + `MagneticFieldMsg` → 官方 `tamDataOutMsg.tam_S` recorder；当前输入为均匀地磁场 fixture，不宣称地球磁场环境模型。
 - 已建立独立官方 Basilisk CoarseSunSensor probe：显式 `SCStatesMsg` + `SpicePlanetStateMsg` + `EclipseMsg` → 官方 `cssDataOutMsg.OutputData` recorder；当前验证余弦/FOV 与照明输入，不宣称 SPICE 轨道历元或真实遮挡几何。
 - 已加入聚焦 CI 工作流，固定官方上游 `bsk==2.11.0`，运行四类传感器原生图与 fail-closed 输入测试。
