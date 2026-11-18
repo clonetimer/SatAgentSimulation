@@ -11707,6 +11707,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
+    el('wizardOpenRunCenterBtn')?.addEventListener('click', () => navigateToView('runs'));
     el('wizardAdvancedBtn')?.addEventListener('click', () => navigateToView('creator'));
     el('wizardSceneShortcutBtn')?.addEventListener('click', () => navigateToView('scene'));
     el('p9dValidateBtn')?.addEventListener('click', async () => {
