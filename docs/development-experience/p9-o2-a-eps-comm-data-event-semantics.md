@@ -106,3 +106,10 @@
 - EPS adapter 增加 solar_panel_area_m2、solar_panel_efficiency 及其 nominal 对照字段；sealed A/B 现在要求确认使用官方 SimpleSolarPanel，并直接比较面积/效率参数，而非只看功率曲线。
 - EPS fault profile 验证 panelArea 下降；EPS degradation profile 验证 panelEfficiency 下降。Comm/Data 与 EPS fault profile 的 active 样本范围改为 active_any，避免在事件起始采样时刻尚未完成调度更新就要求每个样本都偏离标称。
 - 最新官方 Basilisk 回归正在执行；在最终同一 PR head 全部 PASS 前，不把这轮映射修复记为通过。
+
+
+### 原生太阳阵参数的时间采样边界补充（2026-11-19）
+
+- 不能在仿真结束后读取 SimpleSolarPanel.panelArea/panelEfficiency 来代表事件期间状态：故障结束会恢复 panelArea，读取时已回到 nominal；时间退化参数可能保持最终值，但不是逐样本遥测。
+- 因此最终验收使用官方 SimpleSolarPanel 的 nodePowerOut recorder 作为输出，并在事件开始前最后一个 recorder 样本建立同一 Run 内的 nominal_solar_power_w 参照。故障/退化期间直接比较太阳阵输出功率，避免使用理论配置值或仿真结束时的参数快照。
+- panelArea / panelEfficiency 仍是运行时注入的实际参数目标；证据层以其真实输出结果为准，而不是将模块属性快照伪装成逐样本遥测。
