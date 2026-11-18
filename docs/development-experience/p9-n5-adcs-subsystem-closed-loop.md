@@ -126,3 +126,10 @@
 4. **事件类别由非空 catalog 决定。** ADCS 只显示 fault/degradation，constraint catalog 为空时隐藏运行约束选项。
 5. **向导入口范围要精确。** 只对 `goal=subsystem_native` 且 capability 为 unified-native ADCS 显示故障面板；单机 native 与其他未验证分系统继续隐藏。
 6. **UI 验收必须真实提交 TaskSpec。** 浏览器测试不止检查选项文本，还要配置起止时间与参数、执行官方 Basilisk、验证 injection evidence PASS、有效力矩比例和 sealed Run Bundle ZIP 哈希。
+
+## CI 工程经验：PR 浅克隆的浏览器范围检测（2026-11-19）
+
+- `actions/checkout` 在 pull_request 上检出 `refs/remotes/pull/<n>/merge`，默认浅克隆只含 merge HEAD；再以 depth=1 fetch PR base SHA 后，base 与 HEAD 之间可能没有可计算的 merge-base。
+- 三点式 `git diff BASE...HEAD` 因此会报 `no merge base`。如果该命令位于 `if` 条件中，shell 可能把它当成条件不匹配而不使步骤失败，导致浏览器测试被静默跳过。
+- 对 PR merge checkout 的路径门禁应使用 `git diff --name-only BASE HEAD` 两点式树比较，并打印路径清单；它直接比较 base tree 与 merge tree，不依赖完整提交祖先。
+- 对浏览器门禁，必须检查步骤是否实际执行，而不能把 skipped 误读为 PASS。
