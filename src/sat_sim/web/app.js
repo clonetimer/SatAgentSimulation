@@ -9105,7 +9105,12 @@
     const option = (title, detail, attrs, callback) => wizardOption(options, title, detail, attrs, callback);
     const config = el('wizardConfigSections');
     const showConfig = state.wizard.step === 'configure';
+    const nativeSingleComponent = showConfig && state.wizard.goal === 'component_native';
     config?.classList.toggle('hidden', !showConfig);
+    // Native sensor/RW adapters currently accept nominal-only finite runs.
+    // Hide event authoring in this guided slice instead of presenting controls
+    // that the selected Basilisk backend must reject at preflight.
+    el('wizardEventHost')?.classList.toggle('hidden', nativeSingleComponent);
     el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
     el('wizardAgentWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'natural_language');
     el('wizardTaskSpecWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'taskspec');
