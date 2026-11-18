@@ -968,6 +968,8 @@ def test_guided_native_sensor_workbench_runs_all_verified_adcs_eps_propulsion_th
                 backend.wait_for(state="visible", timeout=15000)
                 assert backend.input_value() == "basilisk_native"
                 assert page.locator("#wizardEventHost").evaluate("(node) => node.classList.contains('hidden')")
+                assert page.locator("#wizardFaultPanel").evaluate("(node) => node.classList.contains('hidden')")
+                assert page.locator("#wizardNativeAdcsFaultNote").evaluate("(node) => node.classList.contains('hidden')")
                 assert display_name in page.locator("#wizardConversation").inner_text()
 
                 page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
