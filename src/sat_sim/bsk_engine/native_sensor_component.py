@@ -145,10 +145,10 @@ def run_native_imu_probe(
 ) -> NativeImuTrace:
     """Run official Basilisk ImuSensor against prescribed spacecraft truth.
 
-    The first N2 IMU probe isolates the gyroscope channel with zero stochastic
-    noise and a co-located sensor. Accelerometer excitation and bias/noise
-    characterization are separate follow-up tests; no synthetic acceleration
-    is inferred from this fixed truth fixture.
+    The first N2 IMU probe validates gyro and accelerometer channels with
+    prescribed angular-rate and non-conservative acceleration truth, zero
+    stochastic noise, identity mounting and a co-located sensor. It does not
+    yet characterize stochastic spectra or lever-arm dynamics.
     """
     if type(duration_s) not in (int, float) or not math.isfinite(float(duration_s)) or not 0.1 <= float(duration_s) <= 120.0:
         raise ValueError("NATIVE_IMU_DURATION_INVALID")
@@ -159,7 +159,8 @@ def run_native_imu_probe(
     if sample > duration or duration / sample > 20000:
         raise ValueError("NATIVE_IMU_GRID_INVALID")
     sigma = _finite_vector(truth_sigma_bn, 3, "NATIVE_IMU_TRUTH_SIGMA")
-    omega = _finite_vector(truth_omega_bn_rad_s, 3, "NATIVE_IMU_TRUTH_OMEGA")
+    omega = _finite_vector(truth_omega_bn_b_rad_s, 3, "NATIVE_IMU_TRUTH_OMEGA")
+    specific_force = _finite_vector(truth_specific_force_b_m_s2, 3, "NATIVE_IMU_TRUTH_SPECIFIC_FORCE")
     position = _finite_vector(sensor_pos_b_m, 3, "NATIVE_IMU_SENSOR_POSITION")
     dcm = _finite_vector(dcm_pb, 9, "NATIVE_IMU_DCM")
     if any(abs(value) > 1.0e-9 for value in position):
