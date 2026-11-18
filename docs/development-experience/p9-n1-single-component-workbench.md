@@ -76,3 +76,8 @@ The guided wizard hides its “其他专业工具” disclosure outside the welc
 ## 17. Separate UI lifecycle evidence from native physics evidence
 
 The product browser test must exercise the real `execution_mode=async` path and embedded worker, then wait for the Run to reach a terminal state. The native physics integration test separately verifies the Basilisk adapter and sealed Run Bundle. Do not change only the browser request to synchronous mode while leaving the frontend polling contract unchanged. If the UI does not reach a terminal state, inspect the execution endpoint/state and persisted Run evidence before changing timeout values; a longer wait does not repair a missing worker or broken state transition.
+
+
+## 18. Assert durable Run Bundle integrity before replay, not only list status
+
+A Run Center row with `SUCCEEDED` is not sufficient evidence for a reproducible product journey. The browser acceptance now fetches the exact `GET /runs/{run_id}` detail and asserts `sealed=true`, `integrity.ok=true`, `validation_outcome.result=PASS`, `run_record.status=SUCCEEDED`, the expected component capability and `physics_backend=basilisk_native` before navigating to history. This catches a broken or mismatched Run Bundle even when the list row looks successful. History replay then verifies the same Run ID's provenance and recorder-backed charts.
