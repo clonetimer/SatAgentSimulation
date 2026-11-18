@@ -123,6 +123,11 @@ class CommDataUnifiedNativeAdapter:
             generated = build_fault_event_specs(default_fault_scenarios()["transmitter_power_loss"])
             for item in generated:
                 row = dict(item)
+                row["scenario"] = "transmitter_rate_loss"
+                row["event_name"] = f"transmitter_rate_loss.transmitter.{row.get('phase', 'start')}"
+                row["fault_name"] = "TransmitterDataRateLoss"
+                row["fault_type"] = "transmitter_rate_loss"
+                row["target_id"] = "transmitter.primary"
                 row["effects"] = scale_parameter_effects((rate_fault,), severity)
                 row["basilisk_mapping"] = {
                     "module": "simpleTransmitter",
@@ -152,6 +157,10 @@ class CommDataUnifiedNativeAdapter:
                 if str(item.get("component")) != "transmitter":
                     continue
                 row = dict(item)
+                row["scenario"] = "transmitter_rate_degradation"
+                row["event_name"] = "transmitter_rate_degradation.transmitter.update"
+                row["degradation_name"] = "TransmitterDataRateDegradation"
+                row["degradation_type"] = "transmitter_rate_degradation"
                 row["start_s"] = start_s
                 row["effects"] = (rate_degradation,)
                 row["basilisk_mapping"] = {
@@ -167,6 +176,9 @@ class CommDataUnifiedNativeAdapter:
                         degradation,
                         start_s=start_s,
                         severity=base_severity * severity,
+                        name="TransmitterDataRateDegradation",
+                        degradation_type="transmitter_rate_degradation",
+                        physical_mechanism="time-dependent reduction of the native SimpleTransmitter nodeBaudRate input",
                         effects=(rate_degradation,),
                     )
                 degradation_specs.append(row)
