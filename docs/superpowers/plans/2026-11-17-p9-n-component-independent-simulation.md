@@ -41,10 +41,12 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 ### P9-N2：传感器单机
 
 **实施启动（2026-11-18）**
-- 已建立独立的官方 Basilisk StarTracker probe graph：输入为显式构造的 `SCStatesMsg` truth fixture，输出直接来自 `StarTracker.sensorOutMsg` recorder。
-- 当前 probe 明确不声称星表、光学成像、质心提取、盲区/FOV 或 blinding 场景；其证据范围是“给定航天器姿态真值后的官方姿态测量模块响应”。
-- 已加入输入边界、随机种子、采样时间、四元数有限性和单位四元数检查；该 probe 先作为 N2 原生物理试验，不冒充已注册生产 capability。
-- 下一批并行工作：IMU truth-driven graph（角速度/角加速度/比力输入）；随后磁强计地磁场输入与 CSS 太阳方向/日蚀输入。四者各自单独验收，不从整星遥测裁剪。
+- 已建立独立官方 Basilisk StarTracker probe graph：显式 `SCStatesMsg` truth fixture → 官方 `sensorOutMsg.qInrtl2Case` recorder。
+- 已建立独立官方 Basilisk IMU gyro probe：显式 `SCStatesMsg` 真值、零随机噪声、identity mounting、零杆臂 → 官方 `AngVelPlatform` recorder；加速度计比力、杆臂和噪声谱仍单独验证。
+- 已建立独立官方 Basilisk Magnetometer probe：显式 `SCStatesMsg` + `MagneticFieldMsg` → 官方 `tamDataOutMsg.tam_S` recorder；当前输入为均匀地磁场 fixture，不宣称地球磁场环境模型。
+- 已建立独立官方 Basilisk CoarseSunSensor probe：显式 `SCStatesMsg` + `SpicePlanetStateMsg` + `EclipseMsg` → 官方 `cssDataOutMsg.OutputData` recorder；当前验证余弦/FOV 与照明输入，不宣称 SPICE 轨道历元或真实遮挡几何。
+- 已加入聚焦 CI 工作流，固定官方上游 `bsk==2.11.0`，运行四类传感器原生图与 fail-closed 输入测试。
+- 所有 probe 均独立构建，不裁剪整星 UnifiedNativeRuntime 输出；当前仍是物理试验接口，不冒充已注册生产 capability。
 
 - IMU、星敏、磁强计、太阳敏感器逐个盘点。
 - 先保留现有 project source-native capability 的真实标签与行为。
