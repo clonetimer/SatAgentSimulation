@@ -230,6 +230,14 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert backend.input_value() == "basilisk_native"
             assert page.locator('#wizardParameterHost #dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
             assert "仅支持单轮标称工况" in page.locator("#wizardNotice").inner_text()
+            # Applying a native preset narrows the workflow to the finite
+            # offline mode; it must not leave unsupported realtime choices.
+            page.locator("#wizardBackBtn").click()
+            page.locator('#wizardOptions [data-wizard-mode="offline"]').wait_for(state="visible", timeout=10000)
+            assert page.locator("#wizardOptions [data-wizard-mode]").count() == 1
+            assert page.locator('#wizardOptions [data-wizard-mode="limited_realtime"]').count() == 0
+            page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=10000)
             # The compact event editor is nested inside the guided event
             # disclosure. Verify its actual disabled state without forcing
             # the hidden nested disclosure open.
