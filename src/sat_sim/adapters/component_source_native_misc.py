@@ -1225,6 +1225,7 @@ class ImuAdapter(_BaseComponentAdapter):
             accel_error = math.sqrt(sum((float(native_rows[-1][f"adcs.imu.accel_{axis}_m_s2"]) - accel[i]) ** 2 for i, axis in enumerate("xyz")))
             qoi = {"adcs.imu.gyro_error_norm_rad_s": gyro_error, "adcs.imu.accel_error_norm_m_s2": accel_error}
             summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
             labels = {"run_labels": [{
                 "task_id": summary["task_id"],
                 "mode": "nominal",
@@ -1339,6 +1340,7 @@ class MagnetometerAdapter(_BaseComponentAdapter):
             error = math.sqrt(sum((float(native_rows[-1][f"adcs.magnetometer.field_{axis}_t"]) - field[index]) ** 2 for index, axis in enumerate("xyz")))
             qoi = {"adcs.magnetometer.field_norm_t": native_rows[-1]["adcs.magnetometer.field_norm_t"], "adcs.magnetometer.error_norm_t": error}
             summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
             return SimulationResult(
                 summary=summary,
                 trace_rows=tuple(native_rows),
@@ -1526,6 +1528,7 @@ class StarTrackerAdapter(_BaseComponentAdapter):
                 "adcs.star_tracker.final_drift_norm": drift_values[-1],
             }
             summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
             return SimulationResult(
                 summary=summary,
                 trace_rows=tuple(native_rows),

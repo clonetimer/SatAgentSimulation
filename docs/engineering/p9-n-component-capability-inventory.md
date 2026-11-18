@@ -5,9 +5,9 @@
 | 单机/设备 | 当前 capability / 入口 | 当前实际模型来源 | 当前可独立执行 | 当前边界 / P9-N 处理 |
 |---|---|---|---|---|
 | 反作用轮 | `component.reaction_wheel.v1` | 默认项目 source-native Python；显式 `physics_backend=basilisk_native` 时官方 Basilisk Spacecraft + ReactionWheelStateEffector | 是，有限时长 TaskSpec；1/3/4 轮 native 路径 | 1-wheel 原生 Run Bundle 已 PASS；新增 `component_reaction_wheel_basilisk_native` 工作台模板；Native 仅 nominal，无 native fault/degradation/constraint/profile |
-| IMU | `component.imu.v1` | 默认项目 reference；opt-in 官方 Basilisk ImuSensor 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates 角速度/非保守加速度 truth→AngVelPlatform + AccelPlatform recorder；nominal only，identity mounting、零杆臂/无随机噪声 |
-| 星敏感器 | `component.star_tracker.v1` | 默认项目 reference；opt-in 官方 Basilisk StarTracker 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 官方 quaternion→MRP trace；valid 仅表示 recorder sample 有限且归一化，不含星表/光学成像/FOV 盲区场景 |
-| 磁强计 | `component.magnetometer.v1` | 默认项目 reference；opt-in 官方 Basilisk Magnetometer 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates + 均匀 MagneticFieldMsg→tam_S；统一 scale/nominal only，尚未接入地球磁场环境模型 |
+| IMU | `component.imu.v1` | 默认项目 reference；opt-in 官方 Basilisk ImuSensor 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates 角速度/非保守加速度 truth→AngVelPlatform + AccelPlatform recorder；nominal only，identity mounting、零杆臂/无随机噪声；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
+| 星敏感器 | `component.star_tracker.v1` | 默认项目 reference；opt-in 官方 Basilisk StarTracker 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 官方 quaternion→MRP trace；valid 仅表示 recorder sample 有限且归一化，不含星表/光学成像/FOV 盲区场景；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
+| 磁强计 | `component.magnetometer.v1` | 默认项目 reference；opt-in 官方 Basilisk Magnetometer 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates + 均匀 MagneticFieldMsg→tam_S；统一 scale/nominal only，尚未接入地球磁场环境模型；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
 | 太阳敏感器 | `component.sun_sensor.v1` | 项目 source-native；整星图中有官方 Basilisk CoarseSunSensor + Sun ephemeris | 是，项目模型可独立运行 | P9-N2 已建官方 CSS probe：显式 Sun/Eclipse/SCStates 消息→OutputData；暂不接入 TaskSpec native backend，因为现有 capability 还要求三轴方向估计而官方 CSS 只输出标量强度；尚未接入 SPICE 轨道历元和真实遮挡几何 |
 | 电池 | `component.battery.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleBattery + SimplePowerSink | 是，有限时长 TaskSpec / sealed Run Bundle | nominal、恒定净功率、unity efficiency、SOC [0,1]；限幅能量按 recorder 净功率/储能差核算，不宣称真实分流电路 |
 | 太阳翼 | `component.solar_panel.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleSolarPanel | 是，有限时长 TaskSpec / sealed Run Bundle | 单块完全展开固定板、静态 Sun/Eclipse、无 tracking；摘要能量按 recorder 积分；非法方向、数量、采样网格与未实现事件被拒绝 |
@@ -62,8 +62,32 @@
 
 ## P9-N4 工作台入口状态（2026-11-18）
 
-- 当前用户可见的“单机独立仿真”首批入口仅开放反作用轮；这是产品白名单，不等于仓库只有这一种原生单机。
-- IMU、StarTracker、Magnetometer、Battery、SolarPanel、Thruster、FuelTank、ThermalNode 已有不同程度的官方 Basilisk TaskSpec / recorder / sealed Run 证据，但必须逐项补齐注册场景模板、参数表单、结果曲线/指标、单位与物理边界说明后才加入工作台。
+- N4-A 已将反作用轮的官方 Basilisk 单机有限时长标称工作流合入 main。
+- N4-C1 正在补齐 IMU、StarTracker、Magnetometer 的注册模板、参数投影、结果/历史回放与浏览器验收；验收通过前不将它们描述为已正式开放。
+- Battery、SolarPanel、Thruster、FuelTank、ThermalNode 已有不同程度的官方 Basilisk TaskSpec / recorder / sealed Run 证据，后续仍需逐项补齐产品模板、参数表单、结果曲线/指标、单位与物理边界说明。
 - CSS 目前仍是标量光强 probe，不满足现有三轴方向 capability 输出合同；不开放 native 单机入口。
 - 项目 reference/source-native 设备可以后续在独立来源分组呈现，但不得混入 Basilisk-native 白名单。
 - EPS 是已验证的分系统同一 SimBase 集成能力，不等同于 Battery/SolarPanel 单机入口，也不能用多次单机 Run 后处理冒充同一 SimBase 闭环。
+
+
+## N4-C 用户入口扩展状态（2026-11-18）
+
+N4-A 已合入 main，N4-C 首批传感器工作台实现正在独立 PR 验收。工作台白名单候选为：
+
+| 设备 | 注册模板 | 实际后端与可见输出 | 当前用户入口边界 |
+|---|---|---|---|
+| 反作用轮 | `component_reaction_wheel_basilisk_native` | 官方 ReactionWheelStateEffector；轮速、实际施加力矩 | N4-A 已合入；finite/offline、nominal |
+| IMU | `component_imu_basilisk_native` | 官方 ImuSensor；三轴 gyro（rad/s）、accel（m/s²） | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；prescribed truth、identity mounting、零杆臂、无随机噪声 |
+| 星敏感器 | `component_star_tracker_basilisk_native` | 官方 StarTracker；quaternion recorder 换算 MRP、valid、drift | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；valid 仅代表 recorder 样本有限且归一化，不代表星表识别/FOV |
+| 磁强计 | `component_magnetometer_basilisk_native` | 官方 Magnetometer；sensor-frame 三轴磁场与模长（T） | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；均匀磁场 fixture、identity mounting、统一三轴 scale |
+
+本轮实现仅复用已验收的 native adapter 和 capability，不把默认 `project_reference` 改为 native。入口选择会通过服务端 Scenario Template instantiate，再投影到现有参数表单。原生故障/退化/约束与单机实时运行仍不开放；CSS 仍不加入白名单。
+
+
+N4-C1 专项证据（PR #179，workflow #44310950498）：
+- Official Basilisk 2.11.0 native physical + sealed Run Bundle sensor tests: 26 passed.
+- Registered native templates/API/form contracts: 12 passed.
+- Native preflight/result contracts: 7 passed.
+- Chromium guided native device journey: 4 passed, 4 deselected; includes IMU/StarTracker/Magnetometer real Run, sealed integrity, provenance, plot manifest and same-Run history replay.
+- Artifact `native-component-physical-evidence` archived successfully (8,552 bytes).
+- PR shared regression workflows still pending at the time of this update; this does not yet declare the entire PR merged or all N4-C complete.

@@ -8548,7 +8548,7 @@
     if (goal === 'advanced') { switchView('creator'); return; }
     if (goal === 'component_native') {
       state.wizard.level = 'component';
-      wizardSetStep('object', '首批开放已完成独立原生物理验收的单机。当前先从反作用轮开始；其他设备将在各自模型完成验证后加入。', '单机独立仿真');
+      wizardSetStep('object', '请选择已完成官方 Basilisk 独立物理与 sealed Run 验收的单机：反作用轮、IMU、星敏感器或磁强计。每个设备只开放其已验证的标称输入和测量输出。', '单机独立仿真');
       return;
     }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
@@ -8559,6 +8559,29 @@
     const labels = { whole_spacecraft: '整星', subsystem: '分系统', component: '部件' };
     wizardSetStep('object', '请选择具体仿真对象。列表来自当前已注册且可配置的模型能力。', labels[level] || level);
   }
+
+  const NATIVE_COMPONENT_TEMPLATE_BY_OBJECT = Object.freeze({
+    'component.reaction_wheel': {
+      templateId: 'component_reaction_wheel_basilisk_native',
+      label: 'Basilisk 原生反作用轮模板',
+      prompt: '已加载官方 Basilisk ReactionWheelStateEffector。当前仅开放有限时长、标称单机运行；原生故障、退化、约束及实时单机运行尚未开放。',
+    },
+    'component.imu': {
+      templateId: 'component_imu_basilisk_native',
+      label: 'Basilisk 原生 IMU 模板',
+      prompt: '已加载官方 Basilisk ImuSensor。当前输入为显式角速度与非保守比力真值；仅开放标称有限时长测量，不包含随机噪声特性、安装杆臂或导航解算。',
+    },
+    'component.star_tracker': {
+      templateId: 'component_star_tracker_basilisk_native',
+      label: 'Basilisk 原生星敏感器模板',
+      prompt: '已加载官方 Basilisk StarTracker。结果为四元数测量换算的 MRP；有效标记仅表示样本存在且四元数归一化，不代表星表识别、光学成像或视场可见性。',
+    },
+    'component.magnetometer': {
+      templateId: 'component_magnetometer_basilisk_native',
+      label: 'Basilisk 原生磁强计模板',
+      prompt: '已加载官方 Basilisk Magnetometer。输入为显式均匀磁场真值，输出为传感器坐标系三轴磁场；当前不包含地球磁场环境模型，仅支持统一三轴标度。',
+    },
+  });
 
   async function wizardChooseObject(objectId) {
     const object = state.presentationObjects.find((item) => item.object_id === objectId);
@@ -8578,19 +8601,23 @@
     if (el('wizardOutputSearch')) el('wizardOutputSearch').value = '';
     if (el('wizardParameterSearch')) el('wizardParameterSearch').value = '';
     const label = object.name_zh || object.name_en || objectId;
-    if (state.wizard.goal === 'component_native' && objectId === 'component.reaction_wheel') {
-      const payload = await api('/scenario-templates/component_reaction_wheel_basilisk_native/instantiate', {
+    if (state.wizard.goal === 'component_native' && NATIVE_COMPONENT_TEMPLATE_BY_OBJECT[objectId]) {
+      const nativeTemplate = NATIVE_COMPONENT_TEMPLATE_BY_OBJECT[objectId];
+      const payload = await api('/scenario-templates/' + encodeURIComponent(nativeTemplate.templateId) + '/instantiate', {
         method: 'POST', body: apiBody({}),
       });
-      const projected = await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生单机模板');
-      if (projected === null) throw new Error('反作用轮原生模板未能投影到当前配置，请重试。');
+      if (!payload?.task_spec || payload.task_spec.parameters?.values?.physics_backend !== 'basilisk_native') {
+        throw new Error('服务端未返回该设备经过注册的 Basilisk 原生模板。');
+      }
+      const projected = await projectTaskSpecToForm(payload.task_spec, nativeTemplate.label);
+      if (projected === null) throw new Error(nativeTemplate.label + ' 未能投影到当前配置，请重试。');
       state.activeTaskCenterId = null;
       updateTaskEditState();
       state.planning = payload.planning;
       state.wizard.mode = 'offline';
       state.wizard.parameterMode = 'recommended';
       state.wizard.validated = false;
-      wizardSetStep('configure', '已加载官方 Basilisk 原生反作用轮模型。当前只开放标称工况和单次离线仿真；原生故障、退化及实时单机运行尚未开放。可调整时长、采样和机械参数，检查配置后再执行。', label);
+      wizardSetStep('configure', nativeTemplate.prompt + ' 请检查参数和测量输出，执行配置校验后再运行。', label);
       const parameterPanel = el('wizardParametersPanel');
       if (parameterPanel) parameterPanel.open = true;
       return;
@@ -9078,7 +9105,12 @@
     const option = (title, detail, attrs, callback) => wizardOption(options, title, detail, attrs, callback);
     const config = el('wizardConfigSections');
     const showConfig = state.wizard.step === 'configure';
+    const nativeSingleComponent = showConfig && state.wizard.goal === 'component_native';
     config?.classList.toggle('hidden', !showConfig);
+    // Native sensor/RW adapters currently accept nominal-only finite runs.
+    // Hide event authoring in this guided slice instead of presenting controls
+    // that the selected Basilisk backend must reject at preflight.
+    el('wizardEventHost')?.classList.toggle('hidden', nativeSingleComponent);
     el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
     el('wizardAgentWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'natural_language');
     el('wizardTaskSpecWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'taskspec');
@@ -9095,7 +9127,7 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
-        ['component_native', '单机独立仿真', '从已验证的真实设备模型开始；首批开放 Basilisk 原生反作用轮'],
+        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的反作用轮、IMU、星敏感器和磁强计开始'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
@@ -9112,9 +9144,10 @@
     } else if (state.wizard.step === 'object') {
       let rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id));
       if (state.wizard.goal === 'component_native') {
-        rows = rows.filter((item) => item.object_id === 'component.reaction_wheel');
+        const nativeObjects = new Set(Object.keys(NATIVE_COMPONENT_TEMPLATE_BY_OBJECT));
+        rows = rows.filter((item) => nativeObjects.has(item.object_id));
         const note = document.createElement('p'); note.className = 'wizard-panel-help';
-        note.textContent = '当前首批已完成官方 Basilisk 独立物理验证的设备为反作用轮。这里不会把项目参考模型标记成 Basilisk 原生模型。';
+        note.textContent = '列表仅包含已通过官方 Basilisk 独立物理和 sealed Run 验收的设备。未列出的项目参考模型不会被伪装成原生模型。';
         options.appendChild(note);
       }
       if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); }

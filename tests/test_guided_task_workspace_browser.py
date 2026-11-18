@@ -380,11 +380,13 @@ def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardOptions [data-wizard-goal='component_native']").click()
             page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").wait_for(timeout=20000)
-            assert page.locator("#wizardOptions [data-wizard-object]").count() == 1
+            assert page.locator("#wizardOptions [data-wizard-object]").count() == 4
+            for native_object in ("component.reaction_wheel", "component.imu", "component.star_tracker", "component.magnetometer"):
+                assert page.locator(f"#wizardOptions [data-wizard-object='{native_object}']").is_visible()
             page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").click()
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=20000)
-            assert "官方 Basilisk 原生反作用轮模型" in page.locator("#wizardConversation").inner_text()
-            assert "原生故障、退化及实时单机运行尚未开放" in page.locator("#wizardConversation").inner_text()
+            assert "官方 Basilisk ReactionWheelStateEffector" in page.locator("#wizardConversation").inner_text()
+            assert "原生故障、退化、约束及实时单机运行尚未开放" in page.locator("#wizardConversation").inner_text()
             assert page.locator("#wizardOptions [data-wizard-mode]").count() == 0
 
             assert page.locator("#wizardParametersPanel").evaluate("(node) => node.open")
@@ -818,3 +820,163 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                 assert not errors, errors
             finally:
                 browser.close()
+
+
+def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(tmp_path):
+    """Each admitted N2 sensor must use its registered native template and real sealed Run."""
+    pytest.importorskip("Basilisk", reason="requires official Basilisk; covered by native-sensor-component gate")
+    from importlib.metadata import version
+    assert version("bsk") == "2.11.0"
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    cases = (
+        (
+            "component.imu",
+            "Basilisk.simulation.imuSensor.ImuSensor",
+            "IMU",
+            ("adcs.imu.gyro_x_rad_s", "adcs.imu.accel_x_m_s2"),
+        ),
+        (
+            "component.star_tracker",
+            "Basilisk.simulation.starTracker.StarTracker",
+            "星敏感器",
+            ("adcs.star_tracker.sigma_x", "adcs.star_tracker.valid"),
+        ),
+        (
+            "component.magnetometer",
+            "Basilisk.simulation.magnetometer.Magnetometer",
+            "磁强计",
+            ("adcs.magnetometer.field_x_t", "adcs.magnetometer.field_norm_t"),
+        ),
+    )
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=True,
+        auth_mode="disabled",
+    )
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            for object_id, provenance, display_name, expected_fields in cases:
+                page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+                page.on("pageerror", lambda error: errors.append(str(error)))
+
+                def proxy(route):
+                    request = route.request
+                    url = urlsplit(request.url)
+                    request_path = url.path + ("?" + url.query if url.query else "")
+                    if request.method == "POST" and url.path == "/runs":
+                        payload = json.loads(request.post_data or "{}")
+                        assert payload.get("execute") is True, payload
+                        assert payload.get("execution_mode") == "async", payload
+                        response = client.post(request_path, json=payload)
+                    else:
+                        response = client.request(
+                            request.method,
+                            request_path,
+                            content=request.post_data_buffer,
+                            headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
+                        )
+                    route.fulfill(
+                        status=response.status_code,
+                        body=response.content,
+                        headers={"content-type": response.headers.get("content-type", "application/json")},
+                    )
+
+                page.route("https://workbench.test/**", proxy)
+                page.goto("https://workbench.test/", wait_until="networkidle")
+                page.locator('#wizardOptions [data-wizard-goal="component_native"]').click()
+                page.locator(f'#wizardOptions [data-wizard-object="{object_id}"]').wait_for(timeout=15000)
+                page.locator(f'#wizardOptions [data-wizard-object="{object_id}"]').click()
+                page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+
+                form = page.locator("#wizardParameterHost #dynamicForm")
+                backend = form.locator('[data-field-path="parameters.values.physics_backend"] select')
+                backend.wait_for(state="visible", timeout=15000)
+                assert backend.input_value() == "basilisk_native"
+                assert page.locator("#wizardEventHost").evaluate("(node) => node.classList.contains('hidden')")
+                assert display_name in page.locator("#wizardConversation").inner_text()
+
+                page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+                page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+                page.wait_for_function(
+                    "() => document.querySelector('#wizardNotice')?.textContent.includes('配置校验通过')",
+                    timeout=30000,
+                )
+                page.locator("#wizardOptions").get_by_role("button", name="运行仿真").click()
+                page.locator("#wizardRunResultsHost").wait_for(state="visible", timeout=120000)
+                page.wait_for_function(
+                    "() => document.querySelector('#activeRunCard')?.innerText.includes('SUCCEEDED')",
+                    timeout=120000,
+                )
+
+                run_rows = client.get("/runs?limit=200").json().get("runs", [])
+                matching = [
+                    row for row in run_rows
+                    if row.get("primary_capability_id") == {
+                        "component.imu": "component.imu.v1",
+                        "component.star_tracker": "component.star_tracker.v1",
+                        "component.magnetometer": "component.magnetometer.v1",
+                    }[object_id]
+                    and row.get("status") == "SUCCEEDED"
+                ]
+                assert len(matching) == 1, (object_id, matching)
+                run_id = matching[0]["run_id"]
+                detail = client.get(f"/runs/{run_id}")
+                assert detail.status_code == 200, detail.text
+                durable = detail.json()["run"]
+                assert durable["sealed"] is True
+                assert durable["integrity"]["ok"] is True
+                assert durable["validation_outcome"]["result"] == "PASS"
+                assert durable["summary"]["physics_backend"] == "basilisk_native"
+                adapter_metadata = durable["summary"].get("adapter_metadata") or {}
+                assert adapter_metadata["physics_backend"] == "basilisk_native"
+                assert adapter_metadata["native_provenance"] == provenance
+
+                telemetry = client.get(f"/runs/{run_id}/telemetry?limit=100")
+                assert telemetry.status_code == 200, telemetry.text
+                assert telemetry.json()["rows"]
+                for field in expected_fields:
+                    assert field in telemetry.json()["rows"][-1], (object_id, field, telemetry.json()["rows"][-1])
+                plots = client.get(f"/runs/{run_id}/plots")
+                assert plots.status_code == 200, plots.text
+                plot_manifest = plots.json()["plot_manifest"]
+                assert plot_manifest["series"], (object_id, plots.json())
+                assert any(
+                    item["field"] == expected_fields[0]
+                    for item in plot_manifest["series"]
+                ), (object_id, expected_fields[0], plot_manifest["series"])
+                page.locator('[data-result-tab="charts"]').click()
+                page.wait_for_function(
+                    "() => document.querySelector('#chartLegend')?.children.length > 0",
+                    timeout=15000,
+                )
+                # Re-open the same durable Run from the visible guided Run Center
+                # entry, then verify provenance and chart data survive replay.
+                page.locator("#wizardOpenRunCenterBtn").wait_for(state="visible", timeout=10000)
+                page.locator("#wizardOpenRunCenterBtn").click()
+                page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
+                row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
+                row.wait_for(state="visible", timeout=15000)
+                row.get_by_role("button", name="查看").click()
+                page.locator("#creatorView").wait_for(state="visible", timeout=20000)
+                replayed = page.locator("#activeRunCard")
+                replayed.wait_for(state="visible", timeout=15000)
+                replay_metadata = replayed.locator(".compact-run-metadata")
+                replay_metadata.locator(":scope > summary").click()
+                assert "Basilisk 官方原生" in replayed.inner_text()
+                assert provenance in replayed.inner_text()
+                page.locator('[data-result-tab="charts"]').click()
+                page.wait_for_function(
+                    "() => document.querySelector('#chartLegend')?.children.length > 0",
+                    timeout=15000,
+                )
+                page.close()
+            assert not errors, errors
+        finally:
+            browser.close()
