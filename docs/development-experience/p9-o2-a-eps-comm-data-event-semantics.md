@@ -113,3 +113,10 @@
 - 不能在仿真结束后读取 SimpleSolarPanel.panelArea/panelEfficiency 来代表事件期间状态：故障结束会恢复 panelArea，读取时已回到 nominal；时间退化参数可能保持最终值，但不是逐样本遥测。
 - 因此最终验收使用官方 SimpleSolarPanel 的 nodePowerOut recorder 作为输出，并在事件开始前最后一个 recorder 样本建立同一 Run 内的 nominal_solar_power_w 参照。故障/退化期间直接比较太阳阵输出功率，避免使用理论配置值或仿真结束时的参数快照。
 - panelArea / panelEfficiency 仍是运行时注入的实际参数目标；证据层以其真实输出结果为准，而不是将模块属性快照伪装成逐样本遥测。
+
+
+### PDU 跳闸结束后的保护恢复语义（2026-11-19）
+
+- O2-B paired Run Bundle 显示：故障结束后 `label.health_state` 已回到 nominal，但 payload 实际供电仍为 0。原因是组合故障期间电池 SOC 已跌破 PDU 低电量阈值，保护性 load shedding 会在跳闸解除后继续保持，直到满足恢复条件；这不是 channel_enabled 未恢复。
+- 不应要求“故障结束=负载立即恢复”。现在在 PduDecisionTraceRow 中逐样本记录 payload_channel_enabled，并将它和 shed_reason 暴露为 EPS trace 字段。验收分别检查：故障期间 channel_enabled=false 且 shed_reason 包含 payload_channel_trip；事件结束后 channel_enabled=true 且 trip 原因消失。实际负载可继续因 payload_low_soc 被切除。
+- 这将硬件故障状态、保护开关状态和系统级供电服务状态分离，避免将安全保护动作误判为故障未恢复。
