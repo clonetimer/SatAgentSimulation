@@ -128,3 +128,12 @@
 - 工作流新增 effect evidence registry contract 检查，防止物理 A/B 通过但 registry/profile 漏项。
 - `operator.effects[].verification` 仍使用 schema 支持的 `declared`；`VERIFIED_NATIVE_EFFECT` 属于独立 evidence profile classification，不混为一个字段。
 - 当前 PR 不改 UI，浏览器步骤按工作流 scope 判断主动跳过；ADCS 故障面板继续隐藏。N5-E 再单独开放五类已验证事件。
+
+## N5-D 最终物理 A/B 门禁（2026-11-19）
+
+- 受测 head：`973293f6e41b10ea3550ccb7766b6465c5755b1c`；专用工作流 #44374968938 已 PASS。
+- 官方 Basilisk 2.11.0 故障/退化 A/B：5 passed（24.44 s），覆盖 RW jamming、binary motor failure、25% torque authority loss、gyro bias step、gyro noise increase。
+- effect evidence registry contract：1 passed、13 deselected；确认所有登记 effect 的 profile 分类与 capability 合同存在。`adcs_rw_torque_authority_loss` 已补齐独立 `VERIFIED_NATIVE_EFFECT` profile。
+- 物理证据 artifact：`native-component-physical-evidence`，ID `14460007797`，14,211 bytes。
+- 本 PR 没有修改 web surface；Chromium 安装/浏览器步骤由 path-scope 条件主动跳过。ADCS `#wizardFaultPanel` 继续隐藏，浏览器故障选择器不在 N5-D 开放范围。
+- 共享回归当时仍有 Agent input/run consistency 运行中；最终是否合并以最新 head 的全部 workflow 结束状态为准。
