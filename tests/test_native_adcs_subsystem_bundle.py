@@ -91,12 +91,15 @@ def test_adcs_native_subsystem_sealed_run_bundle_and_frame_contract(
             )
         )
     first = rows[0]
+    # The first recorder row is the Reset snapshot: truth and star attitude
+    # are available, but the scheduled IMU has not yet emitted its first tick.
+    measured_rate = rows[1]
     for axis in "xyz":
         assert first[f"adcs.fusion.estimated_mrp_BN_{axis}"] == pytest.approx(
             first[f"attitude.truth.mrp_BN_{axis}"], abs=2.0e-4
         )
-        assert first[f"adcs.fusion.estimated_omega_BN_B_{axis}"] == pytest.approx(
-            first[f"attitude.truth.omega_BN_B_{axis}"], abs=2.0e-6
+        assert measured_rate[f"adcs.fusion.estimated_omega_BN_B_{axis}"] == pytest.approx(
+            measured_rate[f"attitude.truth.omega_BN_B_{axis}"], abs=2.0e-6
         )
 
     assert executed.dataset is not None
