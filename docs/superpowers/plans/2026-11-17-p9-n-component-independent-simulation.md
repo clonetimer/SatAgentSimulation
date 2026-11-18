@@ -67,7 +67,7 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - 推进器新增 opt-in 官方 ThrusterDynamicEffector + Spacecraft + FuelTank 单机夹具，支持一次连续点火与零点火；保留每周期指令含义。密集原生推力先积分、再按输出周期抽取，燃料消耗取原生质量差。多段脉冲、事件、不完整时间网格、超步数及可能耗尽燃料的请求预检拒绝。
 - 推进器 PR #172 已合入 main `2cd59c2f7a494e33c70de6fff6d4cb7a6df23e99`；受测 head `f1c65193627f41fea638a650e3859062b40bbe3b` 的官方专项 79 passed，Agent/Run 457 passed、Chromium 19 passed，相关门禁成功，合并树一致。正式 TaskSpec 1.0.0 示例 SUCCEEDED / validation PASS / sealed / integrity，核验 201 个密集采样点。不将这一首批实现扩展成 native 故障、任意脉冲或真实装机耦合已验收的声明。
 - 贮箱独立原生后端复用现有 FuelTank 工厂，连接官方 fuelLeakRateInMsg 作为显式恒定质量排出边界。输出直接取 fuelMass、fuelMassDot、maxFuelMass recorder；按后端选择合同，原生模式不提供压力参数/输出。默认项目压力模型保留。Canonical 与 legacy 正式封存验收已通过；具体 CI 与合并证据跟随本批功能 PR。
-- 热控可行性已核实官方 SensorThermal 的摄氏输入/输出、辐射方程和原生温度记录，但其物理参数不能等价代替现有 ambient/tau/heat_gain；六组探针证据已存入工程记录，native TaskSpec 接入仍待下一批。
+- 热节点已在可行性探针基础上接入 opt-in 官方 SensorThermal：独立面积/质量/比热/辐射属性、显式固定夹具、严格欧拉步长界限、密集摄氏记录与开尔文转换。canonical/legacy sealed 数据与两种 Python 导出已验证；参考 ambient/tau/gain 不映射为虚构原生量，工作台和发布门禁见本批实施计划。
 
 ### P9-N4：单机工作台产品闭环
 - 对话框选择单机 → 参数配置 → 预检 → 执行 → 曲线/指标 → 历史 Run → 数据导出。
@@ -80,7 +80,7 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - P9-N0：完成，PR #165 已合并，合并提交 `655a9d009f2d065cf349f78ecc5fb5f53bbbd16f`。
 - P9-N1：官方原生执行与 sealed Run Bundle 已 PASS；native 单机模板及 backend 表单契约测试 PASS。工作台端到端浏览器验收仍在收敛，不将单测 PASS 等同于产品闭环完成。
 - P9-N2：PR #169 已合入 main；三类传感器原生 TaskSpec/Run Bundle 已通过，CSS 保持 probe-only，等待输出合同调整。
-- P9-N3：电池、太阳翼与 EPS 分系统验收已随 PR #171 合入；推进器一次连续点火、零点火及封存验收随 PR #172 合入。贮箱独立原生后端和按后端选择的输出合同已实现并通过正式封存验收；热控仍处于官方模型可行性探针阶段。
+- P9-N3：电池、太阳翼与 EPS 分系统验收已随 PR #171 合入；推进器一次连续点火、零点火及封存验收随 PR #172 合入。贮箱原生后端与按后端选择的输出合同已随 PR #173 合入。热节点官方 SensorThermal TaskSpec、原生字段合同、模板、封存与可执行导出已实现并通过本地验收，独立复审及当前提交 CI 为本批合并门禁。加热器/散热器和 CSS 的边界不随该接入扩大。
 
 ## 首阶段验收门槛
 

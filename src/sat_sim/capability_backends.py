@@ -13,6 +13,7 @@ from .task_validator import ValidationIssue
 _PROFILE_SECTIONS = frozenset({
     "outputs", "produces", "consumes", "modes", "operator", "implementation",
     "source_binding", "integration_contract", "known_physics_limits", "summary", "simulation_parameters",
+    "backend_type", "backend_boundary", "validation",
 })
 
 
@@ -21,9 +22,8 @@ def select_capability_backend(
 ) -> CapabilityContract:
     """Project only capabilities that explicitly declare backend profiles.
 
-    Top-level data is the default contract; profile sections replace, rather
-    than deep-merge, their reference counterparts so unavailable outputs cannot
-    leak back into a native contract.
+    Top-level data supplies the default contract unless a default profile is
+    declared. Profile sections replace their counterparts as whole sections.
     """
     profiles = contract.data.get("backend_profiles")
     if not isinstance(profiles, Mapping) or not profiles:
@@ -33,23 +33,33 @@ def select_capability_backend(
     selected = definition["default"] if physics_backend is None else physics_backend
     if not isinstance(selected, str) or selected not in definition["enum"]:
         raise TaskSpecError(f"unknown physics backend {selected!r} for {contract.capability_id}")
-    if selected == definition["default"]:
+    is_default = selected == definition["default"]
+    if is_default and selected not in profiles:
         return contract
     profile = profiles.get(selected)
     if not isinstance(profile, Mapping):
         raise TaskSpecError(f"missing backend profile {selected!r} for {contract.capability_id}")
-    unknown = set(profile) - _PROFILE_SECTIONS - {"parameter_names"}
+    unknown = set(profile) - _PROFILE_SECTIONS - {"parameter_names", "parameter_overrides"}
     if unknown:
         raise TaskSpecError(f"unsupported backend profile sections: {sorted(unknown)}")
     names = profile.get("parameter_names")
     if not isinstance(names, list) or "physics_backend" not in names or any(name not in parameters for name in names):
         raise TaskSpecError("backend profile must name existing parameters including physics_backend")
+    overrides = profile.get("parameter_overrides", {})
+    if not isinstance(overrides, Mapping) or any(
+        name not in names or name == "physics_backend" or not isinstance(fields, Mapping)
+        for name, fields in overrides.items()
+    ):
+        raise TaskSpecError("backend parameter overrides must be mappings for selected physical parameters")
     data = deepcopy(contract.data)
     data["parameters"] = {name: deepcopy(parameters[name]) for name in names}
+    for name, fields in overrides.items():
+        data["parameters"][name].update(deepcopy(fields))
     data["parameters"]["physics_backend"]["default"] = selected
     for section in _PROFILE_SECTIONS.intersection(profile):
         data[section] = deepcopy(profile[section])
-    data["selected_physics_backend"] = selected
+    if not is_default:
+        data["selected_physics_backend"] = selected
     return CapabilityContract(contract.capability_id, data, contract.path)
 
 

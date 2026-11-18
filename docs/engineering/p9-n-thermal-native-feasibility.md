@@ -1,6 +1,12 @@
 # Thermal native feasibility reconnaissance
 
-Date: 2026-11-18. Feasibility evidence against baseline `2cd59c2f7a494e33c70de6fff6d4cb7a6df23e99`, using official bsk/Basilisk 2.11.0. These probes establish a future native component path; they do not constitute a released thermal TaskSpec adapter or sealed thermal Run Bundle acceptance.
+Date: 2026-11-18. Feasibility evidence against baseline `2cd59c2f7a494e33c70de6fff6d4cb7a6df23e99`, using official bsk/Basilisk 2.11.0. The original probes below established feasibility, independently of production acceptance. Follow-on implementation status is recorded separately in the next section.
+
+## Follow-on native TaskSpec integration (2026-11-18)
+
+The P9-N3 follow-on slice now implements the opt-in official SensorThermal adapter under `component.thermal_node.v1`, with explicit native/reference parameter subsets and native output/source contracts. The [design](../superpowers/specs/2026-11-18-p9-n3-native-thermal-node-design.md) defines the conservative physical range and Euler step condition. `examples/component_thermal_node_basilisk_native.yaml` runs the 300 K / 10 W eclipse baseline. Canonical and legacy solver-only tasks have completed real official bsk 2.11.0 sealed Run Bundles, including the final Celsius/Kelvin CSV values, prefix-selected slower telemetry and integrity checks. Canonical and legacy capability-python exports also execute the official model and reproduce 300.06961637618775 K at 10 s.
+
+The native trace uses `thermal.node.input_power_w` for the configured electrical command, not the historical reference `power_w` field. Both `temp_c` and converted `temp_k` originate in the official recorder. No measured-temperature alias, tau, gain, heat-flow reconstruction or thermal safety label is advertised. Fixed status is on; zero configured power covers electrical-heating off. The independent review, current-head CI, browser and merge evidence are recorded by the [implementation plan](../superpowers/plans/2026-11-18-p9-n3-native-thermal-node.md) and its feature PR. The feasibility probe results below remain historical evidence rather than a substitute for those release gates.
 
 ## Recommendation
 

@@ -758,7 +758,7 @@
     "thermal_node": {
       "name": "热节点",
       "classification": "logical",
-      "source_blob": "46f7883f4d9af24ec6141b76d9f52e068818b230",
+      "source_blob": "dddc2d77d15e5e8c3780cefcfb24c71e8ec44cca",
       "parameters": [
         [
           "ambient_k",
@@ -789,6 +789,51 @@
           "power_profile_w",
           "热功率输入时序",
           "W"
+        ],
+        [
+          "physics_backend",
+          "物理计算后端",
+          "none"
+        ],
+        [
+          "surface_area_m2",
+          "辐射表面积",
+          "m^2"
+        ],
+        [
+          "mass_kg",
+          "热质量",
+          "kg"
+        ],
+        [
+          "specific_heat_j_per_kg_k",
+          "比热容",
+          "J/(kg K)"
+        ],
+        [
+          "absorptivity",
+          "太阳吸收率",
+          "ratio"
+        ],
+        [
+          "emissivity",
+          "红外发射率",
+          "ratio"
+        ],
+        [
+          "normal_b",
+          "本体系表面单位法向",
+          "ratio"
+        ],
+        [
+          "sun_direction_n",
+          "惯性系太阳单位方向",
+          "ratio"
+        ],
+        [
+          "illumination_factor",
+          "固定光照系数",
+          "ratio"
         ]
       ],
       "outputs": [
@@ -833,6 +878,48 @@
           "K/W",
           "number",
           "trace"
+        ],
+        [
+          "thermal.node.input_power_w",
+          "输入电功率（配置值）",
+          "W",
+          "number",
+          "trace"
+        ],
+        [
+          "thermal.node.initial_temp_k",
+          "初始记录温度",
+          "K",
+          "number",
+          "summary"
+        ],
+        [
+          "thermal.node.final_temp_k",
+          "末时记录温度",
+          "K",
+          "number",
+          "summary"
+        ],
+        [
+          "thermal.node.min_temp_k",
+          "最低记录温度",
+          "K",
+          "number",
+          "summary"
+        ],
+        [
+          "thermal.node.max_temp_k",
+          "最高记录温度",
+          "K",
+          "number",
+          "summary"
+        ],
+        [
+          "thermal.node.delta_temp_k",
+          "记录温度变化",
+          "K",
+          "number",
+          "summary"
         ]
       ]
     }

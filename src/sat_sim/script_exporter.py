@@ -458,7 +458,7 @@ def export_capability_python_runner(spec_path: str | Path, output_path: str | Pa
     comments.
     """
 
-    from .capability_registry import get_capability
+    from .capability_backends import get_task_capability
     from .task_spec import load_task_spec
     from .task_models import to_runtime_task_spec
 
@@ -469,7 +469,7 @@ def export_capability_python_runner(spec_path: str | Path, output_path: str | Pa
     capability_id = payload.get("capability_id")
     if not isinstance(capability_id, str) or not capability_id.strip():
         raise ValueError("capability-python export requires TaskSpec capability_id")
-    contract = get_capability(capability_id)
+    contract = get_task_capability(doc.data, capability_id)
     payload = _prepare_export_payload(doc.data, contract.data, output_root, assembly=False)
     content = _generate_capability_python_script(payload, contract.data)
     out.parent.mkdir(parents=True, exist_ok=True)
