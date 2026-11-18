@@ -16,7 +16,7 @@
 2. Comm/Data 当前 `margin_or_throughput_degradation` 实际只验证发射机数据率下降；改为 `transmitter_rate_degradation`。
 3. 对旧的宽泛 ID fail closed；不允许 UI 名称、capability 声明和 adapter 实际注入对象不一致。
 4. EPS 保留两个明确的组合场景：`generation_storage_distribution_failure` 与 `energy_margin_degradation`。用户说明必须明确这是受控组合场景，不是任意单点故障菜单。
-5. TaskSpec 的 `severity` 不得被静默忽略：连续乘性效应从标称系数 1.0 向故障系数插值，加性/比例退化效应线性缩放，时间函数退化乘以事件 severity；override/clamp 等二值或绝对操作保持离散语义。severity 必须为有限 [0,1] 数值。
+5. TaskSpec 的 `magnitude`（归一化严重度） 不得被静默忽略：连续乘性效应从标称系数 1.0 向故障系数插值，加性/比例退化效应线性缩放，时间函数退化乘以事件 severity；override/clamp 等二值或绝对操作保持离散语义。severity 必须为有限 [0,1] 数值。
 
 ## O2-B：官方 Basilisk 2.11.0 配对物理 A/B
 
@@ -83,7 +83,7 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 
 ## O2-A 当前实现记录（2026-11-19）
 
-- 新增 src/subsystems/event_severity.py，统一读取 TaskSpec severity（兼容 UI normalized magnitude），并对连续 ParameterEffect 做正确缩放；离散 override/clamp 保留二值/绝对语义。
+- 新增 src/subsystems/event_severity.py，统一读取 TaskSpec magnitude（兼容 UI normalized magnitude），并对连续 ParameterEffect 做正确缩放；离散 override/clamp 保留二值/绝对语义。
 - EPS adapter 已在执行前校验 severity，并将其应用到组合故障的连续效应与时间函数退化；组合场景仍未拆成单点故障。
 - Comm/Data 将宽泛且失真的两个 ID 改为 transmitter_rate_loss / transmitter_rate_degradation。两者都只作用于官方 SimpleTransmitter 的 nodeBaudRate 输入，trace 增加 nominal 参照值；没有将该量称为 RF 功率或链路裕度。
 - Comm/Data 的故障 severity A/B 预期：severity=0.8 时保留率 0.48，severity=0.4 时保留率 0.74；故障结束后恢复标称速率。实际结果以官方 Basilisk CI 为准。
@@ -95,3 +95,8 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 已新增 tests/test_native_eps_comm_data_effects_bundle.py，针对 EPS fault/degradation 与 Comm/Data rate fault/degradation 四个事件分别运行 nominal/injected TaskSpec 配对。每次运行要求官方 Basilisk 2.11.0、SUCCEEDED、sealed、integrity PASS、validation PASS、runtime injection 直接应用证据和 recorder 物理差异；故障另检查事件结束恢复，退化检查持续效果。
 
 该测试已加入官方 native workflow，并在 PR #187 当前 head b57692ad289c84166954365a2de442543d7cc04a 上运行。尚未收到该 head 的最终结果；未通过前不进入 O2-C，也不开放用户事件入口。
+
+
+### O2-B 首次失败与修复经验（2026-11-19）
+
+首轮 sealed Run Bundle 测试 4/4 在 canonicalization 阶段失败，原因不是 Basilisk 物理模型，而是 TaskSpec 的 BaseEvent 严格 schema 使用 magnitude（[0,1]），不接受额外 severity 字段。修复后测试改用 canonical magnitude；adapter helper 继续兼容显式 severity，仅供直接 adapter 集成调用。必须以 canonical TaskSpec schema 为准，不能把内部语义字段直接写进用户任务文档。
