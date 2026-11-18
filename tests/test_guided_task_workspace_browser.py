@@ -1138,7 +1138,18 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
             object_option.wait_for(timeout=15000)
             object_option.click()
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
-            assert page.locator("#wizardFaultPanel").evaluate("(node) => node.classList.contains('hidden')")
+            fault_panel = page.locator("#wizardFaultPanel")
+            assert not fault_panel.evaluate("(node) => node.classList.contains('hidden')")
+            assert not page.locator("#wizardNativeAdcsFaultNote").evaluate("(node) => node.classList.contains('hidden')")
+            if fault_panel.get_attribute("open") is None:
+                fault_panel.locator(":scope > summary").click()
+            effect_kind = page.locator("#effectKind")
+            assert effect_kind.evaluate("(node) => Array.from(node.options).filter(option => !option.hidden && !option.disabled).map(option => option.value)") == ["fault", "degradation"]
+            fault_effects = page.locator("#effectSelect").evaluate("(node) => Array.from(node.options).map(option => option.value)")
+            assert set(fault_effects) == {"adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step"}
+            effect_kind.select_option("degradation")
+            degradation_effects = page.locator("#effectSelect").evaluate("(node) => Array.from(node.options).map(option => option.value)")
+            assert set(degradation_effects) == {"adcs_rw_torque_authority_loss", "gyro_noise_increase"}
             assert "Magnetometer" in page.locator("#wizardConversation").inner_text()
             assert "本体系 B" in page.locator("#wizardConversation").inner_text()
 
