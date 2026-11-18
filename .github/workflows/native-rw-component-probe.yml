@@ -10,6 +10,7 @@ on:
       - "tests/test_unified_native_migration.py"
       - "tests/test_native_adcs_subsystem_bundle.py"
       - "tests/test_native_adcs_fault_effects.py"
+      - "tests/test_p9n5_adcs_guided_event_catalog.py"
       - "src/sat_sim/evidence/effect_evidence_v32.json"
       - "tests/test_formal_effect_evidence_contracts.py"
       - "src/sat_sim/bsk_engine/native_rw_component.py"
@@ -122,6 +123,7 @@ jobs:
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_sealed_bundle.xml tests/test_native_adcs_subsystem_bundle.py
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_fault_effects.xml tests/test_native_adcs_fault_effects.py
           python -m pytest -q -s tests/test_formal_effect_evidence_contracts.py -k unified_effect_contracts_are_declared_and_registered
+          python -m pytest -q -s tests/test_p9n5_adcs_guided_event_catalog.py
       - name: Determine whether the browser surface changed
         id: browser_scope
         env:
@@ -133,7 +135,9 @@ jobs:
             exit 0
           fi
           git fetch --no-tags origin "$BASE_SHA" --depth=1
-          if git diff --name-only "$BASE_SHA"...HEAD | grep -Eq '^(src/sat_sim/web/|tests/test_guided_task_workspace_browser.py$)'; then
+          changed_paths="$(git diff --name-only "$BASE_SHA" HEAD)"
+          printf '%s\n' "$changed_paths"
+          if printf '%s\n' "$changed_paths" | grep -Eq '^(src/sat_sim/web/|tests/test_guided_task_workspace_browser.py$)'; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -151,13 +155,21 @@ jobs:
           with sync_playwright() as playwright:
               print(f"SAT_SIM_BROWSER_EXECUTABLE={playwright.chromium.executable_path}")
           PY
+      - name: Confirm the ADCS fault wizard browser test is selected
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_native_adcs_wizard_runs_verified_torque_authority_degradation)"
+          printf '%s\n' "$selected"
+          printf '%s\n' "$selected" | grep -Fq '::test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation'
       - name: Verify guided native component and subsystem selection and real Runs
         if: steps.browser_scope.outputs.run == 'true'
         env:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
-            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench"
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation"
 
       - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7

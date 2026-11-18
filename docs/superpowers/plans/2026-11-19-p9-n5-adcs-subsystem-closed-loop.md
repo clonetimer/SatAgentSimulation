@@ -137,3 +137,10 @@
 - 物理证据 artifact：`native-component-physical-evidence`，ID `14460007797`，14,211 bytes。
 - 本 PR 没有修改 web surface；Chromium 安装/浏览器步骤由 path-scope 条件主动跳过。ADCS `#wizardFaultPanel` 继续隐藏，浏览器故障选择器不在 N5-D 开放范围。
 - 共享回归当时仍有 Agent input/run consistency 运行中；最终是否合并以最新 head 的全部 workflow 结束状态为准。
+
+## N5-E 受控开放 ADCS 故障向导（实施中，2026-11-19）
+
+- 从 N5-D 已通过的五类 effect 中建立服务端 allowlist；ADCS 向导只返回 3 fault + 2 degradation，constraints 为空。
+- 其他 native 单机/分系统保持事件面板隐藏；未通过物理门禁的 ADCS 摩擦退化和速度约束不进入向导。
+- 事件参数名与运行时注入器一致，并通过真实 Chromium UI 配置、TaskSpec、Basilisk Run、injection evidence 与完整 Run Bundle 下载验证。
+- N5-E 的最终验收以同一 PR head 的官方 Basilisk 2.11.0 与 Chromium CI 为准。

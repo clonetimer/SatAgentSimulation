@@ -59,5 +59,15 @@
 
 - 同一最终 PR head：表单 schema 单测、事件参数合同、官方 Basilisk 2.11.0 物理回归、Chromium 真实用户旅程和共享 CI 全部通过。
 - Chromium 必须实际从 UI 添加事件并提交 canonical TaskSpec，不以 API 直调或 DOM 文本存在替代。
+- 浏览器门禁的 pytest `-k` 必须命中故障向导测试函数的完整稳定名称；验收时核对测试名和 deselected 数量，防止测试文件存在但没有执行。
 - 真实 Run 的 injection evidence 必须 PASS，且 Run Bundle seal/integrity PASS。
 - 未列入 allowlist 的事件不能通过 ADCS 向导 event catalog 进入。
+
+## N5-E 实施记录（2026-11-19）
+
+- 服务端 form schema 对 `subsystem.adcs_unified_native.v1` 增加五事件显式 allowlist；其他已注册的摩擦退化与轮速约束不进入该向导。
+- 修正 runtime 参数映射：`gyro_bias_step.bias_step_deg_s`、`gyro_noise_increase.noise_scale`；补齐 `adcs_rw_jamming.brake_torque_nm`。
+- ADCS subsystem 目标显示故障面板；其他 native component/subsystem 仍 nominal-only。
+- 事件类型按非空 catalog 动态收敛，只显示 fault/degradation，不显示 constraint。
+- 新增 schema allowlist 单测与真实 Chromium 事件 Run：选择 torque authority loss，配置 10–20 s / 0.25，验证 injection evidence、有效力矩比例和 Run Bundle SHA-256。
+- 最终状态以 PR 同一 head 的 official Basilisk 2.11.0、Chromium 和共享回归为准。

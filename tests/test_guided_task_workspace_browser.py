@@ -968,6 +968,8 @@ def test_guided_native_sensor_workbench_runs_all_verified_adcs_eps_propulsion_th
                 backend.wait_for(state="visible", timeout=15000)
                 assert backend.input_value() == "basilisk_native"
                 assert page.locator("#wizardEventHost").evaluate("(node) => node.classList.contains('hidden')")
+                assert page.locator("#wizardFaultPanel").evaluate("(node) => node.classList.contains('hidden')")
+                assert page.locator("#wizardNativeAdcsFaultNote").evaluate("(node) => node.classList.contains('hidden')")
                 assert display_name in page.locator("#wizardConversation").inner_text()
 
                 page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
@@ -1138,7 +1140,18 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
             object_option.wait_for(timeout=15000)
             object_option.click()
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
-            assert page.locator("#wizardFaultPanel").evaluate("(node) => node.classList.contains('hidden')")
+            fault_panel = page.locator("#wizardFaultPanel")
+            assert not fault_panel.evaluate("(node) => node.classList.contains('hidden')")
+            assert not page.locator("#wizardNativeAdcsFaultNote").evaluate("(node) => node.classList.contains('hidden')")
+            if fault_panel.get_attribute("open") is None:
+                fault_panel.locator(":scope > summary").click()
+            effect_kind = page.locator("#effectKind")
+            assert effect_kind.evaluate("(node) => Array.from(node.options).filter(option => !option.hidden && !option.disabled).map(option => option.value)") == ["fault", "degradation"]
+            fault_effects = page.locator("#effectSelect").evaluate("(node) => Array.from(node.options).map(option => option.value)")
+            assert set(fault_effects) == {"adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step"}
+            effect_kind.select_option("degradation")
+            degradation_effects = page.locator("#effectSelect").evaluate("(node) => Array.from(node.options).map(option => option.value)")
+            assert set(degradation_effects) == {"adcs_rw_torque_authority_loss", "gyro_noise_increase"}
             assert "Magnetometer" in page.locator("#wizardConversation").inner_text()
             assert "本体系 B" in page.locator("#wizardConversation").inner_text()
 
@@ -1244,6 +1257,152 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
                 "() => document.querySelector('#chartLegend')?.children.length > 0",
                 timeout=15000,
             )
+            page.close()
+        finally:
+            browser.close()
+    assert not errors, errors
+
+
+def test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation(tmp_path):
+    """The ADCS wizard must submit only a qualified degradation and preserve its evidence."""
+    pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
+    from importlib.metadata import version
+    assert version("bsk") == "2.11.0"
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=True,
+        auth_mode="disabled",
+    )
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                request_path = url.path + ("?" + url.query if url.query else "")
+                if request.method == "POST" and url.path == "/runs":
+                    payload = json.loads(request.post_data or "{}")
+                    assert payload.get("execute") is True, payload
+                    assert payload.get("execution_mode") == "async", payload
+                    response = client.post(request_path, json=payload)
+                else:
+                    response = client.request(
+                        request.method,
+                        request_path,
+                        content=request.post_data_buffer,
+                        headers={key: value for key, value in request.headers.items() if key in ("content-type", "accept")},
+                    )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")},
+                )
+
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="networkidle")
+            page.locator('#wizardOptions [data-wizard-goal="subsystem_native"]').click()
+            page.locator('#wizardOptions [data-wizard-object="subsystem.adcs"]').click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+            fault_panel = page.locator("#wizardFaultPanel")
+            assert not fault_panel.evaluate("(node) => node.classList.contains('hidden')")
+            if fault_panel.get_attribute("open") is None:
+                fault_panel.locator(":scope > summary").click()
+
+            page.locator("#effectKind").select_option("degradation")
+            page.locator("#effectSelect").select_option("adcs_rw_torque_authority_loss")
+            page.locator("#addEffectBtn").click()
+            event_card = page.locator("#eventList .event-card").filter(has_text="ADCS反作用轮力矩权限下降")
+            event_card.wait_for(state="visible", timeout=10000)
+
+            def set_event_number(field: str, value: str) -> None:
+                control = event_card.locator(f'input[data-event-field="{field}"]')
+                control.fill(value)
+                control.dispatch_event("change")
+
+            set_event_number("start_s", "10")
+            set_event_number("end_s", "20")
+            set_event_number("parameters.torque_scale", "0.25")
+            assert event_card.locator('input[data-event-field="parameters.torque_scale"]').input_value() == "0.25"
+
+            page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+            page.wait_for_function(
+                "() => document.querySelector('#wizardNotice')?.textContent.includes('配置校验通过')",
+                timeout=30000,
+            )
+            page.locator("#wizardOptions").get_by_role("button", name="运行仿真").click()
+            page.locator("#wizardRunResultsHost").wait_for(state="visible", timeout=120000)
+            page.wait_for_function(
+                "() => document.querySelector('#activeRunCard')?.innerText.includes('SUCCEEDED')",
+                timeout=120000,
+            )
+
+            runs = client.get("/runs?limit=200").json().get("runs", [])
+            matching = [
+                row for row in runs
+                if row.get("primary_capability_id") == "subsystem.adcs_unified_native.v1"
+                and row.get("status") == "SUCCEEDED"
+            ]
+            assert len(matching) == 1, matching
+            run_id = matching[0]["run_id"]
+            detail = client.get(f"/runs/{run_id}")
+            assert detail.status_code == 200, detail.text
+            durable = detail.json()["run"]
+            assert durable["sealed"] is True
+            assert durable["integrity"]["ok"] is True
+            assert durable["validation_outcome"]["result"] == "PASS"
+            events = durable["task_spec"]["events"]["degradations"]
+            assert len(events) == 1
+            assert events[0]["effect"] == "adcs_rw_torque_authority_loss"
+            assert events[0]["start_s"] == 10.0
+            assert events[0]["end_s"] == 20.0
+            assert events[0]["parameters"]["torque_scale"] == pytest.approx(0.25)
+            injection = durable["validation_outcome"]["injection_evidence"]
+            assert len(injection) == 1, injection
+            assert injection[0]["requested_effect"] == "adcs_rw_torque_authority_loss"
+            assert injection[0]["delivery_result"] == "PASS"
+            assert injection[0]["effect_result"] == "PASS"
+            assert injection[0]["active_sample_count"] > 0
+
+            telemetry = client.get(f"/runs/{run_id}/telemetry?limit=500")
+            assert telemetry.status_code == 200, telemetry.text
+            active_rows = [
+                row for row in telemetry.json()["rows"]
+                if 10.0 <= float(row["time_s"]) <= 20.0
+                and "adcs_rw_torque_authority_loss" in row.get("event.active_effects", "")
+            ]
+            assert active_rows
+            assert all(row["adcs.rw.effective_torque_ratio_0"] == pytest.approx(0.25, abs=1.0e-8) for row in active_rows)
+
+            with page.expect_download(timeout=30000) as download_info:
+                page.locator("#downloadRunBundleBtn").click()
+            download = download_info.value
+            archive_path = tmp_path / "adcs_torque_authority_run_bundle.zip"
+            download.save_as(str(archive_path))
+            with zipfile.ZipFile(archive_path) as archive:
+                prefix = f"{run_id}/"
+                manifest_name = f"{prefix}bundle_manifest.json"
+                seal_name = f"{prefix}SEALED.json"
+                names = set(archive.namelist())
+                manifest_bytes = archive.read(manifest_name)
+                manifest = json.loads(manifest_bytes)
+                seal = json.loads(archive.read(seal_name))
+                expected = {f"{prefix}{relative}" for relative in manifest["files"]}
+                assert names == expected | {manifest_name, seal_name}
+                assert seal["run_id"] == run_id
+                assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
+                for relative, entry in manifest["files"].items():
+                    assert hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest() == entry["sha256"]
             page.close()
         finally:
             browser.close()

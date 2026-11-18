@@ -117,3 +117,22 @@
 - `adcs_rw_torque_authority_loss` 的独立 profile 使用 `effective_torque_ratio_{wheel_index} == torque_scale` 作为运行时断言，并保留 effective max torque 与 applied torque 作为证据字段。
 - Artifact `native-component-physical-evidence`：ID `14460007797`，14,211 bytes。
 - Chromium 步骤因 PR 不包含前端或浏览器测试文件而按 path-scope 规则跳过；这是预期行为。ADCS 故障面板仍隐藏，后续 N5-E 单独开放已验证事件并执行浏览器验收。
+
+## N5-E 开发经验：受控开放 ADCS 事件向导（2026-11-19）
+
+1. **物理证据 allowlist 必须落在服务端 form schema。** 仅在前端隐藏选项不足以约束 API 返回的可选事件；`subsystem.adcs_unified_native.v1` 的 `event_catalog` 只返回 N5-D 通过 A/B 的五个 effect。
+2. **事件字段名必须与 runtime 注入器读取键完全一致。** `gyro_bias_step` 读取 `bias_step_deg_s`，`gyro_noise_increase` 读取 `noise_scale`；旧 schema 中的 `bias_deg_s` / `noise_multiplier` 不会被 runtime 消费。
+3. **二值失效与连续退化保持不同 effect ID 和 UI 参数。** motor failure 只有 wheel_index；torque authority loss 才允许 torque_scale。
+4. **事件类别由非空 catalog 决定。** ADCS 只显示 fault/degradation，constraint catalog 为空时隐藏运行约束选项。
+5. **向导入口范围要精确。** 只对 `goal=subsystem_native` 且 capability 为 unified-native ADCS 显示故障面板；单机 native 与其他未验证分系统继续隐藏。
+6. **UI 验收必须真实提交 TaskSpec。** 浏览器测试不止检查选项文本，还要配置起止时间与参数、执行官方 Basilisk、验证 injection evidence PASS、有效力矩比例和 sealed Run Bundle ZIP 哈希。
+
+## CI 工程经验：PR 浅克隆的浏览器范围检测（2026-11-19）
+
+- `actions/checkout` 在 pull_request 上检出 `refs/remotes/pull/<n>/merge`，默认浅克隆只含 merge HEAD；再以 depth=1 fetch PR base SHA 后，base 与 HEAD 之间可能没有可计算的 merge-base。
+- 三点式 `git diff BASE...HEAD` 因此会报 `no merge base`。如果该命令位于 `if` 条件中，shell 可能把它当成条件不匹配而不使步骤失败，导致浏览器测试被静默跳过。
+- 对 PR merge checkout 的路径门禁应使用 `git diff --name-only BASE HEAD` 两点式树比较，并打印路径清单；它直接比较 base tree 与 merge tree，不依赖完整提交祖先。
+- 对浏览器门禁，必须检查步骤是否实际执行，而不能把 skipped 误读为 PASS。
+- **pytest `-k` 必须与真实测试函数名核对。** N5-E 浏览器函数名为 `guided_native_adcs_wizard_runs_verified_torque_authority_degradation`，旧过滤词 `guided_native_adcs_fault` 没有匹配该函数；因此工作流虽显示 5 passed，实际未执行故障向导测试。修正为精确函数名，并以 pytest 的 `passed/deselected` 数量及日志中的测试名确认覆盖，不能只看 job conclusion。
+- 在正式 Chromium 旅程前新增 `pytest --collect-only` 精确选择检查，并用 `grep` 断言目标函数确实被收集；这样即使其他五个浏览器测试通过，也不会掩盖 ADCS fault wizard 测试未被 `-k` 命中的问题。
+- N5-E 的负向 UI 合同同时检查 `#wizardFaultPanel`、`#wizardEventHost` 和 `#wizardNativeAdcsFaultNote` 均隐藏；只隐藏事件列表而保留空的“故障与事件”面板仍属于入口泄漏。

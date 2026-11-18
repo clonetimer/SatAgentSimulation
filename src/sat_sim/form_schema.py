@@ -134,8 +134,8 @@ EFFECT_LABELS_ZH: dict[str, tuple[str, str]] = {
     "rw_motor_failure": ("反作用轮电机失效", "降低指定反作用轮的有效输出力矩，严重度为1时近似完全失效。"),
     "friction_increase_pct": ("反作用轮摩擦增大", "增大反作用轮等效阻尼，使相同力矩下的转速响应减弱。"),
     "bearing_wear_factor": ("反作用轮轴承磨损", "降低反作用轮有效力矩和最高转速，并增加等效阻尼。"),
-    "gyro_bias_step": ("陀螺偏置突变", "在事件生效期间向陀螺测量叠加确定性偏置。"),
-    "gyro_noise_increase": ("陀螺噪声增大", "按严重度提高陀螺测量噪声幅度。"),
+    "gyro_bias_step": ("陀螺偏置突变", "在闭环控制测量链中叠加三轴陀螺偏置增量。"),
+    "gyro_noise_increase": ("陀螺噪声增大", "在闭环控制测量链中按倍数提高陀螺测量噪声。"),
     "adcs_rw_jamming": ("ADCS反作用轮卡滞", "在闭环姿态控制中使指定控制轴反作用轮卡滞。"),
     "adcs_reaction_wheel_speed_limit": ("ADCS反作用轮达到速度限制", "运行约束事件：闭环控制中的指定反作用轮达到或采用更低的速度上限，不计为故障。"),
     "adcs_rw_speed_saturation": ("ADCS反作用轮达到速度限制（旧标识兼容）", "旧版兼容标识；保存时会规范化为 adcs_reaction_wheel_speed_limit。"),
@@ -223,6 +223,7 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
         "instructions": "二值故障：事件生效即表示目标轮完全卡滞。幅值字段不适用，旧任务中的幅值会被忽略。",
         "parameters": [
             {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号；构型为三正交轮时可选0~2，四轮构型可选0~3。"},
+            {"name": "brake_torque_nm", "label": "卡滞制动力矩", "type": "number", "unit": "N*m", "minimum": 0.0, "maximum": 0.2, "default": 0.2, "description": "卡滞期间作用于目标轮的有界反向制动力矩。"},
         ],
     },
     "rw_motor_failure": {
@@ -242,6 +243,16 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
             {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
             {"name": "torque_scale", "label": "剩余力矩比例", "type": "number", "unit": "ratio", "minimum": 0.0, "maximum": 1.0, "default": 0.5, "description": "事件生效期间有效最大力矩相对标称值的比例。"},
         ],
+    },
+    "gyro_bias_step": {
+        "magnitude_applicable": False,
+        "instructions": "故障：在事件时间窗内叠加陀螺三轴偏置增量。使用 bias_step_deg_s，不使用通用幅值。",
+        "parameters": [{"name": "bias_step_deg_s", "label": "陀螺偏置增量", "type": "vector3_or_number", "unit": "deg/s", "default": [0.2, 0.0, 0.0], "description": "叠加到官方 IMU 测量角速度的三轴偏置增量，可填写单值或三轴数组。"}],
+    },
+    "gyro_noise_increase": {
+        "magnitude_applicable": False,
+        "instructions": "退化：在事件时间窗内提高陀螺白噪声。使用 noise_scale，必须不小于1。",
+        "parameters": [{"name": "noise_scale", "label": "噪声放大倍数", "type": "number", "minimum": 1.0, "maximum": 1000.0, "default": 10.0, "description": "将基准陀螺白噪声标准差放大的倍数。"}],
     },
     "adcs_gyro_bias_step": {
         "magnitude_applicable": False,
@@ -829,10 +840,24 @@ def _parameter_fields(contract: Any) -> list[dict[str, Any]]:
     return fields
 
 
+GUIDED_ADCS_EFFECT_ALLOWLIST: dict[str, frozenset[str]] = {
+    "fault": frozenset({"adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step"}),
+    "degradation": frozenset({"adcs_rw_torque_authority_loss", "gyro_noise_increase"}),
+    "constraint": frozenset(),
+}
+
+
 def _effect_templates(contract: Any, kind: str) -> list[dict[str, Any]]:
     templates: list[dict[str, Any]] = []
+    guided_allowlist = (
+        GUIDED_ADCS_EFFECT_ALLOWLIST
+        if contract.capability_id == "subsystem.adcs_unified_native.v1"
+        else None
+    )
     for effect in contract.operator_contract.effects:
         if effect.kind != kind:
+            continue
+        if guided_allowlist is not None and effect.effect_id not in guided_allowlist.get(kind, frozenset()):
             continue
         label, detail = EFFECT_LABELS_ZH.get(
             effect.effect_id,
