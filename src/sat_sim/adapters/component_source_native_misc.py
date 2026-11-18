@@ -1138,7 +1138,7 @@ class ImuAdapter(_BaseComponentAdapter):
         from components.imu.schemas import ImuConfig
 
         params = _mapping(spec.get("parameters"))
-        _, _, _, times = _time_grid(spec)
+        duration_s, sample_s, _, times = _time_grid(spec)
         gyro = _vec3(params.get("true_gyro_rad_s"), (0.1, 0.2, 0.3))
         accel = _vec3(params.get("true_accel_m_s2"), (0.0, 0.0, 0.0))
         config = ImuConfig(
