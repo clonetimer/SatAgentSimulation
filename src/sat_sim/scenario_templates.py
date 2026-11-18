@@ -426,6 +426,8 @@ _TEMPLATES = [
                     "adcs.fusion.estimated_mrp_BN_x",
                     "adcs.fusion.estimated_omega_BN_B_x",
                     "adcs.fusion.magnetometer_used",
+                    "adcs.fusion.body_rate_valid",
+                    "adcs.sensor.imu_sample_valid",
                     "adcs.rw.speed_rad_s_0",
                     "adcs.body_rate_rad_s_x",
                     "adcs.control.applied_torque_nm_0",
@@ -434,11 +436,13 @@ _TEMPLATES = [
                     {"stream_id": "adcs_fast", "sample_s": 1.0, "fields": [
                         "adcs.pointing_error_deg", "adcs.fusion.estimated_mrp_BN_x",
                         "adcs.fusion.estimated_omega_BN_B_x", "adcs.fusion.magnetometer_used",
+                        "adcs.fusion.body_rate_valid", "adcs.sensor.imu_sample_valid",
                         "adcs.rw.speed_rad_s_0", "adcs.control.applied_torque_nm_0",
                     ], "format": "jsonl"},
                     {"stream_id": "adcs_housekeeping", "sample_s": 5.0, "fields": [
                         "adcs.pointing_error_deg", "adcs.rw.speed_rad_s_0",
                         "adcs.fusion.source_mode", "adcs.fusion.magnetometer_used",
+                        "adcs.fusion.body_rate_valid", "adcs.sensor.imu_sample_valid",
                     ], "format": "csv"},
                 ],
                 "fmea": {"enabled": True, "formats": ["csv", "json"]},
