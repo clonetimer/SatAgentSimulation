@@ -39,6 +39,13 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - 再验证 3/4 轮 cluster 是多个单机组成的设备组，不把它伪装成单轮。
 
 ### P9-N2：传感器单机
+
+**实施启动（2026-11-18）**
+- 已建立独立的官方 Basilisk StarTracker probe graph：输入为显式构造的 `SCStatesMsg` truth fixture，输出直接来自 `StarTracker.sensorOutMsg` recorder。
+- 当前 probe 明确不声称星表、光学成像、质心提取、盲区/FOV 或 blinding 场景；其证据范围是“给定航天器姿态真值后的官方姿态测量模块响应”。
+- 已加入输入边界、随机种子、采样时间、四元数有限性和单位四元数检查；该 probe 先作为 N2 原生物理试验，不冒充已注册生产 capability。
+- 下一批并行工作：IMU truth-driven graph（角速度/角加速度/比力输入）；随后磁强计地磁场输入与 CSS 太阳方向/日蚀输入。四者各自单独验收，不从整星遥测裁剪。
+
 - IMU、星敏、磁强计、太阳敏感器逐个盘点。
 - 先保留现有 project source-native capability 的真实标签与行为。
 - 对官方 Basilisk 有原生模块的传感器，分别构建独立 Basilisk test graph：只提供必要的 truth/environment input，直接记录官方 sensor output；不可把整星 UnifiedNativeRuntime 的输出剪裁后宣称为独立运行。
