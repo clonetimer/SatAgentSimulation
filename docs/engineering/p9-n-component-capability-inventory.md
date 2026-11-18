@@ -77,8 +77,17 @@ N4-A 已合入 main，N4-C 首批传感器工作台实现正在独立 PR 验收�
 | 设备 | 注册模板 | 实际后端与可见输出 | 当前用户入口边界 |
 |---|---|---|---|
 | 反作用轮 | `component_reaction_wheel_basilisk_native` | 官方 ReactionWheelStateEffector；轮速、实际施加力矩 | N4-A 已合入；finite/offline、nominal |
-| IMU | `component_imu_basilisk_native` | 官方 ImuSensor；三轴 gyro（rad/s）、accel（m/s²） | N4-C 待同 head Chromium Run 验收；prescribed truth、identity mounting、零杆臂、无随机噪声 |
-| 星敏感器 | `component_star_tracker_basilisk_native` | 官方 StarTracker；quaternion recorder 换算 MRP、valid、drift | N4-C 待同 head Chromium Run 验收；valid 仅代表 recorder 样本有限且归一化，不代表星表识别/FOV |
-| 磁强计 | `component_magnetometer_basilisk_native` | 官方 Magnetometer；sensor-frame 三轴磁场与模长（T） | N4-C 待同 head Chromium Run 验收；均匀磁场 fixture、identity mounting、统一三轴 scale |
+| IMU | `component_imu_basilisk_native` | 官方 ImuSensor；三轴 gyro（rad/s）、accel（m/s²） | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；prescribed truth、identity mounting、零杆臂、无随机噪声 |
+| 星敏感器 | `component_star_tracker_basilisk_native` | 官方 StarTracker；quaternion recorder 换算 MRP、valid、drift | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；valid 仅代表 recorder 样本有限且归一化，不代表星表识别/FOV |
+| 磁强计 | `component_magnetometer_basilisk_native` | 官方 Magnetometer；sensor-frame 三轴磁场与模长（T） | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；均匀磁场 fixture、identity mounting、统一三轴 scale |
 
 本轮实现仅复用已验收的 native adapter 和 capability，不把默认 `project_reference` 改为 native。入口选择会通过服务端 Scenario Template instantiate，再投影到现有参数表单。原生故障/退化/约束与单机实时运行仍不开放；CSS 仍不加入白名单。
+
+
+N4-C1 专项证据（PR #179，workflow #44310950498）：
+- Official Basilisk 2.11.0 native physical + sealed Run Bundle sensor tests: 26 passed.
+- Registered native templates/API/form contracts: 12 passed.
+- Native preflight/result contracts: 7 passed.
+- Chromium guided native device journey: 4 passed, 4 deselected; includes IMU/StarTracker/Magnetometer real Run, sealed integrity, provenance, plot manifest and same-Run history replay.
+- Artifact `native-component-physical-evidence` archived successfully (8,552 bytes).
+- PR shared regression workflows still pending at the time of this update; this does not yet declare the entire PR merged or all N4-C complete.
