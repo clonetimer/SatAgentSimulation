@@ -80,3 +80,12 @@
 - 已将 sealed TaskSpec A/B 测试中的事件严重度改为 magnitude=0.8，并将 EPS/Comm-Data adapter 直测也统一改用 magnitude。
 - event_severity helper 保留 explicit severity 兼容入口，但用户可提交的 canonical TaskSpec 仍以 magnitude 为准。
 - 当前修复后的 CI 尚未完成，不能记录 O2-B PASS。
+
+
+## O2-C 与 PDU 物理语义回归经验（2026-11-19）
+
+1. 证据分级：新增四个 VERIFIED_NATIVE_EFFECT profile，但 profile 注册不等于测试通过；必须由正式 Run Bundle 和 direct recorder assertion 驱动，并在 formal runtime test 中执行。
+2. PDU trip 不能只记录 trip_state。若实际调度模型不读取该字段，runtime injection 即使报告应用成功也不会改变负载。现在将 channel_enabled 作为 PDU SysModel 的真实调度状态，UpdateState 将其纳入 payload_enabled 判定。
+3. 保护动作可能改善部分系统级指标。PDU 切除 payload 后，EPS 净功率可能上升（负载减少），因此不能要求所有 fault 都使 net_power_w 更低。应按机理验证：电池容量下降、太阳阵输出下降、载荷供电被切断、shed_reason 指明 channel trip。
+4. 不用单一 QoI 的方向代替故障机理证据；要把受影响模块的直接字段、保护逻辑输出和因果标签一起纳入验收。
+5. 当前 PDU 修复与正式 profile 测试的 CI 尚在重跑；未通过前不开放用户向导。
