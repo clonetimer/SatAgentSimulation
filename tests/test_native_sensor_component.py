@@ -177,3 +177,41 @@ def test_imu_component_adapter_fails_closed_for_native_fault_mode():
     }
     with pytest.raises(ValueError, match="ONLY_SUPPORTS_NOMINAL"):
         ImuAdapter().run(spec)
+
+
+def test_magnetometer_component_adapter_routes_explicit_native_backend_into_run_result():
+    pytest.importorskip("Basilisk")
+    from sat_sim.adapters.component_source_native_misc import MagnetometerAdapter
+
+    spec = {
+        "task_id": "p9n2-native-magnetometer-adapter",
+        "capability_id": "component.magnetometer.v1",
+        "task_type": "component",
+        "target": {"level": "component", "name": "magnetometer", "mode": "nominal"},
+        "simulation": {"duration_s": 1.0, "sample_s": 0.1},
+        "parameters": {
+            "physics_backend": "basilisk_native",
+            "magnetic_field_t": [2.0e-5, -1.0e-5, 3.0e-5],
+            "axis_scale": [1.0, 1.0, 1.0],
+            "bias_t": [1.0e-7, 0.0, -1.0e-7],
+        },
+    }
+    result = MagnetometerAdapter().run(spec)
+    assert result.metadata["physics_backend"] == "basilisk_native"
+    assert result.metadata["native_provenance"] == "Basilisk.simulation.magnetometer.Magnetometer"
+    assert result.trace_rows
+    assert result.trace_rows[-1]["adcs.magnetometer.field_x_t"] == pytest.approx(2.01e-5, abs=1e-10)
+
+
+def test_magnetometer_component_adapter_rejects_nonuniform_scale_for_native_backend():
+    from sat_sim.adapters.component_source_native_misc import MagnetometerAdapter
+
+    spec = {
+        "capability_id": "component.magnetometer.v1",
+        "task_type": "component",
+        "target": {"level": "component", "name": "magnetometer", "mode": "nominal"},
+        "simulation": {"duration_s": 1.0, "sample_s": 0.1},
+        "parameters": {"physics_backend": "basilisk_native", "axis_scale": [1.0, 0.9, 1.0]},
+    }
+    with pytest.raises(ValueError, match="UNIFORM_AXIS_SCALE"):
+        MagnetometerAdapter().run(spec)
