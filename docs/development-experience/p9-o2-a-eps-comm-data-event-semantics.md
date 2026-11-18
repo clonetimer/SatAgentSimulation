@@ -62,3 +62,12 @@
 3. 对 EPS fault/degradation 与 Comm/Data rate fault/degradation 分别生成 nominal/injected 成对 sealed Run Bundle。
 4. 从直接 recorder 字段建立 effect evidence profile；不满足断言的单个 effect 保持关闭。
 5. 最后补齐真实 Chromium 用户旅程和历史 Run Bundle 回放。
+
+
+## O2-B 首批 sealed A/B 测试实施（2026-11-19）
+
+- 新增 tests/test_native_eps_comm_data_effects_bundle.py，按四个 effect 分别运行 nominal 与 injected 的正式 TaskSpec Run Bundle。
+- 每个 Run 检查官方 Basilisk 2.11.0、SUCCEEDED、sealed、integrity、validation、runtime injection 直接应用计数与 recorder A/B。
+- 故障事件检查结束后恢复；退化事件检查在后续采样仍持续偏离 nominal。
+- 重要边界：当前 profile 仍是 operator declared evidence；A/B 测试直接比较 recorder，但尚未创建 VERIFIED_NATIVE_EFFECT profile。O2-C 需基于最终 A/B 结果补齐断言。
+- 当前 PR #187 head 为 b57692ad289c84166954365a2de442543d7cc04a，O2-B workflow 正在执行；结果未出之前不记录 PASS。
