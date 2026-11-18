@@ -6,6 +6,8 @@ on:
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "src/sat_sim/bsk_engine/project_native_modules.py"
       - "src/sat_sim/adapters/subsystem_adcs_unified_native.py"
+      - "src/components/pdu/builder.py"
+      - "src/components/pdu/faults.py"
       - "src/sat_sim/adapters/subsystem_eps_unified_native.py"
       - "src/sat_sim/adapters/subsystem_comm_data_unified_native.py"
       - "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml"
@@ -227,6 +229,7 @@ jobs:
             reports/native_subsystem_eps_comm_data/subsystem_api.xml
             reports/native_subsystem_eps_comm_data/effect_events.xml
             reports/native_subsystem_eps_comm_data/effect_ab.xml
+            reports/native_subsystem_eps_comm_data/effect_ab.json
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
