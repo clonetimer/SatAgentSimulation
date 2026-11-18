@@ -43,3 +43,8 @@ N4-B 的目标不是再造一个预检服务，而是保证用户配置经过现
 - `/tasks/parse` 返回的错误分属通用 validation、Agent guards 和 Planner validation。产品现有 `previewForm` 也会合并这三类错误；验收测试必须同样汇总 `result.validation.errors`、`result.guards.issues` 和 `result.planning.validation.errors`，不能只看通用 Schema 结果。
 
 这些修正让测试更贴近真实产品配置与前端实际错误呈现合同。
+
+
+## UI 负向旅程（2026-11-18）
+
+新增 Chromium 真实用户旅程：从“单机独立仿真”进入原生反作用轮，修改时长为超出原生限制的值，执行“校验配置”，确认向导显示 Planner 的字段级错误、运行按钮保持禁用、且没有创建 Run。该测试使用真实表单投影与 `/tasks/parse` 请求，不 mock 成功/失败响应。
