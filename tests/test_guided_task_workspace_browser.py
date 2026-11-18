@@ -1184,8 +1184,11 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
                 "adcs.fusion.estimated_mrp_BN_x",
                 "adcs.fusion.estimated_omega_BN_B_x",
                 "adcs.fusion.magnetometer_used",
+                "adcs.fusion.body_rate_valid",
+                "adcs.sensor.imu_sample_valid",
             ):
                 assert field in final_row, (field, final_row)
+            assert final_row["adcs.fusion.body_rate_valid"] == 1, final_row
             streams = client.get(f"/runs/{run_id}/telemetry-streams")
             assert streams.status_code == 200, streams.text
             stream_ids = {item["stream_id"] for item in streams.json()["multi_rate_telemetry"]["streams"]}
