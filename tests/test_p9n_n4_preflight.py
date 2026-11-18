@@ -104,9 +104,9 @@ def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tm
     ]
     assert errors, payload
     assert any(
-        item["code"] == "native_scope"
-        and "sample_s" in item["path"]
-        and "1.0" in item["message"]
+        item.get("code") == "native_scope"
+        and "sample_s" in str(item.get("path", ""))
+        and "1.0" in str(item.get("message", ""))
         for item in errors
-    ), payload
+    ), json.dumps({"errors": errors, "result": result}, ensure_ascii=False, indent=2)
     assert result["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
