@@ -77,3 +77,57 @@ def test_native_imu_probe_rejects_unsupported_inputs(kwargs, reason):
 
     with pytest.raises(ValueError, match=reason):
         run_native_imu_probe(**kwargs)
+
+
+def test_native_magnetometer_probe_records_official_sensor_frame_vector():
+    pytest.importorskip("Basilisk")
+    from sat_sim.bsk_engine.native_sensor_component import run_native_magnetometer_probe
+
+    result = run_native_magnetometer_probe(
+        duration_s=1.0,
+        sample_s=0.1,
+        truth_magnetic_field_n_t=(2.0e-5, -1.0e-5, 3.0e-5),
+        bias_tesla=(1.0e-7, 0.0, -1.0e-7),
+        scale_factor=1.0,
+    )
+    assert result.model_source == "Basilisk.simulation.magnetometer.Magnetometer"
+    assert result.input_source == "explicit_MagneticFieldMsg_and_SCStatesMsg_fixtures"
+    assert len(result.times_s) == len(result.magnetic_field_sensor_t)
+    assert len(result.times_s) >= 2
+    expected = (2.01e-5, -1.0e-5, 2.99e-5)
+    for measured in result.magnetic_field_sensor_t:
+        assert measured == pytest.approx(expected, abs=1e-10)
+
+
+def test_native_coarse_sun_sensor_probe_uses_official_sun_and_eclipse_inputs():
+    pytest.importorskip("Basilisk")
+    from sat_sim.bsk_engine.native_sensor_component import run_native_coarse_sun_sensor_probe
+
+    illuminated = run_native_coarse_sun_sensor_probe(duration_s=1.0, sample_s=0.1, illumination_factor=1.0)
+    eclipsed = run_native_coarse_sun_sensor_probe(duration_s=1.0, sample_s=0.1, illumination_factor=0.0)
+    assert illuminated.model_source == "Basilisk.simulation.coarseSunSensor.CoarseSunSensor"
+    assert illuminated.input_source == "explicit_SpicePlanetStateMsg_EclipseMsg_and_SCStatesMsg_fixtures"
+    assert len(illuminated.times_s) == len(illuminated.output_intensity)
+    assert max(illuminated.output_intensity) > 0.9
+    assert max(abs(value) for value in eclipsed.output_intensity) < 1e-9
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "reason"),
+    [
+        ({"truth_magnetic_field_n_t": (1.0e-5, 2.0e-5)}, "FIELD"),
+        ({"scale_factor": 0.0}, "SCALE"),
+        ({"illumination_factor": 1.1}, "ILLUMINATION"),
+        ({"n_hat_b": (2.0, 0.0, 0.0)}, "NOT_UNIT"),
+        ({"fov_rad": 0.0}, "FOV"),
+    ],
+)
+def test_native_environment_sensor_probes_reject_invalid_inputs(kwargs, reason):
+    from sat_sim.bsk_engine.native_sensor_component import (
+        run_native_coarse_sun_sensor_probe,
+        run_native_magnetometer_probe,
+    )
+
+    function = run_native_magnetometer_probe if "truth_magnetic_field_n_t" in kwargs or "scale_factor" in kwargs else run_native_coarse_sun_sensor_probe
+    with pytest.raises(ValueError, match=reason):
+        function(**kwargs)
