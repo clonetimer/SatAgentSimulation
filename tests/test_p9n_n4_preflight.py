@@ -28,7 +28,14 @@ def _native_rw_spec(task_id: str = "p9n4_native_preflight"):
             "physics_backend",
         ),
         (
-            lambda spec: spec["model"]["target"].update({"mode": "degradation"}),
+            lambda spec: (
+                spec["model"]["target"].update({"mode": "degradation"}),
+                spec["events"]["degradations"].append({
+                    "id": "rw_friction_increase", "target": "reaction_wheel",
+                    "effect": "friction_increase_pct", "start_s": 1.0, "end_s": 2.0,
+                    "parameters": {"friction_increase_pct": 10.0},
+                }),
+            ),
             "physics_backend",
         ),
         (
@@ -70,22 +77,30 @@ def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tm
         auth_mode="disabled",
     )
     spec = deepcopy(_native_rw_spec("p9n4_native_preflight_api"))
-    spec["simulation"]["sample_s"] = 1.1
 
     with TestClient(app) as client:
+        projected = client.post(
+            "/forms/capabilities/component.reaction_wheel.v1/project",
+            json={"task_spec": spec},
+        )
+        assert projected.status_code == 200, projected.text
+        form_data = projected.json()["projection"]
+        form_data["simulation"]["sample_s"] = 1.1
         response = client.post(
             "/tasks/parse",
-            json={"input_kind": "task_spec", "task_spec": spec, "compile_if_valid": True},
+            json={"input_kind": "form", "form_data": form_data, "compile_if_valid": True},
         )
 
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["ok"] is False, payload
     result = payload["result"]
+    planning = result.get("planning") or {}
+    planning_validation = planning.get("validation") or {}
     errors = [
         *(result.get("validation", {}).get("errors") or []),
         *(result.get("guards", {}).get("issues") or []),
-        *(result.get("planning", {}).get("validation", {}).get("errors") or []),
+        *(planning_validation.get("errors") or []),
     ]
     assert errors, payload
     assert any(
@@ -94,4 +109,4 @@ def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tm
         and "1.0" in item["message"]
         for item in errors
     ), payload
-    assert payload["result"]["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
+    assert result["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
