@@ -161,8 +161,8 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_native_adcs_wizard_runs_verified_torque_authority_degradation)"
-          printf '%s\\n' "$selected"
-          printf '%s\\n' "$selected" | grep -Fq '::test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation'
+          printf '%s\n' "$selected"
+          printf '%s\n' "$selected" | grep -Fq '::test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation'
       - name: Verify guided native component and subsystem selection and real Runs
         if: steps.browser_scope.outputs.run == 'true'
         env:
