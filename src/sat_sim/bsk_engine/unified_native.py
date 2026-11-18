@@ -371,12 +371,17 @@ def _build_unified_rows(
     *,
     start_index: int = 0,
 ) -> list[dict[str, Any]]:
-    from Basilisk.utilities import macros  # type: ignore
+    from Basilisk.utilities import RigidBodyKinematics, macros  # type: ignore
     recorder_map = {name: _RecorderSnapshot(recorder) for name, recorder in recorder_map.items()}
     rows: list[dict[str, Any]] = []
     times = recorder_map["state"].times()
     if start_index < 0 or start_index > len(times):
         raise ValueError("start_index must be within the recorder range")
+    mag_mount_321 = [
+        math.radians(float(cfg.values.get(f"magnetometer_mount_{axis}_deg", 0.0)))
+        for axis in ("yaw", "pitch", "roll")
+    ]
+    mag_dcm_sb = np.asarray(RigidBodyKinematics.euler3212C(mag_mount_321), dtype=float).reshape(3, 3)
     for index in range(start_index, len(times)):
         nanos = times[index]
         state = recorder_map["state"]
@@ -403,7 +408,8 @@ def _build_unified_rows(
             "adcs.sensor.raw_accel_m_s2_z": float(recorder_map["imu_raw"].AccelPlatform[index][2]),
             "adcs.sensor.gyro_measured_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
             "adcs.sensor.gyro_measured_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
-            "adcs.sensor.gyro_measured_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),            "adcs.sensor.gyro_measured_platform_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
+            "adcs.sensor.gyro_measured_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
+            "adcs.sensor.gyro_measured_platform_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
             "adcs.sensor.gyro_measured_platform_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
             "adcs.sensor.gyro_measured_platform_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
             "adcs.sensor.gyro_measured_body_rad_s_x": float(recorder_map["fusion_attitude"].omega_BN_B[index][0]),
@@ -468,9 +474,9 @@ def _build_unified_rows(
             "adcs.magnetometer.reference_n_tesla_x": float(recorder_map["mag_reference"].magField_N[index][0]),
             "adcs.magnetometer.reference_n_tesla_y": float(recorder_map["mag_reference"].magField_N[index][1]),
             "adcs.magnetometer.reference_n_tesla_z": float(recorder_map["mag_reference"].magField_N[index][2]),
-            "adcs.magnetometer.measured_body_tesla_x": float((np.asarray(RigidBodyKinematics.euler3212C([math.radians(float(cfg.values.get(f"magnetometer_mount_{axis}_deg", 0.0))) for axis in ("yaw", "pitch", "roll")]), dtype=float).reshape(3, 3).T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[0]),
-            "adcs.magnetometer.measured_body_tesla_y": float((np.asarray(RigidBodyKinematics.euler3212C([math.radians(float(cfg.values.get(f"magnetometer_mount_{axis}_deg", 0.0))) for axis in ("yaw", "pitch", "roll")]), dtype=float).reshape(3, 3).T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[1]),
-            "adcs.magnetometer.measured_body_tesla_z": float((np.asarray(RigidBodyKinematics.euler3212C([math.radians(float(cfg.values.get(f"magnetometer_mount_{axis}_deg", 0.0))) for axis in ("yaw", "pitch", "roll")]), dtype=float).reshape(3, 3).T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[2]),
+            "adcs.magnetometer.measured_body_tesla_x": float((mag_dcm_sb.T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[0]),
+            "adcs.magnetometer.measured_body_tesla_y": float((mag_dcm_sb.T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[1]),
+            "adcs.magnetometer.measured_body_tesla_z": float((mag_dcm_sb.T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[2]),
             "adcs.sun_sensor.cosine_output": float(recorder_map["sun_sensor"].OutputData[index]),
             "adcs.sun_sensor.direction_b_x": float(recorder_map["sun_vector"].tam_S[index][0]),
             "adcs.sun_sensor.direction_b_y": float(recorder_map["sun_vector"].tam_S[index][1]),
