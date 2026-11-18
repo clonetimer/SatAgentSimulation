@@ -200,7 +200,7 @@ class AdcsSensorFusion(sysModel.SysModel):
         mag_body = dcm_sb.T @ mag_sensor
         mag_reference_n = [float(x) for x in mag_reference.magField_N]
         mag_norm = float(np.linalg.norm(mag_body))
-        reference_norm = _norm3(mag_reference_n)
+        reference_norm = math.sqrt(sum(value * value for value in mag_reference_n))
         mag_valid = (
             np.all(np.isfinite(mag_body))
             and all(math.isfinite(value) for value in mag_reference_n)
