@@ -12,7 +12,7 @@ from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bun
 
 
 EVENT_START_S = 5.0
-EVENT_END_S = 15.0
+EVENT_END_S = 14.5
 RUN_DURATION_S = 30.0
 
 
