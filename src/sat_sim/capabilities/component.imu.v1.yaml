@@ -15,7 +15,6 @@ implementation:
   legacy_demo_runner: components.imu.runner
   uses_legacy_runner: false
   basilisk_required: false
-  optional_native_backend: Basilisk.simulation.imuSensor.ImuSensor
 modes:
   nominal: {supported: true}
   fault:
