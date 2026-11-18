@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from sat_sim.api import create_app
+from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.task_validator import validate_task_spec
 
@@ -92,3 +93,68 @@ def test_native_rw_preflight_api_returns_actionable_validation_errors(tmp_path) 
         for item in errors
     ), json.dumps(errors, ensure_ascii=False, indent=2)
     assert payload["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
+
+
+def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_path) -> None:
+    """N4-B: user-facing results must resolve to the same immutable native Run."""
+    runs_root = tmp_path / "runs"
+    spec = deepcopy(_native_rw_spec("p9n4_native_result_contract"))
+    spec["simulation"].update({"duration_s": 2.0, "step_s": 0.1, "sample_s": 0.1})
+    spec["parameters"]["values"].update({
+        "wheel_inertia_kg_m2": 0.1,
+        "max_motor_torque_nm": 0.005,
+        "max_speed_rad_s": 1000.0,
+        "initial_wheel_speeds_rad_s": 0.0,
+        "command_torque_nm": 0.05,
+        "damping_nms": 0.0,
+    })
+    spec.setdefault("model", {}).setdefault("validation", {}).update({
+        "physical_checks": [],
+        "acceptance_assertions": [{
+            "id": "native_rw_result_speed_response",
+            "metric": "qoi.adcs.reaction_wheel.final_speed_rad_s_0",
+            "operator": ">",
+            "value": 0.02,
+        }],
+    })
+    prepared = prepare_run(spec, output_root=runs_root)
+    executed = execute_prepared_run(
+        prepared.bundle_root,
+        expected_plan_sha256=prepared.execution_plan_sha256,
+        max_attempts=1,
+        hard_timeout=True,
+    )
+    assert executed.run_record.status.value == "SUCCEEDED"
+    assert executed.validation.result.value == "PASS"
+    assert verify_run_bundle(executed.bundle_root)["ok"] is True
+
+    app = create_app(
+        runs_root=runs_root,
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    run_id = executed.run_record.run_id
+    with TestClient(app) as client:
+        detail = client.get(f"/runs/{run_id}")
+        report = client.get(f"/runs/{run_id}/report")
+        metrics = client.get(f"/runs/{run_id}/metrics")
+        plots = client.get(f"/runs/{run_id}/plots")
+        telemetry = client.get(f"/runs/{run_id}/telemetry?limit=100")
+        artifacts = client.get(f"/runs/{run_id}/artifacts")
+
+    for response in (detail, report, metrics, plots, telemetry, artifacts):
+        assert response.status_code == 200, response.text
+        assert response.json().get("run_id", run_id) == run_id
+
+    run = detail.json()["run"]
+    assert run["sealed"] is True
+    assert run["run_record"]["status"] == "SUCCEEDED"
+    assert run["summary"]["physics_backend"] == "basilisk_native"
+    assert report.json()["summary"]["physics_backend"] == "basilisk_native"
+    assert report.json()["integrity"]["ok"] is True
+    assert metrics.json()["metrics"]
+    assert plots.json()["plots"]
+    assert telemetry.json()["telemetry"]["rows"]
+    artifact_paths = {item["path"] for item in artifacts.json()["artifacts"]}
+    assert "runtime/execution_port.json" in artifact_paths
