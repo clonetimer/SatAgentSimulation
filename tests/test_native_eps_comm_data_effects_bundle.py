@@ -84,7 +84,15 @@ def _run_case(
     )
     assert executed.run_record.status.value == "SUCCEEDED", executed.run_record.model_dump(mode="json")
     assert executed.run_record.sealed is True
-    assert executed.validation.result.value == "PASS", executed.validation.model_dump(mode="json")
+    if executed.validation.result.value != "PASS":
+        details = executed.validation.model_dump(mode="json")
+        print(json.dumps({
+            "checks": details.get("checks", []),
+            "injection_evidence": details.get("injection_evidence", []),
+            "reason_code": details.get("reason_code"),
+            "evidence_missing": details.get("evidence_missing", []),
+        }, ensure_ascii=False, indent=2, default=str))
+        raise AssertionError(f"Run Bundle validation did not PASS: {details.get('reason_code')}")
     integrity = verify_run_bundle(prepared.bundle_root)
     assert integrity["ok"] is True, integrity
     assert executed.summary["runtime_truth_status"] == "instantiated_connected_recorded"
