@@ -6,10 +6,20 @@ on:
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "src/sat_sim/bsk_engine/project_native_modules.py"
       - "src/sat_sim/adapters/subsystem_adcs_unified_native.py"
+      - "src/components/pdu/builder.py"
+      - "src/components/pdu/faults.py"
       - "src/sat_sim/adapters/subsystem_eps_unified_native.py"
       - "src/sat_sim/adapters/subsystem_comm_data_unified_native.py"
       - "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml"
       - "src/sat_sim/capabilities/subsystem.comm_data.unified_native.v1.yaml"
+      - "src/subsystems/event_severity.py"
+      - "src/sat_sim/form_schema.py"
+      - "configs/acceptance/scenario_baseline.json"
+      - "tests/test_event_severity.py"
+      - "tests/test_eps_unified_effects.py"
+      - "tests/test_comm_data_unified_effects.py"
+      - "tests/test_native_eps_comm_data_effects_bundle.py"
+      - "tests/test_p9o2_eps_comm_data_guided_event_catalog.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
@@ -71,7 +81,7 @@ jobs:
         run: |
           python -m pip install \
             "bsk==2.11.0" "sgp4==2.25" "colorama==0.4.6" \
-            "numpy==2.3.5" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "numba==0.63.1" "pydantic==2.13.4" "jsonschema==4.26.0" \
             "PyYAML==6.0.3" "joblib==1.5.3" "scikit-learn==1.9.0" \
             "pytest==9.0.3" "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
       - name: Report actual distribution provenance
@@ -126,6 +136,20 @@ jobs:
         run: |
           mkdir -p reports/native_subsystem_eps_comm_data
           python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/subsystem_api.xml tests/test_multi_rate_fmea_unified_subsystems.py
+      - name: Verify EPS and Comm/Data event severity against native Basilisk inputs
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/effect_events.xml \
+            tests/test_event_severity.py \
+            tests/test_eps_unified_effects.py \
+            tests/test_comm_data_unified_effects.py
+      - name: Verify EPS and Comm/Data paired physical A/B with sealed Run Bundles
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/effect_ab.xml \
+            tests/test_native_eps_comm_data_effects_bundle.py
       - name: Verify ADCS sensor-frame transformations and native closed-loop Run Bundle
         env:
           PYTHONPATH: "src:."
@@ -135,7 +159,10 @@ jobs:
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_sealed_bundle.xml tests/test_native_adcs_subsystem_bundle.py
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_fault_effects.xml tests/test_native_adcs_fault_effects.py
           python -m pytest -q -s tests/test_formal_effect_evidence_contracts.py -k unified_effect_contracts_are_declared_and_registered
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/formal_effects.xml \
+            tests/test_formal_effect_evidence_contracts.py -k test_each_unified_effect_has_formal_runtime_pass
           python -m pytest -q -s tests/test_p9n5_adcs_guided_event_catalog.py
+          python -m pytest -q -s tests/test_p9o2_eps_comm_data_guided_event_catalog.py
       - name: Determine whether the browser surface changed
         id: browser_scope
         env:
@@ -183,14 +210,32 @@ jobs:
         run: |
           selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_native_subsystem_workbench_runs_eps_and_comm_data)"
           printf '%s\n' "$selected"
-          printf '%s\n' "$selected" | grep -Fq '::test_guided_native_subsystem_workbench_runs_eps_and_comm_data'
+          count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle')"
+          test "$count" -eq 6
       - name: Verify guided native component and subsystem selection and real Runs
         if: steps.browser_scope.outputs.run == 'true'
         env:
           PYTHONPATH: "src:."
         run: |
-          python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
+          mkdir -p reports/native_subsystem_eps_comm_data
+          python -m pytest -q -s \
+            --junitxml=reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml \
+            tests/test_guided_task_workspace_browser.py \
             -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation"
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml").getroot()
+          cases = root.findall(".//testcase")
+          eps_comm = [case for case in cases if case.attrib.get("name", "").startswith(
+              "test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle"
+          )]
+          adcs = [case for case in cases if case.attrib.get("name") == "test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation"]
+          assert len(eps_comm) == 6, [case.attrib for case in eps_comm]
+          assert len(adcs) == 1, [case.attrib for case in adcs]
+          for case in [*eps_comm, *adcs]:
+              assert not case.findall("failure") and not case.findall("skipped"), case.attrib
+          print("O2-D_BROWSER_JOURNEYS", {"eps_comm": len(eps_comm), "adcs": len(adcs), "passed": True})
+          PY
 
       - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7
@@ -204,6 +249,11 @@ jobs:
             reports/native_adcs/adcs_sealed_bundle.xml
             reports/native_adcs/adcs_fault_effects.xml
             reports/native_subsystem_eps_comm_data/subsystem_api.xml
+            reports/native_subsystem_eps_comm_data/effect_events.xml
+            reports/native_subsystem_eps_comm_data/effect_ab.xml
+            reports/native_subsystem_eps_comm_data/effect_ab.json
+            reports/native_subsystem_eps_comm_data/formal_effects.xml
+            reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error

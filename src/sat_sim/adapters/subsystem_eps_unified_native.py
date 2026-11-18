@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from sat_sim.adapter_base import SimulationResult
 from sat_sim.task_validator import ValidationIssue
+from subsystems.event_severity import event_severity, scale_parameter_effects
 
 CAPABILITY_ID = "subsystem.eps.unified_native.v1"
 
@@ -84,6 +85,12 @@ class EpsUnifiedNativeAdapter:
             effect = _effect_id(event, "degradation")
             if effect not in self.degradation_effects:
                 issues.append(ValidationIssue("error", f"$.events.degradations[{index}]", f"unsupported EPS degradation effect {effect!r}", "event_effect"))
+        for kind in ("fault", "degradation"):
+            for index, event in enumerate(_event_rows(spec, kind)):
+                try:
+                    event_severity(event)
+                except ValueError as exc:
+                    issues.append(ValidationIssue("error", f"$.events.{kind}s[{index}].severity", str(exc), "range"))
         constraints = _event_rows(spec, "constraint")
         if constraints:
             issues.append(ValidationIssue("error", "$.events.constraints", "runtime EPS constraints are not supported", "event_effect"))
@@ -123,14 +130,19 @@ class EpsUnifiedNativeAdapter:
         fault_specs: list[dict[str, Any]] = []
         for event in fault_events:
             start_s, end_s = _event_window(event)
+            severity = event_severity(event)
             generated = build_fault_event_specs(default_fault_scenarios()["combined_eps_fault"])
             for item in generated:
                 row = dict(item)
+                row["effects"] = scale_parameter_effects(tuple(row.get("effects", ())), severity)
+                row["severity"] = 1.0
+                row["requested_severity"] = severity
                 row["time_s"] = start_s if row.get("phase") == "start" else (end_s if end_s is not None else config.duration_s + config.step_s)
                 fault_specs.append(row)
         degradation_specs: list[dict[str, Any]] = []
         for event in degradation_events:
             start_s, _ = _event_window(event)
+            severity = event_severity(event)
             generated = build_degradation_update_specs(
                 default_degradation_scenarios()["combined_eps_aging"],
                 update_period_s=max(config.step_s, 1.0),
@@ -140,7 +152,8 @@ class EpsUnifiedNativeAdapter:
                 row["start_s"] = start_s
                 degradation = row.get("degradation")
                 if degradation is not None and hasattr(degradation, "start_s"):
-                    row["degradation"] = replace(degradation, start_s=start_s)
+                    base_severity = float(getattr(degradation, "severity", 1.0))
+                    row["degradation"] = replace(degradation, start_s=start_s, severity=base_severity * severity)
                 degradation_specs.append(row)
         summary, rows, context = run_eps_basilisk_scenario(
             config,
@@ -150,8 +163,19 @@ class EpsUnifiedNativeAdapter:
             return_context=True,
         )
         mode = str(_mapping(spec.get("model")).get("target", {}).get("mode") or _mapping(spec.get("target")).get("mode") or "nominal")
+        event_start_times = [_event_window(event)[0] for event in (*fault_events, *degradation_events)]
+        first_event_start = min(event_start_times) if event_start_times else float("inf")
+        pre_event_solar_rows = [row for row in rows if float(row.time_s) < first_event_start]
+        nominal_solar_power_w = (
+            float(pre_event_solar_rows[-1].solar_power_w)
+            if pre_event_solar_rows
+            else float(config.solar_power_w) * float(config.solar_efficiency)
+        )
+        pdu_module = context.modules.get("pdu")
+        pdu_trace_rows = tuple(getattr(pdu_module, "trace", ()) or ())
         trace_rows_list: list[dict[str, Any]] = []
         for row in rows:
+            pdu_row = min(pdu_trace_rows, key=lambda item: abs(float(item.time_s) - float(row.time_s))) if pdu_trace_rows else None
             fault_active = any(
                 row.time_s >= (window := _event_window(event))[0]
                 and (window[1] is None or row.time_s <= window[1])
@@ -163,10 +187,15 @@ class EpsUnifiedNativeAdapter:
                 "mode": mode,
                 "eps.battery_storage_j": row.battery_storage_j,
                 "eps.battery_capacity_j": row.battery_capacity_j,
+                "eps.nominal_battery_capacity_j": float(config.battery_capacity_wh) * 3600.0,
                 "eps.battery_soc": row.battery_soc,
                 "eps.solar_power_w": row.solar_power_w,
+                "eps.nominal_solar_power_w": nominal_solar_power_w,
+                "eps.nominal_payload_load_w": abs(float(config.payload_power_w)) if config.payload_requested else 0.0,
                 "eps.bus_load_w": row.bus_load_w,
                 "eps.payload_load_enabled_w": row.payload_load_enabled_w,
+                "eps.pdu_payload_channel_enabled": bool(pdu_row.payload_channel_enabled) if pdu_row is not None else None,
+                "eps.pdu_shed_reason": str(pdu_row.shed_reason) if pdu_row is not None else None,
                 "eps.adcs_load_enabled_w": row.adcs_load_enabled_w,
                 "eps.comm_load_enabled_w": row.comm_load_enabled_w,
                 "eps.heater_load_enabled_w": row.heater_load_enabled_w,

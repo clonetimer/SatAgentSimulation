@@ -34,7 +34,7 @@
           "id": "open_circuit_blocks_power",
           "field": "eps.battery.applied_power_w",
           "operator": "eq",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_any",
           "tolerance": 1e-12
         },
@@ -162,7 +162,7 @@
           "id": "jam_zeros_applied_torque",
           "field": "adcs.reaction_wheel.applied_torque_nm_0",
           "operator": "eq",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_all",
           "tolerance": 1e-12
         },
@@ -170,7 +170,7 @@
           "id": "jam_clamps_speed",
           "field": "adcs.reaction_wheel.speed_rad_s_0",
           "operator": "eq",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_any",
           "tolerance": 1e-12
         }
@@ -313,7 +313,7 @@
           "id": "panel_failure_reduces_multiplier",
           "field": "eps.solar.fault_multiplier",
           "operator": "lt",
-          "value": 1.0,
+          "value": 1,
           "scope": "active_any",
           "tolerance": 1e-12
         }
@@ -340,7 +340,7 @@
           "id": "panel_fault_degradation_reduces_multiplier",
           "field": "eps.solar.fault_multiplier",
           "operator": "lt",
-          "value": 1.0,
+          "value": 1,
           "scope": "active_any",
           "tolerance": 1e-12
         }
@@ -367,7 +367,7 @@
           "id": "deployment_proxy_reduces_multiplier",
           "field": "eps.solar.fault_multiplier",
           "operator": "lt",
-          "value": 1.0,
+          "value": 1,
           "scope": "active_any",
           "tolerance": 1e-12
         }
@@ -447,7 +447,7 @@
           "id": "jam_disables_normal_wheel_torque_authority",
           "field": "adcs.rw.effective_torque_ratio_{wheel_index}",
           "operator": "eq",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_all",
           "tolerance": 1e-12
         }
@@ -474,9 +474,9 @@
           "field": "adcs.rw.effective_torque_ratio_{wheel_index}",
           "operator": "eq",
           "value_parameter": "torque_scale",
-          "default_value": 0.0,
+          "default_value": 0,
           "scope": "active_all",
-          "tolerance": 1e-09
+          "tolerance": 1e-9
         }
       ],
       "claim_limitations": [
@@ -500,7 +500,7 @@
           "id": "gyro_bias_is_nonzero",
           "field": "adcs.sensor.gyro_bias_norm_rad_s",
           "operator": "gt",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_any",
           "tolerance": 1e-12
         }
@@ -525,7 +525,7 @@
           "id": "gyro_noise_sample_is_nonzero",
           "field": "adcs.sensor.gyro_noise_norm_rad_s",
           "operator": "gt",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_any",
           "tolerance": 1e-12
         }
@@ -555,7 +555,7 @@
           "value_parameter": "torque_scale",
           "default_value": 0.5,
           "scope": "active_all",
-          "tolerance": 1e-09
+          "tolerance": 1e-9
         }
       ],
       "claim_limitations": [
@@ -582,7 +582,7 @@
           "value_parameter": "drag_nms",
           "default_value": 0.01,
           "scope": "active_all",
-          "tolerance": 1e-09
+          "tolerance": 1e-9
         }
       ],
       "claim_limitations": [
@@ -607,9 +607,9 @@
           "field": "adcs.rw.effective_max_speed_rad_s_{wheel_index}",
           "operator": "eq",
           "value_parameter": "max_speed_rad_s",
-          "default_value": 50.0,
+          "default_value": 50,
           "scope": "active_all",
-          "tolerance": 1e-09
+          "tolerance": 1e-9
         }
       ],
       "claim_limitations": [
@@ -642,7 +642,7 @@
           "id": "payload_generation_is_zero",
           "field": "payload.generated_bps",
           "operator": "eq",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_all",
           "tolerance": 1e-12
         }
@@ -677,7 +677,7 @@
           "id": "downlink_rate_is_zero",
           "field": "comm.downlink_bps",
           "operator": "eq",
-          "value": 0.0,
+          "value": 0,
           "scope": "active_all",
           "tolerance": 1e-12
         }
@@ -706,14 +706,14 @@
           "operator": "eq",
           "default_value": 0.5,
           "scope": "active_all",
-          "tolerance": 1e-09,
+          "tolerance": 1e-9,
           "value_source": "resource_remaining_ratio"
         },
         {
           "id": "capacity_ratio_does_not_increase",
           "field": "eps.battery_capacity_ratio",
           "operator": "le",
-          "value": 1.0,
+          "value": 1,
           "scope": "active_all",
           "tolerance": 1e-12
         }
@@ -741,14 +741,14 @@
           "operator": "eq",
           "default_value": 0.5,
           "scope": "active_all",
-          "tolerance": 1e-09,
+          "tolerance": 1e-9,
           "value_source": "resource_remaining_ratio"
         },
         {
           "id": "solar_efficiency_ratio_does_not_increase",
           "field": "eps.solar_array_efficiency_ratio",
           "operator": "le",
-          "value": 1.0,
+          "value": 1,
           "scope": "active_all",
           "tolerance": 1e-12
         }
@@ -776,14 +776,14 @@
           "operator": "eq",
           "default_value": 0.5,
           "scope": "active_all",
-          "tolerance": 1e-09,
+          "tolerance": 1e-9,
           "value_source": "resource_remaining_ratio"
         },
         {
           "id": "radiator_ratio_does_not_increase",
           "field": "thermal.radiator_rejection_ratio",
           "operator": "le",
-          "value": 1.0,
+          "value": 1,
           "scope": "active_all",
           "tolerance": 1e-12
         }
@@ -836,6 +836,173 @@
         "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
       ],
       "rationale": "The in-task mode gate compares recorded SOC with the requested threshold and disables payload/downlink before official modules update."
+    },
+    {
+      "capability_id": "subsystem.eps.unified_native.v1",
+      "effect_id": "generation_storage_distribution_failure",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.battery_capacity_j",
+        "eps.nominal_battery_capacity_j",
+        "eps.solar_power_w",
+        "eps.nominal_solar_power_w",
+        "eps.payload_load_enabled_w",
+        "eps.nominal_payload_load_w",
+        "eps.net_power_w",
+        "label.fault_active",
+        "eps.pdu_payload_channel_enabled",
+        "eps.pdu_shed_reason"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "battery_capacity_is_reduced_during_fault",
+          "field": "eps.battery_capacity_j",
+          "operator": "lt",
+          "right_field": "eps.nominal_battery_capacity_j",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "pdu_payload_channel_is_open_during_fault",
+          "field": "eps.payload_load_enabled_w",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_any",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "payload_load_was_requested",
+          "field": "eps.nominal_payload_load_w",
+          "operator": "gt",
+          "value": 0,
+          "scope": "active_any",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "native_solar_generation_is_reduced_during_fault",
+          "field": "eps.solar_power_w",
+          "operator": "lt",
+          "right_field": "eps.nominal_solar_power_w",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "native_pdu_payload_channel_is_open",
+          "field": "eps.pdu_payload_channel_enabled",
+          "operator": "eq",
+          "value": false,
+          "scope": "active_any",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "The aggregate EPS scenario combines battery, solar-array, PDU payload-channel and load effects; it does not verify those fault mechanisms as independently selectable events.",
+        "PDU load-shedding logic is a project-native Basilisk SysModel; battery and solar components use the registered Basilisk runtime path."
+      ],
+      "rationale": "The official Basilisk run records reduced battery capacity and reduced SimpleSolarPanel power output against the pre-event recorder baseline, while the PDU SysModel opens the payload channel and the direct load recorder confirms zero served payload power."
+    },
+    {
+      "capability_id": "subsystem.eps.unified_native.v1",
+      "effect_id": "energy_margin_degradation",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "eps.battery_capacity_j",
+        "eps.nominal_battery_capacity_j",
+        "eps.solar_power_w",
+        "eps.nominal_solar_power_w",
+        "eps.net_power_w",
+        "label.degradation_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "battery_capacity_degrades_from_nominal",
+          "field": "eps.battery_capacity_j",
+          "operator": "lt",
+          "right_field": "eps.nominal_battery_capacity_j",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "native_solar_generation_degrades_from_nominal",
+          "field": "eps.solar_power_w",
+          "operator": "lt",
+          "right_field": "eps.nominal_solar_power_w",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "The aggregate EPS degradation scenario combines battery and solar-array degradation; it does not verify each degradation mechanism as an independently selectable event."
+      ],
+      "rationale": "The official Basilisk run records time-dependent battery-capacity and SimpleSolarPanel output degradation against the pre-event recorder baseline."
+    },
+    {
+      "capability_id": "subsystem.comm_data.unified_native.v1",
+      "effect_id": "transmitter_rate_loss",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "comm_data.transmitter_baud_bps",
+        "comm_data.transmitter_storage_node_baud_bps",
+        "comm_data.transmitter_storage_node_rate_abs_bps",
+        "comm_data.nominal_transmitter_storage_node_baud_bps",
+        "label.fault_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "native_transmitter_rate_is_reduced_during_fault",
+          "field": "comm_data.transmitter_storage_node_rate_abs_bps",
+          "operator": "lt",
+          "right_field": "comm_data.nominal_transmitter_storage_node_baud_bps",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "This profile verifies only SimpleTransmitter nodeBaudRate data-rate loss; it does not establish RF output-power, antenna-gain, link-margin, ground-access, storage-failure, BER or PER behavior."
+      ],
+      "rationale": "The official Basilisk SimpleTransmitter nodeBaudRate input is directly observed through the native storage-node recorder and compared with the nominal configured data rate."
+    },
+    {
+      "capability_id": "subsystem.comm_data.unified_native.v1",
+      "effect_id": "transmitter_rate_degradation",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "comm_data.transmitter_baud_bps",
+        "comm_data.transmitter_storage_node_baud_bps",
+        "comm_data.transmitter_storage_node_rate_abs_bps",
+        "comm_data.nominal_transmitter_storage_node_baud_bps",
+        "label.degradation_active"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "native_transmitter_rate_degrades_from_nominal",
+          "field": "comm_data.transmitter_storage_node_rate_abs_bps",
+          "operator": "lt",
+          "right_field": "comm_data.nominal_transmitter_storage_node_baud_bps",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "This profile verifies only time-dependent SimpleTransmitter nodeBaudRate data-rate degradation; it does not establish RF output-power, antenna-gain, link-margin, ground-access, storage-failure, BER or PER behavior."
+      ],
+      "rationale": "The official Basilisk SimpleTransmitter nodeBaudRate input is directly observed through the native storage-node recorder and remains below its nominal configured data rate throughout active degradation samples."
     }
   ]
 }

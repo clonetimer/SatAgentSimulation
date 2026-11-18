@@ -78,8 +78,9 @@ _EFFECT_TO_ATTR: Mapping[str, tuple[str, ...]] = {
     # EPS / data-handling Basilisk writable fields.
     "available_current_factor": ("storageCapacity",),
     "capacity_ah": ("storageCapacity",),
-    "output_power_w": ("nodePowerOut",),
-    "string_availability": ("nodePowerOut",),
+    "output_power_w": ("panelEfficiency", "nodePowerOut"),
+    "string_availability": ("panelArea", "nodePowerOut"),
+    "cell_efficiency": ("panelEfficiency", "nodePowerOut"),
     "load_power_w": ("nodePowerOut",),
     "surge_power_w": ("nodePowerOut",),
     "trip_state": ("channel_enabled",),

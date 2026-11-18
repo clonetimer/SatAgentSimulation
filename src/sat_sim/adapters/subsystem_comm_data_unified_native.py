@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from sat_sim.adapter_base import SimulationResult
 from sat_sim.task_validator import ValidationIssue
+from subsystems.event_severity import event_severity, scale_parameter_effects
 
 CAPABILITY_ID = "subsystem.comm_data.unified_native.v1"
 
@@ -57,8 +58,8 @@ def _event_window(event: Mapping[str, Any]) -> tuple[float, float | None]:
 
 class CommDataUnifiedNativeAdapter:
     capability_id = CAPABILITY_ID
-    fault_effects = ("link_or_storage_failure",)
-    degradation_effects = ("margin_or_throughput_degradation",)
+    fault_effects = ("transmitter_rate_loss",)
+    degradation_effects = ("transmitter_rate_degradation",)
 
     def validate(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> tuple[ValidationIssue, ...]:
         issues: list[ValidationIssue] = []
@@ -76,6 +77,12 @@ class CommDataUnifiedNativeAdapter:
         for index, event in enumerate(_event_rows(spec, "degradation")):
             if _effect_id(event, "degradation") not in self.degradation_effects:
                 issues.append(ValidationIssue("error", f"$.events.degradations[{index}]", f"unsupported Comm/Data degradation effect {_effect_id(event, 'degradation')!r}", "event_effect"))
+        for kind in ("fault", "degradation"):
+            for index, event in enumerate(_event_rows(spec, kind)):
+                try:
+                    event_severity(event)
+                except ValueError as exc:
+                    issues.append(ValidationIssue("error", f"$.events.{kind}s[{index}].severity", str(exc), "range"))
         if _event_rows(spec, "constraint"):
             issues.append(ValidationIssue("error", "$.events.constraints", "runtime Comm/Data constraints are not supported", "event_effect"))
         return tuple(issues)
@@ -86,6 +93,7 @@ class CommDataUnifiedNativeAdapter:
         from subsystems.comm_data.runner import run_comm_data_basilisk_scenario
         from subsystems.comm_data.schemas import CommDataBasiliskConfig
         from subsystems.runtime_injection import runtime_injection_evidence
+        from components.fault_base import ParameterEffect
 
         values = _values(spec)
         config = CommDataBasiliskConfig(
@@ -105,13 +113,42 @@ class CommDataUnifiedNativeAdapter:
         fault_specs: list[dict[str, Any]] = []
         for event in fault_events:
             start_s, end_s = _event_window(event)
-            for item in build_fault_event_specs(default_fault_scenarios()["transmitter_power_loss"]):
+            severity = event_severity(event)
+            rate_fault = ParameterEffect(
+                "data_rate_bps",
+                "multiply",
+                0.35,
+                "controlled transmitter data-rate loss at the native nodeBaudRate input",
+            )
+            generated = build_fault_event_specs(default_fault_scenarios()["transmitter_power_loss"])
+            for item in generated:
                 row = dict(item)
+                row["scenario"] = "transmitter_rate_loss"
+                row["event_name"] = f"transmitter_rate_loss.transmitter.{row.get('phase', 'start')}"
+                row["fault_name"] = "TransmitterDataRateLoss"
+                row["fault_type"] = "transmitter_rate_loss"
+                row["target_id"] = "transmitter.primary"
+                row["effects"] = scale_parameter_effects((rate_fault,), severity)
+                row["basilisk_mapping"] = {
+                    "module": "simpleTransmitter",
+                    "parameter": "data_rate_bps",
+                    "injection": "module_parameter",
+                }
+                row["parameter"] = "data_rate_bps"
+                row["severity"] = 1.0
+                row["requested_severity"] = severity
                 row["time_s"] = start_s if row.get("phase") == "start" else (end_s if end_s is not None else config.duration_s + config.step_s)
                 fault_specs.append(row)
         degradation_specs: list[dict[str, Any]] = []
         for event in degradation_events:
             start_s, _ = _event_window(event)
+            severity = event_severity(event)
+            rate_degradation = ParameterEffect(
+                "data_rate_bps",
+                "degrade_multiply",
+                0.60,
+                "time-dependent transmitter data-rate degradation at the native nodeBaudRate input",
+            )
             generated = build_degradation_update_specs(
                 default_degradation_scenarios()["rf_path_aging"],
                 update_period_s=max(config.step_s, 1.0),
@@ -120,10 +157,30 @@ class CommDataUnifiedNativeAdapter:
                 if str(item.get("component")) != "transmitter":
                     continue
                 row = dict(item)
+                row["scenario"] = "transmitter_rate_degradation"
+                row["event_name"] = "transmitter_rate_degradation.transmitter.update"
+                row["degradation_name"] = "TransmitterDataRateDegradation"
+                row["degradation_type"] = "transmitter_rate_degradation"
                 row["start_s"] = start_s
+                row["effects"] = (rate_degradation,)
+                row["basilisk_mapping"] = {
+                    "module": "simpleTransmitter",
+                    "parameter": "data_rate_bps",
+                    "injection": "periodic_module_parameter",
+                }
+                row["parameter"] = "data_rate_bps"
                 degradation = row.get("degradation")
                 if degradation is not None and hasattr(degradation, "start_s"):
-                    row["degradation"] = replace(degradation, start_s=start_s)
+                    base_severity = float(getattr(degradation, "severity", 1.0))
+                    row["degradation"] = replace(
+                        degradation,
+                        start_s=start_s,
+                        severity=base_severity * severity,
+                        name="TransmitterDataRateDegradation",
+                        degradation_type="transmitter_rate_degradation",
+                        physical_mechanism="time-dependent reduction of the native SimpleTransmitter nodeBaudRate input",
+                        effects=(rate_degradation,),
+                    )
                 degradation_specs.append(row)
         summary, rows, context = run_comm_data_basilisk_scenario(
             config,
@@ -150,6 +207,8 @@ class CommDataUnifiedNativeAdapter:
                 "comm_data.transmitter_baud_bps": row.transmitter_baud_bps,
                 "comm_data.native_storage_drain_enabled": row.native_storage_drain_enabled,
                 "comm_data.transmitter_storage_node_baud_bps": row.transmitter_storage_node_baud_bps,
+                "comm_data.transmitter_storage_node_rate_abs_bps": abs(float(row.transmitter_storage_node_baud_bps)),
+                "comm_data.nominal_transmitter_storage_node_baud_bps": abs(float(config.transmitter_baud_bps)),
                 "label.fault_active": fault_active,
                 "label.degradation_active": degradation_active,
                 "label.health_state": "fault" if fault_active else ("degraded" if degradation_active else "nominal"),

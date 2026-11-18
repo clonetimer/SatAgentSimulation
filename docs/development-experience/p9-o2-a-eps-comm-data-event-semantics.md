@@ -1,0 +1,162 @@
+# P9-O2-A：EPS / Comm-Data 事件语义与严重度：开发经验
+
+日期：2026-11-19  
+候选分支：feat/p9-o2-eps-comm-data-effects-ab-20261119  
+基线：P9-O1 main commit 5f61e73aa4cdb952ee927090f6c995255088984b  
+状态：实现已提交，等待官方 Basilisk 2.11.0 CI；不代表物理 A/B 已通过。
+
+## 本阶段实际修改
+
+1. 新增 src/subsystems/event_severity.py：
+   - 统一读取 TaskSpec magnitude，优先显式 severity，兼容 UI normalized magnitude。
+   - 拒绝非有限值和 [0,1] 之外的数值。
+   - 连续乘性效应按 1 + (magnitude - 1) × severity 插值，保证 severity=0 时回到标称系数 1。
+   - add、add_loss、degrade_multiply、grow_multiply、grow_add 按 severity 线性缩放。
+   - override 和 clamp 保持二值/绝对目标，不把开关状态变成小数。
+
+2. EPS adapter：
+   - 校验 fault/degradation event severity。
+   - 对组合故障的连续 ParameterEffect 应用 severity。
+   - 对时间函数退化，将事件 severity 乘入退化模型自身 severity。
+   - 保留原有两个受控组合场景，不宣称已实现每一种独立 EPS 故障。
+
+3. Comm/Data adapter：
+   - 删除失真的宽泛 ID link_or_storage_failure、margin_or_throughput_degradation；旧 ID fail closed。
+   - 新 ID 为 transmitter_rate_loss、transmitter_rate_degradation。
+   - 只对官方 SimpleTransmitter 的 nodeBaudRate 输入施加受控数据率故障/退化。
+   - 记录 nominal transmitter rate 参照，便于对照 recorder 输出。
+   - 明确不把 nodeBaudRate 下降称为 RF 功率放大器故障、链路裕度下降或地面站链路闭环。
+
+4. 测试与 CI：
+   - 新增纯函数 severity 语义测试。
+   - Comm/Data 物理测试增加 severity=0.8 与 0.4 的数据率比例断言、故障结束恢复断言。
+   - EPS / Comm-Data 测试加入非法 severity 拒绝检查。
+   - 官方 Basilisk workflow 增加事件专项测试和 JUnit Artifact。
+
+## 为什么这样改
+
+- 先前 TaskSpec 中存在归一化 magnitude 字段，但 subsystem adapter 没有将其传递到实际 ParameterEffect / TimeFunctionDegradation，造成“配置可见、执行不生效”。
+- 先前 Comm/Data 的 link/storage 故障 ID 实际只映射到 transmitter 侧，不能代表 storage failure 或 RF link outage。
+- nodeBaudRate 是 SimpleTransmitter 的原生数据率输入，不是 RF 输出功率、天线增益、链路裕度或 BER/PER。效果命名必须服从可直接观测的物理量。
+
+## 踩坑与防回归规则
+
+1. 乘性效应的 severity 不能简单写成 magnitude × severity。若 magnitude=0.35、severity=0.8，直接相乘会得到 0.28；severity=0 时甚至把量乘成 0。正确的连续故障插值是 1 + (0.35 - 1) × 0.8 = 0.48。
+2. override / clamp 是离散或绝对语义，不能线性插值成半开关。此类事件若要支持部分严重度，必须先定义新的连续物理量，而不是复用开关事件。
+3. 不能将 rf_power_w 映射到 nodeBaudRate 后继续命名为发射功率损失；同一原生模块的不同字段不代表相同物理量。
+4. 只看 label.fault_active 或 runtime injection count 不构成物理效果证据。仍须检查 recorder 直接字段、nominal 对照、故障结束恢复和 sealed Run Bundle。
+5. 事件 ID 修改必须同步 capability modes、operator.effects、form label、baseline scenario、测试与工作流路径；否则 UI、API、验证器会出现不同版本的契约。
+6. O2-A 的实现和测试代码提交不等于 O2-B 物理 A/B 通过。只有同一最终 PR head 的官方 Basilisk 2.11.0 测试与封存证据通过，才可升级为 effect evidence profile。
+
+## 当前边界
+
+- EPS 仍是两个受控组合事件，尚未拆成可独立选择的电池、太阳阵、PDU 单点事件。
+- Comm/Data 只验证 transmitter nodeBaudRate 数据率输入；未建模 RF 功率放大器、天线方向图、链路预算、地面站过站、BER/PER 或存储坏块。
+- EPS/Comm-Data 事件仍未在普通用户向导开放。
+- 尚无 O2-B 的正式 paired TaskSpec sealed Run Bundle 证据，也未新增 VERIFIED_NATIVE_EFFECT profile。
+
+## 下一步
+
+1. 核对本分支官方 Basilisk 2.11.0 native workflow 的实际结果。
+2. 修复任何失败项，不用模拟器替代真实 Basilisk。
+3. 对 EPS fault/degradation 与 Comm/Data rate fault/degradation 分别生成 nominal/injected 成对 sealed Run Bundle。
+4. 从直接 recorder 字段建立 effect evidence profile；不满足断言的单个 effect 保持关闭。
+5. 最后补齐真实 Chromium 用户旅程和历史 Run Bundle 回放。
+
+
+## O2-B 首批 sealed A/B 测试实施（2026-11-19）
+
+- 新增 tests/test_native_eps_comm_data_effects_bundle.py，按四个 effect 分别运行 nominal 与 injected 的正式 TaskSpec Run Bundle。
+- 每个 Run 检查官方 Basilisk 2.11.0、SUCCEEDED、sealed、integrity、validation、runtime injection 直接应用计数与 recorder A/B。
+- 故障事件检查结束后恢复；退化事件检查在后续采样仍持续偏离 nominal。
+- 重要边界：当前 profile 仍是 operator declared evidence；A/B 测试直接比较 recorder，但尚未创建 VERIFIED_NATIVE_EFFECT profile。O2-C 需基于最终 A/B 结果补齐断言。
+- 当前 PR #187 head 为 b57692ad289c84166954365a2de442543d7cc04a，O2-B workflow 正在执行；结果未出之前不记录 PASS。
+
+
+## O2-B 首轮失败记录与修复（2026-11-19）
+
+- 首轮 paired Run Bundle 4/4 失败于 canonicalize_task_spec：BaseEvent 是 StrictModel，规范字段是 magnitude，severity 被判为 extra_forbidden。
+- 这是测试契约错误，不是 Basilisk 执行失败；nominal Run Bundle 已先成功创建。
+- 已将 sealed TaskSpec A/B 测试中的事件严重度改为 magnitude=0.8，并将 EPS/Comm-Data adapter 直测也统一改用 magnitude。
+- event_severity helper 保留 explicit severity 兼容入口，但用户可提交的 canonical TaskSpec 仍以 magnitude 为准。
+- 当前修复后的 CI 尚未完成，不能记录 O2-B PASS。
+
+
+## O2-C 与 PDU 物理语义回归经验（2026-11-19）
+
+1. 证据分级：新增四个 VERIFIED_NATIVE_EFFECT profile，但 profile 注册不等于测试通过；必须由正式 Run Bundle 和 direct recorder assertion 驱动，并在 formal runtime test 中执行。
+2. PDU trip 不能只记录 trip_state。若实际调度模型不读取该字段，runtime injection 即使报告应用成功也不会改变负载。现在将 channel_enabled 作为 PDU SysModel 的真实调度状态，UpdateState 将其纳入 payload_enabled 判定。
+3. 保护动作可能改善部分系统级指标。PDU 切除 payload 后，EPS 净功率可能上升（负载减少），因此不能要求所有 fault 都使 net_power_w 更低。应按机理验证：电池容量下降、太阳阵输出下降、载荷供电被切断、shed_reason 指明 channel trip。
+4. 不用单一 QoI 的方向代替故障机理证据；要把受影响模块的直接字段、保护逻辑输出和因果标签一起纳入验收。
+5. 当前 PDU 修复与正式 profile 测试的 CI 尚在重跑；未通过前不开放用户向导。
+
+
+## O2-B/O2-C 回归中的测试工程修正（2026-11-19）
+
+- PDU 物理断言调整后，EPS 单元测试新增 pytest.approx 但遗漏 import pytest；官方 CI 明确报 NameError，已补导入。
+- 自动重构 EPS paired A/B 的 fault/degradation 分支时产生重复 else，在 pytest collection 阶段触发 SyntaxError；已重写整个条件分支，避免继续做局部字符串替换。
+- 连续退化在 start_s 的首个采样点可能尚未产生非零变化；若断言要求 active_all 每个样本都偏离标称，会错误否定正确的时间函数。退化 profile 改用 active_any，并由 O2-B paired Run Bundle 在中后段采样单独验证持续退化。
+- 这些错误都属于测试/验收代码问题，不应误报为 Basilisk 物理模型缺陷。修复后仍必须在最终 PR head 重跑完整官方 workflow。
+
+
+## O2-B 原生太阳阵参数映射修正（2026-11-19）
+
+- paired Run Bundle 对照发现：EPS nominal/injected 的 solar_power_w 完全相同，说明虽然 SimpleSolarPanel 模块已实例化，但旧的 output_power_w -> nodePowerOut 映射并不适用于 SimpleSolarPanel。不能用“模块已实例化”推断某个参数已被实际改变。
+- 核对 Basilisk SimpleSolarPanel 官方接口后，确认可写参数为 panelArea、panelEfficiency、nHat_B；setPanelParameters 同时设置前述构型参数。已将 string_availability 映射到 panelArea，将 cell_efficiency/output_power_w 映射到 panelEfficiency（SimplePowerSink fallback 仍保留 nodePowerOut 回退）。
+- EPS adapter 增加逐 Run 的 pre-event solar recorder baseline；sealed A/B 要求确认使用官方 SimpleSolarPanel，并直接比较故障/退化期间的 nodePowerOut 与同一 Run 事件前的 recorder 样本。panelArea/panelEfficiency 是运行时注入目标，不把仿真结束后的参数快照伪装成逐样本遥测。
+- EPS fault profile 验证 panelArea 下降；EPS degradation profile 验证 panelEfficiency 下降。Comm/Data 与 EPS fault profile 的 active 样本范围改为 active_any，避免在事件起始采样时刻尚未完成调度更新就要求每个样本都偏离标称。
+- 最新官方 Basilisk 回归正在执行；在最终同一 PR head 全部 PASS 前，不把这轮映射修复记为通过。
+
+
+### 原生太阳阵参数的时间采样边界补充（2026-11-19）
+
+- 不能在仿真结束后读取 SimpleSolarPanel.panelArea/panelEfficiency 来代表事件期间状态：故障结束会恢复 panelArea，读取时已回到 nominal；时间退化参数可能保持最终值，但不是逐样本遥测。
+- 因此最终验收使用官方 SimpleSolarPanel 的 nodePowerOut recorder 作为输出，并在事件开始前最后一个 recorder 样本建立同一 Run 内的 nominal_solar_power_w 参照。故障/退化期间直接比较太阳阵输出功率，避免使用理论配置值或仿真结束时的参数快照。
+- panelArea / panelEfficiency 仍是运行时注入的实际参数目标；证据层以其真实输出结果为准，而不是将模块属性快照伪装成逐样本遥测。
+
+
+### PDU 跳闸结束后的保护恢复语义（2026-11-19）
+
+- O2-B paired Run Bundle 显示：故障结束后 `label.health_state` 已回到 nominal，但 payload 实际供电仍为 0。原因是组合故障期间电池 SOC 已跌破 PDU 低电量阈值，保护性 load shedding 会在跳闸解除后继续保持，直到满足恢复条件；这不是 channel_enabled 未恢复。
+- 不应要求“故障结束=负载立即恢复”。现在在 PduDecisionTraceRow 中逐样本记录 payload_channel_enabled，并将它和 shed_reason 暴露为 EPS trace 字段。验收分别检查：故障期间 channel_enabled=false 且 shed_reason 包含 payload_channel_trip；事件结束后 channel_enabled=true 且 trip 原因消失。实际负载可继续因 payload_low_soc 被切除。
+- 这将硬件故障状态、保护开关状态和系统级供电服务状态分离，避免将安全保护动作误判为故障未恢复。
+
+
+### PDU 事件结束后的低 SOC 供电门控：语义澄清（2026-11-19）
+
+- 更精确的代码核对修正了“PDU 通道锁存”的表述：runtime event 结束后 `channel_enabled` 会恢复为 true；本轮 Run 中 payload 仍未供电，是因为 SOC 低于 `payload_min_soc`，而不是 channel trip 锁存。
+- 当前 `PduLoadSheddingSysModel` 是两个独立门控的合取：`payload_channel_enabled`（事件注入开关）与 `soc >= payload_min_soc`（低电量保护）。故障结束只恢复前者，不保证后者立即允许负载。
+- `recovery_soc` 当前只用于附加 `charge_recovery_required` 诊断原因，并未作为滞回恢复阈值参与 `payload_enabled` 判定；因此本 PR 不宣称实现了 SOC 滞回。若后续产品要求防止阈值附近抖动，应单独设计并验证 SOC shed/recovery 状态机。
+- sealed A/B 断言现在分别验证：事件中 PDU 通道关闭且原因为 `payload_channel_trip`；事件后通道恢复、trip 原因消失；若 payload 仍关闭，则必须能从直接 PDU 记录中找到 `payload_low_soc` 原因。这样不把故障恢复与供电服务恢复混为一谈。
+
+
+## O2-C 正式运行测试回归（2026-11-19）
+
+- 官方 Basilisk 2.11.0 同一 head 的四组 EPS/Comm-Data paired sealed Run Bundle 全部通过（4/4）；PDU 事件后断言也通过：通道恢复开启，若实际 payload 仍关闭，则直接 shed_reason 必须指出 payload_low_soc。
+- formal runtime evidence 首轮共 17 个参数化用例：7 个 ADCS 用例通过；EPS/Comm-Data 4 个用例因测试 helper 把 label.fault_active / label.degradation_active 错当成请求 QoI 而在 TaskSpec 规划阶段失败。状态标签是 runtime trace/evidence 元数据，不是所有 capability 都声明的用户 QoI；现在从 outputs.qoi 中过滤 label.*，但不从 evidence profile 或 trace 中删除。
+- whole-spacecraft 6 个既有 formal 用例因 CI 安装脚本漏装 numba 而失败。项目 pyproject.toml 已固定 numba==0.63.1，thermal_quadrature.py 是整星原生热环境运行的实际依赖；这是 CI 安装清单漂移，不是 Basilisk 物理模型失败。已将同版本 numba 加入官方 native workflow 安装步骤。
+- 修复后必须在新的最终 PR head 重跑 17 个 formal 用例；不能把 7/17 或 4/4 A/B 当成 O2-C 全部通过。
+
+
+## O2-D 向导事件入口与浏览器旅程经验（2026-11-19）
+
+- 不要仅凭 capability_form_schema 返回 event_catalog 就向用户开放事件；必须同时有 formal effect evidence、paired native A/B 和 browser Run Bundle 旅程。向导入口现在用 capability ID 与 event_catalog 双重 gate，单机 native 仍保持 nominal-only。
+- UI 的 event select 是按 kind 从 schema 动态生成的，因此每个对象必须分别校验 fault/degradation 两个下拉目录，不能只验证某一个 effect 可添加。
+- EPS 与 Comm/Data 各有一个 fault 和一个 degradation；用同一个 parameterized Chromium test 覆盖六条旅程（含两条 nominal），避免复制两套 Run Center/Bundle 校验流程。
+- 对 magnitude_applicable=false 的二值 PDU trip，不渲染通用 magnitude；对连续退化与 transmitter rate loss，浏览器实际修改归一化 magnitude，并验证 canonical TaskSpec 保存值与 effect evidence。
+- O2-D 的 CI 必须先 collect-only 精确检查六个用例，再执行真实 Chromium；不能把 browser workflow skipped 或 deselected 当作旅程通过。
+
+
+### 向导事件目录的双层准入（2026-11-19）
+
+- 仅在前端 addEffect() 拒绝未授权事件还不够：未授权 effect 仍可能出现在下拉菜单，造成“看得到但不能用”的错误体验。现已在 form_schema._effect_templates 中按 capability_id + event kind 应用 GUIDED_EFFECT_ALLOWLISTS，服务端 Schema 不再返回未准入事件；前端 addEffect 仍保留第二道防线。
+- 当前 ADCS、EPS、Comm/Data 三个 native subsystem 分别维护 fault/degradation/constraint 白名单。EPS/Comm Data 的精确 allowlist 与 formal evidence profile、paired A/B 和浏览器测试参数化用例保持一致。
+- 目录测试应验证每个 kind 的完整 effect 集合，而不是只断言某个目标 effect 存在；这样新注册但未完成证据准入的 effect 不会意外进入普通向导。
+
+
+## O2-D 六条真实 Chromium 旅程首轮通过（2026-11-19）
+
+- 官方 Basilisk native workflow 的浏览器阶段实际运行 `tests/test_guided_task_workspace_browser.py`，结果 `12 passed, 4 deselected`，总 job success。collect-only 精确列出 EPS nominal/fault/degradation 与 Comm/Data nominal/fault/degradation 六个参数化用例；不是仅收集而不执行。
+- 六条用例都走过真实 Chromium UI、TestClient API 代理、异步 Basilisk 执行、sealed Run Bundle 下载和 Run Center 历史重开。故障/退化用例还验证 TaskSpec 时间窗与 magnitude、`validation_outcome.injection_evidence`、活动期直接遥测、曲线 manifest 和 FMEA provenance。
+- EPS fault browser 断言直接检查 PDU 通道关闭、载荷负载为零且 shed_reason 包含 `payload_channel_trip`；EPS degradation 检查电池有效容量与太阳阵输出相对 nominal 降低；Comm/Data fault/degradation 检查 SimpleTransmitter 存储节点实际码率低于 nominal 参照。
+- 首轮 workflow 已成功，但 browser 测试结果仅在 Actions 日志中；为满足 O2-E 可移交证据要求，下一轮将 JUnit XML 纳入 `native-component-physical-evidence` artifact，并对 6+1 目标用例数量与 skipped/failure 状态做归档前断言。

@@ -96,6 +96,7 @@ if basilisk_available():
         time_s: float
         soc: float
         payload_requested: bool
+        payload_channel_enabled: bool
         adcs_requested: bool
         comm_requested: bool
         heater_requested: bool
@@ -132,6 +133,8 @@ if basilisk_available():
             super().__init__()
             self.ModelTag = "pduLoadSheddingSysModel"
             self.config = config or PduLoadSheddingConfig()
+            # Runtime event target: a protected payload PDU channel is enabled by default.
+            self.channel_enabled = 1.0
             self.batteryStatusInMsg = _messaging.PowerStorageStatusMsgReader()
             self.payloadRequestInMsg = _messaging.DeviceCmdMsgReader()
             self.adcsRequestInMsg = _messaging.DeviceCmdMsgReader()
@@ -180,13 +183,16 @@ if basilisk_available():
             comm_req = self._requested(self.commRequestInMsg)
             heater_req = self._requested(self.heaterRequestInMsg)
 
-            payload_enabled = payload_req and soc >= self.config.payload_min_soc
+            payload_channel_enabled = float(getattr(self, "channel_enabled", 1.0)) >= 0.5
+            payload_enabled = payload_req and soc >= self.config.payload_min_soc and payload_channel_enabled
             comm_enabled = comm_req and soc >= self.config.comm_min_soc
             heater_enabled = heater_req and soc >= self.config.heater_min_soc
             adcs_enabled = adcs_req and soc >= self.config.adcs_min_soc
 
             shed_reasons = []
-            if payload_req and not payload_enabled:
+            if payload_req and not payload_channel_enabled:
+                shed_reasons.append("payload_channel_trip")
+            elif payload_req and not payload_enabled:
                 shed_reasons.append("payload_low_soc")
             if comm_req and not comm_enabled:
                 shed_reasons.append("comm_low_soc")
@@ -206,6 +212,7 @@ if basilisk_available():
                 time_s=float(CurrentSimNanos) * macros.NANO2SEC,
                 soc=soc,
                 payload_requested=payload_req,
+                payload_channel_enabled=payload_channel_enabled,
                 adcs_requested=adcs_req,
                 comm_requested=comm_req,
                 heater_requested=heater_req,
