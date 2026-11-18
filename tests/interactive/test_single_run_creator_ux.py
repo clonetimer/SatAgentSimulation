@@ -694,6 +694,7 @@ def test_rule_driven_wizard_completes_preflight_without_agent_or_run_submission(
             assert page.locator("#wizardOptions .wizard-option").count() == 9
             assert page.locator("#wizardOptions [data-wizard-goal='component_native']").count() == 1
             assert page.locator("#wizardOptions [data-wizard-goal='subsystem_native']").count() == 1
+            assert page.locator("#wizardOptions [data-wizard-goal='subsystem_native']").inner_text().startswith("分系统独立仿真")
             assert page.locator("#wizardOptions [data-wizard-goal='component_native']").inner_text().startswith("单机独立仿真")
             assert page.locator("#wizardOptions [data-wizard-goal='natural_language']").count() == 1
             assert page.locator("#wizardOptions [data-wizard-goal='taskspec']").count() == 1
