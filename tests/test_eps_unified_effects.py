@@ -20,7 +20,7 @@ def _spec(mode: str, kind: str | None = None, effect: str | None = None) -> dict
                 "modifier_type": effect,
                 "start_s": 10.0,
                 "duration_s": 10.0,
-                "severity": 0.8,
+                "magnitude": 0.8,
             }]
         }
     return spec
@@ -70,6 +70,6 @@ def test_eps_unified_rejects_unknown_effect() -> None:
 def test_eps_rejects_invalid_event_severity() -> None:
     adapter = EpsUnifiedNativeAdapter()
     spec = _spec("fault", "faults", "generation_storage_distribution_failure")
-    spec["events"]["faults"][0]["severity"] = -0.1
+    spec["events"]["faults"][0]["magnitude"] = -0.1
     issues = adapter.validate(spec, get_capability(adapter.capability_id).data)
     assert any(issue.severity == "error" and issue.code == "range" for issue in issues)
