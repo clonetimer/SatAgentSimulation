@@ -109,3 +109,10 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 - The EPS PDU trip was previously described by an unused trip_state parameter. The native PDU SysModel now owns a scheduled channel_enabled state and applies it to the payload command gate; the combined EPS fault targets this real field.
 - A PDU trip sheds payload load, so net_power_w can become less negative. A former assertion that every EPS fault must lower net_power_w was physically incorrect. Tests now assert direct payload load cut-off and the PDU shed reason instead.
 - The latest regression run exposed that assertion error; corrected tests are on the current branch, and their official Basilisk re-run is pending. O2-C is not yet promoted until formal runtime profiles pass on one final head.
+
+
+### PDU 保护动作与事件结束语义（2026-11-19）
+
+- PDU trace 现逐样本记录 payload_channel_enabled 与 shed_reason，并通过 EPS adapter 输出 eps.pdu_payload_channel_enabled / eps.pdu_shed_reason。
+- 故障 active 时要求通道关闭、payload 供电为零且 shed_reason 含 payload_channel_trip；故障结束后要求通道恢复开启且 trip 原因消失。若 SOC 仍低于阈值，PDU 可以继续按 payload_low_soc 保护性切除负载，不强制负载立即恢复。
+- 当前最终同 head 官方 Basilisk A/B 与 formal evidence 仍在重跑；通过前不进入 O2-D 开放向导。
