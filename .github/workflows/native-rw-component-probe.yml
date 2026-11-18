@@ -79,7 +79,7 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
-            -k "guided_component_reaction_wheel or guided_single_component_shortcut"
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight"
 
       - name: Archive Basilisk-native measured RW traces and A/B metrics
         uses: actions/upload-artifact@v7
