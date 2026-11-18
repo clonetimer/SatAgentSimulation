@@ -100,7 +100,12 @@ class NativeEventStatus(sysModel.SysModel):
 
 
 class AdcsSensorFusion(sysModel.SysModel):
-    """Fuse star/IMU fine attitude with independent Sun/Earth-vector attitude."""
+    """Deterministic attitude estimate from measured star, Sun/Earth and magnetic vectors.
+
+    This is an engineering-preview estimator, not a flight-correlated MEKF/Kalman
+    filter. StarTracker, IMU and Magnetometer measurements are transformed from
+    their sensor frames into body frame B before publishing NavAttMsg.
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -108,6 +113,7 @@ class AdcsSensorFusion(sysModel.SysModel):
         self.starInMsg = messaging.STSensorMsgReader()
         self.imuInMsg = messaging.IMUSensorMsgReader()
         self.magInMsg = messaging.TAMSensorMsgReader()
+        self.magReferenceInMsg = messaging.MagneticFieldMsgReader()
         self.sunBodyInMsg = messaging.TAMSensorMsgReader()
         self.sunReferenceInMsg = messaging.TAMSensorMsgReader()
         self.earthBodyInMsg = messaging.TAMSensorMsgReader()
@@ -116,54 +122,145 @@ class AdcsSensorFusion(sysModel.SysModel):
         self.sunValidInMsg = messaging.DeviceStatusMsgReader()
         self.attOutMsg = messaging.NavAttMsg()
         self.sourceModeOutMsg = messaging.DeviceStatusMsg()
+        self.magUsedOutMsg = messaging.DeviceStatusMsg()
+        # DCMs map body B into the respective sensor frames. The defaults are
+        # identity and are overwritten from the actual official Basilisk models.
+        self.starMountDcmCB = np.eye(3).tolist()
+        self.imuMountDcmPB = np.eye(3).tolist()
+        self.magMountDcmSB = np.eye(3).tolist()
 
     def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
         self.UpdateState(current_sim_nanos)
 
+    @staticmethod
+    def _slerp_mrp(star_sigma: Sequence[float], coarse_sigma: Sequence[float], coarse_weight: float = 0.1) -> list[float]:
+        q_star = np.asarray(RigidBodyKinematics.MRP2EP(list(star_sigma)), dtype=float).reshape(4)
+        q_coarse = np.asarray(RigidBodyKinematics.MRP2EP(list(coarse_sigma)), dtype=float).reshape(4)
+        if not np.all(np.isfinite(q_star)) or not np.all(np.isfinite(q_coarse)):
+            raise ValueError("ADCS_FUSION_QUATERNION_NOT_FINITE")
+        q_star /= max(float(np.linalg.norm(q_star)), 1.0e-15)
+        q_coarse /= max(float(np.linalg.norm(q_coarse)), 1.0e-15)
+        dot = float(np.dot(q_star, q_coarse))
+        if dot < 0.0:
+            q_coarse = -q_coarse
+            dot = -dot
+        dot = min(max(dot, -1.0), 1.0)
+        weight = min(max(float(coarse_weight), 0.0), 1.0)
+        if dot > 0.9995:
+            quaternion = (1.0 - weight) * q_star + weight * q_coarse
+        else:
+            angle = math.acos(dot)
+            denominator = math.sin(angle)
+            quaternion = (
+                math.sin((1.0 - weight) * angle) / denominator * q_star
+                + math.sin(weight * angle) / denominator * q_coarse
+            )
+        quaternion /= max(float(np.linalg.norm(quaternion)), 1.0e-15)
+        return list(RigidBodyKinematics.EP2MRP(quaternion.tolist()))
+
     def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
         star = self.starInMsg()
         imu = self.imuInMsg()
-        _ = self.magInMsg()
+        mag = self.magInMsg()
+        mag_reference = self.magReferenceInMsg()
         star_valid = bool(self.starValidInMsg().deviceStatus)
         sun_valid = bool(self.sunValidInMsg().deviceStatus)
+
+        # StarTracker reports N->C (qInrtl2Case); dcm_CB maps B->C.
+        # Therefore C_BN = C_BC * C_CN = dcm_CB.T * C_CN.
         quaternion = [float(x) for x in star.qInrtl2Case]
-        star_sigma = (
-            list(RigidBodyKinematics.EP2MRP(quaternion))
-            if star_valid and any(abs(value) > 0.0 for value in quaternion)
-            else [0.0, 0.0, 0.0]
+        quaternion_valid = (
+            len(quaternion) == 4
+            and all(math.isfinite(value) for value in quaternion)
+            and sum(value * value for value in quaternion) > 1.0e-20
         )
-        coarse_dcm = _triad_dcm(
-            self.sunBodyInMsg().tam_S, self.earthBodyInMsg().tam_S,
-            self.sunReferenceInMsg().tam_S, self.earthReferenceInMsg().tam_S,
-        ) if sun_valid else None
-        coarse_sigma = list(RigidBodyKinematics.EP2MRP(RigidBodyKinematics.C2EP(np.asarray(coarse_dcm)))) if coarse_dcm is not None else None
-        if star_valid and coarse_sigma is not None:
-            # Star tracker remains the fine solution; Sun/Earth TRIAD contributes
-            # a bounded coarse correction and supplies an autonomous fallback.
-            sigma = [0.9 * star_sigma[i] + 0.1 * coarse_sigma[i] for i in range(3)]
+        star_sigma: list[float] | None = None
+        if star_valid and quaternion_valid:
+            sigma_cn = list(RigidBodyKinematics.EP2MRP(quaternion))
+            dcm_cn = np.asarray(RigidBodyKinematics.MRP2C(sigma_cn), dtype=float).reshape(3, 3)
+            dcm_cb = np.asarray(self.starMountDcmCB, dtype=float).reshape(3, 3)
+            dcm_bn = dcm_cb.T @ dcm_cn
+            if np.all(np.isfinite(dcm_bn)):
+                star_sigma = list(RigidBodyKinematics.C2MRP(dcm_bn))
+
+        # IMUSensor.AngVelPlatform is expressed in platform frame P.
+        # dcm_PB maps B->P, so transpose maps the measured vector P->B.
+        dcm_pb = np.asarray(self.imuMountDcmPB, dtype=float).reshape(3, 3)
+        omega_platform = np.asarray([float(x) for x in imu.AngVelPlatform], dtype=float)
+        omega_body = dcm_pb.T @ omega_platform
+        if not np.all(np.isfinite(omega_body)):
+            raise ValueError("ADCS_IMU_BODY_RATE_NOT_FINITE")
+
+        # Magnetometer.tam_S is expressed in sensor frame S; dcm_SB maps B->S.
+        # The official magnetic field reference is expressed in inertial frame N.
+        dcm_sb = np.asarray(self.magMountDcmSB, dtype=float).reshape(3, 3)
+        mag_sensor = np.asarray([float(x) for x in mag.tam_S], dtype=float)
+        mag_body = dcm_sb.T @ mag_sensor
+        mag_reference_n = [float(x) for x in mag_reference.magField_N]
+        mag_norm = float(np.linalg.norm(mag_body))
+        reference_norm = _norm3(mag_reference_n)
+        mag_valid = (
+            np.all(np.isfinite(mag_body))
+            and all(math.isfinite(value) for value in mag_reference_n)
+            and mag_norm > 1.0e-12
+            and reference_norm > 1.0e-12
+        )
+
+        sun_body = [float(x) for x in self.sunBodyInMsg().tam_S]
+        sun_reference_n = [float(x) for x in self.sunReferenceInMsg().tam_S]
+        earth_body = [float(x) for x in self.earthBodyInMsg().tam_S]
+        earth_reference_n = [float(x) for x in self.earthReferenceInMsg().tam_S]
+
+        # Prefer Sun + measured magnetic field. If the Sun vector is invalid,
+        # use Earth-centre + magnetic field. Only fall back to Sun/Earth TRIAD
+        # when the magnetic measurement or reference is unavailable.
+        coarse_dcm = None
+        magnetometer_used = False
+        if mag_valid and sun_valid:
+            coarse_dcm = _triad_dcm(sun_body, mag_body.tolist(), sun_reference_n, mag_reference_n)
+            magnetometer_used = coarse_dcm is not None
+        if coarse_dcm is None and mag_valid:
+            coarse_dcm = _triad_dcm(earth_body, mag_body.tolist(), earth_reference_n, mag_reference_n)
+            magnetometer_used = coarse_dcm is not None
+        if coarse_dcm is None and sun_valid:
+            coarse_dcm = _triad_dcm(sun_body, earth_body, sun_reference_n, earth_reference_n)
+            magnetometer_used = False
+
+        coarse_sigma = (
+            list(RigidBodyKinematics.C2MRP(np.asarray(coarse_dcm, dtype=float)))
+            if coarse_dcm is not None else None
+        )
+        if star_sigma is not None and coarse_sigma is not None:
+            sigma = self._slerp_mrp(star_sigma, coarse_sigma, coarse_weight=0.1)
             source_mode = 3
-        elif star_valid:
-            sigma = star_sigma; source_mode = 2
+        elif star_sigma is not None:
+            sigma = star_sigma
+            source_mode = 2
         elif coarse_sigma is not None:
-            sigma = coarse_sigma; source_mode = 1
+            sigma = coarse_sigma
+            source_mode = 1
         else:
-            sigma = [0.0, 0.0, 0.0]; source_mode = 0
+            # The controller must not consume a fabricated zero attitude.
+            sigma = [0.0, 0.0, 0.0]
+            source_mode = 0
+
         payload = messaging.NavAttMsgPayload()
         payload.sigma_BN = sigma
-        payload.omega_BN_B = [float(x) for x in imu.AngVelPlatform]
-        payload.vehSunPntBdy = [float(value) for value in self.sunBodyInMsg().tam_S]
+        payload.omega_BN_B = [float(x) for x in omega_body]
+        payload.vehSunPntBdy = sun_body if sun_valid else [0.0, 0.0, 0.0]
         payload.timeTag = _seconds(current_sim_nanos)
         self.attOutMsg.write(payload, current_sim_nanos, self.moduleID)
         _write_status(self.sourceModeOutMsg, source_mode, current_sim_nanos, self.moduleID)
+        _write_status(self.magUsedOutMsg, 1 if magnetometer_used else 0, current_sim_nanos, self.moduleID)
 
 
 class EarthHorizonSensor(sysModel.SysModel):
     """Publish the nadir/earth-centre direction in the spacecraft body frame.
 
-    The project has no stock earth-sensor component.  This scheduled,
-    message-driven module provides the ideal geometric measurement used by the
-    dataset architecture; it is supplementary telemetry and is not fed into
-    the star-tracker/IMU control loop.
+    The project has no stock earth-sensor component. This ideal geometric
+    measurement is derived from spacecraft position/attitude truth and is used
+    as a coarse TRIAD reference when the Sun vector is unavailable. It is not
+    an official Basilisk sensor and does not model optical horizon detection.
     """
 
     def __init__(self) -> None:
@@ -194,7 +291,11 @@ class EarthHorizonSensor(sysModel.SysModel):
 
 
 class SunDirectionSensor(sysModel.SysModel):
-    """Publish simulated Sun direction in body and inertial frames."""
+    """Publish an ideal project-native Sun vector derived from ephemeris and SC truth.
+
+    This is not the scalar CoarseSunSensor output and does not model CSS FOV,
+    occultation, albedo, optical response or measurement noise.
+    """
 
     def __init__(self) -> None:
         super().__init__()
