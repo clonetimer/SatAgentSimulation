@@ -78,8 +78,8 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
     clear_capability_cache()
     expected = {
         ADCS_ID: {
-            "adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step",
-            "gyro_noise_increase", "rw_friction_degradation",
+            "adcs_rw_jamming", "adcs_rw_motor_failure", "adcs_rw_torque_authority_loss",
+            "gyro_bias_step", "gyro_noise_increase", "rw_friction_degradation",
             "adcs_reaction_wheel_speed_limit",
         },
         WHOLE_ID: {
@@ -103,7 +103,8 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
     ("capability_id", "category", "event", "values"),
     [
         (ADCS_ID, "fault", _event("adcs_rw_jamming", target="adcs", wheel_index=0, brake_torque_nm=0.2), {}),
-        (ADCS_ID, "fault", _event("adcs_rw_motor_failure", target="adcs", wheel_index=1, torque_scale=0.25), {}),
+        (ADCS_ID, "fault", _event("adcs_rw_motor_failure", target="adcs", wheel_index=1), {}),
+        (ADCS_ID, "degradation", _event("adcs_rw_torque_authority_loss", target="adcs", wheel_index=1, torque_scale=0.25), {}),
         (ADCS_ID, "fault", _event("gyro_bias_step", target="adcs", bias_step_deg_s=[0.0, 0.5, 0.0]), {}),
         (ADCS_ID, "degradation", _event("gyro_noise_increase", target="adcs", noise_scale=100.0), {}),
         (ADCS_ID, "degradation", _event("rw_friction_degradation", target="adcs", wheel_index=2, drag_nms=0.012), {}),

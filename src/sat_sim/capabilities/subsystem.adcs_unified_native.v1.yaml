@@ -459,7 +459,7 @@ operator:
     - adcs.rw.effective_torque_ratio_0
     - adcs.rw.effective_max_torque_nm_0
     - adcs.control.applied_torque_nm_0
-    verification: candidate
+    verification: declared
   - effect_id: adcs_reaction_wheel_speed_limit
     kind: constraint
     owner: project_rw_command_fault_manager
