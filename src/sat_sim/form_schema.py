@@ -146,6 +146,8 @@ EFFECT_LABELS_ZH: dict[str, tuple[str, str]] = {
     "adcs_rw_friction_increase": ("ADCS反作用轮摩擦退化", "增加反作用轮等效摩擦阻尼，影响轮速与姿态控制响应。"),
     "transmitter_rate_loss": ("发射机数据率损失", "受控降低官方 SimpleTransmitter 的 nodeBaudRate 输入；此事件验证的是数据率下降，不代表已建立 RF 功率放大器或链路几何模型。"),
     "transmitter_rate_degradation": ("发射机数据率退化", "随仿真时间逐步降低官方 SimpleTransmitter 的 nodeBaudRate 输入；不代表 RF 功率、链路裕度或地面站过站模型。"),
+    "generation_storage_distribution_failure": ("EPS电源生成、储能与配电组合故障", "受控组合场景：电池可用容量/放电路径异常、太阳阵列输出下降、PDU载荷通道保护性跳闸及负载过载。PDU跳闸为二值保护动作；不代表所有EPS故障类型均已独立建模。"),
+    "energy_margin_degradation": ("EPS能源裕度退化", "受控组合退化场景：电池有效容量与太阳阵列输出随时间退化；不代表所有EPS退化机理均已独立建模。"),
 }
 
 
@@ -197,6 +199,25 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
         "magnitude_applicable": False,
         "instructions": "填写发射功率损失百分比；该基础通信能力按仿真开始时的参数生效。",
         "parameters": [{"name": "value_pct", "label": "发射功率损失", "type": "number", "unit": "%", "minimum": 0.0, "maximum": 100.0, "default": 30.0, "description": "有效发射功率的损失百分比。"}],
+    },
+    "generation_storage_distribution_failure": {
+        "magnitude_applicable": False,
+        "instructions": "受控EPS组合故障包含电池、太阳阵列、PDU载荷通道和负载效应。PDU通道跳闸是二值保护动作，不提供部分跳闸严重度；因此不显示 magnitude 调节。故障开始和结束时间仍可配置。",
+    },
+    "energy_margin_degradation": {
+        "magnitude_applicable": True,
+        "default_magnitude": 0.2,
+        "instructions": "magnitude 为归一化退化强度，缩放电池有效容量与太阳阵列输出的连续退化速率；0 表示不施加退化，1 表示配置的完整退化强度。",
+    },
+    "transmitter_rate_loss": {
+        "magnitude_applicable": True,
+        "default_magnitude": 1.0,
+        "instructions": "magnitude 为归一化故障严重度，按标称数据率到受控故障数据率之间插值。该事件只作用于官方 SimpleTransmitter.nodeBaudRate，不代表RF输出功率或链路中断。",
+    },
+    "transmitter_rate_degradation": {
+        "magnitude_applicable": True,
+        "default_magnitude": 0.2,
+        "instructions": "magnitude 为归一化退化强度，缩放官方 SimpleTransmitter.nodeBaudRate 的时间退化速率；不代表RF功率、链路裕度或存储坏块。",
     },
     "comm_tx_gain_loss_db": {
         "magnitude_applicable": False,
