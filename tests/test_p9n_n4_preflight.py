@@ -84,7 +84,7 @@ def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tm
             json={"task_spec": spec},
         )
         assert projected.status_code == 200, projected.text
-        form_data = projected.json()["projection"]
+        form_data = projected.json()["projection"]["form_data"]
         form_data["simulation"]["sample_s"] = 1.1
         response = client.post(
             "/tasks/parse",
