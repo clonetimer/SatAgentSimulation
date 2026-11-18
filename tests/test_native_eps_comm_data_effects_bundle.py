@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from importlib.metadata import version
 from pathlib import Path
 from typing import Any
