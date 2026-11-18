@@ -57,10 +57,12 @@ def test_native_imu_probe_records_official_gyro_against_prescribed_truth():
     assert result.model_source == "Basilisk.simulation.imuSensor.ImuSensor"
     assert result.input_source == "explicit_SCStatesMsg_truth_fixture"
     assert result.claim_scope.endswith("without_navigation_or_closed_loop")
-    assert len(result.times_s) == len(result.angular_velocity_platform_rad_s)
+    assert len(result.times_s) == len(result.angular_velocity_platform_rad_s) == len(result.acceleration_platform_m_s2)
     assert len(result.times_s) >= 2
     for measured in result.angular_velocity_platform_rad_s:
         assert measured == pytest.approx(result.truth_omega_bn_b_rad_s, abs=1e-6)
+    for measured in result.acceleration_platform_m_s2:
+        assert measured == pytest.approx(result.truth_specific_force_b_m_s2, abs=1e-6)
 
 
 @pytest.mark.parametrize(
