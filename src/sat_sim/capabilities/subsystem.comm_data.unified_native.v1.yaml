@@ -129,6 +129,20 @@ operator:
     - comm_data.nominal_transmitter_storage_node_baud_bps
     - label.degradation_active
     verification: declared
+  observability:
+    effect_evidence:
+      transmitter_rate_loss:
+      - comm_data.transmitter_baud_bps
+      - comm_data.transmitter_storage_node_baud_bps
+      - comm_data.transmitter_storage_node_rate_abs_bps
+      - comm_data.nominal_transmitter_storage_node_baud_bps
+      - label.fault_active
+      transmitter_rate_degradation:
+      - comm_data.transmitter_baud_bps
+      - comm_data.transmitter_storage_node_baud_bps
+      - comm_data.transmitter_storage_node_rate_abs_bps
+      - comm_data.nominal_transmitter_storage_node_baud_bps
+      - label.degradation_active
   limitations:
   - Native event coverage is limited to reducing the SimpleTransmitter nodeBaudRate input and a time-dependent reduction of that same data-rate input. This is not an RF output-power, antenna-gain, link-margin, ground-access, storage-failure, or BER/PER model.
   - Parameters are engineering estimates and are not flight calibrated.
