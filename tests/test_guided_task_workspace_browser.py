@@ -1188,7 +1188,7 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
                 assert field in final_row, (field, final_row)
             streams = client.get(f"/runs/{run_id}/telemetry-streams")
             assert streams.status_code == 200, streams.text
-            stream_ids = {item["stream_id"] for item in streams.json()["streams"]}
+            stream_ids = {item["stream_id"] for item in streams.json()["multi_rate_telemetry"]["streams"]}
             assert {"adcs_fast", "adcs_housekeeping"} <= stream_ids
             plots = client.get(f"/runs/{run_id}/plots")
             assert plots.status_code == 200, plots.text
