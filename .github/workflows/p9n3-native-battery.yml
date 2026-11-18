@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "src/components/battery/builder.py"
+      - "src/components/solar_panel/builder.py"
+      - "src/sat_sim/adapters/component_solar_panel.py"
+      - "src/sat_sim/capabilities/component.solar_panel.v1.yaml"
       - "src/components/battery/schemas.py"
       - "src/sat_sim/adapters/component_battery.py"
       - "src/sat_sim/capabilities/component.battery.v1.yaml"
