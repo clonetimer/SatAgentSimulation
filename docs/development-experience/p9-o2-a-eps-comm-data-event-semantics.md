@@ -145,3 +145,10 @@
 - EPS 与 Comm/Data 各有一个 fault 和一个 degradation；用同一个 parameterized Chromium test 覆盖六条旅程（含两条 nominal），避免复制两套 Run Center/Bundle 校验流程。
 - 对 magnitude_applicable=false 的二值 PDU trip，不渲染通用 magnitude；对连续退化与 transmitter rate loss，浏览器实际修改归一化 magnitude，并验证 canonical TaskSpec 保存值与 effect evidence。
 - O2-D 的 CI 必须先 collect-only 精确检查六个用例，再执行真实 Chromium；不能把 browser workflow skipped 或 deselected 当作旅程通过。
+
+
+### 向导事件目录的双层准入（2026-11-19）
+
+- 仅在前端 addEffect() 拒绝未授权事件还不够：未授权 effect 仍可能出现在下拉菜单，造成“看得到但不能用”的错误体验。现已在 form_schema._effect_templates 中按 capability_id + event kind 应用 GUIDED_EFFECT_ALLOWLISTS，服务端 Schema 不再返回未准入事件；前端 addEffect 仍保留第二道防线。
+- 当前 ADCS、EPS、Comm/Data 三个 native subsystem 分别维护 fault/degradation/constraint 白名单。EPS/Comm Data 的精确 allowlist 与 formal evidence profile、paired A/B 和浏览器测试参数化用例保持一致。
+- 目录测试应验证每个 kind 的完整 effect 集合，而不是只断言某个目标 effect 存在；这样新注册但未完成证据准入的 effect 不会意外进入普通向导。
