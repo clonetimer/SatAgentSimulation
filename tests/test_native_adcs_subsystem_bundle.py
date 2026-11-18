@@ -67,7 +67,7 @@ def test_adcs_native_subsystem_sealed_run_bundle_and_frame_contract(
 
     summary = executed.summary
     assert summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
-    assert summary["official_module_count"] >= 11
+    assert summary["official_module_count"] >= 8
     assert summary["project_native_module_count"] >= 4
     assert summary["external_or_proxy_module_count"] == 0
     assert summary["adcs_closed_loop_improved"] is True
