@@ -57,3 +57,8 @@ N4-B 后端预检合同与 N4-A 工作台 UI 属于两个相互依赖但独立�
 - Chromium 向导负向旅程放入 PR #176（其分支包含“单机独立仿真”入口与原生模板按钮），由该 PR 的真实 Chromium workflow 执行。
 
 避免测试分支依赖另一个尚未合并的 PR 代码，否则在各自以 main 为基线的 CI 中会产生虚假的缺失功能失败。
+
+
+## 表单投影 API 信封（2026-11-18）
+
+`POST /forms/capabilities/{capability_id}/project` 的响应中，表单值位于 `projection.form_data`，而不是 `projection` 根对象。测试若直接把 projection envelope 当表单传给 `/tasks/parse`，会在客户端路径访问阶段失败，根本没有执行产品预检。必须按公开响应信封提取 `projection.form_data`，再修改实际表单字段。
