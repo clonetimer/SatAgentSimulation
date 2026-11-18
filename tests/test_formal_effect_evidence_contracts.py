@@ -28,7 +28,7 @@ def _spec(
         get_effect_evidence_profile(capability_id, str(event["effect"])).evidence_fields  # type: ignore[union-attr]
     )
     # Templated evidence fields are runtime-only bindings; use wildcard fields in requested QoI.
-    outputs = [field.replace("{wheel_index}", "*") for field in outputs]
+    outputs = [field.replace("{wheel_index}", "*") for field in outputs if not field.startswith("label.")]
     spec = {
         "schema_version": "1.0.0",
         "task": {"id": f"formal_{event['effect']}", "name": "formal effect evidence"},
