@@ -863,20 +863,28 @@ def _parameter_fields(contract: Any) -> list[dict[str, Any]]:
     return fields
 
 
-GUIDED_ADCS_EFFECT_ALLOWLIST: dict[str, frozenset[str]] = {
-    "fault": frozenset({"adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step"}),
-    "degradation": frozenset({"adcs_rw_torque_authority_loss", "gyro_noise_increase"}),
-    "constraint": frozenset(),
+GUIDED_EFFECT_ALLOWLISTS: dict[str, dict[str, frozenset[str]]] = {
+    "subsystem.adcs_unified_native.v1": {
+        "fault": frozenset({"adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step"}),
+        "degradation": frozenset({"adcs_rw_torque_authority_loss", "gyro_noise_increase"}),
+        "constraint": frozenset(),
+    },
+    "subsystem.eps.unified_native.v1": {
+        "fault": frozenset({"generation_storage_distribution_failure"}),
+        "degradation": frozenset({"energy_margin_degradation"}),
+        "constraint": frozenset(),
+    },
+    "subsystem.comm_data.unified_native.v1": {
+        "fault": frozenset({"transmitter_rate_loss"}),
+        "degradation": frozenset({"transmitter_rate_degradation"}),
+        "constraint": frozenset(),
+    },
 }
 
 
 def _effect_templates(contract: Any, kind: str) -> list[dict[str, Any]]:
     templates: list[dict[str, Any]] = []
-    guided_allowlist = (
-        GUIDED_ADCS_EFFECT_ALLOWLIST
-        if contract.capability_id == "subsystem.adcs_unified_native.v1"
-        else None
-    )
+    guided_allowlist = GUIDED_EFFECT_ALLOWLISTS.get(contract.capability_id)
     for effect in contract.operator_contract.effects:
         if effect.kind != kind:
             continue
