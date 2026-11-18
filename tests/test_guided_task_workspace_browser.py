@@ -1636,6 +1636,21 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             assert durable["sealed"] is True
             assert durable["integrity"]["ok"] is True
             assert durable["validation_outcome"]["result"] == "PASS"
+            if event_kind:
+                event_key = "faults" if event_kind == "fault" else "degradations"
+                events = durable["task_spec"]["events"][event_key]
+                assert len(events) == 1, events
+                assert events[0]["effect"] == event_effect
+                assert events[0]["start_s"] == 5.0
+                assert events[0]["end_s"] == 15.0
+                if "magnitude" in events[0]:
+                    assert events[0]["magnitude"] == pytest.approx(0.8)
+                injection = durable["validation_outcome"]["injection_evidence"]
+                assert len(injection) == 1, injection
+                assert injection[0]["requested_effect"] == event_effect
+                assert injection[0]["delivery_result"] == "PASS"
+                assert injection[0]["effect_result"] == "PASS"
+                assert "RUNTIME_EFFECT_VERIFIED" in injection[0]["reason_codes"]
             summary = durable["summary"]
             assert summary["runtime_truth_status"] == "instantiated_connected_recorded"
             assert summary["official_module_count"] >= 3
@@ -1650,6 +1665,28 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             rows = telemetry.json()["rows"]
             assert rows
             assert telemetry_fields <= set(rows[-1]), (telemetry_fields, rows[-1])
+            if event_kind:
+                active_label = "label.fault_active" if event_kind == "fault" else "label.degradation_active"
+                active_rows = [
+                    row for row in rows
+                    if 5.0 <= float(row["time_s"]) <= 15.0 and row.get(active_label) is True
+                ]
+                assert active_rows, rows
+                if object_id == "subsystem.eps" and event_kind == "fault":
+                    assert any(
+                        row["eps.pdu_payload_channel_enabled"] is False
+                        and row["eps.payload_load_enabled_w"] <= 0.0
+                        for row in active_rows
+                    )
+                elif object_id == "subsystem.eps":
+                    assert any(row["eps.battery_capacity_j"] < row["eps.nominal_battery_capacity_j"] for row in active_rows)
+                    assert any(row["eps.solar_power_w"] < row["eps.nominal_solar_power_w"] for row in active_rows)
+                else:
+                    assert any(
+                        row["comm_data.transmitter_storage_node_rate_abs_bps"]
+                        < row["comm_data.nominal_transmitter_storage_node_baud_bps"]
+                        for row in active_rows
+                    )
 
             streams = client.get(f"/runs/{run_id}/telemetry-streams")
             assert streams.status_code == 200, streams.text
@@ -1669,6 +1706,8 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             fmea = client.get(f"/runs/{run_id}/fmea")
             assert fmea.status_code == 200, fmea.text
             assert "no risk score is fabricated" in fmea.json()["manifest"]["warning"]
+            if event_kind:
+                assert event_effect in json.dumps(fmea.json(), ensure_ascii=False)
 
             with page.expect_download(timeout=30000) as bundle_download_info:
                 page.locator("#downloadRunBundleBtn").click()
