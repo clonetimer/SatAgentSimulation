@@ -72,3 +72,12 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - **CoarseSunSensor**：官方 CSS 接收 Sun ephemeris message 和 Eclipse message；当前验证照明和余弦/FOV 响应。真实 SPICE 太阳历元、地球遮挡和轨道环境另行加入。
 - 四类传感器的共同规则：真实官方模块、显式输入消息、原生输出 recorder、独立模型图；不得从整星 Run Bundle 裁剪字段后宣称单机独立执行。
 - 为避免 N1 浏览器测试阻塞物理主线，N2 使用独立轻量 CI workflow，固定 `bsk==2.11.0`，只运行原生传感器专项与输入边界测试。
+
+
+### P9-N2 → IMU 首个生产执行入口
+
+- `component.imu.v1` 增加显式 `physics_backend`，默认仍为 `project_reference`；只有用户明确选择 `basilisk_native` 才执行官方 Basilisk ImuSensor。
+- Native adapter 复用原 capability、表单和 Run Bundle，不新建第二条仿真任务体系。
+- 原始真值角速度/非保守加速度、scale 和 bias 进入官方模块；输出由 `AngVelPlatform` 与 `AccelPlatform` recorder 产生。
+- Native 目前只支持 nominal；fault/degradation、非 identity mounting、非零杆臂和随机噪声试验 fail closed，不能回退到 Python reference。
+- 验收分层：probe 证明官方模块输入/输出；adapter 测试证明 TaskSpec 路由和 backend provenance；后续正式 Run Bundle 浏览器旅程才证明产品级闭环。
