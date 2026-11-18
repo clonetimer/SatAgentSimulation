@@ -4,7 +4,7 @@
 |---|---|---|---|---|
 | 反作用轮 | `component.reaction_wheel.v1` | 默认项目 source-native Python；显式 `physics_backend=basilisk_native` 时官方 Basilisk Spacecraft + ReactionWheelStateEffector | 是，有限时长 TaskSpec；1/3/4 轮 native 路径 | 1-wheel 原生 Run Bundle 已 PASS；新增 `component_reaction_wheel_basilisk_native` 工作台模板；Native 仅 nominal，无 native fault/degradation/constraint/profile |
 | IMU | `component.imu.v1` | 项目确定性 scale/bias source-native；整星图中另有官方 Basilisk ImuSensor | 是，项目模型可独立运行 | 尚无独立 Basilisk IMU graph；P9-N2 单独构建 truth-driven sensor graph |
-| 星敏感器 | `component.star_tracker.v1` | 项目确定性姿态/漂移 source-native；整星图中另有官方 Basilisk StarTracker | 是，项目模型可独立运行 | 当前无星表/光学场景仿真；P9-N2 验证官方模块独立输入条件 |
+| 星敏感器 | `component.star_tracker.v1` | 项目确定性姿态/漂移 source-native；整星图中另有官方 Basilisk StarTracker | 是，项目模型可独立运行 | P9-N2 已启动独立官方 StarTracker probe：显式 SCStates 真值输入→官方 sensorOutMsg recorder；不含星表/光学成像/FOV 盲区场景 |
 | 磁强计 | `component.magnetometer.v1` | 项目 source-native；整星图中有官方 Basilisk Magnetometer + 磁场环境 | 是，项目模型可独立运行 | 独立运行需明确地磁场输入与坐标系；P9-N2 |
 | 太阳敏感器 | `component.sun_sensor.v1` | 项目 source-native；整星图中有官方 Basilisk CoarseSunSensor + Sun ephemeris | 是，项目模型可独立运行 | 独立运行需明确太阳矢量、遮挡/光照输入；P9-N2 |
 | 电池 | `component.battery.v1` | 项目 Python 电池模型 | 是，有限时长 TaskSpec | 不等同于整星 EPS 原生闭环；P9-N3 |
