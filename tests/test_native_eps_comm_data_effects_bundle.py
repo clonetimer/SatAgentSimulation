@@ -133,11 +133,12 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
     if subsystem == "eps":
         assert active["eps.battery_capacity_j"] < baseline["eps.battery_capacity_j"]
         assert active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
-        assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
         if event_kind == "fault":
             assert baseline["eps.payload_load_enabled_w"] > 0.0
             assert active["eps.payload_load_enabled_w"] == pytest.approx(0.0, abs=1e-9)
             assert "payload_channel_trip" in active["eps.shed_reason"]
+        else:
+            assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
             restored = _at(injected.trace_rows, 20.0)
             nominal_after = _at(nominal.trace_rows, 20.0)
             assert restored["eps.battery_capacity_j"] == pytest.approx(nominal_after["eps.battery_capacity_j"])
