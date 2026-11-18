@@ -1620,7 +1620,31 @@ class ThrusterAdapter(_BaseComponentAdapter):
     fault_effects = ("valve_stuck_closed", "valve_stuck_open", "nozzle_blockage")
     degradation_effects = ("isp_decay", "thrust_coefficient_drift")
 
+    def validate(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> Sequence[ValidationIssue]:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thruster_native import validate_native_thruster
+
+            native_issues = validate_native_thruster(spec)
+            if native_issues:
+                return native_issues
+        elif backend != "project_reference":
+            return (ValidationIssue("error", "$.parameters.physics_backend", "unknown thruster backend", "enum"),)
+        return super().validate(spec, capability)
+
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thruster_native import compile_native_thruster, run_native_thruster
+
+            case = compile_native_thruster(spec)
+            issues = super().validate(spec, capability)
+            if issues:
+                raise ValueError(issues[0].message)
+            return run_native_thruster(spec, case)
+        if backend != "project_reference":
+            raise ValueError("unknown thruster backend")
+
         from components.thruster.model import compute_thruster_pulse
         from components.thruster.schemas import ThrusterPhysicalConfig
 
