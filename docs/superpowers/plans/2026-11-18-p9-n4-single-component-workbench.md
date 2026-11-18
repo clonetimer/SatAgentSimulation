@@ -91,9 +91,9 @@
 | 设备 | 官方 native TaskSpec / sealed 证据 | N4 产品入口决策 |
 |---|---|---|
 | 反作用轮 | 已通过；含官方 ReactionWheelStateEffector recorder | N4-A 首批开放；本 PR 验收 |
-| IMU | 已通过；官方 ImuSensor 独立图 | N4-C 候选；先补专用模板与 recorder 曲线/单位配置 |
-| 星敏感器 | 已通过；官方 StarTracker quaternion recorder | N4-C 候选；需把四元数输出与有效性语义明确展示 |
-| 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C 候选；需补单位/坐标系说明和模板 |
+| IMU | 已通过；官方 ImuSensor 独立图 | N4-C 已补 native 模板与 gyro/accel 曲线合同；待本轮 Chromium 真实 Run CI 验收 |
+| 星敏感器 | 已通过；官方 StarTracker quaternion recorder | N4-C 已补 native 模板与 MRP/valid 语义说明；待本轮 Chromium 真实 Run CI 验收 |
+| 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C 已补 native 模板与三轴测量合同；待本轮 Chromium 真实 Run CI 验收 |
 | 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C 候选；需区分输入净功率配置与原生储能测量 |
 | 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C 候选；需说明固定板/静态 Sun-Eclipse 边界 |
 | 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C 候选；需展示点火配置与 recorder 积分输出的区别 |
@@ -105,3 +105,13 @@
 EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口；不得把多个独立 Run 的后处理结果当作同一 SimBase 物理闭环。
 
 - 共享工作台浏览器 workflow 不安装 Basilisk；原生真实 Run 浏览器旅程在缺少 Basilisk 时显式 skip，并由专用 native-RW workflow 安装、校验官方 2.11.0 后无跳过执行同一旅程。通用 UI suite 不应隐式承担原生运行时依赖。
+
+
+## N4-C 第一批传感器入口实施（2026-11-18）
+
+- 已在分支 `feat/p9-n4-c-native-sensors-20261118` 新增 IMU、星敏感器、磁强计三个官方 Basilisk native Scenario Template，复用现有 capability 与 adapter，不新增物理实现。
+- 向导白名单扩展为反作用轮、IMU、星敏感器、磁强计四项；选择后调用服务端注册模板 API，再投影到现有 Schema 参数表单。
+- 原生传感器均只开放 nominal finite/offline；向导隐藏故障/退化事件编辑区，adapter 仍 fail closed。
+- 已新增模板/API 合同测试、三类传感器官方物理与 sealed Run Bundle 专项执行步骤、Chromium 真实 Run 旅程。最终状态以 PR 同一 head CI 结果为准；尚未将候选标记为最终验收完成。
+- 传感器声明边界：IMU 为 prescribed truth、identity mount、零杆臂、无随机噪声特性；星敏 valid 不代表星表/光学/FOV；磁强计为均匀磁场 fixture、identity mounting、统一三轴 scale，不宣称地球磁场环境。
+- 开发经验归档：`docs/development-experience/p9-n4-c-native-sensor-workbench.md`。
