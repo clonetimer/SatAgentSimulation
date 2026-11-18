@@ -91,3 +91,13 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 - Chromium guided native device journey: 4 passed, 4 deselected; includes IMU/StarTracker/Magnetometer real Run, sealed integrity, provenance, plot manifest and same-Run history replay.
 - Artifact `native-component-physical-evidence` archived successfully (8,552 bytes).
 - PR shared regression workflows still pending at the time of this update; this does not yet declare the entire PR merged or all N4-C complete.
+
+
+## N4-C2 EPS 单机入口候选（2026-11-18）
+
+| 设备 | 注册模板 | 官方原生模型 | 当前产品入口边界 |
+|---|---|---|---|
+| 蓄电池 | `component_battery_basilisk_native` | `SimpleBattery` + `SimplePowerSink` | N4-C2 实现中；恒定净功率、unity efficiency、nominal finite/offline；SOC/储能/功率结果合同待同 head CI 验收 |
+| 太阳电池阵 | `component_solar_panel_basilisk_native` | `SimpleSolarPanel` | N4-C2 实现中；单板全展开、固定安装、静态 Sun/Eclipse；阵列功率/入射/阴影/能量合同待同 head CI 验收 |
+
+两设备继续复用既有 `component.battery.v1` 与 `component.solar_panel.v1` capability 和 native adapter。默认 backend 不变，只有注册模板显式选择 `basilisk_native`。电池不宣称电芯等效电路/温度模型；太阳电池阵不宣称轨道光照环境或太阳跟踪。正式准入须通过官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 用户旅程验收。
