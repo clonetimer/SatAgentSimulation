@@ -48,7 +48,7 @@ def _load_spec(subsystem: str, run_id: str, *, event_kind: str | None = None, ef
             "target": subsystem,
             "start_s": EVENT_START_S,
             "end_s": EVENT_END_S,
-            "severity": 0.8,
+            "magnitude": 0.8,
         }]
         spec["model"]["target"]["mode"] = event_kind
     return spec
