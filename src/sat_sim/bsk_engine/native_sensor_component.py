@@ -15,7 +15,6 @@ from typing import Sequence
 class NativeStarTrackerTrace:
     times_s: tuple[float, ...]
     q_inrtl_to_case: tuple[tuple[float, float, float, float], ...]
-    omega_inrtl_to_case_rad_s: tuple[tuple[float, float, float], ...]
     truth_sigma_bn: tuple[float, float, float]
     truth_omega_bn_b_rad_s: tuple[float, float, float]
     model_source: str = "Basilisk.simulation.starTracker.StarTracker"
@@ -102,12 +101,11 @@ def run_native_star_tracker_probe(
 
     times = tuple(float(value) * 1.0e-9 for value in recorder.times())
     quaternions = tuple(tuple(float(value) for value in row) for row in recorder.qInrtl2Case)
-    angular_rates = tuple(tuple(float(value) for value in row) for row in recorder.omegaInrtl2Case)
-    if not times or len(times) != len(quaternions) or len(times) != len(angular_rates):
+    if not times or len(times) != len(quaternions):
         raise RuntimeError("NATIVE_STAR_TRACKER_RECORDER_MISSING")
-    if any(len(row) != 4 for row in quaternions) or any(len(row) != 3 for row in angular_rates):
+    if any(len(row) != 4 for row in quaternions):
         raise RuntimeError("NATIVE_STAR_TRACKER_RECORDER_SHAPE_INVALID")
-    flat = [value for row in (*quaternions, *angular_rates) for value in row]
+    flat = [value for row in quaternions for value in row]
     if not all(math.isfinite(value) for value in flat):
         raise RuntimeError("NATIVE_STAR_TRACKER_RECORDER_NONFINITE")
     for quaternion in quaternions:
@@ -118,7 +116,6 @@ def run_native_star_tracker_probe(
     return NativeStarTrackerTrace(
         times_s=times,
         q_inrtl_to_case=quaternions,
-        omega_inrtl_to_case_rad_s=angular_rates,
         truth_sigma_bn=sigma,
         truth_omega_bn_b_rad_s=omega,
     )
