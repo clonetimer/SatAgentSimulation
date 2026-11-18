@@ -128,6 +128,7 @@ class NativeImuTrace:
     acceleration_platform_m_s2: tuple[tuple[float, float, float], ...]
     truth_omega_bn_b_rad_s: tuple[float, float, float]
     truth_specific_force_b_m_s2: tuple[float, float, float]
+    discarded_initialization_frame: bool = True
     model_source: str = "Basilisk.simulation.imuSensor.ImuSensor"
     input_source: str = "explicit_SCStatesMsg_truth_fixture"
     claim_scope: str = "official_imu_gyro_measurement_from_prescribed_spacecraft_truth_without_navigation_or_closed_loop"
@@ -151,8 +152,9 @@ def run_native_imu_probe(
 
     The first N2 IMU probe validates gyro and accelerometer channels with
     prescribed angular-rate and non-conservative acceleration truth, zero
-    stochastic noise, identity mounting and a co-located sensor. It does not
-    yet characterize stochastic spectra or lever-arm dynamics.
+    stochastic noise, identity mounting and a co-located sensor. The first
+    zero-initialized Basilisk output frame is discarded. Stochastic spectra
+    and lever-arm dynamics remain outside this baseline.
     """
     if type(duration_s) not in (int, float) or not math.isfinite(float(duration_s)) or not 0.1 <= float(duration_s) <= 120.0:
         raise ValueError("NATIVE_IMU_DURATION_INVALID")
@@ -214,15 +216,22 @@ def run_native_imu_probe(
     sim.ConfigureStopTime(macros.sec2nano(duration))
     sim.ExecuteSimulation()
 
-    times = tuple(float(value) * 1.0e-9 for value in recorder.times())
-    angular_velocity = tuple(tuple(float(value) for value in row) for row in recorder.AngVelPlatform)
-    acceleration = tuple(tuple(float(value) for value in row) for row in recorder.AccelPlatform)
-    if not times or len(times) != len(angular_velocity) or len(times) != len(acceleration):
+    raw_times = tuple(float(value) * 1.0e-9 for value in recorder.times())
+    raw_angular_velocity = tuple(tuple(float(value) for value in row) for row in recorder.AngVelPlatform)
+    raw_acceleration = tuple(tuple(float(value) for value in row) for row in recorder.AccelPlatform)
+    if not raw_times or len(raw_times) != len(raw_angular_velocity) or len(raw_times) != len(raw_acceleration):
         raise RuntimeError("NATIVE_IMU_RECORDER_MISSING")
-    if any(len(row) != 3 for row in angular_velocity) or any(len(row) != 3 for row in acceleration):
+    if any(len(row) != 3 for row in raw_angular_velocity) or any(len(row) != 3 for row in raw_acceleration):
         raise RuntimeError("NATIVE_IMU_RECORDER_SHAPE_INVALID")
-    if not all(math.isfinite(value) for row in (*angular_velocity, *acceleration) for value in row):
+    if not all(math.isfinite(value) for row in (*raw_angular_velocity, *raw_acceleration) for value in row):
         raise RuntimeError("NATIVE_IMU_RECORDER_NONFINITE")
+    # Basilisk 2.11 zero-initializes the first IMU output frame. Exclude that
+    # initialization frame rather than exposing it as a physical measurement.
+    if len(raw_times) < 3:
+        raise RuntimeError("NATIVE_IMU_INSUFFICIENT_POST_INITIALIZATION_SAMPLES")
+    times = raw_times[1:]
+    angular_velocity = raw_angular_velocity[1:]
+    acceleration = raw_acceleration[1:]
     # Identity mounting, zero noise, zero bias and zero lever arm make this a
     # direct truth-to-official-sensor consistency check, not a model estimate.
     expected_gyro = tuple(omega[index] * gyro_gain[index] + gyro_bias[index] for index in range(3))
