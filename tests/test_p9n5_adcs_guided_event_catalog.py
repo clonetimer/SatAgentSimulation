@@ -40,4 +40,4 @@ def test_unified_native_adcs_guided_event_catalog_is_exact_physical_gate_allowli
 def test_adcs_event_allowlist_does_not_hide_reference_model_catalog() -> None:
     reference = capability_form_schema("subsystem.adcs_fidelity.v1")
     reference_degradations = {item["effect"] for item in reference["event_catalog"]["degradations"]}
-    assert "rw_friction_degradation" in reference_degradations
+    assert "adcs_rw_friction_increase" in reference_degradations
