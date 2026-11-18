@@ -51,10 +51,11 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 
 **实施启动（2026-11-18）**
 - 已将官方 Basilisk `SimpleBattery` + `SimplePowerSink` 组件图接入 `component.battery.v1` TaskSpec adapter。
+- 已将官方 Basilisk `SimpleSolarPanel` 固定板模型接入 `component.solar_panel.v1` TaskSpec adapter，显式输入航天器状态、太阳位置和日蚀消息，输出官方 `netPower`。
 - Native backend 仅支持 nominal、恒定净功率、unity charge/discharge efficiency、SOC [0,1]；故障/退化、时变功率曲线、非 unity 效率均 fail closed。
 - 输出映射到现有 SOC、storage、capacity 和 net-power trace；使用正式 Run Bundle 执行、validation 与完整性校验。
 - 专项 CI 固定官方 Basilisk 2.11.0，3 passed；参数表审计 PASS。
-- 下一步：显式 PowerNode 耦合与太阳翼发电输入，再进入 EPS 分系统能量平衡。
+- 下一步：将太阳翼 `nodePowerOutMsg` 与电池 `addPowerNodeToModel` 做原生 PowerNode 耦合，再进入 EPS 分系统能量平衡。
 
 ### P9-N4：单机工作台产品闭环
 - 对话框选择单机 → 参数配置 → 预检 → 执行 → 曲线/指标 → 历史 Run → 数据导出。
