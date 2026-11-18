@@ -69,3 +69,10 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - Native 固定板测试使用 1 AU Sun position、identity spacecraft attitude、显式 illumination factor，并从 `nodePowerOutMsg.netPower` recorder 读取实际功率。
 - 当前只开放一块固定、完全展开、无 tracking 的板；project-owned tracking、时变太阳轨迹和 deployment failure 不得被描述为官方 SimpleSolarPanel 能力。
 - 下一步应直接把 `nodePowerOutMsg` 接到 `SimpleBattery.addPowerNodeToModel`，形成同一个 Basilisk task 中的电源输入—储能闭环；不要把两个独立 Run 的 CSV 后处理冒充物理耦合。
+
+
+### N3 组件到 EPS 分系统的物理耦合
+
+- 单机 adapter 各自 PASS 不代表 EPS 系统已耦合。必须在同一个 Basilisk SimBase/Task 中把 SimpleSolarPanel 的 `nodePowerOutMsg` 连接到 SimpleBattery 的 PowerNode 输入。
+- 仓库已有 `run_eps_basilisk_scenario(use_simple_solar_panel=True)` 可复用；新增回归直接检查官方 SimpleSolarPanel 在同一次执行中使 SimpleBattery storage 增加。
+- 不允许将太阳翼独立 Run 的功率 CSV 与电池独立 Run 的 SOC CSV 后处理拼接，冒充原生 PowerNode 物理闭环。
