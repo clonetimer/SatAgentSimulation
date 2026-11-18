@@ -87,6 +87,12 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
             "eps_battery_capacity_loss", "solar_panel_efficiency_loss",
             "thermal_radiator_rejection_loss", "power_safe_mode_threshold",
         },
+        "subsystem.eps.unified_native.v1": {
+            "generation_storage_distribution_failure", "energy_margin_degradation",
+        },
+        "subsystem.comm_data.unified_native.v1": {
+            "transmitter_rate_loss", "transmitter_rate_degradation",
+        },
     }
     for capability_id, effect_ids in expected.items():
         contract = get_capability(capability_id).operator_contract
@@ -115,6 +121,10 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
         (WHOLE_ID, "degradation", _event("solar_panel_efficiency_loss", target="whole_spacecraft", remaining_efficiency_ratio=0.3), {}),
         (WHOLE_ID, "degradation", _event("thermal_radiator_rejection_loss", target="whole_spacecraft", remaining_rejection_ratio=0.2), {"payload_power_w": 200.0}),
         (WHOLE_ID, "constraint", _event("power_safe_mode_threshold", target="whole_spacecraft", soc_threshold=0.9), {"initial_soc": 0.62}),
+        ("subsystem.eps.unified_native.v1", "fault", _event("generation_storage_distribution_failure", target="eps"), {}),
+        ("subsystem.eps.unified_native.v1", "degradation", _event("energy_margin_degradation", target="eps"), {}),
+        ("subsystem.comm_data.unified_native.v1", "fault", _event("transmitter_rate_loss", target="comm_data"), {}),
+        ("subsystem.comm_data.unified_native.v1", "degradation", _event("transmitter_rate_degradation", target="comm_data"), {}),
     ],
 )
 def test_each_unified_effect_has_formal_runtime_pass(capability_id, category, event, values) -> None:
