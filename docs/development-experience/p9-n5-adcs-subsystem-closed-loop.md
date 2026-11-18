@@ -59,3 +59,19 @@
 - Artifact `native-component-physical-evidence`：ID `14454689028`，13,642 bytes；ZIP SHA-256 `4ccf8d0f7c53546be477930859bc55b536225f5bc654cbb7a25b3a704ee6fc32`。
 - 经验补充：Basilisk 2.11.0 IMU 首次 UpdateState 会写入零初始化 payload，不能以“非零值”判断有效性；必须依赖消息写入时间戳推进。Reset recorder 快照不能替代有效动态测量。
 - 当前仍未验证的范围：RW jamming/motor failure、gyro bias/noise、torque authority loss 的物理效果对照；实时 ADCS、整星惯量/装配和跨分系统耦合。
+
+
+## N5-D：故障/退化物理 A/B 测试设计（2026-11-19）
+
+新增 `tests/test_native_adcs_fault_effects.py`，对五类 effect 分别执行 nominal/injected 成对 Run，统一复用 `adcs_unified_native` 模板与 official Basilisk Process/Task。每次运行都经过 `prepare_run → execute_prepared_run → verify_run_bundle`，不是直接调用 Python 简化模型。
+
+关键验收原则：
+
+1. **卡滞不等于标签。** 要看实际送入官方 ReactionWheelStateEffector 的反向制动力矩、目标轮速下降和 effective torque limit。
+2. **电机完全失效与部分力矩权限下降必须分开。** motor failure 的 torque scale=0；authority loss 使用 0.25 等非零比例，验证 effective max torque 和 applied torque 真实受限。
+3. **陀螺偏置要比较 raw 与 measured。** 在有效 IMU 样本中检查 measured−raw 与 bias 参数一致，并确认 estimator 的 body-rate input 跟随。
+4. **陀螺噪声要看噪声 recorder。** 不能只检查 event.active_effects；比较 nominal 的零噪声与 injected 的噪声幅度，并确认 IMU 样本仍有效。
+5. **物理 A/B 与 Run Bundle 必须配对。** 每个 nominal 与 injected case 均 sealed + integrity PASS，避免只有一个临时结果或 API 直调。
+6. **effect verification 最后提升。** 当前 operator verification 仍为 declared；测试通过后再按 effect 逐项升级，不把 registry 声明当成物理证据。
+
+当前候选分支：`feat/p9-n5-d-adcs-fault-physical-ab-20261119`。最终结论以该分支 PR 同一 head 的 Basilisk 2.11.0 JUnit、Run Bundle integrity 与共享 CI 为准。
