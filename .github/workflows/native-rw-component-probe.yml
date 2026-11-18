@@ -161,7 +161,7 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
-            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_fault"
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation"
 
       - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7
