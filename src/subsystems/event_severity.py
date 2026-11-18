@@ -12,10 +12,11 @@ from typing import Any, Mapping, Sequence
 
 
 def event_severity(event: Mapping[str, Any]) -> float:
-    """Read a normalized event severity from TaskSpec fields.
+    """Read normalized event severity from a TaskSpec event.
 
-    severity is preferred. The generic UI's normalized magnitude is a
-    compatibility fallback. Missing values preserve the component default (1).
+    Canonical TaskSpec uses magnitude as the normalized [0,1] event severity.
+    An explicit severity field is accepted for direct adapter integrations.
+    Missing values preserve the component default (1).
     """
     parameters = event.get("parameters")
     parameter_map = parameters if isinstance(parameters, Mapping) else {}
