@@ -204,6 +204,7 @@ class BatteryAdapter:
                 "events": {"fault_count": 0, "degradation_count": 0},
                 "trace_rows": len(rows),
             }
+            summary["physics_backend"] = "basilisk_native"
             return SimulationResult(
                 summary=summary,
                 trace_rows=tuple(rows),
