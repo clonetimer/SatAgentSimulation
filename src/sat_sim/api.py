@@ -3598,9 +3598,9 @@ def create_app(
         )}
 
     @app.get("/forms/capabilities/{capability_id}")
-    def form_schema(capability_id: str) -> dict[str, Any]:
+    def form_schema(capability_id: str, physics_backend: str | None = Query(default=None)) -> dict[str, Any]:
         try:
-            return {"ok": True, "form_schema": capability_form_schema(capability_id)}
+            return {"ok": True, "form_schema": capability_form_schema(capability_id, physics_backend=physics_backend)}
         except Exception as exc:
             raise HTTPException(status_code=404, detail={"reason_code": "CAPABILITY_FORM_NOT_FOUND", "message": str(exc)}) from exc
 

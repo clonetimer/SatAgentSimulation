@@ -151,7 +151,9 @@ P9-N2 保留默认 component reference 路径，并已为 IMU、磁强计、星�
 8. **预检与直接执行必须共享身份边界。** 原生执行入口也要验证 capability、任务类型和目标设备，避免调用者绕过 prepare 阶段后把错误目标执行成推力器。回归应证明错误请求根本不会进入原生图构建，而不仅检查 validate 返回了错误。
 9. **同一积分步长不能存在相互矛盾的已消费输入。** Canonical `simulation.step_s` 会进入 runtime 的 `simulation.solver.step_s`；新增 `native_step_s` 时必须核对这条归一化路径。原生实测中，同一个 20 ms 点火在 5 ms 与 20 ms 步长下的记录耗油量不同，因此标准步长被忽略会造成实际结果与界面说明不一致。两项存在时必须在纳秒归一化后相同；旧 flat spec 没有标准/solver 步长时，直接执行和正式迁移都应保留有效原生步长，不能在迁移时填入采样周期而引入新冲突。这条默认路径也要经过 prepare/execute/封存测试。参数消费清单本身不能证明调度真的采用了该值。另一个约 50 天单步反例表明，整数纳秒转回秒后仍需核对往返一致性，不能只限制浮点值大小。
 
-官方 Basilisk 2.11.0 的本地验收结果：77 项 native 组件测试与 2 项既有 reference 事件测试共 79 passed；参数表审计另有 4 passed，24 类组件的 source blob、字段、单位及名称绑定全部通过。正式 TaskSpec 1.0.0 示例经 prepare/execute 后为 SUCCEEDED、validation PASS、sealed、integrity PASS，核验 201 个密集原生采样点并导出 11 行。CI 与合并证据以该功能 PR 的最终 head 为准。
+官方 Basilisk 2.11.0 的本地验收结果：77 项 native 组件测试与 2 项既有 reference 事件测试共 79 passed；参数表审计另有 4 passed，24 类组件的 source blob、字段、单位及名称绑定全部通过。正式 TaskSpec 1.0.0 示例经 prepare/execute 后为 SUCCEEDED、validation PASS、sealed、integrity PASS，核验 201 个密集原生采样点并导出 11 行。
+
+[PR #172](https://github.com/clonetimer/SatAgentSimulation/pull/172) 已于 2026-11-18 合入 main，合并提交 `2cd59c2f7a494e33c70de6fff6d4cb7a6df23e99`。最终受测 head 为 `f1c65193627f41fea638a650e3859062b40bbe3b`；独立复审、CI 与合并后核查的树均为 `71be8d4c43b475e3db4e58ede6caeb11cbddc3b3`。该 head 的官方推进器专项 [79 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44254506719)，原生传感器 [26 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44254506630)，Agent/Run [457 passed、Chromium 19 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44254506614)。参数表审计、Windows/Ubuntu/source-snapshot ownership、脚本与依赖治理均成功；stable continuous 被跳过，不作长时运行证据。最终复审中发现的低流量分辨率、直接执行身份校验、标准步长冲突和 legacy 默认迁移问题均已修复并在此 head 复验。
 
 | 工况 | 记录推力积分 / N·s | 原生记录质量减少 / kg |
 |---|---:|---:|
@@ -164,3 +166,35 @@ P9-N2 保留默认 component reference 路径，并已为 IMU、磁强计、星�
 步长投影修正另通过 121 项既有 TaskSpec 兼容性、canonical transport 与 optional-parameter refinement 测试。更广的四文件检查为 129 passed、1 failed；失败项 `test_recorded_actual_ai_canonical_export_is_identity_without_edits` 是整星固定计划哈希失配。对修正代码、初始 PR head `7259b61` 及本次开发前主分支 `5f294149` 的独立 Git worktree 执行同一测试，均得到相同 expected `d7499066…` / actual `02fa1aa6…`。该问题在本 PR 前已存在，固定期望保持不变。排除回归要回到 PR 主分支基线，仅与功能分支的较早提交比较不足以证明与本 PR 无关。
 
 最短单步点火的耗油量与理想公式有约三分之一个原生步长的开关积分差异，验收采用步长相关的误差界；这不能作为短脉冲高精度证明。原生故障、多段遥控回放、安装几何和任务级推进耦合仍须分别扩展与验证。
+
+## P9-N3 贮箱与后端合同经验（2026-11-18）
+
+`component.fuel_tank.v1` 的原生后端需要解决可观测量差异：官方 `FuelTankMsg` 有质量、带符号质量导数和最大质量，没有压力。默认项目模型继续提供工程压力估算，原生任务则通过 `backend_profiles` 明确选择参数和输出。无需增加第二个贮箱 capability，也不改变现有 24 类对象的身份。
+
+1. **先核对真实消息接口。** 官方 2.11.0 的输入是 `fuelLeakRateInMsg`，消息为 `MassFlowRateMsg.massFlowRate`；不是名字看似合理但不存在的 `massFlowRateInMsg`。连接消息会优先于 setter。这里把它声明为恒定质量排出边界，不宣称压力驱动供给或推力器耦合。
+2. **后端合同必须贯穿默认值和封存。** 仅在结果里删除压力仍会让默认 QoI 要求末时压力。需要让规划、参数消费、编译、表单和 Bundle 合同快照共同选择有效合同，保留原来的严格结果验证。输出合同按节替换，避免深合并把参考字段带回原生模式。
+3. **表单显示正确不代表提交正确。** 实测发现 `normalize_form_task_spec` 还会从基础 capability 补齐默认参数，重新塞入已从原生表单移除的满箱/干箱压力。默认值补全也要先选择后端；回归必须从表单归一化一直走到正式计划和封存。
+4. **参数被登记不等于执行了参数。** 原生入口拒绝显式压力参数，即便它等于参考默认值；未执行的 canonical parameter overrides 也不能记录为已消费。选择后端按实际 runtime values，不能让兼容性的 model.config 改写权威 values。
+5. **字典审计与当前可选曲线分工不同。** 中文量字典审查全部已声明后端的字段并集，重复字段的单位/类型必须一致；表单与执行只使用当前后端的字段集。不能为了通过审计而让参考模型承诺原生专属观测，或反向伪造原生压力。
+6. **原生模块不会替产品完成所有物理预检。** 官方探针接受过初始 4 kg、容量 3 kg 的输入，因此入口显式约束初始质量不超过容量。首批拒绝可能耗尽的工况，并预留一个积分步；零流量和空箱零流量是有效成功对照。
+7. **每个密集记录点都需要守恒证据。** 质量、流率和容量直接导出原生 recorder；耗油只用记录端点差。`m0-flow*t` 只作独立守恒检查。检测稀疏导出点之间的异常，防止两个输出点正常掩盖中间记录错误。对正流量还预检累计舍入预算，拒绝正命令但不可分辨的质量变化。
+8. **切换后端也会改变已校验的配置。** 保留共用参数，移除不适用参数/输出并显示明细；同时更新表单 Schema、清除旧执行计划、向导校验与场景配置。载入原生模板和撤销表单投影时也要同步 Schema，不能只修改参数值。
+9. **完整迁移链也必须保留拒绝条件。** 独立复审发现 legacy 迁移会漏掉显式顶层步长，以及某些矛盾任务身份、alternate events、top-level constraints 和未执行的 overrides。它们在 direct adapter 被拒绝，经过迁移却可能变成合法标称任务。现已在 native fuel 入口迁移前拒绝这些输入，并以正式封存检查 0.3 s 时长、0.1 s 步长确实产生四个原生记录点。不能只检查转换后的默认字段。
+10. **原生内部中间量也有数值边界。** 初始质量与排出流率各自有限，并不能保证官方模块中的 mass×flow 可表示。实测正溢出会产生 NaN，零或次正规下溢会使正流率下的质量不变或失守恒。预检因此检查从初始质量到带一步余量的剩余质量之间，mass×flow 始终有限且为正规数；保留真实模块的接近上界成功对照及执行后的守恒复核。首批调度时间另明确限制为小于 2**52 ns，并保持 TaskSpec 原始时间顺序约束。
+11. **独立夹具不能悄悄满足任务级耦合要求。** 正式规划本来会拒绝缺少的物理连接，direct adapter 也必须在构图前拒绝非空 mission.required_couplings，避免同一请求走不同入口得到不同的成功判据。
+
+官方 bsk/Basilisk 2.11.0，1 s 时长、0.01 s 积分、0.1 s 导出的实际结果如下，每例含 101 个密集记录点、11 行导出：
+
+| 初始质量 / kg | 容量 / kg | 排出命令 / kg/s | 原生末时质量 / kg | 原生质量导数 / kg/s |
+|---:|---:|---:|---:|---:|
+| 2 | 3 | 0.001 | 1.9989999999999934 | -0.001 |
+| 2 | 3 | 0.002 | 1.998000000000009 | -0.002 |
+| 2 | 3 | 0 | 2 | 0 |
+| 0 | 3 | 0 | 0 | 0 |
+| 1 | 5 | 0.001 | 0.9990000000000046 | -0.001 |
+
+非零案例的最大密集质量守恒残差约为 4.6e-15 至 9.1e-15 kg。Canonical 1.0 示例和 legacy 0.1 未显式步长的零流量任务均通过 SUCCEEDED、validation PASS、sealed 和完整性核查；后者使用采样周期作为标准积分步长。10 kg 载体、0.1 m 恒体积贮箱、零偏置和单位安装矩阵均为试验夹具，不是装机或 CAD 证据。
+
+## 热控下一批接入前已核实的差异
+
+详细证据见 `docs/engineering/p9-n-thermal-native-feasibility.md`。现有热节点 builder 运行的是项目 Python SysModel；放进 Basilisk 调度器不改变物理模型来源。官方 `SensorThermal` 的初始温度和 TemperatureMsg 均是摄氏度，Kelvin 输入需显式转换；其辐射板模型没有 ambient/tau/heat_gain 参数。官方 2.11.0 的常数与其他太阳通量常量并不完全相同，且没有太阳距离平方反比缩放。已完成六组真实原生探针，温度响应和温标得到验证，但尚未交付原生热节点 TaskSpec。后续应使用独立物理参数和后端输出合同，避免填入虚构的等效时间常数或增益。

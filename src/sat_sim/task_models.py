@@ -562,12 +562,32 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
         legacy_parameter_values.pop("registry_id", None)
         legacy_parameter_values.pop("registry_hash", None)
 
+    native_fuel = (src.get("capability_id") == "component.fuel_tank.v1"
+                   and legacy_parameter_values.get("physics_backend") == "basilisk_native")
+    if native_fuel:
+        # Migration must not erase an unsupported native request into a valid
+        # nominal one. These legacy envelopes are otherwise compatibility data.
+        if src.get("task_type") != "component" or target.get("level") != "component" or target.get("name") != "fuel_tank":
+            raise ValueError("native fuel tank requires matching component task and target identity before migration")
+        if parameters_src.get("overrides"):
+            raise ValueError("native fuel tank does not apply legacy parameter overrides")
+        alternate_events = src.get("events", {})
+        if not isinstance(alternate_events, Mapping) or any(value not in ([], {}) for value in alternate_events.values()):
+            raise ValueError("native fuel tank does not support legacy events envelopes")
+        for container in (src, modifiers):
+            if any(container.get(key, []) not in ([], {}) for key in ("faults", "degradations", "constraints")):
+                raise ValueError("native fuel tank does not support legacy events or constraints")
+
     task_id = str(src.get("task_id") or "migrated_task")
     sample_s = float(sim.get("sample_s", 10.0) or 10.0)
     solver = dict(sim.get("solver") or {})
     if _uses_native_thruster(src.get("capability_id"), legacy_parameter_values):
         native_step_s = legacy_parameter_values.get("native_step_s", 0.01)
         step_s = sim.get("step_s", solver.get("step_s", native_step_s))
+    elif native_fuel:
+        # FuelTank uses the standard integration step, falling back to its
+        # sample period only when neither standard nor solver step was given.
+        step_s = sim.get("step_s", solver.get("step_s", sample_s))
     else:
         step_s = solver.get("step_s", sample_s)
     mission = dict(src.get("mission") or {})
@@ -820,7 +840,8 @@ def to_runtime_task_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     }
     if model.get("capability_id"):
         runtime["capability_id"] = model["capability_id"]
-    if _uses_native_thruster(runtime.get("capability_id"), runtime["parameters"]):
+    if (runtime.get("capability_id") in {"component.thruster.v1", "component.fuel_tank.v1"}
+            and runtime["parameters"].get("physics_backend") == "basilisk_native"):
         # Preserve both integration inputs so native preflight can compare them.
         runtime_sim["step_s"] = simulation["step_s"]
     if model.get("campaign"):

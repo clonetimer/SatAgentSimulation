@@ -476,6 +476,8 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
                 key: value for key, value in parameter_src.items()
                 if key not in {"profile", "overrides", "registry_id", "registry_hash"}
             }
+        from .capability_backends import select_capability_backend
+        contract = select_capability_backend(contract, values.get("physics_backend"))
         defaulted_parameters: list[str] = []
         for name, payload in _mapping(contract.data.get("parameters")).items():
             if name in values or not isinstance(payload, Mapping) or "default" not in payload:

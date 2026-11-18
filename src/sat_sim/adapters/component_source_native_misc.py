@@ -1058,11 +1058,29 @@ class FuelTankAdapter(_BaseComponentAdapter):
     fault_effects = ("leak", "outlet_blockage", "pressure_sensor_fault")
     degradation_effects = ("pressure_decay", "outlet_aging")
 
+    def validate(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> Sequence[ValidationIssue]:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_fuel_tank_native import validate_native_fuel_tank
+
+            return validate_native_fuel_tank(spec)
+        if backend != "project_reference":
+            return (ValidationIssue("error", "$.parameters.physics_backend", "unknown fuel-tank backend", "enum"),)
+        return super().validate(spec, capability)
+
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
+        params = _mapping(spec.get("parameters"))
+        backend = params.get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_fuel_tank_native import run_native_fuel_tank
+
+            return run_native_fuel_tank(spec)
+        if backend != "project_reference":
+            raise ValueError("unknown fuel-tank backend")
+
         from components.fuel_tank.model import initialize_fuel_tank, step_fuel_tank
         from components.fuel_tank.schemas import FuelTankConfig
 
-        params = _mapping(spec.get("parameters"))
         _, sample_s, n_steps, times = _time_grid(spec)
         config = FuelTankConfig(
             capacity_kg=_float(params.get("capacity_kg"), 3.0),

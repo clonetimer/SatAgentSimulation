@@ -1,0 +1,30 @@
+schema_version: 1.0.0
+task:
+  id: component_fuel_tank_basilisk_native
+  name: Prescribed FuelTank mass withdrawal
+  description: Official constant-volume FuelTank on a free 10 kg carrier with a fixed withdrawal command.
+simulation:
+  level: component
+  duration_s: 1.0
+  step_s: 0.01
+  sample_s: 0.1
+  backend: basilisk
+parameters:
+  profile: demo
+  values:
+    physics_backend: basilisk_native
+    capacity_kg: 3.0
+    initial_mass_kg: 2.0
+    mass_flow_kg_s: 0.001
+model:
+  capability_id: component.fuel_tank.v1
+  target: {level: component, name: fuel_tank, mode: nominal}
+outputs:
+  output_root: runs/component_fuel_tank_basilisk_native
+  qoi:
+    - propulsion.fuel_tank.initial_mass_kg
+    - propulsion.fuel_tank.final_mass_kg
+    - propulsion.fuel_tank.consumed_mass_kg
+  plots:
+    - propulsion.fuel_tank.propellant_mass_kg
+    - propulsion.fuel_tank.mass_rate_kg_s

@@ -82,14 +82,14 @@ def _capability_id(spec: Mapping[str, Any]) -> str | None:
 def _compile_capability_task(spec: Mapping[str, Any], *, task_type: str) -> CompiledTask:
     """Compile a capability-centric TaskSpec into an explicit adapter plan."""
 
-    from .capability_registry import get_capability
+    from .capability_backends import get_task_capability
     from .capability_composition import composition_metadata, contract_interface_summary
     from .source_native import source_binding_payload
 
     cid = _capability_id(spec)
     if not cid:
         raise TaskSpecError("capability_id is required for capability compilation")
-    contract = get_capability(cid)
+    contract = get_task_capability(spec, cid)
     target = _mapping(spec.get("target"))
     base = _base_compiled(spec, runner=contract.adapter_class_path)
     sim = _mapping(spec.get("simulation"))

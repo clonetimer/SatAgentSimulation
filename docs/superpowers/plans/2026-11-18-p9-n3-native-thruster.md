@@ -44,7 +44,7 @@ Final-review scope correction: the native-thruster branch of src/sat_sim/task_mo
 - [x] Execute the example through prepare_run/execute_prepared_run; assert SUCCEEDED, PASS, sealed, integrity, native provenance and physical output.
 - [x] Verify default project_reference compatibility, self-review, and report changed files/test commands/results. Do not commit/push; root integrates atomically.
 
-Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 79 passed (77 native-component tests and 2 existing reference-event tests). Canonical TaskSpec 1.0.0 separately passed prepare/execute, validation, sealing and integrity. One-step pulse scheduling and the conservative fuel reserve were established with real native probes. Task-scoped independent review passed after correcting the low-flow numerical resolution and direct-execution identity findings. Final integration review and current-head CI remain gates below.
+Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 79 passed (77 native-component tests and 2 existing reference-event tests). Canonical TaskSpec 1.0.0 separately passed prepare/execute, validation, sealing and integrity. One-step pulse scheduling and the conservative fuel reserve were established with real native probes. Independent task and final integration reviews passed after correcting low-flow resolution, direct-execution identity, standard-step conflicts and legacy default-step migration.
 
 ## Task 2: Governance, experience, and integration
 
@@ -54,4 +54,6 @@ Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 79 passed (77 nativ
 - [x] Synchronize thruster parameter/output labels and actual capability blob hash, preserving other dictionary entries and formatting.
 - [x] Add focused official bsk2.11.0 CI with explicit provenance check, native acceptance and related reference coverage.
 - [x] Independently review Task1 changes; fix substantive findings and rerun only affected verification.
-- [ ] Commit the integrated change, create feature PR, verify current-head applicable CI after any review corrections, merge after success, and record the observed outcome.
+- [x] Commit the integrated change, create feature PR, verify current-head applicable CI after any review corrections, merge after success, and record the observed outcome.
+
+Final evidence: [PR #172](https://github.com/clonetimer/SatAgentSimulation/pull/172), tested head `f1c65193627f41fea638a650e3859062b40bbe3b`, squash merge `2cd59c2f7a494e33c70de6fff6d4cb7a6df23e99`. Reviewed/tested/merged tree `71be8d4c43b475e3db4e58ede6caeb11cbddc3b3`. Official native-thruster CI 79 passed; native sensors 26 passed; Agent/Run 457 passed and Chromium 19 passed. Parameter audit, cross-platform ownership, and script/dependency gates succeeded. Stable continuous was skipped. The pre-existing whole-spacecraft pinned-plan-hash failure documented in the development-experience record remains outside this change; no full-repository all-green claim is made.

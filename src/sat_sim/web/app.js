@@ -116,6 +116,7 @@
     changedPaths: new Set(),
     formSectionOpen: new Map(),
     agentBeforeForm: null,
+    agentBeforeSchema: null,
     agentBeforeTaskCenterId: null,
     formProjectionSource: null,
     executionState: null,
@@ -1818,6 +1819,7 @@
         else if (['number', 'integer'].includes(field.type)) {
           value = Number(input.value); if (!Number.isFinite(value)) throw new Error('必须是数值'); if (field.type === 'integer' && !Number.isInteger(value)) throw new Error('必须是整数');
         } else value = input.value;
+        if (field.path === 'parameters.values.physics_backend' && state.schema?.backend_profiles?.length) { void selectPhysicsBackend(value); return; }
         setPath(state.formData, field.path, value);
         state.taskSpec = null; state.planning = null; syncTaskSpecEditor(); validateClientForm({ show: false }); renderForm(); renderGraph();
         graphSetStatus(`已更新 ${field.label || field.path}；重新生成 Python 后代码会同步。`, 'success');
@@ -4020,6 +4022,7 @@
   function clearAgentChanges() {
     state.changedPaths = new Set();
     state.agentBeforeForm = null;
+    state.agentBeforeSchema = null;
     state.agentBeforeTaskCenterId = null;
     state.formProjectionSource = null;
     renderForm();
@@ -4031,10 +4034,12 @@
   function undoAgentChanges() {
     if (!state.agentBeforeForm) return;
     state.formData = clone(state.agentBeforeForm);
+    if (state.agentBeforeSchema) state.schema = clone(state.agentBeforeSchema);
     state.activeTaskCenterId = state.agentBeforeTaskCenterId;
     state.taskSpec = null;
     state.planning = null;
     clearAgentChanges();
+    renderEffectSelect();
     updateTaskEditState();
     syncTaskSpecEditor();
     showNotice('已撤销最近一次 Agent/TaskSpec 表单同步。', 'success');
@@ -4057,6 +4062,8 @@
     }
     const before = clone(state.formData || state.schema.default_form);
     state.agentBeforeForm = before;
+    state.agentBeforeSchema = clone(state.schema);
+    if (payload.projection?.form_schema) state.schema = payload.projection.form_schema;
     state.agentBeforeTaskCenterId = state.activeTaskCenterId;
     state.formProjectionSource = source;
     state.formData = clone(projected);
@@ -4816,6 +4823,70 @@
     }
   }
 
+  async function selectPhysicsBackend(backend) {
+    const capabilityId = state.selectedCapabilityId;
+    const sourceForm = state.formData;
+    const requestVersion = (state.backendSelectionVersion || 0) + 1;
+    state.backendSelectionVersion = requestVersion;
+    showBusy('切换物理后端', '正在读取所选模型的参数和输出。');
+    try {
+      const payload = await api(`/forms/capabilities/${encodeURIComponent(capabilityId)}?physics_backend=${encodeURIComponent(backend)}`);
+      if (requestVersion !== state.backendSelectionVersion || capabilityId !== state.selectedCapabilityId || sourceForm !== state.formData) return false;
+      const schema = payload.form_schema;
+      const next = clone(state.formData);
+      const removed = [];
+      const allowed = new Set(schema.fields.filter((field) => field.path.startsWith('parameters.values.')).map((field) => field.path.slice('parameters.values.'.length)));
+      const values = clone(schema.default_form.parameters.values);
+      Object.entries(next.parameters?.values || {}).forEach(([name, value]) => {
+        if (allowed.has(name)) values[name] = value;
+        else removed.push(name);
+      });
+      values.physics_backend = backend;
+      next.parameters.values = values;
+      if (next.model?.config) {
+        Object.keys(next.model.config).forEach((name) => { if (!allowed.has(name)) { delete next.model.config[name]; removed.push(`model.config.${name}`); } });
+        next.model.config.physics_backend = backend;
+      }
+      for (const section of ['qoi', 'plots']) {
+        const available = new Set(section === 'qoi' ? [...schema.outputs.summary_qoi, ...schema.outputs.trace_fields] : schema.outputs.trace_fields);
+        const kept = (next.outputs[section] || []).filter((name) => { if (available.has(name)) return true; removed.push(name); return false; });
+        next.outputs[section] = kept.length ? kept : clone(schema.default_form.outputs[section]);
+      }
+      next.outputs.telemetry_streams = (next.outputs.telemetry_streams || []).filter((stream) => {
+        if ((stream.fields || []).every((field) => schema.outputs.trace_fields.includes(field))) return true;
+        removed.push(`遥测流 ${stream.stream_id}`); return false;
+      });
+      for (const kind of ['faults', 'degradations', 'constraints']) {
+        const effects = new Set((schema.event_catalog[kind] || []).map((item) => item.effect));
+        next.events[kind] = (next.events[kind] || []).filter((event) => { if (effects.has(event.effect)) return true; removed.push(event.label || event.effect); return false; });
+      }
+      if (Object.values(next.events).every((events) => !events.length)) next.model.target.mode = 'nominal';
+      state.schema = schema;
+      state.formData = next;
+      state.taskSpec = null;
+      state.planning = null;
+      state.wizard.validated = false;
+      state.wizard.validatedForm = null;
+      if (typeof window !== 'undefined') window.SatScene?.clearSimulationConfiguration?.();
+      clearAgentChanges();
+      updateTaskEditState();
+      updateSingleRunGuide('configure', '物理后端已切换，请重新校验配置。');
+      renderEffectSelect(); renderP9DPanel(); renderGraph();
+      syncTaskSpecEditor();
+      if (state.activeView === 'wizard') renderWizardParameterControls();
+      const description = schema.backend_profiles?.find((item) => item.physics_backend === backend)?.summary || '';
+      showNotice(`已切换物理后端。共用参数已保留，需要重新校验。${removed.length ? ` 已移除不适用的配置：${[...new Set(removed)].join('、')}。` : ''} ${description}`, removed.length ? 'warning' : 'success');
+      return true;
+    } catch (error) {
+      if (requestVersion === state.backendSelectionVersion && sourceForm === state.formData) {
+        renderForm(); showNotice(`切换物理后端失败：${error.message}`, 'error');
+      }
+      return false;
+    } finally {
+      if (requestVersion === state.backendSelectionVersion) hideBusy();
+    }
+  }
+
   async function selectCapability(capabilityId, objectOverride = null, isCurrent = () => true) {
     if (capabilityId === state.selectedCapabilityId && state.schema) {
       if (objectOverride) {
@@ -4856,6 +4927,7 @@
       updateTaskEditState();
       state.changedPaths = new Set();
       state.agentBeforeForm = null;
+      state.agentBeforeSchema = null;
       state.agentBeforeTaskCenterId = null;
       state.formProjectionSource = null;
       renderAgentChangePanel();
@@ -5126,6 +5198,7 @@
             else { value=Number(input.value); if (!Number.isFinite(value)) throw new Error('必须是数值'); if (field.type==='integer' && !Number.isInteger(value)) throw new Error('必须是整数'); }
           } else if (['object','object_editor','array','number_or_array[number]','vector3_or_number'].includes(field.widget) || String(field.widget).startsWith('array[')) value=parseStructuredValue(input.value,field);
           else value=input.value;
+          if (field.path === 'parameters.values.physics_backend' && state.schema?.backend_profiles?.length) { void selectPhysicsBackend(value); return; }
           if (value === undefined) deletePath(state.formData,field.path); else setPath(state.formData,field.path,value);
           state.taskSpec=null; state.changedPaths.delete(field.path); wrapper.classList.remove('agent-changed','field-error'); wrapper.querySelector('.field-error-message')?.remove();
           validateClientForm({show:false}); renderAgentChangePanel();
@@ -11195,6 +11268,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     state.planning = clone(snapshot.planning);
     state.changedPaths = new Set(snapshot.changedPaths);
     state.agentBeforeForm = clone(snapshot.agentBeforeForm);
+    state.agentBeforeSchema = clone(snapshot.agentBeforeSchema);
     state.agentBeforeTaskCenterId = snapshot.agentBeforeTaskCenterId ?? null;
     state.formProjectionSource = snapshot.formProjectionSource || null;
     state.activeTaskCenterId = snapshot.activeTaskCenterId;
@@ -11216,7 +11290,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       capabilityId: state.selectedCapabilityId, formData: clone(state.formData),
       taskSpec: clone(state.taskSpec), planning: clone(state.planning),
       hasTaskSpecContext: state.hasTaskSpecContext,
-      changedPaths: [...state.changedPaths], agentBeforeForm: clone(state.agentBeforeForm),
+      changedPaths: [...state.changedPaths], agentBeforeForm: clone(state.agentBeforeForm), agentBeforeSchema: clone(state.agentBeforeSchema),
       agentBeforeTaskCenterId: state.agentBeforeTaskCenterId,
       formProjectionSource: state.formProjectionSource,
       activeTaskCenterId: state.activeTaskCenterId, editorText: el('taskSpecEditor').value,

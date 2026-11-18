@@ -578,8 +578,8 @@ def validate_task_spec(spec: Mapping[str, Any], *, use_json_schema: bool = True)
 
                 issues.extend(validate_spec_against_capability(runtime_spec))
                 if capability_id:
-                    from .capability_registry import get_capability
-                    capability_contract = get_capability(str(capability_id))
+                    from .capability_backends import get_task_capability
+                    capability_contract = get_task_capability(runtime_spec, str(capability_id))
                     if capability_id in {"whole_spacecraft.unified_native.v1", "subsystem.adcs_unified_native.v1"}:
                         from .native_rw_preflight import validate_native_rw_settings
                         values = runtime_spec.get("parameters")
