@@ -1259,7 +1259,7 @@ class MagnetometerAdapter(_BaseComponentAdapter):
         from components.magnetometer.schemas import MagnetometerConfig
 
         params = _mapping(spec.get("parameters"))
-        _, _, _, times = _time_grid(spec)
+        duration_s, sample_s, _, times = _time_grid(spec)
         field = _vec3(params.get("magnetic_field_t"), (2.0e-5, 0.0, 4.0e-5))
         config = MagnetometerConfig(
             axis_scale=_vec3(params.get("axis_scale"), (1.0, 1.0, 1.0)),
@@ -1268,6 +1268,51 @@ class MagnetometerAdapter(_BaseComponentAdapter):
         faults = _normalized_events(spec, "faults", "fault_type")
         degradations = _normalized_events(spec, "degradations", "degradation_type")
         mode = str(_mapping(spec.get("target")).get("mode") or "nominal")
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("MAGNETOMETER_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if mode != "nominal" or faults or degradations:
+                raise ValueError("NATIVE_MAGNETOMETER_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            if max(config.axis_scale) - min(config.axis_scale) > 1.0e-12:
+                raise ValueError("NATIVE_MAGNETOMETER_REQUIRES_UNIFORM_AXIS_SCALE")
+            from sat_sim.bsk_engine.native_sensor_component import run_native_magnetometer_probe
+            native = run_native_magnetometer_probe(
+                duration_s=duration_s,
+                sample_s=sample_s,
+                truth_magnetic_field_n_t=field,
+                bias_tesla=config.bias_t,
+                scale_factor=float(config.axis_scale[0]),
+            )
+            native_rows = []
+            for index, time_s in enumerate(native.times_s):
+                measured = native.magnetic_field_sensor_t[index]
+                row = _row_base(spec, self.target_name, index, time_s, mode)
+                for axis, value in zip("xyz", measured):
+                    row[f"adcs.magnetometer.field_{axis}_t"] = float(value)
+                row["adcs.magnetometer.field_norm_t"] = math.sqrt(sum(float(value) ** 2 for value in measured))
+                row["adcs.magnetometer.effective_bias_x_t"] = float(config.bias_t[0])
+                row["label.fault_active"] = False
+                row["label.degradation_active"] = False
+                row["label.health_state"] = "nominal"
+                native_rows.append(row)
+            error = math.sqrt(sum((float(native_rows[-1][f"adcs.magnetometer.field_{axis}_t"]) - field[index]) ** 2 for index, axis in enumerate("xyz")))
+            qoi = {"adcs.magnetometer.field_norm_t": native_rows[-1]["adcs.magnetometer.field_norm_t"], "adcs.magnetometer.error_norm_t": error}
+            summary = self._summary(spec, native_rows, qoi)
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(native_rows),
+                labels={"run_labels": [{"task_id": summary["task_id"], "mode": "nominal", "capability_id": self.capability_id, "physics_backend": "basilisk_native"}]},
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.magnetometer.Magnetometer"],
+                    "native_provenance": native.model_source,
+                    "native_input_source": native.input_source,
+                    "native_claim_scope": native.claim_scope,
+                    "limits": ["nominal only", "no faults/degradation", "uniform three-axis scale only", "prescribed uniform magnetic field fixture", "identity mounting and attitude"],
+                },
+            )
         rows = []
         for index, time_s in enumerate(times):
             bias = list(config.bias_t)
