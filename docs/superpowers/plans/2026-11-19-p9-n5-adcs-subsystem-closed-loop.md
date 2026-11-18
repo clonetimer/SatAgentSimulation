@@ -96,3 +96,18 @@
 ## 下一步：N5-D 故障效果物理 A/B
 
 按顺序核查 RW jamming/motor failure、gyro bias/noise、torque authority loss。每项必须有同一物理初始条件的 nominal/control 与 injected case、实际生效 recorder、pointing error/body-rate/RW response 对照，以及 sealed Run Bundle。只有通过物理门禁的事件才可进入 ADCS 向导；其余保持隐藏/拒绝。
+
+
+## N5-D 实施中的物理 A/B 矩阵（2026-11-19）
+
+新增 `tests/test_native_adcs_fault_effects.py`，每个 case 都使用相同 ADCS 模板、相同初始条件和同一官方 Basilisk 2.11.0 runtime，分别执行 nominal baseline 与单一 injected event；两侧都必须生成 SUCCEEDED、validation PASS、sealed、integrity PASS 的 Run Bundle。
+
+| 效应 | 直接物理观测 | A/B 通过条件 |
+|---|---|---|
+| `adcs_rw_jamming` | 有效力矩权限降为 0、制动力矩与轮速下降 | injected 轮速/执行器响应区别于 baseline；不是只看 fault label |
+| `adcs_rw_motor_failure` | 目标轮有效力矩上限与实际执行力矩归零 | 原始控制命令仍存在，实际送入 ReactionWheelStateEffector 的目标轮力矩为 0 |
+| `adcs_rw_torque_authority_loss` | 有效最大力矩按比例下降 | `torque_scale=0.25` 时有效力矩比例为 0.25，且实际力矩受限；与二值电机失效区分 |
+| `gyro_bias_step` | IMU 平台系 bias、measured rate、融合 body-rate | measured−raw 与偏置增量一致，IMU 样本保持有效 |
+| `gyro_noise_increase` | IMU 噪声 recorder 与有效性标记 | 噪声幅度可观察增加，不能把正常样本标记为无效 |
+
+当前均为候选测试，只有同一 PR head 的官方 Basilisk 与 Run Bundle 门禁通过后，才把对应 operator effect 的 verification 从 declared 提升为 verified。未验证效果继续保持向导不可选。
