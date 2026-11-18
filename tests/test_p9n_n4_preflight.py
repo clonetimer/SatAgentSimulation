@@ -64,7 +64,7 @@ def test_native_rw_preflight_rejects_unsupported_configuration_with_field_path(
     assert any(issue.code == "native_scope" for issue in result.errors), result.to_dict()
 
 
-def test_native_rw_preflight_api_returns_actionable_validation_errors(tmp_path) -> None:
+def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tmp_path) -> None:
     app = create_app(
         runs_root=tmp_path / "runs",
         artifacts_root=tmp_path / "artifacts",
