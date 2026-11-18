@@ -107,8 +107,8 @@ def test_adcs_native_subsystem_sealed_run_bundle_and_frame_contract(
     manifest = json.loads((dataset_root / "manifest.json").read_text(encoding="utf-8"))
     boundary = manifest["runtime_evidence"]["model_source_boundary"]
     official_sources = " ".join(str(item) for item in boundary["basilisk_official_native"]).lower()
-    assert "startracker" in official_sources
-    assert "imusensor" in official_sources
+    assert "star_tracker" in official_sources
+    assert "imu" in official_sources
     assert "magnetometer" in official_sources
     assert "project_adcs_sensor_fusion" in boundary["basilisk_project_native"]
     assert boundary["external_or_proxy"] == []
