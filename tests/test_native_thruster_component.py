@@ -31,6 +31,8 @@ def test_delayed_native_burn_records_ignition_and_shutdown():
     pytest.importorskip("Basilisk")
     result = ThrusterAdapter().run(thruster_spec())
     assert result.metadata["physics_backend"] == "basilisk_native"
+    assert result.summary["physics_backend"] == "basilisk_native"
+    assert result.labels["run_labels"][0]["physics_backend"] == "basilisk_native"
     rows = result.trace_rows
     assert rows[0][PREFIX + "effective_thrust_n"] == 0.0
     assert rows[3][PREFIX + "effective_thrust_n"] == pytest.approx(1.0)
@@ -182,6 +184,7 @@ def test_canonical_native_example_runs_through_sealed_bundle(tmp_path):
     assert result.run_record.status.value == "SUCCEEDED", result.run_record
     assert result.run_record.sealed and result.validation.result.value == "PASS", result.validation
     assert verify_run_bundle(prepared.bundle_root)["ok"]
+    assert result.summary["physics_backend"] == "basilisk_native"
     metadata = result.summary["adapter_metadata"]
     assert metadata["physics_backend"] == "basilisk_native"
     assert "ThrusterDynamicEffector" in metadata["native_provenance"]
