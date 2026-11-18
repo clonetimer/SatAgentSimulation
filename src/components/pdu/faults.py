@@ -92,8 +92,7 @@ class PduL2FaultType(str, Enum):
 def _effects_for(kind: PduL2FaultType) -> tuple[ParameterEffect, ...]:
     effects_by_type = {
         PduL2FaultType.CHANNEL_TRIP: (
-            ParameterEffect('trip_state', 'override', 1.0, 'protective trip opens one load channel'),
-            ParameterEffect('availability', 'multiply', 0.4, 'protective trip opens one load channel'),
+            ParameterEffect('channel_enabled', 'override', 0.0, 'protective trip opens the payload PDU channel'),
         ),
         PduL2FaultType.OVER_CURRENT: (
             ParameterEffect('path_resistance_ohm', 'multiply', 2.0, 'load short increases current and voltage drop'),
