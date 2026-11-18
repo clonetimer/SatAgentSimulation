@@ -50,3 +50,17 @@ CI 必须在同一 PR head 完成：
 - Chromium 仍按真实 sealed Run detail 验证 backend 与 provenance，不降低断言、不用 metadata-only 结果掩盖产品摘要缺口。
 
 经验：adapter metadata 是工程证据存储，summary 是用户结果合同；两者都要保留 backend。仅 metadata 正确，用户结果页仍可能误报“未声明”。
+
+
+## 修复后专项验收结果（2026-11-18）
+
+修复后的官方 Basilisk + Chromium 专项在 PR #179 当前代码头通过：
+
+- 官方 Basilisk 2.11.0 反作用轮物理 A/B：18 passed。
+- 三种传感器官方物理、adapter 和 sealed Run Bundle：26 passed。
+- 三类 native 模板、Schema 表单和 API 发布：12 passed。
+- N4-B native preflight/result 合同：7 passed。
+- Chromium 用户旅程：4 passed、4 deselected；其中包括三类传感器真实 Run、sealed/integrity、backend provenance、recorder plot manifest 与 Run Center 同一 Run 历史回放。
+- 原生物理与 JUnit 证据包：成功归档，artifact `native-component-physical-evidence`，8,552 bytes，SHA-256 `acedb415ed1656fa7fe6c66980898312b338fc1b768d59375e339a7e8d159ea9`。
+
+专项工作流：`44310950498`，结论 SUCCESS。其余 PR 共享回归（Agent 输入一致性、热节点长测、整星 Basilisk 回归、P9-G 默认入口）仍在运行；因此专项通过不等于 PR 全部发布门禁完成。
