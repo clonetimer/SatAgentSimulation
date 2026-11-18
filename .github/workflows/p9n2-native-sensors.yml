@@ -35,7 +35,7 @@ jobs:
           assert version("bsk") == "2.11.0"
           print("OFFICIAL_BASILISK_NATIVE", Basilisk.__version__, version("bsk"))
           PY
-      - name: Execute independent native IMU and star tracker truth graphs
+      - name: Execute independent native IMU, star tracker, magnetometer and CSS graphs
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q tests/test_native_sensor_component.py --disable-warnings
