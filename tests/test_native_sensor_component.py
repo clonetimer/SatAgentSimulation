@@ -32,7 +32,7 @@ def test_native_star_tracker_probe_uses_official_sensor_and_records_truth_respon
         ({"duration_s": 0.0}, "DURATION"),
         ({"sample_s": 0.0}, "SAMPLE"),
         ({"truth_sigma_bn": (0.0, 1.0)}, "TRUTH_SIGMA"),
-        ({"truth_omega_bn_rad_s": (0.0, float("nan"), 0.0)}, "TRUTH_OMEGA"),
+        ({"truth_omega_bn_b_rad_s": (0.0, float("nan"), 0.0)}, "TRUTH_OMEGA"),
         ({"seed": -1}, "SEED"),
         ({"noise_std_rad": float("inf")}, "NOISE"),
     ],
