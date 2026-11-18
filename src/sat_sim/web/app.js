@@ -8649,7 +8649,7 @@
       templateId: 'adcs_unified_native',
       capabilityId: 'subsystem.adcs_unified_native.v1',
       label: 'ADCS 统一 Basilisk 闭环模板',
-      prompt: '已加载官方 Basilisk StarTracker、ImuSensor、Magnetometer、ReactionWheelStateEffector 与控制链。星敏 case C、IMU platform P、磁强计 sensor S 的测量已转换到本体系 B；磁强计参与 Sun/Mag TRIAD。Sun/Earth 向量是项目理想几何测量，不是 CSS 三轴方向输出。当前只开放 nominal、有限时长离线闭环；不开放故障/退化、实时运行或整星耦合。',
+      prompt: '已加载官方 Basilisk StarTracker、ImuSensor、Magnetometer、ReactionWheelStateEffector 与控制链。星敏 case C、IMU platform P、磁强计 sensor S 的测量已转换到本体系 B；磁强计参与 Sun/Mag TRIAD。Sun/Earth 向量是项目理想几何测量，不是 CSS 三轴方向输出。Basilisk IMU 首次初始化零样本标记为无效，有效样本到达前保持上一有效角速度。当前只开放 nominal、有限时长离线闭环；不开放故障/退化、实时运行或整星耦合。',
     },
   });
 
