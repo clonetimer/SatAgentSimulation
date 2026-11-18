@@ -119,11 +119,29 @@ jobs:
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_closed_loop.xml tests/test_unified_native_migration.py -k "adcs_unified_runtime_is_closed_loop_and_recorder_grounded or adcs_fusion_transforms_non_identity_sensor_mounts_into_body_frame"
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_sealed_bundle.xml tests/test_native_adcs_subsystem_bundle.py
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_fault_effects.xml tests/test_native_adcs_fault_effects.py
+      - name: Determine whether the browser surface changed
+        id: browser_scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags origin "$BASE_SHA" --depth=1
+          if git diff --name-only "$BASE_SHA"...HEAD | grep -Eq '^(src/sat_sim/web/|tests/test_guided_task_workspace_browser.py$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install Chromium for the guided component/subsystem workflow
+        if: steps.browser_scope.outputs.run == 'true'
         run: |
           python -m pip install "playwright==1.57.0"
           python -m playwright install --with-deps chromium
       - name: Resolve Chromium executable for the guided workbench test
+        if: steps.browser_scope.outputs.run == 'true'
         run: |
           python - <<'PY' >> "$GITHUB_ENV"
           from playwright.sync_api import sync_playwright
@@ -131,6 +149,7 @@ jobs:
               print(f"SAT_SIM_BROWSER_EXECUTABLE={playwright.chromium.executable_path}")
           PY
       - name: Verify guided native component and subsystem selection and real Runs
+        if: steps.browser_scope.outputs.run == 'true'
         env:
           PYTHONPATH: "src:."
         run: |
