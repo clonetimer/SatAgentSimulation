@@ -128,6 +128,8 @@ outputs:
   - eps.nominal_payload_load_w
   - eps.bus_load_w
   - eps.payload_load_enabled_w
+  - eps.pdu_payload_channel_enabled
+  - eps.pdu_shed_reason
   - eps.adcs_load_enabled_w
   - eps.comm_load_enabled_w
   - eps.net_power_w
@@ -184,6 +186,8 @@ operator:
       - eps.solar_power_w
       - eps.nominal_solar_power_w
       - eps.payload_load_enabled_w
+      - eps.pdu_payload_channel_enabled
+      - eps.pdu_shed_reason
       - eps.nominal_payload_load_w
       - eps.net_power_w
       - label.fault_active
