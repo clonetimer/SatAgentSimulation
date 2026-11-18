@@ -128,3 +128,11 @@
 - 当前 `PduLoadSheddingSysModel` 是两个独立门控的合取：`payload_channel_enabled`（事件注入开关）与 `soc >= payload_min_soc`（低电量保护）。故障结束只恢复前者，不保证后者立即允许负载。
 - `recovery_soc` 当前只用于附加 `charge_recovery_required` 诊断原因，并未作为滞回恢复阈值参与 `payload_enabled` 判定；因此本 PR 不宣称实现了 SOC 滞回。若后续产品要求防止阈值附近抖动，应单独设计并验证 SOC shed/recovery 状态机。
 - sealed A/B 断言现在分别验证：事件中 PDU 通道关闭且原因为 `payload_channel_trip`；事件后通道恢复、trip 原因消失；若 payload 仍关闭，则必须能从直接 PDU 记录中找到 `payload_low_soc` 原因。这样不把故障恢复与供电服务恢复混为一谈。
+
+
+## O2-C 正式运行测试回归（2026-11-19）
+
+- 官方 Basilisk 2.11.0 同一 head 的四组 EPS/Comm-Data paired sealed Run Bundle 全部通过（4/4）；PDU 事件后断言也通过：通道恢复开启，若实际 payload 仍关闭，则直接 shed_reason 必须指出 payload_low_soc。
+- formal runtime evidence 首轮共 17 个参数化用例：7 个 ADCS 用例通过；EPS/Comm-Data 4 个用例因测试 helper 把 label.fault_active / label.degradation_active 错当成请求 QoI 而在 TaskSpec 规划阶段失败。状态标签是 runtime trace/evidence 元数据，不是所有 capability 都声明的用户 QoI；现在从 outputs.qoi 中过滤 label.*，但不从 evidence profile 或 trace 中删除。
+- whole-spacecraft 6 个既有 formal 用例因 CI 安装脚本漏装 numba 而失败。项目 pyproject.toml 已固定 numba==0.63.1，thermal_quadrature.py 是整星原生热环境运行的实际依赖；这是 CI 安装清单漂移，不是 Basilisk 物理模型失败。已将同版本 numba 加入官方 native workflow 安装步骤。
+- 修复后必须在新的最终 PR head 重跑 17 个 formal 用例；不能把 7/17 或 4/4 A/B 当成 O2-C 全部通过。
