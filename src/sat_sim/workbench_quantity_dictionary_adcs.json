@@ -201,7 +201,7 @@
     "magnetometer": {
       "name": "磁强计",
       "classification": "physical",
-      "source_blob": "79fba390e56d8e1d72c6141df9ee66c771d377f3",
+      "source_blob": "6359a04cd7e29ad1a951c11d3c1e125a4cb92039",
       "parameters": [
         [
           "magnetic_field_t",
