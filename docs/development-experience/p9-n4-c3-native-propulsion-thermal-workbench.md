@@ -81,3 +81,14 @@ CI 通过前不宣称 N4-C3 已完成。CSS、太阳敏感器三轴测量、推�
 当前 PR head `4252577` 的专用 native workflow #44321775695 再次 PASS：RW 18、TaskSpec sealed Run 1、传感器 26、EPS 24、推进/贮箱/热节点 218；模板/表单、N4 预检、Chromium 九设备真实 Run/历史回放均 PASS。Artifact `native-component-physical-evidence` 为 12,813 bytes，ID `14435466583`。
 
 当前 PR 仍有三项共享长回归运行中：P9-M4 CAD 浏览器审查、P9-G Chromium 导航旅程、整星 Basilisk 长时耐久/TC-TM soak；未报告失败。正式合并必须等待这些工作流全部结束并在同一 PR head 为 success。
+
+
+## 最终同 head 验收与合并（2026-11-19）
+
+前文 PR #181 的中间 head 记录保留为历史；最终审核以 head `e535341fa062bb222b65660b27493051e6fcaba3` 为准。
+
+- 20 个 PR workflow runs 全部结束：19 success、1 条件 skip、0 failure；PR 与 main 同步且可合并。
+- 官方 Basilisk 2.11.0 专项 workflow #44323239995 PASS：RW 18、sealed TaskSpec Run 1、传感器 26、EPS 24、推力/贮箱/热节点 218、模板/API/Schema 14、native preflight 7；Chromium 4 passed / 4 deselected。
+- Artifact `native-component-physical-evidence`：ID `14435583858`，12,805 bytes，SHA-256 `b2de89435ea80883d8439cfb32f70d5fe4266fa4056ffdbbb13429f45994a01c`。
+- PR #181 已 Squash merge，main commit `7f9cf69d62415d710a64585a81237c37f11df001`。
+- 历史 PR #166/#168 已关闭：前者与 N4-A provenance 展示重复，后者已由合入的 N4-A/C 工作台路径替代。

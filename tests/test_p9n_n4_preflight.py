@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
+import io
+import json
+import zipfile
 
 import pytest
 from fastapi.testclient import TestClient
@@ -142,6 +146,10 @@ def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_
         plots = client.get(f"/runs/{run_id}/plots")
         telemetry = client.get(f"/runs/{run_id}/telemetry?limit=100")
         artifacts = client.get(f"/runs/{run_id}/artifacts")
+        bundle_download = client.get(f"/runs/{run_id}/bundle/download")
+        summary_path = runs_root / run_id / "results" / "summary.json"
+        summary_path.write_bytes(summary_path.read_bytes() + b"\\n")
+        tampered_download = client.get(f"/runs/{run_id}/bundle/download")
 
     for response in (detail, report, metrics, plots, telemetry, artifacts):
         assert response.status_code == 200, response.text
@@ -158,3 +166,43 @@ def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_
     assert telemetry.json()["rows"]
     artifact_paths = {item["path"] for item in artifacts.json()["artifacts"]}
     assert "runtime/execution_port.json" in artifact_paths
+
+    assert bundle_download.status_code == 200, bundle_download.text
+    assert tampered_download.status_code == 409, tampered_download.text
+    assert tampered_download.json()["detail"]["reason_code"] == "RUN_BUNDLE_NOT_VERIFIED"
+    assert bundle_download.headers["content-type"].startswith("application/zip")
+    assert bundle_download.headers["X-Sat-Sim-Run-ID"] == run_id
+    with zipfile.ZipFile(io.BytesIO(bundle_download.content)) as archive:
+        manifest_path = f"{run_id}/bundle_manifest.json"
+        seal_path = f"{run_id}/SEALED.json"
+        assert manifest_path in archive.namelist()
+        assert seal_path in archive.namelist()
+        manifest_bytes = archive.read(manifest_path)
+        manifest = json.loads(manifest_bytes)
+        seal = json.loads(archive.read(seal_path))
+        assert manifest["run_id"] == run_id
+        assert seal["run_id"] == run_id
+        assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
+        archived = set(archive.namelist())
+        expected = {f"{run_id}/{relative}" for relative in manifest["files"]}
+        assert archived == expected | {manifest_path, seal_path}
+        assert f"{run_id}/runtime/execution.lock" not in archived
+        assert bundle_download.headers["X-Sat-Sim-Run-Bundle-Manifest-SHA256"] == seal["bundle_manifest_sha256"]
+        for relative, entry in manifest["files"].items():
+            payload = archive.read(f"{run_id}/{relative}")
+            assert hashlib.sha256(payload).hexdigest() == entry["sha256"]
+
+
+def test_run_bundle_download_rejects_unsealed_bundle(tmp_path) -> None:
+    runs_root = tmp_path / "runs"
+    prepared = prepare_run(_native_rw_spec("p9n4_unsealed_export"), output_root=runs_root)
+    app = create_app(
+        runs_root=runs_root,
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    with TestClient(app) as client:
+        response = client.get(f"/runs/{prepared.run_id}/bundle/download")
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"]["reason_code"] == "RUN_BUNDLE_NOT_VERIFIED"

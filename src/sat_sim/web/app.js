@@ -6291,6 +6291,7 @@
       if (visualRunContext) { state.activeVisualRunContext = { ...visualRunContext, runId }; clearVisualRunOverlay(); }
       else state.activeVisualRunContext = null;
       el('exportDatasetBtn').classList.add('hidden');
+      el('downloadRunBundleBtn').classList.add('hidden');
       state.executionState = payload.execution_state || { run_id: runId, state: 'QUEUED' };
       renderExecutionProgress(state.executionState);
       showNotice(`仿真“${displayName}”已提交执行（Run ID：${runId}）。可以继续编辑其他任务，无需进入运行中心。`, 'success');
@@ -6416,6 +6417,7 @@
       el('openRunReportBtn').classList.add('hidden');
       el('reuseRunConfigBtn').classList.add('hidden');
       el('exportDatasetBtn').classList.add('hidden');
+      el('downloadRunBundleBtn').classList.add('hidden');
       el('downloadRunDiagnosticBtn').classList.add('hidden');
       el('activeRunCard').className = 'active-run empty-state';
       el('activeRunCard').textContent = `正在读取运行 ${runId}…`;
@@ -6582,6 +6584,17 @@
     datasetButton.title = state.dataset?.available
       ? `${state.dataset.file_count} 个文件，${humanBytes(state.dataset.size_bytes)}`
       : '当前运行尚未生成数据集';
+    const runBundleButton = el('downloadRunBundleBtn');
+    const verifiedRunBundle = Boolean(
+      state.activeRunId
+      && state.activeRun?.sealed === true
+      && state.activeRun?.integrity?.ok === true
+    );
+    runBundleButton.classList.toggle('hidden', !verifiedRunBundle);
+    runBundleButton.disabled = !verifiedRunBundle;
+    runBundleButton.title = verifiedRunBundle
+      ? '下载本次完整封存 Run Bundle；保留原始 TaskSpec、执行记录和 SHA-256 完整性清单'
+      : '仅可导出已封存且完整性校验通过的 Run Bundle';
     el('downloadRunDiagnosticBtn').classList.toggle('hidden', !state.activeRunId);
     const run = state.activeRun || {};
     const record = run.run_record || {};
@@ -7335,6 +7348,24 @@
         `${state.activeRunId}_dataset.zip`,
       );
       showNotice('数据集已导出。ZIP 内保留 dataset 清单、轨迹、标签及扩展制品。', 'success');
+    } finally {
+      button.disabled = false;
+      hideBusy();
+    }
+  }
+
+  async function exportActiveRunBundle() {
+    const runId = state.activeRunId;
+    if (!runId || state.activeRun?.sealed !== true || state.activeRun?.integrity?.ok !== true) return;
+    const button = el('downloadRunBundleBtn');
+    button.disabled = true;
+    showBusy('正在导出 Run Bundle', runId);
+    try {
+      await downloadEndpoint(
+        `/runs/${encodeURIComponent(runId)}/bundle/download`,
+        `${runId}_run_bundle.zip`,
+      );
+      showNotice('Run Bundle 已导出。ZIP 保留原始封存清单与 SHA-256 文件校验，可用于离线复核。', 'success');
     } finally {
       button.disabled = false;
       hideBusy();
@@ -11878,6 +11909,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('openRunReportBtn').addEventListener('click', () => state.activeRunId && openReport(state.activeRunId).catch((error) => showNotice(error.message, 'error')));
     el('exportDatasetBtn').addEventListener('click', () => exportActiveDataset().catch((error) => showNotice(`导出数据集失败：${error.message}`, 'error')));
+    el('downloadRunBundleBtn').addEventListener('click', () => exportActiveRunBundle().catch((error) => showNotice(`导出 Run Bundle 失败：${error.message}`, 'error')));
     el('downloadRunDiagnosticBtn').addEventListener('click', () => state.activeRunId && downloadEndpoint(`/diagnostics/bundle?run_id=${encodeURIComponent(state.activeRunId)}`, `diagnostic_${state.activeRunId}.zip`).catch((error) => showNotice(error.message, 'error')));
     el('refreshRunCenterBtn').addEventListener('click', () => loadRunCenter().catch((error) => { el('runCenterSummary').textContent = error.message; }));
     el('runCompareSelectedBtn').addEventListener('click', compareSelectedRuns);

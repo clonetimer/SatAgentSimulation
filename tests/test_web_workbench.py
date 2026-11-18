@@ -155,6 +155,11 @@ def test_workbench_exposes_dataset_export_control(tmp_path: Path):
     assert "导出数据集" in index
     assert "/dataset/download" in js
     assert "exportActiveDataset" in js
+    assert 'id="downloadRunBundleBtn"' in index
+    assert "导出 Run Bundle" in index
+    assert "/bundle/download" in js
+    assert "exportActiveRunBundle" in js
+    assert "RUN_BUNDLE_NOT_VERIFIED" in js or "仅可导出已封存且完整性校验通过的 Run Bundle" in js
 
 
 def test_workbench_exposes_font_scaling_and_run_result_focus_modes(tmp_path: Path):
