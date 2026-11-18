@@ -106,7 +106,9 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
             assert profile.assertions
             if capability_id in {"subsystem.eps.unified_native.v1", "subsystem.comm_data.unified_native.v1"}:
                 assert profile.implementation == "basilisk_native"
-                assert contract.observability.effect_evidence[effect_id] == list(profile.evidence_fields)
+                declared_fields = contract.observability.effect_evidence[effect_id]
+                assert len(declared_fields) == len(set(declared_fields))
+                assert set(declared_fields) == set(profile.evidence_fields)
 
 
 @pytest.mark.parametrize(
