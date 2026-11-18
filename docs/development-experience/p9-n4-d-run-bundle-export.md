@@ -1,7 +1,7 @@
 # P9-N4-D：完整 Run Bundle 导出开发经验
 
 日期：2026-11-19
-状态：候选实现；以同一 PR head 的 API 与 Chromium 证据为最终准入条件。
+状态：已合入 main（PR #182）；官方 Basilisk 2.11.0 API/物理合同与 Chromium 九类单机下载验收 PASS。
 
 ## 为什么需要这一步
 
@@ -40,8 +40,11 @@
 5. **UI 只负责呈现资格，不替代 API 校验。** 即使用户通过脚本直接请求 endpoint，服务端也必须独立执行 seal、manifest、路径与 hash 检查。
 6. **复用现有 Run Bundle 体系。** 本轮不新建 Export Store、第二套 manifest 或另一条执行链。
 
-## 当前待核实
+## 最终同 head 验收与合并（2026-11-19）
 
-- 以 PR 同一 head 核查 API 正常/拒绝/篡改测试。
-- 核查 Chromium 九类单机导出 ZIP 的真实浏览器下载与逐文件 hash。
-- 核查共享 CI 后合并；只有合并后的 main 才算正式交付。
+- PR #182 head：`d2efa4756c9b47c605a09e59495e3583f712bf57`；Squash merge：`7a90ef2b85db38cb8b64cc5ef4f72462f98a1d46`。
+- 官方 Basilisk 2.11.0 专项 workflow #44349903334 PASS：RW 18、sealed TaskSpec Run 1、传感器 26、EPS 24、推进/贮箱/热节点 218、模板/API/Schema 14、native preflight 8。
+- Chromium 专项 4 passed / 4 deselected；两个 guided native browser journeys 覆盖九类单机，逐一从结果面板下载 Run Bundle，并核验 ZIP 成员、manifest/seal 绑定和所有文件 SHA-256。
+- API 正常导出、未封存拒绝、篡改拒绝、Run ID 与 manifest/seal 绑定均通过。
+- 证据 artifact `native-component-physical-evidence`：ID `14448486528`，12,822 bytes，SHA-256 `60cb884de58b6d66607265023854cd806d4c519b5453c13cdaf1e0f9fbc96a33`。
+- 合并后 main 的完整 Run Bundle 下载入口已可用；这项工作只增加导出能力，不改变物理模型、执行链或数据模型。
