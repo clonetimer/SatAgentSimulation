@@ -120,3 +120,11 @@
 - O2-B paired Run Bundle 显示：故障结束后 `label.health_state` 已回到 nominal，但 payload 实际供电仍为 0。原因是组合故障期间电池 SOC 已跌破 PDU 低电量阈值，保护性 load shedding 会在跳闸解除后继续保持，直到满足恢复条件；这不是 channel_enabled 未恢复。
 - 不应要求“故障结束=负载立即恢复”。现在在 PduDecisionTraceRow 中逐样本记录 payload_channel_enabled，并将它和 shed_reason 暴露为 EPS trace 字段。验收分别检查：故障期间 channel_enabled=false 且 shed_reason 包含 payload_channel_trip；事件结束后 channel_enabled=true 且 trip 原因消失。实际负载可继续因 payload_low_soc 被切除。
 - 这将硬件故障状态、保护开关状态和系统级供电服务状态分离，避免将安全保护动作误判为故障未恢复。
+
+
+### PDU 事件结束后的低 SOC 供电门控：语义澄清（2026-11-19）
+
+- 更精确的代码核对修正了“PDU 通道锁存”的表述：runtime event 结束后 `channel_enabled` 会恢复为 true；本轮 Run 中 payload 仍未供电，是因为 SOC 低于 `payload_min_soc`，而不是 channel trip 锁存。
+- 当前 `PduLoadSheddingSysModel` 是两个独立门控的合取：`payload_channel_enabled`（事件注入开关）与 `soc >= payload_min_soc`（低电量保护）。故障结束只恢复前者，不保证后者立即允许负载。
+- `recovery_soc` 当前只用于附加 `charge_recovery_required` 诊断原因，并未作为滞回恢复阈值参与 `payload_enabled` 判定；因此本 PR 不宣称实现了 SOC 滞回。若后续产品要求防止阈值附近抖动，应单独设计并验证 SOC shed/recovery 状态机。
+- sealed A/B 断言现在分别验证：事件中 PDU 通道关闭且原因为 `payload_channel_trip`；事件后通道恢复、trip 原因消失；若 payload 仍关闭，则必须能从直接 PDU 记录中找到 `payload_low_soc` 原因。这样不把故障恢复与供电服务恢复混为一谈。
