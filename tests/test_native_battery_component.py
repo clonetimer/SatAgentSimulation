@@ -143,3 +143,38 @@ def test_native_solar_panel_runs_through_sealed_run_bundle(tmp_path):
     assert executed.trace_rows
     assert executed.trace_rows[-1]["eps.solar.array_power_w"] == pytest.approx(45.0, abs=5.0)
     assert verify_run_bundle(prepared.bundle_root)["ok"] is True
+
+
+def test_native_eps_solar_panel_power_node_charges_simple_battery_in_one_simbase():
+    pytest.importorskip("Basilisk")
+    from subsystems.eps.runner import run_eps_basilisk_scenario
+    from subsystems.eps.schemas import EPSBasiliskConfig
+
+    summary, rows = run_eps_basilisk_scenario(EPSBasiliskConfig(
+        duration_s=60.0,
+        step_s=10.0,
+        battery_capacity_wh=100.0,
+        initial_soc=0.4,
+        solar_power_w=80.0,
+        solar_efficiency=0.25,
+        solar_normal_b=(1.0, 0.0, 0.0),
+        use_simple_solar_panel=True,
+        solar_panel_enabled=True,
+        bus_power_w=0.0,
+        payload_power_w=0.0,
+        adcs_power_w=0.0,
+        comm_power_w=0.0,
+        heater_power_w=0.0,
+        rw_power_w=0.0,
+        antenna_power_w=0.0,
+        payload_requested=False,
+        adcs_requested=False,
+        comm_requested=False,
+        heater_requested=False,
+    ))
+    assert summary.status == "PASS"
+    assert summary.basilisk_simbase_used is True
+    assert "simpleSolarPanel.SimpleSolarPanel" in summary.native_modules
+    assert rows
+    assert rows[-1].battery_storage_j > rows[0].battery_storage_j
+    assert rows[-1].solar_power_w > 0.0
