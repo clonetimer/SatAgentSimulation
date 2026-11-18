@@ -302,3 +302,110 @@ def run_native_magnetometer_probe(
         if any(abs(row[index] - expected[index]) > 1.0e-10 for index in range(3)):
             raise RuntimeError("NATIVE_MAG_FIELD_TRUTH_MISMATCH")
     return NativeMagnetometerTrace(times_s=times, magnetic_field_sensor_t=measured, truth_magnetic_field_n_t=field)
+
+
+@dataclass(frozen=True)
+class NativeCoarseSunSensorTrace:
+    times_s: tuple[float, ...]
+    output_intensity: tuple[float, ...]
+    truth_sun_position_n_m: tuple[float, float, float]
+    illumination_factor: float
+    model_source: str = "Basilisk.simulation.coarseSunSensor.CoarseSunSensor"
+    input_source: str = "explicit_SpicePlanetStateMsg_EclipseMsg_and_SCStatesMsg_fixtures"
+    claim_scope: str = "official_coarse_sun_sensor_cosine_response_from_prescribed_sun_and_eclipse_inputs_without_ephemeris_or_orbit_environment"
+
+
+def run_native_coarse_sun_sensor_probe(
+    *,
+    duration_s: float = 2.0,
+    sample_s: float = 0.1,
+    truth_sun_position_n_m: Sequence[float] = (149_597_870_700.0, 0.0, 0.0),
+    truth_sigma_bn: Sequence[float] = (0.0, 0.0, 0.0),
+    n_hat_b: Sequence[float] = (1.0, 0.0, 0.0),
+    fov_rad: float = math.pi,
+    illumination_factor: float = 1.0,
+) -> NativeCoarseSunSensorTrace:
+    """Run official Basilisk CoarseSunSensor with prescribed Sun/Eclipse inputs.
+
+    This isolates the native cosine/FOV response. The Sun position and eclipse
+    factor are fixtures; this probe does not claim SPICE ephemeris, orbit
+    propagation, occultation geometry or a full solar-array environment.
+    """
+    if type(duration_s) not in (int, float) or not math.isfinite(float(duration_s)) or not 0.1 <= float(duration_s) <= 120.0:
+        raise ValueError("NATIVE_CSS_DURATION_INVALID")
+    if type(sample_s) not in (int, float) or not math.isfinite(float(sample_s)) or not 0.001 <= float(sample_s) <= 1.0:
+        raise ValueError("NATIVE_CSS_SAMPLE_INVALID")
+    duration, sample = float(duration_s), float(sample_s)
+    if sample > duration or duration / sample > 20000:
+        raise ValueError("NATIVE_CSS_GRID_INVALID")
+    sun_position = _finite_vector(truth_sun_position_n_m, 3, "NATIVE_CSS_SUN_POSITION")
+    sigma = _finite_vector(truth_sigma_bn, 3, "NATIVE_CSS_TRUTH_SIGMA")
+    boresight = _finite_vector(n_hat_b, 3, "NATIVE_CSS_BORESIGHT")
+    boresight_norm = math.sqrt(sum(value * value for value in boresight))
+    if not 0.999 <= boresight_norm <= 1.001:
+        raise ValueError("NATIVE_CSS_BORESIGHT_NOT_UNIT")
+    if type(fov_rad) not in (int, float) or not math.isfinite(float(fov_rad)) or not 0.0 < float(fov_rad) <= math.pi:
+        raise ValueError("NATIVE_CSS_FOV_INVALID")
+    if type(illumination_factor) not in (int, float) or not math.isfinite(float(illumination_factor)) or not 0.0 <= float(illumination_factor) <= 1.0:
+        raise ValueError("NATIVE_CSS_ILLUMINATION_INVALID")
+
+    from Basilisk.architecture import messaging
+    from Basilisk.utilities import SimulationBaseClass, macros
+    from components.sun_sensor.builder import build_coarse_sun_sensor
+
+    truth = messaging.SCStatesMsgPayload()
+    truth.sigma_BN = list(sigma)
+    truth.omega_BN_B = [0.0, 0.0, 0.0]
+    truth.r_BN_N = [7_000_000.0, 0.0, 0.0]
+    truth.v_BN_N = [0.0, 7_500.0, 0.0]
+    truth.omegaDot_BN_B = [0.0, 0.0, 0.0]
+    truth.nonConservativeAccelpntB_B = [0.0, 0.0, 0.0]
+    state_msg = messaging.SCStatesMsg().write(truth)
+
+    sun_payload = messaging.SpicePlanetStateMsgPayload()
+    sun_payload.PositionVector = list(sun_position)
+    sun_payload.VelocityVector = [0.0, 0.0, 0.0]
+    sun_payload.PlanetName = "sun"
+    sun_msg = messaging.SpicePlanetStateMsg().write(sun_payload)
+    eclipse_payload = messaging.EclipseMsgPayload()
+    eclipse_payload.illuminationFactor = float(illumination_factor)
+    eclipse_msg = messaging.EclipseMsg().write(eclipse_payload)
+
+    sim = SimulationBaseClass.SimBaseClass()
+    process = sim.CreateNewProcess("P9N2CoarseSunSensorProcess")
+    process.addTask(sim.CreateNewTask("P9N2CoarseSunSensorTask", macros.sec2nano(sample)))
+    sensor = build_coarse_sun_sensor(
+        model_tag="P9N2OfficialCoarseSunSensor",
+        sc_state_msg=state_msg,
+        sun_in_msg=sun_msg,
+        eclipse_in_msg=eclipse_msg,
+        n_hat_b=boresight,
+        fov_rad=float(fov_rad),
+        scale_factor=1.0,
+        bias=0.0,
+        noise_std=0.0,
+        walk_bounds=-1.0,
+        fault_noise_std=0.0,
+        k_power=2.0,
+    )
+    sim.AddModelToTask("P9N2CoarseSunSensorTask", sensor, None, 10)
+    recorder = sensor.cssDataOutMsg.recorder(macros.sec2nano(sample))
+    sim.AddModelToTask("P9N2CoarseSunSensorTask", recorder, None, 5)
+    sim.InitializeSimulation()
+    sim.ConfigureStopTime(macros.sec2nano(duration))
+    sim.ExecuteSimulation()
+
+    times = tuple(float(value) * 1.0e-9 for value in recorder.times())
+    intensity = tuple(float(value) for value in recorder.OutputData)
+    if not times or len(times) != len(intensity):
+        raise RuntimeError("NATIVE_CSS_RECORDER_MISSING")
+    if not all(math.isfinite(value) for value in intensity):
+        raise RuntimeError("NATIVE_CSS_RECORDER_NONFINITE")
+    if any(value < -1.0e-9 or value > 1.0e6 for value in intensity):
+        raise RuntimeError("NATIVE_CSS_OUTPUT_OUT_OF_RANGE")
+    return NativeCoarseSunSensorTrace(
+        times_s=times,
+        output_intensity=intensity,
+        truth_sun_position_n_m=sun_position,
+        illumination_factor=float(illumination_factor),
+    )
