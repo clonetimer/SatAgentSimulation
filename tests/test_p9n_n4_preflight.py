@@ -147,6 +147,9 @@ def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_
         telemetry = client.get(f"/runs/{run_id}/telemetry?limit=100")
         artifacts = client.get(f"/runs/{run_id}/artifacts")
         bundle_download = client.get(f"/runs/{run_id}/bundle/download")
+        summary_path = runs_root / run_id / "results" / "summary.json"
+        summary_path.write_bytes(summary_path.read_bytes() + b"\\n")
+        tampered_download = client.get(f"/runs/{run_id}/bundle/download")
 
     for response in (detail, report, metrics, plots, telemetry, artifacts):
         assert response.status_code == 200, response.text
@@ -165,6 +168,8 @@ def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_
     assert "runtime/execution_port.json" in artifact_paths
 
     assert bundle_download.status_code == 200, bundle_download.text
+    assert tampered_download.status_code == 409, tampered_download.text
+    assert tampered_download.json()["detail"]["reason_code"] == "RUN_BUNDLE_NOT_VERIFIED"
     assert bundle_download.headers["content-type"].startswith("application/zip")
     with zipfile.ZipFile(io.BytesIO(bundle_download.content)) as archive:
         manifest_path = f"{run_id}/bundle_manifest.json"
