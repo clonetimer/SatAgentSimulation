@@ -97,3 +97,12 @@
 - 自动重构 EPS paired A/B 的 fault/degradation 分支时产生重复 else，在 pytest collection 阶段触发 SyntaxError；已重写整个条件分支，避免继续做局部字符串替换。
 - 连续退化在 start_s 的首个采样点可能尚未产生非零变化；若断言要求 active_all 每个样本都偏离标称，会错误否定正确的时间函数。退化 profile 改用 active_any，并由 O2-B paired Run Bundle 在中后段采样单独验证持续退化。
 - 这些错误都属于测试/验收代码问题，不应误报为 Basilisk 物理模型缺陷。修复后仍必须在最终 PR head 重跑完整官方 workflow。
+
+
+## O2-B 原生太阳阵参数映射修正（2026-11-19）
+
+- paired Run Bundle 对照发现：EPS nominal/injected 的 solar_power_w 完全相同，说明虽然 SimpleSolarPanel 模块已实例化，但旧的 output_power_w -> nodePowerOut 映射并不适用于 SimpleSolarPanel。不能用“模块已实例化”推断某个参数已被实际改变。
+- 核对 Basilisk SimpleSolarPanel 官方接口后，确认可写参数为 panelArea、panelEfficiency、nHat_B；setPanelParameters 同时设置前述构型参数。已将 string_availability 映射到 panelArea，将 cell_efficiency/output_power_w 映射到 panelEfficiency（SimplePowerSink fallback 仍保留 nodePowerOut 回退）。
+- EPS adapter 增加 solar_panel_area_m2、solar_panel_efficiency 及其 nominal 对照字段；sealed A/B 现在要求确认使用官方 SimpleSolarPanel，并直接比较面积/效率参数，而非只看功率曲线。
+- EPS fault profile 验证 panelArea 下降；EPS degradation profile 验证 panelEfficiency 下降。Comm/Data 与 EPS fault profile 的 active 样本范围改为 active_any，避免在事件起始采样时刻尚未完成调度更新就要求每个样本都偏离标称。
+- 最新官方 Basilisk 回归正在执行；在最终同一 PR head 全部 PASS 前，不把这轮映射修复记为通过。
