@@ -72,7 +72,7 @@
 3. **陀螺偏置要比较 raw 与 measured。** 在有效 IMU 样本中检查 measured−raw 与 bias 参数一致，并确认 estimator 的 body-rate input 跟随。
 4. **陀螺噪声要看噪声 recorder。** 不能只检查 event.active_effects；比较 nominal 的零噪声与 injected 的噪声幅度，并确认 IMU 样本仍有效。
 5. **物理 A/B 与 Run Bundle 必须配对。** 每个 nominal 与 injected case 均 sealed + integrity PASS，避免只有一个临时结果或 API 直调。
-6. **effect verification 最后提升。** 当前 operator verification 仍为 declared；测试通过后再按 effect 逐项升级，不把 registry 声明当成物理证据。
+6. **不要混淆 Operator verification 与 effect evidence classification。** `operator.effects[].verification` 仅允许 declared/candidate/not_observable；原生物理资格由 `effect_evidence_v32.json` 中的 `VERIFIED_NATIVE_EFFECT` profile 和 runtime assertions 表达。测试通过后补 profile/断言，不得写入 schema 不支持的 `verified`。
 
 当前候选分支：`feat/p9-n5-d-adcs-fault-physical-ab-20261119`。最终结论以该分支 PR 同一 head 的 Basilisk 2.11.0 JUnit、Run Bundle integrity 与共享 CI 为准。
 
@@ -108,3 +108,12 @@
    - 旧参数化测试曾把 `adcs_rw_motor_failure` 与 `torque_scale=0.25` 组合，语义上把二值故障和部分退化混为一谈。
    - 已修正为 motor failure 无比例参数，另增加 torque authority loss 的 0.25 formal case。
    - 工作流将 effect evidence registry contract 纳入 Basilisk 专项，防止有物理 A/B 测试却漏掉 evidence profile。
+
+## N5-D 最终同 head 物理证据（2026-11-19）
+
+- 受测 PR head：`973293f6e41b10ea3550ccb7766b6465c5755b1c`。
+- Official Basilisk 2.11.0 专项：五组 nominal/injected A/B 全部通过，`5 passed in 24.44s`。
+- 证据规则回归：`test_unified_effect_contracts_are_declared_and_registered`，`1 passed, 13 deselected`；正式合同已区分 binary `adcs_rw_motor_failure` 与 partial `adcs_rw_torque_authority_loss`。
+- `adcs_rw_torque_authority_loss` 的独立 profile 使用 `effective_torque_ratio_{wheel_index} == torque_scale` 作为运行时断言，并保留 effective max torque 与 applied torque 作为证据字段。
+- Artifact `native-component-physical-evidence`：ID `14460007797`，14,211 bytes。
+- Chromium 步骤因 PR 不包含前端或浏览器测试文件而按 path-scope 规则跳过；这是预期行为。ADCS 故障面板仍隐藏，后续 N5-E 单独开放已验证事件并执行浏览器验收。
