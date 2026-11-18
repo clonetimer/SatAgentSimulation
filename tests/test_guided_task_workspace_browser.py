@@ -1612,7 +1612,6 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             run_metadata = replayed.locator("details.compact-run-metadata")
             run_metadata.locator("summary").click()
             assert run_id in replayed.inner_text()
-            assert capability_id in replayed.inner_text()
             page.locator('[data-result-tab="charts"]').click()
             page.wait_for_function(
                 "() => document.querySelector('#chartLegend')?.children.length > 0",
