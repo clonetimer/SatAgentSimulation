@@ -723,7 +723,7 @@
     "star_tracker": {
       "name": "星敏感器",
       "classification": "physical",
-      "source_blob": "9183f6eaec3e77a698306c953a4be6ed317e32b1",
+      "source_blob": "b9ff63bac114ed90dfa6cd71f2f4ce9004499276",
       "parameters": [
         [
           "true_sigma_bn",
@@ -739,6 +739,11 @@
           "max_drift_norm",
           "最大姿态漂移范数",
           "MRP"
+        ],
+        [
+          "physics_backend",
+          "物理计算后端",
+          "none"
         ]
       ],
       "outputs": [
