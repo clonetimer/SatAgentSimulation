@@ -20,6 +20,7 @@ on:
       - "tests/test_comm_data_unified_effects.py"
       - "tests/test_native_eps_comm_data_effects_bundle.py"
       - "tests/test_p9o2_eps_comm_data_guided_event_catalog.py"
+      - "tests/test_p9o3_whole_spacecraft_guided_event_catalog.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
@@ -163,6 +164,7 @@ jobs:
             tests/test_formal_effect_evidence_contracts.py -k test_each_unified_effect_has_formal_runtime_pass
           python -m pytest -q -s tests/test_p9n5_adcs_guided_event_catalog.py
           python -m pytest -q -s tests/test_p9o2_eps_comm_data_guided_event_catalog.py
+          python -m pytest -q -s tests/test_p9o3_whole_spacecraft_guided_event_catalog.py
       - name: Determine whether the browser surface changed
         id: browser_scope
         env:
