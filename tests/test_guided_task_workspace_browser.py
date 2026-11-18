@@ -822,8 +822,8 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                 browser.close()
 
 
-def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(tmp_path):
-    """Each admitted N2 sensor must use its registered native template and real sealed Run."""
+def test_guided_native_sensor_and_eps_workbench_runs_verified_devices(tmp_path):
+    """Each admitted native device must use its registered template and real sealed Run."""
     pytest.importorskip("Basilisk", reason="requires official Basilisk; covered by native-sensor-component gate")
     from importlib.metadata import version
     assert version("bsk") == "2.11.0"
@@ -850,6 +850,18 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
             "Basilisk.simulation.magnetometer.Magnetometer",
             "磁强计",
             ("adcs.magnetometer.field_x_t", "adcs.magnetometer.field_norm_t"),
+        ),
+        (
+            "component.battery",
+            "components.battery.builder.run_battery_native_case",
+            "电池",
+            ("eps.battery.soc", "eps.battery.net_power_w"),
+        ),
+        (
+            "component.solar_panel",
+            "Basilisk.simulation.simpleSolarPanel.SimpleSolarPanel",
+            "太阳翼",
+            ("eps.solar.array_power_w", "eps.solar.incidence_cos"),
         ),
     )
     app = create_app(
@@ -922,6 +934,8 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
                         "component.imu": "component.imu.v1",
                         "component.star_tracker": "component.star_tracker.v1",
                         "component.magnetometer": "component.magnetometer.v1",
+                        "component.battery": "component.battery.v1",
+                        "component.solar_panel": "component.solar_panel.v1",
                     }[object_id]
                     and row.get("status") == "SUCCEEDED"
                 ]
