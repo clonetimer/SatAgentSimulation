@@ -137,8 +137,6 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
             assert baseline["eps.payload_load_enabled_w"] > 0.0
             assert active["eps.payload_load_enabled_w"] == pytest.approx(0.0, abs=1e-9)
             assert "payload_channel_trip" in active["eps.shed_reason"]
-        else:
-            assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
             restored = _at(injected.trace_rows, 20.0)
             nominal_after = _at(nominal.trace_rows, 20.0)
             assert restored["eps.battery_capacity_j"] == pytest.approx(nominal_after["eps.battery_capacity_j"])
@@ -146,6 +144,7 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
             assert restored["eps.payload_load_enabled_w"] == pytest.approx(nominal_after["eps.payload_load_enabled_w"])
             assert restored["label.health_state"] == "nominal"
         else:
+            assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
             assert active["eps.battery_capacity_j"] < active["eps.nominal_battery_capacity_j"]
             assert active["eps.solar_power_w"] < active["eps.nominal_solar_power_w"]
             later = _at(injected.trace_rows, 20.0)
