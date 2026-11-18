@@ -1,6 +1,7 @@
 # P9-N 单机运行开发经验
 
 日期：2026-11-17
+更新：2026-11-18
 
 ## 1. 有限时长 component TaskSpec 与整星 continuous runtime 是两条不同能力
 
@@ -38,7 +39,7 @@ P9-N 增加的端到端验收从 `instantiate_scenario_template` 构造正式 co
 
 IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntime 中已有官方 Basilisk 模块，但独立传感器运行需要显式定义 truth/environment input、采样周期、安装坐标、随机种子和原生 recorder。不能把整星运行图中的传感器输出切片后标记为 standalone component run。
 
-先保留当前 component source-native capability，并在 P9-N2 分别建立独立官方 Basilisk sensor graph；若环境输入不完整，结果应标记为输入受限，不伪造光学/星表/地磁环境。
+P9-N2 保留默认 component reference 路径，并已为 IMU、磁强计、星敏接入 opt-in 官方 Basilisk 独立图；CSS 保持 probe-only。若环境输入不完整，结果应标记为输入受限，不伪造光学/星表/地磁环境。
 
 
 ## P9-N 实测补充：从物理探针到工作台入口
@@ -103,6 +104,26 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 ### N2 Run Bundle 端到端验收扩展
 
 - 传感器 adapter 单测只能证明路由正确，不能替代 Run Bundle 验收。
-- 新增 IMU、磁强计的真实原生 TaskSpec Run Bundle 测试：prepare → official Basilisk execute → validation PASS → sealed manifest → integrity verification。
+- IMU、磁强计、星敏均已通过真实原生 TaskSpec Run Bundle 测试：prepare → official Basilisk execute → validation PASS → sealed manifest → integrity verification。
 - 这条测试复用现有 `prepare_run` / `execute_prepared_run`，不建立第二套执行器或封存格式。
-- 下一步将同样的 Run Bundle 证据扩展到星敏；CSS 在输出契约调整前保持 probe-only。
+- PR #169 已合入 main，合并提交 `14b3dd0fa9f4697befd7a14090a976ad6ddd8089`；合入时官方 Basilisk 2.11.0 专项 26 tests 通过。CSS 在输出契约调整前保持 probe-only，标量光强不能冒充三轴方向测量。
+
+
+## P9-N3 官方 Basilisk EPS 组件与耦合经验（2026-11-18）
+
+- 电池 native backend 复用官方 `SimpleBattery` + `SimplePowerSink`；太阳翼 native backend 复用官方 `SimpleSolarPanel`。
+- 独立组件 Run Bundle 通过后，增加同一 SimBase 的 PowerNode 连接测试：SimpleSolarPanel `nodePowerOutMsg` 直接接入 SimpleBattery，不使用两个 Run 的 CSV 后处理冒充闭环。
+- 电池仅支持 nominal、恒定净功率、unity charge/discharge efficiency、SOC [0,1]；太阳翼仅支持单块固定、完全展开、静态 Sun/Eclipse、无 tracking。超出能力范围 fail closed。
+- 太阳翼输出必须读取官方 `nodePowerOutMsg.netPower`；电池存储/SOC 必须读取官方 SimpleBattery recorder。
+- `subsystem.eps.unified_native.v1` / `EpsUnifiedNativeAdapter` 原已存在，调用 `run_eps_basilisk_scenario`；同一 SimBase 内已有官方 SimpleSolarPanel、SimpleBattery、SimplePowerSink 与项目 `PduLoadSheddingSysModel`。应先核对并复用这条路径，再补充正式 Run Bundle 证据。
+- 已通过既有分系统入口的充电、放电、多负载与逐区间能量守恒 sealed 验收，明确检查模块实例、recorder 与来源边界。PDU 是项目 SysModel，不是官方 Basilisk C++ PDU。
+- 本轮使用固定显式 SCStates/Sun/Eclipse 输入；充电、放电分别设定工况，不等于轨道环境、动态日蚀或运行中充放电切换已验收。
+
+### N3 摘要数据与输入边界评审经验
+
+- 太阳翼正式 Run 最初为 `INCONCLUSIVE`，原因是声明的四个 summary QoI 缺失：`eps.solar.nominal_max_power_w`、`eps.solar.effective_max_power_w`、`eps.solar.nominal_efficiency`、`eps.solar.effective_efficiency`。修复应补齐真实输出合同，不能放松 validator。
+- 分析期望值只用于校核。标称测试中官方 recorder 约为 44.80249 W，解析校核值为 45 W；生成能量必须按 recorder 的功率和实际时间间隔积分，不能使用 `expected_power_w × duration` 替代测量。
+- 电池达到储能上限后的限幅能量，应由记录的净功率积分与实际储能增量之差核算。既有 `shunt_dissipated_wh` 字段必须说明其派生语义；它不证明已模拟真实分流电路或热耗散。相关修复与回归已通过本地官方 Basilisk 验证。
+- 零太阳方向/板法向量必须显式拒绝，不能静默替换成 +X；持续时长与采样间隔不对齐时也应拒绝，避免漏记末段后仍按完整时长给出能量。未支持的 modifiers 和非有限参数同样不能被忽略。
+- PR #171（`feat/p9-n3-native-eps-rebased-20261118`）替代已关闭的 PR #170。既有提交 `5a17a3d` 的官方 Basilisk 2.11.0 专项 7 tests 与适用门禁已绿，但评审仍发现摘要能量和输入处理问题；绿色测试只覆盖已检查的合同。
+- 本轮组件与分系统专项本地 26 tests 通过；最终门禁与合并状态见 PR #171 最新提交。网格回归还覆盖合法 `10.01 / 1.001` 秒配置和纳秒舍入后不整除的反例，校验与调度必须使用相同整数时间。

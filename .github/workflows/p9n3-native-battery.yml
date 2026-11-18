@@ -1,0 +1,53 @@
+name: P9-N3 official Basilisk EPS components
+
+on:
+  pull_request:
+    paths:
+      - "src/components/battery/builder.py"
+      - "src/components/solar_panel/builder.py"
+      - "src/subsystems/eps/runner.py"
+      - "src/subsystems/eps/builder.py"
+      - "src/subsystems/eps/schemas.py"
+      - "src/sat_sim/adapters/component_solar_panel.py"
+      - "src/sat_sim/capabilities/component.solar_panel.v1.yaml"
+      - "src/components/battery/schemas.py"
+      - "src/sat_sim/adapters/component_battery.py"
+      - "src/sat_sim/adapters/subsystem_eps_unified_native.py"
+      - "src/sat_sim/capabilities/component.battery.v1.yaml"
+      - "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml"
+      - "examples/subsystem_eps_unified_native_nominal.yaml"
+      - "src/sat_sim/workbench_quantity_dictionary_eps_thermal.json"
+      - "tests/test_native_battery_component.py"
+      - "tests/test_native_eps_subsystem_bundle.py"
+      - ".github/workflows/p9n3-native-battery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-battery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install pinned official Basilisk and focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "bsk==2.11.0" "numpy==2.3.5" "pydantic==2.13.4" "pytest==9.0.3"
+      - name: Verify official Basilisk distribution provenance
+        run: |
+          python - <<'PY'
+          import Basilisk
+          from importlib.metadata import version
+          assert Basilisk.__version__ == "2.11.0"
+          assert version("bsk") == "2.11.0"
+          print("OFFICIAL_BASILISK_NATIVE", Basilisk.__version__, version("bsk"))
+          PY
+      - name: Execute native EPS components and subsystem energy-conservation Run Bundles
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q tests/test_native_battery_component.py tests/test_native_eps_subsystem_bundle.py --disable-warnings

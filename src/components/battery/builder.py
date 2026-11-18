@@ -5,6 +5,7 @@ from .schemas import BatteryNativeConfig
 
 import csv
 import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
@@ -107,10 +108,22 @@ def attach_power_nodes_to_battery(battery, node_msgs: Iterable[object]) -> None:
 
 def run_battery_native_case(config: BatteryNativeConfig | None = None) -> tuple[BatteryNativeSummary, tuple[BatteryNativeTraceRow, ...]]:
     cfg = config or BatteryNativeConfig()
+    if not all(math.isfinite(float(value)) for value in (
+        cfg.duration_s, cfg.step_s, cfg.capacity_wh, cfg.initial_soc,
+        cfg.charge_efficiency, cfg.discharge_efficiency, *cfg.power_nodes_w,
+    )):
+        raise ValueError("NATIVE_BATTERY_PARAMETERS_MUST_BE_FINITE")
     if cfg.duration_s <= 0:
         raise ValueError("duration_s must be positive")
     if cfg.step_s <= 0:
         raise ValueError("step_s must be positive")
+    # The fixed-period task must record the requested endpoint. Do not compare
+    # a truncated trace against a full-duration analytical result.
+    # Use Basilisk sec2nano rounding, then reuse these integers for scheduling.
+    step_ns = int(float(cfg.step_s) * 1.0e9 + 0.5)
+    duration_ns = int(float(cfg.duration_s) * 1.0e9 + 0.5)
+    if step_ns < 1 or duration_ns < step_ns or duration_ns % step_ns:
+        raise ValueError("NATIVE_BATTERY_TIME_GRID_REQUIRES_COMPLETE_SAMPLE_INTERVALS")
     if cfg.capacity_wh <= 0:
         raise ValueError("capacity_wh must be positive")
     if cfg.initial_soc < 0 or cfg.initial_soc > 1:
@@ -127,7 +140,7 @@ def run_battery_native_case(config: BatteryNativeConfig | None = None) -> tuple[
     sim = SimulationBaseClass.SimBaseClass()
     process = sim.CreateNewProcess("batteryComponentNativeProcess")
     task_name = "batteryComponentNativeTask"
-    process.addTask(sim.CreateNewTask(task_name, macros.sec2nano(float(cfg.step_s))))
+    process.addTask(sim.CreateNewTask(task_name, step_ns))
 
     battery = build_simple_battery(
         "componentSimpleBattery",
@@ -145,10 +158,10 @@ def run_battery_native_case(config: BatteryNativeConfig | None = None) -> tuple[
         sim.AddModelToTask(task_name, node)
     attach_power_nodes_to_battery(battery, [n.nodePowerOutMsg for n in nodes])
     sim.AddModelToTask(task_name, battery)
-    rec = battery.batPowerOutMsg.recorder(macros.sec2nano(float(cfg.step_s)))
+    rec = battery.batPowerOutMsg.recorder(step_ns)
     sim.AddModelToTask(task_name, rec)
     sim.InitializeSimulation()
-    sim.ConfigureStopTime(macros.sec2nano(float(cfg.duration_s)))
+    sim.ConfigureStopTime(duration_ns)
     sim.ExecuteSimulation()
 
     net_power = sum(float(x) for x in cfg.power_nodes_w)
@@ -157,7 +170,8 @@ def run_battery_native_case(config: BatteryNativeConfig | None = None) -> tuple[
         time_s = float(t_ns) * macros.NANO2SEC
         capacity_j = float(rec.storageCapacity[i])
         storage_j = float(rec.storageLevel[i])
-        rows.append(BatteryNativeTraceRow(time_s, storage_j, capacity_j, storage_j / capacity_j if capacity_j else 0.0, net_power))
+        measured_power_w = float(rec.currentNetPower[i])
+        rows.append(BatteryNativeTraceRow(time_s, storage_j, capacity_j, storage_j / capacity_j if capacity_j else 0.0, measured_power_w))
     initial = cfg.capacity_wh * 3600.0 * max(0.0, min(1.0, cfg.initial_soc))
     expected = max(0.0, min(cfg.capacity_wh * 3600.0, initial + net_power * cfg.duration_s))
     final = rows[-1].storage_j if rows else initial
