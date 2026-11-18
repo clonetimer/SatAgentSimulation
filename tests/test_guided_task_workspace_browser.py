@@ -266,8 +266,8 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert "反作用轮1 · 角速度" in legend_text, legend_text
             assert "反作用轮1 · 实际电机力矩" in legend_text, legend_text
 
-            # Re-open the sealed run from Run Center and verify the same
-            # native provenance and physical charts survive history navigation.
+            # Re-open the sealed run from Run Center through the visible
+            # guided-workspace shortcut, not a hidden sidebar control.
             runs_payload = client.get("/runs?limit=200")
             assert runs_payload.status_code == 200, runs_payload.text
             native_runs = [
@@ -277,13 +277,10 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             ]
             assert len(native_runs) == 1, native_runs
             run_id = native_runs[0]["run_id"]
-            # The guided wizard intentionally owns the full workspace surface;
-            # enter the full workbench explicitly before using its Run Center nav.
-            page.locator("#wizardAdvancedBtn").click()
-            page.locator("#creatorView").wait_for(state="visible", timeout=15000)
-            analysis_nav = page.locator(".sidebar-nav-group").filter(has_text="实验与分析")
-            analysis_nav.locator(":scope > summary").click()
-            analysis_nav.locator('[data-view="runs"]').click()
+            additional_tools = page.locator("#wizardAdditionalTools")
+            if additional_tools.get_attribute("open") is None:
+                additional_tools.locator(":scope > summary").click()
+            additional_tools.locator('[data-wizard-goal="runs"]').click()
             page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
             run_row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
             run_row.wait_for(state="visible", timeout=15000)
