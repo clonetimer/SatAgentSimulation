@@ -77,7 +77,7 @@ def run_native_star_tracker_probe(
     truth.r_BN_N = [7_000_000.0, 0.0, 0.0]
     truth.v_BN_N = [0.0, 7_500.0, 0.0]
     truth.omegaDot_BN_B = [0.0, 0.0, 0.0]
-    truth.nonConservativeAccelpntB_B = list(specific_force)
+    truth.nonConservativeAccelpntB_B = [0.0, 0.0, 0.0]
     truth_msg = messaging.SCStatesMsg().write(truth)
 
     sim = SimulationBaseClass.SimBaseClass()
@@ -175,7 +175,7 @@ def run_native_imu_probe(
     truth.r_BN_N = [7_000_000.0, 0.0, 0.0]
     truth.v_BN_N = [0.0, 7_500.0, 0.0]
     truth.omegaDot_BN_B = [0.0, 0.0, 0.0]
-    truth.nonConservativeAccelpntB_B = [0.0, 0.0, 0.0]
+    truth.nonConservativeAccelpntB_B = list(specific_force)
     truth_msg = messaging.SCStatesMsg().write(truth)
 
     sim = SimulationBaseClass.SimBaseClass()
