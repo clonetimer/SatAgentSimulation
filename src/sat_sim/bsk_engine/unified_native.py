@@ -482,6 +482,8 @@ def _build_unified_rows(
         }
         row.update(attitude_truth)
         for axis, component in enumerate('xyz'):
+            row[f"attitude.truth.omega_BN_B_{component}"] = float(state.omega_BN_B[index][axis])
+        for axis, component in enumerate('xyz'):
             row[f'orbit.position_m_{component}'] = float(position[axis])
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
@@ -2270,6 +2272,28 @@ class UnifiedNativeRuntime:
             "final_orbit_radius_m": final["orbit.radius_m"],
             "runtime_message_read_error_count": len(runtime_read_errors),
             "runtime_message_read_errors": runtime_read_errors[:20],
+        }
+        summary["adcs_fusion"] = {
+            "attitude_estimator": "star_tracker_plus_sun_magnetic_field_triad_quaternion_slerp",
+            "estimator_class": "deterministic_engineering_estimator_not_mekf_or_kalman",
+            "attitude_frame": "body_B_relative_to_inertial_N",
+            "body_rate_frame": "body_B",
+            "star_tracker_measurement": "official_qInrtl2Case_N_to_C_transformed_with_dcm_CB_to_body_B",
+            "imu_angular_rate_measurement": "official_AngVelPlatform_in_P_transformed_with_dcm_PB_transpose_to_body_B",
+            "magnetometer_measurement": "official_tam_S_in_S_transformed_with_dcm_SB_transpose_to_body_B_and_fused_with_magField_N",
+            "sun_earth_measurements": "project_ideal_geometry_vectors_from_environment_and_spacecraft_truth_not_official_CSS_direction",
+            "magnetometer_used_sample_count": sum(int(row.get("adcs.fusion.magnetometer_used", 0)) for row in rows),
+            "sensor_mounting_dcms": {
+                "star_tracker_dcm_CB": np.asarray(tracker_dcm_cb, dtype=float).tolist(),
+                "imu_dcm_PB": np.asarray(imu_dcm_pb, dtype=float).tolist(),
+                "magnetometer_dcm_SB": np.asarray(magnetometer_dcm_sb, dtype=float).tolist(),
+            },
+            "limitations": [
+                "not a flight-correlated estimator or MEKF/Kalman filter",
+                "StarTracker has no optical star catalog, star centroiding or FOV occultation model",
+                "Sun/Earth vector measurements are ideal project-native geometry sensors; CSS remains scalar irradiance telemetry",
+                "IMU is a measured rate input, not a full strapdown navigation solution",
+            ],
         }
         if not cfg.adcs_only:
             resource_status = "FAIL" if any(health.get("status") == "FAIL" for health in bridge_health.values()) else "PASS"
