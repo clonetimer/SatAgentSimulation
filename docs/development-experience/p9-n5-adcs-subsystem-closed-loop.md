@@ -1,7 +1,7 @@
 # P9-N5 ADCS 分系统闭环：开发经验
 
 日期：2026-11-19
-状态：N5-A/B/C 已合入 main（PR #183）；N5-D 故障效果物理 A/B 仍在推进。
+状态：N5-A/B/C/D/E 已全部合入 main（PR #183/#184/#185）；本经验文档归档完整验收。
 
 ## 本轮完成的工程修正
 
@@ -136,3 +136,13 @@
 - **pytest `-k` 必须与真实测试函数名核对。** N5-E 浏览器函数名为 `guided_native_adcs_wizard_runs_verified_torque_authority_degradation`，旧过滤词 `guided_native_adcs_fault` 没有匹配该函数；因此工作流虽显示 5 passed，实际未执行故障向导测试。修正为精确函数名，并以 pytest 的 `passed/deselected` 数量及日志中的测试名确认覆盖，不能只看 job conclusion。
 - 在正式 Chromium 旅程前新增 `pytest --collect-only` 精确选择检查，并用 `grep` 断言目标函数确实被收集；这样即使其他五个浏览器测试通过，也不会掩盖 ADCS fault wizard 测试未被 `-k` 命中的问题。
 - N5-E 的负向 UI 合同同时检查 `#wizardFaultPanel`、`#wizardEventHost` 和 `#wizardNativeAdcsFaultNote` 均隐藏；只隐藏事件列表而保留空的“故障与事件”面板仍属于入口泄漏。
+
+## N5-E 最终交付证据与经验闭环（2026-11-19）
+
+- PR #185 head：`4898f8c58ce71f22791397dc06ea22e883a83cef`；merge commit：`27537e9b7084310f014b21c17030bfdc5acc4c81`。
+- 同 head 的 21 个 workflow runs 全部结束：20 success、1 条件性 skip、0 failure。
+- Official Basilisk 2.11.0 专项 #44383978349 PASS；Chromium #44383978222 PASS，浏览器实际执行 6 passed、4 deselected。
+- Artifact `native-component-physical-evidence`：ID `14465140837`，14,191 bytes。
+- **验收经验补充：**浏览器测试的 pytest 过滤条件必须由 collect-only 检查证明命中目标函数；浏览器 job 的 passed/deselected 数量必须与计划覆盖一致。工作流完成不等于所有预期测试都执行。
+- **产品边界经验补充：**N5-D 物理 A/B 通过后，N5-E 才开放事件 UI；服务端 schema allowlist、运行时参数键、浏览器实际提交的 canonical TaskSpec、注入证据和完整 Run Bundle 必须形成一条闭环。单独在前端显示 effect 选项不构成产品准入。
+- N5 已完整收敛。下一阶段 P9-O1 只扩展 EPS 与 Comm/Data 的 nominal 分系统入口；不会把 ADCS 五类事件能力复制给其他分系统。
