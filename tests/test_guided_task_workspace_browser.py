@@ -1596,13 +1596,15 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
 
             form = page.locator("#wizardParameterHost #dynamicForm")
             form.wait_for(state="attached", timeout=15000)
-            outputs_panel = page.locator("#compactOutputs")
-            if outputs_panel.get_attribute("open") is None:
-                outputs_panel.locator(":scope > summary").click()
             for plot_field in sorted(plot_fields):
-                plot_search = page.locator("#plotOptions input[type='search']")
+                plot_search = page.locator("#wizardOutputSearch")
                 plot_search.fill(plot_field)
-                plot_option = page.locator("#plotOptions label.check-option").filter(has_text=plot_field)
+                plot_card = page.locator("#wizardCurveChoices .wizard-curve-card").filter(has_text=plot_field)
+                plot_card.wait_for(state="visible", timeout=10000)
+                curve_detail = plot_card.locator("details.wizard-curve-detail")
+                if curve_detail.get_attribute("open") is None:
+                    curve_detail.locator(":scope > summary").click()
+                plot_option = curve_detail.locator("label.wizard-curve-row").filter(has_text=plot_field)
                 plot_option.wait_for(state="visible", timeout=10000)
                 plot_checkbox = plot_option.locator('input[type="checkbox"]')
                 if not plot_checkbox.is_checked():
