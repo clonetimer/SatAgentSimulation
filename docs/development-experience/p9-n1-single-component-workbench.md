@@ -44,3 +44,12 @@ Some browser consoles report 404s for optional resources (for example favicon or
 ## 10. Provenance fields are intentionally collapsed in compact result mode
 
 The compact workbench moves secondary Run details into a disclosure labelled "运行信息". A browser test must open that disclosure before asserting backend/provenance values; the fields are present in the result DOM but intentionally not shown in the compact card by default. This keeps the initial result summary concise while retaining auditable detail on demand.
+
+
+## 11. Preserve the UI execution lifecycle in browser acceptance
+
+The guided Run button submits `execute: true` with `execution_mode: async`; the frontend expects an `execution_state` and polls the execution endpoint until terminal state. A test that rewrites only the request mode to `sync` while keeping the asynchronous UI handler can create a real completed Bundle but leave the browser polling a queue state that was never created. For a real browser journey, keep the UI request asynchronous and enable the embedded worker; assert the terminal execution state and sealed Run rather than mutating the request into a different API contract.
+
+## 12. History navigation must use a visible product path
+
+A guided wizard owns the primary surface. Do not assume its hidden or detached sidebar navigation is available. The history journey must enter the professional workspace through its visible control or use a dedicated visible “view history” action from the Run result; do not click hidden sidebar nodes or force DOM state. Test the same Run ID, provenance, chart data and seal after reopening history.
