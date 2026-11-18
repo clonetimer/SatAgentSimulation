@@ -9127,7 +9127,7 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
-        ['component_native', '单机独立仿真', '从已验证的真实设备模型开始；首批开放 Basilisk 原生反作用轮'],
+        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的反作用轮、IMU、星敏感器和磁强计开始'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
