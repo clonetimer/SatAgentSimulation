@@ -181,7 +181,7 @@ class AdcsSensorFusion(sysModel.SysModel):
             dcm_cb = np.asarray(self.starMountDcmCB, dtype=float).reshape(3, 3)
             dcm_bn = dcm_cb.T @ dcm_cn
             if np.all(np.isfinite(dcm_bn)):
-                star_sigma = list(RigidBodyKinematics.C2MRP(dcm_bn))
+                star_sigma = list(RigidBodyKinematics.EP2MRP(RigidBodyKinematics.C2EP(np.asarray(dcm_bn, dtype=float))))
 
         # IMUSensor.AngVelPlatform is expressed in platform frame P.
         # dcm_PB maps B->P, so transpose maps the measured vector P->B.
@@ -227,7 +227,7 @@ class AdcsSensorFusion(sysModel.SysModel):
             magnetometer_used = False
 
         coarse_sigma = (
-            list(RigidBodyKinematics.C2MRP(np.asarray(coarse_dcm, dtype=float)))
+            list(RigidBodyKinematics.EP2MRP(RigidBodyKinematics.C2EP(np.asarray(coarse_dcm, dtype=float))))
             if coarse_dcm is not None else None
         )
         if star_sigma is not None and coarse_sigma is not None:
