@@ -142,3 +142,17 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 - Artifact `native-component-physical-evidence`：ID `14448486528`，12,822 bytes，SHA-256 `60cb884de58b6d66607265023854cd806d4c519b5453c13cdaf1e0f9fbc96a33`。
 - API 仅导出 sealed 且 integrity PASS 的 Run；ZIP 精确包含 `bundle_manifest.json`、`SEALED.json` 和 manifest 登记文件，不包含 `runtime/execution.lock` 或 manifest 外文件。
 - UI 的“导出 Run Bundle”仅在当前 Run 已封存且完整性校验通过时显示；“导出数据集”与“诊断包”仍保持原有语义。
+
+
+## P9-N5 ADCS 分系统独立闭环（PR #183，2026-11-19）
+
+| Capability | 注册模板 | 官方 Basilisk 物理链 | 当前用户入口边界 |
+|---|---|---|---|
+| `subsystem.adcs_unified_native.v1` | `adcs_unified_native` | Spacecraft + StarTracker + ImuSensor + Magnetometer + MagneticFieldCenteredDipole + ReactionWheelStateEffector + inertial3D/attTrackingError/mrpFeedback/rwMotorTorque；项目 AdcsSensorFusion 在同一 Process/Task 中融合测量 | 已合入 main；nominal、finite、offline；明确显示确定性工程估计器边界，不是 MEKF/Kalman |
+
+- PR #183 merge commit：`accb65503f5a535dad2b355120e6e59fe59bd83f`；受测 head：`cba89c24ed872c0f84c40430449660fe6fbdbb2e`。
+- 传感器坐标变换：StarTracker N→C 经实际 `dcm_CB` 转为 N→B；IMU P 系角速度经 `dcm_PB.T` 转为 B；Magnetometer S 系磁场经 `dcm_SB.T` 转为 B，并与官方惯性系 `magField_N` 共同进入 TRIAD。
+- 姿态估计用 quaternion SLERP；IMU 启动有效性使用消息写入时间戳，不把首次零初始化 payload 当作零角速度测量。
+- 官方 Basilisk 2.11.0：闭环/坐标系 2 passed，sealed Run Bundle（identity/non-identity mounts）2 passed；Chromium 5 passed、4 deselected。
+- PR 20 个 workflow runs：19 success、1 条件性 skip、0 failure；artifact ID `14454689028`，13,642 bytes，SHA-256 `4ccf8d0f7c53546be477930859bc55b536225f5bc654cbb7a25b3a704ee6fc32`。
+- 未准入：RW jamming/motor failure、gyro bias/noise、torque authority loss 的物理效果尚需独立 A/B；实时 ADCS、整星 CAD 惯量/装配和跨分系统耦合仍未开放。
