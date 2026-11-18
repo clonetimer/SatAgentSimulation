@@ -28,9 +28,8 @@ def _native_rw_spec(task_id: str = "p9n4_native_preflight"):
             "physics_backend",
         ),
         (
-            lambda spec: spec["events"]["degradations"].append(
-                {"id": "unsupported_native_degradation", "effect": "rw_friction_increase",
-                 "target": "reaction_wheel", "start_s": 1.0, "end_s": 2.0, "parameters": {"increase_pct": 10}}
+            lambda spec: spec.update(
+                {"degradations": {"adcs": {"reaction_wheel": {"friction_increase_pct": 10.0}}}}
             ),
             "physics_backend",
         ),
@@ -76,12 +75,15 @@ def test_native_rw_preflight_api_returns_actionable_validation_errors(tmp_path) 
     spec["simulation"]["sample_s"] = 1.1
 
     with TestClient(app) as client:
-        response = client.post("/tasks/validate", json={"task_spec": spec})
+        response = client.post(
+            "/tasks/parse",
+            json={"input_kind": "task_spec", "task_spec": spec, "compile_if_valid": True},
+        )
 
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["ok"] is False, payload
-    errors = payload["validation"]["errors"]
+    errors = payload["result"]["validation"]["errors"]
     assert errors, payload
     assert any(
         item["code"] == "native_scope"
@@ -89,4 +91,4 @@ def test_native_rw_preflight_api_returns_actionable_validation_errors(tmp_path) 
         and "1.0" in item["message"]
         for item in errors
     ), payload
-    assert payload["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
+    assert payload["result"]["task_spec"]["parameters"]["values"]["physics_backend"] == "basilisk_native"
