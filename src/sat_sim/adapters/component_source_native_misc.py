@@ -1442,7 +1442,7 @@ class StarTrackerAdapter(_BaseComponentAdapter):
         from components.star_tracker.schemas import StarTrackerConfig
 
         params = _mapping(spec.get("parameters"))
-        _, sample_s, _, times = _time_grid(spec)
+        duration_s, sample_s, _, times = _time_grid(spec)
         sigma = _vec3(params.get("true_sigma_bn"), (0.1, 0.0, 0.0))
         config = StarTrackerConfig(
             drift_rate_mrp_s=_vec3(params.get("drift_rate_mrp_s"), (0.0, 0.0, 0.0)),
@@ -1451,6 +1451,56 @@ class StarTrackerAdapter(_BaseComponentAdapter):
         faults = _normalized_events(spec, "faults", "fault_type")
         degradations = _normalized_events(spec, "degradations", "degradation_type")
         mode = str(_mapping(spec.get("target")).get("mode") or "nominal")
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("STAR_TRACKER_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if mode != "nominal" or faults or degradations:
+                raise ValueError("NATIVE_STAR_TRACKER_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            if any(abs(value) > 1.0e-12 for value in config.drift_rate_mrp_s):
+                raise ValueError("NATIVE_STAR_TRACKER_DRIFT_RATE_NOT_SUPPORTED")
+            from Basilisk.utilities import RigidBodyKinematics as rbk
+            from sat_sim.bsk_engine.native_sensor_component import run_native_star_tracker_probe
+            native = run_native_star_tracker_probe(
+                duration_s=duration_s,
+                sample_s=sample_s,
+                truth_sigma_bn=sigma,
+            )
+            native_rows = []
+            drift_values = []
+            for index, time_s in enumerate(native.times_s):
+                measured_sigma = tuple(float(value) for value in rbk.EP2MRP(native.q_inrtl_to_case[index]))
+                drift_norm = math.sqrt(sum((measured_sigma[axis] - sigma[axis]) ** 2 for axis in range(3)))
+                drift_values.append(drift_norm)
+                row = _row_base(spec, self.target_name, index, time_s, mode)
+                row["adcs.star_tracker.valid"] = True
+                for axis, value in zip("xyz", measured_sigma):
+                    row[f"adcs.star_tracker.sigma_{axis}"] = value
+                row["adcs.star_tracker.drift_norm"] = drift_norm
+                row["label.fault_active"] = False
+                row["label.degradation_active"] = False
+                row["label.health_state"] = "nominal"
+                native_rows.append(row)
+            qoi = {
+                "adcs.star_tracker.valid_fraction": 1.0,
+                "adcs.star_tracker.final_drift_norm": drift_values[-1],
+            }
+            summary = self._summary(spec, native_rows, qoi)
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(native_rows),
+                labels={"run_labels": [{"task_id": summary["task_id"], "mode": "nominal", "capability_id": self.capability_id, "physics_backend": "basilisk_native"}]},
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.starTracker.StarTracker"],
+                    "native_provenance": native.model_source,
+                    "native_input_source": native.input_source,
+                    "native_claim_scope": native.claim_scope,
+                    "validity_semantics": "sample_present_and_quaternion_normalized_not_optical_star_visibility",
+                    "limits": ["nominal only", "no faults/degradation", "no drift-rate modifier", "no optical scene/star catalog/FOV/occultation", "identity sensor-to-body mounting"],
+                },
+            )
         state = StarTrackerState()
         rows = []
         for index, time_s in enumerate(times):
