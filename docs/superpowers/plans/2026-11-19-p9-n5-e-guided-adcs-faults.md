@@ -1,7 +1,7 @@
 # P9-N5-E：ADCS 向导受控故障/退化入口
 
 日期：2026-11-19
-状态：实施中；仅开放 N5-D 已完成官方 Basilisk 2.11.0 物理 A/B 与 evidence profile 的五类事件。
+状态：已完成并合入 main（PR #185）；五类事件受控向导、真实 Chromium Run 与 Run Bundle 验收通过。
 
 ## 目标
 
@@ -71,3 +71,13 @@
 - 事件类型按非空 catalog 动态收敛，只显示 fault/degradation，不显示 constraint。
 - 新增 schema allowlist 单测与真实 Chromium 事件 Run：选择 torque authority loss，配置 10–20 s / 0.25，验证 injection evidence、有效力矩比例和 Run Bundle SHA-256。
 - 最终状态以 PR 同一 head 的 official Basilisk 2.11.0、Chromium 和共享回归为准。
+
+## N5-E 最终同 head 验收（2026-11-19）
+
+- PR #185 受测 head：`4898f8c58ce71f22791397dc06ea22e883a83cef`；Squash merge：`27537e9b7084310f014b21c17030bfdc5acc4c81`。
+- 21 个 workflow runs 全部结束：20 success、1 条件性 skip、0 failure。
+- 官方 Basilisk 2.11.0 专项 workflow #44383978349 PASS；浏览器 workflow #44383978222 PASS。
+- Chromium 真实旅程：6 passed、4 deselected；pytest collect-only 额外断言目标 `guided_native_adcs_wizard_runs_verified_torque_authority_degradation` 被实际收集。
+- 证据 artifact：`native-component-physical-evidence`，ID `14465140837`，14,191 bytes。
+- PR 无未解决 review thread；PR #185 已合入 main。
+- 受控开放范围仍严格为 3 faults + 2 degradations；不开放 constraints，不将其他 subsystem 的事件能力视为已验收。

@@ -1,7 +1,7 @@
 # P9-N5：ADCS 分系统独立闭环仿真产品化
 
 日期：2026-11-19
-状态：N5-A/B/C 已完成并合入 main（PR #183）；N5-D 故障效果物理 A/B 验证继续推进。
+状态：N5-A/B/C/D/E 已全部完成并合入 main（PR #183/#184/#185）；下一主线进入 P9-O 分系统独立仿真入口扩展。
 
 ## 目标
 
@@ -144,3 +144,18 @@
 - 其他 native 单机/分系统保持事件面板隐藏；未通过物理门禁的 ADCS 摩擦退化和速度约束不进入向导。
 - 事件参数名与运行时注入器一致，并通过真实 Chromium UI 配置、TaskSpec、Basilisk Run、injection evidence 与完整 Run Bundle 下载验证。
 - N5-E 的最终验收以同一 PR head 的官方 Basilisk 2.11.0 与 Chromium CI 为准。
+
+## N5-D / N5-E 最终验收与合并（2026-11-19）
+
+- N5-D 五类 ADCS 故障/退化的官方 Basilisk 2.11.0 A/B 与 sealed Run Bundle 物理证据已在 PR #184 完成；五组 A/B 全部 PASS。
+- N5-E PR #185 已合并，merge commit `27537e9b7084310f014b21c17030bfdc5acc4c81`；受测 head `4898f8c58ce71f22791397dc06ea22e883a83cef`。
+- N5-E 服务端 allowlist 只开放 3 faults + 2 degradations；constraints 为空；其他单机/分系统保持 nominal-only。
+- 真实 Chromium 从 ADCS 向导选择 `adcs_rw_torque_authority_loss`，配置 10–20 s / 0.25，提交 TaskSpec 并执行官方 Basilisk，验证 injection evidence、有效力矩比例和 Run Bundle SHA-256。
+- N5-E 最终 PR head 的 21 个 workflow runs：20 success、1 条件性 skip、0 failure；全部已结束。
+- 官方 Basilisk 专项 workflow #44383978349 PASS；Chromium 控制面 workflow #44383978222 PASS；浏览器旅程日志为 6 passed、4 deselected。pytest collect-only 明确确认 ADCS fault wizard 测试被选中。
+- Artifact `native-component-physical-evidence`：ID `14465140837`，14,191 bytes。
+- 物理与产品边界：已开放五类工程仿真事件，不代表飞行硬件标定或飞行验证；ADCS realtime、飞行软件 FDIR、MEKF/Kalman、整星装机惯量和跨分系统耦合仍未开放。
+
+## P9-N5 总结
+
+N5-A/B/C/D/E 全部完成：ADCS 测量坐标系修正、磁强计实际参与姿态融合、确定性工程估计器、nominal 闭环、五类经过物理 A/B 验证的故障/退化以及受控向导入口均已合入 main。后续分系统扩展不得把 ADCS 的事件能力自动复制给 EPS/Comm/Data；各分系统必须独立具备物理证据、服务端 event allowlist 和真实浏览器旅程。
