@@ -96,6 +96,7 @@ if basilisk_available():
         time_s: float
         soc: float
         payload_requested: bool
+        payload_channel_enabled: bool
         adcs_requested: bool
         comm_requested: bool
         heater_requested: bool
@@ -211,6 +212,7 @@ if basilisk_available():
                 time_s=float(CurrentSimNanos) * macros.NANO2SEC,
                 soc=soc,
                 payload_requested=payload_req,
+                payload_channel_enabled=payload_channel_enabled,
                 adcs_requested=adcs_req,
                 comm_requested=comm_req,
                 heater_requested=heater_req,
