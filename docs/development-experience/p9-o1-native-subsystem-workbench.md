@@ -37,3 +37,10 @@
 - API 测试已扩展为 EPS / Comm/Data 两个 sealed Run Bundle。
 - Chromium 真实旅程已加入同一官方 Basilisk workflow。
 - 待同一 PR head CI 完成后，按真实日志补充 PASS 数量、artifact ID 和 merge commit；未通过前不标记正式交付。
+
+## CI 早期问题与修复（2026-11-19）
+
+- 首次 PR head `84ed791dce96295ab6a4995e2eb17f0e336c1702` 的 native workflow 在创建 job 前失败；检查 diff 发现 path filter 的一行被字符串替换拼接为两个 YAML list 项，导致 workflow 文件结构无效。
+- 修复时将 adapter 路径列表拆回独立行，生成 head `d37703557d32c037b7415a326d883994fc2a38fb`；新的官方 Basilisk workflow #44390294878 已正常解析并启动。
+- 新 head 的 native job 已完成 EPS / Comm-Data sealed Run Bundle 和 multi-rate API 合同步骤（step 13，success）；ADCS 物理步骤与 Chromium collect-only / 真实浏览器步骤仍在执行。
+- 经验：修改 GitHub Actions YAML 的 paths 时，不要把不带换行的 anchor 直接拼接新 list item；更新后必须回读实际 YAML 行，再核对 Actions 是否成功创建 job。
