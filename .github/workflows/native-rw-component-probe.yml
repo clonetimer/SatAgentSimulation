@@ -57,6 +57,10 @@ jobs:
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q -s tests/test_p9n_component_simulation.py tests/test_parameter_presentation.py
+      - name: Verify P9-N4 native preflight rejection contract
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q -s tests/test_p9n_n4_preflight.py
 
       - name: Archive Basilisk-native measured RW traces and A/B metrics
         uses: actions/upload-artifact@v7
