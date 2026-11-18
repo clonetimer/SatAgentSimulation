@@ -7,10 +7,15 @@ on:
       - "src/sat_sim/bsk_engine/native_rw_cluster.py"
       - "src/sat_sim/bsk_engine/rw_geometry.py"
       - "src/sat_sim/adapters/component_reaction_wheel.py"
+      - "src/sat_sim/adapters/component_battery.py"
+      - "src/sat_sim/adapters/component_solar_panel.py"
       - "src/sat_sim/adapters/native_reaction_wheel_cluster.py"
       - "src/sat_sim/capabilities/component.reaction_wheel.v1.yaml"
+      - "src/sat_sim/capabilities/component.battery.v1.yaml"
+      - "src/sat_sim/capabilities/component.solar_panel.v1.yaml"
       - "tests/test_p9n_n4_preflight.py"
       - "tests/test_native_sensor_component.py"
+      - "tests/test_native_battery_component.py"
       - "src/sat_sim/scenario_templates.py"
       - "src/sat_sim/form_schema.py"
       - "src/sat_sim/web/app.js"
@@ -67,6 +72,12 @@ jobs:
         run: |
           mkdir -p reports/native_component_sensor
           python -m pytest -q -s --junitxml=reports/native_component_sensor/junit.xml tests/test_native_sensor_component.py
+      - name: Official Basilisk SimpleBattery and SimpleSolarPanel physical/Run Bundle contracts
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_eps_component
+          python -m pytest -q -s --junitxml=reports/native_eps_component/junit.xml tests/test_native_battery_component.py
       - name: Verify user-selectable native component template and form contract
         env:
           PYTHONPATH: "src:."
@@ -99,6 +110,7 @@ jobs:
           name: native-component-physical-evidence
           path: |
             reports/native_component_sensor/junit.xml
+            reports/native_eps_component/junit.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
