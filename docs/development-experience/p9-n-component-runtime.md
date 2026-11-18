@@ -81,3 +81,12 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - 原始真值角速度/非保守加速度、scale 和 bias 进入官方模块；输出由 `AngVelPlatform` 与 `AccelPlatform` recorder 产生。
 - Native 目前只支持 nominal；fault/degradation、非 identity mounting、非零杆臂和随机噪声试验 fail closed，不能回退到 Python reference。
 - 验收分层：probe 证明官方模块输入/输出；adapter 测试证明 TaskSpec 路由和 backend provenance；后续正式 Run Bundle 浏览器旅程才证明产品级闭环。
+
+
+### N2 原生 IMU 初始化帧与参数表审计经验
+
+- Basilisk 2.11 的 IMU 第一个输出帧为零初始化帧；不能把它当作真实测量参与 truth A/B。Probe 明确丢弃该帧，并在 trace provenance 中标记这一处理。
+- IMU 的 `AngVelPlatform` 与 `AccelPlatform` 是官方输出消息字段；角速度与非保守加速度必须分别用 SCStates 真值验证，不能只测 gyro 就宣称 IMU 完成。
+- 新增 capability 参数必须同步更新 24 类组件参量字典及其 source contract blob；否则动态表单构建会以 `COMPONENT_PARAMETER_NAME_NOT_REVIEWED` fail closed。
+- 对原生后端增加新参数时，先复用已审定的中文名称“物理计算后端”，避免产生未经审核的字段名。
+- Magnetometer 官方组件当前暴露统一 scale factor；项目 reference 支持三轴 scale，因此 native adapter 对非均匀 scale 显式拒绝，不能把三个不同轴参数压成一个值。
