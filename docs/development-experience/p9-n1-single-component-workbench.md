@@ -62,3 +62,8 @@ Applying a Basilisk preset from the general normal-run path must also change the
 ## 14. Use the current Schema form projection selectors in browser tests
 
 The current form wrapper publishes `data-field-path` and is mounted under `#wizardParameterHost #dynamicForm`. Tests copied from older UI revisions that query `data-path` or assume the form is directly under the page root silently target a stale DOM contract. Browser tests should use the public current wrapper selector and assert the actual nested control (for example the backend `select`), not the wrapper label.
+
+
+## 15. Separate generic workbench browser dependencies from native-runtime acceptance
+
+The shared single-run browser workflow intentionally installs only the control-plane/browser dependency slice and does not install Basilisk. A browser test that executes a native reaction-wheel Run must explicitly skip when `Basilisk` is absent; the dedicated native-RW workflow installs `bsk==2.11.0`, asserts both distribution and module versions, and then runs that same browser journey without skips. This preserves one real UI journey while keeping the general workbench suite lightweight and preventing a missing optional runtime from masquerading as a product defect.
