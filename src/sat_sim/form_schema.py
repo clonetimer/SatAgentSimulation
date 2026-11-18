@@ -144,6 +144,8 @@ EFFECT_LABELS_ZH: dict[str, tuple[str, str]] = {
     "adcs_gyro_bias_step": ("ADCS陀螺偏置突变", "在闭环控制测量链中叠加陀螺偏置。"),
     "adcs_gyro_noise_increase": ("ADCS陀螺噪声增大", "在闭环控制测量链中提高陀螺噪声幅度。"),
     "adcs_rw_friction_increase": ("ADCS反作用轮摩擦退化", "增加反作用轮等效摩擦阻尼，影响轮速与姿态控制响应。"),
+    "transmitter_rate_loss": ("发射机数据率损失", "受控降低官方 SimpleTransmitter 的 nodeBaudRate 输入；此事件验证的是数据率下降，不代表已建立 RF 功率放大器或链路几何模型。"),
+    "transmitter_rate_degradation": ("发射机数据率退化", "随仿真时间逐步降低官方 SimpleTransmitter 的 nodeBaudRate 输入；不代表 RF 功率、链路裕度或地面站过站模型。"),
 }
 
 
