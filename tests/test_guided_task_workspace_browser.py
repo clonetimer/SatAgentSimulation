@@ -1140,7 +1140,7 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
             assert page.locator("#wizardFaultPanel").evaluate("(node) => node.classList.contains('hidden')")
             assert "Magnetometer" in page.locator("#wizardConversation").inner_text()
-            assert "body frame B" in page.locator("#wizardConversation").inner_text()
+            assert "本体系 B" in page.locator("#wizardConversation").inner_text()
 
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
