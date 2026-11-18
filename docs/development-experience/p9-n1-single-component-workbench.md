@@ -53,3 +53,12 @@ The guided Run button submits `execute: true` with `execution_mode: async`; the 
 ## 12. History navigation must use a visible product path
 
 A guided wizard owns the primary surface. Do not assume its hidden or detached sidebar navigation is available. The history journey must enter the professional workspace through its visible control or use a dedicated visible “view history” action from the Run result; do not click hidden sidebar nodes or force DOM state. Test the same Run ID, provenance, chart data and seal after reopening history.
+
+
+## 13. Preserve the native-only execution boundary after preset application
+
+Applying a Basilisk preset from the general normal-run path must also change the wizard intent to the verified native single-component goal. Otherwise the form can contain a native-only TaskSpec while the wizard still offers realtime modes from the general workflow. The preset handler now sets the component scope and offline mode explicitly; browser acceptance returns to the mode step and asserts that offline is the only available choice.
+
+## 14. Use the current Schema form projection selectors in browser tests
+
+The current form wrapper publishes `data-field-path` and is mounted under `#wizardParameterHost #dynamicForm`. Tests copied from older UI revisions that query `data-path` or assume the form is directly under the page root silently target a stale DOM contract. Browser tests should use the public current wrapper selector and assert the actual nested control (for example the backend `select`), not the wrapper label.
