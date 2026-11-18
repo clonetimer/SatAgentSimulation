@@ -40,29 +40,23 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 
 ### P9-N2：传感器单机
 
-**实施启动（2026-11-18）**
-- 已建立独立官方 Basilisk StarTracker probe graph：显式 `SCStatesMsg` truth fixture → 官方 `sensorOutMsg.qInrtl2Case` recorder。
-- 已建立独立官方 Basilisk IMU probe：显式 `SCStatesMsg` 真值（角速度 + 非保守加速度）、零随机噪声、identity mounting、零杆臂 → 官方 `AngVelPlatform` 与 `AccelPlatform` recorder。
-- 已把 `physics_backend=basilisk_native` 接入 `component.imu.v1` 的现有 adapter/TaskSpec 路径；可配置原有 gyro/accel truth、scale 和 bias，Run 结果保留 native provenance；fault/degradation 和非 nominal 工况 fail closed。
-- 已把 `physics_backend=basilisk_native` 接入 `component.magnetometer.v1`；可配置磁场、bias 和统一三轴 scale；非均匀轴 scale、fault/degradation 和非 nominal 工况 fail closed。
-- 已把 `physics_backend=basilisk_native` 接入 `component.star_tracker.v1`；官方 quaternion 转换为 capability 已声明的 MRP trace；`valid` 仅表示存在归一化 recorder sample，不表示光学星点可见。非零 drift modifier、fault/degradation 和非 nominal 工况 fail closed。
-- IMU、磁强计和星敏均已通过 `prepare_run → execute_prepared_run → sealed Run Bundle` 的原生执行验收，检查真实输出参量、Validation PASS 和 SHA-256 Bundle integrity。
-- 最新 P9-N2 聚焦工作流：官方 Basilisk 2.11.0，26 passed；参数表审计同步 PASS。
-- CSS 保持 native probe，不开放 TaskSpec native backend：官方 CoarseSunSensor 只输出标量强度，而现有 capability 还声明三轴方向估计；在区分“传感器测量”与“上层方向解算”之前，不伪造方向输出。
-- 已建立独立官方 Basilisk Magnetometer probe：显式 `SCStatesMsg` + `MagneticFieldMsg` → 官方 `tamDataOutMsg.tam_S` recorder；当前输入为均匀地磁场 fixture，不宣称地球磁场环境模型。
-- 已建立独立官方 Basilisk CoarseSunSensor probe：显式 `SCStatesMsg` + `SpicePlanetStateMsg` + `EclipseMsg` → 官方 `cssDataOutMsg.OutputData` recorder；当前验证余弦/FOV 与照明输入，不宣称 SPICE 轨道历元或真实遮挡几何。
-- 已加入聚焦 CI 工作流，固定官方上游 `bsk==2.11.0`，运行四类传感器原生图与 fail-closed 输入测试。
-- 所有 probe 均独立构建，不裁剪整星 UnifiedNativeRuntime 输出；当前仍是物理试验接口，不冒充已注册生产 capability。
-
-- IMU、星敏、磁强计、太阳敏感器逐个盘点。
-- 先保留现有 project source-native capability 的真实标签与行为。
-- 对官方 Basilisk 有原生模块的传感器，分别构建独立 Basilisk test graph：只提供必要的 truth/environment input，直接记录官方 sensor output；不可把整星 UnifiedNativeRuntime 的输出剪裁后宣称为独立运行。
-- 无法构造可信独立输入条件的传感器，明确标注依赖输入/环境，不强行声称可 standalone。
+**已完成首批物理图与原生执行接入（2026-11-18）**
+- 四类官方 Basilisk 独立图已建立：IMU、StarTracker、Magnetometer、CoarseSunSensor；均使用显式 truth/environment 消息和官方 recorder。
+- `component.imu.v1`、`component.magnetometer.v1`、`component.star_tracker.v1` 已接入 opt-in `physics_backend=basilisk_native` TaskSpec adapter；默认仍为 `project_reference`。
+- 三类传感器均通过 `prepare_run → execute_prepared_run → sealed Run Bundle`，Validation PASS 与 SHA-256 integrity 验收。
+- CSS 暂不接入 native TaskSpec：官方 CoarseSunSensor 只输出标量光强，现有 capability 还声明三轴方向估计；不复制输入太阳方向伪装测量输出。
+- 最新专项 CI：官方 Basilisk 2.11.0，26 passed；参数表审计 PASS。
+- 不把传感器独立图描述为光学/地磁/轨道环境完整模型，也不声称飞行资格。
 
 ### P9-N3：EPS / 推进 / 热控等单机
-- 电池、太阳翼、推力器、贮箱、加热器等按各自 capability 和实际物理模型逐项接入。
-- 区分 project source-native、Basilisk-native 和工程参考模型。
-- 逐个完成 nominal、参数响应、边界条件和已实现故障/退化的证据测试。
+
+**已启动 EPS 首批官方模型接入（2026-11-18）**
+- 电池：官方 `SimpleBattery` + `SimplePowerSink` 已接入 `component.battery.v1` opt-in native TaskSpec adapter。
+- 太阳翼：官方 `SimpleSolarPanel` 已接入 `component.solar_panel.v1` opt-in native TaskSpec adapter；输入为显式 SCStates/Sun/Eclipse 消息，输出为官方 `nodePowerOutMsg.netPower`。
+- 已增加同一 SimBase 中 SimpleSolarPanel PowerNode → SimpleBattery 的耦合回归，验证真实发电使储能增加；不使用独立 Run 的 CSV 后处理冒充物理耦合。
+- Native 边界：电池只支持 nominal、恒定净功率、unity efficiency、SOC [0,1]；太阳翼只支持一块完全展开固定板、静态 Sun/Eclipse、无 tracking。未实现工况 fail closed。
+- PR #170 正在验收：官方 Basilisk 2.11.0 专项工作流和参数表审计运行中。
+- 下一步：将同一 SimBase EPS graph 接入 subsystem TaskSpec/Run Bundle，再补日蚀、多负载、充放电切换和能量守恒；随后推进推进、贮箱、热控设备。
 
 ### P9-N4：单机工作台产品闭环
 - 对话框选择单机 → 参数配置 → 预检 → 执行 → 曲线/指标 → 历史 Run → 数据导出。
@@ -74,7 +68,8 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 
 - P9-N0：完成，PR #165 已合并，合并提交 `655a9d009f2d065cf349f78ecc5fb5f53bbbd16f`。
 - P9-N1：官方原生执行与 sealed Run Bundle 已 PASS；native 单机模板及 backend 表单契约测试 PASS。工作台端到端浏览器验收仍在收敛，不将单测 PASS 等同于产品闭环完成。
-- P9-N2：待启动；优先 IMU 独立原生图，再评估星敏、磁强计和太阳敏感器的独立输入条件。
+- P9-N2：首批三类传感器原生 TaskSpec/Run Bundle 已通过；CSS 保持 probe-only，等待输出合同调整。
+- P9-N3：电池、太阳翼 native component adapters 与同 SimBase PowerNode 耦合已实现，PR #170 正在验收。
 
 ## 首阶段验收门槛
 
