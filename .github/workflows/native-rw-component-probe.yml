@@ -9,6 +9,7 @@ on:
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
       - "tests/test_native_adcs_subsystem_bundle.py"
+      - "tests/test_native_adcs_fault_effects.py"
       - "src/sat_sim/bsk_engine/native_rw_component.py"
       - "src/sat_sim/bsk_engine/native_rw_cluster.py"
       - "src/sat_sim/bsk_engine/rw_geometry.py"
@@ -117,6 +118,7 @@ jobs:
           mkdir -p reports/native_adcs
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_closed_loop.xml tests/test_unified_native_migration.py -k "adcs_unified_runtime_is_closed_loop_and_recorder_grounded or adcs_fusion_transforms_non_identity_sensor_mounts_into_body_frame"
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_sealed_bundle.xml tests/test_native_adcs_subsystem_bundle.py
+          python -m pytest -q -s --junitxml=reports/native_adcs/adcs_fault_effects.xml tests/test_native_adcs_fault_effects.py
       - name: Install Chromium for the guided component/subsystem workflow
         run: |
           python -m pip install "playwright==1.57.0"
@@ -145,6 +147,7 @@ jobs:
             reports/native_propulsion_thermal/junit.xml
             reports/native_adcs/adcs_closed_loop.xml
             reports/native_adcs/adcs_sealed_bundle.xml
+            reports/native_adcs/adcs_fault_effects.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
