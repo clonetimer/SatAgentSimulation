@@ -292,6 +292,17 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             ]
             assert len(native_runs) == 1, native_runs
             run_id = native_runs[0]["run_id"]
+            # Verify the durable bundle contract, not just the Run Center
+            # list status. The UI must replay the exact sealed artifact.
+            detail_response = client.get(f"/runs/{run_id}")
+            assert detail_response.status_code == 200, detail_response.text
+            durable = detail_response.json()["run"]
+            assert durable["sealed"] is True, durable
+            assert durable["integrity"]["ok"] is True, durable.get("integrity")
+            assert durable["validation_outcome"]["result"] == "PASS", durable.get("validation_outcome")
+            assert durable["run_record"]["status"] == "SUCCEEDED", durable.get("run_record")
+            assert durable["task_spec"]["model"]["capability_id"] == "component.reaction_wheel.v1"
+            assert durable["summary"]["physics_backend"] == "basilisk_native"
             history_button = page.locator("#wizardOpenRunCenterBtn")
             history_button.wait_for(state="visible", timeout=10000)
             history_button.click()
