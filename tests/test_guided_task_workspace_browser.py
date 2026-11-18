@@ -1021,7 +1021,8 @@ def test_guided_native_sensor_workbench_runs_all_verified_adcs_eps_propulsion_th
                     assert seal["run_id"] == run_id
                     assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
                     expected_archive_paths = {f"{bundle_prefix}{relative}" for relative in manifest["files"]}
-                    assert expected_archive_paths.issubset(archive_names)
+                    assert archive_names == expected_archive_paths | {manifest_name, seal_name}
+                    assert f"{bundle_prefix}runtime/execution.lock" not in archive_names
                     for relative, entry in manifest["files"].items():
                         payload = archive.read(f"{bundle_prefix}{relative}")
                         assert hashlib.sha256(payload).hexdigest() == entry["sha256"]
