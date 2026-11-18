@@ -7425,7 +7425,7 @@
     },
     'subsystem.adcs_unified_native.v1': {
       scope: 'subsystem', streams: [{ id: 'adcs.fast', label: '实时', sampleMultiplier: 1 }, { id: 'adcs.housekeeping', label: '慢速', sampleMultiplier: 10, overviewOnly: true }],
-      targets: ['subsystem.adcs'], telemetryGroups: [{ id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2'] }],
+      targets: ['subsystem.adcs'], telemetryGroups: [{ id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.fusion.estimated_mrp_BN_x', 'adcs.fusion.estimated_omega_BN_B_x', 'adcs.fusion.magnetometer_used', 'adcs.fusion.body_rate_valid', 'adcs.sensor.imu_sample_valid', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2', 'adcs.control.applied_torque_nm_0'] }],
     },
     'subsystem.eps.unified_native.v1': {
       scope: 'subsystem', streams: [{ id: 'eps.fast', label: '实时', sampleMultiplier: 1 }, { id: 'eps.housekeeping', label: '慢速', sampleMultiplier: 10, overviewOnly: true }],
@@ -8579,7 +8579,12 @@
     if (goal === 'advanced') { switchView('creator'); return; }
     if (goal === 'component_native') {
       state.wizard.level = 'component';
-      wizardSetStep('object', '请选择已完成官方 Basilisk 独立物理与 sealed Run 验收的单机：反作用轮、IMU、星敏感器或磁强计。每个设备只开放其已验证的标称输入和测量输出。', '单机独立仿真');
+      wizardSetStep('object', '请选择已完成官方 Basilisk 独立物理与 sealed Run 验收的九类单机。每个设备只开放已验证的标称有限时长输入和 recorder 输出。', '单机独立仿真');
+      return;
+    }
+    if (goal === 'subsystem_native') {
+      state.wizard.level = 'subsystem';
+      wizardSetStep('object', '请选择已通过官方 Basilisk 闭环物理、正式 TaskSpec 和 sealed Run 验收的分系统。当前首批开放 ADCS；只提供标称有限时长离线运行。', 'ADCS 分系统独立仿真');
       return;
     }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
@@ -8600,7 +8605,7 @@
     'component.imu': {
       templateId: 'component_imu_basilisk_native',
       label: 'Basilisk 原生 IMU 模板',
-      prompt: '已加载官方 Basilisk ImuSensor。当前输入为显式角速度与非保守比力真值；仅开放标称有限时长测量，不包含随机噪声特性、安装杆臂或导航解算。',
+      prompt: '已加载官方 Basilisk IMU（ImuSensor）。当前输入为显式角速度与非保守比力真值；仅开放标称有限时长测量，不包含随机噪声特性、安装杆臂或导航解算。',
     },
     'component.star_tracker': {
       templateId: 'component_star_tracker_basilisk_native',
@@ -8639,6 +8644,15 @@
     },
   });
 
+  const NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT = Object.freeze({
+    'subsystem.adcs': {
+      templateId: 'adcs_unified_native',
+      capabilityId: 'subsystem.adcs_unified_native.v1',
+      label: 'ADCS 统一 Basilisk 闭环模板',
+      prompt: '已加载官方 Basilisk StarTracker、ImuSensor、Magnetometer、ReactionWheelStateEffector 与控制链。星敏 case C、IMU platform P、磁强计 sensor S 的测量已转换到本体系 B；磁强计参与 Sun/Mag TRIAD。Sun/Earth 向量是项目理想几何测量，不是 CSS 三轴方向输出。Basilisk IMU 首次初始化零样本标记为无效，有效样本到达前保持上一有效角速度。当前只开放 nominal、有限时长离线闭环；不开放故障/退化、实时运行或整星耦合。',
+    },
+  });
+
   async function wizardChooseObject(objectId) {
     const object = state.presentationObjects.find((item) => item.object_id === objectId);
     if (!object || !(object.primary_capability_id || object.configuration_capability_id)) {
@@ -8674,6 +8688,33 @@
       state.wizard.parameterMode = 'recommended';
       state.wizard.validated = false;
       wizardSetStep('configure', nativeTemplate.prompt + ' 请检查参数和测量输出，执行配置校验后再运行。', label);
+      const parameterPanel = el('wizardParametersPanel');
+      if (parameterPanel) parameterPanel.open = true;
+      return;
+    }
+    if (state.wizard.goal === 'subsystem_native' && NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT[objectId]) {
+      const nativeTemplate = NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT[objectId];
+      const payload = await api('/scenario-templates/' + encodeURIComponent(nativeTemplate.templateId) + '/instantiate', {
+        method: 'POST', body: apiBody({}),
+      });
+      const taskSpec = payload?.task_spec || {};
+      if (
+        taskSpec.model?.capability_id !== nativeTemplate.capabilityId
+        || taskSpec.simulation?.level !== 'subsystem'
+        || taskSpec.simulation?.backend !== 'basilisk'
+        || taskSpec.assurance?.allow_proxy !== false
+      ) {
+        throw new Error('服务端未返回该 ADCS 分系统经过注册的 Basilisk 原生模板。');
+      }
+      const projected = await projectTaskSpecToForm(taskSpec, nativeTemplate.label);
+      if (projected === null) throw new Error(nativeTemplate.label + ' 未能投影到当前配置，请重试。');
+      state.activeTaskCenterId = null;
+      updateTaskEditState();
+      state.planning = payload.planning;
+      state.wizard.mode = 'offline';
+      state.wizard.parameterMode = 'recommended';
+      state.wizard.validated = false;
+      wizardSetStep('configure', nativeTemplate.prompt + ' 请检查坐标系、安装角、控制周期和测量输出，执行配置校验后再运行。', label);
       const parameterPanel = el('wizardParametersPanel');
       if (parameterPanel) parameterPanel.open = true;
       return;
@@ -9162,11 +9203,13 @@
     const config = el('wizardConfigSections');
     const showConfig = state.wizard.step === 'configure';
     const nativeSingleComponent = showConfig && state.wizard.goal === 'component_native';
+    const nativeSingleSubsystem = showConfig && state.wizard.goal === 'subsystem_native';
+    const nativeNominalOnly = nativeSingleComponent || nativeSingleSubsystem;
     config?.classList.toggle('hidden', !showConfig);
-    // Native sensor/RW adapters currently accept nominal-only finite runs.
-    // Hide event authoring in this guided slice instead of presenting controls
-    // that the selected Basilisk backend must reject at preflight.
-    el('wizardEventHost')?.classList.toggle('hidden', nativeSingleComponent);
+    // These native guided slices currently admit only nominal finite runs.
+    // Hide event authoring instead of presenting unverified fault controls.
+    el('wizardEventHost')?.classList.toggle('hidden', nativeNominalOnly);
+    el('wizardFaultPanel')?.classList.toggle('hidden', nativeNominalOnly);
     el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
     el('wizardAgentWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'natural_language');
     el('wizardTaskSpecWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'taskspec');
@@ -9183,7 +9226,8 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
-        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的反作用轮、IMU、星敏感器、磁强计、电池、太阳翼、推力器、燃料贮箱和热节点开始'],
+        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的九类单机开始'],
+        ['subsystem_native', '分系统独立仿真', '首批开放 ADCS：真实姿态测量、估计、控制和反作用轮闭环'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
@@ -9204,6 +9248,12 @@
         rows = rows.filter((item) => nativeObjects.has(item.object_id));
         const note = document.createElement('p'); note.className = 'wizard-panel-help';
         note.textContent = '列表仅包含已通过官方 Basilisk 独立物理和 sealed Run 验收的设备。未列出的项目参考模型不会被伪装成原生模型。';
+        options.appendChild(note);
+      } else if (state.wizard.goal === 'subsystem_native') {
+        const nativeObjects = new Set(Object.keys(NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT));
+        rows = rows.filter((item) => nativeObjects.has(item.object_id));
+        const note = document.createElement('p'); note.className = 'wizard-panel-help';
+        note.textContent = '当前仅开放已完成统一 Process/Task 闭环、坐标系与测量来源审查的 ADCS 分系统。EPS、通信等其他分系统不会被提前标记为已验收。';
         options.appendChild(note);
       }
       if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); }
@@ -9230,7 +9280,7 @@
         ['limited_realtime','限时实时仿真','按设定时长运行；支持暂停、继续、单步和实时遥控。到达时长上限后结束并归档。'],
         ['continuous_realtime','持续实时仿真','面向长时间运行与持续遥测；由用户主动停止并归档，提供资源监测和长稳证据工具。'],
       ];
-      const visibleModes = state.wizard.goal === 'component_native'
+      const visibleModes = ['component_native', 'subsystem_native'].includes(state.wizard.goal)
         ? modes.filter(([mode]) => mode === 'offline')
         : modes;
       visibleModes.forEach(([mode,title,detail]) => {

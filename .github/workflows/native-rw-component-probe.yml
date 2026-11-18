@@ -1,8 +1,14 @@
-name: Independent native component physical A/B probe
+name: Independent native component and ADCS subsystem physical A/B probe
 
 on:
   pull_request:
     paths:
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/bsk_engine/project_native_modules.py"
+      - "src/sat_sim/adapters/subsystem_adcs_unified_native.py"
+      - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
+      - "tests/test_unified_native_migration.py"
+      - "tests/test_native_adcs_subsystem_bundle.py"
       - "src/sat_sim/bsk_engine/native_rw_component.py"
       - "src/sat_sim/bsk_engine/native_rw_cluster.py"
       - "src/sat_sim/bsk_engine/rw_geometry.py"
@@ -46,7 +52,7 @@ permissions:
 jobs:
   official-basilisk-native-components:
     runs-on: ubuntu-24.04
-    timeout-minutes: 18
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -104,7 +110,14 @@ jobs:
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q -s tests/test_p9n_n4_preflight.py
-      - name: Install Chromium for the guided single-component workflow
+      - name: Verify ADCS sensor-frame transformations and native closed-loop Run Bundle
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_adcs
+          python -m pytest -q -s --junitxml=reports/native_adcs/adcs_closed_loop.xml tests/test_unified_native_migration.py -k "adcs_unified_runtime_is_closed_loop_and_recorder_grounded or adcs_fusion_transforms_non_identity_sensor_mounts_into_body_frame"
+          python -m pytest -q -s --junitxml=reports/native_adcs/adcs_sealed_bundle.xml tests/test_native_adcs_subsystem_bundle.py
+      - name: Install Chromium for the guided component/subsystem workflow
         run: |
           python -m pip install "playwright==1.57.0"
           python -m playwright install --with-deps chromium
@@ -115,12 +128,12 @@ jobs:
           with sync_playwright() as playwright:
               print(f"SAT_SIM_BROWSER_EXECUTABLE={playwright.chromium.executable_path}")
           PY
-      - name: Verify guided native component selection and real Runs
+      - name: Verify guided native component and subsystem selection and real Runs
         env:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
-            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench"
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench"
 
       - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7
@@ -130,6 +143,8 @@ jobs:
             reports/native_component_sensor/junit.xml
             reports/native_eps_component/junit.xml
             reports/native_propulsion_thermal/junit.xml
+            reports/native_adcs/adcs_closed_loop.xml
+            reports/native_adcs/adcs_sealed_bundle.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
