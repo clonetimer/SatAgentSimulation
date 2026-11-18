@@ -64,3 +64,12 @@ def test_eps_unified_rejects_unknown_effect() -> None:
     spec = deepcopy(_spec("fault", "faults", "invented_eps_fault"))
     issues = adapter.validate(spec, get_capability(adapter.capability_id).data)
     assert any(issue.severity == "error" and "unsupported" in issue.message for issue in issues)
+
+
+
+def test_eps_rejects_invalid_event_severity() -> None:
+    adapter = EpsUnifiedNativeAdapter()
+    spec = _spec("fault", "faults", "generation_storage_distribution_failure")
+    spec["events"]["faults"][0]["severity"] = -0.1
+    issues = adapter.validate(spec, get_capability(adapter.capability_id).data)
+    assert any(issue.severity == "error" and issue.code == "range" for issue in issues)
