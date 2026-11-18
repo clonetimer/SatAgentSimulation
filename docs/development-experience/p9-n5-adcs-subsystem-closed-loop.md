@@ -75,3 +75,36 @@
 6. **effect verification 最后提升。** 当前 operator verification 仍为 declared；测试通过后再按 effect 逐项升级，不把 registry 声明当成物理证据。
 
 当前候选分支：`feat/p9-n5-d-adcs-fault-physical-ab-20261119`。最终结论以该分支 PR 同一 head 的 Basilisk 2.11.0 JUnit、Run Bundle integrity 与共享 CI 为准。
+
+
+## N5-D 开发经验：故障/退化物理 A/B（2026-11-19）
+
+1. **二值故障与连续退化必须使用不同 effect ID。**
+   - `adcs_rw_motor_failure` 表示电机完全失效，目标轮实际驱动力矩必须为 0；不能把 `torque_scale=0.25` 塞进 motor failure 来表达部分失效。
+   - `adcs_rw_torque_authority_loss` 专门表达剩余力矩权限比例，0.25 的有效力矩上限和实际送入 Basilisk 的力矩都必须受限。
+   - A/B 测试分别核对原始控制命令、有效力矩比例、有效最大力矩和实际执行力矩。
+
+2. **卡滞与电机失效不是同一种执行器行为。**
+   - 卡滞仍允许模型施加有界反向制动力矩，同时将正常驱动权限记为 0。
+   - 电机失效则实际输出力矩归零，不应产生卡滞制动力矩。
+   - 只看 fault label 或 torque limit 会混淆两种物理含义，必须同时检查 applied torque 和 wheel speed。
+
+3. **偏置和噪声退化要在有效样本上比较。**
+   - IMU 首次 UpdateState 的初始化零样本不参与测量有效性断言。
+   - 偏置用 raw platform rate 与 measured platform rate 的差值核对，并观察融合 body-rate 输入是否变化。
+   - 噪声用噪声 recorder 核对幅度，同时确认 IMU sample valid 不因噪声增大而错误置为无效。
+
+4. **Operator verification 与 effect evidence classification 是两套不同字段。**
+   - `operator.effects[].verification` 的 schema 仅允许 `declared`、`candidate`、`not_observable`，不能写不存在的 `verified`。
+   - 原生效果物理资格由 `effect_evidence_v32.json` 的 `classification=VERIFIED_NATIVE_EFFECT` 和逐项 `runtime_assertions` 表示。
+   - 只把事件标成 `declared` 不等于有物理证据；profile 必须有 direct recorder assertion，并由同一 Basilisk head 的 A/B 测试支持。
+
+5. **物理测试通过不等于自动开放 UI。**
+   - N5-D 仅验证事件效果，PR 不修改前端，因此 Chromium 浏览器步骤按 scope 正确跳过。
+   - ADCS 向导的 `#wizardFaultPanel` 仍保持隐藏，避免把后台已注册事件误当成用户已批准的产品能力。
+   - 后续 N5-E 应只暴露通过物理门禁的五类事件，并增加真实 Chromium 事件配置、运行、结果和 Run Bundle 回放旅程。
+
+6. **正式合同测试必须区分 binary motor failure 与 partial torque loss。**
+   - 旧参数化测试曾把 `adcs_rw_motor_failure` 与 `torque_scale=0.25` 组合，语义上把二值故障和部分退化混为一谈。
+   - 已修正为 motor failure 无比例参数，另增加 torque authority loss 的 0.25 formal case。
+   - 工作流将 effect evidence registry contract 纳入 Basilisk 专项，防止有物理 A/B 测试却漏掉 evidence profile。
