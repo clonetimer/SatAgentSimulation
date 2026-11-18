@@ -106,3 +106,12 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - 新增 IMU、磁强计的真实原生 TaskSpec Run Bundle 测试：prepare → official Basilisk execute → validation PASS → sealed manifest → integrity verification。
 - 这条测试复用现有 `prepare_run` / `execute_prepared_run`，不建立第二套执行器或封存格式。
 - 下一步将同样的 Run Bundle 证据扩展到星敏；CSS 在输出契约调整前保持 probe-only。
+
+
+## P9-N3 官方 Basilisk EPS 组件与耦合经验（2026-11-18）
+
+- 电池 native backend 复用官方 `SimpleBattery` + `SimplePowerSink`；太阳翼 native backend 复用官方 `SimpleSolarPanel`。
+- 独立组件 Run Bundle 通过后，增加同一 SimBase 的 PowerNode 连接测试：SimpleSolarPanel `nodePowerOutMsg` 直接接入 SimpleBattery，不使用两个 Run 的 CSV 后处理冒充闭环。
+- 电池仅支持 nominal、恒定净功率、unity charge/discharge efficiency、SOC [0,1]；太阳翼仅支持单块固定、完全展开、静态 Sun/Eclipse、无 tracking。超出能力范围 fail closed。
+- 太阳翼输出必须读取官方 `nodePowerOutMsg.netPower`；电池存储/SOC 必须读取官方 SimpleBattery recorder。
+- 下一阶段必须把这个同一 SimBase 图提升为 subsystem TaskSpec/Run Bundle，并验证日蚀、多负载、充放电切换和能量守恒。
