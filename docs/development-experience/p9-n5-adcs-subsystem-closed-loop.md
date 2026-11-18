@@ -1,7 +1,7 @@
 # P9-N5 ADCS 分系统闭环：开发经验
 
 日期：2026-11-19
-状态：实施中；本文件记录本轮代码审查与 CI 修复，最终验收以 PR #183 最新 head 的官方 Basilisk/Run Bundle/Chromium 结果为准。
+状态：N5-A/B/C 已合入 main（PR #183）；N5-D 故障效果物理 A/B 仍在推进。
 
 ## 本轮完成的工程修正
 
@@ -47,4 +47,15 @@
 - PR #183 首轮官方 Basilisk 2.11.0 门禁：传感器坐标系专项中，首个 Reset/IMU 初始化样本比较失败（估计角速度 0.0，真值 0.01）；根因与上游 IMU 首次 UpdateState 输出零 payload 的实现一致。
 - 同一轮通用工作台浏览器门禁：欢迎选项数量由 8 增至 9 后，旧断言未同步更新。
 - 本轮修正已加入 IMU 消息时间戳驱动的 readiness、有效角速度保持、trace 字段和测试覆盖；首页测试已验证分系统入口。
-- **最终状态待核：**必须等修正后同一 PR head 的官方 Basilisk 2.11.0 物理/Run Bundle、共享回归、Chromium 向导真实运行与 Run Bundle 下载全部完成，再记录 PASS/FAIL 和 artifact 哈希。不得把本轮代码提交当作验收通过。
+- **最终验收已完成：**PR #183 最终 head `cba89c24ed872c0f84c40430449660fe6fbdbb2e` 的官方 Basilisk 2.11.0、ADCS sealed Run Bundle、Chromium 真实向导和共享回归全部完成；20 个 workflow runs 为 19 success、1 条件性 skip、0 failure。
+
+
+## PR #183 最终同 head 验收与合并（2026-11-19）
+
+- PR #183 已 Squash merge，main commit `accb65503f5a535dad2b355120e6e59fe59bd83f`；受测 head `cba89c24ed872c0f84c40430449660fe6fbdbb2e`。
+- 20 个 GitHub Actions workflow runs：19 success、1 条件性 skip、0 failure/cancelled。
+- 官方 Basilisk 2.11.0 证据：ADCS 闭环与非零安装角坐标变换 2 passed；sealed Run Bundle identity/non-identity mount 2 passed。
+- Chromium 5 passed、4 deselected；浏览器执行 ADCS 分系统向导、真实 Run、遥测/曲线、多速率遥测和完整 Run Bundle 下载。
+- Artifact `native-component-physical-evidence`：ID `14454689028`，13,642 bytes；ZIP SHA-256 `4ccf8d0f7c53546be477930859bc55b536225f5bc654cbb7a25b3a704ee6fc32`。
+- 经验补充：Basilisk 2.11.0 IMU 首次 UpdateState 会写入零初始化 payload，不能以“非零值”判断有效性；必须依赖消息写入时间戳推进。Reset recorder 快照不能替代有效动态测量。
+- 当前仍未验证的范围：RW jamming/motor failure、gyro bias/noise、torque authority loss 的物理效果对照；实时 ADCS、整星惯量/装配和跨分系统耦合。
