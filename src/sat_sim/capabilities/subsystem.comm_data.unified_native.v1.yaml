@@ -33,10 +33,10 @@ modes:
     supported: true
   fault:
     supported: true
-    fault_types: [link_or_storage_failure]
+    fault_types: [transmitter_rate_loss]
   degradation:
     supported: true
-    degradation_types: [margin_or_throughput_degradation]
+    degradation_types: [transmitter_rate_degradation]
 parameters:
   instrument_baud_bps:
     type: number
@@ -88,6 +88,7 @@ outputs:
   - comm_data.transmitter_baud_bps
   - comm_data.native_storage_drain_enabled
   - comm_data.transmitter_storage_node_baud_bps
+  - comm_data.nominal_transmitter_storage_node_baud_bps
   qoi:
   - runtime_truth_status
   - final_storage_bits
@@ -105,26 +106,28 @@ operator:
     - comm_data.instrument_baud_bps
     - comm_data.transmitter_storage_node_baud_bps
     verification: declared
-  - effect_id: link_or_storage_failure
+  - effect_id: transmitter_rate_loss
     kind: fault
     owner: unified_native_comm_data
     implementation: basilisk_native
     evidence_fields:
     - comm_data.transmitter_baud_bps
     - comm_data.transmitter_storage_node_baud_bps
+    - comm_data.nominal_transmitter_storage_node_baud_bps
     - label.fault_active
     verification: declared
-  - effect_id: margin_or_throughput_degradation
+  - effect_id: transmitter_rate_degradation
     kind: degradation
     owner: unified_native_comm_data
     implementation: basilisk_native
     evidence_fields:
     - comm_data.transmitter_baud_bps
     - comm_data.transmitter_storage_node_baud_bps
+    - comm_data.nominal_transmitter_storage_node_baud_bps
     - label.degradation_active
     verification: declared
   limitations:
-  - Independent data path effects are limited to native transmitter loss and throughput degradation; ground-access and RF geometry remain outside this focused graph.
+  - Native event coverage is limited to reducing the SimpleTransmitter nodeBaudRate input and a time-dependent reduction of that same data-rate input. This is not an RF output-power, antenna-gain, link-margin, ground-access, storage-failure, or BER/PER model.
   - Parameters are engineering estimates and are not flight calibrated.
 lifecycle:
   status: active
@@ -161,8 +164,8 @@ model_projection:
   exposed_actions: []
   exposed_effects:
   - spacecraft.comm_data.nominal
-  - spacecraft.comm_data.link_or_storage_failure
-  - spacecraft.comm_data.margin_or_throughput_degradation
+  - spacecraft.comm_data.transmitter_rate_loss
+  - spacecraft.comm_data.transmitter_rate_degradation
   evidence:
   - spacecraft.comm_data.storage_evidence
 execution:
