@@ -5358,6 +5358,21 @@
         return;
       }
     }
+    const nativeSubsystemEventAllowlist = {
+      'subsystem.eps.unified_native.v1': {
+        fault: new Set(['generation_storage_distribution_failure']),
+        degradation: new Set(['energy_margin_degradation']),
+      },
+      'subsystem.comm_data.unified_native.v1': {
+        fault: new Set(['transmitter_rate_loss']),
+        degradation: new Set(['transmitter_rate_degradation']),
+      },
+    };
+    const nativeAllowed = nativeSubsystemEventAllowlist[state.selectedCapabilityId]?.[kind];
+    if (nativeAllowed && !nativeAllowed.has(effect)) {
+      showNotice('该分系统仅允许已经通过官方 Basilisk 配对 A/B 与正式证据验收的事件。', 'warning');
+      return;
+    }
     const template = effectCatalog(kind).find((item) => item.effect === effect);
     if (!template) return;
     const key = kind === 'fault' ? 'faults' : (kind === 'degradation' ? 'degradations' : 'constraints');
@@ -8672,19 +8687,19 @@
       templateId: 'adcs_unified_native',
       capabilityId: 'subsystem.adcs_unified_native.v1',
       label: 'ADCS 统一 Basilisk 闭环模板',
-      prompt: '已加载官方 Basilisk StarTracker、ImuSensor、Magnetometer、ReactionWheelStateEffector 与控制链。星敏 case C、IMU platform P、磁强计 sensor S 的测量已转换到本体系 B；磁强计参与 Sun/Mag TRIAD。Sun/Earth 向量是项目理想几何测量，不是 CSS 三轴方向输出。Basilisk IMU 首次初始化零样本标记为无效，有效样本到达前保持上一有效角速度。当前只开放 nominal、有限时长离线闭环；不开放故障/退化、实时运行或整星耦合。',
+      prompt: '已加载官方 Basilisk StarTracker、ImuSensor、Magnetometer、ReactionWheelStateEffector 与控制链。星敏 case C、IMU platform P、磁强计 sensor S 的测量已转换到本体系 B；磁强计参与 Sun/Mag TRIAD。Sun/Earth 向量是项目理想几何测量，不是 CSS 三轴方向输出。Basilisk IMU 首次初始化零样本标记为无效，有效样本到达前保持上一有效角速度。当前开放 nominal 与五类经过 A/B 验收的 ADCS 故障/退化事件，仍仅限有限时长离线闭环；不开放实时运行或整星耦合。',
     },
     'subsystem.eps': {
       templateId: 'eps_unified_native',
       capabilityId: 'subsystem.eps.unified_native.v1',
       label: 'EPS 统一 Basilisk 运行图模板',
-      prompt: '已加载官方 Basilisk SimpleSolarPanel、SimpleBattery 和 SimplePowerSink；配电单元 PDU 与负载切除控制为项目原生 SysModel，并在同一 Process/Task 中连接。结果区分官方电源节点与项目 PDU。当前仅开放标称、有限时长离线仿真；不代表轨道日照/日蚀闭环，也不代表与 ADCS、通信或热控的跨分系统耦合。',
+      prompt: '已加载官方 Basilisk SimpleSolarPanel、SimpleBattery 和 SimplePowerSink；配电单元 PDU 与负载切除控制为项目原生 SysModel，并在同一 Process/Task 中连接。事件菜单仅开放已通过官方 Basilisk 配对 A/B 与正式证据校验的 EPS 组合故障 generation_storage_distribution_failure 和能源退化 energy_margin_degradation；前者是受控组合场景，不是任意单点故障菜单。结果区分官方电源节点与项目 PDU；不代表轨道日照/日蚀闭环，也不代表与 ADCS、通信或热控的跨分系统耦合。仅开放有限时长离线仿真。',
     },
     'subsystem.comm_data': {
       templateId: 'comm_data_unified_native',
       capabilityId: 'subsystem.comm_data.unified_native.v1',
       label: '通信数据统一 Basilisk 运行图模板',
-      prompt: '已加载官方 Basilisk SimpleInstrument、SimpleStorageUnit 和 SimpleTransmitter，在同一 Process/Task 中运行并使用原生 recorder。当前输出数据生成码率、存储量、发射机码率和存储节点净码率；不包含地面站可见性、轨道过站、RF 链路几何或 BER/PER 闭环。当前仅开放标称、有限时长离线仿真，不代表与 EPS 或载荷的跨分系统耦合。',
+      prompt: '已加载官方 Basilisk SimpleInstrument、SimpleStorageUnit 和 SimpleTransmitter，在同一 Process/Task 中运行并使用原生 recorder。事件菜单仅开放发射机数据率损失 transmitter_rate_loss 与数据率退化 transmitter_rate_degradation，两者只作用于 SimpleTransmitter.nodeBaudRate；不代表 RF 输出功率、链路裕度、地面站过站、天线指向或 BER/PER 闭环。仅开放有限时长离线仿真，不代表与 EPS 或载荷的跨分系统耦合。',
     },
   });
 
@@ -9242,11 +9257,15 @@
     const nativeAdcsFaultsEnabled = nativeSingleSubsystem
       && state.selectedCapabilityId === 'subsystem.adcs_unified_native.v1'
       && (state.schema?.event_catalog?.faults?.length || 0) > 0;
-    const hideNativeEventAuthoring = nativeSingleComponent || (nativeSingleSubsystem && !nativeAdcsFaultsEnabled);
+    const nativeEpsCommEventsEnabled = nativeSingleSubsystem
+      && ['subsystem.eps.unified_native.v1', 'subsystem.comm_data.unified_native.v1'].includes(state.selectedCapabilityId)
+      && (state.schema?.event_catalog?.faults?.length || 0) > 0
+      && (state.schema?.event_catalog?.degradations?.length || 0) > 0;
+    const hideNativeEventAuthoring = nativeSingleComponent
+      || (nativeSingleSubsystem && !nativeAdcsFaultsEnabled && !nativeEpsCommEventsEnabled);
     config?.classList.toggle('hidden', !showConfig);
-    // Only ADCS has a guided event allowlist backed by paired physical A/B.
-    // EPS, Comm/Data and native components remain nominal-only until their own
-    // event evidence and browser journeys pass.
+    // ADCS, EPS and Comm/Data expose only object-scoped event allowlists backed
+    // by formal effect evidence and paired native Basilisk A/B. Components remain nominal-only.
     el('wizardEventHost')?.classList.toggle('hidden', hideNativeEventAuthoring);
     el('wizardFaultPanel')?.classList.toggle('hidden', hideNativeEventAuthoring);
     el('wizardNativeAdcsFaultNote')?.classList.toggle('hidden', !nativeAdcsFaultsEnabled);
