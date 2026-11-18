@@ -50,3 +50,12 @@
 - 官方 Basilisk 工作流执行 `tests/test_native_battery_component.py` 并归档 JUnit 证据。
 
 最终以 PR 同一 head 的官方 Basilisk 2.11.0 + Chromium 工作流结果为准；CI 通过前不宣称 N4-C2 已完成。
+
+
+## 首轮 Chromium 回归复盘（2026-11-18）
+
+首轮 N4-C2 专项中，五设备真实 Run / sealed provenance / recorder plots / Run Center replay 旅程已通过；失败集中在两个既有反作用轮浏览器测试：
+- 单机目录测试仍断言设备数为 4，扩展到蓄电池与太阳电池阵后应更新为 6，并显式检查新增两个对象。
+- “应用原生单轮配置”按钮触发异步模板投影，测试点击后立即读取 select，遇到 CI 慢速环境时可能在投影完成前读取到默认 `project_reference`。增加明确的浏览器等待条件，直到后端参数表单实际显示 `basilisk_native`，不放宽物理/来源断言。
+
+首轮 CI 同时确认：反作用轮物理 18 passed、三传感器 26 passed、Battery/Solar 官方物理与 Run Bundle 测试已执行、模板/API合同 24 passed；五设备向导旅程通过。修正的是过期测试断言和异步测试同步，不是降低产品验收标准。
