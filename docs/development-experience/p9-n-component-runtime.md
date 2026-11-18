@@ -98,3 +98,11 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - StarTracker 的 `valid` 字段在 native backend 中只表示“官方 recorder 产生了有限、归一化的姿态测量样本”；不能解释为星点可见、星表匹配或光学有效。
 - CoarseSunSensor 官方输出是单个光强度量；项目当前 capability 还声明了三轴太阳方向估计。已决定暂不把输入太阳方向复制成输出估计，先保持 probe-only，待拆分测量量与上层解算量后再开放。
 - 物理接口不能完全映射到既有 capability 时，正确动作是缩小可用范围或调整合同，不是填入“看起来合理”的假输出。
+
+
+### N2 Run Bundle 端到端验收扩展
+
+- 传感器 adapter 单测只能证明路由正确，不能替代 Run Bundle 验收。
+- 新增 IMU、磁强计的真实原生 TaskSpec Run Bundle 测试：prepare → official Basilisk execute → validation PASS → sealed manifest → integrity verification。
+- 这条测试复用现有 `prepare_run` / `execute_prepared_run`，不建立第二套执行器或封存格式。
+- 下一步将同样的 Run Bundle 证据扩展到星敏；CSS 在输出契约调整前保持 probe-only。
