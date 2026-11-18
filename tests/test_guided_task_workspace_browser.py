@@ -933,6 +933,7 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
                 assert durable["sealed"] is True
                 assert durable["integrity"]["ok"] is True
                 assert durable["validation_outcome"]["result"] == "PASS"
+                assert durable["summary"]["physics_backend"] == "basilisk_native"
                 adapter_metadata = durable["summary"].get("adapter_metadata") or {}
                 assert adapter_metadata["physics_backend"] == "basilisk_native"
                 assert adapter_metadata["native_provenance"] == provenance
