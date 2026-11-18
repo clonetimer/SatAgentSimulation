@@ -167,6 +167,11 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
 
 
 def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_path):
+    # The general workbench browser suite intentionally has no Basilisk;
+    # the dedicated native-rw workflow installs and version-checks 2.11.0.
+    pytest.importorskip("Basilisk", reason="requires official Basilisk; covered by native-rw-component-probe")
+    from importlib.metadata import version
+    assert version("bsk") == "2.11.0"
     playwright = pytest.importorskip("playwright.sync_api")
     executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
     if not executable:
