@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O1 merge commit `5f61e73aa4cdb952ee927090f6c995255088984b`  
-状态：O2-A 代码与专项测试已提交至候选分支，等待官方 Basilisk 2.11.0 同 head CI；O2-B/C/D/E 尚未完成。EPS/Comm-Data 事件入口继续保持关闭。
+状态：O2-A/B/C 已通过官方 Basilisk 2.11.0 同 head CI（4/4 配对 A/B、17/17 formal runtime、注册与事件目录测试通过）；O2-D Chromium 故障/退化旅程正在实施，O2-E 最终交付收尾待完成。普通向导入口在 O2-D 浏览器旅程通过前仍保持关闭。
 
 ## 主线目标
 
@@ -116,3 +116,13 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 - PDU trace 现逐样本记录 payload_channel_enabled 与 shed_reason，并通过 EPS adapter 输出 eps.pdu_payload_channel_enabled / eps.pdu_shed_reason。
 - 故障 active 时要求通道关闭、payload 供电为零且 shed_reason 含 payload_channel_trip；故障结束后要求通道恢复开启且 trip 原因消失。若 SOC 仍低于阈值，PDU 可以继续按 payload_low_soc 保护性切除负载，不强制负载立即恢复。
 - 当前最终同 head 官方 Basilisk A/B 与 formal evidence 仍在重跑；通过前不进入 O2-D 开放向导。
+
+
+## O2-A/B/C 正式准入结果（2026-11-19）
+
+- 官方 workflow `Independent native component and subsystem physical and Run Bundle acceptance`：run `44411927773`，结论 success，测试代码 head `2e7ceb66203dbcfab49509bb043109cc9f19f947`。
+- EPS fault/degradation 与 Comm/Data transmitter-rate fault/degradation 的 nominal/injected sealed Run Bundle 配对测试：4/4 PASS。
+- Formal Effect Evidence runtime：17 passed、1 deselected；effect profile registration：1 passed；EPS/Comm-Data guided catalog：2 passed。
+- 该 workflow 的 Chromium 部分因本次代码改动尚未触及 web surface 而 skipped；这不代表 O2-D 已通过。
+- 正式回归修复：从 formal test 的 outputs.qoi 请求中排除 label.* 派生标签（仍保留在运行 trace/evidence）；官方 native workflow 补装 pyproject 已锁定的 numba==0.63.1，以满足 whole-spacecraft thermal quadrature 真实依赖。
+- 2e7 之后有仅文档变更的提交；O2-D 将修改 web/app.js 与 browser tests，产生新的代码 head，并在该 head 重跑完整 CI。
