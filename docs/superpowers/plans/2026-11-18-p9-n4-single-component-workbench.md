@@ -96,9 +96,9 @@
 | 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C 已补 native 模板与三轴测量合同；待本轮 Chromium 真实 Run CI 验收 |
 | 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C2 已补 native 模板、SOC/储能/功率曲线与能量指标；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
 | 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C2 已补 native 模板、阵列功率/入射余弦/阴影曲线；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
-| 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C 候选；需展示点火配置与 recorder 积分输出的区别 |
-| 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C 候选；原生模式不得显示参考压力字段 |
-| 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C 候选；展示温度单位与固定边界假设 |
+| 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C3 已补 native 模板、点火配置/推力 recorder/冲量积分合同；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
+| 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C3 已补 native 模板与质量/质量变化率/容量输出白名单；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
+| 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C3 已补 native 模板与 K/°C 温度曲线、固定辐射板边界说明；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
 | 太阳敏感器 CSS | 仅官方标量光强 probe，未接入现有三轴方向 capability contract | 暂不开放 native 单机入口 |
 | 加热器、散热器及其他项目模型 | 当前为项目 reference/source-native | 可在后续独立分组标明来源，不得混入 Basilisk-native 白名单 |
 
@@ -126,3 +126,14 @@ EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口�
 - 向导 native 白名单扩展为反作用轮、IMU、星敏、磁强计、蓄电池、太阳电池阵六项；仍禁用不受原生 adapter 支持的故障/退化编辑。
 - 新增模板/API合同、官方 Basilisk native EPS Run Bundle 回归和五设备 Chromium 真实 Run/历史回放旅程；待 PR 同 head CI 验收后才准入正式主干。
 - 开发经验：`docs/development-experience/p9-n4-c2-native-eps-workbench.md`。
+
+
+## N4-C3：推进与热控单机入口（2026-11-18）
+
+- 新增推力器 native Scenario Template，使用官方 ThrusterDynamicEffector + FuelTank + Spacecraft 自由载体夹具；0.005 s 原生积分步、0.1 s 输出采样、单个连续 0.5 s 点火脉冲。
+- 扩充 FuelTank 模板输出白名单，仅展示原生质量、质量变化率、容量及由记录质量差计算的推进剂消耗；不请求 native 不支持的压力字段。
+- 扩充 SensorThermal 模板，输出温度 K/°C 和输入功率，明确固定辐射板/完全日食 fixture，不宣称轨道传播或地球红外/反照环境闭环。
+- 工作台 native 白名单从六项扩展为九项；三个新增设备仍只开放 nominal finite/offline。
+- 推力器 native 结果 summary 补齐顶层 backend 来源字段，与 adapter metadata 一致。
+- 新增三类模板/API合同、真实 Chromium Run/历史回放旅程和官方 Basilisk 原生物理 JUnit 归档。待同 head CI 完成后正式准入。
+- 开发经验：`docs/development-experience/p9-n4-c3-native-propulsion-thermal-workbench.md`。
