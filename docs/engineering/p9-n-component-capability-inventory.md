@@ -14,7 +14,8 @@
 | EPS（既有分系统复用） | `subsystem.eps.unified_native.v1` / `EpsUnifiedNativeAdapter` | 同一 SimBase 的官方 SimpleSolarPanel、SimpleBattery、SimplePowerSink + 项目 PDU | 已有有限时长 subsystem TaskSpec 入口，PR #171 已合入 | 充电/放电、多负载、能量守恒 sealed 验收与官方 CI 已通过；固定显式 Sun/Eclipse 输入，不宣称轨道太阳历元、动态日蚀或工况切换已验收 |
 | 推力器 | `component.thruster.v1` | 默认项目 reference；opt-in 官方 ThrusterDynamicEffector + Spacecraft + FuelTank 夹具 | 有限时长 component TaskSpec；native sealed 验收通过 | nominal、一个连续点火区间或零点火；保持每周期命令语义，密集推力积分与原生质量差；固定夹具不代表装机，多段脉冲/事件被拒绝 |
 | 贮箱 | `component.fuel_tank.v1` | 默认项目质量/工程压力模型；opt-in 官方 FuelTank + Spacecraft 恒定质量排出夹具 | 两条有限时长 TaskSpec 路径；native sealed 验收通过 | 原生质量、带符号质量变化率、报告容量；无原生压力。按后端投影参数、输出和封存合同，拒绝耗尽、不可分辨质量变化及事件 |
-| 加热器 / 热节点 / 散热器 | 对应 component capabilities | 项目工程热模型；官方 SensorThermal 仅完成可行性探针 | 是，项目模型有限时长 TaskSpec | 六个官方温度 recorder 探针已验证温标/功率/光照/热容响应，尚未交付 native 热节点 TaskSpec；见 p9-n-thermal-native-feasibility.md |
+| 热节点 | `component.thermal_node.v1` | 默认项目一阶 reference；opt-in 官方 SensorThermal 单辐射板 | 两条有限时长 TaskSpec；canonical/legacy native sealed 验收已通过 | 固定显式 Sun/SCState/Eclipse/DeviceStatus；密集原生摄氏温度与开尔文转换、输入电功率单独标注；有物理范围与保守欧拉步长界限，无 ambient/tau/gain、测温传感器、热网络或事件 |
+| 加热器 / 散热器 | 对应 component capabilities | 项目工程热模型 | 是，项目模型有限时长 TaskSpec | 热节点 SensorThermal 接入不代表这两类设备已实现官方原生后端；不扩大组件或耦合物理声明 |
 | 其他通信、载荷、PDU 等 | 多个 component capabilities | 依 capability 声明为 source-native / project reference / proxy | 逐项可执行性不同 | 必须按真实 capability contract 核查，不作统一 native 宣称 |
 
 ## 关键运行架构事实

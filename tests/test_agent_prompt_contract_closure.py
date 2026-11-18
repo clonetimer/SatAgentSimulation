@@ -5,7 +5,7 @@ import re
 import yaml
 import pytest
 
-from sat_sim.capability_agent import _example_for_prompt, build_capability_json_prompt
+from sat_sim.capability_agent import _example_for_prompt, build_capability_agent_prompt, build_capability_json_prompt
 from sat_sim.capability_registry import active_capability_ids, get_capability
 from sat_sim.task_validator import validate_task_spec
 
@@ -66,6 +66,65 @@ def test_all_active_prompt_examples_pass_the_actual_validator():
         displayed = capability_form_schema(capability_id)['default_form']['outputs']
         assert spec['outputs']['qoi']==displayed['qoi']
         assert spec['outputs']['plots']==displayed['plots']
+
+
+@pytest.mark.parametrize("compact", [True, False], ids=["compact", "full"])
+@pytest.mark.parametrize("backend", ["project_reference", "basilisk_native"])
+def test_thermal_prompt_uses_the_requested_profile(compact, backend):
+    capability = "component.thermal_node.v1"
+    request = "Create a nominal thermal node simulation"
+    if backend == "basilisk_native":
+        request += " with physics_backend=basilisk_native, output thermal.node.input_power_w"
+    prompt = build_capability_agent_prompt(
+        request, allowed_capabilities=("component.battery.v1", capability), compact=compact,
+    )
+    context = json.loads(re.search(r"## Capability context\s*```json\s*(.*?)\s*```", prompt, re.S).group(1))
+    contract = (context["selected_capability"] if compact else
+                next(item for item in context["capability_contracts"] if item["capability_id"] == capability))
+    assert contract["parameters"]["physics_backend"]["default"] == backend
+    other_backend = "project_reference" if backend == "basilisk_native" else "basilisk_native"
+    profiles = {backend: contract, other_backend: contract["backend_profiles"][other_backend]}
+    for name, profile in profiles.items():
+        trace = {field if isinstance(field, str) else field["name"] for field in profile["outputs"]["trace"]}
+        assert ("mass_kg" in profile["parameters"]) == (name == "basilisk_native")
+        assert ("ambient_k" in profile["parameters"]) == (name == "project_reference")
+        assert ("thermal.node.input_power_w" in trace) == (name == "basilisk_native")
+        assert ("thermal.node.effective_tau_s" in trace) == (name == "project_reference")
+    assert context["requested_output_fields"] == (["thermal.node.input_power_w"] if backend == "basilisk_native" else [])
+    example = yaml.safe_load(re.search(r"## Capability-specific example\s*```yaml\s*(.*?)\s*```", prompt, re.S).group(1))
+    if backend == "basilisk_native":
+        assert example["parameters"]["physics_backend"] == backend
+        pytest.importorskip("Basilisk", reason="native thermal validation requires Basilisk")
+    result = validate_task_spec(example)
+    assert result.ok, result.to_dict()
+
+
+def test_thermal_template_agent_accepts_an_explicit_native_backend(tmp_path):
+    pytest.importorskip("Basilisk", reason="native thermal generation requires Basilisk")
+    from sat_sim.capability_agent import CapabilityAgentRequest, run_capability_script_generation
+
+    result = run_capability_script_generation(CapabilityAgentRequest(
+        request="Create a nominal thermal node simulation with physics_backend=basilisk_native, power_w=12, "
+                "and output thermal.node.input_power_w",
+        allowed_capabilities=("component.thermal_node.v1",),
+        output_dir=tmp_path,
+    ))
+    assert result.ok, result.validation.to_dict()
+    assert result.script is not None
+    assert result.task_spec["parameters"]["physics_backend"] == "basilisk_native"
+    assert result.task_spec["parameters"]["power_w"] == 12
+    assert "thermal.node.input_power_w" in result.task_spec["outputs"]["plots"]
+
+
+@pytest.mark.parametrize("scope,capability", [
+    ("thermal subsystem", "subsystem.thermal.basic_lumped.v1"),
+    ("whole spacecraft", "whole_spacecraft.unified_native.v1"),
+])
+def test_thermal_node_mention_keeps_explicit_larger_template_scope(scope, capability):
+    from sat_sim.capability_agent import CapabilityTemplateBackend
+
+    selection = CapabilityTemplateBackend().select_template(f"Simulate the {scope} and report the thermal node temperature", {})
+    assert selection.capability_id == capability
 
 
 def test_compact_prompt_declares_outputs_backend_and_native_effects():

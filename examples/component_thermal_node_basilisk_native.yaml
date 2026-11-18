@@ -1,0 +1,39 @@
+schema_version: 1.0.0
+task:
+  id: component_thermal_node_basilisk_native
+  name: Official SensorThermal temperature recording
+  description: A fixed radiating plate with constant electrical heat in full eclipse; explicit fixture, not a propagated orbit.
+simulation:
+  level: component
+  duration_s: 10.0
+  step_s: 0.1
+  sample_s: 0.1
+  backend: basilisk
+parameters:
+  profile: demo
+  values:
+    physics_backend: basilisk_native
+    initial_temp_k: 300.0
+    power_w: 10.0
+    surface_area_m2: 0.01
+    mass_kg: 1.0
+    specific_heat_j_per_kg_k: 900.0
+    absorptivity: 0.25
+    emissivity: 0.8
+    normal_b: [1.0, 0.0, 0.0]
+    sun_direction_n: [1.0, 0.0, 0.0]
+    illumination_factor: 0.0
+model:
+  capability_id: component.thermal_node.v1
+  target: {level: component, name: thermal_node, mode: nominal}
+outputs:
+  output_root: runs/component_thermal_node_basilisk_native
+  qoi:
+    - thermal.node.initial_temp_k
+    - thermal.node.final_temp_k
+    - thermal.node.min_temp_k
+    - thermal.node.max_temp_k
+    - thermal.node.delta_temp_k
+  plots:
+    - thermal.node.temp_k
+    - thermal.node.temp_c

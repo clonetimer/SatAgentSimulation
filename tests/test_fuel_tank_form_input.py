@@ -164,6 +164,18 @@ def test_raw_native_form_rejects_explicit_invalid_time_before_defaulting(field, 
         normalize_form_task_spec(form)
 
 
+@pytest.mark.parametrize("field,number,boolean", [
+    ("initial_mass_kg", 1.0, True), ("mass_flow_kg_s", 0.0, False),
+])
+def test_raw_native_form_rejects_booleans_in_duplicate_fuel_parameters(field, number, boolean):
+    form = _native_form()
+    values = form["parameters"]["values"]
+    values[field] = number
+    form["parameter_values"] = {**values, field: boolean}
+    with pytest.raises(ValueError, match=field):
+        normalize_form_task_spec(form)
+
+
 @pytest.mark.parametrize(("section", "field", "value"), [
     ((), "capability_id", "component.reaction_wheel.v1"),
     (("model",), "capability_id", "component.reaction_wheel.v1"),

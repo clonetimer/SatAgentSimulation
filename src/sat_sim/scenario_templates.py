@@ -128,6 +128,17 @@ _TEMPLATES = [
         "component.thermal_node.v1", "单热节点在内部功率和环境温度作用下的温度响应。",
     ),
     _template(
+        "component_thermal_node_basilisk_native", "热节点原生温度仿真", "部件", "component",
+        "component.thermal_node.v1", "官方 SensorThermal 记录固定辐射板在恒定电功率和显式光照条件下的温度；默认完全日食，不包含环境导热或轨道传播。",
+        duration_s=10.0,
+        patch={"simulation": {"sample_s": 0.1, "step_s": 0.1},
+               "parameters": {"values": {"physics_backend": "basilisk_native", "initial_temp_k": 300.0,
+                                           "power_w": 10.0, "surface_area_m2": 0.01, "mass_kg": 1.0,
+                                           "specific_heat_j_per_kg_k": 900.0, "absorptivity": 0.25,
+                                           "emissivity": 0.8, "normal_b": [1.0, 0.0, 0.0],
+                                           "sun_direction_n": [1.0, 0.0, 0.0], "illumination_factor": 0.0}}},
+    ),
+    _template(
         "component_data_queue", "数据队列积压与下行", "部件", "component",
         "component.data_queue.v1", "数据生成速率高于下行速率时的队列积压过程。",
         patch={"parameters": {"values": {"generated_bps": 1500.0, "downlink_bps": 800.0}}},

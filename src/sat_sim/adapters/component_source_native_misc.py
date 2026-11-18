@@ -748,10 +748,28 @@ class ThermalNodeAdapter(_BaseComponentAdapter):
     fault_effects = ("thermal_runaway", "sensor_bias", "blocked_heat_path")
     degradation_effects = ("thermal_resistance_growth", "heat_capacity_drift")
 
+    def validate(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> Sequence[ValidationIssue]:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thermal_node_native import validate_native_thermal_node
+
+            return validate_native_thermal_node(spec)
+        if backend != "project_reference":
+            return (ValidationIssue("error", "$.parameters.physics_backend", "unknown thermal-node backend", "enum"),)
+        return super().validate(spec, capability)
+
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
+        params = _mapping(spec.get("parameters"))
+        backend = params.get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thermal_node_native import run_native_thermal_node
+
+            return run_native_thermal_node(spec)
+        if backend != "project_reference":
+            raise ValueError("unknown thermal-node backend")
+
         from components.thermal_node.builder import ThermalNodeState, build_nominal_thermal_node_config, step_thermal_node
 
-        params = _mapping(spec.get("parameters"))
         _, sample_s, n_steps, times = _time_grid(spec)
         base_cfg = build_nominal_thermal_node_config(ambient_k=_float(params.get("ambient_k"), 300.0), tau_s=_float(params.get("tau_s"), 10.0), heat_gain_k_per_w=_float(params.get("heat_gain_k_per_w"), 1.0), min_temp_k=_float(params.get("min_temp_k"), 0.0), max_temp_k=_float(params.get("max_temp_k"), 1000.0))
         state = ThermalNodeState(temp_k=_float(params.get("initial_temp_k"), base_cfg.ambient_k))
@@ -810,7 +828,11 @@ class ThermalNodeAdapter(_BaseComponentAdapter):
             })
             rows.append(row)
         qoi = {"thermal.node.initial_temp_k": float(rows[0]["thermal.node.temp_k"]), "thermal.node.final_temp_k": float(rows[-1]["thermal.node.temp_k"]), "thermal.node.max_temp_k": max(float(row["thermal.node.temp_k"]) for row in rows)}
-        return self._result(spec, rows, qoi)
+        result = self._result(spec, rows, qoi)
+        result.summary["physics_backend"] = backend
+        result.labels["run_labels"][0]["physics_backend"] = backend
+        result.metadata["physics_backend"] = backend
+        return result
 
 
 class PayloadAdapter(_BaseComponentAdapter):
