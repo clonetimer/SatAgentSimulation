@@ -1,7 +1,7 @@
 # P9-N5：ADCS 分系统独立闭环仿真产品化
 
 日期：2026-11-19
-状态：实施中；先完成物理测量链与坐标系审计，再准入用户向导。
+状态：N5-A/B/C 已完成并合入 main（PR #183）；N5-D 故障效果物理 A/B 验证继续推进。
 
 ## 目标
 
@@ -42,7 +42,7 @@
 
 ## 实施阶段
 
-### N5-A：传感器坐标系与融合链修正
+### N5-A：传感器坐标系与融合链修正 <已完成，PR #183>
 
 1. 修正 StarTracker case→body 姿态转换。
 2. 修正 IMU platform→body 角速度转换。
@@ -52,7 +52,7 @@
 6. 增加估计姿态、估计 body-rate、融合来源和磁强计使用标记遥测。
 7. 修正文档中 EarthHorizonSensor 的实际用途说明。
 
-### N5-B：正式 TaskSpec 与 sealed Run Bundle
+### N5-B：正式 TaskSpec 与 sealed Run Bundle <已完成，PR #183>
 
 1. 使用注册模板 `adcs_unified_native` 创建 canonical subsystem TaskSpec。
 2. 官方 Basilisk 2.11.0 下执行 30–60 s nominal 闭环；验证初始/最终 pointing error、控制力矩、轮速和估计器输出。
@@ -60,7 +60,7 @@
 4. 验证 Run 状态 SUCCEEDED、validation PASS、sealed、integrity PASS；导出完整 Run Bundle 并逐文件核验 SHA-256。
 5. 仅在 nominal 闭环和安装变换验收通过后，将 capability `operator.effects.nominal` 标记为 verified。
 
-### N5-C：ADCS 用户向导入口
+### N5-C：ADCS 用户向导入口 <已完成，PR #183>
 
 1. 在快速仿真增加“ADCS 分系统独立仿真”目标；只显示 `subsystem.adcs`。
 2. 从服务端 Scenario Template 加载 `adcs_unified_native`，不在前端复制物理默认值。
@@ -70,9 +70,9 @@
 
 ### N5-D：真实 Chromium 旅程与故障效果
 
-1. 浏览器真实选择模板、校验、运行、读取曲线、历史重开和完整 Run Bundle 下载。
-2. 对 RW jamming / motor failure、gyro bias/noise、torque authority loss 等事件逐项做物理 A/B 和 recorder 证据验收。
-3. 未通过物理效果门禁的 fault/degradation 仍保持不可选；不得仅凭 effect registry 声明支持。
+1. [x] 浏览器真实选择模板、校验、运行、读取曲线和完整 Run Bundle 下载；本轮 Chromium 旅程已验证。历史回放在同一 Run Center 记录中核验。
+2. [ ] 对 RW jamming / motor failure、gyro bias/noise、torque authority loss 等事件逐项做物理 A/B 和 recorder 证据验收。
+3. [ ] 未通过物理效果门禁的 fault/degradation 仍保持不可选；不得仅凭 effect registry 声明支持。
 
 ## 验收门槛
 
@@ -82,3 +82,17 @@
 - 磁强计必须实际参与融合，或在产品/UI/文档中明确标记为仅 telemetry；本阶段目标为实际参与融合。
 - 不能以曲线存在、模块实例存在或单测通过替代闭环物理响应。
 - 未验证的 fault/degradation 不开放；单机实时和跨分系统耦合不在本阶段范围。
+
+## N5-A/B/C 最终验收（2026-11-19）
+
+- PR #183 已 Squash merge；merge commit：`accb65503f5a535dad2b355120e6e59fe59bd83f`。
+- 最终受测 PR head：`cba89c24ed872c0f84c40430449660fe6fbdbb2e`。
+- 20 个 PR workflow runs：19 success、1 条件性 skip、0 failure/cancelled。
+- 官方 Basilisk 2.11.0：ADCS 闭环/坐标变换 2 passed；ADCS sealed Run Bundle（identity 与 non-identity mounts）2 passed。
+- Chromium：5 passed、4 deselected（由工作流筛选条件主动排除）；真实 ADCS 用户旅程覆盖模板选择、预检、异步运行、遥测、曲线、多速率流、完整 Run Bundle 下载。
+- Artifact `native-component-physical-evidence`：ID `14454689028`，13,642 bytes，SHA-256 `4ccf8d0f7c53546be477930859bc55b536225f5bc654cbb7a25b3a704ee6fc32`。
+- 本阶段只准入 nominal、finite、offline ADCS；故障/退化、实时、整星惯量与跨分系统耦合仍未开放。
+
+## 下一步：N5-D 故障效果物理 A/B
+
+按顺序核查 RW jamming/motor failure、gyro bias/noise、torque authority loss。每项必须有同一物理初始条件的 nominal/control 与 injected case、实际生效 recorder、pointing error/body-rate/RW response 对照，以及 sealed Run Bundle。只有通过物理门禁的事件才可进入 ADCS 向导；其余保持隐藏/拒绝。
