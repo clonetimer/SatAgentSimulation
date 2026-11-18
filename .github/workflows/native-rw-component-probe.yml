@@ -5,7 +5,8 @@ on:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "src/sat_sim/bsk_engine/project_native_modules.py"
-      - "src/sat_sim/adapters/subsystem_adcs_unified_native.py"      - "src/sat_sim/adapters/subsystem_eps_unified_native.py"
+      - "src/sat_sim/adapters/subsystem_adcs_unified_native.py"
+      - "src/sat_sim/adapters/subsystem_eps_unified_native.py"
       - "src/sat_sim/adapters/subsystem_comm_data_unified_native.py"
       - "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml"
       - "src/sat_sim/capabilities/subsystem.comm_data.unified_native.v1.yaml"
