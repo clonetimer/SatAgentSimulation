@@ -94,8 +94,8 @@
 | IMU | 已通过；官方 ImuSensor 独立图 | N4-C 已补 native 模板与 gyro/accel 曲线合同；待本轮 Chromium 真实 Run CI 验收 |
 | 星敏感器 | 已通过；官方 StarTracker quaternion recorder | N4-C 已补 native 模板与 MRP/valid 语义说明；待本轮 Chromium 真实 Run CI 验收 |
 | 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C 已补 native 模板与三轴测量合同；待本轮 Chromium 真实 Run CI 验收 |
-| 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C 候选；需区分输入净功率配置与原生储能测量 |
-| 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C 候选；需说明固定板/静态 Sun-Eclipse 边界 |
+| 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C2 已补 native 模板、SOC/储能/功率曲线与能量指标；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
+| 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C2 已补 native 模板、阵列功率/入射余弦/阴影曲线；待本轮 Chromium 真实 Run/历史回放 CI 验收 |
 | 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C 候选；需展示点火配置与 recorder 积分输出的区别 |
 | 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C 候选；原生模式不得显示参考压力字段 |
 | 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C 候选；展示温度单位与固定边界假设 |
@@ -115,3 +115,14 @@ EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口�
 - 已新增模板/API 合同测试、三类传感器官方物理与 sealed Run Bundle 专项执行步骤、Chromium 真实 Run 旅程。最终状态以 PR 同一 head CI 结果为准；尚未将候选标记为最终验收完成。
 - 传感器声明边界：IMU 为 prescribed truth、identity mount、零杆臂、无随机噪声特性；星敏 valid 不代表星表/光学/FOV；磁强计为均匀磁场 fixture、identity mounting、统一三轴 scale，不宣称地球磁场环境。
 - 开发经验归档：`docs/development-experience/p9-n4-c-native-sensor-workbench.md`。
+
+
+## N4-C2：EPS 原生单机产品入口（2026-11-18）
+
+- 基于 N4-C1 已合入的统一单机工作台，新增蓄电池与太阳电池阵两个 native 模板；不新建 adapter 或执行链。
+- 蓄电池使用 SimpleBattery + SimplePowerSink：恒定净功率、unity charge/discharge efficiency、nominal only；结果曲线显示 SOC、储能、净功率和施加功率。
+- 太阳电池阵使用 SimpleSolarPanel：一块完全展开固定板、静态 Sun/Eclipse fixture、nominal only；结果曲线显示 panel/array power、incidence cosine 和 shadow factor。
+- 两个 adapter 补充顶层 `summary.physics_backend=basilisk_native`，与 adapter metadata provenance 保持一致。
+- 向导 native 白名单扩展为反作用轮、IMU、星敏、磁强计、蓄电池、太阳电池阵六项；仍禁用不受原生 adapter 支持的故障/退化编辑。
+- 新增模板/API合同、官方 Basilisk native EPS Run Bundle 回归和五设备 Chromium 真实 Run/历史回放旅程；待 PR 同 head CI 验收后才准入正式主干。
+- 开发经验：`docs/development-experience/p9-n4-c2-native-eps-workbench.md`。
