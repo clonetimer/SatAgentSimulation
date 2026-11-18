@@ -30,7 +30,7 @@ from .nl_time import parse_time_bindings
 from .reason_codes import ReasonCode
 from .script_exporter import ScriptExportResult, export_runner_script
 from .task_compiler import CompiledTask, compile_task_spec
-from .task_models import CANONICAL_TASK_SPEC_VERSION, canonicalize_task_spec
+from .task_models import CANONICAL_TASK_SPEC_VERSION, canonicalize_task_spec, validate_native_fuel_timing
 from .task_spec import spec_sha256, write_json
 from .task_validator import ValidationIssue, ValidationResult, validate_task_spec
 from .execution_planner import PlanningResult, attach_plan_metadata, plan_task_spec
@@ -362,7 +362,8 @@ def _restore_projected_form(src: dict[str, Any], request: UnifiedAgentRequest) -
     submitted_ids = [src.get("capability_id"), _mapping(src.get("model")).get("capability_id")]
     if not capability or any(value and value != capability for value in submitted_ids):
         raise ValueError("FORM_PROJECTION_CAPABILITY_MISMATCH")
-    before = task_spec_to_form_data(capability, base)["form_data"]
+    projection = task_spec_to_form_data(capability, base)
+    before = projection["form_data"]
     before.pop("_canonical_projection")
     if request.task_id is not None:
         src.setdefault("task", {})["id"] = request.task_id
@@ -371,8 +372,36 @@ def _restore_projected_form(src: dict[str, Any], request: UnifiedAgentRequest) -
     # capability_id is a form alias, not a second editable canonical binding.
     before.pop("capability_id", None)
     src.pop("capability_id", None)
+    after_values = _mapping(src.get("parameters")).get("values")
+    submitted_values = _mapping(after_values)
+    submitted_config = _nested(_nested(src, "model"), "config")
+    effective_values = submitted_values or submitted_config
+    config_backed = (projection["form_schema"]["backend_profiles"]
+                     and not base["parameters"]["values"] and base["model"]["config"])
+    if capability == "component.fuel_tank.v1" and effective_values.get("physics_backend") == "basilisk_native":
+        # Compare form deltas only after checking types because booleans compare
+        # equal to 0 and 1 in Python.
+        validate_native_fuel_timing(src.get("simulation", {}))
+        bindings = [("parameters.values", submitted_values)]
+        if config_backed or not submitted_values:
+            bindings.append(("model.config", submitted_config))
+        for path, values in bindings:
+            for name in ("capacity_kg", "initial_mass_kg", "mass_flow_kg_s"):
+                if isinstance(values.get(name), bool):
+                    raise ValueError(f"{path}.{name} requires a number, received a Boolean")
     merged, edited_paths = _projection_merge(base, before, src)
     edited = set(edited_paths)
+    before_values = before["parameters"]["values"]
+    if config_backed and isinstance(after_values, Mapping) and before_values != after_values:
+        # A partial parameters.values map would shadow the entire active
+        # model.config map. Apply the edits to the authoritative binding.
+        config, config_edits = _projection_merge(
+            _mapping(merged["model"]).get("config"), before_values, after_values, "model.config",
+        )
+        merged["model"]["config"] = config
+        merged["parameters"]["values"] = base["parameters"]["values"]
+        edited = {path for path in edited if not _projection_overlap(path, "parameters.values")}
+        edited.update(config_edits)
     derived: set[str] = set()
     simulation = merged.get("simulation")
     if isinstance(simulation, dict) and isinstance(simulation.get("solver"), dict):
@@ -433,6 +462,73 @@ def _restore_projected_form(src: dict[str, Any], request: UnifiedAgentRequest) -
     return canonicalize_task_spec(out)
 
 
+def _native_fuel_form_time(src: Mapping[str, Any], simulation: Mapping[str, Any]) -> dict[str, float]:
+    flat_time = {name: src[name] for name in ("duration_s", "sample_s", "step_s") if name in src}
+    validate_native_fuel_timing(flat_time)
+    validate_native_fuel_timing(simulation)
+    for name, value in flat_time.items():
+        if simulation.get(name, value) != value:
+            raise ValueError(f"simulation.{name} conflicts with the top-level {name}")
+    timings = {**flat_time, **simulation}
+    duration_s = timings.get("duration_s", 600.0)
+    sample_s = timings.get("sample_s", min(60.0, duration_s))
+    step_s = timings.get("step_s", _nested(simulation, "solver").get("step_s", sample_s))
+    return {"duration_s": duration_s, "sample_s": sample_s, "step_s": step_s}
+
+
+def _validate_native_fuel_form_inputs(
+    src: Mapping[str, Any], model: Mapping[str, Any], parameters: Mapping[str, Any],
+    values: Mapping[str, Any], inline_values: Mapping[str, Any],
+) -> None:
+    # Reject input the generic form envelope would discard before canonical
+    # validation can check it against the official FuelTank contract.
+    for prefix, container, keys in (
+        ("", src, ("simulation", "model", "parameters", "parameter_values", "events", "outputs")),
+        ("parameters.", parameters, ("values",)),
+        ("model.", model, ("config", "target", "legacy_degradations")),
+    ):
+        for key in keys:
+            if key in container and not isinstance(container[key], Mapping):
+                raise ValueError(f"{prefix}{key} requires a mapping")
+    for path, candidate in (("parameter_values", src.get("parameter_values")), ("parameters", inline_values)):
+        if candidate and candidate != values:
+            raise ValueError(f"{path} conflicts with the selected parameter values: {', '.join(map(str, candidate))}")
+    if parameters.get("overrides", []) != [] or src.get("overrides", []) != [] or src.get("parameter_overrides", []) != []:
+        raise ValueError("native FuelTank requires explicit values and does not apply parameter overrides")
+
+    simulation = _nested(src, "simulation")
+    target = _nested(model, "target")
+    for prefix, container, expected in (
+        ("", src, {"capability_id": "component.fuel_tank.v1", "level": "component", "task_type": "component", "mode": "nominal"}),
+        ("simulation.", simulation, {"level": "component"}),
+        ("model.", model, {"capability_id": "component.fuel_tank.v1"}),
+        ("model.target.", target, {"level": "component", "name": "fuel_tank", "mode": "nominal"}),
+    ):
+        for key, value in expected.items():
+            if container.get(key, value) != value:
+                raise ValueError(f"{prefix}{key} must be {value!r} for native FuelTank")
+    if "target" in src:
+        raise ValueError("native FuelTank forms use model.target for explicit identity")
+
+    events = _nested(src, "events")
+    event_keys = {"faults", "degradations", "constraints"}
+    invalid_keys = set(events) - event_keys
+    if invalid_keys:
+        raise ValueError(f"unrecognized native FuelTank events: {sorted(invalid_keys)}")
+    for kind in sorted(event_keys):
+        if events.get(kind, []) != [] or src.get(kind, []) != []:
+            raise ValueError(f"native FuelTank requires an empty {kind} list")
+    if src.get("modifiers", {}) != {} or model.get("legacy_degradations", {}) != {}:
+        raise ValueError("native FuelTank does not support modifiers or legacy_degradations")
+
+    outputs = _nested(src, "outputs")
+    if "qoi" in src and "qoi" in outputs and src["qoi"] != outputs["qoi"]:
+        raise ValueError("outputs.qoi conflicts with the top-level qoi")
+    for alias in ("record_fields", "plots", "files", "telemetry_streams"):
+        if alias in src:
+            raise ValueError(f"native FuelTank forms require output settings under outputs, received {alias}")
+
+
 def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) -> dict[str, Any]:
     src = copy.deepcopy(dict(form))
     if "_canonical_projection" in src:
@@ -444,14 +540,32 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
         capability_id = str(model_src.get("capability_id") or src.get("capability_id") or "").strip()
         if not capability_id:
             raise ValueError("form input requires model.capability_id or capability_id")
-        contract = get_capability(capability_id)
+        parameter_src = _nested(src, "parameters")
+        config = _nested(model_src, "config")
+        parameter_metadata = {"profile", "overrides", "registry_id", "registry_hash"}
+        is_fuel_tank = "component.fuel_tank.v1" in (capability_id, src.get("capability_id"))
+        if is_fuel_tank:
+            parameter_metadata.add("values")
+        inline_values = {key: value for key, value in parameter_src.items() if key not in parameter_metadata}
+        values = _nested(parameter_src, "values") or _nested(src, "parameter_values") or inline_values
+        if is_fuel_tank and not values:
+            values = copy.deepcopy(config)
+        native_fuel_tank = is_fuel_tank and values.get("physics_backend") == "basilisk_native"
+        if native_fuel_tank:
+            _validate_native_fuel_form_inputs(src, model_src, parameter_src, values, inline_values)
+        from .capability_backends import select_capability_backend
+        contract = select_capability_backend(get_capability(capability_id), values.get("physics_backend"))
         sim_src = _nested(src, "simulation")
-        duration_s = float(sim_src.get("duration_s", src.get("duration_s", 600.0)) or 600.0)
-        sample_s = float(sim_src.get("sample_s", src.get("sample_s", min(60.0, duration_s))) or min(60.0, duration_s))
+        if native_fuel_tank:
+            simulation_time = _native_fuel_form_time(src, sim_src)
+            duration_s = simulation_time["duration_s"]
+        else:
+            duration_s = float(sim_src.get("duration_s", src.get("duration_s", 600.0)) or 600.0)
+            sample_s = float(sim_src.get("sample_s", src.get("sample_s", min(60.0, duration_s))) or min(60.0, duration_s))
+            simulation_time = {"duration_s": duration_s, "sample_s": sample_s, "step_s": sim_src.get("step_s") or sample_s}
         level = str(sim_src.get("level") or src.get("level") or contract.target_level)
         task_src = _nested(src, "task")
         task_id = str(request.task_id or task_src.get("id") or src.get("task_id") or _slug(str(task_src.get("name") or capability_id)))
-        parameter_src = _nested(src, "parameters")
         assurance_src = _nested(src, "assurance")
         profile = str(parameter_src.get("profile") or assurance_src.get("parameter_profile") or src.get("parameter_profile") or "demo")
 
@@ -470,11 +584,25 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
         )
         output_src = _nested(src, "outputs")
         output_root = str(request.output_root or output_src.get("output_root") or Path("datasets") / task_id)
-        values = _mapping(parameter_src.get("values"))
-        if not values:
-            values = _mapping(src.get("parameter_values")) or {
-                key: value for key, value in parameter_src.items()
-                if key not in {"profile", "overrides", "registry_id", "registry_hash"}
+        if native_fuel_tank:
+            outputs = {**output_src, "output_root": output_root, "qoi": output_src.get("qoi", src.get("qoi", []))}
+        else:
+            outputs = {
+                "output_root": output_root,
+                "trace_format": output_src.get("trace_format", "csv"),
+                "qoi": list(output_src.get("qoi") or src.get("qoi") or []),
+                "files": list(output_src.get("files") or []),
+                "plots": list(output_src.get("plots") or []),
+                "telemetry_streams": [
+                    copy.deepcopy(dict(item))
+                    for item in (output_src.get("telemetry_streams") or [])
+                    if isinstance(item, Mapping)
+                ],
+                "fmea": _mapping(output_src.get("fmea")),
+                "include_summary": bool(output_src.get("include_summary", True)),
+                "include_trace": bool(output_src.get("include_trace", True)),
+                "include_labels": bool(output_src.get("include_labels", True)),
+                "include_manifest": bool(output_src.get("include_manifest", True)),
             }
         defaulted_parameters: list[str] = []
         for name, payload in _mapping(contract.data.get("parameters")).items():
@@ -520,9 +648,7 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
             "simulation": {
                 "level": level,
                 **({"subsystem": sim_src.get("subsystem") or contract.target_name} if level == "subsystem" else {}),
-                "duration_s": duration_s,
-                "step_s": sim_src.get("step_s") or sample_s,
-                "sample_s": sample_s,
+                **simulation_time,
                 "random_seed": sim_src.get("random_seed", src.get("random_seed", 0)),
                 "backend": sim_src.get("backend", "selective_unified_basilisk_assembly"),
                 **{key: copy.deepcopy(sim_src[key]) for key in ("solver", "time_base", "time_system") if key in sim_src},
@@ -536,23 +662,7 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
                 **({"registry_id": parameter_src.get("registry_id")} if parameter_src.get("registry_id") else {}),
             },
             "events": {"faults": faults, "degradations": degradations, "constraints": constraints},
-            "outputs": {
-                "output_root": output_root,
-                "trace_format": output_src.get("trace_format", "csv"),
-                "qoi": list(output_src.get("qoi") or src.get("qoi") or []),
-                "files": list(output_src.get("files") or []),
-                "plots": list(output_src.get("plots") or []),
-                "telemetry_streams": [
-                    copy.deepcopy(dict(item))
-                    for item in (output_src.get("telemetry_streams") or [])
-                    if isinstance(item, Mapping)
-                ],
-                "fmea": _mapping(output_src.get("fmea")),
-                "include_summary": bool(output_src.get("include_summary", True)),
-                "include_trace": bool(output_src.get("include_trace", True)),
-                "include_labels": bool(output_src.get("include_labels", True)),
-                "include_manifest": bool(output_src.get("include_manifest", True)),
-            },
+            "outputs": outputs,
             "assurance": {
                 "fidelity_level": assurance_src.get("fidelity_level", "declared_by_capability"),
                 "claim_level": assurance_src.get("claim_level", src.get("claim_level", "analysis_only")),
@@ -569,7 +679,7 @@ def _form_to_canonical(form: Mapping[str, Any], request: UnifiedAgentRequest) ->
                 },
                 "spacecraft": spacecraft_values,
                 "orbit_environment": orbit_environment_values,
-                "config": _mapping(model_src.get("config")) or values,
+                "config": config or values,
                 "legacy_degradations": _mapping(model_src.get("legacy_degradations")),
                 "campaign": _mapping(model_src.get("campaign")),
                 "simulation_extra": _mapping(model_src.get("simulation_extra")),

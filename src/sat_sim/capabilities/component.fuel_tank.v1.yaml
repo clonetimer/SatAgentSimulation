@@ -5,7 +5,7 @@ level: component
 domain: propulsion
 target: fuel_tank
 trust_level: conformance_tested
-summary: Deterministic source-native propellant mass and engineering pressure model.
+summary: Propellant mass with a reference engineering pressure model or opt-in official Basilisk mass dynamics.
 adapter:
   class_path: sat_sim.adapters.component_source_native_misc.FuelTankAdapter
   script_export: true
@@ -24,6 +24,13 @@ modes:
     supported: true
     degradation_types: [pressure_decay, outlet_aging]
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    required: false
+    default: project_reference
+    description: Native mode records nominal constant mass withdrawal from official FuelTank on a 10 kg free carrier. Pressure, thermodynamics, events, required mission couplings and depletion are unsupported. Scheduling values must be below 2**52 nanoseconds, with complete intervals and at most 100000 steps. Native mass-flow arithmetic must remain finite and normal. Default project_reference retains the engineering pressure model.
   capacity_kg: {type: number, unit: kg, required: false, default: 3.0, min: 0.000001}
   initial_mass_kg: {type: number, unit: kg, required: false, default: 2.0, min: 0.0}
   full_pressure_pa: {type: number, unit: Pa, required: false, default: 2500000.0, min: 0.0}
@@ -91,3 +98,53 @@ integration_contract:
   implementation_class: project_deterministic_model
   couplings: {supported: [], unsupported: ["*"]}
   limitations: [Independent component model; system coupling requires the propulsion capability.]
+backend_profiles:
+  basilisk_native:
+    parameter_names: [physics_backend, capacity_kg, initial_mass_kg, mass_flow_kg_s]
+    summary: Official Basilisk FuelTank on an explicit free carrier with prescribed constant mass withdrawal; no pressure model.
+    modes:
+      nominal: {supported: true}
+    simulation_parameters:
+      duration_s: {unit: s, required: true, min: 0.000000001}
+      sample_s: {unit: s, required: true, min: 0.000000001}
+    outputs:
+      trace:
+      - {name: propulsion.fuel_tank.propellant_mass_kg, unit: kg, dtype: number}
+      - {name: propulsion.fuel_tank.mass_rate_kg_s, unit: kg/s, dtype: number}
+      - {name: propulsion.fuel_tank.max_mass_kg, unit: kg, dtype: number}
+      - {name: propulsion.fuel_tank.commanded_mass_flow_kg_s, unit: kg/s, dtype: number}
+      summary:
+      - {name: propulsion.fuel_tank.final_mass_kg, unit: kg}
+      - {name: propulsion.fuel_tank.consumed_mass_kg, unit: kg}
+      - {name: propulsion.fuel_tank.initial_mass_kg, unit: kg}
+    operator:
+      owner: fuel_tank
+      effects:
+      - effect_id: nominal
+        kind: nominal
+        owner: fuel_tank
+        implementation: basilisk_native
+        evidence_fields: [propulsion.fuel_tank.propellant_mass_kg, propulsion.fuel_tank.mass_rate_kg_s]
+        verification: declared
+    implementation:
+      model_modules: [components.fuel_tank.builder, components.fuel_tank.schemas, sat_sim.adapters.component_fuel_tank_native]
+      uses_legacy_runner: false
+      basilisk_required: true
+    source_binding:
+      mode: basilisk_native
+      status: direct_public_api
+      primary_module: components.fuel_tank.builder
+      source_modules: [components.fuel_tank.builder, components.fuel_tank.schemas, sat_sim.adapters.component_fuel_tank_native]
+      public_api: [build_fuel_tank_bundle_from_config, attach_fuel_tank_to_spacecraft]
+      uses_legacy_runner: false
+      basilisk_required: true
+    known_physics_limits:
+    - Constant mass withdrawal uses the official fuelLeakRateInMsg; it applies no thrust and supplies no pressure or thermal state.
+    - Constant-volume 0.1 m radius zero-offset tank on a free 10 kg carrier is a fixture, not installation geometry or mission coupling.
+    integration_contract:
+      schema_version: sat-sim.capability-integration.v1
+      source_modules_ref: implementation.model_modules
+      implementation_class: official_basilisk_native
+      couplings: {supported: [], unsupported: ["*"]}
+      limitations:
+      - Nominal constant prescribed mass withdrawal only; no pressure, depletion, fault, thermodynamics or mission coupling.

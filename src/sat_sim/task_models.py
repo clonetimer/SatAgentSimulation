@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import asdict, dataclass, field
+from sys import float_info
 from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -17,6 +18,52 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 CANONICAL_TASK_SPEC_VERSION = "1.0.0"
 LEGACY_TASK_SPEC_VERSION = "0.1.0"
 SUPPORTED_TASK_SPEC_VERSIONS = (CANONICAL_TASK_SPEC_VERSION, LEGACY_TASK_SPEC_VERSION)
+
+
+class NativeFuelInputError(ValueError):
+    def __init__(self, path: str, message: str):
+        super().__init__(f"{path}: {message}")
+        self.path = path
+        self.message = message
+
+
+def validate_native_fuel_timing(simulation: Any, *, require_duration_and_sample: bool = False) -> None:
+    """Validate explicit native times before defaults or numeric coercion."""
+    if not isinstance(simulation, Mapping):
+        raise NativeFuelInputError("$.simulation", "requires a simulation mapping")
+    solver = simulation.get("solver")
+    if solver is not None and not isinstance(solver, Mapping):
+        raise NativeFuelInputError("$.simulation.solver", "requires a solver mapping")
+    for container, path, fields in (
+        (simulation, "$.simulation", ("duration_s", "sample_s", "step_s")),
+        (solver or {}, "$.simulation.solver", ("step_s",)),
+    ):
+        for field in fields:
+            if field not in container and not (require_duration_and_sample and field in {"duration_s", "sample_s"}):
+                continue
+            value = container.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 < value <= float_info.max:
+                raise NativeFuelInputError(f"{path}.{field}", "requires a finite positive number")
+
+
+def validate_native_fuel_events(spec: Mapping[str, Any]) -> None:
+    """Reject event content before an alternate legacy envelope is discarded."""
+    message = "native fuel tank supports no events or constraints"
+    for kind in ("faults", "degradations", "constraints"):
+        if spec.get(kind, []) not in ([], {}):
+            raise NativeFuelInputError(f"$.{kind}", message)
+    for name in ("events", "modifiers"):
+        envelope = spec.get(name, {})
+        if not isinstance(envelope, Mapping):
+            raise NativeFuelInputError(f"$.{name}", "requires an event mapping")
+        for kind, entries in envelope.items():
+            if entries not in ([], {}):
+                raise NativeFuelInputError(f"$.{name}.{kind}", message)
+
+
+def _uses_native_fuel(capability_id: Any, values: Any) -> bool:
+    return (capability_id == "component.fuel_tank.v1" and isinstance(values, Mapping)
+            and values.get("physics_backend") == "basilisk_native")
 
 TaskLevel = Literal["component", "subsystem", "orbit_environment", "whole_spacecraft", "campaign", "reference"]
 ScenarioMode = Literal["nominal", "fault", "degradation", "mixed", "monte_carlo", "constraint"]
@@ -330,6 +377,28 @@ class CanonicalTaskSpec(StrictModel):
     provenance: ProvenanceSpec = Field(default_factory=ProvenanceSpec)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    @model_validator(mode="before")
+    @classmethod
+    def validate_raw_native_fuel_timing(cls, value: Any) -> Any:
+        if not isinstance(value, Mapping):
+            return value
+        model = value.get("model")
+        if isinstance(model, ModelBinding):
+            model = model.model_dump(mode="python")
+        if not isinstance(model, Mapping):
+            return value
+        parameters = value.get("parameters")
+        if isinstance(parameters, ParameterSpec):
+            parameters = parameters.model_dump(mode="python")
+        values = parameters.get("values") if isinstance(parameters, Mapping) else None
+        if _uses_native_fuel(model.get("capability_id"), values or model.get("config")):
+            simulation = value.get("simulation", {})
+            if not isinstance(simulation, SimulationSpec):
+                if isinstance(simulation, Mapping) and isinstance(solver := simulation.get("solver"), SolverSpec):
+                    simulation = {**simulation, "solver": solver.model_dump(mode="python", exclude_none=True)}
+                validate_native_fuel_timing(simulation)
+        return value
+
     @model_validator(mode="after")
     def validate_events_with_duration(self) -> "CanonicalTaskSpec":
         if self.parameters.profile != self.assurance.parameter_profile:
@@ -481,11 +550,42 @@ def _uses_native_thruster(capability_id: str | None, values: Mapping[str, Any]) 
     return capability_id == "component.thruster.v1" and values.get("physics_backend") == "basilisk_native"
 
 
+def _validate_legacy_native_fuel_request(spec: Mapping[str, Any], parameters: Mapping[str, Any]) -> None:
+    from .capability_backends import select_capability_backend, validate_backend_output_requests
+    from .capability_registry import get_capability
+
+    target = spec.get("target")
+    if (spec.get("task_type") != "component" or not isinstance(target, Mapping)
+            or target.get("level") != "component" or target.get("name") != "fuel_tank"):
+        raise ValueError("native fuel tank requires matching component task and target identity before migration")
+    if parameters.get("overrides", []) != []:
+        raise NativeFuelInputError("$.parameters.overrides", "native fuel tank does not apply legacy parameter overrides")
+    if "values" in parameters:
+        if not isinstance(parameters["values"], Mapping):
+            raise NativeFuelInputError("$.parameters.values", "requires a parameter values mapping")
+        for name in parameters:
+            if name not in {"values", "profile", "overrides"}:
+                raise NativeFuelInputError(f"$.parameters.{name}", "cannot combine a device parameter with a nested values mapping")
+    validate_native_fuel_timing(spec.get("simulation", {}))
+    validate_native_fuel_events(spec)
+    contract = select_capability_backend(get_capability("component.fuel_tank.v1"), "basilisk_native")
+    issues = validate_backend_output_requests(spec, contract)
+    if issues:
+        raise NativeFuelInputError(issues[0].path, issues[0].message)
+
+
 def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult:
     """Migrate a flat TaskSpec 0.1 mapping to CanonicalTaskSpec 1.0."""
 
     src = copy.deepcopy(dict(spec))
     source_version = str(src.get("schema_version") or LEGACY_TASK_SPEC_VERSION)
+    parameters_src = src.get("parameters") if isinstance(src.get("parameters"), Mapping) else {}
+    nested_values = parameters_src.get("values")
+    capability_id = src.get("capability_id")
+    native_fuel = _uses_native_fuel(capability_id, parameters_src) or _uses_native_fuel(capability_id, nested_values)
+    if native_fuel:
+        _validate_legacy_native_fuel_request(src, parameters_src)
+
     task_type = str(src.get("task_type") or "component")
     target = dict(src.get("target") or {})
     level = str(target.get("level") or task_type)
@@ -529,7 +629,6 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     )
 
     assurance_src = src.get("assurance") if isinstance(src.get("assurance"), Mapping) else {}
-    parameters_src = src.get("parameters") if isinstance(src.get("parameters"), Mapping) else {}
     profile = str(
         assurance_src.get("parameter_profile")
         or metadata.get("parameter_profile")
@@ -552,7 +651,6 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     # Normalize both to the canonical flat values mapping.  Treating the
     # second form as an ordinary dictionary would create values.values.* and
     # silently prevent adapters from consuming user parameters.
-    nested_values = parameters_src.get("values")
     if isinstance(nested_values, Mapping):
         legacy_parameter_values = dict(nested_values)
     else:
@@ -568,6 +666,10 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     if _uses_native_thruster(src.get("capability_id"), legacy_parameter_values):
         native_step_s = legacy_parameter_values.get("native_step_s", 0.01)
         step_s = sim.get("step_s", solver.get("step_s", native_step_s))
+    elif native_fuel:
+        # FuelTank uses the standard integration step, falling back to its
+        # sample period only when neither standard nor solver step was given.
+        step_s = sim.get("step_s", solver.get("step_s", sample_s))
     else:
         step_s = solver.get("step_s", sample_s)
     mission = dict(src.get("mission") or {})
@@ -820,7 +922,8 @@ def to_runtime_task_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     }
     if model.get("capability_id"):
         runtime["capability_id"] = model["capability_id"]
-    if _uses_native_thruster(runtime.get("capability_id"), runtime["parameters"]):
+    if (runtime.get("capability_id") in {"component.thruster.v1", "component.fuel_tank.v1"}
+            and runtime["parameters"].get("physics_backend") == "basilisk_native"):
         # Preserve both integration inputs so native preflight can compare them.
         runtime_sim["step_s"] = simulation["step_s"]
     if model.get("campaign"):
@@ -854,4 +957,7 @@ __all__ = [
     "canonicalize_task_spec",
     "to_runtime_task_spec",
     "canonical_task_spec_schema",
+    "NativeFuelInputError",
+    "validate_native_fuel_timing",
+    "validate_native_fuel_events",
 ]

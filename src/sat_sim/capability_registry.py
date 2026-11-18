@@ -451,7 +451,8 @@ def validate_spec_against_capability(spec: Mapping[str, Any]) -> list[Validation
     if not isinstance(capability_id, str) or not capability_id.strip():
         return [ValidationIssue("error", "$.capability_id", "must be a non-empty string", "capability")]
     try:
-        contract = get_capability(capability_id)
+        from .capability_backends import get_task_capability
+        contract = get_task_capability(spec, capability_id)
         if contract.lifecycle_status == "blocked":
             return [ValidationIssue(
                 "error", "$.model.capability_id",

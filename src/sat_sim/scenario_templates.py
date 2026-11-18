@@ -90,6 +90,14 @@ def _template(
 _TEMPLATES = [
     # Component-level templates
     _template(
+        "component_fuel_tank_basilisk_native", "贮箱原生质量仿真", "部件", "component",
+        "component.fuel_tank.v1", "官方 FuelTank 在显式自由载体夹具中按恒定流量排出推进剂，记录原生质量和质量变化率；不提供压力或热力学状态。",
+        duration_s=1.0,
+        patch={"simulation": {"sample_s": 0.1, "step_s": 0.01},
+               "parameters": {"values": {"physics_backend": "basilisk_native", "capacity_kg": 3.0,
+                                           "initial_mass_kg": 2.0, "mass_flow_kg_s": 0.001}}},
+    ),
+    _template(
         "component_reaction_wheel_nominal", "反作用轮加速", "部件", "component",
         "component.reaction_wheel.v1", "单个反作用轮在恒定正力矩作用下加速，输出转速、力矩和角动量。",
         patch={"parameters": {"values": {"num_wheels": 1, "initial_wheel_speeds_rad_s": 100.0, "command_torque_nm": 0.01}}},
@@ -603,7 +611,8 @@ def instantiate_scenario_template(template_id: str, *, task_id: str | None = Non
     template = get_scenario_template(template_id)
     if template is None:
         raise KeyError(template_id)
-    form = copy.deepcopy(capability_form_schema(template["capability_id"])["default_form"])
+    backend = ((template.get("patch") or {}).get("parameters") or {}).get("values", {}).get("physics_backend")
+    form = copy.deepcopy(capability_form_schema(template["capability_id"], physics_backend=backend)["default_form"])
     resolved_task_id = task_id or f"template_{template_id}"
     form["task"]["id"] = resolved_task_id
     form["task"]["name"] = name or template["name"]

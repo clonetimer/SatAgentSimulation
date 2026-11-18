@@ -11,6 +11,7 @@ import copy
 import re
 from typing import Any, Mapping
 
+from .capability_backends import select_capability_backend, get_task_capability
 from .capability_registry import active_capability_ids, get_capability
 from .canonical_transport import task_spec_json
 from .task_models import CANONICAL_TASK_SPEC_VERSION, CanonicalTaskSpec, canonicalize_task_spec
@@ -549,7 +550,7 @@ EVENT_FIELD_SCHEMAS.update({
 
 
 COMMON_PARAMETER_DESCRIPTIONS = {
-    "physics_backend": "选择反作用轮动力学计算实现。项目参考模型支持当前注册的故障、约束和退化事件；Basilisk 原生物理目前仅支持1轮、3正交轮或4轮金字塔构型的标称模式，不支持故障、约束或时变力矩曲线。默认项目参考模型不等同于 Basilisk 原生物理。",
+    "physics_backend": "选择当前设备的物理计算实现；可用参数、事件和输出以所选后端合同为准。默认项目参考模型不等同于 Basilisk 原生物理。",
     "initial_attitude_error_deg": "仿真开始时航天器相对目标姿态的角度误差。数值越大，控制器需要更长时间或更大力矩完成收敛。",
     "initial_rate_deg_s": "仿真开始时机体三轴角速度，可填写单个数值或三元素数组 [x, y, z]。",
     "target_mode": "姿态控制目标模式：惯性定向、对地定向、对日定向或消旋。",
@@ -810,7 +811,8 @@ def _parameter_fields(contract: Any) -> list[dict[str, Any]]:
             f"parameters.values.{name}",
             payload,
             label=label,
-            description=COMMON_PARAMETER_DESCRIPTIONS.get(str(name)),
+            description=(COMMON_PARAMETER_DESCRIPTIONS["physics_backend"] + " " + str(payload.get("description") or "")
+                         if name == "physics_backend" else COMMON_PARAMETER_DESCRIPTIONS.get(str(name))),
             importance=_field_importance(capability_id, str(name)),
         )
         field.update(_parameter_group(capability_id, str(name)))
@@ -1335,10 +1337,11 @@ def _parameter_sections(contract: Any, fields: list[dict[str, Any]]) -> list[dic
     return sections
 
 
-def capability_form_schema(capability_id: str) -> dict[str, Any]:
+def capability_form_schema(capability_id: str, *, physics_backend: str | None = None) -> dict[str, Any]:
     """Return a registry-derived form contract for one capability."""
 
-    contract = get_capability(capability_id)
+    base_contract = get_capability(capability_id)
+    contract = select_capability_backend(base_contract, physics_backend)
     data = contract.data
     observability = contract.operator_contract.observability
     simulation_defaults = _simulation_defaults(contract)
@@ -1420,6 +1423,10 @@ def capability_form_schema(capability_id: str) -> dict[str, Any]:
         ],
         "canonical_taskspec_schema": CanonicalTaskSpec.model_json_schema(),
         "default_form": _default_form(contract),
+        "backend_profiles": ([
+            {"physics_backend": backend, "summary": select_capability_backend(base_contract, backend).data.get("summary", "")}
+            for backend in base_contract.data["parameters"]["physics_backend"]["enum"]
+        ] if base_contract.data.get("backend_profiles") else []),
         "submission_contract": {
             "input_kind": "form", "endpoint": "/tasks/parse", "registry_is_authoritative": True,
             "arbitrary_python_allowed": False,
@@ -1445,13 +1452,18 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
     declared = str(_mapping(task_spec.get("model")).get("capability_id") or "")
     if declared and declared != capability_id:
         raise ValueError(f"TaskSpec capability_id {declared!r} does not match requested form {capability_id!r}")
-    schema = capability_form_schema(capability_id)
+    effective = get_task_capability(task_spec, capability_id)
+    schema = capability_form_schema(capability_id, physics_backend=effective.data.get("selected_physics_backend"))
     form_data = copy.deepcopy(schema["default_form"])
     allowed = ("task", "simulation", "parameters", "events", "outputs", "assurance", "model")
     for key in allowed:
         value = task_spec.get(key)
         if isinstance(value, Mapping):
             _deep_merge(form_data[key], value)
+    if schema["backend_profiles"] and not task_spec["parameters"]["values"]:
+        # Execution uses model.config when parameters.values is empty. Show the
+        # bound values while retaining their original location in the context.
+        _deep_merge(form_data["parameters"]["values"], task_spec["model"]["config"])
     # Keep the editable metadata view concise. The canonical context below
     # retains the full history; validation and planning are always rerun and
     # no approval or compiled-result cache is accepted by this projection.
@@ -1483,6 +1495,7 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
         "schema_version": FORM_SCHEMA_VERSION,
         "capability_id": capability_id,
         "form_data": form_data,
+        "form_schema": schema,
         "projected_field_paths": [item["path"] for item in schema["fields"]],
         "projection_is_lossless": True,
         "projection_note": "Canonical context is retained and revalidated; only actual form value changes receive new field provenance and a new execution plan.",

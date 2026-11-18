@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping, Sequence
 
-from .capability_registry import get_capability
+from .capability_backends import get_task_capability
 from .task_models import canonicalize_task_spec
 
 PARAMETER_CONSUMPTION_SCHEMA_VERSION = "sat-sim.parameter-consumption.v1"
@@ -126,7 +126,7 @@ def audit_parameter_consumption(spec: Mapping[str, Any]) -> ParameterConsumption
     canonical = canonicalize_task_spec(spec)
     model = canonical.get("model") if isinstance(canonical.get("model"), Mapping) else {}
     capability_id = str(model.get("capability_id") or "")
-    contract = get_capability(capability_id)
+    contract = get_task_capability(canonical, capability_id)
     declared = contract.data.get("parameters") if isinstance(contract.data.get("parameters"), Mapping) else {}
     declared_keys = {str(key) for key in declared}
 
