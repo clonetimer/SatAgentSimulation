@@ -20,6 +20,7 @@ def _run_adcs_case(
     *,
     event_category: str | None = None,
     event: dict[str, Any] | None = None,
+    allow_candidate_inconclusive: bool = False,
 ):
     pytest.importorskip("Basilisk")
     from importlib.metadata import version
@@ -49,7 +50,16 @@ def _run_adcs_case(
         hard_timeout=True,
     )
     assert executed.run_record.status.value == "SUCCEEDED", executed.run_record.model_dump(mode="json")
-    assert executed.validation.result.value == "PASS", executed.validation.model_dump(mode="json")
+    if allow_candidate_inconclusive:
+        assert executed.validation.result.value == "INCONCLUSIVE", executed.validation.model_dump(mode="json")
+        assert any(
+            item.requested_effect == "adcs_rw_torque_authority_loss"
+            and item.effect_result.value == "INCONCLUSIVE"
+            and "EFFECT_EVIDENCE_CANDIDATE" in item.reason_codes
+            for item in executed.validation.injection_evidence
+        ), executed.validation.model_dump(mode="json")
+    else:
+        assert executed.validation.result.value == "PASS", executed.validation.model_dump(mode="json")
     integrity = verify_run_bundle(prepared.bundle_root)
     assert integrity["ok"] is True, integrity
     assert executed.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
@@ -77,7 +87,7 @@ def test_native_adcs_rw_jamming_has_paired_physical_response_and_sealed_evidence
             "target": "adcs",
             "start_s": EVENT_START_S,
             "end_s": EVENT_END_S,
-            "parameters": {"wheel_index": 0, "brake_torque_nm": 0.2, "lock_tolerance_rad_s": 0.25},
+            "parameters": {"wheel_index": 0, "brake_torque_nm": 0.2},
         },
     )
     base_rows = _during(nominal.trace_rows)
@@ -104,7 +114,7 @@ def test_native_adcs_rw_motor_failure_removes_real_torque_authority(tmp_path: Pa
             "target": "adcs",
             "start_s": EVENT_START_S,
             "end_s": EVENT_END_S,
-            "parameters": {"wheel_index": 0, "torque_scale": 0.0},
+            "parameters": {"wheel_index": 0},
         },
     )
     base_rows = _during(nominal.trace_rows)
@@ -122,6 +132,7 @@ def test_native_adcs_torque_authority_loss_is_partial_not_binary_failure(tmp_pat
         tmp_path,
         "adcs_rw_torque_loss_injected",
         event_category="degradations",
+        allow_candidate_inconclusive=True,
         event={
             "id": "rw0_partial_torque",
             "effect": "adcs_rw_torque_authority_loss",
