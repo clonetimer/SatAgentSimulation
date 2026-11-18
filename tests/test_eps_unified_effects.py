@@ -4,6 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import yaml
+import pytest
 
 from sat_sim.adapters.subsystem_eps_unified_native import EpsUnifiedNativeAdapter
 from sat_sim.capability_registry import get_capability
