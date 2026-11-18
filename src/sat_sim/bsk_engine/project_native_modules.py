@@ -122,16 +122,20 @@ class AdcsSensorFusion(sysModel.SysModel):
         self.earthReferenceInMsg = messaging.TAMSensorMsgReader()
         self.starValidInMsg = messaging.DeviceStatusMsgReader()
         self.sunValidInMsg = messaging.DeviceStatusMsgReader()
+        self.imuValidInMsg = messaging.DeviceStatusMsgReader()
         self.attOutMsg = messaging.NavAttMsg()
         self.sourceModeOutMsg = messaging.DeviceStatusMsg()
         self.magUsedOutMsg = messaging.DeviceStatusMsg()
+        self.bodyRateValidOutMsg = messaging.DeviceStatusMsg()
         # DCMs map body B into the respective sensor frames. The defaults are
         # identity and are overwritten from the actual official Basilisk models.
         self.starMountDcmCB = np.eye(3).tolist()
         self.imuMountDcmPB = np.eye(3).tolist()
         self.magMountDcmSB = np.eye(3).tolist()
+        self._last_valid_omega_body = np.zeros(3, dtype=float)
 
     def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self._last_valid_omega_body = np.zeros(3, dtype=float)
         self.UpdateState(current_sim_nanos)
 
     @staticmethod
@@ -186,12 +190,21 @@ class AdcsSensorFusion(sysModel.SysModel):
                 star_sigma = list(RigidBodyKinematics.EP2MRP(RigidBodyKinematics.C2EP(np.asarray(dcm_bn, dtype=float))))
 
         # IMUSensor.AngVelPlatform is expressed in platform frame P.
-        # dcm_PB maps B->P, so transpose maps the measured vector P->B.
+        # Basilisk 2.11.0 intentionally emits a zero payload on its first
+        # UpdateState call while seeding its previous-state history. The
+        # upstream injector tracks message write-time progression and marks
+        # the first real sample; hold the last valid rate until then rather
+        # than misrepresenting the startup zero as a physical measurement.
         dcm_pb = np.asarray(self.imuMountDcmPB, dtype=float).reshape(3, 3)
-        omega_platform = np.asarray([float(x) for x in imu.AngVelPlatform], dtype=float)
-        omega_body = dcm_pb.T @ omega_platform
-        if not np.all(np.isfinite(omega_body)):
-            raise ValueError("ADCS_IMU_BODY_RATE_NOT_FINITE")
+        imu_sample_valid = bool(self.imuValidInMsg().deviceStatus)
+        if imu_sample_valid:
+            omega_platform = np.asarray([float(x) for x in imu.AngVelPlatform], dtype=float)
+            omega_body = dcm_pb.T @ omega_platform
+            if not np.all(np.isfinite(omega_body)):
+                raise ValueError("ADCS_IMU_BODY_RATE_NOT_FINITE")
+            self._last_valid_omega_body = omega_body.copy()
+        else:
+            omega_body = self._last_valid_omega_body.copy()
 
         # Magnetometer.tam_S is expressed in sensor frame S; dcm_SB maps B->S.
         # The official magnetic field reference is expressed in inertial frame N.
@@ -255,6 +268,7 @@ class AdcsSensorFusion(sysModel.SysModel):
         self.attOutMsg.write(payload, current_sim_nanos, self.moduleID)
         _write_status(self.sourceModeOutMsg, source_mode, current_sim_nanos, self.moduleID)
         _write_status(self.magUsedOutMsg, 1 if magnetometer_used else 0, current_sim_nanos, self.moduleID)
+        _write_status(self.bodyRateValidOutMsg, 1 if imu_sample_valid else 0, current_sim_nanos, self.moduleID)
 
 
 class EarthHorizonSensor(sysModel.SysModel):
