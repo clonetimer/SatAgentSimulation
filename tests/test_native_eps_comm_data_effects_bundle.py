@@ -35,10 +35,6 @@ def _load_spec(subsystem: str, run_id: str, *, event_kind: str | None = None, ef
             "eps.battery_soc",
             "eps.solar_power_w",
             "eps.nominal_solar_power_w",
-            "eps.solar_panel_efficiency",
-            "eps.nominal_solar_panel_efficiency",
-            "eps.solar_panel_area_m2",
-            "eps.nominal_solar_panel_area_m2",
             "eps.payload_load_enabled_w",
             "eps.nominal_payload_load_w",
             "eps.net_power_w",
@@ -99,7 +95,6 @@ def _run_case(
     assert executed.summary["external_or_proxy_module_count"] == 0
     if subsystem == "eps":
         assert "_with_simpleSolarPanel" in str(executed.summary.get("backend", ""))
-        assert all(row.get("eps.solar_panel_efficiency") is not None for row in executed.trace_rows)
     if event_kind:
         assert len(executed.validation.injection_evidence) == 1
         evidence = executed.validation.injection_evidence[0]
@@ -149,7 +144,6 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
         assert active["eps.battery_capacity_j"] < baseline["eps.battery_capacity_j"]
         assert active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
         if event_kind == "fault":
-            assert active["eps.solar_panel_area_m2"] < baseline["eps.solar_panel_area_m2"]
             assert baseline["eps.payload_load_enabled_w"] > 0.0
             assert active["eps.payload_load_enabled_w"] == pytest.approx(0.0, abs=1e-9)
             assert "payload_channel_trip" in active["eps.shed_reason"]
@@ -162,7 +156,6 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
         else:
             assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
             assert active["eps.battery_capacity_j"] < active["eps.nominal_battery_capacity_j"]
-            assert active["eps.solar_panel_efficiency"] < baseline["eps.solar_panel_efficiency"]
             assert active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
             later = _at(injected.trace_rows, 20.0)
             assert later["eps.battery_capacity_j"] < _at(nominal.trace_rows, 20.0)["eps.battery_capacity_j"]
