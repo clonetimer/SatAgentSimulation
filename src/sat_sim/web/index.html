@@ -20,7 +20,7 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
+  <link rel="stylesheet" href="/assets/styles.css?v=p9n1-native-rw-1">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-realtime-width-20261111-2">
   <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9m4-d-review-5">
@@ -332,6 +332,10 @@
           <details id="wizardParametersPanel" class="wizard-config-panel">
             <summary>模型参数（按需调整）</summary>
             <p class="wizard-panel-help">默认沿用当前模型推荐值。先完成运行时长和采样间隔即可开始；只有需要改变物理工况或模型特性时，再展开参数。</p>
+            <div id="wizardNativeRwPreset" class="wizard-native-preset hidden">
+              <div><strong>官方 Basilisk 原生反作用轮</strong><span>加载已验证的单轮物理配置，使用 Basilisk ReactionWheelStateEffector 运行；仅支持标称工况。</span></div>
+              <button id="wizardApplyNativeRwPresetBtn" class="button button-secondary" type="button">应用原生单轮配置</button>
+            </div>
             <div class="wizard-parameter-controls">
               <div class="wizard-parameter-mode" role="group" aria-label="参数显示级别">
                 <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="runtime" aria-pressed="false">仅运行参数</button>
@@ -520,6 +524,7 @@
               <select id="effectSelect" aria-label="效果类型"></select>
               <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
             </div>
+            <p id="eventBackendLimitNote" class="wizard-panel-help hidden">当前选择的是官方 Basilisk 原生反作用轮后端，仅支持单轮标称工况；故障、退化和运行约束事件暂不可用。切换回项目参考模型后可使用已注册的事件能力。</p>
             <div id="wizardEventControlsReturnAnchor"></div><div id="wizardEventReturnAnchor"></div><div id="eventList" class="event-list"></div>
 
 </details>
@@ -1822,7 +1827,7 @@
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
-  <script src="/assets/app.js?v=p9m4-d-review-5" defer></script>
+  <script src="/assets/app.js?v=p9n1-native-rw-2" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
   <script src="/assets/continuous.js?v=p9m4-engineering-mapping-1" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
