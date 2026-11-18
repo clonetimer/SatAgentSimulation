@@ -59,7 +59,7 @@
 
 ## 当前已知问题
 
-- 既有 P9-N1 PR #168 的首个浏览器 head 有两处失败：一个测试将 UI 的 async 提交强行改为 sync，但前端仍按 async execution_state 轮询；另一个在向导视图下尝试点击隐藏的侧边栏历史入口。物理专项本身通过。此分支修正第一处测试生命周期不一致，并继续验证真实历史导航路径。
+- 既有 P9-N1 PR #168 的首个浏览器 head 有两处失败：一个测试将 UI 的 async 提交强行改为 sync，但前端仍按 async execution_state 轮询；另一个在向导视图下尝试点击隐藏的侧边栏历史入口。物理专项本身通过。此分支改为使用 embedded worker 保持 UI async 生命周期，并通过向导中可见的“其他专业工具 → 运行中心”进入历史；最终是否通过以当前 PR head 的实际 Chromium 结果为准。
 - P9-N1 PR #166 的 backend provenance UI 变更与 N4-A 结果摘要重叠；最终只保留一套来源展示，不重复实现。
 
 ## 决策边界
