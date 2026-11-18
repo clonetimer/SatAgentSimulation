@@ -140,6 +140,10 @@ def run_native_imu_probe(
     truth_sigma_bn: Sequence[float] = (0.0, 0.0, 0.0),
     truth_omega_bn_b_rad_s: Sequence[float] = (0.01, -0.005, 0.002),
     truth_specific_force_b_m_s2: Sequence[float] = (0.2, -0.1, 0.05),
+    gyro_bias_rad_s: Sequence[float] = (0.0, 0.0, 0.0),
+    accel_bias_m_s2: Sequence[float] = (0.0, 0.0, 0.0),
+    gyro_scale: Sequence[float] = (1.0, 1.0, 1.0),
+    accel_scale: Sequence[float] = (1.0, 1.0, 1.0),
     sensor_pos_b_m: Sequence[float] = (0.0, 0.0, 0.0),
     dcm_pb: Sequence[float] = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
 ) -> NativeImuTrace:
@@ -161,10 +165,17 @@ def run_native_imu_probe(
     sigma = _finite_vector(truth_sigma_bn, 3, "NATIVE_IMU_TRUTH_SIGMA")
     omega = _finite_vector(truth_omega_bn_b_rad_s, 3, "NATIVE_IMU_TRUTH_OMEGA")
     specific_force = _finite_vector(truth_specific_force_b_m_s2, 3, "NATIVE_IMU_TRUTH_SPECIFIC_FORCE")
+    gyro_bias = _finite_vector(gyro_bias_rad_s, 3, "NATIVE_IMU_GYRO_BIAS")
+    accel_bias = _finite_vector(accel_bias_m_s2, 3, "NATIVE_IMU_ACCEL_BIAS")
+    gyro_gain = _finite_vector(gyro_scale, 3, "NATIVE_IMU_GYRO_SCALE")
+    accel_gain = _finite_vector(accel_scale, 3, "NATIVE_IMU_ACCEL_SCALE")
     position = _finite_vector(sensor_pos_b_m, 3, "NATIVE_IMU_SENSOR_POSITION")
     dcm = _finite_vector(dcm_pb, 9, "NATIVE_IMU_DCM")
+    identity = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
     if any(abs(value) > 1.0e-9 for value in position):
         raise ValueError("NATIVE_IMU_NONZERO_SENSOR_OFFSET_NOT_YET_SUPPORTED")
+    if any(abs(dcm[index] - identity[index]) > 1.0e-9 for index in range(9)):
+        raise ValueError("NATIVE_IMU_NONIDENTITY_MOUNT_NOT_YET_SUPPORTED")
 
     from Basilisk.architecture import messaging
     from Basilisk.utilities import SimulationBaseClass, macros
@@ -189,6 +200,10 @@ def run_native_imu_probe(
         sigma_accel_m_s2=0.0,
         sigma_gyro_random_walk_rad_s_sqrt_s=0.0,
         sigma_accel_random_walk_m_s2_sqrt_s=0.0,
+        gyro_bias_rad_s=gyro_bias,
+        accel_bias_m_s2=accel_bias,
+        gyro_scale=gyro_gain,
+        accel_scale=accel_gain,
         sensor_pos_b_m=position,
         dcm_pb=dcm,
     )
@@ -210,11 +225,13 @@ def run_native_imu_probe(
         raise RuntimeError("NATIVE_IMU_RECORDER_NONFINITE")
     # Identity mounting, zero noise, zero bias and zero lever arm make this a
     # direct truth-to-official-sensor consistency check, not a model estimate.
+    expected_gyro = tuple(omega[index] * gyro_gain[index] + gyro_bias[index] for index in range(3))
+    expected_accel = tuple(specific_force[index] * accel_gain[index] + accel_bias[index] for index in range(3))
     for row in angular_velocity:
-        if any(abs(row[index] - omega[index]) > 1.0e-6 for index in range(3)):
+        if any(abs(row[index] - expected_gyro[index]) > 1.0e-6 for index in range(3)):
             raise RuntimeError("NATIVE_IMU_GYRO_TRUTH_MISMATCH")
     for row in acceleration:
-        if any(abs(row[index] - specific_force[index]) > 1.0e-6 for index in range(3)):
+        if any(abs(row[index] - expected_accel[index]) > 1.0e-6 for index in range(3)):
             raise RuntimeError("NATIVE_IMU_ACCEL_TRUTH_MISMATCH")
     return NativeImuTrace(
         times_s=times,
