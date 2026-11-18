@@ -96,9 +96,9 @@
 | 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C1 已合入 main（PR #179）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 | 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C2 已合入 main（PR #180）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 | 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C2 已合入 main（PR #180）；官方 Basilisk 物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
-| 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C3 已补 native 模板、点火配置/推力 recorder/冲量积分合同；workflow #44318739045 官方物理与 Chromium 真实 Run/历史回放 PASS，待 PR 合入 |
-| 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C3 已补 native 模板与质量/质量变化率/容量输出白名单；workflow #44318739045 官方物理与 Chromium 真实 Run/历史回放 PASS，待 PR 合入 |
-| 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C3 已补 native 模板与 K/°C 温度曲线、固定辐射板边界说明；workflow #44318739045 官方物理与 Chromium 真实 Run/历史回放 PASS，待 PR 合入 |
+| 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C3 已合入 main（PR #181，merge 7f9cf69）；官方物理与 Chromium 真实 Run/历史回放 PASS |
+| 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C3 已合入 main（PR #181，merge 7f9cf69）；官方物理与 Chromium 真实 Run/历史回放 PASS |
+| 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C3 已合入 main（PR #181，merge 7f9cf69）；官方物理与 Chromium 真实 Run/历史回放 PASS |
 | 太阳敏感器 CSS | 仅官方标量光强 probe，未接入现有三轴方向 capability contract | 暂不开放 native 单机入口 |
 | 加热器、散热器及其他项目模型 | 当前为项目 reference/source-native | 可在后续独立分组标明来源，不得混入 Basilisk-native 白名单 |
 
