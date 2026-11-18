@@ -89,3 +89,5 @@
 | 加热器、散热器及其他项目模型 | 当前为项目 reference/source-native | 可在后续独立分组标明来源，不得混入 Basilisk-native 白名单 |
 
 EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口；不得把多个独立 Run 的后处理结果当作同一 SimBase 物理闭环。
+
+- 共享工作台浏览器 workflow 不安装 Basilisk；原生真实 Run 浏览器旅程在缺少 Basilisk 时显式 skip，并由专用 native-RW workflow 安装、校验官方 2.11.0 后无跳过执行同一旅程。通用 UI suite 不应隐式承担原生运行时依赖。
