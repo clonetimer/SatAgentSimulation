@@ -433,10 +433,15 @@ class ImuFaultInjector(sysModel.SysModel):
         self.imuOutMsg = messaging.IMUSensorMsg()
         self.biasOutMsg = messaging.IMUSensorMsg()
         self.noiseOutMsg = messaging.IMUSensorMsg()
+        self.imuValidOutMsg = messaging.DeviceStatusMsg()
+        self._first_imu_sample_time_ns: int | None = None
+        self._last_imu_sample_time_ns: int | None = None
         self._rng = random.Random(self.seed)
 
     def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
         self._rng = random.Random(self.seed)
+        self._first_imu_sample_time_ns = None
+        self._last_imu_sample_time_ns = None
 
     @staticmethod
     def _vector_deg_s(value: Any) -> list[float]:
@@ -450,6 +455,19 @@ class ImuFaultInjector(sysModel.SysModel):
 
     def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
         source = self.imuInMsg()
+        # Basilisk 2.11.0 deliberately emits a zero payload on its first
+        # UpdateState call while it seeds the previous-state history. Track
+        # the upstream message write-time progression instead of guessing
+        # from the value (zero angular rate is a valid physical measurement).
+        source_written = bool(self.imuInMsg.isWritten())
+        source_time_ns = int(self.imuInMsg.timeWritten()) if source_written else None
+        imu_sample_valid = False
+        if source_time_ns is not None:
+            if self._first_imu_sample_time_ns is None:
+                self._first_imu_sample_time_ns = source_time_ns
+            else:
+                imu_sample_valid = source_time_ns > self._first_imu_sample_time_ns
+            self._last_imu_sample_time_ns = source_time_ns
         bias = [0.0, 0.0, 0.0]
         accel_bias = [0.0, 0.0, 0.0]
         noise_scale = 1.0
@@ -500,6 +518,7 @@ class ImuFaultInjector(sysModel.SysModel):
         noise_payload.AngVelPlatform = noise
         noise_payload.AccelPlatform = accel_noise
         self.noiseOutMsg.write(noise_payload, current_sim_nanos, self.moduleID)
+        _write_status(self.imuValidOutMsg, int(imu_sample_valid), current_sim_nanos, self.moduleID)
 
 
 class ReactionWheelSpeedFaultInjector(sysModel.SysModel):
