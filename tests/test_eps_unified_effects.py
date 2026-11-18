@@ -19,7 +19,7 @@ def _spec(mode: str, kind: str | None = None, effect: str | None = None) -> dict
             kind: [{
                 "modifier_type": effect,
                 "start_s": 10.0,
-                "duration_s": 10.0,
+                "duration_s": 9.5,
                 "magnitude": 0.8,
             }]
         }
