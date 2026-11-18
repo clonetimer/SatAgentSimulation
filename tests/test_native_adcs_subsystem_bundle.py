@@ -74,6 +74,8 @@ def test_adcs_native_subsystem_sealed_run_bundle_and_frame_contract(
     assert fusion_evidence["attitude_frame"] == "body_B_relative_to_inertial_N"
     assert fusion_evidence["body_rate_frame"] == "body_B"
     assert fusion_evidence["magnetometer_used_sample_count"] > 0
+    assert fusion_evidence["body_rate_valid_sample_count"] > 0
+    assert fusion_evidence["first_valid_body_rate_time_s"] is not None
     assert fusion_evidence["estimator_class"] == "deterministic_engineering_estimator_not_mekf_or_kalman"
 
     rows = executed.trace_rows
