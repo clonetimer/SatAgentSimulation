@@ -8617,6 +8617,12 @@
     state.activeTaskCenterId = null;
     updateTaskEditState();
     state.planning = payload.planning;
+    // Applying this preset changes the guided intent to the native single-
+    // component workflow, so unsupported realtime choices are not offered.
+    state.wizard.goal = 'component_native';
+    state.wizard.level = 'component';
+    state.wizard.objectId = 'component.reaction_wheel';
+    state.wizard.mode = 'offline';
     state.wizard.parameterMode = 'recommended';
     renderWizardParameterControls();
     renderSimulationWizard();
