@@ -77,7 +77,7 @@ def run_native_star_tracker_probe(
     truth.r_BN_N = [7_000_000.0, 0.0, 0.0]
     truth.v_BN_N = [0.0, 7_500.0, 0.0]
     truth.omegaDot_BN_B = [0.0, 0.0, 0.0]
-    truth.nonConservativeAccelpntB_B = [0.0, 0.0, 0.0]
+    truth.nonConservativeAccelpntB_B = list(specific_force)
     truth_msg = messaging.SCStatesMsg().write(truth)
 
     sim = SimulationBaseClass.SimBaseClass()
@@ -125,7 +125,9 @@ def run_native_star_tracker_probe(
 class NativeImuTrace:
     times_s: tuple[float, ...]
     angular_velocity_platform_rad_s: tuple[tuple[float, float, float], ...]
+    acceleration_platform_m_s2: tuple[tuple[float, float, float], ...]
     truth_omega_bn_b_rad_s: tuple[float, float, float]
+    truth_specific_force_b_m_s2: tuple[float, float, float]
     model_source: str = "Basilisk.simulation.imuSensor.ImuSensor"
     input_source: str = "explicit_SCStatesMsg_truth_fixture"
     claim_scope: str = "official_imu_gyro_measurement_from_prescribed_spacecraft_truth_without_navigation_or_closed_loop"
@@ -137,6 +139,7 @@ def run_native_imu_probe(
     sample_s: float = 0.1,
     truth_sigma_bn: Sequence[float] = (0.0, 0.0, 0.0),
     truth_omega_bn_b_rad_s: Sequence[float] = (0.01, -0.005, 0.002),
+    truth_specific_force_b_m_s2: Sequence[float] = (0.2, -0.1, 0.05),
     sensor_pos_b_m: Sequence[float] = (0.0, 0.0, 0.0),
     dcm_pb: Sequence[float] = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
 ) -> NativeImuTrace:
@@ -197,21 +200,27 @@ def run_native_imu_probe(
 
     times = tuple(float(value) * 1.0e-9 for value in recorder.times())
     angular_velocity = tuple(tuple(float(value) for value in row) for row in recorder.AngVelPlatform)
-    if not times or len(times) != len(angular_velocity):
+    acceleration = tuple(tuple(float(value) for value in row) for row in recorder.AccelPlatform)
+    if not times or len(times) != len(angular_velocity) or len(times) != len(acceleration):
         raise RuntimeError("NATIVE_IMU_RECORDER_MISSING")
-    if any(len(row) != 3 for row in angular_velocity):
+    if any(len(row) != 3 for row in angular_velocity) or any(len(row) != 3 for row in acceleration):
         raise RuntimeError("NATIVE_IMU_RECORDER_SHAPE_INVALID")
-    if not all(math.isfinite(value) for row in angular_velocity for value in row):
+    if not all(math.isfinite(value) for row in (*angular_velocity, *acceleration) for value in row):
         raise RuntimeError("NATIVE_IMU_RECORDER_NONFINITE")
     # Identity mounting, zero noise, zero bias and zero lever arm make this a
     # direct truth-to-official-sensor consistency check, not a model estimate.
     for row in angular_velocity:
         if any(abs(row[index] - omega[index]) > 1.0e-6 for index in range(3)):
             raise RuntimeError("NATIVE_IMU_GYRO_TRUTH_MISMATCH")
+    for row in acceleration:
+        if any(abs(row[index] - specific_force[index]) > 1.0e-6 for index in range(3)):
+            raise RuntimeError("NATIVE_IMU_ACCEL_TRUTH_MISMATCH")
     return NativeImuTrace(
         times_s=times,
         angular_velocity_platform_rad_s=angular_velocity,
+        acceleration_platform_m_s2=acceleration,
         truth_omega_bn_b_rad_s=omega,
+        truth_specific_force_b_m_s2=specific_force,
     )
 
 
