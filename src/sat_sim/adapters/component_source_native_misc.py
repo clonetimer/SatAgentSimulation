@@ -1340,6 +1340,7 @@ class MagnetometerAdapter(_BaseComponentAdapter):
             error = math.sqrt(sum((float(native_rows[-1][f"adcs.magnetometer.field_{axis}_t"]) - field[index]) ** 2 for index, axis in enumerate("xyz")))
             qoi = {"adcs.magnetometer.field_norm_t": native_rows[-1]["adcs.magnetometer.field_norm_t"], "adcs.magnetometer.error_norm_t": error}
             summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
             return SimulationResult(
                 summary=summary,
                 trace_rows=tuple(native_rows),
@@ -1527,6 +1528,7 @@ class StarTrackerAdapter(_BaseComponentAdapter):
                 "adcs.star_tracker.final_drift_norm": drift_values[-1],
             }
             summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
             return SimulationResult(
                 summary=summary,
                 trace_rows=tuple(native_rows),
