@@ -5,6 +5,9 @@ on:
     paths:
       - "src/components/battery/builder.py"
       - "src/components/solar_panel/builder.py"
+      - "src/subsystems/eps/runner.py"
+      - "src/subsystems/eps/builder.py"
+      - "src/subsystems/eps/schemas.py"
       - "src/sat_sim/adapters/component_solar_panel.py"
       - "src/sat_sim/capabilities/component.solar_panel.v1.yaml"
       - "src/components/battery/schemas.py"
