@@ -133,4 +133,5 @@
 - 三点式 `git diff BASE...HEAD` 因此会报 `no merge base`。如果该命令位于 `if` 条件中，shell 可能把它当成条件不匹配而不使步骤失败，导致浏览器测试被静默跳过。
 - 对 PR merge checkout 的路径门禁应使用 `git diff --name-only BASE HEAD` 两点式树比较，并打印路径清单；它直接比较 base tree 与 merge tree，不依赖完整提交祖先。
 - 对浏览器门禁，必须检查步骤是否实际执行，而不能把 skipped 误读为 PASS。
+- **pytest `-k` 必须与真实测试函数名核对。** N5-E 浏览器函数名为 `guided_native_adcs_wizard_runs_verified_torque_authority_degradation`，旧过滤词 `guided_native_adcs_fault` 没有匹配该函数；因此工作流虽显示 5 passed，实际未执行故障向导测试。修正为精确函数名，并以 pytest 的 `passed/deselected` 数量及日志中的测试名确认覆盖，不能只看 job conclusion。
 - N5-E 的负向 UI 合同同时检查 `#wizardFaultPanel`、`#wizardEventHost` 和 `#wizardNativeAdcsFaultNote` 均隐藏；只隐藏事件列表而保留空的“故障与事件”面板仍属于入口泄漏。
