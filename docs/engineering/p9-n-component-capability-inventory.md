@@ -62,8 +62,9 @@
 
 ## P9-N4 工作台入口状态（2026-11-18）
 
-- 当前用户可见的“单机独立仿真”首批入口仅开放反作用轮；这是产品白名单，不等于仓库只有这一种原生单机。
-- IMU、StarTracker、Magnetometer、Battery、SolarPanel、Thruster、FuelTank、ThermalNode 已有不同程度的官方 Basilisk TaskSpec / recorder / sealed Run 证据，但必须逐项补齐注册场景模板、参数表单、结果曲线/指标、单位与物理边界说明后才加入工作台。
+- N4-A 已将反作用轮的官方 Basilisk 单机有限时长标称工作流合入 main。
+- N4-C1 正在补齐 IMU、StarTracker、Magnetometer 的注册模板、参数投影、结果/历史回放与浏览器验收；验收通过前不将它们描述为已正式开放。
+- Battery、SolarPanel、Thruster、FuelTank、ThermalNode 已有不同程度的官方 Basilisk TaskSpec / recorder / sealed Run 证据，后续仍需逐项补齐产品模板、参数表单、结果曲线/指标、单位与物理边界说明。
 - CSS 目前仍是标量光强 probe，不满足现有三轴方向 capability 输出合同；不开放 native 单机入口。
 - 项目 reference/source-native 设备可以后续在独立来源分组呈现，但不得混入 Basilisk-native 白名单。
 - EPS 是已验证的分系统同一 SimBase 集成能力，不等同于 Battery/SolarPanel 单机入口，也不能用多次单机 Run 后处理冒充同一 SimBase 闭环。
