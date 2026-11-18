@@ -652,9 +652,14 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         source = list(command_payload.motorTorque)
         output = list(source)
         drag = [0.0] * len(output)
+        # Available drive authority and the actual output-command clamp differ
+        # for a jam: the wheel has zero drive authority but can still receive a
+        # bounded mechanical braking torque from the project fault model.
         torque_limits = [self.max_torque_nm] * len(output)
+        command_limits = [self.max_torque_nm] * len(output)
         for index in range(min(self.wheel_count, len(output))):
             torque_limits[index] = self.effective_nominal_max_torques_nm[index]
+            command_limits[index] = self.effective_nominal_max_torques_nm[index]
         speed_limits = [0.0] * len(list(speed_payload.wheelSpeeds))
         speeds = list(speed_payload.wheelSpeeds)
 
@@ -664,8 +669,11 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.0), 1.0))
                 output[index] *= scale
                 torque_limits[index] = self.effective_nominal_max_torques_nm[index] * scale
+                command_limits[index] = torque_limits[index]
             elif event.effect == "adcs_actuator_failure":
-                output[index] = 0.0; torque_limits[index] = 0.0
+                output[index] = 0.0
+                torque_limits[index] = 0.0
+                command_limits[index] = 0.0
             elif event.effect == "adcs_control_loop_failure":
                 scale = max(0.0, min(_event_number(event, ("command_scale",), 0.0), 1.0))
                 for wheel_index in range(self.wheel_count):
@@ -674,6 +682,7 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.5), 1.0))
                 output[index] *= scale
                 torque_limits[index] = self.effective_nominal_max_torques_nm[index] * scale
+                command_limits[index] = torque_limits[index]
             elif event.effect == "rw_friction_degradation":
                 coefficient = max(_event_number(event, ("drag_nms",), 0.01), 0.0)
                 drag[index] = coefficient
@@ -693,11 +702,14 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 output[index] = -math.copysign(brake, speed) if abs(speed) > tolerance else 0.0
                 torque_limits[index] = 0.0
 
-        for index in range(min(self.wheel_count, len(output))):
-            # This is the actual torque sent to official RW dynamics. A
-            # displayed-current clip must never disguise a larger command.
-            electrical_and_hardware_limit = self.effective_nominal_max_torques_nm[index]
-            output[index] = max(-electrical_and_hardware_limit, min(electrical_and_hardware_limit, float(output[index])))
+        for index in range(len(output)):
+            # This is the actual torque sent to official RW dynamics. Partial
+            # authority loss and motor failure must constrain the actuator
+            # command itself, not merely the parallel telemetry limit. A jam
+            # retains its separate bounded braking command while reporting
+            # zero available drive authority.
+            limit = max(0.0, float(command_limits[index]))
+            output[index] = max(-limit, min(limit, float(output[index])))
 
         out_payload = messaging.ArrayMotorTorqueMsgPayload()
         out_payload.motorTorque = output
