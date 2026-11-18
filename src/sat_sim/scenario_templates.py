@@ -130,6 +130,81 @@ _TEMPLATES = [
         recommended=True,
     ),
     _template(
+        "component_imu_basilisk_native", "IMU 原生测量仿真", "部件", "component",
+        "component.imu.v1", "使用官方 Basilisk ImuSensor，按显式给定角速度与非保守比力真值记录三轴陀螺和加速度计测量；不包含导航解算、随机噪声特性或安装杆臂。",
+        duration_s=2.0,
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "true_gyro_rad_s": [0.012, -0.004, 0.003],
+                "true_accel_m_s2": [0.2, -0.1, 0.05],
+                "gyro_scale": [1.0, 1.0, 1.0],
+                "accel_scale": [1.0, 1.0, 1.0],
+                "gyro_bias_rad_s": [0.0, 0.0, 0.0],
+                "accel_bias_m_s2": [0.0, 0.0, 0.0],
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.imu.gyro_x_rad_s", "adcs.imu.gyro_y_rad_s", "adcs.imu.gyro_z_rad_s",
+                    "adcs.imu.accel_x_m_s2", "adcs.imu.accel_y_m_s2", "adcs.imu.accel_z_m_s2",
+                ],
+                "qoi": ["adcs.imu.gyro_error_norm_rad_s", "adcs.imu.accel_error_norm_m_s2"],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_star_tracker_basilisk_native", "星敏感器原生姿态测量", "部件", "component",
+        "component.star_tracker.v1", "使用官方 Basilisk StarTracker 对显式给定姿态真值进行测量，记录四元数换算后的 MRP、样本有效标记与漂移；有效标记不代表星表识别或光学视场可见性。",
+        duration_s=2.0,
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "true_sigma_bn": [0.04, -0.01, 0.02],
+                "drift_rate_mrp_s": [0.0, 0.0, 0.0],
+                "max_drift_norm": 1.0,
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.star_tracker.sigma_x", "adcs.star_tracker.sigma_y",
+                    "adcs.star_tracker.sigma_z", "adcs.star_tracker.drift_norm",
+                ],
+                "qoi": [
+                    "adcs.star_tracker.valid_fraction",
+                    "adcs.star_tracker.final_drift_norm",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_magnetometer_basilisk_native", "磁强计原生磁场测量", "部件", "component",
+        "component.magnetometer.v1", "使用官方 Basilisk Magnetometer 与显式均匀惯性磁场输入，记录传感器坐标系三轴磁场和模长；不包含地球磁场环境模型或非均匀三轴标度。",
+        duration_s=2.0,
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "magnetic_field_t": [2.0e-5, -1.0e-5, 3.0e-5],
+                "axis_scale": [1.0, 1.0, 1.0],
+                "bias_t": [0.0, 0.0, 0.0],
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.magnetometer.field_x_t", "adcs.magnetometer.field_y_t",
+                    "adcs.magnetometer.field_z_t", "adcs.magnetometer.field_norm_t",
+                ],
+                "qoi": [
+                    "adcs.magnetometer.error_norm_t",
+                    "adcs.magnetometer.field_norm_t",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
         "component_battery_cycle", "电池充放电", "部件", "component",
         "component.battery.v1", "电池在给定充放电功率下的荷电状态变化。",
     ),
