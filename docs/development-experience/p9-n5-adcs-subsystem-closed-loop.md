@@ -117,3 +117,12 @@
 - `adcs_rw_torque_authority_loss` 的独立 profile 使用 `effective_torque_ratio_{wheel_index} == torque_scale` 作为运行时断言，并保留 effective max torque 与 applied torque 作为证据字段。
 - Artifact `native-component-physical-evidence`：ID `14460007797`，14,211 bytes。
 - Chromium 步骤因 PR 不包含前端或浏览器测试文件而按 path-scope 规则跳过；这是预期行为。ADCS 故障面板仍隐藏，后续 N5-E 单独开放已验证事件并执行浏览器验收。
+
+## N5-E 开发经验：受控开放 ADCS 事件向导（2026-11-19）
+
+1. **物理证据 allowlist 必须落在服务端 form schema。** 仅在前端隐藏选项不足以约束 API 返回的可选事件；`subsystem.adcs_unified_native.v1` 的 `event_catalog` 只返回 N5-D 通过 A/B 的五个 effect。
+2. **事件字段名必须与 runtime 注入器读取键完全一致。** `gyro_bias_step` 读取 `bias_step_deg_s`，`gyro_noise_increase` 读取 `noise_scale`；旧 schema 中的 `bias_deg_s` / `noise_multiplier` 不会被 runtime 消费。
+3. **二值失效与连续退化保持不同 effect ID 和 UI 参数。** motor failure 只有 wheel_index；torque authority loss 才允许 torque_scale。
+4. **事件类别由非空 catalog 决定。** ADCS 只显示 fault/degradation，constraint catalog 为空时隐藏运行约束选项。
+5. **向导入口范围要精确。** 只对 `goal=subsystem_native` 且 capability 为 unified-native ADCS 显示故障面板；单机 native 与其他未验证分系统继续隐藏。
+6. **UI 验收必须真实提交 TaskSpec。** 浏览器测试不止检查选项文本，还要配置起止时间与参数、执行官方 Basilisk、验证 injection evidence PASS、有效力矩比例和 sealed Run Bundle ZIP 哈希。
