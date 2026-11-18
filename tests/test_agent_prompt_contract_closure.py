@@ -94,11 +94,13 @@ def test_thermal_prompt_uses_the_requested_profile(compact, backend):
     example = yaml.safe_load(re.search(r"## Capability-specific example\s*```yaml\s*(.*?)\s*```", prompt, re.S).group(1))
     if backend == "basilisk_native":
         assert example["parameters"]["physics_backend"] == backend
+        pytest.importorskip("Basilisk", reason="native thermal validation requires Basilisk")
     result = validate_task_spec(example)
     assert result.ok, result.to_dict()
 
 
 def test_thermal_template_agent_accepts_an_explicit_native_backend(tmp_path):
+    pytest.importorskip("Basilisk", reason="native thermal generation requires Basilisk")
     from sat_sim.capability_agent import CapabilityAgentRequest, run_capability_script_generation
 
     result = run_capability_script_generation(CapabilityAgentRequest(
