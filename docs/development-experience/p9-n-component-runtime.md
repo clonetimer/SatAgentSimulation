@@ -55,6 +55,27 @@ P9-N2 保留默认 component reference 路径，并已为 IMU、磁强计、星�
 这意味着 P9-N1 不需要再另建单机任务系统；应继续复用现有仿真向导、模板选择、参数表单、任务中心和结果分析。下一步重点是浏览器端从选择反作用轮对象到运行原生模板、查看真实曲线和历史 Run 的完整用户旅程。
 
 
+## P9-N1 workbench/API integration lessons
+
+1. **Use the public form API envelope exactly.** `GET /forms/capabilities/{capability_id}` returns `{ok, form_schema: {...}}`; fields are nested under `form_schema.fields`. Do not treat the response as the raw schema. The first P9-N1 CI attempt exposed a `KeyError: fields`; the API test now follows the public envelope.
+2. **Fetch registered templates; do not duplicate defaults in JavaScript.** The guided preset button calls the scenario-template instantiate endpoint, then uses the existing lossless `projectTaskSpecToForm` projection. This keeps the capability registry/template as the source of truth and preserves provenance.
+3. **Make backend choice visible at the point of use.** A component may default to a project reference backend even when an official native backend is available. The backend field must be common/recommended and its parameter group expanded by default; otherwise users can unknowingly run the non-native model.
+4. **A guided preset is not a new execution path.** It only selects a registered TaskSpec. Execution still passes through the same validator, planner, registered adapter, Run Bundle, and seal/integrity pipeline.
+5. **Keep unsupported native modes explicit.** The single-wheel Basilisk template is nominal-only. Do not let project-reference fault options appear as if they are available in the native backend. The run validator/adapter remains authoritative and must fail closed.
+
+
+6. **Pin Playwright browser jobs to a supported runner image.** The first P9-N1 guided-browser CI extension used `ubuntu-latest`, which resolved to Ubuntu 26.04 x64 in this run; Playwright 1.57.0 did not provide a supported Chromium install for that image (`Playwright does not support chromium on ubuntu26.04-x64`). Pin the browser acceptance job to `ubuntu-24.04`, matching the project's other Chromium acceptance workflows. This is an environment compatibility failure, not a workbench/browser test failure.
+
+
+7. **Scope Playwright locators to the intended disclosure control.** The guided wizard contains nested `details/summary` elements inside the outer parameter panel. A locator such as `parameters.locator("summary")` is ambiguous and triggers strict-mode failure. Use `:scope > summary` for the panel's direct disclosure control, then target nested parameter-group summaries separately.
+
+
+8. **Guided native preset Chromium acceptance now passes.** On Ubuntu 24.04 with real Chromium, the user journey selects component level, selects `component.reaction_wheel`, chooses offline simulation, applies the registered native preset, and verifies the form holds `physics_backend=basilisk_native` with the backend section expanded. This confirms the preset is reachable from the guided workflow; it does not yet prove the browser-submitted Run produces a displayed result chart. That remains the next P9-N1 acceptance increment.
+
+
+9. **Guided event controls are nested disclosures.** In the guided workbench, `#compactEvents` is mounted inside the outer `#wizardFaultPanel`. A browser test (or user journey) must open the outer fault/event panel before interacting with the nested event disclosure. The native-backend limit note is inside the nested event panel; its visibility is intentionally scoped to the panel rather than shown as a global warning.
+
+
 ## P9-N2 快速推进记录（2026-11-18）
 
 - 新增 `sat_sim.bsk_engine.native_sensor_component.run_native_star_tracker_probe`，独立运行官方 `Basilisk.simulation.starTracker.StarTracker`。

@@ -5130,6 +5130,8 @@
       ? state.wizard.parameterMode : 'recommended';
     state.wizard.parameterMode = mode;
     const fields = (state.schema?.fields || []).filter((field) => String(field.path || '').startsWith('parameters.values.'));
+    const nativeRwPreset = el('wizardNativeRwPreset');
+    nativeRwPreset?.classList.toggle('hidden', state.selectedCapabilityId !== 'component.reaction_wheel.v1');
     const recommended = fields.filter((field) => field.importance !== 'advanced').length;
     const advanced = fields.length - recommended;
     const nonDefault = fields.filter((field) => field.default !== undefined
@@ -5244,6 +5246,10 @@
           if (value === undefined) deletePath(state.formData,field.path); else setPath(state.formData,field.path,value);
           state.taskSpec=null; state.changedPaths.delete(field.path); wrapper.classList.remove('agent-changed','field-error'); wrapper.querySelector('.field-error-message')?.remove();
           validateClientForm({show:false}); renderAgentChangePanel();
+          if (field.path === 'parameters.values.physics_backend') {
+            renderEffectSelect();
+            renderEvents();
+          }
           if (state.activeView === 'wizard') renderWizardParameterControls();
         } catch (error) {
           setFieldError(field.path,error.message);
@@ -5263,12 +5269,12 @@
       });
       if (!filtered.length) return;
       const collapsible=Boolean(section.parameter_group) && section.parameter_group !== 'general';
-      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section';
+      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section'; card.dataset.sectionId=section.id;
       if (collapsible) {
         card.classList.add('parameter-section');
         const key=`${state.schema.capability.capability_id}:${section.id}`;
         const changed=filtered.some((field)=>state.changedPaths.has(field.path));
-        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? wizardParameterMode === 'all' : section.parameter_group === 'orbit'));
+        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? (wizardParameterMode === 'all' || section.parameter_group === 'backend') : section.parameter_group === 'orbit'));
         card.addEventListener('toggle',()=>{
           if (!query && !showAdvanced && !changed) state.formSectionOpen.set(key,card.open);
         });
@@ -5304,6 +5310,13 @@
   function renderEffectSelect() {
     const kind = el('effectKind').value;
     const select = el('effectSelect');
+    const nativeRwNominalOnly = state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native';
+    const kindSelect = el('effectKind');
+    const limitNote = el('eventBackendLimitNote');
+    if (limitNote) limitNote.classList.toggle('hidden', !nativeRwNominalOnly);
+    if (kindSelect) kindSelect.disabled = nativeRwNominalOnly;
+    select.disabled = nativeRwNominalOnly;
     select.replaceChildren();
     effectCatalog(kind).forEach((item) => {
       const option = document.createElement('option');
@@ -5311,10 +5324,15 @@
       option.textContent = item.label || item.effect;
       select.appendChild(option);
     });
-    el('addEffectBtn').disabled = !select.options.length;
+    el('addEffectBtn').disabled = nativeRwNominalOnly || !select.options.length;
   }
 
   function addEffect() {
+    if (state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native') {
+      el('eventBackendLimitNote')?.classList.remove('hidden');
+      return;
+    }
     const kind = el('effectKind').value;
     const effect = el('effectSelect').value;
     const template = effectCatalog(kind).find((item) => item.effect === effect);
@@ -6568,6 +6586,15 @@
     const run = state.activeRun || {};
     const record = run.run_record || {};
     const validation = run.validation_outcome || {};
+    const runSummary = run.summary || {};
+    const physicsBackend = runSummary.physics_backend === 'basilisk_native'
+      ? 'Basilisk 官方原生'
+      : runSummary.physics_backend === 'project_reference'
+        ? '项目参考模型'
+        : (runSummary.physics_backend || '未声明');
+    const nativeProvenance = runSummary.adapter_metadata?.native_provenance
+      || runSummary.runtime_truth_status
+      || '未声明';
     const card = el('activeRunCard');
     card.className = 'active-run';
     card.replaceChildren();
@@ -6592,6 +6619,8 @@
       ['验证结果', validation.result || record.validation_result || '—'],
       ['制品完整性', run.integrity?.ok ? 'VERIFIED' : 'NOT VERIFIED'],
       ['任务 ID', record.task_id || '—'],
+      ['物理计算后端', physicsBackend],
+      ['模型来源证据', nativeProvenance],
       ['尝试次数', Array.isArray(record.attempts) ? record.attempts.length : (record.attempts ?? '—')],
     ];
     items.forEach(([label, value]) => {
@@ -8517,6 +8546,11 @@
     if (goal === 'diagnostics') { switchView('diagnostics'); return; }
     if (goal === 'graph') { switchView('creator'); switchTab('graph'); return; }
     if (goal === 'advanced') { switchView('creator'); return; }
+    if (goal === 'component_native') {
+      state.wizard.level = 'component';
+      wizardSetStep('object', '首批开放已完成独立原生物理验收的单机。当前先从反作用轮开始；其他设备将在各自模型完成验证后加入。', '单机独立仿真');
+      return;
+    }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
   }
 
@@ -8544,11 +8578,59 @@
     if (el('wizardOutputSearch')) el('wizardOutputSearch').value = '';
     if (el('wizardParameterSearch')) el('wizardParameterSearch').value = '';
     const label = object.name_zh || object.name_en || objectId;
+    if (state.wizard.goal === 'component_native' && objectId === 'component.reaction_wheel') {
+      const payload = await api('/scenario-templates/component_reaction_wheel_basilisk_native/instantiate', {
+        method: 'POST', body: apiBody({}),
+      });
+      const projected = await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生单机模板');
+      if (projected === null) throw new Error('反作用轮原生模板未能投影到当前配置，请重试。');
+      state.activeTaskCenterId = null;
+      updateTaskEditState();
+      state.planning = payload.planning;
+      state.wizard.mode = 'offline';
+      state.wizard.parameterMode = 'recommended';
+      state.wizard.validated = false;
+      wizardSetStep('configure', '已加载官方 Basilisk 原生反作用轮模型。当前只开放标称工况和单次离线仿真；原生故障、退化及实时单机运行尚未开放。可调整时长、采样和机械参数，检查配置后再执行。', label);
+      const parameterPanel = el('wizardParametersPanel');
+      if (parameterPanel) parameterPanel.open = true;
+      return;
+    }
     if (state.wizard.goal === 'fault_run') {
       wizardSetStep('fault', '该对象已加载。请选择一个当前模型正式注册的故障类型。', label);
     } else {
       wizardSetStep('mode', '对象已准备好。接下来选择运行方式：离线、限时实时或持续实时。', label);
     }
+  }
+
+  async function wizardApplyNativeRwPreset() {
+    if (state.selectedCapabilityId !== 'component.reaction_wheel.v1') {
+      throw new Error('该原生配置仅适用于独立反作用轮单机。');
+    }
+    const payload = await api('/scenario-templates/component_reaction_wheel_basilisk_native/instantiate', {
+      method: 'POST',
+      body: apiBody({}),
+    });
+    if (!payload?.task_spec || payload.task_spec.parameters?.values?.physics_backend !== 'basilisk_native') {
+      throw new Error('服务端未返回经过注册的 Basilisk 原生反作用轮配置。');
+    }
+    await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生反作用轮模板');
+    state.activeTaskCenterId = null;
+    updateTaskEditState();
+    state.planning = payload.planning;
+    // Applying this preset changes the guided intent to the native single-
+    // component workflow, so unsupported realtime choices are not offered.
+    state.wizard.goal = 'component_native';
+    state.wizard.level = 'component';
+    state.wizard.objectId = 'component.reaction_wheel';
+    state.wizard.mode = 'offline';
+    state.wizard.parameterMode = 'recommended';
+    renderWizardParameterControls();
+    renderSimulationWizard();
+    const parameters = el('wizardParametersPanel');
+    if (parameters) parameters.open = true;
+    const backendGroup = el('dynamicForm')?.querySelector('[data-section-id="parameters_backend"]');
+    if (backendGroup) backendGroup.open = true;
+    el('wizardNotice').textContent = '已加载官方 Basilisk 原生反作用轮配置。运行前仍需校验；当前仅支持单轮标称工况。';
   }
 
   function wizardChooseFault(effect) {
@@ -9013,6 +9095,7 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
+        ['component_native', '单机独立仿真', '从已验证的真实设备模型开始；首批开放 Basilisk 原生反作用轮'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
@@ -9027,7 +9110,13 @@
     } else if (state.wizard.step === 'level') {
       [['whole_spacecraft','整星','运行整星集成模型'],['subsystem','分系统','选择 ADCS、EPS、通信等'],['component','部件','单独运行已注册部件模型']].forEach((item) => option(item[1], item[2], { 'data-wizard-level': item[0] }, () => wizardChooseLevel(item[0])));
     } else if (state.wizard.step === 'object') {
-      const rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id));
+      let rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id));
+      if (state.wizard.goal === 'component_native') {
+        rows = rows.filter((item) => item.object_id === 'component.reaction_wheel');
+        const note = document.createElement('p'); note.className = 'wizard-panel-help';
+        note.textContent = '当前首批已完成官方 Basilisk 独立物理验证的设备为反作用轮。这里不会把项目参考模型标记成 Basilisk 原生模型。';
+        options.appendChild(note);
+      }
       if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); }
       rows.forEach((item) => option(item.name_zh || item.name_en || item.object_id, item.summary_zh || (item.independently_executable ? '可独立配置和运行' : '使用所属模型配置'), { 'data-wizard-object': item.object_id }, () => wizardChooseObject(item.object_id).catch((error) => { el('wizardNotice').textContent = error.message; })));
     } else if (state.wizard.step === 'fault') {
@@ -9052,7 +9141,10 @@
         ['limited_realtime','限时实时仿真','按设定时长运行；支持暂停、继续、单步和实时遥控。到达时长上限后结束并归档。'],
         ['continuous_realtime','持续实时仿真','面向长时间运行与持续遥测；由用户主动停止并归档，提供资源监测和长稳证据工具。'],
       ];
-      modes.forEach(([mode,title,detail]) => {
+      const visibleModes = state.wizard.goal === 'component_native'
+        ? modes.filter(([mode]) => mode === 'offline')
+        : modes;
+      visibleModes.forEach(([mode,title,detail]) => {
         const support = mode === 'offline' ? { supported: true, reason: '适用于当前已选模型' } : wizardLiveModeSupport(mode);
         const explanation = mode === 'limited_realtime'
           ? '适合交互调试和短时控制；结束条件由会话时长决定。'
@@ -11379,6 +11471,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('agentBackend').addEventListener('change', (event) => { state.selectedProviderId = event.target.value; });
     el('variantSelect').addEventListener('change', (event) => selectCapability(event.target.value));
     el('applyScenarioTemplateBtn').addEventListener('click', () => applyScenarioTemplate().catch(error => showNotice(error.message, 'error')));
+    el('wizardApplyNativeRwPresetBtn')?.addEventListener('click', () => wizardApplyNativeRwPreset().catch(error => { el('wizardNotice').textContent = error.message; }));
     el('capabilitySearch').addEventListener('input', renderCapabilityList);
     el('levelFilter').addEventListener('change', renderCapabilityList);
     el('showCompatibilityCapabilities').addEventListener('change', async (event) => {
@@ -11614,6 +11707,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
+    el('wizardOpenRunCenterBtn')?.addEventListener('click', () => navigateToView('runs'));
     el('wizardAdvancedBtn')?.addEventListener('click', () => navigateToView('creator'));
     el('wizardSceneShortcutBtn')?.addEventListener('click', () => navigateToView('scene'));
     el('p9dValidateBtn')?.addEventListener('click', async () => {
