@@ -67,3 +67,17 @@
 - CSS 目前仍是标量光强 probe，不满足现有三轴方向 capability 输出合同；不开放 native 单机入口。
 - 项目 reference/source-native 设备可以后续在独立来源分组呈现，但不得混入 Basilisk-native 白名单。
 - EPS 是已验证的分系统同一 SimBase 集成能力，不等同于 Battery/SolarPanel 单机入口，也不能用多次单机 Run 后处理冒充同一 SimBase 闭环。
+
+
+## N4-C 用户入口扩展状态（2026-11-18）
+
+N4-A 已合入 main，N4-C 首批传感器工作台实现正在独立 PR 验收。工作台白名单候选为：
+
+| 设备 | 注册模板 | 实际后端与可见输出 | 当前用户入口边界 |
+|---|---|---|---|
+| 反作用轮 | `component_reaction_wheel_basilisk_native` | 官方 ReactionWheelStateEffector；轮速、实际施加力矩 | N4-A 已合入；finite/offline、nominal |
+| IMU | `component_imu_basilisk_native` | 官方 ImuSensor；三轴 gyro（rad/s）、accel（m/s²） | N4-C 待同 head Chromium Run 验收；prescribed truth、identity mounting、零杆臂、无随机噪声 |
+| 星敏感器 | `component_star_tracker_basilisk_native` | 官方 StarTracker；quaternion recorder 换算 MRP、valid、drift | N4-C 待同 head Chromium Run 验收；valid 仅代表 recorder 样本有限且归一化，不代表星表识别/FOV |
+| 磁强计 | `component_magnetometer_basilisk_native` | 官方 Magnetometer；sensor-frame 三轴磁场与模长（T） | N4-C 待同 head Chromium Run 验收；均匀磁场 fixture、identity mounting、统一三轴 scale |
+
+本轮实现仅复用已验收的 native adapter 和 capability，不把默认 `project_reference` 改为 native。入口选择会通过服务端 Scenario Template instantiate，再投影到现有参数表单。原生故障/退化/约束与单机实时运行仍不开放；CSS 仍不加入白名单。
