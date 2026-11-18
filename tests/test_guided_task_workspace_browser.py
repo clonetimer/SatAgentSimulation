@@ -946,11 +946,11 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
                 plots = client.get(f"/runs/{run_id}/plots")
                 assert plots.status_code == 200, plots.text
                 plot_manifest = plots.json()["plot_manifest"]
-                assert plot_manifest, (object_id, plots.json())
+                assert plot_manifest["series"], (object_id, plots.json())
                 assert any(
-                    expected_fields[0] in str(item)
-                    for item in plot_manifest
-                ), (object_id, expected_fields[0], plot_manifest)
+                    item["field"] == expected_fields[0]
+                    for item in plot_manifest["series"]
+                ), (object_id, expected_fields[0], plot_manifest["series"])
                 page.locator('[data-result-tab="charts"]').click()
                 page.wait_for_function(
                     "() => document.querySelector('#chartLegend')?.children.length > 0",
