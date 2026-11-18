@@ -16,6 +16,7 @@ on:
       - "tests/test_event_severity.py"
       - "tests/test_eps_unified_effects.py"
       - "tests/test_comm_data_unified_effects.py"
+      - "tests/test_native_eps_comm_data_effects_bundle.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
@@ -140,6 +141,12 @@ jobs:
             tests/test_event_severity.py \
             tests/test_eps_unified_effects.py \
             tests/test_comm_data_unified_effects.py
+      - name: Verify EPS and Comm/Data paired physical A/B with sealed Run Bundles
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/effect_ab.xml \
+            tests/test_native_eps_comm_data_effects_bundle.py
       - name: Verify ADCS sensor-frame transformations and native closed-loop Run Bundle
         env:
           PYTHONPATH: "src:."
@@ -219,6 +226,7 @@ jobs:
             reports/native_adcs/adcs_fault_effects.xml
             reports/native_subsystem_eps_comm_data/subsystem_api.xml
             reports/native_subsystem_eps_comm_data/effect_events.xml
+            reports/native_subsystem_eps_comm_data/effect_ab.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
