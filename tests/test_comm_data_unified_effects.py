@@ -21,7 +21,7 @@ def _spec(mode: str, kind: str | None = None, effect: str | None = None) -> dict
                 "modifier_type": effect,
                 "start_s": 10.0,
                 "duration_s": 10.0,
-                "severity": 0.8,
+                "magnitude": 0.8,
             }]
         }
     return spec
@@ -43,7 +43,7 @@ def test_comm_data_effects_apply_to_native_transmitter(monkeypatch, tmp_path: Pa
     fault = adapter.run(fault_spec, contract.data)
     degradation = adapter.run(degradation_spec, contract.data)
     mild_fault_spec = _spec("fault", "faults", "transmitter_rate_loss")
-    mild_fault_spec["events"]["faults"][0]["severity"] = 0.4
+    mild_fault_spec["events"]["faults"][0]["magnitude"] = 0.4
     mild_fault = adapter.run(mild_fault_spec, contract.data)
 
     baseline = _at(nominal, 15.0)
@@ -80,6 +80,6 @@ def test_comm_data_rejects_unknown_and_legacy_broad_effects() -> None:
 def test_comm_data_rejects_invalid_event_severity() -> None:
     adapter = CommDataUnifiedNativeAdapter()
     spec = _spec("fault", "faults", "transmitter_rate_loss")
-    spec["events"]["faults"][0]["severity"] = 1.5
+    spec["events"]["faults"][0]["magnitude"] = 1.5
     issues = adapter.validate(spec, get_capability(adapter.capability_id).data)
     assert any(issue.severity == "error" and issue.code == "range" for issue in issues)
