@@ -475,12 +475,15 @@ class ImuFaultInjector(sysModel.SysModel):
         # from the value (zero angular rate is a valid physical measurement).
         source_written = bool(self.imuInMsg.isWritten())
         source_time_ns = int(self.imuInMsg.timeWritten()) if source_written else None
-        imu_sample_valid = False
+        imu_sample_ready = False
         if source_time_ns is not None:
             if self._first_imu_sample_time_ns is None:
                 self._first_imu_sample_time_ns = source_time_ns
-            else:
-                imu_sample_valid = source_time_ns > self._first_imu_sample_time_ns
+            elif (
+                source_time_ns > self._first_imu_sample_time_ns
+                and (self._last_imu_sample_time_ns is None or source_time_ns > self._last_imu_sample_time_ns)
+            ):
+                imu_sample_ready = True
             self._last_imu_sample_time_ns = source_time_ns
         bias = [0.0, 0.0, 0.0]
         accel_bias = [0.0, 0.0, 0.0]
@@ -516,6 +519,9 @@ class ImuFaultInjector(sysModel.SysModel):
             measured = [0.0, 0.0, 0.0]; measured_accel = [0.0, 0.0, 0.0]
         if dropout_axis is not None:
             measured[dropout_axis] = 0.0; measured_accel[dropout_axis] = 0.0
+        # A partially dropped or explicitly lost/stuck sensor is not a valid
+        # full-vector rate measurement, even though a payload was written.
+        imu_sample_valid = imu_sample_ready and not zero_all and dropout_axis is None
 
         output = messaging.IMUSensorMsgPayload()
         output.AngVelPlatform = measured
