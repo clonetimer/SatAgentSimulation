@@ -213,3 +213,92 @@ def run_native_imu_probe(
         angular_velocity_platform_rad_s=angular_velocity,
         truth_omega_bn_b_rad_s=omega,
     )
+
+
+@dataclass(frozen=True)
+class NativeMagnetometerTrace:
+    times_s: tuple[float, ...]
+    magnetic_field_sensor_t: tuple[tuple[float, float, float], ...]
+    truth_magnetic_field_n_t: tuple[float, float, float]
+    model_source: str = "Basilisk.simulation.magnetometer.Magnetometer"
+    input_source: str = "explicit_MagneticFieldMsg_and_SCStatesMsg_fixtures"
+    claim_scope: str = "official_magnetometer_measurement_from_prescribed_uniform_inertial_field_without_geomagnetic_environment_model"
+
+
+def run_native_magnetometer_probe(
+    *,
+    duration_s: float = 2.0,
+    sample_s: float = 0.1,
+    truth_magnetic_field_n_t: Sequence[float] = (2.0e-5, -1.0e-5, 3.0e-5),
+    truth_sigma_bn: Sequence[float] = (0.0, 0.0, 0.0),
+    bias_tesla: Sequence[float] = (0.0, 0.0, 0.0),
+    scale_factor: float = 1.0,
+) -> NativeMagnetometerTrace:
+    """Run official Basilisk Magnetometer against an explicit uniform field.
+
+    The prescribed field is an input fixture, not an Earth magnetic-field
+    model. Identity spacecraft attitude and sensor mounting make the expected
+    sensor-frame output directly comparable to the input vector.
+    """
+    if type(duration_s) not in (int, float) or not math.isfinite(float(duration_s)) or not 0.1 <= float(duration_s) <= 120.0:
+        raise ValueError("NATIVE_MAG_DURATION_INVALID")
+    if type(sample_s) not in (int, float) or not math.isfinite(float(sample_s)) or not 0.001 <= float(sample_s) <= 1.0:
+        raise ValueError("NATIVE_MAG_SAMPLE_INVALID")
+    duration, sample = float(duration_s), float(sample_s)
+    if sample > duration or duration / sample > 20000:
+        raise ValueError("NATIVE_MAG_GRID_INVALID")
+    field = _finite_vector(truth_magnetic_field_n_t, 3, "NATIVE_MAG_FIELD")
+    sigma = _finite_vector(truth_sigma_bn, 3, "NATIVE_MAG_TRUTH_SIGMA")
+    bias = _finite_vector(bias_tesla, 3, "NATIVE_MAG_BIAS")
+    if type(scale_factor) not in (int, float) or not math.isfinite(float(scale_factor)) or not 0.0 < float(scale_factor) <= 2.0:
+        raise ValueError("NATIVE_MAG_SCALE_INVALID")
+
+    from Basilisk.architecture import messaging
+    from Basilisk.utilities import SimulationBaseClass, macros
+    from components.magnetometer.builder import build_magnetometer
+
+    truth = messaging.SCStatesMsgPayload()
+    truth.sigma_BN = list(sigma)
+    truth.omega_BN_B = [0.0, 0.0, 0.0]
+    truth.r_BN_N = [7_000_000.0, 0.0, 0.0]
+    truth.v_BN_N = [0.0, 7_500.0, 0.0]
+    truth.omegaDot_BN_B = [0.0, 0.0, 0.0]
+    truth.nonConservativeAccelpntB_B = [0.0, 0.0, 0.0]
+    state_msg = messaging.SCStatesMsg().write(truth)
+    field_payload = messaging.MagneticFieldMsgPayload()
+    field_payload.magField_N = list(field)
+    field_msg = messaging.MagneticFieldMsg().write(field_payload)
+
+    sim = SimulationBaseClass.SimBaseClass()
+    process = sim.CreateNewProcess("P9N2MagnetometerProcess")
+    process.addTask(sim.CreateNewTask("P9N2MagnetometerTask", macros.sec2nano(sample)))
+    sensor = build_magnetometer(
+        model_tag="P9N2OfficialMagnetometer",
+        sc_state_msg=state_msg,
+        mag_field_msg=field_msg,
+        sigma_mag_tesla=0.0,
+        sigma_bias_tesla=0.0,
+        bias_tesla=bias,
+        scale_factor=float(scale_factor),
+        mounting_matrix_sb=((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)),
+    )
+    sim.AddModelToTask("P9N2MagnetometerTask", sensor, None, 10)
+    recorder = sensor.tamDataOutMsg.recorder(macros.sec2nano(sample))
+    sim.AddModelToTask("P9N2MagnetometerTask", recorder, None, 5)
+    sim.InitializeSimulation()
+    sim.ConfigureStopTime(macros.sec2nano(duration))
+    sim.ExecuteSimulation()
+
+    times = tuple(float(value) * 1.0e-9 for value in recorder.times())
+    measured = tuple(tuple(float(value) for value in row) for row in recorder.tam_S)
+    if not times or len(times) != len(measured):
+        raise RuntimeError("NATIVE_MAG_RECORDER_MISSING")
+    if any(len(row) != 3 for row in measured):
+        raise RuntimeError("NATIVE_MAG_RECORDER_SHAPE_INVALID")
+    if not all(math.isfinite(value) for row in measured for value in row):
+        raise RuntimeError("NATIVE_MAG_RECORDER_NONFINITE")
+    expected = tuple(field[index] * float(scale_factor) + bias[index] for index in range(3))
+    for row in measured:
+        if any(abs(row[index] - expected[index]) > 1.0e-10 for index in range(3)):
+            raise RuntimeError("NATIVE_MAG_FIELD_TRUTH_MISMATCH")
+    return NativeMagnetometerTrace(times_s=times, magnetic_field_sensor_t=measured, truth_magnetic_field_n_t=field)
