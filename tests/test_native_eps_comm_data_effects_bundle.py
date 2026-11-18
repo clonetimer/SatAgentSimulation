@@ -36,6 +36,8 @@ def _load_spec(subsystem: str, run_id: str, *, event_kind: str | None = None, ef
             "eps.solar_power_w",
             "eps.nominal_solar_power_w",
             "eps.payload_load_enabled_w",
+            "eps.pdu_payload_channel_enabled",
+            "eps.pdu_shed_reason",
             "eps.nominal_payload_load_w",
             "eps.net_power_w",
         ]
@@ -146,12 +148,14 @@ def test_eps_and_comm_data_effects_have_paired_native_basilisk_runs_and_sealed_b
         if event_kind == "fault":
             assert baseline["eps.payload_load_enabled_w"] > 0.0
             assert active["eps.payload_load_enabled_w"] == pytest.approx(0.0, abs=1e-9)
-            assert "payload_channel_trip" in active["eps.shed_reason"]
+            assert active["eps.pdu_payload_channel_enabled"] is False
+            assert "payload_channel_trip" in active["eps.pdu_shed_reason"]
             restored = _at(injected.trace_rows, 20.0)
             nominal_after = _at(nominal.trace_rows, 20.0)
             assert restored["eps.battery_capacity_j"] == pytest.approx(nominal_after["eps.battery_capacity_j"])
             assert restored["eps.solar_power_w"] == pytest.approx(nominal_after["eps.solar_power_w"], rel=1e-8)
-            assert restored["eps.payload_load_enabled_w"] == pytest.approx(nominal_after["eps.payload_load_enabled_w"])
+            assert restored["eps.pdu_payload_channel_enabled"] is True
+            assert "payload_channel_trip" not in restored["eps.pdu_shed_reason"]
             assert restored["label.health_state"] == "nominal"
         else:
             assert active["eps.net_power_w"] < baseline["eps.net_power_w"]
