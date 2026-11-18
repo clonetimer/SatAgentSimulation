@@ -334,6 +334,9 @@ def test_native_imu_and_magnetometer_execute_through_sealed_run_bundle(tmp_path)
         assert executed.run_record.status.value == "SUCCEEDED"
         assert executed.run_record.sealed is True
         assert executed.validation.result.value == "PASS"
+        assert executed.summary["physics_backend"] == "basilisk_native"
+        assert executed.summary["adapter_metadata"]["physics_backend"] == "basilisk_native"
+        assert executed.summary["adapter_metadata"]["native_provenance"]
         assert executed.trace_rows
         for field in case["expected_fields"]:
             assert field in executed.trace_rows[-1]
