@@ -171,8 +171,11 @@ class EpsUnifiedNativeAdapter:
             if pre_event_solar_rows
             else float(config.solar_power_w) * float(config.solar_efficiency)
         )
+        pdu_module = context.modules.get("pdu")
+        pdu_trace_rows = tuple(getattr(pdu_module, "trace", ()) or ())
         trace_rows_list: list[dict[str, Any]] = []
         for row in rows:
+            pdu_row = min(pdu_trace_rows, key=lambda item: abs(float(item.time_s) - float(row.time_s))) if pdu_trace_rows else None
             fault_active = any(
                 row.time_s >= (window := _event_window(event))[0]
                 and (window[1] is None or row.time_s <= window[1])
@@ -191,6 +194,8 @@ class EpsUnifiedNativeAdapter:
                 "eps.nominal_payload_load_w": abs(float(config.payload_power_w)) if config.payload_requested else 0.0,
                 "eps.bus_load_w": row.bus_load_w,
                 "eps.payload_load_enabled_w": row.payload_load_enabled_w,
+                "eps.pdu_payload_channel_enabled": bool(pdu_row.payload_channel_enabled) if pdu_row is not None else None,
+                "eps.pdu_shed_reason": str(pdu_row.shed_reason) if pdu_row is not None else None,
                 "eps.adcs_load_enabled_w": row.adcs_load_enabled_w,
                 "eps.comm_load_enabled_w": row.comm_load_enabled_w,
                 "eps.heater_load_enabled_w": row.heater_load_enabled_w,
