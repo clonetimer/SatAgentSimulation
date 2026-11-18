@@ -9,6 +9,7 @@ on:
       - "src/sat_sim/adapters/component_reaction_wheel.py"
       - "src/sat_sim/adapters/native_reaction_wheel_cluster.py"
       - "src/sat_sim/capabilities/component.reaction_wheel.v1.yaml"
+      - "tests/test_p9n_n4_preflight.py"
       - "tests/test_native_rw_component_probe.py"
       - "tests/test_native_rw_cluster.py"
       - "tests/test_component_rw_native_entry.py"
