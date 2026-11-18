@@ -11,8 +11,9 @@
 | 太阳敏感器 | `component.sun_sensor.v1` | 项目 source-native；整星图中有官方 Basilisk CoarseSunSensor + Sun ephemeris | 是，项目模型可独立运行 | P9-N2 已建官方 CSS probe：显式 Sun/Eclipse/SCStates 消息→OutputData；暂不接入 TaskSpec native backend，因为现有 capability 还要求三轴方向估计而官方 CSS 只输出标量强度；尚未接入 SPICE 轨道历元和真实遮挡几何 |
 | 电池 | `component.battery.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleBattery + SimplePowerSink | 是，有限时长 TaskSpec / sealed Run Bundle | nominal、恒定净功率、unity efficiency、SOC [0,1]；限幅能量按 recorder 净功率/储能差核算，不宣称真实分流电路 |
 | 太阳翼 | `component.solar_panel.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleSolarPanel | 是，有限时长 TaskSpec / sealed Run Bundle | 单块完全展开固定板、静态 Sun/Eclipse、无 tracking；摘要能量按 recorder 积分；非法方向、数量、采样网格与未实现事件被拒绝 |
-| EPS（既有分系统复用） | `subsystem.eps.unified_native.v1` / `EpsUnifiedNativeAdapter` | 同一 SimBase 的官方 SimpleSolarPanel、SimpleBattery、SimplePowerSink + 项目 PDU | 已有有限时长 subsystem TaskSpec 入口 | 充电/放电、多负载、能量守恒 sealed 验收本地已通过；固定显式 Sun/Eclipse 输入，不宣称轨道太阳历元、动态日蚀或工况切换已验收 |
-| 推力器 / 贮箱 | 对应 component capabilities | 部分组件模型；整星推进有官方 Basilisk 模块与真实轨道/燃料响应证据 | 按 capability 分别可执行 | 单机执行与推进—轨道耦合不是同一验证；P9-N3 |
+| EPS（既有分系统复用） | `subsystem.eps.unified_native.v1` / `EpsUnifiedNativeAdapter` | 同一 SimBase 的官方 SimpleSolarPanel、SimpleBattery、SimplePowerSink + 项目 PDU | 已有有限时长 subsystem TaskSpec 入口，PR #171 已合入 | 充电/放电、多负载、能量守恒 sealed 验收与官方 CI 已通过；固定显式 Sun/Eclipse 输入，不宣称轨道太阳历元、动态日蚀或工况切换已验收 |
+| 推力器 | `component.thruster.v1` | 默认项目 reference；opt-in 官方 ThrusterDynamicEffector + Spacecraft + FuelTank 夹具 | 有限时长 component TaskSpec；native sealed 验收通过 | nominal、一个连续点火区间或零点火；保持每周期命令语义，密集推力积分与原生质量差；固定夹具不代表装机，多段脉冲/事件被拒绝 |
+| 贮箱 | `component.fuel_tank.v1` | 独立入口仍为项目模型；推进器试验夹具有官方 FuelTank | 项目 component 可执行；独立 native 后端待实现 | 官方消息提供质量/质量流率，不提供现有合同中的压力；不得把项目压力模型冒充原生贮箱热力学 |
 | 加热器 / 热节点 / 散热器 | 对应 component capabilities | 项目工程热模型 | 是，有限时长 TaskSpec | 不宣称 Basilisk 原生热控；P9-N3 |
 | 其他通信、载荷、PDU 等 | 多个 component capabilities | 依 capability 声明为 source-native / project reference / proxy | 逐项可执行性不同 | 必须按真实 capability contract 核查，不作统一 native 宣称 |
 
@@ -44,5 +45,6 @@
 ## N2 / N3 状态补充（2026-11-18）
 
 - N2：PR #169 已合入 main，合并提交 `14b3dd0fa9f4697befd7a14090a976ad6ddd8089`；官方 Basilisk 2.11.0 专项 26 tests 通过。IMU、磁强计、星敏为 opt-in native；CSS 仍仅为标量光强 probe。
-- N3：PR #171（`feat/p9-n3-native-eps-rebased-20261118`）替代已关闭的 PR #170。本轮官方 Basilisk 2.11.0 组件与分系统专项本地 26 tests 通过；摘要数据、输入边界和分系统 sealed 证据已验证，最终合并以 PR 最新提交门禁为准。
+- N3 EPS 首批：PR #171 已合入 main，合并提交 `5f294149bfb637117b4fb7772ed6e1053b84f695`，替代已关闭的 PR #170。最终受测 head `b0745ef67f8520d1485a8f7162f09f844466bb82` 的官方 Basilisk 2.11.0 专项 [26 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44245235664)，Agent/Run [457 passed、Chromium 19 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44245235691)，本地相关回归 55 passed；合并树与受测树一致。
 - 物理输出以 recorder 为准：太阳翼能量不能来自解析期望值；电池限幅能量只是净功率/储能差的派生核算。零方向向量与不对齐的时长/采样网格应 fail closed，不能靠默认值或外推补齐。
+- N3 推进器首批：官方 Basilisk 2.11.0 本地专项 79 passed（77 项新 native 测试 + 2 项既有 reference 事件测试），正式 TaskSpec 1.0.0 示例 SUCCEEDED / PASS / sealed / integrity。1 N、0.5 s 点火的记录积分约 0.5 N·s，原生质量减少约 0.000182092 kg；零点火和仅一个原生步长的点火均有验收。最短点火保留步长相关积分误差边界，不宣称任意脉冲精度或 native 故障已完成。

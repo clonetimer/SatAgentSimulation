@@ -54,16 +54,18 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 
 ### P9-N3：EPS / 推进 / 热控等单机
 
-**EPS 首批组件与既有分系统验收已实现；PR #171 等待最终提交门禁（2026-11-18）**
+**EPS 首批已合入 main：PR #171（2026-11-18）；推进器首批单机执行与封存验收已实现**
 
 - 电池：官方 `SimpleBattery` + `SimplePowerSink` 已接入 `component.battery.v1` opt-in native TaskSpec adapter。
 - 太阳翼：官方 `SimpleSolarPanel` 已接入 `component.solar_panel.v1` opt-in native TaskSpec adapter；输入为显式 SCStates/Sun/Eclipse 消息，输出为官方 `nodePowerOutMsg.netPower`。
 - 已增加同一 SimBase 中 SimpleSolarPanel PowerNode → SimpleBattery 的耦合回归，验证真实发电使储能增加；不使用独立 Run 的 CSV 后处理冒充物理耦合。
 - Native 边界：电池只支持 nominal、恒定净功率、unity efficiency、SOC [0,1]；太阳翼只支持一块完全展开固定板、静态 Sun/Eclipse、无 tracking。未实现工况 fail closed。
-- PR #171（`feat/p9-n3-native-eps-rebased-20261118`）已替代关闭的 PR #170；本地官方 Basilisk 2.11.0 的组件与分系统专项 26 tests 通过。最终合并以该 PR 最新提交的 Actions 门禁为准。
+- PR #171 已合入 main，合并提交 `5f294149bfb637117b4fb7772ed6e1053b84f695`，替代已关闭的 PR #170。受测 head `b0745ef67f8520d1485a8f7162f09f844466bb82`：官方 Basilisk 2.11.0 专项 [26 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44245235664)，Agent/Run [457 passed、Chromium 19 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44245235691)，参数/ownership/脚本与依赖门禁成功；本地相关回归 55 passed，合并树与受测树一致。
 - 已修正太阳翼能量摘要对实际 recorder 的积分、电池限幅能量核算和未支持输入的拒绝规则。时间网格校验与任务/recorder/stop 共同使用按 Basilisk 规则舍入的纳秒整数，避免浮点取整差异。新增反例在修复前失败、修复后通过。
 - 复用已有 `EpsUnifiedNativeAdapter`，充电、放电两个 subsystem TaskSpec → sealed Run Bundle 均通过 validation PASS、integrity 与逐区间能量守恒；已核查实际负载、官方模块与项目 PDU 来源。
 - 本轮环境为固定显式 Sun/Eclipse 输入，充电与放电是独立工况；不宣称轨道太阳历元、动态日蚀或运行中工况切换已验证。后续按真实输入与 recorder 证据扩展，再推进推进器、贮箱和热控设备。
+- 推进器新增 opt-in 官方 ThrusterDynamicEffector + Spacecraft + FuelTank 单机夹具，支持一次连续点火与零点火；保留每周期指令含义。密集原生推力先积分、再按输出周期抽取，燃料消耗取原生质量差。多段脉冲、事件、不完整时间网格、超步数及可能耗尽燃料的请求预检拒绝。
+- 推进器本地专项 79 passed，正式 TaskSpec 1.0.0 示例 SUCCEEDED / validation PASS / sealed / integrity，核验 201 个密集采样点。实际 CI / 合并状态以该功能 PR 最新 head 为准；不将这一首批实现扩展成 native 故障、任意脉冲或真实装机耦合已验收的声明。
 
 ### P9-N4：单机工作台产品闭环
 - 对话框选择单机 → 参数配置 → 预检 → 执行 → 曲线/指标 → 历史 Run → 数据导出。
@@ -76,7 +78,7 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - P9-N0：完成，PR #165 已合并，合并提交 `655a9d009f2d065cf349f78ecc5fb5f53bbbd16f`。
 - P9-N1：官方原生执行与 sealed Run Bundle 已 PASS；native 单机模板及 backend 表单契约测试 PASS。工作台端到端浏览器验收仍在收敛，不将单测 PASS 等同于产品闭环完成。
 - P9-N2：PR #169 已合入 main；三类传感器原生 TaskSpec/Run Bundle 已通过，CSS 保持 probe-only，等待输出合同调整。
-- P9-N3：电池、太阳翼 native component adapters 与同 SimBase PowerNode 耦合、测量摘要修正和既有 EPS 分系统 sealed 验收已完成本地验证；PR #171 待最新提交门禁。推进器、贮箱与热控仍待后续实现。
+- P9-N3：电池、太阳翼 native component adapters、同 SimBase PowerNode 耦合与既有 EPS 分系统 sealed 验收已随 PR #171 合入。推进器首批一次连续点火、零点火和正式封存验收已实现；贮箱独立 native capability 与热控原生接入仍为后续工作。
 
 ## 首阶段验收门槛
 

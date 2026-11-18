@@ -477,6 +477,10 @@ def _constraint_from_legacy(item: Mapping[str, Any], index: int) -> dict[str, An
     }
 
 
+def _uses_native_thruster(capability_id: str | None, values: Mapping[str, Any]) -> bool:
+    return capability_id == "component.thruster.v1" and values.get("physics_backend") == "basilisk_native"
+
+
 def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult:
     """Migrate a flat TaskSpec 0.1 mapping to CanonicalTaskSpec 1.0."""
 
@@ -561,7 +565,11 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     task_id = str(src.get("task_id") or "migrated_task")
     sample_s = float(sim.get("sample_s", 10.0) or 10.0)
     solver = dict(sim.get("solver") or {})
-    step_s = solver.get("step_s", sample_s)
+    if _uses_native_thruster(src.get("capability_id"), legacy_parameter_values):
+        native_step_s = legacy_parameter_values.get("native_step_s", 0.01)
+        step_s = sim.get("step_s", solver.get("step_s", native_step_s))
+    else:
+        step_s = solver.get("step_s", sample_s)
     mission = dict(src.get("mission") or {})
     spacecraft = dict(src.get("spacecraft") or {})
     if not mission and isinstance(spacecraft.get("mission"), Mapping):
@@ -812,6 +820,9 @@ def to_runtime_task_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     }
     if model.get("capability_id"):
         runtime["capability_id"] = model["capability_id"]
+    if _uses_native_thruster(runtime.get("capability_id"), runtime["parameters"]):
+        # Preserve both integration inputs so native preflight can compare them.
+        runtime_sim["step_s"] = simulation["step_s"]
     if model.get("campaign"):
         runtime["campaign"] = copy.deepcopy(model["campaign"])
     if model.get("template"):
