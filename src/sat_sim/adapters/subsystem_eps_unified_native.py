@@ -163,18 +163,14 @@ class EpsUnifiedNativeAdapter:
             return_context=True,
         )
         mode = str(_mapping(spec.get("model")).get("target", {}).get("mode") or _mapping(spec.get("target")).get("mode") or "nominal")
-        solar_module = context.modules.get("solar_power_node")
-        solar_panel_efficiency = getattr(solar_module, "panelEfficiency", None)
-        solar_panel_area_m2 = getattr(solar_module, "panelArea", None)
-        try:
-            from components.solar_panel.builder import SOLAR_CONSTANT_W_M2
-            nominal_solar_panel_area_m2 = (
-                float(config.solar_panel_area_m2)
-                if config.solar_panel_area_m2 is not None
-                else abs(float(config.solar_power_w)) / float(SOLAR_CONSTANT_W_M2)
-            )
-        except Exception:
-            nominal_solar_panel_area_m2 = None
+        event_start_times = [_event_window(event)[0] for event in (*fault_events, *degradation_events)]
+        first_event_start = min(event_start_times) if event_start_times else float("inf")
+        pre_event_solar_rows = [row for row in rows if float(row.time_s) < first_event_start]
+        nominal_solar_power_w = (
+            float(pre_event_solar_rows[0].solar_power_w)
+            if pre_event_solar_rows
+            else float(config.solar_power_w) * float(config.solar_efficiency)
+        )
         trace_rows_list: list[dict[str, Any]] = []
         for row in rows:
             fault_active = any(
@@ -191,11 +187,7 @@ class EpsUnifiedNativeAdapter:
                 "eps.nominal_battery_capacity_j": float(config.battery_capacity_wh) * 3600.0,
                 "eps.battery_soc": row.battery_soc,
                 "eps.solar_power_w": row.solar_power_w,
-                "eps.nominal_solar_power_w": float(config.solar_power_w) * float(config.solar_efficiency),
-                "eps.solar_panel_efficiency": float(solar_panel_efficiency) if solar_panel_efficiency is not None else None,
-                "eps.nominal_solar_panel_efficiency": float(config.solar_efficiency) if solar_panel_efficiency is not None else None,
-                "eps.solar_panel_area_m2": float(solar_panel_area_m2) if solar_panel_area_m2 is not None else None,
-                "eps.nominal_solar_panel_area_m2": nominal_solar_panel_area_m2 if solar_panel_area_m2 is not None else None,
+                "eps.nominal_solar_power_w": nominal_solar_power_w,
                 "eps.nominal_payload_load_w": abs(float(config.payload_power_w)) if config.payload_requested else 0.0,
                 "eps.bus_load_w": row.bus_load_w,
                 "eps.payload_load_enabled_w": row.payload_load_enabled_w,
