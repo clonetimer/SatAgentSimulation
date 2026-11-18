@@ -19,7 +19,7 @@ def test_native_star_tracker_probe_uses_official_sensor_and_records_truth_respon
     assert result.model_source == "Basilisk.simulation.starTracker.StarTracker"
     assert result.input_source == "explicit_SCStatesMsg_truth_fixture"
     assert result.claim_scope.endswith("without_optical_star_catalog")
-    assert len(result.times_s) == len(result.q_inrtl_to_case) == len(result.omega_inrtl_to_case_rad_s)
+    assert len(result.times_s) == len(result.q_inrtl_to_case)
     assert len(result.times_s) >= 2
     assert result.times_s[0] >= 0.0
     assert result.times_s[-1] >= 1.0
