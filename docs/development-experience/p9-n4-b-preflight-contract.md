@@ -34,3 +34,12 @@ N4-B 的目标不是再造一个预检服务，而是保证用户配置经过现
 - 将退化事件放入前端事件草稿结构会先被参数路径治理拒绝，无法证明 native adapter 自身拒绝。应使用 capability 已声明的物理参数路径（本例为 `degradations.adcs.reaction_wheel.friction_increase_pct`），隔离验证 native backend 的专属约束。
 
 修正原则：测试必须命中它声称验证的那一层。通用 Schema 验证、Capability Adapter 验证、Planner 编译和最终执行是不同边界，不能用其中一层的拒绝结果替代另一层的证据。
+
+
+## 第二轮失败复盘（2026-11-18）
+
+第二轮 CI 进一步暴露：
+- TaskSpec canonical schema 不允许任意添加顶层 `degradations`；测试应通过合法的 `model.target.mode=degradation` 触发 native-only nominal 限制，而不是绕过正式字段合同。
+- `/tasks/parse` 返回的错误分属通用 validation、Agent guards 和 Planner validation。产品现有 `previewForm` 也会合并这三类错误；验收测试必须同样汇总 `result.validation.errors`、`result.guards.issues` 和 `result.planning.validation.errors`，不能只看通用 Schema 结果。
+
+这些修正让测试更贴近真实产品配置与前端实际错误呈现合同。
