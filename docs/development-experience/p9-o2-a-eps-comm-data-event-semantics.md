@@ -89,3 +89,11 @@
 3. 保护动作可能改善部分系统级指标。PDU 切除 payload 后，EPS 净功率可能上升（负载减少），因此不能要求所有 fault 都使 net_power_w 更低。应按机理验证：电池容量下降、太阳阵输出下降、载荷供电被切断、shed_reason 指明 channel trip。
 4. 不用单一 QoI 的方向代替故障机理证据；要把受影响模块的直接字段、保护逻辑输出和因果标签一起纳入验收。
 5. 当前 PDU 修复与正式 profile 测试的 CI 尚在重跑；未通过前不开放用户向导。
+
+
+## O2-B/O2-C 回归中的测试工程修正（2026-11-19）
+
+- PDU 物理断言调整后，EPS 单元测试新增 pytest.approx 但遗漏 import pytest；官方 CI 明确报 NameError，已补导入。
+- 自动重构 EPS paired A/B 的 fault/degradation 分支时产生重复 else，在 pytest collection 阶段触发 SyntaxError；已重写整个条件分支，避免继续做局部字符串替换。
+- 连续退化在 start_s 的首个采样点可能尚未产生非零变化；若断言要求 active_all 每个样本都偏离标称，会错误否定正确的时间函数。退化 profile 改用 active_any，并由 O2-B paired Run Bundle 在中后段采样单独验证持续退化。
+- 这些错误都属于测试/验收代码问题，不应误报为 Basilisk 物理模型缺陷。修复后仍必须在最终 PR head 重跑完整官方 workflow。
