@@ -135,9 +135,10 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 - 官方 Basilisk 2.11.0 专项：RW 18、TaskSpec sealed Run 1、传感器 26、EPS 24、推力/贮箱/热节点 218、模板/API/Schema 14、native preflight 7；Chromium 4 passed / 4 deselected。
 - 九类单机均经真实浏览器执行与同一 Run 历史回放；设备来源和物理范围仍以表格中的 fixture/限制为准。
 
-## P9-N4-D 完整 Run Bundle 导出（候选分支）
+## P9-N4-D 完整 Run Bundle 导出（已合入 main，PR #182）
 
-- 当前分支：`feat/p9-n4-d-run-bundle-export-20261119`。
-- 新增完整封存 Run Bundle ZIP 下载；API 只允许 verified sealed bundle，逐文件核对 manifest SHA-256，并同时保留原始 manifest 与 seal。
-- 工作台仅对 sealed/integrity PASS 的 Run 显示导出入口；不改变数据集 ZIP 和诊断包的原有用途。
-- 待同一 PR head 的 API、Chromium 九设备下载与共享 CI 通过后，才将该功能标记为正式交付。
+- Merge commit：`7a90ef2b85db38cb8b64cc5ef4f72462f98a1d46`；PR head：`d2efa4756c9b47c605a09e59495e3583f712bf57`。
+- 官方 Basilisk 2.11.0 + Chromium 专项 workflow #44349903334 PASS；API 正常/未封存/篡改合同通过，Chromium 九类单机真实下载与逐文件 hash 校验通过。
+- Artifact `native-component-physical-evidence`：ID `14448486528`，12,822 bytes，SHA-256 `60cb884de58b6d66607265023854cd806d4c519b5453c13cdaf1e0f9fbc96a33`。
+- API 仅导出 sealed 且 integrity PASS 的 Run；ZIP 精确包含 `bundle_manifest.json`、`SEALED.json` 和 manifest 登记文件，不包含 `runtime/execution.lock` 或 manifest 外文件。
+- UI 的“导出 Run Bundle”仅在当前 Run 已封存且完整性校验通过时显示；“导出数据集”与“诊断包”仍保持原有语义。
