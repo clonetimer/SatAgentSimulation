@@ -8581,6 +8581,16 @@
       label: 'Basilisk 原生磁强计模板',
       prompt: '已加载官方 Basilisk Magnetometer。输入为显式均匀磁场真值，输出为传感器坐标系三轴磁场；当前不包含地球磁场环境模型，仅支持统一三轴标度。',
     },
+    'component.battery': {
+      templateId: 'component_battery_basilisk_native',
+      label: 'Basilisk 原生电池模板',
+      prompt: '已加载官方 Basilisk SimpleBattery 与 SimplePowerSink。当前采用恒定净功率和单位充放电效率，输出 SOC、储能和功率记录；不包含电芯等效电路、温度、故障或退化模型。',
+    },
+    'component.solar_panel': {
+      templateId: 'component_solar_panel_basilisk_native',
+      label: 'Basilisk 原生太阳翼模板',
+      prompt: '已加载官方 Basilisk SimpleSolarPanel。当前为单块完全展开的固定太阳翼，采用显式静态太阳方向与阴影输入；不包含太阳翼跟踪、姿态闭环或地球轨道光照环境。',
+    },
   });
 
   async function wizardChooseObject(objectId) {
@@ -9127,7 +9137,7 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
-        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的反作用轮、IMU、星敏感器和磁强计开始'],
+        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的反作用轮、IMU、星敏感器、磁强计、电池和太阳翼开始'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
