@@ -52,7 +52,8 @@ def test_eps_unified_fault_and_degradation_use_direct_basilisk_injection(monkeyp
     assert fault_active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
     assert baseline["eps.payload_load_enabled_w"] > 0.0
     assert fault_active["eps.payload_load_enabled_w"] == pytest.approx(0.0, abs=1e-9)
-    assert "payload_channel_trip" in fault_active["eps.shed_reason"]
+    assert fault_active["eps.pdu_payload_channel_enabled"] is False
+    assert "payload_channel_trip" in fault_active["eps.pdu_shed_reason"]
     assert degradation_active["eps.battery_capacity_j"] < baseline["eps.battery_capacity_j"]
     assert degradation_active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
     assert degradation_active["eps.net_power_w"] < baseline["eps.net_power_w"]
