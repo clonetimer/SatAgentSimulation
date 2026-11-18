@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/native_sensor_component.py"
+      - "src/sat_sim/adapters/component_source_native_misc.py"
+      - "src/sat_sim/capabilities/component.imu.v1.yaml"
       - "src/components/imu/builder.py"
       - "src/components/star_tracker/builder.py"
       - "tests/test_native_sensor_component.py"
