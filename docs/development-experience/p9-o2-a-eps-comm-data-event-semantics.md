@@ -152,3 +152,11 @@
 - 仅在前端 addEffect() 拒绝未授权事件还不够：未授权 effect 仍可能出现在下拉菜单，造成“看得到但不能用”的错误体验。现已在 form_schema._effect_templates 中按 capability_id + event kind 应用 GUIDED_EFFECT_ALLOWLISTS，服务端 Schema 不再返回未准入事件；前端 addEffect 仍保留第二道防线。
 - 当前 ADCS、EPS、Comm/Data 三个 native subsystem 分别维护 fault/degradation/constraint 白名单。EPS/Comm Data 的精确 allowlist 与 formal evidence profile、paired A/B 和浏览器测试参数化用例保持一致。
 - 目录测试应验证每个 kind 的完整 effect 集合，而不是只断言某个目标 effect 存在；这样新注册但未完成证据准入的 effect 不会意外进入普通向导。
+
+
+## O2-D 六条真实 Chromium 旅程首轮通过（2026-11-19）
+
+- 官方 Basilisk native workflow 的浏览器阶段实际运行 `tests/test_guided_task_workspace_browser.py`，结果 `12 passed, 4 deselected`，总 job success。collect-only 精确列出 EPS nominal/fault/degradation 与 Comm/Data nominal/fault/degradation 六个参数化用例；不是仅收集而不执行。
+- 六条用例都走过真实 Chromium UI、TestClient API 代理、异步 Basilisk 执行、sealed Run Bundle 下载和 Run Center 历史重开。故障/退化用例还验证 TaskSpec 时间窗与 magnitude、`validation_outcome.injection_evidence`、活动期直接遥测、曲线 manifest 和 FMEA provenance。
+- EPS fault browser 断言直接检查 PDU 通道关闭、载荷负载为零且 shed_reason 包含 `payload_channel_trip`；EPS degradation 检查电池有效容量与太阳阵输出相对 nominal 降低；Comm/Data fault/degradation 检查 SimpleTransmitter 存储节点实际码率低于 nominal 参照。
+- 首轮 workflow 已成功，但 browser 测试结果仅在 Actions 日志中；为满足 O2-E 可移交证据要求，下一轮将 JUnit XML 纳入 `native-component-physical-evidence` artifact，并对 6+1 目标用例数量与 skipped/failure 状态做归档前断言。
