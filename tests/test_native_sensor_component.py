@@ -279,6 +279,17 @@ def test_native_imu_and_magnetometer_execute_through_sealed_run_bundle(tmp_path)
             "expected_fields": ["adcs.imu.gyro_x_rad_s", "adcs.imu.accel_x_m_s2"],
         },
         {
+            "task_id": "p9n2_native_star_tracker_run_bundle",
+            "capability_id": "component.star_tracker.v1",
+            "target": {"level": "component", "name": "star_tracker", "mode": "nominal"},
+            "parameters": {
+                "physics_backend": "basilisk_native",
+                "true_sigma_bn": [0.04, -0.01, 0.02],
+                "drift_rate_mrp_s": [0.0, 0.0, 0.0],
+            },
+            "expected_fields": ["adcs.star_tracker.sigma_x", "adcs.star_tracker.valid"],
+        },
+        {
             "task_id": "p9n2_native_magnetometer_run_bundle",
             "capability_id": "component.magnetometer.v1",
             "target": {"level": "component", "name": "magnetometer", "mode": "nominal"},
