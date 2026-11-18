@@ -35,6 +35,6 @@
 
 ## 首次 Chromium 失败复盘
 
-第一次真实浏览器 Run 已经执行成功、Run Bundle 已封存，失败发生在验收断言：测试错误地期待 sensor 的 `summary.json` 顶层含有 `physics_backend`。实际合同将后端与模型来源保存在 `summary.adapter_metadata`，与前端 `nativeProvenance` 显示逻辑一致。已将断言修正为检查 `adapter_metadata.physics_backend` 和 `adapter_metadata.native_provenance`，不改动运行时模型或结果格式。
+第一次真实浏览器 Run 已经执行成功、Run Bundle 已封存，失败发生在验收断言：测试错误地期待 sensor 的 `summary.json` 顶层含有 `physics_backend`。实际合同将详细后端与模型来源保存在 `summary.adapter_metadata`，前端 `nativeProvenance` 也使用该证据字段。为使不同原生单机的结果摘要一致，三个传感器 native 分支现同时在 `summary.physics_backend` 暴露归一化后端标记，并保留 `adapter_metadata.physics_backend/native_provenance` 的详细来源证据。浏览器验收同时检查两层字段。
 
-经验：不能为了让测试通过而把 metadata 任意复制到 summary 顶层；应遵循 Run Bundle 既有来源合同，确认 UI 与 API 使用同一证据字段。
+经验：后端类型是通用结果字段，适合放在 summary 顶层；模型来源、输入来源和 fidelity limits 则留在 adapter_metadata。不要把所有 metadata 无差别复制到 summary 顶层。
