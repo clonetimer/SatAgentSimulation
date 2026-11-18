@@ -2028,3 +2028,8 @@ html[data-theme="light"] .graph-node { box-shadow: 0 10px 24px rgba(50,80,95,.14
 .wizard-native-preset strong{font-size:13px;font-weight:650}
 .wizard-native-preset span{font-size:12px;line-height:1.5;color:var(--text-secondary,#8a9bad)}
 @media(max-width:640px){.wizard-native-preset{align-items:stretch;flex-direction:column}.wizard-native-preset .button{width:100%}}
+
+
+/* P9-N4: keep the historical Run path visible after a guided Run completes. */
+.wizard-result-navigation{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--muted);font-size:11px}
+@media(max-width:640px){.wizard-result-navigation{align-items:stretch;flex-direction:column}.wizard-result-navigation .button{width:100%}}
