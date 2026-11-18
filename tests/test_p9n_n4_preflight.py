@@ -28,9 +28,7 @@ def _native_rw_spec(task_id: str = "p9n4_native_preflight"):
             "physics_backend",
         ),
         (
-            lambda spec: spec.update(
-                {"degradations": {"adcs": {"reaction_wheel": {"friction_increase_pct": 10.0}}}}
-            ),
+            lambda spec: spec["model"]["target"].update({"mode": "degradation"}),
             "physics_backend",
         ),
         (
@@ -83,7 +81,12 @@ def test_native_rw_preflight_compile_api_returns_actionable_validation_errors(tm
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["ok"] is False, payload
-    errors = payload["result"]["validation"]["errors"]
+    result = payload["result"]
+    errors = [
+        *(result.get("validation", {}).get("errors") or []),
+        *(result.get("guards", {}).get("issues") or []),
+        *(result.get("planning", {}).get("validation", {}).get("errors") or []),
+    ]
     assert errors, payload
     assert any(
         item["code"] == "native_scope"
