@@ -121,8 +121,11 @@ outputs:
   - time_s
   - eps.battery_storage_j
   - eps.battery_capacity_j
+  - eps.nominal_battery_capacity_j
   - eps.battery_soc
   - eps.solar_power_w
+  - eps.nominal_solar_power_w
+  - eps.nominal_payload_load_w
   - eps.bus_load_w
   - eps.payload_load_enabled_w
   - eps.adcs_load_enabled_w
@@ -153,7 +156,11 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - eps.battery_capacity_j
+    - eps.nominal_battery_capacity_j
     - eps.solar_power_w
+    - eps.nominal_solar_power_w
+    - eps.payload_load_enabled_w
+    - eps.nominal_payload_load_w
     - eps.net_power_w
     - label.fault_active
     verification: declared
@@ -163,7 +170,9 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - eps.battery_capacity_j
+    - eps.nominal_battery_capacity_j
     - eps.solar_power_w
+    - eps.nominal_solar_power_w
     - eps.net_power_w
     - label.degradation_active
     verification: declared
