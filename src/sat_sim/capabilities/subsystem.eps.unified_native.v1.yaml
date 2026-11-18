@@ -125,6 +125,10 @@ outputs:
   - eps.battery_soc
   - eps.solar_power_w
   - eps.nominal_solar_power_w
+  - eps.solar_panel_efficiency
+  - eps.nominal_solar_panel_efficiency
+  - eps.solar_panel_area_m2
+  - eps.nominal_solar_panel_area_m2
   - eps.nominal_payload_load_w
   - eps.bus_load_w
   - eps.payload_load_enabled_w
@@ -183,6 +187,8 @@ operator:
       - eps.nominal_battery_capacity_j
       - eps.solar_power_w
       - eps.nominal_solar_power_w
+      - eps.solar_panel_area_m2
+      - eps.nominal_solar_panel_area_m2
       - eps.payload_load_enabled_w
       - eps.nominal_payload_load_w
       - eps.net_power_w
@@ -192,6 +198,8 @@ operator:
       - eps.nominal_battery_capacity_j
       - eps.solar_power_w
       - eps.nominal_solar_power_w
+      - eps.solar_panel_efficiency
+      - eps.nominal_solar_panel_efficiency
       - eps.net_power_w
       - label.degradation_active
   limitations:
