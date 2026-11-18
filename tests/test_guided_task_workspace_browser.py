@@ -292,10 +292,9 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             ]
             assert len(native_runs) == 1, native_runs
             run_id = native_runs[0]["run_id"]
-            additional_tools = page.locator("#wizardAdditionalTools")
-            if additional_tools.get_attribute("open") is None:
-                additional_tools.locator(":scope > summary").click()
-            additional_tools.locator('[data-wizard-goal="runs"]').click()
+            history_button = page.locator("#wizardOpenRunCenterBtn")
+            history_button.wait_for(state="visible", timeout=10000)
+            history_button.click()
             page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
             run_row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
             run_row.wait_for(state="visible", timeout=15000)
