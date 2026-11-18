@@ -5,9 +5,9 @@
 | 单机/设备 | 当前 capability / 入口 | 当前实际模型来源 | 当前可独立执行 | 当前边界 / P9-N 处理 |
 |---|---|---|---|---|
 | 反作用轮 | `component.reaction_wheel.v1` | 默认项目 source-native Python；显式 `physics_backend=basilisk_native` 时官方 Basilisk Spacecraft + ReactionWheelStateEffector | 是，有限时长 TaskSpec；1/3/4 轮 native 路径 | 1-wheel 原生 Run Bundle 已 PASS；新增 `component_reaction_wheel_basilisk_native` 工作台模板；Native 仅 nominal，无 native fault/degradation/constraint/profile |
-| IMU | `component.imu.v1` | 默认项目 reference；opt-in 官方 Basilisk ImuSensor 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates 角速度/非保守加速度 truth→AngVelPlatform + AccelPlatform recorder；nominal only，identity mounting、零杆臂/无随机噪声 |
-| 星敏感器 | `component.star_tracker.v1` | 默认项目 reference；opt-in 官方 Basilisk StarTracker 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 官方 quaternion→MRP trace；valid 仅表示 recorder sample 有限且归一化，不含星表/光学成像/FOV 盲区场景 |
-| 磁强计 | `component.magnetometer.v1` | 默认项目 reference；opt-in 官方 Basilisk Magnetometer 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates + 均匀 MagneticFieldMsg→tam_S；统一 scale/nominal only，尚未接入地球磁场环境模型 |
+| IMU | `component.imu.v1` | 默认项目 reference；opt-in 官方 Basilisk ImuSensor 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates 角速度/非保守加速度 truth→AngVelPlatform + AccelPlatform recorder；nominal only，identity mounting、零杆臂/无随机噪声；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
+| 星敏感器 | `component.star_tracker.v1` | 默认项目 reference；opt-in 官方 Basilisk StarTracker 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 官方 quaternion→MRP trace；valid 仅表示 recorder sample 有限且归一化，不含星表/光学成像/FOV 盲区场景；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
+| 磁强计 | `component.magnetometer.v1` | 默认项目 reference；opt-in 官方 Basilisk Magnetometer 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates + 均匀 MagneticFieldMsg→tam_S；统一 scale/nominal only，尚未接入地球磁场环境模型；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
 | 太阳敏感器 | `component.sun_sensor.v1` | 项目 source-native；整星图中有官方 Basilisk CoarseSunSensor + Sun ephemeris | 是，项目模型可独立运行 | P9-N2 已建官方 CSS probe：显式 Sun/Eclipse/SCStates 消息→OutputData；暂不接入 TaskSpec native backend，因为现有 capability 还要求三轴方向估计而官方 CSS 只输出标量强度；尚未接入 SPICE 轨道历元和真实遮挡几何 |
 | 电池 | `component.battery.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleBattery + SimplePowerSink | 是，有限时长 TaskSpec / sealed Run Bundle | nominal、恒定净功率、unity efficiency、SOC [0,1]；限幅能量按 recorder 净功率/储能差核算，不宣称真实分流电路 |
 | 太阳翼 | `component.solar_panel.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleSolarPanel | 是，有限时长 TaskSpec / sealed Run Bundle | 单块完全展开固定板、静态 Sun/Eclipse、无 tracking；摘要能量按 recorder 积分；非法方向、数量、采样网格与未实现事件被拒绝 |
