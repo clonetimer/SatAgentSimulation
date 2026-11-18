@@ -42,3 +42,38 @@ def test_native_star_tracker_probe_rejects_invalid_inputs_before_basilisk_import
 
     with pytest.raises(ValueError, match=reason):
         run_native_star_tracker_probe(**kwargs)
+
+
+def test_native_imu_probe_records_official_gyro_against_prescribed_truth():
+    pytest.importorskip("Basilisk")
+    from sat_sim.bsk_engine.native_sensor_component import run_native_imu_probe
+
+    result = run_native_imu_probe(
+        duration_s=1.0,
+        sample_s=0.1,
+        truth_sigma_bn=(0.0, 0.0, 0.0),
+        truth_omega_bn_b_rad_s=(0.012, -0.004, 0.003),
+    )
+    assert result.model_source == "Basilisk.simulation.imuSensor.ImuSensor"
+    assert result.input_source == "explicit_SCStatesMsg_truth_fixture"
+    assert result.claim_scope.endswith("without_navigation_or_closed_loop")
+    assert len(result.times_s) == len(result.angular_velocity_platform_rad_s)
+    assert len(result.times_s) >= 2
+    for measured in result.angular_velocity_platform_rad_s:
+        assert measured == pytest.approx(result.truth_omega_bn_b_rad_s, abs=1e-6)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "reason"),
+    [
+        ({"duration_s": -1.0}, "DURATION"),
+        ({"sample_s": 2.0}, "SAMPLE"),
+        ({"truth_omega_bn_b_rad_s": (0.0, 0.0)}, "TRUTH_OMEGA"),
+        ({"sensor_pos_b_m": (0.1, 0.0, 0.0)}, "NONZERO_SENSOR_OFFSET"),
+    ],
+)
+def test_native_imu_probe_rejects_unsupported_inputs(kwargs, reason):
+    from sat_sim.bsk_engine.native_sensor_component import run_native_imu_probe
+
+    with pytest.raises(ValueError, match=reason):
+        run_native_imu_probe(**kwargs)
