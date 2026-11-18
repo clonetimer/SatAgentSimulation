@@ -834,16 +834,19 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
         (
             "component.imu",
             "Basilisk.simulation.imuSensor.ImuSensor",
+            "IMU",
             ("adcs.imu.gyro_x_rad_s", "adcs.imu.accel_x_m_s2"),
         ),
         (
             "component.star_tracker",
             "Basilisk.simulation.starTracker.StarTracker",
+            "星敏感器",
             ("adcs.star_tracker.sigma_x", "adcs.star_tracker.valid"),
         ),
         (
             "component.magnetometer",
             "Basilisk.simulation.magnetometer.Magnetometer",
+            "磁强计",
             ("adcs.magnetometer.field_x_t", "adcs.magnetometer.field_norm_t"),
         ),
     )
@@ -857,7 +860,7 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
     with TestClient(app) as client, playwright.sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True, executable_path=executable)
         try:
-            for object_id, provenance, expected_fields in cases:
+            for object_id, provenance, display_name, expected_fields in cases:
                 page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
                 page.on("pageerror", lambda error: errors.append(str(error)))
 
@@ -895,7 +898,7 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
                 backend.wait_for(state="visible", timeout=15000)
                 assert backend.input_value() == "basilisk_native"
                 assert page.locator("#wizardEventHost").evaluate("(node) => node.classList.contains('hidden')")
-                assert provenance.replace("Basilisk.simulation.", "") in page.locator("#wizardConversation").inner_text()
+                assert display_name in page.locator("#wizardConversation").inner_text()
 
                 page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
                 page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
