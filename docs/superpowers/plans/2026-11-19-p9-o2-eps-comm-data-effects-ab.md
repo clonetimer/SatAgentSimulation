@@ -135,3 +135,11 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 - 更新分系统选择后的能力边界说明，明确 EPS 为受控组合故障，Comm/Data 只验证 SimpleTransmitter.nodeBaudRate，不扩张为 RF/链路模型。
 - 原有两条 nominal Chromium 旅程扩展为六条 parameterized journey（EPS/Comm-Data 各 nominal/fault/degradation），增加事件面板隔离、时间窗与 magnitude 编辑、正式证据 PASS、直接 telemetry、曲线选择、FMEA、Run Bundle seal/hash 与 Run Center 同一 Run 重开检查。
 - CI collect-only 已从“至少找到测试名”提升为精确要求六条目标旅程全部收集。最新 browser workflow 正在对新 head 运行；在六条实际 Chromium 旅程全部 PASS 前，不宣布 O2-D 完成。
+
+
+## O2-D 首轮真实 Chromium 结果与 O2-E 证据归档（2026-11-19）
+
+- 官方 workflow run `44415420726`，PR head `7e991a3c4641241c38f18423f7ecce130f24ca4f`，结论 success。Chromium 实际执行步骤 22：`12 passed, 4 deselected`；其中 EPS/Comm-Data 六条参数化用户旅程全部被精确收集并在真实 Chromium 中通过（EPS nominal/fault/degradation；Comm/Data nominal/fault/degradation），另有 ADCS 与既有单机旅程回归通过。
+- 六条目标旅程逐条执行：向导对象选择、故障/退化白名单隔离、时间窗/magnitude 编辑、正式 TaskSpec 校验、异步 Basilisk Run、validation/effect evidence、直接遥测与曲线、FMEA、sealed Run Bundle 下载和逐文件 SHA-256、Run Center 同一 Run 重开。
+- 本轮原 artifact `native-component-physical-evidence` ID `14480197134`，SHA-256 `42c906c993499f6a365d4919d5d20a39735dad5760b74ddd38ef0c1720735c9a`，大小 38,264 bytes。原 artifact 包含 O2-B / O2-C JUnit 与结构化 A/B 证据，但未包含 O2-D browser JUnit；因此不把该 artifact 作为最终 O2-E 完整归档。
+- O2-E 补充：CI 现在将浏览器测试输出到 `reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml`，并在上传前断言 JUnit 中恰有 6 条 EPS/Comm-Data 旅程和 1 条 ADCS 旅程，且无 failure/skipped；同一 artifact 将包含该报告。此补强提交后必须在新 head 重跑完整官方工作流，最终 artifact ID/SHA 以新 head 为准。
