@@ -133,3 +133,47 @@ def test_native_environment_sensor_probes_reject_invalid_inputs(kwargs, reason):
     function = run_native_magnetometer_probe if "truth_magnetic_field_n_t" in kwargs or "scale_factor" in kwargs else run_native_coarse_sun_sensor_probe
     with pytest.raises(ValueError, match=reason):
         function(**kwargs)
+
+
+def test_imu_component_adapter_routes_explicit_native_backend_into_run_result():
+    pytest.importorskip("Basilisk")
+    from sat_sim.adapters.component_source_native_misc import ImuAdapter
+
+    spec = {
+        "task_id": "p9n2-native-imu-adapter",
+        "capability_id": "component.imu.v1",
+        "task_type": "component",
+        "target": {"level": "component", "name": "imu", "mode": "nominal"},
+        "simulation": {"duration_s": 1.0, "sample_s": 0.1},
+        "parameters": {
+            "physics_backend": "basilisk_native",
+            "true_gyro_rad_s": [0.012, -0.004, 0.003],
+            "true_accel_m_s2": [0.2, -0.1, 0.05],
+            "gyro_scale": [1.0, 1.0, 1.0],
+            "accel_scale": [1.0, 1.0, 1.0],
+            "gyro_bias_rad_s": [0.0, 0.0, 0.0],
+            "accel_bias_m_s2": [0.0, 0.0, 0.0],
+        },
+    }
+    result = ImuAdapter().run(spec)
+    assert result.metadata["physics_backend"] == "basilisk_native"
+    assert result.metadata["native_provenance"] == "Basilisk.simulation.imuSensor.ImuSensor"
+    assert result.summary["capability_id"] == "component.imu.v1"
+    assert result.trace_rows
+    assert result.trace_rows[-1]["adcs.imu.gyro_x_rad_s"] == pytest.approx(0.012, abs=1e-6)
+    assert result.trace_rows[-1]["adcs.imu.accel_x_m_s2"] == pytest.approx(0.2, abs=1e-6)
+
+
+def test_imu_component_adapter_fails_closed_for_native_fault_mode():
+    from sat_sim.adapters.component_source_native_misc import ImuAdapter
+
+    spec = {
+        "capability_id": "component.imu.v1",
+        "task_type": "component",
+        "target": {"level": "component", "name": "imu", "mode": "fault"},
+        "simulation": {"duration_s": 1.0, "sample_s": 0.1},
+        "parameters": {"physics_backend": "basilisk_native"},
+        "faults": [{"fault_type": "bias_step", "start_s": 0.0}],
+    }
+    with pytest.raises(ValueError, match="ONLY_SUPPORTS_NOMINAL"):
+        ImuAdapter().run(spec)
