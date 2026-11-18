@@ -384,8 +384,12 @@ def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardOptions [data-wizard-goal='component_native']").click()
             page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").wait_for(timeout=20000)
-            assert page.locator("#wizardOptions [data-wizard-object]").count() == 6
-            for native_object in ("component.reaction_wheel", "component.imu", "component.star_tracker", "component.magnetometer", "component.battery", "component.solar_panel"):
+            assert page.locator("#wizardOptions [data-wizard-object]").count() == 9
+            for native_object in (
+                "component.reaction_wheel", "component.imu", "component.star_tracker", "component.magnetometer",
+                "component.battery", "component.solar_panel", "component.thruster", "component.fuel_tank",
+                "component.thermal_node",
+            ):
                 assert page.locator(f"#wizardOptions [data-wizard-object='{native_object}']").is_visible()
             page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").click()
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=20000)
