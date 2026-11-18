@@ -1552,13 +1552,59 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
             assert source_text in page.locator("#wizardConversation").inner_text()
 
-            # N5-E's event allowlist is ADCS-only. EPS and Comm/Data stay nominal-only.
-            assert page.locator("#wizardFaultPanel").evaluate("(node) => node.classList.contains('hidden')")
-            assert page.locator("#wizardEventHost").evaluate("(node) => node.classList.contains('hidden')")
+            # O2-D exposes only the two formally qualified effects for each subsystem.
+            fault_panel = page.locator("#wizardFaultPanel")
+            assert not fault_panel.evaluate("(node) => node.classList.contains('hidden')")
+            assert not page.locator("#wizardEventHost").evaluate("(node) => node.classList.contains('hidden')")
             assert page.locator("#wizardNativeAdcsFaultNote").evaluate("(node) => node.classList.contains('hidden')")
+            if fault_panel.get_attribute("open") is None:
+                fault_panel.locator(":scope > summary").click()
+
+            allowed_effects = {
+                "fault": {
+                    "subsystem.eps": {"generation_storage_distribution_failure"},
+                    "subsystem.comm_data": {"transmitter_rate_loss"},
+                },
+                "degradation": {
+                    "subsystem.eps": {"energy_margin_degradation"},
+                    "subsystem.comm_data": {"transmitter_rate_degradation"},
+                },
+            }
+            for kind, by_object in allowed_effects.items():
+                page.locator("#effectKind").select_option(kind)
+                visible_effects = set(page.locator("#effectSelect option").evaluate_all("(items) => items.map((item) => item.value)"))
+                assert visible_effects == by_object[object_id], (kind, visible_effects)
+            if event_kind:
+                page.locator("#effectKind").select_option(event_kind)
+                page.locator("#effectSelect").select_option(event_effect)
+                page.locator("#addEffectBtn").click()
+                event_card = page.locator("#eventList .event-card").first
+                event_card.wait_for(state="visible", timeout=10000)
+                assert event_card.get_attribute("data-event-kind") == event_kind
+
+                def set_event_number(field: str, value: str) -> None:
+                    control = event_card.locator(f'input[data-event-field="{field}"]')
+                    control.fill(value)
+                    control.dispatch_event("change")
+
+                set_event_number("start_s", "5")
+                set_event_number("end_s", "15")
+                magnitude_input = event_card.locator('input[data-event-field="magnitude"]')
+                if magnitude_input.count():
+                    magnitude_input.fill("0.8")
+                    magnitude_input.dispatch_event("change")
 
             form = page.locator("#wizardParameterHost #dynamicForm")
             form.wait_for(state="attached", timeout=15000)
+            for plot_field in sorted(plot_fields):
+                plot_search = page.locator("#plotOptions input[type='search']")
+                plot_search.fill(plot_field)
+                plot_option = page.locator("#plotOptions label.check-option").filter(has_text=plot_field)
+                plot_option.wait_for(state="visible", timeout=10000)
+                plot_checkbox = plot_option.locator('input[type="checkbox"]')
+                if not plot_checkbox.is_checked():
+                    plot_checkbox.check()
+                plot_search.fill("")
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
             page.wait_for_function(
