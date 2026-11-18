@@ -1,7 +1,7 @@
 # P9-N4：单机工作台产品闭环
 
 日期：2026-11-19
-状态：N4-A/B/C1/C2/C3 已合入 main；N4-D 正在补齐完整 Run Bundle 导出和九类设备端到端验收。
+状态：P9-N4-A/B/C1/C2/C3/D 全部已合入 main；九类单机工作台的物理执行、历史回放和完整 Run Bundle 导出已通过专项验收。下一阶段进入 P9-N5 分系统独立仿真。
 
 ## 目标
 
@@ -68,7 +68,7 @@
 - [ ] 结果曲线与关键指标来自原生 recorder，且单位正确。
 - [ ] 结果明确区分配置、原生测量和派生统计。
 - [ ] 历史 Run 重开后 provenance 与曲线保持一致。
-- [ ] 数据/Run Bundle 导出可复核，导出脚本保持同一 TaskSpec/backend 身份。
+- [x] 数据/Run Bundle 导出可复核，导出脚本保持同一 TaskSpec/backend 身份。
 - [ ] Chromium 真实旅程与官方 Basilisk 2.11.0 物理门禁在同一最终 head 通过。
 
 ## 历史 PR 清理
@@ -147,13 +147,15 @@ EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口�
 - 真实浏览器旅程覆盖反作用轮、IMU、星敏、磁强计、蓄电池、太阳电池阵、推力器、燃料贮箱、热节点；验证 SUCCEEDED、PASS、sealed/integrity、native provenance、recorder plot manifest 与同一 Run 历史回放。
 - 证据 artifact native-component-physical-evidence：ID 14435583858，12,805 bytes，SHA-256 b2de89435ea80883d8439cfb32f70d5fe4266fa4056ffdbbb13429f45994a01c。
 
-## N4-D：完整 Run Bundle 导出（2026-11-19）
+## N4-D 最终验收与合并（2026-11-19）
 
-当前候选分支 feat/p9-n4-d-run-bundle-export-20261119 正在补齐最后一项用户交付：
+- PR #182 最终 head：`d2efa4756c9b47c605a09e59495e3583f712bf57`；Squash merge：`7a90ef2b85db38cb8b64cc5ef4f72462f98a1d46`。
+- 官方 Basilisk 2.11.0 专项 workflow #44349903334 PASS：反作用轮 18、sealed TaskSpec Run 1、传感器 26、EPS 24、推进/贮箱/热节点 218、模板/API/Schema 14、native preflight 8。
+- Chromium 专项 4 passed / 4 deselected；两个被选中的 guided native journeys 覆盖反作用轮与其余八类设备，并从结果面板下载完整 Run Bundle、逐文件核对 SHA-256。
+- API 验证正常导出、manifest/seal/Run ID 绑定、精确 ZIP 成员集合、逐文件 SHA-256、未封存拒绝和篡改拒绝。
+- Artifact `native-component-physical-evidence`：ID `14448486528`，12,822 bytes，SHA-256 `60cb884de58b6d66607265023854cd806d4c519b5453c13cdaf1e0f9fbc96a33`。
+- 完整 Run Bundle 下载仅允许 sealed 且 integrity PASS；ZIP 包含原始 manifest、seal 和 manifest 中的全部文件，不包含运行锁或 manifest 外临时文件。
 
-- 新增 GET /runs/{run_id}/bundle/download，仅允许已封存且 verify_run_bundle 完整性通过的 Run 导出。
-- ZIP 保留原始 bundle_manifest.json、SEALED.json 和 manifest 中的全部文件；导出期间逐文件重新计算 SHA-256，任何文件变化、缺失、路径异常或身份不匹配均拒绝导出。
-- 不打包运行锁，不遍历/导出 manifest 之外的临时文件；Run ID 限制为单个可移植路径段。
-- 工作台仅在 sealed=true 且 integrity.ok=true 时显示“导出 Run Bundle”。原有“导出数据集”和“诊断包”语义保持不变。
-- API 专项验证完整 ZIP、manifest/seal 绑定、所有文件哈希、未封存拒绝和篡改拒绝；Chromium 真实旅程逐个下载九类单机 Run 并校验 ZIP 内容。
-- 本阶段仍以同一 PR head 的 CI 和浏览器下载证据为准；通过后再关闭 N4-D，进入 P9-N 分系统独立仿真路线评估。
+## 下一阶段：P9-N5 分系统独立仿真
+
+N4 完成后，下一条主线建议从 ADCS 分系统闭环开始：复用已验收的反作用轮、IMU、星敏和磁强计，接入 Basilisk spacecraft、姿态动力学、姿态控制器、传感器测量与执行机构命令，形成一个独立可运行、可观察、可封存的 ADCS subsystem Run。必须先冻结参考坐标系、安装姿态、truth/measurement 边界和控制周期；不把单机 fixture 简单拼接成“分系统已完成”。
