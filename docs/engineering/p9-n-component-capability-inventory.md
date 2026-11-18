@@ -156,3 +156,14 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 - 官方 Basilisk 2.11.0：闭环/坐标系 2 passed，sealed Run Bundle（identity/non-identity mounts）2 passed；Chromium 5 passed、4 deselected。
 - PR 20 个 workflow runs：19 success、1 条件性 skip、0 failure；artifact ID `14454689028`，13,642 bytes，SHA-256 `4ccf8d0f7c53546be477930859bc55b536225f5bc654cbb7a25b3a704ee6fc32`。
 - 未准入：RW jamming/motor failure、gyro bias/noise、torque authority loss 的物理效果尚需独立 A/B；实时 ADCS、整星 CAD 惯量/装配和跨分系统耦合仍未开放。
+
+
+## P9-O1 EPS / Comm-Data 向导准入（候选实施，2026-11-19）
+
+- N5 已完成并合入 main（PR #183/#184/#185）。
+- EPS (`subsystem.eps.unified_native.v1`) 与 Comm/Data (`subsystem.comm_data.unified_native.v1`) 的官方 Basilisk adapters、注册模板、sealed Run 和原生多速率 recorder 已存在；当前缺口是快速仿真分系统向导此前只映射 ADCS。
+- 候选分支 `feat/p9-o1-native-subsystem-workbench-r2-20261119` 增加 EPS / Comm-Data 的用户入口映射、服务端模板投影、nominal-only 事件隔离、API Run Bundle 合同和 Chromium 真实旅程。
+- EPS 来源边界：SimpleSolarPanel / SimpleBattery / SimplePowerSink 为官方 Basilisk；PDU/负载切除是项目原生 SysModel。
+- Comm/Data 来源边界：SimpleInstrument / SimpleStorageUnit / SimpleTransmitter 为官方 Basilisk；当前不宣称地面站过站、RF 几何或 BER/PER 闭环。
+- 两个分系统分别独立执行，不代表跨分系统同图耦合。EPS/Comm-Data 事件菜单仍隐藏，等待各自物理 A/B 与独立事件证据。
+- 正式准入以同一 PR head 的官方 Basilisk 2.11.0、sealed Run API、真实 Chromium 下载/历史回放和共享回归全部通过为准。
