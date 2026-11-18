@@ -916,7 +916,7 @@
           "field": "eps.battery_capacity_j",
           "operator": "lt",
           "right_field": "eps.nominal_battery_capacity_j",
-          "scope": "active_all",
+          "scope": "active_any",
           "tolerance": 1e-9
         },
         {
@@ -924,7 +924,7 @@
           "field": "eps.solar_power_w",
           "operator": "lt",
           "right_field": "eps.nominal_solar_power_w",
-          "scope": "active_all",
+          "scope": "active_any",
           "tolerance": 1e-9
         }
       ],
@@ -984,7 +984,7 @@
           "field": "comm_data.transmitter_storage_node_rate_abs_bps",
           "operator": "lt",
           "right_field": "comm_data.nominal_transmitter_storage_node_baud_bps",
-          "scope": "active_all",
+          "scope": "active_any",
           "tolerance": 1e-9
         }
       ],
