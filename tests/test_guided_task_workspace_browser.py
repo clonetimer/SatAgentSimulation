@@ -1234,6 +1234,8 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
             page.locator("#creatorView").wait_for(state="visible", timeout=20000)
             replayed = page.locator("#activeRunCard")
             replayed.wait_for(state="visible", timeout=15000)
+            run_metadata = replayed.locator("details.compact-run-metadata")
+            run_metadata.locator("summary").click()
             assert run_id in replayed.inner_text()
             assert "adcs" in replayed.inner_text().lower()
             page.locator('[data-result-tab="charts"]').click()
