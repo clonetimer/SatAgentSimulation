@@ -98,3 +98,10 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - P9-M4 工程几何审查仍独立推进。P9-N 可以先做无 CAD 依赖的物理单机实验；完成后再把经审查的 CAD/安装坐标接入单机视图。
 - P9-O 分系统仿真后续复用 component capability 与物理接口；本轮只复用已有 EPS 分系统图补证据，不扩展任意跨设备或跨分系统闭环。
 - 整星 UnifiedNativeRuntime 保持现有运行图，不因 component 单机能力而拆分或替换。
+
+
+## P9-N1 guided single-component product-flow update (2026-11-18)
+
+- The guided native single-component flow is being integrated as the first product slice of P9-N4. It lists only the independently verified Basilisk-native reaction wheel; it does not equate all component capabilities with native support.
+- The flow must fetch the registered native template through the public scenario-template API and project it through the existing schema form. The actual run still uses the canonical TaskSpec, validator, planner, registered adapter and sealed Run Bundle.
+- Product acceptance requires a UI-originated finite native Run, recorder-derived wheel-speed and applied-torque curves, backend provenance, and reopening the same sealed Run from history. A preset-selection-only browser test is insufficient.
