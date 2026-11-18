@@ -30,7 +30,7 @@
 
 ## 验收状态
 
-当前代码新增三个注册模板和浏览器旅程；最终准入以 PR 的官方 Basilisk 2.11.0 物理/Run Bundle 测试、真实 Chromium Run 及历史证据为准。在 CI 完成前不宣称 N4-C1 已验收。
+PR #179 的官方 Basilisk 2.11.0 物理/Run Bundle、三模板/API、native preflight 和 Chromium 三传感器真实 Run/历史回放专项已 PASS（workflow #44310950498）。PR 的共享整星回归仍须全部通过后才能合并；N4-C2 及后续设备尚未完成。
 
 
 ## 首次 Chromium 失败复盘
@@ -38,3 +38,8 @@
 第一次真实浏览器 Run 已经执行成功、Run Bundle 已封存，失败发生在验收断言：测试错误地期待 sensor 的 `summary.json` 顶层含有 `physics_backend`。实际合同将详细后端与模型来源保存在 `summary.adapter_metadata`，前端 `nativeProvenance` 也使用该证据字段。为使不同原生单机的结果摘要一致，三个传感器 native 分支现同时在 `summary.physics_backend` 暴露归一化后端标记，并保留 `adapter_metadata.physics_backend/native_provenance` 的详细来源证据。浏览器验收同时检查两层字段。
 
 经验：后端类型是通用结果字段，适合放在 summary 顶层；模型来源、输入来源和 fidelity limits 则留在 adapter_metadata。不要把所有 metadata 无差别复制到 summary 顶层。
+
+
+## 修复后 CI 实证（2026-11-18）
+
+PR #179 native component gate #44310950498：18 项 RW 物理 A/B、26 项传感器物理/Run Bundle、12 项模板/API/表单、7 项 N4-B 预检合同、Chromium 4 passed / 4 deselected，均通过。物理/JUnit artifact `native-component-physical-evidence` 已归档。首次 Chromium 暴露的 StarTracker/Magnetometer summary backend 缺失已修复，并由真实 Run + sealed detail + Run Center 历史回放复验。
