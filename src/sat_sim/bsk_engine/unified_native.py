@@ -2305,6 +2305,7 @@ class UnifiedNativeRuntime:
             "star_tracker_measurement": "official_qInrtl2Case_N_to_C_transformed_with_dcm_CB_to_body_B",
             "imu_angular_rate_measurement": "official_AngVelPlatform_in_P_transformed_with_dcm_PB_transpose_to_body_B",
             "imu_startup_validity": "first_zeroed_Basilisk_2_11_0_update_is_invalid_until_IMU_message_write_time_advances; estimator_holds_last_valid_body_rate",
+            "imu_validity_semantics": "invalid_until_new_sample_time; also_invalid_for_signal_loss_stuck_zero_or_axis_dropout; bias_and_noise_degradations_remain_measured_samples",
             "magnetometer_measurement": "official_tam_S_in_S_transformed_with_dcm_SB_transpose_to_body_B_and_fused_with_magField_N",
             "sun_earth_measurements": "project_ideal_geometry_vectors_from_environment_and_spacecraft_truth_not_official_CSS_direction",
             "magnetometer_used_sample_count": sum(int(row.get("adcs.fusion.magnetometer_used", 0)) for row in rows),
