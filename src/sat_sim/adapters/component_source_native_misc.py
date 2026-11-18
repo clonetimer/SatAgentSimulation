@@ -1150,6 +1150,61 @@ class ImuAdapter(_BaseComponentAdapter):
         faults = _normalized_events(spec, "faults", "fault_type")
         degradations = _normalized_events(spec, "degradations", "degradation_type")
         mode = str(_mapping(spec.get("target")).get("mode") or "nominal")
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("IMU_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if mode != "nominal" or faults or degradations:
+                raise ValueError("NATIVE_IMU_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            native = __import__(
+                "sat_sim.bsk_engine.native_sensor_component",
+                fromlist=["run_native_imu_probe"],
+            ).run_native_imu_probe(
+                duration_s=duration_s,
+                sample_s=sample_s,
+                truth_omega_bn_b_rad_s=gyro,
+                truth_specific_force_b_m_s2=accel,
+                gyro_bias_rad_s=config.gyro_bias_rad_s,
+                accel_bias_m_s2=config.accel_bias_m_s2,
+                gyro_scale=config.gyro_scale,
+                accel_scale=config.accel_scale,
+            )
+            native_rows = []
+            for index, time_s in enumerate(native.times_s):
+                row = _row_base(spec, self.target_name, index, time_s, mode)
+                for axis, value in zip("xyz", native.angular_velocity_platform_rad_s[index]):
+                    row[f"adcs.imu.gyro_{axis}_rad_s"] = float(value)
+                for axis, value in zip("xyz", native.acceleration_platform_m_s2[index]):
+                    row[f"adcs.imu.accel_{axis}_m_s2"] = float(value)
+                row["adcs.imu.effective_gyro_bias_x_rad_s"] = float(config.gyro_bias_rad_s[0])
+                row["label.fault_active"] = False
+                row["label.degradation_active"] = False
+                row["label.health_state"] = "nominal"
+                native_rows.append(row)
+            gyro_error = math.sqrt(sum((float(native_rows[-1][f"adcs.imu.gyro_{axis}_rad_s"]) - gyro[i]) ** 2 for i, axis in enumerate("xyz")))
+            accel_error = math.sqrt(sum((float(native_rows[-1][f"adcs.imu.accel_{axis}_m_s2"]) - accel[i]) ** 2 for i, axis in enumerate("xyz")))
+            qoi = {"adcs.imu.gyro_error_norm_rad_s": gyro_error, "adcs.imu.accel_error_norm_m_s2": accel_error}
+            summary = self._summary(spec, native_rows, qoi)
+            labels = {"run_labels": [{
+                "task_id": summary["task_id"],
+                "mode": "nominal",
+                "capability_id": self.capability_id,
+                "physics_backend": "basilisk_native",
+            }]}
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(native_rows),
+                labels=labels,
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.imuSensor.ImuSensor"],
+                    "native_provenance": native.model_source,
+                    "native_input_source": native.input_source,
+                    "native_claim_scope": native.claim_scope,
+                    "limits": ["nominal only", "no faults/degradation", "no sensor lever arm", "no stochastic characterization", "prescribed spacecraft truth fixture"],
+                },
+            )
         rows = []
         for index, time_s in enumerate(times):
             bias = list(config.gyro_bias_rad_s)
