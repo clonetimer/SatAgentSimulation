@@ -943,6 +943,34 @@ def test_guided_native_sensor_workbench_runs_imu_star_tracker_and_magnetometer(t
                 assert telemetry.json()["rows"]
                 for field in expected_fields:
                     assert field in telemetry.json()["rows"][-1], (object_id, field, telemetry.json()["rows"][-1])
+                plots = client.get(f"/runs/{run_id}/plots")
+                assert plots.status_code == 200, plots.text
+                plot_manifest = plots.json()["plot_manifest"]
+                assert plot_manifest, (object_id, plots.json())
+                assert any(
+                    expected_fields[0] in str(item)
+                    for item in plot_manifest
+                ), (object_id, expected_fields[0], plot_manifest)
+                page.locator('[data-result-tab="charts"]').click()
+                page.wait_for_function(
+                    "() => document.querySelector('#chartLegend')?.children.length > 0",
+                    timeout=15000,
+                )
+                # Re-open the same durable Run from the visible guided Run Center
+                # entry, then verify provenance and chart data survive replay.
+                page.locator("#wizardOpenRunCenterBtn").wait_for(state="visible", timeout=10000)
+                page.locator("#wizardOpenRunCenterBtn").click()
+                page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
+                row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
+                row.wait_for(state="visible", timeout=15000)
+                row.get_by_role("button", name="查看").click()
+                page.locator("#creatorView").wait_for(state="visible", timeout=20000)
+                replayed = page.locator("#activeRunCard")
+                replayed.wait_for(state="visible", timeout=15000)
+                replay_metadata = replayed.locator(".compact-run-metadata")
+                replay_metadata.locator(":scope > summary").click()
+                assert "Basilisk 官方原生" in replayed.inner_text()
+                assert provenance in replayed.inner_text()
                 page.locator('[data-result-tab="charts"]').click()
                 page.wait_for_function(
                     "() => document.querySelector('#chartLegend')?.children.length > 0",
