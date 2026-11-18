@@ -403,7 +403,12 @@
           <div id="wizardTaskSummary" class="wizard-task-summary" role="status"></div>
           <div id="wizardTaskList" class="wizard-task-list"></div>
         </section>
-        <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果"></section>
+        <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果">
+          <div class="wizard-result-navigation">
+            <span>本次运行已保存，可继续检查历史记录与完整运行证据。</span>
+            <button id="wizardOpenRunCenterBtn" class="button button-secondary" type="button">打开运行中心</button>
+          </div>
+        </section>
         <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>
         <div class="wizard-footer">
           <div class="wizard-footer-note">配置完成后即可校验并运行。</div>
