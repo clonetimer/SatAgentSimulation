@@ -218,3 +218,41 @@ def test_magnetometer_component_adapter_rejects_nonuniform_scale_for_native_back
     }
     with pytest.raises(ValueError, match="UNIFORM_AXIS_SCALE"):
         MagnetometerAdapter().run(spec)
+
+
+def test_star_tracker_component_adapter_routes_native_quaternion_into_mrp_run_trace():
+    pytest.importorskip("Basilisk")
+    from sat_sim.adapters.component_source_native_misc import StarTrackerAdapter
+
+    spec = {
+        "task_id": "p9n2-native-star-tracker-adapter",
+        "capability_id": "component.star_tracker.v1",
+        "task_type": "component",
+        "target": {"level": "component", "name": "star_tracker", "mode": "nominal"},
+        "simulation": {"duration_s": 1.0, "sample_s": 0.1},
+        "parameters": {
+            "physics_backend": "basilisk_native",
+            "true_sigma_bn": [0.04, -0.01, 0.02],
+            "drift_rate_mrp_s": [0.0, 0.0, 0.0],
+        },
+    }
+    result = StarTrackerAdapter().run(spec)
+    assert result.metadata["physics_backend"] == "basilisk_native"
+    assert result.metadata["native_provenance"] == "Basilisk.simulation.starTracker.StarTracker"
+    assert "not_optical_star_visibility" in result.metadata["validity_semantics"]
+    assert result.trace_rows
+    assert result.trace_rows[-1]["adcs.star_tracker.sigma_x"] == pytest.approx(0.04, abs=1e-6)
+
+
+def test_star_tracker_component_adapter_fails_closed_for_native_drift_modifier():
+    from sat_sim.adapters.component_source_native_misc import StarTrackerAdapter
+
+    spec = {
+        "capability_id": "component.star_tracker.v1",
+        "task_type": "component",
+        "target": {"level": "component", "name": "star_tracker", "mode": "nominal"},
+        "simulation": {"duration_s": 1.0, "sample_s": 0.1},
+        "parameters": {"physics_backend": "basilisk_native", "drift_rate_mrp_s": [0.01, 0.0, 0.0]},
+    }
+    with pytest.raises(ValueError, match="DRIFT_RATE_NOT_SUPPORTED"):
+        StarTrackerAdapter().run(spec)
