@@ -456,6 +456,13 @@ class ImuFaultInjector(sysModel.SysModel):
         self._rng = random.Random(self.seed)
         self._first_imu_sample_time_ns = None
         self._last_imu_sample_time_ns = None
+        # Publish explicit startup payloads so downstream readers never have
+        # to consume an uninitialised message during the first task reset.
+        zero = messaging.IMUSensorMsgPayload()
+        self.imuOutMsg.write(zero, current_sim_nanos, self.moduleID)
+        self.biasOutMsg.write(zero, current_sim_nanos, self.moduleID)
+        self.noiseOutMsg.write(zero, current_sim_nanos, self.moduleID)
+        _write_status(self.imuValidOutMsg, 0, current_sim_nanos, self.moduleID)
 
     @staticmethod
     def _vector_deg_s(value: Any) -> list[float]:
