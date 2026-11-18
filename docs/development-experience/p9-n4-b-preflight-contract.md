@@ -20,3 +20,7 @@ N4-B 的目标不是再造一个预检服务，而是保证用户配置经过现
 ## 验收状态
 
 测试已提交到 PR #177。以该 PR 最新 head 的 Actions 结果为准；在 Actions 完成前不宣称通过。
+
+## 追加复核（2026-11-18）
+
+首次专项 CI 通过后，检查 Job Steps 发现预检测试文件虽然已加入 workflow 的路径过滤，但未加入 pytest 命令，属于真实的覆盖缺口。已补充独立步骤 `Verify P9-N4 native preflight rejection contract`，并用新提交重新触发 workflow。今后新增测试必须同时核对：文件存在、路径过滤包含、执行命令包含、最终日志出现明确 collected/passed 结果；仅检查 workflow 总体绿色不足以证明新测试被执行。
