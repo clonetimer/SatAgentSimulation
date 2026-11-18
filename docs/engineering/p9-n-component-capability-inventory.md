@@ -6,8 +6,8 @@
 |---|---|---|---|---|
 | 反作用轮 | `component.reaction_wheel.v1` | 默认项目 source-native Python；显式 `physics_backend=basilisk_native` 时官方 Basilisk Spacecraft + ReactionWheelStateEffector | 是，有限时长 TaskSpec；1/3/4 轮 native 路径 | 1-wheel 原生 Run Bundle 已 PASS；新增 `component_reaction_wheel_basilisk_native` 工作台模板；Native 仅 nominal，无 native fault/degradation/constraint/profile |
 | IMU | `component.imu.v1` | 默认项目 reference；opt-in 官方 Basilisk ImuSensor 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates 角速度/非保守加速度 truth→AngVelPlatform + AccelPlatform recorder；nominal only，identity mounting、零杆臂/无随机噪声；N4-C1 已合入 main（PR #179）；官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
-| 星敏感器 | `component.star_tracker.v1` | 默认项目 reference；opt-in 官方 Basilisk StarTracker 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 官方 quaternion→MRP trace；valid 仅表示 recorder sample 有限且归一化，不含星表/光学成像/FOV 盲区场景；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
-| 磁强计 | `component.magnetometer.v1` | 默认项目 reference；opt-in 官方 Basilisk Magnetometer 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates + 均匀 MagneticFieldMsg→tam_S；统一 scale/nominal only，尚未接入地球磁场环境模型；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
+| 星敏感器 | `component.star_tracker.v1` | 默认项目 reference；opt-in 官方 Basilisk StarTracker 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 官方 quaternion→MRP trace；valid 仅表示 recorder sample 有限且归一化，不含星表/光学成像/FOV 盲区场景；N4-C1 已合入 main（PR #179）；官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 磁强计 | `component.magnetometer.v1` | 默认项目 reference；opt-in 官方 Basilisk Magnetometer 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates + 均匀 MagneticFieldMsg→tam_S；统一 scale/nominal only，尚未接入地球磁场环境模型；N4-C1 已合入 main（PR #179）；官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 | 太阳敏感器 | `component.sun_sensor.v1` | 项目 source-native；整星图中有官方 Basilisk CoarseSunSensor + Sun ephemeris | 是，项目模型可独立运行 | P9-N2 已建官方 CSS probe：显式 Sun/Eclipse/SCStates 消息→OutputData；暂不接入 TaskSpec native backend，因为现有 capability 还要求三轴方向估计而官方 CSS 只输出标量强度；尚未接入 SPICE 轨道历元和真实遮挡几何 |
 | 电池 | `component.battery.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleBattery + SimplePowerSink | 是，有限时长 TaskSpec / sealed Run Bundle | nominal、恒定净功率、unity efficiency、SOC [0,1]；限幅能量按 recorder 净功率/储能差核算，不宣称真实分流电路；N4-C2 已合入 main（PR #180），官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 | 太阳翼 | `component.solar_panel.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleSolarPanel | 是，有限时长 TaskSpec / sealed Run Bundle | 单块完全展开固定板、静态 Sun/Eclipse、无 tracking；摘要能量按 recorder 积分；非法方向、数量、采样网格与未实现事件被拒绝；N4-C2 已合入 main（PR #180），官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
@@ -70,16 +70,21 @@
 - EPS 是已验证的分系统同一 SimBase 集成能力，不等同于 Battery/SolarPanel 单机入口，也不能用多次单机 Run 后处理冒充同一 SimBase 闭环。
 
 
-## N4-C 用户入口扩展状态（2026-11-18）
+## N4-C 用户入口扩展状态（2026-11-19）
 
-N4-A 已合入 main，N4-C 首批传感器工作台实现正在独立 PR 验收。工作台白名单候选为：
+N4-A、N4-C1、N4-C2、N4-C3 均已合入 main。统一工作台白名单现为九类经过官方 Basilisk 物理、sealed Run Bundle 和 Chromium 真实 Run/历史回放验收的设备：
 
 | 设备 | 注册模板 | 实际后端与可见输出 | 当前用户入口边界 |
 |---|---|---|---|
 | 反作用轮 | `component_reaction_wheel_basilisk_native` | 官方 ReactionWheelStateEffector；轮速、实际施加力矩 | N4-A 已合入；finite/offline、nominal |
-| IMU | `component_imu_basilisk_native` | 官方 ImuSensor；三轴 gyro（rad/s）、accel（m/s²） | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；prescribed truth、identity mounting、零杆臂、无随机噪声 |
-| 星敏感器 | `component_star_tracker_basilisk_native` | 官方 StarTracker；quaternion recorder 换算 MRP、valid、drift | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；valid 仅代表 recorder 样本有限且归一化，不代表星表识别/FOV |
-| 磁强计 | `component_magnetometer_basilisk_native` | 官方 Magnetometer；sensor-frame 三轴磁场与模长（T） | N4-C1 原生物理/Run Bundle 与 Chromium 真实 Run/历史回放专项 PASS；均匀磁场 fixture、identity mounting、统一三轴 scale |
+| IMU | `component_imu_basilisk_native` | 官方 ImuSensor；三轴 gyro（rad/s）、accel（m/s²） | N4-C1 已合入（PR #179）；prescribed truth、identity mounting、零杆臂、无随机噪声 |
+| 星敏感器 | `component_star_tracker_basilisk_native` | 官方 StarTracker；quaternion recorder 换算 MRP、valid、drift | N4-C1 已合入（PR #179）；valid 仅代表 recorder 样本有限且归一化，不代表星表识别/FOV |
+| 磁强计 | `component_magnetometer_basilisk_native` | 官方 Magnetometer；sensor-frame 三轴磁场与模长（T） | N4-C1 已合入（PR #179）；均匀磁场 fixture、identity mounting、统一三轴 scale |
+| 蓄电池 | `component_battery_basilisk_native` | SimpleBattery + SimplePowerSink；SOC、储能、净功率 | N4-C2 已合入（PR #180）；恒定净功率、unity efficiency、nominal only |
+| 太阳电池阵 | `component_solar_panel_basilisk_native` | SimpleSolarPanel；panel/array power、incidence cosine、shadow factor | N4-C2 已合入（PR #180）；单板固定、静态 Sun/Eclipse、nominal only |
+| 推力器 | `component_thruster_basilisk_native` | ThrusterDynamicEffector + FuelTank + Spacecraft fixture；推力、冲量、质量差 | N4-C3 已合入（PR #181）；单个连续标称点火区间，不代表整星安装/耦合 |
+| 燃料贮箱 | `component_fuel_tank_basilisk_native` | FuelTank；质量、质量变化率、容量 | N4-C3 已合入（PR #181）；不提供压力/热力学状态 |
+| 热节点 | `component_thermal_node_basilisk_native` | SensorThermal；温度 K/°C、输入功率 | N4-C3 已合入（PR #181）；固定辐射板 fixture，不含轨道/地球 IR/albedo 闭环 |
 
 本轮实现仅复用已验收的 native adapter 和 capability，不把默认 `project_reference` 改为 native。入口选择会通过服务端 Scenario Template instantiate，再投影到现有参数表单。原生故障/退化/约束与单机实时运行仍不开放；CSS 仍不加入白名单。
 
@@ -90,10 +95,10 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 - Native preflight/result contracts: 7 passed.
 - Chromium guided native device journey: 4 passed, 4 deselected; includes IMU/StarTracker/Magnetometer real Run, sealed integrity, provenance, plot manifest and same-Run history replay.
 - Artifact `native-component-physical-evidence` archived successfully (8,552 bytes).
-- PR shared regression workflows still pending at the time of this update; this does not yet declare the entire PR merged or all N4-C complete.
+- 上述为 PR #179 专项 workflow 快照；PR #179 后续完成合并，传感器入口正式进入 main。
 
 
-## N4-C2 EPS 单机入口候选（2026-11-18）
+## N4-C2 EPS 单机入口（已合入 main，PR #180）
 
 | 设备 | 注册模板 | 官方原生模型 | 当前产品入口边界 |
 |---|---|---|---|
@@ -103,13 +108,13 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 两设备继续复用既有 `component.battery.v1` 与 `component.solar_panel.v1` capability 和 native adapter。默认 backend 不变，只有注册模板显式选择 `basilisk_native`。电池不宣称电芯等效电路/温度模型；太阳电池阵不宣称轨道光照环境或太阳跟踪。正式准入须通过官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 用户旅程验收。
 
 
-## N4-C3 推进与热控单机入口候选（2026-11-18）
+## N4-C3 推进与热控单机入口（已合入 main，PR #181）
 
 | 设备 | 注册模板 | 官方原生模型 | 当前产品入口边界 |
 |---|---|---|---|
-| 推力器 | `component_thruster_basilisk_native` | ThrusterDynamicEffector + FuelTank + Spacecraft free-carrier fixture | N4-C3 实现中；单个连续标称点火脉冲，输出推力 recorder、冲量积分和推进剂质量差；非整星安装/耦合 |
-| 燃料贮箱 | `component_fuel_tank_basilisk_native` | `Basilisk.simulation.fuelTank.FuelTank` | N4-C3 实现中；恒定质量流量，质量/质量变化率/容量 recorder；不提供压力/热力学状态 |
-| 热节点 | `component_thermal_node_basilisk_native` | `Basilisk.simulation.sensorThermal.SensorThermal` | N4-C3 实现中；固定辐射板、恒定电功率、显式太阳/日食 fixture；温度 K/°C，不含轨道传播或地球 IR/albedo 闭环 |
+| 推力器 | `component_thruster_basilisk_native` | ThrusterDynamicEffector + FuelTank + Spacecraft free-carrier fixture | N4-C3 已合入 main；单个连续标称点火脉冲，输出推力 recorder、冲量积分和推进剂质量差；非整星安装/耦合 |
+| 燃料贮箱 | `component_fuel_tank_basilisk_native` | `Basilisk.simulation.fuelTank.FuelTank` | N4-C3 已合入 main；恒定质量流量，质量/质量变化率/容量 recorder；不提供压力/热力学状态 |
+| 热节点 | `component_thermal_node_basilisk_native` | `Basilisk.simulation.sensorThermal.SensorThermal` | N4-C3 已合入 main；固定辐射板、恒定电功率、显式太阳/日食 fixture；温度 K/°C，不含轨道传播或地球 IR/albedo 闭环 |
 
 三者继续复用已有 capability 与 native adapter。推力器原生点火时间步与标准 simulation step 必须纳秒舍入后匹配；FuelTank native 输出不得请求 project_reference 压力代理；热节点的 Celsius recorder 与 Kelvin 派生字段必须分别注明来源。正式准入需要同 head 的官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 真实 Run/历史回放验收。
 
@@ -118,7 +123,7 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 
 - 推力器、燃料贮箱、热节点的注册模板、工作台白名单、参数投影、输出白名单和浏览器真实 Run/历史回放均已实现于 `feat/p9-n4-c3-native-propulsion-thermal-20261118`。
 - 官方 Basilisk 2.11.0 专项 #44318739045：Thruster/FuelTank/SensorThermal 218 passed；Chromium 4 passed、4 deselected；物理/JUnit artifact 已归档。
-- 分支完整共享回归 19 项均成功、失败 0 项。待 PR 最新 head CI 确认后合入 main。
+- PR #181 最终 head 的 20 个 workflow runs：19 success、1 条件 skip、0 failure；PR 已合入 main。
 - 推力器输出为官方 THROutputMsg 推力 recorder 与 dense thrust 积分冲量；FuelTank 输出只含质量、质量变化率、容量，不请求压力；SensorThermal 温度 recorder 原始 Celsius 与派生 Kelvin 分别展示。
 - 三种独立单机 Run 不等于同一 SimBase 推力器—贮箱—整星耦合；不宣称安装几何、轨道/姿态闭环、地球红外/反照或热网络。
 
