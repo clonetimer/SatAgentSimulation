@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O1 merge commit `5f61e73aa4cdb952ee927090f6c995255088984b`  
-状态：实施中；在同一最终 PR head 完成官方 Basilisk A/B、sealed Run Bundle、效果证据和 Chromium 用户旅程前，不开放事件入口。
+状态：O2-A 代码与专项测试已提交至候选分支，等待官方 Basilisk 2.11.0 同 head CI；O2-B/C/D/E 尚未完成。EPS/Comm-Data 事件入口继续保持关闭。
 
 ## 主线目标
 
@@ -12,11 +12,11 @@
 
 ## O2-A：修正效果语义与参数合同
 
-1. Comm/Data 当前 `link_or_storage_failure` 实际只映射到发射机功率放大器故障；改为准确的 `transmitter_power_loss`。
-2. Comm/Data 当前 `margin_or_throughput_degradation` 实际只验证发射机吞吐率下降；改为 `transmitter_throughput_degradation`。
+1. Comm/Data 当前 `link_or_storage_failure` 实际只验证 SimpleTransmitter 数据率变化；改为准确的 `transmitter_rate_loss`。不再把 nodeBaudRate 误称为 RF 功率放大器故障。
+2. Comm/Data 当前 `margin_or_throughput_degradation` 实际只验证发射机数据率下降；改为 `transmitter_rate_degradation`。
 3. 对旧的宽泛 ID fail closed；不允许 UI 名称、capability 声明和 adapter 实际注入对象不一致。
 4. EPS 保留两个明确的组合场景：`generation_storage_distribution_failure` 与 `energy_margin_degradation`。用户说明必须明确这是受控组合场景，不是任意单点故障菜单。
-5. TaskSpec 的 `severity` 不得被静默忽略：故障连续参数效应和时间函数退化均按事件 severity 缩放；离散开关/跳闸保持二值语义。输入范围必须校验。
+5. TaskSpec 的 `severity` 不得被静默忽略：连续乘性效应从标称系数 1.0 向故障系数插值，加性/比例退化效应线性缩放，时间函数退化乘以事件 severity；override/clamp 等二值或绝对操作保持离散语义。severity 必须为有限 [0,1] 数值。
 
 ## O2-B：官方 Basilisk 2.11.0 配对物理 A/B
 
@@ -37,8 +37,8 @@
 
 ### Comm/Data
 
-- 发射机功率损失：验证 SimpleTransmitter 的原生存储节点下传速率下降，并验证故障结束后恢复。
-- 发射机吞吐率退化：验证原生下传速率持续下降及星上存储积压增加。
+- 发射机数据率损失：在官方 SimpleTransmitter 的 nodeBaudRate 输入上施加受控故障，使用原生存储节点 recorder 验证数据率下降并在事件结束后恢复；不宣称 RF 功率损失。
+- 发射机数据率退化：验证原生下传速率随时间持续下降及星上存储积压增加。
 - 不宣称地面站可见性、轨道过站、天线指向、RF 链路几何、BER/PER 闭环或存储坏块物理模型。
 
 ## O2-C：Effect Evidence 与服务端准入
@@ -80,3 +80,11 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 ## 准入原则
 
 只有 capability 声明、adapter 实际注入、direct recorder、effect evidence profile、sealed Run Bundle 和 Chromium 用户旅程六者一致，事件才可出现在普通用户向导中。
+
+## O2-A 当前实现记录（2026-11-19）
+
+- 新增 src/subsystems/event_severity.py，统一读取 TaskSpec severity（兼容 UI normalized magnitude），并对连续 ParameterEffect 做正确缩放；离散 override/clamp 保留二值/绝对语义。
+- EPS adapter 已在执行前校验 severity，并将其应用到组合故障的连续效应与时间函数退化；组合场景仍未拆成单点故障。
+- Comm/Data 将宽泛且失真的两个 ID 改为 transmitter_rate_loss / transmitter_rate_degradation。两者都只作用于官方 SimpleTransmitter 的 nodeBaudRate 输入，trace 增加 nominal 参照值；没有将该量称为 RF 功率或链路裕度。
+- Comm/Data 的故障 severity A/B 预期：severity=0.8 时保留率 0.48，severity=0.4 时保留率 0.74；故障结束后恢复标称速率。实际结果以官方 Basilisk CI 为准。
+- 旧 Comm/Data 宽泛事件 ID 已 fail closed；后续必须先通过 A/B 与 sealed Run Bundle，再添加 effect evidence profile，最后才考虑浏览器入口。
