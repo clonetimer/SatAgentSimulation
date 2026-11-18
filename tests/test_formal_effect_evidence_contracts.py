@@ -22,7 +22,8 @@ def _spec(
     values: dict | None = None,
 ) -> dict:
     level = "subsystem" if capability_id.startswith("subsystem.") else "whole_spacecraft"
-    target = "adcs" if level == "subsystem" else "whole_spacecraft"
+    subsystem = capability_id.split(".")[1] if level == "subsystem" else None
+    target = subsystem if level == "subsystem" else "whole_spacecraft"
     outputs = list(
         get_effect_evidence_profile(capability_id, str(event["effect"])).evidence_fields  # type: ignore[union-attr]
     )
@@ -38,7 +39,7 @@ def _spec(
         },
         "simulation": {
             "level": level,
-            "subsystem": "adcs" if level == "subsystem" else None,
+            "subsystem": subsystem,
             "duration_s": duration_s,
             "step_s": 0.2,
             "sample_s": 1.0,
