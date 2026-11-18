@@ -97,8 +97,8 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 
 | 设备 | 注册模板 | 官方原生模型 | 当前产品入口边界 |
 |---|---|---|---|
-| 蓄电池 | `component_battery_basilisk_native` | `SimpleBattery` + `SimplePowerSink` | N4-C2 实现中；恒定净功率、unity efficiency、nominal finite/offline；SOC/储能/功率结果合同待同 head CI 验收 |
-| 太阳电池阵 | `component_solar_panel_basilisk_native` | `SimpleSolarPanel` | N4-C2 实现中；单板全展开、固定安装、静态 Sun/Eclipse；阵列功率/入射/阴影/能量合同待同 head CI 验收 |
+| 蓄电池 | `component_battery_basilisk_native` | `SimpleBattery` + `SimplePowerSink` | N4-C2 已合入 main（PR #180）；恒定净功率、unity efficiency、nominal finite/offline；官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 太阳电池阵 | `component_solar_panel_basilisk_native` | `SimpleSolarPanel` | N4-C2 已合入 main（PR #180）；单板全展开、固定安装、静态 Sun/Eclipse；官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 
 两设备继续复用既有 `component.battery.v1` 与 `component.solar_panel.v1` capability 和 native adapter。默认 backend 不变，只有注册模板显式选择 `basilisk_native`。电池不宣称电芯等效电路/温度模型；太阳电池阵不宣称轨道光照环境或太阳跟踪。正式准入须通过官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 用户旅程验收。
 
@@ -112,3 +112,12 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 | 热节点 | `component_thermal_node_basilisk_native` | `Basilisk.simulation.sensorThermal.SensorThermal` | N4-C3 实现中；固定辐射板、恒定电功率、显式太阳/日食 fixture；温度 K/°C，不含轨道传播或地球 IR/albedo 闭环 |
 
 三者继续复用已有 capability 与 native adapter。推力器原生点火时间步与标准 simulation step 必须纳秒舍入后匹配；FuelTank native 输出不得请求 project_reference 压力代理；热节点的 Celsius recorder 与 Kelvin 派生字段必须分别注明来源。正式准入需要同 head 的官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 真实 Run/历史回放验收。
+
+
+## N4-C3 推进与热控准入状态（2026-11-18）
+
+- 推力器、燃料贮箱、热节点的注册模板、工作台白名单、参数投影、输出白名单和浏览器真实 Run/历史回放均已实现于 `feat/p9-n4-c3-native-propulsion-thermal-20261118`。
+- 官方 Basilisk 2.11.0 专项 #44318739045：Thruster/FuelTank/SensorThermal 218 passed；Chromium 4 passed、4 deselected；物理/JUnit artifact 已归档。
+- 分支完整共享回归 19 项均成功、失败 0 项。待 PR 最新 head CI 确认后合入 main。
+- 推力器输出为官方 THROutputMsg 推力 recorder 与 dense thrust 积分冲量；FuelTank 输出只含质量、质量变化率、容量，不请求压力；SensorThermal 温度 recorder 原始 Celsius 与派生 Kelvin 分别展示。
+- 三种独立单机 Run 不等于同一 SimBase 推力器—贮箱—整星耦合；不宣称安装几何、轨道/姿态闭环、地球红外/反照或热网络。
