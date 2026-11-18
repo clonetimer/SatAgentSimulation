@@ -7,10 +7,12 @@ target: adcs
 trust_level: engineering_preview
 status: agent_ready_candidate
 summary: Unified ADCS closed loop and runtime fault/degradation chain executed in
-  one Basilisk Process/Task. Official sensors, guidance/control, reaction wheels and
-  spacecraft modules are connected through Basilisk messages; project SysModels perform
-  sensor fusion and pre-dynamics event injection. No external solver or curve-only
-  proxy is used.
+  one Basilisk Process/Task. Official StarTracker, ImuSensor, Magnetometer, guidance/control,
+  reaction wheels and spacecraft modules are connected through Basilisk messages. Project
+  SysModels transform sensor measurements into body frame B and perform deterministic
+  star/Sun/magnetic-vector attitude estimation. Sun/Earth vector sensors are ideal
+  project-native geometry measurements, not official CSS direction outputs. No external
+  solver or curve-only proxy is used.
 adapter:
   class_path: sat_sim.adapters.subsystem_adcs_unified_native.AdcsUnifiedNativeAdapter
   script_export: true
@@ -170,6 +172,10 @@ outputs:
   - orbit.eclipse_factor
   - adcs.pointing_error_deg
   - adcs.body_rate_rad_s_*
+  - adcs.fusion.estimated_mrp_BN_*
+  - adcs.fusion.estimated_omega_BN_B_*
+  - adcs.fusion.source_mode
+  - adcs.fusion.magnetometer_used
   - adcs.rw.speed_rad_s_*
   - adcs.star_tracker.q*
   - adcs.magnetometer.tesla_*
@@ -207,6 +213,9 @@ operator:
     evidence_fields:
     - runtime_truth_status
     - adcs.pointing_error_deg
+    - adcs.fusion.estimated_mrp_BN_*
+    - adcs.fusion.estimated_omega_BN_B_*
+    - adcs.fusion.magnetometer_used
     - adcs.rw.speed_rad_s_0
     verification: candidate
   - effect_id: adcs_rw_jamming
@@ -280,9 +289,13 @@ operator:
     - label.*
     - event.*
   limitations:
-  - Project sensor fusion remains deterministic and is not yet flight-correlated.
-  - Wheel jamming is represented by a scheduled braking/locking torque in the command
-    path; bearing structural dynamics are not modelled.
+  - Project attitude estimation is deterministic star/Sun/magnetic-vector TRIAD plus quaternion SLERP; it is not an MEKF/Kalman filter or flight-correlated estimator.
+  - StarTracker uses the official module's truth-driven attitude measurement; star catalog, centroiding, optical image formation and FOV occultation are not modelled.
+  - SunDirectionSensor and EarthHorizonSensor are ideal project-native geometry measurements derived from environment/spacecraft state; they are not official CSS three-axis outputs.
+  - IMU angular rate is transformed from platform frame P to body frame B; this is not a full strapdown navigation solution.
+  - Magnetometer TAMSensorMsg is transformed from sensor frame S to body frame B and fused with the inertial magnetic-field reference.
+  - Wheel jamming is represented by a scheduled braking/locking torque in the command path; bearing structural dynamics are not modelled.
+  - The subsystem uses a dedicated spacecraft hub and orthogonal reaction-wheel fixture; it is not the full CAD-derived spacecraft inertia or a cross-subsystem integrated spacecraft run.
 lifecycle:
   status: active
   product_tier: recommended
