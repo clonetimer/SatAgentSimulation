@@ -144,6 +144,190 @@ parameters:
     min: 0.0
     description: Baseline gyro white-noise standard deviation used before runtime
       degradations.
+  star_tracker_mount_yaw_deg:
+    type: number
+    label: 星敏安装航向角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第一项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  star_tracker_mount_pitch_deg:
+    type: number
+    label: 星敏安装俯仰角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第二项。
+    unit: deg
+    default: 0.0
+    min: -89.0
+    max: 89.0
+  star_tracker_mount_roll_deg:
+    type: number
+    label: 星敏安装横滚角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第三项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  star_tracker_noise_std_arcsec:
+    type: number
+    label: 星敏白噪声标准差
+    description: 官方 Basilisk StarTracker 姿态测量噪声标准差；不代表光学星表识别精度。
+    unit: arcsec
+    default: 0.0
+    min: 0.0
+    max: 3600.0
+  imu_mount_yaw_deg:
+    type: number
+    label: IMU 安装航向角
+    description: 机体系 B 到 IMU 平台系 P 的 3-2-1 欧拉角第一项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  imu_mount_pitch_deg:
+    type: number
+    label: IMU 安装俯仰角
+    description: 机体系 B 到 IMU 平台系 P 的 3-2-1 欧拉角第二项。
+    unit: deg
+    default: 0.0
+    min: -89.0
+    max: 89.0
+  imu_mount_roll_deg:
+    type: number
+    label: IMU 安装横滚角
+    description: 机体系 B 到 IMU 平台系 P 的 3-2-1 欧拉角第三项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  imu_position_b_x_m:
+    type: number
+    label: IMU 本体系位置 X
+    unit: m
+    default: 0.0
+    min: -2.0
+    max: 2.0
+  imu_position_b_y_m:
+    type: number
+    label: IMU 本体系位置 Y
+    unit: m
+    default: 0.0
+    min: -2.0
+    max: 2.0
+  imu_position_b_z_m:
+    type: number
+    label: IMU 本体系位置 Z
+    unit: m
+    default: 0.0
+    min: -2.0
+    max: 2.0
+  imu_gyro_bias_rad_s_x:
+    type: number
+    label: IMU 陀螺 X 轴偏置
+    unit: rad/s
+    default: 0.0
+    min: -0.1
+    max: 0.1
+  imu_gyro_bias_rad_s_y:
+    type: number
+    label: IMU 陀螺 Y 轴偏置
+    unit: rad/s
+    default: 0.0
+    min: -0.1
+    max: 0.1
+  imu_gyro_bias_rad_s_z:
+    type: number
+    label: IMU 陀螺 Z 轴偏置
+    unit: rad/s
+    default: 0.0
+    min: -0.1
+    max: 0.1
+  imu_accel_bias_m_s2_x:
+    type: number
+    label: IMU 加速度计 X 轴偏置
+    unit: m/s^2
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  imu_accel_bias_m_s2_y:
+    type: number
+    label: IMU 加速度计 Y 轴偏置
+    unit: m/s^2
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  imu_accel_bias_m_s2_z:
+    type: number
+    label: IMU 加速度计 Z 轴偏置
+    unit: m/s^2
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  imu_gyro_white_noise_std_rad_s:
+    type: number
+    label: IMU 陀螺白噪声标准差
+    unit: rad/s
+    default: 0.0
+    min: 0.0
+    max: 0.1
+  imu_accel_white_noise_std_m_s2:
+    type: number
+    label: IMU 加速度计白噪声标准差
+    unit: m/s^2
+    default: 0.0
+    min: 0.0
+    max: 1.0
+  magnetometer_mount_yaw_deg:
+    type: number
+    label: 磁强计安装航向角
+    description: 机体系 B 到磁强计传感器系 S 的 3-2-1 欧拉角第一项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  magnetometer_mount_pitch_deg:
+    type: number
+    label: 磁强计安装俯仰角
+    description: 机体系 B 到磁强计传感器系 S 的 3-2-1 欧拉角第二项。
+    unit: deg
+    default: 0.0
+    min: -89.0
+    max: 89.0
+  magnetometer_mount_roll_deg:
+    type: number
+    label: 磁强计安装横滚角
+    description: 机体系 B 到磁强计传感器系 S 的 3-2-1 欧拉角第三项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  magnetometer_bias_tesla_x:
+    type: number
+    label: 磁强计 X 轴偏置
+    unit: T
+    default: 0.0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_bias_tesla_y:
+    type: number
+    label: 磁强计 Y 轴偏置
+    unit: T
+    default: 0.0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_bias_tesla_z:
+    type: number
+    label: 磁强计 Z 轴偏置
+    unit: T
+    default: 0.0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_scale_factor:
+    type: number
+    label: 磁强计比例系数
+    default: 1.0
+    min: 0.000001
+    max: 2.0
   rw_wheel_inertia_kg_m2:
     type: number
     default: 0.015
@@ -176,6 +360,10 @@ outputs:
   - adcs.fusion.estimated_omega_BN_B_*
   - adcs.fusion.source_mode
   - adcs.fusion.magnetometer_used
+  - adcs.magnetometer.reference_n_tesla_*
+  - adcs.magnetometer.measured_body_tesla_*
+  - adcs.sensor.gyro_measured_platform_rad_s_*
+  - adcs.sensor.gyro_measured_body_rad_s_*
   - adcs.rw.speed_rad_s_*
   - adcs.star_tracker.q*
   - adcs.magnetometer.tesla_*
