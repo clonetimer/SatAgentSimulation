@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sat_sim.capability_registry import get_capability
 from sat_sim.effect_evidence import EffectEvidenceClassification, get_effect_evidence_profile
 from sat_sim.form_schema import capability_form_schema
 
@@ -42,6 +43,13 @@ def test_whole_spacecraft_guided_event_catalog_is_limited_to_verified_native_pro
     }
 
     assert exposed == VERIFIED_GUIDED_EFFECTS
+    declared_modes = get_capability(WHOLE).data["modes"]
+    declared = {
+        effect
+        for kind in ("fault", "degradation", "constraint")
+        for effect in declared_modes[kind].get("effects", [])
+    }
+    assert declared == set().union(*VERIFIED_GUIDED_EFFECTS.values()) | UNVERIFIED_WHOLE_EFFECTS
     assert set().union(*exposed.values()) == {
         "payload_instrument_off",
         "comm_data_downlink_link_loss",
