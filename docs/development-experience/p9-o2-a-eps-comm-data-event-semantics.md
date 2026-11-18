@@ -8,7 +8,7 @@
 ## 本阶段实际修改
 
 1. 新增 src/subsystems/event_severity.py：
-   - 统一读取 TaskSpec severity，优先显式 severity，兼容 UI normalized magnitude。
+   - 统一读取 TaskSpec magnitude，优先显式 severity，兼容 UI normalized magnitude。
    - 拒绝非有限值和 [0,1] 之外的数值。
    - 连续乘性效应按 1 + (magnitude - 1) × severity 插值，保证 severity=0 时回到标称系数 1。
    - add、add_loss、degrade_multiply、grow_multiply、grow_add 按 severity 线性缩放。
@@ -35,7 +35,7 @@
 
 ## 为什么这样改
 
-- 先前 TaskSpec 中存在 severity 字段，但 subsystem adapter 没有将其传递到实际 ParameterEffect / TimeFunctionDegradation，造成“配置可见、执行不生效”。
+- 先前 TaskSpec 中存在归一化 magnitude 字段，但 subsystem adapter 没有将其传递到实际 ParameterEffect / TimeFunctionDegradation，造成“配置可见、执行不生效”。
 - 先前 Comm/Data 的 link/storage 故障 ID 实际只映射到 transmitter 侧，不能代表 storage failure 或 RF link outage。
 - nodeBaudRate 是 SimpleTransmitter 的原生数据率输入，不是 RF 输出功率、天线增益、链路裕度或 BER/PER。效果命名必须服从可直接观测的物理量。
 
@@ -71,3 +71,12 @@
 - 故障事件检查结束后恢复；退化事件检查在后续采样仍持续偏离 nominal。
 - 重要边界：当前 profile 仍是 operator declared evidence；A/B 测试直接比较 recorder，但尚未创建 VERIFIED_NATIVE_EFFECT profile。O2-C 需基于最终 A/B 结果补齐断言。
 - 当前 PR #187 head 为 b57692ad289c84166954365a2de442543d7cc04a，O2-B workflow 正在执行；结果未出之前不记录 PASS。
+
+
+## O2-B 首轮失败记录与修复（2026-11-19）
+
+- 首轮 paired Run Bundle 4/4 失败于 canonicalize_task_spec：BaseEvent 是 StrictModel，规范字段是 magnitude，severity 被判为 extra_forbidden。
+- 这是测试契约错误，不是 Basilisk 执行失败；nominal Run Bundle 已先成功创建。
+- 已将 sealed TaskSpec A/B 测试中的事件严重度改为 magnitude=0.8，并将 EPS/Comm-Data adapter 直测也统一改用 magnitude。
+- event_severity helper 保留 explicit severity 兼容入口，但用户可提交的 canonical TaskSpec 仍以 magnitude 为准。
+- 当前修复后的 CI 尚未完成，不能记录 O2-B PASS。
