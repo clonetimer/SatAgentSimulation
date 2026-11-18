@@ -406,6 +406,8 @@ operator:
     - adcs.fusion.estimated_mrp_BN_*
     - adcs.fusion.estimated_omega_BN_B_*
     - adcs.fusion.magnetometer_used
+    - adcs.fusion.body_rate_valid
+    - adcs.sensor.imu_sample_valid
     - adcs.rw.speed_rad_s_0
     verification: candidate
   - effect_id: adcs_rw_jamming
