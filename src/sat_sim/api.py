@@ -5689,7 +5689,8 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
         files = manifest.get("files") if isinstance(manifest, dict) else None
         manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
         if (
-            manifest.get("run_id") != run_id
+            not isinstance(manifest, dict)
+            or manifest.get("run_id") != run_id
             or not isinstance(files, dict)
             or not files
             or not isinstance(seal, dict)
