@@ -88,6 +88,7 @@ outputs:
   - comm_data.transmitter_baud_bps
   - comm_data.native_storage_drain_enabled
   - comm_data.transmitter_storage_node_baud_bps
+  - comm_data.transmitter_storage_node_rate_abs_bps
   - comm_data.nominal_transmitter_storage_node_baud_bps
   qoi:
   - runtime_truth_status
@@ -113,6 +114,7 @@ operator:
     evidence_fields:
     - comm_data.transmitter_baud_bps
     - comm_data.transmitter_storage_node_baud_bps
+    - comm_data.transmitter_storage_node_rate_abs_bps
     - comm_data.nominal_transmitter_storage_node_baud_bps
     - label.fault_active
     verification: declared
@@ -123,6 +125,7 @@ operator:
     evidence_fields:
     - comm_data.transmitter_baud_bps
     - comm_data.transmitter_storage_node_baud_bps
+    - comm_data.transmitter_storage_node_rate_abs_bps
     - comm_data.nominal_transmitter_storage_node_baud_bps
     - label.degradation_active
     verification: declared
