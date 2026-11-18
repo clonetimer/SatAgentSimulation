@@ -185,6 +185,19 @@ def test_raw_native_form_rejects_discarded_or_conflicting_request(payload):
         normalize_form_task_spec(form)
 
 
+@pytest.mark.parametrize("alias", ["parameter_values", "inline"])
+@pytest.mark.parametrize("field,value", [("mass_kg", True), ("normal_b", [True, False, False])])
+def test_raw_native_form_rejects_booleans_in_duplicate_parameter_aliases(alias, field, value):
+    form = thermal_form()
+    duplicate = {**form["parameters"]["values"], field: value}
+    if alias == "parameter_values":
+        form[alias] = duplicate
+    else:
+        form["parameters"].update(duplicate)
+    with pytest.raises(ValueError, match=field):
+        normalize_form_task_spec(form)
+
+
 def test_reference_thermal_time_migration_and_effect_inputs_remain_compatible():
     spec = thermal_legacy()
     spec["parameters"] = {"physics_backend": "project_reference", "ambient_k": 295.0, "tau_s": 12.0}

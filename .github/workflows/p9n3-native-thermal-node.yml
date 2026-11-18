@@ -28,6 +28,8 @@ on:
       - "tests/test_thermal_node_*.py"
       - "tests/test_fuel_tank_backend_browser.py"
       - "src/sat_sim/script_exporter.py"
+      - "src/sat_sim/capability_agent.py"
+      - "tests/test_agent_prompt_contract_closure.py"
       - "src/sat_sim/validation/parameter_surface_audit.py"
       - "tests/test_parameter_surface_audit.py"
       - ".github/workflows/p9n3-native-thermal-node.yml"
@@ -75,7 +77,7 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           node --check src/sat_sim/web/app.js
-          python -m pytest -q tests/test_native_thermal_node_component.py tests/test_thermal_node_backend_contract.py tests/test_thermal_node_public_inputs.py tests/test_thermal_node_delivery.py tests/test_capability_backend_profiles.py tests/test_fuel_tank_form_input.py tests/test_fuel_tank_legacy_input.py tests/test_component_effect_batch.py tests/test_parameter_surface_audit.py --disable-warnings
+          python -m pytest -q tests/test_native_thermal_node_component.py tests/test_thermal_node_backend_contract.py tests/test_thermal_node_public_inputs.py tests/test_thermal_node_delivery.py tests/test_capability_backend_profiles.py tests/test_fuel_tank_form_input.py tests/test_fuel_tank_legacy_input.py tests/test_component_effect_batch.py tests/test_parameter_surface_audit.py tests/test_agent_prompt_contract_closure.py --disable-warnings
       - name: Verify actual Workbench backend switching and native template projection
         env:
           PYTHONPATH: "src:."

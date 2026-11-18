@@ -1,6 +1,7 @@
 """Native thermal selection and the final exported data share one contract."""
 import ast
 import csv
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -113,12 +114,16 @@ def test_telemetry_rejects_unavailable_fields_or_unsupported_globs(field):
     assert any("telemetry_streams" in issue.path for issue in planning.validation.errors)
 
 
-@pytest.mark.parametrize("legacy", [False, True])
-def test_exported_python_keeps_native_binding_parameters_and_recorded_temperature(tmp_path, legacy):
+@pytest.mark.parametrize("shape", ["canonical", "flat-legacy", "nested-legacy"])
+def test_exported_python_keeps_native_binding_parameters_and_recorded_temperature(tmp_path, shape):
     pytest.importorskip("Basilisk")
     spec = _spec()
-    if legacy:
+    if shape != "canonical":
         spec = to_runtime_task_spec(spec)
+    if shape == "nested-legacy":
+        spec["parameters"] = {"values": spec["parameters"]}
+    planning = plan_task_spec(spec)
+    assert planning.ok, planning.validation.to_dict()
     spec_path = tmp_path / "task.json"
     spec_path.write_text(json.dumps(spec))
     dataset = tmp_path / "dataset"
@@ -136,8 +141,56 @@ def test_exported_python_keeps_native_binding_parameters_and_recorded_temperatur
     assert completed.returncode == 0, completed.stdout + completed.stderr
     summary = json.loads((dataset / "summary.json").read_text())
     assert summary["physics_backend"] == "basilisk_native"
+    assert summary["adapter_metadata"]["basilisk_version"] == "2.11.0"
     assert summary["qoi"][PREFIX + "final_temp_k"] == pytest.approx(300.06961637618775, abs=2e-12)
     with (dataset / "trace.csv").open(newline="") as handle:
         rows = list(csv.DictReader(handle))
     assert len(rows) == 101
     assert float(rows[-1][PREFIX + "temp_k"]) == float(rows[-1][PREFIX + "temp_c"]) + 273.15
+
+
+@pytest.mark.parametrize("field,value", [
+    ("power_w", "12"), ("mass_kg", True), ("ambient_k", 300.0),
+])
+def test_legacy_native_export_does_not_repair_invalid_parameters(tmp_path, field, value):
+    spec = to_runtime_task_spec(_spec())
+    spec["parameters"][field] = value
+    planning = plan_task_spec(spec)
+    assert not planning.ok
+    assert any(field in issue.path for issue in planning.validation.errors)
+
+    spec_path = tmp_path / "invalid.json"
+    spec_path.write_text(json.dumps(spec))
+    try:
+        exported = export_runner_script(spec_path, tmp_path / "thermal.py", kind="capability-python")
+    except ValueError as error:
+        assert field in str(error)
+        return
+
+    module_spec = importlib.util.spec_from_file_location("thermal_export", exported.output_path)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    planning = plan_task_spec(module.TASK_SPEC)
+    assert not planning.ok
+    assert any(field in issue.path for issue in planning.validation.errors)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("power_w", "12"), ("mass_kg", True), ("normal_b", [True, False, False]),
+    ("ambient_k", 300.0),
+])
+def test_native_export_legacy_parameter_overrides_preserve_strict_validation(tmp_path, field, value):
+    pytest.importorskip("Basilisk")
+    spec_path = tmp_path / "native.json"
+    spec_path.write_text(json.dumps(_spec()))
+    dataset = tmp_path / "dataset"
+    exported = export_runner_script(spec_path, tmp_path / "thermal.py", kind="capability-python", output_root=dataset)
+    override = f"parameters.{field}={json.dumps(value)}"
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join((str(ROOT / "src"), str(ROOT))), "PYTHONUTF8": "1"}
+    completed = subprocess.run(
+        [sys.executable, str(exported.output_path), "--set", override], cwd=tmp_path,
+        env=env, text=True, capture_output=True, timeout=120, check=False,
+    )
+    assert completed.returncode != 0, completed.stdout + completed.stderr
+    assert field in completed.stdout + completed.stderr
+    assert not (dataset / "summary.json").exists()

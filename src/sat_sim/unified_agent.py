@@ -348,6 +348,25 @@ def _projection_merge(original: Any, before: Any, after: Any, path: str = "") ->
     return copy.deepcopy(after), [path]
 
 
+def _reject_native_boolean_quantities(
+    capability_id: str, bindings: list[tuple[str, Mapping[str, Any]]],
+) -> None:
+    from .capability_backends import select_capability_backend
+
+    definitions = select_capability_backend(get_capability(capability_id), "basilisk_native").data["parameters"]
+    for path, values in bindings:
+        for name, definition in definitions.items():
+            if definition.get("type") not in {"number", "integer", "array[number]", "vector3"}:
+                continue
+            value = values.get(name)
+            if isinstance(value, bool):
+                raise ValueError(f"{path}.{name} requires a number, received a Boolean")
+            if isinstance(value, (list, tuple)):
+                for index, entry in enumerate(value):
+                    if isinstance(entry, bool):
+                        raise ValueError(f"{path}.{name}[{index}] requires a number, received a Boolean")
+
+
 def _restore_projected_form(src: dict[str, Any], request: UnifiedAgentRequest) -> dict[str, Any]:
     from .form_schema import task_spec_to_form_data
 
@@ -386,18 +405,7 @@ def _restore_projected_form(src: dict[str, Any], request: UnifiedAgentRequest) -
         bindings = [("parameters.values", submitted_values)]
         if config_backed or not submitted_values:
             bindings.append(("model.config", submitted_config))
-        from .capability_backends import select_capability_backend
-        definitions = select_capability_backend(get_capability(capability), "basilisk_native").data["parameters"]
-        for path, values in bindings:
-            for name, definition in definitions.items():
-                value = values.get(name)
-                numeric = definition.get("type") in {"number", "integer", "array[number]", "vector3"}
-                if numeric and isinstance(value, bool):
-                    raise ValueError(f"{path}.{name} requires a number, received a Boolean")
-                if numeric and isinstance(value, (list, tuple)):
-                    for index, entry in enumerate(value):
-                        if isinstance(entry, bool):
-                            raise ValueError(f"{path}.{name}[{index}] requires a number, received a Boolean")
+        _reject_native_boolean_quantities(capability, bindings)
     merged, edited_paths = _projection_merge(base, before, src)
     edited = set(edited_paths)
     before_values = before["parameters"]["values"]
@@ -500,7 +508,11 @@ def _validate_native_component_form_inputs(
         for key in keys:
             if key in container and not isinstance(container[key], Mapping):
                 raise ValueError(f"{prefix}{key} requires a mapping")
-    for path, candidate in (("parameter_values", src.get("parameter_values")), ("parameters", inline_values)):
+    aliases = [("parameter_values", _nested(src, "parameter_values")), ("parameters", inline_values)]
+    # Check every submitted parameter alias before equality can discard a
+    # Boolean that compares equal to its numeric counterpart.
+    _reject_native_boolean_quantities(capability_id, [("parameters.values", _nested(parameters, "values")), *aliases])
+    for path, candidate in aliases:
         if candidate and candidate != values:
             raise ValueError(f"{path} conflicts with the selected parameter values: {', '.join(map(str, candidate))}")
     if parameters.get("overrides", []) != [] or src.get("overrides", []) != [] or src.get("parameter_overrides", []) != []:
