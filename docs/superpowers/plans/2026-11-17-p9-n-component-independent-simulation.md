@@ -55,7 +55,8 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - Native backend 仅支持 nominal、恒定净功率、unity charge/discharge efficiency、SOC [0,1]；故障/退化、时变功率曲线、非 unity 效率均 fail closed。
 - 输出映射到现有 SOC、storage、capacity 和 net-power trace；使用正式 Run Bundle 执行、validation 与完整性校验。
 - 专项 CI 固定官方 Basilisk 2.11.0，3 passed；参数表审计 PASS。
-- 下一步：将太阳翼 `nodePowerOutMsg` 与电池 `addPowerNodeToModel` 做原生 PowerNode 耦合，再进入 EPS 分系统能量平衡。
+- 已补充同一 SimBase 中 SimpleSolarPanel `nodePowerOutMsg` → SimpleBattery PowerNode 的耦合回归，验证太阳翼实际发电使电池储能增加；这不是两个独立 Run 的后处理拼接。
+- 下一步：将该闭环纳入 EPS subsystem TaskSpec adapter，补齐多负载/日蚀工况和 Run Bundle provenance。
 
 ### P9-N4：单机工作台产品闭环
 - 对话框选择单机 → 参数配置 → 预检 → 执行 → 曲线/指标 → 历史 Run → 数据导出。
