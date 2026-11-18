@@ -119,3 +119,97 @@ def run_native_star_tracker_probe(
         truth_sigma_bn=sigma,
         truth_omega_bn_b_rad_s=omega,
     )
+
+
+@dataclass(frozen=True)
+class NativeImuTrace:
+    times_s: tuple[float, ...]
+    angular_velocity_platform_rad_s: tuple[tuple[float, float, float], ...]
+    truth_omega_bn_b_rad_s: tuple[float, float, float]
+    model_source: str = "Basilisk.simulation.imuSensor.ImuSensor"
+    input_source: str = "explicit_SCStatesMsg_truth_fixture"
+    claim_scope: str = "official_imu_gyro_measurement_from_prescribed_spacecraft_truth_without_navigation_or_closed_loop"
+
+
+def run_native_imu_probe(
+    *,
+    duration_s: float = 2.0,
+    sample_s: float = 0.1,
+    truth_sigma_bn: Sequence[float] = (0.0, 0.0, 0.0),
+    truth_omega_bn_b_rad_s: Sequence[float] = (0.01, -0.005, 0.002),
+    sensor_pos_b_m: Sequence[float] = (0.0, 0.0, 0.0),
+    dcm_pb: Sequence[float] = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
+) -> NativeImuTrace:
+    """Run official Basilisk ImuSensor against prescribed spacecraft truth.
+
+    The first N2 IMU probe isolates the gyroscope channel with zero stochastic
+    noise and a co-located sensor. Accelerometer excitation and bias/noise
+    characterization are separate follow-up tests; no synthetic acceleration
+    is inferred from this fixed truth fixture.
+    """
+    if type(duration_s) not in (int, float) or not math.isfinite(float(duration_s)) or not 0.1 <= float(duration_s) <= 120.0:
+        raise ValueError("NATIVE_IMU_DURATION_INVALID")
+    if type(sample_s) not in (int, float) or not math.isfinite(float(sample_s)) or not 0.001 <= float(sample_s) <= 1.0:
+        raise ValueError("NATIVE_IMU_SAMPLE_INVALID")
+    duration = float(duration_s)
+    sample = float(sample_s)
+    if sample > duration or duration / sample > 20000:
+        raise ValueError("NATIVE_IMU_GRID_INVALID")
+    sigma = _finite_vector(truth_sigma_bn, 3, "NATIVE_IMU_TRUTH_SIGMA")
+    omega = _finite_vector(truth_omega_bn_rad_s, 3, "NATIVE_IMU_TRUTH_OMEGA")
+    position = _finite_vector(sensor_pos_b_m, 3, "NATIVE_IMU_SENSOR_POSITION")
+    dcm = _finite_vector(dcm_pb, 9, "NATIVE_IMU_DCM")
+    if any(abs(value) > 1.0e-9 for value in position):
+        raise ValueError("NATIVE_IMU_NONZERO_SENSOR_OFFSET_NOT_YET_SUPPORTED")
+
+    from Basilisk.architecture import messaging
+    from Basilisk.utilities import SimulationBaseClass, macros
+    from components.imu.builder import build_imu_sensor
+
+    truth = messaging.SCStatesMsgPayload()
+    truth.sigma_BN = list(sigma)
+    truth.omega_BN_B = list(omega)
+    truth.r_BN_N = [7_000_000.0, 0.0, 0.0]
+    truth.v_BN_N = [0.0, 7_500.0, 0.0]
+    truth.omegaDot_BN_B = [0.0, 0.0, 0.0]
+    truth.nonConservativeAccelpntB_B = [0.0, 0.0, 0.0]
+    truth_msg = messaging.SCStatesMsg().write(truth)
+
+    sim = SimulationBaseClass.SimBaseClass()
+    process = sim.CreateNewProcess("P9N2ImuProcess")
+    process.addTask(sim.CreateNewTask("P9N2ImuTask", macros.sec2nano(sample)))
+    sensor = build_imu_sensor(
+        model_tag="P9N2OfficialImuSensor",
+        sc_state_msg=truth_msg,
+        sigma_gyro_rad_s=0.0,
+        sigma_accel_m_s2=0.0,
+        sigma_gyro_random_walk_rad_s_sqrt_s=0.0,
+        sigma_accel_random_walk_m_s2_sqrt_s=0.0,
+        sensor_pos_b_m=position,
+        dcm_pb=dcm,
+    )
+    sim.AddModelToTask("P9N2ImuTask", sensor, None, 10)
+    recorder = sensor.sensorOutMsg.recorder(macros.sec2nano(sample))
+    sim.AddModelToTask("P9N2ImuTask", recorder, None, 5)
+    sim.InitializeSimulation()
+    sim.ConfigureStopTime(macros.sec2nano(duration))
+    sim.ExecuteSimulation()
+
+    times = tuple(float(value) * 1.0e-9 for value in recorder.times())
+    angular_velocity = tuple(tuple(float(value) for value in row) for row in recorder.AngVelPlatform)
+    if not times or len(times) != len(angular_velocity):
+        raise RuntimeError("NATIVE_IMU_RECORDER_MISSING")
+    if any(len(row) != 3 for row in angular_velocity):
+        raise RuntimeError("NATIVE_IMU_RECORDER_SHAPE_INVALID")
+    if not all(math.isfinite(value) for row in angular_velocity for value in row):
+        raise RuntimeError("NATIVE_IMU_RECORDER_NONFINITE")
+    # Identity mounting, zero noise, zero bias and zero lever arm make this a
+    # direct truth-to-official-sensor consistency check, not a model estimate.
+    for row in angular_velocity:
+        if any(abs(row[index] - omega[index]) > 1.0e-6 for index in range(3)):
+            raise RuntimeError("NATIVE_IMU_GYRO_TRUTH_MISMATCH")
+    return NativeImuTrace(
+        times_s=times,
+        angular_velocity_platform_rad_s=angular_velocity,
+        truth_omega_bn_b_rad_s=omega,
+    )
