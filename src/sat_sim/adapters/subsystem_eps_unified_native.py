@@ -167,7 +167,7 @@ class EpsUnifiedNativeAdapter:
         first_event_start = min(event_start_times) if event_start_times else float("inf")
         pre_event_solar_rows = [row for row in rows if float(row.time_s) < first_event_start]
         nominal_solar_power_w = (
-            float(pre_event_solar_rows[0].solar_power_w)
+            float(pre_event_solar_rows[-1].solar_power_w)
             if pre_event_solar_rows
             else float(config.solar_power_w) * float(config.solar_efficiency)
         )
