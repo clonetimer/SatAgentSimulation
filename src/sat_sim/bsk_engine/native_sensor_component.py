@@ -57,7 +57,7 @@ def run_native_star_tracker_probe(
     if sample > duration or duration / sample > 20000:
         raise ValueError("NATIVE_STAR_TRACKER_GRID_INVALID")
     sigma = _finite_vector(truth_sigma_bn, 3, "NATIVE_STAR_TRACKER_TRUTH_SIGMA")
-    omega = _finite_vector(truth_omega_bn_rad_s, 3, "NATIVE_STAR_TRACKER_TRUTH_OMEGA")
+    omega = _finite_vector(truth_omega_bn_b_rad_s, 3, "NATIVE_STAR_TRACKER_TRUTH_OMEGA")
     dcm = _finite_vector(dcm_cb, 9, "NATIVE_STAR_TRACKER_DCM")
     if type(seed) is not int or not 0 <= seed <= 2147483647:
         raise ValueError("NATIVE_STAR_TRACKER_SEED_INVALID")
