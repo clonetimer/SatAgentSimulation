@@ -139,7 +139,7 @@ def test_native_solar_panel_runs_through_sealed_run_bundle(tmp_path):
     )
     assert executed.run_record.status.value == "SUCCEEDED"
     assert executed.run_record.sealed is True
-    assert executed.validation.result.value == "PASS"
+    assert executed.validation.result.value == "PASS", executed.validation.model_dump(mode="json")
     assert executed.trace_rows
     assert executed.trace_rows[-1]["eps.solar.array_power_w"] == pytest.approx(45.0, abs=5.0)
     assert verify_run_bundle(prepared.bundle_root)["ok"] is True
