@@ -136,3 +136,12 @@
 - formal runtime evidence 首轮共 17 个参数化用例：7 个 ADCS 用例通过；EPS/Comm-Data 4 个用例因测试 helper 把 label.fault_active / label.degradation_active 错当成请求 QoI 而在 TaskSpec 规划阶段失败。状态标签是 runtime trace/evidence 元数据，不是所有 capability 都声明的用户 QoI；现在从 outputs.qoi 中过滤 label.*，但不从 evidence profile 或 trace 中删除。
 - whole-spacecraft 6 个既有 formal 用例因 CI 安装脚本漏装 numba 而失败。项目 pyproject.toml 已固定 numba==0.63.1，thermal_quadrature.py 是整星原生热环境运行的实际依赖；这是 CI 安装清单漂移，不是 Basilisk 物理模型失败。已将同版本 numba 加入官方 native workflow 安装步骤。
 - 修复后必须在新的最终 PR head 重跑 17 个 formal 用例；不能把 7/17 或 4/4 A/B 当成 O2-C 全部通过。
+
+
+## O2-D 向导事件入口与浏览器旅程经验（2026-11-19）
+
+- 不要仅凭 capability_form_schema 返回 event_catalog 就向用户开放事件；必须同时有 formal effect evidence、paired native A/B 和 browser Run Bundle 旅程。向导入口现在用 capability ID 与 event_catalog 双重 gate，单机 native 仍保持 nominal-only。
+- UI 的 event select 是按 kind 从 schema 动态生成的，因此每个对象必须分别校验 fault/degradation 两个下拉目录，不能只验证某一个 effect 可添加。
+- EPS 与 Comm/Data 各有一个 fault 和一个 degradation；用同一个 parameterized Chromium test 覆盖六条旅程（含两条 nominal），避免复制两套 Run Center/Bundle 校验流程。
+- 对 magnitude_applicable=false 的二值 PDU trip，不渲染通用 magnitude；对连续退化与 transmitter rate loss，浏览器实际修改归一化 magnitude，并验证 canonical TaskSpec 保存值与 effect evidence。
+- O2-D 的 CI 必须先 collect-only 精确检查六个用例，再执行真实 Chromium；不能把 browser workflow skipped 或 deselected 当作旅程通过。
