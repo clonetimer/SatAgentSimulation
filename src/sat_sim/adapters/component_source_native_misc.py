@@ -1225,6 +1225,7 @@ class ImuAdapter(_BaseComponentAdapter):
             accel_error = math.sqrt(sum((float(native_rows[-1][f"adcs.imu.accel_{axis}_m_s2"]) - accel[i]) ** 2 for i, axis in enumerate("xyz")))
             qoi = {"adcs.imu.gyro_error_norm_rad_s": gyro_error, "adcs.imu.accel_error_norm_m_s2": accel_error}
             summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
             labels = {"run_labels": [{
                 "task_id": summary["task_id"],
                 "mode": "nominal",
