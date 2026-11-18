@@ -105,6 +105,8 @@ def test_native_backend_is_exposed_in_the_guided_parameter_workspace() -> None:
         "component_imu_basilisk_native",
         "component_star_tracker_basilisk_native",
         "component_magnetometer_basilisk_native",
+        "component_battery_basilisk_native",
+        "component_solar_panel_basilisk_native",
     ):
         assert template_id in source
     assert "wizardEventHost" in source
