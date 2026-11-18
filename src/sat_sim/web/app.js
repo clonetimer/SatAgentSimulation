@@ -8591,6 +8591,21 @@
       label: 'Basilisk 原生太阳翼模板',
       prompt: '已加载官方 Basilisk SimpleSolarPanel。当前为单块完全展开的固定太阳翼，采用显式静态太阳方向与阴影输入；不包含太阳翼跟踪、姿态闭环或地球轨道光照环境。',
     },
+    'component.thruster': {
+      templateId: 'component_thruster_basilisk_native',
+      label: 'Basilisk 原生推力器模板',
+      prompt: '已加载官方 Basilisk ThrusterDynamicEffector 与 FuelTank。当前使用自由载体、固定推进剂贮箱和单个连续标称点火脉冲；推力来自 THROutputMsg recorder，冲量与推进剂消耗来自记录积分/质量差。该夹具不是已安装整星推进系统，不包含姿轨耦合或故障退化。',
+    },
+    'component.fuel_tank': {
+      templateId: 'component_fuel_tank_basilisk_native',
+      label: 'Basilisk 原生燃料贮箱模板',
+      prompt: '已加载官方 Basilisk FuelTank。当前在 10 kg 自由载体夹具中按恒定质量流量排出推进剂，输出原生质量、质量变化率和容量记录；不包含压力、热力学状态或推力器闭环耦合。',
+    },
+    'component.thermal_node': {
+      templateId: 'component_thermal_node_basilisk_native',
+      label: 'Basilisk 原生热节点模板',
+      prompt: '已加载官方 Basilisk SensorThermal。当前为固定辐射板、恒定电功率和显式太阳/日食输入，输出原生温度（K/°C）；不包含轨道传播、环境导热网络或地球红外/反照闭环。',
+    },
   });
 
   async function wizardChooseObject(objectId) {
@@ -9137,7 +9152,7 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
-        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的反作用轮、IMU、星敏感器、磁强计、电池和太阳翼开始'],
+        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的反作用轮、IMU、星敏感器、磁强计、电池、太阳翼、推力器、燃料贮箱和热节点开始'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],

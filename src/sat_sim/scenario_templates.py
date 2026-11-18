@@ -90,12 +90,55 @@ def _template(
 _TEMPLATES = [
     # Component-level templates
     _template(
-        "component_fuel_tank_basilisk_native", "贮箱原生质量仿真", "部件", "component",
-        "component.fuel_tank.v1", "官方 FuelTank 在显式自由载体夹具中按恒定流量排出推进剂，记录原生质量和质量变化率；不提供压力或热力学状态。",
+        "component_thruster_basilisk_native", "推力器原生点火仿真", "部件", "component",
+        "component.thruster.v1", "使用官方 ThrusterDynamicEffector 与 FuelTank，在自由载体和显式推进剂夹具中执行一个连续标称点火脉冲；输出推力 recorder、冲量积分和推进剂消耗。该夹具不是已安装整星推进系统，不包含姿轨耦合或故障退化。",
         duration_s=1.0,
-        patch={"simulation": {"sample_s": 0.1, "step_s": 0.01},
-               "parameters": {"values": {"physics_backend": "basilisk_native", "capacity_kg": 3.0,
-                                           "initial_mass_kg": 2.0, "mass_flow_kg_s": 0.001}}},
+        patch={
+            "simulation": {"step_s": 0.005, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "native_step_s": 0.005,
+                "thrust_n": 1.0,
+                "isp_s": 280.0,
+                "on_time_profile_s": [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0, 0, 0, 0],
+            }},
+            "outputs": {
+                "plots": [
+                    "propulsion.thruster.effective_thrust_n",
+                    "propulsion.thruster.on_time_s",
+                    "propulsion.thruster.cumulative_impulse_ns",
+                    "propulsion.thruster.cumulative_propellant_kg",
+                ],
+                "qoi": [
+                    "propulsion.thruster.total_impulse_ns",
+                    "propulsion.thruster.propellant_used_kg",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_fuel_tank_basilisk_native", "贮箱原生质量仿真", "部件", "component",
+        "component.fuel_tank.v1", "官方 FuelTank 在 10 kg 自由载体夹具中按恒定质量流量排出推进剂，记录原生质量和质量变化率；不提供压力或热力学状态，不包含与推力器的闭环耦合。",
+        duration_s=1.0,
+        patch={
+            "simulation": {"sample_s": 0.1, "step_s": 0.01},
+            "parameters": {"values": {"physics_backend": "basilisk_native", "capacity_kg": 3.0,
+                                      "initial_mass_kg": 2.0, "mass_flow_kg_s": 0.001}},
+            "outputs": {
+                "plots": [
+                    "propulsion.fuel_tank.propellant_mass_kg",
+                    "propulsion.fuel_tank.mass_rate_kg_s",
+                    "propulsion.fuel_tank.max_mass_kg",
+                ],
+                "qoi": [
+                    "propulsion.fuel_tank.initial_mass_kg",
+                    "propulsion.fuel_tank.final_mass_kg",
+                    "propulsion.fuel_tank.consumed_mass_kg",
+                ],
+            },
+        },
+        recommended=True,
     ),
     _template(
         "component_reaction_wheel_nominal", "反作用轮加速", "部件", "component",
@@ -286,14 +329,24 @@ _TEMPLATES = [
     ),
     _template(
         "component_thermal_node_basilisk_native", "热节点原生温度仿真", "部件", "component",
-        "component.thermal_node.v1", "官方 SensorThermal 记录固定辐射板在恒定电功率和显式光照条件下的温度；默认完全日食，不包含环境导热或轨道传播。",
+        "component.thermal_node.v1", "官方 SensorThermal 记录固定辐射板在恒定电功率和显式光照条件下的温度；默认完全日食，使用固定太阳/航天器状态夹具，不包含轨道传播、环境导热网络或地球红外/反照闭环。",
         duration_s=10.0,
-        patch={"simulation": {"sample_s": 0.1, "step_s": 0.1},
-               "parameters": {"values": {"physics_backend": "basilisk_native", "initial_temp_k": 300.0,
-                                           "power_w": 10.0, "surface_area_m2": 0.01, "mass_kg": 1.0,
-                                           "specific_heat_j_per_kg_k": 900.0, "absorptivity": 0.25,
-                                           "emissivity": 0.8, "normal_b": [1.0, 0.0, 0.0],
-                                           "sun_direction_n": [1.0, 0.0, 0.0], "illumination_factor": 0.0}}},
+        patch={
+            "simulation": {"sample_s": 0.1, "step_s": 0.1},
+            "parameters": {"values": {"physics_backend": "basilisk_native", "initial_temp_k": 300.0,
+                                      "power_w": 10.0, "surface_area_m2": 0.01, "mass_kg": 1.0,
+                                      "specific_heat_j_per_kg_k": 900.0, "absorptivity": 0.25,
+                                      "emissivity": 0.8, "normal_b": [1.0, 0.0, 0.0],
+                                      "sun_direction_n": [1.0, 0.0, 0.0], "illumination_factor": 0.0}},
+            "outputs": {
+                "plots": ["thermal.node.temp_k", "thermal.node.temp_c", "thermal.node.input_power_w"],
+                "qoi": [
+                    "thermal.node.initial_temp_k", "thermal.node.final_temp_k",
+                    "thermal.node.min_temp_k", "thermal.node.max_temp_k", "thermal.node.delta_temp_k",
+                ],
+            },
+        },
+        recommended=True,
     ),
     _template(
         "component_data_queue", "数据队列积压与下行", "部件", "component",

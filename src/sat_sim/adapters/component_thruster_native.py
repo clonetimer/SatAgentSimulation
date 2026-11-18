@@ -265,9 +265,9 @@ def run_native_thruster(spec: Mapping[str, Any], case: _NativeCase) -> Simulatio
         rows.append(row)
 
     qoi = {_PREFIX + "total_impulse_ns": float(impulse[-1]), _PREFIX + "propellant_used_kg": float(used[-1])}
-    labels = {"task_id": rows[0]["task_id"], "mode": "nominal", "capability_id": _CAPABILITY}
+    labels = {"task_id": rows[0]["task_id"], "mode": "nominal", "capability_id": _CAPABILITY, "physics_backend": "basilisk_native"}
     summary = {
-        **labels, "case_id": rows[0]["case_id"], "status": "complete", "target_name": "thruster",
+        **labels, "physics_backend": "basilisk_native", "case_id": rows[0]["case_id"], "status": "complete", "target_name": "thruster",
         "target_level": "component", "duration_s": case.duration_ns / _NS_PER_S,
         "sample_s": case.sample_ns / _NS_PER_S, "trace_rows": len(rows), "events": {}, "qoi": qoi,
     }

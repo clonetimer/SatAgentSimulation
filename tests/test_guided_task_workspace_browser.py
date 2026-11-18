@@ -384,8 +384,12 @@ def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardOptions [data-wizard-goal='component_native']").click()
             page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").wait_for(timeout=20000)
-            assert page.locator("#wizardOptions [data-wizard-object]").count() == 6
-            for native_object in ("component.reaction_wheel", "component.imu", "component.star_tracker", "component.magnetometer", "component.battery", "component.solar_panel"):
+            assert page.locator("#wizardOptions [data-wizard-object]").count() == 9
+            for native_object in (
+                "component.reaction_wheel", "component.imu", "component.star_tracker", "component.magnetometer",
+                "component.battery", "component.solar_panel", "component.thruster", "component.fuel_tank",
+                "component.thermal_node",
+            ):
                 assert page.locator(f"#wizardOptions [data-wizard-object='{native_object}']").is_visible()
             page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").click()
             page.locator("#wizardConfigSections").wait_for(state="visible", timeout=20000)
@@ -826,7 +830,7 @@ def test_experiment_variant_opens_exact_run_evidence_and_returns_to_experiment(t
                 browser.close()
 
 
-def test_guided_native_sensor_workbench_runs_all_verified_adcs_and_eps_devices(tmp_path):
+def test_guided_native_sensor_workbench_runs_all_verified_adcs_eps_propulsion_thermal_devices(tmp_path):
     """Each admitted native device must use its registered template and real sealed Run."""
     pytest.importorskip("Basilisk", reason="requires official Basilisk; covered by native-sensor-component gate")
     from importlib.metadata import version
@@ -866,6 +870,24 @@ def test_guided_native_sensor_workbench_runs_all_verified_adcs_and_eps_devices(t
             "Basilisk.simulation.simpleSolarPanel.SimpleSolarPanel",
             "太阳电池阵",
             ("eps.solar.array_power_w", "eps.solar.incidence_cos"),
+        ),
+        (
+            "component.thruster",
+            "Basilisk.simulation.thrusterDynamicEffector.ThrusterDynamicEffector",
+            "推力器",
+            ("propulsion.thruster.effective_thrust_n", "propulsion.thruster.cumulative_impulse_ns"),
+        ),
+        (
+            "component.fuel_tank",
+            "Basilisk.simulation.fuelTank.FuelTank",
+            "燃料贮箱",
+            ("propulsion.fuel_tank.propellant_mass_kg", "propulsion.fuel_tank.mass_rate_kg_s"),
+        ),
+        (
+            "component.thermal_node",
+            "Basilisk.simulation.sensorThermal.SensorThermal",
+            "热节点",
+            ("thermal.node.temp_k", "thermal.node.temp_c"),
         ),
     )
     app = create_app(
@@ -940,6 +962,9 @@ def test_guided_native_sensor_workbench_runs_all_verified_adcs_and_eps_devices(t
                         "component.magnetometer": "component.magnetometer.v1",
                         "component.battery": "component.battery.v1",
                         "component.solar_panel": "component.solar_panel.v1",
+                        "component.thruster": "component.thruster.v1",
+                        "component.fuel_tank": "component.fuel_tank.v1",
+                        "component.thermal_node": "component.thermal_node.v1",
                     }[object_id]
                     and row.get("status") == "SUCCEEDED"
                 ]
