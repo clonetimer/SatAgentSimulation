@@ -414,9 +414,36 @@ _TEMPLATES = [
 
     _template(
         "adcs_unified_native", "ADCS统一Basilisk闭环", "统一原生运行图", "subsystem",
-        "subsystem.adcs_unified_native.v1", "官方星敏、IMU、磁强计、制导控制和反作用轮与项目传感器融合SysModel在同一Task中闭环运行。",
+        "subsystem.adcs_unified_native.v1", "官方 StarTracker/ImuSensor/Magnetometer 与项目理想 Sun/Earth 向量测量、确定性姿态估计和反作用轮在同一 Basilisk Task 中闭环运行；传感器安装变换显式投影到 B 系。",
         duration_s=60.0,
-        patch={"simulation": {"sample_s": 1.0, "step_s": 0.2, "backend": "basilisk"}, "assurance": {"allow_proxy": False}, "parameters": {"values": {"initial_pointing_error_deg": 8.0}}, "outputs": {"plots": ["adcs.pointing_error_deg", "adcs.rw.speed_rad_s_0", "adcs.body_rate_rad_s_x"]}},
+        patch={
+            "simulation": {"sample_s": 1.0, "step_s": 0.2, "backend": "basilisk"},
+            "assurance": {"allow_proxy": False},
+            "parameters": {"values": {"initial_pointing_error_deg": 8.0}},
+            "outputs": {
+                "plots": [
+                    "adcs.pointing_error_deg",
+                    "adcs.fusion.estimated_mrp_BN_x",
+                    "adcs.fusion.estimated_omega_BN_B_x",
+                    "adcs.fusion.magnetometer_used",
+                    "adcs.rw.speed_rad_s_0",
+                    "adcs.body_rate_rad_s_x",
+                    "adcs.control.applied_torque_nm_0",
+                ],
+                "telemetry_streams": [
+                    {"stream_id": "adcs_fast", "sample_s": 1.0, "fields": [
+                        "adcs.pointing_error_deg", "adcs.fusion.estimated_mrp_BN_x",
+                        "adcs.fusion.estimated_omega_BN_B_x", "adcs.fusion.magnetometer_used",
+                        "adcs.rw.speed_rad_s_0", "adcs.control.applied_torque_nm_0",
+                    ], "format": "jsonl"},
+                    {"stream_id": "adcs_housekeeping", "sample_s": 5.0, "fields": [
+                        "adcs.pointing_error_deg", "adcs.rw.speed_rad_s_0",
+                        "adcs.fusion.source_mode", "adcs.fusion.magnetometer_used",
+                    ], "format": "csv"},
+                ],
+                "fmea": {"enabled": True, "formats": ["csv", "json"]},
+            },
+        },
         recommended=True,
     ),
 
