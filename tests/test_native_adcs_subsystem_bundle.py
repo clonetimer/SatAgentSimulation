@@ -87,16 +87,32 @@ def test_adcs_native_subsystem_sealed_run_bundle_and_frame_contract(
                 "adcs.fusion.estimated_mrp_BN_x",
                 "adcs.fusion.estimated_omega_BN_B_x",
                 "adcs.fusion.magnetometer_used",
+                "adcs.fusion.body_rate_valid",
+                "adcs.sensor.imu_sample_valid",
+                "adcs.sensor.gyro_measured_platform_rad_s_x",
+                "adcs.sensor.raw_gyro_rad_s_x",
                 "attitude.truth.omega_BN_B_x",
             )
         )
     first = rows[0]
-    # The first recorder row is the Reset snapshot: truth and star attitude
-    # are available, but the scheduled IMU has not yet emitted its first tick.
-    measured_rate = rows[1]
+    # The first IMU UpdateState in Basilisk 2.11.0 intentionally publishes a
+    # zeroed startup payload. Verify the explicit validity transition and
+    # compare only a later recorder sample marked valid by the native chain.
+    assert first["adcs.fusion.body_rate_valid"] == 0
+    valid_rate_rows = [row for row in rows if row["adcs.fusion.body_rate_valid"] == 1]
+    assert valid_rate_rows, [
+        (row["time_s"], row.get("adcs.sensor.imu_sample_valid"),
+         row.get("adcs.sensor.raw_gyro_rad_s_x"), row.get("adcs.fusion.body_rate_valid"))
+        for row in rows[:5]
+    ]
+    measured_rate = valid_rate_rows[0]
+    assert measured_rate["adcs.sensor.imu_sample_valid"] == 1
     for axis in "xyz":
         assert first[f"adcs.fusion.estimated_mrp_BN_{axis}"] == pytest.approx(
             first[f"attitude.truth.mrp_BN_{axis}"], abs=2.0e-4
+        )
+        assert measured_rate[f"adcs.sensor.gyro_measured_platform_rad_s_{axis}"] == pytest.approx(
+            measured_rate[f"adcs.sensor.raw_gyro_rad_s_{axis}"], abs=2.0e-8
         )
         assert measured_rate[f"adcs.fusion.estimated_omega_BN_B_{axis}"] == pytest.approx(
             measured_rate[f"attitude.truth.omega_BN_B_{axis}"], abs=2.0e-6
