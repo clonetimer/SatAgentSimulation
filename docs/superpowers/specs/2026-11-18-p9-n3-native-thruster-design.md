@@ -16,7 +16,7 @@
 - Native 只支持 nominal，所有 fault/degradation/constraint 事件明确拒绝。
 - 沿用输入周期=simulation.sample_s。每周期请求必须在 [0,sample_s]。将 profile 按既有规则扩展到 n 个周期；空、非有限、超长或无效 profile 拒绝。允许全零，或连续非零区间，其中除最后一个非零周期外都必须为整周期。区间结束后不得再次点火。
 - duration、sample、native_step_s 都必须为有限正值；经 Basilisk 纳秒舍入后 duration/sample 和 sample/native_step 均整除。非零点火持续时间也须与 native step 对齐；native_step_s 默认 0.01 秒。对超过 100000 个原生步长的有限运行请求明确拒绝。
-- Canonical TaskSpec 的 simulation.step_s 会转换到 runtime simulation.solver.step_s。存在标准/solver 步长时，必须与 native_step_s 在纳秒归一化后相同；冲突在预检和执行前拒绝。旧 flat spec 未提供 solver 时保留原生 0.01 秒默认。Canonical 省略标准步长后产生的推断值同样受一致性校验，必要时显式填写一致的两项。
+- Canonical TaskSpec 的 simulation.step_s 会转换到 runtime simulation.solver.step_s。存在标准/solver 步长时，必须与 native_step_s 在纳秒归一化后相同；冲突在预检和执行前拒绝。旧 flat spec 未提供标准/solver 步长时，直接执行和正式迁移均保留其有效 native_step_s（该参数缺省时为 0.01 秒）。直接输入 Canonical 1.0 时，省略标准步长后产生的推断值同样受一致性校验，必要时显式填写一致的两项。
 - Native builder 仍接收秒数，整数纳秒转换为秒后必须能按 Basilisk 规则精确还原；无法往返的极长时间值在预检拒绝，避免已接受的网格在调度时偏移一纳秒。
 - 一台推力器，固定 +X、零力臂；10 kg 自由载体、1 kg 初始推进剂、2 kg 容量是显式标识的试验夹具，不代表装机姿态或实际卫星。预检按点火时长加一个原生步长的质量流量预留余量，拒绝会耗尽夹具燃料的请求。
 - 复用现有组件工厂和推进图，不调用整星运行图，不用 Python 代算物理响应。记录官方 THROutputMsg 与 FuelTankMsg；数值冲量从密集原生推力记录积分，消耗质量从原生贮箱质量差得到。

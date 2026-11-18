@@ -65,7 +65,7 @@ P9-N 是有限时长、单次运行的 component-level 仿真阶段。它复用�
 - 复用已有 `EpsUnifiedNativeAdapter`，充电、放电两个 subsystem TaskSpec → sealed Run Bundle 均通过 validation PASS、integrity 与逐区间能量守恒；已核查实际负载、官方模块与项目 PDU 来源。
 - 本轮环境为固定显式 Sun/Eclipse 输入，充电与放电是独立工况；不宣称轨道太阳历元、动态日蚀或运行中工况切换已验证。后续按真实输入与 recorder 证据扩展，再推进推进器、贮箱和热控设备。
 - 推进器新增 opt-in 官方 ThrusterDynamicEffector + Spacecraft + FuelTank 单机夹具，支持一次连续点火与零点火；保留每周期指令含义。密集原生推力先积分、再按输出周期抽取，燃料消耗取原生质量差。多段脉冲、事件、不完整时间网格、超步数及可能耗尽燃料的请求预检拒绝。
-- 推进器本地专项 75 passed，正式 TaskSpec 1.0.0 示例 SUCCEEDED / validation PASS / sealed / integrity，核验 201 个密集采样点。实际 CI / 合并状态以该功能 PR 最新 head 为准；不将这一首批实现扩展成 native 故障、任意脉冲或真实装机耦合已验收的声明。
+- 推进器本地专项 79 passed，正式 TaskSpec 1.0.0 示例 SUCCEEDED / validation PASS / sealed / integrity，核验 201 个密集采样点。实际 CI / 合并状态以该功能 PR 最新 head 为准；不将这一首批实现扩展成 native 故障、任意脉冲或真实装机耦合已验收的声明。
 
 ### P9-N4：单机工作台产品闭环
 - 对话框选择单机 → 参数配置 → 预检 → 执行 → 曲线/指标 → 历史 Run → 数据导出。

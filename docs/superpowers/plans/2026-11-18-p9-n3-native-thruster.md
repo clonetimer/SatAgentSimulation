@@ -26,6 +26,7 @@
 - Zero burn is a legitimate successful control despite the old subsystem runner status heuristic.
 - Timing validation and scheduling must use the same rounded nanoseconds, including fractional periods.
 - Canonical/runtime solver step and native_step_s must agree when both exist; inferred canonical defaults must not be silently ignored. Native seconds/nanoseconds must round-trip exactly before scheduling.
+- Legacy native-thruster migration without a standard step must retain the effective native step through public planning and sealed execution, rather than inventing the sample period as an integration input.
 - Fuel exhaustion, nonfinite inputs, and unsupported events must never produce an accepted nominal result.
 
 ## Task 1: Native adapter and real physical acceptance
@@ -43,7 +44,7 @@ Final-review scope correction: the native-thruster branch of src/sat_sim/task_mo
 - [x] Execute the example through prepare_run/execute_prepared_run; assert SUCCEEDED, PASS, sealed, integrity, native provenance and physical output.
 - [x] Verify default project_reference compatibility, self-review, and report changed files/test commands/results. Do not commit/push; root integrates atomically.
 
-Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 75 passed (73 native-component tests and 2 existing reference-event tests). Canonical TaskSpec 1.0.0 separately passed prepare/execute, validation, sealing and integrity. One-step pulse scheduling and the conservative fuel reserve were established with real native probes. Task-scoped independent review passed after correcting the low-flow numerical resolution and direct-execution identity findings. Final integration review and current-head CI remain gates below.
+Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 79 passed (77 native-component tests and 2 existing reference-event tests). Canonical TaskSpec 1.0.0 separately passed prepare/execute, validation, sealing and integrity. One-step pulse scheduling and the conservative fuel reserve were established with real native probes. Task-scoped independent review passed after correcting the low-flow numerical resolution and direct-execution identity findings. Final integration review and current-head CI remain gates below.
 
 ## Task 2: Governance, experience, and integration
 

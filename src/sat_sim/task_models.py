@@ -565,9 +565,11 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     task_id = str(src.get("task_id") or "migrated_task")
     sample_s = float(sim.get("sample_s", 10.0) or 10.0)
     solver = dict(sim.get("solver") or {})
-    step_s = solver.get("step_s", sample_s)
     if _uses_native_thruster(src.get("capability_id"), legacy_parameter_values):
-        step_s = sim.get("step_s", step_s)
+        native_step_s = legacy_parameter_values.get("native_step_s", 0.01)
+        step_s = sim.get("step_s", solver.get("step_s", native_step_s))
+    else:
+        step_s = solver.get("step_s", sample_s)
     mission = dict(src.get("mission") or {})
     spacecraft = dict(src.get("spacecraft") or {})
     if not mission and isinstance(spacecraft.get("mission"), Mapping):

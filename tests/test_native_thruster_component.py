@@ -439,3 +439,41 @@ def test_legacy_explicit_flat_step_is_preserved_across_canonical_migration():
     assert runtime["simulation"]["step_s"] == 0.02
     assert runtime["simulation"]["solver"]["step_s"] == 0.005
     assert ThrusterAdapter().validate(runtime)
+
+
+@pytest.fixture(params=[None, 0.005], ids=["native-default", "native-explicit"])
+def legacy_thruster_without_standard_step(request):
+    spec = thruster_spec(on_time_profile_s=[0.0])
+    if request.param is None:
+        del spec["parameters"]["native_step_s"]
+    else:
+        spec["parameters"]["native_step_s"] = request.param
+    return spec, 0.01 if request.param is None else request.param
+
+
+def test_legacy_missing_standard_step_plans_on_native_grid(legacy_thruster_without_standard_step):
+    pytest.importorskip("Basilisk")
+    from sat_sim.execution_planner import plan_task_spec
+    from sat_sim.task_models import canonicalize_task_spec
+
+    spec, step = legacy_thruster_without_standard_step
+    planning = plan_task_spec(spec)
+    assert planning.ok, planning.validation.errors
+    assert canonicalize_task_spec(spec)["simulation"]["step_s"] == step
+
+
+def test_legacy_missing_standard_step_executes_sealed_bundle(legacy_thruster_without_standard_step, tmp_path):
+    pytest.importorskip("Basilisk")
+    from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
+
+    spec, step = legacy_thruster_without_standard_step
+    prepared = prepare_run(spec, output_root=tmp_path)
+    result = execute_prepared_run(prepared.bundle_root, expected_plan_sha256=prepared.execution_plan_sha256)
+    assert result.run_record.status.value == "SUCCEEDED", result.run_record
+    assert result.run_record.sealed and result.validation.result.value == "PASS", result.validation
+    assert verify_run_bundle(prepared.bundle_root)["ok"]
+    metadata = result.summary["adapter_metadata"]
+    assert metadata["native_step_s"] == step
+    assert metadata["native_recorder_samples"] == round(1 / step) + 1
+    assert result.summary["qoi"][PREFIX + "propellant_used_kg"] == 0.0
+    assert result.summary["qoi"][PREFIX + "total_impulse_ns"] == 0.0

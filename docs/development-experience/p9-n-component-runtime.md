@@ -149,9 +149,9 @@ P9-N2 保留默认 component reference 路径，并已为 IMU、磁强计、星�
 6. **字段来源要分别说明。** 实际推力来自 `THROutputMsg.thrustForce`；冲量由该密集记录按真实时间积分；耗油量来自 `FuelTankMsg.fuelMass` 的质量差。`on_time_s` 是指令，`effective_isp_s` 是配置参数，不冒充测量。零点火是有效成功对照，不沿用旧分系统 runner 对“必须有耗油和速度增量”的成功判据。
 7. **有限数值不等于可分辨的测量。** 独立复审用 1e-10 N / 1 ms 和 1e-9 N / 0.1 ms 的真实点火发现：总冲量为正，单步质量递减却被 1 kg 贮箱状态的浮点舍入抹去。原生入口需要同时预检累积舍入预算，并在每个密集时间点检查质量差与推力积分的守恒残差；不能仅检查 finite、nonnegative 后把零耗油判为成功。
 8. **预检与直接执行必须共享身份边界。** 原生执行入口也要验证 capability、任务类型和目标设备，避免调用者绕过 prepare 阶段后把错误目标执行成推力器。回归应证明错误请求根本不会进入原生图构建，而不仅检查 validate 返回了错误。
-9. **同一积分步长不能存在相互矛盾的已消费输入。** Canonical `simulation.step_s` 会进入 runtime 的 `simulation.solver.step_s`；新增 `native_step_s` 时必须核对这条归一化路径。原生实测中，同一个 20 ms 点火在 5 ms 与 20 ms 步长下的记录耗油量不同，因此标准步长被忽略会造成实际结果与界面说明不一致。两项存在时必须在纳秒归一化后相同；旧 flat spec 没有 solver 时仍使用原生默认。参数消费清单本身不能证明调度真的采用了该值。另一个约 50 天单步反例表明，整数纳秒转回秒后仍需核对往返一致性，不能只限制浮点值大小。
+9. **同一积分步长不能存在相互矛盾的已消费输入。** Canonical `simulation.step_s` 会进入 runtime 的 `simulation.solver.step_s`；新增 `native_step_s` 时必须核对这条归一化路径。原生实测中，同一个 20 ms 点火在 5 ms 与 20 ms 步长下的记录耗油量不同，因此标准步长被忽略会造成实际结果与界面说明不一致。两项存在时必须在纳秒归一化后相同；旧 flat spec 没有标准/solver 步长时，直接执行和正式迁移都应保留有效原生步长，不能在迁移时填入采样周期而引入新冲突。这条默认路径也要经过 prepare/execute/封存测试。参数消费清单本身不能证明调度真的采用了该值。另一个约 50 天单步反例表明，整数纳秒转回秒后仍需核对往返一致性，不能只限制浮点值大小。
 
-官方 Basilisk 2.11.0 的本地验收结果：73 项 native 组件测试与 2 项既有 reference 事件测试共 75 passed；参数表审计另有 4 passed，24 类组件的 source blob、字段、单位及名称绑定全部通过。正式 TaskSpec 1.0.0 示例经 prepare/execute 后为 SUCCEEDED、validation PASS、sealed、integrity PASS，核验 201 个密集原生采样点并导出 11 行。CI 与合并证据以该功能 PR 的最终 head 为准。
+官方 Basilisk 2.11.0 的本地验收结果：77 项 native 组件测试与 2 项既有 reference 事件测试共 79 passed；参数表审计另有 4 passed，24 类组件的 source blob、字段、单位及名称绑定全部通过。正式 TaskSpec 1.0.0 示例经 prepare/execute 后为 SUCCEEDED、validation PASS、sealed、integrity PASS，核验 201 个密集原生采样点并导出 11 行。CI 与合并证据以该功能 PR 的最终 head 为准。
 
 | 工况 | 记录推力积分 / N·s | 原生记录质量减少 / kg |
 |---|---:|---:|
