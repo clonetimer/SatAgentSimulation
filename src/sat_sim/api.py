@@ -5642,6 +5642,127 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
             background=BackgroundTask(archive_path.unlink, missing_ok=True),
         )
 
+    @app.get("/runs/{run_id}/bundle/download")
+    def download_run_bundle(run_id: str):
+        """Download the exact sealed Run Bundle after verifying every manifest hash."""
+
+        if (
+            not run_id
+            or run_id in {".", ".."}
+            or any(character in run_id for character in ("/", "\\", ":"))
+            or any(ord(character) < 32 for character in run_id)
+            or run_id.endswith((".", " "))
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail={"reason_code": "RUN_BUNDLE_ID_INVALID", "message": "Run ID must be one portable path segment."},
+            )
+        try:
+            root = _safe_bundle(run_root, run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not root.is_dir():
+            raise HTTPException(status_code=404, detail="run not found")
+
+        integrity = verify_run_bundle(root)
+        if not isinstance(integrity, dict) or integrity.get("ok") is not True:
+            raise HTTPException(
+                status_code=409,
+                detail={"reason_code": "RUN_BUNDLE_NOT_VERIFIED", "integrity": integrity},
+            )
+
+        manifest_path = root / "bundle_manifest.json"
+        seal_path = root / "SEALED.json"
+        try:
+            if manifest_path.is_symlink() or seal_path.is_symlink():
+                raise ValueError("manifest and seal must be regular files")
+            manifest_bytes = manifest_path.read_bytes()
+            seal_bytes = seal_path.read_bytes()
+            manifest = json.loads(manifest_bytes)
+            seal = json.loads(seal_bytes)
+        except (OSError, ValueError, TypeError) as exc:
+            raise HTTPException(
+                status_code=409,
+                detail={"reason_code": "RUN_BUNDLE_NOT_VERIFIED", "message": "Bundle manifest or seal cannot be read."},
+            ) from exc
+
+        files = manifest.get("files") if isinstance(manifest, dict) else None
+        manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+        if (
+            manifest.get("run_id") != run_id
+            or not isinstance(files, dict)
+            or not files
+            or not isinstance(seal, dict)
+            or seal.get("run_id") != run_id
+            or seal.get("bundle_manifest_sha256") != manifest_sha256
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail={"reason_code": "RUN_BUNDLE_IDENTITY_MISMATCH", "run_id": run_id},
+            )
+
+        handle, temp_name = tempfile.mkstemp(prefix="sat_sim_run_bundle_", suffix=".zip")
+        os.close(handle)
+        archive_path = Path(temp_name)
+        try:
+            with zipfile.ZipFile(
+                archive_path,
+                "w",
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=6,
+                allowZip64=True,
+            ) as archive:
+                prefix = f"{run_id}/"
+                archive.writestr(f"{prefix}bundle_manifest.json", manifest_bytes)
+                archive.writestr(f"{prefix}SEALED.json", seal_bytes)
+                for relative, expected in sorted(files.items()):
+                    if relative in {"bundle_manifest.json", "SEALED.json", "runtime/execution.lock"}:
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_MANIFEST_ENTRY_INVALID", "path": relative},
+                        )
+                    raw_path = root / relative
+                    if raw_path.is_symlink():
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_ARTIFACT_SYMLINK", "path": relative},
+                        )
+                    try:
+                        source = _safe_artifact(root, relative)
+                    except (ValueError, FileNotFoundError) as exc:
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_ARTIFACT_UNAVAILABLE", "path": relative},
+                        ) from exc
+                    digest = hashlib.sha256()
+                    with source.open("rb") as source_stream, archive.open(f"{prefix}{relative}", "w") as target:
+                        while True:
+                            chunk = source_stream.read(1024 * 1024)
+                            if not chunk:
+                                break
+                            digest.update(chunk)
+                            target.write(chunk)
+                    if digest.hexdigest() != str(expected.get("sha256", "")).lower():
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_CHANGED_DURING_EXPORT", "path": relative},
+                        )
+        except Exception:
+            archive_path.unlink(missing_ok=True)
+            raise
+
+        return FileResponse(
+            archive_path,
+            filename=f"{run_id}_run_bundle.zip",
+            media_type="application/zip",
+            headers={
+                "Cache-Control": "no-store",
+                "X-Sat-Sim-Run-ID": run_id,
+                "X-Sat-Sim-Run-Bundle-Manifest-SHA256": manifest_sha256,
+            },
+            background=BackgroundTask(archive_path.unlink, missing_ok=True),
+        )
+
     @app.get("/runs/{run_id}/artifacts/{artifact_path:path}")
     def download_artifact(run_id: str, artifact_path: str):
         try:
