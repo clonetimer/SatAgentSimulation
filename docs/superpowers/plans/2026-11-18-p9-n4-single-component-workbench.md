@@ -1,7 +1,7 @@
 # P9-N4：单机工作台产品闭环
 
-日期：2026-11-18
-状态：实施中；以 P9-N1 反作用轮为首个端到端验收对象。
+日期：2026-11-19
+状态：N4-A/B/C1/C2/C3 已合入 main；N4-D 正在补齐完整 Run Bundle 导出和九类设备端到端验收。
 
 ## 目标
 
@@ -40,7 +40,7 @@
 
 ### N4-C：按证据扩展单机目录
 
-#### N4-C1：传感器首批产品化（本轮实施）
+#### N4-C1：传感器首批产品化（已合入 main，PR #179）
 
 - 在现有 N4 工作台中开放 IMU、星敏感器、磁强计三个已通过官方 Basilisk 独立物理与 sealed Run Bundle 验收的设备。
 - 每个设备使用独立注册的 `basilisk_native` Scenario Template；前端不复制默认物理参数。
@@ -71,10 +71,10 @@
 - [ ] 数据/Run Bundle 导出可复核，导出脚本保持同一 TaskSpec/backend 身份。
 - [ ] Chromium 真实旅程与官方 Basilisk 2.11.0 物理门禁在同一最终 head 通过。
 
-## 当前已知问题
+## 历史 PR 清理
 
-- 既有 P9-N1 PR #168 的首个浏览器 head 有两处失败：一个测试将 UI 的 async 提交强行改为 sync，但前端仍按 async execution_state 轮询；另一个在向导视图下尝试点击隐藏的侧边栏历史入口。物理专项本身通过。此分支改为使用 embedded worker 保持 UI async 生命周期，并通过向导中可见的“其他专业工具 → 运行中心”进入历史；最终是否通过以当前 PR head 的实际 Chromium 结果为准。
-- P9-N1 PR #166 的 backend provenance UI 变更与 N4-A 结果摘要重叠；最终只保留一套来源展示，不重复实现。
+- 旧 PR #168 的 guided native workbench 方案已由 N4-A（PR #178）及 N4-C1/C2/C3 的合入实现替代；该分支已关闭，避免重复入口和分叉实现。
+- 旧 PR #166 的 provenance UI 与 N4-A 结果摘要重叠；main 已保留统一的 backend/native provenance 展示，该 PR 已关闭，不再维护第二套实现。
 
 ## 决策边界
 
@@ -112,7 +112,7 @@ EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口�
 - 已在分支 `feat/p9-n4-c-native-sensors-20261118` 新增 IMU、星敏感器、磁强计三个官方 Basilisk native Scenario Template，复用现有 capability 与 adapter，不新增物理实现。
 - 向导白名单扩展为反作用轮、IMU、星敏感器、磁强计四项；选择后调用服务端注册模板 API，再投影到现有 Schema 参数表单。
 - 原生传感器均只开放 nominal finite/offline；向导隐藏故障/退化事件编辑区，adapter 仍 fail closed。
-- 已新增模板/API 合同测试、三类传感器官方物理与 sealed Run Bundle 专项执行步骤、Chromium 真实 Run 旅程。最终状态以 PR 同一 head CI 结果为准；尚未将候选标记为最终验收完成。
+- 已新增模板/API 合同测试、三类传感器官方物理与 sealed Run Bundle 专项执行步骤、Chromium 真实 Run 旅程；PR #179 已合入 main。
 - 传感器声明边界：IMU 为 prescribed truth、identity mount、零杆臂、无随机噪声特性；星敏 valid 不代表星表/光学/FOV；磁强计为均匀磁场 fixture、identity mounting、统一三轴 scale，不宣称地球磁场环境。
 - 开发经验归档：`docs/development-experience/p9-n4-c-native-sensor-workbench.md`。
 
@@ -124,7 +124,7 @@ EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口�
 - 太阳电池阵使用 SimpleSolarPanel：一块完全展开固定板、静态 Sun/Eclipse fixture、nominal only；结果曲线显示 panel/array power、incidence cosine 和 shadow factor。
 - 两个 adapter 补充顶层 `summary.physics_backend=basilisk_native`，与 adapter metadata provenance 保持一致。
 - 向导 native 白名单扩展为反作用轮、IMU、星敏、磁强计、蓄电池、太阳电池阵六项；仍禁用不受原生 adapter 支持的故障/退化编辑。
-- 新增模板/API合同、官方 Basilisk native EPS Run Bundle 回归和五设备 Chromium 真实 Run/历史回放旅程；待 PR 同 head CI 验收后才准入正式主干。
+- 新增模板/API合同、官方 Basilisk native EPS Run Bundle 回归和六设备 Chromium 真实 Run/历史回放旅程；PR #180 已合入 main。
 - 开发经验：`docs/development-experience/p9-n4-c2-native-eps-workbench.md`。
 
 
@@ -135,10 +135,25 @@ EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口�
 - 扩充 SensorThermal 模板，输出温度 K/°C 和输入功率，明确固定辐射板/完全日食 fixture，不宣称轨道传播或地球红外/反照环境闭环。
 - 工作台 native 白名单从六项扩展为九项；三个新增设备仍只开放 nominal finite/offline。
 - 推力器 native 结果 summary 补齐顶层 backend 来源字段，与 adapter metadata 一致。
-- 新增三类模板/API合同、真实 Chromium Run/历史回放旅程和官方 Basilisk 原生物理 JUnit 归档。待同 head CI 完成后正式准入。
+- 新增三类模板/API合同、真实 Chromium Run/历史回放旅程和官方 Basilisk 原生物理 JUnit 归档；PR #181 已合入 main。
 - 开发经验：`docs/development-experience/p9-n4-c3-native-propulsion-thermal-workbench.md`。
 
 
-## N4-C3 专项验收结果（2026-11-18）
+## N4-C3 最终验收与合并（2026-11-19）
 
-分支 `feat/p9-n4-c3-native-propulsion-thermal-20261118` 首轮官方 Basilisk 2.11.0 + Chromium 专项 #44318739045 通过：RW 18、传感器 26、EPS 24、推力器/贮箱/热节点 218；Chromium 4 passed / 4 deselected；原生物理/JUnit 证据已归档。共享回归 19 项全部成功，失败 0 项。N4-C3 待创建/合并 PR；仅在 PR 同 head 复跑后正式进入 main。
+- PR #181 最终 head：e535341fa062bb222b65660b27493051e6fcaba3；Squash merge：7f9cf69d62415d710a64585a81237c37f11df001。
+- 该 PR head 的 20 个 workflow runs 全部结束：19 success、1 个按条件跳过、0 failure；GitHub 报告与 main 同步且可合并。
+- 官方 Basilisk 2.11.0 专项 #44323239995 PASS：RW 18、TaskSpec sealed Run 1、传感器 26、EPS 24、推力/贮箱/热节点 218、模板/API/Schema 14、native preflight 7；Chromium 4 passed / 4 deselected。
+- 真实浏览器旅程覆盖反作用轮、IMU、星敏、磁强计、蓄电池、太阳电池阵、推力器、燃料贮箱、热节点；验证 SUCCEEDED、PASS、sealed/integrity、native provenance、recorder plot manifest 与同一 Run 历史回放。
+- 证据 artifact native-component-physical-evidence：ID 14435583858，12,805 bytes，SHA-256 b2de89435ea80883d8439cfb32f70d5fe4266fa4056ffdbbb13429f45994a01c。
+
+## N4-D：完整 Run Bundle 导出（2026-11-19）
+
+当前候选分支 feat/p9-n4-d-run-bundle-export-20261119 正在补齐最后一项用户交付：
+
+- 新增 GET /runs/{run_id}/bundle/download，仅允许已封存且 verify_run_bundle 完整性通过的 Run 导出。
+- ZIP 保留原始 bundle_manifest.json、SEALED.json 和 manifest 中的全部文件；导出期间逐文件重新计算 SHA-256，任何文件变化、缺失、路径异常或身份不匹配均拒绝导出。
+- 不打包运行锁，不遍历/导出 manifest 之外的临时文件；Run ID 限制为单个可移植路径段。
+- 工作台仅在 sealed=true 且 integrity.ok=true 时显示“导出 Run Bundle”。原有“导出数据集”和“诊断包”语义保持不变。
+- API 专项验证完整 ZIP、manifest/seal 绑定、所有文件哈希、未封存拒绝和篡改拒绝；Chromium 真实旅程逐个下载九类单机 Run 并校验 ZIP 内容。
+- 本阶段仍以同一 PR head 的 CI 和浏览器下载证据为准；通过后再关闭 N4-D，进入 P9-N 分系统独立仿真路线评估。
