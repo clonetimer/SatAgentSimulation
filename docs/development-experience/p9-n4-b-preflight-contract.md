@@ -62,3 +62,8 @@ N4-B 后端预检合同与 N4-A 工作台 UI 属于两个相互依赖但独立�
 ## 表单投影 API 信封（2026-11-18）
 
 `POST /forms/capabilities/{capability_id}/project` 的响应中，表单值位于 `projection.form_data`，而不是 `projection` 根对象。测试若直接把 projection envelope 当表单传给 `/tasks/parse`，会在客户端路径访问阶段失败，根本没有执行产品预检。必须按公开响应信封提取 `projection.form_data`，再修改实际表单字段。
+
+
+## N4-B 结果/导出合同扩展（2026-11-18）
+
+新增真实原生 Run 的结果闭环验收：通过官方 Basilisk 执行并封存 Run Bundle 后，再由公开 Workbench API 读取同一 Run 的详情、报告、指标、曲线、遥测和制品清单。验收同时检查 Run ID 一致、SUCCEEDED、sealed、native backend provenance、报告完整性，以及原生执行端口证据文件仍在制品清单中。该测试不以 mock 报告或拼装结果替代真实运行。
