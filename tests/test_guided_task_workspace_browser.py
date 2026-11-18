@@ -166,7 +166,6 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 browser.close()
 
 
-
 def test_task_details_dialog_filters_explains_and_compares_real_run_evidence(tmp_path):
     """P7-A UI flow, with Run Bundle HTTP fixtures; no native execution implied."""
     playwright = pytest.importorskip("playwright.sync_api")
