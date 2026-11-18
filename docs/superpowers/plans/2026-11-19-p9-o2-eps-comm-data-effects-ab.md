@@ -88,3 +88,10 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 - Comm/Data 将宽泛且失真的两个 ID 改为 transmitter_rate_loss / transmitter_rate_degradation。两者都只作用于官方 SimpleTransmitter 的 nodeBaudRate 输入，trace 增加 nominal 参照值；没有将该量称为 RF 功率或链路裕度。
 - Comm/Data 的故障 severity A/B 预期：severity=0.8 时保留率 0.48，severity=0.4 时保留率 0.74；故障结束后恢复标称速率。实际结果以官方 Basilisk CI 为准。
 - 旧 Comm/Data 宽泛事件 ID 已 fail closed；后续必须先通过 A/B 与 sealed Run Bundle，再添加 effect evidence profile，最后才考虑浏览器入口。
+
+
+## O2-B 首批成对 Run Bundle 测试（2026-11-19）
+
+已新增 tests/test_native_eps_comm_data_effects_bundle.py，针对 EPS fault/degradation 与 Comm/Data rate fault/degradation 四个事件分别运行 nominal/injected TaskSpec 配对。每次运行要求官方 Basilisk 2.11.0、SUCCEEDED、sealed、integrity PASS、validation PASS、runtime injection 直接应用证据和 recorder 物理差异；故障另检查事件结束恢复，退化检查持续效果。
+
+该测试已加入官方 native workflow，并在 PR #187 当前 head b57692ad289c84166954365a2de442543d7cc04a 上运行。尚未收到该 head 的最终结果；未通过前不进入 O2-C，也不开放用户事件入口。
