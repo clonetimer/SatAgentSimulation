@@ -2308,6 +2308,12 @@ class UnifiedNativeRuntime:
             "magnetometer_measurement": "official_tam_S_in_S_transformed_with_dcm_SB_transpose_to_body_B_and_fused_with_magField_N",
             "sun_earth_measurements": "project_ideal_geometry_vectors_from_environment_and_spacecraft_truth_not_official_CSS_direction",
             "magnetometer_used_sample_count": sum(int(row.get("adcs.fusion.magnetometer_used", 0)) for row in rows),
+            "imu_sample_valid_count": sum(int(row.get("adcs.sensor.imu_sample_valid", 0)) for row in rows),
+            "body_rate_valid_sample_count": sum(int(row.get("adcs.fusion.body_rate_valid", 0)) for row in rows),
+            "first_valid_body_rate_time_s": next(
+                (float(row["time_s"]) for row in rows if int(row.get("adcs.fusion.body_rate_valid", 0)) == 1),
+                None,
+            ),
             "sensor_mounting_dcms": {
                 "star_tracker_dcm_CB": np.asarray(tracker_dcm_cb, dtype=float).tolist(),
                 "imu_dcm_PB": np.asarray(imu_dcm_pb, dtype=float).tolist(),
