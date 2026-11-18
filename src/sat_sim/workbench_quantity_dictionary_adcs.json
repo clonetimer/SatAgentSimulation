@@ -217,6 +217,11 @@
           "bias_t",
           "三轴测量偏置",
           "T"
+        ],
+        [
+          "physics_backend",
+          "物理计算后端",
+          "none"
         ]
       ],
       "outputs": [
