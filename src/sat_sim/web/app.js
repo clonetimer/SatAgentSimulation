@@ -8622,7 +8622,7 @@
     }
     if (goal === 'subsystem_native') {
       state.wizard.level = 'subsystem';
-      wizardSetStep('object', '请选择已通过官方 Basilisk 物理、正式 TaskSpec、sealed Run 和用户旅程验收的分系统。当前开放 ADCS、EPS 和通信数据三个独立分系统；仅提供标称有限时长离线运行。', '分系统独立仿真');
+      wizardSetStep('object', '请选择已通过官方 Basilisk 物理、正式 TaskSpec 和 sealed Run 验收的分系统。ADCS、EPS、通信数据分别提供有限时长离线运行；故障/退化仅开放该对象通过配对 A/B 与正式证据验收的白名单事件，不代表跨分系统联合闭环。', '分系统独立仿真');
       return;
     }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
@@ -9312,7 +9312,7 @@
         const nativeObjects = new Set(Object.keys(NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT));
         rows = rows.filter((item) => nativeObjects.has(item.object_id));
         const note = document.createElement('p'); note.className = 'wizard-panel-help';
-        note.textContent = '当前开放 ADCS、EPS 和通信数据三个已通过独立验收的 Basilisk 分系统。它们分别运行，不代表跨分系统联合闭环；各自只开放标称有限时长离线场景。';
+        note.textContent = '当前开放 ADCS、EPS 和通信数据三个已通过独立验收的 Basilisk 分系统。它们分别运行，不代表跨分系统联合闭环；事件面板只展示当前对象通过配对 A/B 与正式证据验收的故障/退化白名单。';
         options.appendChild(note);
       }
       if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); }
