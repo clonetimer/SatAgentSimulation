@@ -25,7 +25,7 @@ Capability Registry 中有很多可执行 component capability，但它们的来
 
 ## 6. UI-originated Run acceptance must verify the actual plotted quantities
 
-The guided Run acceptance now checks more than a successful Run status. The native reaction-wheel template explicitly selects the two physical response curves (wheel-1 angular speed and actual motor torque) and the initial/final/max speed summary indicators. Chromium verifies both chart legend labels after the UI submits a real synchronous Basilisk Run. This prevents a false-positive where a Run succeeds but the user is shown an empty or irrelevant chart.
+The guided Run acceptance now checks more than a successful Run status. The native reaction-wheel template explicitly selects the two physical response curves (wheel-1 angular speed and actual motor torque) and the initial/final/max speed summary indicators. Chromium verifies both chart legend labels after the UI submits a real asynchronous Basilisk Run through the embedded worker. This prevents a false-positive where a Run succeeds but the user is shown an empty or irrelevant chart.
 
 ## 7. Keep browser test names unique
 
@@ -52,7 +52,7 @@ The guided Run button submits `execute: true` with `execution_mode: async`; the 
 
 ## 12. History navigation must use a visible product path
 
-A guided wizard owns the primary surface. Do not assume its hidden or detached sidebar navigation is available. The history journey must enter the professional workspace through its visible control or use a dedicated visible “view history” action from the Run result; do not click hidden sidebar nodes or force DOM state. Test the same Run ID, provenance, chart data and seal after reopening history.
+A guided wizard owns the primary surface. Its “其他专业工具” disclosure is hidden outside the welcome step, including on the completed-results step. The results surface therefore exposes a dedicated visible “打开运行中心” action. Browser acceptance follows that action; do not click hidden sidebar nodes, force DOM state, or try to reopen a disclosure that is intentionally absent. Test the same Run ID, provenance, chart data and seal after reopening history.
 
 
 ## 13. Preserve the native-only execution boundary after preset application
@@ -69,6 +69,10 @@ The current form wrapper publishes `data-field-path` and is mounted under `#wiza
 The shared single-run browser workflow intentionally installs only the control-plane/browser dependency slice and does not install Basilisk. A browser test that executes a native reaction-wheel Run must explicitly skip when `Basilisk` is absent; the dedicated native-RW workflow installs `bsk==2.11.0`, asserts both distribution and module versions, and then runs that same browser journey without skips. This preserves one real UI journey while keeping the general workbench suite lightweight and preventing a missing optional runtime from masquerading as a product defect.
 
 
-## 15. Keep the historical Run path available from completed results
+## 16. Keep the historical Run path available from completed results
 
 The guided wizard hides its “其他专业工具” disclosure outside the welcome step. A completed Run is a results step, so attempting to open Run Center through that hidden disclosure is not a valid user path. The results surface now exposes an explicit “打开运行中心” action. Browser acceptance follows this visible control and verifies the same sealed Run, provenance and recorder-backed curves after reopening.
+
+## 17. Separate UI lifecycle evidence from native physics evidence
+
+The product browser test must exercise the real `execution_mode=async` path and embedded worker, then wait for the Run to reach a terminal state. The native physics integration test separately verifies the Basilisk adapter and sealed Run Bundle. Do not change only the browser request to synchronous mode while leaving the frontend polling contract unchanged. If the UI does not reach a terminal state, inspect the execution endpoint/state and persisted Run evidence before changing timeout values; a longer wait does not repair a missing worker or broken state transition.
