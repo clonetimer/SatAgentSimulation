@@ -90,3 +90,11 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - 新增 capability 参数必须同步更新 24 类组件参量字典及其 source contract blob；否则动态表单构建会以 `COMPONENT_PARAMETER_NAME_NOT_REVIEWED` fail closed。
 - 对原生后端增加新参数时，先复用已审定的中文名称“物理计算后端”，避免产生未经审核的字段名。
 - Magnetometer 官方组件当前暴露统一 scale factor；项目 reference 支持三轴 scale，因此 native adapter 对非均匀 scale 显式拒绝，不能把三个不同轴参数压成一个值。
+
+
+### P9-N2 星敏与 CSS 的输出契约边界
+
+- StarTracker 官方输出为四元数 `qInrtl2Case`；Basilisk 自带测试用 `MRP2EP` 作为期望、再由 `EP2MRP` 还原验证。因此当前适配器将官方四元数转换为现有 MRP trace，不使用项目参考模型的姿态方程。
+- StarTracker 的 `valid` 字段在 native backend 中只表示“官方 recorder 产生了有限、归一化的姿态测量样本”；不能解释为星点可见、星表匹配或光学有效。
+- CoarseSunSensor 官方输出是单个光强度量；项目当前 capability 还声明了三轴太阳方向估计。已决定暂不把输入太阳方向复制成输出估计，先保持 probe-only，待拆分测量量与上层解算量后再开放。
+- 物理接口不能完全映射到既有 capability 时，正确动作是缩小可用范围或调整合同，不是填入“看起来合理”的假输出。
