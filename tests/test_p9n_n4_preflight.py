@@ -171,6 +171,7 @@ def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_
     assert tampered_download.status_code == 409, tampered_download.text
     assert tampered_download.json()["detail"]["reason_code"] == "RUN_BUNDLE_NOT_VERIFIED"
     assert bundle_download.headers["content-type"].startswith("application/zip")
+    assert bundle_download.headers["X-Sat-Sim-Run-ID"] == run_id
     with zipfile.ZipFile(io.BytesIO(bundle_download.content)) as archive:
         manifest_path = f"{run_id}/bundle_manifest.json"
         seal_path = f"{run_id}/SEALED.json"
@@ -184,7 +185,9 @@ def test_native_rw_result_report_and_export_contract_uses_sealed_run_bundle(tmp_
         assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
         archived = set(archive.namelist())
         expected = {f"{run_id}/{relative}" for relative in manifest["files"]}
-        assert expected.issubset(archived)
+        assert archived == expected | {manifest_path, seal_path}
+        assert f"{run_id}/runtime/execution.lock" not in archived
+        assert bundle_download.headers["X-Sat-Sim-Run-Bundle-Manifest-SHA256"] == seal["bundle_manifest_sha256"]
         for relative, entry in manifest["files"].items():
             payload = archive.read(f"{run_id}/{relative}")
             assert hashlib.sha256(payload).hexdigest() == entry["sha256"]
