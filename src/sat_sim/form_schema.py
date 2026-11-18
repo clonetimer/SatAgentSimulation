@@ -367,6 +367,8 @@ OUTPUT_LABEL_OVERRIDES: dict[str, str] = {
     "adcs.rw.max_abs_momentum_nms": "反作用轮最大角动量",
     "adcs.environment.total_torque_norm_nm": "环境扰动力矩合量",    "adcs.fusion.source_mode": "姿态估计来源模式（0无效/1向量TRIAD/2星敏/3融合）",
     "adcs.fusion.magnetometer_used": "磁强计是否参与姿态融合",
+    "adcs.fusion.body_rate_valid": "融合器陀螺角速度测量有效标记",
+    "adcs.sensor.imu_sample_valid": "官方 IMU 输出样本有效标记",
     **{f"adcs.fusion.estimated_mrp_BN_{axis}": f"融合姿态 MRP {axis.upper()} 分量（B/N）" for axis in "xyz"},
     **{f"adcs.fusion.estimated_omega_BN_B_{axis}": f"估计机体角速度 {axis.upper()} 分量" for axis in "xyz"},
     **{f"adcs.magnetometer.reference_n_tesla_{axis}": f"惯性系磁场参考 {axis.upper()} 分量" for axis in "xyz"},
