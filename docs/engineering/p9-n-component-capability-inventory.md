@@ -43,6 +43,15 @@
 - 原生 recorder 输出包括 wheel speed、physically applied motor torque 和 friction torque；实际施加力矩受原生硬件 `u_max` 限制。
 - 新增原生反作用轮场景模板，默认使用 1-wheel nominal 和 Basilisk native backend；表单中 backend 字段属于 common 参数，在“推荐参数”模式可见，且明确区分项目参考模型与 Basilisk 原生模型。
 
+
+## P9-N1 status update (2026-11-17)
+
+- P9-N0 has been merged: the official Basilisk 2.11.0 reaction-wheel component now passes the complete TaskSpec → registered adapter → Run Bundle → validation/seal/integrity path.
+- The product-visible guided entry is intentionally narrower than the general component catalogue: it exposes only `component.reaction_wheel` as the first independently verified Basilisk-native device.
+- The dedicated entry applies `component_reaction_wheel_basilisk_native` and fixes the backend to `basilisk_native` in its starting TaskSpec. The field remains editable, with the project-reference alternative explicitly labelled as non-Basilisk; changing it changes the model provenance.
+- Only finite offline execution is exposed in this guided native-device flow. Standalone component real-time and continuous sessions remain unsupported.
+- Other component capabilities remain available through their existing general workflows and retain their actual source/backend labels; they are not silently promoted into the verified-native device list.
+
 ## N2 / N3 状态补充（2026-11-18）
 
 - N2：PR #169 已合入 main，合并提交 `14b3dd0fa9f4697befd7a14090a976ad6ddd8089`；官方 Basilisk 2.11.0 专项 26 tests 通过。IMU、磁强计、星敏为 opt-in native；CSS 仍仅为标量光强 probe。
