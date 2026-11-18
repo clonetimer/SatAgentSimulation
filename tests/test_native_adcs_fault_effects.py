@@ -200,3 +200,11 @@ def test_native_adcs_gyro_noise_increase_changes_noise_process_without_invalidat
     assert max(row["adcs.sensor.gyro_noise_norm_rad_s"] for row in fault_rows) > 2.0e-4
     assert all(row["adcs.sensor.imu_sample_valid"] == 1 for row in fault_rows)
     assert all(row["adcs.fusion.body_rate_valid"] == 1 for row in fault_rows)
+    assert any(
+        abs(left["adcs.sensor.gyro_measured_platform_rad_s_x"] - right["adcs.sensor.gyro_measured_platform_rad_s_x"]) > 1.0e-4
+        for left, right in zip(base_rows, fault_rows)
+    )
+    assert any(
+        abs(left["adcs.fusion.estimated_omega_BN_B_x"] - right["adcs.fusion.estimated_omega_BN_B_x"]) > 1.0e-4
+        for left, right in zip(base_rows, fault_rows)
+    )
