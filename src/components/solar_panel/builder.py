@@ -1032,6 +1032,11 @@ def run_simple_solar_panel_native_case(
     sample = float(sample_s)
     if not math.isfinite(duration) or duration <= 0.0 or not math.isfinite(sample) or sample <= 0.0 or sample > duration:
         raise ValueError("NATIVE_SOLAR_PANEL_TIME_GRID_INVALID")
+    # Match Basilisk sec2nano rounding and schedule exactly the validated grid.
+    sample_ns = int(sample * 1.0e9 + 0.5)
+    duration_ns = int(duration * 1.0e9 + 0.5)
+    if sample_ns < 1 or duration_ns % sample_ns:
+        raise ValueError("NATIVE_SOLAR_PANEL_TIME_GRID_REQUIRES_COMPLETE_SAMPLE_INTERVALS")
     sun_direction = unit(sun_direction_b)
     shadow = clamp01(float(shadow_factor))
     if config.enable_tracking or float(config.max_slew_rate_rad_s) > 0.0:
@@ -1067,7 +1072,7 @@ def run_simple_solar_panel_native_case(
     sim = SimulationBaseClass.SimBaseClass()
     process = sim.CreateNewProcess("P9N3SolarPanelProcess")
     task_name = "P9N3SolarPanelTask"
-    process.addTask(sim.CreateNewTask(task_name, macros.sec2nano(sample)))
+    process.addTask(sim.CreateNewTask(task_name, sample_ns))
     panel = build_simple_solar_panel(
         model_tag=config.model_tag,
         panel_normal_b=config.initial_normal_b,
@@ -1080,10 +1085,10 @@ def run_simple_solar_panel_native_case(
         eclipse_in_msg=eclipse_msg,
     )
     sim.AddModelToTask(task_name, panel)
-    recorder = panel.nodePowerOutMsg.recorder(macros.sec2nano(sample))
+    recorder = panel.nodePowerOutMsg.recorder(sample_ns)
     sim.AddModelToTask(task_name, recorder)
     sim.InitializeSimulation()
-    sim.ConfigureStopTime(macros.sec2nano(duration))
+    sim.ConfigureStopTime(duration_ns)
     sim.ExecuteSimulation()
 
     times = tuple(float(value) * 1.0e-9 for value in recorder.times())

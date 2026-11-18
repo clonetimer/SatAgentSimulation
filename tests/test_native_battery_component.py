@@ -178,3 +178,101 @@ def test_native_eps_solar_panel_power_node_charges_simple_battery_in_one_simbase
     assert rows
     assert rows[-1].battery_storage_j > rows[0].battery_storage_j
     assert rows[-1].solar_power_w > 0.0
+
+
+def test_native_solar_energy_is_integrated_from_recorded_power():
+    pytest.importorskip("Basilisk")
+    from sat_sim.adapters.component_solar_panel import SolarPanelAdapter
+
+    result = SolarPanelAdapter().run(_native_solar_panel_spec())
+    # The native irradiance differs from the project analytical check. Summary
+    # energy must still agree with the power actually exported in the trace.
+    recorded_energy_wh = sum(
+        row["eps.solar.array_power_w"] * (row["time_s"] - previous["time_s"]) / 3600.0
+        for previous, row in zip(result.trace_rows, result.trace_rows[1:])
+    )
+    assert result.summary["qoi"]["eps.solar.energy_generated_wh"] == pytest.approx(recorded_energy_wh, rel=1e-12)
+
+
+def test_native_battery_accounts_for_energy_clipped_at_full_capacity():
+    pytest.importorskip("Basilisk")
+    from sat_sim.adapters.component_battery import BatteryAdapter
+
+    spec = _native_battery_spec()
+    spec["parameters"].update(initial_soc=1.0, net_power_w=20.0)
+    result = BatteryAdapter().run(spec)
+    assert result.trace_rows[-1]["eps.battery.storage_wh"] == pytest.approx(100.0)
+    # 20 W for 60 s cannot enter an already-full 100 Wh battery.
+    assert result.trace_rows[-1]["eps.battery.shunt_dissipated_wh"] == pytest.approx(1.0 / 3.0)
+    assert result.summary["qoi"]["eps.battery.energy_throughput_wh"] == pytest.approx(1.0 / 3.0)
+
+
+@pytest.mark.parametrize("component", ["battery", "solar_panel"])
+def test_native_eps_components_reject_incomplete_recording_grid(component):
+    from sat_sim.adapters.component_battery import BatteryAdapter
+    from sat_sim.adapters.component_solar_panel import SolarPanelAdapter
+
+    spec, adapter = ((_native_battery_spec(), BatteryAdapter()) if component == "battery"
+                     else (_native_solar_panel_spec(), SolarPanelAdapter()))
+    spec["simulation"]["duration_s"] = 65.0
+    with pytest.raises(ValueError, match="TIME_GRID"):
+        adapter.run(spec)
+
+
+@pytest.mark.parametrize("component", ["battery", "solar_panel"])
+@pytest.mark.parametrize("kind", ["constraints", "degradations"])
+def test_native_eps_components_reject_unimplemented_modifiers(component, kind):
+    from sat_sim.adapters.component_battery import BatteryAdapter
+    from sat_sim.adapters.component_solar_panel import SolarPanelAdapter
+
+    spec, adapter = ((_native_battery_spec(), BatteryAdapter()) if component == "battery"
+                     else (_native_solar_panel_spec(), SolarPanelAdapter()))
+    spec["modifiers"][kind] = [{"type": "unimplemented_effect", "target": component}]
+    with pytest.raises(ValueError, match="NO_MODIFIERS"):
+        adapter.run(spec)
+
+
+@pytest.mark.parametrize("name,value", [
+    ("initial_normal_b", [0.0, 0.0, 0.0]),
+    ("sun_vector_b", [0.0, 0.0, 0.0]),
+    ("panel_count", 1.5),
+    ("deployment_fraction", 1.1),
+])
+def test_native_solar_rejects_inputs_that_would_be_silently_replaced(name, value):
+    from sat_sim.adapters.component_solar_panel import SolarPanelAdapter
+
+    spec = _native_solar_panel_spec()
+    spec["parameters"][name] = value
+    with pytest.raises(ValueError, match="NATIVE_SOLAR_PANEL"):
+        SolarPanelAdapter().run(spec)
+
+
+def test_native_battery_rejects_nonfinite_efficiency():
+    from sat_sim.adapters.component_battery import BatteryAdapter
+
+    spec = _native_battery_spec()
+    spec["parameters"]["charge_efficiency"] = float("nan")
+    with pytest.raises(ValueError, match="UNITY_EFFICIENCY"):
+        BatteryAdapter().run(spec)
+
+
+@pytest.mark.parametrize("component", ["battery", "solar_panel"])
+@pytest.mark.parametrize("duration_s,sample_s,accepted", [
+    (10.01, 1.001, True),
+    (10.0000000001, 1.0000000009, False),
+])
+def test_native_time_grid_matches_basilisk_nanosecond_rounding(component, duration_s, sample_s, accepted):
+    pytest.importorskip("Basilisk")
+    from sat_sim.adapters.component_battery import BatteryAdapter
+    from sat_sim.adapters.component_solar_panel import SolarPanelAdapter
+
+    spec, adapter = ((_native_battery_spec(), BatteryAdapter()) if component == "battery"
+                     else (_native_solar_panel_spec(), SolarPanelAdapter()))
+    spec["simulation"].update(duration_s=duration_s, sample_s=sample_s)
+    if accepted:
+        result = adapter.run(spec)
+        assert result.trace_rows[-1]["time_s"] == pytest.approx(10.01, abs=1e-12)
+        assert len(result.trace_rows) == 11
+    else:
+        with pytest.raises(ValueError, match="TIME_GRID"):
+            adapter.run(spec)

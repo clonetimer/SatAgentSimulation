@@ -108,23 +108,36 @@ class SolarPanelAdapter:
         if backend not in {"project_reference", "basilisk_native"}:
             raise ValueError("SOLAR_PANEL_PHYSICS_BACKEND_UNSUPPORTED")
         if backend == "basilisk_native":
-            if mode != "nominal" or self._runtime_fault_payloads(spec) or self._solar_degradation_payload(spec):
+            if (mode != "nominal" or self._runtime_fault_payloads(spec) or self._solar_degradation_payload(spec)
+                    or any(runtime_effects(spec, kind) for kind in ("fault", "degradation", "constraint"))):
                 raise ValueError("NATIVE_SOLAR_PANEL_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
-            panel_count = int(params.get("panel_count", 1))
-            deployment_fraction = self._clamp01(params.get("deployment_fraction", 1.0))
-            if panel_count != 1 or abs(deployment_fraction - 1.0) > 1.0e-12:
+            panel_count = params.get("panel_count", 1)
+            deployment_fraction = float(params.get("deployment_fraction", 1.0))
+            if isinstance(panel_count, bool) or panel_count != 1 or not math.isfinite(deployment_fraction) or abs(deployment_fraction - 1.0) > 1.0e-12:
                 raise ValueError("NATIVE_SOLAR_PANEL_REQUIRES_ONE_FULLY_DEPLOYED_PANEL")
-            if bool(params.get("enable_tracking", False)) or float(params.get("max_slew_rate_rad_s", params.get("solar_tracking_max_slew_rate_rad_s", 0.0))) > 0.0:
+            slew_rate = float(params.get("max_slew_rate_rad_s", params.get("solar_tracking_max_slew_rate_rad_s", 0.0)))
+            if bool(params.get("enable_tracking", False)) or not math.isfinite(slew_rate) or slew_rate != 0.0:
                 raise ValueError("NATIVE_SOLAR_PANEL_TRACKING_NOT_SUPPORTED")
             for key in ("sun_vector_profile_b", "shadow_profile"):
                 if key in params:
                     raise ValueError("NATIVE_SOLAR_PANEL_REQUIRES_STATIC_SUN_AND_SHADOW_INPUTS")
             from components.solar_panel.builder import SolarPanelNativeConfig, run_simple_solar_panel_native_case
-            normal = self._unit3(params.get("initial_normal_b", (1.0, 0.0, 0.0)))
-            sun_b = self._unit3(params.get("sun_vector_b", (1.0, 0.0, 0.0)))
-            shadow = self._clamp01(params.get("shadow_factor", 1.0))
+            directions = {}
+            for key in ("initial_normal_b", "sun_vector_b"):
+                vector = params.get(key, (1.0, 0.0, 0.0))
+                if (not self._is_vector3(vector) or not all(math.isfinite(value) for value in vector)
+                        or not 1.0e-15 < math.hypot(*vector) < float("inf")):
+                    raise ValueError(f"NATIVE_SOLAR_PANEL_DIRECTION_INVALID: {key}")
+                norm = math.hypot(*vector)
+                directions[key] = tuple(float(value) / norm for value in vector)
+            normal = directions["initial_normal_b"]
+            sun_b = directions["sun_vector_b"]
+            shadow = float(params.get("shadow_factor", 1.0))
             max_power = float(params.get("max_power_w", 120.0))
             efficiency = float(params.get("efficiency", 1.0))
+            if (not all(math.isfinite(value) for value in (shadow, max_power, efficiency))
+                    or not 0.0 <= shadow <= 1.0 or not 0.0 <= efficiency <= 1.0 or max_power < 0.0):
+                raise ValueError("NATIVE_SOLAR_PANEL_PARAMETERS_INVALID")
             native = run_simple_solar_panel_native_case(
                 SolarPanelNativeConfig(
                     model_tag="P9N3OfficialSimpleSolarPanel",
@@ -174,7 +187,10 @@ class SolarPanelAdapter:
                 }
                 native_rows.append(row)
             power_values = [float(row["eps.solar.array_power_w"]) for row in native_rows]
-            energy_wh = native.expected_power_w * duration_s / 3600.0
+            energy_wh = sum(
+                float(row["eps.solar.array_power_w"]) * (float(row["time_s"]) - float(previous["time_s"])) / 3600.0
+                for previous, row in zip(native_rows, native_rows[1:])
+            )
             summary = {
                 "task_id": task_id,
                 "case_id": case_id,
@@ -212,7 +228,11 @@ class SolarPanelAdapter:
                     "native_provenance": native.model_source,
                     "native_input_source": native.input_source,
                     "native_claim_scope": native.claim_scope,
-                    "limits": ["nominal only", "one fully deployed fixed panel", "static Sun and Eclipse inputs", "no tracking", "no faults/degradation"],
+                    "output_field_sources": {
+                        "eps.solar.array_power_w": "SimpleSolarPanel.nodePowerOutMsg.netPower recorder",
+                        "eps.solar.energy_generated_wh": "integral of recorded panel power over recorded intervals",
+                    },
+                    "limits": ["nominal only", "one fully deployed fixed panel", "static Sun and Eclipse inputs", "no tracking", "no faults/degradation/constraints", "duration must contain complete sample intervals"],
                 },
             )
 

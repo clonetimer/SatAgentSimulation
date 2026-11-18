@@ -39,7 +39,7 @@ parameters:
     unit: none
     required: false
     default: project_reference
-    description: Explicit engine. basilisk_native uses official Basilisk SimpleSolarPanel with prescribed static Sun/Eclipse inputs; one fully deployed fixed panel, nominal only, no tracking/faults/degradation.
+    description: Explicit engine. basilisk_native uses official Basilisk SimpleSolarPanel with prescribed static Sun/Eclipse inputs; one fully deployed fixed panel, nominal only, no tracking/faults/degradation/constraints. Directions must be finite and nonzero; duration must contain complete sample intervals. Energy is integrated from recorded power.
   max_power_w:
     type: number
     unit: W

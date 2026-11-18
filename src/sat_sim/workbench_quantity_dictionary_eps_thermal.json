@@ -4,7 +4,7 @@
     "battery": {
       "name": "蓄电池",
       "classification": "physical",
-      "source_blob": "7831853db19297cf01ba037baa50f01b036dbd89",
+      "source_blob": "a0063adc238f82e4c8d2e3687e45b2bb32f606be",
       "parameters": [
         [
           "capacity_wh",
@@ -493,7 +493,7 @@
     "solar_panel": {
       "name": "太阳电池阵",
       "classification": "physical",
-      "source_blob": "1daacf8dce7c3759cdfc26471f728b669dd0c37b",
+      "source_blob": "4d5eeb1e8c943851df91ce92680b086f485553c7",
       "parameters": [
         [
           "max_power_w",
