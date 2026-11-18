@@ -217,8 +217,25 @@ jobs:
         env:
           PYTHONPATH: "src:."
         run: |
-          python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
+          mkdir -p reports/native_subsystem_eps_comm_data
+          python -m pytest -q -s \
+            --junitxml=reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml \
+            tests/test_guided_task_workspace_browser.py \
             -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation"
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml").getroot()
+          cases = root.findall(".//testcase")
+          eps_comm = [case for case in cases if case.attrib.get("name", "").startswith(
+              "test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle"
+          )]
+          adcs = [case for case in cases if case.attrib.get("name") == "test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation"]
+          assert len(eps_comm) == 6, [case.attrib for case in eps_comm]
+          assert len(adcs) == 1, [case.attrib for case in adcs]
+          for case in [*eps_comm, *adcs]:
+              assert not case.findall("failure") and not case.findall("skipped"), case.attrib
+          print("O2-D_BROWSER_JOURNEYS", {"eps_comm": len(eps_comm), "adcs": len(adcs), "passed": True})
+          PY
 
       - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7
@@ -236,6 +253,7 @@ jobs:
             reports/native_subsystem_eps_comm_data/effect_ab.xml
             reports/native_subsystem_eps_comm_data/effect_ab.json
             reports/native_subsystem_eps_comm_data/formal_effects.xml
+            reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error
