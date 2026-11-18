@@ -8607,7 +8607,7 @@
     }
     if (goal === 'subsystem_native') {
       state.wizard.level = 'subsystem';
-      wizardSetStep('object', '请选择已通过官方 Basilisk 闭环物理、正式 TaskSpec 和 sealed Run 验收的分系统。当前首批开放 ADCS；只提供标称有限时长离线运行。', 'ADCS 分系统独立仿真');
+      wizardSetStep('object', '请选择已通过官方 Basilisk 物理、正式 TaskSpec、sealed Run 和用户旅程验收的分系统。当前开放 ADCS、EPS 和通信数据三个独立分系统；仅提供标称有限时长离线运行。', '分系统独立仿真');
       return;
     }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
@@ -8674,6 +8674,18 @@
       label: 'ADCS 统一 Basilisk 闭环模板',
       prompt: '已加载官方 Basilisk StarTracker、ImuSensor、Magnetometer、ReactionWheelStateEffector 与控制链。星敏 case C、IMU platform P、磁强计 sensor S 的测量已转换到本体系 B；磁强计参与 Sun/Mag TRIAD。Sun/Earth 向量是项目理想几何测量，不是 CSS 三轴方向输出。Basilisk IMU 首次初始化零样本标记为无效，有效样本到达前保持上一有效角速度。当前只开放 nominal、有限时长离线闭环；不开放故障/退化、实时运行或整星耦合。',
     },
+    'subsystem.eps': {
+      templateId: 'eps_unified_native',
+      capabilityId: 'subsystem.eps.unified_native.v1',
+      label: 'EPS 统一 Basilisk 运行图模板',
+      prompt: '已加载官方 Basilisk SimpleSolarPanel、SimpleBattery 和 SimplePowerSink；配电单元 PDU 与负载切除控制为项目原生 SysModel，并在同一 Process/Task 中连接。结果区分官方电源节点与项目 PDU。当前仅开放标称、有限时长离线仿真；不代表轨道日照/日蚀闭环，也不代表与 ADCS、通信或热控的跨分系统耦合。',
+    },
+    'subsystem.comm_data': {
+      templateId: 'comm_data_unified_native',
+      capabilityId: 'subsystem.comm_data.unified_native.v1',
+      label: '通信数据统一 Basilisk 运行图模板',
+      prompt: '已加载官方 Basilisk SimpleInstrument、SimpleStorageUnit 和 SimpleTransmitter，在同一 Process/Task 中运行并使用原生 recorder。当前输出数据生成码率、存储量、发射机码率和存储节点净码率；不包含地面站可见性、轨道过站、RF 链路几何或 BER/PER 闭环。当前仅开放标称、有限时长离线仿真，不代表与 EPS 或载荷的跨分系统耦合。',
+    },
   });
 
   async function wizardChooseObject(objectId) {
@@ -8727,7 +8739,7 @@
         || taskSpec.simulation?.backend !== 'basilisk'
         || taskSpec.assurance?.allow_proxy !== false
       ) {
-        throw new Error('服务端未返回该 ADCS 分系统经过注册的 Basilisk 原生模板。');
+        throw new Error('服务端未返回所选分系统经过注册的 Basilisk 原生模板。');
       }
       const projected = await projectTaskSpecToForm(taskSpec, nativeTemplate.label);
       if (projected === null) throw new Error(nativeTemplate.label + ' 未能投影到当前配置，请重试。');
@@ -8737,7 +8749,7 @@
       state.wizard.mode = 'offline';
       state.wizard.parameterMode = 'recommended';
       state.wizard.validated = false;
-      wizardSetStep('configure', nativeTemplate.prompt + ' 请检查坐标系、安装角、控制周期和测量输出，执行配置校验后再运行。', label);
+      wizardSetStep('configure', nativeTemplate.prompt + ' 请检查参数、模型来源和输出指标，执行配置校验后再运行。', label);
       const parameterPanel = el('wizardParametersPanel');
       if (parameterPanel) parameterPanel.open = true;
       return;
