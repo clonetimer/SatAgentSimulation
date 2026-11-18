@@ -166,11 +166,11 @@ class AdcsSensorFusion(sysModel.SysModel):
 
     def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
         star = self.starInMsg()
-        imu = self.imuInMsg()
         mag = self.magInMsg()
         mag_reference = self.magReferenceInMsg()
         star_valid = bool(self.starValidInMsg().deviceStatus)
         sun_valid = bool(self.sunValidInMsg().deviceStatus)
+        imu_valid = bool(self.imuValidInMsg.isWritten() and self.imuValidInMsg().deviceStatus)
 
         # StarTracker reports N->C (qInrtl2Case); dcm_CB maps B->C.
         # Therefore C_BN = C_BC * C_CN = dcm_CB.T * C_CN.
@@ -196,8 +196,9 @@ class AdcsSensorFusion(sysModel.SysModel):
         # the first real sample; hold the last valid rate until then rather
         # than misrepresenting the startup zero as a physical measurement.
         dcm_pb = np.asarray(self.imuMountDcmPB, dtype=float).reshape(3, 3)
-        imu_sample_valid = bool(self.imuValidInMsg().deviceStatus)
+        imu_sample_valid = imu_valid
         if imu_sample_valid:
+            imu = self.imuInMsg()
             omega_platform = np.asarray([float(x) for x in imu.AngVelPlatform], dtype=float)
             omega_body = dcm_pb.T @ omega_platform
             if not np.all(np.isfinite(omega_body)):
@@ -475,12 +476,12 @@ class ImuFaultInjector(sysModel.SysModel):
         return [scalar, 0.0, 0.0]
 
     def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
-        source = self.imuInMsg()
         # Basilisk 2.11.0 deliberately emits a zero payload on its first
         # UpdateState call while it seeds the previous-state history. Track
         # the upstream message write-time progression instead of guessing
         # from the value (zero angular rate is a valid physical measurement).
         source_written = bool(self.imuInMsg.isWritten())
+        source = self.imuInMsg() if source_written else messaging.IMUSensorMsgPayload()
         source_time_ns = int(self.imuInMsg.timeWritten()) if source_written else None
         imu_sample_ready = False
         if source_time_ns is not None:
