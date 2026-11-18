@@ -57,6 +57,8 @@ def _write_status(msg: Any, enabled: int, nanos: int, module_id: int) -> None:
 
 def _unit3(values: Sequence[float]) -> list[float]:
     vector = [float(value) for value in list(values)[:3]]
+    if len(vector) != 3 or not all(math.isfinite(value) for value in vector):
+        return [0.0, 0.0, 0.0]
     magnitude = math.sqrt(sum(value * value for value in vector))
     return [value / magnitude for value in vector] if magnitude > 1.0e-12 else [0.0, 0.0, 0.0]
 
@@ -240,9 +242,10 @@ class AdcsSensorFusion(sysModel.SysModel):
             sigma = coarse_sigma
             source_mode = 1
         else:
-            # The controller must not consume a fabricated zero attitude.
-            sigma = [0.0, 0.0, 0.0]
-            source_mode = 0
+            # Never publish a fabricated identity attitude into the controller.
+            # A missing/degenerate measurement pair is a hard runtime failure;
+            # the caller must not seal this as a successful ADCS result.
+            raise ValueError("ADCS_FUSION_NO_VALID_ATTITUDE")
 
         payload = messaging.NavAttMsgPayload()
         payload.sigma_BN = sigma
