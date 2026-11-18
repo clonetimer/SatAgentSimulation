@@ -1,4 +1,4 @@
-name: P9-N3 official Basilisk battery component
+name: P9-N3 official Basilisk EPS components
 
 on:
   pull_request:
@@ -40,7 +40,7 @@ jobs:
           assert version("bsk") == "2.11.0"
           print("OFFICIAL_BASILISK_NATIVE", Basilisk.__version__, version("bsk"))
           PY
-      - name: Execute native battery adapter and sealed Run Bundle regressions
+      - name: Execute native battery and solar-panel adapters plus sealed Run Bundle regressions
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q tests/test_native_battery_component.py --disable-warnings
