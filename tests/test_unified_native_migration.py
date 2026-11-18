@@ -92,14 +92,18 @@ def test_adcs_fusion_transforms_non_identity_sensor_mounts_into_body_frame() -> 
     assert result.summary["adcs_fusion"]["body_rate_frame"] == "body_B"
 
     first = result.trace_rows[0]
+    # Reset writes the first truth/attitude sample before the scheduled IMU
+    # model's first UpdateState. Attitude is available at Reset, while the
+    # first measured gyro sample becomes valid on the next dynamics tick.
     assert first["adcs.fusion.magnetometer_used"] == 1
+    measured_rate = result.trace_rows[1]
     for axis in "xyz":
         assert first[f"adcs.fusion.estimated_mrp_BN_{axis}"] == pytest.approx(
             first[f"attitude.truth.mrp_BN_{axis}"],
             abs=2.0e-4,
         )
-        assert first[f"adcs.fusion.estimated_omega_BN_B_{axis}"] == pytest.approx(
-            first[f"attitude.truth.omega_BN_B_{axis}"],
+        assert measured_rate[f"adcs.fusion.estimated_omega_BN_B_{axis}"] == pytest.approx(
+            measured_rate[f"attitude.truth.omega_BN_B_{axis}"],
             abs=2.0e-6,
         )
     assert result.trace_rows[-1]["adcs.pointing_error_deg"] < first["adcs.pointing_error_deg"]
