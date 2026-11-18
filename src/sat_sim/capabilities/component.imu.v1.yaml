@@ -15,6 +15,7 @@ implementation:
   legacy_demo_runner: components.imu.runner
   uses_legacy_runner: false
   basilisk_required: false
+  optional_native_backend: Basilisk.simulation.imuSensor.ImuSensor
 modes:
   nominal: {supported: true}
   fault:
@@ -24,6 +25,13 @@ modes:
     supported: true
     degradation_types: [bias_drift, noise_density_growth]
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    required: false
+    default: project_reference
+    description: Explicit engine. basilisk_native uses the official Basilisk ImuSensor with prescribed angular-rate/specific-force truth; nominal only, no faults/degradation, no lever arm or stochastic characterization.
   true_gyro_rad_s: {type: "array[number]", unit: rad/s, required: false, default: [0.1, 0.2, 0.3]}
   true_accel_m_s2: {type: "array[number]", unit: "m/s^2", required: false, default: [0.0, 0.0, 0.0]}
   gyro_scale: {type: "array[number]", unit: ratio, required: false, default: [1.0, 1.0, 1.0]}
