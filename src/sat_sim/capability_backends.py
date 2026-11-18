@@ -101,10 +101,18 @@ def validate_backend_output_requests(
         if not isinstance(fields, (list, tuple)) or any(not isinstance(field, str) or not field.strip() for field in fields):
             return invalid(f"$.outputs.{section}", "requires a list of nonempty field names")
         for index, field in enumerate(fields):
-            if not any(fnmatch.fnmatchcase(name, str(field)) or fnmatch.fnmatchcase(str(field), name) for name in available):
+            telemetry = section.startswith("telemetry_streams[")
+            if telemetry:
+                # Match the existing stream writer: exact names or a trailing
+                # prefix '*'. General globs can otherwise export only time_s.
+                matched = any(name.startswith(field[:-1]) if field.endswith("*") else name == field for name in available)
+            else:
+                matched = any(fnmatch.fnmatchcase(name, field) or fnmatch.fnmatchcase(field, name) for name in available)
+            if not matched:
                 issues.append(ValidationIssue(
                     "error", f"$.outputs.{section}[{index}]",
-                    f"output {field!r} is unavailable for physics backend {contract.data['selected_physics_backend']!r}",
+                    f"output {field!r} is unavailable for physics backend {contract.data['selected_physics_backend']!r}"
+                    + ("; telemetry fields require exact names or a matching trailing-prefix '*'" if telemetry else ""),
                     "backend_output_unavailable",
                 ))
     return tuple(issues)

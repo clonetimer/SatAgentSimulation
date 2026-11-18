@@ -4823,6 +4823,47 @@
     }
   }
 
+  function matchesOutputSelection(pattern, field) {
+    // Output requests use fnmatch-style globs. Match concrete schema fields
+    // without expanding or rewriting the user's retained selection.
+    let reachable = Array(field.length + 1).fill(false);
+    reachable[0] = true;
+    for (let index = 0; index < pattern.length; index += 1) {
+      const token = pattern[index];
+      if (token === '*') {
+        for (let position = 1; position <= field.length; position += 1) {
+          reachable[position] ||= reachable[position - 1];
+        }
+        continue;
+      }
+      let accepts = (character) => token === '?' || character === token;
+      if (token === '[') {
+        let end = index + 1;
+        if (pattern[end] === '!') end += 1;
+        if (pattern[end] === ']') end += 1;
+        end = pattern.indexOf(']', end);
+        if (end !== -1) {
+          let members = pattern.slice(index + 1, end);
+          const negate = members.startsWith('!');
+          if (negate) members = members.slice(1);
+          accepts = (character) => {
+            let included = false;
+            for (let item = 0; item < members.length; item += 1) {
+              if (item + 2 < members.length && members[item + 1] === '-') {
+                included ||= members[item] <= character && character <= members[item + 2];
+                item += 2;
+              } else included ||= members[item] === character;
+            }
+            return negate ? !included : included;
+          };
+          index = end;
+        }
+      }
+      reachable = reachable.map((_, position) => position > 0 && reachable[position - 1] && accepts(field[position - 1]));
+    }
+    return reachable[field.length];
+  }
+
   async function selectPhysicsBackend(backend) {
     const capabilityId = state.selectedCapabilityId;
     const sourceForm = state.formData;
@@ -4848,12 +4889,13 @@
         next.model.config.physics_backend = backend;
       }
       for (const section of ['qoi', 'plots']) {
-        const available = new Set(section === 'qoi' ? [...schema.outputs.summary_qoi, ...schema.outputs.trace_fields] : schema.outputs.trace_fields);
-        const kept = (next.outputs[section] || []).filter((name) => { if (available.has(name)) return true; removed.push(name); return false; });
-        next.outputs[section] = kept.length ? kept : clone(schema.default_form.outputs[section]);
+        const available = section === 'qoi' ? [...schema.outputs.summary_qoi, ...schema.outputs.trace_fields] : schema.outputs.trace_fields;
+        const requested = next.outputs[section] ?? schema.default_form.outputs[section];
+        next.outputs[section] = requested.filter((name) => { if (available.some((field) => matchesOutputSelection(name, field))) return true; removed.push(name); return false; });
       }
       next.outputs.telemetry_streams = (next.outputs.telemetry_streams || []).filter((stream) => {
-        if ((stream.fields || []).every((field) => schema.outputs.trace_fields.includes(field))) return true;
+        // The stream exporter supports exact names and trailing-prefix '*'.
+        if ((stream.fields || []).every((pattern) => schema.outputs.trace_fields.some((field) => pattern.endsWith('*') ? field.startsWith(pattern.slice(0, -1)) : field === pattern))) return true;
         removed.push(`遥测流 ${stream.stream_id}`); return false;
       });
       for (const kind of ['faults', 'degradations', 'constraints']) {

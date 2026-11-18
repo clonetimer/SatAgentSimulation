@@ -1460,6 +1460,10 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
         value = task_spec.get(key)
         if isinstance(value, Mapping):
             _deep_merge(form_data[key], value)
+    if schema["backend_profiles"] and not task_spec["parameters"]["values"]:
+        # Execution uses model.config when parameters.values is empty. Show the
+        # bound values while retaining their original location in the context.
+        _deep_merge(form_data["parameters"]["values"], task_spec["model"]["config"])
     # Keep the editable metadata view concise. The canonical context below
     # retains the full history; validation and planning are always rerun and
     # no approval or compiled-result cache is accepted by this projection.

@@ -56,6 +56,9 @@ def workbench(tmp_path):
             advanced = page.locator("#wizardAdvancedBtn")
             if advanced.is_visible():
                 advanced.click()
+            if not page.locator("#capabilitySearch").is_visible():
+                page.locator("#toggleMobileCatalogBtn").click()
+                page.locator("#capabilitySearch").wait_for(state="visible")
             page.locator('.capability-card[data-object-id="component.fuel_tank"]').click()
             page.locator("#creatorFormTabButton").click()
             page.locator("#showAdvancedFields").check()
@@ -164,3 +167,17 @@ def test_applying_native_template_replaces_the_reference_form_schema(workbench):
     expect(_output(page, "plotOptions", PRESSURE_PLOT)).to_have_count(0)
     expect(_output(page, "plotOptions", MASS_RATE_PLOT)).to_be_checked()
     expect(_output(page, "plotOptions", MAX_MASS_PLOT)).to_be_checked()
+
+
+def test_backend_switch_keeps_all_plots_explicitly_unselected(workbench):
+    page, expect = workbench
+    for checkbox in page.locator('#plotOptions input[type="checkbox"]').all():
+        checkbox.uncheck()
+    _parameter(page, "physics_backend").select_option("basilisk_native")
+    expect(_parameter(page, "full_pressure_pa")).to_have_count(0)
+    expect(page.locator('#plotOptions input[type="checkbox"]:checked')).to_have_count(0)
+    with page.expect_response(lambda response: urlsplit(response.url).path == "/tasks/parse") as preview:
+        page.locator("#previewBtn").click()
+    payload = preview.value.json()
+    assert payload["ok"], payload
+    assert payload["result"]["task_spec"]["outputs"]["plots"] == []

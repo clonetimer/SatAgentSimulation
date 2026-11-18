@@ -9,6 +9,7 @@ from typing import Any
 
 from sat_sim.adapter_base import SimulationResult
 from sat_sim.capability_backends import get_task_capability, validate_backend_output_requests
+from sat_sim.task_models import NativeFuelInputError, validate_native_fuel_events, validate_native_fuel_timing
 from sat_sim.task_validator import ValidationIssue
 
 from .component_source_native_misc import _row_base
@@ -97,11 +98,7 @@ def _compile_case(spec: Mapping[str, Any]) -> _NativeCase:
             "$.mission.required_couplings", "native fuel tank does not provide required physical couplings",
             "MISSING_PHYSICAL_CAUSAL_LINK",
         )
-    for location, container in (("$", spec), ("$.modifiers", spec.get("modifiers", {})), ("$.events", spec.get("events", {}))):
-        for key in ("faults", "degradations", "constraints"):
-            value = _mapping(container, location).get(key, [])
-            if value not in ([], {}):
-                raise _InputError(f"{location}.{key}", "native fuel tank supports no events or constraints")
+    validate_native_fuel_events(spec)
 
     params = _mapping(spec.get("parameters"), "$.parameters")
     if params.get("physics_backend") != _BACKEND:
@@ -113,21 +110,21 @@ def _compile_case(spec: Mapping[str, Any]) -> _NativeCase:
             raise _InputError(f"$.parameters.{name}", "parameter is unavailable for native fuel tank")
 
     sim = _mapping(spec.get("simulation"), "$.simulation")
+    validate_native_fuel_timing(sim, require_duration_and_sample=True)
     duration_path, sample_path = "$.simulation.duration_s", "$.simulation.sample_s"
-    duration_s = _number(sim.get("duration_s"), duration_path)
-    sample_s = _number(sim.get("sample_s"), sample_path)
+    duration_s = float(sim["duration_s"])
+    sample_s = float(sim["sample_s"])
     if sample_s > duration_s:
         raise _InputError(sample_path, "sample_s must not exceed duration_s")
     duration_ns = _time_ns(duration_s, duration_path)
     sample_ns = _time_ns(sample_s, sample_path)
 
-    raw_solver = sim.get("solver")
-    solver = {} if raw_solver is None else _mapping(raw_solver, "$.simulation.solver")
+    solver = sim.get("solver") or {}
     step_ns = None
     for source, path in ((sim, "$.simulation.step_s"), (solver, "$.simulation.solver.step_s")):
         if "step_s" not in source:
             continue
-        step_s = _number(source["step_s"], path)
+        step_s = float(source["step_s"])
         if step_s > sample_s:
             raise _InputError(path, "integration step must not exceed sample_s")
         explicit_step_ns = _time_ns(step_s, path)
@@ -190,6 +187,8 @@ def validate_native_fuel_tank(spec: Mapping[str, Any]) -> Sequence[ValidationIss
         _native_bindings()
     except _InputError as exc:
         return (exc.issue,)
+    except NativeFuelInputError as exc:
+        return (ValidationIssue("error", exc.path, exc.message, "native_fuel_tank"),)
     except RuntimeError as exc:
         return (ValidationIssue("error", "$.parameters.physics_backend", str(exc), "native_fuel_tank_dependency"),)
     return ()

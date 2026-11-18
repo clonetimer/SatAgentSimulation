@@ -25,7 +25,7 @@ on:
       - "examples/component_fuel_tank_basilisk_native.yaml"
       - "tests/test_native_fuel_tank_component.py"
       - "tests/test_capability_backend_profiles.py"
-      - "tests/test_fuel_tank_backend_*.py"
+      - "tests/test_fuel_tank_*.py"
       - ".github/workflows/p9n3-native-fuel-tank.yml"
   workflow_dispatch:
 
@@ -71,7 +71,7 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           node --check src/sat_sim/web/app.js
-          python -m pytest -q tests/test_native_fuel_tank_component.py tests/test_capability_backend_profiles.py tests/test_fuel_tank_backend_api.py tests/test_component_effect_completion.py --disable-warnings
+          python -m pytest -q tests/test_native_fuel_tank_component.py tests/test_capability_backend_profiles.py tests/test_fuel_tank_backend_api.py tests/test_fuel_tank_backend_selection.py tests/test_fuel_tank_backend_telemetry.py tests/test_fuel_tank_form_input.py tests/test_fuel_tank_legacy_input.py tests/test_component_effect_completion.py --disable-warnings
       - name: Verify actual Workbench backend switching and native template projection
         env:
           PYTHONPATH: "src:."
