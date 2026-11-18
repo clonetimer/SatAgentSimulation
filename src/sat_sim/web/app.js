@@ -5308,14 +5308,24 @@
   }
 
   function renderEffectSelect() {
-    const kind = el('effectKind').value;
     const select = el('effectSelect');
+    const kindSelect = el('effectKind');
     const nativeRwNominalOnly = state.selectedCapabilityId === 'component.reaction_wheel.v1'
       && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native';
-    const kindSelect = el('effectKind');
     const limitNote = el('eventBackendLimitNote');
     if (limitNote) limitNote.classList.toggle('hidden', !nativeRwNominalOnly);
-    if (kindSelect) kindSelect.disabled = nativeRwNominalOnly;
+
+    const availableKinds = Array.from(kindSelect.options).filter((option) => effectCatalog(option.value).length > 0);
+    Array.from(kindSelect.options).forEach((option) => {
+      const available = availableKinds.some((item) => item.value === option.value);
+      option.hidden = !available;
+      option.disabled = !available;
+    });
+    if (availableKinds.length && !availableKinds.some((option) => option.value === kindSelect.value)) {
+      kindSelect.value = availableKinds[0].value;
+    }
+    const kind = kindSelect.value;
+    kindSelect.disabled = nativeRwNominalOnly || availableKinds.length <= 1;
     select.disabled = nativeRwNominalOnly;
     select.replaceChildren();
     effectCatalog(kind).forEach((item) => {
@@ -5335,6 +5345,19 @@
     }
     const kind = el('effectKind').value;
     const effect = el('effectSelect').value;
+    if (state.selectedCapabilityId === 'subsystem.adcs_unified_native.v1') {
+      const allowedAdcsEffects = new Set([
+        'adcs_rw_jamming',
+        'adcs_rw_motor_failure',
+        'gyro_bias_step',
+        'adcs_rw_torque_authority_loss',
+        'gyro_noise_increase',
+      ]);
+      if (!allowedAdcsEffects.has(effect)) {
+        showNotice('当前 ADCS 向导仅允许五类已通过物理 A/B 验收的故障与退化。', 'warning');
+        return;
+      }
+    }
     const template = effectCatalog(kind).find((item) => item.effect === effect);
     if (!template) return;
     const key = kind === 'fault' ? 'faults' : (kind === 'degradation' ? 'degradations' : 'constraints');
@@ -9204,12 +9227,17 @@
     const showConfig = state.wizard.step === 'configure';
     const nativeSingleComponent = showConfig && state.wizard.goal === 'component_native';
     const nativeSingleSubsystem = showConfig && state.wizard.goal === 'subsystem_native';
-    const nativeNominalOnly = nativeSingleComponent || nativeSingleSubsystem;
+    const nativeAdcsFaultsEnabled = nativeSingleSubsystem
+      && state.selectedCapabilityId === 'subsystem.adcs_unified_native.v1'
+      && (state.schema?.event_catalog?.faults?.length || 0) > 0;
+    const hideNativeEventAuthoring = nativeSingleComponent || (nativeSingleSubsystem && !nativeAdcsFaultsEnabled);
     config?.classList.toggle('hidden', !showConfig);
-    // These native guided slices currently admit only nominal finite runs.
-    // Hide event authoring instead of presenting unverified fault controls.
-    el('wizardEventHost')?.classList.toggle('hidden', nativeNominalOnly);
-    el('wizardFaultPanel')?.classList.toggle('hidden', nativeNominalOnly);
+    // Only the ADCS subsystem has completed the paired physical A/B gate for
+    // its five guided effects. Other native component/subsystem slices remain
+    // nominal-only until their own effect evidence and browser journey pass.
+    el('wizardEventHost')?.classList.toggle('hidden', hideNativeEventAuthoring);
+    el('wizardFaultPanel')?.classList.toggle('hidden', hideNativeEventAuthoring);
+    el('wizardNativeAdcsFaultNote')?.classList.toggle('hidden', !nativeAdcsFaultsEnabled);
     el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
     el('wizardAgentWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'natural_language');
     el('wizardTaskSpecWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'taskspec');
