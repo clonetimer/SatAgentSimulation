@@ -47,4 +47,4 @@
 - N2：PR #169 已合入 main，合并提交 `14b3dd0fa9f4697befd7a14090a976ad6ddd8089`；官方 Basilisk 2.11.0 专项 26 tests 通过。IMU、磁强计、星敏为 opt-in native；CSS 仍仅为标量光强 probe。
 - N3 EPS 首批：PR #171 已合入 main，合并提交 `5f294149bfb637117b4fb7772ed6e1053b84f695`，替代已关闭的 PR #170。最终受测 head `b0745ef67f8520d1485a8f7162f09f844466bb82` 的官方 Basilisk 2.11.0 专项 [26 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44245235664)，Agent/Run [457 passed、Chromium 19 passed](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44245235691)，本地相关回归 55 passed；合并树与受测树一致。
 - 物理输出以 recorder 为准：太阳翼能量不能来自解析期望值；电池限幅能量只是净功率/储能差的派生核算。零方向向量与不对齐的时长/采样网格应 fail closed，不能靠默认值或外推补齐。
-- N3 推进器首批：官方 Basilisk 2.11.0 本地专项 63 passed（61 项新 native 测试 + 2 项既有 reference 事件测试），正式 TaskSpec 1.0.0 示例 SUCCEEDED / PASS / sealed / integrity。1 N、0.5 s 点火的记录积分约 0.5 N·s，原生质量减少约 0.000182092 kg；零点火和仅一个原生步长的点火均有验收。最短点火保留步长相关积分误差边界，不宣称任意脉冲精度或 native 故障已完成。
+- N3 推进器首批：官方 Basilisk 2.11.0 本地专项 75 passed（73 项新 native 测试 + 2 项既有 reference 事件测试），正式 TaskSpec 1.0.0 示例 SUCCEEDED / PASS / sealed / integrity。1 N、0.5 s 点火的记录积分约 0.5 N·s，原生质量减少约 0.000182092 kg；零点火和仅一个原生步长的点火均有验收。最短点火保留步长相关积分误差边界，不宣称任意脉冲精度或 native 故障已完成。

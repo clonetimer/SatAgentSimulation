@@ -174,15 +174,10 @@ def test_reference_path_remains_available_by_default_and_explicit_selection():
 
 
 def test_canonical_native_example_runs_through_sealed_bundle(tmp_path):
-    from pathlib import Path
-
-    import yaml
-
     pytest.importorskip("Basilisk")
     from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
 
-    path = Path(__file__).resolve().parents[1] / "examples" / "component_thruster_basilisk_native.yaml"
-    prepared = prepare_run(yaml.safe_load(path.read_text()), output_root=tmp_path)
+    prepared = prepare_run(_canonical_thruster_example(), output_root=tmp_path)
     result = execute_prepared_run(prepared.bundle_root, expected_plan_sha256=prepared.execution_plan_sha256)
     assert result.run_record.status.value == "SUCCEEDED", result.run_record
     assert result.run_record.sealed and result.validation.result.value == "PASS", result.validation
@@ -314,3 +309,133 @@ def test_zero_force_controls_remain_valid_below_tank_resolution(thrust, profile)
     qoi = ThrusterAdapter().run(spec).summary["qoi"]
     assert qoi[PREFIX + "propellant_used_kg"] == 0.0
     assert qoi[PREFIX + "total_impulse_ns"] == 0.0
+
+
+def _canonical_thruster_example():
+    from pathlib import Path
+
+    import yaml
+
+    path = Path(__file__).resolve().parents[1] / "examples" / "component_thruster_basilisk_native.yaml"
+    return yaml.safe_load(path.read_text())
+
+
+@pytest.mark.parametrize("standard_step", [0.02, None])
+def test_canonical_conflicting_or_inferred_step_fails_planning_and_before_build(standard_step, monkeypatch):
+    from sat_sim.adapters import component_thruster_native as native
+    from sat_sim.execution_planner import plan_task_spec
+    from sat_sim.task_models import to_runtime_task_spec
+
+    spec = _canonical_thruster_example()
+    if standard_step is None:
+        del spec["simulation"]["step_s"]
+    else:
+        spec["simulation"]["step_s"] = standard_step
+    runtime = to_runtime_task_spec(spec)
+    assert runtime["simulation"]["solver"]["step_s"] == (standard_step or 0.1)
+    planning = plan_task_spec(spec)
+    assert not planning.ok
+    assert any("native_step_s" in issue.message for issue in planning.validation.errors)
+    assert ThrusterAdapter().validate(runtime)
+    monkeypatch.setattr(native, "_execute", lambda case: pytest.fail("unexpected native build"))
+    with pytest.raises(ValueError, match="native_step_s"):
+        ThrusterAdapter().run(runtime)
+
+
+def test_flat_simulation_step_must_also_agree_with_native_step(monkeypatch):
+    from sat_sim.adapters import component_thruster_native as native
+
+    spec = thruster_spec()
+    spec["simulation"].update(step_s=0.02, solver={"step_s": 0.005})
+    monkeypatch.setattr(native, "_execute", lambda case: pytest.fail("unexpected native build"))
+    assert ThrusterAdapter().validate(spec)
+    with pytest.raises(ValueError, match="native_step_s"):
+        ThrusterAdapter().run(spec)
+
+
+@pytest.mark.parametrize("step,duration,periods_on", [
+    (4342463.3232458765, 4342463.3232458765, 0),  # task period changes by 1 ns
+    (104878.048780502, 4300000.000000582, 40),  # accumulated burn changes by 1 ns
+])
+def test_native_times_must_round_trip_through_builder_seconds(step, duration, periods_on, monkeypatch):
+    from sat_sim.adapters import component_thruster_native as native
+
+    spec = thruster_spec(native_step_s=step, thrust_n=0, on_time_profile_s=[step] * periods_on + [0])
+    spec["simulation"] = {"duration_s": duration, "sample_s": step}
+    monkeypatch.setattr(native, "_execute", lambda case: pytest.fail("unexpected native build"))
+    issues = ThrusterAdapter().validate(spec)
+    assert issues and "round-trip" in issues[0].message
+    with pytest.raises(ValueError, match="round-trip"):
+        ThrusterAdapter().run(spec)
+
+
+@pytest.mark.parametrize("standard_step,native_step", [(0.0200000001, 0.02), (None, 0.1)])
+def test_canonical_matching_steps_run_on_normalized_native_grid(standard_step, native_step):
+    pytest.importorskip("Basilisk")
+    from sat_sim.execution_planner import plan_task_spec
+    from sat_sim.task_models import to_runtime_task_spec
+
+    spec = _canonical_thruster_example()
+    if standard_step is None:
+        del spec["simulation"]["step_s"]
+    else:
+        spec["simulation"]["step_s"] = standard_step
+    spec["parameters"]["values"].update(native_step_s=native_step, on_time_profile_s=[0, native_step, 0])
+    assert plan_task_spec(spec).ok
+    runtime = to_runtime_task_spec(spec)
+    assert not ThrusterAdapter().validate(runtime)
+    result = ThrusterAdapter().run(runtime)
+    assert result.metadata["native_step_s"] == native_step
+    assert result.metadata["native_recorder_samples"] == round(1 / native_step) + 1
+    assert result.summary["qoi"][PREFIX + "total_impulse_ns"] == pytest.approx(native_step, abs=1e-12)
+    assert result.summary["qoi"][PREFIX + "propellant_used_kg"] > 0
+
+
+def test_flat_spec_without_solver_or_native_step_uses_native_default():
+    pytest.importorskip("Basilisk")
+    spec = thruster_spec()
+    del spec["parameters"]["native_step_s"]
+    result = ThrusterAdapter().run(spec)
+    assert result.metadata["native_step_s"] == 0.01
+    assert result.metadata["native_recorder_samples"] == 101
+
+
+def test_canonical_top_level_step_survives_an_explicit_solver_step(monkeypatch):
+    from sat_sim.adapters import component_thruster_native as native
+    from sat_sim.execution_planner import plan_task_spec
+    from sat_sim.task_models import to_runtime_task_spec
+
+    spec = _canonical_thruster_example()
+    spec["simulation"].update(step_s=0.02, solver={"step_s": 0.005})
+    runtime = to_runtime_task_spec(spec)
+    assert runtime["simulation"]["step_s"] == 0.02
+    assert runtime["simulation"]["solver"]["step_s"] == 0.005
+    assert not plan_task_spec(spec).ok
+    assert ThrusterAdapter().validate(runtime)
+    monkeypatch.setattr(native, "_execute", lambda case: pytest.fail("unexpected native build"))
+    with pytest.raises(ValueError, match="native_step_s"):
+        ThrusterAdapter().run(runtime)
+
+
+@pytest.mark.parametrize("capability,backend", [
+    ("component.thruster.v1", "project_reference"), ("component.battery.v1", "basilisk_native"),
+])
+def test_native_thruster_step_projection_is_scoped(capability, backend):
+    from sat_sim.task_models import to_runtime_task_spec
+
+    spec = _canonical_thruster_example()
+    spec["model"]["capability_id"] = capability
+    spec["parameters"]["values"]["physics_backend"] = backend
+    assert "step_s" not in to_runtime_task_spec(spec)["simulation"]
+
+
+def test_legacy_explicit_flat_step_is_preserved_across_canonical_migration():
+    from sat_sim.task_models import canonicalize_task_spec, to_runtime_task_spec
+
+    legacy = thruster_spec()
+    legacy["simulation"].update(step_s=0.02, solver={"step_s": 0.005})
+    canonical = canonicalize_task_spec(legacy)
+    runtime = to_runtime_task_spec(canonical)
+    assert runtime["simulation"]["step_s"] == 0.02
+    assert runtime["simulation"]["solver"]["step_s"] == 0.005
+    assert ThrusterAdapter().validate(runtime)

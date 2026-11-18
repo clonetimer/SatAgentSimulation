@@ -25,6 +25,7 @@
 - Dense native integration must preserve pulses shorter than output sample_s.
 - Zero burn is a legitimate successful control despite the old subsystem runner status heuristic.
 - Timing validation and scheduling must use the same rounded nanoseconds, including fractional periods.
+- Canonical/runtime solver step and native_step_s must agree when both exist; inferred canonical defaults must not be silently ignored. Native seconds/nanoseconds must round-trip exactly before scheduling.
 - Fuel exhaustion, nonfinite inputs, and unsupported events must never produce an accepted nominal result.
 
 ## Task 1: Native adapter and real physical acceptance
@@ -33,6 +34,8 @@
 
 **Interfaces:** Native helper consumes the existing runtime spec with flat parameters and returns SimulationResult. ThrusterAdapter delegates only when physics_backend=basilisk_native. Shared validation produces ordinary ValidationIssue errors and is also enforced by run. Add physics_backend (project_reference/basilisk_native, default project_reference) and native_step_s (seconds, default0.01, positive) to capability. Existing trace and summary keys remain complete.
 
+Final-review scope correction: the native-thruster branch of src/sat_sim/task_models.py must preserve the canonical top-level integration step when projecting the runtime mapping, so an explicit conflicting nested solver step cannot hide it. Other capability/reference conversions remain unchanged; include canonical conversion regression coverage.
+
 - [x] Write a failing direct native provenance/physical-response test; run and observe failure on the current reference-only adapter.
 - [x] Implement guarded profile-to-contiguous-burn mapping and minimal native execution. Use build_propulsion_basilisk_sim with typed one-thruster configs, execute the SimBase, and inspect strict recorder arrays directly (avoid permissive runner fallbacks).
 - [x] Write and verify zero-burn, native force/fuel A/B, dense impulse integration, invalid profile/time/parameter/event tests.
@@ -40,7 +43,7 @@
 - [x] Execute the example through prepare_run/execute_prepared_run; assert SUCCEEDED, PASS, sealed, integrity, native provenance and physical output.
 - [x] Verify default project_reference compatibility, self-review, and report changed files/test commands/results. Do not commit/push; root integrates atomically.
 
-Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 63 passed (61 native-component tests and 2 existing reference-event tests). Canonical TaskSpec 1.0.0 separately passed prepare/execute, validation, sealing and integrity. One-step pulse scheduling and the conservative fuel reserve were established with real native probes. Task-scoped independent review passed after correcting the low-flow numerical resolution and direct-execution identity findings. Final integration review and current-head CI remain gates below.
+Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 75 passed (73 native-component tests and 2 existing reference-event tests). Canonical TaskSpec 1.0.0 separately passed prepare/execute, validation, sealing and integrity. One-step pulse scheduling and the conservative fuel reserve were established with real native probes. Task-scoped independent review passed after correcting the low-flow numerical resolution and direct-execution identity findings. Final integration review and current-head CI remain gates below.
 
 ## Task 2: Governance, experience, and integration
 
@@ -50,4 +53,4 @@ Task 1 evidence: official bsk/Basilisk 2.11.0; focused suite 63 passed (61 nativ
 - [x] Synchronize thruster parameter/output labels and actual capability blob hash, preserving other dictionary entries and formatting.
 - [x] Add focused official bsk2.11.0 CI with explicit provenance check, native acceptance and related reference coverage.
 - [x] Independently review Task1 changes; fix substantive findings and rerun only affected verification.
-- [ ] Commit once, create feature PR, verify current-head applicable CI, merge after success, and record the observed outcome.
+- [ ] Commit the integrated change, create feature PR, verify current-head applicable CI after any review corrections, merge after success, and record the observed outcome.

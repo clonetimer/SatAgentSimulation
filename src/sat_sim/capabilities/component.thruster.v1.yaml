@@ -37,7 +37,7 @@ parameters:
     required: false
     min: 0.000000001
     default: 0.01
-    description: Native physics and recorder period. Sample and burn intervals must span complete native steps after nanosecond rounding. Up to 100000 native steps per run.
+    description: Native physics and recorder period. Standard simulation and solver integration steps must match this value after nanosecond rounding. A canonical TaskSpec with no integration step infers sample_s. Set the integration step explicitly when sampling more slowly. The task period and compiled burn duration must round-trip through native seconds. Sample and burn intervals must span complete native steps. Up to 100000 native steps per run.
   thrust_n: {type: number, unit: N, required: false, default: 1.0, min: 0.0}
   isp_s: {type: number, unit: s, required: false, default: 280.0, min: 0.000001}
   on_time_s: {type: number, unit: s, required: false, default: 0.1, min: 0.0}

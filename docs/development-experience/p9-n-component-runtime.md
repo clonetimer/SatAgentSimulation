@@ -149,8 +149,9 @@ P9-N2 保留默认 component reference 路径，并已为 IMU、磁强计、星�
 6. **字段来源要分别说明。** 实际推力来自 `THROutputMsg.thrustForce`；冲量由该密集记录按真实时间积分；耗油量来自 `FuelTankMsg.fuelMass` 的质量差。`on_time_s` 是指令，`effective_isp_s` 是配置参数，不冒充测量。零点火是有效成功对照，不沿用旧分系统 runner 对“必须有耗油和速度增量”的成功判据。
 7. **有限数值不等于可分辨的测量。** 独立复审用 1e-10 N / 1 ms 和 1e-9 N / 0.1 ms 的真实点火发现：总冲量为正，单步质量递减却被 1 kg 贮箱状态的浮点舍入抹去。原生入口需要同时预检累积舍入预算，并在每个密集时间点检查质量差与推力积分的守恒残差；不能仅检查 finite、nonnegative 后把零耗油判为成功。
 8. **预检与直接执行必须共享身份边界。** 原生执行入口也要验证 capability、任务类型和目标设备，避免调用者绕过 prepare 阶段后把错误目标执行成推力器。回归应证明错误请求根本不会进入原生图构建，而不仅检查 validate 返回了错误。
+9. **同一积分步长不能存在相互矛盾的已消费输入。** Canonical `simulation.step_s` 会进入 runtime 的 `simulation.solver.step_s`；新增 `native_step_s` 时必须核对这条归一化路径。原生实测中，同一个 20 ms 点火在 5 ms 与 20 ms 步长下的记录耗油量不同，因此标准步长被忽略会造成实际结果与界面说明不一致。两项存在时必须在纳秒归一化后相同；旧 flat spec 没有 solver 时仍使用原生默认。参数消费清单本身不能证明调度真的采用了该值。另一个约 50 天单步反例表明，整数纳秒转回秒后仍需核对往返一致性，不能只限制浮点值大小。
 
-官方 Basilisk 2.11.0 的本地验收结果：61 项 native 组件测试与 2 项既有 reference 事件测试共 63 passed；参数表审计另有 4 passed，24 类组件的 source blob、字段、单位及名称绑定全部通过。正式 TaskSpec 1.0.0 示例经 prepare/execute 后为 SUCCEEDED、validation PASS、sealed、integrity PASS，核验 201 个密集原生采样点并导出 11 行。CI 与合并证据以该功能 PR 的最终 head 为准。
+官方 Basilisk 2.11.0 的本地验收结果：73 项 native 组件测试与 2 项既有 reference 事件测试共 75 passed；参数表审计另有 4 passed，24 类组件的 source blob、字段、单位及名称绑定全部通过。正式 TaskSpec 1.0.0 示例经 prepare/execute 后为 SUCCEEDED、validation PASS、sealed、integrity PASS，核验 201 个密集原生采样点并导出 11 行。CI 与合并证据以该功能 PR 的最终 head 为准。
 
 | 工况 | 记录推力积分 / N·s | 原生记录质量减少 / kg |
 |---|---:|---:|
@@ -159,5 +160,7 @@ P9-N2 保留默认 component reference 路径，并已为 IMU、磁强计、星�
 | 1 N、140 s 比冲、0.5 s 点火 | 0.5000000000000003 | 0.0003641843617785412 |
 | 1 N、280 s 比冲、0.005 s 点火 | 0.005 | 0.000002427895745227282 |
 | 零点火对照 | 0 | 0 |
+
+步长投影修正另通过 121 项既有 TaskSpec 兼容性、canonical transport 与 optional-parameter refinement 测试。更广的四文件检查为 129 passed、1 failed；失败项 `test_recorded_actual_ai_canonical_export_is_identity_without_edits` 是整星固定计划哈希失配。对修正代码、初始 PR head `7259b61` 及本次开发前主分支 `5f294149` 的独立 Git worktree 执行同一测试，均得到相同 expected `d7499066…` / actual `02fa1aa6…`。该问题在本 PR 前已存在，固定期望保持不变。排除回归要回到 PR 主分支基线，仅与功能分支的较早提交比较不足以证明与本 PR 无关。
 
 最短单步点火的耗油量与理想公式有约三分之一个原生步长的开关积分差异，验收采用步长相关的误差界；这不能作为短脉冲高精度证明。原生故障、多段遥控回放、安装几何和任务级推进耦合仍须分别扩展与验证。

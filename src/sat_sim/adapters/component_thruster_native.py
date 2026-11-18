@@ -70,6 +70,12 @@ def _nanoseconds(seconds: float, path: str) -> int:
     return int(seconds * _NS_PER_S + 0.5)
 
 
+def _require_seconds_round_trip(ns: int, path: str) -> None:
+    # The shared builder and command message accept seconds as doubles.
+    if int((ns / _NS_PER_S) * _NS_PER_S + 0.5) != ns:
+        raise _InputError(path, "native scheduling time must round-trip exactly through seconds")
+
+
 def compile_native_thruster(spec: Mapping[str, Any]) -> _NativeCase:
     target = spec.get("target", {})
     if not isinstance(target, Mapping) or target.get("mode", "nominal") != "nominal":
@@ -91,6 +97,15 @@ def compile_native_thruster(spec: Mapping[str, Any]) -> _NativeCase:
     duration = _nanoseconds(_number(sim.get("duration_s"), duration_path), duration_path)
     step_path = "$.parameters.native_step_s"
     step = _nanoseconds(_number(p.get("native_step_s", 0.01), step_path, 1e-9), step_path)
+    _require_seconds_round_trip(step, step_path)
+    solver = sim.get("solver")
+    if solver is not None and not isinstance(solver, Mapping):
+        raise _InputError("$.simulation.solver", "native thruster requires a solver mapping")
+    for location, source in (("$.simulation", sim), ("$.simulation.solver", solver or {})):
+        if "step_s" in source:
+            path = f"{location}.step_s"
+            if _nanoseconds(_number(source["step_s"], path), path) != step:
+                raise _InputError(path, "integration step must match native_step_s after nanosecond rounding")
     if not duration or not sample or duration % sample or sample % step:
         raise _InputError("$.simulation", "duration, sample and native step require complete positive intervals")
     if duration // step > _MAX_STEPS:
@@ -132,6 +147,8 @@ def compile_native_thruster(spec: Mapping[str, Any]) -> _NativeCase:
             if not burn:
                 start = time
             burn += value
+
+    _require_seconds_round_trip(burn, "$.parameters")
 
     # The native force magnitude and exhaust velocity require representable
     # squared force and Isp*g0, even when a ratio of those inputs is finite.

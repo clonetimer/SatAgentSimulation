@@ -10,6 +10,7 @@ on:
       - "src/sat_sim/adapters/component_thruster_native.py"
       - "src/sat_sim/adapters/component_source_native_misc.py"
       - "src/sat_sim/capabilities/component.thruster.v1.yaml"
+      - "src/sat_sim/task_models.py"
       - "src/sat_sim/workbench_quantity_dictionary_comm_payload_propulsion.json"
       - "examples/component_thruster_basilisk_native.yaml"
       - "tests/test_native_thruster_component.py"
