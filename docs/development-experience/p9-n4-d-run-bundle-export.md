@@ -28,7 +28,7 @@
 1. API 正常路径：对官方 Basilisk 原生反作用轮 Run 下载 ZIP，验证 manifest、seal、Run ID 和每个文件的 SHA-256。
 2. 未封存拒绝：仅 `prepare_run`、尚未执行和 seal 的 Run 必须返回 HTTP 409 / `RUN_BUNDLE_NOT_VERIFIED`。
 3. 篡改拒绝：修改 sealed Run 中的 `results/summary.json` 后，下载必须返回 HTTP 409，不得返回部分 ZIP。
-4. Chromium：对向导中的 IMU、星敏、磁强计、电池、太阳翼、推力器、贮箱和热节点逐一真实运行，从结果面板点击导出，并核验 ZIP 中全部 manifest 文件哈希；反作用轮由 API 专项覆盖。
+4. Chromium：对向导中的反作用轮、IMU、星敏、磁强计、电池、太阳翼、推力器、贮箱和热节点逐一真实运行，从结果面板点击导出，并核验 ZIP 中全部 manifest 文件哈希。
 5. OpenAPI 与 release manifest 声明新路由；UI 合同测试确认按钮和下载入口存在。
 
 ## 关键工程经验
