@@ -190,9 +190,11 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
                 url = urlsplit(request.url)
                 request_path = url.path + ("?" + url.query if url.query else "")
                 if request.method == "POST" and url.path == "/runs":
-                    # Execute synchronously inside TestClient so the real
-                    # Basilisk Run Bundle is complete before browser assertions.
+                    # Preserve the real UI async submission contract. The
+                    # embedded worker executes the official finite Run.
                     payload = json.loads(request.post_data or "{}")
+                    assert payload.get("execute") is True, payload
+                    assert payload.get("execution_mode") == "async", payload
                     response = client.post(request_path, json=payload)
                 else:
                     response = client.request(
