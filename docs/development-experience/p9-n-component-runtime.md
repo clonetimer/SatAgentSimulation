@@ -52,3 +52,13 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - 原生 backend 参数表单可见性与中文说明：PASS。
 
 这意味着 P9-N1 不需要再另建单机任务系统；应继续复用现有仿真向导、模板选择、参数表单、任务中心和结果分析。下一步重点是浏览器端从选择反作用轮对象到运行原生模板、查看真实曲线和历史 Run 的完整用户旅程。
+
+
+## P9-N2 快速推进记录（2026-11-18）
+
+- 新增 `sat_sim.bsk_engine.native_sensor_component.run_native_star_tracker_probe`，独立运行官方 `Basilisk.simulation.starTracker.StarTracker`。
+- Probe 输入为明确构造的 `SCStatesMsg` 真值消息（姿态 MRP、角速度、位置、速度），不依赖整星 UnifiedNativeRuntime。
+- 输出只使用官方 `sensorOutMsg` recorder 的 `qInrtl2Case` 四元数；不假设未在当前工程契约中确认的输出字段。
+- 通过四元数归一性、有限性、采样长度和输入参数 fail-closed 检查。
+- 证据范围不包含星表、光学成像、质心提取、遮挡/FOV 可见性或星敏 blinding 场景；这些仍需独立环境模型。
+- 原则：N1 浏览器历史导航问题不再阻塞 N2 物理图建设；N1 只保留必要产品闭环验收，N2/N3 按独立物理输入与 recorder 证据并行推进。
