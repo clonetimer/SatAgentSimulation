@@ -104,6 +104,111 @@ class BatteryAdapter:
         task_id = str(spec.get("task_id", "battery_task"))
         case_id = str((spec.get("metadata") or {}).get("case_id", "case_000")) if isinstance(spec.get("metadata"), Mapping) else "case_000"
 
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("BATTERY_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if mode != "nominal" or self._runtime_fault_payloads(spec) or self._battery_degradation_payload(spec):
+                raise ValueError("NATIVE_BATTERY_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            charge_efficiency = float(params.get("charge_efficiency", 0.98))
+            discharge_efficiency = float(params.get("discharge_efficiency", 0.97))
+            min_soc = float(params.get("min_soc", 0.0))
+            max_soc = float(params.get("max_soc", 1.0))
+            if abs(charge_efficiency - 1.0) > 1.0e-12 or abs(discharge_efficiency - 1.0) > 1.0e-12:
+                raise ValueError("NATIVE_BATTERY_REQUIRES_UNITY_EFFICIENCY")
+            if abs(min_soc) > 1.0e-12 or abs(max_soc - 1.0) > 1.0e-12:
+                raise ValueError("NATIVE_BATTERY_SOC_LIMITS_NOT_SUPPORTED")
+            raw_profile = params.get("power_profile_w")
+            if isinstance(raw_profile, list) and raw_profile:
+                profile_values = [float(value) for value in raw_profile]
+                if max(profile_values) - min(profile_values) > 1.0e-12:
+                    raise ValueError("NATIVE_BATTERY_REQUIRES_CONSTANT_NET_POWER")
+                net_power_w = profile_values[0]
+            else:
+                net_power_w = float(params.get("net_power_w", -20.0))
+            from components.battery.builder import run_battery_native_case
+            from components.battery.schemas import BatteryNativeConfig
+            native_summary, native_trace = run_battery_native_case(BatteryNativeConfig(
+                duration_s=duration_s,
+                step_s=sample_s,
+                capacity_wh=float(params.get("capacity_wh", 160.0)),
+                initial_soc=float(params.get("initial_soc", 0.62)),
+                power_nodes_w=(net_power_w,),
+                charge_efficiency=1.0,
+                discharge_efficiency=1.0,
+                fault_capacity_ratio=None,
+            ))
+            if native_summary.status != "PASS" or not native_trace:
+                raise RuntimeError("NATIVE_BATTERY_PHYSICAL_TRACE_VALIDATION_FAILED")
+            rows = []
+            for index, item in enumerate(native_trace):
+                storage_wh = float(item.storage_j) / 3600.0
+                capacity_wh = float(item.capacity_j) / 3600.0
+                rows.append({
+                    "task_id": task_id,
+                    "case_id": case_id,
+                    "time_s": round(float(item.time_s), 12),
+                    "sample_index": index,
+                    "target_level": "component",
+                    "target_name": "battery",
+                    "mode": "nominal",
+                    "eps.battery.soc": float(item.soc),
+                    "eps.battery.storage_wh": storage_wh,
+                    "eps.battery.capacity_wh": float(params.get("capacity_wh", 160.0)),
+                    "eps.battery.effective_capacity_wh": capacity_wh,
+                    "eps.battery.net_power_w": float(item.net_power_w),
+                    "eps.battery.applied_power_w": float(item.net_power_w),
+                    "eps.battery.shunt_dissipated_wh": 0.0,
+                    "eps.battery.nominal_charge_efficiency": 1.0,
+                    "eps.battery.effective_charge_efficiency": 1.0,
+                    "eps.battery.nominal_discharge_efficiency": 1.0,
+                    "eps.battery.effective_discharge_efficiency": 1.0,
+                    "label.health_state": "nominal",
+                    "label.fault_active": False,
+                })
+            soc_values = [float(item["eps.battery.soc"]) for item in rows]
+            energy_throughput_wh = abs(net_power_w) * duration_s / 3600.0
+            summary = {
+                "task_id": task_id,
+                "case_id": case_id,
+                "status": "complete",
+                "duration_s": duration_s,
+                "sample_s": sample_s,
+                "target_level": "component",
+                "target_name": "battery",
+                "capability_id": self.capability_id,
+                "mode": "nominal",
+                "qoi": {
+                    "eps.battery.initial_soc": soc_values[0],
+                    "eps.battery.final_soc": soc_values[-1],
+                    "eps.battery.min_soc": min(soc_values),
+                    "eps.battery.max_soc": max(soc_values),
+                    "eps.battery.final_storage_wh": rows[-1]["eps.battery.storage_wh"],
+                    "eps.battery.energy_throughput_wh": energy_throughput_wh,
+                    "eps.battery.effective_capacity_wh": rows[-1]["eps.battery.effective_capacity_wh"],
+                    "eps.battery.nominal_charge_efficiency": 1.0,
+                    "eps.battery.effective_charge_efficiency": 1.0,
+                    "eps.battery.nominal_discharge_efficiency": 1.0,
+                    "eps.battery.effective_discharge_efficiency": 1.0,
+                },
+                "events": {"fault_count": 0, "degradation_count": 0},
+                "trace_rows": len(rows),
+            }
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(rows),
+                labels={"fault_labels": [], "run_labels": [{"task_id": task_id, "mode": "nominal", "capability_id": self.capability_id, "physics_backend": "basilisk_native"}]},
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.simpleBattery.SimpleBattery", "Basilisk.simulation.simplePowerSink.SimplePowerSink"],
+                    "native_provenance": "components.battery.builder.run_battery_native_case",
+                    "native_claim_scope": "official SimpleBattery energy storage under constant net load, unity charge/discharge efficiency and nominal operation",
+                    "native_model_status": native_summary.status,
+                    "limits": ["nominal only", "no faults/degradation", "constant net power", "unity efficiency", "full SOC interval [0,1]"],
+                },
+            )
+
         degradation_payload = self._battery_degradation_payload(spec)
         degradation = BatteryDegradation(**degradation_payload) if degradation_payload else None
         config = build_nominal_battery_config(
