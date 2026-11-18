@@ -1,6 +1,8 @@
 """Guided task workspace prioritizes common actions and preserves task history."""
+import hashlib
 import json
 import os
+import zipfile
 from urllib.parse import urlsplit
 
 from fastapi.testclient import TestClient
@@ -994,6 +996,36 @@ def test_guided_native_sensor_workbench_runs_all_verified_adcs_eps_propulsion_th
                     item["field"] == expected_fields[0]
                     for item in plot_manifest["series"]
                 ), (object_id, expected_fields[0], plot_manifest["series"])
+
+                # Export the exact sealed Run Bundle from the user-facing result panel.
+                # The archive must contain every manifest-listed byte, plus the original
+                # manifest and seal; a diagnostic subset is not sufficient here.
+                bundle_button = page.locator("#downloadRunBundleBtn")
+                bundle_button.wait_for(state="visible", timeout=15000)
+                with page.expect_download(timeout=30000) as bundle_download_info:
+                    bundle_button.click()
+                bundle_download = bundle_download_info.value
+                bundle_path = tmp_path / f"{object_id.replace('.', '_')}_run_bundle.zip"
+                bundle_download.save_as(str(bundle_path))
+                with zipfile.ZipFile(bundle_path) as archive:
+                    bundle_prefix = f"{run_id}/"
+                    manifest_name = f"{bundle_prefix}bundle_manifest.json"
+                    seal_name = f"{bundle_prefix}SEALED.json"
+                    archive_names = set(archive.namelist())
+                    assert manifest_name in archive_names
+                    assert seal_name in archive_names
+                    manifest_bytes = archive.read(manifest_name)
+                    manifest = json.loads(manifest_bytes)
+                    seal = json.loads(archive.read(seal_name))
+                    assert manifest["run_id"] == run_id
+                    assert seal["run_id"] == run_id
+                    assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
+                    expected_archive_paths = {f"{bundle_prefix}{relative}" for relative in manifest["files"]}
+                    assert expected_archive_paths.issubset(archive_names)
+                    for relative, entry in manifest["files"].items():
+                        payload = archive.read(f"{bundle_prefix}{relative}")
+                        assert hashlib.sha256(payload).hexdigest() == entry["sha256"]
+
                 page.locator('[data-result-tab="charts"]').click()
                 page.wait_for_function(
                     "() => document.querySelector('#chartLegend')?.children.length > 0",
