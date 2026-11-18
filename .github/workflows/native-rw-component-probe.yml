@@ -1,4 +1,4 @@
-name: Independent native reaction wheel physical A/B probe
+name: Independent native component physical A/B probe
 
 on:
   pull_request:
@@ -10,6 +10,7 @@ on:
       - "src/sat_sim/adapters/native_reaction_wheel_cluster.py"
       - "src/sat_sim/capabilities/component.reaction_wheel.v1.yaml"
       - "tests/test_p9n_n4_preflight.py"
+      - "tests/test_native_sensor_component.py"
       - "src/sat_sim/scenario_templates.py"
       - "src/sat_sim/form_schema.py"
       - "src/sat_sim/web/app.js"
@@ -60,6 +61,10 @@ jobs:
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q -s tests/execution_contract/test_runtime_integration.py -k native_reaction_wheel_component_survives_full_sealed_run_bundle
+      - name: Official Basilisk IMU, StarTracker and Magnetometer physical/Run Bundle contracts
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q -s tests/test_native_sensor_component.py
       - name: Verify user-selectable native component template and form contract
         env:
           PYTHONPATH: "src:."
@@ -84,12 +89,12 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q -s tests/test_guided_task_workspace_browser.py \
-            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight"
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench"
 
       - name: Archive Basilisk-native measured RW traces and A/B metrics
         uses: actions/upload-artifact@v7
         with:
-          name: native-rw-component-physical-ab
+          name: native-component-physical-evidence
           path: |
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
