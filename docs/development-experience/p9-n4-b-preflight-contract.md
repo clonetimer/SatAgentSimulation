@@ -67,3 +67,8 @@ N4-B 后端预检合同与 N4-A 工作台 UI 属于两个相互依赖但独立�
 ## N4-B 结果/导出合同扩展（2026-11-18）
 
 新增真实原生 Run 的结果闭环验收：通过官方 Basilisk 执行并封存 Run Bundle 后，再由公开 Workbench API 读取同一 Run 的详情、报告、指标、曲线、遥测和制品清单。验收同时检查 Run ID 一致、SUCCEEDED、sealed、native backend provenance、报告完整性，以及原生执行端口证据文件仍在制品清单中。该测试不以 mock 报告或拼装结果替代真实运行。
+
+
+## 结果接口字段合同核对（2026-11-18）
+
+N4-B 新增结果 API 回归时，按实际路由定义核对了响应信封：指标位于 `metrics`，曲线清单位于 `plot_manifest`，遥测行位于响应根级 `rows`。测试不能根据 UI 内部 state 命名臆测 API JSON 字段；先读公开路由实现，再写契约断言。新增真实 Run Bundle 验收会覆盖详情、报告、指标、曲线、遥测、制品清单，并断言 Run ID 和原生后端来源一致。
