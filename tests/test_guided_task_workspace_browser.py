@@ -309,6 +309,34 @@ def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_
             assert durable["run_record"]["status"] == "SUCCEEDED", durable.get("run_record")
             assert durable["task_spec"]["model"]["capability_id"] == "component.reaction_wheel.v1"
             assert durable["summary"]["physics_backend"] == "basilisk_native"
+            # The first admitted native device is also covered through the
+            # visible browser download control, not only through the API test.
+            bundle_button = page.locator("#downloadRunBundleBtn")
+            bundle_button.wait_for(state="visible", timeout=15000)
+            with page.expect_download(timeout=30000) as bundle_download_info:
+                bundle_button.click()
+            bundle_download = bundle_download_info.value
+            bundle_path = tmp_path / "reaction_wheel_run_bundle.zip"
+            bundle_download.save_as(str(bundle_path))
+            with zipfile.ZipFile(bundle_path) as archive:
+                bundle_prefix = f"{run_id}/"
+                manifest_name = f"{bundle_prefix}bundle_manifest.json"
+                seal_name = f"{bundle_prefix}SEALED.json"
+                archive_names = set(archive.namelist())
+                assert manifest_name in archive_names
+                assert seal_name in archive_names
+                manifest_bytes = archive.read(manifest_name)
+                manifest = json.loads(manifest_bytes)
+                seal = json.loads(archive.read(seal_name))
+                assert manifest["run_id"] == run_id
+                assert seal["run_id"] == run_id
+                assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
+                expected_archive_paths = {f"{bundle_prefix}{relative}" for relative in manifest["files"]}
+                assert archive_names == expected_archive_paths | {manifest_name, seal_name}
+                assert f"{bundle_prefix}runtime/execution.lock" not in archive_names
+                for relative, entry in manifest["files"].items():
+                    payload = archive.read(f"{bundle_prefix}{relative}")
+                    assert hashlib.sha256(payload).hexdigest() == entry["sha256"]
             history_button = page.locator("#wizardOpenRunCenterBtn")
             history_button.wait_for(state="visible", timeout=10000)
             history_button.click()
