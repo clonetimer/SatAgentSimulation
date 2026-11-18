@@ -61,3 +61,11 @@ IMU、StarTracker、Magnetometer、CoarseSunSensor 在整星 UnifiedNativeRuntim
 - Native SimpleBattery 不暴露 project reference model 的全部效率、时变 profile、故障和退化能力；不支持的参数必须 fail closed。
 - 官方模型返回 `storage_j` / `capacity_j`，映射到 Wh 时必须除以 3600；SOC 使用官方 recorder 输出。
 - 端到端验收复用 `prepare_run → execute_prepared_run → sealed Run Bundle`，核验 validation PASS 与 Bundle integrity。
+
+
+## P9-N3 太阳翼原生模型接入经验（2026-11-18）
+
+- 官方 `SimpleSolarPanel` 需要显式订阅 `SpicePlanetStateMsg`、`SCStatesMsg` 和 `EclipseMsg`；只调用 project cosine-power 函数不能作为 native 证据。
+- Native 固定板测试使用 1 AU Sun position、identity spacecraft attitude、显式 illumination factor，并从 `nodePowerOutMsg.netPower` recorder 读取实际功率。
+- 当前只开放一块固定、完全展开、无 tracking 的板；project-owned tracking、时变太阳轨迹和 deployment failure 不得被描述为官方 SimpleSolarPanel 能力。
+- 下一步应直接把 `nodePowerOutMsg` 接到 `SimpleBattery.addPowerNodeToModel`，形成同一个 Basilisk task 中的电源输入—储能闭环；不要把两个独立 Run 的 CSV 后处理冒充物理耦合。
