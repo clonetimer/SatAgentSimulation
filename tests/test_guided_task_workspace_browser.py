@@ -166,6 +166,223 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 browser.close()
 
 
+def test_guided_component_reaction_wheel_can_apply_official_basilisk_preset(tmp_path):
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=True,
+        auth_mode="disabled",
+    )
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                request_path = url.path + ("?" + url.query if url.query else "")
+                if request.method == "POST" and url.path == "/runs":
+                    # Execute synchronously inside TestClient so the real
+                    # Basilisk Run Bundle is complete before browser assertions.
+                    payload = json.loads(request.post_data or "{}")
+                    response = client.post(request_path, json=payload)
+                else:
+                    response = client.request(
+                        request.method,
+                        request_path,
+                        content=request.post_data_buffer,
+                        headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
+                    )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")},
+                )
+
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="networkidle")
+            page.locator('#wizardOptions [data-wizard-goal="normal_run"]').click()
+            page.locator('#wizardOptions [data-wizard-level="component"]').click()
+            page.locator('#wizardOptions [data-wizard-object="component.reaction_wheel"]').click()
+            page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+
+            parameters = page.locator("#wizardParametersPanel")
+            if parameters.get_attribute("open") is None:
+                parameters.locator(":scope > summary").click()
+            preset = page.locator("#wizardNativeRwPreset")
+            preset.wait_for(state="visible", timeout=10000)
+            assert "官方 Basilisk 原生反作用轮" in preset.inner_text()
+            preset.get_by_role("button", name="应用原生单轮配置").click()
+
+            backend = page.locator('#dynamicForm [data-path="parameters.values.physics_backend"]')
+            backend.wait_for(state="visible", timeout=15000)
+            assert backend.input_value() == "basilisk_native"
+            assert page.locator('#dynamicForm [data-section-id="parameters_backend"]').get_attribute("open") is not None
+            assert "仅支持单轮标称工况" in page.locator("#wizardNotice").inner_text()
+            # The compact event editor is nested inside the guided event
+            # disclosure. Verify its actual disabled state without forcing
+            # the hidden nested disclosure open.
+            assert not page.locator("#eventBackendLimitNote").evaluate("(node) => node.classList.contains('hidden')")
+            assert page.locator("#effectKind").is_disabled()
+            assert page.locator("#effectSelect").is_disabled()
+            assert page.locator("#addEffectBtn").is_disabled()
+
+            page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+            page.wait_for_function(
+                "() => document.querySelector('#wizardNotice')?.textContent.includes('配置校验通过')",
+                timeout=30000,
+            )
+            page.locator("#wizardOptions").get_by_role("button", name="运行仿真").click()
+            page.locator("#wizardRunResultsHost").wait_for(state="visible", timeout=120000)
+            active_run = page.locator("#activeRunCard")
+            active_run.wait_for(state="visible", timeout=30000)
+            page.wait_for_function(
+                "() => document.querySelector('#activeRunCard')?.innerText.includes('SUCCEEDED')",
+                timeout=120000,
+            )
+            run_metadata = active_run.locator(".compact-run-metadata")
+            run_metadata.locator(":scope > summary").click()
+            assert "Basilisk 官方原生" in active_run.inner_text()
+            assert "Basilisk.simulation.reactionWheelStateEffector" in active_run.inner_text()
+
+            page.locator('[data-result-tab="charts"]').click()
+            page.locator("#telemetryChart").wait_for(state="visible", timeout=15000)
+            legend = page.locator("#chartLegend")
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.children.length > 0",
+                timeout=15000,
+            )
+            legend_text = legend.inner_text()
+            assert "反作用轮1 · 角速度" in legend_text, legend_text
+            assert "反作用轮1 · 实际电机力矩" in legend_text, legend_text
+
+            # Re-open the sealed run from Run Center and verify the same
+            # native provenance and physical charts survive history navigation.
+            runs_payload = client.get("/runs?limit=200")
+            assert runs_payload.status_code == 200, runs_payload.text
+            native_runs = [
+                row for row in runs_payload.json().get("runs", [])
+                if row.get("primary_capability_id") == "component.reaction_wheel.v1"
+                and row.get("status") == "SUCCEEDED"
+            ]
+            assert len(native_runs) == 1, native_runs
+            run_id = native_runs[0]["run_id"]
+            # The guided wizard intentionally owns the full workspace surface;
+            # enter the full workbench explicitly before using its Run Center nav.
+            page.locator("#wizardAdvancedBtn").click()
+            page.locator("#creatorView").wait_for(state="visible", timeout=15000)
+            analysis_nav = page.locator(".sidebar-nav-group").filter(has_text="实验与分析")
+            analysis_nav.locator(":scope > summary").click()
+            analysis_nav.locator('[data-view="runs"]').click()
+            page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
+            run_row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
+            run_row.wait_for(state="visible", timeout=15000)
+            run_row.get_by_role("button", name="查看").click()
+            page.locator("#creatorView").wait_for(state="visible", timeout=20000)
+            replayed = page.locator("#activeRunCard")
+            replayed.wait_for(state="visible", timeout=15000)
+            replay_metadata = replayed.locator(".compact-run-metadata")
+            replay_metadata.locator(":scope > summary").click()
+            assert "Basilisk 官方原生" in replayed.inner_text()
+            assert "Basilisk.simulation.reactionWheelStateEffector" in replayed.inner_text()
+            page.locator('[data-result-tab="charts"]').click()
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.innerText.includes('反作用轮1 · 实际电机力矩')",
+                timeout=15000,
+            )
+            assert not errors, errors
+        finally:
+            browser.close()
+
+
+def test_guided_single_component_shortcut_selects_verified_native_reaction_wheel(tmp_path):
+    """The novice workflow must select a real component and load its native preset."""
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 1000}, locale="zh-CN")
+            failures = []
+            external_requests = []
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("response", lambda response: failures.append(
+                f"HTTP {response.status}: {response.url}"
+            ) if response.status >= 400 and (
+                ("/assets/" in response.url and "/assets/vendor/globe/" not in response.url)
+                or "/forms/" in response.url
+                or "/scenario-templates" in response.url
+                or "/workbench/" in response.url
+            ) else None)
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                if url.scheme in {"http", "https"} and url.netloc != "workbench.test":
+                    external_requests.append(request.url)
+                    route.abort()
+                    return
+                response = client.request(
+                    request.method,
+                    url.path + ("?" + url.query if url.query else ""),
+                    content=request.post_data_buffer,
+                    headers={key: value for key, value in request.headers.items()
+                             if key in ("content-type", "accept")},
+                )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/octet-stream")},
+                )
+
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardOptions [data-wizard-goal='component_native']").click()
+            page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").wait_for(timeout=20000)
+            assert page.locator("#wizardOptions [data-wizard-object]").count() == 1
+            page.locator("#wizardOptions [data-wizard-object='component.reaction_wheel']").click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=20000)
+            assert "官方 Basilisk 原生反作用轮模型" in page.locator("#wizardConversation").inner_text()
+            assert "原生故障、退化及实时单机运行尚未开放" in page.locator("#wizardConversation").inner_text()
+            assert page.locator("#wizardOptions [data-wizard-mode]").count() == 0
+
+            assert page.locator("#wizardParametersPanel").evaluate("(node) => node.open")
+            form = page.locator("#wizardParameterHost #dynamicForm")
+            form.wait_for(state="attached", timeout=10000)
+            backend = form.locator('[data-field-path="parameters.values.physics_backend"] select')
+            assert backend.input_value() == "basilisk_native"
+            assert backend.locator("option").count() == 2
+            assert "Basilisk 原生物理" in backend.locator('option[value="basilisk_native"]').inner_text()
+
+            wheels = form.locator('[data-field-path="parameters.values.num_wheels"] input')
+            assert wheels.input_value() == "1"
+            torque = form.locator('[data-field-path="parameters.values.max_motor_torque_nm"] input')
+            assert float(torque.input_value()) == pytest.approx(0.005)
+            assert not external_requests, external_requests
+            assert not failures, failures
+        finally:
+            browser.close()
+
+
 def test_task_details_dialog_filters_explains_and_compares_real_run_evidence(tmp_path):
     """P7-A UI flow, with Run Bundle HTTP fixtures; no native execution implied."""
     playwright = pytest.importorskip("playwright.sync_api")
