@@ -493,7 +493,7 @@
     "solar_panel": {
       "name": "太阳电池阵",
       "classification": "physical",
-      "source_blob": "8b2c72e104140128227e4b0d154f0f3ae7121271",
+      "source_blob": "1daacf8dce7c3759cdfc26471f728b669dd0c37b",
       "parameters": [
         [
           "max_power_w",
@@ -549,6 +549,11 @@
           "max_slew_rate_rad_s",
           "最大转动角速度",
           "rad/s"
+        ],
+        [
+          "physics_backend",
+          "物理计算后端",
+          "none"
         ]
       ],
       "outputs": [
