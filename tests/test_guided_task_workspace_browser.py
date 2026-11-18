@@ -166,6 +166,77 @@ def test_guided_task_workspace_discloses_secondary_actions_and_opens_details(tmp
                 browser.close()
 
 
+
+def test_guided_native_rw_preflight_shows_planner_error_and_blocks_run(tmp_path):
+    """A native-only limit must be visible to users before any Run is submitted."""
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    submitted_runs = []
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                request_path = url.path + ("?" + url.query if url.query else "")
+                if request.method == "POST" and url.path == "/runs":
+                    submitted_runs.append(json.loads(request.post_data or "{}"))
+                response = client.request(
+                    request.method,
+                    request_path,
+                    content=request.post_data_buffer,
+                    headers={k: v for k, v in request.headers.items() if k in ("content-type", "accept")},
+                )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")},
+                )
+
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="networkidle")
+            page.locator('#wizardOptions [data-wizard-goal="component_native"]').click()
+            page.locator('#wizardOptions [data-wizard-object="component.reaction_wheel"]').wait_for(timeout=15000)
+            page.locator('#wizardOptions [data-wizard-object="component.reaction_wheel"]').click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+
+            duration = page.locator(
+                '#wizardParameterHost #dynamicForm [data-field-path="simulation.duration_s"] input'
+            )
+            duration.wait_for(state="visible", timeout=10000)
+            duration.fill("121")
+
+            page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+            page.wait_for_function(
+                "() => document.querySelector('#formValidationSummary')?.textContent.includes('duration_s')",
+                timeout=30000,
+            )
+            summary = page.locator("#formValidationSummary").inner_text()
+            assert "120" in summary, summary
+            assert "native_scope" in summary or "原生" in summary or "native RW" in summary, summary
+            run_button = page.locator("#wizardOptions").get_by_role("button", name="运行仿真")
+            assert run_button.is_disabled()
+            assert not submitted_runs, submitted_runs
+            assert client.get("/runs?limit=20").json().get("runs", []) == []
+            assert not errors, errors
+        finally:
+            browser.close()
+
+
 def test_task_details_dialog_filters_explains_and_compares_real_run_evidence(tmp_path):
     """P7-A UI flow, with Run Bundle HTTP fixtures; no native execution implied."""
     playwright = pytest.importorskip("playwright.sync_api")
