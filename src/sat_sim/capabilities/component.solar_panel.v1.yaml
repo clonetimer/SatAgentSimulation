@@ -33,6 +33,13 @@ modes:
     - efficiency_loss_pct
     - radiation_damage_factor
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    required: false
+    default: project_reference
+    description: Explicit engine. basilisk_native uses official Basilisk SimpleSolarPanel with prescribed static Sun/Eclipse inputs; one fully deployed fixed panel, nominal only, no tracking/faults/degradation.
   max_power_w:
     type: number
     unit: W
