@@ -59,3 +59,18 @@ PR 同一 head 必须通过：
 - N4-C1/C2 六设备和既有 P9-C 至 P9-M 回归。
 
 CI 通过前不宣称 N4-C3 已完成。CSS、太阳敏感器三轴测量、推力器安装几何和 propulsion subsystem 闭环均不属于本轮范围。
+
+
+## 首轮官方 CI 验收结果（2026-11-18）
+
+分支 head `54f4461` 的官方 Basilisk 2.11.0 + Chromium 专项 workflow #44318739045 已 PASS：
+- 反作用轮物理 A/B：18 passed。
+- TaskSpec → sealed Run Bundle 集成：1 passed。
+- IMU / StarTracker / Magnetometer 物理与 Run Bundle：26 passed。
+- Battery / SolarPanel 物理与 Run Bundle：24 passed。
+- Thruster / FuelTank / SensorThermal 原生物理、边界与 sealed Run Bundle：218 passed。
+- 模板、参数表单、预检合同专项：通过（对应 workflow step）。
+- Chromium：4 passed、4 deselected；该工作流中的原生设备旅程扩展到反作用轮、IMU、星敏、磁强计、蓄电池、太阳电池阵、推力器、贮箱和热节点，逐个执行真实 Run、核验 backend provenance、recorder plot manifest 并回放同一 Run。
+- 物理/JUnit 证据归档：artifact `native-component-physical-evidence`，12,810 bytes，Artifact ID `14434375944`。
+
+该分支其余 18 个共享回归工作流也全部成功，失败 0 项。当前结果支持将 N4-C3 候选提交 PR 审核；正式合并前仍以 PR 最新 head 完整 CI 为准。
