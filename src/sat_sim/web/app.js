@@ -9244,9 +9244,9 @@
       && (state.schema?.event_catalog?.faults?.length || 0) > 0;
     const hideNativeEventAuthoring = nativeSingleComponent || (nativeSingleSubsystem && !nativeAdcsFaultsEnabled);
     config?.classList.toggle('hidden', !showConfig);
-    // Only the ADCS subsystem has completed the paired physical A/B gate for
-    // its five guided effects. Other native component/subsystem slices remain
-    // nominal-only until their own effect evidence and browser journey pass.
+    // Only ADCS has a guided event allowlist backed by paired physical A/B.
+    // EPS, Comm/Data and native components remain nominal-only until their own
+    // event evidence and browser journeys pass.
     el('wizardEventHost')?.classList.toggle('hidden', hideNativeEventAuthoring);
     el('wizardFaultPanel')?.classList.toggle('hidden', hideNativeEventAuthoring);
     el('wizardNativeAdcsFaultNote')?.classList.toggle('hidden', !nativeAdcsFaultsEnabled);
@@ -9267,7 +9267,7 @@
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
         ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的九类单机开始'],
-        ['subsystem_native', '分系统独立仿真', '首批开放 ADCS：真实姿态测量、估计、控制和反作用轮闭环'],
+        ['subsystem_native', '分系统独立仿真', 'ADCS 闭环、EPS 电源运行图、通信数据运行图；分别独立执行'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
