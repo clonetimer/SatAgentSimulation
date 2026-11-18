@@ -71,8 +71,10 @@
 ### N5-D：真实 Chromium 旅程与故障效果
 
 1. [x] 浏览器真实选择模板、校验、运行、读取曲线和完整 Run Bundle 下载；本轮 Chromium 旅程已验证。历史回放在同一 Run Center 记录中核验。
-2. [ ] 对 RW jamming / motor failure、gyro bias/noise、torque authority loss 等事件逐项做物理 A/B 和 recorder 证据验收。
-3. [ ] 未通过物理效果门禁的 fault/degradation 仍保持不可选；不得仅凭 effect registry 声明支持。
+2. [x] 五类事件已完成官方 Basilisk 2.11.0 nominal/injected 配对物理 A/B，并且每一侧均 SUCCEEDED、validation PASS、sealed、integrity PASS。
+3. [x] 五类事件均有直接 recorder 断言；torque authority loss 已补齐独立 EffectEvidenceProfile，不再与二值 motor failure 混用。
+4. [x] ADCS 向导故障面板仍保持隐藏；本 PR 不扩展用户可选故障菜单。
+5. [ ] 后续 N5-E 单独实施受控故障向导，只暴露本阶段已通过的五类事件，并以 Chromium 真实旅程验收。
 
 ## 验收门槛
 
@@ -110,4 +112,19 @@
 | `gyro_bias_step` | IMU 平台系 bias、measured rate、融合 body-rate | measured−raw 与偏置增量一致，IMU 样本保持有效 |
 | `gyro_noise_increase` | IMU 噪声 recorder 与有效性标记 | 噪声幅度可观察增加，不能把正常样本标记为无效 |
 
-当前均为候选测试，只有同一 PR head 的官方 Basilisk 与 Run Bundle 门禁通过后，才把对应 operator effect 的 verification 从 declared 提升为 verified。未验证效果继续保持向导不可选。
+本阶段状态：五类 effect 的官方 Basilisk 2.11.0 A/B 与 sealed Run Bundle 已通过。证据状态分两层：
+
+- `operator.effects[].verification` 是 capability 合同字段，schema 只允许 `declared`、`candidate`、`not_observable`；不得写入不存在的 `verified`。
+- `effect_evidence_v32.json` 使用 `classification=VERIFIED_NATIVE_EFFECT` 和逐 effect `runtime_assertions` 表示已有原生物理证据。五类事件均由独立 assertion 绑定直接 recorder 字段。
+- `adcs_rw_motor_failure` 是二值失效，不接受部分 torque scale；`adcs_rw_torque_authority_loss` 单独承载 `torque_scale` 的连续权限下降。
+- 本 PR 不改变向导故障菜单；`#wizardFaultPanel` 继续隐藏。仅在后续 N5-E 中增加经过验收的五类事件，并单独通过 Chromium。
+
+
+## N5-D 同 head 证据补强（2026-11-19）
+
+- 五个封存 A/B 测试已在 PR #184 的官方 Basilisk 2.11.0 工作流中全部通过。
+- 新增 `adcs_rw_torque_authority_loss` 的 EffectEvidenceProfile，runtime assertion 将 `effective_torque_ratio_{wheel_index}` 与事件 `torque_scale` 对照；同时保留实际执行力矩 recorder 作为物理证据。
+- 正式 effect contract 回归现在把 `adcs_rw_motor_failure` 作为二值失效（不传 `torque_scale`），并独立加入 `adcs_rw_torque_authority_loss` 的 0.25 部分权限案例。
+- 工作流新增 effect evidence registry contract 检查，防止物理 A/B 通过但 registry/profile 漏项。
+- `operator.effects[].verification` 仍使用 schema 支持的 `declared`；`VERIFIED_NATIVE_EFFECT` 属于独立 evidence profile classification，不混为一个字段。
+- 当前 PR 不改 UI，浏览器步骤按工作流 scope 判断主动跳过；ADCS 故障面板继续隐藏。N5-E 再单独开放五类已验证事件。
