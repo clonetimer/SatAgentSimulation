@@ -107,6 +107,9 @@ def test_native_backend_is_exposed_in_the_guided_parameter_workspace() -> None:
         "component_magnetometer_basilisk_native",
         "component_battery_basilisk_native",
         "component_solar_panel_basilisk_native",
+        "component_thruster_basilisk_native",
+        "component_fuel_tank_basilisk_native",
+        "component_thermal_node_basilisk_native",
     ):
         assert template_id in source
     assert "wizardEventHost" in source
@@ -217,7 +220,7 @@ def test_native_sensor_templates_are_published_by_workbench_api(tmp_path) -> Non
             assert task_spec["model"]["target"]["mode"] == "nominal"
 
 
-def test_native_eps_templates_are_registered_valid_and_product_visible() -> None:
+def test_native_eps_propulsion_thermal_templates_are_registered_valid_and_product_visible() -> None:
     cases = (
         (
             "component_battery_basilisk_native",
@@ -232,6 +235,27 @@ def test_native_eps_templates_are_registered_valid_and_product_visible() -> None
             "component.solar_panel",
             "eps.solar.array_power_w",
             "eps.solar.incidence_cos",
+        ),
+        (
+            "component_thruster_basilisk_native",
+            "component.thruster.v1",
+            "component.thruster",
+            "propulsion.thruster.effective_thrust_n",
+            "propulsion.thruster.cumulative_impulse_ns",
+        ),
+        (
+            "component_fuel_tank_basilisk_native",
+            "component.fuel_tank.v1",
+            "component.fuel_tank",
+            "propulsion.fuel_tank.propellant_mass_kg",
+            "propulsion.fuel_tank.mass_rate_kg_s",
+        ),
+        (
+            "component_thermal_node_basilisk_native",
+            "component.thermal_node.v1",
+            "component.thermal_node",
+            "thermal.node.temp_k",
+            "thermal.node.temp_c",
         ),
     )
     for template_id, capability_id, object_id, first_trace, second_trace in cases:
@@ -274,6 +298,9 @@ def test_native_eps_templates_are_published_by_workbench_api(tmp_path) -> None:
     template_ids = (
         "component_battery_basilisk_native",
         "component_solar_panel_basilisk_native",
+        "component_thruster_basilisk_native",
+        "component_fuel_tank_basilisk_native",
+        "component_thermal_node_basilisk_native",
     )
     with TestClient(app) as client:
         for template_id in template_ids:
