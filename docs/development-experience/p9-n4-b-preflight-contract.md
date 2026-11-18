@@ -4,7 +4,7 @@
 
 - 新增 `tests/test_p9n_n4_preflight.py`，围绕已经注册的 Basilisk 原生反作用轮 TaskSpec 建立拒绝性测试。
 - 覆盖原生后端不支持的故障、退化、时变力矩配置，以及采样周期和运行时长上限。
-- 通过公开 `POST /tasks/validate` 检查错误是否以字段路径、错误码和可读消息返回。
+- 通过公开 `POST /tasks/parse` 的 TaskSpec 编译路径检查 Capability Planner 返回的字段路径、错误码和可读消息。
 
 ## 为什么这样做
 
