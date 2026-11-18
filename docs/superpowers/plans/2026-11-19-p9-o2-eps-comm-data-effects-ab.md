@@ -126,3 +126,12 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 - 该 workflow 的 Chromium 部分因本次代码改动尚未触及 web surface 而 skipped；这不代表 O2-D 已通过。
 - 正式回归修复：从 formal test 的 outputs.qoi 请求中排除 label.* 派生标签（仍保留在运行 trace/evidence）；官方 native workflow 补装 pyproject 已锁定的 numba==0.63.1，以满足 whole-spacecraft thermal quadrature 真实依赖。
 - 2e7 之后有仅文档变更的提交；O2-D 将修改 web/app.js 与 browser tests，产生新的代码 head，并在该 head 重跑完整 CI。
+
+
+## O2-D Chromium 用户旅程实施中（2026-11-19）
+
+- 普通分系统向导现在仅在 ADCS、EPS、Comm/Data 各自具有已验收 event_catalog 时显示事件编辑区；单机 native 入口仍保持 nominal-only。
+- EPS allowlist 精确限制为 `generation_storage_distribution_failure` fault 与 `energy_margin_degradation` degradation；Comm/Data 精确限制为 `transmitter_rate_loss` fault 与 `transmitter_rate_degradation` degradation。前端 addEffect 再做一次 capability + event kind allowlist，服务端 TaskSpec / effect evidence 继续作为最终准入。
+- 更新分系统选择后的能力边界说明，明确 EPS 为受控组合故障，Comm/Data 只验证 SimpleTransmitter.nodeBaudRate，不扩张为 RF/链路模型。
+- 原有两条 nominal Chromium 旅程扩展为六条 parameterized journey（EPS/Comm-Data 各 nominal/fault/degradation），增加事件面板隔离、时间窗与 magnitude 编辑、正式证据 PASS、直接 telemetry、曲线选择、FMEA、Run Bundle seal/hash 与 Run Center 同一 Run 重开检查。
+- CI collect-only 已从“至少找到测试名”提升为精确要求六条目标旅程全部收集。最新 browser workflow 正在对新 head 运行；在六条实际 Chromium 旅程全部 PASS 前，不宣布 O2-D 完成。
