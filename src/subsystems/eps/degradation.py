@@ -67,7 +67,7 @@ def default_degradation_scenarios() -> dict[str, SubsystemDegradationScenario]:
         "solar_panel",
         _pick("solar_panel", 0),
         target_id="solar_panel.array",
-        mapping={"module": "simpleSolarPanel_or_fallback_source", "parameter": "efficiency/netPower", "injection": "periodic_module_parameter"},
+        mapping={"module": "simpleSolarPanel_or_fallback_source", "parameter": "panelEfficiency/nodePowerOut", "injection": "periodic_module_parameter"},
     )
     pdu_resistance = bind_degradation(
         "pdu",
