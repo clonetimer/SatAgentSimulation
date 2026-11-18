@@ -373,17 +373,26 @@ def _restore_projected_form(src: dict[str, Any], request: UnifiedAgentRequest) -
     before.pop("capability_id", None)
     src.pop("capability_id", None)
     after_values = _mapping(src.get("parameters")).get("values")
-    effective_values = _mapping(after_values) or _nested(_nested(src, "model"), "config")
+    submitted_values = _mapping(after_values)
+    submitted_config = _nested(_nested(src, "model"), "config")
+    effective_values = submitted_values or submitted_config
+    config_backed = (projection["form_schema"]["backend_profiles"]
+                     and not base["parameters"]["values"] and base["model"]["config"])
     if capability == "component.fuel_tank.v1" and effective_values.get("physics_backend") == "basilisk_native":
         # Compare form deltas only after checking types because booleans compare
         # equal to 0 and 1 in Python.
         validate_native_fuel_timing(src.get("simulation", {}))
+        bindings = [("parameters.values", submitted_values)]
+        if config_backed or not submitted_values:
+            bindings.append(("model.config", submitted_config))
+        for path, values in bindings:
+            for name in ("capacity_kg", "initial_mass_kg", "mass_flow_kg_s"):
+                if isinstance(values.get(name), bool):
+                    raise ValueError(f"{path}.{name} requires a number, received a Boolean")
     merged, edited_paths = _projection_merge(base, before, src)
     edited = set(edited_paths)
     before_values = before["parameters"]["values"]
-    if (projection["form_schema"]["backend_profiles"]
-            and not base["parameters"]["values"] and base["model"]["config"]
-            and isinstance(after_values, Mapping) and before_values != after_values):
+    if config_backed and isinstance(after_values, Mapping) and before_values != after_values:
         # A partial parameters.values map would shadow the entire active
         # model.config map. Apply the edits to the authoritative binding.
         config, config_edits = _projection_merge(

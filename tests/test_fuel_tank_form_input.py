@@ -97,12 +97,15 @@ def test_config_backed_projection_preserves_shared_inputs_reopening_reference(cl
     }
 
 
-def test_projection_uses_parameter_values_over_stale_model_config(client):
+@pytest.mark.parametrize("stale_mass", [0.5, True])
+def test_projection_uses_parameter_values_over_stale_model_config(client, stale_mass):
     spec = normalize_form_task_spec(_native_form())
     spec["parameters"]["values"]["initial_mass_kg"] = 1.234
-    spec["model"]["config"].update(physics_backend="project_reference", initial_mass_kg=0.5)
-    form = _project_form(client, canonicalize_task_spec(spec))
+    spec["model"]["config"].update(physics_backend="project_reference", initial_mass_kg=stale_mass)
+    spec = canonicalize_task_spec(spec)
+    form = _project_form(client, spec)
     assert form["parameters"]["values"] == spec["parameters"]["values"]
+    assert normalize_form_task_spec(form) == spec
     form["parameters"]["values"]["mass_flow_kg_s"] = 0.002
     rebuilt = normalize_form_task_spec(form)
     assert rebuilt["model"]["config"] == spec["model"]["config"]
@@ -115,6 +118,30 @@ def test_native_projected_form_rejects_boolean_time_equal_to_base_number(client)
     response = _parse_form(client, form)
     assert response.status_code == 422, response.text
     assert "step_s" in response.json()["detail"]["message"]
+
+
+@pytest.mark.parametrize(("config_backed", "edit_path"), [
+    (False, ("parameters", "values")),
+    (True, ("parameters", "values")),
+    (True, ("model", "config")),
+])
+@pytest.mark.parametrize(("field", "value"), [
+    ("capacity_kg", True), ("initial_mass_kg", True), ("mass_flow_kg_s", False),
+])
+def test_native_projected_form_rejects_boolean_quantity_equal_to_base_number(client, config_backed, edit_path, field, value):
+    spec = normalize_form_task_spec(_native_form())
+    quantities = {"capacity_kg": 1.0, "initial_mass_kg": 1.0, "mass_flow_kg_s": 0.0}
+    spec["parameters"]["values"].update(quantities)
+    if config_backed:
+        spec["model"]["config"] = spec["parameters"]["values"]
+        spec["parameters"]["values"] = {}
+    form = _project_form(client, canonicalize_task_spec(spec))
+    group, binding = edit_path
+    form[group][binding][field] = value
+
+    response = _parse_form(client, form)
+    assert response.status_code == 422, response.json().get("ok")
+    assert ".".join((*edit_path, field)) in response.json()["detail"]["message"]
 
 
 def test_raw_native_form_selects_explicit_config_when_values_are_empty(client):
