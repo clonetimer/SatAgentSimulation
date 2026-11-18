@@ -68,3 +68,24 @@
 - 不将项目参考模型结果标记为 Basilisk。
 - 不以 CI 数量代替实际物理响应、浏览器交互和 sealed evidence。
 - 不把 P9-N4 的有限时长单机闭环扩展成单机实时连续仿真。
+
+
+## 已有原生能力与产品入口准入（2026-11-18）
+
+依据当前 main 的 P9-N capability inventory，N4-C 不需要重新证明所有物理模型，但必须补齐每个设备的工作台模板、参数投影和结果曲线/指标合同后才能开放入口。
+
+| 设备 | 官方 native TaskSpec / sealed 证据 | N4 产品入口决策 |
+|---|---|---|
+| 反作用轮 | 已通过；含官方 ReactionWheelStateEffector recorder | N4-A 首批开放；本 PR 验收 |
+| IMU | 已通过；官方 ImuSensor 独立图 | N4-C 候选；先补专用模板与 recorder 曲线/单位配置 |
+| 星敏感器 | 已通过；官方 StarTracker quaternion recorder | N4-C 候选；需把四元数输出与有效性语义明确展示 |
+| 磁强计 | 已通过；官方 Magnetometer tam_S recorder | N4-C 候选；需补单位/坐标系说明和模板 |
+| 电池 | 已通过；SimpleBattery + SimplePowerSink | N4-C 候选；需区分输入净功率配置与原生储能测量 |
+| 太阳翼 | 已通过；SimpleSolarPanel recorder | N4-C 候选；需说明固定板/静态 Sun-Eclipse 边界 |
+| 推力器 | 已通过；ThrusterDynamicEffector + FuelTank fixture | N4-C 候选；需展示点火配置与 recorder 积分输出的区别 |
+| 贮箱 | 已通过；FuelTank 原生质量 recorder | N4-C 候选；原生模式不得显示参考压力字段 |
+| 热节点 | 已通过；SensorThermal 原生温度 recorder | N4-C 候选；展示温度单位与固定边界假设 |
+| 太阳敏感器 CSS | 仅官方标量光强 probe，未接入现有三轴方向 capability contract | 暂不开放 native 单机入口 |
+| 加热器、散热器及其他项目模型 | 当前为项目 reference/source-native | 可在后续独立分组标明来源，不得混入 Basilisk-native 白名单 |
+
+EPS UnifiedNativeRuntime 是分系统集成能力，不作为单个设备入口；不得把多个独立 Run 的后处理结果当作同一 SimBase 物理闭环。
