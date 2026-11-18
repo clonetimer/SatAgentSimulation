@@ -1,20 +1,20 @@
 # P9-N 单机能力盘点（2026-11-17）
 
-更新：2026-11-18
+更新：2026-11-19
 
 | 单机/设备 | 当前 capability / 入口 | 当前实际模型来源 | 当前可独立执行 | 当前边界 / P9-N 处理 |
 |---|---|---|---|---|
 | 反作用轮 | `component.reaction_wheel.v1` | 默认项目 source-native Python；显式 `physics_backend=basilisk_native` 时官方 Basilisk Spacecraft + ReactionWheelStateEffector | 是，有限时长 TaskSpec；1/3/4 轮 native 路径 | 1-wheel 原生 Run Bundle 已 PASS；新增 `component_reaction_wheel_basilisk_native` 工作台模板；Native 仅 nominal，无 native fault/degradation/constraint/profile |
-| IMU | `component.imu.v1` | 默认项目 reference；opt-in 官方 Basilisk ImuSensor 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates 角速度/非保守加速度 truth→AngVelPlatform + AccelPlatform recorder；nominal only，identity mounting、零杆臂/无随机噪声；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
+| IMU | `component.imu.v1` | 默认项目 reference；opt-in 官方 Basilisk ImuSensor 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates 角速度/非保守加速度 truth→AngVelPlatform + AccelPlatform recorder；nominal only，identity mounting、零杆臂/无随机噪声；N4-C1 已合入 main（PR #179）；官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 | 星敏感器 | `component.star_tracker.v1` | 默认项目 reference；opt-in 官方 Basilisk StarTracker 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 官方 quaternion→MRP trace；valid 仅表示 recorder sample 有限且归一化，不含星表/光学成像/FOV 盲区场景；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
 | 磁强计 | `component.magnetometer.v1` | 默认项目 reference；opt-in 官方 Basilisk Magnetometer 独立图 | 是，两条有限时长 TaskSpec 路径；native sealed 验收已通过 | 显式 SCStates + 均匀 MagneticFieldMsg→tam_S；统一 scale/nominal only，尚未接入地球磁场环境模型；N4-C1 新增 native 模板与向导入口，浏览器真实 Run CI 待验收 |
 | 太阳敏感器 | `component.sun_sensor.v1` | 项目 source-native；整星图中有官方 Basilisk CoarseSunSensor + Sun ephemeris | 是，项目模型可独立运行 | P9-N2 已建官方 CSS probe：显式 Sun/Eclipse/SCStates 消息→OutputData；暂不接入 TaskSpec native backend，因为现有 capability 还要求三轴方向估计而官方 CSS 只输出标量强度；尚未接入 SPICE 轨道历元和真实遮挡几何 |
-| 电池 | `component.battery.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleBattery + SimplePowerSink | 是，有限时长 TaskSpec / sealed Run Bundle | nominal、恒定净功率、unity efficiency、SOC [0,1]；限幅能量按 recorder 净功率/储能差核算，不宣称真实分流电路 |
-| 太阳翼 | `component.solar_panel.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleSolarPanel | 是，有限时长 TaskSpec / sealed Run Bundle | 单块完全展开固定板、静态 Sun/Eclipse、无 tracking；摘要能量按 recorder 积分；非法方向、数量、采样网格与未实现事件被拒绝 |
+| 电池 | `component.battery.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleBattery + SimplePowerSink | 是，有限时长 TaskSpec / sealed Run Bundle | nominal、恒定净功率、unity efficiency、SOC [0,1]；限幅能量按 recorder 净功率/储能差核算，不宣称真实分流电路；N4-C2 已合入 main（PR #180），官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 太阳翼 | `component.solar_panel.v1` | 默认项目 reference；opt-in 官方 Basilisk SimpleSolarPanel | 是，有限时长 TaskSpec / sealed Run Bundle | 单块完全展开固定板、静态 Sun/Eclipse、无 tracking；摘要能量按 recorder 积分；非法方向、数量、采样网格与未实现事件被拒绝；N4-C2 已合入 main（PR #180），官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 | EPS（既有分系统复用） | `subsystem.eps.unified_native.v1` / `EpsUnifiedNativeAdapter` | 同一 SimBase 的官方 SimpleSolarPanel、SimpleBattery、SimplePowerSink + 项目 PDU | 已有有限时长 subsystem TaskSpec 入口，PR #171 已合入 | 充电/放电、多负载、能量守恒 sealed 验收与官方 CI 已通过；固定显式 Sun/Eclipse 输入，不宣称轨道太阳历元、动态日蚀或工况切换已验收 |
-| 推力器 | `component.thruster.v1` | 默认项目 reference；opt-in 官方 ThrusterDynamicEffector + Spacecraft + FuelTank 夹具 | 有限时长 component TaskSpec；native sealed 验收通过 | nominal、一个连续点火区间或零点火；保持每周期命令语义，密集推力积分与原生质量差；固定夹具不代表装机，多段脉冲/事件被拒绝 |
-| 贮箱 | `component.fuel_tank.v1` | 默认项目质量/工程压力模型；opt-in 官方 FuelTank + Spacecraft 恒定质量排出夹具 | 两条有限时长 TaskSpec 路径；native sealed 验收通过 | 原生质量、带符号质量变化率、报告容量；无原生压力。按后端投影参数、输出和封存合同，拒绝耗尽、不可分辨质量变化及事件 |
-| 热节点 | `component.thermal_node.v1` | 默认项目一阶 reference；opt-in 官方 SensorThermal 单辐射板 | 两条有限时长 TaskSpec；canonical/legacy native sealed 验收已通过 | 固定显式 Sun/SCState/Eclipse/DeviceStatus；密集原生摄氏温度与开尔文转换、输入电功率单独标注；有物理范围与保守欧拉步长界限，无 ambient/tau/gain、测温传感器、热网络或事件 |
+| 推力器 | `component.thruster.v1` | 默认项目 reference；opt-in 官方 ThrusterDynamicEffector + Spacecraft + FuelTank 夹具 | 有限时长 component TaskSpec；native sealed 验收通过 | nominal、一个连续点火区间或零点火；保持每周期命令语义，密集推力积分与原生质量差；固定夹具不代表装机，多段脉冲/事件被拒绝；N4-C3 已合入 main（PR #181），官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 贮箱 | `component.fuel_tank.v1` | 默认项目质量/工程压力模型；opt-in 官方 FuelTank + Spacecraft 恒定质量排出夹具 | 两条有限时长 TaskSpec 路径；native sealed 验收通过 | 原生质量、带符号质量变化率、报告容量；无原生压力。按后端投影参数、输出和封存合同，拒绝耗尽、不可分辨质量变化及事件；N4-C3 已合入 main（PR #181），官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
+| 热节点 | `component.thermal_node.v1` | 默认项目一阶 reference；opt-in 官方 SensorThermal 单辐射板 | 两条有限时长 TaskSpec；canonical/legacy native sealed 验收已通过 | 固定显式 Sun/SCState/Eclipse/DeviceStatus；密集原生摄氏温度与开尔文转换、输入电功率单独标注；有物理范围与保守欧拉步长界限，无 ambient/tau/gain、测温传感器、热网络或事件；N4-C3 已合入 main（PR #181），官方物理/Run Bundle 与 Chromium 真实 Run/历史回放 PASS |
 | 加热器 / 散热器 | 对应 component capabilities | 项目工程热模型 | 是，项目模型有限时长 TaskSpec | 热节点 SensorThermal 接入不代表这两类设备已实现官方原生后端；不扩大组件或耦合物理声明 |
 | 其他通信、载荷、PDU 等 | 多个 component capabilities | 依 capability 声明为 source-native / project reference / proxy | 逐项可执行性不同 | 必须按真实 capability contract 核查，不作统一 native 宣称 |
 
@@ -114,10 +114,25 @@ N4-C1 专项证据（PR #179，workflow #44310950498）：
 三者继续复用已有 capability 与 native adapter。推力器原生点火时间步与标准 simulation step 必须纳秒舍入后匹配；FuelTank native 输出不得请求 project_reference 压力代理；热节点的 Celsius recorder 与 Kelvin 派生字段必须分别注明来源。正式准入需要同 head 的官方 Basilisk 2.11.0、sealed Run Bundle 和 Chromium 真实 Run/历史回放验收。
 
 
-## N4-C3 推进与热控准入状态（2026-11-18）
+## N4-C3 推进与热控准入状态（2026-11-19）
 
 - 推力器、燃料贮箱、热节点的注册模板、工作台白名单、参数投影、输出白名单和浏览器真实 Run/历史回放均已实现于 `feat/p9-n4-c3-native-propulsion-thermal-20261118`。
 - 官方 Basilisk 2.11.0 专项 #44318739045：Thruster/FuelTank/SensorThermal 218 passed；Chromium 4 passed、4 deselected；物理/JUnit artifact 已归档。
 - 分支完整共享回归 19 项均成功、失败 0 项。待 PR 最新 head CI 确认后合入 main。
 - 推力器输出为官方 THROutputMsg 推力 recorder 与 dense thrust 积分冲量；FuelTank 输出只含质量、质量变化率、容量，不请求压力；SensorThermal 温度 recorder 原始 Celsius 与派生 Kelvin 分别展示。
 - 三种独立单机 Run 不等于同一 SimBase 推力器—贮箱—整星耦合；不宣称安装几何、轨道/姿态闭环、地球红外/反照或热网络。
+
+
+## P9-N4-C3 最终验收（2026-11-19）
+
+- PR #181 已合入 main，merge commit `7f9cf69d62415d710a64585a81237c37f11df001`。
+- 最终 PR head `e535341fa062bb222b65660b27493051e6fcaba3` 的 20 个 workflow runs：19 success、1 条件 skip、0 failure。
+- 官方 Basilisk 2.11.0 专项：RW 18、TaskSpec sealed Run 1、传感器 26、EPS 24、推力/贮箱/热节点 218、模板/API/Schema 14、native preflight 7；Chromium 4 passed / 4 deselected。
+- 九类单机均经真实浏览器执行与同一 Run 历史回放；设备来源和物理范围仍以表格中的 fixture/限制为准。
+
+## P9-N4-D 完整 Run Bundle 导出（候选分支）
+
+- 当前分支：`feat/p9-n4-d-run-bundle-export-20261119`。
+- 新增完整封存 Run Bundle ZIP 下载；API 只允许 verified sealed bundle，逐文件核对 manifest SHA-256，并同时保留原始 manifest 与 seal。
+- 工作台仅对 sealed/integrity PASS 的 Run 显示导出入口；不改变数据集 ZIP 和诊断包的原有用途。
+- 待同一 PR head 的 API、Chromium 九设备下载与共享 CI 通过后，才将该功能标记为正式交付。
