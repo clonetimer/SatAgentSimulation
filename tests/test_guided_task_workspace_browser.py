@@ -1679,6 +1679,7 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
                     assert any(
                         row["eps.pdu_payload_channel_enabled"] is False
                         and row["eps.payload_load_enabled_w"] <= 0.0
+                        and "payload_channel_trip" in row["eps.pdu_shed_reason"]
                         for row in active_rows
                     )
                 elif object_id == "subsystem.eps":
