@@ -207,6 +207,7 @@ class CommDataUnifiedNativeAdapter:
                 "comm_data.transmitter_baud_bps": row.transmitter_baud_bps,
                 "comm_data.native_storage_drain_enabled": row.native_storage_drain_enabled,
                 "comm_data.transmitter_storage_node_baud_bps": row.transmitter_storage_node_baud_bps,
+                "comm_data.transmitter_storage_node_rate_abs_bps": abs(float(row.transmitter_storage_node_baud_bps)),
                 "comm_data.nominal_transmitter_storage_node_baud_bps": abs(float(config.transmitter_baud_bps)),
                 "label.fault_active": fault_active,
                 "label.degradation_active": degradation_active,
