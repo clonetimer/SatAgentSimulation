@@ -212,6 +212,16 @@ jobs:
           printf '%s\n' "$selected"
           count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle')"
           test "$count" -eq 6
+      - name: Confirm whole-spacecraft verified event catalog browser journey is selected
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_whole_spacecraft_verified_event_catalog)"
+          printf '%s\n' "$selected"
+          count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events')"
+          test "$count" -eq 1
+
       - name: Verify guided native component and subsystem selection and real Runs
         if: steps.browser_scope.outputs.run == 'true'
         env:
@@ -221,7 +231,7 @@ jobs:
           python -m pytest -q -s \
             --junitxml=reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml \
             tests/test_guided_task_workspace_browser.py \
-            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation"
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation or guided_whole_spacecraft_verified_event_catalog"
           python - <<'PY'
           import xml.etree.ElementTree as ET
           root = ET.parse("reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml").getroot()
@@ -230,11 +240,13 @@ jobs:
               "test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle"
           )]
           adcs = [case for case in cases if case.attrib.get("name") == "test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation"]
+          whole = [case for case in cases if case.attrib.get("name") == "test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events"]
           assert len(eps_comm) == 6, [case.attrib for case in eps_comm]
           assert len(adcs) == 1, [case.attrib for case in adcs]
-          for case in [*eps_comm, *adcs]:
+          assert len(whole) == 1, [case.attrib for case in whole]
+          for case in [*eps_comm, *adcs, *whole]:
               assert not case.findall("failure") and not case.findall("skipped"), case.attrib
-          print("O2-D_BROWSER_JOURNEYS", {"eps_comm": len(eps_comm), "adcs": len(adcs), "passed": True})
+          print("O3-A_WHOLESPACE_BROWSER", {"eps_comm": len(eps_comm), "adcs": len(adcs), "whole_spacecraft_catalog": len(whole), "passed": True})
           PY
 
       - name: Archive Basilisk-native component physical and test evidence
