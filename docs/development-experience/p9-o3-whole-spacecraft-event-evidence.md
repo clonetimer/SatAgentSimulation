@@ -84,3 +84,9 @@
 3. **稳定的 pytest IDs 有助于证据追踪。** 给 whole-spacecraft nominal 和八类事件加固定 IDs，workflow 以 ID 集合核对，避免仅检查函数名而遗漏某个参数化场景。
 4. **O3-C 的用户旅程必须验证端到端闭环。** 每条真实 Chromium 路径需要经过向导、TaskSpec、官方 Basilisk Run、effect evidence、直接 telemetry、plots、FMEA、sealed Bundle 的 manifest/逐文件 SHA-256 与 Run Center 历史重开；单纯渲染事件目录不够。
 5. 当前 O3-C 门禁已接入官方 native workflow，但 head `84757e7969254bddcaf3368ef7efd0b8fd531f4f` 的完整 CI 尚未完成。不得把 collect-only 9/9 当成真实运行 9/9 PASS。
+## O3-C Chromium 参数契约回归（2026-11-19）
+
+- 将整星 motor failure 加入真实浏览器旅程后，发现参数化用例仍提交 `torque_scale=0.0`，而本阶段已冻结的 `adcs_rw_motor_failure` 只有 `wheel_index`；部分力矩损失必须使用独立 degradation `adcs_rw_torque_authority_loss`。
+- 这是 browser fixture 未随服务端 schema 一起迁移，不是 Basilisk 物理问题。已将 Chromium 参数改为 `{"wheel_index": 0}`，使表单编辑、canonical TaskSpec 与 runtime binary actuator 行为一致。
+- 经验：对每个事件至少做三方参数契约检查（form parameter_fields、browser fixture、canonical TaskSpec），不能只依赖 native paired test 已通过。
+- 修复提交 `dbd98a03a18807d5252d646f03a0f170076d7735`；上一 head `908d347f...` 的 CI 不包含此修复，最终结论必须等待新 head 的完整回归。
