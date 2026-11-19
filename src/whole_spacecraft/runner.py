@@ -560,7 +560,9 @@ def _execute_whole_spacecraft_graph(
                 return float(getattr(node, "temp_k", default_c + 273.15)) - 273.15
         return float(default_c)
 
-    adcs_power_trace = list(getattr(graph.component_registry.get("adcs_power_bridge"), "trace", ()))
+    adcs_power_recorder_names = sorted(
+        name for name in recorders if name.startswith("adcs_power_")
+    )
     propulsion_power_trace = list(getattr(graph.component_registry.get("propulsion_power_bridge"), "trace", ()))
     fuel_values = _recorder_values(fuel_tank_rec, "fuelMass")
     initial_propellant_kg = fuel_values[0] if fuel_values else 0.0
@@ -594,7 +596,6 @@ def _execute_whole_spacecraft_graph(
         net_power_w = _rec_value(battery_rec, "currentNetPower", i, nominal_net_power)
         sc_position = _rec_vector(recorders.get("spacecraft_state"), "r_BN_N", i)
         sc_velocity = _rec_vector(recorders.get("spacecraft_state"), "v_BN_N", i)
-        adcs_sample = _trace_sample_at(adcs_power_trace, time_s)
         propulsion_sample = _trace_sample_at(propulsion_power_trace, time_s)
         heater_names = [name for name in recorders if name.startswith("heater_") and name != "heater_eps_feedback"]
         heater_active_count = sum(1.0 for name in heater_names if _rec_value(recorders.get(name), "deviceStatus", i, 0.0) > 0.5)
@@ -638,7 +639,10 @@ def _execute_whole_spacecraft_graph(
                 fuel_mass_flow_kg_s=fuel_mass_flow_kg_s,
                 tank_pressure_pa=tank_pressure_pa,
                 tank_pressure_available=tank_pressure_available,
-                adcs_control_power_w=max(0.0, -_rec_value(recorders.get("adcs_power"), "netPower", i, float(getattr(adcs_sample, "electrical_power_w", 0.0)))),
+                adcs_control_power_w=sum(
+                    max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0))
+                    for name in adcs_power_recorder_names
+                ),
                 propulsion_power_w=max(0.0, -_rec_value(recorders.get("propulsion_power"), "netPower", i, float(getattr(propulsion_sample, "electrical_power_w", 0.0)))),
                 propulsion_activity=float(getattr(propulsion_sample, "activity", 0.0)),
                 propulsion_cumulative_energy_j=_trace_cumulative_energy_at(propulsion_power_trace, time_s),
