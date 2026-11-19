@@ -104,3 +104,12 @@
 - 根因：`simulation.step_s` 在 Capability Form Schema 中是 `importance=advanced`。测试直接给 DOM 内 `<details>` 赋 `open=true`，没有使用产品的参数显示模式切换，导致高级控件在向导参数面板状态变化时仍不可见。
 - 修复后的真实 UI 操作顺序：展开 `#wizardParametersPanel` → 点击 `[data-wizard-parameter-mode="all"]` → 等待 `simulation.step_s` 输入可见 → 修改积分步长。这样验证的是用户真实可执行的交互路径，而不是绕过 UI 强行修改隐藏 DOM。
 - 修复提交 `cca76913d01f7758fb6de13fa194715f32be6c84`。新 head 的完整 Chromium 与原始 Run Bundle 归档验收尚未完成；不将测试代码修复记作 O3-C PASS。
+
+
+## O3-D 浏览器 Run Bundle 原件归档缺口与修复（2026-11-19）
+
+- 审计发现 browser test 原本把下载 ZIP 保存到 pytest `tmp_path` 并完成 manifest/seal/per-file SHA-256 校验，但没有把 ZIP 复制到 workflow archive audit 所读取的 `reports/native_whole_spacecraft_events/browser_run_bundles/`。这会导致 9 条旅程即使执行成功，O3-D 仍因 0/9 原件归档而失败。
+- 已在每条 Chromium journey 校验 ZIP 后，使用 `shutil.copy2` 将实际浏览器下载原件复制到 Artifact staging，并写同名 sidecar JSON，包含 case/run/effect、ZIP SHA-256、bundle manifest SHA-256、sealed 和 integrity 状态。
+- sidecar 的 JSON 文本换行一度多转义一层（会在文件尾留下字面量 `\\n`，使 JSON 解析失败）；已修正为标准 `\n` newline，并复核源码。
+- 这次经验：CI archive audit 必须与测试实际写出的路径逐字对照；不能只根据测试变量名或测试成功就假设文件已进入 artifact staging。最终仍须以 9 ZIP + 9 sidecar 的真实数量、hash 重算和 Artifact 下载后核查为准。
+- 相关提交：`0fef08b3140dd9db9d58ef5d1e7d2eb7f7750076`、`ee84a2c33ad3f224188d986149ba8f98d1ddb6fb`。当前同 head CI 尚待完成。
