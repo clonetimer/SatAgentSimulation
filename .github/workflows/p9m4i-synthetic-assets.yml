@@ -5,7 +5,6 @@ on:
     paths:
       - "src/sat_sim/synthetic_asset_generation.py"
       - "src/sat_sim/triposr_g1.py"
-      - "src/sat_sim/p9m4i_source_intake.py"
       - "src/sat_sim/schemas/synthetic-reference-geometry.v1.schema.json"
       - "src/sat_sim/schemas/p9m4i-image-to-3d-input.v1.schema.json"
       - "scripts/cad/audit_synthetic_asset.py"
@@ -106,8 +105,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Fetch exact NASA star-tracker mock-up source and record SHA-256
-        env:
-          PYTHONPATH: "src"
         run: |
           python scripts/cad/fetch_p9m4i_source_image.py --output-dir reports/p9m4i/source-intake
       - name: Upload source bytes and intake receipt
