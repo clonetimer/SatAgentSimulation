@@ -197,3 +197,11 @@
 - 同头真实 CI 的后续有效样本（t=1.2–1.6 s）显示：BASE 臂电池能量相对 uninterrupted source 高约 45–53 J；RESET 臂低约 55–69 J。RESET 确实改变了电池状态，但由于 `previousTime` 归零导致积分时间窗错误，产生相反方向的能量偏差；它不是可用的电池状态恢复方法。
 - 正确做法：保留首 tick 原始证据但不用于电池 A/B；仅对后续消息已写入且电池能量为正的样本，比较 child 与 uninterrupted source 的有符号电池能量残差。要求 RESET 与 BASE 的有符号残差有可测变化，并核验 RESET 的误差仍明显非零、方向发生翻转；不再把首 tick 的 `reset_changed=false` 当成整个实验失败。
 - 经验：① 原生电池有效样本判定必须同时看调度时刻和 PowerNodeUsageMsg 写入状态；② 绝对误差会丢失误差方向，物理 A/B 应保留 signed residual；③ paired 子进程必须复用源图完整物理配置；④ 不能因测试断言失败就删掉负面对照，先区分初始化无效样本、积分时钟差异和真实状态恢复失败。
+
+
+## P10-A1A 能力作用域审计：active composite legacy path（2026-11-19）
+
+- P10-A1A 已在推荐的 `whole_spacecraft.unified_native.v1` 中移除 ADCS 工程功率桥，但继续检索活动 capability 和实际 runner 后发现，`whole_spacecraft.composite_digital_twin.v1` 仍为 `lifecycle.status=active`、`exposed_to_agent=true`、`exposed_to_real_llm_eval=true)，其独立 `src/whole_spacecraft/builder.py` 仍创建 `AdcsControlPowerBridge`。
+- 该旧图还被 `src/integration/qoi_profiles/resource_closure.py` 和 `src/whole_spacecraft/runner.py` 直接使用。因此“ADCS proxy count 4→3”严格只适用于推荐统一运行图，不适用于所有 active whole-spacecraft capability。
+- 不把该 capability 当作历史文件或自动视为废弃；单独建立 P10-A1B，要求将其旧图迁移到同一官方 `ReactionWheelPower` per-wheel 路径，或在完整特性/模板/浏览器/real-LLM-eval parity 审计后再显式退役并替换。
+- 经验：跨 capability 的物理改造必须同时检索 lifecycle exposure、adapter class_path、实际 runner、QoI consumer 和 browser/eval 路径；仅修改推荐 capability 的 runtime，不能宣称全产品已消除同类 proxy。
