@@ -184,8 +184,11 @@ def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect(
     spec = _spec(
         WHOLE_ID,
         category="fault",
-        event=_event("adcs_imu_signal_loss", target="whole_spacecraft"),
+        event=_event("adcs_rw_jamming", target="whole_spacecraft", wheel_index=0, brake_torque_nm=0.2),
     )
+    # The unified runtime knows this IMU effect, but the whole-spacecraft
+    # capability has not declared it or registered a whole-graph evidence profile.
+    spec["events"]["faults"][0]["effect"] = "adcs_imu_signal_loss"
     planning = plan_task_spec(spec)
     assert not planning.validation.ok
     assert any(issue.severity == "error" for issue in planning.validation.issues)
