@@ -28,6 +28,7 @@ from integration.whole_spacecraft_links import (  # noqa: E402
 from integration.resource_feedback import (  # noqa: E402
     DataActivityPowerBridge,
     DownlinkAntennaStatusAdapter,
+    PayloadActivityStatusAdapter,
     ThrusterActivityPowerBridge,
 )
 from subsystems.adcs.builder import (  # noqa: E402
@@ -641,28 +642,42 @@ def build_whole_spacecraft_graph(
     comm_status_msg = eps_graph.status_messages.get("comm")
     adcs_status_msg = eps_graph.status_messages.get("adcs")
 
-    payload_power_bridge = DataActivityPowerBridge(
-        "payloadActivityPowerBridge",
-        nominal_rate_bps=max(1.0, float(payload_instrument_baud_bps)),
-        active_power_w=abs(float(cfg.payload_power_w)),
+    # P10-A4: SimpleInstrument publishes actual data activity, while the
+    # electrical load is a fixed instrument-on profile. Keep the status
+    # translation separate and let the official SimplePowerSink own the load.
+    from Basilisk.simulation import simplePowerSink
+    payload_status_adapter = PayloadActivityStatusAdapter(
+        "payloadActivityStatusAdapter",
         data_msg=instrument.nodeDataOutMsg,
         enable_status_msg=payload_status_msg,
     )
-    sim.AddModelToTask(sim_task_name, payload_power_bridge, None, 39)
-    battery.addPowerNodeToModel(payload_power_bridge.powerOutMsg)
-    resource_feedback_bridges["payload"] = payload_power_bridge
-    power_inputs.append((payload_power_bridge.powerOutMsg, 0.95, "payload", "payload.actual_activity"))
+    sim.AddModelToTask(sim_task_name, payload_status_adapter, None, 39)
+    payload_power_node = simplePowerSink.SimplePowerSink()
+    payload_power_node.ModelTag = "payloadInstrumentPower"
+    payload_power_node.nodePowerOut = -abs(float(cfg.payload_power_w))
+    payload_power_node.powerStatus = 0
+    payload_power_node.nodeStatusInMsg.subscribeTo(payload_status_adapter.activeStatusOutMsg)
+    sim.AddModelToTask(sim_task_name, payload_power_node, None, 39)
+    battery.addPowerNodeToModel(payload_power_node.nodePowerOutMsg)
+    power_inputs.append((payload_power_node.nodePowerOutMsg, 0.95, "payload", "payload.instrument_active"))
     coupling_matrix["eps_pdu_to_payload_activity"] = _coupling_record(
         name="eps_pdu_to_payload_activity", source_subsystem="eps", sink_subsystem="payload",
         coupling_status="coupled",
-        interface="PDU payloadStatusOutMsg -> MissionGate/DataActivityPowerBridge -> payload data and power",
-        evidence=("payload PDU status is consumed by mission gate and payload power bridge",),
+        interface="PDU payloadStatusOutMsg + instrument DataNodeUsageMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink",
+        evidence=(
+            "payload power enable requires valid PDU permission and positive actual instrument baudRate",
+            "the adapter publishes status only; the official SimplePowerSink owns the configured fixed active load",
+        ),
     )
     coupling_matrix["payload_activity_to_eps_thermal"] = _coupling_record(
         name="payload_activity_to_eps_thermal", source_subsystem="payload", sink_subsystem="eps,thermal",
-        coupling_status="proxy_coupled_verified",
-        interface="instrument.nodeDataOutMsg -> DataActivityPowerBridge -> battery + thermal payload node",
-        evidence=("payload electrical power scales with actual DataNodeUsage baudRate",),
+        coupling_status="coupled",
+        interface="SimpleInstrument.nodeDataOutMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink.nodePowerOutMsg -> battery + payload thermal node",
+        evidence=(
+            "actual instrument data activity gates the official payload electrical power node",
+            "the same official PowerNodeUsageMsg feeds SimpleBattery and the thermal payload-node heat bridge",
+        ),
+        notes=("Payload active power is a fixed-on engineering profile; it is not scaled linearly with baud rate.",),
     )
 
     # P10-A1B: use one official Basilisk ReactionWheelPower per physical
@@ -1077,6 +1092,8 @@ def build_whole_spacecraft_graph(
         "pdu_adcs_status": eps_graph.status_messages["adcs"].recorder(macros.sec2nano(float(cfg.recorder_step_s))) if eps_graph.status_messages.get("adcs") is not None else None,
         "pdu_heater_status": eps_graph.status_messages["heater"].recorder(macros.sec2nano(float(cfg.recorder_step_s))) if eps_graph.status_messages.get("heater") is not None else None,
     }
+    recorders["payload_power"] = payload_power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+    recorders["payload_active_status"] = payload_status_adapter.activeStatusOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     for wheel_index, (rw_state_msg, power_node) in enumerate(zip(rw_state_messages, adcs_power_nodes)):
         recorders[f"rw_state_{wheel_index}"] = rw_state_msg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         recorders[f"adcs_power_{wheel_index}"] = power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
@@ -1139,6 +1156,7 @@ def build_whole_spacecraft_graph(
         recorders["fuel_tank"] = fuel_tank.fuelTankOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         sim.AddModelToTask(recorder_task_name, recorders["fuel_tank"])
     for rec_name in (
+        "payload_power", "payload_active_status",
         "comm_power_tx", "comm_power_base", "comm_power_idle", "comm_tx_status", "comm_idle_status", "comm_power_bridge",
         "battery", "storage", "instrument", "transmitter", "solar_power", "gated_downlink_link_budget",
         "conservation_battery", "conservation_storage", "conservation_instrument", "conservation_downlink",
@@ -1169,7 +1187,8 @@ def build_whole_spacecraft_graph(
         "native_downlink_link_budget_msg": native_downlink_link_budget_msg,
         "native_rf_access_graph": rf_access_graph,
         "eps_pdu": eps_graph.pdu,
-        "payload_power_bridge": resource_feedback_bridges.get("payload"),
+        "payload_power_node": payload_power_node,
+        "payload_status_adapter": payload_status_adapter,
         "comm_power_bridge": resource_feedback_bridges.get("comm"),
         "comm_power_nodes": tuple(comm_power_nodes),
         "comm_status_adapter": comm_status_adapter,
