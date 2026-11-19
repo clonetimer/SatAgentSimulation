@@ -201,23 +201,23 @@ def _native_comm_antenna_power_health(
             errors.append("COMM_ANTENNA_POWER_TELEMETRY_NON_FINITE_OR_NEGATIVE")
             continue
 
-        # Basilisk's t=0 recorder row is an initialization barrier: the
-        # DownlinkHandling output may not yet have been written when the
-        # status-only adapter first resets. The adapter correctly fails
-        # closed (TX=0, idle=0) for that one sample. All later samples must
-        # match the PDU/downlink-derived state exactly.
+        # Basilisk's t=0 recorder row is a reset/scheduler barrier. Depending
+        # on reset ordering, the antenna power node may still publish its
+        # pre-update TX load while the status adapter is publishing its first
+        # PDU/downlink-derived state. Do not use that row as causal evidence;
+        # every positive-time sample remains strictly audited.
         initialization_sample = time_s <= 0.0
+        if initialization_sample:
+            continue
+
         expected_tx = bool(pdu_enabled and link_active and attempted > 0.0)
-        expected_idle = bool(
-            not initialization_sample and pdu_enabled and not expected_tx
-        )
+        expected_idle = bool(pdu_enabled and not expected_tx)
         expected_power = expected_tx_power_w if expected_tx else 0.0
         powers.append(actual)
         tx_count += int(tx_enabled)
         idle_count += int(idle_enabled)
-        if not initialization_sample:
-            runtime_pdu_states.append(pdu_enabled)
-            runtime_tx_states.append(tx_enabled)
+        runtime_pdu_states.append(pdu_enabled)
+        runtime_tx_states.append(tx_enabled)
 
         if tx_enabled is not expected_tx:
             violations.append({
@@ -226,13 +226,7 @@ def _native_comm_antenna_power_health(
                 "expected": expected_tx,
                 "actual": tx_enabled,
             })
-        # At t=0 an unwritten DownlinkHandling input is fail-closed (idle=0),
-        # while an already-written zero-activity message may legitimately report
-        # idle=1. Accept either only for that initialization sample.
-        if (
-            (initialization_sample and idle_enabled and not expected_idle)
-            or (not initialization_sample and idle_enabled is not expected_idle)
-        ):
+        if idle_enabled is not expected_idle:
             violations.append({
                 "time_s": time_s,
                 "reason": "idle_status_mismatch",
