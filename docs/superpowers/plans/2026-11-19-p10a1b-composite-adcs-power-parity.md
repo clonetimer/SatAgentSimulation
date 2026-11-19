@@ -1,7 +1,7 @@
 # P10-A1B: ADCS power parity for the active composite whole-spacecraft capability
 
 Date: 2026-11-19
-Status: follow-up after P10-A1A
+Status: implementation candidate in PR #192; same-head native A/B pending
 
 ## Why this exists
 
@@ -12,7 +12,7 @@ P10-A1A replaces the ADCS power proxy in the recommended `whole_spacecraft.unifi
 - Runtime: `src/whole_spacecraft/builder.py` + `src/whole_spacecraft/runner.py`.
 - It still instantiates `AdcsControlPowerBridge` from the pre-unified graph.
 
-This path is not historical report data and must not be silently counted as migrated or deprecated. P10-A1A does not claim global removal of the ADCS power proxy.
+This path is not historical report data and must not be silently counted as migrated or deprecated. P10-A1A alone does not claim global removal of the ADCS power proxy; this P10-A1B slice extends the migration to the active composite path.
 
 ## Objective
 
