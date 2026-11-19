@@ -178,3 +178,10 @@ NASA 资料为 TripoSR G1 提供了一个比 KSST-01 厂商照片更有希望的
 - 视觉复核：图中可见一个带圆筒光学头的主体和一个分离摆放的黑色遮光/外罩部件；旁边有手/前臂、细杆/线、反光包装膜和工作台。后续 mask 必须把两个黑色部件保留为“照片中分离摆放的 mock-up 部件”，不得自动推断其装配位置；手/前臂、细杆/线、包装膜与背景必须排除。
 - 首轮 JPEG parser 将 EOI 限定在末尾 32 bytes，导致实际 NASA 文件因尾随 metadata/padding 被误拒；已改为要求 JPEG byte stream 中存在 EOI marker，并新增尾随字节回归测试。没有放宽 MIME、SOI、SOF、尺寸、大小和 pinned SHA-256 检查。
 - 下一步：把原始图与 hash 绑定到一个可重复的人工裁切/alpha-mask receipt；保留原图和处理图两份 hash，人工审核 mask 前继续禁止 TripoSR 推理。
+
+## 2026-11-19 公开 CI artifact 复核
+
+- 复核发现旧 source-intake workflow 将原始 NASA/JPL-Caltech JPEG 与 receipt 一起上传到 public repository 的 Actions artifact；由于来源记录为 `external_distribution_allowed=false` 且 `project_owner_signoff=pending`，该做法不满足项目自身的分发边界。
+- 历史 artifact：run `44482953922` / ID `14509376634`，以及 run `44485479649` / ID `14510716115`。两者包含原始 source bytes，状态均为 `delete_required`；删除前不得合并 P9-M4-I。
+- 后续公开 CI 改用 `--receipt-only`，只上传 `source-intake.json`（来源、SHA-256、尺寸、许可状态和推理门禁），原始图只在内存中用于校验，不持久化、不上传。
+- 该来源仍未获得项目负责人用途签核；`inference_eligible=false` 保持不变。
