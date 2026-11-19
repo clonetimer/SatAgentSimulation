@@ -286,6 +286,69 @@ jobs:
           })
           PY
 
+      - name: Verify and summarize archived whole-spacecraft Run Bundles
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import zipfile
+          from pathlib import Path
+          from sat_sim.run_bundle import verify_run_bundle
+
+          root = Path("reports/native_whole_spacecraft_events")
+          report = json.loads((root / "effect_ab.json").read_text(encoding="utf-8"))
+          assert len(report["cases"]) == 8, len(report["cases"])
+          physical_paths = set()
+          for case in report["cases"]:
+              physical_paths.add(case["nominal_bundle_archive"])
+              physical_paths.add(case["injected_bundle_archive"])
+          assert len(physical_paths) == 10, sorted(physical_paths)
+          for raw_path in sorted(physical_paths):
+              bundle_path = Path(raw_path)
+              assert (bundle_path / "SEALED.json").is_file(), bundle_path
+              assert (bundle_path / "bundle_manifest.json").is_file(), bundle_path
+              integrity = verify_run_bundle(bundle_path)
+              assert integrity["ok"] is True, (bundle_path, integrity)
+
+          browser_dir = root / "browser_run_bundles"
+          archives = sorted(browser_dir.glob("*.zip"))
+          sidecars = sorted(browser_dir.glob("*.json"))
+          assert len(archives) == 9, [path.name for path in archives]
+          assert len(sidecars) == 9, [path.name for path in sidecars]
+          for archive_path in archives:
+              metadata_path = archive_path.with_suffix(".json")
+              metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+              archive_sha256 = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+              assert archive_sha256 == metadata["bundle_zip_sha256"], archive_path
+              assert metadata["sealed"] is True and metadata["integrity_ok"] is True, metadata
+              run_id = metadata["run_id"]
+              with zipfile.ZipFile(archive_path) as archive:
+                  prefix = f"{run_id}/"
+                  manifest_bytes = archive.read(f"{prefix}bundle_manifest.json")
+                  manifest = json.loads(manifest_bytes)
+                  seal = json.loads(archive.read(f"{prefix}SEALED.json"))
+                  assert seal["run_id"] == run_id
+                  manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+                  assert manifest_sha256 == seal["bundle_manifest_sha256"]
+                  assert manifest_sha256 == metadata["bundle_manifest_sha256"]
+                  expected = {f"{prefix}{relative}" for relative in manifest["files"]}
+                  assert set(archive.namelist()) == expected | {
+                      f"{prefix}bundle_manifest.json", f"{prefix}SEALED.json"
+                  }
+                  for relative, entry in manifest["files"].items():
+                      actual = hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest()
+                      assert actual == entry["sha256"], (archive_path, relative)
+          print("O3-D_ARCHIVE", {
+              "physical_sealed_run_bundles": len(physical_paths),
+              "chromium_downloaded_run_bundles": len(archives),
+              "sidecar_sha256_checks": len(sidecars),
+              "passed": True,
+          })
+          PY
+
       - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7
         with:
