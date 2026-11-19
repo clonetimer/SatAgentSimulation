@@ -103,6 +103,14 @@ def _run_basilisk_nominal(spec: Mapping[str, Any]) -> SimulationResult:
             "adcs.reaction_wheel.max_abs_speed_rad_s": max(abs(x) for x in speeds),
             "adcs.reaction_wheel.final_momentum_norm_nms": rows[-1]["adcs.reaction_wheel.momentum_norm_nms"],
             "adcs.reaction_wheel.final_rotational_energy_j": rows[-1]["adcs.reaction_wheel.rotational_energy_j"],
+            "adcs.reaction_wheel.nominal_max_speed_rad_s_0": native.factory_omega_max_rad_s,
+            "adcs.reaction_wheel.effective_max_speed_rad_s_0": native.factory_omega_max_rad_s,
+            "adcs.reaction_wheel.nominal_max_torque_nm_0": native.factory_u_max_nm,
+            "adcs.reaction_wheel.effective_max_torque_nm_0": native.factory_u_max_nm,
+            "adcs.reaction_wheel.nominal_damping_nms_0": native.viscous_damping_nms,
+            "adcs.reaction_wheel.effective_damping_nms_0": native.viscous_damping_nms,
+            "adcs.reaction_wheel.min_speed_rad_s_0": min(speeds),
+            "adcs.reaction_wheel.max_speed_rad_s_0": max(speeds),
         },
     }
     return SimulationResult(

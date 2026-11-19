@@ -4,6 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import yaml
+import pytest
 
 from sat_sim.adapters.subsystem_eps_unified_native import EpsUnifiedNativeAdapter
 from sat_sim.capability_registry import get_capability
@@ -19,8 +20,8 @@ def _spec(mode: str, kind: str | None = None, effect: str | None = None) -> dict
             kind: [{
                 "modifier_type": effect,
                 "start_s": 10.0,
-                "duration_s": 10.0,
-                "severity": 0.8,
+                "duration_s": 9.5,
+                "magnitude": 0.8,
             }]
         }
     return spec
@@ -48,8 +49,13 @@ def test_eps_unified_fault_and_degradation_use_direct_basilisk_injection(monkeyp
     assert fault_active["label.fault_active"] is True
     assert degradation_active["label.degradation_active"] is True
     assert fault_active["eps.battery_capacity_j"] < baseline["eps.battery_capacity_j"]
-    assert fault_active["eps.net_power_w"] < baseline["eps.net_power_w"]
+    assert fault_active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
+    assert baseline["eps.payload_load_enabled_w"] > 0.0
+    assert fault_active["eps.payload_load_enabled_w"] == pytest.approx(0.0, abs=1e-9)
+    assert fault_active["eps.pdu_payload_channel_enabled"] is False
+    assert "payload_channel_trip" in fault_active["eps.pdu_shed_reason"]
     assert degradation_active["eps.battery_capacity_j"] < baseline["eps.battery_capacity_j"]
+    assert degradation_active["eps.solar_power_w"] < baseline["eps.solar_power_w"]
     assert degradation_active["eps.net_power_w"] < baseline["eps.net_power_w"]
     assert _at(fault, 25.0)["label.health_state"] == "nominal"
     for result in (fault, degradation):
@@ -64,3 +70,12 @@ def test_eps_unified_rejects_unknown_effect() -> None:
     spec = deepcopy(_spec("fault", "faults", "invented_eps_fault"))
     issues = adapter.validate(spec, get_capability(adapter.capability_id).data)
     assert any(issue.severity == "error" and "unsupported" in issue.message for issue in issues)
+
+
+
+def test_eps_rejects_invalid_event_severity() -> None:
+    adapter = EpsUnifiedNativeAdapter()
+    spec = _spec("fault", "faults", "generation_storage_distribution_failure")
+    spec["events"]["faults"][0]["magnitude"] = -0.1
+    issues = adapter.validate(spec, get_capability(adapter.capability_id).data)
+    assert any(issue.severity == "error" and issue.code == "range" for issue in issues)

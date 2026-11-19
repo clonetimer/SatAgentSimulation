@@ -7,10 +7,12 @@ target: adcs
 trust_level: engineering_preview
 status: agent_ready_candidate
 summary: Unified ADCS closed loop and runtime fault/degradation chain executed in
-  one Basilisk Process/Task. Official sensors, guidance/control, reaction wheels and
-  spacecraft modules are connected through Basilisk messages; project SysModels perform
-  sensor fusion and pre-dynamics event injection. No external solver or curve-only
-  proxy is used.
+  one Basilisk Process/Task. Official StarTracker, ImuSensor, Magnetometer, guidance/control,
+  reaction wheels and spacecraft modules are connected through Basilisk messages. Project
+  SysModels transform sensor measurements into body frame B and perform deterministic
+  star/Sun/magnetic-vector attitude estimation. Sun/Earth vector sensors are ideal
+  project-native geometry measurements, not official CSS direction outputs. No external
+  solver or curve-only proxy is used.
 adapter:
   class_path: sat_sim.adapters.subsystem_adcs_unified_native.AdcsUnifiedNativeAdapter
   script_export: true
@@ -142,6 +144,190 @@ parameters:
     min: 0.0
     description: Baseline gyro white-noise standard deviation used before runtime
       degradations.
+  star_tracker_mount_yaw_deg:
+    type: number
+    label: 星敏安装航向角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第一项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  star_tracker_mount_pitch_deg:
+    type: number
+    label: 星敏安装俯仰角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第二项。
+    unit: deg
+    default: 0.0
+    min: -89.0
+    max: 89.0
+  star_tracker_mount_roll_deg:
+    type: number
+    label: 星敏安装横滚角
+    description: 机体系 B 到星敏机壳系 C 的 3-2-1 欧拉角第三项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  star_tracker_noise_std_arcsec:
+    type: number
+    label: 星敏白噪声标准差
+    description: 官方 Basilisk StarTracker 姿态测量噪声标准差；不代表光学星表识别精度。
+    unit: arcsec
+    default: 0.0
+    min: 0.0
+    max: 3600.0
+  imu_mount_yaw_deg:
+    type: number
+    label: IMU 安装航向角
+    description: 机体系 B 到 IMU 平台系 P 的 3-2-1 欧拉角第一项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  imu_mount_pitch_deg:
+    type: number
+    label: IMU 安装俯仰角
+    description: 机体系 B 到 IMU 平台系 P 的 3-2-1 欧拉角第二项。
+    unit: deg
+    default: 0.0
+    min: -89.0
+    max: 89.0
+  imu_mount_roll_deg:
+    type: number
+    label: IMU 安装横滚角
+    description: 机体系 B 到 IMU 平台系 P 的 3-2-1 欧拉角第三项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  imu_position_b_x_m:
+    type: number
+    label: IMU 本体系位置 X
+    unit: m
+    default: 0.0
+    min: -2.0
+    max: 2.0
+  imu_position_b_y_m:
+    type: number
+    label: IMU 本体系位置 Y
+    unit: m
+    default: 0.0
+    min: -2.0
+    max: 2.0
+  imu_position_b_z_m:
+    type: number
+    label: IMU 本体系位置 Z
+    unit: m
+    default: 0.0
+    min: -2.0
+    max: 2.0
+  imu_gyro_bias_rad_s_x:
+    type: number
+    label: IMU 陀螺 X 轴偏置
+    unit: rad/s
+    default: 0.0
+    min: -0.1
+    max: 0.1
+  imu_gyro_bias_rad_s_y:
+    type: number
+    label: IMU 陀螺 Y 轴偏置
+    unit: rad/s
+    default: 0.0
+    min: -0.1
+    max: 0.1
+  imu_gyro_bias_rad_s_z:
+    type: number
+    label: IMU 陀螺 Z 轴偏置
+    unit: rad/s
+    default: 0.0
+    min: -0.1
+    max: 0.1
+  imu_accel_bias_m_s2_x:
+    type: number
+    label: IMU 加速度计 X 轴偏置
+    unit: m/s^2
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  imu_accel_bias_m_s2_y:
+    type: number
+    label: IMU 加速度计 Y 轴偏置
+    unit: m/s^2
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  imu_accel_bias_m_s2_z:
+    type: number
+    label: IMU 加速度计 Z 轴偏置
+    unit: m/s^2
+    default: 0.0
+    min: -1.0
+    max: 1.0
+  imu_gyro_white_noise_std_rad_s:
+    type: number
+    label: IMU 陀螺白噪声标准差
+    unit: rad/s
+    default: 0.0
+    min: 0.0
+    max: 0.1
+  imu_accel_white_noise_std_m_s2:
+    type: number
+    label: IMU 加速度计白噪声标准差
+    unit: m/s^2
+    default: 0.0
+    min: 0.0
+    max: 1.0
+  magnetometer_mount_yaw_deg:
+    type: number
+    label: 磁强计安装航向角
+    description: 机体系 B 到磁强计传感器系 S 的 3-2-1 欧拉角第一项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  magnetometer_mount_pitch_deg:
+    type: number
+    label: 磁强计安装俯仰角
+    description: 机体系 B 到磁强计传感器系 S 的 3-2-1 欧拉角第二项。
+    unit: deg
+    default: 0.0
+    min: -89.0
+    max: 89.0
+  magnetometer_mount_roll_deg:
+    type: number
+    label: 磁强计安装横滚角
+    description: 机体系 B 到磁强计传感器系 S 的 3-2-1 欧拉角第三项。
+    unit: deg
+    default: 0.0
+    min: -180.0
+    max: 180.0
+  magnetometer_bias_tesla_x:
+    type: number
+    label: 磁强计 X 轴偏置
+    unit: T
+    default: 0.0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_bias_tesla_y:
+    type: number
+    label: 磁强计 Y 轴偏置
+    unit: T
+    default: 0.0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_bias_tesla_z:
+    type: number
+    label: 磁强计 Z 轴偏置
+    unit: T
+    default: 0.0
+    min: -0.0001
+    max: 0.0001
+  magnetometer_scale_factor:
+    type: number
+    label: 磁强计比例系数
+    default: 1.0
+    min: 0.000001
+    max: 2.0
   rw_wheel_inertia_kg_m2:
     type: number
     default: 0.015
@@ -170,6 +356,16 @@ outputs:
   - orbit.eclipse_factor
   - adcs.pointing_error_deg
   - adcs.body_rate_rad_s_*
+  - adcs.fusion.estimated_mrp_BN_*
+  - adcs.fusion.estimated_omega_BN_B_*
+  - adcs.fusion.source_mode
+  - adcs.fusion.magnetometer_used
+  - adcs.fusion.body_rate_valid
+  - adcs.sensor.imu_sample_valid
+  - adcs.magnetometer.reference_n_tesla_*
+  - adcs.magnetometer.measured_body_tesla_*
+  - adcs.sensor.gyro_measured_platform_rad_s_*
+  - adcs.sensor.gyro_measured_body_rad_s_*
   - adcs.rw.speed_rad_s_*
   - adcs.star_tracker.q*
   - adcs.magnetometer.tesla_*
@@ -207,6 +403,11 @@ operator:
     evidence_fields:
     - runtime_truth_status
     - adcs.pointing_error_deg
+    - adcs.fusion.estimated_mrp_BN_*
+    - adcs.fusion.estimated_omega_BN_B_*
+    - adcs.fusion.magnetometer_used
+    - adcs.fusion.body_rate_valid
+    - adcs.sensor.imu_sample_valid
     - adcs.rw.speed_rad_s_0
     verification: candidate
   - effect_id: adcs_rw_jamming
@@ -258,7 +459,7 @@ operator:
     - adcs.rw.effective_torque_ratio_0
     - adcs.rw.effective_max_torque_nm_0
     - adcs.control.applied_torque_nm_0
-    verification: candidate
+    verification: declared
   - effect_id: adcs_reaction_wheel_speed_limit
     kind: constraint
     owner: project_rw_command_fault_manager
@@ -280,9 +481,13 @@ operator:
     - label.*
     - event.*
   limitations:
-  - Project sensor fusion remains deterministic and is not yet flight-correlated.
-  - Wheel jamming is represented by a scheduled braking/locking torque in the command
-    path; bearing structural dynamics are not modelled.
+  - Project attitude estimation is deterministic star/Sun/magnetic-vector TRIAD plus quaternion SLERP; it is not an MEKF/Kalman filter or flight-correlated estimator.
+  - StarTracker uses the official module's truth-driven attitude measurement; star catalog, centroiding, optical image formation and FOV occultation are not modelled.
+  - SunDirectionSensor and EarthHorizonSensor are ideal project-native geometry measurements derived from environment/spacecraft state; they are not official CSS three-axis outputs.
+  - IMU angular rate is transformed from platform frame P to body frame B; this is not a full strapdown navigation solution.
+  - Magnetometer TAMSensorMsg is transformed from sensor frame S to body frame B and fused with the inertial magnetic-field reference.
+  - Wheel jamming is represented by a scheduled braking/locking torque in the command path; bearing structural dynamics are not modelled.
+  - The subsystem uses a dedicated spacecraft hub and orthogonal reaction-wheel fixture; it is not the full CAD-derived spacecraft inertia or a cross-subsystem integrated spacecraft run.
 lifecycle:
   status: active
   product_tier: recommended

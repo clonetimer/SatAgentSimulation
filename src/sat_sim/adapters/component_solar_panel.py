@@ -104,6 +104,139 @@ class SolarPanelAdapter:
         task_id = str(spec.get("task_id", "solar_panel_task"))
         case_id = str((spec.get("metadata") or {}).get("case_id", "case_000")) if isinstance(spec.get("metadata"), Mapping) else "case_000"
 
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("SOLAR_PANEL_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if (mode != "nominal" or self._runtime_fault_payloads(spec) or self._solar_degradation_payload(spec)
+                    or any(runtime_effects(spec, kind) for kind in ("fault", "degradation", "constraint"))):
+                raise ValueError("NATIVE_SOLAR_PANEL_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            panel_count = params.get("panel_count", 1)
+            deployment_fraction = float(params.get("deployment_fraction", 1.0))
+            if isinstance(panel_count, bool) or panel_count != 1 or not math.isfinite(deployment_fraction) or abs(deployment_fraction - 1.0) > 1.0e-12:
+                raise ValueError("NATIVE_SOLAR_PANEL_REQUIRES_ONE_FULLY_DEPLOYED_PANEL")
+            slew_rate = float(params.get("max_slew_rate_rad_s", params.get("solar_tracking_max_slew_rate_rad_s", 0.0)))
+            if bool(params.get("enable_tracking", False)) or not math.isfinite(slew_rate) or slew_rate != 0.0:
+                raise ValueError("NATIVE_SOLAR_PANEL_TRACKING_NOT_SUPPORTED")
+            for key in ("sun_vector_profile_b", "shadow_profile"):
+                if key in params:
+                    raise ValueError("NATIVE_SOLAR_PANEL_REQUIRES_STATIC_SUN_AND_SHADOW_INPUTS")
+            from components.solar_panel.builder import SolarPanelNativeConfig, run_simple_solar_panel_native_case
+            directions = {}
+            for key in ("initial_normal_b", "sun_vector_b"):
+                vector = params.get(key, (1.0, 0.0, 0.0))
+                if (not self._is_vector3(vector) or not all(math.isfinite(value) for value in vector)
+                        or not 1.0e-15 < math.hypot(*vector) < float("inf")):
+                    raise ValueError(f"NATIVE_SOLAR_PANEL_DIRECTION_INVALID: {key}")
+                norm = math.hypot(*vector)
+                directions[key] = tuple(float(value) / norm for value in vector)
+            normal = directions["initial_normal_b"]
+            sun_b = directions["sun_vector_b"]
+            shadow = float(params.get("shadow_factor", 1.0))
+            max_power = float(params.get("max_power_w", 120.0))
+            efficiency = float(params.get("efficiency", 1.0))
+            if (not all(math.isfinite(value) for value in (shadow, max_power, efficiency))
+                    or not 0.0 <= shadow <= 1.0 or not 0.0 <= efficiency <= 1.0 or max_power < 0.0):
+                raise ValueError("NATIVE_SOLAR_PANEL_PARAMETERS_INVALID")
+            native = run_simple_solar_panel_native_case(
+                SolarPanelNativeConfig(
+                    model_tag="P9N3OfficialSimpleSolarPanel",
+                    initial_normal_b=normal,
+                    max_power_w=max_power,
+                    efficiency=efficiency,
+                    shadow_factor=shadow,
+                    sun_direction_b=sun_b,
+                    enable_tracking=False,
+                    max_slew_rate_rad_s=0.0,
+                ),
+                duration_s=duration_s,
+                sample_s=sample_s,
+                sun_direction_b=sun_b,
+                shadow_factor=shadow,
+            )
+            native_rows = []
+            incidence = max(0.0, self._dot(normal, sun_b))
+            for index, item in enumerate(native.measurements):
+                row = {
+                    "task_id": task_id,
+                    "case_id": case_id,
+                    "time_s": round(float(item.time_s), 12),
+                    "sample_index": index,
+                    "target_level": "component",
+                    "target_name": "solar_panel",
+                    "mode": "nominal",
+                    "eps.solar.panel_power_w": float(item.power_w),
+                    "eps.solar.array_power_w": float(item.power_w),
+                    "eps.solar.nominal_max_power_w": max_power,
+                    "eps.solar.max_power_w": max_power,
+                    "eps.solar.nominal_efficiency": efficiency,
+                    "eps.solar.efficiency": efficiency,
+                    "eps.solar.panel_count": 1,
+                    "eps.solar.deployment_fraction": 1.0,
+                    "eps.solar.incidence_cos": incidence,
+                    "eps.solar.shadow_factor": shadow,
+                    "eps.solar.fault_multiplier": 1.0,
+                    "eps.solar.normal_b_x": normal[0],
+                    "eps.solar.normal_b_y": normal[1],
+                    "eps.solar.normal_b_z": normal[2],
+                    "eps.solar.sun_vector_b_x": sun_b[0],
+                    "eps.solar.sun_vector_b_y": sun_b[1],
+                    "eps.solar.sun_vector_b_z": sun_b[2],
+                    "label.health_state": "nominal",
+                    "label.fault_active": False,
+                }
+                native_rows.append(row)
+            power_values = [float(row["eps.solar.array_power_w"]) for row in native_rows]
+            energy_wh = sum(
+                float(row["eps.solar.array_power_w"]) * (float(row["time_s"]) - float(previous["time_s"])) / 3600.0
+                for previous, row in zip(native_rows, native_rows[1:])
+            )
+            summary = {
+                "task_id": task_id,
+                "case_id": case_id,
+                "status": "complete",
+                "duration_s": duration_s,
+                "sample_s": sample_s,
+                "target_level": "component",
+                "target_name": "solar_panel",
+                "capability_id": self.capability_id,
+                "mode": "nominal",
+                "qoi": {
+                    "eps.solar.initial_array_power_w": power_values[0],
+                    "eps.solar.final_array_power_w": power_values[-1],
+                    "eps.solar.min_array_power_w": min(power_values),
+                    "eps.solar.max_array_power_w": max(power_values),
+                    "eps.solar.nominal_max_power_w": max_power,
+                    "eps.solar.effective_max_power_w": max_power,
+                    "eps.solar.nominal_efficiency": efficiency,
+                    "eps.solar.effective_efficiency": efficiency,
+                    "eps.solar.energy_generated_wh": energy_wh,
+                    "eps.solar.mean_incidence_cos": incidence,
+                    "eps.solar.eclipse_fraction": 1.0 if shadow <= 1.0e-12 else 0.0,
+                },
+                "events": {"fault_count": 0, "degradation_count": 0},
+                "trace_rows": len(native_rows),
+            }
+            summary["physics_backend"] = "basilisk_native"
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(native_rows),
+                labels={"fault_labels": [], "run_labels": [{"task_id": task_id, "mode": "nominal", "capability_id": self.capability_id, "physics_backend": "basilisk_native"}]},
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.simpleSolarPanel.SimpleSolarPanel"],
+                    "native_provenance": native.model_source,
+                    "native_input_source": native.input_source,
+                    "native_claim_scope": native.claim_scope,
+                    "output_field_sources": {
+                        "eps.solar.array_power_w": "SimpleSolarPanel.nodePowerOutMsg.netPower recorder",
+                        "eps.solar.energy_generated_wh": "integral of recorded panel power over recorded intervals",
+                    },
+                    "limits": ["nominal only", "one fully deployed fixed panel", "static Sun and Eclipse inputs", "no tracking", "no faults/degradation/constraints", "duration must contain complete sample intervals"],
+                },
+            )
+
         panel_count = int(params.get("panel_count", 1))
         deployment_fraction = self._clamp01(params.get("deployment_fraction", 1.0))
         degradation_payload = self._solar_degradation_payload(spec)

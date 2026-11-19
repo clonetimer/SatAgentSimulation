@@ -31,6 +31,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from .capability_registry import get_capability
+from .capability_backends import get_task_capability
 from .assertions import evaluate_assertions
 from .reporting import generate_run_report
 from .dataset_writer import write_jsonl, write_task_dataset, write_trace_csv
@@ -666,7 +667,7 @@ def prepare_run(
     write_json(root / "input" / "execution_plan.json", plan_payload)
     compiled = attach_plan_metadata(compile_task_spec(canonical, validate=False), planning)
     write_json(root / "runtime" / "compiled_task.json", compiled.to_dict())
-    contract = get_capability(resolved.primary_capability_id)
+    contract = get_task_capability(canonical, resolved.primary_capability_id)
     write_json(root / "runtime" / "environment.json", _runtime_environment(resolved))
     write_json(root / "runtime" / "dependency_versions.json", {
         "schema_version": "v37d.dependency-versions.v1",

@@ -90,9 +90,161 @@ def _template(
 _TEMPLATES = [
     # Component-level templates
     _template(
+        "component_thruster_basilisk_native", "推力器原生点火仿真", "部件", "component",
+        "component.thruster.v1", "使用官方 ThrusterDynamicEffector 与 FuelTank，在自由载体和显式推进剂夹具中执行一个连续标称点火脉冲；输出推力 recorder、冲量积分和推进剂消耗。该夹具不是已安装整星推进系统，不包含姿轨耦合或故障退化。",
+        duration_s=1.0,
+        patch={
+            "simulation": {"step_s": 0.005, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "native_step_s": 0.005,
+                "thrust_n": 1.0,
+                "isp_s": 280.0,
+                "on_time_profile_s": [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0, 0, 0, 0],
+            }},
+            "outputs": {
+                "plots": [
+                    "propulsion.thruster.effective_thrust_n",
+                    "propulsion.thruster.on_time_s",
+                    "propulsion.thruster.cumulative_impulse_ns",
+                    "propulsion.thruster.cumulative_propellant_kg",
+                ],
+                "qoi": [
+                    "propulsion.thruster.total_impulse_ns",
+                    "propulsion.thruster.propellant_used_kg",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_fuel_tank_basilisk_native", "贮箱原生质量仿真", "部件", "component",
+        "component.fuel_tank.v1", "官方 FuelTank 在 10 kg 自由载体夹具中按恒定质量流量排出推进剂，记录原生质量和质量变化率；不提供压力或热力学状态，不包含与推力器的闭环耦合。",
+        duration_s=1.0,
+        patch={
+            "simulation": {"sample_s": 0.1, "step_s": 0.01},
+            "parameters": {"values": {"physics_backend": "basilisk_native", "capacity_kg": 3.0,
+                                      "initial_mass_kg": 2.0, "mass_flow_kg_s": 0.001}},
+            "outputs": {
+                "plots": [
+                    "propulsion.fuel_tank.propellant_mass_kg",
+                    "propulsion.fuel_tank.mass_rate_kg_s",
+                    "propulsion.fuel_tank.max_mass_kg",
+                ],
+                "qoi": [
+                    "propulsion.fuel_tank.initial_mass_kg",
+                    "propulsion.fuel_tank.final_mass_kg",
+                    "propulsion.fuel_tank.consumed_mass_kg",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
         "component_reaction_wheel_nominal", "反作用轮加速", "部件", "component",
         "component.reaction_wheel.v1", "单个反作用轮在恒定正力矩作用下加速，输出转速、力矩和角动量。",
         patch={"parameters": {"values": {"num_wheels": 1, "initial_wheel_speeds_rad_s": 100.0, "command_torque_nm": 0.01}}},
+        recommended=True,
+    ),
+    _template(
+        "component_reaction_wheel_basilisk_native", "反作用轮原生物理仿真", "部件", "component",
+        "component.reaction_wheel.v1", "使用官方 Basilisk Spacecraft 与 ReactionWheelStateEffector 独立运行单个反作用轮；输出原生记录的轮速、实际施加力矩和摩擦力矩。",
+        duration_s=3.0,
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native", "num_wheels": 1,
+                "wheel_inertia_kg_m2": 0.1, "max_motor_torque_nm": 0.005,
+                "max_speed_rad_s": 1000.0, "initial_wheel_speeds_rad_s": 0.0,
+                "command_torque_nm": 0.01, "damping_nms": 0.00001,
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.reaction_wheel.speed_rad_s_0",
+                    "adcs.reaction_wheel.applied_torque_nm_0",
+                ],
+                "qoi": [
+                    "qoi.adcs.reaction_wheel.initial_speed_rad_s_0",
+                    "qoi.adcs.reaction_wheel.final_speed_rad_s_0",
+                    "qoi.adcs.reaction_wheel.max_abs_speed_rad_s",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_imu_basilisk_native", "IMU 原生测量仿真", "部件", "component",
+        "component.imu.v1", "使用官方 Basilisk ImuSensor，按显式给定角速度与非保守比力真值记录三轴陀螺和加速度计测量；不包含导航解算、随机噪声特性或安装杆臂。",
+        duration_s=2.0,
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "true_gyro_rad_s": [0.012, -0.004, 0.003],
+                "true_accel_m_s2": [0.2, -0.1, 0.05],
+                "gyro_scale": [1.0, 1.0, 1.0],
+                "accel_scale": [1.0, 1.0, 1.0],
+                "gyro_bias_rad_s": [0.0, 0.0, 0.0],
+                "accel_bias_m_s2": [0.0, 0.0, 0.0],
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.imu.gyro_x_rad_s", "adcs.imu.gyro_y_rad_s", "adcs.imu.gyro_z_rad_s",
+                    "adcs.imu.accel_x_m_s2", "adcs.imu.accel_y_m_s2", "adcs.imu.accel_z_m_s2",
+                ],
+                "qoi": ["adcs.imu.gyro_error_norm_rad_s", "adcs.imu.accel_error_norm_m_s2"],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_star_tracker_basilisk_native", "星敏感器原生姿态测量", "部件", "component",
+        "component.star_tracker.v1", "使用官方 Basilisk StarTracker 对显式给定姿态真值进行测量，记录四元数换算后的 MRP、样本有效标记与漂移；有效标记不代表星表识别或光学视场可见性。",
+        duration_s=2.0,
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "true_sigma_bn": [0.04, -0.01, 0.02],
+                "drift_rate_mrp_s": [0.0, 0.0, 0.0],
+                "max_drift_norm": 1.0,
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.star_tracker.sigma_x", "adcs.star_tracker.sigma_y",
+                    "adcs.star_tracker.sigma_z", "adcs.star_tracker.drift_norm",
+                ],
+                "qoi": [
+                    "adcs.star_tracker.valid_fraction",
+                    "adcs.star_tracker.final_drift_norm",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_magnetometer_basilisk_native", "磁强计原生磁场测量", "部件", "component",
+        "component.magnetometer.v1", "使用官方 Basilisk Magnetometer 与显式均匀惯性磁场输入，记录传感器坐标系三轴磁场和模长；不包含地球磁场环境模型或非均匀三轴标度。",
+        duration_s=2.0,
+        patch={
+            "simulation": {"step_s": 0.1, "sample_s": 0.1},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "magnetic_field_t": [2.0e-5, -1.0e-5, 3.0e-5],
+                "axis_scale": [1.0, 1.0, 1.0],
+                "bias_t": [0.0, 0.0, 0.0],
+            }},
+            "outputs": {
+                "plots": [
+                    "adcs.magnetometer.field_x_t", "adcs.magnetometer.field_y_t",
+                    "adcs.magnetometer.field_z_t", "adcs.magnetometer.field_norm_t",
+                ],
+                "qoi": [
+                    "adcs.magnetometer.error_norm_t",
+                    "adcs.magnetometer.field_norm_t",
+                ],
+            },
+        },
         recommended=True,
     ),
     _template(
@@ -104,8 +256,97 @@ _TEMPLATES = [
         "component.solar_panel.v1", "太阳入射、阴影系数和帆板参数共同决定的发电功率。",
     ),
     _template(
+        "component_battery_basilisk_native", "电池原生储能仿真", "部件", "component",
+        "component.battery.v1", "使用官方 Basilisk SimpleBattery 与 SimplePowerSink，在恒定净功率和单位充放电效率下记录 SOC、储能与功率；不包含电芯等效电路、温度、故障或退化。",
+        duration_s=60.0,
+        patch={
+            "simulation": {"sample_s": 10.0, "step_s": 1.0},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "capacity_wh": 100.0,
+                "initial_soc": 0.6,
+                "net_power_w": -20.0,
+                "charge_efficiency": 1.0,
+                "discharge_efficiency": 1.0,
+                "min_soc": 0.0,
+                "max_soc": 1.0,
+            }},
+            "outputs": {
+                "plots": [
+                    "eps.battery.soc",
+                    "eps.battery.storage_wh",
+                    "eps.battery.net_power_w",
+                    "eps.battery.applied_power_w",
+                ],
+                "qoi": [
+                    "qoi.eps.battery.initial_soc",
+                    "qoi.eps.battery.final_soc",
+                    "qoi.eps.battery.final_storage_wh",
+                    "qoi.eps.battery.energy_throughput_wh",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
+        "component_solar_panel_basilisk_native", "太阳翼原生发电仿真", "部件", "component",
+        "component.solar_panel.v1", "使用官方 Basilisk SimpleSolarPanel 和显式静态太阳方向/阴影输入，记录阵列功率与能量积分；仅支持单块完全展开固定太阳翼，不包含跟踪、姿态闭环或地球轨道光照环境。",
+        duration_s=60.0,
+        patch={
+            "simulation": {"sample_s": 10.0, "step_s": 1.0},
+            "parameters": {"values": {
+                "physics_backend": "basilisk_native",
+                "max_power_w": 100.0,
+                "efficiency": 0.9,
+                "panel_count": 1,
+                "deployment_fraction": 1.0,
+                "initial_normal_b": [1.0, 0.0, 0.0],
+                "sun_vector_b": [1.0, 0.0, 0.0],
+                "shadow_factor": 0.5,
+                "enable_tracking": False,
+                "max_slew_rate_rad_s": 0.0,
+            }},
+            "outputs": {
+                "plots": [
+                    "eps.solar.panel_power_w",
+                    "eps.solar.array_power_w",
+                    "eps.solar.incidence_cos",
+                    "eps.solar.shadow_factor",
+                ],
+                "qoi": [
+                    "eps.solar.energy_generated_wh",
+                    "eps.solar.max_array_power_w",
+                    "eps.solar.mean_incidence_cos",
+                    "eps.solar.eclipse_fraction",
+                ],
+            },
+        },
+        recommended=True,
+    ),
+    _template(
         "component_thermal_node_response", "热节点温度响应", "部件", "component",
         "component.thermal_node.v1", "单热节点在内部功率和环境温度作用下的温度响应。",
+    ),
+    _template(
+        "component_thermal_node_basilisk_native", "热节点原生温度仿真", "部件", "component",
+        "component.thermal_node.v1", "官方 SensorThermal 记录固定辐射板在恒定电功率和显式光照条件下的温度；默认完全日食，使用固定太阳/航天器状态夹具，不包含轨道传播、环境导热网络或地球红外/反照闭环。",
+        duration_s=10.0,
+        patch={
+            "simulation": {"sample_s": 0.1, "step_s": 0.1},
+            "parameters": {"values": {"physics_backend": "basilisk_native", "initial_temp_k": 300.0,
+                                      "power_w": 10.0, "surface_area_m2": 0.01, "mass_kg": 1.0,
+                                      "specific_heat_j_per_kg_k": 900.0, "absorptivity": 0.25,
+                                      "emissivity": 0.8, "normal_b": [1.0, 0.0, 0.0],
+                                      "sun_direction_n": [1.0, 0.0, 0.0], "illumination_factor": 0.0}},
+            "outputs": {
+                "plots": ["thermal.node.temp_k", "thermal.node.temp_c", "thermal.node.input_power_w"],
+                "qoi": [
+                    "thermal.node.initial_temp_k", "thermal.node.final_temp_k",
+                    "thermal.node.min_temp_k", "thermal.node.max_temp_k", "thermal.node.delta_temp_k",
+                ],
+            },
+        },
+        recommended=True,
     ),
     _template(
         "component_data_queue", "数据队列积压与下行", "部件", "component",
@@ -173,9 +414,40 @@ _TEMPLATES = [
 
     _template(
         "adcs_unified_native", "ADCS统一Basilisk闭环", "统一原生运行图", "subsystem",
-        "subsystem.adcs_unified_native.v1", "官方星敏、IMU、磁强计、制导控制和反作用轮与项目传感器融合SysModel在同一Task中闭环运行。",
+        "subsystem.adcs_unified_native.v1", "官方 StarTracker/ImuSensor/Magnetometer 与项目理想 Sun/Earth 向量测量、确定性姿态估计和反作用轮在同一 Basilisk Task 中闭环运行；传感器安装变换显式投影到 B 系。",
         duration_s=60.0,
-        patch={"simulation": {"sample_s": 1.0, "step_s": 0.2, "backend": "basilisk"}, "assurance": {"allow_proxy": False}, "parameters": {"values": {"initial_pointing_error_deg": 8.0}}, "outputs": {"plots": ["adcs.pointing_error_deg", "adcs.rw.speed_rad_s_0", "adcs.body_rate_rad_s_x"]}},
+        patch={
+            "simulation": {"sample_s": 1.0, "step_s": 0.2, "backend": "basilisk"},
+            "assurance": {"allow_proxy": False},
+            "parameters": {"values": {"initial_pointing_error_deg": 8.0}},
+            "outputs": {
+                "plots": [
+                    "adcs.pointing_error_deg",
+                    "adcs.fusion.estimated_mrp_BN_x",
+                    "adcs.fusion.estimated_omega_BN_B_x",
+                    "adcs.fusion.magnetometer_used",
+                    "adcs.fusion.body_rate_valid",
+                    "adcs.sensor.imu_sample_valid",
+                    "adcs.rw.speed_rad_s_0",
+                    "adcs.body_rate_rad_s_x",
+                    "adcs.control.applied_torque_nm_0",
+                ],
+                "telemetry_streams": [
+                    {"stream_id": "adcs_fast", "sample_s": 1.0, "fields": [
+                        "adcs.pointing_error_deg", "adcs.fusion.estimated_mrp_BN_x",
+                        "adcs.fusion.estimated_omega_BN_B_x", "adcs.fusion.magnetometer_used",
+                        "adcs.fusion.body_rate_valid", "adcs.sensor.imu_sample_valid",
+                        "adcs.rw.speed_rad_s_0", "adcs.control.applied_torque_nm_0",
+                    ], "format": "jsonl"},
+                    {"stream_id": "adcs_housekeeping", "sample_s": 5.0, "fields": [
+                        "adcs.pointing_error_deg", "adcs.rw.speed_rad_s_0",
+                        "adcs.fusion.source_mode", "adcs.fusion.magnetometer_used",
+                        "adcs.fusion.body_rate_valid", "adcs.sensor.imu_sample_valid",
+                    ], "format": "csv"},
+                ],
+                "fmea": {"enabled": True, "formats": ["csv", "json"]},
+            },
+        },
         recommended=True,
     ),
 
@@ -591,7 +863,8 @@ def instantiate_scenario_template(template_id: str, *, task_id: str | None = Non
     template = get_scenario_template(template_id)
     if template is None:
         raise KeyError(template_id)
-    form = copy.deepcopy(capability_form_schema(template["capability_id"])["default_form"])
+    backend = ((template.get("patch") or {}).get("parameters") or {}).get("values", {}).get("physics_backend")
+    form = copy.deepcopy(capability_form_schema(template["capability_id"], physics_backend=backend)["default_form"])
     resolved_task_id = task_id or f"template_{template_id}"
     form["task"]["id"] = resolved_task_id
     form["task"]["name"] = name or template["name"]

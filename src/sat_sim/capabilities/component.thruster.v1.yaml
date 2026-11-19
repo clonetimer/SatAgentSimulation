@@ -5,7 +5,7 @@ level: component
 domain: propulsion
 target: thruster
 trust_level: conformance_tested
-summary: Deterministic source-native thrust impulse and propellant-use model.
+summary: Periodic thruster commands with a project reference model and an optional native Basilisk nominal burn.
 adapter:
   class_path: sat_sim.adapters.component_source_native_misc.ThrusterAdapter
   script_export: true
@@ -24,6 +24,20 @@ modes:
     supported: true
     degradation_types: [isp_decay, thrust_coefficient_drift]
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    default: project_reference
+    required: false
+    description: Native mode records one nominal contiguous burn or an all-zero control on a single-thruster spacecraft and fuel tank fixture. Preflight reserves one native step of fuel flow for burn transitions. Positive burns require a per-step tank mass decrement large enough to bound cumulative rounding to one fuel step. Faults, degradation and constraints require project_reference.
+  native_step_s:
+    type: number
+    unit: s
+    required: false
+    min: 0.000000001
+    default: 0.01
+    description: Native physics and recorder period. Standard simulation and solver integration steps must match this value after nanosecond rounding. A canonical TaskSpec with no integration step infers sample_s. Set the integration step explicitly when sampling more slowly. The task period and compiled burn duration must round-trip through native seconds. Sample and burn intervals must span complete native steps. Up to 100000 native steps per run.
   thrust_n: {type: number, unit: N, required: false, default: 1.0, min: 0.0}
   isp_s: {type: number, unit: s, required: false, default: 280.0, min: 0.000001}
   on_time_s: {type: number, unit: s, required: false, default: 0.1, min: 0.0}
@@ -43,7 +57,7 @@ outputs:
     unit: s
     dtype: number
   - name: propulsion.thruster.effective_thrust_n
-    unit: null
+    unit: N
     dtype: number
   - name: propulsion.thruster.effective_isp_s
     unit: s
@@ -91,4 +105,4 @@ integration_contract:
   source_modules_ref: implementation.model_modules
   implementation_class: project_deterministic_model
   couplings: {supported: [], unsupported: ["*"]}
-  limitations: [Independent component model; orbit and fuel coupling require the propulsion capability.]
+  limitations: [Native mode uses a free 10 kg carrier with 1 kg initial propellant and a 2 kg tank capacity as a test fixture. Spacecraft installation geometry and mission coupling are outside the component contract.]

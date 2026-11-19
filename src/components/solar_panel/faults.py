@@ -62,8 +62,7 @@ class SolarPanelL2FaultType(str, Enum):
 def _effects_for(kind: SolarPanelL2FaultType) -> tuple[ParameterEffect, ...]:
     effects_by_type = {
         SolarPanelL2FaultType.STRING_OPEN: (
-            ParameterEffect('string_availability', 'multiply', 0.55, 'cell string open removes active cell area'),
-            ParameterEffect('output_power_w', 'multiply', 0.55, 'cell string open removes active cell area'),
+            ParameterEffect('string_availability', 'multiply', 0.55, 'cell string open reduces native panel area or deterministic source output'),
         ),
         SolarPanelL2FaultType.SHADING: (
             ParameterEffect('output_power_w', 'multiply', 0.35, 'shadowing reduces illuminated area and power'),

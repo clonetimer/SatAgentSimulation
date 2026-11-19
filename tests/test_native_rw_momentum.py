@@ -140,3 +140,14 @@ def test_three_wheel_runtime_rejects_ghost_rw4_rating():
     from test_unified_native_migration import WHOLE_ID, _short_spec
     with pytest.raises(ValueError, match="NATIVE_RW4_MOMENTUM_REQUIRES_PYRAMID_4"):
         get_adapter_for_capability(WHOLE_ID).run(_short_spec(WHOLE_ID, duration_s=2., values={f"{KEY}3": 75}))
+
+
+
+def test_three_wheel_runtime_rejects_ghost_rw4_initial_speed():
+    pytest.importorskip("Basilisk")
+    from sat_sim.capability_registry import get_adapter_for_capability
+    from test_unified_native_migration import WHOLE_ID, _short_spec
+    with pytest.raises(ValueError, match="NATIVE_RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4"):
+        get_adapter_for_capability(WHOLE_ID).run(
+            _short_spec(WHOLE_ID, duration_s=2., values={"rw_initial_speed_rad_s_3": 40.})
+        )

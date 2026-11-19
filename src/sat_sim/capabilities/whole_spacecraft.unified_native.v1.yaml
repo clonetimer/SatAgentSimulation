@@ -738,6 +738,37 @@ parameters:
     unit: N*m*s
     required: false
     enum: [50, 75, 100]
+  rw_initial_speed_rad_s_0:
+    type: number
+    unit: rad/s
+    required: false
+    default: 10.471975511965978
+    min: -500.0
+    max: 500.0
+    description: RW1 initial native angular speed; converted to RPM at the official Basilisk factory boundary.
+  rw_initial_speed_rad_s_1:
+    type: number
+    unit: rad/s
+    required: false
+    default: 20.943951023931955
+    min: -500.0
+    max: 500.0
+    description: RW2 initial native angular speed; converted to RPM at the official Basilisk factory boundary.
+  rw_initial_speed_rad_s_2:
+    type: number
+    unit: rad/s
+    required: false
+    default: 31.41592653589793
+    min: -500.0
+    max: 500.0
+    description: RW3 initial native angular speed; converted to RPM at the official Basilisk factory boundary.
+  rw_initial_speed_rad_s_3:
+    type: number
+    unit: rad/s
+    required: false
+    min: -500.0
+    max: 500.0
+    description: RW4 initial native angular speed; only valid for pyramid_4 configuration.
   initial_soc:
     type: number
     unit: ratio
@@ -1125,6 +1156,7 @@ outputs:
   - orbit.phase_rad
   - orbit.eclipse_factor
   - adcs.pointing_error_deg
+  - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
   - adcs.rw.speed_rad_s_*
   - eps.solar_array_power_w
@@ -1141,10 +1173,15 @@ outputs:
   - thermal.payload_temp_k
   - thermal.radiator_rejection_ratio
   - adcs.sensor.gyro_measured_rad_s_*
+  - adcs.sensor.gyro_bias_norm_rad_s
   - adcs.sensor.gyro_bias_rad_s_*
+  - adcs.sensor.gyro_noise_norm_rad_s
   - adcs.sensor.gyro_noise_rad_s_*
   - adcs.rw.command_torque_nm_*
   - adcs.control.applied_torque_nm_*
+  - adcs.rw.effective_torque_ratio_0
+  - adcs.rw.effective_torque_ratio_1
+  - adcs.rw.effective_torque_ratio_2
   - adcs.rw.effective_drag_nms_*
   - adcs.rw.effective_max_torque_nm_*
   - adcs.rw.effective_max_speed_rad_s_*
@@ -1163,7 +1200,11 @@ outputs:
   - propulsion.enabled
   - propulsion.burn_active
   - propulsion.burn_permitted
+  - propulsion.burn_command_on_time_s
+  - propulsion.nominal_burn_command_on_time_s
   - propulsion.fuel_mass_kg
+  - propulsion.initial_propellant_kg
+  - propulsion.propellant_used_kg
   - propulsion.fuel_mass_dot_kg_s
   - propulsion.total_thrust_n
   - propulsion.max_thrust_factor
@@ -1223,16 +1264,17 @@ operator:
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_torque_ratio_0
-    - adcs.control.applied_torque_nm_0
+    - adcs.rw.effective_torque_ratio_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   - effect_id: adcs_rw_motor_failure
     kind: fault
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_max_torque_nm_0
-    - adcs.control.applied_torque_nm_0
+    - adcs.rw.effective_torque_ratio_{wheel_index}
+    - adcs.rw.effective_max_torque_nm_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   - effect_id: gyro_bias_step
     kind: fault
@@ -1240,6 +1282,9 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - adcs.sensor.gyro_bias_norm_rad_s
+    - adcs.sensor.gyro_bias_rad_s_x
+    - adcs.sensor.gyro_bias_rad_s_y
+    - adcs.sensor.gyro_bias_rad_s_z
     verification: declared
   - effect_id: comm_data_downlink_link_loss
     kind: fault
@@ -1248,7 +1293,7 @@ operator:
     evidence_fields:
     - comm.active
     - comm.downlink_bps
-    - data.storage_bits
+    - comm.downlinked_bits
     verification: declared
   - effect_id: eps_battery_capacity_loss
     kind: fault
@@ -1265,8 +1310,13 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - propulsion.burn_active
+    - propulsion.burn_permitted
+    - propulsion.burn_command_on_time_s
+    - propulsion.nominal_burn_command_on_time_s
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
+    - propulsion.initial_propellant_kg
+    - propulsion.propellant_used_kg
     - orbit.radius_m
     verification: declared
   - effect_id: solar_panel_efficiency_loss
@@ -1284,13 +1334,18 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - adcs.sensor.gyro_noise_norm_rad_s
+    - adcs.sensor.gyro_noise_rad_s_x
+    - adcs.sensor.gyro_noise_rad_s_y
+    - adcs.sensor.gyro_noise_rad_s_z
     verification: declared
   - effect_id: rw_friction_degradation
     kind: degradation
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_drag_nms_0
+    - adcs.rw.effective_drag_nms_{wheel_index}
+    - adcs.rw.speed_rad_s_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   - effect_id: thermal_radiator_rejection_loss
     kind: degradation
@@ -1305,8 +1360,14 @@ operator:
     owner: project_propulsion_burn_controller
     implementation: basilisk_native
     evidence_fields:
+    - propulsion.burn_active
+    - propulsion.burn_permitted
+    - propulsion.burn_command_on_time_s
+    - propulsion.nominal_burn_command_on_time_s
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
+    - propulsion.initial_propellant_kg
+    - propulsion.propellant_used_kg
     - propulsion.electrical_power_w
     - orbit.radius_m
     verification: declared
@@ -1325,8 +1386,9 @@ operator:
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_max_speed_rad_s_0
-    - adcs.rw.speed_rad_s_0
+    - adcs.rw.effective_max_speed_rad_s_{wheel_index}
+    - adcs.rw.speed_rad_s_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   observability:
     qoi:
@@ -1338,6 +1400,7 @@ operator:
     - time_s
     - orbit.*
     - adcs.*
+    - attitude.truth.pointing_error_deg
     - eps.*
     - payload.*
     - comm.*
@@ -1346,6 +1409,77 @@ operator:
     - propulsion.*
     - label.*
     - event.*
+    effect_evidence:
+      payload_instrument_off:
+      - payload.active
+      - payload.generated_bps
+      - data.storage_bits
+      adcs_rw_jamming:
+      - adcs.rw.effective_torque_ratio_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      adcs_rw_motor_failure:
+      - adcs.rw.effective_torque_ratio_{wheel_index}
+      - adcs.rw.effective_max_torque_nm_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      gyro_bias_step:
+      - adcs.sensor.gyro_bias_norm_rad_s
+      - adcs.sensor.gyro_bias_rad_s_x
+      - adcs.sensor.gyro_bias_rad_s_y
+      - adcs.sensor.gyro_bias_rad_s_z
+      gyro_noise_increase:
+      - adcs.sensor.gyro_noise_norm_rad_s
+      - adcs.sensor.gyro_noise_rad_s_x
+      - adcs.sensor.gyro_noise_rad_s_y
+      - adcs.sensor.gyro_noise_rad_s_z
+      rw_friction_degradation:
+      - adcs.rw.effective_drag_nms_{wheel_index}
+      - adcs.rw.speed_rad_s_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      adcs_reaction_wheel_speed_limit:
+      - adcs.rw.effective_max_speed_rad_s_{wheel_index}
+      - adcs.rw.speed_rad_s_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      propulsion_thruster_ignition_failure:
+      - propulsion.burn_active
+      - propulsion.burn_permitted
+      - propulsion.burn_command_on_time_s
+      - propulsion.nominal_burn_command_on_time_s
+      - propulsion.total_thrust_n
+      - propulsion.fuel_mass_kg
+      - propulsion.initial_propellant_kg
+      - propulsion.propellant_used_kg
+      - orbit.radius_m
+      propulsion_burn_impulse_loss:
+      - propulsion.burn_active
+      - propulsion.burn_permitted
+      - propulsion.burn_command_on_time_s
+      - propulsion.nominal_burn_command_on_time_s
+      - propulsion.total_thrust_n
+      - propulsion.fuel_mass_kg
+      - propulsion.initial_propellant_kg
+      - propulsion.propellant_used_kg
+      - propulsion.electrical_power_w
+      - orbit.radius_m
+      comm_data_downlink_link_loss:
+      - comm.active
+      - comm.downlink_bps
+      - comm.downlinked_bits
+      eps_battery_capacity_loss:
+      - eps.battery_capacity_ratio
+      - eps.battery_capacity_j
+      - eps.battery_soc
+      solar_panel_efficiency_loss:
+      - eps.solar_array_efficiency_ratio
+      - eps.solar_array_power_w
+      - eps.battery_soc
+      thermal_radiator_rejection_loss:
+      - thermal.radiator_rejection_ratio
+      - thermal.payload_temp_k
+      power_safe_mode_threshold:
+      - label.power_safe_mode_engaged
+      - payload.active
+      - comm.active
+      - eps.battery_soc
   limitations:
   - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
   - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.

@@ -371,12 +371,17 @@ def _build_unified_rows(
     *,
     start_index: int = 0,
 ) -> list[dict[str, Any]]:
-    from Basilisk.utilities import macros  # type: ignore
+    from Basilisk.utilities import RigidBodyKinematics, macros  # type: ignore
     recorder_map = {name: _RecorderSnapshot(recorder) for name, recorder in recorder_map.items()}
     rows: list[dict[str, Any]] = []
     times = recorder_map["state"].times()
     if start_index < 0 or start_index > len(times):
         raise ValueError("start_index must be within the recorder range")
+    mag_mount_321 = [
+        math.radians(float(cfg.values.get(f"magnetometer_mount_{axis}_deg", 0.0)))
+        for axis in ("yaw", "pitch", "roll")
+    ]
+    mag_dcm_sb = np.asarray(RigidBodyKinematics.euler3212C(mag_mount_321), dtype=float).reshape(3, 3)
     for index in range(start_index, len(times)):
         nanos = times[index]
         state = recorder_map["state"]
@@ -390,9 +395,14 @@ def _build_unified_rows(
             "orbit.phase_rad": math.atan2(float(position[1]), float(position[0])),
             "orbit.eclipse_factor": float(recorder_map["eclipse"].shadowFactor[index]),
             "adcs.pointing_error_deg": _pointing_error_deg(guide.sigma_BR[index]),
-            "adcs.body_rate_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
-            "adcs.body_rate_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
-            "adcs.body_rate_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
+            # This is the actual Basilisk spacecraft attitude relative to the
+            # inertial reference, independent of the sensor-fused estimate.
+            "attitude.truth.pointing_error_deg": _pointing_error_deg(state.sigma_BN[index]),
+            # Body rates come from the estimator NavAttMsg (frame B), not the
+            # raw IMU platform-frame recorder (frame P).
+            "adcs.body_rate_rad_s_x": float(recorder_map["fusion_attitude"].omega_BN_B[index][0]),
+            "adcs.body_rate_rad_s_y": float(recorder_map["fusion_attitude"].omega_BN_B[index][1]),
+            "adcs.body_rate_rad_s_z": float(recorder_map["fusion_attitude"].omega_BN_B[index][2]),
             "adcs.sensor.raw_gyro_rad_s_x": float(recorder_map["imu_raw"].AngVelPlatform[index][0]),
             "adcs.sensor.raw_gyro_rad_s_y": float(recorder_map["imu_raw"].AngVelPlatform[index][1]),
             "adcs.sensor.raw_gyro_rad_s_z": float(recorder_map["imu_raw"].AngVelPlatform[index][2]),
@@ -402,6 +412,13 @@ def _build_unified_rows(
             "adcs.sensor.gyro_measured_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
             "adcs.sensor.gyro_measured_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
             "adcs.sensor.gyro_measured_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
+            "adcs.sensor.gyro_measured_platform_rad_s_x": float(recorder_map["imu"].AngVelPlatform[index][0]),
+            "adcs.sensor.gyro_measured_platform_rad_s_y": float(recorder_map["imu"].AngVelPlatform[index][1]),
+            "adcs.sensor.gyro_measured_platform_rad_s_z": float(recorder_map["imu"].AngVelPlatform[index][2]),
+            "adcs.sensor.imu_sample_valid": int(recorder_map["imu_valid"].deviceStatus[index]),
+            "adcs.sensor.gyro_measured_body_rad_s_x": float(recorder_map["fusion_attitude"].omega_BN_B[index][0]),
+            "adcs.sensor.gyro_measured_body_rad_s_y": float(recorder_map["fusion_attitude"].omega_BN_B[index][1]),
+            "adcs.sensor.gyro_measured_body_rad_s_z": float(recorder_map["fusion_attitude"].omega_BN_B[index][2]),
             "adcs.sensor.gyro_bias_rad_s_x": float(recorder_map["imu_bias"].AngVelPlatform[index][0]),
             "adcs.sensor.gyro_bias_rad_s_y": float(recorder_map["imu_bias"].AngVelPlatform[index][1]),
             "adcs.sensor.gyro_bias_rad_s_z": float(recorder_map["imu_bias"].AngVelPlatform[index][2]),
@@ -458,6 +475,12 @@ def _build_unified_rows(
             "adcs.magnetometer.tesla_x": float(recorder_map["mag"].tam_S[index][0]),
             "adcs.magnetometer.tesla_y": float(recorder_map["mag"].tam_S[index][1]),
             "adcs.magnetometer.tesla_z": float(recorder_map["mag"].tam_S[index][2]),
+            "adcs.magnetometer.reference_n_tesla_x": float(recorder_map["mag_reference"].magField_N[index][0]),
+            "adcs.magnetometer.reference_n_tesla_y": float(recorder_map["mag_reference"].magField_N[index][1]),
+            "adcs.magnetometer.reference_n_tesla_z": float(recorder_map["mag_reference"].magField_N[index][2]),
+            "adcs.magnetometer.measured_body_tesla_x": float((mag_dcm_sb.T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[0]),
+            "adcs.magnetometer.measured_body_tesla_y": float((mag_dcm_sb.T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[1]),
+            "adcs.magnetometer.measured_body_tesla_z": float((mag_dcm_sb.T @ np.asarray(recorder_map["mag"].tam_S[index], dtype=float))[2]),
             "adcs.sun_sensor.cosine_output": float(recorder_map["sun_sensor"].OutputData[index]),
             "adcs.sun_sensor.direction_b_x": float(recorder_map["sun_vector"].tam_S[index][0]),
             "adcs.sun_sensor.direction_b_y": float(recorder_map["sun_vector"].tam_S[index][1]),
@@ -470,8 +493,18 @@ def _build_unified_rows(
             "adcs.earth_sensor.direction_b_y": float(recorder_map["earth_sensor"].tam_S[index][1]),
             "adcs.earth_sensor.direction_b_z": float(recorder_map["earth_sensor"].tam_S[index][2]),
             "adcs.fusion.source_mode": int(recorder_map["fusion_source_mode"].deviceStatus[index]),
+            "adcs.fusion.magnetometer_used": int(recorder_map["fusion_mag_used"].deviceStatus[index]),
+            "adcs.fusion.body_rate_valid": int(recorder_map["fusion_body_rate_valid"].deviceStatus[index]),
+            "adcs.fusion.estimated_mrp_BN_x": float(recorder_map["fusion_attitude"].sigma_BN[index][0]),
+            "adcs.fusion.estimated_mrp_BN_y": float(recorder_map["fusion_attitude"].sigma_BN[index][1]),
+            "adcs.fusion.estimated_mrp_BN_z": float(recorder_map["fusion_attitude"].sigma_BN[index][2]),
+            "adcs.fusion.estimated_omega_BN_B_x": float(recorder_map["fusion_attitude"].omega_BN_B[index][0]),
+            "adcs.fusion.estimated_omega_BN_B_y": float(recorder_map["fusion_attitude"].omega_BN_B[index][1]),
+            "adcs.fusion.estimated_omega_BN_B_z": float(recorder_map["fusion_attitude"].omega_BN_B[index][2]),
         }
         row.update(attitude_truth)
+        for axis, component in enumerate('xyz'):
+            row[f"attitude.truth.omega_BN_B_{component}"] = float(state.omega_BN_B[index][axis])
         for axis, component in enumerate('xyz'):
             row[f'orbit.position_m_{component}'] = float(position[axis])
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
@@ -583,7 +616,17 @@ def _build_unified_rows(
                     "propulsion.enabled": 1,
                     "propulsion.burn_active": int(recorder_map["propulsion_burn_status"].deviceStatus[index]),
                     "propulsion.burn_permitted": int(recorder_map["propulsion_permission"].deviceStatus[index]),
+                    "propulsion.burn_command_on_time_s": max(
+                        (float(value) for value in list(recorder_map["propulsion_burn_command"].OnTimeRequest[index])),
+                        default=0.0,
+                    ),
+                    "propulsion.nominal_burn_command_on_time_s": max(
+                        float(cfg.values.get("propulsion_burn_on_time_s", 0.0)),
+                        0.0,
+                    ),
                     "propulsion.fuel_mass_kg": float(fuel_rec.fuelMass[index]),
+                    "propulsion.initial_propellant_kg": float(fuel_rec.fuelMass[0]),
+                    "propulsion.propellant_used_kg": max(0.0, float(fuel_rec.fuelMass[0]) - float(fuel_rec.fuelMass[index])),
                     "propulsion.fuel_mass_dot_kg_s": float(fuel_rec.fuelMassDot[index]),
                     "propulsion.total_thrust_n": sum(thrust_forces),
                     "propulsion.max_thrust_factor": max(thrust_factors, default=0.0),
@@ -933,6 +976,8 @@ class UnifiedNativeRuntime:
             sc.hub.IHubPntBc_B = [list(row) for row in new_hub_inertia_b]
         # RW4 parameters have no physical owner in a three-wheel graph;
         # reject them instead of silently dropping a requested hardware edit.
+        if len(rw_axes) != 4 and values.get("rw_initial_speed_rad_s_3") is not None:
+            raise ValueError("NATIVE_RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
         if len(rw_axes) != 4 and values.get("rw_max_momentum_nms_3") is not None:
             raise ValueError("NATIVE_RW4_MOMENTUM_REQUIRES_PYRAMID_4")
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
@@ -975,7 +1020,10 @@ class UnifiedNativeRuntime:
             math.radians(float(values.get("star_tracker_mount_roll_deg", 0.0))),
         ]
         tracker = starTracker.StarTracker()
-        tracker.dcm_CB = np.asarray(RigidBodyKinematics.euler3212C(tracker_euler_321)).tolist()
+        # dcm_CB maps body B -> star-tracker case C. The estimator composes
+        # its N->C measurement with dcm_CB.T to recover the N->B attitude.
+        tracker_dcm_cb = np.asarray(RigidBodyKinematics.euler3212C(tracker_euler_321), dtype=float).reshape(3, 3)
+        tracker.dcm_CB = tracker_dcm_cb.tolist()
         star_noise_std_arcsec = float(values.get("star_tracker_noise_std_arcsec", 0.0))
         if not math.isfinite(star_noise_std_arcsec) or not 0 <= star_noise_std_arcsec <= 3600:
             raise ValueError("NATIVE_STAR_TRACKER_NOISE_STD_OUT_OF_RANGE")
@@ -999,6 +1047,9 @@ class UnifiedNativeRuntime:
             math.radians(float(values.get("imu_mount_roll_deg", 0.0))),
         ]
         imu = imuSensor.ImuSensor()
+        # dcm_PB maps body B -> IMU platform P. Fusion transforms measured
+        # angular velocity back to B using dcm_PB.T.
+        imu_dcm_pb = np.asarray(RigidBodyKinematics.euler3212C(imu_mount_321), dtype=float).reshape(3, 3)
         imu.setBodyToPlatformDCM(*imu_mount_321)
         imu.sensorPos_B = [
             float(values.get("imu_position_b_x_m", 0.0)),
@@ -1136,6 +1187,9 @@ class UnifiedNativeRuntime:
         mag_scale = values.get("magnetometer_scale_factor", 1.)
         if type(mag_scale) not in (int, float) or not math.isfinite(mag_scale) or not 0. < mag_scale <= 2.:
             raise ValueError("NATIVE_MAGNETOMETER_SCALE_INVALID")
+        # dcm_SB maps body B -> magnetometer sensor S. Fusion transforms
+        # tam_S back to B using dcm_SB.T.
+        magnetometer_dcm_sb = np.asarray(RigidBodyKinematics.euler3212C(angles), dtype=float).reshape(3, 3)
         magnetometer_model.setBodyToSensorDCM(*angles)
         magnetometer_model.senBias = mag_bias
         magnetometer_model.scaleFactor = float(mag_scale)
@@ -1152,6 +1206,7 @@ class UnifiedNativeRuntime:
         imu_fault.imuInMsg.subscribeTo(imu.sensorOutMsg)
         add(imu_fault, "project_imu_fault_injector", "basilisk_project_native", 84)
         connected("imu.sensorOutMsg", "project_imu_fault_injector")
+        connected("project_imu_fault_injector.imuValidOutMsg", "project_adcs_sensor_fusion")
 
         star_fault = StarTrackerFaultInjector(cfg.events, seed=int(values.get("simulation_seed", 0)))
         star_fault.starInMsg.subscribeTo(tracker.sensorOutMsg)
@@ -1164,9 +1219,14 @@ class UnifiedNativeRuntime:
         connected("project_sun_direction_sensor.bodyOutMsg", "project_sun_vector_fault_injector")
 
         fusion = AdcsSensorFusion()
+        fusion.starMountDcmCB = tracker_dcm_cb.tolist()
+        fusion.imuMountDcmPB = imu_dcm_pb.tolist()
+        fusion.magMountDcmSB = magnetometer_dcm_sb.tolist()
         fusion.starInMsg.subscribeTo(star_fault.starOutMsg)
         fusion.imuInMsg.subscribeTo(imu_fault.imuOutMsg)
+        fusion.imuValidInMsg.subscribeTo(imu_fault.imuValidOutMsg)
         fusion.magInMsg.subscribeTo(magnetometer_model.tamDataOutMsg)
+        fusion.magReferenceInMsg.subscribeTo(magnetic.envOutMsgs[0])
         fusion.sunBodyInMsg.subscribeTo(sun_fault.vectorOutMsg)
         fusion.sunReferenceInMsg.subscribeTo(sun_direction.referenceOutMsg)
         fusion.earthBodyInMsg.subscribeTo(earth_sensor.directionOutMsg)
@@ -1177,6 +1237,7 @@ class UnifiedNativeRuntime:
         connected("project_star_tracker_fault_injector.starOutMsg", "project_adcs_sensor_fusion")
         connected("project_imu_fault_injector.imuOutMsg", "project_adcs_sensor_fusion")
         connected("magnetometer.tamDataOutMsg", "project_adcs_sensor_fusion")
+        connected("magnetic_field.envOutMsgs[0]", "project_adcs_sensor_fusion")
         connected("project_sun_vector_fault_injector.vectorOutMsg", "project_adcs_sensor_fusion")
         connected("project_earth_horizon_sensor.directionOutMsg", "project_adcs_sensor_fusion")
 
@@ -1760,14 +1821,19 @@ class UnifiedNativeRuntime:
             "star_valid": star_fault.validOutMsg,
             "imu_raw": imu.sensorOutMsg,
             "imu": imu_fault.imuOutMsg,
+            "imu_valid": imu_fault.imuValidOutMsg,
             "imu_bias": imu_fault.biasOutMsg,
             "imu_noise": imu_fault.noiseOutMsg,
             "mag": magnetometer_model.tamDataOutMsg,
+            "mag_reference": magnetic.envOutMsgs[0],
             "sun_sensor": sun_sensor.cssDataOutMsg,
             "sun_vector_raw": sun_direction.bodyOutMsg,
             "sun_vector": sun_fault.vectorOutMsg,
             "sun_valid": sun_fault.validOutMsg,
             "fusion_source_mode": fusion.sourceModeOutMsg,
+            "fusion_mag_used": fusion.magUsedOutMsg,
+            "fusion_body_rate_valid": fusion.bodyRateValidOutMsg,
+            "fusion_attitude": fusion.attOutMsg,
             "earth_sensor": earth_sensor.directionOutMsg,
             "earth_reference": earth_sensor.referenceOutMsg,
             "eclipse": eclipse_model.eclipseOutMsgs[0],
@@ -1810,6 +1876,7 @@ class UnifiedNativeRuntime:
                     "propulsion_fuel": whole_modules["propulsion_fuel_tank"].fuelTankOutMsg,
                     "propulsion_burn_status": whole_modules["propulsion_controller"].burnStatusOutMsg,
                     "propulsion_permission": whole_modules["propulsion_controller"].permissionStatusOutMsg,
+                    "propulsion_burn_command": whole_modules["propulsion_controller"].commandOutMsg,
                 })
                 messages["propulsion_power"] = whole_modules["propulsion_power_bridge"].powerOutMsg
                 for thruster_index, thruster_msg in enumerate(whole_modules["propulsion_thrusters"].thrusterOutMsgs):
@@ -2241,10 +2308,45 @@ class UnifiedNativeRuntime:
             "initial_pointing_error_deg": rows[0]["adcs.pointing_error_deg"],
             "final_pointing_error_deg": final["adcs.pointing_error_deg"],
             "adcs_closed_loop_improved": final["adcs.pointing_error_deg"] < rows[0]["adcs.pointing_error_deg"],
+            "initial_truth_pointing_error_deg": rows[0]["attitude.truth.pointing_error_deg"],
+            "final_truth_pointing_error_deg": final["attitude.truth.pointing_error_deg"],
+            "adcs_truth_closed_loop_improved": (
+                final["attitude.truth.pointing_error_deg"] < rows[0]["attitude.truth.pointing_error_deg"]
+            ),
             "initial_orbit_radius_m": rows[0]["orbit.radius_m"],
             "final_orbit_radius_m": final["orbit.radius_m"],
             "runtime_message_read_error_count": len(runtime_read_errors),
             "runtime_message_read_errors": runtime_read_errors[:20],
+        }
+        summary["adcs_fusion"] = {
+            "attitude_estimator": "star_tracker_plus_sun_magnetic_field_triad_quaternion_slerp",
+            "estimator_class": "deterministic_engineering_estimator_not_mekf_or_kalman",
+            "attitude_frame": "body_B_relative_to_inertial_N",
+            "body_rate_frame": "body_B",
+            "star_tracker_measurement": "official_qInrtl2Case_N_to_C_transformed_with_dcm_CB_to_body_B",
+            "imu_angular_rate_measurement": "official_AngVelPlatform_in_P_transformed_with_dcm_PB_transpose_to_body_B",
+            "imu_startup_validity": "first_zeroed_Basilisk_2_11_0_update_is_invalid_until_IMU_message_write_time_advances; estimator_holds_last_valid_body_rate",
+            "imu_validity_semantics": "invalid_until_new_sample_time; also_invalid_for_signal_loss_stuck_zero_or_axis_dropout; bias_and_noise_degradations_remain_measured_samples",
+            "magnetometer_measurement": "official_tam_S_in_S_transformed_with_dcm_SB_transpose_to_body_B_and_fused_with_magField_N",
+            "sun_earth_measurements": "project_ideal_geometry_vectors_from_environment_and_spacecraft_truth_not_official_CSS_direction",
+            "magnetometer_used_sample_count": sum(int(row.get("adcs.fusion.magnetometer_used", 0)) for row in rows),
+            "imu_sample_valid_count": sum(int(row.get("adcs.sensor.imu_sample_valid", 0)) for row in rows),
+            "body_rate_valid_sample_count": sum(int(row.get("adcs.fusion.body_rate_valid", 0)) for row in rows),
+            "first_valid_body_rate_time_s": next(
+                (float(row["time_s"]) for row in rows if int(row.get("adcs.fusion.body_rate_valid", 0)) == 1),
+                None,
+            ),
+            "sensor_mounting_dcms": {
+                "star_tracker_dcm_CB": np.asarray(tracker_dcm_cb, dtype=float).tolist(),
+                "imu_dcm_PB": np.asarray(imu_dcm_pb, dtype=float).tolist(),
+                "magnetometer_dcm_SB": np.asarray(magnetometer_dcm_sb, dtype=float).tolist(),
+            },
+            "limitations": [
+                "not a flight-correlated estimator or MEKF/Kalman filter",
+                "StarTracker has no optical star catalog, star centroiding or FOV occultation model",
+                "Sun/Earth vector measurements are ideal project-native geometry sensors; CSS remains scalar irradiance telemetry",
+                "IMU is a measured rate input, not a full strapdown navigation solution",
+            ],
         }
         if not cfg.adcs_only:
             resource_status = "FAIL" if any(health.get("status") == "FAIL" for health in bridge_health.values()) else "PASS"

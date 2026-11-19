@@ -106,7 +106,7 @@ def test_capability_contracts_and_templates_enable_native_events() -> None:
     ("category", "effect", "parameters", "field", "predicate"),
     [
         ("fault", "adcs_rw_jamming", {"wheel_index": 0, "brake_torque_nm": 0.2}, "adcs.control.applied_torque_nm_0", lambda rows: all(float(r["adcs.control.applied_torque_nm_0"]) <= 0.0 for r in rows[:3])),
-        ("fault", "adcs_rw_motor_failure", {"wheel_index": 0, "torque_scale": 0.0}, "adcs.rw.effective_max_torque_nm_0", lambda rows: all(float(r["adcs.rw.effective_max_torque_nm_0"]) == pytest.approx(0.0) for r in rows)),
+        ("fault", "adcs_rw_motor_failure", {"wheel_index": 0}, "adcs.rw.effective_max_torque_nm_0", lambda rows: all(float(r["adcs.rw.effective_max_torque_nm_0"]) == pytest.approx(0.0) for r in rows)),
         ("fault", "gyro_bias_step", {"bias_step_deg_s": [0.5, 0.0, 0.0]}, "adcs.sensor.gyro_bias_rad_s_x", lambda rows: all(abs(float(r["adcs.sensor.gyro_bias_rad_s_x"])) > 1.0e-3 for r in rows)),
         ("degradation", "gyro_noise_increase", {"noise_scale": 100.0}, "adcs.sensor.gyro_noise_rad_s_x", lambda rows: any(abs(float(r["adcs.sensor.gyro_noise_rad_s_x"])) > 1.0e-5 for r in rows)),
         ("degradation", "rw_friction_degradation", {"wheel_index": 0, "drag_nms": 0.01}, "adcs.rw.effective_drag_nms_0", lambda rows: all(float(r["adcs.rw.effective_drag_nms_0"]) == pytest.approx(0.01) for r in rows)),

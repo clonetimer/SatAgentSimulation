@@ -78,8 +78,7 @@ class SolarPanelL2DegradationType(str, Enum):
 def _effects_for(kind: SolarPanelL2DegradationType) -> tuple[ParameterEffect, ...]:
     effects_by_type = {
         SolarPanelL2DegradationType.RADIATION_EFFICIENCY_LOSS: (
-            ParameterEffect('cell_efficiency', 'degrade_multiply', 0.25, 'radiation damage lowers cell efficiency'),
-            ParameterEffect('output_power_w', 'degrade_multiply', 0.25, 'radiation damage lowers cell efficiency'),
+            ParameterEffect('cell_efficiency', 'degrade_multiply', 0.25, 'radiation damage lowers native panelEfficiency or deterministic source output'),
         ),
         SolarPanelL2DegradationType.COVER_GLASS_DARKENING: (
             ParameterEffect('output_power_w', 'degrade_multiply', 0.18, 'cover glass darkening reduces transmittance'),

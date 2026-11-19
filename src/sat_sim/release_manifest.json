@@ -94,6 +94,7 @@
     "/runs/{run_id}/fault-traceability/{event_id}/evidence-window",
     "/capabilities/product-closure",
     "/runs/{run_id}/fmea/download",
+    "/runs/{run_id}/bundle/download",
     "/diagnostics/pipelines",
     "/diagnostics/pipelines/{fault_id}",
     "/diagnostics/pipelines/{fault_id}/execute",

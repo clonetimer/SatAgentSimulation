@@ -14,8 +14,11 @@ import hashlib
 import pprint
 import shlex
 from dataclasses import dataclass, asdict
+from operator import eq
 from pathlib import Path
-from typing import Any, Literal, Mapping
+from typing import Any, Callable, Literal, Mapping
+
+from .explicit_parameters import same_literal
 
 
 ScriptKind = Literal["python", "shell", "capability-python", "assembly-python"]
@@ -68,7 +71,9 @@ def _set_export_path(data: dict[str, Any], path: str, value: Any) -> None:
     data[parts[-1]] = value
 
 
-def _merge_projection_changes(original: Any, before: Any, after: Any) -> Any:
+def _merge_projection_changes(
+    original: Any, before: Any, after: Any, *, equal: Callable[[Any, Any], bool] = eq,
+) -> Any:
     """Apply only edited projection fields; do not re-migrate public history."""
     if isinstance(before, Mapping) and isinstance(after, Mapping):
         result = copy.deepcopy(dict(original)) if isinstance(original, Mapping) else {}
@@ -77,10 +82,21 @@ def _merge_projection_changes(original: Any, before: Any, after: Any) -> Any:
                 result.pop(key, None)
             elif key not in before:
                 result[key] = copy.deepcopy(after[key])
-            elif before[key] != after[key]:
-                result[key] = _merge_projection_changes(result.get(key), before[key], after[key])
+            elif not equal(before[key], after[key]):
+                result[key] = _merge_projection_changes(result.get(key), before[key], after[key], equal=equal)
         return result
     return copy.deepcopy(after)
+
+
+def _strict_native_legacy_binding(spec: Mapping[str, Any]) -> bool:
+    from .task_models import _uses_strict_native_component
+
+    capability_id = spec.get("capability_id")
+    parameters = spec.get("parameters")
+    return isinstance(parameters, Mapping) and (
+        _uses_strict_native_component(capability_id, parameters)
+        or _uses_strict_native_component(capability_id, parameters.get("values"))
+    )
 
 
 def build_exported_task_spec(
@@ -125,29 +141,34 @@ def build_exported_task_spec(
         before_runtime = to_runtime_task_spec(canonical)
         edited = copy.deepcopy(before_runtime)
         _set_export_path(edited, path, value)
-        aligned = align_task_spec_to_source(edited, fill_defaults=True)
-        if not aligned.repairs:
-            previous = edited.get("metadata", {})
-            if "taskspec_src_alignment" in previous:
-                aligned.task_spec["metadata"]["taskspec_src_alignment"] = copy.deepcopy(previous["taskspec_src_alignment"])
-            else:
-                aligned.task_spec.get("metadata", {}).pop("taskspec_src_alignment", None)
-        for default_path in aligned.normalized_defaults:
-            if default_path.startswith("parameters."):
-                suffix = default_path.removeprefix("parameters.")
-                derived_paths.update({"parameters.values." + suffix, "model.config." + suffix})
-            else:
-                derived_paths.add(default_path)
-        derived_paths.update({"metadata.normalized_defaults", "metadata.repair_log", "metadata.taskspec_src_alignment"})
+        strict_native = _strict_native_legacy_binding(edited)
+        if not strict_native:
+            aligned = align_task_spec_to_source(edited, fill_defaults=True)
+            if not aligned.repairs:
+                previous = edited.get("metadata", {})
+                if "taskspec_src_alignment" in previous:
+                    aligned.task_spec["metadata"]["taskspec_src_alignment"] = copy.deepcopy(previous["taskspec_src_alignment"])
+                else:
+                    aligned.task_spec.get("metadata", {}).pop("taskspec_src_alignment", None)
+            for default_path in aligned.normalized_defaults:
+                if default_path.startswith("parameters."):
+                    suffix = default_path.removeprefix("parameters.")
+                    derived_paths.update({"parameters.values." + suffix, "model.config." + suffix})
+                else:
+                    derived_paths.add(default_path)
+            derived_paths.update({"metadata.normalized_defaults", "metadata.repair_log", "metadata.taskspec_src_alignment"})
+            edited = aligned.task_spec
         before_projection = canonicalize_task_spec(before_runtime)
-        after_projection = canonicalize_task_spec(aligned.task_spec)
+        after_projection = canonicalize_task_spec(edited)
         # Migration mirrors runtime parameters into model.config; that mirror
         # must not become a second public edit when values is authoritative.
         after_projection["model"]["config"] = before_projection["model"]["config"]
         if not canonical.get("parameters", {}).get("values") and before_projection["parameters"]["values"]:
             canonical["parameters"]["values"] = copy.deepcopy(before_projection["parameters"]["values"])
             derived_paths.update("parameters.values." + key for key in canonical["parameters"]["values"])
-        canonical = _merge_projection_changes(canonical, before_projection, after_projection)
+        # Preserve native Boolean edits even when their values compare equal to 0 or 1.
+        canonical = _merge_projection_changes(canonical, before_projection, after_projection,
+                                              equal=same_literal if strict_native else eq)
     canonical = canonicalize_task_spec(canonical)
     if field_sha256 is not None:
         current = exported_task_field_fingerprints(canonical)
@@ -170,12 +191,20 @@ def build_exported_task_spec(
     return canonicalize_task_spec(canonical)
 
 
-def _prepare_export_payload(spec: Mapping[str, Any], contract: Mapping[str, Any], output_root: str | Path | None, *, assembly: bool = False) -> dict[str, Any]:
+def _prepare_export_payload(
+    spec: Mapping[str, Any], output_root: str | Path | None, *,
+    contract: Mapping[str, Any] | None = None, assembly: bool = False,
+) -> dict[str, Any]:
+    from .capability_backends import get_task_capability
     from .task_models import canonicalize_task_spec, is_canonical_task_spec, to_runtime_task_spec
-    if is_canonical_task_spec(spec):
+    if is_canonical_task_spec(spec) or _strict_native_legacy_binding(spec):
+        # Native requests use execution's migration without source aliases,
+        # coercion or pruning of explicitly submitted physical inputs.
         canonical = canonicalize_task_spec(spec)
     else:
         from .taskspec_alignment import align_task_spec_to_source
+        if contract is None:
+            contract = get_task_capability(spec).data
         payload = align_task_spec_to_source(to_runtime_task_spec(spec), capability=contract, fill_defaults=True).task_spec
         try:
             from .taskspec_pruning import prune_task_spec_for_capability
@@ -458,7 +487,7 @@ def export_capability_python_runner(spec_path: str | Path, output_path: str | Pa
     comments.
     """
 
-    from .capability_registry import get_capability
+    from .capability_backends import get_task_capability
     from .task_spec import load_task_spec
     from .task_models import to_runtime_task_spec
 
@@ -469,8 +498,8 @@ def export_capability_python_runner(spec_path: str | Path, output_path: str | Pa
     capability_id = payload.get("capability_id")
     if not isinstance(capability_id, str) or not capability_id.strip():
         raise ValueError("capability-python export requires TaskSpec capability_id")
-    contract = get_capability(capability_id)
-    payload = _prepare_export_payload(doc.data, contract.data, output_root, assembly=False)
+    payload = _prepare_export_payload(doc.data, output_root)
+    contract = get_task_capability(payload, capability_id)
     content = _generate_capability_python_script(payload, contract.data)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(content, encoding="utf-8")
@@ -529,7 +558,7 @@ def export_assembly_python_runner(
         messages = "; ".join(str(item.get("message") or item.get("code")) for item in assembly_task_binding.get("errors", [])[:8])
         raise ValueError(f"assembly TaskSpec binding validation failed: {messages}")
     contract = get_capability(capability_id)
-    payload = _prepare_export_payload(doc.data, contract.data, output_root, assembly=True)
+    payload = _prepare_export_payload(doc.data, output_root, contract=contract.data, assembly=True)
     # Visual observer annotations (for example Scope probes) are project/UI data,
     # not part of the physical assembly runtime.  Validate the submitted graph
     # above, but deliberately omit observers from the generated runner so adding

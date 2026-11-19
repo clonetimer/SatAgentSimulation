@@ -28,6 +28,12 @@ modes:
     supported: true
     degradation_types: [thermal_resistance_growth, heat_capacity_drift]
 parameters:
+  physics_backend:
+    type: string
+    required: false
+    default: project_reference
+    enum: [project_reference, basilisk_native]
+    description: Select the project first-order thermal node or the official Basilisk radiating plate.
   ambient_k:
     type: number
     unit: K
@@ -62,6 +68,66 @@ parameters:
     type: array[number]
     unit: W
     required: false
+  surface_area_m2:
+    type: number
+    unit: m^2
+    required: false
+    default: 0.01
+    min: 0.000001
+    max: 1000.0
+    description: Area of the radiating plate.
+  mass_kg:
+    type: number
+    unit: kg
+    required: false
+    default: 1.0
+    min: 0.000001
+    max: 1000000.0
+    description: Thermal mass of the plate.
+  specific_heat_j_per_kg_k:
+    type: number
+    unit: J/(kg K)
+    required: false
+    default: 900.0
+    min: 1.0
+    max: 1000000.0
+    description: Specific heat of the plate material.
+  absorptivity:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.25
+    min: 0.000001
+    max: 1.0
+    description: Absorbed fraction of incident solar power.
+  emissivity:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.8
+    min: 0.000001
+    max: 1.0
+    description: Infrared emissivity of the plate.
+  normal_b:
+    type: array[number]
+    unit: ratio
+    required: false
+    default: [1.0, 0.0, 0.0]
+    description: Three-component unit vector for the plate normal in the body frame.
+  sun_direction_n:
+    type: array[number]
+    unit: ratio
+    required: false
+    default: [1.0, 0.0, 0.0]
+    description: Three-component unit vector from spacecraft to Sun in the inertial frame.
+  illumination_factor:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 1.0
+    description: Fixed eclipse multiplier, where 0 is eclipse and 1 is full Sun.
 simulation_parameters:
   duration_s:
     unit: s
@@ -195,3 +261,102 @@ integration_contract:
   limitations:
   - source-native wrapper of existing src public API; no additional high-fidelity physics added
   - does not implement finite-element or high-fidelity thermal network validation
+backend_profiles:
+  project_reference:
+    parameter_names: [physics_backend, ambient_k, tau_s, heat_gain_k_per_w, initial_temp_k, power_w, power_profile_w]
+  basilisk_native:
+    parameter_names: [physics_backend, initial_temp_k, power_w, surface_area_m2, mass_kg, specific_heat_j_per_kg_k,
+                      absorptivity, emissivity, normal_b, sun_direction_n, illumination_factor]
+    parameter_overrides:
+      initial_temp_k: {min: 1.0, max: 2000.0}
+      power_w: {max: 1000000.0, description: Constant electrical power converted to heat.}
+    summary: Official Basilisk SensorThermal plate with constant electrical heating, prescribed attitude and illumination, and recorded temperature.
+    backend_type: basilisk_native
+    backend_boundary:
+      schema_version: bsk0.native_proxy_boundary.v1
+      backend_type: basilisk_native
+      basilisk_required: true
+      current_agent_path_uses_basilisk: true
+      source_has_basilisk_facing_candidates: true
+      basilisk_candidate_files: [src/sat_sim/adapters/component_thermal_node_native.py]
+      validation_basis: [conformance_tests]
+      can_claim_high_fidelity: false
+      claim_guardrail: Scope evidence to the official SensorThermal temperature recorder on the prescribed fixture.
+    validation:
+      conformance_tests:
+      - test_native_export_matches_official_temperature_recorder
+      - test_native_exact_fractional_grid_and_time_zero_celsius
+      - test_stiff_fixture_accepts_safe_step_and_converges_with_refinement
+    modes:
+      nominal: {supported: true}
+    simulation_parameters:
+      duration_s: {unit: s, required: true, min: 0.0000000005}
+      sample_s: {unit: s, required: true, min: 0.0000000005}
+      step_s: {unit: s, required: false, min: 0.0000000005}
+    consumes:
+    - {name: simulation.duration_s, unit: s}
+    - {name: simulation.sample_s, unit: s}
+    - {name: simulation.step_s, unit: s}
+    - {name: simulation.solver.step_s, unit: s}
+    - {name: simulation.solver.method, unit: enum}
+    - {name: parameters.physics_backend, unit: enum}
+    - {name: parameters.initial_temp_k, unit: K}
+    - {name: parameters.power_w, unit: W}
+    - {name: parameters.surface_area_m2, unit: m^2}
+    - {name: parameters.mass_kg, unit: kg}
+    - {name: parameters.specific_heat_j_per_kg_k, unit: J/(kg K)}
+    - {name: parameters.absorptivity, unit: ratio}
+    - {name: parameters.emissivity, unit: ratio}
+    - {name: parameters.normal_b, unit: ratio}
+    - {name: parameters.sun_direction_n, unit: ratio}
+    - {name: parameters.illumination_factor, unit: ratio}
+    outputs:
+      trace:
+      - {name: time_s, unit: s, dtype: number}
+      - {name: sample_index, unit: count, dtype: integer}
+      - {name: label.health_state, unit: enum, dtype: string}
+      - &native_temp_c {name: thermal.node.temp_c, unit: degC, dtype: number}
+      - &native_temp_k {name: thermal.node.temp_k, unit: K, dtype: number}
+      - &native_input_power {name: thermal.node.input_power_w, unit: W, dtype: number}
+      summary:
+      - &native_final_temp {name: thermal.node.final_temp_k, unit: K, dtype: number}
+      - &native_delta_temp {name: thermal.node.delta_temp_k, unit: K, dtype: number}
+      - &native_min_temp {name: thermal.node.min_temp_k, unit: K, dtype: number}
+      - &native_max_temp {name: thermal.node.max_temp_k, unit: K, dtype: number}
+      - &native_initial_temp {name: thermal.node.initial_temp_k, unit: K, dtype: number}
+    produces:
+    - *native_temp_c
+    - *native_temp_k
+    - *native_input_power
+    - *native_final_temp
+    - *native_delta_temp
+    - *native_min_temp
+    - *native_max_temp
+    - *native_initial_temp
+    - {name: label.health_state, unit: enum}
+    operator:
+      owner: thermal_node
+      effects:
+      - {effect_id: nominal, kind: nominal, owner: thermal_node, implementation: basilisk_native, evidence_fields: [thermal.node.temp_c, thermal.node.temp_k], verification: declared}
+    implementation:
+      model_modules: &native_modules [Basilisk.simulation.sensorThermal, sat_sim.adapters.component_thermal_node_native]
+      backend_type: basilisk_native
+      uses_legacy_runner: false
+      basilisk_required: true
+    source_binding:
+      mode: basilisk_native
+      status: direct_public_api
+      primary_module: Basilisk.simulation.sensorThermal
+      source_modules: *native_modules
+      public_api: [SensorThermal, SensorThermal.temperatureOutMsg]
+      uses_legacy_runner: false
+      basilisk_required: true
+    known_physics_limits: &native_limits
+    - Uniform-temperature radiating plate with constant electrical heating, fixed attitude, fixed Sun at nominal 1 AU and prescribed illumination. Basilisk 2.11.0 uses fixed solar flux without inverse-square distance scaling.
+    - No ambient conduction, Earth IR/albedo, thermal networks, propagated orbit, faults, degradation, thermostat, installation geometry or mission coupling.
+    integration_contract:
+      schema_version: sat-sim.capability-integration.v1
+      source_modules_ref: implementation.model_modules
+      implementation_class: official_basilisk_native
+      couplings: {supported: [], unsupported: ["*"]}
+      limitations: *native_limits

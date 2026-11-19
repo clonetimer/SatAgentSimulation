@@ -24,6 +24,13 @@ modes:
     supported: true
     degradation_types: [bias_drift, scale_factor_drift]
 parameters:
+  physics_backend:
+    type: string
+    enum: [project_reference, basilisk_native]
+    unit: none
+    required: false
+    default: project_reference
+    description: Explicit engine. basilisk_native uses the official Basilisk Magnetometer with a prescribed uniform inertial magnetic-field message; nominal only, uniform axis scale and identity mounting.
   magnetic_field_t: {type: "array[number]", unit: T, required: false, default: [0.00002, 0.0, 0.00004]}
   axis_scale: {type: "array[number]", unit: ratio, required: false, default: [1.0, 1.0, 1.0]}
   bias_t: {type: "array[number]", unit: T, required: false, default: [0.0, 0.0, 0.0]}

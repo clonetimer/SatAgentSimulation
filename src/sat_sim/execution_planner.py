@@ -24,6 +24,7 @@ from typing import Any, Literal, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .capability_backends import get_task_capability, validate_backend_output_requests
 from .capability_registry import find_effect_owners, get_capability
 from .operator_contract import OperatorContract, OperatorEffect
 from .task_models import canonicalize_task_spec
@@ -490,10 +491,11 @@ def _field_matches(requested: str, declared: str) -> bool:
     return requested == declared or fnmatch.fnmatchcase(requested, declared) or fnmatch.fnmatchcase(declared, requested)
 
 
-def _available_output_fields(graph: DependencyGraph) -> list[tuple[str, str, str, str]]:
+def _available_output_fields(graph: DependencyGraph, spec: Mapping[str, Any]) -> list[tuple[str, str, str, str]]:
     out: list[tuple[str, str, str, str]] = []
     for capability_id in graph.topological_order:
-        op = get_capability(capability_id).operator_contract
+        contract = get_task_capability(spec, capability_id) if capability_id == graph.primary_capability_id else get_capability(capability_id)
+        op = contract.operator_contract
         for source_kind, fields in (
             ("qoi", op.observability.qoi),
             ("trace", op.observability.trace_fields),
@@ -508,12 +510,12 @@ def _resolve_outputs(spec: Mapping[str, Any], graph: DependencyGraph, issues: li
     outputs = spec.get("outputs") if isinstance(spec.get("outputs"), Mapping) else {}
     requested = [str(item) for item in (outputs.get("qoi") or []) if str(item).strip()]
     explicit = bool(requested)
-    primary_op = get_capability(graph.primary_capability_id).operator_contract
+    primary_op = get_task_capability(spec, graph.primary_capability_id).operator_contract
     if not requested:
         requested = list(primary_op.observability.qoi)
         if not requested:
             requested = list(primary_op.observability.trace_fields)
-    available = _available_output_fields(graph)
+    available = _available_output_fields(graph, spec)
     bindings: list[OutputBinding] = []
     for index, field_name in enumerate(requested):
         candidates = [entry for entry in available if _field_matches(field_name, entry[3])]
@@ -604,7 +606,7 @@ def _resolved_spec(spec: Mapping[str, Any], issues: list[PlanIssue]) -> Resolved
         issues.append(PlanIssue("error", "PRIMARY_CAPABILITY_MISSING", "$.model.capability_id", "Canonical TaskSpec does not select a primary capability."))
         return None
     try:
-        contract = get_capability(capability_id)
+        contract = get_task_capability(canonical, capability_id)
     except Exception as exc:
         issues.append(PlanIssue("error", "PRIMARY_CAPABILITY_UNKNOWN", "$.model.capability_id", str(exc)))
         return None
@@ -622,6 +624,8 @@ def _resolved_spec(spec: Mapping[str, Any], issues: list[PlanIssue]) -> Resolved
         return None
     effects = _resolve_effects(canonical, graph, issues)
     output_bindings = _resolve_outputs(canonical, graph, issues)
+    for issue in validate_backend_output_requests(canonical, contract):
+        issues.append(PlanIssue("error", "BACKEND_OUTPUT_UNAVAILABLE", issue.path, issue.message))
     assurance = canonical.get("assurance") if isinstance(canonical.get("assurance"), Mapping) else {}
     mission = canonical.get("mission") if isinstance(canonical.get("mission"), Mapping) else {}
     integration = contract.integration_contract

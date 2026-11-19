@@ -29,8 +29,9 @@ import fnmatch
 import re
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Callable, Mapping, Protocol, Sequence
 
+from .capability_backends import select_capability_backend
 from .capability_registry import (
     CapabilityContract,
     active_capability_ids,
@@ -915,7 +916,9 @@ def _default_parameter_value(payload: Mapping[str, Any]) -> Any:
     return ""
 
 
-def _synthesize_template(capability_id: str, template_file: str) -> dict[str, Any]:
+def _synthesize_template(
+    capability_id: str, template_file: str, *, physics_backend: str | None = None,
+) -> dict[str, Any]:
     """Build a deterministic minimal legacy draft when an example file is absent.
 
     The capability registry, not the Agent's memory, supplies target ownership,
@@ -923,7 +926,7 @@ def _synthesize_template(capability_id: str, template_file: str) -> dict[str, An
     even when optional example collections are not copied beside the source tree.
     """
 
-    contract = get_capability(capability_id)
+    contract = select_capability_backend(get_capability(capability_id), physics_backend)
     target_level = contract.target_level
     from .form_schema import capability_output_defaults
     default_outputs = capability_output_defaults(contract)
@@ -1176,6 +1179,22 @@ def _compact_contract_summary(contract: CapabilityContract) -> dict[str, Any]:
     }
 
 
+def _prompt_contract_summary(
+    contract: CapabilityContract, summarize: Callable[[CapabilityContract], dict[str, Any]],
+    *, physics_backend: str | None = None,
+) -> dict[str, Any]:
+    selected = select_capability_backend(contract, physics_backend)
+    summary = summarize(selected)
+    if contract.data.get("backend_profiles"):
+        selector = contract.data["parameters"]["physics_backend"]
+        summary["backend_profiles"] = {
+            backend: summarize(select_capability_backend(contract, backend))
+            for backend in selector["enum"]
+            if backend != selected.data["parameters"]["physics_backend"]["default"]
+        }
+    return summary
+
+
 def _scrub_capability_summary_for_prompt(item: Mapping[str, Any], *, allowed_capabilities: set[str]) -> dict[str, Any]:
     """Return an LLM-facing capability summary without hidden dependency IDs."""
 
@@ -1217,7 +1236,11 @@ def capability_agent_context_payload(*, allowed_capabilities: Sequence[str] = DE
         ],
     }
     if include_contracts:
-        payload["capability_contracts"] = [_summarize_contract(c, allowed_dependency_capabilities=set(allowed)) for c in contracts]
+        allowed_set = set(allowed)
+        payload["capability_contracts"] = [
+            _prompt_contract_summary(contract, lambda c: _summarize_contract(c, allowed_dependency_capabilities=allowed_set))
+            for contract in contracts
+        ]
     return payload
 
 
@@ -1247,19 +1270,26 @@ def _prompt_candidate_capabilities(request_text: str, allowed: Sequence[str], *,
     return tuple(allowed[:max_candidates])
 
 
-def _example_for_prompt(capability_id: str | None, *, omit_optional_parameters: bool = False) -> str:
+def _example_for_prompt(
+    capability_id: str | None, *, omit_optional_parameters: bool = False,
+    physics_backend: str | None = None,
+) -> str:
     if not capability_id:
         return ""
     try:
         template = f"{capability_id.replace('.', '_')}_nominal.yaml"
-        spec = _synthesize_template(capability_id, template)
+        spec = _synthesize_template(capability_id, template, physics_backend=physics_backend)
         # Authoring provenance is not a requested field in generated tasks.
         spec.pop("metadata", None)
         spec.pop("description", None)
         if omit_optional_parameters and isinstance(spec.get('parameters'), dict):
-            declared = get_capability(capability_id).data.get('parameters', {})
-            spec['parameters'] = {key:value for key,value in spec['parameters'].items()
-                                  if isinstance(declared.get(key), Mapping) and declared[key].get('required') is True}
+            contract = select_capability_backend(get_capability(capability_id), physics_backend)
+            declared = contract.data.get("parameters", {})
+            spec["parameters"] = {
+                key: value for key, value in spec["parameters"].items()
+                if _mapping(declared.get(key)).get("required") is True
+                or (key == "physics_backend" and physics_backend is not None)
+            }
         if isinstance(spec.get("outputs"), dict):
             spec["outputs"].pop("record_fields", None)
         if spec.get("task_type") == "whole_spacecraft":
@@ -1359,13 +1389,29 @@ def build_capability_agent_prompt(
     """
     allowed = tuple(allowed_capabilities)
     allowed_set = set(allowed)
-    prompt_capabilities = _prompt_candidate_capabilities(request_text, allowed) if compact else allowed
+    candidates = _prompt_candidate_capabilities(request_text, allowed)
+    prompt_capabilities = candidates if compact else allowed
+    selected_capability = prompt_capabilities[0] if prompt_capabilities else None
+    contract = get_capability(selected_capability) if selected_capability else None
+    if not compact and candidates and candidates[0] != selected_capability:
+        planned_contract = get_capability(candidates[0])
+        if planned_contract.data.get("backend_profiles"):
+            selected_capability = planned_contract.capability_id
+            contract = planned_contract
+    assignments = _registered_literal_assignments(request_text, contract.data.get("parameters", {})) if contract else {}
+    physics_backend = assignments.get("physics_backend") if contract and contract.data.get("backend_profiles") else None
+    profile_rule = (
+        "For capabilities with backend profiles, use the displayed parameters and outputs for the displayed physics_backend. "
+        "When the request explicitly selects a profile, include its selector as parameters.physics_backend.\n"
+        if contract and contract.data.get("backend_profiles") else ""
+    )
     if compact:
-        contracts = [get_capability(capability_id) for capability_id in prompt_capabilities]
         context = {
             "prompt_scope": "local_compact",
             "allowed_capabilities": list(prompt_capabilities),
-            "selected_capability": _compact_contract_summary(contracts[0]) if contracts else None,
+            "selected_capability": _prompt_contract_summary(
+                contract, _compact_contract_summary, physics_backend=physics_backend,
+            ) if contract else None,
             "rules": [
                 "Generate only the selected capability.",
                 "Use canonical TaskSpec fields only.",
@@ -1375,18 +1421,25 @@ def build_capability_agent_prompt(
         }
     else:
         context = capability_agent_context_payload(allowed_capabilities=prompt_capabilities, include_contracts=True)
+        if contract and physics_backend is not None:
+            index = prompt_capabilities.index(contract.capability_id)
+            context["capability_contracts"][index] = _prompt_contract_summary(
+                contract, lambda c: _summarize_contract(c, allowed_dependency_capabilities=allowed_set),
+                physics_backend=physics_backend,
+            )
         context["allowed_capabilities_authoritative"] = list(allowed)
         context["prompt_scope"] = "full"
     requested_time = _explicit_time_requirements(request_text)
     if requested_time:
         context["requested_time"] = requested_time
-    if prompt_capabilities:
-        selected_contract = get_capability(prompt_capabilities[0]).data
-        context['requested_parameter_assignments'] = _registered_literal_assignments(request_text, selected_contract.get('parameters', {}))
+    if contract:
+        selected_contract = select_capability_backend(contract, physics_backend).data
+        context['requested_parameter_assignments'] = assignments
         context['requested_output_fields'] = sorted(_requested_declared_output_fields(request_text, selected_contract))
     context_json = json.dumps(context, separators=(",", ":"), ensure_ascii=False) if compact else json.dumps(context, indent=2, ensure_ascii=False)
-    selected_capability = prompt_capabilities[0] if prompt_capabilities else None
-    canonical_example = _example_for_prompt(selected_capability, omit_optional_parameters=compact)
+    canonical_example = _example_for_prompt(
+        selected_capability, omit_optional_parameters=compact, physics_backend=physics_backend,
+    )
     for item in advisory_context:
         advisory = item.get("advisory") if isinstance(item, Mapping) else None
         outlines = (
@@ -1462,7 +1515,7 @@ Generate one TaskSpec, never code. Registry/planner are authoritative; examples/
 ```
 {exposure_note}{boundary_note}{experience_note}
 ## Output contract
-{event_count_note}
+{event_count_note}{profile_rule}
 Return one YAML/JSON object, no Markdown or explanation. Use schema_version: {TASK_SPEC_VERSION}.
 Allowed top-level keys: schema_version, task_id, task_type, capability_id, target, simulation, spacecraft, parameters, orbit_environment, faults, degradations, constraints, modifiers, outputs, metadata, tags.
 Copy task_type and target level/name from the selected capability. target permits only level/name/mode. For whole_spacecraft include spacecraft.mission.template. Use duration_s, sample_s and solver.step_s for time, in seconds. If accepted_task_backends has one value, use it exactly. For subsystem set simulation.subsystem to the declared target name.
@@ -1492,6 +1545,7 @@ You are generating a TaskSpec for a satellite simulation toolchain. The user wan
 ```
 {exposure_note}{boundary_note}
 ## Output contract
+{profile_rule}
 Return exactly one YAML or JSON TaskSpec. Do not include Markdown fences, explanations, imports, or Python code.
 The TaskSpec must:
 - use schema_version: {TASK_SPEC_VERSION}
@@ -1761,7 +1815,7 @@ class CapabilityTemplateBackend:
             (mentions_power_sink, "component_power_sink_capability_nominal.yaml", "component.power_sink.v1", "power-sink component keywords"),
             (mentions_heater and not mentions_thermal, "component_heater_capability_nominal.yaml", "component.heater.v1", "heater component keywords"),
             (mentions_radiator and not mentions_thermal, "component_radiator_capability_nominal.yaml", "component.radiator.v1", "radiator component keywords"),
-            (mentions_thermal_node and not mentions_thermal, "component_thermal_node_capability_nominal.yaml", "component.thermal_node.v1", "thermal-node component keywords"),
+            (mentions_thermal_node and not _contains_any(text, ["subsystem", "分系统", "子系统"]), "component_thermal_node_capability_nominal.yaml", "component.thermal_node.v1", "thermal-node component keywords"),
             (mentions_payload_sensor, "component_payload_sensor_capability_nominal.yaml", "component.payload_sensor.v1", "payload-sensor component keywords"),
             (mentions_payload, "component_payload_capability_nominal.yaml", "component.payload.v1", "payload component keywords"),
             (mentions_propulsion, "subsystem_propulsion_source_native_v1_nominal.yaml", "subsystem.propulsion.source_native.v1", "propulsion/fuel source-native subsystem keywords"),
@@ -1807,10 +1861,19 @@ class CapabilityTemplateBackend:
     def draft_task_spec(self, *, request: CapabilityAgentRequest, context: Mapping[str, Any]) -> dict[str, Any]:
         selection = self.select_template(request.request, context)
         selection = _selection_replacement_for_allowed(selection, request.allowed_capabilities)
-        try:
-            spec = copy.deepcopy(_load_template(selection.template_file, request.examples_dir))
-        except FileNotFoundError:
-            spec = _synthesize_template(selection.capability_id, selection.template_file)
+        assignments = {}
+        if selection.capability_id == "component.thermal_node.v1":
+            contract = get_capability(selection.capability_id)
+            assignments = _registered_literal_assignments(request.request, contract.data["parameters"])
+        native_thermal = assignments.get("physics_backend") == "basilisk_native"
+        if native_thermal:
+            spec = _synthesize_template(selection.capability_id, selection.template_file, physics_backend="basilisk_native")
+            spec["parameters"].update(assignments)
+        else:
+            try:
+                spec = copy.deepcopy(_load_template(selection.template_file, request.examples_dir))
+            except FileNotFoundError:
+                spec = _synthesize_template(selection.capability_id, selection.template_file)
         _apply_capability_request_overrides(spec, request, base_template=selection.template_file, selection_reason=selection.reason)
         return spec
 

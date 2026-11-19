@@ -50,7 +50,10 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert whole["continuous_initial_field_count"] == 165
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 162
+    assert whole["registered_parameter_count"] == 166
+    for key in (f"rw_initial_speed_rad_s_{i}" for i in range(4)):
+        assert key not in whole["native_source_keys_missing_whole_registry"]
+        assert key not in whole["whole_registry_keys_without_direct_lookup"]
     for key in ("star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg", "star_tracker_mount_roll_deg"):
         assert key in whole["continuous_groups"]["adcs"]
         assert key not in whole["native_source_keys_missing_whole_registry"]
@@ -90,8 +93,8 @@ def test_registry_parameter_dropped_from_form_is_a_blocking_coverage_failure(mon
 
     actual = audit.capability_form_schema
 
-    def broken(capability_id):
-        value = actual(capability_id)
+    def broken(capability_id, **kwargs):
+        value = actual(capability_id, **kwargs)
         if capability_id == audit.WHOLE_ID:
             value["fields"] = [f for f in value["fields"]
                                if f["path"] != "parameters.values.controller_k"]
@@ -102,3 +105,50 @@ def test_registry_parameter_dropped_from_form_is_a_blocking_coverage_failure(mon
     assert report["status"] == "FAIL"
     assert {"capability_id": audit.WHOLE_ID, "parameter": "controller_k",
             "code": "REGISTRY_PARAMETER_NOT_IN_FORM"} in report["issues"]
+
+
+def test_thermal_parameter_audit_tracks_each_backend_and_the_catalog_union():
+    report = build_parameter_surface_audit()
+    thermal = next(row for row in report["capabilities"] if row["capability_id"] == "component.thermal_node.v1")
+    assert report["status"] == "PASS", report["issues"]
+    profiles = {row["physics_backend"]: row for row in thermal["backend_profiles"]}
+    assert profiles["project_reference"]["basilisk_required"] is False
+    assert profiles["basilisk_native"]["basilisk_required"] is True
+    parameters = {row["key"]: row for row in thermal["parameters"]}
+    assert parameters["ambient_k"]["available_backends"] == ["project_reference"]
+    assert parameters["surface_area_m2"]["available_backends"] == ["basilisk_native"]
+    assert set(parameters["initial_temp_k"]["available_backends"]) == set(profiles)
+
+
+def test_missing_native_common_parameter_is_not_hidden_by_reference_form(monkeypatch):
+    from sat_sim.validation import parameter_surface_audit as audit
+    actual = audit.capability_form_schema
+
+    def broken(capability_id, **kwargs):
+        form = actual(capability_id, **kwargs)
+        if capability_id == "component.thermal_node.v1" and kwargs.get("physics_backend") == "basilisk_native":
+            form["fields"] = [row for row in form["fields"] if row["path"] != "parameters.values.power_w"]
+        return form
+
+    monkeypatch.setattr(audit, "capability_form_schema", broken)
+    report = build_parameter_surface_audit()
+    assert report["status"] == "FAIL"
+    assert {"capability_id": "component.thermal_node.v1", "physics_backend": "basilisk_native",
+            "parameter": "power_w", "code": "REGISTRY_PARAMETER_NOT_IN_FORM"} in report["issues"]
+
+
+def test_reference_parameter_leaking_into_native_form_is_a_blocking_audit_failure(monkeypatch):
+    from sat_sim.validation import parameter_surface_audit as audit
+    actual = audit.capability_form_schema
+
+    def broken(capability_id, **kwargs):
+        form = actual(capability_id, **kwargs)
+        if capability_id == "component.thermal_node.v1" and kwargs.get("physics_backend") == "basilisk_native":
+            form["fields"].append({"path": "parameters.values.ambient_k", "unit": "K"})
+        return form
+
+    monkeypatch.setattr(audit, "capability_form_schema", broken)
+    report = build_parameter_surface_audit()
+    assert report["status"] == "FAIL"
+    assert {"capability_id": "component.thermal_node.v1", "physics_backend": "basilisk_native",
+            "parameter": "ambient_k", "code": "FORM_PARAMETER_NOT_IN_REGISTRY"} in report["issues"]

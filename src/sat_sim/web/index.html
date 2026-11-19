@@ -20,10 +20,10 @@
       document.documentElement.style.setProperty('--ui-scale', String(Number(fontScale) / 100));
     })();
   </script>
-  <link rel="stylesheet" href="/assets/styles.css?v=0.7.8">
+  <link rel="stylesheet" href="/assets/styles.css?v=p9n4-result-history-1">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
   <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-realtime-width-20261111-2">
-  <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9l-scene-provenance-2">
+  <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9m4-d-review-5">
 </head>
 <body data-active-view="wizard">
   <a class="skip-link" href="#mainContent">跳转到主要内容</a>
@@ -215,6 +215,10 @@
                 <button type="button" class="button button-secondary" data-cad-view="home">等轴测</button><button type="button" class="button button-secondary" data-cad-view="x">+X</button><button type="button" class="button button-secondary" data-cad-view="-x">-X</button><button type="button" class="button button-secondary" data-cad-view="y">+Y</button><button type="button" class="button button-secondary" data-cad-view="-y">-Y</button><button type="button" class="button button-secondary" data-cad-view="z">+Z</button><button type="button" class="button button-secondary" data-cad-view="-z">-Z</button>
               </div>
             </header>
+            <section id="birdsCadReviewPanel" class="birds-cad-review-panel" aria-label="工程几何候选审查">
+              <div class="birds-cad-review-heading"><div><strong>工程映射审查</strong><span>仅定位经来源校验的参考 CAD 候选，不代表实装批准</span></div><span class="birds-cad-review-gate">待校验 GLB</span></div>
+              <p class="birds-cad-review-empty">读取工程映射清单后，将显示可审查的设备装配组。请加载与证据 SHA-256 一致的 GLB 文件。</p>
+            </section>
             <div class="birds-cad-workspace">
               <aside class="birds-cad-tree-panel"><div class="birds-cad-panel-title">装配结构 <span>CAD NODE</span></div><div class="birds-cad-tree-tools"><input id="birdsCadSearch" type="search" placeholder="搜索装配部件…" aria-label="搜索装配部件"><button type="button" class="button button-secondary" data-cad-tree-action="isolate">隔离选中</button><button type="button" class="button button-secondary" data-cad-tree-action="restore">恢复全部</button></div><div id="birdsCadTree" class="birds-cad-tree"><p>打开整星 GLB 后显示原始装配节点。</p></div></aside>
               <div class="birds-cad-viewport"><canvas aria-label="BIRDS-4 三维 CAD 模型，可拖动旋转、滚轮缩放、右键平移"></canvas><div class="birds-cad-viewport-hint">左键旋转 · 滚轮缩放 · 右键平移</div><div class="birds-cad-axis-cube">X <b>Y</b> Z</div></div>
@@ -275,6 +279,12 @@
             <div class="p9d-panel-heading"><div><h2>本次运行结果</h2><p>按当前对象查看同一封存 Run 中的真实记录</p></div></div>
             <div id="p9eRunResultHost" class="p9e-run-result-host" aria-live="polite"><p class="p9d-empty">选择一条已完成运行后，这里会显示该对象关联的记录。</p></div>
           </section>
+          <section class="p9m4-mapping-section" aria-label="工程资产映射">
+            <div class="p9d-panel-heading"><div><h2>工程资产映射</h2><p>参考 CAD · 仿真构型 · 已审定实装</p></div></div>
+            <div id="p9m4MappingStatus" class="p9m4-mapping-status" role="status" aria-live="polite">正在读取工程映射状态…</div>
+            <div id="p9m4MappingDetail" class="p9m4-mapping-detail"><p class="p9d-empty">映射状态仅用于区分证据等级，不代表几何已加载。</p></div>
+            <p class="p9d-panel-footnote">参考 CAD 不绑定遥测、不生成实装坐标；未定位对象不创建虚假几何。只有通过独立证据审批的实例才能进入实装视图。</p>
+          </section>
         </aside>
       </div>
       <div id="sceneTaskCreateModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="sceneTaskCreateTitle">
@@ -322,6 +332,10 @@
           <details id="wizardParametersPanel" class="wizard-config-panel">
             <summary>模型参数（按需调整）</summary>
             <p class="wizard-panel-help">默认沿用当前模型推荐值。先完成运行时长和采样间隔即可开始；只有需要改变物理工况或模型特性时，再展开参数。</p>
+            <div id="wizardNativeRwPreset" class="wizard-native-preset hidden">
+              <div><strong>官方 Basilisk 原生反作用轮</strong><span>加载已验证的单轮物理配置，使用 Basilisk ReactionWheelStateEffector 运行；仅支持标称工况。</span></div>
+              <button id="wizardApplyNativeRwPresetBtn" class="button button-secondary" type="button">应用原生单轮配置</button>
+            </div>
             <div class="wizard-parameter-controls">
               <div class="wizard-parameter-mode" role="group" aria-label="参数显示级别">
                 <button type="button" class="wizard-parameter-mode-button" data-wizard-parameter-mode="runtime" aria-pressed="false">仅运行参数</button>
@@ -337,7 +351,7 @@
             </div>
             <div id="wizardParameterHost"></div>
           </details>
-          <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><p class="wizard-panel-help">设置故障何时发生、持续多久以及作用幅度。所有故障类型均来自当前模型已注册的事件目录。</p><div id="wizardEventHost"></div></details>
+          <details id="wizardFaultPanel" class="wizard-config-panel"><summary>故障与事件</summary><p class="wizard-panel-help">设置故障何时发生、持续多久以及作用幅度。所有故障类型均来自当前模型已注册的事件目录。</p><p id="wizardNativeAdcsFaultNote" class="wizard-panel-help hidden">ADCS 当前仅开放 5 类已通过官方 Basilisk 2.11.0 物理 A/B 的故障与退化。它们用于工程仿真验证，不代表飞行硬件标定或飞行验证；未通过门禁的事件不会出现在此处。</p><div id="wizardEventHost"></div></details>
           <details id="wizardOutputPanel" class="wizard-config-panel"><summary>结果指标与曲线</summary>
             <p class="wizard-panel-help">先按观察目的添加推荐曲线，不需要理解技术字段。每组曲线都来自当前仿真对象实际注册的输出。</p>
             <section class="wizard-output-section" aria-label="观测指标">
@@ -355,6 +369,10 @@
             </section>
             <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>查看完整摘要指标目录</summary><p class="wizard-panel-help">完整注册指标目录，包含高级或低频使用的结果摘要项。</p><div id="wizardQoiHost"></div></details>
             <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>查看完整遥测字段目录（高级）</summary><p class="wizard-panel-help">完整展示当前能力注册的具体遥测字段，可查看技术字段名和单位。</p><div id="wizardPlotHost"></div></details>
+            <section class="wizard-fmea-output" aria-label="FMEA 输出">
+              <label class="advanced-toggle"><input id="wizardFmeaEnabled" type="checkbox"><span>生成 FMEA 表</span></label>
+              <p class="wizard-panel-help">将本次事件与遥测证据整理为 FMEA 表；只有显式提供严重度、发生度和可检测度时才计算 RPN。</p>
+            </section>
           </details>
         </section>
         <details id="wizardAdditionalTools" class="wizard-additional-tools">
@@ -389,7 +407,12 @@
           <div id="wizardTaskSummary" class="wizard-task-summary" role="status"></div>
           <div id="wizardTaskList" class="wizard-task-list"></div>
         </section>
-        <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果"></section>
+        <section id="wizardRunResultsHost" class="wizard-run-results hidden" aria-label="仿真运行结果">
+          <div class="wizard-result-navigation">
+            <span>本次运行已保存，可继续检查历史记录与完整运行证据。</span>
+            <button id="wizardOpenRunCenterBtn" class="button button-secondary" type="button">打开运行中心</button>
+          </div>
+        </section>
         <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>
         <div class="wizard-footer">
           <div class="wizard-footer-note">配置完成后即可校验并运行。</div>
@@ -510,6 +533,7 @@
               <select id="effectSelect" aria-label="效果类型"></select>
               <button id="addEffectBtn" class="button button-secondary" type="button">添加事件</button>
             </div>
+            <p id="eventBackendLimitNote" class="wizard-panel-help hidden">当前选择的是官方 Basilisk 原生反作用轮后端，仅支持单轮标称工况；故障、退化和运行约束事件暂不可用。切换回项目参考模型后可使用已注册的事件能力。</p>
             <div id="wizardEventControlsReturnAnchor"></div><div id="wizardEventReturnAnchor"></div><div id="eventList" class="event-list"></div>
 
 </details>
@@ -793,6 +817,7 @@
 
 
             <button id="exportDatasetBtn" class="button button-primary hidden" type="button">导出数据集</button>
+            <button id="downloadRunBundleBtn" class="button button-secondary hidden" type="button" title="仅导出已封存且完整性校验通过的完整 Run Bundle">导出 Run Bundle</button>
 
             <button id="cancelRunBtn" class="button button-danger hidden" type="button">取消运行</button>
             <button id="reuseRunConfigBtn" class="button button-secondary hidden" type="button" title="将本次运行的原始配置复制到新建表单；不会启动仿真，也不会修改历史记录">复用此配置</button>
@@ -1807,14 +1832,14 @@
 
   <script src="/assets/vendor/globe/globe.gl.min.js" defer></script>
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
-  <script type="module" src="/assets/satellite-scene.js?v=p9l-scene-provenance-2"></script>
-  <script type="module" src="/assets/birds-cad-viewer.js?v=p9i-cad-1"></script>
+  <script type="module" src="/assets/satellite-scene.js?v=p9m4-engineering-mapping-1"></script>
+  <script type="module" src="/assets/birds-cad-viewer.js?v=p9m4-d-review-5"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
-  <script src="/assets/app.js?v=p9l-scene-provenance-2" defer></script>
+  <script src="/assets/app.js?v=p9n4-result-history-1" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
-  <script src="/assets/continuous.js?v=p9l-scene-provenance-2" defer></script>
+  <script src="/assets/continuous.js?v=p9m4-engineering-mapping-1" defer></script>
   <script src="/assets/compact-workbench.js?v=compact1" defer></script>
 </body>
 </html>

@@ -58,7 +58,7 @@ def parameter_definition(capability_id: str, parameter_name: str) -> dict[str, A
     row = _PARAMETERS.get(capability_id, {}).get(parameter_name)
     if key is None or row is None:
         return None
-    if key == "reaction_wheel" and parameter_name == "physics_backend":
+    if parameter_name == "physics_backend":
         display_name = "物理计算后端"
     else:
         display_name = f"{_COMPONENTS[key]['name']} · {row[0]}"
@@ -148,18 +148,29 @@ def bind_quantity_dictionary(contract: Mapping[str, Any]) -> dict[str, Any]:
                         "kind": "parameter", "source_definition": deepcopy(dict(source))})
         reviewed_parameters.add(name)
     rows_by_kind: dict[str, dict[str, Mapping[str, Any]]] = {}
+    output_sets = [outputs]
+    profiles = contract.get("backend_profiles") or {}
+    for profile in profiles.values():
+        if isinstance(profile, Mapping) and isinstance(profile.get("outputs"), Mapping):
+            output_sets.append(profile["outputs"])
     for section in ("trace", "summary"):
-        rows = outputs.get(section)
-        if not isinstance(rows, list):
-            raise ValueError(f"QUANTITY_INVALID_SECTION:{section}")
         indexed: dict[str, Mapping[str, Any]] = {}
-        for source in rows:
-            if not isinstance(source, Mapping) or not isinstance(source.get("name"), str):
-                raise ValueError(f"QUANTITY_INVALID_FIELD:{section}")
-            name = source["name"]
-            if name in indexed:
-                raise ValueError(f"QUANTITY_DUPLICATE_FIELD:{name}")
-            indexed[name] = source
+        for output_set in output_sets:
+            rows = output_set.get(section)
+            if not isinstance(rows, list):
+                raise ValueError(f"QUANTITY_INVALID_SECTION:{section}")
+            seen: set[str] = set()
+            for source in rows:
+                if not isinstance(source, Mapping) or not isinstance(source.get("name"), str):
+                    raise ValueError(f"QUANTITY_INVALID_FIELD:{section}")
+                name = source["name"]
+                if name in seen:
+                    raise ValueError(f"QUANTITY_DUPLICATE_FIELD:{name}")
+                seen.add(name)
+                previous = indexed.get(name)
+                if previous and any(previous.get(key) != source.get(key) for key in ("unit", "dtype")):
+                    raise ValueError(f"QUANTITY_BACKEND_FIELD_CONFLICT:{name}")
+                indexed[name] = source
         rows_by_kind[section] = indexed
     reviewed_outputs: set[tuple[str, str]] = set()
     for field, definitions in _OUTPUTS.items():

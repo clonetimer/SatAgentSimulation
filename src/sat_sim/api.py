@@ -7,6 +7,7 @@ Token/RBAC controls, audit evidence, and a sealed remote-Worker bundle protocol.
 from __future__ import annotations
 
 import copy
+import hashlib
 import csv
 import io
 import json
@@ -1594,6 +1595,157 @@ def create_app(
             "tree": tree,
             "quantity_dictionary_version": DICTIONARY_VERSION,
         }
+
+    @app.get("/workbench/engineering-mapping")
+    def workbench_engineering_mapping_endpoint() -> dict[str, Any]:
+        """Return validated mapping status without loading or rendering CAD geometry."""
+        configured = os.environ.get("SAT_SIM_ENGINEERING_MAPPING_BUNDLE")
+        expected_sha256 = os.environ.get("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256")
+        if not configured or not expected_sha256:
+            return {
+                "ok": True, "configured": False, "status": "not_configured",
+                "message_zh": "尚未部署带 SHA-256 校验的工程映射清单；当前不显示参考 CAD 或实装几何。",
+                "summary": None, "mappings": [],
+            }
+        path = Path(configured).expanduser()
+        if not path.is_file():
+            return {
+                "ok": False, "configured": True, "status": "invalid",
+                "message_zh": "工程映射清单不可读取，请检查部署配置。",
+                "summary": None, "mappings": [],
+            }
+        try:
+            from .engineering_asset_mapping import validate_mapping_bundle
+            actual_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+            if actual_sha256 != expected_sha256.strip().lower():
+                raise ValueError("P9M4_MAPPING_BUNDLE_DIGEST_MISMATCH")
+            bundle = json.loads(path.read_text(encoding="utf-8"))
+            if bundle.get("intake", {}).get("scope") != "reference_registration_only_not_as_built_approval":
+                raise ValueError("P9M4_REFERENCE_REGISTRY_SCOPE_REQUIRED")
+            validation = validate_mapping_bundle(bundle)
+            summary = bundle.get("summary", {})
+            if (
+                validation["as_built_verified_count"] != 0
+                or summary.get("as_built_verified_count") != 0
+                or summary.get("telemetry_binding_count") != 0
+                or summary.get("node_renderable_count") != 0
+            ):
+                raise ValueError("P9M4_REFERENCE_REGISTRY_PROMOTION_FORBIDDEN")
+            # Only publish a deliberately small, candidate-only projection.
+            # The browser must independently hash the user-selected GLB before
+            # it may use these node indices to focus the existing reference viewer.
+            has_reference_rows = any(row["mapping_kind"] == "reference_cad" for row in validation["mappings"])
+            glb_sha256 = bundle.get("intake", {}).get("glb_sha256")
+            inventory = bundle.get("glb_node_inventory", {})
+            node_count = inventory.get("node_count") if isinstance(inventory, dict) else None
+            mesh_count = inventory.get("mesh_count") if isinstance(inventory, dict) else None
+            if has_reference_rows and (
+                not isinstance(glb_sha256, str) or len(glb_sha256) != 64
+                or any(ch not in "0123456789abcdef" for ch in glb_sha256.lower())
+                or type(node_count) is not int or node_count < 1
+                or type(mesh_count) is not int or mesh_count < 1
+            ):
+                raise ValueError("P9M4_REFERENCE_GLB_PROVENANCE_REQUIRED")
+            mappings = []
+            for index, row in enumerate(validation["mappings"]):
+                source_row = bundle["mappings"][index]
+                projected = {
+                    "object_id": row["object_id"],
+                    "name_zh": source_row.get("name_zh") if isinstance(source_row.get("name_zh"), str) else row["object_id"],
+                    "mapping_kind": row["mapping_kind"],
+                    "as_built_eligible": row["as_built_eligible"],
+                    "render_views": row["render_views"],
+                }
+                if row["mapping_kind"] == "reference_cad":
+                    source_asset = source_row.get("geometry_asset")
+                    source_render = source_row.get("render")
+                    if (
+                        not isinstance(source_asset, dict)
+                        or source_asset.get("glb_node_binding") is not None
+                        or not isinstance(source_render, dict)
+                        or source_render.get("renderable") is not False
+                        or source_render.get("as_built_eligible") is not False
+                        or source_row.get("spatial_anchor") is not None
+                        or source_row.get("telemetry_binding") is not None
+                    ):
+                        raise ValueError("P9M4_REFERENCE_PROMOTION_FORBIDDEN")
+                    candidate = source_asset.get("glb_node_binding_candidate")
+                    if not isinstance(candidate, dict):
+                        raise ValueError("P9M4_REFERENCE_CANDIDATE_REQUIRED")
+                    status = candidate.get("status")
+                    if status not in (
+                        "unique_exact_name_parent_match_candidate",
+                        "unique_exact_name_parent_match_group_candidate",
+                    ):
+                        raise ValueError("P9M4_REFERENCE_CANDIDATE_STATUS_INVALID")
+                    node_index = candidate.get("candidate_glb_node_index")
+                    descendants = candidate.get("candidate_descendant_mesh_nodes")
+                    node_name = candidate.get("candidate_glb_node_name")
+                    node_mesh_index = candidate.get("candidate_glb_mesh_index")
+                    geometry_node_count = candidate.get("candidate_geometry_node_count")
+                    if (
+                        type(node_index) is not int or not 0 <= node_index < node_count
+                        or not isinstance(node_name, str) or not node_name
+                        or (node_mesh_index is not None and (type(node_mesh_index) is not int or not 0 <= node_mesh_index < mesh_count))
+                        or type(geometry_node_count) is not int or geometry_node_count < 1
+                        or candidate.get("selector_promoted") is not False
+                        or candidate.get("requires_visual_review") is not True
+                        or not isinstance(descendants, list)
+                    ):
+                        raise ValueError("P9M4_REFERENCE_CANDIDATE_BOUNDARY_INVALID")
+                    safe_descendants = []
+                    descendant_indices = set()
+                    for child in descendants:
+                        if not isinstance(child, dict):
+                            raise ValueError("P9M4_REFERENCE_DESCENDANT_INVALID")
+                        child_index, mesh_index, child_name = child.get("node_index"), child.get("mesh_index"), child.get("name")
+                        if (
+                            type(child_index) is not int or not 0 <= child_index < node_count
+                            or type(mesh_index) is not int or not 0 <= mesh_index < mesh_count
+                            or not isinstance(child_name, str) or not child_name
+                        ):
+                            raise ValueError("P9M4_REFERENCE_DESCENDANT_INVALID")
+                        if child_index == node_index or child_index in descendant_indices:
+                            raise ValueError("P9M4_REFERENCE_DESCENDANT_DUPLICATE")
+                        descendant_indices.add(child_index)
+                        safe_descendants.append({
+                            "node_index": child_index,
+                            "name": child_name,
+                            "mesh_index": mesh_index,
+                        })
+                    if geometry_node_count != len(safe_descendants) + (1 if node_mesh_index is not None else 0):
+                        raise ValueError("P9M4_REFERENCE_GEOMETRY_COUNT_INVALID")
+                    projected["review_candidate"] = {
+                        "status": status,
+                        "node_index": node_index,
+                        "node_name": node_name,
+                        "mesh_index": node_mesh_index,
+                        "geometry_node_count": geometry_node_count,
+                        "descendant_mesh_nodes": safe_descendants,
+                        "selector_promoted": False,
+                        "requires_visual_review": True,
+                    }
+                mappings.append(projected)
+            return {
+                "ok": True, "configured": True, "status": "validated",
+                "message_zh": "映射清单已校验；参考 CAD、仿真构型与实装视图严格隔离。",
+                "summary": {
+                    "mapping_count": validation["mapping_count"],
+                    "counts_by_kind": validation["counts_by_kind"],
+                    "as_built_verified_count": validation["as_built_verified_count"],
+                    "render_eligible_as_built_count": validation["render_eligible_as_built_count"],
+                    "visual_review_candidate_count": sum(1 for row in mappings if row.get("review_candidate")),
+                },
+                "intake": {"glb_sha256": glb_sha256.lower() if isinstance(glb_sha256, str) else None},
+                "glb_node_inventory": {"node_count": node_count, "mesh_count": mesh_count} if type(node_count) is int and type(mesh_count) is int else None,
+                "mappings": mappings,
+            }
+        except Exception:
+            return {
+                "ok": False, "configured": True, "status": "invalid",
+                "message_zh": "工程映射清单未通过完整性校验，已阻止加载。",
+                "summary": None, "mappings": [],
+            }
 
     @app.get("/visual-composer/assemblies")
     def visual_assembly_catalog() -> dict[str, Any]:
@@ -3446,9 +3598,9 @@ def create_app(
         )}
 
     @app.get("/forms/capabilities/{capability_id}")
-    def form_schema(capability_id: str) -> dict[str, Any]:
+    def form_schema(capability_id: str, physics_backend: str | None = Query(default=None)) -> dict[str, Any]:
         try:
-            return {"ok": True, "form_schema": capability_form_schema(capability_id)}
+            return {"ok": True, "form_schema": capability_form_schema(capability_id, physics_backend=physics_backend)}
         except Exception as exc:
             raise HTTPException(status_code=404, detail={"reason_code": "CAPABILITY_FORM_NOT_FOUND", "message": str(exc)}) from exc
 
@@ -5487,6 +5639,128 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
             archive_path,
             filename=f"{run_id}_dataset.zip",
             media_type="application/zip",
+            background=BackgroundTask(archive_path.unlink, missing_ok=True),
+        )
+
+    @app.get("/runs/{run_id}/bundle/download")
+    def download_run_bundle(run_id: str):
+        """Download the exact sealed Run Bundle after verifying every manifest hash."""
+
+        if (
+            not run_id
+            or run_id in {".", ".."}
+            or any(character in run_id for character in ("/", "\\", ":"))
+            or any(ord(character) < 32 for character in run_id)
+            or run_id.endswith((".", " "))
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail={"reason_code": "RUN_BUNDLE_ID_INVALID", "message": "Run ID must be one portable path segment."},
+            )
+        try:
+            root = _safe_bundle(run_root, run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not root.is_dir():
+            raise HTTPException(status_code=404, detail="run not found")
+
+        integrity = verify_run_bundle(root)
+        if not isinstance(integrity, dict) or integrity.get("ok") is not True:
+            raise HTTPException(
+                status_code=409,
+                detail={"reason_code": "RUN_BUNDLE_NOT_VERIFIED", "integrity": integrity},
+            )
+
+        manifest_path = root / "bundle_manifest.json"
+        seal_path = root / "SEALED.json"
+        try:
+            if manifest_path.is_symlink() or seal_path.is_symlink():
+                raise ValueError("manifest and seal must be regular files")
+            manifest_bytes = manifest_path.read_bytes()
+            seal_bytes = seal_path.read_bytes()
+            manifest = json.loads(manifest_bytes)
+            seal = json.loads(seal_bytes)
+        except (OSError, ValueError, TypeError) as exc:
+            raise HTTPException(
+                status_code=409,
+                detail={"reason_code": "RUN_BUNDLE_NOT_VERIFIED", "message": "Bundle manifest or seal cannot be read."},
+            ) from exc
+
+        files = manifest.get("files") if isinstance(manifest, dict) else None
+        manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+        if (
+            not isinstance(manifest, dict)
+            or manifest.get("run_id") != run_id
+            or not isinstance(files, dict)
+            or not files
+            or not isinstance(seal, dict)
+            or seal.get("run_id") != run_id
+            or seal.get("bundle_manifest_sha256") != manifest_sha256
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail={"reason_code": "RUN_BUNDLE_IDENTITY_MISMATCH", "run_id": run_id},
+            )
+
+        handle, temp_name = tempfile.mkstemp(prefix="sat_sim_run_bundle_", suffix=".zip")
+        os.close(handle)
+        archive_path = Path(temp_name)
+        try:
+            with zipfile.ZipFile(
+                archive_path,
+                "w",
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=6,
+                allowZip64=True,
+            ) as archive:
+                prefix = f"{run_id}/"
+                archive.writestr(f"{prefix}bundle_manifest.json", manifest_bytes)
+                archive.writestr(f"{prefix}SEALED.json", seal_bytes)
+                for relative, expected in sorted(files.items()):
+                    if relative in {"bundle_manifest.json", "SEALED.json", "runtime/execution.lock"}:
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_MANIFEST_ENTRY_INVALID", "path": relative},
+                        )
+                    raw_path = root / relative
+                    if raw_path.is_symlink():
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_ARTIFACT_SYMLINK", "path": relative},
+                        )
+                    try:
+                        source = _safe_artifact(root, relative)
+                    except (ValueError, FileNotFoundError) as exc:
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_ARTIFACT_UNAVAILABLE", "path": relative},
+                        ) from exc
+                    digest = hashlib.sha256()
+                    with source.open("rb") as source_stream, archive.open(f"{prefix}{relative}", "w") as target:
+                        while True:
+                            chunk = source_stream.read(1024 * 1024)
+                            if not chunk:
+                                break
+                            digest.update(chunk)
+                            target.write(chunk)
+                    if digest.hexdigest() != str(expected.get("sha256", "")).lower():
+                        raise HTTPException(
+                            status_code=409,
+                            detail={"reason_code": "RUN_BUNDLE_CHANGED_DURING_EXPORT", "path": relative},
+                        )
+        except Exception:
+            archive_path.unlink(missing_ok=True)
+            raise
+
+        return FileResponse(
+            archive_path,
+            filename=f"{run_id}_run_bundle.zip",
+            media_type="application/zip",
+            headers={
+                "Cache-Control": "no-store",
+                "X-Sat-Sim-Run-ID": run_id,
+                "X-Sat-Sim-Run-Bundle-Manifest-SHA256": manifest_sha256,
+            },
             background=BackgroundTask(archive_path.unlink, missing_ok=True),
         )
 

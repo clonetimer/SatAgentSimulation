@@ -748,10 +748,28 @@ class ThermalNodeAdapter(_BaseComponentAdapter):
     fault_effects = ("thermal_runaway", "sensor_bias", "blocked_heat_path")
     degradation_effects = ("thermal_resistance_growth", "heat_capacity_drift")
 
+    def validate(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> Sequence[ValidationIssue]:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thermal_node_native import validate_native_thermal_node
+
+            return validate_native_thermal_node(spec)
+        if backend != "project_reference":
+            return (ValidationIssue("error", "$.parameters.physics_backend", "unknown thermal-node backend", "enum"),)
+        return super().validate(spec, capability)
+
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
+        params = _mapping(spec.get("parameters"))
+        backend = params.get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thermal_node_native import run_native_thermal_node
+
+            return run_native_thermal_node(spec)
+        if backend != "project_reference":
+            raise ValueError("unknown thermal-node backend")
+
         from components.thermal_node.builder import ThermalNodeState, build_nominal_thermal_node_config, step_thermal_node
 
-        params = _mapping(spec.get("parameters"))
         _, sample_s, n_steps, times = _time_grid(spec)
         base_cfg = build_nominal_thermal_node_config(ambient_k=_float(params.get("ambient_k"), 300.0), tau_s=_float(params.get("tau_s"), 10.0), heat_gain_k_per_w=_float(params.get("heat_gain_k_per_w"), 1.0), min_temp_k=_float(params.get("min_temp_k"), 0.0), max_temp_k=_float(params.get("max_temp_k"), 1000.0))
         state = ThermalNodeState(temp_k=_float(params.get("initial_temp_k"), base_cfg.ambient_k))
@@ -810,7 +828,11 @@ class ThermalNodeAdapter(_BaseComponentAdapter):
             })
             rows.append(row)
         qoi = {"thermal.node.initial_temp_k": float(rows[0]["thermal.node.temp_k"]), "thermal.node.final_temp_k": float(rows[-1]["thermal.node.temp_k"]), "thermal.node.max_temp_k": max(float(row["thermal.node.temp_k"]) for row in rows)}
-        return self._result(spec, rows, qoi)
+        result = self._result(spec, rows, qoi)
+        result.summary["physics_backend"] = backend
+        result.labels["run_labels"][0]["physics_backend"] = backend
+        result.metadata["physics_backend"] = backend
+        return result
 
 
 class PayloadAdapter(_BaseComponentAdapter):
@@ -1058,11 +1080,29 @@ class FuelTankAdapter(_BaseComponentAdapter):
     fault_effects = ("leak", "outlet_blockage", "pressure_sensor_fault")
     degradation_effects = ("pressure_decay", "outlet_aging")
 
+    def validate(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> Sequence[ValidationIssue]:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_fuel_tank_native import validate_native_fuel_tank
+
+            return validate_native_fuel_tank(spec)
+        if backend != "project_reference":
+            return (ValidationIssue("error", "$.parameters.physics_backend", "unknown fuel-tank backend", "enum"),)
+        return super().validate(spec, capability)
+
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
+        params = _mapping(spec.get("parameters"))
+        backend = params.get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_fuel_tank_native import run_native_fuel_tank
+
+            return run_native_fuel_tank(spec)
+        if backend != "project_reference":
+            raise ValueError("unknown fuel-tank backend")
+
         from components.fuel_tank.model import initialize_fuel_tank, step_fuel_tank
         from components.fuel_tank.schemas import FuelTankConfig
 
-        params = _mapping(spec.get("parameters"))
         _, sample_s, n_steps, times = _time_grid(spec)
         config = FuelTankConfig(
             capacity_kg=_float(params.get("capacity_kg"), 3.0),
@@ -1138,7 +1178,7 @@ class ImuAdapter(_BaseComponentAdapter):
         from components.imu.schemas import ImuConfig
 
         params = _mapping(spec.get("parameters"))
-        _, _, _, times = _time_grid(spec)
+        duration_s, sample_s, _, times = _time_grid(spec)
         gyro = _vec3(params.get("true_gyro_rad_s"), (0.1, 0.2, 0.3))
         accel = _vec3(params.get("true_accel_m_s2"), (0.0, 0.0, 0.0))
         config = ImuConfig(
@@ -1150,6 +1190,62 @@ class ImuAdapter(_BaseComponentAdapter):
         faults = _normalized_events(spec, "faults", "fault_type")
         degradations = _normalized_events(spec, "degradations", "degradation_type")
         mode = str(_mapping(spec.get("target")).get("mode") or "nominal")
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("IMU_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if mode != "nominal" or faults or degradations:
+                raise ValueError("NATIVE_IMU_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            native = __import__(
+                "sat_sim.bsk_engine.native_sensor_component",
+                fromlist=["run_native_imu_probe"],
+            ).run_native_imu_probe(
+                duration_s=duration_s,
+                sample_s=sample_s,
+                truth_omega_bn_b_rad_s=gyro,
+                truth_specific_force_b_m_s2=accel,
+                gyro_bias_rad_s=config.gyro_bias_rad_s,
+                accel_bias_m_s2=config.accel_bias_m_s2,
+                gyro_scale=config.gyro_scale,
+                accel_scale=config.accel_scale,
+            )
+            native_rows = []
+            for index, time_s in enumerate(native.times_s):
+                row = _row_base(spec, self.target_name, index, time_s, mode)
+                for axis, value in zip("xyz", native.angular_velocity_platform_rad_s[index]):
+                    row[f"adcs.imu.gyro_{axis}_rad_s"] = float(value)
+                for axis, value in zip("xyz", native.acceleration_platform_m_s2[index]):
+                    row[f"adcs.imu.accel_{axis}_m_s2"] = float(value)
+                row["adcs.imu.effective_gyro_bias_x_rad_s"] = float(config.gyro_bias_rad_s[0])
+                row["label.fault_active"] = False
+                row["label.degradation_active"] = False
+                row["label.health_state"] = "nominal"
+                native_rows.append(row)
+            gyro_error = math.sqrt(sum((float(native_rows[-1][f"adcs.imu.gyro_{axis}_rad_s"]) - gyro[i]) ** 2 for i, axis in enumerate("xyz")))
+            accel_error = math.sqrt(sum((float(native_rows[-1][f"adcs.imu.accel_{axis}_m_s2"]) - accel[i]) ** 2 for i, axis in enumerate("xyz")))
+            qoi = {"adcs.imu.gyro_error_norm_rad_s": gyro_error, "adcs.imu.accel_error_norm_m_s2": accel_error}
+            summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
+            labels = {"run_labels": [{
+                "task_id": summary["task_id"],
+                "mode": "nominal",
+                "capability_id": self.capability_id,
+                "physics_backend": "basilisk_native",
+            }]}
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(native_rows),
+                labels=labels,
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.imuSensor.ImuSensor"],
+                    "native_provenance": native.model_source,
+                    "native_input_source": native.input_source,
+                    "native_claim_scope": native.claim_scope,
+                    "limits": ["nominal only", "no faults/degradation", "no sensor lever arm", "no stochastic characterization", "prescribed spacecraft truth fixture"],
+                },
+            )
         rows = []
         for index, time_s in enumerate(times):
             bias = list(config.gyro_bias_rad_s)
@@ -1204,7 +1300,7 @@ class MagnetometerAdapter(_BaseComponentAdapter):
         from components.magnetometer.schemas import MagnetometerConfig
 
         params = _mapping(spec.get("parameters"))
-        _, _, _, times = _time_grid(spec)
+        duration_s, sample_s, _, times = _time_grid(spec)
         field = _vec3(params.get("magnetic_field_t"), (2.0e-5, 0.0, 4.0e-5))
         config = MagnetometerConfig(
             axis_scale=_vec3(params.get("axis_scale"), (1.0, 1.0, 1.0)),
@@ -1213,6 +1309,52 @@ class MagnetometerAdapter(_BaseComponentAdapter):
         faults = _normalized_events(spec, "faults", "fault_type")
         degradations = _normalized_events(spec, "degradations", "degradation_type")
         mode = str(_mapping(spec.get("target")).get("mode") or "nominal")
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("MAGNETOMETER_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if mode != "nominal" or faults or degradations:
+                raise ValueError("NATIVE_MAGNETOMETER_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            if max(config.axis_scale) - min(config.axis_scale) > 1.0e-12:
+                raise ValueError("NATIVE_MAGNETOMETER_REQUIRES_UNIFORM_AXIS_SCALE")
+            from sat_sim.bsk_engine.native_sensor_component import run_native_magnetometer_probe
+            native = run_native_magnetometer_probe(
+                duration_s=duration_s,
+                sample_s=sample_s,
+                truth_magnetic_field_n_t=field,
+                bias_tesla=config.bias_t,
+                scale_factor=float(config.axis_scale[0]),
+            )
+            native_rows = []
+            for index, time_s in enumerate(native.times_s):
+                measured = native.magnetic_field_sensor_t[index]
+                row = _row_base(spec, self.target_name, index, time_s, mode)
+                for axis, value in zip("xyz", measured):
+                    row[f"adcs.magnetometer.field_{axis}_t"] = float(value)
+                row["adcs.magnetometer.field_norm_t"] = math.sqrt(sum(float(value) ** 2 for value in measured))
+                row["adcs.magnetometer.effective_bias_x_t"] = float(config.bias_t[0])
+                row["label.fault_active"] = False
+                row["label.degradation_active"] = False
+                row["label.health_state"] = "nominal"
+                native_rows.append(row)
+            error = math.sqrt(sum((float(native_rows[-1][f"adcs.magnetometer.field_{axis}_t"]) - field[index]) ** 2 for index, axis in enumerate("xyz")))
+            qoi = {"adcs.magnetometer.field_norm_t": native_rows[-1]["adcs.magnetometer.field_norm_t"], "adcs.magnetometer.error_norm_t": error}
+            summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(native_rows),
+                labels={"run_labels": [{"task_id": summary["task_id"], "mode": "nominal", "capability_id": self.capability_id, "physics_backend": "basilisk_native"}]},
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.magnetometer.Magnetometer"],
+                    "native_provenance": native.model_source,
+                    "native_input_source": native.input_source,
+                    "native_claim_scope": native.claim_scope,
+                    "limits": ["nominal only", "no faults/degradation", "uniform three-axis scale only", "prescribed uniform magnetic field fixture", "identity mounting and attitude"],
+                },
+            )
         rows = []
         for index, time_s in enumerate(times):
             bias = list(config.bias_t)
@@ -1342,7 +1484,7 @@ class StarTrackerAdapter(_BaseComponentAdapter):
         from components.star_tracker.schemas import StarTrackerConfig
 
         params = _mapping(spec.get("parameters"))
-        _, sample_s, _, times = _time_grid(spec)
+        duration_s, sample_s, _, times = _time_grid(spec)
         sigma = _vec3(params.get("true_sigma_bn"), (0.1, 0.0, 0.0))
         config = StarTrackerConfig(
             drift_rate_mrp_s=_vec3(params.get("drift_rate_mrp_s"), (0.0, 0.0, 0.0)),
@@ -1351,6 +1493,57 @@ class StarTrackerAdapter(_BaseComponentAdapter):
         faults = _normalized_events(spec, "faults", "fault_type")
         degradations = _normalized_events(spec, "degradations", "degradation_type")
         mode = str(_mapping(spec.get("target")).get("mode") or "nominal")
+        backend = str(params.get("physics_backend") or "project_reference")
+        if backend not in {"project_reference", "basilisk_native"}:
+            raise ValueError("STAR_TRACKER_PHYSICS_BACKEND_UNSUPPORTED")
+        if backend == "basilisk_native":
+            if mode != "nominal" or faults or degradations:
+                raise ValueError("NATIVE_STAR_TRACKER_ONLY_SUPPORTS_NOMINAL_NO_MODIFIERS")
+            if any(abs(value) > 1.0e-12 for value in config.drift_rate_mrp_s):
+                raise ValueError("NATIVE_STAR_TRACKER_DRIFT_RATE_NOT_SUPPORTED")
+            from Basilisk.utilities import RigidBodyKinematics as rbk
+            from sat_sim.bsk_engine.native_sensor_component import run_native_star_tracker_probe
+            native = run_native_star_tracker_probe(
+                duration_s=duration_s,
+                sample_s=sample_s,
+                truth_sigma_bn=sigma,
+            )
+            native_rows = []
+            drift_values = []
+            for index, time_s in enumerate(native.times_s):
+                measured_sigma = tuple(float(value) for value in rbk.EP2MRP(native.q_inrtl_to_case[index]))
+                drift_norm = math.sqrt(sum((measured_sigma[axis] - sigma[axis]) ** 2 for axis in range(3)))
+                drift_values.append(drift_norm)
+                row = _row_base(spec, self.target_name, index, time_s, mode)
+                row["adcs.star_tracker.valid"] = True
+                for axis, value in zip("xyz", measured_sigma):
+                    row[f"adcs.star_tracker.sigma_{axis}"] = value
+                row["adcs.star_tracker.drift_norm"] = drift_norm
+                row["label.fault_active"] = False
+                row["label.degradation_active"] = False
+                row["label.health_state"] = "nominal"
+                native_rows.append(row)
+            qoi = {
+                "adcs.star_tracker.valid_fraction": 1.0,
+                "adcs.star_tracker.final_drift_norm": drift_values[-1],
+            }
+            summary = self._summary(spec, native_rows, qoi)
+            summary["physics_backend"] = "basilisk_native"
+            return SimulationResult(
+                summary=summary,
+                trace_rows=tuple(native_rows),
+                labels={"run_labels": [{"task_id": summary["task_id"], "mode": "nominal", "capability_id": self.capability_id, "physics_backend": "basilisk_native"}]},
+                metadata={
+                    "capability_id": self.capability_id,
+                    "physics_backend": "basilisk_native",
+                    "basilisk_official_native": ["Basilisk.simulation.starTracker.StarTracker"],
+                    "native_provenance": native.model_source,
+                    "native_input_source": native.input_source,
+                    "native_claim_scope": native.claim_scope,
+                    "validity_semantics": "sample_present_and_quaternion_normalized_not_optical_star_visibility",
+                    "limits": ["nominal only", "no faults/degradation", "no drift-rate modifier", "no optical scene/star catalog/FOV/occultation", "identity sensor-to-body mounting"],
+                },
+            )
         state = StarTrackerState()
         rows = []
         for index, time_s in enumerate(times):
@@ -1470,7 +1663,31 @@ class ThrusterAdapter(_BaseComponentAdapter):
     fault_effects = ("valve_stuck_closed", "valve_stuck_open", "nozzle_blockage")
     degradation_effects = ("isp_decay", "thrust_coefficient_drift")
 
+    def validate(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> Sequence[ValidationIssue]:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thruster_native import validate_native_thruster
+
+            native_issues = validate_native_thruster(spec)
+            if native_issues:
+                return native_issues
+        elif backend != "project_reference":
+            return (ValidationIssue("error", "$.parameters.physics_backend", "unknown thruster backend", "enum"),)
+        return super().validate(spec, capability)
+
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:
+        backend = _mapping(spec.get("parameters")).get("physics_backend", "project_reference")
+        if backend == "basilisk_native":
+            from .component_thruster_native import compile_native_thruster, run_native_thruster
+
+            case = compile_native_thruster(spec)
+            issues = super().validate(spec, capability)
+            if issues:
+                raise ValueError(issues[0].message)
+            return run_native_thruster(spec, case)
+        if backend != "project_reference":
+            raise ValueError("unknown thruster backend")
+
         from components.thruster.model import compute_thruster_pulse
         from components.thruster.schemas import ThrusterPhysicalConfig
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from sat_sim.run_bundle import execute_prepared_run, prepare_run, request_cancel
+from sat_sim.run_bundle import execute_prepared_run, prepare_run, request_cancel, verify_run_bundle
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.task_compiler import compile_task_spec
 from sat_sim.unified_execution import execute_compiled_task
@@ -90,3 +90,68 @@ def test_pre_execution_cancel_persists_execution_port_evidence(tmp_path: Path) -
     assert attempt["artifacts"]["execution_port"] == "execution_port.json"
     root_evidence = json.loads((root / "runtime" / "execution_port.json").read_text(encoding="utf-8"))
     assert root_evidence["status"] == "CANCELLED_BEFORE_EXECUTION"
+
+
+def test_native_reaction_wheel_component_survives_full_sealed_run_bundle(tmp_path: Path) -> None:
+    """P9-N1: official Basilisk RW must execute through TaskSpec and sealed Run Bundle."""
+    import pytest
+    pytest.importorskip("Basilisk")
+
+    spec = _small_rw_spec("p9n_native_rw_run_bundle")
+    spec["simulation"].update({"duration_s": 2.0, "step_s": 0.1, "sample_s": 0.1})
+    spec["parameters"]["values"].update({
+        "physics_backend": "basilisk_native",
+        "num_wheels": 1,
+        "wheel_inertia_kg_m2": 0.1,
+        "max_motor_torque_nm": 0.005,
+        "max_speed_rad_s": 1000.0,
+        "initial_wheel_speeds_rad_s": 0.0,
+        "command_torque_nm": 0.05,
+        "damping_nms": 0.0,
+    })
+    # A component run must not inherit spacecraft-wide checks that require
+    # orbit, attitude, EPS or thermal fields. Apply explicit component QoI
+    # assertions instead; the native recorder bounds are checked below.
+    spec.setdefault("model", {}).setdefault("validation", {}).update({
+        "physical_checks": [],
+        "acceptance_assertions": [{
+            "id": "native_rw_speed_response",
+            "metric": "qoi.adcs.reaction_wheel.final_speed_rad_s_0",
+            "operator": ">",
+            "value": 0.02,
+        }],
+    })
+    prepared = prepare_run(spec, output_root=tmp_path / "runs")
+    result = execute_prepared_run(
+        prepared.bundle_root,
+        expected_plan_sha256=prepared.execution_plan_sha256,
+        max_attempts=1,
+        hard_timeout=True,
+    )
+
+    assert result.run_record.status.value == "SUCCEEDED"
+    assert result.validation.result.value == "PASS", [(item.check_id, item.reason_code, item.message) for item in result.validation.checks]
+    assert result.run_record.sealed is True
+    assert result.bundle_manifest
+    assert verify_run_bundle(result.bundle_root)["ok"] is True
+    assert result.summary["physics_backend"] == "basilisk_native"
+    assert result.summary["runtime_truth_status"] == "real_native_rw_spacecraft_recorded"
+    assert result.summary["adapter_metadata"]["native_provenance"] == "Basilisk.simulation.reactionWheelStateEffector"
+    assert result.summary["target_level"] == "component"
+    assert result.summary["target_name"] == "reaction_wheel"
+    assert len(result.trace_rows) > 5
+    speeds = [float(row["adcs.reaction_wheel.speed_rad_s_0"]) for row in result.trace_rows]
+    applied = [float(row["adcs.reaction_wheel.applied_torque_nm_0"]) for row in result.trace_rows]
+    assert abs(speeds[-1] - speeds[0]) > 0.02
+    assert max(abs(value) for value in applied) == pytest.approx(0.005, abs=1e-5)
+    assert all(abs(value) <= 0.005 + 1e-8 for value in applied)
+
+    root = Path(result.bundle_root)
+    evidence = json.loads((root / "runtime" / "execution_port.json").read_text(encoding="utf-8"))
+    assert evidence["route"] == "registered_capability_adapter"
+    assert evidence["legacy_mode"] is False
+    assert evidence["capability_id"] == "component.reaction_wheel.v1"
+    assert evidence["capability_adapter"] == "sat_sim.adapters.component_reaction_wheel.ReactionWheelAdapter"
+    assert evidence["execution_plan_sha256"] == prepared.execution_plan_sha256
+    assert evidence["request_sha256"]
+    assert result.bundle_manifest["files"]

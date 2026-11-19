@@ -1,18 +1,71 @@
-name: Independent native reaction wheel physical A/B probe
+name: Independent native component and subsystem physical and Run Bundle acceptance
 
 on:
   pull_request:
     paths:
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/bsk_engine/project_native_modules.py"
+      - "src/sat_sim/adapters/subsystem_adcs_unified_native.py"
+      - "src/components/pdu/builder.py"
+      - "src/components/pdu/faults.py"
+      - "src/sat_sim/adapters/subsystem_eps_unified_native.py"
+      - "src/sat_sim/adapters/subsystem_comm_data_unified_native.py"
+      - "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml"
+      - "src/sat_sim/capabilities/subsystem.comm_data.unified_native.v1.yaml"
+      - "src/subsystems/event_severity.py"
+      - "src/sat_sim/form_schema.py"
+      - "configs/acceptance/scenario_baseline.json"
+      - "tests/test_event_severity.py"
+      - "tests/test_eps_unified_effects.py"
+      - "tests/test_comm_data_unified_effects.py"
+      - "tests/test_native_eps_comm_data_effects_bundle.py"
+      - "tests/test_p9o2_eps_comm_data_guided_event_catalog.py"
+      - "tests/test_p9o3_whole_spacecraft_guided_event_catalog.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
+      - "tests/test_native_whole_spacecraft_event_bundles.py"
+      - "tests/test_native_rw_momentum.py"
+      - "tests/test_multi_rate_fmea_unified_subsystems.py"
+      - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
+      - "tests/test_unified_native_migration.py"
+      - "tests/test_native_adcs_subsystem_bundle.py"
+      - "tests/test_native_adcs_fault_effects.py"
+      - "tests/test_p9n5_adcs_guided_event_catalog.py"
+      - "src/sat_sim/evidence/effect_evidence_v32.json"
+      - "tests/test_formal_effect_evidence_contracts.py"
       - "src/sat_sim/bsk_engine/native_rw_component.py"
       - "src/sat_sim/bsk_engine/native_rw_cluster.py"
       - "src/sat_sim/bsk_engine/rw_geometry.py"
       - "src/sat_sim/adapters/component_reaction_wheel.py"
+      - "src/sat_sim/adapters/component_battery.py"
+      - "src/sat_sim/adapters/component_solar_panel.py"
+      - "src/sat_sim/adapters/component_thruster_native.py"
+      - "src/sat_sim/adapters/component_fuel_tank_native.py"
+      - "src/sat_sim/adapters/component_thermal_node_native.py"
       - "src/sat_sim/adapters/native_reaction_wheel_cluster.py"
       - "src/sat_sim/capabilities/component.reaction_wheel.v1.yaml"
+      - "src/sat_sim/capabilities/component.battery.v1.yaml"
+      - "src/sat_sim/capabilities/component.solar_panel.v1.yaml"
+      - "src/sat_sim/capabilities/component.thruster.v1.yaml"
+      - "src/sat_sim/capabilities/component.fuel_tank.v1.yaml"
+      - "src/sat_sim/capabilities/component.thermal_node.v1.yaml"
+      - "tests/test_p9n_n4_preflight.py"
+      - "tests/test_native_sensor_component.py"
+      - "tests/test_native_battery_component.py"
+      - "tests/test_native_thruster_component.py"
+      - "tests/test_native_fuel_tank_component.py"
+      - "tests/test_native_thermal_node_component.py"
+      - "src/sat_sim/scenario_templates.py"
+      - "src/sat_sim/form_schema.py"
+      - "src/sat_sim/web/app.js"
+      - "src/sat_sim/web/index.html"
+      - "src/sat_sim/web/styles.css"
+      - "tests/test_p9n_component_simulation.py"
+      - "tests/test_guided_task_workspace_browser.py"
       - "tests/test_native_rw_component_probe.py"
       - "tests/test_native_rw_cluster.py"
       - "tests/test_component_rw_native_entry.py"
       - "tests/test_component_rw_native_cluster_entry.py"
+      - "tests/execution_contract/test_runtime_integration.py"
       - ".github/workflows/native-rw-component-probe.yml"
   workflow_dispatch:
 
@@ -20,9 +73,9 @@ permissions:
   contents: read
 
 jobs:
-  original-basilisk-rw-physics:
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
+  official-basilisk-native-components:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -32,7 +85,7 @@ jobs:
         run: |
           python -m pip install \
             "bsk==2.11.0" "sgp4==2.25" "colorama==0.4.6" \
-            "numpy==2.3.5" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "numpy==2.3.5" "numba==0.63.1" "pydantic==2.13.4" "jsonschema==4.26.0" \
             "PyYAML==6.0.3" "joblib==1.5.3" "scikit-learn==1.9.0" \
             "pytest==9.0.3" "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
       - name: Report actual distribution provenance
@@ -43,16 +96,281 @@ jobs:
           assert version("bsk") == "2.11.0"
           print("OFFICIAL_BASILISK_NATIVE", Basilisk.__version__, version("bsk"))
           PY
-      - name: Native SWIG RW state/torque/inertia physical A/B
+      - name: Native SWIG reaction-wheel physical A/B
         env:
           PYTHONPATH: "src:."
         run: python -m pytest -q -s tests/test_native_rw_component_probe.py tests/test_native_rw_cluster.py tests/test_component_rw_native_entry.py tests/test_component_rw_native_cluster_entry.py
+      - name: Verify TaskSpec to sealed Run Bundle component execution
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q -s tests/execution_contract/test_runtime_integration.py -k native_reaction_wheel_component_survives_full_sealed_run_bundle
+      - name: Official Basilisk IMU, StarTracker and Magnetometer physical/Run Bundle contracts
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_component_sensor
+          python -m pytest -q -s --junitxml=reports/native_component_sensor/junit.xml tests/test_native_sensor_component.py
+      - name: Official Basilisk SimpleBattery and SimpleSolarPanel physical/Run Bundle contracts
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_eps_component
+          python -m pytest -q -s --junitxml=reports/native_eps_component/junit.xml tests/test_native_battery_component.py
+      - name: Official Basilisk Thruster, FuelTank and SensorThermal physical/Run Bundle contracts
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_propulsion_thermal
+          python -m pytest -q -s --junitxml=reports/native_propulsion_thermal/junit.xml \
+            tests/test_native_thruster_component.py \
+            tests/test_native_fuel_tank_component.py \
+            tests/test_native_thermal_node_component.py
+      - name: Verify user-selectable native component template and form contract
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q -s tests/test_p9n_component_simulation.py tests/test_parameter_presentation.py
+      - name: Verify P9-N4 native preflight rejection contract
+        env:
+          PYTHONPATH: "src:."
+        run: python -m pytest -q -s tests/test_p9n_n4_preflight.py
 
-      - name: Archive Basilisk-native measured RW traces and A/B metrics
+      - name: Verify EPS and Comm/Data sealed Run Bundle and multi-rate API contracts
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_subsystem_eps_comm_data
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/subsystem_api.xml tests/test_multi_rate_fmea_unified_subsystems.py
+      - name: Verify EPS and Comm/Data event severity against native Basilisk inputs
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/effect_events.xml \
+            tests/test_event_severity.py \
+            tests/test_eps_unified_effects.py \
+            tests/test_comm_data_unified_effects.py
+      - name: Verify EPS and Comm/Data paired physical A/B with sealed Run Bundles
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/effect_ab.xml \
+            tests/test_native_eps_comm_data_effects_bundle.py
+      - name: Verify ADCS sensor-frame transformations and native closed-loop Run Bundle
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_adcs
+          python -m pytest -q -s --junitxml=reports/native_adcs/adcs_closed_loop.xml tests/test_unified_native_migration.py -k "adcs_unified_runtime_is_closed_loop_and_recorder_grounded or adcs_fusion_transforms_non_identity_sensor_mounts_into_body_frame"
+          python -m pytest -q -s --junitxml=reports/native_adcs/adcs_sealed_bundle.xml tests/test_native_adcs_subsystem_bundle.py
+          python -m pytest -q -s --junitxml=reports/native_adcs/adcs_fault_effects.xml tests/test_native_adcs_fault_effects.py
+          python -m pytest -q -s tests/test_formal_effect_evidence_contracts.py -k unified_effect_contracts_are_declared_and_registered
+          python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/formal_effects.xml \
+            tests/test_formal_effect_evidence_contracts.py -k "test_unified_effect_contracts_are_declared_and_registered or test_each_unified_effect_has_formal_runtime_pass or test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect"
+          mkdir -p reports/native_whole_spacecraft_events
+          python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/effect_ab.xml \
+            tests/test_native_whole_spacecraft_event_bundles.py
+          python -m pytest -q -s tests/test_p9n5_adcs_guided_event_catalog.py
+          python -m pytest -q -s tests/test_p9o2_eps_comm_data_guided_event_catalog.py
+          python -m pytest -q -s tests/test_p9o3_whole_spacecraft_guided_event_catalog.py
+          python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml \
+            tests/test_native_rw_momentum.py -k test_three_wheel_runtime_rejects_ghost_rw4_initial_speed
+      - name: Determine whether the browser surface changed
+        id: browser_scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags origin "$BASE_SHA" --depth=1
+          changed_paths="$(git diff --name-only "$BASE_SHA" HEAD)"
+          printf '%s\n' "$changed_paths"
+          if printf '%s\n' "$changed_paths" | grep -Eq '^(src/sat_sim/web/|tests/test_guided_task_workspace_browser.py$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install Chromium for the guided component/subsystem workflow
+        if: steps.browser_scope.outputs.run == 'true'
+        run: |
+          python -m pip install "playwright==1.57.0"
+          python -m playwright install --with-deps chromium
+      - name: Resolve Chromium executable for the guided workbench test
+        if: steps.browser_scope.outputs.run == 'true'
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as playwright:
+              print(f"SAT_SIM_BROWSER_EXECUTABLE={playwright.chromium.executable_path}")
+          PY
+      - name: Confirm the ADCS fault wizard browser test is selected
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_native_adcs_wizard_runs_verified_torque_authority_degradation)"
+          printf '%s\n' "$selected"
+          printf '%s\n' "$selected" | grep -Fq '::test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation'
+
+      - name: Confirm EPS and Comm/Data subsystem browser journeys are selected
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_native_subsystem_workbench_runs_eps_and_comm_data)"
+          printf '%s\n' "$selected"
+          count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle')"
+          test "$count" -eq 6
+      - name: Confirm whole-spacecraft verified event catalog browser journey is selected
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_whole_spacecraft_verified_event_catalog)"
+          printf '%s\n' "$selected"
+          count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events')"
+          test "$count" -eq 1
+      - name: Confirm all whole-spacecraft event Run journeys are selected
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_whole_spacecraft_event_run_bundle)"
+          printf '%s\n' "$selected"
+          count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_whole_spacecraft_event_run_bundle[')"
+          test "$count" -eq 9
+          for case_id in nominal adcs_rw_jamming adcs_rw_motor_failure gyro_bias_step gyro_noise_increase rw_friction_degradation adcs_reaction_wheel_speed_limit propulsion_thruster_ignition_failure propulsion_burn_impulse_loss; do
+            printf '%s\n' "$selected" | grep -Fq "::test_guided_whole_spacecraft_event_run_bundle[$case_id]"
+          done
+
+      - name: Verify guided native component and subsystem selection and real Runs
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_subsystem_eps_comm_data
+          python -m pytest -q -s \
+            --junitxml=reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml \
+            tests/test_guided_task_workspace_browser.py \
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation or guided_whole_spacecraft_verified_event_catalog or guided_whole_spacecraft_event_run_bundle"
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml").getroot()
+          cases = root.findall(".//testcase")
+          eps_comm = [case for case in cases if case.attrib.get("name", "").startswith(
+              "test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_verified_run_bundle"
+          )]
+          adcs = [case for case in cases if case.attrib.get("name") == "test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation"]
+          whole = [case for case in cases if case.attrib.get("name") == "test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events"]
+          whole_runs = [case for case in cases if case.attrib.get("name", "").startswith("test_guided_whole_spacecraft_event_run_bundle[")]
+          expected_whole_run_ids = {
+              "nominal", "adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step",
+              "gyro_noise_increase", "rw_friction_degradation", "adcs_reaction_wheel_speed_limit",
+              "propulsion_thruster_ignition_failure", "propulsion_burn_impulse_loss",
+          }
+          actual_whole_run_ids = {
+              case.attrib["name"].split("[", 1)[1].rsplit("]", 1)[0]
+              for case in whole_runs
+          }
+          assert len(eps_comm) == 6, [case.attrib for case in eps_comm]
+          assert len(adcs) == 1, [case.attrib for case in adcs]
+          assert len(whole) == 1, [case.attrib for case in whole]
+          assert len(whole_runs) == 9, [case.attrib for case in whole_runs]
+          assert actual_whole_run_ids == expected_whole_run_ids, actual_whole_run_ids
+          for case in [*eps_comm, *adcs, *whole, *whole_runs]:
+              assert not case.findall("failure") and not case.findall("skipped"), case.attrib
+          print("O3-C_WHOLESPACE_BROWSER", {
+              "eps_comm": len(eps_comm), "adcs": len(adcs), "whole_spacecraft_catalog": len(whole),
+              "whole_spacecraft_runs": len(whole_runs), "passed": True,
+          })
+          PY
+
+      - name: Verify and summarize archived whole-spacecraft Run Bundles
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import zipfile
+          from pathlib import Path
+          from sat_sim.run_bundle import verify_run_bundle
+
+          root = Path("reports/native_whole_spacecraft_events")
+          report = json.loads((root / "effect_ab.json").read_text(encoding="utf-8"))
+          assert len(report["cases"]) == 8, len(report["cases"])
+          physical_paths = set()
+          for case in report["cases"]:
+              physical_paths.add(case["nominal_bundle_archive"])
+              physical_paths.add(case["injected_bundle_archive"])
+          assert len(physical_paths) == 10, sorted(physical_paths)
+          for raw_path in sorted(physical_paths):
+              bundle_path = Path(raw_path)
+              assert (bundle_path / "SEALED.json").is_file(), bundle_path
+              assert (bundle_path / "bundle_manifest.json").is_file(), bundle_path
+              integrity = verify_run_bundle(bundle_path)
+              assert integrity["ok"] is True, (bundle_path, integrity)
+
+          browser_dir = root / "browser_run_bundles"
+          archives = sorted(browser_dir.glob("*.zip"))
+          sidecars = sorted(browser_dir.glob("*.json"))
+          assert len(archives) == 9, [path.name for path in archives]
+          assert len(sidecars) == 9, [path.name for path in sidecars]
+          for archive_path in archives:
+              metadata_path = archive_path.with_suffix(".json")
+              metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+              archive_sha256 = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+              assert archive_sha256 == metadata["bundle_zip_sha256"], archive_path
+              assert metadata["sealed"] is True and metadata["integrity_ok"] is True, metadata
+              run_id = metadata["run_id"]
+              with zipfile.ZipFile(archive_path) as archive:
+                  prefix = f"{run_id}/"
+                  manifest_bytes = archive.read(f"{prefix}bundle_manifest.json")
+                  manifest = json.loads(manifest_bytes)
+                  seal = json.loads(archive.read(f"{prefix}SEALED.json"))
+                  assert seal["run_id"] == run_id
+                  manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+                  assert manifest_sha256 == seal["bundle_manifest_sha256"]
+                  assert manifest_sha256 == metadata["bundle_manifest_sha256"]
+                  expected = {f"{prefix}{relative}" for relative in manifest["files"]}
+                  assert set(archive.namelist()) == expected | {
+                      f"{prefix}bundle_manifest.json", f"{prefix}SEALED.json"
+                  }
+                  for relative, entry in manifest["files"].items():
+                      actual = hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest()
+                      assert actual == entry["sha256"], (archive_path, relative)
+          print("O3-D_ARCHIVE", {
+              "physical_sealed_run_bundles": len(physical_paths),
+              "chromium_downloaded_run_bundles": len(archives),
+              "sidecar_sha256_checks": len(sidecars),
+              "passed": True,
+          })
+          PY
+
+      - name: Archive Basilisk-native component physical and test evidence
         uses: actions/upload-artifact@v7
         with:
-          name: native-rw-component-physical-ab
+          name: native-component-physical-evidence
           path: |
+            reports/native_component_sensor/junit.xml
+            reports/native_eps_component/junit.xml
+            reports/native_propulsion_thermal/junit.xml
+            reports/native_adcs/adcs_closed_loop.xml
+            reports/native_adcs/adcs_sealed_bundle.xml
+            reports/native_adcs/adcs_fault_effects.xml
+            reports/native_subsystem_eps_comm_data/subsystem_api.xml
+            reports/native_subsystem_eps_comm_data/effect_events.xml
+            reports/native_subsystem_eps_comm_data/effect_ab.xml
+            reports/native_subsystem_eps_comm_data/effect_ab.json
+            reports/native_subsystem_eps_comm_data/formal_effects.xml
+            reports/native_whole_spacecraft_events/effect_ab.xml
+            reports/native_whole_spacecraft_events/effect_ab.json
+            reports/native_whole_spacecraft_events/run_bundles/**
+            reports/native_whole_spacecraft_events/browser_run_bundles/**
+            reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml
+            reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
           if-no-files-found: error

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 import os
 import struct
@@ -14,7 +15,6 @@ from fastapi.testclient import TestClient
 
 from sat_sim.api import create_app
 
-
 def _client(tmp_path: Path) -> TestClient:
     app = create_app(
         runs_root=tmp_path / "runs",
@@ -23,7 +23,6 @@ def _client(tmp_path: Path) -> TestClient:
         auth_mode="disabled",
     )
     return TestClient(app)
-
 
 def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
     with _client(tmp_path) as client:
@@ -92,7 +91,6 @@ def test_scene_workspace_contract_and_local_globe_runtime(tmp_path: Path):
         assert "'unsafe-eval'" not in csp
         assert "'wasm-unsafe-eval'" not in csp
 
-
 def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
     scene = (root / "satellite-scene.js").read_text(encoding="utf-8")
@@ -108,7 +106,6 @@ def test_scene_module_uses_globe_gl_and_explicit_demo_provenance():
     assert "updateTelemetry, updateAdcsTelemetry, setAdcsTelemetryPending, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin" in scene
     assert "setInterval" not in scene
     assert "unsafe-eval" not in scene
-
 
 def test_scene_source_context_exposes_capability_lifecycle_and_independent_adcs_quality():
     root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
@@ -131,7 +128,6 @@ def test_scene_source_context_exposes_capability_lifecycle_and_independent_adcs_
     assert "setAdcsTelemetryPending?.(" in continuous
     assert "capabilityId: info.session?.capability_id" in continuous
     assert "lifecycleState: info.session?.state" in continuous
-
 
 def test_simulation_geometry_view_requires_validated_whole_spacecraft_configuration():
     root = Path(__file__).resolve().parents[1] / "src/sat_sim/web"
@@ -204,7 +200,6 @@ def test_simulation_geometry_view_requires_validated_whole_spacecraft_configurat
     assert "setSimulationGeometryVisible?.(false)" in app
     assert "setOrbitSceneVisible?.(false)" in app
 
-
 def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
     playwright = pytest.importorskip("playwright.sync_api")
     executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
@@ -247,6 +242,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 # when the scene is already active on the next iteration.
                 if page.locator("body").get_attribute("data-active-view") != "scene":
                     page.locator("#wizardSceneShortcutBtn").click()
+
                 playwright.expect(page.locator(".app-sidebar")).to_be_hidden()
                 playwright.expect(page.locator("#workbenchNavigation")).to_be_hidden()
                 playwright.expect(page.locator(".scene-workspace-nav")).to_be_visible()
@@ -462,6 +458,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "wizard")
                     playwright.expect(page.locator("#wizardView")).to_be_visible()
                     page.locator("#wizardSceneShortcutBtn").click()
+
                     playwright.expect(page.locator("body")).to_have_attribute("data-active-view", "scene")
                     page.locator('[data-scene-mode="orbit"]').click()
                     page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=30000)
@@ -479,6 +476,7 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
                 page.locator("#wizardView").wait_for(state="visible")
                 assert page.locator("#satelliteSceneCanvas canvas").count() == 0
                 page.locator("#wizardSceneShortcutBtn").click()
+
                 page.locator("#sceneWorkspaceCreatorBtn").click()
                 page.locator("#creatorView").wait_for(state="visible")
                 assert page.locator("body").get_attribute("data-active-view") == "creator"
@@ -489,7 +487,6 @@ def test_scene_browser_loads_offline_globe_and_camera_controls(tmp_path: Path):
             assert not failures, failures
         finally:
             browser.close()
-
 
 def _write_triangle_glb(path: Path) -> None:
     """Create a tiny valid glTF 2.0 binary fixture for real browser loader tests."""
@@ -534,7 +531,6 @@ def _write_triangle_glb(path: Path) -> None:
         + struct.pack("<I4s", len(binary_chunk), b"BIN\0") + binary_chunk
     )
     path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
-
 
 def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_path: Path):
     playwright = pytest.importorskip("playwright.sync_api")
@@ -583,6 +579,7 @@ def test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions(tmp_p
             page.route("**/*", proxy)
             page.goto("https://workbench.test/", wait_until="domcontentloaded")
             page.locator("#wizardSceneShortcutBtn").click()
+
             playwright.expect(page.locator('[data-scene-mode="simulation"]')).to_have_attribute("aria-pressed", "true")
             playwright.expect(page.locator("#simulationGeometryCanvas")).to_be_visible()
             playwright.expect(page.locator("#satelliteOrbitMode")).to_be_hidden()
@@ -735,7 +732,6 @@ def test_scene_object_selection_preserves_physical_and_assembly_semantics_withou
                        "sceneObjectAnchor", "sceneObjectMapping", "sceneObjectInventory", "sceneObjectSemanticsNote"):
         assert f'id="{element_id}"' in html
 
-
 def test_default_scene_mode_initialization_and_renderer_ownership():
     """Execute the production DOM mode controller without loading WebGL."""
     root = Path(__file__).resolve().parents[1]
@@ -744,3 +740,340 @@ def test_default_scene_mode_initialization_and_renderer_ownership():
         cwd=root, capture_output=True, text=True, timeout=30,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+def _write_review_group_glb(path: Path) -> None:
+    """Turn the triangle fixture into a two-level assembly group with one mesh descendant."""
+    _write_triangle_glb(path)
+    data = path.read_bytes()
+    json_length, json_type = struct.unpack_from("<I4s", data, 12)
+    assert json_type == b"JSON"
+    document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" "))
+    document["nodes"] = [
+        {"name": "spacecraft", "children": [1]},
+        {"name": "battery", "children": [2]},
+        {"name": "battery-shell", "mesh": 0},
+    ]
+    document["scenes"] = [{"nodes": [0]}]
+    json_chunk = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    json_chunk += b" " * ((4 - len(json_chunk) % 4) % 4)
+    binary_chunk = data[20 + json_length:]
+    body = struct.pack("<I4s", len(json_chunk), b"JSON") + json_chunk + binary_chunk
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
+
+def test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus(tmp_path: Path, monkeypatch):
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to an installed Chromium browser")
+
+    expected_glb = tmp_path / "review-candidate.glb"
+    wrong_glb = tmp_path / "wrong-revision.glb"
+    _write_review_group_glb(expected_glb)
+    _write_triangle_glb(wrong_glb)
+    digest = __import__("hashlib").sha256(expected_glb.read_bytes()).hexdigest()
+    registry = {
+        "schema_version": "engineering-asset-mapping.v1",
+        "mappings": [{
+            "mapping_id": "reference:battery",
+            "object_id": "component.battery",
+            "name_zh": "电池组",
+            "mapping_kind": "reference_cad",
+            "asset_instance_id": None,
+            "geometry_asset": {
+                "asset_id": "glb:" + digest,
+                "sha256": digest,
+                "source_node_path": "root/battery",
+                "glb_node_binding": None,
+                "glb_node_binding_candidate": {
+                    "status": "unique_exact_name_parent_match_group_candidate",
+                    "candidate_glb_node_index": 1,
+                    "candidate_glb_node_name": "battery",
+                    "candidate_glb_mesh_index": None,
+                    "candidate_geometry_node_count": 1,
+                    "candidate_descendant_mesh_nodes": [
+                        {"node_index": 2, "name": "battery-shell", "mesh_index": 0},
+                    ],
+                    "selector_promoted": False,
+                    "requires_visual_review": True,
+                },
+            },
+            "geometry_frame": {"identity_status": "unverified"},
+            "spatial_anchor": None,
+            "telemetry_binding": None,
+            "evidence": [],
+            "render": {"as_built_eligible": False, "renderable": False, "views": ["reference_cad"]},
+        }],
+        "intake": {
+            "scope": "reference_registration_only_not_as_built_approval",
+            "glb_sha256": digest,
+        },
+        "glb_node_inventory": {"node_count": 3, "mesh_count": 1, "scene_count": 1},
+        "summary": {
+            "as_built_verified_count": 0,
+            "telemetry_binding_count": 0,
+            "node_renderable_count": 0,
+        },
+    }
+    registry_path = tmp_path / "engineering-reference-registry.json"
+    registry_path.write_text(json.dumps(registry), encoding="utf-8")
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(registry_path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256",
+                       __import__("hashlib").sha256(registry_path.read_bytes()).hexdigest())
+
+    with _client(tmp_path) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(
+            headless=True,
+            executable_path=executable,
+            args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
+        )
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 960}, locale="zh-CN")
+            failures: list[str] = []
+            external_requests: list[str] = []
+
+            def proxy(route):
+                parsed = urlparse(route.request.url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc != "workbench.test":
+                    external_requests.append(route.request.url)
+                    route.abort()
+                    return
+                response = client.get(parsed.path, params=dict(parse_qsl(parsed.query)))
+                headers = {
+                    key: value for key, value in response.headers.items()
+                    if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")
+                }
+                route.fulfill(status=response.status_code, body=response.content, headers=headers)
+
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("console", lambda message: failures.append(message.text) if message.type == "error" else None)
+            page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardSceneShortcutBtn").click()
+            try:
+                page.wait_for_function("() => document.documentElement.dataset.birdsCadModeTabsReady === 'true'", timeout=30000)
+            except Exception as error:
+                raise AssertionError(
+                    "CAD mode module did not become ready; "
+                    f"failures={failures}; external_requests={external_requests}; "
+                    f"module_scripts={page.locator('script[type=module]').count()}"
+                ) from error
+            # Enter the scene through the supported simulation mode first,
+            # then switch to CAD, matching the accepted P9-I user journey.
+            page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
+            assert page.locator('[data-scene-mode="simulation"]').get_attribute("aria-pressed") == "true"
+            page.locator('[data-scene-mode="cad"]').click()
+            assert page.locator('[data-scene-mode="cad"]').get_attribute("aria-pressed") == "true"
+            page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
+            panel = page.locator("#birdsCadReviewPanel")
+            panel.get_by_text("电池组", exact=True).wait_for(timeout=30000)
+            action = panel.get_by_role("button", name="等待 GLB 哈希匹配")
+            assert action.is_disabled()
+
+            page.locator("#birdsCadFile").set_input_files(str(wrong_glb))
+            page.locator("#birdsCadStatus").filter(has_text="已加载 wrong-revision.glb").wait_for(timeout=60000)
+            assert panel.get_by_role("button", name="等待 GLB 哈希匹配").is_disabled()
+            assert "SHA-256" in panel.inner_text()
+
+            page.locator("#birdsCadFile").set_input_files(str(expected_glb))
+            page.locator("#birdsCadStatus").filter(has_text="已加载 review-candidate.glb").wait_for(timeout=60000)
+            page.get_by_text("GLB 哈希一致", exact=True).wait_for(timeout=10000)
+            action = panel.get_by_role("button", name="定位候选组")
+            assert action.is_enabled()
+            panel.get_by_text("查看后代网格清单").click()
+            assert "battery-shell" in panel.inner_text()
+            action.click()
+            page.locator("#birdsCadInspector .birds-cad-inspector-name").filter(has_text="battery").wait_for()
+            assert "GLB 原始节点索引\n1" in page.locator("#birdsCadInspector").inner_text()
+            assert "battery" in page.locator("#birdsCadStatus").inner_text()
+            assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in page.locator("#birdsCadInspector").inner_text()
+            assert not external_requests, external_requests
+            assert not failures, failures
+        finally:
+            browser.close()
+
+def test_p9m4_real_birds4_review_maps_all_reference_groups(tmp_path: Path, monkeypatch):
+    """Review the actual pinned BIRDS-4 GLB against the registry built from the same bytes."""
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    registry_path_value = os.environ.get("SAT_SIM_P9M4_REVIEW_REGISTRY_PATH")
+    real_glb_value = os.environ.get("SAT_SIM_BIRDS4_REAL_GLB_PATH")
+    if not executable or not registry_path_value or not real_glb_value:
+        pytest.skip("Requires the P9-M4 registry artifact, pinned BIRDS-4 GLB and Chromium")
+
+    registry_path = Path(registry_path_value).resolve()
+    glb_path = Path(real_glb_value).resolve()
+    assert registry_path.is_file(), registry_path
+    assert glb_path.is_file() and glb_path.stat().st_size > 10 * 1024 * 1024, glb_path
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    digest = hashlib.sha256(glb_path.read_bytes()).hexdigest()
+    assert registry["intake"]["glb_sha256"] == digest
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE", str(registry_path))
+    monkeypatch.setenv("SAT_SIM_ENGINEERING_MAPPING_BUNDLE_SHA256",
+                       hashlib.sha256(registry_path.read_bytes()).hexdigest())
+
+    expected = {
+        "component.battery": 14,
+        "component.reaction_wheel": 24,
+        "component.payload": 1,
+    }
+    reference_rows = {
+        row["object_id"]: row for row in registry["mappings"]
+        if row["mapping_kind"] == "reference_cad"
+    }
+    assert set(reference_rows) == set(expected)
+    for object_id, count in expected.items():
+        candidate = reference_rows[object_id]["geometry_asset"]["glb_node_binding_candidate"]
+        assert candidate["status"] == "unique_exact_name_parent_match_group_candidate"
+        assert len(candidate["candidate_descendant_mesh_nodes"]) == count
+        assert candidate["selector_promoted"] is False
+        assert reference_rows[object_id]["geometry_asset"]["glb_node_binding"] is None
+        assert reference_rows[object_id]["render"]["renderable"] is False
+
+    wrong_glb = tmp_path / "wrong-revision.glb"
+    _write_triangle_glb(wrong_glb)
+    evidence_dir = os.environ.get("SAT_SIM_SCENE_EVIDENCE_DIR")
+    with _client(tmp_path) as client, playwright.sync_playwright() as pw:
+        api_payload = client.get("/workbench/engineering-mapping").json()
+        assert api_payload["ok"] is True, api_payload
+        assert api_payload["summary"]["visual_review_candidate_count"] == 3, api_payload
+        assert {row["name_zh"] for row in api_payload["mappings"] if row.get("review_candidate")} == {
+            "蓄电池", "反作用轮", "载荷仪器"
+        }
+        browser = pw.chromium.launch(
+            headless=True,
+            executable_path=executable,
+            args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
+        )
+        try:
+            page = browser.new_page(viewport={"width": 1600, "height": 1000}, locale="zh-CN")
+            failures: list[str] = []
+            external_requests: list[str] = []
+
+            def proxy(route):
+                parsed = urlparse(route.request.url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc != "workbench.test":
+                    external_requests.append(route.request.url)
+                    route.abort()
+                    return
+                response = client.get(parsed.path, params=dict(parse_qsl(parsed.query)))
+                headers = {
+                    key: value for key, value in response.headers.items()
+                    if key.lower() in ("content-type", "content-security-policy", "x-content-type-options", "referrer-policy")
+                }
+                route.fulfill(status=response.status_code, body=response.content, headers=headers)
+
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("console", lambda message: failures.append(message.text) if message.type == "error" else None)
+            page.on("response", lambda response: failures.append(f"HTTP {response.status}: {response.url}") if response.status >= 400 else None)
+            page.route("**/*", proxy)
+            page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator("#wizardSceneShortcutBtn").click()
+            try:
+                page.wait_for_function("() => document.documentElement.dataset.birdsCadModeTabsReady === 'true'", timeout=30000)
+            except Exception as error:
+                raise AssertionError(
+                    "CAD mode module did not become ready; "
+                    f"failures={failures}; external_requests={external_requests}; "
+                    f"module_scripts={page.locator('script[type=module]').count()}"
+                ) from error
+            page.locator("#simulationGeometryCanvas").wait_for(state="visible", timeout=30000)
+            assert page.locator('[data-scene-mode="simulation"]').get_attribute("aria-pressed") == "true"
+            page.locator('[data-scene-mode="cad"]').click()
+            assert page.locator('[data-scene-mode="cad"]').get_attribute("aria-pressed") == "true"
+            page.locator("#birdsCadViewer").wait_for(state="visible", timeout=30000)
+            panel = page.locator("#birdsCadReviewPanel")
+            try:
+                page.wait_for_function(
+                    "() => document.querySelectorAll('#birdsCadReviewPanel .birds-cad-review-card').length === 3",
+                    timeout=30000,
+                )
+            except Exception as error:
+                raise AssertionError(
+                    "Real registry was valid but review cards did not render; "
+                    f"viewer_visible={page.locator('#birdsCadViewer').is_visible()}; "
+                    f"panel_text={panel.inner_text()}; "
+                    f"viewer_api={page.evaluate('Boolean(window.BirdsCadViewer)')}"
+                ) from error
+            assert panel.get_by_text("蓄电池", exact=True).is_visible()
+            assert panel.locator(".birds-cad-review-card").count() == 3
+            assert panel.locator(".birds-cad-review-checklist li").count() == 5
+            assert "待工程人员目视核对" in panel.inner_text()
+            assert "未批准；本审查不建立实装或遥测绑定" in panel.inner_text()
+            assert "852" in panel.inner_text()
+            action = panel.get_by_role("button", name="等待 GLB 哈希匹配").first
+            assert action.is_disabled()
+
+            page.locator("#birdsCadFile").set_input_files(str(wrong_glb))
+            page.locator("#birdsCadStatus").filter(has_text="已加载 wrong-revision.glb").wait_for(timeout=60000)
+            assert panel.get_by_role("button", name="等待 GLB 哈希匹配").count() == 3
+            assert all(button.is_disabled() for button in panel.get_by_role("button").all())
+
+            page.locator("#birdsCadFile").set_input_files(str(glb_path))
+            page.locator("#birdsCadStatus").filter(has_text=f"已加载 {glb_path.name}").wait_for(timeout=240000)
+            panel.get_by_text("GLB 哈希一致", exact=True).wait_for(timeout=10000)
+            assert all(button.is_enabled() for button in panel.get_by_role("button", name="定位候选组").all())
+
+            visual_review_records = []
+            for object_id, expected_mesh_count in expected.items():
+                row = reference_rows[object_id]
+                candidate = row["geometry_asset"]["glb_node_binding_candidate"]
+                card = panel.locator(".birds-cad-review-card").filter(has_text=row["name_zh"])
+                card.get_by_text("查看后代网格清单").click()
+                assert len(candidate["candidate_descendant_mesh_nodes"]) == expected_mesh_count
+                for descendant in candidate["candidate_descendant_mesh_nodes"]:
+                    assert descendant["name"] in card.inner_text()
+                card.get_by_role("button", name="定位候选组").click()
+                try:
+                    page.locator("#birdsCadStatus").filter(has_text="已选择").wait_for(timeout=10000)
+                except Exception as error:
+                    raise AssertionError(
+                        "registered candidate node could not be focused: "
+                        f"object_id={object_id}, candidate_index={candidate['candidate_glb_node_index']}, "
+                        f"candidate_name={candidate['candidate_glb_node_name']}, "
+                        f"status={page.locator('#birdsCadStatus').inner_text()}, "
+                        f"viewer_diagnostics={page.evaluate('window.BirdsCadViewer?.getDiagnostics?.()')}"
+                    ) from error
+                inspector_text = page.locator("#birdsCadInspector").inner_text()
+                assert f"GLB 原始节点索引\n{candidate['candidate_glb_node_index']}" in inspector_text
+                assert "尚未审定为航天器 B 系安装锚点或 as-built 实例" in inspector_text
+                assert "参考装配根坐标变换" in inspector_text
+                visual_review_records.append({
+                    "object_id": object_id,
+                    "registry_node_index": candidate["candidate_glb_node_index"],
+                    "registry_node_name": candidate["candidate_glb_node_name"],
+                    "inspected_node_index": candidate["candidate_glb_node_index"],
+                    "descendant_mesh_count": expected_mesh_count,
+                })
+                if evidence_dir:
+                    output = Path(evidence_dir)
+                    output.mkdir(parents=True, exist_ok=True)
+                    screenshot_name = {
+                        "component.battery": "battery",
+                        "component.reaction_wheel": "reaction-wheel",
+                        "component.payload": "payload",
+                    }[object_id]
+                    page.screenshot(
+                        path=str(output / f"p9m4-d-real-birds4-{screenshot_name}-focus.png"),
+                        full_page=True,
+                    )
+
+            if evidence_dir:
+                output = Path(evidence_dir)
+                output.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=str(output / "p9m4-d-real-birds4-review-desktop.png"), full_page=True)
+                (output / "p9m4-d-real-birds4-review-summary.json").write_text(json.dumps({
+                    "glb_sha256": digest,
+                    "glb_node_count": registry["glb_node_inventory"]["node_count"],
+                    "mesh_count": registry["glb_node_inventory"]["mesh_count"],
+                    "reviewed_objects": list(expected),
+                    "visual_review_records": visual_review_records,
+                    "descendant_mesh_counts": expected,
+                    "selector_promotion_count": registry["glb_node_binding_audit"]["selector_promotion_count"],
+                    "as_built_verified_count": registry["summary"]["as_built_verified_count"],
+                    "telemetry_binding_count": registry["summary"]["telemetry_binding_count"],
+                }, ensure_ascii=False, indent=2), encoding="utf-8")
+            assert not external_requests, external_requests
+            assert not failures, failures
+        finally:
+            browser.close()

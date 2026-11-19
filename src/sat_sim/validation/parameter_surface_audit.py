@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from sat_sim.capability_registry import list_capabilities
+from sat_sim.capability_backends import select_capability_backend
 from sat_sim.form_schema import capability_form_schema
 from sat_sim.interactive.continuous_initial_config import initial_configuration_catalog
 
@@ -65,19 +66,44 @@ def build_parameter_surface_audit(*, root: Path | None = None) -> dict[str, Any]
         if not isinstance(declared, Mapping):
             issues.append({"capability_id": cid, "code": "REGISTRY_PARAMETER_SCHEMA_INVALID"})
             declared = {}
-        try:
-            form = capability_form_schema(cid)
-        except Exception as exc:
-            issues.append({"capability_id": cid, "code": "FORM_BUILD_FAILED", "detail": str(exc)})
-            continue
-        form_fields = {field["path"].removeprefix("parameters.values."): field
-                       for field in form["fields"] if field["path"].startswith("parameters.values.")}
+        # A catalog can contain mutually exclusive backend parameters. Audit
+        # each selected contract against its own form before taking the union;
+        # a reference field must not hide a missing native field (or vice versa).
+        backend_definition = declared.get("physics_backend", {}) if contract.data.get("backend_profiles") else {}
+        backends = backend_definition.get("enum", [None])
+        form_fields: dict[str, Mapping[str, Any]] = {}
+        backend_rows = []
+        parameter_backends: dict[str, list[str]] = {}
+        for backend in backends:
+            identity = {"capability_id": cid, **({"physics_backend": backend} if backend is not None else {})}
+            try:
+                effective = select_capability_backend(contract, backend)
+                form = (capability_form_schema(cid) if backend is None or backend == backend_definition.get("default")
+                        else capability_form_schema(cid, physics_backend=backend))
+            except Exception as exc:
+                issues.append({**identity, "code": "FORM_BUILD_FAILED", "detail": str(exc)})
+                continue
+            selected_parameters = effective.data.get("parameters") or {}
+            fields = {field["path"].removeprefix("parameters.values."): field
+                      for field in form["fields"] if field["path"].startswith("parameters.values.")}
+            for key in sorted(set(selected_parameters) - set(fields)):
+                issues.append({**identity, "parameter": key, "code": "REGISTRY_PARAMETER_NOT_IN_FORM"})
+            for key in sorted(set(fields) - set(selected_parameters)):
+                issues.append({**identity, "parameter": key, "code": "FORM_PARAMETER_NOT_IN_REGISTRY"})
+            for key, field in fields.items():
+                form_fields.setdefault(key, field)
+                if backend is not None:
+                    parameter_backends.setdefault(key, []).append(backend)
+            if backend is not None:
+                backend_rows.append({
+                    "physics_backend": backend, "registered_parameter_count": len(selected_parameters),
+                    "form_parameter_count": len(fields),
+                    "basilisk_required": bool((effective.data.get("implementation") or {}).get("basilisk_required", False)),
+                })
         for key in sorted(set(declared) - set(form_fields)):
-            issues.append({"capability_id": cid, "parameter": key,
-                           "code": "REGISTRY_PARAMETER_NOT_IN_FORM"})
-        for key in sorted(set(form_fields) - set(declared)):
-            issues.append({"capability_id": cid, "parameter": key,
-                           "code": "FORM_PARAMETER_NOT_IN_REGISTRY"})
+            # Also detect catalog definitions unreachable from every profile.
+            if not any(item.get("capability_id") == cid and item.get("parameter") == key for item in issues):
+                issues.append({"capability_id": cid, "parameter": key, "code": "REGISTRY_PARAMETER_NOT_IN_FORM"})
         entries = []
         for key in sorted(declared):
             field = form_fields.get(key)
@@ -90,6 +116,7 @@ def build_parameter_surface_audit(*, root: Path | None = None) -> dict[str, Any]
                 "form_unit": field.get("unit") if field else None,
                 "native_source_lookup": read, "continuous_initial_exposed": key in continuous,
                 "physical_perturbation_verified_by_this_audit": False,
+                **({"available_backends": parameter_backends.get(key, [])} if backend_rows else {}),
             })
         implementation = contract.data.get("implementation") or {}
         capability_rows.append({
@@ -100,6 +127,7 @@ def build_parameter_surface_audit(*, root: Path | None = None) -> dict[str, Any]
             "registered_parameter_count": len(declared),
             "form_parameter_count": len(form_fields),
             "parameters": entries,
+            **({"backend_profiles": backend_rows} if backend_rows else {}),
         })
     whole_fields = set(whole.data.get("parameters") or {})
     no_literal = lambda key: key not in literals and not any(key.startswith(p) for p in prefixes)
@@ -131,6 +159,7 @@ def build_parameter_surface_audit(*, root: Path | None = None) -> dict[str, Any]
         },
         "limitations": [
             "Registry-to-form PASS is not approval of a native physical parameter.",
+            "Backend profiles are checked separately; capability totals count the union of their parameters, not one default form.",
             "Source values lookup only means the key appears in code, not that a Basilisk object consumes it.",
             "Independent adapters and component builders are not dataflow verified by this report.",
             "Defaults and internal configuration keys are not automatically operator-editable.",

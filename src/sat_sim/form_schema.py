@@ -11,6 +11,7 @@ import copy
 import re
 from typing import Any, Mapping
 
+from .capability_backends import select_capability_backend, get_task_capability
 from .capability_registry import active_capability_ids, get_capability
 from .canonical_transport import task_spec_json
 from .task_models import CANONICAL_TASK_SPEC_VERSION, CanonicalTaskSpec, canonicalize_task_spec
@@ -133,8 +134,8 @@ EFFECT_LABELS_ZH: dict[str, tuple[str, str]] = {
     "rw_motor_failure": ("反作用轮电机失效", "降低指定反作用轮的有效输出力矩，严重度为1时近似完全失效。"),
     "friction_increase_pct": ("反作用轮摩擦增大", "增大反作用轮等效阻尼，使相同力矩下的转速响应减弱。"),
     "bearing_wear_factor": ("反作用轮轴承磨损", "降低反作用轮有效力矩和最高转速，并增加等效阻尼。"),
-    "gyro_bias_step": ("陀螺偏置突变", "在事件生效期间向陀螺测量叠加确定性偏置。"),
-    "gyro_noise_increase": ("陀螺噪声增大", "按严重度提高陀螺测量噪声幅度。"),
+    "gyro_bias_step": ("陀螺偏置突变", "在闭环控制测量链中叠加三轴陀螺偏置增量。"),
+    "gyro_noise_increase": ("陀螺噪声增大", "在闭环控制测量链中按倍数提高陀螺测量噪声。"),
     "adcs_rw_jamming": ("ADCS反作用轮卡滞", "在闭环姿态控制中使指定控制轴反作用轮卡滞。"),
     "adcs_reaction_wheel_speed_limit": ("ADCS反作用轮达到速度限制", "运行约束事件：闭环控制中的指定反作用轮达到或采用更低的速度上限，不计为故障。"),
     "adcs_rw_speed_saturation": ("ADCS反作用轮达到速度限制（旧标识兼容）", "旧版兼容标识；保存时会规范化为 adcs_reaction_wheel_speed_limit。"),
@@ -143,6 +144,13 @@ EFFECT_LABELS_ZH: dict[str, tuple[str, str]] = {
     "adcs_gyro_bias_step": ("ADCS陀螺偏置突变", "在闭环控制测量链中叠加陀螺偏置。"),
     "adcs_gyro_noise_increase": ("ADCS陀螺噪声增大", "在闭环控制测量链中提高陀螺噪声幅度。"),
     "adcs_rw_friction_increase": ("ADCS反作用轮摩擦退化", "增加反作用轮等效摩擦阻尼，影响轮速与姿态控制响应。"),
+    "transmitter_rate_loss": ("发射机数据率损失", "受控降低官方 SimpleTransmitter 的 nodeBaudRate 输入；此事件验证的是数据率下降，不代表已建立 RF 功率放大器或链路几何模型。"),
+    "transmitter_rate_degradation": ("发射机数据率退化", "随仿真时间逐步降低官方 SimpleTransmitter 的 nodeBaudRate 输入；不代表 RF 功率、链路裕度或地面站过站模型。"),
+    "generation_storage_distribution_failure": ("EPS电源生成、储能与配电组合故障", "受控组合场景：电池可用容量/放电路径异常、太阳阵列输出下降、PDU载荷通道保护性跳闸及负载过载。PDU跳闸为二值保护动作；不代表所有EPS故障类型均已独立建模。"),
+    "energy_margin_degradation": ("EPS能源裕度退化", "受控组合退化场景：电池有效容量与太阳阵列输出随时间退化；不代表所有EPS退化机理均已独立建模。"),
+    "rw_friction_degradation": ("反作用轮摩擦退化", "整星统一运行图中对指定反作用轮施加附加等效黏性阻尼，并由有效阻尼与轮速遥测验证。"),
+    "propulsion_thruster_ignition_failure": ("推进器点火失败", "计划燃烧时窗内抑制官方推进器点火指令；通过命令时长、推力、推进剂消耗和轨道响应验证。"),
+    "propulsion_burn_impulse_loss": ("推进燃烧冲量退化", "按剩余冲量比例缩短计划燃烧脉宽；不改变官方推进器模型，直接核对命令、推力、耗剂和轨道响应。"),
 }
 
 
@@ -195,6 +203,25 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
         "instructions": "填写发射功率损失百分比；该基础通信能力按仿真开始时的参数生效。",
         "parameters": [{"name": "value_pct", "label": "发射功率损失", "type": "number", "unit": "%", "minimum": 0.0, "maximum": 100.0, "default": 30.0, "description": "有效发射功率的损失百分比。"}],
     },
+    "generation_storage_distribution_failure": {
+        "magnitude_applicable": False,
+        "instructions": "受控EPS组合故障包含电池、太阳阵列、PDU载荷通道和负载效应。PDU通道跳闸是二值保护动作，不提供部分跳闸严重度；因此不显示 magnitude 调节。故障开始和结束时间仍可配置。",
+    },
+    "energy_margin_degradation": {
+        "magnitude_applicable": True,
+        "default_magnitude": 0.2,
+        "instructions": "magnitude 为归一化退化强度，缩放电池有效容量与太阳阵列输出的连续退化速率；0 表示不施加退化，1 表示配置的完整退化强度。",
+    },
+    "transmitter_rate_loss": {
+        "magnitude_applicable": True,
+        "default_magnitude": 1.0,
+        "instructions": "magnitude 为归一化故障严重度，按标称数据率到受控故障数据率之间插值。该事件只作用于官方 SimpleTransmitter.nodeBaudRate，不代表RF输出功率或链路中断。",
+    },
+    "transmitter_rate_degradation": {
+        "magnitude_applicable": True,
+        "default_magnitude": 0.2,
+        "instructions": "magnitude 为归一化退化强度，缩放官方 SimpleTransmitter.nodeBaudRate 的时间退化速率；不代表RF功率、链路裕度或存储坏块。",
+    },
     "comm_tx_gain_loss_db": {
         "magnitude_applicable": False,
         "instructions": "填写发射天线增益损失，运行时从标称增益中扣除。",
@@ -222,6 +249,7 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
         "instructions": "二值故障：事件生效即表示目标轮完全卡滞。幅值字段不适用，旧任务中的幅值会被忽略。",
         "parameters": [
             {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号；构型为三正交轮时可选0~2，四轮构型可选0~3。"},
+            {"name": "brake_torque_nm", "label": "卡滞制动力矩", "type": "number", "unit": "N*m", "minimum": 0.0, "maximum": 0.2, "default": 0.2, "description": "卡滞期间作用于目标轮的有界反向制动力矩。"},
         ],
     },
     "rw_motor_failure": {
@@ -231,8 +259,10 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
     },
     "adcs_rw_motor_failure": {
         "magnitude_applicable": False,
-        "instructions": "二值故障：目标轮电机在事件时间窗内不再提供驱动力矩。",
-        "parameters": [{"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"}],
+        "instructions": "二值故障：目标轮电机在事件时间窗内完全失去驱动力矩。部分力矩权限下降应使用独立退化事件 adcs_rw_torque_authority_loss。",
+        "parameters": [
+            {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
+        ],
     },
     "adcs_rw_torque_authority_loss": {
         "magnitude_applicable": False,
@@ -241,6 +271,16 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
             {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
             {"name": "torque_scale", "label": "剩余力矩比例", "type": "number", "unit": "ratio", "minimum": 0.0, "maximum": 1.0, "default": 0.5, "description": "事件生效期间有效最大力矩相对标称值的比例。"},
         ],
+    },
+    "gyro_bias_step": {
+        "magnitude_applicable": False,
+        "instructions": "故障：在事件时间窗内叠加陀螺三轴偏置增量。使用 bias_step_deg_s，不使用通用幅值。",
+        "parameters": [{"name": "bias_step_deg_s", "label": "陀螺偏置增量", "type": "vector3_or_number", "unit": "deg/s", "default": [0.2, 0.0, 0.0], "description": "叠加到官方 IMU 测量角速度的三轴偏置增量，可填写单值或三轴数组。"}],
+    },
+    "gyro_noise_increase": {
+        "magnitude_applicable": False,
+        "instructions": "退化：在事件时间窗内提高陀螺白噪声。使用 noise_scale，必须不小于1。",
+        "parameters": [{"name": "noise_scale", "label": "噪声放大倍数", "type": "number", "minimum": 1.0, "maximum": 1000.0, "default": 10.0, "description": "将基准陀螺白噪声标准差放大的倍数。"}],
     },
     "adcs_gyro_bias_step": {
         "magnitude_applicable": False,
@@ -262,10 +302,29 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
     },
     "adcs_reaction_wheel_speed_limit": {
         "magnitude_applicable": False,
-        "instructions": "运行约束：直接填写新的绝对转速上限，不使用故障幅值。",
+        "instructions": "运行约束：直接填写新的绝对转速上限，不使用故障幅值；请结合目标轮当前转速设置约束值。",
         "parameters": [
             {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
-            {"name": "max_speed_rad_s", "label": "约束后的最高转速", "type": "number", "unit": "rad/s", "minimum": 0.001, "default": 300.0, "description": "事件生效期间目标轮允许的最大绝对转速。"},
+            {"name": "max_speed_rad_s", "label": "约束后的最高转速", "type": "number", "unit": "rad/s", "minimum": 0.001, "default": 5.0, "description": "事件生效期间目标轮允许的最大绝对转速；若要触发超速制动，应低于当前轮速。"},
+        ],
+    },
+    "rw_friction_degradation": {
+        "magnitude_applicable": False,
+        "instructions": "性能退化：对目标反作用轮施加附加等效黏性阻尼。使用 drag_nms，不使用通用幅值。",
+        "parameters": [
+            {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
+            {"name": "drag_nms", "label": "附加等效阻尼", "type": "number", "unit": "N*m*s", "minimum": 0.0, "default": 0.012, "description": "目标轮附加等效黏性阻尼系数。"},
+        ],
+    },
+    "propulsion_thruster_ignition_failure": {
+        "magnitude_applicable": False,
+        "instructions": "二值推进故障：在计划燃烧时窗内抑制点火指令。需配置推进燃烧开始时间与计划脉宽；推进器仍由官方 Basilisk 模块执行。",
+    },
+    "propulsion_burn_impulse_loss": {
+        "magnitude_applicable": False,
+        "instructions": "推进性能退化：按剩余冲量比例缩短计划燃烧脉宽。需配置推进燃烧开始时间与计划脉宽；1表示标称，0.25表示仅保留四分之一计划脉宽。",
+        "parameters": [
+            {"name": "remaining_impulse_ratio", "label": "剩余冲量比例", "type": "number", "unit": "ratio", "minimum": 0.0, "maximum": 1.0, "default": 0.25, "description": "计划燃烧的剩余有效脉宽比例。"},
         ],
     },
 }
@@ -312,6 +371,7 @@ OUTPUT_LABEL_OVERRIDES: dict[str, str] = {
     "spacecraft.scStateOutMsg.*": "航天器状态全部曲线",
     "final_storage_bits": "最终存储数据量",
     "final_pointing_error_deg": "最终姿态指向误差",
+    "attitude.truth.pointing_error_deg": "真实姿态指向误差",
     "final_battery_soc": "最终电池荷电状态",
     "qoi.adcs.initial_pointing_error_deg": "初始姿态指向误差",
     "qoi.adcs.final_pointing_error_deg": "最终姿态指向误差",
@@ -364,7 +424,16 @@ OUTPUT_LABEL_OVERRIDES: dict[str, str] = {
     "adcs.rw.speed_rad_s_2": "3号反作用轮转速",
     "adcs.rw.speed_rad_s_3": "4号反作用轮转速",
     "adcs.rw.max_abs_momentum_nms": "反作用轮最大角动量",
-    "adcs.environment.total_torque_norm_nm": "环境扰动力矩合量",
+    "adcs.environment.total_torque_norm_nm": "环境扰动力矩合量",    "adcs.fusion.source_mode": "姿态估计来源模式（0无效/1向量TRIAD/2星敏/3融合）",
+    "adcs.fusion.magnetometer_used": "磁强计是否参与姿态融合",
+    "adcs.fusion.body_rate_valid": "融合器陀螺角速度测量有效标记",
+    "adcs.sensor.imu_sample_valid": "官方 IMU 输出样本有效标记",
+    **{f"adcs.fusion.estimated_mrp_BN_{axis}": f"融合姿态 MRP {axis.upper()} 分量（B/N）" for axis in "xyz"},
+    **{f"adcs.fusion.estimated_omega_BN_B_{axis}": f"估计机体角速度 {axis.upper()} 分量" for axis in "xyz"},
+    **{f"adcs.magnetometer.reference_n_tesla_{axis}": f"惯性系磁场参考 {axis.upper()} 分量" for axis in "xyz"},
+    **{f"adcs.magnetometer.measured_body_tesla_{axis}": f"本体系磁场测量 {axis.upper()} 分量" for axis in "xyz"},
+    **{f"adcs.sensor.gyro_measured_platform_rad_s_{axis}": f"IMU 平台系陀螺测量 {axis.upper()} 分量" for axis in "xyz"},
+    **{f"adcs.sensor.gyro_measured_body_rad_s_{axis}": f"本体系陀螺测量 {axis.upper()} 分量" for axis in "xyz"},
 }
 
 PLOT_METADATA_FIELDS = {
@@ -549,7 +618,7 @@ EVENT_FIELD_SCHEMAS.update({
 
 
 COMMON_PARAMETER_DESCRIPTIONS = {
-    "physics_backend": "选择反作用轮动力学计算实现。项目参考模型支持当前注册的故障、约束和退化事件；Basilisk 原生物理目前仅支持1轮、3正交轮或4轮金字塔构型的标称模式，不支持故障、约束或时变力矩曲线。默认项目参考模型不等同于 Basilisk 原生物理。",
+    "physics_backend": "选择当前设备的物理计算实现；可用参数、事件和输出以所选后端合同为准。默认项目参考模型不等同于 Basilisk 原生物理。",
     "initial_attitude_error_deg": "仿真开始时航天器相对目标姿态的角度误差。数值越大，控制器需要更长时间或更大力矩完成收敛。",
     "initial_rate_deg_s": "仿真开始时机体三轴角速度，可填写单个数值或三元素数组 [x, y, z]。",
     "target_mode": "姿态控制目标模式：惯性定向、对地定向、对日定向或消旋。",
@@ -810,7 +879,8 @@ def _parameter_fields(contract: Any) -> list[dict[str, Any]]:
             f"parameters.values.{name}",
             payload,
             label=label,
-            description=COMMON_PARAMETER_DESCRIPTIONS.get(str(name)),
+            description=(COMMON_PARAMETER_DESCRIPTIONS["physics_backend"] + " " + str(payload.get("description") or "")
+                         if name == "physics_backend" else COMMON_PARAMETER_DESCRIPTIONS.get(str(name))),
             importance=_field_importance(capability_id, str(name)),
         )
         field.update(_parameter_group(capability_id, str(name)))
@@ -818,10 +888,54 @@ def _parameter_fields(contract: Any) -> list[dict[str, Any]]:
     return fields
 
 
+GUIDED_EFFECT_ALLOWLISTS: dict[str, dict[str, frozenset[str]]] = {
+    "subsystem.adcs_unified_native.v1": {
+        "fault": frozenset({"adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step"}),
+        "degradation": frozenset({"adcs_rw_torque_authority_loss", "gyro_noise_increase"}),
+        "constraint": frozenset(),
+    },
+    "subsystem.eps.unified_native.v1": {
+        "fault": frozenset({"generation_storage_distribution_failure"}),
+        "degradation": frozenset({"energy_margin_degradation"}),
+        "constraint": frozenset(),
+    },
+    "subsystem.comm_data.unified_native.v1": {
+        "fault": frozenset({"transmitter_rate_loss"}),
+        "degradation": frozenset({"transmitter_rate_degradation"}),
+        "constraint": frozenset(),
+    },
+    "whole_spacecraft.unified_native.v1": {
+        "fault": frozenset({
+            "payload_instrument_off",
+            "comm_data_downlink_link_loss",
+            "eps_battery_capacity_loss",
+            "adcs_rw_jamming",
+            "adcs_rw_motor_failure",
+            "gyro_bias_step",
+            "propulsion_thruster_ignition_failure",
+        }),
+        "degradation": frozenset({
+            "solar_panel_efficiency_loss",
+            "thermal_radiator_rejection_loss",
+            "gyro_noise_increase",
+            "rw_friction_degradation",
+            "propulsion_burn_impulse_loss",
+        }),
+        "constraint": frozenset({
+            "power_safe_mode_threshold",
+            "adcs_reaction_wheel_speed_limit",
+        }),
+    },
+}
+
+
 def _effect_templates(contract: Any, kind: str) -> list[dict[str, Any]]:
     templates: list[dict[str, Any]] = []
+    guided_allowlist = GUIDED_EFFECT_ALLOWLISTS.get(contract.capability_id)
     for effect in contract.operator_contract.effects:
         if effect.kind != kind:
+            continue
+        if guided_allowlist is not None and effect.effect_id not in guided_allowlist.get(kind, frozenset()):
             continue
         label, detail = EFFECT_LABELS_ZH.get(
             effect.effect_id,
@@ -870,6 +984,7 @@ def _output_description(name: str, unit: str | None, *, destination: str) -> str
     lower = name.lower()
     known = {
         "time_s": "仿真时间轴。",
+        "attitude.truth.pointing_error_deg": "由官方 Basilisk Spacecraft 状态记录的真实姿态相对惯性参考误差，不是传感器融合估计值。",
         "adcs.pointing.error_deg": "当前姿态相对目标姿态的最短旋转角误差。",
         "adcs.sensor.gyro_measured_rad_s_0": "陀螺 X 轴测量值，包含真实角速度、固定偏置和配置的测量噪声。",
         "adcs.sensor.gyro_measured_rad_s_1": "陀螺 Y 轴测量值，包含真实角速度、固定偏置和配置的测量噪声。",
@@ -911,6 +1026,7 @@ OUTPUT_GROUPS: tuple[tuple[str, str, str], ...] = (
     ("adcs.pointing.", "adcs_pointing", "姿态指向"),
     ("adcs.rate.", "adcs_rate", "机体角速度"),
     ("adcs.sensor.", "adcs_sensor", "姿态传感器"),
+    ("adcs.fusion.", "adcs_fusion", "姿态融合估计器"),
     ("adcs.control.", "adcs_control", "姿态控制器"),
     ("adcs.rw.", "adcs_rw", "反作用轮"),
     ("adcs.power.", "adcs_power", "姿态控制功耗"),
@@ -1045,7 +1161,12 @@ _TRACE_PATTERN_EXPANSIONS: dict[str, tuple[str, ...]] = {
     "adcs.rw.speed_rad_s_*": tuple(f"adcs.rw.speed_rad_s_{index}" for index in range(3)),
     "adcs.star_tracker.q*": tuple(f"adcs.star_tracker.q{index}" for index in range(4)),
     "adcs.magnetometer.tesla_*": tuple(f"adcs.magnetometer.tesla_{axis}" for axis in "xyz"),
-    "adcs.sensor.gyro_measured_rad_s_*": tuple(f"adcs.sensor.gyro_measured_rad_s_{axis}" for axis in "xyz"),
+    "adcs.sensor.gyro_measured_rad_s_*": tuple(f"adcs.sensor.gyro_measured_rad_s_{axis}" for axis in "xyz"),    "adcs.sensor.gyro_measured_platform_rad_s_*": tuple(f"adcs.sensor.gyro_measured_platform_rad_s_{axis}" for axis in "xyz"),
+    "adcs.sensor.gyro_measured_body_rad_s_*": tuple(f"adcs.sensor.gyro_measured_body_rad_s_{axis}" for axis in "xyz"),
+    "adcs.fusion.estimated_mrp_BN_*": tuple(f"adcs.fusion.estimated_mrp_BN_{axis}" for axis in "xyz"),
+    "adcs.fusion.estimated_omega_BN_B_*": tuple(f"adcs.fusion.estimated_omega_BN_B_{axis}" for axis in "xyz"),
+    "adcs.magnetometer.reference_n_tesla_*": tuple(f"adcs.magnetometer.reference_n_tesla_{axis}" for axis in "xyz"),
+    "adcs.magnetometer.measured_body_tesla_*": tuple(f"adcs.magnetometer.measured_body_tesla_{axis}" for axis in "xyz"),
     "adcs.sensor.gyro_bias_rad_s_*": tuple(f"adcs.sensor.gyro_bias_rad_s_{axis}" for axis in "xyz"),
     "adcs.sensor.gyro_noise_rad_s_*": tuple(f"adcs.sensor.gyro_noise_rad_s_{axis}" for axis in "xyz"),
     "adcs.rw.command_torque_nm_*": tuple(f"adcs.rw.command_torque_nm_{index}" for index in range(3)),
@@ -1076,13 +1197,25 @@ def _explicit_output_rows(contract: Any, key: str) -> list[Any]:
     for alias in aliases:
         value = outputs.get(alias)
         if isinstance(value, list) and value:
-            # Wildcard placeholders are not physical quantities. Expand only
-            # the exact fields declared by the capability observability contract.
+            # Keep trace patterns as expansion instructions. Only patterns
+            # registered in _TRACE_PATTERN_EXPANSIONS become selectable fields;
+            # unknown patterns remain visible in unresolved_trace_patterns.
+            include_trace_patterns = key == "trace"
             return [
                 item for item in value
-                if (isinstance(item, Mapping) and item.get("name")
-                    and not any(token in str(item.get("name")) for token in ("*", "?", "[")))
-                or (isinstance(item, str) and not any(token in item for token in ("*", "?", "[")))
+                if (
+                    isinstance(item, Mapping)
+                    and item.get("name")
+                    and (
+                        include_trace_patterns
+                        or not any(token in str(item.get("name")) for token in ("*", "?", "["))
+                    )
+                )
+                or (
+                    isinstance(item, str)
+                    and item.strip()
+                    and (include_trace_patterns or not any(token in item for token in ("*", "?", "[")))
+                )
             ]
     return []
 
@@ -1335,10 +1468,11 @@ def _parameter_sections(contract: Any, fields: list[dict[str, Any]]) -> list[dic
     return sections
 
 
-def capability_form_schema(capability_id: str) -> dict[str, Any]:
+def capability_form_schema(capability_id: str, *, physics_backend: str | None = None) -> dict[str, Any]:
     """Return a registry-derived form contract for one capability."""
 
-    contract = get_capability(capability_id)
+    base_contract = get_capability(capability_id)
+    contract = select_capability_backend(base_contract, physics_backend)
     data = contract.data
     observability = contract.operator_contract.observability
     simulation_defaults = _simulation_defaults(contract)
@@ -1420,6 +1554,10 @@ def capability_form_schema(capability_id: str) -> dict[str, Any]:
         ],
         "canonical_taskspec_schema": CanonicalTaskSpec.model_json_schema(),
         "default_form": _default_form(contract),
+        "backend_profiles": ([
+            {"physics_backend": backend, "summary": select_capability_backend(base_contract, backend).data.get("summary", "")}
+            for backend in base_contract.data["parameters"]["physics_backend"]["enum"]
+        ] if base_contract.data.get("backend_profiles") else []),
         "submission_contract": {
             "input_kind": "form", "endpoint": "/tasks/parse", "registry_is_authoritative": True,
             "arbitrary_python_allowed": False,
@@ -1445,13 +1583,18 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
     declared = str(_mapping(task_spec.get("model")).get("capability_id") or "")
     if declared and declared != capability_id:
         raise ValueError(f"TaskSpec capability_id {declared!r} does not match requested form {capability_id!r}")
-    schema = capability_form_schema(capability_id)
+    effective = get_task_capability(task_spec, capability_id)
+    schema = capability_form_schema(capability_id, physics_backend=effective.data.get("selected_physics_backend"))
     form_data = copy.deepcopy(schema["default_form"])
     allowed = ("task", "simulation", "parameters", "events", "outputs", "assurance", "model")
     for key in allowed:
         value = task_spec.get(key)
         if isinstance(value, Mapping):
             _deep_merge(form_data[key], value)
+    if schema["backend_profiles"] and not task_spec["parameters"]["values"]:
+        # Execution uses model.config when parameters.values is empty. Show the
+        # bound values while retaining their original location in the context.
+        _deep_merge(form_data["parameters"]["values"], task_spec["model"]["config"])
     # Keep the editable metadata view concise. The canonical context below
     # retains the full history; validation and planning are always rerun and
     # no approval or compiled-result cache is accepted by this projection.
@@ -1483,6 +1626,7 @@ def task_spec_to_form_data(capability_id: str, task_spec: Mapping[str, Any]) -> 
         "schema_version": FORM_SCHEMA_VERSION,
         "capability_id": capability_id,
         "form_data": form_data,
+        "form_schema": schema,
         "projected_field_paths": [item["path"] for item in schema["fields"]],
         "projection_is_lossless": True,
         "projection_note": "Canonical context is retained and revalidated; only actual form value changes receive new field provenance and a new execution plan.",

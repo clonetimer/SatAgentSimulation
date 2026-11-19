@@ -1,0 +1,28 @@
+schema_version: 1.0.0
+task:
+  id: component_thruster_basilisk_native
+  name: Delayed single-thruster burn
+  description: Single thruster on a free carrier with a half-second burn and recorded tank mass.
+simulation:
+  level: component
+  duration_s: 1.0
+  step_s: 0.005
+  sample_s: 0.1
+  backend: basilisk
+parameters:
+  profile: demo
+  values:
+    physics_backend: basilisk_native
+    native_step_s: 0.005
+    thrust_n: 1.0
+    isp_s: 280.0
+    on_time_profile_s: [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0, 0, 0, 0]
+model:
+  capability_id: component.thruster.v1
+  target: {level: component, name: thruster, mode: nominal}
+outputs:
+  output_root: runs/component_thruster_basilisk_native
+  include_summary: true
+  include_trace: true
+  include_labels: true
+  include_manifest: true

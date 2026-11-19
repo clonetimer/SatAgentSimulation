@@ -996,3 +996,126 @@ def build_nominal_solar_panel_config(
         config = apply_solar_panel_faults(config, fault_specs)
     return config
 
+
+
+@dataclass(frozen=True)
+class SolarPanelNativeMeasurement:
+    time_s: float
+    power_w: float
+
+
+@dataclass(frozen=True)
+class SolarPanelNativeRun:
+    model_source: str
+    status: str
+    expected_power_w: float
+    measurements: tuple[SolarPanelNativeMeasurement, ...]
+    input_source: str = "explicit_SCStatesMsg_SpicePlanetStateMsg_EclipseMsg_fixtures"
+    claim_scope: str = "official_simple_solar_panel_fixed_normal_power_from_prescribed_sun_position_and_eclipse_without_orbit_ephemeris_or_tracking"
+
+
+def run_simple_solar_panel_native_case(
+    config: SolarPanelNativeConfig,
+    *,
+    duration_s: float,
+    sample_s: float,
+    sun_direction_b: Sequence[float],
+    shadow_factor: float,
+) -> SolarPanelNativeRun:
+    """Execute the official Basilisk SimpleSolarPanel against explicit inputs.
+
+    The spacecraft attitude is identity, the Sun is placed at 1 AU along the
+    requested body-frame direction, and the EclipseMsg carries the supplied
+    illumination factor. Tracking is intentionally excluded.
+    """
+    duration = float(duration_s)
+    sample = float(sample_s)
+    if not math.isfinite(duration) or duration <= 0.0 or not math.isfinite(sample) or sample <= 0.0 or sample > duration:
+        raise ValueError("NATIVE_SOLAR_PANEL_TIME_GRID_INVALID")
+    # Match Basilisk sec2nano rounding and schedule exactly the validated grid.
+    sample_ns = int(sample * 1.0e9 + 0.5)
+    duration_ns = int(duration * 1.0e9 + 0.5)
+    if sample_ns < 1 or duration_ns % sample_ns:
+        raise ValueError("NATIVE_SOLAR_PANEL_TIME_GRID_REQUIRES_COMPLETE_SAMPLE_INTERVALS")
+    sun_direction = unit(sun_direction_b)
+    shadow = clamp01(float(shadow_factor))
+    if config.enable_tracking or float(config.max_slew_rate_rad_s) > 0.0:
+        raise ValueError("NATIVE_SOLAR_PANEL_TRACKING_NOT_SUPPORTED_IN_FIXED_PANEL_PROBE")
+    if not basilisk_simple_solar_panel_available():
+        raise RuntimeError("NATIVE_SIMPLE_SOLAR_PANEL_UNAVAILABLE")
+
+    from Basilisk.architecture import messaging
+    from Basilisk.utilities import SimulationBaseClass, macros
+
+    state_payload = messaging.SCStatesMsgPayload()
+    state_payload.sigma_BN = [0.0, 0.0, 0.0]
+    state_payload.omega_BN_B = [0.0, 0.0, 0.0]
+    state_payload.r_BN_N = [7_000_000.0, 0.0, 0.0]
+    state_payload.v_BN_N = [0.0, 7_500.0, 0.0]
+    state_payload.omegaDot_BN_B = [0.0, 0.0, 0.0]
+    state_payload.nonConservativeAccelpntB_B = [0.0, 0.0, 0.0]
+    state_msg = messaging.SCStatesMsg().write(state_payload)
+
+    sun_payload = messaging.SpicePlanetStateMsgPayload()
+    sun_payload.PositionVector = [
+        7_000_000.0 + sun_direction[0] * 149_597_870_700.0,
+        sun_direction[1] * 149_597_870_700.0,
+        sun_direction[2] * 149_597_870_700.0,
+    ]
+    sun_payload.VelocityVector = [0.0, 0.0, 0.0]
+    sun_payload.PlanetName = "sun"
+    sun_msg = messaging.SpicePlanetStateMsg().write(sun_payload)
+    eclipse_payload = messaging.EclipseMsgPayload()
+    eclipse_payload.illuminationFactor = shadow
+    eclipse_msg = messaging.EclipseMsg().write(eclipse_payload)
+
+    sim = SimulationBaseClass.SimBaseClass()
+    process = sim.CreateNewProcess("P9N3SolarPanelProcess")
+    task_name = "P9N3SolarPanelTask"
+    process.addTask(sim.CreateNewTask(task_name, sample_ns))
+    panel = build_simple_solar_panel(
+        model_tag=config.model_tag,
+        panel_normal_b=config.initial_normal_b,
+        max_power_w=config.max_power_w,
+        efficiency=config.efficiency,
+        panel_area_m2=config.panel_area_m2,
+        solar_constant_w_m2=config.solar_constant_w_m2,
+        sun_in_msg=sun_msg,
+        state_in_msg=state_msg,
+        eclipse_in_msg=eclipse_msg,
+    )
+    sim.AddModelToTask(task_name, panel)
+    recorder = panel.nodePowerOutMsg.recorder(sample_ns)
+    sim.AddModelToTask(task_name, recorder)
+    sim.InitializeSimulation()
+    sim.ConfigureStopTime(duration_ns)
+    sim.ExecuteSimulation()
+
+    times = tuple(float(value) * 1.0e-9 for value in recorder.times())
+    powers = tuple(float(value) for value in recorder.netPower)
+    if not times or len(times) != len(powers):
+        raise RuntimeError("NATIVE_SOLAR_PANEL_RECORDER_MISSING")
+    if not all(math.isfinite(value) for value in powers):
+        raise RuntimeError("NATIVE_SOLAR_PANEL_RECORDER_NONFINITE")
+    expected = compute_cosine_power_w(
+        config.max_power_w,
+        config.efficiency,
+        config.initial_normal_b,
+        sun_direction,
+        shadow,
+    )
+    final_power = powers[-1]
+    tolerance = max(0.05, abs(expected) * 0.03)
+    if abs(final_power - expected) > tolerance:
+        raise RuntimeError(
+            f"NATIVE_SOLAR_PANEL_POWER_MISMATCH: expected={expected:.6f}, measured={final_power:.6f}"
+        )
+    return SolarPanelNativeRun(
+        model_source="Basilisk.simulation.simpleSolarPanel.SimpleSolarPanel",
+        status="PASS",
+        expected_power_w=expected,
+        measurements=tuple(
+            SolarPanelNativeMeasurement(time_s=time, power_w=power)
+            for time, power in zip(times, powers)
+        ),
+    )

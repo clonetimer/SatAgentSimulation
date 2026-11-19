@@ -78,6 +78,7 @@
     presentationCatalog: null,
     presentationObjects: [],
     sceneObjectTree: null,
+    sceneEngineeringMapping: null,
     sceneTreeLoading: false,
     selectedObjectId: null,
     selectedCapabilityId: null,
@@ -115,6 +116,7 @@
     changedPaths: new Set(),
     formSectionOpen: new Map(),
     agentBeforeForm: null,
+    agentBeforeSchema: null,
     agentBeforeTaskCenterId: null,
     formProjectionSource: null,
     executionState: null,
@@ -227,6 +229,12 @@
     visualTuningContext: null,
     visualTuningBestRunId: null,
   };
+
+  window.addEventListener('birds-cad-viewer-ready', () => {
+    if (state.sceneEngineeringMapping) {
+      window.BirdsCadViewer?.setEngineeringReviewData?.(state.sceneEngineeringMapping);
+    }
+  });
 
   const el = (id) => document.getElementById(id);
   const $all = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -1811,6 +1819,7 @@
         else if (['number', 'integer'].includes(field.type)) {
           value = Number(input.value); if (!Number.isFinite(value)) throw new Error('必须是数值'); if (field.type === 'integer' && !Number.isInteger(value)) throw new Error('必须是整数');
         } else value = input.value;
+        if (field.path === 'parameters.values.physics_backend' && state.schema?.backend_profiles?.length) { void selectPhysicsBackend(value); return; }
         setPath(state.formData, field.path, value);
         state.taskSpec = null; state.planning = null; syncTaskSpecEditor(); validateClientForm({ show: false }); renderForm(); renderGraph();
         graphSetStatus(`已更新 ${field.label || field.path}；重新生成 Python 后代码会同步。`, 'success');
@@ -4013,6 +4022,7 @@
   function clearAgentChanges() {
     state.changedPaths = new Set();
     state.agentBeforeForm = null;
+    state.agentBeforeSchema = null;
     state.agentBeforeTaskCenterId = null;
     state.formProjectionSource = null;
     renderForm();
@@ -4024,10 +4034,12 @@
   function undoAgentChanges() {
     if (!state.agentBeforeForm) return;
     state.formData = clone(state.agentBeforeForm);
+    if (state.agentBeforeSchema) state.schema = clone(state.agentBeforeSchema);
     state.activeTaskCenterId = state.agentBeforeTaskCenterId;
     state.taskSpec = null;
     state.planning = null;
     clearAgentChanges();
+    renderEffectSelect();
     updateTaskEditState();
     syncTaskSpecEditor();
     showNotice('已撤销最近一次 Agent/TaskSpec 表单同步。', 'success');
@@ -4050,6 +4062,8 @@
     }
     const before = clone(state.formData || state.schema.default_form);
     state.agentBeforeForm = before;
+    state.agentBeforeSchema = clone(state.schema);
+    if (payload.projection?.form_schema) state.schema = payload.projection.form_schema;
     state.agentBeforeTaskCenterId = state.activeTaskCenterId;
     state.formProjectionSource = source;
     state.formData = clone(projected);
@@ -4450,10 +4464,79 @@
     return probe;
   }
 
+  function renderP9M4MappingPanel() {
+    const status = el('p9m4MappingStatus');
+    const detail = el('p9m4MappingDetail');
+    if (!status || !detail) return;
+    const payload = state.sceneEngineeringMapping;
+    status.dataset.state = payload?.status || 'unavailable';
+    status.textContent = payload?.message_zh || '工程映射状态不可用。';
+    detail.replaceChildren();
+    if (!payload?.ok || !payload.configured || !payload.summary) {
+      const note = document.createElement('p');
+      note.className = 'p9d-empty';
+      note.textContent = payload?.status === 'invalid'
+        ? '映射文件未通过校验，已拒绝加载。'
+        : '部署经校验的 M4 映射清单后，此处显示参考 CAD 与未定位对象状态。';
+      detail.append(note);
+      return;
+    }
+    const counts = document.createElement('div');
+    counts.className = 'p9m4-mapping-counts';
+    const labels = {
+      reference_cad: '参考 CAD',
+      simulation_configuration_geometry: '仿真构型',
+      as_built_verified: '已审定实装',
+      unlocated: '未定位',
+    };
+    for (const [kind, label] of Object.entries(labels)) {
+      const card = document.createElement('div');
+      card.className = 'p9m4-mapping-count';
+      const value = document.createElement('strong');
+      value.textContent = String(payload.summary.counts_by_kind?.[kind] || 0);
+      const caption = document.createElement('span');
+      caption.textContent = label;
+      card.append(value, caption);
+      counts.append(card);
+    }
+    detail.append(counts);
+    const list = document.createElement('div');
+    list.className = 'p9m4-mapping-list';
+    const selected = state.selectedObjectId;
+    for (const row of payload.mappings || []) {
+      if (selected && row.object_id !== selected) continue;
+      const item = document.createElement('div');
+      item.className = 'p9m4-mapping-row';
+      const name = document.createElement('strong');
+      name.textContent = row.object_id;
+      const kind = document.createElement('span');
+      kind.className = 'p9m4-mapping-kind';
+      kind.textContent = labels[row.mapping_kind] || row.mapping_kind;
+      item.append(name, kind);
+      list.append(item);
+    }
+    if (!list.childElementCount) {
+      const note = document.createElement('p');
+      note.className = 'p9d-empty';
+      note.textContent = selected ? '当前对象没有独立映射记录。' : '没有可展示的映射记录。';
+      detail.append(note);
+    } else {
+      detail.append(list);
+    }
+  }
+
   async function loadSceneObjectTree() {
     if (state.sceneTreeLoading) return;
     state.sceneTreeLoading = true;
     try {
+      // Geometry evidence is independent of the simulation object-tree catalogue.
+      // Load it first so a catalogue failure cannot suppress Reference-CAD review.
+      try {
+        state.sceneEngineeringMapping = await api('/workbench/engineering-mapping');
+      } catch (mappingError) {
+        state.sceneEngineeringMapping = {ok: false, status: 'unavailable', message_zh: '工程映射服务暂不可用。'};
+      }
+      window.BirdsCadViewer?.setEngineeringReviewData?.(state.sceneEngineeringMapping);
       const payload = await api('/workbench/scene/catalog');
       if (!payload?.ok || payload.tree?.schema_version !== 'workbench-object-tree.v2') {
         throw new Error('对象目录版本不兼容。');
@@ -4501,6 +4584,7 @@
   function renderP9DPanel() {
     const panel = window.P9DObjectConfigPanel;
     if (!panel || !state.sceneObjectTree) return;
+    renderP9M4MappingPanel();
     panel.render({
       tree: state.sceneObjectTree,
       selectedId: state.selectedObjectId,
@@ -4739,6 +4823,112 @@
     }
   }
 
+  function matchesOutputSelection(pattern, field) {
+    // Output requests use fnmatch-style globs. Match concrete schema fields
+    // without expanding or rewriting the user's retained selection.
+    let reachable = Array(field.length + 1).fill(false);
+    reachable[0] = true;
+    for (let index = 0; index < pattern.length; index += 1) {
+      const token = pattern[index];
+      if (token === '*') {
+        for (let position = 1; position <= field.length; position += 1) {
+          reachable[position] ||= reachable[position - 1];
+        }
+        continue;
+      }
+      let accepts = (character) => token === '?' || character === token;
+      if (token === '[') {
+        let end = index + 1;
+        if (pattern[end] === '!') end += 1;
+        if (pattern[end] === ']') end += 1;
+        end = pattern.indexOf(']', end);
+        if (end !== -1) {
+          let members = pattern.slice(index + 1, end);
+          const negate = members.startsWith('!');
+          if (negate) members = members.slice(1);
+          accepts = (character) => {
+            let included = false;
+            for (let item = 0; item < members.length; item += 1) {
+              if (item + 2 < members.length && members[item + 1] === '-') {
+                included ||= members[item] <= character && character <= members[item + 2];
+                item += 2;
+              } else included ||= members[item] === character;
+            }
+            return negate ? !included : included;
+          };
+          index = end;
+        }
+      }
+      reachable = reachable.map((_, position) => position > 0 && reachable[position - 1] && accepts(field[position - 1]));
+    }
+    return reachable[field.length];
+  }
+
+  async function selectPhysicsBackend(backend) {
+    const capabilityId = state.selectedCapabilityId;
+    const sourceForm = state.formData;
+    const requestVersion = (state.backendSelectionVersion || 0) + 1;
+    state.backendSelectionVersion = requestVersion;
+    showBusy('切换物理后端', '正在读取所选模型的参数和输出。');
+    try {
+      const payload = await api(`/forms/capabilities/${encodeURIComponent(capabilityId)}?physics_backend=${encodeURIComponent(backend)}`);
+      if (requestVersion !== state.backendSelectionVersion || capabilityId !== state.selectedCapabilityId || sourceForm !== state.formData) return false;
+      const schema = payload.form_schema;
+      const next = clone(state.formData);
+      const removed = [];
+      const allowed = new Set(schema.fields.filter((field) => field.path.startsWith('parameters.values.')).map((field) => field.path.slice('parameters.values.'.length)));
+      const values = clone(schema.default_form.parameters.values);
+      Object.entries(next.parameters?.values || {}).forEach(([name, value]) => {
+        if (allowed.has(name)) values[name] = value;
+        else removed.push(name);
+      });
+      values.physics_backend = backend;
+      next.parameters.values = values;
+      if (next.model?.config) {
+        Object.keys(next.model.config).forEach((name) => { if (!allowed.has(name)) { delete next.model.config[name]; removed.push(`model.config.${name}`); } });
+        next.model.config.physics_backend = backend;
+      }
+      for (const section of ['qoi', 'plots']) {
+        const available = section === 'qoi' ? [...schema.outputs.summary_qoi, ...schema.outputs.trace_fields] : schema.outputs.trace_fields;
+        const requested = next.outputs[section] ?? schema.default_form.outputs[section];
+        next.outputs[section] = requested.filter((name) => { if (available.some((field) => matchesOutputSelection(name, field))) return true; removed.push(name); return false; });
+      }
+      next.outputs.telemetry_streams = (next.outputs.telemetry_streams || []).filter((stream) => {
+        // The stream exporter supports exact names and trailing-prefix '*'.
+        if ((stream.fields || []).every((pattern) => schema.outputs.trace_fields.some((field) => pattern.endsWith('*') ? field.startsWith(pattern.slice(0, -1)) : field === pattern))) return true;
+        removed.push(`遥测流 ${stream.stream_id}`); return false;
+      });
+      for (const kind of ['faults', 'degradations', 'constraints']) {
+        const effects = new Set((schema.event_catalog[kind] || []).map((item) => item.effect));
+        next.events[kind] = (next.events[kind] || []).filter((event) => { if (effects.has(event.effect)) return true; removed.push(event.label || event.effect); return false; });
+      }
+      if (Object.values(next.events).every((events) => !events.length)) next.model.target.mode = 'nominal';
+      state.schema = schema;
+      state.formData = next;
+      state.taskSpec = null;
+      state.planning = null;
+      state.wizard.validated = false;
+      state.wizard.validatedForm = null;
+      if (typeof window !== 'undefined') window.SatScene?.clearSimulationConfiguration?.();
+      clearAgentChanges();
+      updateTaskEditState();
+      updateSingleRunGuide('configure', '物理后端已切换，请重新校验配置。');
+      renderEffectSelect(); renderP9DPanel(); renderGraph();
+      syncTaskSpecEditor();
+      if (state.activeView === 'wizard') renderWizardParameterControls();
+      const description = schema.backend_profiles?.find((item) => item.physics_backend === backend)?.summary || '';
+      showNotice(`已切换物理后端。共用参数已保留，需要重新校验。${removed.length ? ` 已移除不适用的配置：${[...new Set(removed)].join('、')}。` : ''} ${description}`, removed.length ? 'warning' : 'success');
+      return true;
+    } catch (error) {
+      if (requestVersion === state.backendSelectionVersion && sourceForm === state.formData) {
+        renderForm(); showNotice(`切换物理后端失败：${error.message}`, 'error');
+      }
+      return false;
+    } finally {
+      if (requestVersion === state.backendSelectionVersion) hideBusy();
+    }
+  }
+
   async function selectCapability(capabilityId, objectOverride = null, isCurrent = () => true) {
     if (capabilityId === state.selectedCapabilityId && state.schema) {
       if (objectOverride) {
@@ -4779,6 +4969,7 @@
       updateTaskEditState();
       state.changedPaths = new Set();
       state.agentBeforeForm = null;
+      state.agentBeforeSchema = null;
       state.agentBeforeTaskCenterId = null;
       state.formProjectionSource = null;
       renderAgentChangePanel();
@@ -4939,6 +5130,8 @@
       ? state.wizard.parameterMode : 'recommended';
     state.wizard.parameterMode = mode;
     const fields = (state.schema?.fields || []).filter((field) => String(field.path || '').startsWith('parameters.values.'));
+    const nativeRwPreset = el('wizardNativeRwPreset');
+    nativeRwPreset?.classList.toggle('hidden', state.selectedCapabilityId !== 'component.reaction_wheel.v1');
     const recommended = fields.filter((field) => field.importance !== 'advanced').length;
     const advanced = fields.length - recommended;
     const nonDefault = fields.filter((field) => field.default !== undefined
@@ -5049,9 +5242,14 @@
             else { value=Number(input.value); if (!Number.isFinite(value)) throw new Error('必须是数值'); if (field.type==='integer' && !Number.isInteger(value)) throw new Error('必须是整数'); }
           } else if (['object','object_editor','array','number_or_array[number]','vector3_or_number'].includes(field.widget) || String(field.widget).startsWith('array[')) value=parseStructuredValue(input.value,field);
           else value=input.value;
+          if (field.path === 'parameters.values.physics_backend' && state.schema?.backend_profiles?.length) { void selectPhysicsBackend(value); return; }
           if (value === undefined) deletePath(state.formData,field.path); else setPath(state.formData,field.path,value);
           state.taskSpec=null; state.changedPaths.delete(field.path); wrapper.classList.remove('agent-changed','field-error'); wrapper.querySelector('.field-error-message')?.remove();
           validateClientForm({show:false}); renderAgentChangePanel();
+          if (field.path === 'parameters.values.physics_backend') {
+            renderEffectSelect();
+            renderEvents();
+          }
           if (state.activeView === 'wizard') renderWizardParameterControls();
         } catch (error) {
           setFieldError(field.path,error.message);
@@ -5071,12 +5269,12 @@
       });
       if (!filtered.length) return;
       const collapsible=Boolean(section.parameter_group) && section.parameter_group !== 'general';
-      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section';
+      const card=document.createElement(collapsible ? 'details' : 'section'); card.className='schema-section'; card.dataset.sectionId=section.id;
       if (collapsible) {
         card.classList.add('parameter-section');
         const key=`${state.schema.capability.capability_id}:${section.id}`;
         const changed=filtered.some((field)=>state.changedPaths.has(field.path));
-        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? wizardParameterMode === 'all' : section.parameter_group === 'orbit'));
+        card.open=Boolean(query) || showAdvanced || changed || (state.formSectionOpen.get(key) ?? (wizardParameterMode ? (wizardParameterMode === 'all' || section.parameter_group === 'backend') : section.parameter_group === 'orbit'));
         card.addEventListener('toggle',()=>{
           if (!query && !showAdvanced && !changed) state.formSectionOpen.set(key,card.open);
         });
@@ -5110,8 +5308,25 @@
   }
 
   function renderEffectSelect() {
-    const kind = el('effectKind').value;
     const select = el('effectSelect');
+    const kindSelect = el('effectKind');
+    const nativeRwNominalOnly = state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native';
+    const limitNote = el('eventBackendLimitNote');
+    if (limitNote) limitNote.classList.toggle('hidden', !nativeRwNominalOnly);
+
+    const availableKinds = Array.from(kindSelect.options).filter((option) => effectCatalog(option.value).length > 0);
+    Array.from(kindSelect.options).forEach((option) => {
+      const available = availableKinds.some((item) => item.value === option.value);
+      option.hidden = !available;
+      option.disabled = !available;
+    });
+    if (availableKinds.length && !availableKinds.some((option) => option.value === kindSelect.value)) {
+      kindSelect.value = availableKinds[0].value;
+    }
+    const kind = kindSelect.value;
+    kindSelect.disabled = nativeRwNominalOnly || availableKinds.length <= 1;
+    select.disabled = nativeRwNominalOnly;
     select.replaceChildren();
     effectCatalog(kind).forEach((item) => {
       const option = document.createElement('option');
@@ -5119,12 +5334,74 @@
       option.textContent = item.label || item.effect;
       select.appendChild(option);
     });
-    el('addEffectBtn').disabled = !select.options.length;
+    el('addEffectBtn').disabled = nativeRwNominalOnly || !select.options.length;
   }
 
   function addEffect() {
+    if (state.selectedCapabilityId === 'component.reaction_wheel.v1'
+      && getPath(state.formData, 'parameters.values.physics_backend') === 'basilisk_native') {
+      el('eventBackendLimitNote')?.classList.remove('hidden');
+      return;
+    }
     const kind = el('effectKind').value;
     const effect = el('effectSelect').value;
+    if (state.selectedCapabilityId === 'subsystem.adcs_unified_native.v1') {
+      const allowedAdcsEffects = new Set([
+        'adcs_rw_jamming',
+        'adcs_rw_motor_failure',
+        'gyro_bias_step',
+        'adcs_rw_torque_authority_loss',
+        'gyro_noise_increase',
+      ]);
+      if (!allowedAdcsEffects.has(effect)) {
+        showNotice('当前 ADCS 向导仅允许五类已通过物理 A/B 验收的故障与退化。', 'warning');
+        return;
+      }
+    }
+    const nativeSubsystemEventAllowlist = {
+      'subsystem.eps.unified_native.v1': {
+        fault: new Set(['generation_storage_distribution_failure']),
+        degradation: new Set(['energy_margin_degradation']),
+      },
+      'subsystem.comm_data.unified_native.v1': {
+        fault: new Set(['transmitter_rate_loss']),
+        degradation: new Set(['transmitter_rate_degradation']),
+      },
+    };
+    const nativeAllowed = nativeSubsystemEventAllowlist[state.selectedCapabilityId]?.[kind];
+    if (nativeAllowed && !nativeAllowed.has(effect)) {
+      showNotice('该分系统仅允许已经通过官方 Basilisk 配对 A/B 与正式证据验收的事件。', 'warning');
+      return;
+    }
+    const wholeSpacecraftVerifiedEffects = {
+      fault: new Set([
+        'payload_instrument_off',
+        'comm_data_downlink_link_loss',
+        'eps_battery_capacity_loss',
+        'adcs_rw_jamming',
+        'adcs_rw_motor_failure',
+        'gyro_bias_step',
+        'propulsion_thruster_ignition_failure',
+      ]),
+      degradation: new Set([
+        'solar_panel_efficiency_loss',
+        'thermal_radiator_rejection_loss',
+        'gyro_noise_increase',
+        'rw_friction_degradation',
+        'propulsion_burn_impulse_loss',
+      ]),
+      constraint: new Set([
+        'power_safe_mode_threshold',
+        'adcs_reaction_wheel_speed_limit',
+      ]),
+    };
+    const wholeAllowed = state.selectedCapabilityId === 'whole_spacecraft.unified_native.v1'
+      ? wholeSpacecraftVerifiedEffects[kind]
+      : null;
+    if (wholeAllowed && !wholeAllowed.has(effect)) {
+      showNotice('整星向导仅开放已通过整星配对 A/B 与正式证据验收的 14 类事件；未声明事件保持隐藏。', 'warning');
+      return;
+    }
     const template = effectCatalog(kind).find((item) => item.effect === effect);
     if (!template) return;
     const key = kind === 'fault' ? 'faults' : (kind === 'degradation' ? 'degradations' : 'constraints');
@@ -6081,6 +6358,7 @@
       if (visualRunContext) { state.activeVisualRunContext = { ...visualRunContext, runId }; clearVisualRunOverlay(); }
       else state.activeVisualRunContext = null;
       el('exportDatasetBtn').classList.add('hidden');
+      el('downloadRunBundleBtn').classList.add('hidden');
       state.executionState = payload.execution_state || { run_id: runId, state: 'QUEUED' };
       renderExecutionProgress(state.executionState);
       showNotice(`仿真“${displayName}”已提交执行（Run ID：${runId}）。可以继续编辑其他任务，无需进入运行中心。`, 'success');
@@ -6206,6 +6484,7 @@
       el('openRunReportBtn').classList.add('hidden');
       el('reuseRunConfigBtn').classList.add('hidden');
       el('exportDatasetBtn').classList.add('hidden');
+      el('downloadRunBundleBtn').classList.add('hidden');
       el('downloadRunDiagnosticBtn').classList.add('hidden');
       el('activeRunCard').className = 'active-run empty-state';
       el('activeRunCard').textContent = `正在读取运行 ${runId}…`;
@@ -6372,10 +6651,30 @@
     datasetButton.title = state.dataset?.available
       ? `${state.dataset.file_count} 个文件，${humanBytes(state.dataset.size_bytes)}`
       : '当前运行尚未生成数据集';
+    const runBundleButton = el('downloadRunBundleBtn');
+    const verifiedRunBundle = Boolean(
+      state.activeRunId
+      && state.activeRun?.sealed === true
+      && state.activeRun?.integrity?.ok === true
+    );
+    runBundleButton.classList.toggle('hidden', !verifiedRunBundle);
+    runBundleButton.disabled = !verifiedRunBundle;
+    runBundleButton.title = verifiedRunBundle
+      ? '下载本次完整封存 Run Bundle；保留原始 TaskSpec、执行记录和 SHA-256 完整性清单'
+      : '仅可导出已封存且完整性校验通过的 Run Bundle';
     el('downloadRunDiagnosticBtn').classList.toggle('hidden', !state.activeRunId);
     const run = state.activeRun || {};
     const record = run.run_record || {};
     const validation = run.validation_outcome || {};
+    const runSummary = run.summary || {};
+    const physicsBackend = runSummary.physics_backend === 'basilisk_native'
+      ? 'Basilisk 官方原生'
+      : runSummary.physics_backend === 'project_reference'
+        ? '项目参考模型'
+        : (runSummary.physics_backend || '未声明');
+    const nativeProvenance = runSummary.adapter_metadata?.native_provenance
+      || runSummary.runtime_truth_status
+      || '未声明';
     const card = el('activeRunCard');
     card.className = 'active-run';
     card.replaceChildren();
@@ -6400,6 +6699,8 @@
       ['验证结果', validation.result || record.validation_result || '—'],
       ['制品完整性', run.integrity?.ok ? 'VERIFIED' : 'NOT VERIFIED'],
       ['任务 ID', record.task_id || '—'],
+      ['物理计算后端', physicsBackend],
+      ['模型来源证据', nativeProvenance],
       ['尝试次数', Array.isArray(record.attempts) ? record.attempts.length : (record.attempts ?? '—')],
     ];
     items.forEach(([label, value]) => {
@@ -7120,6 +7421,24 @@
     }
   }
 
+  async function exportActiveRunBundle() {
+    const runId = state.activeRunId;
+    if (!runId || state.activeRun?.sealed !== true || state.activeRun?.integrity?.ok !== true) return;
+    const button = el('downloadRunBundleBtn');
+    button.disabled = true;
+    showBusy('正在导出 Run Bundle', runId);
+    try {
+      await downloadEndpoint(
+        `/runs/${encodeURIComponent(runId)}/bundle/download`,
+        `${runId}_run_bundle.zip`,
+      );
+      showNotice('Run Bundle 已导出。ZIP 保留原始封存清单与 SHA-256 文件校验，可用于离线复核。', 'success');
+    } finally {
+      button.disabled = false;
+      hideBusy();
+    }
+  }
+
   async function openReport(runId) {
     const headers = state.apiToken ? { Authorization: `Bearer ${state.apiToken}` } : {};
     const response = await fetch(`/runs/${encodeURIComponent(runId)}/report.html`, { headers });
@@ -7173,7 +7492,7 @@
     },
     'subsystem.adcs_unified_native.v1': {
       scope: 'subsystem', streams: [{ id: 'adcs.fast', label: '实时', sampleMultiplier: 1 }, { id: 'adcs.housekeeping', label: '慢速', sampleMultiplier: 10, overviewOnly: true }],
-      targets: ['subsystem.adcs'], telemetryGroups: [{ id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2'] }],
+      targets: ['subsystem.adcs'], telemetryGroups: [{ id: 'adcs', label: '姿轨控', fields: ['adcs.pointing_error_deg', 'adcs.fusion.estimated_mrp_BN_x', 'adcs.fusion.estimated_omega_BN_B_x', 'adcs.fusion.magnetometer_used', 'adcs.fusion.body_rate_valid', 'adcs.sensor.imu_sample_valid', 'adcs.body_rate_rad_s_x', 'adcs.body_rate_rad_s_y', 'adcs.body_rate_rad_s_z', 'adcs.rw.speed_rad_s_0', 'adcs.rw.speed_rad_s_1', 'adcs.rw.speed_rad_s_2', 'adcs.control.applied_torque_nm_0'] }],
     },
     'subsystem.eps.unified_native.v1': {
       scope: 'subsystem', streams: [{ id: 'eps.fast', label: '实时', sampleMultiplier: 1 }, { id: 'eps.housekeeping', label: '慢速', sampleMultiplier: 10, overviewOnly: true }],
@@ -8325,6 +8644,16 @@
     if (goal === 'diagnostics') { switchView('diagnostics'); return; }
     if (goal === 'graph') { switchView('creator'); switchTab('graph'); return; }
     if (goal === 'advanced') { switchView('creator'); return; }
+    if (goal === 'component_native') {
+      state.wizard.level = 'component';
+      wizardSetStep('object', '请选择已完成官方 Basilisk 独立物理与 sealed Run 验收的九类单机。每个设备只开放已验证的标称有限时长输入和 recorder 输出。', '单机独立仿真');
+      return;
+    }
+    if (goal === 'subsystem_native') {
+      state.wizard.level = 'subsystem';
+      wizardSetStep('object', '请选择已通过官方 Basilisk 物理、正式 TaskSpec 和 sealed Run 验收的分系统。ADCS、EPS、通信数据分别提供有限时长离线运行；故障/退化仅开放该对象通过配对 A/B 与正式证据验收的白名单事件，不代表跨分系统联合闭环。', '分系统独立仿真');
+      return;
+    }
     wizardSetStep('level', '先选择仿真对象的范围：整星、分系统或单独部件。', goal === 'fault_run' ? '我要注入故障并观察结果' : '我要运行一次正常仿真');
   }
 
@@ -8333,6 +8662,75 @@
     const labels = { whole_spacecraft: '整星', subsystem: '分系统', component: '部件' };
     wizardSetStep('object', '请选择具体仿真对象。列表来自当前已注册且可配置的模型能力。', labels[level] || level);
   }
+
+  const NATIVE_COMPONENT_TEMPLATE_BY_OBJECT = Object.freeze({
+    'component.reaction_wheel': {
+      templateId: 'component_reaction_wheel_basilisk_native',
+      label: 'Basilisk 原生反作用轮模板',
+      prompt: '已加载官方 Basilisk ReactionWheelStateEffector。当前仅开放有限时长、标称单机运行；原生故障、退化、约束及实时单机运行尚未开放。',
+    },
+    'component.imu': {
+      templateId: 'component_imu_basilisk_native',
+      label: 'Basilisk 原生 IMU 模板',
+      prompt: '已加载官方 Basilisk IMU（ImuSensor）。当前输入为显式角速度与非保守比力真值；仅开放标称有限时长测量，不包含随机噪声特性、安装杆臂或导航解算。',
+    },
+    'component.star_tracker': {
+      templateId: 'component_star_tracker_basilisk_native',
+      label: 'Basilisk 原生星敏感器模板',
+      prompt: '已加载官方 Basilisk StarTracker。结果为四元数测量换算的 MRP；有效标记仅表示样本存在且四元数归一化，不代表星表识别、光学成像或视场可见性。',
+    },
+    'component.magnetometer': {
+      templateId: 'component_magnetometer_basilisk_native',
+      label: 'Basilisk 原生磁强计模板',
+      prompt: '已加载官方 Basilisk Magnetometer。输入为显式均匀磁场真值，输出为传感器坐标系三轴磁场；当前不包含地球磁场环境模型，仅支持统一三轴标度。',
+    },
+    'component.battery': {
+      templateId: 'component_battery_basilisk_native',
+      label: 'Basilisk 原生电池模板',
+      prompt: '已加载官方 Basilisk SimpleBattery 与 SimplePowerSink。当前采用恒定净功率和单位充放电效率，输出 SOC、储能和功率记录；不包含电芯等效电路、温度、故障或退化模型。',
+    },
+    'component.solar_panel': {
+      templateId: 'component_solar_panel_basilisk_native',
+      label: 'Basilisk 原生太阳翼模板',
+      prompt: '已加载官方 Basilisk SimpleSolarPanel。当前为单块完全展开的固定太阳翼，采用显式静态太阳方向与阴影输入；不包含太阳翼跟踪、姿态闭环或地球轨道光照环境。',
+    },
+    'component.thruster': {
+      templateId: 'component_thruster_basilisk_native',
+      label: 'Basilisk 原生推力器模板',
+      prompt: '已加载官方 Basilisk ThrusterDynamicEffector 与 FuelTank。当前使用自由载体、固定推进剂贮箱和单个连续标称点火脉冲；推力来自 THROutputMsg recorder，冲量与推进剂消耗来自记录积分/质量差。该夹具不是已安装整星推进系统，不包含姿轨耦合或故障退化。',
+    },
+    'component.fuel_tank': {
+      templateId: 'component_fuel_tank_basilisk_native',
+      label: 'Basilisk 原生燃料贮箱模板',
+      prompt: '已加载官方 Basilisk FuelTank。当前在 10 kg 自由载体夹具中按恒定质量流量排出推进剂，输出原生质量、质量变化率和容量记录；不包含压力、热力学状态或推力器闭环耦合。',
+    },
+    'component.thermal_node': {
+      templateId: 'component_thermal_node_basilisk_native',
+      label: 'Basilisk 原生热节点模板',
+      prompt: '已加载官方 Basilisk SensorThermal。当前为固定辐射板、恒定电功率和显式太阳/日食输入，输出原生温度（K/°C）；不包含轨道传播、环境导热网络或地球红外/反照闭环。',
+    },
+  });
+
+  const NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT = Object.freeze({
+    'subsystem.adcs': {
+      templateId: 'adcs_unified_native',
+      capabilityId: 'subsystem.adcs_unified_native.v1',
+      label: 'ADCS 统一 Basilisk 闭环模板',
+      prompt: '已加载官方 Basilisk StarTracker、ImuSensor、Magnetometer、ReactionWheelStateEffector 与控制链。星敏 case C、IMU platform P、磁强计 sensor S 的测量已转换到本体系 B；磁强计参与 Sun/Mag TRIAD。Sun/Earth 向量是项目理想几何测量，不是 CSS 三轴方向输出。Basilisk IMU 首次初始化零样本标记为无效，有效样本到达前保持上一有效角速度。当前开放 nominal 与五类经过 A/B 验收的 ADCS 故障/退化事件，仍仅限有限时长离线闭环；不开放实时运行或整星耦合。',
+    },
+    'subsystem.eps': {
+      templateId: 'eps_unified_native',
+      capabilityId: 'subsystem.eps.unified_native.v1',
+      label: 'EPS 统一 Basilisk 运行图模板',
+      prompt: '已加载官方 Basilisk SimpleSolarPanel、SimpleBattery 和 SimplePowerSink；配电单元 PDU 与负载切除控制为项目原生 SysModel，并在同一 Process/Task 中连接。事件菜单仅开放已通过官方 Basilisk 配对 A/B 与正式证据校验的 EPS 组合故障 generation_storage_distribution_failure 和能源退化 energy_margin_degradation；前者是受控组合场景，不是任意单点故障菜单。结果区分官方电源节点与项目 PDU；不代表轨道日照/日蚀闭环，也不代表与 ADCS、通信或热控的跨分系统耦合。仅开放有限时长离线仿真。',
+    },
+    'subsystem.comm_data': {
+      templateId: 'comm_data_unified_native',
+      capabilityId: 'subsystem.comm_data.unified_native.v1',
+      label: '通信数据统一 Basilisk 运行图模板',
+      prompt: '已加载官方 Basilisk SimpleInstrument、SimpleStorageUnit 和 SimpleTransmitter，在同一 Process/Task 中运行并使用原生 recorder。事件菜单仅开放发射机数据率损失 transmitter_rate_loss 与数据率退化 transmitter_rate_degradation，两者只作用于 SimpleTransmitter.nodeBaudRate；不代表 RF 输出功率、链路裕度、地面站过站、天线指向或 BER/PER 闭环。仅开放有限时长离线仿真，不代表与 EPS 或载荷的跨分系统耦合。',
+    },
+  });
 
   async function wizardChooseObject(objectId) {
     const object = state.presentationObjects.find((item) => item.object_id === objectId);
@@ -8352,11 +8750,90 @@
     if (el('wizardOutputSearch')) el('wizardOutputSearch').value = '';
     if (el('wizardParameterSearch')) el('wizardParameterSearch').value = '';
     const label = object.name_zh || object.name_en || objectId;
+    if (state.wizard.goal === 'component_native' && NATIVE_COMPONENT_TEMPLATE_BY_OBJECT[objectId]) {
+      const nativeTemplate = NATIVE_COMPONENT_TEMPLATE_BY_OBJECT[objectId];
+      const payload = await api('/scenario-templates/' + encodeURIComponent(nativeTemplate.templateId) + '/instantiate', {
+        method: 'POST', body: apiBody({}),
+      });
+      if (!payload?.task_spec || payload.task_spec.parameters?.values?.physics_backend !== 'basilisk_native') {
+        throw new Error('服务端未返回该设备经过注册的 Basilisk 原生模板。');
+      }
+      const projected = await projectTaskSpecToForm(payload.task_spec, nativeTemplate.label);
+      if (projected === null) throw new Error(nativeTemplate.label + ' 未能投影到当前配置，请重试。');
+      state.activeTaskCenterId = null;
+      updateTaskEditState();
+      state.planning = payload.planning;
+      state.wizard.mode = 'offline';
+      state.wizard.parameterMode = 'recommended';
+      state.wizard.validated = false;
+      wizardSetStep('configure', nativeTemplate.prompt + ' 请检查参数和测量输出，执行配置校验后再运行。', label);
+      const parameterPanel = el('wizardParametersPanel');
+      if (parameterPanel) parameterPanel.open = true;
+      return;
+    }
+    if (state.wizard.goal === 'subsystem_native' && NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT[objectId]) {
+      const nativeTemplate = NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT[objectId];
+      const payload = await api('/scenario-templates/' + encodeURIComponent(nativeTemplate.templateId) + '/instantiate', {
+        method: 'POST', body: apiBody({}),
+      });
+      const taskSpec = payload?.task_spec || {};
+      if (
+        taskSpec.model?.capability_id !== nativeTemplate.capabilityId
+        || taskSpec.simulation?.level !== 'subsystem'
+        || taskSpec.simulation?.backend !== 'basilisk'
+        || taskSpec.assurance?.allow_proxy !== false
+      ) {
+        throw new Error('服务端未返回所选分系统经过注册的 Basilisk 原生模板。');
+      }
+      const projected = await projectTaskSpecToForm(taskSpec, nativeTemplate.label);
+      if (projected === null) throw new Error(nativeTemplate.label + ' 未能投影到当前配置，请重试。');
+      state.activeTaskCenterId = null;
+      updateTaskEditState();
+      state.planning = payload.planning;
+      state.wizard.mode = 'offline';
+      state.wizard.parameterMode = 'recommended';
+      state.wizard.validated = false;
+      wizardSetStep('configure', nativeTemplate.prompt + ' 请检查参数、模型来源和输出指标，执行配置校验后再运行。', label);
+      const parameterPanel = el('wizardParametersPanel');
+      if (parameterPanel) parameterPanel.open = true;
+      return;
+    }
     if (state.wizard.goal === 'fault_run') {
       wizardSetStep('fault', '该对象已加载。请选择一个当前模型正式注册的故障类型。', label);
     } else {
       wizardSetStep('mode', '对象已准备好。接下来选择运行方式：离线、限时实时或持续实时。', label);
     }
+  }
+
+  async function wizardApplyNativeRwPreset() {
+    if (state.selectedCapabilityId !== 'component.reaction_wheel.v1') {
+      throw new Error('该原生配置仅适用于独立反作用轮单机。');
+    }
+    const payload = await api('/scenario-templates/component_reaction_wheel_basilisk_native/instantiate', {
+      method: 'POST',
+      body: apiBody({}),
+    });
+    if (!payload?.task_spec || payload.task_spec.parameters?.values?.physics_backend !== 'basilisk_native') {
+      throw new Error('服务端未返回经过注册的 Basilisk 原生反作用轮配置。');
+    }
+    await projectTaskSpecToForm(payload.task_spec, 'Basilisk 原生反作用轮模板');
+    state.activeTaskCenterId = null;
+    updateTaskEditState();
+    state.planning = payload.planning;
+    // Applying this preset changes the guided intent to the native single-
+    // component workflow, so unsupported realtime choices are not offered.
+    state.wizard.goal = 'component_native';
+    state.wizard.level = 'component';
+    state.wizard.objectId = 'component.reaction_wheel';
+    state.wizard.mode = 'offline';
+    state.wizard.parameterMode = 'recommended';
+    renderWizardParameterControls();
+    renderSimulationWizard();
+    const parameters = el('wizardParametersPanel');
+    if (parameters) parameters.open = true;
+    const backendGroup = el('dynamicForm')?.querySelector('[data-section-id="parameters_backend"]');
+    if (backendGroup) backendGroup.open = true;
+    el('wizardNotice').textContent = '已加载官方 Basilisk 原生反作用轮配置。运行前仍需校验；当前仅支持单轮标称工况。';
   }
 
   function wizardChooseFault(effect) {
@@ -8571,6 +9048,9 @@
     if ((!host && !qoiHost) || !state.schema || !state.formData) return;
     if (host) host.replaceChildren();
     if (qoiHost) qoiHost.replaceChildren();
+    const advancedOutputs = ensureAdvancedOutputs();
+    const fmeaToggle = el('wizardFmeaEnabled');
+    if (fmeaToggle && advancedOutputs) fmeaToggle.checked = Boolean(advancedOutputs.fmea.enabled);
     const qoiOptions = (state.schema.outputs?.summary_options || []).map(normalizedOutputOption);
     const traceOptions = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
     const selectedQoi = new Set(state.formData.outputs?.qoi || []);
@@ -8804,7 +9284,23 @@
     const option = (title, detail, attrs, callback) => wizardOption(options, title, detail, attrs, callback);
     const config = el('wizardConfigSections');
     const showConfig = state.wizard.step === 'configure';
+    const nativeSingleComponent = showConfig && state.wizard.goal === 'component_native';
+    const nativeSingleSubsystem = showConfig && state.wizard.goal === 'subsystem_native';
+    const nativeAdcsFaultsEnabled = nativeSingleSubsystem
+      && state.selectedCapabilityId === 'subsystem.adcs_unified_native.v1'
+      && (state.schema?.event_catalog?.faults?.length || 0) > 0;
+    const nativeEpsCommEventsEnabled = nativeSingleSubsystem
+      && ['subsystem.eps.unified_native.v1', 'subsystem.comm_data.unified_native.v1'].includes(state.selectedCapabilityId)
+      && (state.schema?.event_catalog?.faults?.length || 0) > 0
+      && (state.schema?.event_catalog?.degradations?.length || 0) > 0;
+    const hideNativeEventAuthoring = nativeSingleComponent
+      || (nativeSingleSubsystem && !nativeAdcsFaultsEnabled && !nativeEpsCommEventsEnabled);
     config?.classList.toggle('hidden', !showConfig);
+    // ADCS, EPS and Comm/Data expose only object-scoped event allowlists backed
+    // by formal effect evidence and paired native Basilisk A/B. Components remain nominal-only.
+    el('wizardEventHost')?.classList.toggle('hidden', hideNativeEventAuthoring);
+    el('wizardFaultPanel')?.classList.toggle('hidden', hideNativeEventAuthoring);
+    el('wizardNativeAdcsFaultNote')?.classList.toggle('hidden', !nativeAdcsFaultsEnabled);
     el('wizardTaskWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'tasks');
     el('wizardAgentWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'natural_language');
     el('wizardTaskSpecWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'taskspec');
@@ -8821,6 +9317,8 @@
     } else if (state.wizard.step === 'welcome') {
       [
         ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
+        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的九类单机开始'],
+        ['subsystem_native', '分系统独立仿真', 'ADCS 闭环、EPS 电源运行图、通信数据运行图；分别独立执行'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
@@ -8835,7 +9333,20 @@
     } else if (state.wizard.step === 'level') {
       [['whole_spacecraft','整星','运行整星集成模型'],['subsystem','分系统','选择 ADCS、EPS、通信等'],['component','部件','单独运行已注册部件模型']].forEach((item) => option(item[1], item[2], { 'data-wizard-level': item[0] }, () => wizardChooseLevel(item[0])));
     } else if (state.wizard.step === 'object') {
-      const rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id));
+      let rows = state.presentationObjects.filter((item) => item.level === state.wizard.level && (item.primary_capability_id || item.configuration_capability_id));
+      if (state.wizard.goal === 'component_native') {
+        const nativeObjects = new Set(Object.keys(NATIVE_COMPONENT_TEMPLATE_BY_OBJECT));
+        rows = rows.filter((item) => nativeObjects.has(item.object_id));
+        const note = document.createElement('p'); note.className = 'wizard-panel-help';
+        note.textContent = '列表仅包含已通过官方 Basilisk 独立物理和 sealed Run 验收的设备。未列出的项目参考模型不会被伪装成原生模型。';
+        options.appendChild(note);
+      } else if (state.wizard.goal === 'subsystem_native') {
+        const nativeObjects = new Set(Object.keys(NATIVE_SUBSYSTEM_TEMPLATE_BY_OBJECT));
+        rows = rows.filter((item) => nativeObjects.has(item.object_id));
+        const note = document.createElement('p'); note.className = 'wizard-panel-help';
+        note.textContent = '当前开放 ADCS、EPS 和通信数据三个已通过独立验收的 Basilisk 分系统。它们分别运行，不代表跨分系统联合闭环；事件面板只展示当前对象通过配对 A/B 与正式证据验收的故障/退化白名单。';
+        options.appendChild(note);
+      }
       if (!rows.length) { const empty = document.createElement('div'); empty.className = 'wizard-empty'; empty.textContent = '当前范围没有可配置的已注册仿真对象。请返回选择其他范围。'; options.appendChild(empty); }
       rows.forEach((item) => option(item.name_zh || item.name_en || item.object_id, item.summary_zh || (item.independently_executable ? '可独立配置和运行' : '使用所属模型配置'), { 'data-wizard-object': item.object_id }, () => wizardChooseObject(item.object_id).catch((error) => { el('wizardNotice').textContent = error.message; })));
     } else if (state.wizard.step === 'fault') {
@@ -8860,7 +9371,10 @@
         ['limited_realtime','限时实时仿真','按设定时长运行；支持暂停、继续、单步和实时遥控。到达时长上限后结束并归档。'],
         ['continuous_realtime','持续实时仿真','面向长时间运行与持续遥测；由用户主动停止并归档，提供资源监测和长稳证据工具。'],
       ];
-      modes.forEach(([mode,title,detail]) => {
+      const visibleModes = ['component_native', 'subsystem_native'].includes(state.wizard.goal)
+        ? modes.filter(([mode]) => mode === 'offline')
+        : modes;
+      visibleModes.forEach(([mode,title,detail]) => {
         const support = mode === 'offline' ? { supported: true, reason: '适用于当前已选模型' } : wizardLiveModeSupport(mode);
         const explanation = mode === 'limited_realtime'
           ? '适合交互调试和短时控制；结束条件由会话时长决定。'
@@ -8902,6 +9416,7 @@
         ['采样间隔', String(getPath(state.formData, 'simulation.sample_s')) + ' s'],
         ['故障事件', String((state.formData.events.faults || []).length) + ' 个'],
         ['输出曲线', String((state.formData.outputs.plots || []).length) + ' 条'],
+        ['FMEA 输出', state.formData.outputs.fmea?.enabled ? '已启用' : '未启用'],
       ];
       rows.forEach((item) => { const row = document.createElement('div'); row.className = 'wizard-review-row'; const name = document.createElement('span'); name.textContent = item[0]; const value = document.createElement('strong'); value.textContent = item[1]; row.append(name, value); review.appendChild(row); });
       options.appendChild(review);
@@ -11118,6 +11633,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     state.planning = clone(snapshot.planning);
     state.changedPaths = new Set(snapshot.changedPaths);
     state.agentBeforeForm = clone(snapshot.agentBeforeForm);
+    state.agentBeforeSchema = clone(snapshot.agentBeforeSchema);
     state.agentBeforeTaskCenterId = snapshot.agentBeforeTaskCenterId ?? null;
     state.formProjectionSource = snapshot.formProjectionSource || null;
     state.activeTaskCenterId = snapshot.activeTaskCenterId;
@@ -11139,7 +11655,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       capabilityId: state.selectedCapabilityId, formData: clone(state.formData),
       taskSpec: clone(state.taskSpec), planning: clone(state.planning),
       hasTaskSpecContext: state.hasTaskSpecContext,
-      changedPaths: [...state.changedPaths], agentBeforeForm: clone(state.agentBeforeForm),
+      changedPaths: [...state.changedPaths], agentBeforeForm: clone(state.agentBeforeForm), agentBeforeSchema: clone(state.agentBeforeSchema),
       agentBeforeTaskCenterId: state.agentBeforeTaskCenterId,
       formProjectionSource: state.formProjectionSource,
       activeTaskCenterId: state.activeTaskCenterId, editorText: el('taskSpecEditor').value,
@@ -11186,6 +11702,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('agentBackend').addEventListener('change', (event) => { state.selectedProviderId = event.target.value; });
     el('variantSelect').addEventListener('change', (event) => selectCapability(event.target.value));
     el('applyScenarioTemplateBtn').addEventListener('click', () => applyScenarioTemplate().catch(error => showNotice(error.message, 'error')));
+    el('wizardApplyNativeRwPresetBtn')?.addEventListener('click', () => wizardApplyNativeRwPreset().catch(error => { el('wizardNotice').textContent = error.message; }));
     el('capabilitySearch').addEventListener('input', renderCapabilityList);
     el('levelFilter').addEventListener('change', renderCapabilityList);
     el('showCompatibilityCapabilities').addEventListener('change', async (event) => {
@@ -11194,6 +11711,14 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await Promise.all([loadCapabilities(), loadScenarioTemplates()]); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
     });
     el('addTelemetryStreamBtn').addEventListener('click', addTelemetryStream);
+    el('wizardFmeaEnabled')?.addEventListener('change', (event) => {
+      const outputs = ensureAdvancedOutputs(); if (!outputs) return;
+      outputs.fmea.enabled = Boolean(event.target.checked);
+      markOutputChanged();
+      state.wizard.validated = false;
+      state.wizard.validatedForm = null;
+      renderSimulationWizard();
+    });
     el('fmeaEnabled').addEventListener('change', (event) => {
       const outputs = ensureAdvancedOutputs(); if (!outputs) return;
       outputs.fmea.enabled = Boolean(event.target.checked); markOutputChanged();
@@ -11421,6 +11946,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('wizardResetBtn').addEventListener('click', wizardReset);
+    el('wizardOpenRunCenterBtn')?.addEventListener('click', () => navigateToView('runs'));
     el('wizardAdvancedBtn')?.addEventListener('click', () => navigateToView('creator'));
     el('wizardSceneShortcutBtn')?.addEventListener('click', () => navigateToView('scene'));
     el('p9dValidateBtn')?.addEventListener('click', async () => {
@@ -11533,6 +12059,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     });
     el('openRunReportBtn').addEventListener('click', () => state.activeRunId && openReport(state.activeRunId).catch((error) => showNotice(error.message, 'error')));
     el('exportDatasetBtn').addEventListener('click', () => exportActiveDataset().catch((error) => showNotice(`导出数据集失败：${error.message}`, 'error')));
+    el('downloadRunBundleBtn').addEventListener('click', () => exportActiveRunBundle().catch((error) => showNotice(`导出 Run Bundle 失败：${error.message}`, 'error')));
     el('downloadRunDiagnosticBtn').addEventListener('click', () => state.activeRunId && downloadEndpoint(`/diagnostics/bundle?run_id=${encodeURIComponent(state.activeRunId)}`, `diagnostic_${state.activeRunId}.zip`).catch((error) => showNotice(error.message, 'error')));
     el('refreshRunCenterBtn').addEventListener('click', () => loadRunCenter().catch((error) => { el('runCenterSummary').textContent = error.message; }));
     el('runCompareSelectedBtn').addEventListener('click', compareSelectedRuns);

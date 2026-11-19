@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import asdict, dataclass, field
+from sys import float_info
 from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -17,6 +18,67 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 CANONICAL_TASK_SPEC_VERSION = "1.0.0"
 LEGACY_TASK_SPEC_VERSION = "0.1.0"
 SUPPORTED_TASK_SPEC_VERSIONS = (CANONICAL_TASK_SPEC_VERSION, LEGACY_TASK_SPEC_VERSION)
+
+
+class NativeComponentInputError(ValueError):
+    def __init__(self, path: str, message: str):
+        super().__init__(f"{path}: {message}")
+        self.path = path
+        self.message = message
+
+
+def validate_native_component_timing(simulation: Any, *, require_duration_and_sample: bool = False) -> None:
+    """Validate explicit native times before defaults or numeric coercion."""
+    if not isinstance(simulation, Mapping):
+        raise NativeComponentInputError("$.simulation", "requires a simulation mapping")
+    solver = simulation.get("solver")
+    if solver is not None and not isinstance(solver, Mapping):
+        raise NativeComponentInputError("$.simulation.solver", "requires a solver mapping")
+    for container, path, fields in (
+        (simulation, "$.simulation", ("duration_s", "sample_s", "step_s")),
+        (solver or {}, "$.simulation.solver", ("step_s",)),
+    ):
+        for field in fields:
+            if field not in container and not (require_duration_and_sample and field in {"duration_s", "sample_s"}):
+                continue
+            value = container.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 < value <= float_info.max:
+                raise NativeComponentInputError(f"{path}.{field}", "requires a finite positive number")
+
+
+def validate_native_component_events(spec: Mapping[str, Any], *, component_name: str = "native component") -> None:
+    """Reject event content before an alternate legacy envelope is discarded."""
+    message = f"{component_name} supports no events or constraints"
+    for kind in ("faults", "degradations", "constraints"):
+        if spec.get(kind, []) not in ([], {}):
+            raise NativeComponentInputError(f"$.{kind}", message)
+    for name in ("events", "modifiers"):
+        envelope = spec.get(name, {})
+        if not isinstance(envelope, Mapping):
+            raise NativeComponentInputError(f"$.{name}", "requires an event mapping")
+        for kind, entries in envelope.items():
+            if entries not in ([], {}):
+                raise NativeComponentInputError(f"$.{name}.{kind}", message)
+
+
+# These two selected native slices require nominal, explicit public input.
+STRICT_NATIVE_COMPONENT_TARGETS = {
+    "component.fuel_tank.v1": "fuel_tank",
+    "component.thermal_node.v1": "thermal_node",
+}
+
+# Existing callers keep their public imports; semantics are unchanged.
+NativeFuelInputError = NativeComponentInputError
+validate_native_fuel_timing = validate_native_component_timing
+
+
+def validate_native_fuel_events(spec: Mapping[str, Any]) -> None:
+    validate_native_component_events(spec, component_name="native fuel tank")
+
+
+def _uses_strict_native_component(capability_id: Any, values: Any) -> bool:
+    return (isinstance(capability_id, str) and capability_id in STRICT_NATIVE_COMPONENT_TARGETS and isinstance(values, Mapping)
+            and values.get("physics_backend") == "basilisk_native")
 
 TaskLevel = Literal["component", "subsystem", "orbit_environment", "whole_spacecraft", "campaign", "reference"]
 ScenarioMode = Literal["nominal", "fault", "degradation", "mixed", "monte_carlo", "constraint"]
@@ -330,6 +392,28 @@ class CanonicalTaskSpec(StrictModel):
     provenance: ProvenanceSpec = Field(default_factory=ProvenanceSpec)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    @model_validator(mode="before")
+    @classmethod
+    def validate_raw_native_component_timing(cls, value: Any) -> Any:
+        if not isinstance(value, Mapping):
+            return value
+        model = value.get("model")
+        if isinstance(model, ModelBinding):
+            model = model.model_dump(mode="python")
+        if not isinstance(model, Mapping):
+            return value
+        parameters = value.get("parameters")
+        if isinstance(parameters, ParameterSpec):
+            parameters = parameters.model_dump(mode="python")
+        values = parameters.get("values") if isinstance(parameters, Mapping) else None
+        if _uses_strict_native_component(model.get("capability_id"), values or model.get("config")):
+            simulation = value.get("simulation", {})
+            if not isinstance(simulation, SimulationSpec):
+                if isinstance(simulation, Mapping) and isinstance(solver := simulation.get("solver"), SolverSpec):
+                    simulation = {**simulation, "solver": solver.model_dump(mode="python", exclude_none=True)}
+                validate_native_component_timing(simulation)
+        return value
+
     @model_validator(mode="after")
     def validate_events_with_duration(self) -> "CanonicalTaskSpec":
         if self.parameters.profile != self.assurance.parameter_profile:
@@ -477,11 +561,48 @@ def _constraint_from_legacy(item: Mapping[str, Any], index: int) -> dict[str, An
     }
 
 
+def _uses_native_thruster(capability_id: str | None, values: Mapping[str, Any]) -> bool:
+    return capability_id == "component.thruster.v1" and values.get("physics_backend") == "basilisk_native"
+
+
+def _validate_legacy_native_component_request(spec: Mapping[str, Any], parameters: Mapping[str, Any]) -> None:
+    from .capability_backends import select_capability_backend, validate_backend_output_requests
+    from .capability_registry import get_capability
+
+    capability_id = spec["capability_id"]
+    component_name = STRICT_NATIVE_COMPONENT_TARGETS[capability_id]
+    target = spec.get("target")
+    if (spec.get("task_type") != "component" or not isinstance(target, Mapping)
+            or target.get("level") != "component" or target.get("name") != component_name):
+        raise ValueError(f"native {component_name} requires matching component task and target identity before migration")
+    if parameters.get("overrides", []) != []:
+        raise NativeComponentInputError("$.parameters.overrides", f"native {component_name} does not apply legacy parameter overrides")
+    if "values" in parameters:
+        if not isinstance(parameters["values"], Mapping):
+            raise NativeComponentInputError("$.parameters.values", "requires a parameter values mapping")
+        for name in parameters:
+            if name not in {"values", "profile", "overrides"}:
+                raise NativeComponentInputError(f"$.parameters.{name}", "cannot combine a device parameter with a nested values mapping")
+    validate_native_component_timing(spec.get("simulation", {}))
+    validate_native_component_events(spec, component_name=f"native {component_name}")
+    contract = select_capability_backend(get_capability(capability_id), "basilisk_native")
+    issues = validate_backend_output_requests(spec, contract)
+    if issues:
+        raise NativeComponentInputError(issues[0].path, issues[0].message)
+
+
 def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult:
     """Migrate a flat TaskSpec 0.1 mapping to CanonicalTaskSpec 1.0."""
 
     src = copy.deepcopy(dict(spec))
     source_version = str(src.get("schema_version") or LEGACY_TASK_SPEC_VERSION)
+    parameters_src = src.get("parameters") if isinstance(src.get("parameters"), Mapping) else {}
+    nested_values = parameters_src.get("values")
+    capability_id = src.get("capability_id")
+    strict_native_component = _uses_strict_native_component(capability_id, parameters_src) or _uses_strict_native_component(capability_id, nested_values)
+    if strict_native_component:
+        _validate_legacy_native_component_request(src, parameters_src)
+
     task_type = str(src.get("task_type") or "component")
     target = dict(src.get("target") or {})
     level = str(target.get("level") or task_type)
@@ -525,7 +646,6 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     )
 
     assurance_src = src.get("assurance") if isinstance(src.get("assurance"), Mapping) else {}
-    parameters_src = src.get("parameters") if isinstance(src.get("parameters"), Mapping) else {}
     profile = str(
         assurance_src.get("parameter_profile")
         or metadata.get("parameter_profile")
@@ -548,7 +668,6 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     # Normalize both to the canonical flat values mapping.  Treating the
     # second form as an ordinary dictionary would create values.values.* and
     # silently prevent adapters from consuming user parameters.
-    nested_values = parameters_src.get("values")
     if isinstance(nested_values, Mapping):
         legacy_parameter_values = dict(nested_values)
     else:
@@ -561,7 +680,15 @@ def migrate_legacy_task_spec(spec: Mapping[str, Any]) -> TaskSpecMigrationResult
     task_id = str(src.get("task_id") or "migrated_task")
     sample_s = float(sim.get("sample_s", 10.0) or 10.0)
     solver = dict(sim.get("solver") or {})
-    step_s = solver.get("step_s", sample_s)
+    if _uses_native_thruster(src.get("capability_id"), legacy_parameter_values):
+        native_step_s = legacy_parameter_values.get("native_step_s", 0.01)
+        step_s = sim.get("step_s", solver.get("step_s", native_step_s))
+    elif strict_native_component:
+        # Strict native components use the standard integration step, falling back to the
+        # sample period only when neither standard nor solver step was given.
+        step_s = sim.get("step_s", solver.get("step_s", sample_s))
+    else:
+        step_s = solver.get("step_s", sample_s)
     mission = dict(src.get("mission") or {})
     spacecraft = dict(src.get("spacecraft") or {})
     if not mission and isinstance(spacecraft.get("mission"), Mapping):
@@ -812,6 +939,10 @@ def to_runtime_task_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     }
     if model.get("capability_id"):
         runtime["capability_id"] = model["capability_id"]
+    if (runtime.get("capability_id") in {"component.thruster.v1", *STRICT_NATIVE_COMPONENT_TARGETS}
+            and runtime["parameters"].get("physics_backend") == "basilisk_native"):
+        # Preserve both integration inputs so native preflight can compare them.
+        runtime_sim["step_s"] = simulation["step_s"]
     if model.get("campaign"):
         runtime["campaign"] = copy.deepcopy(model["campaign"])
     if model.get("template"):
@@ -843,4 +974,11 @@ __all__ = [
     "canonicalize_task_spec",
     "to_runtime_task_spec",
     "canonical_task_spec_schema",
+    "NativeFuelInputError",
+    "NativeComponentInputError",
+    "STRICT_NATIVE_COMPONENT_TARGETS",
+    "validate_native_fuel_timing",
+    "validate_native_component_events",
+    "validate_native_component_timing",
+    "validate_native_fuel_events",
 ]

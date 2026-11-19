@@ -121,10 +121,15 @@ outputs:
   - time_s
   - eps.battery_storage_j
   - eps.battery_capacity_j
+  - eps.nominal_battery_capacity_j
   - eps.battery_soc
   - eps.solar_power_w
+  - eps.nominal_solar_power_w
+  - eps.nominal_payload_load_w
   - eps.bus_load_w
   - eps.payload_load_enabled_w
+  - eps.pdu_payload_channel_enabled
+  - eps.pdu_shed_reason
   - eps.adcs_load_enabled_w
   - eps.comm_load_enabled_w
   - eps.net_power_w
@@ -153,7 +158,11 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - eps.battery_capacity_j
+    - eps.nominal_battery_capacity_j
     - eps.solar_power_w
+    - eps.nominal_solar_power_w
+    - eps.payload_load_enabled_w
+    - eps.nominal_payload_load_w
     - eps.net_power_w
     - label.fault_active
     verification: declared
@@ -163,10 +172,32 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - eps.battery_capacity_j
+    - eps.nominal_battery_capacity_j
     - eps.solar_power_w
+    - eps.nominal_solar_power_w
     - eps.net_power_w
     - label.degradation_active
     verification: declared
+  observability:
+    effect_evidence:
+      generation_storage_distribution_failure:
+      - eps.battery_capacity_j
+      - eps.nominal_battery_capacity_j
+      - eps.solar_power_w
+      - eps.nominal_solar_power_w
+      - eps.payload_load_enabled_w
+      - eps.pdu_payload_channel_enabled
+      - eps.pdu_shed_reason
+      - eps.nominal_payload_load_w
+      - eps.net_power_w
+      - label.fault_active
+      energy_margin_degradation:
+      - eps.battery_capacity_j
+      - eps.nominal_battery_capacity_j
+      - eps.solar_power_w
+      - eps.nominal_solar_power_w
+      - eps.net_power_w
+      - label.degradation_active
   limitations:
   - Runtime fault and degradation effects use governed EPS aggregate scenarios and do not claim arbitrary electrical faults.
   - PDU control is project-native and parameters are engineering estimates.
