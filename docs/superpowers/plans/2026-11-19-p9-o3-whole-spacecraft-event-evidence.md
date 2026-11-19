@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O2 squash merge `7207244a660db732ea321a0c9c64b28df0912c08`  
-状态：O3-A guided event catalog gate 实施中；O3-B/C/D 尚未完成。
+状态：O3-A guided event catalog gate 已进入 main（a96d7fed，该 main commit 尚无可见 Checks）；O3-B 的八类整星事件 profiles、正式 A/B Run Bundle 测试与 direct TaskSpec admission audit 已提交候选分支，等待官方 CI；O3-C/D 尚未完成。
 
 ## 目标
 
@@ -66,3 +66,13 @@
 - 不扩展 RF/BER/PER、地面站过站或轨道几何模型。
 - 不宣称飞行硬件标定或 flight validation。
 - 不把 O2 子系统 A/B 结果复用为整星 A/B 证据。
+
+
+## O3-B 首轮实现（2026-11-19，CI 待验）
+
+- 为缺少整星自身 profile 的 8 个事件新增 VERIFIED_NATIVE_EFFECT profiles：6 个 ADCS、2 个推进。
+- 新增 propulsion.initial_propellant_kg 与 propulsion.propellant_used_kg 逐样本 recorder 字段，由官方 Basilisk FuelTank recorder 直接计算；用于区分点火失败与短脉冲退化，不再只依赖 summary。
+- Capability operator.effects.evidence_fields 与 operator.observability.effect_evidence 对齐所有 14 个整星 profile；formal contract test 逐项比较字段集合。
+- 扩展 test_formal_effect_evidence_contracts.py：整星 formal runtime 用例由 6 增至 14，并增加 direct TaskSpec boundary test，确认 runtime 内部已实现但 whole capability 未声明的 adcs_imu_signal_loss 不能通过高级 TaskSpec 规划。
+- 新增 test_native_whole_spacecraft_event_bundles.py：2 个 nominal 基线（ADCS、推进）复用，8 个 injected case 分别要求官方 Basilisk 2.11.0、SUCCEEDED、validation PASS、sealed、integrity PASS、直接 recorder A/B、整星资源反馈闭环；推进事件另比较推进剂消耗与轨道响应。
+- 当前分支：feat/p9-o3-b-whole-spacecraft-event-evidence-20261119。上述新增 profile 和测试尚未经过官方 CI；在 CI 通过前，不扩展 O3-A guided allowlist，也不宣称 O3-B 完成。
