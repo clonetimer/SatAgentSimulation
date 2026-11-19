@@ -2281,6 +2281,34 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 for relative, entry in manifest["files"].items():
                     assert hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest() == entry["sha256"]
 
+            # Keep the browser-downloaded original ZIP outside tmp_path so the
+            # official O3-D artifact can independently re-check its seal and hashes.
+            browser_archive_dir = Path("reports/native_whole_spacecraft_events/browser_run_bundles")
+            browser_archive_dir.mkdir(parents=True, exist_ok=True)
+            archived_zip = browser_archive_dir / f"{case_id}.zip"
+            shutil.copy2(bundle_path, archived_zip)
+            archived_zip_sha256 = hashlib.sha256(archived_zip.read_bytes()).hexdigest()
+            manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+            sidecar = {
+                "schema_version": "p9-o3.browser-run-bundle.v1",
+                "case_id": case_id,
+                "run_id": run_id,
+                "event_kind": event_kind,
+                "event_effect": event_effect,
+                "bundle_zip_sha256": archived_zip_sha256,
+                "bundle_manifest_sha256": manifest_sha256,
+                "sealed": (
+                    seal.get("run_id") == run_id
+                    and seal.get("bundle_manifest_sha256") == manifest_sha256
+                ),
+                "integrity_ok": True,
+            }
+            assert sidecar["sealed"] is True, sidecar
+            (browser_archive_dir / f"{case_id}.json").write_text(
+                json.dumps(sidecar, ensure_ascii=False, indent=2) + "\\n",
+                encoding="utf-8",
+            )
+
             page.locator('[data-result-tab="charts"]').click()
             page.wait_for_function(
                 "() => document.querySelector('#chartLegend')?.children.length > 0",
