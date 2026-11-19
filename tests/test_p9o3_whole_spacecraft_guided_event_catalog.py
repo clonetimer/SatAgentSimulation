@@ -94,10 +94,9 @@ def test_whole_spacecraft_event_templates_expose_verified_parameters_with_physic
         "wheel_index": 0,
         "brake_torque_nm": 0.2,
     }
-    assert templates["adcs_rw_motor_failure"]["default_event"]["parameters"] == {
-        "wheel_index": 0,
-        "torque_scale": 0.0,
-    }
+    motor_failure = templates["adcs_rw_motor_failure"]
+    assert motor_failure["default_event"]["parameters"] == {"wheel_index": 0}
+    assert {field["name"] for field in motor_failure["parameter_fields"]} == {"wheel_index"}
     assert templates["gyro_bias_step"]["default_event"]["parameters"]["bias_step_deg_s"] == [0.2, 0.0, 0.0]
     assert templates["gyro_noise_increase"]["default_event"]["parameters"]["noise_scale"] == 10.0
     assert templates["rw_friction_degradation"]["default_event"]["parameters"] == {
