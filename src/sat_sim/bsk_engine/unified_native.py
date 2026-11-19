@@ -2463,7 +2463,7 @@ class UnifiedNativeRuntime:
             runtime_read_errors.extend(
                 f"comm_status_adapter: {sample.error}"
                 for sample in whole_modules["comm_status_adapter"].trace
-                if sample.error
+                if sample.error and sample.input_status is InputReadStatus.ERROR
             )
             runtime_read_errors.extend(f"rf_gate: {item}" for item in getattr(whole_modules["rf_gate"], "read_errors", ()))
             runtime_read_errors.extend(f"thermal: {item}" for item in getattr(whole_modules["thermal"], "read_errors", ()))
