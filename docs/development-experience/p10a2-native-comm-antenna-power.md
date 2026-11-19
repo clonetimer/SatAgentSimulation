@@ -2,7 +2,7 @@
 
 Date: 2026-11-19
 
-Status: implementation and same-head acceptance in progress; do not treat focused test results as a whole-project release sign-off.
+Status: COMPLETE — PR #193 merged to main as `96ae435088aeeddfcd00323126ba865f7f9effd0` on 2026-11-19. P10-A2 same-head CI and native acceptance passed; this is a scoped physical-coupling slice, not a whole-project release sign-off.
 
 ## What changed
 
@@ -25,13 +25,13 @@ The former `DownlinkActivityPowerBridge` inferred power from a rate-normalized p
 5. **Fail closed on invalid inputs.** Missing/unwritten or non-finite PDU, downlink or antenna inputs must not enable TX or idle loads. Only the expected t=0 initialization barrier is excluded from runtime error accounting; later errors remain failures.
 6. **Update contracts with implementation.** Proxy-count assertions, Capability outputs, adapter schema, Run Bundle assertions and CI path filters all need to change together.
 
-## Acceptance still required
+## Acceptance evidence — PASS
 
-- Official upstream Basilisk 2.11.0 focused tests on the exact PR head.
+- Official upstream Basilisk 2.11.0 focused tests on exact PR head `7dbaf073402103f76a5c31ae65a72a613b8dbacd`; focused P10-A suite: 61 passed.
 - Unified-native TX=16 W = 5 W AntennaPower + 11 W base sink; idle/no-link/PDU-off=0 W.
 - Composite TX=30 W = 5 W AntennaPower + 25 W base sink; PDU-enabled idle=2 W; PDU-off=0 W.
 - Paired composite run with RF/base power nodes independently disabled: RF LinkBudget and DownlinkHandling telemetry unchanged, battery net power differs by 30 W during TX, and thermal electronics heat input contains the native RF and base energy contributions.
-- Same-head full native whole-spacecraft, component/subsystem, Run Bundle, browser and parameter-surface regression.
+- Same-head full native whole-spacecraft, component/subsystem, Run Bundle, browser and parameter-surface regression passed. The PR's native Basilisk, P9-H, P9-N3, static, no-Basilisk, parameter-surface, dependency-governance and agent-consistency jobs all completed successfully; the Stable continuous-satellite candidate job was skipped by its configured condition.
 
 ## Cross-environment import regression found by CI
 
@@ -75,3 +75,9 @@ The first PR run exposed that the new adapter was defined only inside the Basili
 
 - The project-native inventory increased by one because the new status-only Comm adapter is a real project-owned Basilisk module. The verified whole-spacecraft counts are now 28 project-native modules with propulsion enabled and 27 without propulsion; official module counts remain 29 and 27 respectively.
 - A final TX sample at the stop time has no subsequent battery recorder sample in which to observe the one-tick load feedback. The A/B test now skips only that terminal sample and requires at least one valid following battery sample; it does not weaken the 30 W comparison.
+
+
+## Merge and scope
+
+- PR #193 was squash-merged into `main` as `96ae435088aeeddfcd00323126ba865f7f9effd0` after verifying the exact head SHA and all required same-head jobs. No open PRs remained immediately after merge.
+- This acceptance does not claim calibrated RF PA efficiency, rate-dependent DC draw, hardware correlation, flight qualification, or overall Stable release qualification.
