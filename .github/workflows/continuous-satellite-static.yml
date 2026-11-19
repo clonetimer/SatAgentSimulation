@@ -9,6 +9,9 @@ on:
       - "src/whole_spacecraft/builder.py"
       - "src/whole_spacecraft/runner.py"
       - "src/whole_spacecraft/schemas.py"
+      - "src/subsystems/eps/builder.py"
+      - "src/subsystems/payload/builder.py"
+      - "src/subsystems/comm_data/builder.py"
       - "tests/test_downlink_antenna_status_adapter.py"
       - "tests/test_composite_native_comm_antenna_power.py"
       - "tests/test_runtime_evidence_status_thermal_rf.py"
@@ -43,6 +46,9 @@ jobs:
             src/whole_spacecraft/builder.py \
             src/whole_spacecraft/runner.py \
             src/whole_spacecraft/schemas.py \
+            src/subsystems/eps/builder.py \
+            src/subsystems/payload/builder.py \
+            src/subsystems/comm_data/builder.py \
             tests/test_downlink_antenna_status_adapter.py \
             tests/test_composite_native_comm_antenna_power.py \
             tests/test_runtime_evidence_status_thermal_rf.py \
