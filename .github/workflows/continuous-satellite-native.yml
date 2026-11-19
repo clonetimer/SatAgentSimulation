@@ -209,7 +209,7 @@ jobs:
           python -m pytest -q -s
           tests/test_composite_native_adcs_power.py
           --disable-warnings
-      - name: Native thermal heater SimplePowerSink to EPS battery A/B
+      - name: Native thermal heater electrical output to EPS battery A/B
         env:
           PYTHONPATH: "src:."
         run: >-
