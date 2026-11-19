@@ -395,6 +395,9 @@ def _build_unified_rows(
             "orbit.phase_rad": math.atan2(float(position[1]), float(position[0])),
             "orbit.eclipse_factor": float(recorder_map["eclipse"].shadowFactor[index]),
             "adcs.pointing_error_deg": _pointing_error_deg(guide.sigma_BR[index]),
+            # This is the actual Basilisk spacecraft attitude relative to the
+            # inertial reference, independent of the sensor-fused estimate.
+            "attitude.truth.pointing_error_deg": _pointing_error_deg(state.sigma_BN[index]),
             # Body rates come from the estimator NavAttMsg (frame B), not the
             # raw IMU platform-frame recorder (frame P).
             "adcs.body_rate_rad_s_x": float(recorder_map["fusion_attitude"].omega_BN_B[index][0]),
@@ -2305,6 +2308,11 @@ class UnifiedNativeRuntime:
             "initial_pointing_error_deg": rows[0]["adcs.pointing_error_deg"],
             "final_pointing_error_deg": final["adcs.pointing_error_deg"],
             "adcs_closed_loop_improved": final["adcs.pointing_error_deg"] < rows[0]["adcs.pointing_error_deg"],
+            "initial_truth_pointing_error_deg": rows[0]["attitude.truth.pointing_error_deg"],
+            "final_truth_pointing_error_deg": final["attitude.truth.pointing_error_deg"],
+            "adcs_truth_closed_loop_improved": (
+                final["attitude.truth.pointing_error_deg"] < rows[0]["attitude.truth.pointing_error_deg"]
+            ),
             "initial_orbit_radius_m": rows[0]["orbit.radius_m"],
             "final_orbit_radius_m": final["orbit.radius_m"],
             "runtime_message_read_error_count": len(runtime_read_errors),
