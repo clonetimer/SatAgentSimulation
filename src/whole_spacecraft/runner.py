@@ -664,7 +664,7 @@ def _execute_whole_spacecraft_graph(
                 ),
                 comm_control_power_w=sum(
                     max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0))
-                    for name in ("comm_power_tx", "comm_power_idle", "comm_power_bridge")
+                    for name in ("comm_power_tx", "comm_power_base", "comm_power_idle", "comm_power_bridge")
                     if recorders.get(name) is not None
                 ),
                 propulsion_power_w=max(0.0, -_rec_value(recorders.get("propulsion_power"), "netPower", i, float(getattr(propulsion_sample, "electrical_power_w", 0.0)))),
