@@ -58,3 +58,11 @@
 - 已把 `PropulsionBurnController.commandOutMsg` 作为独立消息加入 recorder map，并按每个采样记录最大单推进器请求 on-time `propulsion.burn_command_on_time_s`；`propulsion.nominal_burn_command_on_time_s` 取 TaskSpec 标称配置值，不从事件参数反推。
 - ignition failure formal profile 要求命令请求为 0；impulse loss profile 要求命令请求小于标称值且大于 0。paired A/B 进一步断言 8 s → 0 s 与 8 s → 2 s，并保留 fuel/thrust/orbit A/B。
 - 这使“控制命令变化”和“官方 Thruster/FuelTank 物理结果”形成两层独立证据。新增字段已同步 capability trace_fields、operator effects、observability 和 effect registry。最终结论等待官方 Basilisk 2.11.0 CI。
+
+
+## O3-B TaskSpec 参数字典缺口与修复（2026-11-19）
+
+- 八个整星事件 paired bundle 首轮未进入 Basilisk：`prepare_run` 的 planning 阶段对共享 nominal ADCS baseline 返回 6 个 `PARAMETER_PATH_UNCONSUMED`。根因是测试使用了真实运行时读取的 `rw_initial_speed_rad_s_0/1/2`，但 `whole_spacecraft.unified_native.v1` Capability parameters 没有声明这些键；每个键同时出现在 canonical `parameters.values` 和兼容镜像 `model.config`，所以审计报告 3×2=6 个未知路径。
+- 这些参数确实被 `unified_native.py` 消费：分别设置官方 Basilisk HR16 RW 的初始 Omega，单位 rad/s，并在 `rwFactory.create(Omega=...)` 前转换为 RPM。它们属于正式用户参数，不是测试专用参数，因此正确修复是补 Capability schema，而不是删除测试值或绕过 parameter audit。
+- 已将 RW1-RW3 初始速度及 RW4 初始速度（仅 pyramid_4）加入 Capability parameters，约束 -500～500 rad/s；新增运行时检查，三轮构型显式设置 RW4 初始速度时 fail closed，避免被静默忽略。
+- paired test 文件增加 ADCS/propulsion baseline 参数消费审计；官方 native workflow 增加 RW4 ghost-parameter rejection JUnit 检查。下一次 CI 应先验证 planning PASS，再进入八个 Basilisk sealed A/B。
