@@ -2,7 +2,7 @@
 
 Date: 2026-11-20
 
-Status: implementation candidate on `feat/p10a4-native-payload-power-20261120`; same-head official Basilisk 2.11.0 acceptance pending.
+Status: COMPLETE — PR #195 merged to `main` as `9d335f2c02a7ac70552bd4b4291cc78b0dd5e99b` (2026-11-20); focused P10-A official Basilisk 2.11.0 acceptance passed.
 
 ## Objective
 
@@ -39,3 +39,12 @@ Remove the project-owned `DataActivityPowerBridge` from the active composite who
 ## Scope boundary
 
 This slice removes the Payload activity-to-power proxy from the composite whole-spacecraft builder. It does not migrate the separate unified-native runtime (P10-A4B), the legacy Comm fallback, or the optional propulsion activity bridge.
+
+
+## Merge and acceptance evidence
+
+- PR #195 squash-merged to `main` as `9d335f2c02a7ac70552bd4b4291cc78b0dd5e99b`.
+- Focused P10-A run on the accepted PR head: 64 passed in 58.87 s; official upstream Basilisk 2.11.0 provenance and offline environment preflight passed.
+- Static checks and project script/dependency governance passed on the accepted head.
+- Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44565958407).
+- Full native whole-spacecraft regression was still running at merge time and continues as a main-branch regression; it is not misreported here as complete.
