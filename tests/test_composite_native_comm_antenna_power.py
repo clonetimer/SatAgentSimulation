@@ -42,10 +42,18 @@ def _run_composite(
         disabled_payload = messaging.DeviceStatusMsgPayload()
         disabled_payload.deviceStatus = 0
         disabled_message = messaging.DeviceStatusMsg().write(disabled_payload)
-        # Isolate the power-node contribution without touching the native RF,
-        # LinkBudget, DownlinkHandling, storage, PDU or mission-gate paths.
-        comm_power_nodes[0].nodeStatusInMsg.subscribeTo(disabled_message)
+        disabled_antenna_payload = messaging.AntennaLogMsgPayload()
+        disabled_antenna_payload.antennaState = 0
+        disabled_antenna_payload.P_Tx = 0.0
+        disabled_antenna_payload.P_Rx = 0.0
+        disabled_antenna_message = messaging.AntennaLogMsg().write(disabled_antenna_payload)
+        # Disable only the power-side antenna log and its non-RF base sink.
+        # The physical SimpleAntenna, LinkBudget, DownlinkHandling, storage,
+        # PDU and mission-gate paths remain unchanged.
+        comm_power_nodes[0].antennaSetStateInMsg.subscribeTo(disabled_antenna_message)
+        comm_power_nodes[1].nodeStatusInMsg.subscribeTo(disabled_message)
         graph.component_registry["_test_comm_tx_power_disabled_status_msg"] = disabled_message
+        graph.component_registry["_test_comm_tx_power_disabled_antenna_msg"] = disabled_antenna_message
 
     summary, rows = _execute_whole_spacecraft_graph(graph, run_cfg)
     return graph, summary, rows
@@ -66,10 +74,12 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
     power_off_graph, power_off_summary, _ = _run_composite(disable_tx_power=True)
 
     nodes = active_graph.component_registry["comm_power_nodes"]
-    assert len(nodes) == 2
+    assert len(nodes) == 3
     assert nodes[0].ModelTag == "commAntennaPower"
-    assert nodes[1].ModelTag == "commIdlePower"
-    assert nodes[0].basePowerNeed == pytest.approx(25.0)
+    assert nodes[1].ModelTag == "commBasePower"
+    assert nodes[2].ModelTag == "commIdlePower"
+    assert nodes[0].basePowerNeed == pytest.approx(0.0)
+    assert nodes[1].nodePowerOut == pytest.approx(-25.0)
     assert active_graph.component_registry["comm_antenna_tx_power_w"] == pytest.approx(5.0)
     assert active_summary.max_comm_control_power_w == pytest.approx(30.0, abs=1e-6)
     # The control run retains the historical 2 W PDU-enabled idle draw, but
@@ -79,6 +89,7 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
     tx_status = active_graph.recorders["comm_tx_status"].deviceStatus
     idle_status = active_graph.recorders["comm_idle_status"].deviceStatus
     tx_power = active_graph.recorders["comm_power_tx"].netPower
+    base_power = active_graph.recorders["comm_power_base"].netPower
     idle_power = active_graph.recorders["comm_power_idle"].netPower
     active_battery = active_graph.recorders["battery"]
     control_battery = power_off_graph.recorders["battery"]
@@ -96,13 +107,15 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
     assert idle_indices, "the composite PDU-enabled no-TX state must be exercised"
 
     for index in tx_indices:
-        assert -float(tx_power[index]) == pytest.approx(30.0, abs=1e-6)
+        assert -float(tx_power[index]) == pytest.approx(5.0, abs=1e-6)
+        assert -float(base_power[index]) == pytest.approx(25.0, abs=1e-6)
         assert -float(idle_power[index]) == pytest.approx(0.0, abs=1e-6)
         assert float(active_battery.currentNetPower[index]) == pytest.approx(
             float(control_battery.currentNetPower[index]) - 30.0,
             abs=1e-5,
         )
         assert -float(power_off_graph.recorders["comm_power_tx"].netPower[index]) == pytest.approx(0.0, abs=1e-6)
+        assert -float(power_off_graph.recorders["comm_power_base"].netPower[index]) == pytest.approx(0.0, abs=1e-6)
 
     for index in idle_indices:
         assert -float(idle_power[index]) == pytest.approx(2.0, abs=1e-6)
@@ -112,9 +125,15 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
     active_tx_electrical_j = active_thermal_bridge.cumulative_source_electrical_energy_j.get("comm.antenna_tx", 0.0)
     active_tx_heat_j = active_thermal_bridge.cumulative_source_heat_energy_j.get("comm.antenna_tx", 0.0)
     control_tx_electrical_j = control_thermal_bridge.cumulative_source_electrical_energy_j.get("comm.antenna_tx", 0.0)
+    active_base_electrical_j = active_thermal_bridge.cumulative_source_electrical_energy_j.get("comm.base_tx", 0.0)
+    active_base_heat_j = active_thermal_bridge.cumulative_source_heat_energy_j.get("comm.base_tx", 0.0)
+    control_base_electrical_j = control_thermal_bridge.cumulative_source_electrical_energy_j.get("comm.base_tx", 0.0)
     assert active_tx_electrical_j > 0.0
     assert active_tx_heat_j == pytest.approx(0.90 * active_tx_electrical_j, rel=1e-8)
     assert control_tx_electrical_j == pytest.approx(0.0, abs=1e-9)
+    assert active_base_electrical_j > 0.0
+    assert active_base_heat_j == pytest.approx(0.90 * active_base_electrical_j, rel=1e-8)
+    assert control_base_electrical_j == pytest.approx(0.0, abs=1e-9)
 
     # Power accounting is downstream of the RF chain: enabling/disabling the
     # AntennaPower load must not alter access, link budget, BER/PER or delivery.
@@ -144,7 +163,7 @@ def test_composite_native_comm_power_is_zero_when_pdu_disables_comm() -> None:
     assert all(not sample.pdu_enabled for sample in runtime_samples)
     assert all(not sample.tx_enabled and not sample.idle_enabled for sample in runtime_samples)
 
-    for recorder_name in ("comm_power_tx", "comm_power_idle"):
+    for recorder_name in ("comm_power_tx", "comm_power_base", "comm_power_idle"):
         values = list(getattr(graph.recorders[recorder_name], "netPower"))[1:]
         assert values
         assert all(float(value) == pytest.approx(0.0, abs=1e-9) for value in values)
