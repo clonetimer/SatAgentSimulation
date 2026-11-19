@@ -2610,12 +2610,16 @@ class UnifiedNativeRuntime:
         causal_evidence: dict[str, Any] = {"status": "PASS", "requirements": []}
         if not cfg.adcs_only:
             bridge_objects = {
-                "payload": whole_modules["payload_power_bridge"],
                 "heater": whole_modules["heater_power_bridge"],
             }
             if "propulsion_power_bridge" in whole_modules:
                 bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
             bridge_health = {
+                "payload": _native_payload_power_health(
+                    rows,
+                    active_power_w=float(values.get("payload_power_w", 38.0)),
+                    adapter_trace=whole_modules["payload_status_adapter"].trace,
+                ),
                 "adcs": _native_adcs_power_health(rows, cfg),
                 "comm": _native_comm_antenna_power_health(
                     rows,
@@ -2627,6 +2631,14 @@ class UnifiedNativeRuntime:
             bridge_health.update({name: _bridge_health_payload(bridge) for name, bridge in bridge_objects.items()})
             for name, health in bridge_health.items():
                 runtime_read_errors.extend(f"{name}: {item}" for item in health.get("errors", []))
+            runtime_read_errors.extend(
+                f"payload_status_adapter: {sample.error}"
+                for sample in whole_modules["payload_status_adapter"].trace
+                if sample.error and (
+                    sample.input_status is InputReadStatus.ERROR
+                    or (sample.time_ns > 0 and sample.input_status is InputReadStatus.NOT_READY)
+                )
+            )
             runtime_read_errors.extend(
                 f"comm_status_adapter: {sample.error}"
                 for sample in whole_modules["comm_status_adapter"].trace
