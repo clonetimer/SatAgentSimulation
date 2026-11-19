@@ -68,6 +68,22 @@ def _finite_rows_ok(rows: list[WholeSpacecraftTraceRow]) -> bool:
     return bool(rows) and all(_is_finite_scalar(getattr(row, field)) for row in rows for field in critical_fields)
 
 
+def _validate_native_adcs_power_envelope(power_samples: list[float], limit_w: float) -> float:
+    """Fail closed if native per-wheel ADCS power exceeds the legacy monitor envelope."""
+    if not _is_finite_scalar(limit_w) or float(limit_w) <= 0.0:
+        raise ValueError("COMPOSITE_ADCS_POWER_LIMIT_INVALID")
+    values = [float(value) for value in power_samples]
+    if any(not math.isfinite(value) or value < -1e-9 for value in values):
+        raise ValueError("COMPOSITE_ADCS_POWER_SAMPLE_INVALID")
+    peak = max(values, default=0.0)
+    if peak > float(limit_w) + 1e-6:
+        raise RuntimeError(
+            "COMPOSITE_ADCS_POWER_ENVELOPE_EXCEEDED:"
+            f"observed={peak:.9g}W:limit={float(limit_w):.9g}W"
+        )
+    return peak
+
+
 def _finite_adcs_recorders_ok(recorders: dict[str, Any]) -> bool:
     for rec_name, fields in (
         ("adcs_attitude", ("sigma_BR", "omega_BR_B")),
@@ -684,6 +700,17 @@ def _execute_whole_spacecraft_graph(
                 )
             )
         rows = gated_rows
+
+    # Native ReactionWheelPower outputs are not clipped. Preserve the
+    # former 120 W engineering envelope as a run-level acceptance monitor.
+    # This catches excursions without altering physical wheel or battery state.
+    adcs_power_monitoring_limit_w = float(
+        graph.component_registry.get("adcs_power_monitoring_limit_w", 120.0)
+    )
+    max_native_adcs_power_w = _validate_native_adcs_power_envelope(
+        [row.adcs_control_power_w for row in rows],
+        adcs_power_monitoring_limit_w,
+    )
 
     conservation_battery_rec = recorders.get("conservation_battery")
     if conservation_battery_rec is None:
