@@ -2,7 +2,7 @@
 
 Date: 2026-11-20
 
-Status: implementation candidate; same-head official Basilisk 2.11.0 acceptance pending.
+Status: MERGED — PR #196 merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3`; focused official Basilisk 2.11.0 acceptance passed.
 
 ## What changed
 
@@ -31,8 +31,16 @@ The active payload load is fixed at `payload_power_w`; it is not linearly scaled
 6. Importability without Basilisk must be preserved. The first PR run exposed that `PayloadActivityStatusAdapter` lacked the `None` placeholder used by the other optional Basilisk classes; add it to the module's no-Basilisk branch and `__all__` so unit-only tools can import the unified runtime.
 7. Removing one proxy and adding one official node changes runtime inventories: default unified-native proxy count 2 → 1; official and project-native module counts each increase by one. Update propulsion and sealed Run Bundle assertions to use the new audited counts; the first P10 run's two failures and eight fixture errors were stale inventory expectations, not physical-link failures.
 
-## Acceptance still pending
+## Acceptance evidence — focused PASS
 
-- Official Basilisk 2.11.0 unified-native A/B.
-- Resource-closure health, PDU transition and event regressions.
-- Full native Basilisk, static and governance CI on the exact PR head.
+- Official upstream Basilisk 2.11.0 provenance and offline environment preflight: PASS.
+- Focused P10-A suite: 65 passed in 66.38 s, including the unified-native Payload 38 W / 0 W A/B, battery response, thermal response, unchanged data/storage and PDU load-shed behavior.
+- Resource-closure health, PDU transition and event regressions in the focused suite: PASS.
+- Static checks, project script/dependency governance, unit-only importability without Basilisk, P9-H truth contract, registered parameter surface audit and finite-run creator UX regression: PASS.
+- Full native Basilisk regression and independent physical/Run Bundle acceptance were still running at merge time; they continue on `main` and must be checked before declaring the broader regression closed.
+
+
+## Merge
+
+- PR #196 merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3`.
+- Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44569360022).
