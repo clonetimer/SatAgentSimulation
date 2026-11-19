@@ -196,3 +196,7 @@
 - 同头真实 Basilisk 仍出现 `reset_changed=false`。复核上游 Basilisk v2.11.0 `PowerStorageBase::Reset` 源码后发现：`Reset(CurrentSimNanos)` 会将内部 `storedCharge` 设为公开 `storedCharge_Init`，同时把 `previousTime` 归零。此前比较器只保存电池能量的绝对最大误差；若 BASE 臂低估、RESET 臂高估且误差幅值相同，`reset_changed` 就会错误地报告“误差未改变”。
 - 正确做法：从源、BASE、RESET 三份真实原生测量中直接计算有符号电池能量残差（child energy - uninterrupted source energy），同时保留原有绝对误差报告；断言 RESET 的有符号误差非零且相对 BASE 发生可测变化，不把“绝对误差幅值相同”误解为“轨迹相同”。
 - 经验：物理 A/B 的误差指标必须保留方向信息；仅比较 `abs(error)` 可能掩盖符号翻转。对于 Reset/初始化时间类负面对照，应同时核验源状态与子进程配置、实际激励、有符号残差和调度时间，不得删除原有失败门禁或把无差异结果改成 PASS。
+
+
+- 后续真实 CI 的有符号残差输出又暴露出一个首 tick 问题：独立 child 的第一个 post-import scheduler tick 可能尚未收到全部 `PowerNodeUsageMsg`，上游 `PowerStorageBase::UpdateState` 会把电池输出消息写成零值。该首帧不能用于电池残差 A/B；现保留并记录它，但只对后续消息已写入、电池能量为正的 runtime 样本进行 signed-error 比较。
+- 经验补充：原生电池的有效样本判定必须同时看调度时刻和消息写入状态；不能因为 recorder 已有一行就认定 SimpleBattery 已完成一次有效积分。
