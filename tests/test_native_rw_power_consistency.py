@@ -1,12 +1,13 @@
-"""P0-21 cross-subsystem truth: real RW command -> ADCS bridge -> BSK battery.
+"""P10-A: official Basilisk ReactionWheelPower -> native EPS battery coupling.
 
-The controller's raw requested torque is NOT physical motor torque under Imax,
-Kt, per-wheel ratings, and actuator faults. This test runs the genuine
-Basilisk unified spacecraft with no mock wheel, power-node, or battery.
+The controller's raw requested torque is not physical wheel torque under
+motor-current, torque, and event limits. The power model must consume the
+actual RWConfigLogMsg emitted by reactionWheelStateEffector.
 """
 from __future__ import annotations
 
 from pathlib import Path
+
 import pytest
 
 
@@ -14,80 +15,89 @@ def _run_basilisk(values):
     pytest.importorskip("Basilisk")
     from sat_sim.capability_registry import get_adapter_for_capability
     from test_unified_native_migration import WHOLE_ID, _short_spec
-    spec = _short_spec(WHOLE_ID, duration_s=20., values={
-        "initial_pointing_error_deg": 35.,
-        # Keep motor shaft speeds large enough to physically separate
-        # post-clamp power from the old raw-controller-torque surrogate.
-        "rw_initial_speed_rad_s_0": 90.,
-        "rw_initial_speed_rad_s_1": 110.,
-        "rw_initial_speed_rad_s_2": 80.,
-        "adcs_power_w": 12.,
-        "adcs_drive_efficiency": .75,
-        "adcs_max_power_w": 120.,
+
+    spec = _short_spec(WHOLE_ID, duration_s=20.0, values={
+        "initial_pointing_error_deg": 35.0,
+        "rw_initial_speed_rad_s_0": 90.0,
+        "rw_initial_speed_rad_s_1": 110.0,
+        "rw_initial_speed_rad_s_2": 80.0,
+        "adcs_power_w": 12.0,
+        "adcs_drive_efficiency": 0.75,
+        "adcs_max_power_w": 120.0,
         **values,
     })
     result = get_adapter_for_capability(WHOLE_ID).run(spec)
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
-    native = result.metadata["model_source_boundary"]["basilisk_official_native"]
-    assert "reaction_wheels" in native and "battery" in native
+    native = set(result.metadata["model_source_boundary"]["basilisk_official_native"])
+    assert {"reaction_wheels", "battery", "reaction_wheel_power_0", "reaction_wheel_power_1", "reaction_wheel_power_2"} <= native
+    assert "project_adcs_control_power_bridge" not in result.metadata["model_source_boundary"]["engineering_proxy"]
+    assert result.summary["adcs_power_model"]["implementation"] == "Basilisk.simulation.ReactionWheelPower"
     return result.trace_rows, result
 
 
-def test_native_power_bridge_uses_actual_electrically_limited_motor_message():
+def test_official_reaction_wheel_power_uses_actual_post_effector_torque_and_speed():
     reference, result = _run_basilisk({})
     disabled, disabled_result = _run_basilisk({"rw_motor_current_limit_a": 0.0})
-    limited, limited_result = _run_basilisk({"rw_motor_current_limit_a": .005})
+    limited, limited_result = _run_basilisk({"rw_motor_current_limit_a": 0.005})
 
-    assert [r["time_s"] for r in reference] == [r["time_s"] for r in disabled]
-    assert [r["time_s"] for r in reference] == [r["time_s"] for r in limited]
+    assert [row["time_s"] for row in reference] == [row["time_s"] for row in disabled]
+    assert [row["time_s"] for row in reference] == [row["time_s"] for row in limited]
     assert len(reference) >= 5
-    # At time zero PDU (task priority 49) has not yet published its enable
-    # status when the power bridge (priority 54) is initialized. Treat the
-    # first sample as an unpowered handshake, not an energized ADCS interval.
-    for run in (reference, limited, disabled):
-        for row in run[1:]:
-            assert float(row["eps.battery_energy_j"]) > 0.
-            assert float(row["eps.pdu.adcs_enabled"]) == 1.
-            assert float(row["eps.loads.adcs_power_w"]) >= 0.
-            assert float(row["eps.loads.adcs_power_w"]) <= 120. + 1e-9
 
-    # With a disabled motor current supply, the *real* applied motor torque
-    # is zero although the official FSW still asks for nonzero torque.
+    # PDU status is available to the official power nodes before their update.
+    for run in (reference, limited, disabled):
+        for row in run:
+            assert float(row["eps.battery_energy_j"]) > 0.0
+            assert float(row["eps.pdu.adcs_enabled"]) == 1.0
+            assert 0.0 <= float(row["eps.loads.adcs_power_w"]) <= 120.0 + 1e-6
+
+    # Disabled current supply means the official effector applies zero motor
+    # torque even though the native FSW still issues a non-zero request.
     assert all(
-        abs(float(r[f"adcs.control.applied_torque_nm_{i}"])) < 1e-12
-        for r in disabled for i in range(3)
+        abs(float(row[f"adcs.rw.actual_applied_torque_nm_{i}"])) < 1e-12
+        for row in disabled for i in range(3)
     )
     assert any(
-        abs(float(r[f"adcs.rw.command_torque_nm_{i}"])) > 1e-5
-        for r in disabled for i in range(3)
+        abs(float(row[f"adcs.rw.command_torque_nm_{i}"])) > 1e-5
+        for row in disabled for i in range(3)
     )
-    # This bridge explicitly models fixed ADCS bus/electronics power plus
-    # RW mechanical shaft work / efficiency, NOT copper loss or V*I.
-    assert [r["eps.loads.adcs_power_w"] for r in disabled[1:]] == pytest.approx(
-        [12.] * len(disabled[1:]), abs=1e-9
+    assert [row["eps.loads.adcs_power_w"] for row in disabled] == pytest.approx(
+        [12.0] * len(disabled), abs=1e-6
     )
-    assert max(float(r["eps.loads.adcs_power_w"]) for r in reference) > 12.5
-    assert max(float(r["eps.loads.adcs_power_w"]) for r in limited) < max(
-        float(r["eps.loads.adcs_power_w"]) for r in reference
-    ) - .1
-    # EPS battery consumes the bridge output through native
-    # simpleBattery.addPowerNodeToModel, not a presentation-only formula.
+
+    # Recompute the official module equation from the actual RW state
+    # message fields (Omega and u_current), not the pre-effector command.
+    for row in reference:
+        expected = 12.0 + sum(
+            abs(float(row[f"adcs.rw.actual_mechanical_power_w_{i}"])) / 0.75
+            for i in range(3)
+        )
+        assert float(row["eps.loads.adcs_power_w"]) == pytest.approx(expected, abs=1e-5)
+
+    assert max(float(row["eps.loads.adcs_power_w"]) for row in reference) > 12.5
+    assert max(float(row["eps.loads.adcs_power_w"]) for row in limited) < max(
+        float(row["eps.loads.adcs_power_w"]) for row in reference
+    ) - 0.1
+
+    # The native SimpleBattery consumes each official ReactionWheelPower
+    # node; this is not a presentation-only or post-run accounting formula.
     net_deltas = [
         abs(float(a["eps.net_power_w"]) - float(b["eps.net_power_w"]))
-        for a,b in zip(reference, disabled)
+        for a, b in zip(reference, disabled)
     ]
-    assert max(net_deltas) > .1, net_deltas
+    assert max(net_deltas) > 0.1, net_deltas
 
 
-def test_native_adcs_to_eps_graph_records_applied_wheel_torque_source():
-    # Catch regression even if no physical command is demanded in a new
-    # scenario (the physical test above separately requires a real A/B).
-    code = (Path(__file__).resolve().parents[1] /
-            "src/sat_sim/bsk_engine/unified_native.py").read_text(encoding="utf-8")
-    start = "adcs_power_bridge = AdcsControlPowerBridge("
-    end = "payload_power_bridge = DataActivityPowerBridge("
-    assert code.count(start) == 1 and code.count(end) == 1
-    bridge = code.split(start, 1)[1].split(end, 1)[0]
-    assert "motor_torque_msg=rw_fault.commandOutMsg" in bridge
-    assert "motor_torque_msg=motor.rwMotorTorqueOutMsg" not in bridge
-    assert 'battery.addPowerNodeToModel(bridge.powerOutMsg)' in code
+def test_native_adcs_eps_graph_records_official_rw_power_message_wiring():
+    code = (
+        Path(__file__).resolve().parents[1]
+        / "src" / "sat_sim" / "bsk_engine" / "unified_native.py"
+    ).read_text(encoding="utf-8")
+    assert "ReactionWheelPower.ReactionWheelPower()" in code
+    assert "power_node.rwStateInMsg.subscribeTo(rw_state_msg)" in code
+    assert "power_node.nodeStatusInMsg.subscribeTo(pdu.adcsStatusOutMsg)" in code
+    assert "battery.addPowerNodeToModel(power_node.nodePowerOutMsg)" in code
+    assert 'messages[f"rw_state_{wheel_index}"] = rw_state_msg' in code
+    assert 'messages[f"adcs_power_{wheel_index}"] = power_node.nodePowerOutMsg' in code
+    assert "AdcsControlPowerBridge" not in code
+    assert "project_adcs_control_power_bridge" not in code
