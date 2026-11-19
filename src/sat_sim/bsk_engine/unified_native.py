@@ -2660,12 +2660,14 @@ class UnifiedNativeRuntime:
         runtime_read_errors: list[str] = []
         causal_evidence: dict[str, Any] = {"status": "PASS", "requirements": []}
         if not cfg.adcs_only:
-            bridge_objects = {
-                "heater": whole_modules["heater_power_bridge"],
-            }
+            bridge_objects = {}
             if "propulsion_power_bridge" in whole_modules:
                 bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
             bridge_health = {
+                "heater": _native_status_power_health(
+                    rows,
+                    active_power_w=float(values.get("heater_power_w", 15.0)),
+                ),
                 "payload": _native_payload_power_health(
                     rows,
                     active_power_w=float(values.get("payload_power_w", 38.0)),
