@@ -90,3 +90,10 @@
 - 这是 browser fixture 未随服务端 schema 一起迁移，不是 Basilisk 物理问题。已将 Chromium 参数改为 `{"wheel_index": 0}`，使表单编辑、canonical TaskSpec 与 runtime binary actuator 行为一致。
 - 经验：对每个事件至少做三方参数契约检查（form parameter_fields、browser fixture、canonical TaskSpec），不能只依赖 native paired test 已通过。
 - 修复提交 `dbd98a03a18807d5252d646f03a0f170076d7735`；上一 head `908d347f...` 的 CI 不包含此修复，最终结论必须等待新 head 的完整回归。
+## O3-D 原始封存运行证据归档经验（2026-11-19）
+
+- JUnit 与 direct-recorder JSON 是测试摘要，不等于原始 Run Bundle。测试若把 sealed bundle 放在 pytest tmp_path，CI 结束后会丢失原始任务、telemetry、manifest、seal 和逐文件哈希，无法独立复核。
+- 对物理 A/B：在原 bundle integrity PASS 后复制整个 bundle 目录到 artifact staging，再对复制件重新执行 `verify_run_bundle`；报告记录 nominal/injected 两份 bundle 的归档路径。
+- 对 Chromium：保留浏览器实际下载的 ZIP 原件，不仅验证临时下载；将其复制到 artifact staging，并生成 sidecar，记录 ZIP SHA-256 与 bundle manifest SHA-256。
+- Artifact 上传必须显式包含物理 run_bundles/**、browser_run_bundles/**、JUnit 与 effect_ab.json，并保持 `if-no-files-found: error`，避免路径写错时静默产出不完整交付包。
+- 归档代码已加入候选分支；只有同头官方 CI 完成且 Artifact 内核对 10 份物理 Run Bundle、9 份 Chromium ZIP 与 9 个 sidecar 后，O3-D 才可记为 PASS。
