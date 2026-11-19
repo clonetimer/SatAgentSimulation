@@ -193,3 +193,29 @@ NASA 资料为 TripoSR G1 提供了一个比 KSST-01 厂商照片更有希望的
 - 两个原 workflow run 的 artifact 列表均为空。
 - 新 source-intake workflow 的 cleanup step 在上传 metadata-only receipt 前，按固定 ID 幂等删除并再次调用 getArtifact 验证；若仍可访问则 CI 失败。
 - 当前公开 artifact `p9m4i-nasa-star-tracker-intake-receipt` 仅含 `source-intake.json`，不含 JPEG 字节。
+
+## 2026-11-19 补充来源筛查：StarBerry-Sense 与开源替代项
+
+为避免把 NASA/JPL 单图 mock-up 当作唯一候选，补查了已有小卫星星敏感器项目：
+
+### StarBerry-Sense（Indian Institute of Astrophysics）
+
+- 项目主页：[IIA StarBerry Sense](https://www.iiap.res.in/projects/spg/systems/starberrysense/)；公开代码：[Bharatcs/Starberry-Sense](https://github.com/Bharatcs/Starberry-Sense)。
+- IIA 页面给出真实星敏感器指标：99 × 75 × 69 mm、960 g（含遮光罩）、12° FOV、约 30 arcsec 精度、1 frame/s、3 W；页面记录其搭载 PSLV-C55 POEM 于 2023 年 4 月飞行，并在轨工作超过 5 个月。
+- GitHub 仓库 LICENSE 为 MIT，但仓库内容是 Raspberry Pi/C++ 星识别软件、星表生成与查找表工具；检查公开 README 与仓库目录未发现 STEP/STL/FCStd/IGES/GLB 机械 CAD。
+- 结论：这是比 Europa Clipper mock-up 更有航天器工程相关性的真实星敏感器参考，可作为系统级尺寸/性能对照；MIT 代码许可不等于机械 CAD 或 IIA 网页图片获得同样许可。不得据此伪造星敏感器外壳、光轴、安装孔或遮光罩几何。
+
+### 其他命中项的排除
+
+- [CROSS Space star-tracker-core](https://github.com/cross-space-open/star-tracker-core) 是 MIT 许可的星识别核心软件仓库，公开内容为代码与星表数据，不提供可核验的完整机械 CAD。
+- [AstroTracker](https://github.com/MathijsdeBoer/AstroTracker) 提供 CERN OHL-W 许可的 CAD，但它是地面天文摄影跟踪设备，不是航天器星敏感器；不应作为卫星单机几何代理。
+- OG Star Tracker / OpenAstroTracker 同样是天文摄影相机跟踪架，而非星敏光学头，不能用作航天器星敏感器几何。
+
+### 对当前 pilot 的影响
+
+1. 电池与反作用轮继续使用 BIRDS-4 真实 CAD 作为 ground-truth controls。
+2. 星敏感器优先级调整为：先向项目目标设备供应商/用户取得目标型号 CAD 与许可；若暂不可得，StarBerry-Sense 仅作公开性能与包络参考，不直接转换为目标 CAD。
+3. NASA/JPL mock-up 仍只是一项通用 G1 外观候选；项目用途 sign-off 仍 pending，inference_eligible=false，不运行 TripoSR。
+4. 不因找到 MIT 软件仓库就推定硬件 CAD、图片或外观设计也采用 MIT 许可。
+
+开发经验：来源筛查必须分别核对“算法代码、机械 CAD、产品照片、尺寸/性能事实”的权利与语义；同名 star tracker 项目可能是地面摄影转台，不能仅凭关键词认定为航天器星敏感器。
