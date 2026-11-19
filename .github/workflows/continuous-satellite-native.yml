@@ -4,6 +4,15 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/integration/resource_feedback.py"
+      - "src/whole_spacecraft/builder.py"
+      - "src/whole_spacecraft/runner.py"
+      - "src/whole_spacecraft/schemas.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
+      - "src/sat_sim/capabilities/whole_spacecraft.composite_digital_twin.v1.yaml"
+      - "tests/test_downlink_antenna_status_adapter.py"
+      - "tests/test_composite_native_comm_antenna_power.py"
+      - "tests/test_runtime_evidence_status_thermal_rf.py"
       - "src/sat_sim/interactive/**"
       - "tests/interactive/test_continuous_session.py"
       - "tests/interactive/test_continuous_persistence.py"
@@ -195,6 +204,15 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_composite_native_adcs_power.py
+          --disable-warnings
+      - name: Native Comm/Data antenna power to EPS and thermal A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_downlink_antenna_status_adapter.py
+          tests/test_composite_native_comm_antenna_power.py
+          tests/test_runtime_evidence_status_thermal_rf.py
           --disable-warnings
       - name: True Basilisk per-wheel current Kt torque and battery-load A/B
         env:
