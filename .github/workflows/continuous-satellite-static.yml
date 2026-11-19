@@ -15,6 +15,7 @@ on:
       - "tests/test_downlink_antenna_status_adapter.py"
       - "tests/test_composite_native_comm_antenna_power.py"
       - "tests/test_composite_native_heater_power.py"
+      - "tests/test_composite_native_payload_power.py"
       - "tests/test_runtime_evidence_status_thermal_rf.py"
       - "src/sat_sim/web/**"
       - "src/sat_sim/schemas/interactive_session.schema.json"
@@ -44,8 +45,10 @@ jobs:
             src/sat_sim/interactive/manager.py \
             src/sat_sim/bsk_engine/unified_native.py \
             src/integration/resource_feedback.py \
+            src/integration/qoi_profiles/resource_closure.py \
             src/whole_spacecraft/builder.py \
             src/whole_spacecraft/runner.py \
+            src/whole_spacecraft/builder.py \
             src/whole_spacecraft/schemas.py \
             src/subsystems/eps/builder.py \
             src/subsystems/payload/builder.py \
@@ -53,6 +56,7 @@ jobs:
             tests/test_downlink_antenna_status_adapter.py \
             tests/test_composite_native_comm_antenna_power.py \
             tests/test_composite_native_heater_power.py \
+            tests/test_composite_native_payload_power.py \
             tests/test_runtime_evidence_status_thermal_rf.py \
             tests/interactive/test_continuous_session.py
       - name: Validate frontend JavaScript
