@@ -52,6 +52,14 @@ def test_whole_spacecraft_guided_event_catalog_is_limited_to_verified_native_pro
     assert UNDECLARED_RUNTIME_EFFECTS.isdisjoint(declared)
     assert set().union(*exposed.values()) == set().union(*VERIFIED_GUIDED_EFFECTS.values())
     assert UNDECLARED_RUNTIME_EFFECTS.isdisjoint(set().union(*exposed.values()))
+    trace_fields = set(schema["outputs"]["trace_fields"])
+    assert {
+        "adcs.rw.effective_torque_ratio_0",
+        "adcs.sensor.gyro_bias_norm_rad_s",
+        "adcs.sensor.gyro_noise_norm_rad_s",
+        "propulsion.initial_propellant_kg",
+        "propulsion.propellant_used_kg",
+    } <= trace_fields
 
     for effects in exposed.values():
         for effect_id in effects:
