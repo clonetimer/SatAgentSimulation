@@ -123,3 +123,19 @@
 - 运行时 `ProjectNativeRWCommandModel` 对 `adcs_rw_motor_failure` 固定施加 0 力矩；旧通用 alias `rw_motor_failure` 的兼容行为单独保留。这样即使直接绕过 guided form，也不会把 whole motor failure 变成部分力矩事件。
 - 同步更新 fault catalog 与 whole-spacecraft 数据集生成器：motor failure 只采样目标轮号；部分力矩样本属于独立 degradation 条件。
 - 原失败是旧契约回归，不是 Basilisk 物理失败。修复后的官方 Basilisk 2.11.0 native workflow 尚待最终 PR head 重跑，不提前记 PASS。
+
+## O3-B 物理证据与 O3-C 浏览器门禁补齐（2026-11-19）
+
+### O3-B 已验证的物理证据（旧 head b1df4c8）
+
+- 官方 Basilisk 2.11.0 workflow `44449924799`：success；Artifact `14495582570`，74,276 bytes。
+- 整星 paired Run Bundle 测试 `tests/test_native_whole_spacecraft_event_bundles.py`：9 passed（1 个参数消费/nominal 基线检查 + 8 个 injected 事件）。
+- 八个事件均在整星统一运行图执行；每个 injected Run 要求 SUCCEEDED、validation PASS、sealed、integrity PASS、直接 runtime injection evidence 与事件专属 recorder A/B。
+- Formal effect contract、整星事件目录、RW4 初始速度拒绝与现有 EPS/Comm-Data/ADCS 原生回归均在该 workflow 通过。
+- 该结果只证明 O3-B 物理/TaskSpec/封存证据，不证明 O3-C 浏览器事件旅程已执行。
+
+### O3-C 真实 Chromium 旅程接入（当前 head 84757e7）
+
+- 发现 `test_guided_whole_spacecraft_event_run_bundle` 已写好 9 个真实浏览器到 Basilisk 旅程（nominal 1 + 8 events），覆盖向导选择、事件参数、TaskSpec 校验、真实 Run、effect evidence、直接 telemetry、plots、FMEA、Run Bundle 下载与逐文件 SHA-256、Run Center 历史重开；但原官方 workflow 的 pytest `-k` 没有选择该测试。
+- 已为 9 个 journey 增加稳定 pytest IDs；官方 workflow 新增 collect-only 精确要求 9/9，真实执行时显式包含该测试，并在 JUnit XML 中要求九个 ID 全部存在、0 failure、0 skipped。
+- 该浏览器门禁与 O3-B 物理门禁现在在同一 PR head `84757e7969254bddcaf3368ef7efd0b8fd531f4f` 上重跑；结果未出前不宣称 O3-C PASS。
