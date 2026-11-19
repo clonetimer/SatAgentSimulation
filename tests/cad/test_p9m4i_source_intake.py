@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.cad.fetch_p9m4i_source_image import (
+from sat_sim.p9m4i_source_intake import (
     MAX_SOURCE_BYTES,
     fetch_nasa_star_tracker_source,
     jpeg_dimensions,
