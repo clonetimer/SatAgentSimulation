@@ -119,3 +119,11 @@
 - `whole_spacecraft.unified_native.v1` 实际由 `WholeSpacecraftUnifiedNativeAdapter` 执行，摘要契约是 `instantiated_connected_recorded_unified`；整星图包含 4 个工程代理功率桥，推进场景再增加 1 个推进桥，因此该字段应分别为 4 和 5。
 - 这不是放宽模型边界，也不能把代理计数改成 0；浏览器测试应与独立 Basilisk A/B 测试保持同一物理事实和声明边界。
 - 已将九条浏览器旅程的摘要断言改为按 case 校验 unified runtime 标识及 4/5 个工程代理桥。最终是否通过仍以修复后同一 PR head 的官方 Basilisk + Chromium CI 和证据 Artifact 为准。
+## O3-C Chromium 真实运行链故障定位（2026-11-19）
+
+- 旧 head `fd9062f` 的官方 Chromium 作业并非单一断言失败：ADCS 子系统旅程在归档阶段引用了未定义的 `case_id/event_kind/event_effect`，整星九条旅程则因 `embedded_worker=False` 没有启动异步执行 worker，最终等待 `SUCCEEDED` 超时。
+- 该 ADCS 子系统旅程不属于整星九条证据归档，错误的归档代码还会污染整星归档目录；已删除这段误放置的归档逻辑，保留原有下载 ZIP 的哈希、manifest 与 seal 校验。
+- 整星事件曲线缺失的根因是 `form_schema._explicit_output_rows` 过早过滤了 `outputs.trace_fields` 中的通配模式，导致 `_TRACE_PATTERN_EXPANSIONS` 无法展开已登记的反作用轮字段。现仅对 trace 保留模式输入，由白名单展开器生成可选的具体字段；summary 仍过滤通配占位符。
+- 已将整星浏览器测试改为启用 embedded worker，并在单元测试中明确要求最大力矩、摩擦阻尼和最高转速三类事件证据曲线可选。
+- 经验：UI 的真实运行测试必须启动实际 worker；曲线字典必须在 UI 层保留“已登记模式→有限具体字段”的展开链；跨任务的证据归档目录不得被无关子系统测试写入。
+- 修复后的最新提交为 `777b4520013f677fa82109aa0aa6869497345605`。此前 head 的失败结果只用于定位，不作为当前 head 结论；最终验收仍以新 head 的官方 Basilisk + Chromium 作业和完整 Artifact 为准。
