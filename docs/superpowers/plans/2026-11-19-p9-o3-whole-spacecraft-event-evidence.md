@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O2 squash merge `7207244a660db732ea321a0c9c64b28df0912c08`  
-状态：O3-A guided event catalog gate 实施中；O3-B/C/D 尚未完成。
+状态：O3-A 已合入 main（PR #188，merge commit `a96d7feddbb051cf0cf590a3f8c5e4679eed348a`），P9-G 同 head PASS；O3-B 整星级物理 A/B 与 direct recorder evidence 正在实施，O3-C/D 待完成。
 
 ## 目标
 
@@ -66,3 +66,33 @@
 - 不扩展 RF/BER/PER、地面站过站或轨道几何模型。
 - 不宣称飞行硬件标定或 flight validation。
 - 不把 O2 子系统 A/B 结果复用为整星 A/B 证据。
+
+
+## O3-B 实施细化与物理边界（2026-11-19）
+
+### 事件准入矩阵
+
+| 事件 | 直接物理量/命令路径 | A/B 关键断言 |
+|---|---|---|
+| adcs_rw_jamming | `adcs.rw.effective_torque_ratio_0`、`adcs.control.applied_torque_nm_0` | 驱动权限归零，正轮速时出现有界反向制动力 |
+| adcs_rw_motor_failure | `adcs.rw.effective_max_torque_nm_0`、`adcs.control.applied_torque_nm_0` | 轮端可用扭矩和实际命令均归零 |
+| gyro_bias_step | `adcs.sensor.gyro_bias_norm_rad_s`、`adcs.sensor.gyro_measured_rad_s_x` | 测量偏置与 nominal 对照，姿态估计链保持连接 |
+| gyro_noise_increase | `adcs.sensor.gyro_noise_norm_rad_s` | 活动期噪声输出高于 nominal；使用固定 seed 保证可复现 |
+| rw_friction_degradation | `adcs.rw.effective_drag_nms_0`、`adcs.rw.speed_rad_s_0` | 增加轮端摩擦力矩并比较轮速响应 |
+| adcs_reaction_wheel_speed_limit | `adcs.rw.effective_max_speed_rad_s_0`、`adcs.control.applied_torque_nm_0` | 设置 15 rad/s 限速；初始 RW1 设为 100 rad/s，验证超速时制动命令 |
+| propulsion_thruster_ignition_failure | `propulsion.burn_active`、`propulsion.total_thrust_n`、`propulsion.fuel_mass_kg` | 点火命令归零、无推力、燃料不消耗 |
+| propulsion_burn_impulse_loss | `propulsion.burn_command_on_time_s`、推力、燃料、轨道半径 | 单次燃烧 on-time 按剩余冲量比例缩短，推进剂消耗与轨道响应低于 nominal |
+
+### 成对运行策略
+
+- 采用两个可复用 nominal 基线（whole ADCS、whole propulsion）和八个 injected Run Bundle，共 10 个正式 Basilisk 运行。
+- 每个 injected Run 都要求官方 Basilisk 2.11.0、SUCCEEDED、validation PASS、sealed、integrity PASS、单事件 injection evidence PASS、unsupported/failed direct application 为 0。
+- ADCS 六个事件使用相同姿态初始误差、轮组构型和轮端初始速度；speed-limit 场景将 RW1 初始速度提高至 100 rad/s，确保限速制动真正被激活。
+- 推进两事件使用同一 5 s burn start、4 s nominal on-time、相同初始燃料/SOC；点火失败检查零推力/零耗剂，冲量损失检查 burn on-time、耗剂和最终轨道半径相对 nominal 的变化。
+- 为直接审计推进命令，新增 `propulsion.burn_command_on_time_s` 与 `propulsion.nominal_burn_on_time_s` 两个逐样本字段；它们是项目原生 burn controller 的命令证据，实际物理结果仍以 Basilisk 推力、燃料和轨道 recorder 为准。
+
+### 整星模型来源边界
+
+- 当前 whole-spacecraft 统一图有 4 个 engineering-proxy power bridges（ADCS、payload、comm、heater）；启用推进时增加第 5 个 propulsion power bridge。它们参与电源活动耦合，不是官方 Basilisk 模块。
+- O3-B 可以验证八种事件在官方 Basilisk 统一运行图中的直接命令/物理效果，但不得宣称整星所有功率桥均为官方 Basilisk 物理模型。
+- 每个 profile 的 claim limitations 必须说明 project-native event controller 与 engineering-proxy power bridge 的边界；整星 Capability 继续保持 `agent_ready_candidate` / `engineering_preview`。
