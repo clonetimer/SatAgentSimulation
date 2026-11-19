@@ -55,6 +55,7 @@ def test_native_odh_is_the_only_production_downlink_and_nominal_statuses_pass() 
     assert all(float(row["eps.loads.comm_power_w"]) == pytest.approx(16.0, abs=1e-6) for row in tx_rows)
     assert max(float(row["thermal.comm_heat_input_w"]) for row in result.trace_rows) > 0.0
     assert "native_comm_antenna_power" in result.metadata["model_source_boundary"]["official_basilisk_native"]
+    assert "native_comm_base_power" in result.metadata["model_source_boundary"]["official_basilisk_native"]
     assert "project_comm_downlink_status_adapter" in result.metadata["model_source_boundary"]["basilisk_project_native"]
     assert "project_comm_activity_power_bridge" not in result.metadata["model_source_boundary"]["external_or_proxy"]
 
