@@ -32,8 +32,9 @@ No runtime physics, Run Bundle validation rules, or acceptance thresholds are we
 
 ## Final acceptance
 
-- P10-A5 same-head official Basilisk and guided browser workflow: pending.
-- Independent native component/subsystem physical and Run Bundle workflow: pending.
+- P10-A5 merged as PR #198; focused official Basilisk 2.11.0 suite: 67 passed.
+- Independent native component/subsystem physical and Run Bundle workflow: PASS.
+- Full native whole-spacecraft regression, including the 3600 simulated-second TC/TM soak: PASS.
 
 
 ## P10-A5 final outcome
