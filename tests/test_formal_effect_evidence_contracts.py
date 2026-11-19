@@ -136,7 +136,7 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
         (WHOLE_ID, "degradation", _event("thermal_radiator_rejection_loss", target="whole_spacecraft", remaining_rejection_ratio=0.2), {"payload_power_w": 200.0}),
         (WHOLE_ID, "constraint", _event("power_safe_mode_threshold", target="whole_spacecraft", soc_threshold=0.9), {"initial_soc": 0.62}),
         (WHOLE_ID, "fault", _event("adcs_rw_jamming", target="whole_spacecraft", wheel_index=0, brake_torque_nm=0.2), {}),
-        (WHOLE_ID, "fault", _event("adcs_rw_motor_failure", target="whole_spacecraft", wheel_index=0, torque_scale=0.0), {}),
+        (WHOLE_ID, "fault", _event("adcs_rw_motor_failure", target="whole_spacecraft", wheel_index=0), {}),
         (WHOLE_ID, "fault", _event("gyro_bias_step", target="whole_spacecraft", bias_step_deg_s=[0.5, 0.0, 0.0]), {}),
         (WHOLE_ID, "degradation", _event("gyro_noise_increase", target="whole_spacecraft", noise_scale=100.0), {}),
         (WHOLE_ID, "degradation", _event("rw_friction_degradation", target="whole_spacecraft", wheel_index=0, drag_nms=0.012), {}),
@@ -192,3 +192,18 @@ def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect(
     planning = plan_task_spec(spec)
     assert not planning.validation.ok
     assert any(issue.severity == "error" for issue in planning.validation.issues)
+
+
+def test_whole_spacecraft_motor_failure_rejects_partial_torque_parameter() -> None:
+    spec = _spec(
+        WHOLE_ID,
+        category="fault",
+        event=_event("adcs_rw_motor_failure", target="whole_spacecraft", wheel_index=0, torque_scale=0.25),
+    )
+    planning = plan_task_spec(spec)
+    assert not planning.validation.ok
+    assert any(
+        issue.code == "PARAMETER_PATH_UNCONSUMED"
+        and "events.faults[0].parameters.torque_scale" in issue.path
+        for issue in planning.validation.issues
+    )
