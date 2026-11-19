@@ -80,6 +80,7 @@ class DownlinkAntennaStatusSample:
     attempted_rate_bps: float
     delivered_rate_bps: float
     antenna_tx_power_w: float
+    antenna_state: int
     tx_enabled: bool
     idle_enabled: bool
     input_status: InputReadStatus = InputReadStatus.VALID
@@ -140,6 +141,8 @@ if sysModel is not None:
             delivered = float(getattr(payload, "deliveredDataRate", 0.0)) if payload is not None else 0.0
             antenna_tx_power = float(getattr(antenna_payload, "P_Tx", 0.0)) if antenna_payload is not None else 0.0
             antenna_rx_power = float(getattr(antenna_payload, "P_Rx", 0.0)) if antenna_payload is not None else 0.0
+            antenna_state = int(getattr(antenna_payload, "antennaState", 0)) if antenna_payload is not None else 0
+            antenna_tx_available = antenna_state in (2, 3)  # TX or RXTX
             statuses = (pdu_status, downlink_status, antenna_status)
             status = (
                 InputReadStatus.ERROR
@@ -158,7 +161,10 @@ if sysModel is not None:
                 status = InputReadStatus.ERROR
                 error = error or "downlink or antenna power telemetry is non-finite or negative"
             valid = status is InputReadStatus.VALID
-            tx_enabled = bool(valid and pdu_enabled and link_active and attempted > 0.0)
+            tx_enabled = bool(
+                valid and pdu_enabled and link_active and attempted > 0.0
+                and antenna_tx_available
+            )
             idle_enabled = bool(valid and pdu_enabled and not tx_enabled)
 
             tx_payload = messaging.DeviceStatusMsgPayload()
@@ -185,6 +191,7 @@ if sysModel is not None:
                 attempted_rate_bps=attempted if math.isfinite(attempted) else 0.0,
                 delivered_rate_bps=delivered if math.isfinite(delivered) else 0.0,
                 antenna_tx_power_w=antenna_tx_power if math.isfinite(antenna_tx_power) else 0.0,
+                antenna_state=antenna_state,
                 tx_enabled=tx_enabled,
                 idle_enabled=idle_enabled,
                 input_status=status,
