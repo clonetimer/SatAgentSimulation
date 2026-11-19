@@ -185,8 +185,18 @@ def run_resource_closure_profiles() -> dict[str, Any]:
         },
     )
 
-    adcs_idle_graph = _execute_graph(WholeSpacecraftConfig(mission_initial_sigma_bn=(0.0, 0.0, 0.0), propulsion_enabled=False), 8.0)
-    adcs_slew_graph = _execute_graph(WholeSpacecraftConfig(mission_initial_sigma_bn=(0.1, 0.0, 0.0), propulsion_enabled=False), 8.0)
+    # Native power nodes are recorder-grounded; use the actual 0.2 s
+    # simulation cadence so an 8 s idle/slew profile contains runtime samples.
+    adcs_idle_graph = _execute_graph(WholeSpacecraftConfig(
+        mission_initial_sigma_bn=(0.0, 0.0, 0.0),
+        propulsion_enabled=False,
+        recorder_step_s=0.2,
+    ), 8.0)
+    adcs_slew_graph = _execute_graph(WholeSpacecraftConfig(
+        mission_initial_sigma_bn=(0.1, 0.0, 0.0),
+        propulsion_enabled=False,
+        recorder_step_s=0.2,
+    ), 8.0)
     idle_adcs_power = _max_native_adcs_power(adcs_idle_graph)
     slew_adcs_power = _max_native_adcs_power(adcs_slew_graph)
     _check(
