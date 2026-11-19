@@ -137,3 +137,8 @@
 - 首次将整星名义基线的 adcs_closed_loop_improved 作为硬门槛后，官方 Basilisk 2.11.0 在 14 s 窗口内未通过；不能删掉该门槛，也不能用 ADCS 子系统的 30 s PASS 替代整星结果。
 - 结合此前整星 A/B 记录，8 s 时名义姿态误差约 9.42°，而整星初始设定为 8°，表明 14 s 窗口不足以证明闭环收敛。现仅将整星 ADCS nominal baseline 延长到 30 s，八个故障/退化/约束注入用例仍保持 14 s，以保留 4–10 s 事件窗口和恢复观测。
 - 断言失败时同时输出初始与最终姿态误差，便于区分“收敛时间不足”和“控制链/坐标系方向错误”。最终仍需同一 head 的官方 Basilisk 结果确认 30 s 是否足以收敛。
+## O3-B 30 s 整星 ADCS 基线验收结果（2026-11-19）
+
+- 当前 head `39892ea785ac4e4c01b9c210da7c10c205f2ff0e` 的官方 Basilisk 2.11.0 作业 `44462643496` 已通过步骤 16：其中包括整星 ADCS 30 s nominal closed-loop baseline、整星 ADCS 八类事件 A/B 与封存、EPS/Comm-Data 原生 A/B 和相关 formal evidence contracts。
+- 因此 14 s 仅作为事件注入实验窗口，不能直接作为整星名义闭环收敛验收窗口；将 nominal ADCS Run 延长至 30 s，同时保留 8 个 injected Run 的 14 s 时长和 4–10 s 事件区间。
+- 该结果仅表示 O3-B 官方物理门禁通过；O3-C 九条 Chromium 真实运行链和 O3-D 10 份物理 + 9 份浏览器原件归档仍待同一 head 完成。
