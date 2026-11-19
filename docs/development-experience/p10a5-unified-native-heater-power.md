@@ -28,13 +28,13 @@ The electrical output is `P_e = P_rated × power_scale` when the thermostat is o
 4. The unified-native capability currently does not declare heater stuck-on/off events. This slice tests the heater component's actual PDU/thermostat/power-scale contract directly rather than claiming unsupported unified-native event coverage.
 5. The remaining propulsion activity bridge is separate and stays in scope for a later power-authority decision.
 
-## Acceptance evidence — focused and independent PASS
+## Acceptance evidence — focused, independent and full native PASS
 
 - Official upstream Basilisk 2.11.0 provenance and offline environment preflight: PASS.
 - Focused P10-A: 67 passed in 59.83 s, including the native ThermalHeater electrical/deposited-heat contract and PDU fail-closed behavior.
 - Static checks, project script/dependency governance, unit-only tests, registered parameter surface audit, P9-H, finite-run creator UX and guided browser journeys: PASS.
 - Independent native component/subsystem physical and sealed Run Bundle acceptance: PASS. Final proxy inventory is 0 for nominal whole-spacecraft runs and 1 when propulsion is enabled.
-- Full native whole-spacecraft regression passed through the 180 simulated-second TC/TM soak and 30+ second wall-clock endurance. The 3600 simulated-second TC/TM soak was still running at merge time; check its final result before closing the broader P10 native endurance work.
+- Full native whole-spacecraft regression: PASS. The 8+ second wall-clock pilot, 30+ second endurance/external audit, 180 simulated-second TC/TM soak, and 3600 simulated-second TC/TM soak all completed successfully.
 - Whole-spacecraft event and sealed Run Bundle proxy inventory regressions.
 
 
