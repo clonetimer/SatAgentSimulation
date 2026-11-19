@@ -55,3 +55,11 @@ The two fixes and this record are committed to the P9-M4-I feature branch. Final
 - Artifact `14509376634`（run `44482953922`）和 `14510716115`（run `44485479649`）均已不可访问：按 artifact ID 查询返回 HTTP 404，两个原 workflow run 的 artifact 列表也均为空。
 - 新 CI 在上传只含 `source-intake.json` 的 7 天 receipt artifact 前，执行幂等清理和二次查询；若历史 ID 仍可访问，CI 必须失败。
 - 清理只处理上述两个明确的历史 ID，不删除其他构建/审查证据。
+
+## 星敏感器替代来源筛查（2026-11-19）
+
+- StarBerry-Sense 是更相关的真实小卫星星敏感器参考：IIA 公布 99×75×69 mm、960 g（含遮光罩）、12° FOV、约 30 arcsec、1 fps、3 W，并记录 2023 年 PSLV-C55 POEM 在轨运行超过 5 个月。
+- Bharatcs/Starberry-Sense 仓库为 MIT 软件项目，但公开目录是 C++/Raspberry Pi 算法和星表生成代码，未发现机械 CAD。MIT 不能自动覆盖 IIA 网页图片或不存在的 CAD 文件。
+- CROSS Space star-tracker-core 是算法代码；AstroTracker / OG-Star / OpenAstroTracker 是地面天文摄影跟踪架。它们不能作为航天器星敏感器几何替代品。
+- 因此不伪造 StarBerry-Sense 或目标设备的三维结构；继续等待目标型号 CAD/许可，NASA mock-up 的 G1 推理门禁保持关闭。
+- 经验：按“代码、CAD、照片、规格数据”分别核对许可和物理语义，不能用软件仓库许可证推断硬件设计权利。
