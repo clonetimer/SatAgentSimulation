@@ -191,5 +191,10 @@ This remains a bounded structural audit, not a replacement for the Khronos glTF 
 
 - CLI 增加 `--receipt-only`：CI 只在内存中读取源图并校验 MIME、JPEG 结构、尺寸和 SHA-256，不将原始图写入 runner 工作目录。
 - 公开 artifact 仅上传 `source-intake.json`，记录来源 URI、credit、字节数、尺寸、SHA-256、权利状态和 `inference_eligible=false`；保留期 7 天。
-- 两个历史公开原图 artifact 需要手动删除：run `44482953922` / artifact `14509376634`；run `44485479649` / artifact `14510716115`。删除前不得合并；新工作流不会自动删除旧 artifact。
+- 两个历史公开原图 artifact 已清理：run `44482953922` / artifact `14509376634`；run `44485479649` / artifact `14510716115`。GitHub artifact ID 查询均返回 HTTP 404，原 workflow run artifact 列表均为空。新 CI 在上传 metadata-only receipt 前会再次幂等清理并验证这两个固定 ID。
 - 本次修正不改变来源用途判断，不代表 NASA/JPL-Caltech 已批准本项目使用；不运行 TripoSR，不生成星敏感器模型。
+
+
+### 清理复核记录
+
+2026-11-19 已通过 GitHub artifact API 对历史 ID `14509376634` 和 `14510716115` 逐一执行下载查询，均返回 HTTP 404；对应两个 workflow run 的 artifact 列表也均为空。benchmark 将状态更新为 `deleted`。新 source-intake workflow 保留同一组 ID 的幂等删除与二次验证，防止历史公开制品重新出现。
