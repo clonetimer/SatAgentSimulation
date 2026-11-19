@@ -31,6 +31,8 @@ on:
       - "docs/superpowers/plans/2026-11-19-p10a-native-rw-eps-coupling.md"
       - "docs/superpowers/plans/2026-11-19-p10a2-native-comm-antenna-power.md"
       - "docs/development-experience/p10a2-native-comm-antenna-power.md"
+      - "docs/superpowers/plans/2026-11-19-p10a3-native-heater-power.md"
+      - "docs/development-experience/p10a3-native-heater-power.md"
       - ".github/workflows/p10a-native-rw-eps-coupling.yml"
   workflow_dispatch:
 
