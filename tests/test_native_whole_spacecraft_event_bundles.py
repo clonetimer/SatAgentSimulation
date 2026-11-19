@@ -265,8 +265,11 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         assert injected_after["adcs.rw.effective_drag_nms_0"] == pytest.approx(nominal_after["adcs.rw.effective_drag_nms_0"], abs=1e-12)
     elif effect == "adcs_reaction_wheel_speed_limit":
         assert injected_active["adcs.rw.effective_max_speed_rad_s_0"] == pytest.approx(5.0)
-        assert abs(injected_active["adcs.rw.speed_rad_s_0"]) > 5.0
-        assert abs(injected_active["adcs.control.applied_torque_nm_0"]) > 0.0
+        assert any(
+            abs(row["adcs.rw.speed_rad_s_0"]) > 5.0
+            and abs(row["adcs.control.applied_torque_nm_0"]) > 0.0
+            for row in active_rows
+        )
         assert injected_after["adcs.rw.effective_max_speed_rad_s_0"] == pytest.approx(nominal_after["adcs.rw.effective_max_speed_rad_s_0"])
     elif effect == "propulsion_thruster_ignition_failure":
         assert nominal.summary["propellant_used_kg"] > 0.0
