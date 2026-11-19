@@ -2,9 +2,9 @@
 #!/usr/bin/env python3
 """P9-M4-I: hash-backed NASA Europa Clipper star-tracker mock-up source intake.
 
-用途：下载并封存原始 JPEG，记录来源、字节数、尺寸与 SHA-256。
-参数：--output-dir 输出目录；不执行图像预处理或 TripoSR 推理。
-输出：原始 JPEG 与 source-intake.json；该来源仍需项目用途确认和人工背景分割后才能进入生成 runner。
+用途：下载并校验原始 JPEG，记录来源、字节数、尺寸与 SHA-256。
+参数：--output-dir 输出目录；--receipt-only 仅保留 metadata receipt，不将原始图像写入磁盘。
+输出：默认原始 JPEG 与 source-intake.json；CI 使用 --receipt-only，仅在内存中处理原图并写出 receipt，不执行图像预处理或 TripoSR 推理。
 """
 
 from __future__ import annotations
@@ -125,8 +125,13 @@ def fetch_nasa_star_tracker_source(
     *,
     opener: Callable[..., Any] = urlopen,
     expected_sha256: str = EXPECTED_SOURCE_SHA256,
+    retain_source_bytes: bool = True,
 ) -> dict[str, Any]:
     """Fetch the exact NASA media asset and preserve a hash-backed intake receipt.
+
+    If retain_source_bytes is false, source bytes are held only in memory during
+    validation and only the JSON receipt is persisted. Public CI must use this
+    mode while external distribution remains disabled.
 
     This is source acquisition only. It does not approve project use, remove the
     background, create a TripoSR input manifest, or start model inference.
@@ -164,6 +169,7 @@ def fetch_nasa_star_tracker_source(
         "retrieved_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "media_type": content_type,
         "file_name": image_path.name,
+        "source_bytes_retained": bool(retain_source_bytes),
         "size_bytes": len(data),
         "width_px": width,
         "height_px": height,
@@ -200,15 +206,16 @@ def fetch_nasa_star_tracker_source(
 
     temporary_path: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="wb", dir=destination, prefix=".p9m4i-source-", delete=False
-        ) as stream:
-            temporary_path = Path(stream.name)
-            stream.write(data)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary_path, image_path)
-        temporary_path = None
+        if retain_source_bytes:
+            with tempfile.NamedTemporaryFile(
+                mode="wb", dir=destination, prefix=".p9m4i-source-", delete=False
+            ) as stream:
+                temporary_path = Path(stream.name)
+                stream.write(data)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary_path, image_path)
+            temporary_path = None
         receipt_path.write_text(
             json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
@@ -216,7 +223,8 @@ def fetch_nasa_star_tracker_source(
     except Exception:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
-        image_path.unlink(missing_ok=True)
+        if retain_source_bytes:
+            image_path.unlink(missing_ok=True)
         receipt_path.unlink(missing_ok=True)
         raise
     return receipt
@@ -225,9 +233,17 @@ def fetch_nasa_star_tracker_source(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--receipt-only",
+        action="store_true",
+        help="只写入元数据凭证；原始 JPEG 仅在内存中校验，不落盘。",
+    )
     args = parser.parse_args()
     try:
-        receipt = fetch_nasa_star_tracker_source(args.output_dir)
+        receipt = fetch_nasa_star_tracker_source(
+            args.output_dir,
+            retain_source_bytes=not args.receipt_only,
+        )
     except Exception as exc:
         parser.exit(2, f"P9-M4-I source intake rejected: {exc}\n")
     print(json.dumps(receipt, ensure_ascii=False, sort_keys=True))
