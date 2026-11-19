@@ -151,3 +151,11 @@
 - Official native workflow `44455172008` on head `91566bb19efd97d8afdd29cd49b0d299638d07a2` failed only in the browser job `135328351418`; the whole-spacecraft run journeys repeatedly timed out waiting for `simulation.step_s` to become visible. Test summary: 10 failed, 12 passed, 4 deselected. The failure was a browser interaction/fixture issue, not a Basilisk physical A/B failure.
 - `simulation.step_s` is deliberately declared `importance=advanced`; opening arbitrary nested `<details>` nodes is not a robust substitute for the product's parameter-mode control. The browser test now opens `#wizardParametersPanel`, clicks the real `data-wizard-parameter-mode="all"` control, and asserts the solver-step input is visible before filling it.
 - Fix commit: `cca76913d01f7758fb6de13fa194715f32be6c84`. The new PR head must rerun the full official native workflow. O3-C/D remain unaccepted until all nine whole-spacecraft browser Run journeys pass and the archive audit succeeds on the same head.
+
+
+## O3-D 浏览器下载原件归档补齐（2026-11-19）
+
+- 对 O3-D workflow audit 与 browser test 做逐行核对，发现 `test_guided_whole_spacecraft_event_run_bundle` 虽然在 `tmp_path` 下载并校验 ZIP，但没有复制到 workflow 要求的 `reports/native_whole_spacecraft_events/browser_run_bundles/`；因此即使九条浏览器旅程通过，后续 9 ZIP / 9 sidecar archive audit 仍会失败。
+- 已在每条 Chromium journey 的 manifest/per-file SHA-256 校验通过后，将实际下载 ZIP 原件复制到 Artifact staging，并生成同名 JSON sidecar：case_id、run_id、event_kind/effect、ZIP SHA-256、manifest SHA-256、sealed 与 integrity 标志。
+- 修复提交 `0fef08b3140dd9db9d58ef5d1e7d2eb7f7750076`；随后检查发现 sidecar 写入代码的换行字面量多转义了一层，已在 `ee84a2c33ad3f224188d986149ba8f98d1ddb6fb` 修正为标准 JSON 文件换行。
+- O3-D 仍待同一最终 PR head 的真实 Chromium 9/9、archive audit 10 physical bundles + 9 browser ZIP + 9 sidecar 和 Artifact 上传全部 PASS；代码实现提交不等于归档验收完成。
