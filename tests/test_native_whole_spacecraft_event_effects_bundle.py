@@ -72,7 +72,6 @@ def _load_spec(
     else:
         values["propulsion_enabled"] = False
         spec["outputs"]["qoi"] = list(ADCS_QOI)
-    spec["outputs"]["plots"] = []
     spec["outputs"]["telemetry_streams"] = []
     spec["assurance"]["allow_proxy"] = False
     spec["events"] = {"faults": [], "degradations": [], "constraints": []}
