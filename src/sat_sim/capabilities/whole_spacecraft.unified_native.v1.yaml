@@ -853,7 +853,7 @@ parameters:
     unit: W
     required: false
     default: 120.0
-    min: 0.0
+    min: 0.1
     description: Fail-closed monitoring envelope for total native ADCS power draw; exceeding it fails resource feedback acceptance and does not clamp wheel torque or dynamics.
   payload_power_w:
     type: number
