@@ -259,7 +259,13 @@ def _native_heater_power_health(
     power_span = max(powers, default=0.0) - min(powers, default=0.0)
     if pdu_status_recorder is not None:
         pdu_states = [bool(int(value)) for value in pdu_status_recorder.deviceStatus]
-    transition = len(set(pdu_states)) > 1
+    pdu_transition_observed = len(set(pdu_states)) > 1
+    # A PDU bit changing while the thermostats are already off is not an
+    # observed electrical feedback response. Require real heater draw and
+    # a changing load before claiming the PDU-to-power edge was exercised.
+    power_response_transition = bool(
+        pdu_transition_observed and positive_power_count > 0 and power_span > tolerance_w
+    )
     status = "NOT_READY" if not rows or not heater_names else ("FAIL" if violations else "PASS")
     return {
         "status": status,
@@ -276,8 +282,9 @@ def _native_heater_power_health(
         "activity_span": power_span,
         "positive_activity_sample_count": positive_power_count,
         "positive_power_sample_count": positive_power_count,
-        "enabled_transition_observed": transition,
-        "stimulus_observed": bool(positive_power_count or transition),
+        "enabled_transition_observed": power_response_transition,
+        "pdu_state_transition_observed": pdu_transition_observed,
+        "stimulus_observed": bool(positive_power_count),
         "directional_response_pass": not violations,
         "directional_violation_count": len(violations),
         "directional_violations": violations[:10],
@@ -2329,9 +2336,10 @@ class UnifiedNativeRuntime:
             sim.AddModelToTask(task_name, recorder, None, 1)
             recorder_map[name] = recorder
             record_sources.append(name)
-        if not cfg.adcs_only:
+        if not cfg.adcs_only and "pdu" in whole_modules:
             # Preserve fast PDU transition evidence even when output telemetry
-            # is sampled more slowly than the native simulation task.
+            # is sampled more slowly than the native simulation task. Reduced
+            # ADCS/event fixtures may not instantiate an EPS PDU.
             pdu_heater_status_fast = whole_modules["pdu"].heaterStatusOutMsg.recorder(
                 macros.sec2nano(cfg.step_s)
             )
@@ -2683,7 +2691,7 @@ class UnifiedNativeRuntime:
                 "heater": _native_heater_power_health(
                     rows,
                     heater_names=tuple(whole_modules["thermal_graph"].heaters),
-                    pdu_status_recorder=recorder_map["pdu_heater_status_fast"],
+                    pdu_status_recorder=recorder_map.get("pdu_heater_status_fast"),
                 ),
                 "payload": _native_payload_power_health(
                     rows,
