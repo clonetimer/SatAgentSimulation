@@ -95,3 +95,9 @@ The power-only TX gate additionally requires the real SimpleAntenna state to be 
 
 - Composite `ReactionWheelPower` nodes are inserted at priority 0 after the spacecraft/RW effector models and before recorders. The PDU remains priority 49; the power nodes must consume current-tick `Omega/u_current`, not the previous tick.
 - Idle draw is verified in a separate real no-TX run by setting the physical SimpleAntenna to OFF. The actual SimpleAntenna/LinkBudget/DownlinkHandling chain must then report no attempt while PDU remains enabled; the official idle sink must draw 2 W.
+
+
+## Power-audit sampling semantics
+
+- The pure Comm health audit converts adapter `time_ns` using `1e-9 s/ns`; it must not depend on a function-local Basilisk `macros` import.
+- In the composite graph, SimpleBattery is scheduled before the downstream PDU/Comm power nodes. The battery balance therefore reflects the prior sample's native PowerNodeUsage outputs; A/B battery assertions compare the next sample, while RF and power-node telemetry remain same-sample comparisons.
