@@ -60,6 +60,7 @@ def _spec(
     category: str | None = None,
     effect: str | None = None,
     parameters: dict[str, Any] | None = None,
+    duration_s: float = RUN_DURATION_S,
 ) -> dict[str, Any]:
     values = _values(group)
     effects = ADCS_EFFECTS if group == "adcs" else PROPULSION_EFFECTS
@@ -88,7 +89,7 @@ def _spec(
         },
         "simulation": {
             "level": "whole_spacecraft",
-            "duration_s": RUN_DURATION_S,
+            "duration_s": duration_s,
             "step_s": 0.2,
             "sample_s": 1.0,
             "backend": "basilisk",
@@ -135,6 +136,7 @@ def _run_case(
     category: str | None = None,
     effect: str | None = None,
     parameters: dict[str, Any] | None = None,
+    duration_s: float = RUN_DURATION_S,
 ):
     pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
     assert version("bsk") == "2.11.0"
@@ -144,6 +146,7 @@ def _run_case(
         category=category,
         effect=effect,
         parameters=parameters,
+        duration_s=duration_s,
     )
     prepared = prepare_run(spec, output_root=output_root / "runs", run_id=run_id)
     executed = execute_prepared_run(
@@ -189,8 +192,13 @@ def _run_case(
 @pytest.fixture(scope="module")
 def nominal_runs(tmp_path_factory):
     root = tmp_path_factory.mktemp("p9o3_whole_nominal")
-    adcs, adcs_integrity, adcs_bundle = _run_case(root, "adcs", "p9o3_whole_adcs_nominal")
-    assert adcs.summary["adcs_closed_loop_improved"] is True
+    adcs, adcs_integrity, adcs_bundle = _run_case(
+        root, "adcs", "p9o3_whole_adcs_nominal", duration_s=30.0
+    )
+    assert adcs.summary["adcs_closed_loop_improved"] is True, {
+        "initial_pointing_error_deg": adcs.summary["initial_pointing_error_deg"],
+        "final_pointing_error_deg": adcs.summary["final_pointing_error_deg"],
+    }
     propulsion, propulsion_integrity, propulsion_bundle = _run_case(root, "propulsion", "p9o3_whole_propulsion_nominal")
     assert propulsion.summary["propulsion_burn_observed"] is True
     assert propulsion.summary["propellant_used_kg"] > 0.0
