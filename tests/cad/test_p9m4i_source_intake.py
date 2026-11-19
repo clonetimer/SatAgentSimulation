@@ -123,7 +123,18 @@ def test_fetch_rejects_redirect_outside_pinned_nasa_asset_host(tmp_path):
             url="https://example.invalid/Star-Tracker-3D-Print-Full.JPG",
         )
 
-    with pytest.raises(ValueError, match="P9M4I_SOURCE_REDIRECT_HOST_INVALID"):
+    with pytest.raises(ValueError, match="P9M4I_SOURCE_REDIRECT_TARGET_INVALID"):
+        fetch_nasa_star_tracker_source(tmp_path, opener=opener)
+
+
+def test_fetch_rejects_redirect_to_different_path_on_same_host(tmp_path):
+    def opener(_request, timeout):
+        return _Response(
+            _minimal_jpeg(),
+            url="https://assets.science.nasa.gov/content/dam/other-image.jpg",
+        )
+
+    with pytest.raises(ValueError, match="P9M4I_SOURCE_REDIRECT_TARGET_INVALID"):
         fetch_nasa_star_tracker_source(tmp_path, opener=opener)
 
 
