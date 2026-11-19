@@ -80,6 +80,7 @@ def test_composite_native_adcs_power_envelope_is_fail_closed_without_clamping():
 
 
 def test_composite_runner_reports_native_adcs_power_envelope():
+    pytest.importorskip("Basilisk")
     from whole_spacecraft.runner import run_whole_spacecraft_native_case
     from whole_spacecraft.schemas import WholeSpacecraftConfig, WholeSpacecraftRunConfig
 
