@@ -45,7 +45,8 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
             "project_earth_horizon_sensor", "project_sun_direction_sensor"} <= project_modules
     assert "project_propulsion_burn_controller" in project_modules
     assert "project_propulsion_activity_power_bridge" in proxy_modules
-    assert "project_heater_status_power_bridge" in proxy_modules
+    assert "project_heater_status_power_bridge" not in proxy_modules
+    assert result.summary["external_or_proxy_module_count"] == 1
     assert result.summary["resource_feedback_closure_status"] == "PASS"
 
 
