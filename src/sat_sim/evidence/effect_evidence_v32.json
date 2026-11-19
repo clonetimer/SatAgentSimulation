@@ -1003,6 +1003,301 @@
         "This profile verifies only time-dependent SimpleTransmitter nodeBaudRate data-rate degradation; it does not establish RF output-power, antenna-gain, link-margin, ground-access, storage-failure, BER or PER behavior."
       ],
       "rationale": "The official Basilisk SimpleTransmitter nodeBaudRate input is directly observed through the native storage-node recorder and remains below its nominal configured data rate throughout active degradation samples."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "adcs_rw_jamming",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_max_torque_nm_0",
+        "adcs.control.applied_torque_nm_0"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "jammed_wheel_drive_authority_is_zero",
+          "field": "adcs.rw.effective_max_torque_nm_0",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "jammed_wheel_receives_bounded_braking_torque",
+          "field": "adcs.control.applied_torque_nm_0",
+          "operator": "lt",
+          "value": 0,
+          "scope": "active_any",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "Jamming is represented by the project-native wheel command fault manager removing drive authority and applying bounded mechanical braking; it is not a motor winding or bearing damage model.",
+        "The whole-spacecraft graph contains four engineering-proxy power bridges (five when propulsion is enabled); these remain explicit in runtime provenance."
+      ],
+      "rationale": "The official Basilisk reaction-wheel state effector receives the project-native command-path output. Direct recorder fields show zero drive authority and a bounded reverse braking command while the wheel is jammed."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "adcs_rw_motor_failure",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_max_torque_nm_0",
+        "adcs.control.applied_torque_nm_0"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "failed_wheel_available_torque_is_zero",
+          "field": "adcs.rw.effective_max_torque_nm_0",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-9
+        },
+        {
+          "id": "failed_wheel_command_torque_is_zero",
+          "field": "adcs.control.applied_torque_nm_0",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "Motor failure is represented as zero commanded torque authority in the project-native wheel command path; electrical winding, thermal and mechanical damage are not modeled.",
+        "The whole-spacecraft graph contains four engineering-proxy power bridges (five when propulsion is enabled)."
+      ],
+      "rationale": "The event is applied before the official Basilisk reaction-wheel state effector. Direct torque-limit and applied-command recorders both show zero available and delivered wheel torque during the fault."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "gyro_bias_step",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.sensor.gyro_bias_norm_rad_s",
+        "adcs.sensor.gyro_bias_rad_s_x",
+        "adcs.sensor.gyro_measured_rad_s_x"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "gyro_bias_is_nonzero_during_fault",
+          "field": "adcs.sensor.gyro_bias_norm_rad_s",
+          "operator": "gt",
+          "value": 0.0001,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "Bias is injected by a project-native IMU fault SysModel into the Basilisk IMU measurement path; it is not a calibrated sensor package model.",
+        "The whole-spacecraft graph contains four engineering-proxy power bridges (five when propulsion is enabled)."
+      ],
+      "rationale": "The direct IMU bias recorder and measured gyro output show a nonzero body-rate bias during the event while the unified attitude-estimation and control graph remains active."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "gyro_noise_increase",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.sensor.gyro_noise_norm_rad_s",
+        "adcs.sensor.gyro_measured_rad_s_x"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "gyro_noise_output_increases_during_degradation",
+          "field": "adcs.sensor.gyro_noise_norm_rad_s",
+          "operator": "gt",
+          "value": 0.000001,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "Noise is injected by a project-native IMU fault SysModel with deterministic seed; it is not a calibrated stochastic IMU characterization or radiation test.",
+        "The whole-spacecraft graph contains four engineering-proxy power bridges (five when propulsion is enabled)."
+      ],
+      "rationale": "The IMU noise recorder shows nonzero injected noise during the degradation window; paired native Basilisk runs compare the same initial state and deterministic noise seed."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "rw_friction_degradation",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_drag_nms_0",
+        "adcs.rw.speed_rad_s_0",
+        "adcs.control.applied_torque_nm_0"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "wheel_friction_drag_is_positive_during_degradation",
+          "field": "adcs.rw.effective_drag_nms_0",
+          "operator": "gt",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "Friction is an equivalent project-native command-path drag coefficient; it is not a measured bearing or lubricant wear model.",
+        "The whole-spacecraft graph contains four engineering-proxy power bridges (five when propulsion is enabled)."
+      ],
+      "rationale": "The wheel command manager records the increased equivalent drag coefficient, and the official Basilisk wheel dynamics receives the resulting adjusted torque command."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "adcs_reaction_wheel_speed_limit",
+      "kind": "constraint",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_max_speed_rad_s_0",
+        "adcs.rw.speed_rad_s_0",
+        "adcs.control.applied_torque_nm_0"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "wheel_speed_limit_is_installed",
+          "field": "adcs.rw.effective_max_speed_rad_s_0",
+          "operator": "gt",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "The limit and braking command are enforced by a project-native Basilisk-scheduled wheel command manager; hardware driver thermal and electrical saturation are not represented.",
+        "The active braking response depends on wheel speed exceeding the configured limit; the paired A/B test deliberately initializes the wheel above that limit.",
+        "The whole-spacecraft graph contains four engineering-proxy power bridges (five when propulsion is enabled)."
+      ],
+      "rationale": "The direct recorder shows the configured wheel speed limit. The paired whole-spacecraft Basilisk A/B deliberately starts RW1 above the limit and verifies the active braking command and reduced wheel speed."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "propulsion_thruster_ignition_failure",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "propulsion.burn_active",
+        "propulsion.total_thrust_n",
+        "propulsion.fuel_mass_kg",
+        "propulsion.initial_fuel_mass_kg",
+        "propulsion.burn_command_on_time_s",
+        "propulsion.nominal_burn_on_time_s",
+        "orbit.radius_m"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "ignition_failure_suppresses_burn_status",
+          "field": "propulsion.burn_active",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 0
+        },
+        {
+          "id": "ignition_failure_suppresses_thrust",
+          "field": "propulsion.total_thrust_n",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "ignition_failure_zeroes_burn_command",
+          "field": "propulsion.burn_command_on_time_s",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "ignition_failure_preserves_fuel_mass",
+          "field": "propulsion.fuel_mass_kg",
+          "operator": "eq",
+          "right_field": "propulsion.initial_fuel_mass_kg",
+          "scope": "active_all",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "Ignition failure is represented by the project-native one-shot burn controller issuing a zero on-time command to the official Basilisk thruster effector; physical valve, ignition energy and combustion transients are not modeled.",
+        "The whole-spacecraft graph includes five engineering-proxy power bridges when propulsion is enabled, including the propulsion activity-to-power bridge."
+      ],
+      "rationale": "The direct burn-command, burn-status, thruster force and fuel-tank recorders show that the scheduled ignition request is suppressed, no thrust is produced and propellant mass is preserved."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "propulsion_burn_impulse_loss",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "propulsion.burn_active",
+        "propulsion.burn_command_on_time_s",
+        "propulsion.nominal_burn_on_time_s",
+        "propulsion.total_thrust_n",
+        "propulsion.fuel_mass_kg",
+        "propulsion.initial_fuel_mass_kg",
+        "propulsion.electrical_power_w",
+        "orbit.radius_m"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "remaining_burn_command_is_below_nominal",
+          "field": "propulsion.burn_command_on_time_s",
+          "operator": "lt",
+          "right_field": "propulsion.nominal_burn_on_time_s",
+          "scope": "active_all",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "reduced_burn_still_produces_thrust",
+          "field": "propulsion.total_thrust_n",
+          "operator": "gt",
+          "value": 0,
+          "scope": "active_any",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "reduced_burn_consumes_propellant",
+          "field": "propulsion.fuel_mass_kg",
+          "operator": "lt",
+          "right_field": "propulsion.initial_fuel_mass_kg",
+          "scope": "active_any",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime evidence only; not hardware-calibrated or flight-validated.",
+        "Impulse loss is implemented as a reduced one-shot burn on-time command, not as reduced instantaneous thruster thrustFactor or a continuous thrust-curve degradation.",
+        "The whole-spacecraft graph includes five engineering-proxy power bridges when propulsion is enabled, including the propulsion activity-to-power bridge."
+      ],
+      "rationale": "The project-native burn controller recorder shows a shortened on-time command; official Basilisk thruster and fuel-tank recorders confirm nonzero thrust and reduced propellant use, with paired A/B comparing the final orbital response."
     }
   ]
 }
