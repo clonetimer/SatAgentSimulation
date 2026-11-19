@@ -264,13 +264,31 @@
         3024
       ],
       "source_retrieved_at_utc": "2026-11-19T07:52:41.590154Z",
-      "source_intake_artifact": {
-        "workflow_run_id": 44482953922,
-        "artifact_id": 14509376634,
-        "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
-        "artifact_zip_size_bytes": 2658144,
-        "artifact_zip_sha256": "b51793ba2a1d781a609eeab0726045764c4ab86b88e4d1fa40d62f7aa6020d95"
-      }
+      "source_bytes_retained_in_current_ci": false,
+      "source_intake_receipt_artifact": {
+        "artifact_name": "p9m4i-nasa-star-tracker-intake-receipt",
+        "artifact_contents": [
+          "source-intake.json"
+        ],
+        "contains_source_bytes": false,
+        "retention_days": 7
+      },
+      "superseded_public_source_artifacts": [
+        {
+          "workflow_run_id": 44482953922,
+          "artifact_id": 14509376634,
+          "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
+          "contains_source_bytes": true,
+          "status": "delete_required"
+        },
+        {
+          "workflow_run_id": 44485479649,
+          "artifact_id": 14510716115,
+          "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
+          "contains_source_bytes": true,
+          "status": "delete_required"
+        }
+      ]
     }
   ]
 }
