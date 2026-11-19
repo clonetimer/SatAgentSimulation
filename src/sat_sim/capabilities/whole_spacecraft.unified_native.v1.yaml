@@ -1180,9 +1180,14 @@ outputs:
   - eps.battery_energy_j
   - eps.battery_soc
   - eps.net_power_w
+  - eps.pdu.comm_enabled
+  - eps.loads.comm_power_w
   - payload.active
   - payload.generated_bps
   - comm.active
+  - comm.tx_enabled
+  - comm.idle_enabled
+  - comm.attempted_rate_bps
   - comm.downlink_bps
   - data.storage_bits
   - data.net_baud_bps
@@ -1243,6 +1248,9 @@ outputs:
   - official_module_count
   - project_native_module_count
   - external_or_proxy_module_count
+  - resource_feedback_closure_status
+  - comm_dynamic_power_observed
+  - pdu_comm_feedback_observed
   - coupling_integrity_pass
   - energy_bounds_pass
   - data_bounds_pass
@@ -1412,6 +1420,8 @@ operator:
     - coupling_integrity_pass
     - energy_bounds_pass
     - data_bounds_pass
+    - comm_dynamic_power_observed
+    - pdu_comm_feedback_observed
     trace:
     - time_s
     - orbit.*
