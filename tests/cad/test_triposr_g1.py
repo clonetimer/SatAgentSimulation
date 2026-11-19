@@ -42,13 +42,13 @@ def _write_glb(path: Path, points=None) -> None:
     }
     raw_json = json.dumps(document, separators=(",", ":")).encode("utf-8")
     raw_json += b" " * (-len(raw_json) % 4)
-    binary += b"\\0" * (-len(binary) % 4)
+    binary += b"\0" * (-len(binary) % 4)
     total = 12 + 8 + len(raw_json) + 8 + len(binary)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(
         struct.pack("<4sII", b"glTF", 2, total)
         + struct.pack("<I4s", len(raw_json), b"JSON") + raw_json
-        + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
+        + struct.pack("<I4s", len(binary), b"BIN\0") + binary
     )
 
 
