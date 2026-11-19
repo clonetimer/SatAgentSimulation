@@ -1877,6 +1877,17 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
         ("propulsion_thruster_ignition_failure", "fault", "propulsion_thruster_ignition_failure", {}),
         ("propulsion_burn_impulse_loss", "degradation", "propulsion_burn_impulse_loss", {"remaining_impulse_ratio": 0.25}),
     ],
+    ids=[
+        "nominal",
+        "adcs_rw_jamming",
+        "adcs_rw_motor_failure",
+        "gyro_bias_step",
+        "gyro_noise_increase",
+        "rw_friction_degradation",
+        "adcs_reaction_wheel_speed_limit",
+        "propulsion_thruster_ignition_failure",
+        "propulsion_burn_impulse_loss",
+    ],
 )
 def test_guided_whole_spacecraft_event_run_bundle(
     tmp_path,
