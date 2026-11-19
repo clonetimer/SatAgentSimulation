@@ -77,3 +77,25 @@ def test_composite_native_adcs_power_envelope_is_fail_closed_without_clamping():
         _validate_native_adcs_power_envelope([10.0, 120.1], 120.0)
     with pytest.raises(ValueError, match="COMPOSITE_ADCS_POWER_SAMPLE_INVALID"):
         _validate_native_adcs_power_envelope([10.0, float("nan")], 120.0)
+
+
+def test_composite_runner_reports_native_adcs_power_envelope():
+    from whole_spacecraft.runner import run_whole_spacecraft_native_case
+    from whole_spacecraft.schemas import WholeSpacecraftConfig, WholeSpacecraftRunConfig
+
+    summary, rows = run_whole_spacecraft_native_case(WholeSpacecraftRunConfig(
+        duration_s=8.0,
+        sample_s=0.2,
+        structure=WholeSpacecraftConfig(
+            initial_soc=0.62,
+            mission_initial_sigma_bn=(0.1, 0.0, 0.0),
+            recorder_step_s=0.2,
+            propulsion_enabled=False,
+        ),
+    ))
+    assert rows
+    assert summary.adcs_power_monitoring_limit_w == pytest.approx(120.0)
+    assert summary.max_adcs_control_power_w == pytest.approx(
+        max(row.adcs_control_power_w for row in rows)
+    )
+    assert summary.max_adcs_control_power_w <= summary.adcs_power_monitoring_limit_w
