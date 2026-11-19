@@ -2305,7 +2305,7 @@ def test_guided_whole_spacecraft_event_run_bundle(
             }
             assert sidecar["sealed"] is True, sidecar
             (browser_archive_dir / f"{case_id}.json").write_text(
-                json.dumps(sidecar, ensure_ascii=False, indent=2) + "\\n",
+                json.dumps(sidecar, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
             )
 
