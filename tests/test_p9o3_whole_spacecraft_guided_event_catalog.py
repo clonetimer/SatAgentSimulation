@@ -55,6 +55,9 @@ def test_whole_spacecraft_guided_event_catalog_is_limited_to_verified_native_pro
     trace_fields = set(schema["outputs"]["trace_fields"])
     assert {
         "adcs.rw.effective_torque_ratio_0",
+        "adcs.rw.effective_max_torque_nm_0",
+        "adcs.rw.effective_drag_nms_0",
+        "adcs.rw.effective_max_speed_rad_s_0",
         "adcs.sensor.gyro_bias_norm_rad_s",
         "adcs.sensor.gyro_noise_norm_rad_s",
         "propulsion.initial_propellant_kg",
