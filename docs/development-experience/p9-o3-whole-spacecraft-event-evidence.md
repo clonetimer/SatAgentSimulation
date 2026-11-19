@@ -35,3 +35,10 @@
 - `eps.battery_soc` 是整星运行图中直接从官方 SimpleBattery recorder 计算并输出的逐采样字段，可作为太阳阵效率退化的系统上下文证据；它不是本事件的独立效果判据。核心断言仍是太阳阵效率比和太阳阵输出功率变化。
 - 已把 `eps.battery_soc` 补入该 profile 的 evidence_fields，保持 operator、observability 与 profile 三方精确一致；不通过放宽集合断言或删减已有 operator 字段来让测试通过。
 - 首轮失败发生在 formal contract parity test；该轮 native component、EPS/Comm-Data 物理 A/B 等先前步骤通过。字段修复后的完整 CI 结果尚待验证。
+
+
+## O3-A 收尾经验（2026-11-19）
+
+- 整星普通向导目录收敛为 fault 3、degradation 2、constraint 1；底层 14 个运行时声明保留，未验证的八项只在普通向导隐藏。不能把 UI 隐藏说成高级 TaskSpec 已拒绝。
+- PR #188 同一 head 的正式 native workflow、17 项 formal runtime、2 项 catalog contract 和 13 项真实 Chromium JUnit 均通过；Artifact `14484456607` 保留完整证据。
+- O3-A 的 Chromium 旅程只验证目录隔离；O3-B/C 仍必须逐事件做 whole-spacecraft sealed A/B 与真实运行旅程。
