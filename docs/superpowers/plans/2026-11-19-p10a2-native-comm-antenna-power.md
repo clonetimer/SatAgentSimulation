@@ -1,7 +1,7 @@
 # P10-A2: Native Comm/Data antenna power coupling
 
 Date: 2026-11-19
-Status: implementation candidate after P10-A1 merge; scope expanded to preserve both unified and composite runtime power profiles
+Status: implementation committed on feat/p10a2-native-comm-antenna-power-20261119; same-head Basilisk integration acceptance pending
 
 ## Objective
 
@@ -14,7 +14,7 @@ Keep the RF propagation, link budget, downlink handling and storage path unchang
 - Official `SimpleAntenna` emits `antennaOutMsg` (`AntennaLogMsgPayload` with `antennaState`, `P_Tx`, `P_Rx`).
 - Official `DownlinkHandling` emits `DownlinkHandlingMsgPayload` with `linkActive`, `attemptedDataRate`, `deliveredDataRate`, BER and PER. `attemptedDataRate` is the correct TX-power gate: a frame may be transmitted and consume RF power even if BER/PER causes zero successful delivery.
 - PDU exposes `commStatusOutMsg`.
-- The current project-owned `DownlinkActivityPowerBridge` turns actual downlink activity into a `PowerNodeUsageMsg`, then feeds the battery and thermal network.
+- Before P10-A2, the whole-spacecraft runtime used a project-owned `DownlinkActivityPowerBridge` to turn actual downlink activity into a `PowerNodeUsageMsg`, then feed the battery and thermal network.
 
 ## Proposed native graph
 
@@ -30,6 +30,14 @@ Keep the RF propagation, link budget, downlink handling and storage path unchang
 6. Connect official `antennaPower.nodePowerOutMsg` to the official `SimpleBattery` and the thermal Comm node.
 7. Record the native power node output and operational-status evidence. Remove only `project_comm_activity_power_bridge` from the engineering-proxy inventory.
 8. Preserve each runtime's legacy idle semantics. Unified-native had `idle_power_w=0`, so no-link or PDU-disabled means 0 W. Composite had `idle_power_w=2 W`; preserve this with an official `SimplePowerSink` gated by the adapter's idle status (2 W only while PDU Comm is enabled and no TX is active). The active `AntennaPower` node is disabled in idle and when PDU is disabled. Do not change the SimpleAntenna state used by LinkBudget; the status adapter is downstream of DownlinkHandling, avoiding an RF-link circular dependency.
+
+
+## Implementation progress on the current branch
+
+- Unified-native now uses official `Basilisk.simulation.antennaPower.AntennaPower` with the existing spacecraft `SimpleAntenna.antennaOutMsg`; `DownlinkAntennaStatusAdapter` gates the native node from PDU permission and the actual `DownlinkHandling` attempted-rate signal.
+- Active composite now uses the same official antenna power model and a separate official `SimplePowerSink` to preserve its 2 W PDU-enabled idle draw. The non-native fallback remains explicitly proxy-classified only when the native ODH/RF path is disabled.
+- The summary health audit reports stimulus, PDU transition and directional-response evidence. Only the expected t=0 `NOT_READY` initialization sample is excluded; later missing/invalid inputs remain fail-closed.
+- Composite trace output records `comm_control_power_w`; unified trace output exposes PDU status, TX/idle status, attempted rate and native Comm power. Same-head paired RF/battery/thermal tests and capability/CI updates are being completed before PR acceptance.
 
 ## Model semantics and limitations
 
