@@ -70,6 +70,10 @@ def test_jpeg_dimensions_reads_sof0_dimensions():
     assert jpeg_dimensions(_minimal_jpeg(640, 480)) == (640, 480)
 
 
+def test_jpeg_dimensions_allows_metadata_after_eoi():
+    assert jpeg_dimensions(_minimal_jpeg(640, 480) + (b"metadata" * 16)) == (640, 480)
+
+
 @pytest.mark.parametrize(
     ("payload", "message"),
     [
