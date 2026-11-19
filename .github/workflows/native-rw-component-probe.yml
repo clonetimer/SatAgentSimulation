@@ -23,6 +23,7 @@ on:
       - "tests/test_p9o3_whole_spacecraft_guided_event_catalog.py"
       - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
       - "tests/test_native_whole_spacecraft_event_bundles.py"
+      - "tests/test_native_rw_momentum.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
@@ -170,6 +171,8 @@ jobs:
           python -m pytest -q -s tests/test_p9n5_adcs_guided_event_catalog.py
           python -m pytest -q -s tests/test_p9o2_eps_comm_data_guided_event_catalog.py
           python -m pytest -q -s tests/test_p9o3_whole_spacecraft_guided_event_catalog.py
+          python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml \
+            tests/test_native_rw_momentum.py -k test_three_wheel_runtime_rejects_ghost_rw4_initial_speed
       - name: Determine whether the browser surface changed
         id: browser_scope
         env:
@@ -274,6 +277,7 @@ jobs:
             reports/native_subsystem_eps_comm_data/formal_effects.xml
             reports/native_whole_spacecraft_events/effect_ab.xml
             reports/native_whole_spacecraft_events/effect_ab.json
+            reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml
             reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
