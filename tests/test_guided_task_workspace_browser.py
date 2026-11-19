@@ -3,6 +3,7 @@ import hashlib
 import shutil
 import json
 import os
+from pathlib import Path
 import zipfile
 from urllib.parse import urlsplit
 
