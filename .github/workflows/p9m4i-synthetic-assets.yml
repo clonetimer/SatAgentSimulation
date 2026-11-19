@@ -78,7 +78,7 @@ jobs:
           ]
           assert len(nasa_candidates) == 1, nasa_candidates
           nasa_source = nasa_candidates[0]
-          assert nasa_source["license_assessment_status"] == "policy_basis_found_pending_project_owner_signoff_and_source_hash"
+          assert nasa_source["license_assessment_status"] == "policy_basis_found_pending_project_owner_signoff"
           assert nasa_source["rights_assessment"]["status"] == "policy_basis_found_pending_project_owner_signoff"
           assert nasa_source["rights_assessment"]["candidate_permitted_uses"] == ["model_generation", "internal_preview"]
           assert nasa_source["rights_assessment"]["external_distribution_allowed"] is False
