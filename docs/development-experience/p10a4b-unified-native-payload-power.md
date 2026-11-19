@@ -44,3 +44,10 @@ The active payload load is fixed at `payload_power_w`; it is not linearly scaled
 
 - PR #196 merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3`.
 - Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44569360022).
+
+
+## Merge
+
+- PR #196 merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3`.
+- Focused P10-A: 65 passed in 66.38 s. Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence`.
+- Default unified-native proxy inventory now reports one remaining engineering proxy: the heater status-to-power bridge.
