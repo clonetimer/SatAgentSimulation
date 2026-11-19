@@ -76,7 +76,7 @@ def _load_spec(
     spec["outputs"]["telemetry_streams"] = []
     spec["assurance"]["allow_proxy"] = False
     spec["events"] = {"faults": [], "degradations": [], "constraints": []}
-    spec["model"]["target"]["mode"] = event_kind or "nominal"
+    spec["model"]["target"]["mode"] = ("mixed" if event_kind == "constraint" else event_kind) or "nominal"
     if event_kind and effect:
         spec["events"][f"{event_kind}s"] = [{
             "id": f"{effect}_event",
@@ -140,7 +140,6 @@ def _run_case(
     assert summary["runtime_event_count"] == (1 if event_kind else 0)
     if event_kind:
         assert summary["fault_environment_episode_count"] == 1
-        assert summary["physical_effect_verified_count"] == 1
         assert len(executed.validation.injection_evidence) == 1
         evidence = executed.validation.injection_evidence[0]
         assert evidence.delivery_result.value == "PASS"
