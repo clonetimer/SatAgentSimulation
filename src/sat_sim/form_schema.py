@@ -371,6 +371,7 @@ OUTPUT_LABEL_OVERRIDES: dict[str, str] = {
     "spacecraft.scStateOutMsg.*": "航天器状态全部曲线",
     "final_storage_bits": "最终存储数据量",
     "final_pointing_error_deg": "最终姿态指向误差",
+    "attitude.truth.pointing_error_deg": "真实姿态指向误差",
     "final_battery_soc": "最终电池荷电状态",
     "qoi.adcs.initial_pointing_error_deg": "初始姿态指向误差",
     "qoi.adcs.final_pointing_error_deg": "最终姿态指向误差",
@@ -983,6 +984,7 @@ def _output_description(name: str, unit: str | None, *, destination: str) -> str
     lower = name.lower()
     known = {
         "time_s": "仿真时间轴。",
+        "attitude.truth.pointing_error_deg": "由官方 Basilisk Spacecraft 状态记录的真实姿态相对惯性参考误差，不是传感器融合估计值。",
         "adcs.pointing.error_deg": "当前姿态相对目标姿态的最短旋转角误差。",
         "adcs.sensor.gyro_measured_rad_s_0": "陀螺 X 轴测量值，包含真实角速度、固定偏置和配置的测量噪声。",
         "adcs.sensor.gyro_measured_rad_s_1": "陀螺 Y 轴测量值，包含真实角速度、固定偏置和配置的测量噪声。",
