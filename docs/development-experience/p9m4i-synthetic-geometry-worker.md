@@ -46,5 +46,12 @@ The two fixes and this record are committed to the P9-M4-I feature branch. Final
 - GitHub Actions artifact 对拥有仓库读取权限的人开放；本仓库为 public，因此不能把“CI artifact”误认为内部存储。
 - 旧 source-intake job 将 NASA/JPL-Caltech 原始 JPEG 与 receipt 一起上传，但来源记录明确为 `external_distribution_allowed=false`、`project_owner_signoff=pending`。这是来源策略与工程实现之间的冲突，不能因为图片可从 NASA 页面公开访问就忽略项目自己的分发限制。
 - 修复：采集 CLI 增加 `--receipt-only`，CI 在内存中下载、校验 JPEG、计算 SHA-256 和尺寸后只写 `source-intake.json`；公开 artifact 精确限定为该 JSON，7 天保留。原始图不落盘、不进入 artifact。
-- 历史公开原图 artifact `14509376634`（run `44482953922`）与 `14510716115`（run `44485479649`）仍需仓库管理员手动删除；新代码修复不会自动撤销已发布的 artifact。删除完成前不得合并本 PR。
+- 历史公开原图 artifact `14509376634`（run `44482953922`）与 `14510716115`（run `44485479649`）已完成删除；按 artifact ID 查询均返回 HTTP 404，两个原 workflow run 的 artifact 列表也均为空。PR 内新增的 GitHub Actions cleanup step 会幂等删除并复核这两个固定 ID，避免历史制品重新暴露。
 - 推理门禁继续保持关闭：来源用途签核、人工 crop/alpha-mask 审查、原始/处理后哈希、固定权重和 CUDA 预检均完成前，`inference_eligible=false`。
+
+
+## 历史公开原图 artifact 清理完成（2026-11-19）
+
+- Artifact `14509376634`（run `44482953922`）和 `14510716115`（run `44485479649`）均已不可访问：按 artifact ID 查询返回 HTTP 404，两个原 workflow run 的 artifact 列表也均为空。
+- 新 CI 在上传只含 `source-intake.json` 的 7 天 receipt artifact 前，执行幂等清理和二次查询；若历史 ID 仍可访问，CI 必须失败。
+- 清理只处理上述两个明确的历史 ID，不删除其他构建/审查证据。
