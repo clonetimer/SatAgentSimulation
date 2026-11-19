@@ -6,7 +6,7 @@ It assembles the simulation graph but does not execute it.
 from __future__ import annotations
 
 from dataclasses import replace
-from math import cos, pi, sin
+from math import cos, isfinite, pi, sin
 from typing import Any
 
 try:
@@ -699,8 +699,8 @@ def build_whole_spacecraft_graph(
         comm_antenna_tx_power_w = float(rf_access_graph.spacecraft_antenna.getAntennaP_Tx())
         comm_active_power_w = 30.0
         if (
-            not _finite_positive(comm_antenna_tx_power_w)
-            or not _finite_positive(comm_active_power_w)
+            not isfinite(comm_antenna_tx_power_w) or comm_antenna_tx_power_w <= 0.0
+            or not isfinite(comm_active_power_w) or comm_active_power_w <= 0.0
             or comm_active_power_w + 1e-9 < comm_antenna_tx_power_w
         ):
             raise ValueError("COMPOSITE_COMM_ANTENNA_POWER_PROFILE_INVALID")
@@ -1094,6 +1094,7 @@ def build_whole_spacecraft_graph(
         recorders["fuel_tank"] = fuel_tank.fuelTankOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         sim.AddModelToTask(recorder_task_name, recorders["fuel_tank"])
     for rec_name in (
+        "comm_power_tx", "comm_power_idle", "comm_tx_status", "comm_idle_status", "comm_power_bridge",
         "battery", "storage", "instrument", "transmitter", "solar_power", "gated_downlink_link_budget",
         "conservation_battery", "conservation_storage", "conservation_instrument", "conservation_downlink",
         "downlink_node", "downlink", "ground_access", "rf_link_budget",
