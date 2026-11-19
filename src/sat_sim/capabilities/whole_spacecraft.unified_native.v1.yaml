@@ -1397,6 +1397,7 @@ operator:
     - time_s
     - orbit.*
     - adcs.*
+    - adcs.rw.effective_torque_ratio_*
     - eps.*
     - payload.*
     - comm.*
