@@ -2217,6 +2217,12 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 assert active_rows, rows
                 assert any(event_effect in str(row.get("event.active_effects", "")) for row in active_rows)
                 active = active_rows[-1]
+                if case_id == "propulsion_burn_impulse_loss":
+                    # The 25% impulse profile shortens the 5 s nominal burn to
+                    # 2 s. Sample inside that physical burn window, not at the
+                    # later event-window end where thrust must already be zero.
+                    active = min(active_rows, key=lambda row: abs(float(row["time_s"]) - 6.0))
+                    assert 5.0 <= float(active["time_s"]) < 7.0
                 if case_id == "adcs_rw_jamming":
                     assert active["adcs.rw.effective_torque_ratio_0"] == pytest.approx(0.0, abs=1e-12)
                 elif case_id == "adcs_rw_motor_failure":
