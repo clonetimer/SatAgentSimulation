@@ -50,3 +50,12 @@ P10-A4A migrated the composite builder; P10-A4B migrates the unified-native capa
 - Static checks, project script/dependency governance, unit tests without Basilisk, P9-H truth contract, registered parameter surface audit, and finite-run creator UX regression passed on the accepted head.
 - Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44569360022).
 - Full native Basilisk regression and independent physical/Run Bundle acceptance were still running at merge time. They continue on `main` and are not claimed as passed here.
+
+
+## Merge and acceptance evidence
+
+- PR #196 squash-merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3`.
+- Focused P10-A run on the accepted head: 65 passed in 66.38 s; official upstream Basilisk 2.11.0 provenance and offline environment preflight passed.
+- Static checks, project script/dependency governance, registered parameter audit, no-Basilisk unit suite, and P9-H attitude truth contract passed.
+- Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44569360022).
+- Full native whole-spacecraft regression and independent guided component/Run Bundle acceptance were still running at merge time; their results are not claimed here.
