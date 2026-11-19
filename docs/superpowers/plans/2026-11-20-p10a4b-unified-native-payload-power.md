@@ -2,7 +2,7 @@
 
 Date: 2026-11-20
 
-Status: implementation candidate on `feat/p10a4b-unified-native-payload-power-20261120`; same-head official Basilisk 2.11.0 acceptance pending.
+Status: MERGED — PR #196 merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3` (2026-11-20); focused official Basilisk 2.11.0 acceptance passed.
 
 ## Objective
 
@@ -41,3 +41,12 @@ Bring the separate agent-exposed `whole_spacecraft.unified_native.v1` runtime in
 ## Cross-runtime boundary
 
 P10-A4A migrated the composite builder; P10-A4B migrates the unified-native capability. Only after both are merged may the Payload power proxy be described as removed across the two active whole-spacecraft paths.
+
+
+## Merge and acceptance evidence
+
+- PR #196 squash-merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3`.
+- Focused P10-A run on the accepted PR head: 65 passed in 66.38 s; official upstream Basilisk 2.11.0 provenance and offline environment preflight passed.
+- Static checks, project script/dependency governance, unit tests without Basilisk, P9-H truth contract, registered parameter surface audit, and finite-run creator UX regression passed on the accepted head.
+- Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44569360022).
+- Full native Basilisk regression and independent physical/Run Bundle acceptance were still running at merge time. They continue on `main` and are not claimed as passed here.
