@@ -148,6 +148,9 @@ EFFECT_LABELS_ZH: dict[str, tuple[str, str]] = {
     "transmitter_rate_degradation": ("发射机数据率退化", "随仿真时间逐步降低官方 SimpleTransmitter 的 nodeBaudRate 输入；不代表 RF 功率、链路裕度或地面站过站模型。"),
     "generation_storage_distribution_failure": ("EPS电源生成、储能与配电组合故障", "受控组合场景：电池可用容量/放电路径异常、太阳阵列输出下降、PDU载荷通道保护性跳闸及负载过载。PDU跳闸为二值保护动作；不代表所有EPS故障类型均已独立建模。"),
     "energy_margin_degradation": ("EPS能源裕度退化", "受控组合退化场景：电池有效容量与太阳阵列输出随时间退化；不代表所有EPS退化机理均已独立建模。"),
+    "rw_friction_degradation": ("反作用轮摩擦退化", "整星统一运行图中对指定反作用轮施加附加等效黏性阻尼，并由有效阻尼与轮速遥测验证。"),
+    "propulsion_thruster_ignition_failure": ("推进器点火失败", "计划燃烧时窗内抑制官方推进器点火指令；通过命令时长、推力、推进剂消耗和轨道响应验证。"),
+    "propulsion_burn_impulse_loss": ("推进燃烧冲量退化", "按剩余冲量比例缩短计划燃烧脉宽；不改变官方推进器模型，直接核对命令、推力、耗剂和轨道响应。"),
 }
 
 
@@ -256,8 +259,11 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
     },
     "adcs_rw_motor_failure": {
         "magnitude_applicable": False,
-        "instructions": "二值故障：目标轮电机在事件时间窗内不再提供驱动力矩。",
-        "parameters": [{"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"}],
+        "instructions": "二值故障：目标轮电机在事件时间窗内不再提供驱动力矩；torque_scale=0 表示完全失效。",
+        "parameters": [
+            {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
+            {"name": "torque_scale", "label": "剩余力矩比例", "type": "number", "unit": "ratio", "minimum": 0.0, "maximum": 1.0, "default": 0.0, "description": "0表示完全失效，1表示保持标称力矩。"},
+        ],
     },
     "adcs_rw_torque_authority_loss": {
         "magnitude_applicable": False,
@@ -297,10 +303,29 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
     },
     "adcs_reaction_wheel_speed_limit": {
         "magnitude_applicable": False,
-        "instructions": "运行约束：直接填写新的绝对转速上限，不使用故障幅值。",
+        "instructions": "运行约束：直接填写新的绝对转速上限，不使用故障幅值；请结合目标轮当前转速设置约束值。",
         "parameters": [
             {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
-            {"name": "max_speed_rad_s", "label": "约束后的最高转速", "type": "number", "unit": "rad/s", "minimum": 0.001, "default": 300.0, "description": "事件生效期间目标轮允许的最大绝对转速。"},
+            {"name": "max_speed_rad_s", "label": "约束后的最高转速", "type": "number", "unit": "rad/s", "minimum": 0.001, "default": 5.0, "description": "事件生效期间目标轮允许的最大绝对转速；若要触发超速制动，应低于当前轮速。"},
+        ],
+    },
+    "rw_friction_degradation": {
+        "magnitude_applicable": False,
+        "instructions": "性能退化：对目标反作用轮施加附加等效黏性阻尼。使用 drag_nms，不使用通用幅值。",
+        "parameters": [
+            {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
+            {"name": "drag_nms", "label": "附加等效阻尼", "type": "number", "unit": "N*m*s", "minimum": 0.0, "default": 0.012, "description": "目标轮附加等效黏性阻尼系数。"},
+        ],
+    },
+    "propulsion_thruster_ignition_failure": {
+        "magnitude_applicable": False,
+        "instructions": "二值推进故障：在计划燃烧时窗内抑制点火指令。需配置推进燃烧开始时间与计划脉宽；推进器仍由官方 Basilisk 模块执行。",
+    },
+    "propulsion_burn_impulse_loss": {
+        "magnitude_applicable": False,
+        "instructions": "推进性能退化：按剩余冲量比例缩短计划燃烧脉宽。需配置推进燃烧开始时间与计划脉宽；1表示标称，0.25表示仅保留四分之一计划脉宽。",
+        "parameters": [
+            {"name": "remaining_impulse_ratio", "label": "剩余冲量比例", "type": "number", "unit": "ratio", "minimum": 0.0, "maximum": 1.0, "default": 0.25, "description": "计划燃烧的剩余有效脉宽比例。"},
         ],
     },
 }
@@ -884,12 +909,22 @@ GUIDED_EFFECT_ALLOWLISTS: dict[str, dict[str, frozenset[str]]] = {
             "payload_instrument_off",
             "comm_data_downlink_link_loss",
             "eps_battery_capacity_loss",
+            "adcs_rw_jamming",
+            "adcs_rw_motor_failure",
+            "gyro_bias_step",
+            "propulsion_thruster_ignition_failure",
         }),
         "degradation": frozenset({
             "solar_panel_efficiency_loss",
             "thermal_radiator_rejection_loss",
+            "gyro_noise_increase",
+            "rw_friction_degradation",
+            "propulsion_burn_impulse_loss",
         }),
-        "constraint": frozenset({"power_safe_mode_threshold"}),
+        "constraint": frozenset({
+            "power_safe_mode_threshold",
+            "adcs_reaction_wheel_speed_limit",
+        }),
     },
 }
 
