@@ -1,0 +1,198 @@
+name: P9-M4-I synthetic engineering asset generation
+
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/synthetic_asset_generation.py"
+      - "src/sat_sim/triposr_g1.py"
+      - "src/sat_sim/schemas/synthetic-reference-geometry.v1.schema.json"
+      - "src/sat_sim/schemas/p9m4i-image-to-3d-input.v1.schema.json"
+      - "scripts/cad/audit_synthetic_asset.py"
+      - "scripts/cad/run_triposr_g1.py"
+      - "scripts/cad/fetch_p9m4i_source_image.py"
+      - "scripts/cad/build_parametric_synthetic_asset.FCMacro"
+      - "tests/cad/test_p9m4i_source_intake.py"
+      - "docs/superpowers/benchmarks/2026-11-17-p9m4i-parametric-input.schema.json"
+      - "tests/cad/test_synthetic_asset_generation.py"
+      - "tests/cad/test_triposr_g1.py"
+      - "docs/development-experience/p9m4m-glb-audit.md"
+      - "docs/superpowers/plans/2026-11-17-p9m4i-ai-engineering-asset-generation.md"
+      - "docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json"
+      - "docs/superpowers/reviews/2026-11-17-p9m4i-three-device-source-intake.md"
+      - ".github/workflows/p9m4i-synthetic-assets.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p9m4i-synthetic-assets-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  delete-superseded-public-source-artifacts:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Delete and verify superseded public raw-source artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ids = [14509376634, 14510716115];
+            for (const artifact_id of ids) {
+              try {
+                await github.rest.actions.getArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                core.info(`P9M4I_LEGACY_ARTIFACT_DELETED:${artifact_id}`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                core.info(`P9M4I_LEGACY_ARTIFACT_ALREADY_ABSENT:${artifact_id}`);
+              }
+            }
+            for (const artifact_id of ids) {
+              try {
+                await github.rest.actions.getArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                core.setFailed(`P9M4I_LEGACY_ARTIFACT_STILL_ACCESSIBLE:${artifact_id}`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                core.info(`P9M4I_LEGACY_ARTIFACT_VERIFIED_ABSENT:${artifact_id}`);
+              }
+            }
+
+  synthetic-asset-contract:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install test runner
+        run: python -m pip install "pytest==9.0.3" "PyYAML==6.0.3" "pydantic==2.13.4" "numpy==2.3.5" "numba==0.63.1" "joblib==1.5.3" "scikit-learn==1.9.0" "psutil==7.2.2" "sgp4==2.25" "colorama==0.4.6" "jsonschema==4.26.0"
+      - name: Validate synthetic asset schema and GLB audit
+        env:
+          PYTHONPATH: "src"
+          # The CLI help text is bilingual; force UTF-8 on Windows runners too.
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          python -m pytest -q tests/cad/test_synthetic_asset_generation.py tests/cad/test_triposr_g1.py tests/cad/test_p9m4i_source_intake.py
+          python scripts/cad/fetch_p9m4i_source_image.py --help
+          python scripts/cad/audit_synthetic_asset.py --help
+          python scripts/cad/run_triposr_g1.py --help
+      - name: Validate benchmark manifest
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          assert data["status"] == "pilot_specification_not_yet_executed"
+          assert {x["engineering_object_id"] for x in data["objects"]} == {
+              "component.battery", "component.reaction_wheel", "component.star_tracker"
+          }
+          assert "no_invented_dimensions" in data["safety_rules"]
+          targets = [x["engineering_object_id"] for x in data["objects"] if x.get("primary_ai_generation_target")]
+          assert targets == ["component.star_tracker"], f"P9M4I_PRIMARY_TARGET_SCOPE_INVALID:{targets}"
+          star_tracker = next(x for x in data["objects"] if x["engineering_object_id"] == "component.star_tracker")
+          assert "Attempt acquisition" in star_tracker["generation_gate"]
+          nasa_candidates = [
+              item for item in data.get("candidate_image_sources", [])
+              if item.get("source_id") == "nasa_europa_clipper_star_tracker_mockup_2025"
+          ]
+          assert len(nasa_candidates) == 1, nasa_candidates
+          nasa_source = nasa_candidates[0]
+          assert nasa_source["license_assessment_status"] == "policy_basis_found_pending_project_owner_signoff"
+          assert nasa_source["rights_assessment"]["status"] == "policy_basis_found_pending_project_owner_signoff"
+          assert nasa_source["rights_assessment"]["candidate_permitted_uses"] == ["model_generation", "internal_preview"]
+          assert nasa_source["rights_assessment"]["external_distribution_allowed"] is False
+          assert nasa_source["rights_assessment"]["project_owner_signoff"] == "pending"
+          assert nasa_source["source_bytes_obtained"] is True
+          assert nasa_source["source_sha256"] == "458cd3da892e5d0e75272fc9ee3b931b2c73f8eedecb03caa8d6bd21409fdfad"
+          assert nasa_source["source_size_bytes"] == 4124658
+          assert nasa_source["source_dimensions_px"] == [4032, 3024]
+          assert nasa_source["source_bytes_retained_in_current_ci"] is False
+          receipt_artifact = nasa_source["source_intake_receipt_artifact"]
+          assert receipt_artifact["artifact_name"] == "p9m4i-nasa-star-tracker-intake-receipt"
+          assert receipt_artifact["artifact_contents"] == ["source-intake.json"]
+          assert receipt_artifact["contains_source_bytes"] is False
+          assert receipt_artifact["retention_days"] == 7
+          superseded_artifacts = nasa_source["superseded_public_source_artifacts"]
+          assert {(item["workflow_run_id"], item["artifact_id"]) for item in superseded_artifacts} == {
+              (44482953922, 14509376634),
+              (44485479649, 14510716115),
+          }
+          assert all(
+              item["contains_source_bytes"] is True and item["status"] == "deleted"
+              for item in superseded_artifacts
+          )
+          assert nasa_source["eligible_for_inference"] is False
+          controls = {x["engineering_object_id"]: x for x in data["objects"] if x.get("benchmark_role") == "real_reference_control_only"}
+          assert set(controls) == {"component.battery", "component.reaction_wheel"}
+          for object_id, item in controls.items():
+              mapping = item["reference_registry_mapping"]
+              assert mapping["mapping_kind"] == "reference_cad"
+              assert mapping["node_renderable"] is False
+              assert mapping["as_built_eligible"] is False
+          print("P9M4I_BENCHMARK_SPEC_VALID:1 generation target + 2 real-CAD controls")
+          PY
+
+  nasa-source-intake:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: delete-superseded-public-source-artifacts
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Fetch and hash NASA source in memory (receipt only)
+        run: |
+          python scripts/cad/fetch_p9m4i_source_image.py --output-dir reports/p9m4i/source-intake --receipt-only
+      - name: Verify source intake receipt against pinned benchmark
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          benchmark = json.loads(Path("docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json").read_text(encoding="utf-8"))
+          source = next(item for item in benchmark["candidate_image_sources"] if item["source_id"] == "nasa_europa_clipper_star_tracker_mockup_2025")
+          receipt = json.loads(Path("reports/p9m4i/source-intake/source-intake.json").read_text(encoding="utf-8"))
+          assert receipt["sha256"] == source["source_sha256"]
+          assert receipt["size_bytes"] == source["source_size_bytes"]
+          assert [receipt["width_px"], receipt["height_px"]] == source["source_dimensions_px"]
+          assert receipt["sha256_pinned"] is True
+          assert receipt["source_bytes_retained"] is False
+          assert receipt["inference_eligible"] is False
+          assert receipt["source_rights_assessment"]["status"] == "policy_basis_found_pending_project_owner_signoff"
+          print("P9M4I_NASA_SOURCE_INTAKE_PINNED:1", receipt["sha256"], receipt["size_bytes"])
+          PY
+      - name: Upload metadata-only source intake receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: p9m4i-nasa-star-tracker-intake-receipt
+          path: reports/p9m4i/source-intake/source-intake.json
+          if-no-files-found: error
+          retention-days: 7

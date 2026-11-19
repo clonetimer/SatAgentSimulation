@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clonetimer.github.io/SatAgentSimulation/schemas/synthetic-reference-geometry.v1.schema.json",
+  "title": "Synthetic Reference Geometry Asset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "asset_id",
+    "engineering_object_id",
+    "mapping_kind",
+    "generation_method",
+    "quality_grade",
+    "geometry",
+    "provenance",
+    "review",
+    "render_view",
+    "as_built_eligible",
+    "asset_instance_id",
+    "spatial_anchor",
+    "telemetry_binding"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "synthetic-reference-geometry.v1"
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engineering_object_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mapping_kind": {
+      "const": "synthetic_reference_geometry"
+    },
+    "generation_method": {
+      "enum": [
+        "parametric_cad",
+        "image_to_3d",
+        "text_to_3d",
+        "multiview_reconstruction"
+      ]
+    },
+    "quality_grade": {
+      "enum": [
+        "G1",
+        "G2"
+      ]
+    },
+    "geometry": {
+      "type": "object",
+      "required": [
+        "file",
+        "sha256",
+        "unit"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "unit": {
+          "enum": [
+            "m",
+            "mm"
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "generator",
+        "model_version",
+        "source_inputs"
+      ],
+      "properties": {
+        "generator": {
+          "type": "string"
+        },
+        "model_version": {
+          "type": "string"
+        },
+        "model_revision": {
+          "type": "string"
+        },
+        "configuration_sha256": {
+          "type": "string"
+        },
+        "source_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "source_uri",
+              "sha256"
+            ],
+            "properties": {
+              "source_uri": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "locator": {
+                "type": "string"
+              },
+              "license": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "permitted_uses",
+                  "evidence_uri",
+                  "reviewer",
+                  "review_date"
+                ],
+                "properties": {
+                  "status": {
+                    "const": "approved"
+                  },
+                  "permitted_uses": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "model_generation",
+                        "internal_preview",
+                        "external_distribution"
+                      ]
+                    },
+                    "allOf": [
+                      {
+                        "contains": {
+                          "const": "model_generation"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "internal_preview"
+                        }
+                      }
+                    ]
+                  },
+                  "evidence_uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "review_date": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "visual_review",
+        "engineering_review"
+      ],
+      "properties": {
+        "visual_review": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
+        },
+        "engineering_review": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "not_applicable"
+          ]
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "review_date": {
+          "type": "string"
+        }
+      }
+    },
+    "render_view": {
+      "const": "synthetic_preview"
+    },
+    "as_built_eligible": {
+      "const": false
+    },
+    "asset_instance_id": {
+      "type": "null"
+    },
+    "spatial_anchor": {
+      "type": "null"
+    },
+    "telemetry_binding": {
+      "type": "null"
+    },
+    "dimension_evidence": {
+      "type": "array"
+    },
+    "interface_evidence": {
+      "type": "array"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "generation_method": {
+            "enum": [
+              "image_to_3d",
+              "multiview_reconstruction"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "source_inputs": {
+                "items": {
+                  "required": [
+                    "license"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

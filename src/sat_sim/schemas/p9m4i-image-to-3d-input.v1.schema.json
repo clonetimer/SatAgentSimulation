@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clonetimer.github.io/SatAgentSimulation/schemas/p9m4i-image-to-3d-input.v1.schema.json",
+  "title": "Licensed image-to-3D G1 input manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "asset_id",
+    "engineering_object_id",
+    "source_image",
+    "model",
+    "config"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "p9m4i-image-to-3d-input.v1"
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engineering_object_id": {
+      "enum": [
+        "component.battery",
+        "component.reaction_wheel",
+        "component.star_tracker"
+      ]
+    },
+    "source_image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "source_uri",
+        "sha256",
+        "license",
+        "preprocessing"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "original_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "license": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "permitted_uses",
+            "evidence_uri",
+            "reviewer",
+            "review_date"
+          ],
+          "properties": {
+            "status": {
+              "const": "approved"
+            },
+            "permitted_uses": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "model_generation",
+                  "internal_preview",
+                  "external_distribution"
+                ]
+              },
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "model_generation"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "internal_preview"
+                  }
+                }
+              ]
+            },
+            "evidence_uri": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reviewer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "review_date": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "preprocessing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "background_removed",
+            "method",
+            "reviewer"
+          ],
+          "properties": {
+            "background_removed": {
+              "const": true
+            },
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reviewer": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "revision",
+        "license",
+        "license_blob_sha1",
+        "repository_path",
+        "weights_path",
+        "weights_sha256"
+      ],
+      "properties": {
+        "repository": {
+          "const": "https://github.com/VAST-AI-Research/TripoSR"
+        },
+        "revision": {
+          "const": "107cefdc244c39106fa830359024f6a2f1c78871"
+        },
+        "license": {
+          "const": "MIT"
+        },
+        "license_blob_sha1": {
+          "const": "6c440ca1ef32cedcc2257b99953add129199ed26"
+        },
+        "repository_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weights_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weights_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chunk_size": {
+          "type": "integer",
+          "minimum": 256,
+          "default": 4096
+        },
+        "mc_resolution": {
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 512,
+          "default": 256
+        },
+        "minimum_free_vram_gb": {
+          "type": "number",
+          "minimum": 1,
+          "default": 6
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,96 @@
+# FreeCAD macro: build source-backed parametric synthetic reference geometry.
+# Run: FreeCADCmd build_parametric_synthetic_asset.FCMacro -- <input.json> <output-dir>
+# No dimensions or positions are invented. Every feature scalar must resolve to a
+# named, source-backed dimension in the input manifest.
+
+import json
+import os
+import sys
+import FreeCAD as App
+import Part
+import Import
+
+def fail(code):
+    raise RuntimeError("P9M4I_PARAMETRIC_BUILD:" + code)
+
+def main():
+    args = sys.argv
+    try:
+        marker = args.index("--")
+        manifest_path, output_dir = args[marker + 1], args[marker + 2]
+    except (ValueError, IndexError):
+        fail("USAGE")
+    with open(manifest_path, "r", encoding="utf-8") as stream:
+        data = json.load(stream)
+    if data.get("schema_version") != "p9m4i-parametric-input.v1":
+        fail("SCHEMA")
+    if data.get("unit") != "mm":
+        fail("UNIT")
+    if data.get("engineering_object_id") not in (
+        "component.battery", "component.reaction_wheel", "component.star_tracker"
+    ):
+        fail("OBJECT")
+    sources = data.get("source_inputs")
+    if not isinstance(sources, list) or not sources:
+        fail("SOURCE_INPUTS")
+    for source in sources:
+        if not source.get("source_uri") or len(source.get("sha256", "")) != 64:
+            fail("SOURCE_PROVENANCE")
+    dimensions = data.get("dimensions", {})
+    if not dimensions:
+        fail("DIMENSIONS_EMPTY")
+    for key, evidence in dimensions.items():
+        value = evidence.get("value")
+        if not isinstance(value, (int, float)) or value <= 0:
+            fail("DIMENSION_VALUE:" + key)
+        if not evidence.get("source_locator") or len(evidence.get("source_sha256", "")) != 64:
+            fail("DIMENSION_SOURCE:" + key)
+
+    doc = App.newDocument(data["engineering_object_id"].replace(".", "_"))
+    features = data.get("features", [])
+    if not features:
+        fail("FEATURES_EMPTY")
+    for item in features:
+        kind = item.get("kind")
+        params = item.get("dimensions", {})
+        def dim(name):
+            key = params.get(name)
+            if not key or key not in dimensions:
+                fail("UNSOURCED_FEATURE_DIMENSION:" + str(item.get("feature_id")) + ":" + name)
+            return float(dimensions[key]["value"])
+        pos = item.get("position_mm")
+        pos_evidence = item.get("position_evidence", {})
+        if not isinstance(pos, list) or len(pos) != 3:
+            fail("POSITION_MISSING:" + str(item.get("feature_id")))
+        if not pos_evidence.get("source_locator") or len(pos_evidence.get("source_sha256", "")) != 64:
+            fail("POSITION_SOURCE:" + str(item.get("feature_id")))
+        x, y, z = [float(v) for v in pos]
+        if kind == "box":
+            shape = Part.makeBox(dim("length"), dim("width"), dim("height"), App.Vector(x, y, z))
+        elif kind == "cylinder":
+            radius = dim("radius")
+            height = dim("height")
+            axis = item.get("axis", [0, 0, 1])
+            if axis not in ([1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]):
+                fail("CYLINDER_AXIS")
+            shape = Part.makeCylinder(radius, height, App.Vector(x, y, z), App.Vector(*axis))
+        else:
+            fail("FEATURE_KIND:" + str(kind))
+        if shape.isNull() or not shape.isValid():
+            fail("INVALID_SHAPE:" + str(item.get("feature_id")))
+        obj = doc.addObject("PartDesign::Feature", item["feature_id"])
+        obj.Label = item.get("label", item["feature_id"])
+        obj.Shape = shape
+        obj.addProperty("App::PropertyString", "EngineeringObjectId", "Provenance")
+        obj.EngineeringObjectId = data["engineering_object_id"]
+        obj.addProperty("App::PropertyString", "SourceManifest", "Provenance")
+        obj.SourceManifest = os.path.abspath(manifest_path)
+    doc.recompute()
+    os.makedirs(output_dir, exist_ok=True)
+    stem = data["engineering_object_id"].replace(".", "_")
+    doc.saveAs(os.path.join(output_dir, stem + ".FCStd"))
+    Import.export([obj for obj in doc.Objects if obj.TypeId == "PartDesign::Feature"],
+                  os.path.join(output_dir, stem + ".step"))
+    print("P9M4I_PARAMETRIC_BASELINE_CREATED:" + stem)
+
+main()

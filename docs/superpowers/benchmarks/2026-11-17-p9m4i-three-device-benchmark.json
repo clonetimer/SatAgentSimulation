@@ -1,0 +1,304 @@
+{
+  "schema_version": "p9m4i-generation-benchmark.v1",
+  "status": "pilot_specification_not_yet_executed",
+  "objects": [
+    {
+      "engineering_object_id": "component.battery",
+      "display_name_zh": "电池组",
+      "geometry_profile": "rectangular_enclosure_with_lid_connectors_and_mounting_features",
+      "parametric_baseline": {
+        "features": [
+          "housing",
+          "lid",
+          "mounting_holes",
+          "connectors"
+        ],
+        "dimensions_source": "source_document_required",
+        "unknown_dimensions": "must_remain_unknown"
+      },
+      "image_to_3d_input": {
+        "required_views": [
+          "front",
+          "side",
+          "top"
+        ],
+        "minimum_source_quality": "rendered_from_pinned_reference_step",
+        "purpose": "blind_reconstruction_against_known_STEP_geometry"
+      },
+      "acceptance_focus": [
+        "bounding_box",
+        "mounting_hole_presence",
+        "connector_placement",
+        "visual_recognition"
+      ],
+      "ground_truth_reference": {
+        "repository": "BIRDSOpenSource/BIRDS4-CAD",
+        "file": "B4_battery v1.step",
+        "license": "MIT",
+        "role": "external_reference_control_not_target_identity"
+      },
+      "primary_ai_generation_target": false,
+      "benchmark_role": "real_reference_control_only",
+      "reference_registry_mapping": {
+        "object_id": "component.battery",
+        "source_node_path": "BIRDS4_FM_Final v7/B4_battery v1",
+        "mapping_kind": "reference_cad",
+        "node_renderable": false,
+        "as_built_eligible": false
+      }
+    },
+    {
+      "engineering_object_id": "component.reaction_wheel",
+      "display_name_zh": "反作用轮",
+      "geometry_profile": "rotating_mechanical_unit_with_wheel_housing_mounting_interface",
+      "parametric_baseline": {
+        "features": [
+          "housing",
+          "rotor_envelope",
+          "shaft_axis",
+          "mounting_face"
+        ],
+        "dimensions_source": "source_document_required",
+        "unknown_dimensions": "must_remain_unknown"
+      },
+      "image_to_3d_input": {
+        "required_views": [
+          "front",
+          "side",
+          "top"
+        ],
+        "minimum_source_quality": "rendered_from_pinned_reference_step",
+        "purpose": "blind_reconstruction_against_known_STEP_geometry"
+      },
+      "acceptance_focus": [
+        "rotor_axis_semantics",
+        "housing_envelope",
+        "mounting_interface",
+        "visual_recognition"
+      ],
+      "ground_truth_reference": {
+        "repository": "BIRDSOpenSource/BIRDS4-CAD",
+        "file": "B4_RW_Assembly v55.step",
+        "license": "MIT",
+        "role": "external_reference_control_not_target_identity"
+      },
+      "primary_ai_generation_target": false,
+      "benchmark_role": "real_reference_control_only",
+      "reference_registry_mapping": {
+        "object_id": "component.reaction_wheel",
+        "source_node_path": "BIRDS4_FM_Final v7/B4_RW_Assembly v55",
+        "mapping_kind": "reference_cad",
+        "node_renderable": false,
+        "as_built_eligible": false
+      }
+    },
+    {
+      "engineering_object_id": "component.star_tracker",
+      "display_name_zh": "星敏感器",
+      "geometry_profile": "optical_sensor_housing_with_baffle_and_aperture",
+      "parametric_baseline": {
+        "features": [
+          "housing",
+          "baffle",
+          "optical_aperture",
+          "mounting_face",
+          "boresight_axis"
+        ],
+        "dimensions_source": "source_document_required",
+        "unknown_dimensions": "must_remain_unknown"
+      },
+      "image_to_3d_input": {
+        "required_views": [
+          "front",
+          "side",
+          "top"
+        ],
+        "minimum_source_quality": "traceable_original_image",
+        "purpose": "G1_synthetic_preview_only_until_dimension_and_interface_evidence_is_available"
+      },
+      "acceptance_focus": [
+        "aperture_location",
+        "boresight_axis",
+        "housing_envelope",
+        "visual_recognition"
+      ],
+      "source_status": "KSST-01 CAD is advertised as 2.88 MB on satsearch but the page routes through a supplier request flow; no raw CAD bytes, SHA-256 or reuse permission obtained. Official KAIROSPACE datasheet is all-rights-reserved; no drawing/image reused. No authorized source image is currently available.",
+      "primary_ai_generation_target": true,
+      "benchmark_role": "missing_CAD_generation_candidate",
+      "reference_registry_mapping": null,
+      "generation_gate": "Attempt acquisition and provenance/license verification of listed CAD first; use image-to-3D only if the model cannot be acquired, reuse is not permitted, or the target hardware is a different model."
+    }
+  ],
+  "metrics": [
+    "source_provenance_completeness",
+    "glb_structural_validity",
+    "bounding_box_relative_error",
+    "topology_integrity",
+    "interface_feature_completeness",
+    "visual_review_score",
+    "manual_repair_minutes",
+    "generation_wall_time_seconds",
+    "peak_gpu_memory_gb",
+    "estimated_cost",
+    "symmetric_surface_distance_against_reference_step"
+  ],
+  "comparison_methods": [
+    "pinned_reference_step_ground_truth",
+    "parametric_cad_baseline",
+    "triposr_image_to_3d_local_g1",
+    "trellis2_image_to_3d_optional_remote_g1",
+    "stable_fast_3d_optional_license_gated",
+    "hunyuan3d_2_1_optional_license_review"
+  ],
+  "safety_rules": [
+    "no_invented_dimensions",
+    "no_as_built_promotion",
+    "no_telemetry_binding",
+    "no_spatial_anchor",
+    "human_visual_review_required",
+    "g2_requires_source_backed_dimensions_and_interface_evidence",
+    "no_target_hardware_identity_inference_from_external_reference_models"
+  ],
+  "execution_scope": "Battery and reaction_wheel are real-CAD reference controls. Star tracker remains the sole unresolved geometry candidate; verify actual KSST-01 CAD bytes and written reuse rights or choose a licensed open reference before any image-to-3D inference. TripoSR is the first local G1 candidate; no model has been generated yet.",
+  "model_selection": {
+    "selected_local_g1_worker": "TripoSR",
+    "selected_local_g1_worker_status": "candidate_not_executed_missing_authorized_source_image",
+    "candidates": [
+      {
+        "model": "TripoSR",
+        "repository": "https://github.com/VAST-AI-Research/TripoSR",
+        "license": "MIT",
+        "default_vram_gb": 6,
+        "output_formats": [
+          "obj",
+          "glb"
+        ],
+        "role": "local G1 appearance preview only",
+        "caveats": [
+          "single-image occluded geometry is underconstrained",
+          "not engineering dimensional authority",
+          "input image license must permit derivative 3D generation"
+        ]
+      },
+      {
+        "model": "TRELLIS.2",
+        "repository": "https://github.com/microsoft/TRELLIS.2",
+        "license": "MIT",
+        "minimum_vram_gb": 24,
+        "platform": "Linux",
+        "cuda_recommended": "12.4",
+        "role": "optional high-quality remote G1 worker",
+        "caveats": [
+          "not suitable as local RTX 5060 default",
+          "not engineering dimensional authority"
+        ]
+      },
+      {
+        "model": "Stable Fast 3D",
+        "repository": "https://github.com/Stability-AI/stable-fast-3d",
+        "default_vram_gb": 6,
+        "license": "Stability AI Community License",
+        "weights_access": "gated",
+        "windows_support": "experimental",
+        "role": "optional comparison only after license and access review"
+      },
+      {
+        "model": "Hunyuan3D-2.1",
+        "repository": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1",
+        "shape_vram_gb": 10,
+        "shape_and_texture_vram_gb": 29,
+        "license": "Tencent Hunyuan 3D 2.1 Community License",
+        "role": "optional comparison only after territory and distribution review"
+      }
+    ],
+    "execution_gate": "No inference until source image bytes, SHA-256, provenance locator and explicit model-generation/display permission are verified."
+  },
+  "candidate_image_sources": [
+    {
+      "source_id": "nasa_europa_clipper_star_tracker_mockup_2025",
+      "source_page_uri": "https://science.nasa.gov/missions/europa-clipper/europa-clipper-resources/3d-printed-star-tracker-mock-up/",
+      "source_image_uri": "https://assets.science.nasa.gov/content/dam/science/missions/europa-clipper/images/Star-Tracker-3D-Print-Full.JPG",
+      "source_credit": "NASA/JPL-Caltech",
+      "source_description": "3D-printed mock-up of Europa Clipper stellar reference unit optical head and shielding; used for fit/tool-access checks, not flight hardware geometry.",
+      "published_asset_date": "2025-05-29",
+      "media_format": "image/jpeg",
+      "reported_size_mb": 2.49,
+      "usage_policy_uri": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "usage_policy_summary": "NASA media guidelines generally allow non-commercial educational/informational use, including computer graphical simulations and media used in 3D-model rendition; third-party copyright-protected assets must be identified and separately cleared.",
+      "license_assessment_status": "policy_basis_found_pending_project_owner_signoff",
+      "source_bytes_obtained": true,
+      "source_sha256": "458cd3da892e5d0e75272fc9ee3b931b2c73f8eedecb03caa8d6bd21409fdfad",
+      "eligible_for_inference": false,
+      "limitations": [
+        "generic Europa Clipper mock-up, not the target satellite's confirmed star-tracker model",
+        "single perspective image provides no engineering scale, mounting interface, aperture dimensions or boresight",
+        "visible hand/person and workbench background must be excluded by reviewed preprocessing",
+        "project-owner use-scope signoff and background-removal review are still required before TripoSR inference"
+      ],
+      "rights_assessment": {
+        "status": "policy_basis_found_pending_project_owner_signoff",
+        "usage_policy_uri": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+        "candidate_permitted_uses": [
+          "model_generation",
+          "internal_preview"
+        ],
+        "external_distribution_allowed": false,
+        "source_credit": "NASA/JPL-Caltech",
+        "separate_third_party_copyright_notice_observed": false,
+        "review_basis": [
+          "NASA's current media guidance explicitly includes media used in 3D-model rendition for educational or informational purposes.",
+          "The exact source page identifies the mock-up and credits NASA/JPL-Caltech; no separate third-party copyright notice is displayed on that page.",
+          "The source image is a Europa Clipper mock-up, not the project's target star-tracker model."
+        ],
+        "restrictions": [
+          "Non-commercial educational/informational G1 preview only.",
+          "Do not use NASA/JPL logos or imply NASA, JPL or Caltech endorsement.",
+          "Label the output as AI-generated and attribute the generation to TripoSR, not NASA.",
+          "Do not externally distribute the generated model until project-owner scope review is complete."
+        ],
+        "project_owner_signoff": "pending"
+      },
+      "source_size_bytes": 4124658,
+      "source_dimensions_px": [
+        4032,
+        3024
+      ],
+      "source_retrieved_at_utc": "2026-11-19T07:52:41.590154Z",
+      "source_bytes_retained_in_current_ci": false,
+      "source_intake_receipt_artifact": {
+        "artifact_name": "p9m4i-nasa-star-tracker-intake-receipt",
+        "artifact_contents": [
+          "source-intake.json"
+        ],
+        "contains_source_bytes": false,
+        "retention_days": 7
+      },
+      "superseded_public_source_artifacts": [
+        {
+          "workflow_run_id": 44482953922,
+          "artifact_id": 14509376634,
+          "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
+          "contains_source_bytes": true,
+          "status": "deleted",
+          "verified_absent_on": "2026-11-19",
+          "verification": "GitHub Actions artifact lookup returned HTTP 404; both source workflow-run artifact listings are empty"
+        },
+        {
+          "workflow_run_id": 44485479649,
+          "artifact_id": 14510716115,
+          "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
+          "contains_source_bytes": true,
+          "status": "deleted",
+          "verified_absent_on": "2026-11-19",
+          "verification": "GitHub Actions artifact lookup returned HTTP 404; both source workflow-run artifact listings are empty"
+        }
+      ],
+      "public_artifact_cleanup": {
+        "status": "verified",
+        "verification_date": "2026-11-19",
+        "method": "GitHub Actions artifact lookup by both original artifact IDs returned HTTP 404",
+        "current_public_artifact_contains_source_bytes": false
+      }
+    }
+  ]
+}
