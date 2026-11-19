@@ -36,7 +36,7 @@ def _values(group: str) -> dict[str, Any]:
             "initial_soc": 0.9,
             "propulsion_enabled": True,
             "propulsion_burn_start_s": 5.0,
-            "propulsion_burn_on_time_s": [8.0],
+            "propulsion_burn_on_time_s": 8.0,
             "propulsion_thrust_n": 5.0,
             "propulsion_isp_s": 200.0,
             "propulsion_initial_propellant_kg": 1.0,
