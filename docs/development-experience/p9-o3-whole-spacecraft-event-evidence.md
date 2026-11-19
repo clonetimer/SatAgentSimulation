@@ -27,3 +27,11 @@
 6. 轮速约束的保护动作会在首次越限样本立即施加，数秒后轮速可能已降至阈值以下。验证制动时应在整个 active window 查找“越限且有制动命令”的样本，不要只检查窗口中点。
 7. O3-A 只限制 guided catalog 不等于 direct TaskSpec 已拒绝未声明事件。新增 planning-level 测试用一个 runtime-known、capability-undeclared 的 IMU event 检查高级 TaskSpec 边界；必须以 planner 结果为准。
 8. 当前所有新增断言均待官方 Basilisk 2.11.0 CI 验证；不得把 profile JSON 注册、direct adapter PASS 或 test collection 当作 sealed A/B PASS。
+
+
+## O3-B：whole-spacecraft evidence-field parity 回归（2026-11-19）
+
+- 14 个 whole-spacecraft VERIFIED_NATIVE_EFFECT profile 与 operator effect contract 做精确字段集比较时，唯一差异是 `solar_panel_efficiency_loss`：operator 与 capability observability 声明了 `eps.battery_soc`，profile 未声明。
+- `eps.battery_soc` 是整星运行图中直接从官方 SimpleBattery recorder 计算并输出的逐采样字段，可作为太阳阵效率退化的系统上下文证据；它不是本事件的独立效果判据。核心断言仍是太阳阵效率比和太阳阵输出功率变化。
+- 已把 `eps.battery_soc` 补入该 profile 的 evidence_fields，保持 operator、observability 与 profile 三方精确一致；不通过放宽集合断言或删减已有 operator 字段来让测试通过。
+- 首轮失败发生在 formal contract parity test；该轮 native component、EPS/Comm-Data 物理 A/B 等先前步骤通过。字段修复后的完整 CI 结果尚待验证。
