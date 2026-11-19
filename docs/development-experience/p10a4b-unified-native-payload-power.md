@@ -37,7 +37,7 @@ The active payload load is fixed at `payload_power_w`; it is not linearly scaled
 - Focused P10-A suite: 65 passed in 66.38 s, including the unified-native Payload 38 W / 0 W A/B, battery response, thermal response, unchanged data/storage and PDU load-shed behavior.
 - Resource-closure health, PDU transition and event regressions in the focused suite: PASS.
 - Static checks, project script/dependency governance, unit-only importability without Basilisk, P9-H truth contract, registered parameter surface audit and finite-run creator UX regression: PASS.
-- Full native Basilisk regression and independent physical/Run Bundle acceptance were still running at merge time; they continue on `main` and must be checked before declaring the broader regression closed.
+- Full native Basilisk regression, independent physical/Run Bundle acceptance and guided browser journeys subsequently passed on the main-head regression, including the 3600 simulated-second TC/TM soak.
 
 
 ## Merge
@@ -50,4 +50,4 @@ The active payload load is fixed at `payload_power_w`; it is not linearly scaled
 
 - PR #196 merged to `main` as `2c3f2be10bbd990e725892cce215e2468c1c31f3`.
 - Focused P10-A: 65 passed in 66.38 s. Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence`.
-- Default unified-native proxy inventory now reports one remaining engineering proxy: the heater status-to-power bridge.
+- At P10-A4B merge time, one engineering proxy remained: the heater status-to-power bridge. P10-A5 subsequently removed it; the final default inventory is zero, with one optional propulsion proxy when propulsion is enabled.
