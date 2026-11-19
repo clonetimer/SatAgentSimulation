@@ -72,6 +72,99 @@ class ActivityPowerSample:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class DownlinkAntennaStatusSample:
+    time_ns: int
+    pdu_enabled: bool
+    link_active: bool
+    attempted_rate_bps: float
+    delivered_rate_bps: float
+    tx_enabled: bool
+    idle_enabled: bool
+    input_status: InputReadStatus = InputReadStatus.VALID
+    error: str | None = None
+
+
+if sysModel is not None:
+    class DownlinkAntennaStatusAdapter(sysModel.SysModel):
+        """Translate native PDU/downlink telemetry into antenna TX and idle status.
+
+        This module owns no electrical-power equation. It only gates official
+        Basilisk power nodes: TX when the PDU permits communication and the
+        native DownlinkHandling module is actually attempting RF transmission;
+        idle when the PDU permits communication but no TX attempt is active.
+        """
+
+        def __init__(
+            self,
+            model_tag: str,
+            *,
+            downlink_msg: Any,
+            enable_status_msg: Any,
+        ) -> None:
+            super().__init__()
+            if downlink_msg is None or enable_status_msg is None:
+                raise ValueError("DOWNLINK_ANTENNA_STATUS_INPUTS_REQUIRED")
+            self.ModelTag = str(model_tag)
+            self.downlinkInMsg = messaging.DownlinkHandlingMsgReader()
+            self.downlinkInMsg.subscribeTo(downlink_msg)
+            self.enableInMsg = messaging.DeviceStatusMsgReader()
+            self.enableInMsg.subscribeTo(enable_status_msg)
+            self.txStatusOutMsg = messaging.DeviceStatusMsg()
+            self.idleStatusOutMsg = messaging.DeviceStatusMsg()
+            self.trace: list[DownlinkAntennaStatusSample] = []
+
+        def Reset(self, CurrentSimNanos: int) -> None:
+            self.trace.clear()
+            self.UpdateState(CurrentSimNanos)
+
+        def UpdateState(self, CurrentSimNanos: int) -> None:
+            pdu_enabled, pdu_status, pdu_error = _status_enabled(
+                self.enableInMsg, CurrentSimNanos, default=False,
+            )
+            payload, downlink_status, downlink_error = _read_payload(
+                self.downlinkInMsg, CurrentSimNanos,
+            )
+            link_active = bool(getattr(payload, "linkActive", 0)) if payload is not None else False
+            attempted = float(getattr(payload, "attemptedDataRate", 0.0)) if payload is not None else 0.0
+            delivered = float(getattr(payload, "deliveredDataRate", 0.0)) if payload is not None else 0.0
+            status = (
+                InputReadStatus.ERROR
+                if InputReadStatus.ERROR in (pdu_status, downlink_status)
+                else InputReadStatus.NOT_READY
+                if InputReadStatus.NOT_READY in (pdu_status, downlink_status)
+                else InputReadStatus.VALID
+            )
+            error = pdu_error or downlink_error
+            if (
+                not math.isfinite(attempted) or attempted < 0.0
+                or not math.isfinite(delivered) or delivered < 0.0
+            ):
+                status = InputReadStatus.ERROR
+                error = error or "downlink rate telemetry is non-finite or negative"
+            valid = status is InputReadStatus.VALID
+            tx_enabled = bool(valid and pdu_enabled and link_active and attempted > 0.0)
+            idle_enabled = bool(valid and pdu_enabled and not tx_enabled)
+
+            tx_payload = messaging.DeviceStatusMsgPayload()
+            tx_payload.deviceStatus = 1 if tx_enabled else 0
+            idle_payload = messaging.DeviceStatusMsgPayload()
+            idle_payload.deviceStatus = 1 if idle_enabled else 0
+            self.txStatusOutMsg.write(tx_payload, CurrentSimNanos, self.moduleID)
+            self.idleStatusOutMsg.write(idle_payload, CurrentSimNanos, self.moduleID)
+            self.trace.append(DownlinkAntennaStatusSample(
+                time_ns=int(CurrentSimNanos),
+                pdu_enabled=bool(pdu_enabled),
+                link_active=link_active,
+                attempted_rate_bps=attempted if math.isfinite(attempted) else 0.0,
+                delivered_rate_bps=delivered if math.isfinite(delivered) else 0.0,
+                tx_enabled=tx_enabled,
+                idle_enabled=idle_enabled,
+                input_status=status,
+                error=error,
+            ))
+
+
 if sysModel is not None:
     class DataActivityPowerBridge(sysModel.SysModel):
         """Convert a DataNodeUsage rate into an electrical power sink."""
