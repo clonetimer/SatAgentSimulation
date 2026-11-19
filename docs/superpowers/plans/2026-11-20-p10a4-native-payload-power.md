@@ -6,7 +6,7 @@ Status: implementation candidate on `feat/p10a4-native-payload-power-20261120`; 
 
 ## Objective
 
-Remove the project-owned `DataActivityPowerBridge` from the active whole-spacecraft Payload path. Use the real Basilisk `SimpleInstrument.nodeDataOutMsg` and EPS PDU permission to gate an official `SimplePowerSink`, then connect that official power node to both the native `SimpleBattery` and the payload thermal node.
+Remove the project-owned `DataActivityPowerBridge` from the active composite whole-spacecraft Payload path (`build_whole_spacecraft_graph`). The separate `whole_spacecraft.unified_native.v1` runtime still has its own Payload bridge and is explicitly reserved for P10-A4B parity; this slice does not claim global removal across capabilities. Use the real Basilisk `SimpleInstrument.nodeDataOutMsg` and EPS PDU permission to gate an official `SimplePowerSink`, then connect that official power node to both the native `SimpleBattery` and the payload thermal node.
 
 ## Model semantics
 
@@ -38,4 +38,4 @@ Remove the project-owned `DataActivityPowerBridge` from the active whole-spacecr
 
 ## Scope boundary
 
-This slice removes the active whole-spacecraft Payload activity-to-power proxy. It does not migrate the legacy Comm fallback or the optional propulsion activity bridge.
+This slice removes the Payload activity-to-power proxy from the composite whole-spacecraft builder. It does not migrate the separate unified-native runtime (P10-A4B), the legacy Comm fallback, or the optional propulsion activity bridge.
