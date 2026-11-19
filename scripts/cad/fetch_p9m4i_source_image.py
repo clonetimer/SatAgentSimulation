@@ -89,8 +89,14 @@ def _read_response(response: Any) -> tuple[bytes, str, str]:
         raise ValueError(f"P9M4I_SOURCE_CONTENT_TYPE_INVALID:{content_type or 'missing'}")
     final_url = response.geturl() if hasattr(response, "geturl") else SOURCE_IMAGE_URI
     parsed = urlparse(final_url)
-    if parsed.scheme != "https" or parsed.hostname != "assets.science.nasa.gov":
-        raise ValueError("P9M4I_SOURCE_REDIRECT_HOST_INVALID")
+    expected = urlparse(SOURCE_IMAGE_URI)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "assets.science.nasa.gov"
+        or parsed.path != expected.path
+        or parsed.query != expected.query
+    ):
+        raise ValueError("P9M4I_SOURCE_REDIRECT_TARGET_INVALID")
 
     chunks: list[bytes] = []
     total = 0
