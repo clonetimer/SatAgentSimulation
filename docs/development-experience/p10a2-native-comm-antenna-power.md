@@ -63,3 +63,9 @@ The first PR run exposed that the new adapter was defined only inside the Basili
 - Root cause: the power node was explicitly scheduled at priority 48, which executes before the spacecraft and RW state effector (priority 0). It therefore consumed the previous dynamics tick while the recorder captured the current tick.
 - The power node now uses priority 0 and is inserted after the spacecraft/RW effector but before recorder models. PDU priority 49 still executes first, so the power node receives the current PDU permission and current-tick wheel state. Do not force a high priority merely to place a node "after PDU"; verify producer-consumer order for every input.
 - The composite RF active A/B test no longer assumes a naturally occurring idle interval. A separate test switches the physical SimpleAntenna OFF, lets the real RF chain produce no downlink attempt, and verifies PDU-on idle draw=2 W, TX/base=0 W, and PDU-off remains covered by the existing low-SOC test.
+
+
+## Health-audit and battery feedback timing correction
+
+- The first full native run exposed a module-scope `NameError`: the Comm health helper converted adapter nanoseconds with `macros.NANO2SEC` even though `macros` is imported locally inside the runtime builder. Use the exact SI conversion constant `1e-9 s/ns` in the pure audit helper so it remains independent of Basilisk module globals.
+- The composite battery is intentionally scheduled before PDU and Comm power nodes to break the battery/PDU/power feedback cycle. Therefore the battery's recorded bus balance at sample `i+1` reflects the power-node output published at sample `i`. The RF A/B test now compares the 30 W battery difference one feedback tick after the TX power-node sample; it still checks same-tick RF and native power-node telemetry separately.
