@@ -8,7 +8,6 @@ on:
       - "src/whole_spacecraft/builder.py"
       - "src/whole_spacecraft/schemas.py"
       - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
-      - "src/sat_sim/capabilities/whole_spacecraft.composite_digital_twin.v1.yaml"
       - "src/whole_spacecraft/runner.py"
       - "src/integration/qoi_profiles/resource_closure.py"
       - "src/sat_sim/capabilities/whole_spacecraft.composite_digital_twin.v1.yaml"
@@ -41,7 +40,7 @@ concurrency:
 jobs:
   native-rw-eps-coupling:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -90,6 +89,9 @@ jobs:
             tests/test_downlink_antenna_status_adapter.py \
             tests/test_composite_native_comm_antenna_power.py \
             tests/test_runtime_evidence_status_thermal_rf.py \
+            tests/test_unified_native_event_migration.py \
+            tests/test_native_whole_spacecraft_event_bundles.py \
+            tests/test_propulsion_whole_coupling.py \
             tests/test_resource_closure_agent_trust.py::test_resource_closure_profiles_close_all_seven_p1_links \
             tests/interactive/test_native_battery_reset_barrier.py \
             --junitxml=reports/p10a/native-rw-comm-eps-junit.xml
