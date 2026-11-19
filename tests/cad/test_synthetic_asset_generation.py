@@ -113,7 +113,17 @@ def _record(path):
             "generator": "TRELLIS.2",
             "model_version": "4B",
             "model_revision": "pinned-test-revision",
-            "source_inputs": [{"source_uri": "https://example.invalid/battery-reference.png", "sha256": "a" * 64}],
+            "source_inputs": [{
+                "source_uri": "https://example.invalid/battery-reference.png",
+                "sha256": "a" * 64,
+                "license": {
+                    "status": "approved",
+                    "permitted_uses": ["model_generation", "internal_preview"],
+                    "evidence_uri": "https://example.invalid/license-evidence",
+                    "reviewer": "test-reviewer",
+                    "review_date": "2026-11-19",
+                },
+            }],
         },
         "review": {"visual_review": "approved", "engineering_review": "not_applicable", "reviewer": "test-reviewer"},
         "render_view": "synthetic_preview",
@@ -349,3 +359,29 @@ def test_glb_rejects_triangle_vertex_count_not_divisible_by_three(tmp_path):
     _write_glb_document(path, doc, binary)
     with pytest.raises(ValueError, match="TRIANGLE_VERTEX_COUNT_INVALID"):
         audit_glb(path)
+
+def test_image_to_3d_asset_rejects_source_without_generation_license(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["provenance"]["source_inputs"][0].pop("license")
+    with pytest.raises(ValueError, match="SOURCE_LICENSE_NOT_APPROVED"):
+        validate_synthetic_asset(record, path)
+
+
+def test_image_to_3d_asset_rejects_license_without_preview_scope(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["provenance"]["source_inputs"][0]["license"]["permitted_uses"] = ["model_generation"]
+    with pytest.raises(ValueError, match="SOURCE_LICENSE_SCOPE_INSUFFICIENT"):
+        validate_synthetic_asset(record, path)
+
+
+def test_image_to_3d_asset_rejects_unreviewed_license_status(tmp_path):
+    path = tmp_path / "battery.glb"
+    _write_glb(path)
+    record = _record(path)
+    record["provenance"]["source_inputs"][0]["license"]["status"] = "unknown"
+    with pytest.raises(ValueError, match="SOURCE_LICENSE_NOT_APPROVED"):
+        validate_synthetic_asset(record, path)
