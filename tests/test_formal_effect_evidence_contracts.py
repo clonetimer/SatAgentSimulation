@@ -194,7 +194,7 @@ def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect(
     assert any(issue.severity == "error" for issue in planning.validation.issues)
 
 
-def test_whole_spacecraft_motor_failure_rejects_partial_torque_parameter() -> None:
+def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect_and_partial_motor_torque_parameter() -> None:
     spec = _spec(
         WHOLE_ID,
         category="fault",
