@@ -17,8 +17,8 @@ from sat_sim.adapter_base import SimulationResult
 from sat_sim.task_validator import ValidationIssue
 from sat_sim.fault_environment import BSKRLStyleFaultAdapter
 from integration.resource_feedback import (
-    DataActivityPowerBridge,
     DownlinkAntennaStatusAdapter,
+    PayloadActivityStatusAdapter,
     InputReadStatus,
     StatusPowerBridge,
     ThrusterActivityPowerBridge,
@@ -165,6 +165,63 @@ def _bridge_health_payload(bridge: Any) -> dict[str, Any]:
         "directional_violations": directional_violations[:10],
     }
 
+
+def _native_payload_power_health(
+    rows: list[dict[str, Any]],
+    *,
+    active_power_w: float,
+    adapter_trace: list[Any] | tuple[Any, ...] = (),
+) -> dict[str, Any]:
+    """Verify native Payload SimplePowerSink follows actual instrument activity and PDU permission."""
+    tolerance_w = 1.0e-6
+    errors: list[str] = []
+    violations: list[dict[str, Any]] = []
+    for sample in adapter_trace:
+        sample_time_s = float(getattr(sample, "time_ns", 0)) * 1.0e-9
+        status = getattr(sample, "input_status", None)
+        if sample_time_s > 0.0 and status in {InputReadStatus.ERROR, InputReadStatus.NOT_READY}:
+            errors.append(f"PAYLOAD_ACTIVITY_ADAPTER_INPUT_INVALID:t={sample_time_s:.9g}:{getattr(sample, 'error', None) or status}")
+    powers: list[float] = []
+    rates: list[float] = []
+    pdu_states: list[bool] = []
+    for row in rows:
+        power = max(0.0, float(row.get("eps.loads.payload_power_w", 0.0)))
+        rate = max(0.0, float(row.get("payload.generated_bps", 0.0)))
+        pdu_enabled = bool(int(row.get("eps.pdu.payload_enabled", 0)))
+        active = bool(pdu_enabled and rate > 0.0)
+        powers.append(power)
+        rates.append(rate)
+        pdu_states.append(pdu_enabled)
+        expected = float(active_power_w) if active else 0.0
+        if abs(power - expected) > tolerance_w:
+            violations.append({"time_s": float(row.get("time_s", 0.0)), "reason": "payload_power_does_not_match_instrument_and_pdu_state", "expected_power_w": expected, "actual_power_w": power, "pdu_enabled": pdu_enabled, "generated_rate_bps": rate})
+    positive_activity_count = sum(1 for value in rates if value > 1.0e-9)
+    positive_power_count = sum(1 for value in powers if value > tolerance_w)
+    power_span = max(powers, default=0.0) - min(powers, default=0.0)
+    stimulus_observed = bool(positive_activity_count or power_span > tolerance_w)
+    return {
+        "status": "FAIL" if errors or violations else ("PASS" if rows else "NOT_READY"),
+        "sample_count": len(rows),
+        "valid_sample_count": len(rows),
+        "not_ready_sample_count": sum(1 for sample in adapter_trace if getattr(sample, "input_status", None) == InputReadStatus.NOT_READY),
+        "error_count": len(errors),
+        "errors": errors[:10],
+        "power_min_w": min(powers, default=0.0),
+        "power_max_w": max(powers, default=0.0),
+        "power_span_w": power_span,
+        "activity_min": min(rates, default=0.0),
+        "activity_max": max(rates, default=0.0),
+        "activity_span": max(rates, default=0.0) - min(rates, default=0.0),
+        "positive_activity_sample_count": positive_activity_count,
+        "positive_power_sample_count": positive_power_count,
+        "enabled_transition_observed": len(set(pdu_states)) > 1,
+        "stimulus_observed": stimulus_observed,
+        "directional_response_pass": not violations,
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+        "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg",
+    }
 
 def _native_comm_antenna_power_health(
     rows: list[dict[str, Any]], *,
@@ -1772,13 +1829,26 @@ class UnifiedNativeRuntime:
                 connected("project_eps_pdu.adcsStatusOutMsg", power_node.ModelTag)
                 connected(f"{power_node.ModelTag}.nodePowerOutMsg", "battery")
                 adcs_power_nodes.append(power_node)
-            payload_power_bridge = DataActivityPowerBridge(
-                "project_payload_activity_power_bridge",
-                nominal_rate_bps=max(1.0, float(values.get("payload_data_rate_bps", 2_500_000.0))),
-                active_power_w=float(values.get("payload_power_w", 38.0)),
+            # Fixed active-mode Payload load: actual instrument activity and
+            # PDU permission gate an official Basilisk SimplePowerSink.
+            payload_status_adapter = PayloadActivityStatusAdapter(
+                "project_payload_activity_status_adapter",
                 data_msg=instrument.nodeDataOutMsg,
                 enable_status_msg=pdu.payloadStatusOutMsg,
             )
+            add(payload_status_adapter, payload_status_adapter.ModelTag, "basilisk_project_native", 39)
+            from Basilisk.simulation import simplePowerSink
+            payload_power_node = simplePowerSink.SimplePowerSink()
+            payload_power_node.ModelTag = "native_payload_power"
+            payload_power_node.nodePowerOut = -abs(float(values.get("payload_power_w", 38.0)))
+            payload_power_node.powerStatus = 0
+            payload_power_node.nodeStatusInMsg.subscribeTo(payload_status_adapter.activeStatusOutMsg)
+            add(payload_power_node, payload_power_node.ModelTag, "basilisk_official_native", 38)
+            battery.addPowerNodeToModel(payload_power_node.nodePowerOutMsg)
+            connected("payload_instrument.nodeDataOutMsg", payload_status_adapter.ModelTag)
+            connected("project_eps_pdu.payloadStatusOutMsg", payload_status_adapter.ModelTag)
+            connected(f"{payload_status_adapter.ModelTag}.activeStatusOutMsg", payload_power_node.ModelTag)
+            connected(f"{payload_power_node.ModelTag}.nodePowerOutMsg", "battery")
             comm_active_power_w = float(values.get("downlink_power_w", 16.0))
             comm_antenna_tx_power_w = float(rf_access.spacecraft_antenna.getAntennaP_Tx())
             if (
@@ -1828,13 +1898,13 @@ class UnifiedNativeRuntime:
                 active_power_w=float(values.get("heater_power_w", 15.0)),
                 enable_status_msg=pdu.heaterStatusOutMsg,
             )
-            for bridge in (payload_power_bridge, heater_power_bridge):
-                add(bridge, bridge.ModelTag, "engineering_proxy", 54)
-                battery.addPowerNodeToModel(bridge.powerOutMsg)
-                connected(f"{bridge.ModelTag}.powerOutMsg", "battery")
+            add(heater_power_bridge, heater_power_bridge.ModelTag, "engineering_proxy", 54)
+            battery.addPowerNodeToModel(heater_power_bridge.powerOutMsg)
+            connected(f"{heater_power_bridge.ModelTag}.powerOutMsg", "battery")
             whole_modules.update({
                 "adcs_power_nodes": adcs_power_nodes,
-                "payload_power_bridge": payload_power_bridge,
+                "payload_power_node": payload_power_node,
+                "payload_status_adapter": payload_status_adapter,
                 "comm_power_node": comm_power_node,
                 "comm_base_power_node": comm_base_power_node,
                 "comm_status_adapter": comm_status_adapter,
@@ -2059,7 +2129,7 @@ class UnifiedNativeRuntime:
                 (sink.nodePowerOutMsg, 8./18., "electronics", "bus_electronics"),
                 (sink.nodePowerOutMsg, 3./18., "adcs", "bus_adcs"),
                 (sink.nodePowerOutMsg, 5./18., "solar_panel", "bus_solar_panel"),
-                (payload_power_bridge.powerOutMsg, 0.95, "payload", "payload_activity"),
+                (payload_power_node.nodePowerOutMsg, 0.95, "payload", "payload.instrument_active"),
                 (comm_power_node.nodePowerOutMsg, 0.90, "comm", "comm_antenna_tx"),
                 (comm_base_power_node.nodePowerOutMsg, 0.90, "comm", "comm_base_tx"),
                 (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
@@ -2155,7 +2225,7 @@ class UnifiedNativeRuntime:
                 "battery": whole_modules["battery"].batPowerOutMsg,
                 "panel": whole_modules["panel"].nodePowerOutMsg,
                 "bus_power": whole_modules["bus_power"].nodePowerOutMsg,
-                "payload_power": whole_modules["payload_power_bridge"].powerOutMsg,
+                "payload_power": whole_modules["payload_power_node"].nodePowerOutMsg,
                 "downlink_power": whole_modules["comm_power_node"].nodePowerOutMsg,
                 "comm_base_power": whole_modules["comm_base_power_node"].nodePowerOutMsg,
                 "comm_tx_status": whole_modules["comm_status_adapter"].txStatusOutMsg,
@@ -2540,12 +2610,16 @@ class UnifiedNativeRuntime:
         causal_evidence: dict[str, Any] = {"status": "PASS", "requirements": []}
         if not cfg.adcs_only:
             bridge_objects = {
-                "payload": whole_modules["payload_power_bridge"],
                 "heater": whole_modules["heater_power_bridge"],
             }
             if "propulsion_power_bridge" in whole_modules:
                 bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
             bridge_health = {
+                "payload": _native_payload_power_health(
+                    rows,
+                    active_power_w=float(values.get("payload_power_w", 38.0)),
+                    adapter_trace=whole_modules["payload_status_adapter"].trace,
+                ),
                 "adcs": _native_adcs_power_health(rows, cfg),
                 "comm": _native_comm_antenna_power_health(
                     rows,
@@ -2557,6 +2631,14 @@ class UnifiedNativeRuntime:
             bridge_health.update({name: _bridge_health_payload(bridge) for name, bridge in bridge_objects.items()})
             for name, health in bridge_health.items():
                 runtime_read_errors.extend(f"{name}: {item}" for item in health.get("errors", []))
+            runtime_read_errors.extend(
+                f"payload_status_adapter: {sample.error}"
+                for sample in whole_modules["payload_status_adapter"].trace
+                if sample.error and (
+                    sample.input_status is InputReadStatus.ERROR
+                    or (sample.time_ns > 0 and sample.input_status is InputReadStatus.NOT_READY)
+                )
+            )
             runtime_read_errors.extend(
                 f"comm_status_adapter: {sample.error}"
                 for sample in whole_modules["comm_status_adapter"].trace

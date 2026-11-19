@@ -17,6 +17,7 @@ on:
       - "tests/test_composite_native_comm_antenna_power.py"
       - "tests/test_composite_native_heater_power.py"
       - "tests/test_composite_native_payload_power.py"
+      - "tests/test_unified_native_migration.py"
       - "tests/test_runtime_evidence_status_thermal_rf.py"
       - "src/sat_sim/interactive/**"
       - "tests/interactive/test_continuous_session.py"
@@ -216,6 +217,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_composite_native_heater_power.py
+          --disable-warnings
+      - name: Unified-native Payload SimplePowerSink battery and thermal A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_unified_native_migration.py::test_unified_native_payload_power_node_is_official_and_data_path_invariant
           --disable-warnings
       - name: Native Payload SimplePowerSink to EPS battery and thermal A/B
         env:
