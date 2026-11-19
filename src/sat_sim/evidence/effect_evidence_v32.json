@@ -662,7 +662,7 @@
       "evidence_fields": [
         "comm.active",
         "comm.downlink_bps",
-        "comm.downlinked_bits",
+        "data.downlinked_bits",
         "data.storage_bits"
       ],
       "runtime_assertions": [
