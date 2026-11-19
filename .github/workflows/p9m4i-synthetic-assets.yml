@@ -83,8 +83,11 @@ jobs:
           assert nasa_source["rights_assessment"]["candidate_permitted_uses"] == ["model_generation", "internal_preview"]
           assert nasa_source["rights_assessment"]["external_distribution_allowed"] is False
           assert nasa_source["rights_assessment"]["project_owner_signoff"] == "pending"
-          assert nasa_source["source_bytes_obtained"] is False
-          assert nasa_source["source_sha256"] is None
+          assert nasa_source["source_bytes_obtained"] is True
+          assert nasa_source["source_sha256"] == "458cd3da892e5d0e75272fc9ee3b931b2c73f8eedecb03caa8d6bd21409fdfad"
+          assert nasa_source["source_size_bytes"] == 4124658
+          assert nasa_source["source_dimensions_px"] == [4032, 3024]
+          assert nasa_source["source_intake_artifact"]["workflow_run_id"] == 44482953922
           assert nasa_source["eligible_for_inference"] is False
           controls = {x["engineering_object_id"]: x for x in data["objects"] if x.get("benchmark_role") == "real_reference_control_only"}
           assert set(controls) == {"component.battery", "component.reaction_wheel"}
@@ -107,6 +110,22 @@ jobs:
       - name: Fetch exact NASA star-tracker mock-up source and record SHA-256
         run: |
           python scripts/cad/fetch_p9m4i_source_image.py --output-dir reports/p9m4i/source-intake
+      - name: Verify source intake receipt against pinned benchmark
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          benchmark = json.loads(Path("docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json").read_text(encoding="utf-8"))
+          source = next(item for item in benchmark["candidate_image_sources"] if item["source_id"] == "nasa_europa_clipper_star_tracker_mockup_2025")
+          receipt = json.loads(Path("reports/p9m4i/source-intake/source-intake.json").read_text(encoding="utf-8"))
+          assert receipt["sha256"] == source["source_sha256"]
+          assert receipt["size_bytes"] == source["source_size_bytes"]
+          assert [receipt["width_px"], receipt["height_px"]] == source["source_dimensions_px"]
+          assert receipt["sha256_pinned"] is True
+          assert receipt["inference_eligible"] is False
+          assert receipt["source_rights_assessment"]["status"] == "policy_basis_found_pending_project_owner_signoff"
+          print("P9M4I_NASA_SOURCE_INTAKE_PINNED:1", receipt["sha256"], receipt["size_bytes"])
+          PY
       - name: Upload source bytes and intake receipt
         uses: actions/upload-artifact@v4
         with:
