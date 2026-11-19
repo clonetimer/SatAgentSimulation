@@ -213,3 +213,10 @@
 - 同步更新 composite runner：`adcs_control_power_w` 由 per-wheel 原生 power recorder 求和；更新 resource-closure QoI，从真实 per-wheel recorder 计算 idle/slew 功耗差；更新 capability 输出字段说明。
 - 新增 `tests/test_composite_native_adcs_power.py`：覆盖实际 wheel state → ReactionWheelPower 方程、每轮消息计数、PDU 禁用时原生功率节点归零；接入 P10-A1 focused workflow 与完整 native workflow。
 - 这一阶段不再把 active composite capability 留作“计划迁移”；当前代码已实现，仍需同头 Basilisk 2.11.0 CI 确认。测试通过前不宣称所有 active capability 的 ADCS proxy 已全部清除。
+
+
+### P10-A1B composite 原生功率 recorder 采样经验（2026-11-19）
+
+- 首轮 P10-A1B 专项测试在两个拓扑以外的旧 composite graph 上失败，根因不是 ReactionWheelPower 物理方程，而是 `WholeSpacecraftConfig.recorder_step_s` 默认 10 s、测试仿真只有 8 s，导致功率 recorder 只有一个初始化样本。不能把“recorders 字段存在”误当成“已取得运行样本”。
+- 修复：composite 原生功率 A/B 显式设置 `recorder_step_s=0.2 s`；资源闭环 QoI 的 idle/slew 8 s 图也显式使用 0.2 s 采样，保证它比较的是运行期功率，而不是首帧/静态基础功耗。
+- 经验：凡是将工程 bridge trace 改成 Basilisk message recorder，必须同步检查 recorder cadence、仿真时长和有效样本数量；测试应断言最小样本数，并跳过初始化样本。
