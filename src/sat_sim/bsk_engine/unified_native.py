@@ -189,11 +189,11 @@ def _native_comm_antenna_power_health(
             return None
         return min(
             adapter_trace,
-            key=lambda sample: abs(float(getattr(sample, "time_ns", 0)) * macros.NANO2SEC - time_s),
+            key=lambda sample: abs(float(getattr(sample, "time_ns", 0)) * 1.0e-9 - time_s),
         )
 
     for sample in adapter_trace:
-        sample_time_s = float(getattr(sample, "time_ns", 0)) * macros.NANO2SEC
+        sample_time_s = float(getattr(sample, "time_ns", 0)) * 1.0e-9
         sample_status = getattr(sample, "input_status", None)
         if sample_time_s > 0.0 and sample_status in {
             InputReadStatus.ERROR, InputReadStatus.NOT_READY,
@@ -611,7 +611,7 @@ def _build_unified_rows(
         position = state.r_BN_N[index]
         attitude_truth = _attitude_truth_from_mrp(state.sigma_BN[index])
         row: dict[str, Any] = {
-            "time_s": float(nanos) * macros.NANO2SEC,
+            "time_s": float(nanos) * 1.0e-9,
             "orbit.radius_m": _norm3(position),
             "orbit.phase_rad": math.atan2(float(position[1]), float(position[0])),
             "orbit.eclipse_factor": float(recorder_map["eclipse"].shadowFactor[index]),
