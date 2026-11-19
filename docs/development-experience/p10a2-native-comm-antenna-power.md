@@ -55,3 +55,11 @@ The first PR run exposed that the new adapter was defined only inside the Basili
 - PDU permission and native DownlinkHandling activity are necessary but not sufficient to create RF power. The adapter also requires the physical SimpleAntenna state to be TX or RXTX.
 - The power-only antenna log remains OFF when the real antenna is OFF/RX-only, even if downlink telemetry reports a TX attempt. This prevents a false electrical load when the physical RF device cannot transmit.
 - A focused Basilisk regression covers antenna-OFF behavior and verifies TX=0, idle follows PDU permission, and the power-only log remains OFF.
+
+
+## RW power sampling order correction from the same-head P10-A run
+
+- The composite RW regression compared the current ReactionWheelPower output against the current RW `Omega/u_current` recorder and found a 0.134 W mismatch.
+- Root cause: the power node was explicitly scheduled at priority 48, which executes before the spacecraft and RW state effector (priority 0). It therefore consumed the previous dynamics tick while the recorder captured the current tick.
+- The power node now uses priority 0 and is inserted after the spacecraft/RW effector but before recorder models. PDU priority 49 still executes first, so the power node receives the current PDU permission and current-tick wheel state. Do not force a high priority merely to place a node "after PDU"; verify producer-consumer order for every input.
+- The composite RF active A/B test no longer assumes a naturally occurring idle interval. A separate test switches the physical SimpleAntenna OFF, lets the real RF chain produce no downlink attempt, and verifies PDU-on idle draw=2 W, TX/base=0 W, and PDU-off remains covered by the existing low-SOC test.
