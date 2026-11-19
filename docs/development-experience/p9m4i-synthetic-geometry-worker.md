@@ -1,0 +1,30 @@
+# P9-M4-I synthetic geometry worker — development experience
+
+Date: 2026-11-19
+
+## CI failure analysis and correction
+
+The first rebased PR #161 run on head `e80cda9ee40c5b71b0efe8f48bfe905fcd2f07c4` failed identically on Ubuntu 24.04 and Windows 2022. The failure was in the test fixture and cross-platform CLI invocation, not in an executed TripoSR inference:
+
+1. The fake worker emitted a planar triangle with a zero Z extent. The production GLB auditor correctly rejects any zero/non-finite axis extent. Weakening the auditor would have removed a useful fail-closed geometry gate.
+2. The schema test created a temporary Git checkout and monkeypatched the TripoSR revision/license pins, then reused those temporary values against the committed production JSON Schema. The schema correctly required the pinned production revision, so the fixture and schema were testing different identities.
+3. The Windows runner used a legacy code page for bilingual argparse help output, causing `UnicodeEncodeError` after the Python tests.
+
+Corrections:
+
+- The normal GLB fixture and fake worker now emit two non-coplanar triangles (six vertices) with positive X/Y/Z bounds. The production zero-extent check is unchanged.
+- Added an explicit regression test proving a planar GLB is still rejected with `P9M4I_GLB_ZERO_OR_INVALID_EXTENT`.
+- The schema test snapshots the production TripoSR revision and LICENSE blob SHA before the fixture monkeypatch, then asserts the JSON Schema constants match those pins. The schema is not weakened or dynamically rewritten.
+- The workflow sets `PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8` for the bilingual CLI help check on both operating systems.
+
+## Engineering lessons
+
+- A GLB can be syntactically valid and still be unsuitable for a 3D engineering preview because one axis has zero extent. Keep the geometric extent gate and repair fixtures to model actual three-dimensional output.
+- Test fixtures that patch immutable model pins must not leak those temporary values into checks of committed production schemas. Snapshot the production pins before patching.
+- Cross-platform CLI tests should explicitly set UTF-8 when help/diagnostic text contains non-ASCII characters; otherwise Windows may fail after all functional tests have passed.
+- Do not describe a worker test fixture as a real model-generation experiment. The fake worker validates orchestration and provenance only; actual TripoSR inference still requires a source image with explicit generation/preview permission, pinned local weights, and a qualifying GPU.
+- No inference was run in this phase. KSST-01 imagery/datasheet reuse remains blocked by the vendor's stated rights restriction; no image or CAD bytes were used as generation input.
+
+## Acceptance state
+
+The two fixes and this record are committed to the P9-M4-I feature branch. Final acceptance requires the latest same-head Ubuntu and Windows jobs to pass. The pilot benchmark remains `pilot_specification_not_yet_executed` until a permitted source image and isolated GPU inference are available.
