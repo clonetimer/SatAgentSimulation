@@ -9,6 +9,7 @@ import pytest
 
 from sat_sim.effect_evidence import get_effect_evidence_profile
 from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
+from sat_sim.parameter_consumption import audit_parameter_consumption
 
 
 WHOLE = "whole_spacecraft.unified_native.v1"
@@ -188,6 +189,14 @@ def nominal_runs(tmp_path_factory):
         "adcs": (adcs, adcs_integrity),
         "propulsion": (propulsion, propulsion_integrity),
     }
+
+
+def test_whole_spacecraft_adcs_and_propulsion_baseline_parameters_are_declared_and_consumed() -> None:
+    for group in ("adcs", "propulsion"):
+        spec = _spec(group, f"p9o3_parameter_audit_{group}")
+        audit = audit_parameter_consumption(spec)
+        assert audit.ok, audit.to_dict()
+        assert not audit.unknown_paths
 
 
 def _at(rows, time_s: float) -> dict[str, Any]:
