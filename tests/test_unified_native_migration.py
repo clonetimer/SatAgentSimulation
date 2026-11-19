@@ -167,8 +167,11 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     assert {
         "reaction_wheel_power_0", "reaction_wheel_power_1", "reaction_wheel_power_2",
         "native_comm_antenna_power",
+        "native_comm_base_power",
     }.issubset(set(result.metadata["model_source_boundary"]["official_basilisk_native"]))
-    assert "spacecraft_antenna.antennaOutMsg->native_comm_antenna_power" in manifest["connections"]
+    assert "spacecraft_antenna.antennaOutMsg->project_comm_downlink_status_adapter" in manifest["connections"]
+    assert "project_comm_downlink_status_adapter.antennaPowerOutMsg->native_comm_antenna_power" in manifest["connections"]
+    assert "project_comm_downlink_status_adapter.txStatusOutMsg->native_comm_base_power" in manifest["connections"]
     assert "native_downlink.downlinkOutMsg->project_comm_downlink_status_adapter" in manifest["connections"]
 
 
