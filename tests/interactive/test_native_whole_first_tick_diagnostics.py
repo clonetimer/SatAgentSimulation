@@ -57,6 +57,9 @@ def _worker(path: str, topology: str) -> None:
         seed_battery_via_public_reset_lab,
     )
     evidence = json.loads(Path(path).read_text(encoding="utf-8"))
+    runtime_values = evidence.get("runtime_values", {})
+    if not isinstance(runtime_values, dict):
+        raise ValueError("R9I_RUNTIME_VALUES_INVALID")
     source = evidence["checkpoint"]
     measurement_ns = int(evidence["comparison_ns"])
     all_stops = [int(t) for t in evidence.get("comparison_times_ns", [measurement_ns])]
@@ -156,7 +159,7 @@ def _worker(path: str, topology: str) -> None:
     cfg = UnifiedRuntimeConfig(
         capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
         duration_s=0.4, step_s=0.2, sample_s=0.2,
-        adcs_only=False, values={"rw_configuration": topology},
+        adcs_only=False, values={**runtime_values, "rw_configuration": topology},
         events=(),
     )
     try:
@@ -172,6 +175,7 @@ def _worker(path: str, topology: str) -> None:
             "writeback": data.get("writeback"),
             "battery_reset_control": data.get("battery_reset_control"),
             "ablation_mode": ablation_mode,
+            "runtime_config_values": dict(cfg.values),
             "whole_resume_supported": False,
             "automatic_tc_replay_allowed": False,
         }, sort_keys=True, allow_nan=False), flush=True)
