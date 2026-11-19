@@ -1346,6 +1346,49 @@ operator:
     - propulsion.*
     - label.*
     - event.*
+    effect_evidence:
+      adcs_rw_jamming:
+      - adcs.rw.effective_torque_ratio_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      adcs_rw_motor_failure:
+      - adcs.rw.effective_torque_ratio_{wheel_index}
+      - adcs.rw.effective_max_torque_nm_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      gyro_bias_step:
+      - adcs.sensor.gyro_bias_norm_rad_s
+      - adcs.sensor.gyro_bias_rad_s_x
+      - adcs.sensor.gyro_bias_rad_s_y
+      - adcs.sensor.gyro_bias_rad_s_z
+      gyro_noise_increase:
+      - adcs.sensor.gyro_noise_norm_rad_s
+      - adcs.sensor.gyro_noise_rad_s_x
+      - adcs.sensor.gyro_noise_rad_s_y
+      - adcs.sensor.gyro_noise_rad_s_z
+      rw_friction_degradation:
+      - adcs.rw.effective_drag_nms_{wheel_index}
+      - adcs.rw.speed_rad_s_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      adcs_reaction_wheel_speed_limit:
+      - adcs.rw.effective_max_speed_rad_s_{wheel_index}
+      - adcs.rw.speed_rad_s_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
+      propulsion_thruster_ignition_failure:
+      - propulsion.burn_active
+      - propulsion.burn_permitted
+      - propulsion.total_thrust_n
+      - propulsion.fuel_mass_kg
+      - propulsion.initial_propellant_kg
+      - propulsion.propellant_used_kg
+      - orbit.radius_m
+      propulsion_burn_impulse_loss:
+      - propulsion.burn_active
+      - propulsion.burn_permitted
+      - propulsion.total_thrust_n
+      - propulsion.fuel_mass_kg
+      - propulsion.initial_propellant_kg
+      - propulsion.propellant_used_kg
+      - propulsion.electrical_power_w
+      - orbit.radius_m
   limitations:
   - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
   - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.
