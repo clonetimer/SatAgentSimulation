@@ -43,7 +43,9 @@ def jpeg_dimensions(data: bytes) -> tuple[int, int]:
     """Read JPEG SOF dimensions without Pillow or other third-party packages."""
     if len(data) < 4 or not data.startswith(b"\xff\xd8"):
         raise ValueError("P9M4I_SOURCE_JPEG_SIGNATURE_INVALID")
-    if b"\xff\xd9" not in data[-32:]:
+    # Some media pipelines append metadata/padding after the JPEG EOI marker;
+    # require the marker in the byte stream, not specifically in the final 32 bytes.
+    if b"\xff\xd9" not in data:
         raise ValueError("P9M4I_SOURCE_JPEG_EOI_MISSING")
 
     sof_markers = {
