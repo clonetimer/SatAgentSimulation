@@ -1223,16 +1223,17 @@ operator:
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_torque_ratio_0
-    - adcs.control.applied_torque_nm_0
+    - adcs.rw.effective_torque_ratio_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   - effect_id: adcs_rw_motor_failure
     kind: fault
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_max_torque_nm_0
-    - adcs.control.applied_torque_nm_0
+    - adcs.rw.effective_torque_ratio_{wheel_index}
+    - adcs.rw.effective_max_torque_nm_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   - effect_id: gyro_bias_step
     kind: fault
@@ -1265,8 +1266,11 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - propulsion.burn_active
+    - propulsion.burn_permitted
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
+    - propulsion.initial_propellant_kg
+    - propulsion.propellant_used_kg
     - orbit.radius_m
     verification: declared
   - effect_id: solar_panel_efficiency_loss
@@ -1290,7 +1294,9 @@ operator:
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_drag_nms_0
+    - adcs.rw.effective_drag_nms_{wheel_index}
+    - adcs.rw.speed_rad_s_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   - effect_id: thermal_radiator_rejection_loss
     kind: degradation
@@ -1305,8 +1311,12 @@ operator:
     owner: project_propulsion_burn_controller
     implementation: basilisk_native
     evidence_fields:
+    - propulsion.burn_active
+    - propulsion.burn_permitted
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
+    - propulsion.initial_propellant_kg
+    - propulsion.propellant_used_kg
     - propulsion.electrical_power_w
     - orbit.radius_m
     verification: declared
@@ -1325,8 +1335,9 @@ operator:
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_max_speed_rad_s_0
-    - adcs.rw.speed_rad_s_0
+    - adcs.rw.effective_max_speed_rad_s_{wheel_index}
+    - adcs.rw.speed_rad_s_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   observability:
     qoi:
@@ -1347,6 +1358,10 @@ operator:
     - label.*
     - event.*
     effect_evidence:
+      payload_instrument_off:
+      - payload.active
+      - payload.generated_bps
+      - data.storage_bits
       adcs_rw_jamming:
       - adcs.rw.effective_torque_ratio_{wheel_index}
       - adcs.control.applied_torque_nm_{wheel_index}
@@ -1389,6 +1404,25 @@ operator:
       - propulsion.propellant_used_kg
       - propulsion.electrical_power_w
       - orbit.radius_m
+      comm_data_downlink_link_loss:
+      - comm.active
+      - comm.downlink_bps
+      - comm.downlinked_bits
+      eps_battery_capacity_loss:
+      - eps.battery_capacity_ratio
+      - eps.battery_capacity_j
+      - eps.battery_soc
+      solar_panel_efficiency_loss:
+      - eps.solar_array_efficiency_ratio
+      - eps.solar_array_power_w
+      thermal_radiator_rejection_loss:
+      - thermal.radiator_rejection_ratio
+      - thermal.payload_temp_k
+      power_safe_mode_threshold:
+      - label.power_safe_mode_engaged
+      - payload.active
+      - comm.active
+      - eps.battery_soc
   limitations:
   - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
   - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.
