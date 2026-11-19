@@ -36,17 +36,18 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
     from sat_sim.interactive.native_checkpoint_audit import verify_coverage_report
     from sat_sim.interactive.native_recovery_readiness import build_recovery_readiness
 
+    runtime_values = {
+        # Create a measurable, reproducible energy delta rather than relying
+        # on the nominal solar/load balance to excite the negative control.
+        "adcs_power_w": 60.0,
+        "adcs_max_power_w": 120.0,
+        "solar_panel_area_m2": 0.001,
+        "solar_efficiency": 0.01,
+    }
     origin=UnifiedPersistentRuntime(UnifiedRuntimeConfig(
         capability_id="whole_spacecraft.unified_native.v1",
         duration_s=0.5,step_s=0.2,sample_s=0.2,adcs_only=False,
-        values={
-            "rw_configuration": topology,
-            # Force a measurable, reproducible battery-energy change over
-            # the checkpoint window; otherwise a solar/load equilibrium
-            # can make the public-reset negative control inert.
-            "adcs_power_w": 60.0,
-            "adcs_max_power_w": 120.0,
-        },events=(),
+        values={"rw_configuration": topology, **runtime_values},events=(),
         interactive_unbounded=True,
     ),continuous=True)
     origin.prepare()
@@ -59,6 +60,12 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
         stored=audit["native_joint_owner_observations"]["eps"]["battery_energy_j"]
         capacity=audit["native_joint_owner_observations"]["eps"]["battery_capacity_j"]
         assert 0<stored<capacity
+        initial_charge_j = capacity * 0.62
+        assert abs(stored - initial_charge_j) > 1.0, {
+            "checkpoint_energy_j": stored,
+            "fresh_initial_charge_j": initial_charge_j,
+            "delta_j": stored - initial_charge_j,
+        }
 
         stops=[1_000_000_000,1_200_000_000,1_400_000_000,1_600_000_000]
         truth=[]
@@ -79,12 +86,16 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
                 "comparison_ns":stops[0],
                 "comparison_times_ns":stops,
                 "ablation_mode":mode,
+                "runtime_values": runtime_values,
             },sort_keys=True,allow_nan=False),encoding="utf-8")
             result=_read_worker(file,topology)
             assert result["source_pid"]==os.getpid()
             assert result["child_pid"]!=os.getpid()
             assert result["whole_resume_supported"] is False
             assert result["automatic_tc_replay_allowed"] is False
+            assert result["runtime_config_values"] == {
+                "rw_configuration": topology, **runtime_values,
+            }
             assert result["writeback"]["message_history_restored"] is False
             assert [r["time_ns"] for r in result["measurements"]]==stops
             if mode==RESET:
