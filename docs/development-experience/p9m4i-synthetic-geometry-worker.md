@@ -35,3 +35,8 @@ The two fixes and this record are committed to the P9-M4-I feature branch. Final
 - The first zero-extent regression fixture itself initially failed earlier in GLB parsing because a byte-string escape was nested differently in the ordinary Python helper and the triple-quoted fake-worker source. The ordinary helper now writes the four-byte BIN chunk marker using a true NUL byte; the embedded fake-worker source keeps the extra source-level escaping required by its outer triple-quoted string.
 - This preserved the auditor's original zero-extent rejection and added a deterministic regression for it. Windows UTF-8 CLI help also passed.
 - CI success validates schemas, the GLB auditor, worker orchestration with a fake model checkout, and benchmark metadata. It does **not** mean TripoSR inference has run or that a star-tracker model exists.
+## Benchmark 状态同步经验（2026-11-19）
+
+- 原始图下载与 artifact receipt 已在同一 head 通过，但跨平台 benchmark manifest gate 因 workflow 仍期待旧 `license_assessment_status`（`...pending_project_owner_signoff_and_source_hash`）而失败；benchmark 已将字节获取与权利签核拆成两个独立状态。
+- 修复为 workflow 只校验当前状态 `policy_basis_found_pending_project_owner_signoff`，并单独校验 `source_bytes_obtained=true`、固定 SHA-256、bytes、dimensions 和 `eligible_for_inference=false`。这避免把“已拿到源文件”错误解释成“用途已批准”。
+- 同类经验：当 manifest 字段拆分状态后，CI gate、source receipt 和文档必须按新状态机一起更新；只更新数据文件会让跨平台 gate 继续验证过期语义。
