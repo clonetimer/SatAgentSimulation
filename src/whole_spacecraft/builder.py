@@ -688,7 +688,11 @@ def build_whole_spacecraft_graph(
         power_node.rwStateInMsg.subscribeTo(rw_state_msg)
         if adcs_status_msg is not None:
             power_node.nodeStatusInMsg.subscribeTo(adcs_status_msg)
-        sim.AddModelToTask(sim_task_name, power_node, None, 48)
+        # Same-task insertion order is deliberate: the spacecraft and RW
+        # state effector were attached earlier at priority 0. Run the power
+        # node after them so Omega/u_current are from this dynamics tick, but
+        # before the recorder models attached later at the same priority.
+        sim.AddModelToTask(sim_task_name, power_node)
         battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
         adcs_power_nodes.append(power_node)
         power_inputs.append((
