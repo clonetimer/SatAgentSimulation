@@ -279,16 +279,26 @@
           "artifact_id": 14509376634,
           "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
           "contains_source_bytes": true,
-          "status": "delete_required"
+          "status": "deleted",
+          "verified_absent_on": "2026-11-19",
+          "verification": "GitHub Actions artifact lookup returned HTTP 404; both source workflow-run artifact listings are empty"
         },
         {
           "workflow_run_id": 44485479649,
           "artifact_id": 14510716115,
           "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
           "contains_source_bytes": true,
-          "status": "delete_required"
+          "status": "deleted",
+          "verified_absent_on": "2026-11-19",
+          "verification": "GitHub Actions artifact lookup returned HTTP 404; both source workflow-run artifact listings are empty"
         }
-      ]
+      ],
+      "public_artifact_cleanup": {
+        "status": "verified",
+        "verification_date": "2026-11-19",
+        "method": "GitHub Actions artifact lookup by both original artifact IDs returned HTTP 404",
+        "current_public_artifact_contains_source_bytes": false
+      }
     }
   ]
 }
