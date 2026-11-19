@@ -50,7 +50,7 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert whole["continuous_initial_field_count"] == 165
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 166
+    assert whole["registered_parameter_count"] == 168
     for key in (f"rw_initial_speed_rad_s_{i}" for i in range(4)):
         assert key not in whole["native_source_keys_missing_whole_registry"]
         assert key not in whole["whole_registry_keys_without_direct_lookup"]
@@ -73,6 +73,8 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert "gyro_base_noise_std_rad_s" in whole["native_source_keys_missing_whole_registry"]
     assert "rw_motor_current_limit_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_motor_torque_constant_nm_per_a" not in whole["native_source_keys_missing_whole_registry"]
+    assert "adcs_drive_efficiency" not in whole["native_source_keys_missing_whole_registry"]
+    assert "adcs_max_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
     assert len(whole["continuous_groups"]["adcs"]) == 101
     assert len(whole["continuous_groups"]["orbit"]) == 12
