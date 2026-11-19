@@ -153,3 +153,11 @@
 - 已从官方 Basilisk `Spacecraft` 状态 recorder 的 `state.sigma_BN` 计算 `attitude.truth.pointing_error_deg`，并新增 `initial_truth_pointing_error_deg`、`final_truth_pointing_error_deg` 和 `adcs_truth_closed_loop_improved`。保留原估计误差指标，不混淆两种物理含义。
 - 整星能力 trace 字典和向导曲线标签已声明真实姿态误差参量；O3-B 30 s nominal Run Bundle 现在同时要求估计闭环和真实姿态闭环改善。
 - 经验：闭环验收必须区分估计误差与真实状态误差；只看控制器反馈量可能把传感器偏差误认为物理收敛。最新代码提交链 `e2e4778` / `32cc891` / `0627fec` / `f3ff97e` / `270452f` 的官方 Basilisk 同头验收尚在运行。
+## O3-C 浏览器验收：FMEA 显式启用与事件执行器归属（2026-11-19）
+
+- 官方 Chromium 运行 `44463373970` 完成九条旅程后发现两类真实产品契约问题：普通向导默认 `outputs.fmea.enabled=false`，但 FMEA API 对未生成的结果返回 404；另一个测试把整星能力作用域 `whole_spacecraft` 错当成了每个事件的运行时目标。
+- 已在快速仿真向导的结果指标/曲线面板增加“生成 FMEA 表”开关，绑定 canonical `state.formData.outputs.fmea.enabled`，修改后清除旧校验状态，并在校验摘要中显示启用状态。FMEA 仍保持可选，不对没有 S/O/D 评级的事件伪造 RPN。
+- 事件目标现在按整星 Capability 的 `operator.effects[].owner` 校验：反作用轮事件归 `project_rw_command_fault_manager`，陀螺事件归 `project_imu_fault_injector`，推进事件归 `project_propulsion_burn_controller`。这些是整星运行图内的实际事件执行器归属，不是把整星对象选择错误改成子系统。
+- 浏览器测试已改为通过向导显式启用 FMEA，并要求持久化 TaskSpec 保存 enabled/formats；事件目标断言从 Capability operator owner 动态读取，不硬编码 `whole_spacecraft`。
+- 经验：测试必须遵循产品的可选输出开关；能力对象层级与事件实现执行器层级是两个不同概念，验收应验证 canonical owner，而不是强行要求事件目标始终等于 capability target。
+- 相关修复提交：`37b96c9`（向导 FMEA 控件）、`275157e`（TaskSpec 绑定）、`b757a7e`（浏览器真实流程与事件 owner 断言）。最新同头官方验收尚待结果。
