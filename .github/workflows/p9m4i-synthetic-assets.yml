@@ -87,7 +87,21 @@ jobs:
           assert nasa_source["source_sha256"] == "458cd3da892e5d0e75272fc9ee3b931b2c73f8eedecb03caa8d6bd21409fdfad"
           assert nasa_source["source_size_bytes"] == 4124658
           assert nasa_source["source_dimensions_px"] == [4032, 3024]
-          assert nasa_source["source_intake_artifact"]["workflow_run_id"] == 44482953922
+          assert nasa_source["source_bytes_retained_in_current_ci"] is False
+          receipt_artifact = nasa_source["source_intake_receipt_artifact"]
+          assert receipt_artifact["artifact_name"] == "p9m4i-nasa-star-tracker-intake-receipt"
+          assert receipt_artifact["artifact_contents"] == ["source-intake.json"]
+          assert receipt_artifact["contains_source_bytes"] is False
+          assert receipt_artifact["retention_days"] == 7
+          superseded_artifacts = nasa_source["superseded_public_source_artifacts"]
+          assert {(item["workflow_run_id"], item["artifact_id"]) for item in superseded_artifacts} == {
+              (44482953922, 14509376634),
+              (44485479649, 14510716115),
+          }
+          assert all(
+              item["contains_source_bytes"] is True and item["status"] == "delete_required"
+              for item in superseded_artifacts
+          )
           assert nasa_source["eligible_for_inference"] is False
           controls = {x["engineering_object_id"]: x for x in data["objects"] if x.get("benchmark_role") == "real_reference_control_only"}
           assert set(controls) == {"component.battery", "component.reaction_wheel"}
@@ -107,9 +121,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - name: Fetch exact NASA star-tracker mock-up source and record SHA-256
+      - name: Fetch and hash NASA source in memory (receipt only)
         run: |
-          python scripts/cad/fetch_p9m4i_source_image.py --output-dir reports/p9m4i/source-intake
+          python scripts/cad/fetch_p9m4i_source_image.py --output-dir reports/p9m4i/source-intake --receipt-only
       - name: Verify source intake receipt against pinned benchmark
         run: |
           python - <<'PY'
@@ -122,14 +136,15 @@ jobs:
           assert receipt["size_bytes"] == source["source_size_bytes"]
           assert [receipt["width_px"], receipt["height_px"]] == source["source_dimensions_px"]
           assert receipt["sha256_pinned"] is True
+          assert receipt["source_bytes_retained"] is False
           assert receipt["inference_eligible"] is False
           assert receipt["source_rights_assessment"]["status"] == "policy_basis_found_pending_project_owner_signoff"
           print("P9M4I_NASA_SOURCE_INTAKE_PINNED:1", receipt["sha256"], receipt["size_bytes"])
           PY
-      - name: Upload source bytes and intake receipt
+      - name: Upload metadata-only source intake receipt
         uses: actions/upload-artifact@v4
         with:
-          name: p9m4i-nasa-star-tracker-source-intake
-          path: reports/p9m4i/source-intake/**
+          name: p9m4i-nasa-star-tracker-intake-receipt
+          path: reports/p9m4i/source-intake/source-intake.json
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
