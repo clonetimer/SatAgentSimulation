@@ -28,3 +28,10 @@ Corrections:
 ## Acceptance state
 
 The two fixes and this record are committed to the P9-M4-I feature branch. Final acceptance requires the latest same-head Ubuntu and Windows jobs to pass. The pilot benchmark remains `pilot_specification_not_yet_executed` until a permitted source image and isolated GPU inference are available.
+## Same-head CI closure (2026-11-19)
+
+- Final code head for this correction: `aaef2e03417bcff3de90de7117698a511286e429`.
+- Official workflow `44475016651` passed on both Ubuntu 24.04 and Windows 2022: 32 passed on each OS; benchmark manifest gate passed on both.
+- The first zero-extent regression fixture itself initially failed earlier in GLB parsing because a byte-string escape was nested differently in the ordinary Python helper and the triple-quoted fake-worker source. The ordinary helper now writes the four-byte BIN chunk marker using a true NUL byte; the embedded fake-worker source keeps the extra source-level escaping required by its outer triple-quoted string.
+- This preserved the auditor's original zero-extent rejection and added a deterministic regression for it. Windows UTF-8 CLI help also passed.
+- CI success validates schemas, the GLB auditor, worker orchestration with a fake model checkout, and benchmark metadata. It does **not** mean TripoSR inference has run or that a star-tracker model exists.
