@@ -662,7 +662,8 @@
       "evidence_fields": [
         "comm.active",
         "comm.downlink_bps",
-        "comm.downlinked_bits"
+        "comm.downlinked_bits",
+        "data.storage_bits"
       ],
       "runtime_assertions": [
         {
@@ -732,7 +733,8 @@
       "executable": true,
       "evidence_fields": [
         "eps.solar_array_efficiency_ratio",
-        "eps.solar_array_power_w"
+        "eps.solar_array_power_w",
+        "eps.battery_soc"
       ],
       "runtime_assertions": [
         {
