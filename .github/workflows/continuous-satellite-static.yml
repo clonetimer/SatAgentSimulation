@@ -5,6 +5,13 @@ on:
     paths:
       - "src/sat_sim/interactive/**"
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/integration/resource_feedback.py"
+      - "src/whole_spacecraft/builder.py"
+      - "src/whole_spacecraft/runner.py"
+      - "src/whole_spacecraft/schemas.py"
+      - "tests/test_downlink_antenna_status_adapter.py"
+      - "tests/test_composite_native_comm_antenna_power.py"
+      - "tests/test_runtime_evidence_status_thermal_rf.py"
       - "src/sat_sim/web/**"
       - "src/sat_sim/schemas/interactive_session.schema.json"
       - "tests/interactive/test_continuous_session.py"
@@ -32,6 +39,13 @@ jobs:
             src/sat_sim/interactive/unified_runtime.py \
             src/sat_sim/interactive/manager.py \
             src/sat_sim/bsk_engine/unified_native.py \
+            src/integration/resource_feedback.py \
+            src/whole_spacecraft/builder.py \
+            src/whole_spacecraft/runner.py \
+            src/whole_spacecraft/schemas.py \
+            tests/test_downlink_antenna_status_adapter.py \
+            tests/test_composite_native_comm_antenna_power.py \
+            tests/test_runtime_evidence_status_thermal_rf.py \
             tests/interactive/test_continuous_session.py
       - name: Validate frontend JavaScript
         run: node --check src/sat_sim/web/app.js
