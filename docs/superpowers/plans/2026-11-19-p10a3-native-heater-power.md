@@ -1,4 +1,4 @@
-# P10-A3: Native thermal-heater power coupling
+# P10-A3: Native thermal-heater electrical power coupling
 
 Date: 2026-11-19
 
@@ -6,38 +6,34 @@ Status: implementation candidate on `feat/p10a3-native-heater-power-20261119`; s
 
 ## Objective
 
-Remove the project-owned `HeaterPowerFeedback` aggregation bridge from the active whole-spacecraft native thermal-network path. Represent each binary thermal heater as an official Basilisk `SimplePowerSink` whose `nodeStatusInMsg` subscribes directly to that heater's `heaterOutMsg`.
-
-This is a fixed-load electrical model for a binary heater. It does not claim heater resistance, PWM, voltage/current dynamics, thermostat circuit behavior, or calibrated hardware parameters.
+Remove the project-owned `HeaterPowerFeedback` aggregation bridge from the active whole-spacecraft native thermal-network path. Connect each thermal heater's existing `electricalPowerOutMsg` directly to the official Basilisk `SimpleBattery`.
 
 ## Baseline and rationale
 
-- The native thermal network already emits one `DeviceStatusMsg` per heater and exposes the configured heater power in watts.
-- Basilisk `SimplePowerSink` supports an optional `nodeStatusInMsg`; status 0 disables the fixed power node and status 1 enables it.
-- The previous `HeaterPowerFeedback` was a project-owned status-to-`PowerNodeUsageMsg` equation. No continuous or analog power computation is required for this binary heater profile.
-- The native thermal-network branch is the target. The reduced legacy thermal branch remains explicitly on the existing bridge until separately migrated; do not relabel that fallback as native.
+- `ThermalHeater` already publishes three distinct outputs: binary `heaterOutMsg`, deposited thermal power `powerOutMsg`, and actual electrical load `electricalPowerOutMsg`.
+- `electricalPowerOutMsg` is computed from the heater's actual on/off state, configured rated power, and runtime `power_scale`; it is not a reconstructed nominal-wattage estimate.
+- The prior `HeaterPowerFeedback` reread the heater's binary state and reconstructed the load from nominal `params.power_w`, which could diverge from the component's scaled electrical output.
+- The active native thermal-network path should consume the component-owned electrical output directly. The reduced legacy thermal branch remains on the existing bridge until separately migrated; do not relabel that fallback as native.
 
 ## Implementation
 
-1. Create one official `SimplePowerSink` per thermal-network heater with `nodePowerOut=-heater.params.power_w`.
-2. Subscribe each sink's official `nodeStatusInMsg` directly to the matching `heater.heaterOutMsg`.
-3. Add every official sink output to the native `SimpleBattery`.
-4. Record each heater power-node output separately and aggregate the measured recorder values into `heater_eps_load_w` and electrical-energy accounting.
-5. Mark `thermal_heaters_to_eps_load` as `coupled` only for the native network path; preserve the explicit legacy fallback status for the reduced thermal branch.
-6. Add same-head tests for on/off behavior, per-heater load magnitude, PDU gating through the actual heater state, and paired battery response.
-7. Include the regression in P10-A, full native Basilisk, and static compile CI workflows.
+1. Connect each native thermal heater's `electricalPowerOutMsg` directly to `battery.addPowerNodeToModel`.
+2. Preserve the heater's PDU enable input and thermal state model unchanged.
+3. Record each heater electrical output independently and aggregate measured recorder values into `heater_eps_load_w` and electrical-energy accounting.
+4. Mark `thermal_heaters_to_eps_load` as `coupled` only for the native network path; preserve the explicit legacy fallback status for the reduced thermal branch.
+5. Add same-head tests for on/off behavior, rated-load scaling, and paired battery response.
+6. Include the regression in P10-A, full native Basilisk, and static compile CI workflows.
 
 ## Acceptance gates
 
-- Official upstream Basilisk 2.11.0, not a mock.
-- Each native thermal-network heater has exactly one official `SimplePowerSink`.
-- Each sink's `nodeStatusInMsg` is linked to the matching heater output.
-- Heater ON produces exactly the configured negative load; heater OFF produces 0 W.
+- Official upstream Basilisk 2.11.0 execution, not a mock.
+- Every native thermal-network heater output is attached exactly once to the official `SimpleBattery`.
+- Heater ON produces `-rated_power * power_scale`; heater OFF produces 0 W.
 - Paired ON/OFF runs show the expected load difference in the native battery after the task feedback boundary.
-- Summary telemetry and Run Bundle evidence expose the sum of actual per-node recorder outputs, not a presentation-only estimate.
+- Summary telemetry and Run Bundle evidence expose the sum of actual per-node recorder outputs.
 - Native thermal-network path no longer instantiates `HeaterPowerFeedback`; reduced legacy thermal path remains unchanged and explicitly proxy-classified.
 - Existing thermal temperature response, PDU heater permission, thermal faults, battery, Comm, ADCS, propulsion and whole-spacecraft regressions remain green.
 
 ## Model boundary
 
-The configured heater wattage is an engineering assumption. This migration changes the Basilisk power-node implementation, not the source or calibration quality of the heater rating. It does not qualify the heater hardware or flight thermal design.
+The configured heater wattage and power scaling remain engineering-model parameters. This migration uses the thermal component's actual electrical output but does not qualify the heater hardware, resistance, PWM electronics, or flight thermal design.
