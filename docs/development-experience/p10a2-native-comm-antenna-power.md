@@ -41,3 +41,11 @@ The first PR run exposed that the new adapter was defined only inside the Basili
 ## Reset-barrier correction from first native CI
 
 The first full Basilisk run showed that the t=0 row is not merely a possible `NOT_READY` input: reset ordering can leave the official AntennaPower node's first recorder value at its pre-update TX draw while the adapter publishes an idle status. That is a reset-barrier artifact, not a runtime causal sample. The health audit now excludes the complete t=0 row (power, TX/idle status and PDU transition counts) and strictly checks every positive-time sample. This avoids false failures without relaxing runtime checks.
+
+
+## CI correction: first-tick barrier and composite scheduler order
+
+- The first P10-A2 CI run found that the unified-native power recorder could expose the antenna's initial TX state at exactly t=0 before the status-only adapter's first scheduled update. The native power audit now treats only that single initialization sample as a barrier; every later sample is still checked for exact PDU/TX/idle/power agreement.
+- Basilisk `PowerNodeBase` defaults to enabled. Both native AntennaPower and the composite idle SimplePowerSink are now explicitly initialized disabled, then enabled only by their status messages.
+- The composite graph previously relied on implicit same-priority insertion order. That allowed the idle 2 W sink to overlap a TX sample and made PDU-off behavior nondeterministic. It now uses the same explicit dependency ordering as unified-native: RF geometry/link budget (58–56), battery/PDU (50/49), mission gate (45), instrument/storage/DownlinkHandling (40/39/38), status adapter (37), and official power nodes (36). RW nodes remain after PDU at priority 48.
+- The whole-spacecraft composite runner's exact official-module counts were stale from the earlier P10-A1B per-wheel migration; they now include the three per-wheel ReactionWheelPower nodes plus P10-A2's official AntennaPower and idle SimplePowerSink.
