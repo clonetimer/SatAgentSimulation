@@ -1256,6 +1256,7 @@ operator:
     - comm.active
     - comm.downlink_bps
     - data.storage_bits
+    - data.downlinked_bits
     verification: declared
   - effect_id: eps_battery_capacity_loss
     kind: fault
