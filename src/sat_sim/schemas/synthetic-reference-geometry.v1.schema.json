@@ -111,6 +111,55 @@
               },
               "locator": {
                 "type": "string"
+              },
+              "license": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "permitted_uses",
+                  "evidence_uri",
+                  "reviewer",
+                  "review_date"
+                ],
+                "properties": {
+                  "status": {
+                    "const": "approved"
+                  },
+                  "permitted_uses": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "model_generation",
+                        "internal_preview",
+                        "external_distribution"
+                      ]
+                    },
+                    "allOf": [
+                      {
+                        "contains": {
+                          "const": "model_generation"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "internal_preview"
+                        }
+                      }
+                    ]
+                  },
+                  "evidence_uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "review_date": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
               }
             }
           }
@@ -168,5 +217,34 @@
     "interface_evidence": {
       "type": "array"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "generation_method": {
+            "enum": [
+              "image_to_3d",
+              "multiview_reconstruction"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "source_inputs": {
+                "items": {
+                  "required": [
+                    "license"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
