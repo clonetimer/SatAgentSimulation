@@ -44,16 +44,25 @@ def test_downlink_antenna_status_adapter_gates_tx_and_idle(
     downlink_payload.deliveredDataRate = delivered
     downlink_msg = messaging.DownlinkHandlingMsg().write(downlink_payload)
 
+    antenna_payload = messaging.AntennaLogMsgPayload()
+    antenna_payload.antennaState = 2
+    antenna_payload.P_Tx = 5.0
+    antenna_payload.P_Rx = 1.0
+    antenna_msg = messaging.AntennaLogMsg().write(antenna_payload)
+
     adapter = DownlinkAntennaStatusAdapter(
         "downlinkAntennaStatusAdapter",
         downlink_msg=downlink_msg,
         enable_status_msg=pdu_msg,
+        antenna_msg=antenna_msg,
     )
     sim.AddModelToTask("P10A2Task", adapter)
     tx_rec = adapter.txStatusOutMsg.recorder()
     idle_rec = adapter.idleStatusOutMsg.recorder()
+    antenna_rec = adapter.antennaPowerOutMsg.recorder()
     sim.AddModelToTask("P10A2Task", tx_rec)
     sim.AddModelToTask("P10A2Task", idle_rec)
+    sim.AddModelToTask("P10A2Task", antenna_rec)
 
     sim.InitializeSimulation()
     sim.ConfigureStopTime(macros.sec2nano(0.4))
@@ -65,6 +74,8 @@ def test_downlink_antenna_status_adapter_gates_tx_and_idle(
     assert adapter.trace[-1].input_status is InputReadStatus.VALID
     assert adapter.trace[-1].tx_enabled is bool(expected_tx)
     assert adapter.trace[-1].idle_enabled is bool(expected_idle)
+    assert all(int(value) == (2 if expected_tx else 0) for value in antenna_rec.antennaState)
+    assert all(float(value) == pytest.approx(5.0) for value in antenna_rec.P_Tx)
 
 
 def test_downlink_antenna_status_adapter_rejects_nonfinite_rates_fail_closed():
@@ -80,11 +91,16 @@ def test_downlink_antenna_status_adapter_rejects_nonfinite_rates_fail_closed():
     downlink_payload.attemptedDataRate = math.nan
     downlink_payload.deliveredDataRate = 0.0
     downlink_msg = messaging.DownlinkHandlingMsg().write(downlink_payload)
+    antenna_payload = messaging.AntennaLogMsgPayload()
+    antenna_payload.antennaState = 2
+    antenna_payload.P_Tx = 5.0
+    antenna_msg = messaging.AntennaLogMsg().write(antenna_payload)
 
     adapter = DownlinkAntennaStatusAdapter(
         "downlinkAntennaStatusAdapter",
         downlink_msg=downlink_msg,
         enable_status_msg=pdu_msg,
+        antenna_msg=antenna_msg,
     )
     sim.AddModelToTask("P10A2InvalidTask", adapter)
     tx_rec = adapter.txStatusOutMsg.recorder()
