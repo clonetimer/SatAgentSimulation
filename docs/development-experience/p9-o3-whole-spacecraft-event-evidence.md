@@ -167,3 +167,12 @@
 - 已将该事件的物理断言采样点改为最接近 t=6 s 的活动遥测样本，并显式断言采样时刻处于 `[5, 7)` s。命令 on-time 仍要求 2 s、名义 on-time 8 s、推力和推进剂消耗均要求为正；没有放宽物理断言。
 - 经验：瞬态效应的浏览器验收必须按物理作用窗口取样，不能用事件标签仍 active 的末端样本替代实际执行器作用时刻。
 - 修复提交 `d55c3c3255c185b6226f7363e3aa273d82674fb7`；同头 Chromium + 10+9 sealed archive audit 尚待重跑。
+## O3-B/C/D 最终同头验收与 Artifact 独立复核（2026-11-19）
+
+- PR #190 已合并，merge commit `5ae1a700c570885d20736912d3414c69b8a3b867`；重复候选 PR #189 已关闭，避免维护两套 O3 分支。
+- 最终同头 `e4470577f00dbd418696479b039f18ed01d496aa` 的官方 Basilisk 2.11.0 workflow `44466478405` 全部 26 个适用步骤 PASS。O3-B 八类整星事件 paired A/B、两组 nominal sealed Run Bundle、真实姿态闭环；O3-C 22 条 guided Chromium tests（0 failure / 0 error / 0 skipped）；O3-D 10 个物理 sealed Run Bundle、9 个浏览器下载 ZIP 和 9 个 sidecar 的完整性审计均通过。
+- Artifact `native-component-physical-evidence`（ID `14502393583`，3,582,665 bytes）下载后独立复核：493 个 ZIP entries；10/10 物理 bundle 的 SEALED、manifest SHA-256 和逐文件 SHA-256 全部匹配；9/9 浏览器 ZIP 与 9/9 sidecar 的 ZIP、manifest、seal 和逐文件 SHA-256 全部匹配，0 integrity issue。
+- Artifact 内 JUnit：`effect_ab.xml` 9 tests / 0 failures / 0 errors / 0 skipped；`guided_browser_journeys.xml` 22 tests / 0 failures / 0 errors / 0 skipped。整星 ADCS nominal 30 s trace 的真实姿态误差从 8.00° 降至 4.8996719767°，`adcs_truth_closed_loop_improved=true`；MRP-to-angle 数值交叉检查通过。
+- 推进冲量退化的最终浏览器测试改在 5–7 s 实际燃烧窗口内取样，artifact telemetry 证实 2 s burn command、峰值推力 10 N、推进剂消耗为正（约 0.00493 kg）。该修复保留了物理断言，纠正的是测试采样窗口，而非放宽通过条件。
+- 经验归纳：① 真实姿态闭环必须基于官方 Spacecraft 状态，不能只看估计反馈误差；② 瞬态故障/退化要在实际物理作用窗口取样，事件标签持续时间不等于执行器持续作用时间；③ 浏览器必须执行真实异步 Run 并归档原始 ZIP，不能用目录渲染或 fixture 代替；④ sidecar 状态必须绑定真实 Run integrity 结果；⑤ 能力作用域与事件执行器 owner 必须分开校验。
+- 维持声明边界：整星 Capability 仍为 `engineering_preview` / `agent_ready_candidate`；四个（推进时五个）工程代理功率桥、项目自有 ADCS 注入 SysModel、单次推进脉冲模型等限制继续披露，不升级为 flight validation 或全官方原生耦合声明。
