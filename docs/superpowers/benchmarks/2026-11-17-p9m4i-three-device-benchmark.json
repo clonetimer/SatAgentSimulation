@@ -212,5 +212,28 @@
       }
     ],
     "execution_gate": "No inference until source image bytes, SHA-256, provenance locator and explicit model-generation/display permission are verified."
-  }
+  },
+  "candidate_image_sources": [
+    {
+      "source_id": "nasa_europa_clipper_star_tracker_mockup_2025",
+      "source_page_uri": "https://science.nasa.gov/missions/europa-clipper/europa-clipper-resources/3d-printed-star-tracker-mock-up/",
+      "source_image_uri": "https://assets.science.nasa.gov/content/dam/science/missions/europa-clipper/images/Star-Tracker-3D-Print-Full.JPG",
+      "source_credit": "NASA/JPL-Caltech",
+      "source_description": "3D-printed mock-up of Europa Clipper stellar reference unit optical head and shielding; used for fit/tool-access checks, not flight hardware geometry.",
+      "published_asset_date": "2025-05-29",
+      "media_format": "image/jpeg",
+      "reported_size_mb": 2.49,
+      "usage_policy_uri": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "usage_policy_summary": "NASA media guidelines generally allow non-commercial educational/informational use, including computer graphical simulations and media used in 3D-model rendition; third-party copyright-protected assets must be identified and separately cleared.",
+      "license_assessment_status": "candidate_pending_exact_media_rights_review",
+      "source_bytes_obtained": false,
+      "source_sha256": null,
+      "eligible_for_inference": false,
+      "limitations": [
+        "generic Europa Clipper mock-up, not the target satellite's confirmed star-tracker model",
+        "single perspective image provides no engineering scale, mounting interface, aperture dimensions or boresight",
+        "no TripoSR inference until original bytes, SHA-256 and source-specific rights review are recorded"
+      ]
+    }
+  ]
 }
