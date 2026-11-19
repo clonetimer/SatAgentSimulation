@@ -1,7 +1,7 @@
 # P10-A2: Native Comm/Data antenna power coupling
 
 Date: 2026-11-19
-Status: implementation committed on feat/p10a2-native-comm-antenna-power-20261119; same-head Basilisk integration acceptance pending
+Status: COMPLETE — merged to main in PR #193 (2026-11-19); official Basilisk 2.11.0 same-head acceptance passed.
 
 ## Objective
 
